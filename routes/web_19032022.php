@@ -1,0 +1,4100 @@
+<?php
+
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminController;
+use Illuminate\Support\Facades\Event;
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
+|
+*/
+
+
+Auth::routes();
+
+Route::group(['middleware' => 'usersession'], function () {
+    Route::get('/', function () {
+        // Uses User Session Middleware
+    });
+});
+
+Route::get('/dashboard-history-proforma', function () {
+    return view('dashboard.history-proforma');
+});
+Route::get('/xml-dashboard-history-proforma', function () {
+    return view('dashboard.xml.history-proforma');
+});
+
+Route::get('/dashboard-report-proforma', function () {
+    return view('dashboard.report-proforma');
+});
+Route::get('/xml-dashboard-report-proforma', function () {
+    return view('dashboard.xml.report-proforma');
+});
+
+Route::get('/dashboard-sales-po', function () {
+    return view('dashboard.sales-po');
+});
+Route::get('/xml-dashboard-sales-po', function () {
+    return view('dashboard.xml.sales-po');
+});
+
+
+
+Route::get('/privilege-information', function () {
+    return view('privilege-information');
+});
+Route::get('/change-password', function () {
+    return view('change-password');
+});
+Route::post('/change-password-submit', function () {
+    return view('change-password-submit');
+});
+//Route::get('/', 'AdminController@index');
+Route::get('/', [AdminController::class, 'index']);
+Route::post('/logpost', function () {
+    return view('/user/logproc');
+});
+Route::get('/home-dashboard', function () {
+    return view('home-dashboard');
+});
+Route::get('/home-sales', function () {
+    return view('home-sales');
+});
+Route::get('/home-credential', function () {
+    return view('home-credential');
+});
+Route::get('/home-mymenu', function () {
+    return view('home-mymenu');
+});
+Route::get('/home-finance', function () {
+    return view('home-finance');
+});
+Route::get('/home-accounting', function () {
+    return view('home-accounting');
+});
+Route::get('/home-procurement', function () {
+    return view('home-procurement');
+});
+Route::get('/home-asset', function () {
+    return view('home-asset');
+});
+Route::get('/home-hrd', function () {
+    return view('home-hrd');
+});
+Route::get('/home-project', function () {
+    return view('home-project');
+});
+Route::get('/mailingcheck', function () {
+    return view('scheduler.mailer');
+});
+Route::get('/recurring', function () {
+    return view('scheduler.recurring');
+});
+Route::get('/approvalpr', function () {
+    return view('scheduler.approvepr');
+});
+
+Route::get('/approvepr', function () {
+    return view('scheduler.approvepr');
+});
+Route::get('/approvalpo', function () {
+    return view('scheduler.approvepo');
+});
+Route::get('/approveproforma', function () {
+    return view('scheduler.approveproforma');
+});
+Route::get('/approvalreimbursement', function () {
+    return view('scheduler.approvalreimbursement');
+});
+Route::get('/approvalreimbursement_approve', function () {
+    return view('scheduler.approvalreimbursement_approve');
+});
+Route::get('/approvalreimbursement_reject', function () {
+    return view('scheduler.approvalreimbursement_reject');
+});
+Route::get('/approvalreimbursement2', function () {
+    return view('scheduler.approvalreimbursement2');
+});
+Route::get('/approvalreimbursement2_approve', function () {
+    return view('scheduler.approvalreimbursement2_approve');
+});
+Route::get('/approvalreimbursement2_reject', function () {
+    return view('scheduler.approvalreimbursement2_reject');
+});
+Route::get('/approvalreimbursement3', function () {
+    return view('scheduler.approvalreimbursement3');
+});
+Route::get('/approvalreimbursement3_approve', function () {
+    return view('scheduler.approvalreimbursement3_approve');
+});
+Route::get('/approvalreimbursement3_reject', function () {
+    return view('scheduler.approvalreimbursement3_reject');
+});
+Route::get('/approvalreimbursement4', function () {
+    return view('scheduler.approvalreimbursement4');
+});
+Route::get('/approvalreimbursement4_approve', function () {
+    return view('scheduler.approvalreimbursement4_approve');
+});
+Route::get('/approvalreimbursement4_reject', function () {
+    return view('scheduler.approvalreimbursement4_reject');
+});
+
+
+Route::get('/approvalbankadvance', function () {
+    return view('scheduler.approvalbankadvance');
+});
+Route::get('/approvalbankadvance_approve', function () {
+    return view('scheduler.approvalbankadvance_approve');
+});
+Route::get('/approvalbankadvance_reject', function () {
+    return view('scheduler.approvalbankadvance_reject');
+});
+Route::get('/approvalbankadvance2', function () {
+    return view('scheduler.approvalbankadvance2');
+});
+Route::get('/approvalbankadvance2_approve', function () {
+    return view('scheduler.approvalbankadvance2_approve');
+});
+Route::get('/approvalbankadvance2_reject', function () {
+    return view('scheduler.approvalbankadvance2_reject');
+});
+Route::get('/approvalbankadvance3', function () {
+    return view('scheduler.approvalbankadvance3');
+});
+Route::get('/approvalbankadvance3_approve', function () {
+    return view('scheduler.approvalbankadvance3_approve');
+});
+Route::get('/approvalbankadvance3_reject', function () {
+    return view('scheduler.approvalbankadvance3_reject');
+});
+Route::get('/approvalbankadvance4', function () {
+    return view('scheduler.approvalbankadvance4');
+});
+Route::get('/approvalbankadvance4_approve', function () {
+    return view('scheduler.approvalbankadvance4_approve');
+});
+Route::get('/approvalbankadvance4_reject', function () {
+    return view('scheduler.approvalbankadvance4_reject');
+});
+
+Route::get('/approvalapvendor', function () {
+    return view('scheduler.approvalapvendor');
+});
+Route::get('/approvalapvendor_approve', function () {
+    return view('scheduler.approvalapvendor_approve');
+});
+Route::get('/approvalapvendor_reject', function () {
+    return view('scheduler.approvalapvendor_reject');
+});
+
+Route::get('/approvalapvendor2', function () {
+    return view('scheduler.approvalapvendor2');
+});
+Route::get('/approvalapvendor2_approve', function () {
+    return view('scheduler.approvalapvendor2_approve');
+});
+Route::get('/approvalapvendor2_reject', function () {
+    return view('scheduler.approvalapvendor2_reject');
+});
+
+Route::get('/approvalapvendor3', function () {
+    return view('scheduler.approvalapvendor3');
+});
+Route::get('/approvalapvendor3_approve', function () {
+    return view('scheduler.approvalapvendor3_approve');
+});
+Route::get('/approvalapvendor3_reject', function () {
+    return view('scheduler.approvalapvendor3_reject');
+});
+Route::get('/approvalpo_approve', function () {
+    return view('scheduler.approvepo_approve');
+});
+Route::get('/approvalpo_reject', function () {
+    return view('scheduler.approvepo_reject');
+});
+Route::get('/approveproformafinal', function () {
+    return view('scheduler.approveproformafinal');
+});
+Route::get('/approvalreceiveinvoice', function () {
+    return view('scheduler.approvalreceiveinvoice');
+});
+Route::get('/approveproformafinal_approve', function () {
+    return view('scheduler.approveproformafinal_approve');
+});
+Route::get('/approveproforma_approve', function () {
+    return view('scheduler.approveproforma_approve');
+});
+Route::get('/approveproforma_reject', function () {
+    return view('scheduler.approveproforma_reject');
+});
+Route::get('/approvalpr_approve', function () {
+    return view('scheduler.approvepr_approve');
+});
+Route::get('/approvalpr_reject', function () {
+    return view('scheduler.approvepr_reject');
+});
+
+Route::get('/asset-lists-sub-category', function () {
+    return view('assets.lists-sub-category');
+});
+Route::get('/asset-lists-sub-sub-category', function () {
+    return view('assets.lists-sub-sub-category');
+});
+
+Route::get('/asset-lists-new', function () {
+    return view('assets.lists-new');
+});
+
+Route::post('/asset-lists-new-submit', function () {
+    return view('assets.lists-new-submit');
+});
+
+Route::get('/asset-lists', function () {
+    return view('assets.lists');
+});
+Route::get('/xml-asset-lists', function () {
+    return view('assets.xml.lists');
+});
+
+Route::get('/credential-role', function () {
+    return view('credential.role');
+});
+Route::get('/xml-credential-role', function () {
+    return view('credential.xml.role');
+});
+Route::get('/credential-role-detail', function () {
+    return view('credential.role-detail');
+});
+Route::post('/credential-role-detail-submit', function () {
+    return view('credential.role-detail-submit');
+});
+
+Route::get('/accounting-project-posting', function () {
+    return view('accounting.project-posting');
+});
+
+Route::post('/accounting-project-posting-update', function () {
+    return view('accounting.project-posting-update');
+});
+Route::get('/accounting-project-posting-detail', function () {
+    return view('accounting.project-posting-detail');
+});
+Route::get('/xml-accounting-project-posting', function () {
+    return view('accounting.xml.project-posting');
+});
+Route::post('/accounting-project-posting-detail-submit', function () {
+    return view('accounting.project-posting-detail-submit');
+});
+Route::post('/accounting-project-posting-detail-ignore', function () {
+    return view('accounting.project-posting-detail-ignore');
+});
+Route::get('/accounting-project-posted', function () {
+    return view('accounting.project-posted');
+});
+Route::get('/xml-accounting-project-posted', function () {
+    return view('accounting.xml.project-posted');
+});
+Route::get('/accounting-project-posted-detail', function () {
+    return view('accounting.project-posted-detail');
+});
+Route::get('/accounting-master-location', function () {
+    return view('accounting.master-location');
+});
+Route::get('/xml-accounting-master-location', function () {
+    return view('accounting.xml.master-location');
+});
+Route::post('/master-location-submit', function () {
+    return view('accounting.master-location-submit');
+});
+Route::get('/accounting-master-vendor', function () {
+    return view('accounting.master-vendor');
+});
+Route::post('/accounting-master-vendor-update', function () {
+    return view('accounting.master-vendor-update');
+});
+Route::get('/xml-accounting-master-vendor', function () {
+    return view('accounting.xml.master-vendor');
+});
+
+Route::get('/accounting-master-benefit', function () {
+    return view('accounting.master-benefit');
+});
+Route::get('/xml-accounting-master-benefit', function () {
+    return view('accounting.xml.master-benefit');
+});
+Route::post('/accounting-master-benefit-update', function () {
+    return view('accounting.master-benefit-update');
+});
+Route::get('/xml-finance-coa', function () {
+    return view('finance.xml.combo-coa');
+});
+Route::get('/accounting-master-bank', function () {
+    return view('accounting.master-bank');
+});
+Route::post('/master-bank-update', function () {
+    return view('accounting.master-bank-update');
+});
+Route::get('/accounting-master-customer', function () {
+    return view('accounting.customer');
+});
+Route::get('/xml-accounting-master-customer', function () {
+    return view('accounting.xml.customer');
+});
+Route::post('/accounting-master-customer-update', function () {
+    return view('accounting.master-customer-update');
+});
+Route::get('/accounting-master-coa', function () {
+    return view('accounting.master-coa');
+});
+Route::get('/xml-accounting-master-coa', function () {
+    return view('accounting.xml.master-coa');
+});
+Route::get('/xml-accounting-master-bank', function () {
+    return view('accounting.xml.master-bank');
+});
+Route::get('/accounting-journal-transaction', function () {
+    return view('accounting.journal-transaction');
+});
+Route::get('/accounting-journal-transaction-process', function () {
+    return view('accounting.journal-transaction-process');
+});
+Route::post('/journal-transaction-update', function () {
+    return view('accounting.journal-transaction-update');
+});
+Route::get('/xml-accounting-journal-transaction', function () {
+    return view('accounting.xml.journal-transaction');
+});
+Route::get('/xml-accounting-journal-transaction-posted', function () {
+    return view('accounting.xml.journal-transaction-posted');
+});
+Route::get('/accounting-journal-transaction-upload', function () {
+    return view('accounting.journal-transaction-upload');
+});
+Route::get('/accounting-journal-transaction-detail', function () {
+    return view('accounting.journal-transaction-detail');
+});
+Route::get('/accounting-journal-transaction-detail-posted', function () {
+    return view('accounting.journal-transaction-detail-posted');
+});
+Route::get('/xml-accounting-journal-transaction-detail', function () {
+    return view('accounting.xml.journal-transaction-detail');
+});
+Route::get('/xml-accounting-journal-transaction-detail-tb', function () {
+    return view('accounting.xml.journal-transaction-detail-tb');
+});
+Route::get('/xml-accounting-journal-transaction-detail-log', function () {
+    return view('accounting.xml.journal-transaction-detail-log');
+});
+Route::post('/accounting-journal-transaction-detail-submit', function () {
+    return view('accounting.journal-transaction-detail-submit');
+});
+Route::get('/accounting-journal-transaction-detail-final-submit', function () {
+    return view('accounting.journal-transaction-detail-final-submit');
+});
+Route::get('/accounting-journal-transaction-detail-final-submit', function () {
+    return view('accounting.journal-transaction-detail-final-submit');
+});
+Route::get('/accounting-journal-posted', function () {
+    return view('accounting.journal-transaction-posted');
+});
+Route::get('/accounting-report-general-ledgers', function () {
+    return view('accounting.report.general-ledgers');
+});
+Route::get('/xml-accounting-report-general-ledgers', function () {
+    return view('accounting.report.xml.general-ledgers');
+});
+Route::get('/accounting-report-balance', function () {
+    return view('accounting.report.balance');
+});
+Route::get('/xml-accounting-report-balance', function () {
+    return view('accounting.report.xml.balance');
+});
+Route::get('/accounting-report-trial-balance', function () {
+    return view('accounting.report.trial-balance');
+});
+Route::post('/export-excel-gen', function () {
+    return view('export.generate');
+});
+Route::get('/xml-accounting-report-trial-balance', function () {
+    return view('accounting.report.xml.trial-balance');
+});
+Route::get('/accounting-report-profit-and-loss', function () {
+    return view('accounting.report.profit-and-loss');
+});
+Route::get('/xml-accounting-report-profit-and-loss', function () {
+    return view('accounting.report.xml.profit-and-loss');
+});
+Route::get('/accounting-report-cash-flow', function () {
+    return view('accounting.report.cash-flow');
+});
+Route::get('/xml-accounting-report-cash-flow', function () {
+    return view('accounting.report.xml.cash-flow');
+});
+Route::get('/accounting-payroll-journal', function () {
+    return view('accounting.payroll.journal');
+});
+Route::get('/xml-accounting-payroll-journal', function () {
+    return view('accounting.payroll.xml.journal');
+});
+Route::get('/accounting-payroll-journal-detail', function () {
+    return view('accounting.payroll.journal-detail');
+});
+Route::get('/xml-accounting-payroll-journal-detail', function () {
+    return view('accounting.payroll.xml.journal-detail');
+});
+Route::get('/accounting-payroll-issued', function () {
+    return view('accounting.payroll.issued');
+});
+Route::get('/xml-accounting-payroll-issued', function () {
+    return view('accounting.payroll.xml.issued');
+});
+Route::get('/accounting-payroll-issued-detail', function () {
+    return view('accounting.payroll.issued-detail');
+});
+Route::get('/accounting-payroll-issued-posting', function () {
+    return view('accounting.payroll.issued-posting');
+});
+Route::get('/xml-accounting-payroll-issued-detail', function () {
+    return view('accounting.payroll.xml.issued-detail');
+});
+Route::get('/beginning-balance-upload', function () {
+    return view('accounting.beginning-balance-upload');
+});
+Route::get('/accounting-beginning-balance-upload-process', function () {
+    return view('accounting.beginning-balance-upload-process');
+});
+Route::get('/accounting-beginning-balance', function () {
+    return view('accounting.beginning-balance');
+});
+Route::get('/xml-beginning-balance', function () {
+    return view('accounting.xml.beginning-balance');
+});
+Route::get('/user/forgot-password', function () {
+    return view('/user/forgot-password');
+});
+Route::get('/sales-opportunity-addendum', function () {
+    return view('sales.opportunity-addendum');
+});
+Route::get('/opportunity-addendum-detail', function () {
+    return view('sales.opportunity-addendum-detail');
+});
+
+Route::post('/opportunity-addendum-detail-submit', function () {
+    return view('sales.opportunity-addendum-detail-submit');
+});
+Route::get('/sales-opportunity-outstanding', function () {
+    return view('sales.opportunity-outstanding');
+});
+Route::get('/sales-opportunity-active', function () {
+    return view('sales.opportunity-active');
+});
+Route::get('/xml-sales-opportunity-active', function () {
+    return view('sales.xml.opportunity-active');
+});
+Route::get('/sales-opportunity-pipeline', function () {
+    return view('sales.opportunity-pipeline');
+});
+Route::get('/xml-sales-opportunity-pipeline', function () {
+    return view('sales.xml.opportunity-pipeline');
+});
+
+Route::get('/sales-opportunity-pipeline-sales', function () {
+    return view('sales.opportunity-pipeline-sales');
+});
+Route::get('/xml-sales-opportunity-pipeline-sales', function () {
+    return view('sales.xml.opportunity-pipeline-sales');
+});
+Route::get('/sales-opportunity-pipeline-customer', function () {
+    return view('sales.opportunity-pipeline-customer');
+});
+Route::get('/opportunity-pipeline-customer-chart', function () {
+    return view('sales.opportunity-pipeline-customer-chart');
+});
+Route::get('/xml-sales-opportunity-pipeline-customer', function () {
+    return view('sales.xml.opportunity-pipeline-customer');
+});
+Route::get('/sales-opportunity-pipeline-customer2', function () {
+    return view('sales.opportunity-pipeline-customer2');
+});
+Route::get('/xml-sales-opportunity-pipeline-customer2', function () {
+    return view('sales.xml.opportunity-pipeline-customer2');
+});
+Route::get('/sales-opportunity-finalize-opportunity', function () {
+    return view('sales.opportunity-finalize');
+});
+Route::get('/xml-sales-opportunity-finalize', function () {
+    return view('sales.xml.opportunity-finalize');
+});
+Route::get('/xml-opportunity-outstanding', function () {
+    return view('sales.xml.opportunity-outstanding');
+});
+Route::get('/opportunity-outstanding-detail', function () {
+    return view('sales.opportunity-outstanding-detail');
+});
+Route::get('/sales-opportunity-job-requisition', function () {
+    return view('sales.opportunity-job-requisition');
+});
+Route::get('/xml-opportunity-job-requisition', function () {
+    return view('sales.xml.opportunity-job-requisition');
+});
+Route::get('/sales-opportunity-search', function () {
+    return view('sales.opportunity-search');
+});
+Route::get('/sales-opportunity-new', function () {
+    return view('sales.opportunity-new');
+});
+Route::post('/sales-opportunity-new-submit', function () {
+    return view('sales.opportunity-new-submit');
+});
+Route::get('/xml-sales-opportunity-new', function () {
+    return view('sales.xml.opportunity-new');
+});
+Route::get('/sales-customer-lists', function () {
+    return view('sales.customer-lists');
+});
+Route::get('/xml-sales-customer-lists', function () {
+    return view('sales.xml.customer-lists');
+});
+Route::post('/sales-proforma-initiate-update', function () {
+    return view('sales.proforma-initiate-update');
+});
+Route::get('/sales-proforma-initiate', function () {
+    return view('sales.proforma-initiate');
+});
+Route::get('/xml-sales-proforma-initiate', function () {
+    return view('sales.xml.proforma-initiate');
+});
+Route::get('/sales-proforma-approved', function () {
+    return view('sales.proforma-approved');
+});
+Route::get('/xml-sales-proforma-approved', function () {
+    return view('sales.xml.proforma-approved');
+});
+Route::get('/sales-proforma-posting', function () {
+    return view('sales.proforma-posting');
+});
+Route::get('/xml-sales-proforma-posting', function () {
+    return view('sales.xml.proforma-posting');
+});
+Route::get('/sales-proforma-posting-detail', function () {
+    return view('sales.proforma-posting-detail');
+});
+Route::post('/sales-proforma-posting-detail-update', function () {
+    return view('sales.proforma-posting-detail-update');
+});
+Route::get('/xml-sales-proforma-posting-detail', function () {
+    return view('sales.xml.proforma-posting-detail');
+});
+Route::get('/xml-sales-proforma-posting-detail2', function () {
+    return view('sales.xml.proforma-posting-detail2');
+});
+Route::get('/sales-proforma-attachment', function () {
+    return view('sales.proforma-attachment');
+});
+Route::get('/xml-sales-proforma-attachment', function () {
+    return view('sales.xml.proforma-attachment');
+});
+Route::get('/sales-proforma-attachment-detail', function () {
+    return view('sales.proforma-attachment-detail');
+});
+Route::get('/sales-proforma-attachment-detail', function () {
+    return view('sales.proforma-attachment-detail');
+});
+Route::get('/sales-proforma-attachment-upload', function () {
+    return view('sales.proforma-attachment-upload');
+});
+Route::post('/sales-proforma-attachment-detail-update', function () {
+    return view('sales.proforma-attachment-detail-update');
+});
+Route::get('/xml-sales-proforma-attachment-detail', function () {
+    return view('sales.xml.proforma-attachment-detail');
+});
+Route::get('/xml-sales-proforma-attachment-detail2', function () {
+    return view('sales.xml.proforma-attachment-detail');
+});
+
+
+Route::get('/fppdownload', function () {
+    return view('sales.prints.fppdownload');
+});
+Route::get('/finance-proforma-create-invoice', function () {
+    return view('finance.proforma-create-invoice');
+});
+Route::get('/xml-finance-proforma-create-invoice', function () {
+    return view('finance.xml.proforma-create-invoice');
+});
+Route::get('/xml-proforma-create-invoice-detail', function () {
+    return view('finance.xml.proforma-create-invoice-detail');
+});
+Route::get('/finance-proforma-create-invoice-detail', function () {
+    return view('finance.proforma-create-invoice-detail');
+});
+Route::post('/proforma-create-invoice-detail-update', function () {
+    return view('finance.proforma-create-invoice-detail-update');
+});
+Route::get('/xml-finance-proforma-create-invoice-detail', function () {
+    return view('finance.xml.proforma-create-invoice-detail');
+});
+Route::post('/finance-proforma-create-invoice-submit', function () {
+    return view('finance.proforma-create-invoice-submit');
+});
+Route::get('/finance-report-invoice-position', function () {
+    return view('finance.report-invoice-position');
+});
+Route::get('/xml-finance-invoice-position', function () {
+    return view('finance.xml.invoice-position-report');
+});
+Route::get('/finance-report-unbilled', function () {
+    return view('finance.report-unbilled');
+});
+Route::get('/xml-finance-report-unbilled', function () {
+    return view('finance.xml.report-unbilled');
+});
+Route::get('/finance-report-unbilled-po', function () {
+    return view('finance.report-unbilled-po');
+});
+Route::get('/xml-finance-report-unbilled-po', function () {
+    return view('finance.xml.report-unbilled-po');
+});
+Route::get('/finance-report-ar-aging', function () {
+    return view('finance.ar-report-aging');
+});
+Route::get('/xml-finance-ar-report-aging', function () {
+    return view('finance.xml.ar-aging-report');
+});
+Route::get('/finance-ar-history', function () {
+    return view('finance.ar-history');
+});
+Route::get('/xml-finance-ar-history', function () {
+    return view('finance.xml.ar-history');
+});
+Route::get('/ar-history-detail', function () {
+    return view('finance.ar-history-detail');
+});
+Route::get('/finance-reimbursement-detail', function () {
+    return view('finance.finance-reimbursement-detail');
+});
+Route::post('/my-reimbursement-update', function () {
+    return view('mymenu.reimbursement-update');
+});
+Route::get('/my-reimbursement-new', function () {
+    return view('mymenu.reimbursement-new');
+});
+Route::post('/my-reimbursement-new-update', function () {
+    return view('mymenu.reimbursement-new-update');
+});
+Route::get('/xml-my-reimbursement', function () {
+    return view('mymenu.xml.reimbursement');
+});
+Route::post('/my-reimbursement-new-submit', function () {
+    return view('mymenu.reimbursement-new-submit');
+});
+Route::get('/my-reimbursement-detail', function () {
+    return view('mymenu.reimbursement-detail');
+});
+Route::get('/xml-my-reimbursement-detail', function () {
+    return view('mymenu.xml.reimbursement-detail');
+});
+Route::get('/my-reimbursement-detail-coa', function () {
+    return view('mymenu.cash-out-detail-coa');
+});
+Route::get('/xml-my-reimbursement-detail-coa', function () {
+    return view('mymenu.xml.cash-out-detail-coa');
+});
+Route::post('/my-reimbursement-detail-update', function () {
+    return view('mymenu.cash-out-detail-update');
+});
+
+
+Route::get('/xml-finance-reimbursement-detail', function () {
+    return view('finance.xml.finance-reimbursement-detail');
+});
+Route::get('/finance-reimbursement-detail-reimbursement', function () {
+    return view('finance.finance-reimbursement-detail-reimbursement');
+});
+Route::get('/xml-finance-reimbursement-detail-reimbursement', function () {
+    return view('finance.xml.finance-reimbursement-detail-reimbursement');
+});
+Route::post('/finance-reimbursement-detail-reimbursement-submit', function () {
+    return view('finance.finance-reimbursement-detail-reimbursement-submit');
+});
+Route::get('/xml-finance-reimbursement-detail-reimbursement', function () {
+    return view('finance.xml.finance-reimbursement-detail-reimbursement');
+});
+Route::post('/finance-reimbursement-detail-update', function () {
+    return view('finance.finance-reimbursement-detail-update');
+});
+Route::get('/finance-reimbursement-out-add', function () {
+    return view('finance.finance-reimbursement-out-add');
+});
+Route::get('/finance-reimbursement-approval', function () {
+    return view('finance.finance-reimbursement-approval');
+});
+Route::get('/xml-finance-reimbursement-approval', function () {
+    return view('finance.xml.finance-reimbursement-approval');
+});
+Route::get('/finance-reimbursement-history', function () {
+    return view('finance.finance-reimbursement-history');
+});
+Route::get('/xml-finance-reimbursement-history', function () {
+    return view('finance.xml.finance-reimbursement-history');
+});
+Route::get('/finance-reimbursement-history-detail', function () {
+    return view('finance.finance-reimbursement-history-detail');
+});
+Route::get('/xml-finance-reimbursement-history-detail', function () {
+    return view('finance.xml.finance-reimbursement-history-detail');
+});
+Route::get('/finance-reimbursement2-approval', function () {
+    return view('finance.finance-reimbursement2-approval');
+});
+Route::get('/xml-finance-reimbursement2-approval', function () {
+    return view('finance.xml.finance-reimbursement2-approval');
+});
+Route::get('/finance-reimbursement2-approval-detail', function () {
+    return view('finance.finance-reimbursement2-detail-reimbursement');
+});
+Route::get('/xml-finance-reimbursement2-detail-reimbursement', function () {
+    return view('finance.xml.finance-reimbursement2-detail-reimbursement');
+});
+Route::post('/finance-reimbursement2-detail-reimbursement-submit', function () {
+    return view('finance.finance-reimbursement2-detail-reimbursement-submit');
+});
+Route::post('/finance-reimbursement2-detail-reimbursement-update', function () {
+    return view('finance.finance-reimbursement2-detail-reimbursement-update');
+});
+Route::get('/finance-reimbursement-history', function () {
+    return view('finance.finance-reimbursement-history');
+});
+Route::get('/xml-finance-reimbursement-history', function () {
+    return view('finance.xml.finance-reimbursement-history');
+});
+Route::get('/finance-reimbursement-history-detail', function () {
+    return view('finance.finance-reimbursement-history-detail');
+});
+Route::get('/xml-finance-reimbursement-history-detail', function () {
+    return view('finance.xml.finance-reimbursement-history-detail');
+});
+
+Route::get('/finance-reimbursement2-history', function () {
+    return view('finance.finance-reimbursement2-history');
+});
+Route::get('/xml-finance-reimbursement2-history', function () {
+    return view('finance.xml.finance-reimbursement2-history');
+});
+Route::get('/finance-reimbursement2-history-detail', function () {
+    return view('finance.finance-reimbursement2-detail-history');
+});
+Route::get('/xml-finance-reimbursement2-history-detail', function () {
+    return view('finance.xml.finance-reimbursement2-history-detail');
+});
+
+
+Route::get('/xml-ar-history-detail', function () {
+    return view('finance.xml.ar-history-detail');
+});
+Route::get('/xml-ar-history-detail-history', function () {
+    return view('finance.xml.ar-history-detail-history');
+});
+Route::get('/ap-reference', function () {
+    return view('finance.ap-reference');
+});
+Route::get('/ar-reference', function () {
+    return view('finance.ar-reference');
+});
+Route::get('/ar-monitoring-detail', function () {
+    return view('finance.ar-monitoring-detail');
+});
+Route::get('/ar-monitoring-detail-coa', function () {
+    return view('finance.ar-monitoring-detail-coa');
+});
+Route::get('/xml-ar-monitoring-detail-coa', function () {
+    return view('finance.xml.ar-monitoring-detail-coa');
+});
+Route::post('/ar-monitoring-detail-list-update', function () {
+    return view('finance.ar-monitoring-detail-list-update');
+});
+Route::post('/ar-monitoring-detail-update', function () {
+    return view('finance.ar-monitoring-detail-update');
+});
+Route::get('/xml-ar-monitoring-detail', function () {
+    return view('finance.xml.ar-monitoring-detail');
+});
+Route::get('/xml-ar-monitoring-detail-history', function () {
+    return view('finance.xml.ar-monitoring-detail-history');
+});
+Route::get('/finance-ar-monitoring', function () {
+    return view('finance.ar-monitoring');
+});
+Route::get('/xml-finance-ar-monitoring', function () {
+    return view('finance.xml.ar-monitoring');
+});
+Route::post('/finance-ar-delivery-update', function () {
+    return view('finance.ar-delivery-update');
+});
+Route::get('/finance-ar-delivery', function () {
+    return view('finance.ar-delivery');
+});
+Route::get('/xml-finance-ar-delivery', function () {
+    return view('finance.xml.ar-delivery');
+});
+Route::post('/finance-ar-receive-update', function () {
+    return view('finance.ar-receive-update');
+});
+Route::get('/finance-ar-receive', function () {
+    return view('finance.ar-receive');
+});
+Route::get('/xml-finance-ar-receive', function () {
+    return view('finance.xml.ar-receive');
+});
+Route::get('/print-invoice', function () {
+    return view('finance.prints.print-invoice');
+});
+Route::get('/finance-invoice-approved', function () {
+    return view('finance.approved-invoice');
+});
+Route::get('/xml-finance-approved-invoice', function () {
+    return view('finance.xml.approved-invoice');
+});
+Route::get('/finance-approved-invoice-detail', function () {
+    return view('finance.approved-invoice-detail');
+});
+Route::get('/finance-invoice-approval', function () {
+    return view('finance.approval-invoice');
+});
+Route::get('/xml-finance-approval-invoice', function () {
+    return view('finance.xml.approval-invoice');
+});
+
+Route::post('/finance-approval-invoice-submit', function () {
+    return view('finance.approval-invoice-submit');
+});
+Route::get('/finance-approval-invoice-detail', function () {
+    return view('finance.approval-invoice-detail');
+});
+Route::get('/xml-finance-approval-invoice-detail', function () {
+    return view('finance.xml.approval-invoice-detail');
+});
+Route::get('/finance-proforma-outstanding', function () {
+    return view('finance.proforma-outstanding');
+});
+Route::get('/xml-finance-proforma-outstanding', function () {
+    return view('finance.xml.proforma-outstanding');
+});
+
+Route::post('/finance-proforma-outstanding-detail-update', function () {
+    return view('finance.proforma-outstanding-detail-update');
+});
+Route::get('/finance-proforma-outstanding-detail', function () {
+    return view('finance.proforma-outstanding-detail');
+});
+Route::get('/xml-finance-proforma-outstanding-detail', function () {
+    return view('finance.xml.proforma-outstanding-detail');
+});
+
+Route::get('/budget-management-detail', function () {
+    return view('finance.budget.budget-management-detail');
+});
+
+Route::post('/finance-budget-management-detail-update', function () {
+    return view('finance.budget.budget-management-detail-update');
+});
+
+Route::get('/xml-finance-budget-management-detail', function () {
+    return view('finance.budget.xml.budget-management-detail');
+});
+
+Route::get('/finance-budget-management', function () {
+    return view('finance.budget.budget-management');
+});
+
+Route::post('/finance-budget-management-update', function () {
+    return view('finance.budget.budget-management-update');
+});
+
+Route::get('/xml-finance-budget-management', function () {
+    return view('finance.budget.xml.budget-management');
+});
+
+Route::get('/finance-budget-history', function () {
+    return view('finance.budget.budget-history');
+});
+
+Route::get('/xml-finance-budget-history', function () {
+    return view('finance.budget.xml.budget-history');
+});
+Route::get('/finance-budget-history-detail', function () {
+    return view('finance.budget.budget-history-detail');
+});
+
+Route::get('/xml-finance-budget-history-detail', function () {
+    return view('finance.budget.xml.budget-history-detail');
+});
+
+Route::get('/finance-budget-transaction', function () {
+    return view('finance.budget.budget-transaction');
+});
+
+Route::get('/xml-finance-budget-transaction', function () {
+    return view('finance.budget.xml.budget-transaction');
+});
+
+Route::get('/finance-budget-summary', function () {
+    return view('finance.budget.budget-summary');
+});
+
+Route::get('/xml-finance-budget-summary', function () {
+    return view('finance.budget.xml.budget-summary');
+});
+
+Route::get('/finance-ap-coa', function () {
+    return view('finance.ap.coa');
+});
+Route::get('/finance-ap-manual', function () {
+    return view('finance.ap.manual');
+});
+Route::get('/finance-ap-search-employee', function () {
+    return view('finance.ap.search-employee');
+});
+Route::post('/finance-ap-manual-submit', function () {
+    return view('finance.ap.manual-submit');
+});
+Route::get('/finance-ap-receive', function () {
+    return view('finance.ap.receive');
+});
+Route::post('/finance-ap-receive-update', function () {
+    return view('finance.ap.receive-update');
+});
+Route::get('/xml-finance-ap-receive', function () {
+    return view('finance.ap.xml.receive');
+});
+Route::get('/finance-ap-receive-detail', function () {
+    return view('finance.ap.receive-detail');
+});
+Route::get('/finance-ap-request', function () {
+    return view('finance.ap.request');
+});
+Route::post('/finance-ap-request-update', function () {
+    return view('finance.ap.request-update');
+});
+Route::get('/xml-finance-ap-request', function () {
+    return view('finance.ap.xml.request');
+});
+Route::get('/finance-ap-request-detail', function () {
+    return view('finance.ap.request-detail');
+});
+
+
+Route::get('/finance-ap-management', function () {
+    return view('finance.ap.management');
+});
+
+Route::get('/xml-finance-ap-management', function () {
+    return view('finance.ap.xml.management');
+});
+Route::get('/finance-ap-management-detail', function () {
+    return view('finance.ap.management-detail');
+});
+Route::get('/finance-ap-management-detail-coa', function () {
+    return view('finance.ap.management-detail-coa');
+});
+Route::get('/xml-finance-ap-management-detail-coa', function () {
+    return view('finance.ap.xml.management-detail-coa');
+});
+Route::get('/xml-finance-ap-management-detail', function () {
+    return view('finance.ap.xml.management-detail');
+});
+Route::get('/xml-finance-ap-management-detail-history', function () {
+    return view('finance.ap.xml.management-detail-history');
+});
+Route::post('/finance-ap-management-detail-list-update', function () {
+    return view('finance.ap.management-detail-list-update');
+});
+Route::post('/finance-ap-management-detail-submit', function () {
+    return view('finance.ap.management-detail-submit');
+});
+
+Route::post('/finance-ap-management-detail-reject', function () {
+    return view('finance.ap.management-detail-reject');
+});
+
+
+Route::get('/finance-ap-history', function () {
+    return view('finance.ap.history');
+});
+
+Route::get('/xml-finance-ap-history', function () {
+    return view('finance.ap.xml.history');
+});
+Route::get('/finance-ap-history-detail', function () {
+    return view('finance.ap.history-detail');
+});
+
+Route::get('/xml-finance-ap-history-detail', function () {
+    return view('finance.ap.xml.history-detail');
+});
+Route::post('/finance-ap-history-detail-submit', function () {
+    return view('finance.ap.history-detail-submit');
+});
+
+Route::post('/finance-ap-history-detail-reject', function () {
+    return view('finance.ap.history-detail-reject');
+});
+
+Route::post('/customer-lists-update', function () {
+    return view('sales.customer-lists-update');
+});
+Route::get('/customer-lists-detail', function () {
+    return view('sales.customer-lists-detail');
+});
+Route::post('/customer-lists-detail-submit', function () {
+    return view('sales.customer-lists-detail-submit');
+});
+Route::post('/sales-lists-update', function () {
+    return view('sales.sales-lists-update');
+});
+Route::get('/sales-lists-add', function () {
+    return view('sales.sales-list-add');
+});
+Route::get('/xml-sales-lists', function () {
+    return view('sales.xml.sales-lists');
+});
+Route::post('/sales-list-add-update', function () {
+    return view('sales.sales-list-add-update');
+});
+Route::post('/customer-lists-add-submit', function () {
+    return view('sales.customer-lists-add-submit');
+});
+Route::get('/sales-master-sales', function () {
+    return view('sales.master-sales');
+});
+Route::get('/xml-master-sales', function () {
+    return view('sales.xml.master-sales');
+});
+Route::get('/sales-opportunity-lists', function () {
+    return view('sales.opportunity-lists');
+});
+Route::get('/customer-lists-add', function () {
+    return view('sales.customer-lists-add');
+});
+Route::get('/xml-sales-opportunity-lists', function () {
+    return view('sales.xml.opportunity-lists');
+});
+Route::post('/opportunity-detail-submit', function () {
+    return view('sales.opportunity-detail-submit');
+});
+Route::get('/opportunity-lists-detail', function () {
+    return view('sales.opportunity-lists-detail');
+});
+
+Route::get('/xml-opportunity-lists-detail', function () {
+    return view('sales.xml.opportunity-lists-detail');
+});
+Route::get('/xml-opportunity-lists-attachment', function () {
+    return view('sales.xml.opportunity-lists-attachment');
+});
+Route::get('/opportunity-lists-detail2', function () {
+    return view('sales.opportunity-lists-detail2');
+});
+Route::get('/xml-opportunity-lists-detail2', function () {
+    return view('sales.xml.opportunity-lists-detail2');
+});
+Route::post('/opportunity-lists-detail-submit', function () {
+    return view('sales.opportunity-lists-detail-submit');
+});
+Route::post('/opportunity-lists-detail-update', function () {
+    return view('sales.opportunity-lists-detail-update');
+});
+Route::post('/opportunity-lists-detail-update2', function () {
+    return view('sales.opportunity-lists-detail-update2');
+});
+Route::post('/opportunity-lists-attachment-update', function () {
+    return view('sales.opportunity-lists-attachment-update');
+});
+Route::post('/opportunity-lists-submit', function () {
+    return view('sales.opportunity-lists-submit');
+});
+Route::get('/sales-opportunity-activity', function () {
+    return view('sales.opportunity-activity');
+});
+Route::get('/xml-sales-opportunity-activity', function () {
+    return view('sales.xml.opportunity-activity');
+});
+Route::get('/sales-opportunity-activity-add', function () {
+    return view('sales.opportunity-activity-add');
+});
+Route::get('/opportunity-activity-detail', function () {
+    return view('sales.opportunity-activity-detail');
+});
+Route::get('/search-city', function () {
+    return view('sales.search-city');
+});
+Route::post('/sales-opportunity-activity-detail-submit', function () {
+    return view('sales.opportunity-activity-detail-submit');
+});
+Route::post('/sales-opportunity-activity-add-submit', function () {
+    return view('sales.opportunity-activity-add-submit');
+});
+Route::get('/sales-opportunity-search', function () {
+    return view('sales.opportunity-search');
+});
+Route::get('/sales-opportunity-activity-document-upload', function () {
+    return view('sales.opportunity-activity-document-upload');
+});
+Route::post('/sales-opportunity-activity-document-upload-submit', function () {
+    return view('sales.opportunity-activity-document-upload-submit');
+});
+Route::get('/sales-opportunity-activity-online-document', function () {
+    return view('sales.opportunity-activity-online-document');
+});
+Route::post('/sales-opportunity-activity-online-document-submit', function () {
+    return view('sales.opportunity-activity-online-document-submit');
+});
+
+Route::get('/finance-report-archive-cash-in', function () {
+    return view('finance.archives.cash-in');
+});
+Route::get('/xml-finance-report-archive-cash-in', function () {
+    return view('finance.archives.xml.cash-in');
+});
+
+Route::get('/finance-report-archive-cash-in-detail', function () {
+    return view('finance.archives.cash-in-detail');
+});
+Route::get('/xml-finance-report-archive-cash-in-detail', function () {
+    return view('finance.archives.xml.cash-in-detail');
+});
+
+Route::get('/finance-report-archive-cash-out', function () {
+    return view('finance.archives.cash-out');
+});
+Route::get('/xml-finance-report-archive-cash-out', function () {
+    return view('finance.archives.xml.cash-out');
+});
+
+Route::get('/finance-report-archive-cash-out-detail', function () {
+    return view('finance.archives.cash-out-detail');
+});
+Route::get('/xml-finance-report-archive-cash-out-detail', function () {
+    return view('finance.archives.xml.cash-out-detail');
+});
+Route::get('/finance-report-archive-bank-withdrawal', function () {
+    return view('finance.archives.bank-withdrawal');
+});
+Route::get('/xml-finance-report-archive-bank-withdrawal', function () {
+    return view('finance.archives.xml.bank-withdrawal');
+});
+Route::get('/finance-report-archive-bank-withdrawal-detail', function () {
+    return view('finance.archives.bank-withdrawal-detail');
+});
+Route::get('/finance-report-archive-bank-in', function () {
+    return view('finance.archives.bank-in');
+});
+Route::get('/xml-finance-report-archive-bank-in', function () {
+    return view('finance.archives.xml.bank-in');
+});
+
+Route::get('/finance-report-archive-bank-in-detail', function () {
+    return view('finance.archives.bank-in-detail');
+});
+Route::get('/xml-finance-report-archive-bank-in-detail', function () {
+    return view('finance.archives.xml.bank-in-detail');
+});
+
+Route::get('/finance-report-archive-bank-advance', function () {
+    return view('finance.archives.bank-advance');
+});
+Route::get('/xml-finance-report-archive-bank-advance', function () {
+    return view('finance.archives.xml.bank-advance');
+});
+
+Route::get('/finance-report-archive-bank-advance-detail', function () {
+    return view('finance.archives.bank-advance-detail');
+});
+Route::get('/xml-finance-report-archive-bank-advance-detail', function () {
+    return view('finance.archives.xml.bank-advance-detail');
+});
+
+Route::get('/finance-report-archive-cash-advance', function () {
+    return view('finance.archives.cash-advance');
+});
+Route::get('/xml-finance-report-archive-cash-advance', function () {
+    return view('finance.archives.xml.cash-advance');
+});
+
+Route::get('/finance-report-archive-cash-advance-detail', function () {
+    return view('finance.archives.cash-advance-detail');
+});
+Route::get('/xml-finance-report-archive-cash-advance-detail', function () {
+    return view('finance.archives.xml.cash-advance-detail');
+});
+
+Route::get('/finance-report-archive-bank-out', function () {
+    return view('finance.archives.bank-out');
+});
+Route::get('/xml-finance-report-archive-bank-out', function () {
+    return view('finance.archives.xml.bank-out');
+});
+
+Route::get('/finance-report-archive-bank-out-detail', function () {
+    return view('finance.archives.bank-out-detail');
+});
+Route::get('/xml-finance-report-archive-bank-out-detail', function () {
+    return view('finance.archives.xml.bank-out-detail');
+});
+
+Route::get('/finance-report-archive-bank-transfer', function () {
+    return view('finance.archives.bank-transfer');
+});
+Route::get('/xml-finance-report-archive-bank-transfer', function () {
+    return view('finance.archives.xml.bank-transfer');
+});
+
+
+Route::get('/finance-cash-in', function () {
+    return view('finance.cash-in');
+});
+Route::get('/xml-finance-cash-in', function () {
+    return view('finance.xml.cash-in');
+});
+Route::post('/finance-cash-in-update', function () {
+    return view('finance.cash-in-update');
+});
+Route::get('/finance-cash-in-detail', function () {
+    return view('finance.cash-in-detail');
+});
+Route::get('/xml-finance-cash-in-detail', function () {
+    return view('finance.xml.cash-in-detail');
+});
+Route::get('/finance-cash-in-detail-coa', function () {
+    return view('finance.cash-in-detail-coa');
+});
+Route::get('/xml-finance-cash-in-detail-coa', function () {
+    return view('finance.xml.cash-in-detail-coa');
+});
+Route::post('/finance-cash-in-detail-update', function () {
+    return view('finance.cash-in-detail-update');
+});
+
+Route::get('/finance-cash-out', function () {
+    return view('finance.cash-out');
+});
+Route::get('/xml-finance-cash-out', function () {
+    return view('finance.xml.cash-out');
+});
+Route::post('/finance-cash-out-update', function () {
+    return view('finance.cash-out-update');
+});
+Route::get('/finance-cash-out-detail', function () {
+    return view('finance.cash-out-detail');
+});
+Route::get('/xml-finance-cash-out-detail', function () {
+    return view('finance.xml.cash-out-detail');
+});
+Route::get('/finance-cash-out-detail-coa', function () {
+    return view('finance.cash-out-detail-coa');
+});
+Route::get('/xml-finance-cash-out-detail-coa', function () {
+    return view('finance.xml.cash-out-detail-coa');
+});
+Route::post('/finance-cash-out-detail-update', function () {
+    return view('finance.cash-out-detail-update');
+});
+Route::get('/xml-finance-department', function () {
+    return view('finance.xml.finance-department');
+});
+Route::get('/finance-cash-transfer-add', function () {
+    return view('finance.cash-transfer-add');
+});
+Route::post('/finance-cash-transfer-add-submit', function () {
+    return view('finance.cash-transfer-add-submit');
+});
+Route::post('/finance-cash-transfer-add-submit-receive', function () {
+    return view('finance.cash-transfer-add-submit-receive');
+});
+
+Route::get('/finance-cash-transfer', function () {
+    return view('finance.cash-transfer');
+});
+Route::get('/xml-finance-cash-transfer', function () {
+    return view('finance.xml.cash-transfer');
+});
+Route::post('/finance-cash-transfer-update', function () {
+    return view('finance.cash-transfer-update');
+});
+Route::get('/finance-cash-transfer-detail', function () {
+    return view('finance.cash-transfer-detail');
+});
+
+Route::get('/my-reimbursement', function () {
+    return view('mymenu.reimbursement');
+});
+Route::get('/xml-my-reimbursement', function () {
+    return view('mymenu.xml.reimbursement');
+});
+
+Route::get('/my-cash-advance', function () {
+    return view('mymenu.cash-advance');
+});
+Route::get('/xml-my-cash-advance', function () {
+    return view('mymenu.xml.cash-advance');
+});
+
+Route::get('/finance-cash-advance', function () {
+    return view('finance.cash-advance');
+});
+Route::get('/xml-finance-cash-advance', function () {
+    return view('finance.xml.cash-advance');
+});
+Route::get('/finance-cash-advance-add', function () {
+    return view('finance.cash-advance-add');
+});
+Route::get('/finance-cash-advance-search-user', function () {
+    return view('finance.cash-advance-search-user');
+});
+Route::post('/finance-cash-advance-add-submit', function () {
+    return view('finance.cash-advance-add-submit');
+});
+Route::post('/finance-cash-advance-update', function () {
+    return view('finance.cash-advance-update');
+});
+Route::get('/finance-cash-advance-detail', function () {
+    return view('finance.cash-advance-detail');
+});
+Route::get('/xml-finance-cash-advance-detail', function () {
+    return view('finance.xml.cash-advance-detail');
+});
+Route::get('/finance-cash-advance-detail-coa', function () {
+    return view('finance.cash-advance-detail-coa');
+});
+Route::get('/xml-finance-cash-advance-detail-coa', function () {
+    return view('finance.xml.cash-advance-detail-coa');
+});
+Route::get('/finance-cash-advance-detail-coa2', function () {
+    return view('finance.cash-advance-detail-coa2');
+});
+Route::get('/xml-finance-cash-advance-detail-coa2', function () {
+    return view('finance.xml.cash-advance-detail-coa2');
+});
+Route::post('/finance-cash-advance-detail-update', function () {
+    return view('finance.cash-advance-detail-update');
+});
+Route::get('/finance-cash-deposit-add', function () {
+    return view('finance.cash-deposit-add');
+});
+Route::get('/finance-cash-deposit', function () {
+    return view('finance.cash-deposit');
+});
+Route::get('/xml-finance-cash-deposit', function () {
+    return view('finance.xml.cash-deposit');
+});
+Route::post('/finance-cash-deposit-update', function () {
+    return view('finance.cash-deposit-update');
+});
+Route::post('/finance-cash-deposit-add-submit', function () {
+    return view('finance.cash-deposit-add-submit');
+});
+Route::get('/finance-cash-deposit-detail', function () {
+    return view('finance.cash-deposit-detail');
+});
+Route::post('/finance-cash-deposit-detail-submit', function () {
+    return view('finance.cash-deposit-detail-submit');
+});
+
+Route::get('/finance-cash-handle', function () {
+    return view('finance.cash-handler');
+});
+Route::post('/finance-cash-handle-update', function () {
+    return view('finance.cash-handler-update');
+});
+Route::get('/xml-finance-cash-handler', function () {
+    return view('finance.xml.cash-handler');
+});
+Route::get('/finance-cash-handle-add', function () {
+    return view('finance.cash-handle-add');
+});
+Route::post('/finance-cash-handle-add-submit', function () {
+    return view('finance.cash-handle-add-submit');
+});
+Route::get('/finance-cash-handler-detail', function () {
+    return view('finance.cash-handler-detail');
+});
+Route::get('/finance-bankout-reference', function () {
+    return view('finance.bankout-reference');
+});
+Route::get('/finance-bankin-reference', function () {
+    return view('finance.bankin-reference');
+});
+Route::get('/finance-cashout-reference', function () {
+    return view('finance.reference2');
+});
+Route::get('/finance-window-reference', function () {
+    return view('finance.reference');
+});
+Route::get('/xml-finance-reference', function () {
+    return view('finance.xml.reference');
+});
+//bank
+Route::get('/reference-search', function () {
+    return view('finance.reference-search');
+});
+Route::get('/xml-finance-bank', function () {
+    return view('finance.xml.finance-bank');
+});
+Route::get('/xml-finance-currency', function () {
+    return view('finance.xml.finance-currency');
+});
+Route::get('/finance-bank-in', function () {
+    return view('finance.bank-in');
+});
+Route::get('/xml-finance-bank-in', function () {
+    return view('finance.xml.bank-in');
+});
+Route::post('/finance-bank-in-update', function () {
+    return view('finance.bank-in-update');
+});
+Route::get('/finance-bank-in-detail', function () {
+    return view('finance.bank-in-detail');
+});
+Route::get('/xml-finance-bank-in-detail', function () {
+    return view('finance.xml.bank-in-detail');
+});
+Route::get('/finance-bank-in-detail-coa', function () {
+    return view('finance.bank-in-detail-coa');
+});
+Route::get('/xml-finance-bank-in-detail-coa', function () {
+    return view('finance.xml.bank-in-detail-coa');
+});
+Route::post('/finance-bank-in-detail-update', function () {
+    return view('finance.bank-in-detail-update');
+});
+Route::get('/finance-bank-advance-detail-ap', function () {
+    return view('finance.bank-advance-detail-ap');
+});
+Route::get('/xml-finance-bank-advance-detail-ap', function () {
+    return view('finance.xml.bank-advance-detail-ap');
+});
+
+Route::get('/finance-bank-advance-detail-coa', function () {
+    return view('finance.bank-advance-detail-coa');
+});
+Route::get('/xml-finance-bank-advance-detail-coa', function () {
+    return view('finance.xml.bank-advance-detail-coa');
+});
+Route::get('/finance-bank-advance-detail-coa2', function () {
+    return view('finance.bank-advance-detail-coa2');
+});
+Route::get('/xml-finance-bank-advance-detail-coa2', function () {
+    return view('finance.xml.bank-advance-detail-coa2');
+});
+Route::get('/finance-bank-advance', function () {
+    return view('finance.bank-advance');
+});
+Route::get('/xml-finance-bank-advance', function () {
+    return view('finance.xml.bank-advance');
+});
+Route::get('/finance-bank-advance-outstanding', function () {
+    return view('finance.bank-advance-outstanding');
+});
+Route::get('/finance-bank-advance-detail-outstanding', function () {
+    return view('finance.bank-advance-detail-outstanding');
+});
+Route::post('/finance-bank-advance-detail-outstanding-submit', function () {
+    return view('finance.bank-advance-detail-outstanding-submit');
+});
+Route::get('/xml-finance-bank-advance-outstanding', function () {
+    return view('finance.xml.bank-advance-outstanding');
+});
+Route::get('/my-bank-advance-detail', function () {
+    return view('mymenu.bank-advance-detail');
+});
+
+Route::get('/xml-my-bank-advance-detail', function () {
+    return view('mymenu.xml.bank-advance-detail');
+});
+
+Route::get('/my-bank-advance', function () {
+    return view('mymenu.bank-advance');
+});
+
+Route::get('/xml-my-bank-advance', function () {
+    return view('mymenu.xml.bank-advance');
+});
+Route::post('/my-bank-advance-add-submit', function () {
+    return view('mymenu.bank-advance-add-submit');
+});
+Route::get('/my-bank-advance-add', function () {
+    return view('mymenu.bank-advance-add');
+});
+
+Route::post('/my-bank-advance-add-submit', function () {
+    return view('mymenu.bank-advance-add-submit');
+});
+
+Route::get('/finance-bank-advance-add', function () {
+    return view('finance.bank-advance-add');
+});
+Route::get('/finance-bank-advance-search-user', function () {
+    return view('finance.bank-advance-search-user');
+});
+Route::post('/finance-bank-advance-add-submit', function () {
+    return view('finance.bank-advance-add-submit');
+});
+Route::post('/finance-bank-advance-update', function () {
+    return view('finance.bank-advance-update');
+});
+Route::get('/finance-bank-advance-detail', function () {
+    return view('finance.bank-advance-detail');
+});
+Route::get('/xml-finance-bank-advance-detail', function () {
+    return view('finance.xml.bank-advance-detail');
+});
+Route::post('/finance-bank-advance-detail-update', function () {
+    return view('finance.bank-advance-detail-update');
+});
+
+
+Route::get('/finance-bank-out', function () {
+    return view('finance.bank-out');
+});
+Route::get('/xml-finance-bank-out', function () {
+    return view('finance.xml.bank-out');
+});
+Route::post('/finance-bank-out-update', function () {
+    return view('finance.bank-out-update');
+});
+Route::get('/finance-bank-out-detail', function () {
+    return view('finance.bank-out-detail');
+});
+Route::get('/xml-finance-bank-out-detail', function () {
+    return view('finance.xml.bank-out-detail');
+});
+Route::get('/finance-bank-out-detail-coa', function () {
+    return view('finance.bank-out-detail-coa');
+});
+Route::get('/xml-finance-bank-out-detail-coa', function () {
+    return view('finance.xml.bank-out-detail-coa');
+});
+Route::post('/finance-bank-out-detail-update', function () {
+    return view('finance.bank-out-detail-update');
+});
+
+Route::get('/finance-bank-transfer-add', function () {
+    return view('finance.bank-transfer-add');
+});
+Route::post('/finance-bank-transfer-add-submit', function () {
+    return view('finance.bank-transfer-add-submit');
+});
+Route::post('/finance-bank-transfer-add-submit-receive', function () {
+    return view('finance.bank-transfer-add-submit-receive');
+});
+
+Route::get('/finance-bank-transfer', function () {
+    return view('finance.bank-transfer');
+});
+Route::get('/xml-finance-bank-transfer', function () {
+    return view('finance.xml.bank-transfer');
+});
+Route::post('/finance-bank-transfer-update', function () {
+    return view('finance.bank-transfer-update');
+});
+Route::get('/finance-bank-transfer-detail', function () {
+    return view('finance.bank-transfer-detail');
+});
+
+Route::get('/finance-bank-withdrawal-add', function () {
+    return view('finance.bank-withdrawal-add');
+});
+Route::post('/finance-bank-withdrawal-add-submit', function () {
+    return view('finance.bank-withdrawal-add-submit');
+});
+Route::get('/finance-bank-withdrawal', function () {
+    return view('finance.bank-withdrawal');
+});
+Route::get('/xml-finance-bank-withdrawal', function () {
+    return view('finance.xml.bank-withdrawal');
+});
+Route::post('/finance-bank-withdrawal-update', function () {
+    return view('finance.bank-withdrawal-update');
+});
+Route::get('/finance-bank-withdrawal-detail', function () {
+    return view('finance.bank-withdrawal-detail');
+});
+Route::post('/finance-bank-withdrawal-add-submit-confirm', function () {
+    return view('finance.bank-withdrawal-add-submit-confirm');
+});
+
+//acounting approval
+
+Route::get('/accounting-master-pum', function () {
+    return view('accounting.pum');
+});
+Route::get('/pum-add', function () {
+    return view('accounting.pum-add');
+});
+Route::post('/pum-add-update', function () {
+    return view('accounting.pum-add-update');
+});
+Route::get('/xml-pum-add', function () {
+    return view('accounting.xml.pum-add');
+});
+Route::post('/pum-update', function () {
+    return view('accounting.pum-update');
+});
+Route::get('/xml-accounting-pum', function () {
+    return view('accounting.xml.pum');
+});
+
+Route::get('/accounting-recurring-data', function () {
+    return view('accounting.recurring-data');
+});
+Route::get('/accounting-recurring-data-detail', function () {
+    return view('accounting.recurring-data-detail');
+});
+Route::post('/accounting-recurring-data-detail-update', function () {
+    return view('accounting.recurring-data-detail-update');
+});
+Route::get('/accounting-recurring-manual-exec', function () {
+    return view('accounting.recurring-manual-exec');
+});
+Route::post('/accounting-recurring-data-update', function () {
+    return view('accounting.recurring-data-update');
+});
+Route::get('/xml-accounting-recurring-data', function () {
+    return view('accounting.xml.recurring-data');
+});
+Route::get('/xml-accounting-recurring-data-detail', function () {
+    return view('accounting.xml.recurring-data-detail');
+});
+Route::get('/accounting-recurring-data-create-new', function () {
+    return view('accounting.recurring-create-new');
+});
+Route::post('/accounting-recurring-create-new-submit', function () {
+    return view('accounting.recurring-create-new-submit');
+});
+Route::post('/accounting-recurring-create-new-update', function () {
+    return view('accounting.recurring-create-new-update');
+});
+Route::get('/xml-accounting-recurring-cash-out-detail', function () {
+    return view('accounting.xml.recurring-cash-out-detail');
+});
+Route::get('/recurring-cash-out-detail-coa', function () {
+    return view('accounting.recurring-cash-out-detail-coa');
+});
+Route::get('/xml-recurring-cash-out-detail-coa', function () {
+    return view('accounting.xml.recurring-cash-out-detail-coa');
+});
+
+
+Route::get('/accounting-recurring-bank-out', function () {
+    return view('accounting.recurring-bank-out');
+});
+Route::get('/xml-accounting-recurring-bank-out', function () {
+    return view('accounting.xml.recurring-bank-out');
+});
+
+Route::get('/accounting-recurring-finished', function () {
+    return view('accounting.recurring-finished');
+});
+Route::get('/xml-accounting-recurring-finished', function () {
+    return view('accounting.xml.recurring-finished');
+});
+
+Route::get('/accounting-cash-in', function () {
+    return view('accounting.cash-in');
+});
+Route::get('/xml-accounting-cash-in', function () {
+    return view('accounting.xml.cash-in');
+});
+Route::post('/accounting-cash-in-update', function () {
+    return view('accounting.cash-in-update');
+});
+Route::get('/accounting-cash-in-detail', function () {
+    return view('accounting.cash-in-detail');
+});
+Route::get('/xml-accounting-cash-in-detail', function () {
+    return view('accounting.xml.cash-in-detail');
+});
+Route::get('/accounting-cash-in-detail-coa', function () {
+    return view('accounting.cash-in-detail-coa');
+});
+Route::get('/xml-accounting-cash-in-detail-coa', function () {
+    return view('accounting.xml.cash-in-detail-coa');
+});
+Route::post('/accounting-cash-in-detail-update', function () {
+    return view('accounting.cash-in-detail-update');
+});
+
+Route::get('/accounting-cash-out', function () {
+    return view('accounting.cash-out');
+});
+Route::get('/xml-accounting-cash-out', function () {
+    return view('accounting.xml.cash-out');
+});
+Route::post('/accounting-cash-out-update', function () {
+    return view('accounting.cash-out-update');
+});
+Route::get('/accounting-cash-out-detail', function () {
+    return view('accounting.cash-out-detail');
+});
+Route::get('/xml-accounting-cash-out-detail', function () {
+    return view('accounting.xml.cash-out-detail');
+});
+Route::get('/accounting-cash-out-detail-coa', function () {
+    return view('accounting.cash-out-detail-coa');
+});
+Route::get('/xml-accounting-cash-out-detail-coa', function () {
+    return view('accounting.xml.cash-out-detail-coa');
+});
+Route::post('/accounting-cash-out-detail-update', function () {
+    return view('accounting.cash-out-detail-update');
+});
+
+Route::get('/accounting-cash-transfer-add', function () {
+    return view('accounting.cash-transfer-add');
+});
+Route::post('/accounting-cash-transfer-add-submit', function () {
+    return view('accounting.cash-transfer-add-submit');
+});
+Route::post('/accounting-cash-transfer-add-submit-receive', function () {
+    return view('accounting.cash-transfer-add-submit-receive');
+});
+
+Route::get('/accounting-cash-transfer', function () {
+    return view('accounting.cash-transfer');
+});
+Route::get('/xml-accounting-cash-transfer', function () {
+    return view('accounting.xml.cash-transfer');
+});
+Route::post('/accounting-cash-transfer-update', function () {
+    return view('accounting.cash-transfer-update');
+});
+Route::get('/accounting-cash-transfer-detail', function () {
+    return view('accounting.cash-transfer-detail');
+});
+
+Route::get('/accounting-cash-advance', function () {
+    return view('accounting.cash-advance');
+});
+Route::get('/xml-accounting-cash-advance', function () {
+    return view('accounting.xml.cash-advance');
+});
+Route::get('/accounting-cash-advance-add', function () {
+    return view('accounting.cash-advance-add');
+});
+Route::get('/accounting-cash-advance-search-user', function () {
+    return view('accounting.cash-advance-search-user');
+});
+Route::post('/accounting-cash-advance-add-submit', function () {
+    return view('accounting.cash-advance-add-submit');
+});
+Route::post('/accounting-cash-advance-update', function () {
+    return view('accounting.cash-advance-update');
+});
+Route::post('/accounting-cash-advance-detail-update', function () {
+    return view('accounting.cash-advance-detail-update');
+});
+Route::get('/accounting-cash-advance-detail', function () {
+    return view('accounting.cash-advance-detail');
+});
+Route::get('/accounting-cash-advance-detail-coa', function () {
+    return view('accounting.cash-advance-detail-coa');
+});
+Route::get('/xml-accounting-cash-advance-detail-coa', function () {
+    return view('accounting.xml.cash-advance-detail-coa');
+});
+Route::get('/xml-accounting-cash-advance-detail', function () {
+    return view('accounting.xml.cash-advance-detail');
+});
+
+//accounting bank advanced posting
+
+Route::get('/accounting-bank-advance', function () {
+    return view('accounting.bank-advance');
+});
+Route::get('/xml-accounting-bank-advance', function () {
+    return view('accounting.xml.bank-advance');
+});
+Route::get('/accounting-bank-advance-add', function () {
+    return view('accounting.bank-advance-add');
+});
+Route::get('/accounting-bank-advance-search-user', function () {
+    return view('accounting.bank-advance-search-user');
+});
+Route::post('/accounting-bank-advance-add-submit', function () {
+    return view('accounting.bank-advance-add-submit');
+});
+Route::post('/accounting-bank-advance-update', function () {
+    return view('accounting.bank-advance-update');
+});
+Route::post('/accounting-bank-advance-detail-update', function () {
+    return view('accounting.bank-advance-detail-update');
+});
+Route::get('/accounting-bank-advance-detail', function () {
+    return view('accounting.bank-advance-detail');
+});
+Route::get('/accounting-bank-advance-detail-coa', function () {
+    return view('accounting.bank-advance-detail-coa');
+});
+Route::get('/xml-accounting-bank-advance-detail-coa', function () {
+    return view('accounting.xml.bank-advance-detail-coa');
+});
+Route::get('/xml-accounting-bank-advance-detail', function () {
+    return view('accounting.xml.bank-advance-detail');
+});
+// Cash Deposit
+
+Route::get('/accounting-cash-deposit-add', function () {
+    return view('accounting.cash-deposit-add');
+});
+Route::get('/accounting-cash-deposit', function () {
+    return view('accounting.cash-deposit');
+});
+Route::get('/xml-accounting-cash-deposit', function () {
+    return view('accounting.xml.cash-deposit');
+});
+Route::post('/accounting-cash-deposit-update', function () {
+    return view('accounting.cash-deposit-update');
+});
+Route::post('/accounting-cash-deposit-detail-submit', function () {
+    return view('accounting.cash-deposit-detail-submit');
+});
+Route::get('/accounting-cash-deposit-detail', function () {
+    return view('accounting.cash-deposit-detail');
+});
+
+
+//bank
+
+Route::get('/xml-accounting-bank', function () {
+    return view('accounting.xml.accounting-bank');
+});
+Route::get('/xml-accounting-currency', function () {
+    return view('accounting.xml.accounting-currency');
+});
+Route::get('/accounting-bank-in', function () {
+    return view('accounting.bank-in');
+});
+Route::get('/xml-accounting-bank-in', function () {
+    return view('accounting.xml.bank-in');
+});
+Route::post('/accounting-bank-in-update', function () {
+    return view('accounting.bank-in-update');
+});
+Route::get('/accounting-bank-in-detail', function () {
+    return view('accounting.bank-in-detail');
+});
+Route::get('/xml-accounting-bank-in-detail', function () {
+    return view('accounting.xml.bank-in-detail');
+});
+Route::get('/accounting-bank-in-detail-coa', function () {
+    return view('accounting.bank-in-detail-coa');
+});
+Route::get('/xml-accounting-bank-in-detail-coa', function () {
+    return view('accounting.xml.bank-in-detail-coa');
+});
+Route::post('/accounting-bank-in-detail-update', function () {
+    return view('accounting.bank-in-detail-update');
+});
+
+Route::get('/accounting-bank-out', function () {
+    return view('accounting.bank-out');
+});
+Route::get('/xml-accounting-bank-out', function () {
+    return view('accounting.xml.bank-out');
+});
+Route::post('/accounting-bank-out-update', function () {
+    return view('accounting.bank-out-update');
+});
+Route::get('/accounting-bank-out-detail', function () {
+    return view('accounting.bank-out-detail');
+});
+Route::get('/xml-accounting-bank-out-detail', function () {
+    return view('accounting.xml.bank-out-detail');
+});
+Route::get('/accounting-bank-out-detail-coa', function () {
+    return view('accounting.bank-out-detail-coa');
+});
+Route::get('/xml-accounting-bank-out-detail-coa', function () {
+    return view('accounting.xml.bank-out-detail-coa');
+});
+Route::post('/accounting-bank-out-detail-update', function () {
+    return view('accounting.bank-out-detail-update');
+});
+
+Route::get('/accounting-bank-transfer-add', function () {
+    return view('accounting.bank-transfer-add');
+});
+Route::post('/accounting-bank-transfer-add-submit', function () {
+    return view('accounting.bank-transfer-add-submit');
+});
+
+Route::get('/accounting-bank-transfer', function () {
+    return view('accounting.bank-transfer');
+});
+Route::get('/xml-accounting-bank-transfer', function () {
+    return view('accounting.xml.bank-transfer');
+});
+Route::post('/accounting-bank-transfer-update', function () {
+    return view('accounting.bank-transfer-update');
+});
+Route::get('/accounting-bank-transfer-detail', function () {
+    return view('accounting.bank-transfer-detail');
+});
+Route::post('/accounting-bank-transfer-add-submit-receive', function () {
+    return view('accounting.bank-transfer-add-submit-receive');
+});
+
+Route::get('/accounting-bank-withdrawal', function () {
+    return view('accounting.bank-withdrawal');
+});
+Route::get('/xml-accounting-bank-withdrawal', function () {
+    return view('accounting.xml.bank-withdrawal');
+});
+Route::post('/accounting-bank-withdrawal-update', function () {
+    return view('accounting.bank-withdrawal-update');
+});
+Route::get('/accounting-bank-withdrawal-detail', function () {
+    return view('accounting.bank-withdrawal-detail');
+});
+Route::post('/accounting-bank-withdrawal-add-submit-confirm', function () {
+    return view('accounting.bank-withdrawal-add-submit-confirm');
+});
+
+///producrement
+Route::get('/po-contract-data', function () {
+    return view('procurement.contract-data');
+});
+Route::get('/add-contract-data', function () {
+    return view('procurement.add-contract-data');
+});
+Route::post('/add-contract-data-submit', function () {
+    return view('procurement.add-contract-data-submit');
+});
+Route::get('/xml-po-contract-data', function () {
+    return view('procurement.xml.contract-data');
+});
+Route::get('/add-receive-invoice', function () {
+    return view('procurement.add-receive-invoice');
+});
+Route::post('/add-receive-invoice-submit', function () {
+    return view('procurement.add-receive-invoice-submit');
+});
+Route::get('/po-receive-invoice', function () {
+    return view('procurement.po-receive-invoice');
+});
+Route::get('/search-po-manual', function () {
+    return view('procurement.po-search-manual');
+});
+Route::get('/search-supplier', function () {
+    return view('procurement.search-supplier');
+});
+Route::get('/po-receive-invoice-detail', function () {
+    return view('procurement.po-receive-invoice-detail');
+});
+Route::post('/po-receive-invoice-detail-submit', function () {
+    return view('procurement.po-receive-invoice-detail-submit');
+});
+Route::get('/printfpp_po', function () {
+    return view('procurement.prints.printfpp_po');
+});
+Route::get('/po-receive-invoice-detail', function () {
+    return view('procurement.po-receive-invoice-detail');
+});
+Route::get('/xml-po-receive-invoice', function () {
+    return view('procurement.xml.po-receive-invoice');
+});
+Route::get('/po-invoice-management', function () {
+    return view('procurement.po-invoice-management');
+});
+Route::get('/xml-po-invoice-management', function () {
+    return view('procurement.xml.po-invoice-management');
+});
+Route::get('/po-invoice-history', function () {
+    return view('procurement.po-receive-invoice-history');
+});
+Route::get('/xml-po-receive-invoice-history', function () {
+    return view('procurement.xml.po-receive-invoice-history');
+});
+Route::get('/po-receive-invoice-history-detail', function () {
+    return view('procurement.po-receive-invoice-history-detail');
+});
+Route::get('/search-po', function () {
+    return view('assets.search-po');
+});
+Route::get('/purchasing-master-vendor', function () {
+    return view('procurement.master-vendor');
+});
+Route::get('/xml-purchasing-master-vendor', function () {
+    return view('procurement.xml.master-vendor');
+});
+Route::get('/purchasing-master-vendor-detail', function () {
+    return view('procurement.master-vendor-detail');
+});
+Route::post('/master-vendor-detail-submit', function () {
+    return view('procurement.master-vendor-detail-submit');
+});
+Route::get('/purchasing-master-vendor-new', function () {
+    return view('procurement.master-vendor-new');
+});
+Route::post('/master-vendor-new-submit', function () {
+    return view('procurement.master-vendor-new-submit');
+});
+Route::get('/inventory-stock-count-new', function () {
+    return view('assets.inventory-stock-count-new');
+});
+Route::get('/inventory-stock-count', function () {
+    return view('assets.inventory-stock-count');
+});
+Route::get('/xml-inventory-stock-count', function () {
+    return view('assets.xml.inventory-stock-count');
+});
+Route::get('/inventory-stock-count-detail', function () {
+    return view('assets.inventory-stock-count-detail');
+});
+Route::get('/xml-inventory-stock-count-detail', function () {
+    return view('assets.xml.inventory-stock-count-detail');
+});
+Route::post('/inventory-stock-count-detail-update', function () {
+    return view('assets.inventory-stock-count-detail-update');
+});
+Route::post('/inventory-stock-count-detail-submit', function () {
+    return view('assets.inventory-stock-count-detail-submit');
+});
+Route::get('/xml-inventory-stock-count-final', function () {
+    return view('assets.xml.inventory-stock-count-final');
+});
+Route::get('/search-produk', function () {
+    return view('assets.search-produk');
+});
+Route::get('/inventory-adjustment', function () {
+    return view('assets.inventory-adjustment');
+});
+Route::post('/inventory-adjustment-submit', function () {
+    return view('assets.inventory-adjustment-submit');
+});
+Route::get('/xml-inventory-adjustment', function () {
+    return view('assets.xml.inventory-adjustment');
+});
+Route::get('/inventory-incoming', function () {
+    return view('assets.inventory-incoming');
+});
+Route::get('/xml-inventory-incoming', function () {
+    return view('assets.xml.inventory-incoming');
+});
+Route::get('/inventory-incoming-detail', function () {
+    return view('assets.inventory-incoming-detail');
+});
+Route::get('/inventory-incoming-detail2', function () {
+    return view('assets.inventory-incoming-detail2');
+});
+Route::get('/xml-inventory-incoming-detail', function () {
+    return view('assets.xml.inventory-incoming-detail');
+});
+Route::post('/inventory-incoming-detail-submit', function () {
+    return view('assets.inventory-incoming-detail-submit');
+});
+Route::post('/inventory-incoming-detail-submit2', function () {
+    return view('assets.inventory-incoming-detail-submit2');
+});
+Route::get('/inventory-incoming-new', function () {
+    return view('assets.inventory-incoming-new');
+});;
+
+Route::post('/inventory-incoming-detail-update2', function () {
+    return view('assets.inventory-incoming-detail-update2');
+});
+Route::post('/inventory-incoming-new-submit', function () {
+    return view('assets.inventory-incoming-new-submit');
+});
+Route::post('/inventory-incoming-new-update', function () {
+    return view('assets.inventory-incoming-new-update');
+});
+Route::get('/xml-inventory-incoming-new', function () {
+    return view('assets.xml.inventory-incoming-new');
+});
+Route::get('/inventory-request', function () {
+    return view('assets.inventory-request');
+});
+Route::get('/approval-stock', function () {
+    return view('project.approval-stock');
+});
+Route::get('/approval-stock-detail', function () {
+    return view('project.approval-stock-detail');
+});
+Route::get('/xml-approval-stock', function () {
+    return view('project.xml.approval-stock');
+});
+Route::get('/approval-purchase', function () {
+    return view('project.approval-purchase');
+});
+Route::get('/xml-approval-purchase', function () {
+    return view('project.xml.pr-request-approval');
+});
+Route::get('/approval-purchase-detail', function () {
+    return view('project.approval-purchase-detail');
+});
+
+Route::get('/inventory-request-management', function () {
+    return view('assets.inventory-request-management');
+});
+Route::get('/xml-inventory-request-management', function () {
+    return view('assets.xml.inventory-request-management');
+});
+Route::get('/inventory-request-management-detail', function () {
+    return view('assets.inventory-request-management-detail');
+});
+Route::get('/inventory-request-management-detail2', function () {
+    return view('assets.inventory-request-management-detail2');
+});
+Route::get('/xml-inventory-request-management-detail', function () {
+    return view('assets.xml.inventory-request-management-detail');
+});
+Route::get('/xml-inventory-request-management-detail2', function () {
+    return view('assets.xml.inventory-request-management-detail2');
+});
+Route::post('/inventory-request-management-detail2-update', function () {
+    return view('assets.inventory-request-management-detail2-update');
+});
+Route::post('/inventory-request-management-detail2-submit', function () {
+    return view('assets.inventory-request-management-detail2-submit');
+});
+Route::post('/inventory-request-management-submit', function () {
+    return view('assets.inventory-request-management-submit');
+});
+Route::post('/inventory-request-management-detail-update', function () {
+    return view('assets.inventory-request-management-detail-update');
+});
+Route::post('/inventory-request-management-detail-submit', function () {
+    return view('assets.inventory-request-management-detail-submit');
+});
+Route::post('/inventory-request-update', function () {
+    return view('assets.inventory-request-update');
+});
+Route::get('/inventory-request-product-list', function () {
+    return view('assets.inventory-request-product-list');
+});
+Route::post('/inventory-request-submit', function () {
+    return view('assets.inventory-request-submit');
+});
+Route::get('/xml-inventory-request-product-lists', function () {
+    return view('assets.xml.inventory-request-product-list');
+});
+Route::get('/inventory-lists', function () {
+    return view('assets.inventory-lists');
+});
+Route::get('/xml-inventory-lists', function () {
+    return view('assets.xml.inventory-lists');
+});
+Route::get('/inventory-lists-detail', function () {
+    return view('assets.inventory-lists-detail');
+});
+Route::get('/xml-inventory-lists-detail', function () {
+    return view('assets.xml.inventory-lists-detail');
+});
+Route::get('/asset-lists', function () {
+    return view('assets.lists');
+});
+Route::get('/asset-management-incoming', function () {
+    return view('assets.management-incoming');
+});
+Route::get('/asset-lists-detail', function () {
+    return view('assets.lists-detail');
+});
+Route::post('/asset-lists-detail-submit', function () {
+    return view('assets.lists-detail-submit');
+});
+Route::get('/xml-asset-lists', function () {
+    return view('assets.xml.asset-lists');
+});
+Route::get('/asset-master-bin', function () {
+    return view('assets.master-bin');
+});
+Route::get('/xml-asset-master-bin', function () {
+    return view('assets.xml.master-bin');
+});
+Route::post('/asset-master-bin-update', function () {
+    return view('assets.master-bin-update');
+});
+Route::get('/asset-master-product-code', function () {
+    return view('procurement.master-product-code');
+});
+Route::get('/xml-master-product-code', function () {
+    return view('procurement.xml.master-product-code');
+});
+
+Route::get('/purchasing-master-product', function () {
+    return view('procurement.master-product-code');
+});
+Route::get('/xml-master-product-code', function () {
+    return view('procurement.xml.master-product-code');
+});
+Route::get('/master-product-code-detail', function () {
+    return view('procurement.master-product-code-detail');
+});
+Route::post('/master-product-code-detail-submit', function () {
+    return view('procurement.master-product-code-detail-submit');
+});
+Route::get('/master-product-code-new', function () {
+    return view('procurement.master-product-code-new');
+});
+Route::post('/master-product-code-new-submit', function () {
+    return view('procurement.master-product-code-new-submit');
+});
+
+Route::get('/purchasing-request-new', function () {
+    return view('procurement.pr-request-new');
+});
+Route::post('/pr-request-new-update', function () {
+    return view('procurement.pr-request-new-update');
+});
+Route::post('/pr-request-new-submit', function () {
+    return view('procurement.pr-request-new-submit');
+});
+Route::get('/pr-load-sub', function () {
+    return view('procurement.pr-load-sub');
+});
+Route::get('/pr-load-subcat', function () {
+    return view('procurement.pr-load-subcat');
+});
+Route::get('/pr-load-subcat2', function () {
+    return view('procurement.pr-load-subcat2');
+});
+Route::get('/purchasing-product-list', function () {
+    return view('procurement.purchasing-product-list');
+});
+Route::get('/xml-purchasing-product-lists', function () {
+    return view('procurement.xml.purchasing-product-list');
+});
+Route::get('/purchasing-request-approval', function () {
+    return view('procurement.pr-request-approval');
+});
+Route::get('/xml-purchasing-request-approval', function () {
+    return view('procurement.xml.pr-request-approval');
+});
+Route::get('/purchasing-request-approval-detail', function () {
+    return view('procurement.pr-request-approval-detail');
+});
+Route::post('/purchasing-request-approval-detail-submit', function () {
+    return view('procurement.pr-request-approval-detail-submit');
+});
+Route::post('/purchasing-request-approval-detail-update', function () {
+    return view('procurement.pr-request-approval-detail-update');
+});
+Route::post('/purchasing-request-approval-detail-reject', function () {
+    return view('procurement.pr-request-approval-detail-reject');
+});
+Route::get('/xml-purchasing-request-approval-detail', function () {
+    return view('procurement.xml.pr-request-approval-detail');
+});
+Route::get('/purchasing-request-outstanding', function () {
+    return view('procurement.pr-request-outstanding');
+});
+Route::get('/xml-pr-request-outstanding', function () {
+    return view('procurement.xml.pr-request-outstanding');
+});
+Route::post('/purchasing-request-outstanding-update', function () {
+    return view('procurement.pr-request-outstanding-update');
+});
+Route::get('/po-input-vendor', function () {
+    return view('procurement.po-input-vendor');
+});
+Route::post('/po-input-vendor-submit', function () {
+    return view('procurement.po-input-vendor-submit');
+});
+Route::get('/purchasing-order-approval', function () {
+    return view('procurement.purchasing-order-approval');
+});
+Route::get('/xml-purchasing-order-approval', function () {
+    return view('procurement.xml.purchasing-order-approval');
+});
+
+Route::get('/purchasing-order-collection', function () {
+    return view('procurement.purchasing-order-collection');
+});
+Route::get('/xml-po-collection', function () {
+    return view('procurement.xml.po-collection');
+});
+Route::get('/purchasing-order-collection-detail', function () {
+    return view('procurement.purchasing-order-collection-detail');
+});
+Route::get('/purchasing-order-vendor-selection', function () {
+    return view('procurement.purchasing-order-vendor-selection');
+});
+Route::get('/xml-purchasing-order-vendor-selection', function () {
+    return view('procurement.xml.purchasing-order-vendor-selection');
+});
+Route::get('/purchasing-order-pending', function () {
+    return view('procurement.purchasing-order-pending');
+});
+Route::get('/purchasing-order-cancel', function () {
+    return view('procurement.purchasing-order-cancel');
+});
+Route::get('/purchasing-order-approved', function () {
+    return view('procurement.purchasing-order-approved');
+});
+Route::get('/xml-purchasing-order-approved', function () {
+    return view('procurement.xml.purchasing-order-approved');
+});
+Route::get('/purchasing-order-approved-detail', function () {
+    return view('procurement.purchasing-order-approved-detail');
+});
+Route::get('/purchasing-request-cancelation', function () {
+    return view('procurement.pr-request-cancelation');
+});
+Route::get('/purchasing-request-cancelation-detail', function () {
+    return view('procurement.pr-request-cancelation-detail');
+});
+Route::get('/xml-pr-request-cancelation', function () {
+    return view('procurement.xml.pr-request-cancelation');
+});
+Route::get('/purchasing-request-cancelation', function () {
+    return view('procurement.pr-request-cancelation');
+});
+Route::get('/xml-pr-request-cancelation', function () {
+    return view('procurement.xml.pr-request-cancelation');
+});
+Route::get('/purchasing-order-price-input-detail', function () {
+    return view('procurement.purchasing-order-price-input-detail');
+});
+Route::get('/printout_po', function () {
+    return view('procurement.prints.printout_po');
+});
+Route::get('/purchasing-order-approval-detail', function () {
+    return view('procurement.purchasing-order-approval-detail');
+});
+Route::get('/xml-purchasing-order-approval-detail', function () {
+    return view('procurement.xml.purchasing-order-approval-detail');
+});
+Route::post('/purchasing-order-price-input-detail-update', function () {
+    return view('procurement.purchasing-order-price-input-detail-update');
+});
+Route::post('/purchasing-order-price-input-detail-submit', function () {
+    return view('procurement.purchasing-order-price-input-detail-submit');
+});
+Route::post('/purchasing-order-price-input-detail-submit2', function () {
+    return view('procurement.purchasing-order-price-input-detail-submit2');
+});
+Route::post('/purchasing-order-approval-detail-submit', function () {
+    return view('procurement.purchasing-order-approval-detail-submit');
+});
+Route::post('/purchasing-order-approval-detail-submit2', function () {
+    return view('procurement.purchasing-order-approval-detail-submit2');
+});
+Route::get('/xml-purchasing-order-input-price-detail', function () {
+    return view('procurement.xml.purchasing-order-input-price-detail');
+});
+Route::get('/purchasing-order-approval-reject1', function () {
+    return view('procurement.purchasing-order-approval-reject1');
+});
+Route::get('/xml-purchasing-order-approval', function () {
+    return view('procurement.xml.purchasing-order-approval');
+});
+Route::get('/purchasing-order-price-input', function () {
+    return view('procurement.purchasing-order-price-input');
+});
+Route::get('/xml-purchasing-order-price-input', function () {
+    return view('procurement.xml.purchasing-order-price-input');
+});
+Route::post('/purchasing-cancelation-detail-submit', function () {
+    return view('procurement.pr-request-cancelation-detail-submit');
+});
+Route::get('/hr-report-tax', function () {
+    return view('humanresources.report.tax');
+});
+Route::get('/xml-hr-report-tax', function () {
+    return view('humanresources.report.xml.tax');
+});
+Route::get('/hr-report-bpjs', function () {
+    return view('humanresources.report.bpjs');
+});
+Route::get('/xml-hr-report-bpjs', function () {
+    return view('humanresources.report.xml.bpjs');
+});
+Route::get('/hr-report-outstanding-recruitment', function () {
+    return view('humanresources.report.outstanding-recruitment');
+});
+Route::get('/xml-hr-report-outstanding-recruitment', function () {
+    return view('humanresources.report.xml.outstanding-recruitment');
+});
+Route::get('/recruitment-requisition', function () {
+    return view('humanresources.recruitment.requisition');
+});
+Route::post('/requisition-submit', function () {
+    return view('humanresources.recruitment.requisition-submit');
+});
+Route::get('/xml-recruitment-requisition', function () {
+    return view('humanresources.recruitment.xml.requisition');
+});
+Route::get('/xml-requisition-lists', function () {
+    return view('humanresources.recruitment.xml.requisition');
+});
+Route::get('/requisition-new', function () {
+    return view('humanresources.recruitment.requisition-new');
+});
+Route::get('/requisition-new-po', function () {
+    return view('humanresources.recruitment.requisition-new-po');
+});
+Route::post('/requisition-new-po-submit', function () {
+    return view('humanresources.recruitment.requisition-new-po-submit');
+});
+Route::get('/xml-sales-po-lists-detail', function () {
+    return view('humanresources.recruitment.xml.sales-po-lists-detail');
+});
+Route::get('/hrd-master-template', function () {
+    return view('humanresources.recruitment.hrd-master-template');
+});
+Route::post('/hrd-master-template-submit', function () {
+    return view('humanresources.recruitment.hrd-master-template-submit');
+});
+Route::get('/hrd-master-template-detail', function () {
+    return view('humanresources.recruitment.hrd-master-template-detail');
+});
+Route::post('/hrd-master-template-new-submit', function () {
+    return view('humanresources.recruitment.hrd-master-template-new-submit');
+});
+Route::post('/hrd-master-template-detail-submit', function () {
+    return view('humanresources.recruitment.hrd-master-template-detail-submit');
+});
+Route::get('/xml-recruitment-template', function () {
+    return view('humanresources.recruitment.xml.recruitment-template');
+});
+Route::get('/hrd-master-template-new', function () {
+    return view('humanresources.recruitment.hrd-master-template-new');
+});
+Route::get('/xml-hrd-master-template', function () {
+    return view('humanresources.recruitment.xml.hrd-master-template');
+});
+Route::post('/sales-po-lists-update', function () {
+    return view('humanresources.recruitment.sales-po-lists-update');
+});
+Route::get('/recruitment-new', function () {
+    return view('humanresources.recruitment.recruitment-new');
+});
+Route::post('/recruitment-new-submit', function () {
+    return view('humanresources.recruitment.recruitment-new-submit');
+});
+Route::get('/recruitment-test-result', function () {
+    return view('humanresources.recruitment.recruitment-test-result');
+});
+Route::get('/xml-recruitment-test-result', function () {
+    return view('humanresources.recruitment.xml.recruitment-test-result');
+});
+Route::get('/recruitment-test-result-detail', function () {
+    return view('humanresources.recruitment.recruitment-test-result-detail');
+});
+Route::post('/recruitment-test-result-detail-submit', function () {
+    return view('humanresources.recruitment.recruitment-test-result-detail-submit');
+});
+Route::get('/recruitment-data', function () {
+    return view('humanresources.recruitment.recruitment-data');
+});
+Route::get('/xml-recruitment-data', function () {
+    return view('humanresources.recruitment.xml.recruitment-data');
+});
+Route::get('/recruitment-pending', function () {
+    return view('humanresources.recruitment.recruitment-pending');
+});
+Route::get('/recruitment-pending-detail', function () {
+    return view('humanresources.recruitment.recruitment-pending-detail');
+});
+Route::get('/recruitment-outstanding', function () {
+    return view('humanresources.recruitment.recruitment-outstanding');
+});
+Route::get('/xml-recruitment-outstanding', function () {
+    return view('humanresources.recruitment.xml.recruitment-outstanding');
+});
+Route::get('/recruitment-pending-detail2', function () {
+    return view('humanresources.recruitment.recruitment-pending-detail2');
+});
+Route::post('/recruitment-pending-detail2-submit', function () {
+    return view('humanresources.recruitment.recruitment-pending-detail2-submit');
+});
+Route::get('/xml-recruitment-pending', function () {
+    return view('humanresources.recruitment.xml.recruitment-pending');
+});
+Route::get('/recruitment-candidate-analisys', function () {
+    return view('humanresources.recruitment.recruitment-candidate-analysis');
+});
+Route::get('/xml-recruitment-candidate-analysis', function () {
+    return view('humanresources.recruitment.xml.recruitment-candidate-analysis');
+});
+Route::get('/recruitment-candidate-analysis-detail', function () {
+    return view('humanresources.recruitment.recruitment-candidate-analysis-detail');
+});
+Route::post('/recruitment-candidate-analysis-detail-submit', function () {
+    return view('humanresources.recruitment.recruitment-candidate-analysis-detail-submit');
+});
+Route::post('/recruitment-data-submit', function () {
+    return view('humanresources.recruitment.recruitment-data-submit');
+});
+Route::get('/recruitment-lists-detail', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail');
+});
+Route::get('/recruitment-lists-detail-data', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-data');
+});
+Route::get('/recruitment-document', function () {
+    return view('humanresources.recruitment.recruitment-document');
+});
+Route::get('/xml-recruitment-document', function () {
+    return view('humanresources.recruitment.xml.recruitment-document');
+});
+Route::get('/recruitment-document-detail', function () {
+    return view('humanresources.recruitment.recruitment-document-detail');
+});
+Route::get('/recruitment-notification', function () {
+    return view('humanresources.recruitment.recruitment-notification');
+});
+Route::post('/recruitment-notification-submit', function () {
+    return view('humanresources.recruitment.recruitment-notification-submit');
+});
+
+Route::get('/xml-recruitment-notification', function () {
+    return view('humanresources.recruitment.xml.recruitment-notification');
+});
+Route::get('/recruitment-interview', function () {
+    return view('humanresources.recruitment.recruitment-interview');
+});
+Route::get('/xml-recruitment-interview', function () {
+    return view('humanresources.recruitment.xml.recruitment-interview');
+});
+Route::get('/recruitment-interview-detail', function () {
+    return view('humanresources.recruitment.recruitment-interview-detail');
+});
+Route::post('/recruitment-interview-detail-submit', function () {
+    return view('humanresources.recruitment.recruitment-interview-detail-submit');
+});
+Route::get('/sales-proforma-ba', function () {
+    return view('sales.proforma-ba');
+});
+Route::get('/xml-sales-proforma-ba', function () {
+    return view('sales.xml.proforma-ba');
+});
+Route::get('/sales-proforma-ba-detail', function () {
+    return view('sales.proforma-ba-detail');
+});
+Route::get('/sales-proforma-ba-detail2', function () {
+    return view('sales.proforma-ba-detail2');
+});
+Route::get('/xml-sales-proforma-ba-detail', function () {
+    return view('sales.xml.proforma-ba-detail');
+});
+Route::post('/sales-proforma-ba-detail-submit', function () {
+    return view('sales.proforma-ba-detail-submit');
+});
+Route::post('/sales-proforma-ba-detail2-submit', function () {
+    return view('sales.proforma-ba-detail2-submit');
+});
+Route::get('/badownload', function () {
+    return view('sales.badownload');
+});
+
+
+
+// project
+Route::get('/opportunity-timeline-file', function () {
+    return view('project.opportunity-timeline-file');
+});
+Route::get('/project-stock', function () {
+    return view('project.project-stock');
+});
+Route::get('/project-stock-detail', function () {
+    return view('project.project-stock-detail');
+});
+Route::get('/project-stock-add', function () {
+    return view('project.project-stock-add');
+});
+
+Route::post('/project-stock-add-submit', function () {
+    return view('project.project-stock-submit');
+});
+Route::get('/po-outstanding', function () {
+    return view('procurement.po-outstanding');
+});
+Route::get('/po-outstanding-detail', function () {
+    return view('procurement.po-outstanding-detail');
+});
+Route::get('/xml-po-outstanding', function () {
+    return view('procurement.xml.po-outstanding');
+});
+Route::get('/po-vendor-summary', function () {
+    return view('procurement.po-vendor-summary');
+});
+Route::get('/xml-po-vendor-summary', function () {
+    return view('procurement.xml.po-vendor-summary');
+});
+Route::get('/po-vendor-summary-detail', function () {
+    return view('procurement.po-vendor-summary-detail');
+});
+Route::get('/xml-po-vendor-summary-detail', function () {
+    return view('procurement.xml.po-vendor-summary-detail');
+});
+Route::get('/po-payment-monitoring', function () {
+    return view('procurement.po-payment-monitoring');
+});
+Route::get('/po-payment-monitoring-detail', function () {
+    return view('procurement.po-payment-monitoring-detail');
+});
+Route::get('/xml-po-payment-monitoring', function () {
+    return view('procurement.xml.po-payment-monitoring');
+});
+Route::get('/project-purchase', function () {
+    return view('project.project-purchase');
+});
+Route::get('/project-purchase-add', function () {
+    return view('project.project-purchase-add');
+});
+
+Route::get('/project-purchase-detail', function () {
+    return view('project.project-purchase-detail');
+});
+Route::post('/project-purchase-submit', function () {
+    return view('project.project-purchase-submit');
+});
+Route::get('/project-hrd-approval', function () {
+    return view('project.project-hrd-approval');
+});
+Route::get('/project-hrd-approval-recounting', function () {
+    return view('project.project-hrd-approval-recounting');
+});
+Route::get('/xml-project-hrd-approval', function () {
+    return view('project.xml.project-hrd-approval');
+});
+Route::get('/xml-project-hrd-approval-detail', function () {
+    return view('project.xml.project-hrd-approval-detail');
+});
+Route::get('/project-hrd-approval-detail', function () {
+    return view('project.project-hrd-approval-detail');
+});
+Route::post('/project-hrd-approval-detail-submit', function () {
+    return view('project.project-hrd-approval-detail-submit');
+});
+Route::post('/project-hrd-approval-detail-update', function () {
+    return view('project.project-hrd-approval-detail-update');
+});
+Route::get('/xml-project-reimbursement-history', function () {
+    return view('project.xml.project-reimbursement-history');
+});
+
+Route::post('/approval-reimbursement-update', function () {
+    return view('project.approval-reimbursement-update');
+});
+Route::get('/approval-reimbursement', function () {
+    return view('project.approval-reimbursement');
+});
+Route::get('/approval-reimbursement-detail', function () {
+    return view('project.approval-reimbursement-detail');
+});
+
+Route::get('/xml-approval-reimbursement', function () {
+    return view('project.xml.approval-reimbursement');
+});
+Route::get('/xml-approval-reimbursement-detail', function () {
+    return view('project.xml.approval-reimbursement-detail');
+});
+
+
+Route::get('/project-reimbursement-history', function () {
+    return view('project.project-reimbursement-history');
+});
+Route::get('/project-reimbursement', function () {
+    return view('project.project-reimbursement');
+});
+Route::get('/project-reimbursement-detail', function () {
+    return view('project.project-reimbursement-detail');
+});
+Route::get('/xml-project-reimbursement-detail', function () {
+    return view('project.xml.project-reimbursement-detail');
+});
+Route::get('/project-reimbursement-detail-advance', function () {
+    return view('project.project-reimbursement-detail-advance');
+});
+Route::get('/xml-project-reimbursement-detail-advance', function () {
+    return view('project.xml.project-reimbursement-detail-advance');
+});
+Route::post('/project-reimbursement-detail-advance-update', function () {
+    return view('project.project-reimbursement-detail-advance-update');
+});
+Route::get('/project-reimbursement-detail-reimbursement', function () {
+    return view('project.project-reimbursement-detail-reimbursement');
+});
+Route::get('/xml-project-reimbursement-detail-reimbursement', function () {
+    return view('project.xml.project-reimbursement-detail-reimbursement');
+});
+Route::post('/project-reimbursement-detail-reimbursement-update', function () {
+    return view('project.project-reimbursement-detail-reimbursement-update');
+});
+Route::get('/xml-project-reimbursement-detail-reimbursement', function () {
+    return view('project.xml.project-reimbursement-detail-reimbursement');
+});
+Route::post('/project-reimbursement-detail-update', function () {
+    return view('project.project-reimbursement-detail-update');
+});
+Route::get('/project-reimbursement-out-add', function () {
+    return view('project.project-reimbursement-out-add');
+});
+Route::get('/xml-project-reimbursement', function () {
+    return view('project.xml.project-reimbursement');
+});
+Route::get('/project-organization', function () {
+    return view('project.organization');
+});
+Route::get('/project-organization-detail', function () {
+    return view('project.organization-detail');
+});
+
+Route::get('/xml-project-organization', function () {
+    return view('project.xml.organization');
+});
+Route::get('/project-lists', function () {
+    return view('project.project-lists');
+});
+Route::get('/project-lists-detail', function () {
+    return view('project.project-detail');
+});
+Route::post('/project-detail-finish', function () {
+    return view('project.project-detail-finish');
+});
+Route::post('/project-detail-final', function () {
+    return view('project.project-detail-final');
+});
+Route::post('/project-detail-submit', function () {
+    return view('project.project-detail-submit');
+});
+Route::post('/project-lists-submit', function () {
+    return view('project.project-lists-submit');
+});
+Route::get('/xml-project-lists', function () {
+    return view('project.xml.project-lists');
+});
+Route::get('/project-search-customer', function () {
+    return view('project.search-customer');
+});
+Route::get('/search-customer', function () {
+    return view('sales.search-customer');
+});
+Route::get('/project-search-vendor', function () {
+    return view('project.search-vendor');
+});
+Route::get('/project-search-opportunity', function () {
+    return view('project.search-opportunity');
+});
+Route::get('/project-new', function () {
+    return view('project.new');
+});
+Route::post('/project-new-submit', function () {
+    return view('project.new-submit');
+});
+
+Route::get('/project-new-opportunity', function () {
+    return view('project.new-opportunity');
+});
+Route::post('/project-new-opportunity-submit', function () {
+    return view('project.new-opportunity-submit');
+});
+
+Route::get('/project-activity', function () {
+    return view('project.project-activity');
+});
+Route::get('/xml-project-activity', function () {
+    return view('project.xml.project-activity');
+});
+Route::get('/project-activity2', function () {
+    return view('project.project-activity2');
+});
+Route::get('/xml-project-activity2', function () {
+    return view('project.xml.project-activity2');
+});
+Route::post('/project-activity2-update', function () {
+    return view('project.project-activity2-update');
+});
+Route::get('/project-activity-add', function () {
+    return view('project.project-activity-add');
+});
+Route::get('/project-activity-detail', function () {
+    return view('project.project-activity-detail');
+});
+
+Route::get('/project-time', function () {
+    return view('project.project-time');
+});
+
+Route::get('/project-times-detail', function () {
+    return view('project.project-times-detail');
+});
+Route::get('/xml-project-times-costs', function () {
+    return view('project.xml.project-times-costs');
+});
+Route::get('/xml-project-times-documents', function () {
+    return view('project.xml.project-times-documents');
+});
+Route::get('/xml-project-times', function () {
+    return view('project.xml.project-time');
+});
+Route::get('/project-time-detail', function () {
+    return view('project.project-time-detail');
+});
+Route::post('/project-activity-detail-submit', function () {
+    return view('project.project-activity-detail-submit');
+});
+Route::post('/project-activity-add-submit', function () {
+    return view('project.project-activity-add-submit');
+});
+Route::get('/recruitment-outstanding-requisition', function () {
+    return view('humanresources.recruitment.outstanding-requisition');
+});
+Route::get('/xml-outstanding-requisition', function () {
+    return view('humanresources.recruitment.xml.outstanding-requisition');
+});
+
+Route::post('/outstanding-requisition-update', function () {
+    return view('humanresources.recruitment.outstanding-requisition-update');
+});
+Route::get('/requisition-new-detail', function () {
+    return view('humanresources.recruitment.requisition-new-project-detail');
+});
+Route::get('/xml-requisition-new-detail', function () {
+    return view('humanresources.recruitment.xml.requisition-new-detail');
+});
+Route::get('/project-hrd', function () {
+    return view('project.project-hrd');
+});
+Route::get('/project-hrd-detail', function () {
+    return view('project.project-hrd-detail');
+});
+Route::get('/xml-project-hrd-detail', function () {
+    return view('project.xml.project-hrd-detail');
+});
+Route::post('/project-hrd-detail-update', function () {
+    return view('project.project-hrd-detail-update');
+});
+Route::get('/project-hrd-detail-detail', function () {
+    return view('project.project-hrd-detail-detail');
+});
+Route::get('/xml-project-hrd-detail-detail', function () {
+    return view('project.xml.project-hrd-detail-detail');
+});
+Route::get('/requisition-new-project', function () {
+    return view('humanresources.recruitment.requisition-new-project');
+});
+Route::post('/requisition-new-project-submit', function () {
+    return view('humanresources.recruitment.requisition-new-project-submit');
+});
+Route::get('/os-lists', function () {
+    return view('humanresources.employment.os-lists');
+});
+Route::get('/xml-os-lists', function () {
+    return view('humanresources.employment.xml.os-lists');
+});
+Route::get('/employee-lists', function () {
+    return view('humanresources.employment.employee-lists');
+});
+Route::get('/xml-employee-lists', function () {
+    return view('humanresources.employment.xml.employee-lists');
+});
+Route::get('/employee-lists-detail', function () {
+    return view('humanresources.employment.employee-lists-detail');
+});
+Route::get('/employee-lists-detail-data', function () {
+    return view('humanresources.employment.employee-lists-detail-data');
+});
+Route::post('/employee-lists-detail-data-submit', function () {
+    return view('humanresources.employment.employee-lists-detail-data-submit');
+});
+Route::get('/employee-lists-detail-other', function () {
+    return view('humanresources.employment.employee-lists-detail-other');
+});
+
+Route::get('/employee-lists-detail-insurance', function () {
+    return view('humanresources.employment.employee-lists-detail-insurance');
+});
+Route::get('/xml-employee-lists-detail-document', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-document');
+});
+Route::get('/xml-employee-lists-detail-history', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-history');
+});
+Route::get('/recruitment-lists-detail-other', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-other');
+});
+Route::get('/recruitment-lists-detail-family', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-family');
+});
+Route::get('/recruitment-lists-detail-education', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-education');
+});
+Route::get('/recruitment-lists-detail-skill', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-skill');
+});
+Route::get('/xml-recruitment-lists-detail-other-skill', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-other-skill');
+});
+Route::get('/recruitment-lists-detail-document', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-document');
+});
+Route::get('/xml-recruitment-lists-detail-document', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-document');
+});
+Route::get('/recruitment-lists-detail-insurance', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-insurance');
+});
+Route::get('/xml-recruitment-lists-detail-insurance', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-insurance');
+});
+Route::post('/recruitment-lists-detail-insurance-update', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-insurance-update');
+});
+Route::get('/xml-recruitment-lists-detail-organization', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-organization');
+});
+Route::post('/recruitment-lists-detail-organization-update', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-organization-update');
+});
+Route::get('/xml-recruitment-lists-detail-family', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-family');
+});
+Route::get('/xml-recruitment-lists-detail-academic', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-academic');
+});
+Route::get('/xml-recruitment-lists-detail-contact-points', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-contact-points');
+});
+Route::post('/recruitment-lists-detail-contact-points-update', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-contact-points-update');
+});
+Route::post('/recruitment-lists-detail-academic-update', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-academic-update');
+});
+Route::get('/xml-recruitment-lists-detail-informal', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-informal');
+});
+Route::post('/recruitment-lists-detail-informal-update', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-informal-update');
+});
+Route::get('/xml-recruitment-lists-detail-driving', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-driving');
+});
+Route::post('/recruitment-lists-detail-driving-update', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-driving-update');
+});
+Route::get('/xml-recruitment-lists-detail-health', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-health');
+});
+Route::post('/recruitment-lists-detail-health-update', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-health-update');
+});
+Route::get('/xml-recruitment-lists-detail-experience', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-experience');
+});
+Route::post('/recruitment-lists-detail-experience-update', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-experience-update');
+});
+Route::get('/xml-recruitment-lists-detail-skill', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-skill');
+});
+Route::post('/recruitment-lists-detail-skill-update', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-skill-update');
+});
+Route::get('/xml-recruitment-lists-detail-award', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-award');
+});
+Route::post('/recruitment-lists-detail-award-update', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-award-update');
+});
+Route::get('/xml-recruitment-lists-detail-language', function () {
+    return view('humanresources.recruitment.xml.recruitment-lists-detail-language');
+});
+Route::post('/recruitment-lists-detail-language-update', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-language-update');
+});
+Route::get('/recruitment-lists-detail-recruitment', function () {
+    return view('humanresources.recruitment.recruitment-lists-detail-recruitment');
+});
+
+Route::get('/xml-employee-lists-detail-insurance', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-insurance');
+});
+Route::post('/employee-lists-detail-insurance-update', function () {
+    return view('humanresources.employment.employee-lists-detail-insurance-update');
+});
+Route::get('/xml-employee-lists-detail-organization', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-organization');
+});
+Route::post('/employee-lists-detail-organization-update', function () {
+    return view('humanresources.employment.employee-lists-detail-organization-update');
+});
+Route::get('/xml-employee-lists-detail-family', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-family');
+});
+Route::get('/xml-employee-lists-detail-academic', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-academic');
+});
+Route::get('/xml-employee-lists-detail-contact-points', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-contact-points');
+});
+Route::post('/employee-lists-detail-contact-points-update', function () {
+    return view('humanresources.employment.employee-lists-detail-contact-points-update');
+});
+Route::post('/employee-lists-detail-academic-update', function () {
+    return view('humanresources.employment.employee-lists-detail-academic-update');
+});
+Route::get('/xml-employee-lists-detail-informal', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-informal');
+});
+Route::post('/employee-lists-detail-informal-update', function () {
+    return view('humanresources.employment.employee-lists-detail-informal-update');
+});
+Route::get('/xml-employee-lists-detail-driving', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-driving');
+});
+Route::post('/employee-lists-detail-driving-update', function () {
+    return view('humanresources.employment.employee-lists-detail-driving-update');
+});
+Route::get('/xml-employee-lists-detail-health', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-health');
+});
+Route::post('/employee-lists-detail-health-update', function () {
+    return view('humanresources.employment.employee-lists-detail-health-update');
+});
+Route::get('/xml-employee-lists-detail-experience', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-experience');
+});
+Route::post('/employee-lists-detail-experience-update', function () {
+    return view('humanresources.employment.employee-lists-detail-experience-update');
+});
+Route::get('/xml-employee-lists-detail-skill', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-skill');
+});
+Route::post('/employee-lists-detail-skill-update', function () {
+    return view('humanresources.employment.employee-lists-detail-skill-update');
+});
+Route::get('/xml-employee-lists-detail-award', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-award');
+});
+Route::post('/employee-lists-detail-award-update', function () {
+    return view('humanresources.employment.employee-lists-detail-award-update');
+});
+Route::get('/xml-employee-lists-detail-language', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-language');
+});
+Route::post('/employee-lists-detail-language-update', function () {
+    return view('humanresources.employment.employee-lists-detail-language-update');
+});
+Route::get('/employee-lists-detail-recruitment', function () {
+    return view('humanresources.employment.employee-lists-detail-recruitment');
+});
+
+Route::get('/employee-mutation', function () {
+    return view('humanresources.employment.employee-mutation');
+});
+Route::get('/employee-mutation-detail', function () {
+    return view('humanresources.employment.employee-mutation-detail');
+});
+Route::post('/employee-mutation-detail-submit', function () {
+    return view('humanresources.employment.employee-mutation-detail-submit');
+});
+Route::get('/xml-employee-mutation', function () {
+    return view('humanresources.employment.xml.employee-mutation');
+});
+Route::get('/employee-promotion', function () {
+    return view('humanresources.employment.employee-promotion');
+});
+Route::get('/employee-promotion-detail', function () {
+    return view('humanresources.employment.employee-promotion-detail');
+});
+Route::post('/employee-promotion-detail-submit', function () {
+    return view('humanresources.employment.employee-promotion-detail-submit');
+});
+Route::get('/xml-employee-promotion', function () {
+    return view('humanresources.employment.xml.employee-promotion');
+});
+Route::get('/os-conversion', function () {
+    return view('humanresources.employment.os-conversion');
+});
+Route::get('/os-conversion-detail', function () {
+    return view('humanresources.employment.os-conversion-detail');
+});
+Route::post('/os-conversion-detail-submit', function () {
+    return view('humanresources.employment.os-conversion-detail-submit');
+});
+Route::get('/xml-os-conversion', function () {
+    return view('humanresources.employment.xml.os-conversion');
+});
+
+Route::get('/employee-lists-detail-history', function () {
+    return view('humanresources.employment.employee-lists-detail-history');
+});
+Route::get('/employee-lists-detail-document', function () {
+    return view('humanresources.employment.employee-lists-detail-document');
+});
+Route::get('/employee-lists-detail-kjk', function () {
+    return view('humanresources.employment.employee-lists-detail-kjk');
+});
+Route::get('/xml-employee-lists-detail-kjk', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-kjk');
+});
+Route::get('/xml-employee-lists-detail-overtime', function () {
+    return view('humanresources.employment.xml.employee-lists-detail-overtime');
+});
+Route::get('/employee-lists-detail-family', function () {
+    return view('humanresources.employment.employee-lists-detail-family');
+});
+Route::get('/employee-lists-detail-education', function () {
+    return view('humanresources.employment.employee-lists-detail-education');
+});
+Route::get('/employee-lists-detail-skill', function () {
+    return view('humanresources.employment.employee-lists-detail-skill');
+});
+Route::post('/employee-lists-detail-submit', function () {
+    return view('humanresources.employment.employee-lists-detail-update');
+});
+Route::post('/os-contract-renew-submit', function () {
+    return view('humanresources.employment.os-contract-renew-submit');
+});
+Route::get('/os-contract', function () {
+    return view('humanresources.employment.os-contract');
+});
+Route::get('/xml-os-contract', function () {
+    return view('humanresources.employment.xml.os-contract');
+});
+Route::get('/os-contract-detail', function () {
+    return view('humanresources.employment.os-contract-detail');
+});
+Route::get('/close-contract', function () {
+    return view('humanresources.employment.os-contract-close');
+});
+Route::post('/os-contract-close-submit', function () {
+    return view('humanresources.employment.os-contract-close-submit');
+});
+Route::get('/os-contract-renew', function () {
+    return view('humanresources.employment.os-contract-renew');
+});
+
+Route::get('/project-team', function () {
+    return view('project.project-team');
+});
+
+Route::get('/xml-project-team', function () {
+    return view('project.xml.project-team');
+});
+
+Route::get('/project-team-detail', function () {
+    return view('project.project-team-detail');
+});
+Route::post('/project-team-detail-update', function () {
+    return view('project.project-team-detail-update');
+});
+
+Route::get('/xml-project-team-detail', function () {
+    return view('project.xml.project-team-detail');
+});
+Route::get('/project-team-detail-add', function () {
+    return view('project.project-team-detail-add');
+});
+Route::get('/xml-project-team-detail-add', function () {
+    return view('project.xml.project-team-detail-add');
+});
+Route::post('/project-team-detail-add-update', function () {
+    return view('project.project-team-detail-add-update');
+});
+Route::post('/project-team-detail-add-submit', function () {
+    return view('project.project-team-detail-add-submit');
+});
+
+
+Route::get('/project-issues', function () {
+    return view('project.project-issues');
+});
+
+Route::get('/xml-project-issues', function () {
+    return view('project.xml.project-issues');
+});
+
+Route::get('/project-issues-detail', function () {
+    return view('project.project-issues-detail');
+});
+Route::get('/project-issues-detail-log', function () {
+    return view('project.project-issues-detail-log');
+});
+Route::post('/project-issues-detail-update', function () {
+    return view('project.project-issues-detail-update');
+});
+Route::get('/xml-project-issues-detail', function () {
+    return view('project.xml.project-issues-detail');
+});
+Route::get('/xml-project-issues-detail-log', function () {
+    return view('project.xml.project-issues-detail-log');
+});
+Route::get('/project-issues-detail-add', function () {
+    return view('project.project-issues-detail-add');
+});
+Route::post('/project-issues-detail-add-submit', function () {
+    return view('project.project-issues-detail-add-submit');
+});
+Route::get('/project-issues-detail-edit', function () {
+    return view('project.project-issues-detail-edit');
+});
+Route::post('/project-issues-detail-edit-submit', function () {
+    return view('project.project-issues-detail-edit-submit');
+});
+Route::get('/project-documents', function () {
+    return view('project.project-documents');
+});
+
+Route::get('/xml-project-documents', function () {
+    return view('project.xml.project-documents');
+});
+
+Route::get('/project-documents-detail', function () {
+    return view('project.project-documents-detail');
+});
+Route::post('/project-documents-detail-update', function () {
+    return view('project.project-documents-detail-update');
+});
+Route::get('/xml-project-documents-detail', function () {
+    return view('project.xml.project-documents-detail');
+});
+Route::get('/project-documents-detail-add', function () {
+    return view('project.project-documents-detail-add');
+});
+Route::post('/project-documents-detail-add-submit', function () {
+    return view('project.project-documents-detail-add-submit');
+});
+Route::get('/project-documents-detail-edit', function () {
+    return view('project.project-documents-detail-edit');
+});
+
+
+
+Route::get('/master-product-sub-group', function () {
+    return view('procurement.master-product-sub-group');
+});
+Route::get('/xml-master-product-sub-group', function () {
+    return view('procurement.xml.master-product-sub-group');
+});
+Route::post('/master-product-sub-group-update', function () {
+    return view('procurement.master-product-sub-group-update');
+});
+
+Route::get('/master-product-sub-sub-group', function () {
+    return view('procurement.master-product-sub-sub-group');
+});
+Route::get('/xml-master-product-sub-sub-group', function () {
+    return view('procurement.xml.master-product-sub-sub-group');
+});
+Route::post('/master-product-sub-sub-group-update', function () {
+    return view('procurement.master-product-sub-sub-group-update');
+});
+Route::get('/budget-load-batch-coa', function () {
+    return view('finance.budget.load-batch-coa');
+});
+Route::get('/budget-load-from-file', function () {
+    return view('finance.budget.load-from-file');
+});
+Route::get('/budget-finalize', function () {
+    return view('finance.budget.finalize');
+});
+Route::get('/budget-finalize-submit', function () {
+    return view('finance.budget.finalize-submit');
+});
+Route::get('/load-excel-coa', function () {
+    return view('finance.budget.load-excel-coa');
+});
+Route::get('/combo-coa', function () {
+    return view('accounting.xml.combo-coa');
+});
+Route::get('/combo-coa-all', function () {
+    return view('accounting.xml.combo-coa-all');
+});
+Route::get('/master-product-group', function () {
+    return view('procurement.master-product-group');
+});
+Route::get('/xml-master-product-group', function () {
+    return view('procurement.xml.master-product-group');
+});
+Route::post('/master-product-group-update', function () {
+    return view('procurement.master-product-group-update');
+});
+Route::get('/xml-combo-product-group', function () {
+    return view('procurement.xml.product-group');
+});
+Route::get('/xml-combo-product-sub-group', function () {
+    return view('procurement.xml.product-sub-group');
+});
+Route::get('/xml-combo-product-approval', function () {
+    return view('procurement.xml.product-approval');
+});
+Route::get('/permission-all', function () {
+    return view('humanresources.permission.all');
+});
+
+Route::get('/xml-permission-all', function () {
+    return view('humanresources.permission.xml.all');
+});
+Route::get('/attendant-data', function () {
+    return view('humanresources.attendant.data');
+});
+
+Route::get('/xml-attendant-data', function () {
+    return view('humanresources.attendant.xml.data');
+});
+Route::get('/permission-approval', function () {
+    return view('humanresources.permission.approval');
+});
+Route::post('/permission-approval-update', function () {
+    return view('humanresources.permission.approval-update');
+});
+Route::get('/xml-permission-approval', function () {
+    return view('humanresources.permission.xml.approval');
+});
+Route::get('/xml-combo-directorat', function () {
+    return view('humanresources.master.xml.combo-directorat');
+});
+Route::get('/xml-combo-department', function () {
+    return view('humanresources.master.xml.combo-department');
+});
+Route::get('/xml-combo-section', function () {
+    return view('humanresources.master.xml.combo-section');
+});
+Route::get('/master-holiday-detail', function () {
+    return view('humanresources.permission.master-holiday-detail');
+});
+Route::get('/xml-master-holiday-detail', function () {
+    return view('humanresources.permission.xml.holiday-detail');
+});
+Route::post('/master-section-update', function () {
+    return view('humanresources.master.section-submit');
+});
+Route::get('/hrd-master-section', function () {
+    return view('humanresources.master.section');
+});
+Route::get('/xml-hrd-master-section', function () {
+    return view('humanresources.master.xml.section');
+});
+Route::post('/master-position-update', function () {
+    return view('humanresources.master.position-submit');
+});
+Route::get('/hrd-master-position', function () {
+    return view('humanresources.master.position');
+});
+Route::get('/xml-hrd-master-position', function () {
+    return view('humanresources.master.xml.position');
+});
+
+
+Route::post('/hrd-master-department-submit', function () {
+    return view('humanresources.master.department-update');
+});
+Route::get('/hrd-master-department', function () {
+    return view('humanresources.master.department');
+});
+Route::get('/xml-hrd-master-department', function () {
+    return view('humanresources.master.xml.department');
+});
+Route::post('/master-department-update', function () {
+    return view('humanresources.master.department-submit');
+});
+Route::get('/hrd-master-directorat', function () {
+    return view('humanresources.master.directorat');
+});
+Route::get('/xml-hrd-master-directorat', function () {
+    return view('humanresources.master.xml.directorat');
+});
+Route::post('/master-directorat-update', function () {
+    return view('humanresources.master.directorat-submit');
+});
+
+Route::post('/hrd-master-permission-submit', function () {
+    return view('humanresources.permission.master-permission-update');
+});
+Route::get('/hrd-master-permission', function () {
+    return view('humanresources.permission.master-permission');
+});
+Route::get('/xml-hrd-master-permission', function () {
+    return view('humanresources.permission.xml.master-permission');
+});
+Route::get('/xml-combo-permission-group', function () {
+    return view('humanresources.permission.xml.combo-permission-group');
+});
+Route::get('/hrd-master-holiday', function () {
+    return view('humanresources.permission.master-holiday');
+});
+Route::post('/hrd-master-holiday-submit', function () {
+    return view('humanresources.permission.master-holiday-update');
+});
+Route::get('/xml-hrd-master-holiday', function () {
+    return view('humanresources.permission.xml.master-holiday');
+});
+Route::get('/permission-new', function () {
+    return view('humanresources.permission.new');
+});
+Route::post('/permission-new-submit', function () {
+    return view('humanresources.permission.new-permission-submit');
+});
+Route::get('/load-kategori-izin', function () {
+    return view('humanresources.permission.load-kategori-izin');
+});
+
+Route::get('/print-bpjs', function () {
+    return view('humanresources.payroll.prints.bpjs');
+});
+Route::get('/print-pph', function () {
+    return view('humanresources.payroll.prints.tax');
+});
+Route::get('/print-salary', function () {
+    return view('humanresources.payroll.prints.salary');
+});
+Route::get('/payroll-lists', function () {
+    return view('humanresources.payroll.payroll-lists');
+});
+Route::post('/payroll-lists-update', function () {
+    return view('humanresources.payroll.payroll-lists-update');
+});
+Route::get('/xml-payroll-lists', function () {
+    return view('humanresources.payroll.xml.payroll-lists');
+});
+
+Route::get('/xml-payroll-ap-salary', function () {
+    return view('humanresources.payroll.xml.payroll-ap-salary');
+});
+
+Route::get('/payroll-tax', function () {
+    return view('humanresources.payroll.payroll-tax');
+});
+Route::post('/payroll-tax-update', function () {
+    return view('humanresources.payroll.payroll-tax-update');
+});
+Route::get('/xml-payroll-tax', function () {
+    return view('humanresources.payroll.xml.payroll-tax');
+});
+
+
+Route::get('/payroll-group', function () {
+    return view('humanresources.payroll.payroll-group');
+});
+Route::post('/payroll-group-update', function () {
+    return view('humanresources.payroll.payroll-group-update');
+});
+Route::get('/xml-payroll-group', function () {
+    return view('humanresources.payroll.xml.payroll-group');
+});
+Route::get('/payroll-group-lists-none', function () {
+    return view('humanresources.payroll.payroll-group-lists-none');
+});
+Route::get('/payroll-group-detail', function () {
+    return view('humanresources.payroll.payroll-group-detail');
+});
+Route::post('/payroll-group-detail-update', function () {
+    return view('humanresources.payroll.payroll-group-detail-update');
+});
+Route::get('/payroll-employee-detail', function () {
+    return view('humanresources.payroll.payroll-employee-detail');
+});
+Route::get('/payroll-employee-detail-add', function () {
+    return view('humanresources.payroll.payroll-employee-detail-add');
+});
+Route::post('/payroll-employee-detail-update', function () {
+    return view('humanresources.payroll.payroll-employee-detail-update');
+});
+Route::get('/payroll-employee-recounting', function () {
+    return view('humanresources.payroll.payroll-employee-recounting');
+});
+Route::post('/payroll-group-employee-update', function () {
+    return view('humanresources.payroll.payroll-group-employee-update');
+});
+Route::get('/xml-payroll-group-detail', function () {
+    return view('humanresources.payroll.xml.payroll-group-detail');
+});
+Route::get('/xml-payroll-employee-detail', function () {
+    return view('humanresources.payroll.xml.payroll-employee-detail');
+});
+Route::get('/payroll-group-detail-add', function () {
+    return view('humanresources.payroll.payroll-group-detail-add');
+});
+Route::post('/payroll-group-detail-add-update', function () {
+    return view('humanresources.payroll.payroll-group-detail-add-update');
+});
+Route::get('/xml-payroll-group-detail-add', function () {
+    return view('humanresources.payroll.xml.payroll-group-detail-add');
+});
+
+Route::get('/payroll-group-lists', function () {
+    return view('humanresources.payroll.payroll-group-lists');
+});
+Route::post('/payroll-group-lists-update', function () {
+    return view('humanresources.payroll.payroll-group-lists-update');
+});
+Route::get('/xml-payroll-group-lists', function () {
+    return view('humanresources.payroll.xml.payroll-group-lists');
+});
+
+Route::get('/payroll-group-lists-add', function () {
+    return view('humanresources.payroll.payroll-group-lists-add');
+});
+Route::post('/payroll-group-lists-add-update', function () {
+    return view('humanresources.payroll.payroll-group-lists-add-update');
+});
+Route::get('/xml-payroll-group-lists-add', function () {
+    return view('humanresources.payroll.xml.payroll-group-lists-add');
+});
+Route::get('/payroll-employee', function () {
+    return view('humanresources.payroll.payroll-employee');
+});
+Route::post('/payroll-employee-update', function () {
+    return view('humanresources.payroll.payroll-employee-update');
+});
+Route::get('/xml-payroll-employee', function () {
+    return view('humanresources.payroll.xml.payroll-employee');
+});
+Route::get('/search-employee', function () {
+    return view('humanresources.overtime.search-employee');
+});
+Route::get('/overtime-new', function () {
+    return view('humanresources.overtime.new');
+});
+Route::get('/xml-overtime-new', function () {
+    return view('humanresources.overtime.xml.overtime-new');
+});
+Route::post('/overtime-new-update', function () {
+    return view('humanresources.overtime.new-update');
+});
+Route::get('/overtime-approval', function () {
+    return view('humanresources.overtime.overtime-approval');
+});
+Route::get('/xml-overtime-approval', function () {
+    return view('humanresources.overtime.xml.overtime-approval');
+});
+Route::post('/overtime-approval-update', function () {
+    return view('humanresources.overtime.approval-update');
+});
+Route::get('/overtime-approval', function () {
+    return view('humanresources.overtime.overtime-approval');
+});
+Route::get('/overtime-all', function () {
+    return view('humanresources.overtime.all');
+});
+Route::get('/xml-overtime-all', function () {
+    return view('humanresources.overtime.xml.overtime-all');
+});
+Route::get('/kjk-all', function () {
+    return view('humanresources.overtime.kjk-all');
+});
+Route::get('/xml-kjk-all', function () {
+    return view('humanresources.overtime.xml.kjk-all');
+});
+Route::get('/new-select-employee', function () {
+    return view('humanresources.overtime.new-select-employee');
+});
+Route::get('/xml-select-employee', function () {
+    return view('humanresources.overtime.xml.new-select-employee');
+});
+Route::get('/new-kjk-employee', function () {
+    return view('humanresources.overtime.new-kjk-employee');
+});
+Route::get('/xml-kjk-employee', function () {
+    return view('humanresources.overtime.xml.new-kjk-employee');
+});
+Route::get('/kjk-new', function () {
+    return view('humanresources.overtime.new-kjk');
+});
+Route::get('/xml-kjk-new', function () {
+    return view('humanresources.overtime.xml.kjk-new');
+});
+Route::post('/kjk-new-update', function () {
+    return view('humanresources.overtime.new-kjk-update');
+});
+Route::post('/kjk-approval-update', function () {
+    return view('humanresources.overtime.kjk-approval-update');
+});
+Route::get('/kjk-approval', function () {
+    return view('humanresources.overtime.kjk-approval');
+});
+Route::get('/xml-kjk-approval', function () {
+    return view('humanresources.overtime.xml.kjk-approval');
+});
+Route::get('/load-overtime-kategori', function () {
+    return view('humanresources.overtime.load-overtime-kategori');
+});
+Route::get('/load-pegawai', function () {
+    return view('humanresources.overtime.load-pegawai');
+});
+Route::get('/payroll-approval', function () {
+    return view('humanresources.payroll.payroll-approval');
+});
+Route::get('/payroll-approval-cancel', function () {
+    return view('humanresources.payroll.payroll-approval-cancel');
+});
+Route::get('/payroll-approval-approve', function () {
+    return view('humanresources.payroll.payroll-approval-approve');
+});
+Route::get('/xml-payroll-approval', function () {
+    return view('humanresources.payroll.xml.payroll-approval');
+});
+Route::get('/payroll-approval-detail', function () {
+    return view('humanresources.payroll.payroll-approval-detail');
+});
+Route::get('/payroll-approval-detail-detail', function () {
+    return view('humanresources.payroll.payroll-approval-detail-detail');
+});
+Route::get('/xml-payroll-approval-detail', function () {
+    return view('humanresources.payroll.xml.payroll-approval-detail');
+});
+Route::get('/payroll-approved', function () {
+    return view('humanresources.payroll.payroll-approved');
+});
+Route::get('/xml-payroll-approved', function () {
+    return view('humanresources.payroll.xml.payroll-approved');
+});
+Route::get('/payroll-approved-detail', function () {
+    return view('humanresources.payroll.payroll-approved-detail');
+});
+Route::get('/payroll-approved-detail-detail', function () {
+    return view('humanresources.payroll.payroll-approved-detail-detail');
+});
+Route::get('/xml-payroll-approved-detail', function () {
+    return view('humanresources.payroll.xml.payroll-approved-detail');
+});
+
+Route::get('/payroll-generator', function () {
+    return view('humanresources.payroll.payroll-generator');
+});
+Route::post('/payroll-generator-submit', function () {
+    return view('humanresources.payroll.payroll-generator-submit');
+});
+Route::get('/payroll-generator-detail', function () {
+    return view('humanresources.payroll.payroll-generator-detail');
+});
+Route::get('/xml-payroll-generator-employee', function () {
+    return view('humanresources.payroll.xml.payroll-generator-employee');
+});
+Route::get('/payroll-generator-upload', function () {
+    return view('humanresources.payroll.payroll-generator-upload');
+});
+Route::get('/payroll-generator-upload-process', function () {
+    return view('humanresources.payroll.payroll-generator-upload-process');
+});
+Route::post('/payroll-generator-detail-update', function () {
+    return view('humanresources.payroll.payroll-generator-detail-update');
+});
+Route::get('/payroll-template-master-lists', function () {
+    return view('humanresources.payroll.payroll-template-master-lists');
+});
+Route::post('/payroll-template-master-lists-update', function () {
+    return view('humanresources.payroll.payroll-template-master-lists-update');
+});
+Route::get('/xml-payroll-template-master-lists', function () {
+    return view('humanresources.payroll.xml.payroll-template-master-lists');
+});
+Route::get('/payroll-template-master', function () {
+    return view('humanresources.payroll.payroll-template-master');
+});
+Route::post('/payroll-template-master-update', function () {
+    return view('humanresources.payroll.payroll-template-master-update');
+});
+Route::get('/xml-payroll-template-master', function () {
+    return view('humanresources.payroll.xml.payroll-template-master');
+});
+Route::get('/payroll-template-master-lists-add', function () {
+    return view('humanresources.payroll.payroll-template-master-lists-add');
+});
+Route::post('/payroll-template-master-lists-add-update', function () {
+    return view('humanresources.payroll.payroll-template-master-lists-add-update');
+});
+Route::get('/xml-payroll-template-master-lists-add', function () {
+    return view('humanresources.payroll.xml.payroll-template-master-lists-add');
+});
+Route::get('/attendant-entry', function () {
+    return view('humanresources.attendant.attendant-entry');
+});
+Route::post('/attendant-entry-update', function () {
+    return view('humanresources.attendant.attendant-entry-update');
+});
+Route::get('/xml-attendant-entry', function () {
+    return view('humanresources.attendant.xml.attendant-entry');
+});
+Route::get('/attendant-entry-lists', function () {
+    return view('humanresources.attendant.attendant-entry-lists');
+});
+Route::post('/attendant-entry-lists-update', function () {
+    return view('humanresources.attendant.attendant-entry-lists-update');
+});
+Route::get('/xml-attendant-entry-lists', function () {
+    return view('humanresources.attendant.xml.attendant-entry-lists');
+});
+
+Route::get('/attendant-data-lists', function () {
+    return view('humanresources.attendant.attendant-data-lists');
+});
+Route::get('/xml-attendant-data-lists', function () {
+    return view('humanresources.attendant.xml.attendant-data-lists');
+});
+Route::get('/resigned-employee', function () {
+    return view('humanresources.other.resigned-employee');
+});
+Route::get('/xml-resigned-employee', function () {
+    return view('humanresources.other.xml.resigned-employee');
+});
+Route::get('/resigned-employee-detail', function () {
+    return view('humanresources.other.resigned-employee-detail');
+});
+
+Route::get('/sales-proforma-monitoring', function () {
+    return view('sales.proforma-monitoring');
+});
+Route::get('/xml-sales-proforma-monitoring', function () {
+    return view('sales.xml.proforma-monitoring');
+});
+Route::get('/sales-proforma-monitoring-detail', function () {
+    return view('sales.proforma-monitoring-detail');
+});
+
+
+// route untuk po outstanding
+
+Route::get('/my-po-outstanding', function () {
+    return view('mymenu.po-outstanding');
+});
+Route::get('/my-po-outstanding-detail', function () {
+    return view('mymenu.po-outstanding-detail');
+});
+Route::get('/xml-my-po-outstanding', function () {
+    return view('mymenu.xml.po-outstanding');
+});
+
+Route::get('/finance-report-archive-general-ledgers', function () {
+    return view('finance.archives.general-ledgers');
+});
+
+Route::get('/xml-finance-report-archive-general-ledgers', function () {
+    return view('finance.archives.xml.general-ledgers');
+});
+
+Route::get('/my-cash-advance-add', function () {
+    return view('mymenu.cash-advance-add');
+});
+
+
+Route::post('/my-cash-advance-add-submit', function () {
+    return view('mymenu.cash-advance-add-submit');
+});
+
+
+Route::get('/approvalcashadvance', function () {
+    return view('scheduler.approvalcashadvance');
+});
+Route::get('/approvalcashadvance_approve', function () {
+    return view('scheduler.approvalcashadvance_approve');
+});
+Route::get('/approvalcashadvance_reject', function () {
+    return view('scheduler.approvalcashadvance_reject');
+});
+
+Route::post('/accounting-report-general-ledgers-update', function () {
+    return view('accounting.report.general-ledgers-update');
+});
+Route::get('/sales-search-proforma-invoice-to', function () {
+    return view('sales.search-proforma-invoice-to');
+});
+Route::get('/sales-search-proforma-user-signed', function () {
+    return view('sales.search-proforma-user-signed');
+});
+
+Route::post('/sales-proforma-ba-update', function () {
+    return view('sales.proforma-ba-update');
+});
+
+Route::get('/finance-cash-advance-outstanding', function () {
+    return view('finance.cash-advance-outstanding');
+});
+Route::get('/finance-cash-advance-detail-outstanding', function () {
+    return view('finance.cash-advance-detail-outstanding');
+});
+Route::post('/finance-cash-advance-detail-outstanding-submit', function () {
+    return view('finance.cash-advance-detail-outstanding-submit');
+});
+Route::get('/xml-finance-cash-advance-outstanding', function () {
+    return view('finance.xml.cash-advance-outstanding');
+});
+
+Route::post('/accounting-master-coa-update', function () {
+    return view('accounting.master-coa-update');
+});
+
+
+Route::get('/finance-finish-bank-advance', function () {
+    return view('finance.finish.bank-advance');
+});
+
+Route::get('/finance-finish-bank-advance-detail', function () {
+    return view('finance.finish.bank-advance-detail');
+});
+Route::get('/xml-finance-finish-bank-advance', function () {
+    return view('finance.finish.xml.bank-advance');
+});
+
+Route::get('/xml-finance-finish-bank-advance-detail', function () {
+    return view('finance.finish.xml.bank-advance-detail');
+});
+
+
+Route::get('/sales-master-proforma-signed', function () {
+    return view('sales.master-proforma-signed');
+});
+Route::get('/xml-sales-master-proforma-signed', function () {
+    return view('sales.xml.master-proforma-signed');
+});
+
+Route::post('/master-proforma-signed-update', function () {
+    return view('sales.master-proforma-signed-update');
+});
+
+Route::get('/sales-proforma-posted-history', function () {
+    return view('sales.proforma-posted-history');
+});
+Route::get('/xml-sales-proforma-posted-history', function () {
+    return view('sales.xml.proforma-posted-history');
+});
+
+
+
+Route::get('/project-spj', function () {
+    return view('project.project-spj');
+});
+Route::get('/project-spj-detail', function () {
+    return view('project.project-spj-detail');
+});
+Route::get('/xml-project-spj-detail', function () {
+    return view('project.xml.project-spj-detail');
+});
+
+Route::get('/project-spj-add', function () {
+    return view('project.project-spj-add');
+});
+
+Route::post('/project-spj-add-submit', function () {
+    return view('project.project-spj-add-submit');
+});
+
+
+Route::get('/approvalspj', function () {
+    return view('scheduler.approvalspj');
+});
+Route::get('/approvalspj_approve', function () {
+    return view('scheduler.approvalspj_approve');
+});
+Route::get('/approvalspj_reject', function () {
+    return view('scheduler.approvalspj_reject');
+});
+
+Route::get('/submitted-spj', function () {
+    return view('humanresources.other.submitted-spj');
+});
+Route::get('/xml-submitted-spj', function () {
+    return view('humanresources.other.xml.submitted-spj');
+});
+
+Route::get('/new-reimbursment-spj', function () {
+    return view('humanresources.other.new-reimbursment-spj');
+});
+
+Route::get('/new-reimbursment-spj', function () {
+    return view('humanresources.other.new-reimbursment-spj');
+});
+
+Route::post('/reimbursement-spj-submit', function () {
+    return view('humanresources.other.reimbursement-spj-submit');
+});
+Route::get('/finance-report-bank-advance', function () {
+    return view('finance.report.bank-advance');
+});
+Route::get('/xml-finance-report-bank-advance', function () {
+    return view('finance.report.xml.bank-advance');
+});
+
+Route::get('/finance-report-bank-advance-detail', function () {
+    return view('finance.report.bank-advance-detail');
+});
+Route::get('/xml-finance-report-bank-advance-detail', function () {
+    return view('finance.report.xml.bank-advance-detail');
+});
+
+Route::get('/proyeksi-cashflow-management-detail', function () {
+    return view('accounting.cashflow.proyeksi-cashflow-management-detail');
+});
+
+Route::post('/finance-proyeksi-cashflow-management-detail-update', function () {
+    return view('accounting.cashflow.proyeksi-cashflow-management-detail-update');
+});
+
+Route::get('/xml-finance-proyeksi-cashflow-management-detail', function () {
+    return view('accounting.cashflow.xml.proyeksi-cashflow-management-detail');
+});
+
+Route::get('/finance-proyeksi-cashflow', function () {
+    return view('accounting.cashflow.proyeksi-cashflow');
+});
+
+Route::get('/xml-finance-proyeksi-cashflow-management', function () {
+    return view('accounting.cashflow.xml.proyeksi-cashflow-management');
+});
+
+Route::post('/finance-proyeksi-cashflow-management-update', function () {
+    return view('accounting.cashflow.proyeksi-cashflow-management-update');
+});
+
+Route::get('/proyeksi-cashflow-load-from-file', function () {
+    return view('accounting.cashflow.load-from-file');
+});
+Route::get('/proyeksi-load-excel-coa', function () {
+    return view('accounting.cashflow.load-excel-coa');
+});
+
+
+
+Route::get('/finance-proyeksi-cashflow-history', function () {
+    return view('accounting.cashflow.proyeksi-cashflow-history');
+});
+
+Route::get('/xml-finance-proyeksi-cashflow-history', function () {
+    return view('accounting.cashflow.xml.proyeksi-cashflow-history');
+});
+Route::get('/finance-proyeksi-cashflow-history-detail', function () {
+    return view('accounting.cashflow.proyeksi-cashflow-history-detail');
+});
+
+Route::get('/xml-finance-proyeksi-cashflow-history-detail', function () {
+    return view('accounting.cashflow.xml.proyeksi-cashflow-history-detail');
+});
+
+Route::get('/finance-proyeksi-cashflow-transaction', function () {
+    return view('accounting.cashflow.proyeksi-cashflow-transaction');
+});
+
+Route::get('/xml-finance-proyeksi-cashflow-transaction', function () {
+    return view('accounting.cashflow.xml.proyeksi-cashflow-transaction');
+});
+
+Route::get('/finance-proyeksi-cashflow-summary', function () {
+    return view('accounting.cashflow.proyeksi-cashflow-summary');
+});
+
+Route::get('/xml-finance-proyeksi-cashflow-summary', function () {
+    return view('accounting.cashflow.xml.proyeksi-cashflow-summary');
+});
+
+
+Route::get('/credential-maillog', function () {
+    return view('credential.maillog');
+});
+
+Route::post('/credential-maillog-update', function () {
+    return view('credential.maillog-update');
+});
+
+Route::get('/xml-credential-maillog', function () {
+    return view('credential.xml.maillog');
+});
+
+Route::get('/xml-accounting-report-coa', function () {
+    return view('accounting.report.xml.coa');
+});
+
+Route::get('/accounting-report-gl-coa', function () {
+    return view('accounting.report.gl-coa');
+});
+
+Route::get('/sales-report-po', function () {
+    return view('sales.report.po-report');
+});
+
+Route::get('/xml-sales-report-po', function () {
+    return view('sales.report.xml.po-report');
+});
+Route::get('/upload-foto', function () {
+    return view('humanresources.employment.uploadfoto');
+});
+
+
+Route::get('/finance-ar-history-invoice', function () {
+    return view('finance.ar-history-invoice');
+});
+
+Route::get('/xml-ar-history-invoice', function () {
+    return view('finance.xml.ar-history-invoice');
+});
+
+Route::get('/sales-opportunity-closed-opportunity', function () {
+    return view('sales.opportunity-closed');
+});
+Route::get('/xml-sales-opportunity-closed', function () {
+    return view('sales.xml.opportunity-closed');
+});
+Route::get('/xml-load-pic-production', function () {
+    return view('humanresources.recruitment.xml.pic-production');
+});
+
+
+Route::get('/finance-print-pum-tanda-terima', function () {
+    return view('finance.prints.print-pum-tanda-terima');
+});
+Route::get('/finance-print-pum-tanda-keluar', function () {
+    return view('finance.prints.print-tanda-keluar');
+});
+
+
+Route::get('/finance-report-billing-monitoring', function () {
+    return view('finance.report.billing-monitoring');
+});
+Route::get('/xml-finance-report-billing-monitoring', function () {
+    return view('finance.report.xml.billing-monitoring');
+});
+
+
+Route::post('/finance-report-ar-locator-update', function () {
+    return view('finance.report.ar.ar-locator-update');
+});
+Route::get('/finance-report-ar-locator', function () {
+    return view('finance.report.ar.ar-locator');
+});
+Route::get('/xml-finance-report-ar-locator', function () {
+    return view('finance.report.ar.xml.ar-locator');
+});
+
+Route::get('/finance-report-ar-locator-upload-file', function () {
+    return view('finance.report.ar.ar-locator-upload-file');
+});
+Route::get('/finance-report-ar-locator-load-excel', function () {
+    return view('finance.report.ar.ar-locator-load-excel');
+});
+
+Route::get('/accounting-report-keuangan-rasio', function () {
+    return view('accounting.report.keuangan.rasio');
+});
+
+Route::get('/xml-purchasing-request', function () {
+    return view('project.xml.purchasing-request');
+});
+
+Route::post('/finance-cancel-invoice-update', function () {
+    return view('finance.invoice-cancel-update');
+});
+
+Route::get('credential-organization', function () {
+    return view('credential.organization');
+});
+Route::get('/xml-credential-organization', function () {
+    return view('credential.xml.organization');
+});
+Route::post('/credential-organization-update', function () {
+    return view('credential.organization-update');
+});
+

@@ -1,0 +1,24 @@
+.coolfieldset, .coolfieldset.expanded{
+	border:1px solid #aaa!important;
+	z-index:99999999999999999999999999;  
+}
+
+.coolfieldset.collapsed{
+	border:0!important;
+	border-top:1px solid #aaa!important;
+	z-index:99999999999999999999999999;  
+}
+
+.coolfieldset legend{
+	padding-left:13px!important;
+	font-weight:bold!important;
+	cursor:pointer!important;
+}
+
+.coolfieldset legend, .coolfieldset.expanded legend{
+	background: transparent url(./images/expanded.gif) no-repeat center left!important;
+}
+
+.coolfieldset.collapsed legend{
+	background: transparent url(./images/collapsed.gif) no-repeat center left!important;
+}

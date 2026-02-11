@@ -1,0 +1,40 @@
+<?php
+//error_reporting(E_ALL ^ E_NOTICE);
+error_reporting(0);
+ini_set('memory_limit', '-1');
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Builder;
+
+if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+	header("Content-type: application/xhtml+xml");
+} else {
+	header("Content-type: text/xml");
+}
+echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+$getID = '"' . $_GET['ID'] . '"';
+$nomor = 1;
+$Query = DB::table("bank_advance_dtl")->where("Task_ID", "=", $getID)->get();
+echo "<rows>";
+
+foreach ($Query as $Fetch) {
+	if (is_null($Fetch->Date_Cash)) $Fetch->Date_Cash = $Fetch->Date_Bank;
+	echo "<row id=\"$Fetch->ID\">";
+	echo "<cell>$nomor</cell>";
+	echo "<cell>" . htmlspecialchars($Fetch->Acc_No) . "</cell>";
+	echo "<cell>" . htmlspecialchars($Fetch->Date_Cash) . "</cell>";
+	echo "<cell>" . htmlspecialchars($Fetch->Reference) . "</cell>";
+	echo "<cell>" . htmlspecialchars($Fetch->Remark) . "</cell>";
+	echo "<cell>" . htmlspecialchars($Fetch->Cash_Val) . "</cell>";
+	echo "<cell>" . htmlspecialchars($Fetch->Bal_Acc) . "</cell>";
+	echo "<cell>" . htmlspecialchars($Fetch->Department) . "</cell>";
+	echo "</row>";
+
+	$nomor++;
+}
+
+
+echo "</rows>";

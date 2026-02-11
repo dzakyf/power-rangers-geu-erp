@@ -1,0 +1,41 @@
+<?php
+
+define ('TBL_CN','awb');
+define ('TBL_SMS','sms');
+define ('TBL_EMAIL','mail');
+define ('TBL_COA','coa');
+define ('TBL_ATTACHMENT_ACCOUNT','attachment_account');
+define ('TBL_ATTACHMENT_PROFILE','attachment_profile');
+define ('TBL_RETURN_INVOICE','return_invoice');
+define ('TBL_CCAI_OPERATION','dispatch_ccai_opr');
+define ('TBL_CCAI_KOLI','dispatch_ccai_koli');
+define ('TBL_MST_CUSTOMER','customer');
+define ('TBL_BANK_ACC','bank_acc');
+define ('TBL_BANK_ACC_DTL','bank_acc_dtl');
+define ('TBL_BANK_LIST','bank_list');
+define ('TBL_INVOICE','invoice');
+define ('TBL_INVOICE_LOG','invoice_mgt_history');
+define ('TBL_AR_CARE','account_receive');
+define ('TBL_AR_CARE_LIST','account_receive_dtl');
+define ('TBL_AR_CARE_LOG','account_receive_log');
+define ('TBL_POD_LIST','pod_list');
+define ('TBL_POD_MGT','pod_mgt');
+define ('TBL_PROFORMA','proforma');
+define ('TBL_JOURNAL','journal');
+define ('TBL_INV_LOG','invoice_mgt_history');
+define ('TBL_PROFORMA_LOG','proforma_mgt_history');
+define ('TBL_POD_DOWNLOAD','pod_download');
+define ('TBL_POD_MGT_DTL','pod_mgt_dtl');
+define ('TBL_POD_MGT_LOG','pod_mgt_history');
+define ('TBL_PARTNER','partner');
+define ('TBL_ASSET_SOFTWARE','fa_sw');
+define ('TBL_ASSET_BUILDING','fa_bld');
+define ('TBL_ASSET_FURNITURE','fa_ga');
+define ('TBL_ASSET_LAND','fa_lnd');
+define ('TBL_ASSET_VEHICLE','fa_vh');
+define ('TBL_ASSET_ELT','fa_hw');
+define ('TBL_DISPATCH','dispatch');
+define ('TBL_DISPATCH_CCAI','dispatch_ccai');
+define ('TBL_UPLOAD_PONDS','upload_ponds');
+define ('TBL_LSP','lsp');
+?>
