@@ -1,0 +1,206 @@
+<?php
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Builder;
+	
+	$LSP = Auth::user()->Location;
+	$Saya =  Auth::user()->username;
+	$cekakun = DB::table('cash_handler')->where('NIK_handler',$Saya)->first();
+	if($cekakun->Account_No == ''){
+		
+		echo "You Don't have access to this menu!";
+		exit;
+	}
+	
+	$priv =  Auth::user()->Priv_ID;
+	
+	
+
+$getcur = DB::table("currency")->where("Currency_Symbol",$_GET['Currency'])->first();
+$kursval =$getcur->Currency_Value;
+?>
+<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">CASH OUT DETAIL</div>
+
+	<div id="grid_kbterima" style="width:auto;height:300px; background-color:white;overflow:hidden"></div>
+	<div id="divtom">
+	<input type="button" id="AddGridCash" NAME="AddGridCash" value="Add Detail" class="btn btn-success mt-2 mr-2"/>
+	<input type="button" id="DelGridCash" NAME="DelGridCash" value="Delete" class="btn btn-danger mt-2 mr-2"  />
+	<input type="button" id="SaveGridCash" NAME="SaveGridCash" value="S A V E" class="btn btn-success mt-2 mr-2" />                
+	<input type="button" id="SubmitGridCash" NAME="SubmitGridCash" value="SAVE AND SUBMIT" class="btn btn-success mt-2 mr-2" />                
+
+   
+	<div id="WinCOA">
+	</div>
+		
+
+
+<script>
+		
+var winCOA;
+var WCOA;
+function WindoWCOA(text,url,width,height) {
+    winCOA = new dhtmlXWindows();
+
+	winCOA.attachViewportTo('PagesContent');
+    WCOA = winCOA.createWindow("WCOA", 0, 0, width, height);
+    WCOA.keepInViewport(false);
+	WCOA.setText(text);
+    WCOA.attachURL(url, true);
+	WCOA.button("minmax1").hide();
+    WCOA.button("park").hide();
+	WCOA.centerOnScreen();
+	WCOA.allowMove();	
+}
+
+
+		function sumColumn(ind) {
+			var out = 0;
+			for (var i = 0; i < GridCash.getRowsNum(); i++) {
+				out += parseFloat(GridCash.cells2(i, ind).getValue());
+			}
+			return out;
+		}
+		function sumColumn2(ind) {
+			var out = 0;
+			for (var i = 0; i < GridCash.getRowsNum(); i++) {
+				out += parseFloat(GridCash.cells2(i, ind).getValue()) * parseFloat(GridCash.cells2(i, 6).getValue());
+			}
+			return out;
+		}
+		function editcekcashout(rId,cInd,stage,nValue,oValue) {
+				
+				if (cInd==1){
+					WindoWCOA("Chart of Accounts","finance-cash-out-detail-coa",650,350);
+				}
+			
+			
+			return true;
+		}
+
+		 
+		GridCash = new dhtmlXGridObject('grid_kbterima');
+		GridCash.setImagePath("./dhtmlx/imgs/");
+		GridCash.setHeader("No.,Account No,Date,Reference,Remark,Value,Currency Val,Department");
+		GridCash.attachFooter(["Total",'#cspan','#cspan','#cspan','#cspan',"#stat_total","",""]);
+		GridCash.setInitWidths("70,350,100,150,200,100,100,100");
+		GridCash.setColAlign("center,left,center,left,left,right,right,center");
+		GridCash.setColTypes("ro,combo,ro,ed,ed,edn,ron,combo");
+		GridCash.setColSorting("int,str,str,str,str,str,str");
+		GridCash.setDateFormat("%Y-%m-%d"); 
+		GridCash.setEditable(true);
+		GridCash.setNumberFormat("0,000",5,".",",");
+		GridCash.setNumberFormat("0,000",6,".",",");
+		GridCash.attachEvent("onRowDblClicked", editcekcashout);
+		GridCash.enableKeyboardSupport(true);
+		GridCash.setSkin("dhx_skyblue");
+		PGridCash = new dataProcessor("finance-cash-out-detail-update");
+		PGridCash.setTransactionMode({
+		 mode: "POST",
+		  total:true,
+		  headers:{
+			'X-CSRF-TOKEN': "{{ csrf_token() }}"
+		  }	,
+		  payload: {"ID":"<?php echo $_GET['ID'] ?>"}
+
+		})
+		
+		PGridCash.setUpdateMode("Off");
+		PGridCash.init(GridCash);
+		GridCash.init();
+		combocurrx = GridCash.getColumnCombo(1);
+		combocurrx.enableFilteringMode(true);
+		combocurrx.load("xml-finance-coa");
+		
+		refreshdatadetail();
+		dept = "<?php echo $_GET['Department']?>";
+		combocurr = GridCash.getColumnCombo(7);
+		combocurr.enableFilteringMode(true);
+		combocurr.load("xml-finance-department");
+		
+function refreshdatadetail(){
+			GridCash.clearAndLoad("xml-finance-cash-out-detail?ID=<?php echo $_GET['ID'];?>",UpdateGrid);
+
+}
+		$('#SubmitGridCash').click(function(){
+			
+
+			
+			PGridCash.sendData();
+			CashOUT.cells("<?php echo $_GET['ID']?>",6).setValue(sumColumn(5));
+			CashOUT.cells("<?php echo $_GET['ID']?>",7).setValue(sumColumn2(5));
+			CashOUT.cells("<?php echo $_GET['ID']?>",10).setValue('CLOSED');
+			PCashOUT.setUpdated("<?php echo $_GET['ID']?>",true);
+			PCashOUT.sendData();
+
+			alert("Data Successfully Submitted!");
+			setTimeout(function(){
+				$("#DivCashDetail").html('');
+				refreshdata();
+			},1500);
+									   
+		});
+
+		$('#SaveGridCash').click(function(){
+									   
+			PGridCash.sendData();
+			CashOUT.cells("<?php echo $_GET['ID']?>",6).setValue(sumColumn(5));
+			CashOUT.cells("<?php echo $_GET['ID']?>",7).setValue(sumColumn2(5));
+			PCashOUT.setUpdated("<?php echo $_GET['ID']?>",true);
+			PCashOUT.sendData();
+
+			alert("Data Successfully Saved!");
+			setTimeout(function(){
+				GridCash.clearAll();
+				location.href='finance-cash-out';
+			},1500);
+									   
+									   });
+
+		
+
+		$('#AddGridCash').click(function(){
+			if(GridCash.getRowsNum()==0){
+				nums_reqrow=1;
+				nomorrowsreq=0;
+			}else{
+				nums_reqrow=GridCash.getRowsNum()+1;
+				nomorrowsreq=nums_reqrow-1;
+			}
+					var today = new Date();
+					var dd = today.getDate();
+					var mm = today.getMonth()+1; //January is 0!
+				
+					var yyyy = today.getFullYear();		
+					var tanggals = "<?php echo $_GET['Tgl']?>";
+					if(dd < 10){dd='0'+dd} if(mm<10){mm='0'+mm} var today = yyyy + '-' + mm + '-' + dd;
+					if (tanggals == '') skrg = today ; else skrg = tanggals;
+					GridCash.addRow(GridCash.uid(), [nums_reqrow,'',skrg,'','',0,'<?php echo $kursval;?>'],GridCash.getRowsNum());
+					GridCash.selectRow(nomorrowsreq);
+									});
+
+		$('#DelGridCash').click(function(){
+
+			dhtmlx.confirm('Are you sure want to delete this data?', 'Cash Management', function(r) {
+					
+				if (r==true){
+					GridCash.deleteSelectedRows();
+					
+					
+					
+				}
+			})
+
+		});
+		function UpdateGrid() {
+			var out = 0;
+			for (var i = 0; i < GridCash.getRowsNum(); i++) {
+				rowIdMov=GridCash.getRowId(i);
+				PGridCash.setUpdated(rowIdMov,true);
+			}
+			
+			return out;
+		}
+
+
+		</script>

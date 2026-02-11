@@ -1,0 +1,62 @@
+<?php
+	//error_reporting(E_ALL ^ E_NOTICE);
+error_reporting(0);
+ini_set('memory_limit', '-1');
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Builder;
+	
+	if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
+  		header("Content-type: application/xhtml+xml"); } else {
+  		header("Content-type: text/xml");
+	}
+	echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+
+$Saya = Auth::User()->username;
+$Name = Auth::User()->Name;
+$LSP = Auth::user()->Location;
+$getnik = Auth::user()->Emp_ID;
+$dept = Auth::user()->Department;
+
+$getlevelsx = DB::table("organization_structure")->where("NIK",$getnik)->first();
+
+if ($getlevelsx->Level1 == 1) $lepel = 1;
+else if ($getlevelsx->Level2 == 1) $lepel = 2;
+else if ($getlevelsx->Level3 == 1) $lepel = 3;
+else if ($getlevelsx->Level4 == 1) $lepel = 4;
+else if ($getlevelsx->Level5 == 1) $lepel = 5;
+else if ($getlevelsx->Level6 == 1) $lepel = 6;
+else if ($getlevelsx->Level7 == 1) $lepel = 7;
+else if ($getlevelsx->Level8 == 1) $lepel = 8;
+
+
+
+echo "<rows>";
+	
+	$kueri = DB::table("purchase_request")->where("Approval_Department",$dept)->where("Status","APPROVAL_UPPER")->orderBy("ID","DESC")->get();
+
+
+$nomor = 1;
+foreach($kueri as $Fetch){
+
+		echo "<row id=\"$Fetch->ID\">";
+				echo "<cell $warnanya>$nomor</cell>";
+				echo "<cell $warnanya>".htmlspecialchars(($Fetch->PR_No))."</cell>";
+				echo "<cell $warnanya>".htmlspecialchars(($Fetch->PR_Date))."</cell>";
+				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Category))."</cell>"; 
+				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Sub_Category))."</cell>"; 
+				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Supplies_Type))."</cell>";
+				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Status))."</cell>";
+				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Note))."</cell>";
+				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Created_Date))."</cell>";
+				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Created_By))."</cell>";
+			echo "</row>";	
+
+		$nomor++;
+}
+
+echo "</rows>";
+?>

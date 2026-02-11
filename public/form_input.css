@@ -1,0 +1,58 @@
+.FormInput_Form_Main
+{
+	font-family:calibri;
+	font-size-adjust:inherit;
+	height:568px;
+	width:100%;
+	z-index:9;
+}
+.FormInput_Form_Title
+{
+	font-family:calibri;
+	font-size:20px;
+	font-weight:bold;
+	color:#69C;
+	height:55px;
+	padding:0px;
+	border-bottom:1px solid #eeeeff;
+	z-index:9;
+}
+.FormInput_Form_Content
+{
+	padding-top:5px;
+	color:#313131;
+	width:auto;
+	vertical-align:middle;
+	z-index:9;
+}
+.FormInput_left
+{
+	height:37px;
+	float:left !important;
+	width:250px;
+	padding-left:10px;
+	vertical-align:middle;
+	font-weight:bold;
+	font-family:Arial, Helvetica, sans-serif;
+	text-shadow:#CCC;
+	background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#eeffff), to(#fff));
+	background: -webkit-linear-gradient(bottom, #eeffff, #fff);
+	background: -moz-linear-gradient(bottom, #eeffff, #fff);
+	background: -ms-linear-gradient(bottom, #eeffff, #fff);
+	background: -o-linear-gradient(bottom, #eeffff, #fff);
+	overflow:hidden;
+	z-index:9;
+}
+.FormInput_right
+{
+	float:none !important;
+	padding-left:10px;
+	vertical-align:middle;
+	font-family:Arial, Helvetica, sans-serif;
+	height:37px;
+	padding-top:3px;
+	width:auto;
+	border-bottom:1px solid #eeeeee;
+	overflow:hidden;
+	z-index:9;
+}
