@@ -19,6 +19,10 @@ Route::get('partner-leads', function() {
     return view('partner.leads');
 });
 
+Route::get('partner-registration', function() {
+    return view('partner.registration-public');
+});
+
 Auth::routes();
 
 Route::group(['middleware' => 'usersession'], function () {
