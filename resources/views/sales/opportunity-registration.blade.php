@@ -72,11 +72,11 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	
 				<div class="FormInput_left">How did you learn about the partnership program?</div>
 				<div class="FormInput_right">
-					<input type="checkbox" name="Source_Instagram" id="Source_Instagram" value="Instagram" /> Instagram
-					<input type="checkbox" name="Source_Facebook" id="Source_Facebook" value="Facebook" /> Facebook
-					<input type="checkbox" name="Source_Tiktok" id="Source_Tiktok" value="Tiktok" /> Tiktok
-					<input type="checkbox" name="Source_Website" id="Source_Website" value="Website" /> Website
-					<input type="checkbox" name="Source_Event" id="Source_Event" value="Event" /> Exhibition/Event
+					<input type="radio" name="Source_Instagram" id="Source_Instagram" value="Instagram" /> Instagram
+					<input type="radio" name="Source_Facebook" id="Source_Facebook" value="Facebook" /> Facebook
+					<input type="radio" name="Source_Tiktok" id="Source_Tiktok" value="Tiktok" /> Tiktok
+					<input type="radio" name="Source_Website" id="Source_Website" value="Website" /> Website
+					<input type="radio" name="Source_Event" id="Source_Event" value="Event" /> Exhibition/Event
 				</div>
 	
 				<div class="FormInput_left">Sales PIC</div>

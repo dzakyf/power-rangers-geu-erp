@@ -23,6 +23,9 @@ Route::get('partner-registration', function() {
     return view('partner.registration-public');
 });
 
+Route::post('province', [App\Http\Controllers\HelperController::class, 'provinceSearch']);
+Route::post('city/{province}', [App\Http\Controllers\HelperController::class, 'citySearch']);
+
 Auth::routes();
 
 Route::group(['middleware' => 'usersession'], function () {
