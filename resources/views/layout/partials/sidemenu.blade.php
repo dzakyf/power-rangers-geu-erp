@@ -136,6 +136,17 @@ $dsess2 =  Auth::user()->Main_Menu ?? '';
                         </a>
 
                     </div>	
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="home-mymenu" role="button" aria-haspopup="true" aria-expanded="false" onclick="document.cookie='topnav=mymenu;expires=<?php echo $expired?>'">
+                            <div class="dropdown-title">
+                                <i data-feather="book" class="icon"></i>
+                                <span class="title">
+                                    My Menu
+                                </span>
+                            </div>
+                        </a>
+
+                    </div>	
                 <?php } 
 				
 						if (strpos($dsess2,"CREDENTIAL")!== false) { 
