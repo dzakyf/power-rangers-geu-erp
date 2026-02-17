@@ -164,6 +164,23 @@ $dsess2 =  Auth::user()->Main_Menu;
                 <span class="text-center" style="font-size: 120px; color: Dodgerblue;">
                 <i class="icofont-user"></i>
                 </span>
+                <h3 class="text-center"> My Menu
+                </h3>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-2 text-center">
+        <a
+            href="home-mymenu"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+            onclick="document.cookie='topnav=mymenu;expires=<?php echo $expired?>'"
+            oncontextmenu="document.cookie='topnav=mymenu;expires=<?php echo $expired?>'">
+            <div class="shadow bg-white text-center">
+                <span class="text-center" style="font-size: 120px; color: Dodgerblue;">
+                <i class="icofont-user"></i>
+                </span>
                 <h3 class="text-center">Business Partner
                 </h3>
             </div>

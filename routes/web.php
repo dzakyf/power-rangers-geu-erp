@@ -22,7 +22,7 @@ Route::get('partner-leads', function() {
 Route::get('partner-registration', function() {
     return view('partner.registration-public');
 });
-
+Route::get('partner-prints-invoice', [App\Http\Controllers\Finance\PartnerController::class, 'printInvoice']);
 Route::post('province', [App\Http\Controllers\HelperController::class, 'provinceSearch']);
 Route::post('city/{province}', [App\Http\Controllers\HelperController::class, 'citySearch']);
 
