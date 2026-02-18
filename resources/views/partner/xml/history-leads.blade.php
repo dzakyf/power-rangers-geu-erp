@@ -25,7 +25,7 @@ $nomor = 1;
 
 echo "<rows>";
 
-$Query = DB::table("opportunity")->where("Location", $LSP)->where('Status', '!=', 'CLOSED')->orderBy("ID", "DESC")->get();
+$Query = DB::table("opportunity")->where("Location", $LSP)->orderBy("ID", "DESC")->get();
 
 foreach ($Query as $Fetch) {
     if ($Fetch->Capital_Estimation == 1) {

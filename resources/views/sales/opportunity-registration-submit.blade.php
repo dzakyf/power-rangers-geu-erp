@@ -85,6 +85,32 @@ try {
     
     $id = DB::table('opportunity_partner')->insertGetId($data);
 
+    foreach (json_decode($data['supporting_documents']) as $key => $value) {
+        $ext = explode('.', request()->input($value.'_File'));
+        DB::table('opportunity_partner_file')->insert([
+            'lead_id' => $data['lead_id'],
+            'opportunity_id' => $id,
+            'type' => $value,
+            'file_type' => $ext[count($ext) - 1],
+            'file_path' => request()->input('Doc_'.$value.'_File'),
+            'created_at' => now(),
+            'created_by' => auth()->check() ? auth()->user()->username : str_replace(' ','_', strtolower($data['full_name']))
+        ]);
+    }
+
+    foreach (json_decode($data['company_documents']) as $key => $value) {
+        $ext = explode('.', request()->input($value.'_File'));
+        DB::table('opportunity_partner_file')->insert([
+            'lead_id' => $data['lead_id'],
+            'opportunity_id' => $id,
+            'type' => $value,
+            'file_type' => $ext[count($ext) - 1],
+            'file_path' => request()->input('C_Doc_'.$value.'_File'),
+            'created_at' => now(),
+            'created_by' => auth()->check() ? auth()->user()->username : str_replace(' ','_', strtolower($data['full_name']))
+        ]);
+    }
+
     echo "success";
 } catch (\Exception $e) {
     echo 'failed '.$e->getMessage();

@@ -13,7 +13,7 @@ $Saya =  Auth::user()->username;
 
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-mitra')
 
 @section('content-wrapper')
 @csrf
@@ -35,7 +35,7 @@ $Saya =  Auth::user()->username;
 	<div>
         <input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
 		<input type="button" id="detailLeads" name="detailLeads" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailLeads()" />
-		<input type="button" id="delets" name="delets" value="Cancel Opportunity" class="btn btn-danger mt-2 mr-2" onclick="delsOpportunity()" />
+		<!-- <input type="button" id="delets" name="delets" value="Cancel Opportunity" class="btn btn-danger mt-2 mr-2" onclick="delsOpportunity()" /> -->
 	</div>
 
 </div>

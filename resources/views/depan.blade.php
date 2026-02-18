@@ -169,24 +169,29 @@ $dsess2 =  Auth::user()->Main_Menu;
             </div>
         </a>
     </div>
+    <?php } ?>
+    <?php if (strpos($dsess,"MS00010")!== false) { 
+    ?>
     <div class="col-md-2 text-center">
         <a
-            href="home-mymenu"
+            href="home-businesspartner"
             role="button"
             aria-haspopup="true"
             aria-expanded="false"
-            onclick="document.cookie='topnav=mymenu;expires=<?php echo $expired?>'"
-            oncontextmenu="document.cookie='topnav=mymenu;expires=<?php echo $expired?>'">
+            onclick="document.cookie='topnav=mitra;expires=<?php echo $expired?>'"
+            oncontextmenu="document.cookie='topnav=mitra;expires=<?php echo $expired?>'">
             <div class="shadow bg-white text-center">
                 <span class="text-center" style="font-size: 120px; color: Dodgerblue;">
-                <i class="icofont-user"></i>
+                <i class="icofont-briefcase"></i>
                 </span>
                 <h3 class="text-center">Business Partner
                 </h3>
             </div>
         </a>
     </div>
-    <?php } ?>
+    <?php 
+    }
+    ?>
 </div>
 
 

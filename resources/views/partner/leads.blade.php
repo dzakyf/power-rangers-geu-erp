@@ -87,10 +87,10 @@
     <div class="container-fluid p-md-5 p-0">
         <div class="card">
             <div class="card-header" style="background-color: rgba(105, 178, 87, 1); color: white;padding:10px;">
-                <h5 class="card-title">New Partner Opportunity (Leads) Data</h5>
+                <h5 class="card-title">New Partner (Leads) Data</h5>
             </div>
             <div class="card-body" id="ContentPages">
-                <p>Please fill in the partner opportunity (leads) data completely and correctly.</p>
+                <p>Please fill in the partner (leads) data completely and correctly.</p>
                 <form>
                     <div class="form-group row">
                         <label for="Task_ID" class="col-sm-2 col-form-label">Lead ID</label>
