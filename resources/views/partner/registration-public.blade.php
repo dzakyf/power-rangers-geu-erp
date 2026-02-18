@@ -10,7 +10,7 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulir Lead - GEU</title>
+    <title>Formulir Registration - GEU</title>
     <link href="{{ asset('assets/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('assets/css/LineIcons.css') }}" rel="stylesheet">
     <link href="{{ asset('assets/css/viewer.min.css') }}" rel="stylesheet">
@@ -80,6 +80,7 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
     <div class="container-fluid p-md-5 p-0">
         <div class="card">
             <div class="card-body">
+                <h5 class="text-center">Form Registrasi Partnership</h5>
             
                 <div class="badge badge-info w-100 my-3 py-3">INFORMASI PARTNER</div>
                 
@@ -917,13 +918,13 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Company_Package" id="Company_Package_1" value="option1" />
+                                            <input class="form-check-input" type="radio" name="Company_Package" id="Company_Package_1" value="1" />
                                             <label class="form-check-label" for="Company_Package_1">Opsi 1</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Company_Package" id="Company_Package_2" value="option2" />
+                                            <input class="form-check-input" type="radio" name="Company_Package" id="Company_Package_2" value="2" />
                                             <label class="form-check-label" for="Company_Package_2">Opsi 2</label>
                                         </div>
                                     </div>
@@ -936,26 +937,46 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                                 <div class="row">
                                     <div class="col-md-3">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="C_Doc_Akta" id="C_Doc_Akta" value="akta" />
+                                            <input class="form-check-input" type="checkbox" name="C_Doc_Akta" id="C_Doc_Akta" value="Akta" />
                                             <label class="form-check-label" for="C_Doc_Akta">Akta Pendirian</label>
                                         </div>
+                                        <div style="display:none;" id="C_Doc_Akta_Files_Div" class="mt-2">
+                                            <span class="badge badge-info py-2 mb-3 w-100">Upload NPWP</span>
+                                            <div id="C_Doc_Akta_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+                                            <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="C_Doc_Akta_File" />
+                                        </div>
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="C_Doc_NIB" id="C_Doc_NIB" value="nib" />
+                                            <input class="form-check-input" type="checkbox" name="C_Doc_NIB" id="C_Doc_NIB" value="NIB" />
                                             <label class="form-check-label" for="C_Doc_NIB">NIB</label>
                                         </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="C_Doc_NPWP" id="C_Doc_NPWP" value="npwp" />
-                                            <label class="form-check-label" for="C_Doc_NPWP">NPWP</label>
+                                        <div style="display:none;" id="C_Doc_NIB_Files_Div" class="mt-2">
+                                            <span class="badge badge-info py-2 mb-3 w-100">Upload NPWP</span>
+                                            <div id="C_Doc_NIB_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+                                            <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="C_Doc_NIB_File" />
                                         </div>
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="C_Doc_Others" id="C_Doc_Others" value="others" />
+                                            <input class="form-check-input" type="checkbox" name="C_Doc_NPWP" id="C_Doc_NPWP" value="NPWP" />
+                                            <label class="form-check-label" for="C_Doc_NPWP">NPWP</label>
+                                        </div>
+                                        <div style="display:none;" id="C_Doc_NPWP_Files_Div" class="mt-2">
+                                            <span class="badge badge-info py-2 mb-3 w-100">Upload NPWP</span>
+                                            <div id="C_Doc_NPWP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+                                            <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="C_Doc_NPWP_File" />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="C_Doc_Others" id="C_Doc_Others" value="Others" />
                                             <label class="form-check-label" for="C_Doc_Others">Lainnya</label>
+                                        </div>
+                                        <div style="display:none;" id="C_Doc_Others_Files_Div" class="mt-2">
+                                            <span class="badge badge-info py-2 mb-3 w-100">Upload NPWP</span>
+                                            <div id="C_Doc_Others_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+                                            <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="C_Doc_Others_File" />
                                         </div>
                                     </div>
                                 </div>
@@ -1114,6 +1135,134 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                 $('#Doc_Others_Files_Div').hide('swing');
                 $('#Doc_Others_File').val('');
                 // doc_Others.clearAll();
+            }
+        });
+
+        var vaultAkta = new dhx.Vault("C_Doc_Akta_Files", {
+            uploader: {
+                target: "upload-receiveinvoice.php"
+            },
+            filesLimit: 1
+
+        });
+
+        vaultAkta.events.on("uploadComplete", function(obj) {
+            $("#File_Document").val(obj[0].name);
+        });
+        vaultAkta.events.on("uploadBegin", function(obj) {
+            $("#File_Document").val("");
+
+        });
+        vaultAkta.events.on("beforeAdd", function(fileItem) {
+            if (vaultAkta.data.getLength() >= 1) {
+                alert('Only can upload 1 file per checkpoint.');
+                return false;
+            }
+        });
+
+        var vaultNIB = new dhx.Vault("C_Doc_NIB_Files", {
+            uploader: {
+                target: "upload-receiveinvoice.php"
+            },
+            filesLimit: 1
+
+        });
+
+        vaultNIB.events.on("uploadComplete", function(obj) {
+            $("#File_Document").val(obj[0].name);
+        });
+        vaultNIB.events.on("uploadBegin", function(obj) {
+            $("#File_Document").val("");
+
+        });
+        vaultNIB.events.on("beforeAdd", function(fileItem) {
+            if (vaultNIB.data.getLength() >= 1) {
+                alert('Only can upload 1 file per checkpoint.');
+                return false;
+            }
+        });
+
+        var vaultNPWP = new dhx.Vault("C_Doc_NPWP_Files", {
+            uploader: {
+                target: "upload-receiveinvoice.php"
+            },
+            filesLimit: 1
+
+        });
+
+        vaultNPWP.events.on("uploadComplete", function(obj) {
+            $("#File_Document").val(obj[0].name);
+        });
+        vaultNPWP.events.on("uploadBegin", function(obj) {
+            $("#File_Document").val("");
+
+        });
+        vaultNPWP.events.on("beforeAdd", function(fileItem) {
+            if (vaultNPWP.data.getLength() >= 1) {
+                alert('Only can upload 1 file per checkpoint.');
+                return false;
+            }
+        });
+
+        var vaultOthers = new dhx.Vault("C_Doc_Others_Files", {
+            uploader: {
+                target: "upload-receiveinvoice.php"
+            },
+            filesLimit: 1
+
+        });
+
+        vaultOthers.events.on("uploadComplete", function(obj) {
+            $("#File_Document").val(obj[0].name);
+        });
+        vaultOthers.events.on("uploadBegin", function(obj) {
+            $("#File_Document").val("");
+
+        });
+        vaultOthers.events.on("beforeAdd", function(fileItem) {
+            if (vaultOthers.data.getLength() >= 1) {
+                alert('Only can upload 1 file per checkpoint.');
+                return false;
+            }
+        });
+
+        $('#C_Doc_Akta').change(function() {
+            if (this.checked) {
+                $('#C_Doc_Akta_Files_Div').show('swing');
+            } else {
+                $('#C_Doc_Akta_Files_Div').hide('swing');
+                $('#C_Doc_Akta_File').val('');
+                // vaultKTP.clearAll();
+            }
+        });
+
+        $('#C_Doc_NIB').change(function() {
+            if (this.checked) {
+                $('#C_Doc_NIB_Files_Div').show('swing');
+            } else {
+                $('#C_Doc_NIB_Files_Div').hide('swing');
+                $('#C_Doc_NIB_File').val('');
+                // vaultKTP.clearAll();
+            }
+        });
+
+        $('#C_Doc_NPWP').change(function() {
+            if (this.checked) {
+                $('#C_Doc_NPWP_Files_Div').show('swing');
+            } else {
+                $('#C_Doc_NPWP_Files_Div').hide('swing');
+                $('#C_Doc_NPWP_File').val('');
+                // vaultKTP.clearAll();
+            }
+        });
+
+        $('#C_Doc_Others').change(function() {
+            if (this.checked) {
+                $('#C_Doc_Others_Files_Div').show('swing');
+            } else {
+                $('#C_Doc_Others_Files_Div').hide('swing');
+                $('#C_Doc_Others_File').val('');
+                // vaultKTP.clearAll();
             }
         });
         

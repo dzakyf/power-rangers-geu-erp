@@ -16,7 +16,7 @@ $Saya = "admin";
 $leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-mitra')
 
 @section('content-wrapper')
 @csrf

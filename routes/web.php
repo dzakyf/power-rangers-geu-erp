@@ -4,6 +4,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use Illuminate\Support\Facades\Event;
+use App\Http\Controllers\Partner\ListsController as PartnerListsController;
+
+use App\Http\Controllers\ApprovalController;
+
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -83,6 +88,7 @@ Route::get('/home-credential', function () {
 Route::get('/home-mymenu', function () {
     return view('home-mymenu');
 });
+
 Route::get('/home-finance', function () {
     return view('home-finance');
 });
@@ -286,6 +292,10 @@ Route::get('/credential-role-detail', function () {
 Route::post('/credential-role-detail-submit', function () {
     return view('credential.role-detail-submit');
 });
+Route::get('credential-structure', [App\Http\Controllers\Credential\StructureController::class, 'index']);
+Route::get('xml-credential-structure', [App\Http\Controllers\Credential\StructureController::class, 'indexXml']);
+Route::get('credential-structure-detail', [App\Http\Controllers\Credential\StructureController::class, 'detail']);
+Route::post('credential-structure-detail-submit', [App\Http\Controllers\Credential\StructureController::class, 'store']);
 
 Route::get('/accounting-project-posting', function () {
     return view('accounting.project-posting');
@@ -4199,6 +4209,10 @@ Route::post('/credential-organization-update', function () {
     return view('credential.organization-update');
 });
 
+Route::get('/home-businesspartner', function () {
+    return view('home-businesspartner');
+});
+
 Route::get('partner-outstanding-leads', function () {
     return view('partner.outstanding-leads');
 });
@@ -4215,6 +4229,48 @@ Route::post('partner-outstanding-leads-detail-submit', function () {
     return view('partner.outstanding-leads-detail-submit');
 });
 
+Route::get('partner-registration-business', function() {
+    return view('partner.registration');
+});
 
+Route::get('partner-history-leads', function () {
+    return view('partner.history-leads');
+});
+
+Route::get('xml-partner-history-leads', function () {
+    return view('partner.xml.history-leads');
+});
+
+Route::get('partner-history-leads-detail', function () {
+    return view('partner.history-leads-detail');
+});
+
+Route::get('partner-business-registration', function () {
+    return view('partner.business-registration');
+});
+
+Route::get('xml-partner-business-registration', function () {
+    return view('partner.xml.business-registration');
+});
+Route::get('partner-business-registration-detail', function () {
+    return view('partner.business-registration-detail');
+});
+
+Route::get('partner-business-lists', function () {
+    return view('partner.business-lists');
+});
+
+Route::get('xml-partner-business-lists', [PartnerListsController::class, 'indexXML']);
+
+Route::get('partner-business-lists-detail', [PartnerListsController::class, 'detail']);
+
+
+
+/** partner registration approval */
+$partnerApprovalPrefix = "partner-approval";
+
+Route::get("$partnerApprovalPrefix-index", [ApprovalController::class, 'index']);
+Route::post("$partnerApprovalPrefix-submit", [ApprovalController::class, 'submit']);
+/** */
 
 });

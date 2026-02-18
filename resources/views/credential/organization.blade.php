@@ -50,7 +50,7 @@ CredentialList.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text
 CredentialList.setInitWidths("60,120,100,60,60,60,60,60,60,60,100,100,120,120,120,120");
 CredentialList.setColAlign("center,left,left,left,left,left,left,left,left,left,left,center,left,left,left");
 CredentialList.setColSorting("int,str,str,int,int,int,int,int,int,int,str,str,str,str");
-CredentialList.setColTypes("ro,ed,ed,edn,edn,edn,edn,edn,edn,edn,combo,ed,ed,ed,combo");
+CredentialList.setColTypes("ro,ed,ed,ch,ch,ch,ch,ch,ch,ch,combo,ed,ed,ed,combo");
 //CredentialList.setColValidators("null,NotEmpty,ValidAplhaNumeric,ValidBoolean,ValidBoolean,ValidBoolean,ValidBoolean,ValidBoolean,ValidBoolean,ValidBoolean,NotEmpty,ValidEmail,ValidBoolean,null"); 
  
 PCTRX = new dataProcessor("credential-organization-update");
