@@ -20,9 +20,11 @@ $Saya =  Auth::user()->username;
 	<h1>Partner</h1>
 	<ol class="breadcrumb">
 		<li class="breadcrumb-item">
-			<a href="#">Approval</a>
+			<a href="#">Partner</a>
 		</li>
-		
+		<li class="breadcrumb-item active">
+			<span class="active">Approval</span>
+		</li>
 	</ol>
 </div>
 
@@ -30,10 +32,17 @@ $Saya =  Auth::user()->username;
 	<div id="OpportunityLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
         <input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
-		<input type="button" id="detailLeads" name="detailLeads" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailLeads()" />
-		<!-- <input type="button" id="delets" name="delets" value="Cancel Opportunity" class="btn btn-danger mt-2 mr-2" onclick="delsOpportunity()" /> -->
+		<input type="button" id="detailBP" name="detailBP" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailBP()" />
+		<div class="btn-group" role="group">
+    <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      Action
+    </button>
+    <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+      <a class="dropdown-item" href="#">Approve</a>
+      <a class="dropdown-item" href="#">Reject</a>
+    </div>
+  </div>
 	</div>
-
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>
@@ -44,41 +53,29 @@ $Saya =  Auth::user()->username;
 		$("#divlistOpportunity").show();
 		if (OpportunityListsID != '') {
 			$("#divlistProjectList").hide();
-			LoadM('divlistOpportunity', 'partner-outstanding-leads-detail?ID=' + OpportunityListsID);
+			LoadM('divlistOpportunity', 'partner-approval-detail?ID=' + OpportunityListsID);
 		}
 		return true;
 	}
+
 	OpportunityLists = new dhtmlXGridObject('OpportunityLists');
 	OpportunityLists.setImagePath("./dhtmlx/imgs/");
-	OpportunityLists.setHeader("No,Task ID,Created Person,Full Name, Date, Active Contact, Partnership Interest, Capital Estimation (Modal/RP), Created Date");
-	OpportunityLists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#rspan");
+	OpportunityLists.setHeader("No,Daftar Sebagai, Nama, Alamat, Jumlah Mitra/Bisnis Gudang, Motivasi Bergabung, Pertanyaan 1, Pertanyaan 2, Pertanyaan 3, Pertanyaan 4, Pertanyaan 5, Pertanyaan 6, Paket");
+	OpportunityLists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// OpportunityLists.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	OpportunityLists.setInitWidths("60,150,100,200,100,120,120,200,100");
-	OpportunityLists.setColAlign("center,left,left,left,left,left,left,left,left");
-	OpportunityLists.setColSorting("int,str,str,str,str,str,str,str,str");
-	OpportunityLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	OpportunityLists.setInitWidths("60,100,150,300,100,120,120,100,100,100,100,100,100");
+	OpportunityLists.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
+	OpportunityLists.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
+	OpportunityLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	OpportunityLists.enableSmartRendering(true, 150);
 	// OpportunityLists.setNumberFormat("0,000", 7, ".", ",");
-	POpportunityLists = new dataProcessor("partner-outstanding-leads-update");
-	POpportunityLists.setTransactionMode({
-		mode: "POST",
-		total: true,
-		headers: {
-			'X-CSRF-TOKEN': "{{ csrf_token() }}"
-		},
-
-	})
-
-	POpportunityLists.setTransactionMode("POST", true);
-	POpportunityLists.setUpdateMode("Off");
-	POpportunityLists.init(OpportunityLists);
 	OpportunityLists.attachEvent("onRowDblClicked", OpportunityListsKlik);
 	OpportunityLists.setSkin("dhx_skyblue");
 	OpportunityLists.init();
 	refreshdata();
 
 	function refreshdata() {
-		OpportunityLists.clearAndLoad('xml-partner-outstanding-leads');
+		OpportunityLists.clearAndLoad('xml-partner-business-lists');
 
 	}
 
@@ -97,7 +94,7 @@ $Saya =  Auth::user()->username;
 	}
 
 
-	function detailLeads() {
+	function detailBP() {
 		OpportunityListsKlik();
 		// dhtmlx.confirm('Submit this Opportunity FU?', 'Opportunity', function(r) {
 

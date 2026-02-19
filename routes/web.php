@@ -4256,6 +4256,7 @@ Route::get('partner-business-registration-detail', function () {
     return view('partner.business-registration-detail');
 });
 
+
 Route::get('partner-business-lists', function () {
     return view('partner.business-lists');
 });
@@ -4270,6 +4271,7 @@ Route::get('partner-business-lists-detail', [PartnerListsController::class, 'det
 $partnerApprovalPrefix = "partner-approval";
 
 Route::get("$partnerApprovalPrefix-index", [ApprovalController::class, 'index']);
+Route::get("$partnerApprovalPrefix-detail", [ApprovalController::class, 'detail']);
 Route::post("$partnerApprovalPrefix-submit", [ApprovalController::class, 'submit']);
 /** */
 

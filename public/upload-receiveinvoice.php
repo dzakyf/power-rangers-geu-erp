@@ -1,6 +1,5 @@
 <?php
 
-
 if (@$_REQUEST["zero_size"] == "1") {
     // IE10, IE11 zero file fix
     // get file name
@@ -21,6 +20,7 @@ if (@$_REQUEST["zero_size"] == "1") {
     $fileNames  = "fileinvendor-" . md5(date('Ymdhis') . $fileNamex) . "." . $ext;
     move_uploaded_file($_FILES["file"]["tmp_name"], "filevendor/" . $nama_folder . '/' . $fileNames);
 }
+
 // response
 header("Content-Type: text/json");
 print_r(json_encode(array(
@@ -28,3 +28,4 @@ print_r(json_encode(array(
     "name"  =>  $nama_folder . '/' . $fileNames,   // server-name
 
 )));
+
