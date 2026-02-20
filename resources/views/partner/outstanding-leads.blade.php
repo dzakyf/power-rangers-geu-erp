@@ -35,13 +35,79 @@ $Saya =  Auth::user()->username;
 	<div>
         <input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
 		<input type="button" id="detailLeads" name="detailLeads" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailLeads()" />
-		<!-- <input type="button" id="delets" name="delets" value="Cancel Opportunity" class="btn btn-danger mt-2 mr-2" onclick="delsOpportunity()" /> -->
-	</div>
+				<!-- <input type="button" id="delets" name="delets" value="Cancel Opportunity" class="btn btn-danger mt-2 mr-2" onclick="delsOpportunity()" /> -->
+		
+		<div class="btn-group" role="group">
+			<button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+				<i class="fas fa-download"></i> Action
+			</button>
+			<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+				<a class="dropdown-item" href="#" onclick="document.getElementById('csvFileInput').click(); return false;">
+					<i class="fas fa-file-csv"></i> Import .csv
+				</a>
+				<a class="dropdown-item" href="#" onclick="downloadCSVTemplate()">
+					<i class="fas fa-file-csv"></i> Download template (.csv)
+				</a>
+			</div>
+		</div>
 
+		<input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+	</div>
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>
 <script>
+
+	$('#csvFileInput').on('change', function(){
+		let file = this.files[0]
+
+		ImportCSV(file)
+	})
+
+	function downloadCSVTemplate(){
+		$.ajax({
+			url: "download-leads-template",
+			type: "GET",
+			xhrFields:{
+				responseType: 'blob'
+			},
+			success: function(response, status, xhr) {
+				var blob = new Blob([response]);
+				var link = document.createElement('a');
+				link.href = window.URL.createObjectURL(blob);
+				link.download = 'import-leads-template.csv'; 
+				link.click();
+				
+				window.URL.revokeObjectURL(link.href);
+			},
+			error: function(err){
+				alert("Telah terjadi kesalahan.");
+			}
+		})
+	}
+
+	function ImportCSV(file) {
+		let fd = new FormData()
+
+		fd.append('csv_file', file)
+		fd.append('_token', '{{ csrf_token() }}')
+
+		$.ajax({
+			url: "upload-csv",
+			data: fd, 
+			type: "POST",
+			processData: false,
+			contentType: false,
+			success: function(res){
+				alert("Berhasil mengunggah file!")
+				$('#csvFileInput').val(null)
+			},
+			error: function(){
+				alert("Gagal mengunggah file!")
+			}
+		})
+	}
+
 	function OpportunityListsKlik() {
 
 		OpportunityListsID = OpportunityLists.getSelectedId();

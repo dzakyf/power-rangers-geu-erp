@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
 $cekakun = DB::table('cash_handler')->where('NIK_handler', $Saya)->first();
+
 if ($cekakun->Account_No == '') {
 
 	echo "You Don't have access to this menu!";
