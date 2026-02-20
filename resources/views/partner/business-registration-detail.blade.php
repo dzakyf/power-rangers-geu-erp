@@ -239,7 +239,7 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                         </div>
                     </div>
                     
-                    <div class="form-group">
+                    <!-- <div class="form-group">
                         <label><strong>Sumber Dana untuk Kemitraan</strong></label>
                         <div class="row">
                             <div class="col-md-6">
@@ -264,6 +264,37 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="Source_Pension" id="Source_Pension" value="pension" />
                                     <label class="form-check-label" for="Source_Pension">Pensionan</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div> -->
+
+                    <div class="form-group">
+                        <label><strong>Sumber Dana</strong></label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="Source_Personal_Savings" name="source_fund" class="custom-control-input" value="savings">
+                                    <label class="custom-control-label" for="Source_Personal_Savings">Tabungan Pribadi</label>
+                                </div>
+
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="Source_Inheritance" name="source_fund" class="custom-control-input" value="inheritance">
+                                    <label class="custom-control-label" for="Source_Inheritance">Warisan</label>
+                                </div>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="Source_Business_Fund" name="source_fund" class="custom-control-input" value="business">
+                                    <label class="custom-control-label" for="Source_Business_Fund">Penghasilan Bisnis</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="Source_Loan" name="source_fund" class="custom-control-input" value="loan">
+                                    <label class="custom-control-label" for="Source_Loan">Pinjaman</label>
+                                </div>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="Source_Pension" name="source_fund" class="custom-control-input" value="pension">
+                                    <label class="custom-control-label" for="Source_Pension">Pensiunan</label>
                                 </div>
                             </div>
                         </div>
@@ -655,31 +686,32 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                         <label><strong>Sumber Dana</strong></label>
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="Company_Fund_Business" id="Company_Fund_Business" value="business" />
-                                    <label class="form-check-label" for="Company_Fund_Business">Bisnis</label>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="Company_Fund_Business" name="Company_Fund" class="custom-control-input" value="business">
+                                    <label class="custom-control-label" for="Company_Fund_Business">Bisnis</label>
                                 </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="Company_Fund_Investor" id="Company_Fund_Investor" value="investor" />
-                                    <label class="form-check-label" for="Company_Fund_Investor">Investor</label>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="Company_Fund_Investor" name="Company_Fund" class="custom-control-input" value="investor">
+                                    <label class="custom-control-label" for="Company_Fund_Investor">Investor</label>
                                 </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="Company_Fund_Loan" id="Company_Fund_Loan" value="loan" />
-                                    <label class="form-check-label" for="Company_Fund_Loan">Pinjaman</label>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="Company_Fund_Loan" name="Company_Fund" class="custom-control-input" value="loan">
+                                    <label class="custom-control-label" for="Company_Fund_Loan">Pinjaman</label>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="Company_Fund_CSR" id="Company_Fund_CSR" value="csr" />
-                                    <label class="form-check-label" for="Company_Fund_CSR">CSR</label>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="Company_Fund_CSR" name="Company_Fund" class="custom-control-input" value="csr">
+                                    <label class="custom-control-label" for="Company_Fund_CSR">CSR</label>
                                 </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="Company_Fund_Private" id="Company_Fund_Private" value="private" />
-                                    <label class="form-check-label" for="Company_Fund_Private">Pribadi</label>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="Company_Fund_Private" name="Company_Fund" class="custom-control-input" value="private">
+                                    <label class="custom-control-label" for="Company_Fund_Private">Pribadi</label>
                                 </div>
                             </div>
                         </div>
                     </div>
+
                     
                     <div class="badge badge-info w-100 my-3 py-3">4. Informasi Kemitraan</div>
                     

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Event;
 use App\Http\Controllers\Partner\ListsController as PartnerListsController;
 
 use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\UploaderController;
 
 
 /*
@@ -73,6 +74,7 @@ Route::post('/change-password-submit', function () {
 });
 //Route::get('/', 'AdminController@index');
 Route::get('/', [AdminController::class, 'index']);
+Route::get('/dashboard1', [AdminController::class, 'index']);
 Route::post('/logpost', function () {
     return view('/user/logproc');
 });
@@ -4265,6 +4267,8 @@ Route::get('xml-partner-business-lists', [PartnerListsController::class, 'indexX
 
 Route::get('partner-business-lists-detail', [PartnerListsController::class, 'detail']);
 
+Route::post('upload-csv', [UploaderController::class,'uploadAndInsertFromCsv']);
+Route::get('download-leads-template', [UploaderController::class,'downloadLeadsTemplate']);
 
 
 /** partner registration approval */

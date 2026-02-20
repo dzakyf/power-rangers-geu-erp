@@ -50,7 +50,7 @@ foreach ($Query as $Fetch) {
 	echo "<cell>" . htmlspecialchars("Opsi " . $Fetch->Partnership_Interest) . "</cell>";
 	echo "<cell>" . htmlspecialchars($estimation) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Created_Date) . "</cell>";
-	echo "<cell>" . htmlspecialchars("") . "</cell>";
+	echo "<cell>" . htmlspecialchars($Fetch->Source_Channel) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Response) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Qualification) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Classification) . "</cell>";
