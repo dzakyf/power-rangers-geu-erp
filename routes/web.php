@@ -4274,9 +4274,15 @@ Route::get('download-leads-template', [UploaderController::class,'downloadLeadsT
 /** partner registration approval */
 $partnerApprovalPrefix = "partner-approval";
 
+Route::prefix('approval')->group(function(){
+    Route::get('generate-mou', [ApprovalController::class, 'generateMOU']);
+
+    Route::post("submit", [ApprovalController::class, 'submit']);
+});
+
 Route::get("$partnerApprovalPrefix-index", [ApprovalController::class, 'index']);
 Route::get("$partnerApprovalPrefix-detail", [ApprovalController::class, 'detail']);
-Route::post("$partnerApprovalPrefix-submit", [ApprovalController::class, 'submit']);
+
 /** */
 
 });

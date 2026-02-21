@@ -38,8 +38,8 @@ $Saya =  Auth::user()->username;
       Action
     </button>
     <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-      <a class="dropdown-item" href="#">Approve</a>
-      <a class="dropdown-item" href="#">Reject</a>
+      <a class="dropdown-item" href="#" onclick="submitApproval('APPROVED')">Approve</a>
+      <a class="dropdown-item" href="#" onclick="submitApproval('REJECTED')">Reject</a>
     </div>
   </div>
 	</div>
@@ -47,9 +47,53 @@ $Saya =  Auth::user()->username;
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>
 <script>
+	function submitApproval(type){
+		let fd = new FormData()
+		fd.append('id', OpportunityLists.getSelectedId());
+		fd.append('type', type)
+		fd.append('_token', '{{ csrf_token() }}')
+		
+		$.ajax({
+			url: "approval/submit",
+			type: "POST",
+			processData: false,
+			contentType: false,
+			data: fd,
+			success: function(response, status, xhr) {
+				alert("Berhasil melakukan aksi");
+			},
+			error: function(err){
+				alert("Telah terjadi kesalahan.");
+			}
+		})
+	}
+
+	function generateMOU(){
+		$.ajax({
+			url: "approval/generate-mou",
+			type: "GET",
+			xhrFields:{
+				responseType: 'blob'
+			},
+			success: function(response, status, xhr) {
+				var blob = new Blob([response]);
+				var link = document.createElement('a');
+				link.href = window.URL.createObjectURL(blob);
+				link.download = 'mou.docx'; 
+				link.click();
+				
+				window.URL.revokeObjectURL(link.href);
+			},
+			error: function(err){
+				alert("Telah terjadi kesalahan.");
+			}
+		})
+	}
+
 	function OpportunityListsKlik() {
 
 		OpportunityListsID = OpportunityLists.getSelectedId();
+		console.log(OpportunityListsID)
 		$("#divlistOpportunity").show();
 		if (OpportunityListsID != '') {
 			$("#divlistProjectList").hide();
