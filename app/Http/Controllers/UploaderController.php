@@ -19,12 +19,12 @@ class UploaderController extends Controller{
 
     }
 
-    public function downloadLeadsTemplate(Request $r){
+    public function downloadLeadsTemplate(){
         $path = public_path('import-leads-template.csv');
+
         if(!file_exists($path)){
             abort(404, "Template tidak tersedia");
         };
-
 
         return response()->download($path, 'import-leads-template.csv');
     }

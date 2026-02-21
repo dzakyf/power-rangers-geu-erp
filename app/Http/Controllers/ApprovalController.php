@@ -3,11 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\GeneratorService;
+use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class ApprovalController extends Controller {
+    protected $generatorService;
+    protected $userService;
+
+    public function __construct(GeneratorService $g, UserService $s)
+    {
+        $this->generatorService = $g;
+        $this->userService = $s;
+    }
+
     public function index(){
         return view('approval.index');
     }   
@@ -33,7 +44,39 @@ class ApprovalController extends Controller {
         return view('approval.detail', compact('partner', 'pic', 'documents'));
     }
 
-    public function submit(){
+    public function generateMOU(){
+        $path = public_path('ksodoc.docx');
+        
+        if (!file_exists($path)) {
+            abort(404, 'Template not found');
+        }
+        
+        return response()->download($path, 'ksodoc.docx');
+    }
+
+    public function generateInvoice(){}
+
+    public function submit(Request $r){
+        $body = $r->all();
+
+        $id = DB::table('approval_request')->insertGetId([
+            'Status' => $body['type'],
+            'Requester_Id' => $body['id'],
+            'Description' => "Initial Review",
+            'Request_Type' => "ONBOARDING",
+        ]);
+
+        $lastRow = DB::table('approval_request')->select('*')->where('ID', '=', $id)->first();
+
+        DB::table('approval_log')->insert([
+            'Approver_Id' => $this->userService->getCurrentSessionUserInfo()->id,
+            'Notes' => "",
+            'Action' => $body['type'],
+            'Request_Id' => $id,
+            'Level_Number' => $lastRow->Current_Level,
+            'Next_Level' => (int)$lastRow->Current_Level + 1
+        ]);
+
         return "submitted";
     }
-}
+} 
