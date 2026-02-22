@@ -19,7 +19,7 @@
                 </div>
         
                 <!-- Individual Section -->
-                <div id="IndividualDiv" style="display:{{ $partner->register_as == 'individual' ? 'block' : 'none' }};">
+                <div id="IndividualDiv" style="display: {{ $partner->register_as == 'individual' ? 'block' : 'none' }}; ">
                     <div class="badge badge-info w-100 my-3 py-3">1. Informasi Pribadi</div>
                     
                     <div class="row">

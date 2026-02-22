@@ -33,20 +33,108 @@ $Saya =  Auth::user()->username;
 	<div>
         <input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
 		<input type="button" id="detailBP" name="detailBP" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailBP()" />
+		<input type="button" id="showProgress" name="showProgress" value="Show Progress" class="btn btn-info mt-2 mr-2" onclick="redirectToProgress()" />
 		<div class="btn-group" role="group">
-    <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-      Action
-    </button>
-    <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-      <a class="dropdown-item" href="#" onclick="submitApproval('APPROVED')">Approve</a>
-      <a class="dropdown-item" href="#" onclick="submitApproval('REJECTED')">Reject</a>
-    </div>
   </div>
 	</div>
 </div>
+
+
 <div id="divlistOpportunity"></div>
+<div></div>
 <div id="divlistProjectList"></div>
+<script src="https://cdn.jsdelivr.net/npm/bs-stepper/dist/js/bs-stepper.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bs-stepper/dist/css/bs-stepper.min.css"></script>
+
 <script>
+	$(document).ready(function() {
+		// Initialize stepper with custom options
+		var stepperElement = $('.bs-stepper')[0];
+		window.stepper = new Stepper(stepperElement, {
+			linear: true,      // Force sequential steps
+			animation: true     // Enable fade animation
+		});
+		
+		// Update current step display
+		function updateStepDisplay() {
+			var currentIndex = window.stepper._currentIndex + 1; // 1-based for display
+			$('#stepDisplay').html(`
+				<div class="alert alert-info">
+					Current Step: ${currentIndex} of 3
+				</div>
+			`);
+		}
+		
+		// Initial display
+		updateStepDisplay();
+		
+		// Event listener for step changes
+		stepperElement.addEventListener('shown.bs-stepper', function(event) {
+			console.log('Moved to step:', event.detail.indexStep);
+			updateStepDisplay();
+		});
+		
+		// =============================================
+		// CUSTOM BUTTON CONTROLS
+		// =============================================
+		
+		// 1. Next button handler
+		$('.btn-next').on('click', function() {
+			window.stepper.next();
+		});
+		
+		// 2. Previous button handler
+		$('.btn-prev').on('click', function() {
+			window.stepper.previous();
+		});
+		
+		// 3. Go to specific step (using to() method)
+		$('#goToStep2').on('click', function() {
+			window.stepper.to(2); // Goes to step 2 (1-based index)
+		});
+		
+		$('#resetStepper').on('click', function() {
+			window.stepper.reset();
+			showNotification('Stepper reset to step 1');
+		});
+		
+		$('#destroyStepper').on('click', function() {
+			window.stepper.destroy();
+			$('#stepDisplay').html(`
+				<div class="alert alert-danger">
+					Stepper destroyed - methods disabled
+				</div>
+			`);
+			$(this).prop('disabled', true);
+		});
+		
+		$('#getCurrentStep').on('click', function() {
+			var currentIndex = window.stepper._currentIndex + 1;
+			alert('Current step: ' + currentIndex);
+		});
+		
+		// Helper function for notifications
+		function showNotification(message) {
+			var notification = $(`
+				<div class="alert alert-success alert-dismissible fade show" role="alert">
+					${message}
+					<button type="button" class="close" data-dismiss="alert">
+						<span>&times;</span>
+					</button>
+				</div>
+			`);
+			
+			$('#stepDisplay').after(notification);
+			setTimeout(function() {
+				notification.alert('close');
+			}, 2000);
+		}
+	});
+
+	function redirectToProgress(){
+		window.location.href = `approval/progress/${OpportunityLists.getSelectedId()}`;
+	}
+
 	function submitApproval(type){
 		let fd = new FormData()
 		fd.append('id', OpportunityLists.getSelectedId());
@@ -67,6 +155,14 @@ $Saya =  Auth::user()->username;
 			}
 		})
 	}
+
+	$('.downloadMOU').on('click', function(){
+		generateMOU()
+	})
+
+	$('.uploadMOU').on('click', function(){
+		console.log("uploading mou")
+	})
 
 	function generateMOU(){
 		$.ajax({

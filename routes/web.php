@@ -4276,8 +4276,9 @@ $partnerApprovalPrefix = "partner-approval";
 
 Route::prefix('approval')->group(function(){
     Route::get('generate-mou', [ApprovalController::class, 'generateMOU']);
+    Route::get('progress/{id}', [ApprovalController::class, 'showProgress']);
 
-    Route::post("submit", [ApprovalController::class, 'submit']);
+    Route::post("progress/submit", [ApprovalController::class, 'submit']);
 });
 
 Route::get("$partnerApprovalPrefix-index", [ApprovalController::class, 'index']);
