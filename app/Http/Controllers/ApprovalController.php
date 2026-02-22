@@ -79,4 +79,26 @@ class ApprovalController extends Controller {
 
         return "submitted";
     }
+
+    public function showProgress(Request $request){
+        $params = $request->route()->parameters();
+
+
+        $partner = DB::table('opportunity_partner')->where('id', $params['id'])->first();
+
+        $pic = [];
+        if (Schema::hasTable('users')) {
+            $pic = DB::table('users')->select('username', DB::raw("COALESCE(name, username) as Name"))->get();
+        }
+
+        $documents = DB::table('opportunity_partner_file')->where('opportunity_id', $params['id'])->get();
+
+
+        foreach ($documents as $key => $value) {
+            $documents[$key]->url = "https://dev.hexamatika.com/geu/hcga/public/filevendor/".$value->file_path;
+        };
+
+        return view('approval.progress', compact('partner', 'pic', 'documents'));
+
+    }
 } 
