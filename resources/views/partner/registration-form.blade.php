@@ -48,8 +48,53 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="Address">Alamat Rumah</label>
-                                        <input type="text" name="Address" id="Address" class="form-control" required />
+                                        <div class="row">
+                                            <div class="col">
+                                            <label for="Address">Alamat Rumah</label>
+                                            <input type="text" name="Address_Detail" id="Address_Detail" class="form-control" required />
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col">
+                                                <label for="Address">RT</label>
+                                                <input type="text" name="Address_RT" id="Address_RT" class="form-control" required />
+                                            </div>
+                                            <div class="col">
+                                                <label for="Address">RW</label>
+                                                <input type="text" name="Address_RW" id="Address_RW" class="form-control" required />
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col">
+                                                <label for="Address">Kelurahan</label>
+                                                <input type="text" name="Address_Ward" id="Address_Ward" class="form-control" required />
+                                            </div>
+                                            <div class="col">
+                                                <label for="Address">Kecamatan</label>
+                                                <input type="text" name="Address_Subdistrict" id="Address_Subdistrict" class="form-control" required />
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col">
+                                                <label for="Address">Kota / Kabupaten</label>
+                                                <input type="text" name="Address_City" id="Address_City" class="form-control" required />
+                                                <!-- <select name="Address_City" id="Address_City" class="form-control">
+                                                    <option value="">-- Pilih --</option>
+                                                </select> -->
+                                            </div>
+                                            <div class="col">
+                                                <label for="Address">Provinsi</label>
+                                                <input type="text" name="Address_Province" id="Address_Province" class="form-control" required />
+                                                <!-- <select name="Address_Province" id="Address_Province" class="form-control">
+                                                    <option value="">-- Pilih --</option>
+                                                </select> -->
+                                            </div>
+                                            <div class="col">
+                                                <label for="Address">Kode Pos</label>
+                                                <input type="text" name="Address_Postal" id="Address_Postal" class="form-control" required />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -126,9 +171,9 @@
                             </div>
                             
                             <div class="form-group">
-                                <label for="PIC">PIC Penjualan</label>
+                                <label for="PIC">PIC Sales</label>
                                 <select name="PIC" id="PIC" class="form-control">
-                                    <option value="">-- Pilih PIC Penjualan --</option>
+                                    <option value="">-- Pilih PIC Sales --</option>
                                     @foreach($pic as $p)
                                         <option value="{{ $p->username }}">{{ $p->Name }}</option>
                                     @endforeach
@@ -361,22 +406,22 @@
                                             <label class="form-check-label" for="P6Q1_No">Tidak</label>
                                         </div>
                                         <div class="Amount_Outlet">
-                                            <label for="Input_Amount_Outlet">Jumlah Outlet</label>
-                                            <input type="text" name="Input_Amount_Outlet" id="Input_Amount_Outlet" class="form-control"/>
+                                            <label for="P6Q1">Jumlah Outlet</label>
+                                            <input type="text" name="P6Q1A1" id="P6Q1A1" class="form-control"/>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label><strong>2. Bergerak di bidang apa?</strong></label>
-                                        <select name="Business_Type" id="Business_Type" class="form-control">
+                                        <select name="P6Q2" id="P6Q2" class="form-control">
                                             <option value="">-- Pilih --</option>
-                                             <option value="">Restoran</option>
-                                            <option value="">Cafe</option>
-                                             <option value="">Catering</option>
-                                            <option value="">UMKM Kuliner</option>
-                                            <option value="">Pabrik Makanan</option>
-                                            <option value="">Lainnya</option>
+                                             <option value="RESTAURANT">Restoran</option>
+                                            <option value="CAFE">Cafe</option>
+                                             <option value="CATERING">Catering</option>
+                                            <option value="UMKM">UMKM Kuliner</option>
+                                            <option value="PABRIK">Pabrik Makanan</option>
+                                            <option value="LAINNYA">Lainnya</option>
                                         </select>
                                     </div>
                                 </div>
@@ -392,8 +437,8 @@
                                             <label class="form-check-label" for="P6Q3_No">Tidak</label>
                                         </div>
                                         <div class="Amount_Outlet">
-                                            <label for="Input_Amount_Outlet">Jumlah Relasi</label>
-                                            <input type="text" name="Input_Amount_Outlet" id="Input_Amount_Outlet" class="form-control"/>
+                                            <label for="P6Q3A1">Jumlah Relasi</label>
+                                            <input type="text" name="P6Q3A1" id="P6Q3A1" class="form-control"/>
                                         </div>
                                     </div>
                                 </div>
@@ -401,43 +446,43 @@
                                     <div class="form-group">
                                         <label><strong>4. Sebagai bentuk dukungan terhadap praktik keberlanjutan, saya bersedia minyak jelantah dari usaha F&B atau jaringan F&B tersebut agar disetorkan secara rutin ke Hub GEU Anda</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q2" id="Q2_Yes" value="Yes" />
-                                            <label class="form-check-label" for="Q2_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="P6Q4" id="P6Q4_Yes" value="Yes" />
+                                            <label class="form-check-label" for="P6Q4_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q2" id="Q2_No" value="No" />
-                                            <label class="form-check-label" for="Q2_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="P6Q4" id="P6Q4_No" value="No" />
+                                            <label class="form-check-label" for="P6Q4_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                                                        
+
                             <div class="badge badge-info w-100 my-3 py-3">Pertanyaan Kemitraan</div>
                             
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>1. Bersedia mematuhi standardisasi bisnis?</strong></label>
+                                        <label><strong>1. Saya bersedia berkomitmen untuk mematuhi standarisasi bisnis GEU.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q1" id="Q1_Yes" value="Yes" />
-                                            <label class="form-check-label" for="Q1_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="C_Q1" id="C_Q1_Yes" value="Yes" />
+                                            <label class="form-check-label" for="C_Q1_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q1" id="Q1_No" value="No" />
-                                            <label class="form-check-label" for="Q1_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="C_Q1" id="C_Q1_No" value="No" />
+                                            <label class="form-check-label" for="C_Q1_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>2. Bersedia mendukung target pertumbuhan Hub GEU Express?</strong></label>
+                                        <label><strong>2. Saya bersedia berkomitmen untuk ikut support pertumbuhan pencapaian target Hub GEU Express.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q2" id="Q2_Yes" value="Yes" />
-                                            <label class="form-check-label" for="Q2_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="C_Q2" id="C_Q2_Yes" value="Yes" />
+                                            <label class="form-check-label" for="C_Q2_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q2" id="Q2_No" value="No" />
-                                            <label class="form-check-label" for="Q2_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="C_Q2" id="C_Q2_No" value="No" />
+                                            <label class="form-check-label" for="C_Q2_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
@@ -446,27 +491,27 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>3. Menyadari bahwa kemitraan membawa risiko bisnis?</strong></label>
+                                        <label><strong>3. Saya memahami bahwa bisnis ini juga mempunyai resiko kerugian.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q3" id="Q3_Yes" value="Yes" />
-                                            <label class="form-check-label" for="Q3_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="C_Q3" id="C_Q3_Yes" value="Yes" />
+                                            <label class="form-check-label" for="C_Q3_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q3" id="Q3_No" value="No" />
-                                            <label class="form-check-label" for="Q3_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="C_Q3" id="C_Q3_No" value="No" />
+                                            <label class="form-check-label" for="C_Q3_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>4. Bersedia mengikuti aturan investasi?</strong></label>
+                                        <label><strong>4. Saya bersedia untuk membayar investasi fee sesuai dengan ketentuan.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q4" id="Q4_Yes" value="Yes" />
-                                            <label class="form-check-label" for="Q4_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="C_Q4" id="C_Q4_Yes" value="Yes" />
+                                            <label class="form-check-label" for="C_Q4_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q4" id="Q4_No" value="No" />
-                                            <label class="form-check-label" for="Q4_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="C_Q4" id="C_Q4_No" value="No" />
+                                            <label class="form-check-label" for="C_Q4_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
@@ -475,33 +520,36 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>5. Bersedia tidak menjalankan bisnis sejenis yang bersaing?</strong></label>
+                                        <label><strong>5. Saya berkomitmen untuk tidak membuka bisnis sejenis, termasuk menggunakan nama lain, selama masa kemitraan berlangsung maupun setelah kerjasama berakhir sesuai ketentuan perjanjian.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q5" id="Q5_Yes" value="Yes" />
-                                            <label class="form-check-label" for="Q5_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="C_Q5" id="C_Q5_Yes" value="Yes" />
+                                            <label class="form-check-label" for="C_Q5_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q5" id="Q5_No" value="No" />
-                                            <label class="form-check-label" for="Q5_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="C_Q5" id="C_Q5_No" value="No" />
+                                            <label class="form-check-label" for="C_Q5_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>6. Bersedia menandatangani kontrak kemitraan?</strong></label>
+                                        <label><strong>6. Saya bersedia untuk menaati kontrak perjanjian
+                                        bisnis kemitraan yang telah disepakati kedua belah pihak.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q6" id="Q6_Yes" value="Yes" />
-                                            <label class="form-check-label" for="Q6_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="C_Q6" id="C_Q6_Yes" value="Yes" />
+                                            <label class="form-check-label" for="C_Q6_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="Q6" id="Q6_No" value="No" />
-                                            <label class="form-check-label" for="Q6_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="C_Q6" id="C_Q6_No" value="No" />
+                                            <label class="form-check-label" for="C_Q6_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div> 
+                                                        
                             
-                            <div class="form-group">
+                            
+>
                                 <label><strong>Pilihan Paket</strong></label>
                                 <div class="row">
                                     <div class="col-md-6">
@@ -640,8 +688,59 @@
                             
                             <div class="form-group">
                                 <label for="Head_Office_Address">Alamat Kantor Pusat</label>
-                                <input type="text" name="Head_Office_Address" id="Head_Office_Address" class="form-control" />
+                                <!-- <input type="text" name="Head_Office_Address" id="Head_Office_Address" class="form-control"/> -->
                             </div>
+
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col">
+                                            <label for="Address">Alamat Detail</label>
+                                            <input type="text" name="Address_Detail" id="Address_Detail" class="form-control" required />
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col">
+                                                <label for="Address">RT</label>
+                                                <input type="text" name="Address_RT" id="Address_RT" class="form-control" required />
+                                            </div>
+                                            <div class="col">
+                                                <label for="Address">RW</label>
+                                                <input type="text" name="Address_RW" id="Address_RW" class="form-control" required />
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col">
+                                                <label for="Address">Kelurahan</label>
+                                                <input type="text" name="Address_Ward" id="Address_Ward" class="form-control" required />
+                                            </div>
+                                            <div class="col">
+                                                <label for="Address">Kecamatan</label>
+                                                <input type="text" name="Address_Subdistrict" id="Address_Subdistrict" class="form-control" required />
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col">
+                                                <label for="Address">Kota / Kabupaten</label>
+                                                <input type="text" name="Address_City" id="Address_City" class="form-control" required />
+                                                <!-- <select name="Address_City" id="Address_City" class="form-control">
+                                                    <option value="">-- Pilih --</option>
+                                                </select> -->
+                                            </div>
+                                            <div class="col">
+                                                <label for="Address">Provinsi</label>
+                                                <input type="text" name="Address_Province" id="Address_Province" class="form-control" required />
+                                                <!-- <select name="Address_Province" id="Address_Province" class="form-control">
+                                                    <option value="">-- Pilih --</option>
+                                                </select> -->
+                                            </div>
+                                            <div class="col">
+                                                <label for="Address">Kode Pos</label>
+                                                <input type="text" name="Address_Postal" id="Address_Postal" class="form-control" required />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             
                             <div class="form-group">
                                 <label for="Company_Website">Website Perusahaan</label>
@@ -812,34 +911,98 @@
                                 </div>
                             </div>
 
-                            ss
-                            
+                            <div class="badge badge-info w-100 my-3 py-3">6. Informasi data F&B</div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label><strong>1. Apakah Anda memiliki usaha F&B? dan berapa outlet yang dimiliki?</strong></label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="P6Q1" id="P6Q1_Yes" value="Yes" />
+                                            <label class="form-check-label" for="P6Q1_Yes">Ya</label>
+                                        </div>
+                                       
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="P6Q1" id="P6Q1_No" value="No" />
+                                            <label class="form-check-label" for="P6Q1_No">Tidak</label>
+                                        </div>
+                                        <div class="Amount_Outlet">
+                                            <label for="Input_Amount_Outlet">Jumlah Outlet</label>
+                                            <input type="text" name="P6Q1A1" id="P6Q1A1" class="form-control"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label><strong>2. Bergerak di bidang apa?</strong></label>
+                                        <select name="Business_Type" id="Business_Type" class="form-control">
+                                            <option value="">-- Pilih --</option>
+                                             <option value="">Restoran</option>
+                                            <option value="">Cafe</option>
+                                             <option value="">Catering</option>
+                                            <option value="">UMKM Kuliner</option>
+                                            <option value="">Pabrik Makanan</option>
+                                            <option value="">Lainnya</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label><strong>3. Apakah Anda memiliki relasi langsung dengan pelaku usaha tersebut? Jika Ya, perkiraan jumlah relasi usaha F&B yang dimiliki:</strong></label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="P6Q3" id="P6Q3_Yes" value="Yes" />
+                                            <label class="form-check-label" for="P6Q3_Yes">Ya</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="P6Q3" id="P6Q3_No" value="No" />
+                                            <label class="form-check-label" for="P6Q3_No">Tidak</label>
+                                        </div>
+                                        <div class="Amount_Outlet">
+                                            <label for="Input_Amount_Outlet">Jumlah Relasi</label>
+                                            <input type="text" name="P6Q3A1" id="P6Q3A1" class="form-control"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label><strong>4. Sebagai bentuk dukungan terhadap praktik keberlanjutan, saya bersedia minyak jelantah dari usaha F&B atau jaringan F&B tersebut agar disetorkan secara rutin ke Hub GEU Anda</strong></label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="Q2" id="Q2_Yes" value="Yes" />
+                                            <label class="form-check-label" for="Q2_Yes">Ya</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="Q2" id="Q2_No" value="No" />
+                                            <label class="form-check-label" for="Q2_No">Tidak</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="badge badge-info w-100 my-3 py-3">Pertanyaan Kemitraan</div>
                             
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>1. Apakah perusahaan akan mematuhi standar dan kebijakan operasional?</strong></label>
+                                        <label><strong>1. Perusahaan kami bersedia berkomitmen untuk mematuhi seluruh standarisasi bisnis GEU sesuai dengan ketentuan yang berlaku.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q1" id="C_Q1_Yes" value="Yes" />
-                                            <label class="form-check-label" for="C_Q1_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="Q1" id="Q1_Yes" value="Yes" />
+                                            <label class="form-check-label" for="Q1_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q1" id="C_Q1_No" value="No" />
-                                            <label class="form-check-label" for="C_Q1_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="Q1" id="Q1_No" value="No" />
+                                            <label class="form-check-label" for="Q1_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>2. Apakah perusahaan berkomitmen untuk mendukung target pertumbuhan?</strong></label>
+                                        <label><strong>2. Perusahaan kami bersedia mendukung pertumbuhan dan pencapaian target operasional Hub GEU Express.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q2" id="C_Q2_Yes" value="Yes" />
-                                            <label class="form-check-label" for="C_Q2_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="Q2" id="Q2_Yes" value="Yes" />
+                                            <label class="form-check-label" for="Q2_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q2" id="C_Q2_No" value="No" />
-                                            <label class="form-check-label" for="C_Q2_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="Q2" id="Q2_No" value="No" />
+                                            <label class="form-check-label" for="Q2_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
@@ -848,27 +1011,27 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>3. Apakah perusahaan memahami risiko kemitraan?</strong></label>
+                                        <label><strong>3. Perusahaan kami memahami bahwa kegiatan usaha kemitraan ini memiliki potensi keuntungan maupun risiko kerugian.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q3" id="C_Q3_Yes" value="Yes" />
-                                            <label class="form-check-label" for="C_Q3_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="Q3" id="Q3_Yes" value="Yes" />
+                                            <label class="form-check-label" for="Q3_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q3" id="C_Q3_No" value="No" />
-                                            <label class="form-check-label" for="C_Q3_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="Q3" id="Q3_No" value="No" />
+                                            <label class="form-check-label" for="Q3_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>4. Apakah perusahaan akan memenuhi kewajiban investasi?</strong></label>
+                                        <label><strong>4. Perusahaan kami bersedia membayar investment fee sesuai dengan ketentuan yang telah ditetapkan.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q4" id="C_Q4_Yes" value="Yes" />
-                                            <label class="form-check-label" for="C_Q4_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="Q4" id="Q4_Yes" value="Yes" />
+                                            <label class="form-check-label" for="Q4_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q4" id="C_Q4_No" value="No" />
-                                            <label class="form-check-label" for="C_Q4_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="Q4" id="Q4_No" value="No" />
+                                            <label class="form-check-label" for="Q4_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
@@ -877,32 +1040,32 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>5. Apakah perusahaan akan menghindari bisnis sejenis yang bersaing?</strong></label>
+                                        <label><strong>5. Perusahaan kami berkomitmen untuk tidak membuka bisnis sejenis, termasuk menggunakan nama lain, selama masa kemitraan berlangsung maupun setelah kerjasama berakhir sesuai ketentuan perjanjian.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q5" id="C_Q5_Yes" value="Yes" />
-                                            <label class="form-check-label" for="C_Q5_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="Q5" id="Q5_Yes" value="Yes" />
+                                            <label class="form-check-label" for="Q5_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q5" id="C_Q5_No" value="No" />
-                                            <label class="form-check-label" for="C_Q5_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="Q5" id="Q5_No" value="No" />
+                                            <label class="form-check-label" for="Q5_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label><strong>6. Apakah perusahaan akan menandatangani perjanjian kerja sama (MOU)?</strong></label>
+                                        <label><strong>6. Perusahaan kami bersedia untuk menaati dan melaksanakan seluruh isi kontrak perjanjian bisnis kemitraan yang telah disepakati oleh kedua belah pihak.</strong></label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q6" id="C_Q6_Yes" value="Yes" />
-                                            <label class="form-check-label" for="C_Q6_Yes">Ya</label>
+                                            <input class="form-check-input" type="radio" name="Q6" id="Q6_Yes" value="Yes" />
+                                            <label class="form-check-label" for="Q6_Yes">Ya</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="C_Q6" id="C_Q6_No" value="No" />
-                                            <label class="form-check-label" for="C_Q6_No">Tidak</label>
+                                            <input class="form-check-input" type="radio" name="Q6" id="Q6_No" value="No" />
+                                            <label class="form-check-label" for="Q6_No">Tidak</label>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            
+                            </div> 
+
                             <div class="form-group">
                                 <label><strong>Pilihan Paket</strong></label>
                                 <div class="row">
@@ -972,6 +1135,7 @@
                                 </div>
                             </div>
                         </div>
+
 				        <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_NPWP_File" />
 				        <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_Others_File" />
                 

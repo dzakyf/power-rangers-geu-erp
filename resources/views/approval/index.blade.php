@@ -164,27 +164,6 @@ $Saya =  Auth::user()->username;
 		console.log("uploading mou")
 	})
 
-	function generateMOU(){
-		$.ajax({
-			url: "approval/generate-mou",
-			type: "GET",
-			xhrFields:{
-				responseType: 'blob'
-			},
-			success: function(response, status, xhr) {
-				var blob = new Blob([response]);
-				var link = document.createElement('a');
-				link.href = window.URL.createObjectURL(blob);
-				link.download = 'mou.docx'; 
-				link.click();
-				
-				window.URL.revokeObjectURL(link.href);
-			},
-			error: function(err){
-				alert("Telah terjadi kesalahan.");
-			}
-		})
-	}
 
 	function OpportunityListsKlik() {
 

@@ -116,6 +116,37 @@
                             <input type="text" class="form-control" id="Phone_Number" name="Phone_Number" />
                         </div>
                     </div>
+                    <div class="form-group row align-items-center">
+                        <label class="col-sm-2 col-form-label"><strong>Bagaimana Anda mengetahui program kemitraan ini?</strong></label>
+                        <div class="col-sm-10">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="Source_Channel" id="Source_Instagram" value="Instagram" />
+                                        <label class="form-check-label" for="Source_Instagram">Instagram</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="Source_Channel" id="Source_Facebook" value="Facebook" />
+                                        <label class="form-check-label" for="Source_Facebook">Facebook</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="Source_Channel" id="Source_Tiktok" value="Tiktok" />
+                                        <label class="form-check-label" for="Source_Tiktok">Tiktok</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="Source_Channel" id="Source_Website" value="Website" />
+                                        <label class="form-check-label" for="Source_Website">Website</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="Source_Channel" id="Source_Event" value="Event" />
+                                        <label class="form-check-label" for="Source_Event">Pameran/Acara</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="form-group row">
                         <label class="col-sm-2 col-form-label">Minat Kemitraan</label>
                         <div class="col-sm-10">

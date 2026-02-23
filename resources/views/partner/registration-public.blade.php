@@ -1,4 +1,7 @@
 <?php
+
+use Illuminate\Support\Facades\DB;
+
 $LSP = 'GEU-HO';
 $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->get();
 $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")->orderBy("Province", "asc")->get();

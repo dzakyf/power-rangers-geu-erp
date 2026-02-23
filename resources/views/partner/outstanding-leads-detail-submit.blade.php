@@ -59,28 +59,28 @@ DB::table('opportunity_log')->insert($arrLog);
 
 if ($_POST['Status'] == "Deal") {
 	// Buat blasting ke partner
-	$username = str_replace(' ','_', strtolower($opportunity->Full_Name));
-	$cekUser = DB::table('users')->get();
-	foreach ($cekUser as $key => $value) {
-		if ($value->username == $username) {
-			$username = $username . rand(100, 999);
-		}
-	}
-	$pass = 'geupartner123';
-	DB::table('users')->insert([
-		'username' => $username,
-		'password' => bcrypt($pass),
-		'Emp_ID' => $opportunity->Task_ID,
-		'Priv_ID' => "PARTNER",
-		'Location' => $opportunity->Location,
-		'Name' => $opportunity->Full_Name,
-		'Contact' => $opportunity->Phone_Number,
-		'created_at' => date('Y-m-d H:i:s'),
-		'Area' => 'JABODETABEK',
-		'Status' => 'ACTIVE',
-		'Department' => 'PARTNER',
-		'Company_ID' => 'GEU',
-	]);
+	// $username = str_replace(' ','_', strtolower($opportunity->Full_Name));
+	// $cekUser = DB::table('users')->get();
+	// foreach ($cekUser as $key => $value) {
+	// 	if ($value->username == $username) {
+	// 		$username = $username . rand(100, 999);
+	// 	}
+	// }
+	// $pass = 'geupartner123';
+	// DB::table('users')->insert([
+	// 	'username' => $username,
+	// 	'password' => bcrypt($pass),
+	// 	'Emp_ID' => $opportunity->Task_ID,
+	// 	'Priv_ID' => "PARTNER",
+	// 	'Location' => $opportunity->Location,
+	// 	'Name' => $opportunity->Full_Name,
+	// 	'Contact' => $opportunity->Phone_Number,
+	// 	'created_at' => date('Y-m-d H:i:s'),
+	// 	'Area' => 'JABODETABEK',
+	// 	'Status' => 'ACTIVE',
+	// 	'Department' => 'PARTNER',
+	// 	'Company_ID' => 'GEU',
+	// ]);
 }
 
 echo "success";

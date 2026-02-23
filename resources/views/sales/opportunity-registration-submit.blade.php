@@ -4,18 +4,46 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 try {
+	$username = auth()->check() ? auth()->user()->username : str_replace(' ','_', strtolower($data['full_name']));
+    if (!auth()->check()) {
+        $cekUser = DB::table('users')->get();
+        foreach ($cekUser as $key => $value) {
+            if ($value->username == $username) {
+                $username = $username . rand(100, 999);
+            }
+        }
+    }
 
+    $req = request();
 
-    
     $data = [];
     $data['lead_id'] = request()->input('lead_id', null);
     $data['register_as'] = request()->input('Register_As', request()->input('register_as'));
 
     // Individual fields
     $data['full_name'] = request()->input('Full_Name');
-    $data['contact'] = request()->input('Contact');
+    $data['contact'] = request()->input('Contact', '');
     $data['email'] = request()->input('Email');
-    $data['address'] = request()->input('Address');
+
+    $addr_detail = $req->input('Address_Detail');
+    $addr_rt = $req->input('Address_RT');
+    $addr_rw = $req->input('Address_RW');
+    $addr_ward = $req->input('Address_Ward');
+    $addr_subdistrict = $req->input('Address_Subdistrict');
+    $addr_city = $req->input('Address_City');
+    $addr_province = $req->input('Address_Province');
+    $addr_postal = $req->input('Address_Postal');
+
+    $data['address'] = $addr_detail;
+    $data['pi_rt'] = $addr_rt;
+    $data['pi_rw'] = $addr_rw;
+    $data['pi_ward'] = $addr_ward;
+    $data['pi_subdistrict'] = $addr_subdistrict;
+    $data['pi_city'] = $addr_city;
+    $data['pi_province'] = $addr_province;
+    $data['pi_postal'] = $addr_postal;
+    
+
     $data['gender'] = request()->input('Gender');
     $data['highest_education'] = request()->input('Last_Education');
     // $data['source_channels'] = array_filter([request()->input('Source_Instagram'), request()->input('Source_Facebook'), request()->input('Source_Tiktok'), request()->input('Source_Website'), request()->input('Source_Event')])[0] ?? null;
@@ -66,7 +94,7 @@ try {
     // Company PIC
     $data['pic_name'] = request()->input('PIC_Name');
     $data['pic_position'] = request()->input('PIC_Position');
-    $data['pic_phone'] = request()->input('PIC_Phone');
+    $data['pic_phone'] = request()->input('PIC_Phone', '');
     $data['pic_email'] = request()->input('PIC_Email');
     
     // Company financials
@@ -78,6 +106,15 @@ try {
     $data['company_experience'] = request()->input('Company_Experience');
     $data['company_has_location'] = request()->input('Company_Has_Location');
     $data['location_types'] = json_encode(array_filter([request()->input('Loc_Warehouse'), request()->input('Loc_Store'), request()->input('Loc_Own'), request()->input('Loc_Rent')]));
+
+    // Questioner Part 6 
+    for($i = 1; $i < 5; $i++){
+        $data['c_p6q'.$i] = $req->input('P6Q'.$i);
+
+        if($i == 1 || $i == 3){
+            $data['c_p6q'.$i.'a1'] = $req->input('P6Q'.$i.'A1'); 
+        }
+    }
 
     for ($i=1;$i<=6;$i++) {
         $data['c_q'.$i] = request()->input('C_Q'.$i);
@@ -98,7 +135,7 @@ try {
             'file_type' => $ext[count($ext) - 1],
             'file_path' => request()->input('Doc_'.$value.'_File') ?? "",
             'created_at' => now(),
-            'created_by' => auth()->check() ? auth()->user()->username : str_replace(' ','_', strtolower($data['full_name']))
+            'created_by' => $username
         ]);
     }
 
@@ -111,7 +148,30 @@ try {
             'file_type' => $ext[count($ext) - 1],
             'file_path' => request()->input('C_Doc_'.$value.'_File') ?? "",
             'created_at' => now(),
-            'created_by' => auth()->check() ? auth()->user()->username : str_replace(' ','_', strtolower($data['full_name']))
+            'created_by' => $username
+        ]);
+    }
+
+    if (!auth()->check()) {
+        $pass = 'geupartner123';
+        $contact = $data['register_as'] == 'individu' ? $data['contact'] : $data['pic_phone'];
+        if ($data['lead_id'] != null && $contact == '') {
+            $opportunity = DB::table('opportunity')->where("Task_ID", $data['lead_id'])->first();
+            $contact = $opportunity->Phone_Number;
+        }
+        DB::table('users')->insert([
+            'username' => $username,
+            'password' => bcrypt($pass),
+            'Emp_ID' => $data['lead_id'] ?? 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3),
+            'Priv_ID' => "PARTNER",
+            'Location' => 'GEU-HO',
+            'Name' => $data['full_name'],
+            'Contact' => $contact,
+            'created_at' => date('Y-m-d H:i:s'),
+            'Area' => 'JABODETABEK',
+            'Status' => 'ACTIVE',
+            'Department' => 'PARTNER',
+            'Company_ID' => 'GEU',
         ]);
     }
 

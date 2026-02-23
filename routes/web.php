@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Event;
 use App\Http\Controllers\Partner\ListsController as PartnerListsController;
 
 use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\HelperController;
 use App\Http\Controllers\UploaderController;
 
 
@@ -28,9 +29,13 @@ Route::get('partner-leads', function() {
 Route::get('partner-registration', function() {
     return view('partner.registration-public');
 });
+
 Route::get('partner-prints-invoice', [App\Http\Controllers\Finance\PartnerController::class, 'printInvoice']);
 Route::post('province', [App\Http\Controllers\HelperController::class, 'provinceSearch']);
 Route::post('city/{province}', [App\Http\Controllers\HelperController::class, 'citySearch']);
+Route::post('district/{province}/{city}', [HelperController::class, 'districtSearch']);
+Route::post('subdistrict/{province}/{city}/{district}', [HelperController::class, 'subdistrictSearch']);
+Route::post('postal-code/{province}/{city}/{district}/{subdistrict}', [HelperController::class, 'postalCodeSearch']);
 
 Auth::routes();
 
@@ -4235,6 +4240,118 @@ Route::get('partner-registration-business', function() {
     return view('partner.registration');
 });
 
+Route::get('partner-fresh-leads', function () {
+    return view('partner.fresh-leads');
+});
+
+Route::get('xml-partner-fresh-leads', function () {
+    return view('partner.xml.fresh-leads');
+});
+
+Route::get('partner-fresh-leads-detail', function () {
+    return view('partner.fresh-leads-detail');
+});
+
+Route::post('partner-fresh-leads-update', function () {
+    return view('partner.fresh-leads-update');
+});
+
+Route::get('partner-assign-sales', function() {
+    return view('partner.assign-sales');
+});
+
+Route::get('xml-partner-assign-sales', function() {
+    return view('partner.xml.assign-sales');
+});
+
+Route::post('partner-assign-sales-update', function() {
+    return view('partner.assign-sales-update');
+});
+
+Route::get('partner-assign-sales-detail', function() {
+    return view('partner.assign-sales-detail');
+});
+
+Route::get('xml-partner-assign-sales-detail', function() {
+    return view('partner.xml.assign-sales-detail');
+});
+
+Route::get('partner-assign-sales-detail-leads', function() {
+    return view('partner.assign-sales-detail-leads');
+});
+
+Route::get('partner-reassign-sales', function () {
+    return view('partner.reassign-sales');
+});
+
+Route::get('xml-partner-reassign-sales', function () {
+    return view('partner.xml.reassign-sales');
+});
+
+Route::get('partner-reassign-sales-detail', function () {
+    return view('partner.reassign-sales-detail');
+});
+
+Route::get('xml-partner-reassign-sales-detail', function () {
+    return view('partner.xml.reassign-sales-detail');
+});
+
+Route::post('partner-reassign-sales-update', function () {
+    return view('partner.reassign-sales-update');
+});
+
+Route::get('partner-reassign-sales-detail-leads', function () {
+    return view('partner.reassign-sales-detail-leads');
+});
+
+Route::get('partner-canceled-leads', function () {
+    return view('partner.canceled-leads');
+});
+
+Route::get('xml-partner-canceled-leads', function () {
+    return view('partner.xml.canceled-leads');
+});
+
+Route::get('partner-canceled-leads-detail', function () {
+    return view('partner.canceled-leads-detail');
+});
+
+Route::post('partner-canceled-leads-update', function () {
+    return view('partner.canceled-leads-update');
+});
+
+Route::get('partner-assign-history', function () {
+    return view('partner.assign-history');
+});
+
+Route::get('xml-partner-assign-history', function () {
+    return view('partner.xml.assign-history');
+});
+
+Route::get('partner-assign-history-log', function () {
+    return view('partner.assign-history-log');
+});
+
+Route::get('xml-partner-assign-history-log', function () {
+    return view('partner.xml.assign-history-log');
+});
+
+Route::get('partner-assign-history-detail', function () {
+    return view('partner.assign-history-detail');
+});
+
+Route::get('xml-partner-assign-history-detail', function () {
+    return view('partner.xml.assign-history-detail');
+});
+
+Route::get('partner-assign-history-detail-log', function () {
+    return view('partner.assign-history-detail-log');
+});
+
+Route::get('xml-partner-assign-history-detail-log', function () {
+    return view('partner.xml.assign-history-detail-log');
+});
+
 Route::get('partner-history-leads', function () {
     return view('partner.history-leads');
 });
@@ -4270,14 +4387,12 @@ Route::get('partner-business-lists-detail', [PartnerListsController::class, 'det
 Route::post('upload-csv', [UploaderController::class,'uploadAndInsertFromCsv']);
 Route::get('download-leads-template', [UploaderController::class,'downloadLeadsTemplate']);
 
-
 /** partner registration approval */
 $partnerApprovalPrefix = "partner-approval";
 
 Route::prefix('approval')->group(function(){
-    Route::get('generate-mou', [ApprovalController::class, 'generateMOU']);
+    Route::get('progress/generate-mou', [ApprovalController::class, 'generateMOU']);
     Route::get('progress/{id}', [ApprovalController::class, 'showProgress']);
-
     Route::post("progress/submit", [ApprovalController::class, 'submit']);
 });
 

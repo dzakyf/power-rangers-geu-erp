@@ -37,7 +37,7 @@ $Saya =  Auth::user()->username;
 		<input type="button" id="detailLeads" name="detailLeads" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailLeads()" />
 				<!-- <input type="button" id="delets" name="delets" value="Cancel Opportunity" class="btn btn-danger mt-2 mr-2" onclick="delsOpportunity()" /> -->
 		
-		<div class="btn-group" role="group">
+		<div class="btn-group mt-2 mr-2" role="group">
 			<button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 				<i class="fas fa-download"></i> Action
 			</button>
@@ -112,9 +112,11 @@ $Saya =  Auth::user()->username;
 
 		OpportunityListsID = OpportunityLists.getSelectedId();
 		$("#divlistOpportunity").show();
-		if (OpportunityListsID != '') {
+		if (OpportunityListsID != null) {
 			$("#divlistProjectList").hide();
 			LoadM('divlistOpportunity', 'partner-outstanding-leads-detail?ID=' + OpportunityListsID);
+		}else {
+			alert("Pilih Leads terlebih dulu");
 		}
 		return true;
 	}

@@ -29,77 +29,92 @@ $Saya =  Auth::user()->username;
 	</ol>
 </div>
 
+
 <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
-	<div class="bs-stepper vertical" id="customStepper">
-	<!-- Step Header -->
-	<div class="bs-stepper-header" role="tablist">
-		<div class="step" data-target="#step1">
-		<button type="button" class="step-trigger" role="tab">
-			<span class="bs-stepper-circle">1</span>
-			<span class="bs-stepper-label">Cek Dokumen</span>
-		</button>
-		</div>
-		<div class="line"></div>
-		<div class="step" data-target="#step2">
-		<button type="button" class="step-trigger" role="tab">
-			<span class="bs-stepper-circle">2</span>
-			<span class="bs-stepper-label">Penandatanganan MOU</span>
-		</button>
-		</div>
-		<div class="line"></div>
-		<div class="step" data-target="#step3">
-		<button type="button" class="step-trigger" role="tab">
-			<span class="bs-stepper-circle">3</span>
-			<span class="bs-stepper-label">Penerbitan Invoice</span>
-		</button>
-		</div>
-	</div>
+	<div class="bs-stepper" id="customStepper">
 
-	<!-- Step Content -->
-	<div class="bs-stepper-content">
-		<div id="step1" class="content" role="tabpanel">
-		<h5>Step 1</h5>
-		<p>Cek data diri & dokumen...</p>
+		<div class="bs-stepper-header" role="tablist">
+				<div class="step" data-target="#step1">
+				<button type="button" class="step-trigger" role="tab">
+					<span class="bs-stepper-circle">1</span>
+					<span class="bs-stepper-label">Cek Dokumen</span>
+				</button>
+				</div>
+				<div class="line"></div>
+				<div class="step" data-target="#step2">
+					<button type="button" class="step-trigger" role="tab">
+						<span class="bs-stepper-circle">2</span>
+						<span class="bs-stepper-label">Penandatanganan MOU</span>
+					</button>
+				</div>
 
-            @include('approval.stepper.detail')
+				<div class="line"></div>
 
-            <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Action
-                </button>
-                <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                <a class="dropdown-item" href="#" onclick="submitApproval('APPROVED')">Approve</a>
-                <a class="dropdown-item" href="#" onclick="submitApproval('REJECTED')">Reject</a>
-                </div>
-            <button class="btn btn-primary btn-next">Next</button>
+				<div class="step" data-target="#step3">
+					<button type="button" class="step-trigger" role="tab">
+						<span class="bs-stepper-circle">3</span>
+						<span class="bs-stepper-label">Penerbitan Invoice</span>
+					</button>
+				</div>
 		</div>
-		
-		<div id="step2" class="content" role="tabpanel">
-            <h5>Step 2</h5>
-            <p>Penandatanganan MOU</p>
 
-			<div class="mt-2 mb-2 row">
-				<div class="col">
-            		<a href="#" class="downloadMOU">Download Template MOU</a>
+		<div class="bs-stepper-content">
+			<div id="step1" class="content" role="tabpanel">
+				<h5>Step 1</h5>
+				<p>Cek data diri & dokumen...</p>
+
+				@include('approval.stepper.detail')
+
+				<button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					Action
+					</button>
+					<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+					<a class="dropdown-item" href="#" onclick="submitApproval('APPROVED')">Approve</a>
+					<a class="dropdown-item" href="#" onclick="submitApproval('REJECTED')">Reject</a>
+					</div>
+
+				@if(optional($status)->Action == "APPROVED")
+					<button class="btn btn-primary btn-next">Next</button>
+				@endif
+			</div>
+			
+			<div id="step2" class="content" role="tabpanel">
+				<h5>Step 2</h5>
+				<p>Penandatanganan MOU</p>
+
+				<div class="mt-2 mb-2 row">
+					<div class="col">
+						<a href="#" class="downloadMOU">Download Template MOU</a>
+					</div>
+				</div>
+				<div class="mt-2 mb-2 row">
+					<div class="col">
+						<div class="form-check">
+							<input class="form-check-input" type="checkbox" id="mouAgreement" required>
+							<label class="form-check-label" for="mouAgreement">
+								Saya telah membaca dengan seksama MOU & Menyetujui kesepakatan yang tertuang didalamnya
+							</label>
+						</div>
+						<!-- <a href="#" class="uploadMOU">Unggah MOU</a>
+						<input type="file" class="inputMOU" accept=".pdf" style="display:none;"> -->
+					</div>
+				</div>
+				
+				<button class="btn btn-secondary btn-prev">Previous</button>
+				<button class="btn btn-primary btn-next">Next</button>
+			</div>
+			
+			<div id="step3" class="content" role="tabpanel">
+				<h5>Step 3</h5>
+				<p>Penerbitan invoice down payment</p>
+				<div class="row m-1">
+					<a href="#" onclick="generateInvoice()">Terbitkan invoice</a>
+				</div>
+				<div class="row m-1">
+					<button class="btn btn-secondary btn-prev">Previous</button>
 				</div>
 			</div>
-			<div class="mt-2 mb-2 row">
-				<div class="col">
-					<a href="#" class="uploadMOU">Unggah MOU</a>
-            		<input type="file" class="inputMOU" accept=".pdf" style="display:none;">
-				</div>
-			</div>
-            
-            <button class="btn btn-secondary btn-prev">Previous</button>
-            <button class="btn btn-primary btn-next">Next</button>
 		</div>
-		
-		<div id="step3" class="content" role="tabpanel">
-		<h5>Step 3</h5>
-		<p>Review and submit...</p>
-		<button class="btn btn-secondary btn-prev">Previous</button>
-		<!-- <button class="btn btn-success btn-submit">Submit</button> -->
-		</div>
-	</div>
 	</div>
 
 	<!-- Custom Navigation Buttons -->
@@ -203,7 +218,6 @@ $Saya =  Auth::user()->username;
 		}
 	});
 
-
 	function submitApproval(type){
 		let fd = new FormData()
         let id = window.location.pathname.split('/')
@@ -220,6 +234,7 @@ $Saya =  Auth::user()->username;
 			data: fd,
 			success: function(response, status, xhr) {
 				alert("Berhasil melakukan aksi");
+				window.location.reload()
 			},
 			error: function(err){
 				alert("Telah terjadi kesalahan.");
@@ -235,9 +250,27 @@ $Saya =  Auth::user()->username;
 		console.log("uploading mou")
 	})
 
-	function generateMOU(){
+	function generateInvoice(){
+		
 		$.ajax({
-			url: "approval/generate-mou",
+			url: `/geu/hcga/public/partner-prints-invoice`,
+			type: "GET",
+			success: function(response, status){
+				console.log(response)
+				window.open('https://dev.hexamatika.com/geu/hcga/public/partner-prints-invoice', '_blank')
+			},error: function(err){
+				console.log(err)
+			}
+
+		})
+	}
+
+	function generateMOU(){
+		const pathSegments = window.location.pathname.split('/');
+		const id = pathSegments[pathSegments.length - 1];
+		
+		$.ajax({
+			url: `generate-mou?id=${id}`,
 			type: "GET",
 			xhrFields:{
 				responseType: 'blob'
