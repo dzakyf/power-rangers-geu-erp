@@ -51,6 +51,37 @@ if ($Fetch->Capital_Estimation == 1) {
 				<input type="text" id="Capital_Estimation" name="Capital_Estimation" class="form-control" value="{{ $estimation }}" readonly />
 			</div>
 			<div class="col-md-6 mt-3">
+				<label class="col-form-label"><strong>Bagaimana Anda mengetahui program kemitraan ini?</strong></label>
+				<div class="row">
+					<div class="col-md-4">
+						<div class="form-check">
+							<input class="form-check-input" type="radio" name="Source_Channel" disabled id="Source_Instagram" value="Instagram" {{ $Fetch->Source_Channel == 'Instagram' ? 'checked' : '' }} />
+							<label class="form-check-label" for="Source_Instagram">Instagram</label>
+						</div>
+						<div class="form-check">
+							<input class="form-check-input" type="radio" name="Source_Channel" disabled id="Source_Facebook" value="Facebook" {{ $Fetch->Source_Channel == 'Facebook' ? 'checked' : '' }} />
+							<label class="form-check-label" for="Source_Facebook">Facebook</label>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="form-check">
+							<input class="form-check-input" type="radio" name="Source_Channel" disabled id="Source_Tiktok" value="Tiktok" {{ $Fetch->Source_Channel == 'Tiktok' ? 'checked' : '' }} />
+							<label class="form-check-label" for="Source_Tiktok">Tiktok</label>
+						</div>
+						<div class="form-check">
+							<input class="form-check-input" type="radio" name="Source_Channel" disabled id="Source_Website" value="Website" {{ $Fetch->Source_Channel == 'Website' ? 'checked' : '' }} />
+							<label class="form-check-label" for="Source_Website">Website</label>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="form-check">
+							<input class="form-check-input" type="radio" name="Source_Channel" disabled id="Source_Event" value="Event" {{ $Fetch->Source_Channel == 'Event' ? 'checked' : '' }} />
+							<label class="form-check-label" for="Source_Event">Pameran/Acara</label>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="col-md-6 mt-3">
 				<label for="Response">Response</label>
 				<select class="form-control" name="Response" id="Response">
 					<option value="" selected disabled>-- Pilih Response --</option>
@@ -89,9 +120,9 @@ if ($Fetch->Capital_Estimation == 1) {
 				</select>
 			</div>
 			<div class="col-md-6 mt-3" style="display:none" id="divReason">
-				<label for="Reason">Cancel Reason</label>
+				<label for="Reason">Alasan Cancel</label>
 				<select class="form-control" name="Reason" id="Reason">
-					<option value="" selected disabled>-- Pilih Cancel Reason --</option>
+					<option value="" selected disabled>-- Pilih Alasan Cancel --</option>
 					<option value="Tidak Tertarik" {{ $Fetch->Reason == 'Tidak Tertarik' ? 'selected' : '' }}>Tidak Tertarik</option>
 					<option value="Tidak Ada Modal" {{ $Fetch->Reason == 'Tidak Ada Modal' ? 'selected' : '' }}>Tidak Ada Modal</option>
 					<option value="Modal Tidak Sesuai" {{ $Fetch->Reason == 'Modal Tidak Sesuai' ? 'selected' : '' }}>Modal Tidak Sesuai</option>
@@ -117,6 +148,14 @@ if ($Fetch->Capital_Estimation == 1) {
 		}
 	}
 	$('#SubmitCustDetail').click(function() {
+		let Status = $("#Status").val();
+		if (Status == 'Cancel') {
+			let Reason = $('#Reason').val()
+			if (Reason == '') {
+				alert("Alasan cancel harus diisi");
+				return false;
+			}
+		}
 
 		gettingVars = getAllValues();
 

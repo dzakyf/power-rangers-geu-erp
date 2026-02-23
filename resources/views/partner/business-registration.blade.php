@@ -25,7 +25,7 @@ $Saya =  Auth::user()->username;
 			<a href="#">Opportunity</a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">Outstanding Leads</span>
+			<span class="active">Registration For Partner</span>
 		</li>
 	</ol>
 </div>
@@ -34,7 +34,7 @@ $Saya =  Auth::user()->username;
 	<div id="OpportunityLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
         <input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
-		<input type="button" id="detailLeads" name="detailLeads" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailLeads()" />
+		<input type="button" id="detailLeads" name="detailLeads" value="Register Business Partner" class="btn btn-success mt-2 mr-2" onclick="detailLeads()" />
 		<!-- <input type="button" id="delets" name="delets" value="Cancel Opportunity" class="btn btn-danger mt-2 mr-2" onclick="delsOpportunity()" /> -->
 	</div>
 
@@ -46,9 +46,11 @@ $Saya =  Auth::user()->username;
 
 		OpportunityListsID = OpportunityLists.getSelectedId();
 		$("#divlistOpportunity").show();
-		if (OpportunityListsID != '') {
+		if (OpportunityListsID != null) {
 			$("#divlistProjectList").hide();
 			LoadM('divlistOpportunity', 'partner-business-registration-detail?ID=' + OpportunityLists.cells(OpportunityListsID,1).getValue());
+		}else {
+			dhtmlx.alert("Pilih leads yang akan menjadi business partner")
 		}
 		return true;
 	}

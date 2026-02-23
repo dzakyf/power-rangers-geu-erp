@@ -24,8 +24,13 @@ $saya = Auth::user()->username ?? 'admin';
 $nomor = 1;
 
 echo "<rows>";
-
-$Query = DB::table("opportunity")->where("Location", $LSP)->where('Status', '!=', 'Deal')->orderBy("ID", "DESC")->get();
+$Query = DB::table('opportunity_sales');
+if ($priv == 'SALES') {
+	$Query->where("Sales", $saya);
+}
+$Query = $Query->get()->pluck('Sales_ID');
+$Query = DB::table('opportunity_sales_dtl')->whereIn("Sales_ID", $Query)->get()->pluck('Task_ID');
+$Query = DB::table("opportunity")->where("Location", $LSP)->whereIn("Task_ID", $Query)->whereNotIn('Status', ['Deal', 'Cancel'])->orderBy("ID", "DESC")->get();
 
 foreach ($Query as $Fetch) {
     if ($Fetch->Capital_Estimation == 1) {

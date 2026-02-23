@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 
-$LSP = Auth::user()->Location;
-$Saya =  Auth::user()->username;
-$Position =  Auth::user()->Position;
+$LSP = Auth::user()->Location ?? "";
+$Saya =  Auth::user()->username ?? "";
+$Position =  Auth::user()->Position ?? "";
 
 
 ?>
@@ -255,21 +255,21 @@ $moneyFormat = new moneyFormat();
                 <table>
                     <tr>
                         <td style="border-right:1px solid #000;text-align:right;padding-right:10px;">
-                            <span style="color: rgb(95, 226, 95);font-weight:bold;font-size:12pt">PT. GREEN ENERGI UTAMA</span> <br>
+                            <span style="color: rgb(171,218,116);font-weight:bold;font-size:12pt">PT. GREEN ENERGI UTAMA</span> <br>
                             A2 Pergudangan Tanrise K-Walk. <br>
                             65153 Malang, East Java, Indonesia <br>
                         </td>
                         <td style="padding-left: 10px;">
                             <div style="display: flex; flex-direction: row; align-items: flex-start;flex-wrap: wrap;">
                                 <div style="margin-right: 10px;align-self: center;">
-                                    <span class="fa fa-phone" style="color: rgb(95, 226, 95); font-size: 16px;"></span>
+                                    <span class="fa fa-phone" style="color: rgb(171,218,116); font-size: 16px;"></span>
                                 </div>
                                 <div>
                                     <span>(+62) 341 306 4175</span> <br>
                                     <span>(+62) 811 371 9299</span> <br>
                                 </div>
                             </div>
-                            <span class="fa fa-envelope" style="color: rgb(95, 226, 95); font-size: 16px; margin-right: 5px;"></span>
+                            <span class="fa fa-envelope" style="color: rgb(171,218,116); font-size: 16px; margin-right: 5px;"></span>
                             <span>cs@greenenergiutama.com</span>
                         </td>
                     </tr>
@@ -281,53 +281,88 @@ $moneyFormat = new moneyFormat();
         <div>
             <table style="width:100%;margin-top:20px;">
                 <tr>
-                    <td>
+                    <td style="font-weight:bold;font-size:12pt;vertical-align: top;">
                         INVOICE KEMITRAAN
                     </td>
+					<td>&nbsp;</td>
                     <td>
-                        <div>
-                            Date : {{ date('d F Y') }}
-                        </div>
-                        <div>
-                            INV#
-                        </div>
+						<table>
+							<tr>
+								<td>Date</td>
+								<td>:</td>
+								<td>{{ date('d F Y') }}</td>
+							</tr>
+							<tr>
+								<td>INV#</td>
+								<td>:</td>
+								<td>&nbsp;</td>
+							</tr>
+						</table>
                     </td>
                 </tr>
-                <tr>
-                    <td>
+                <tr style="vertical-align: top;font-weight:bold;color:white">
+                    <td style="width:45%;background-color: rgb(171,218,116);">
                         PARTNERSHIP
                     </td>
-                    <td>
+					<td style="width:10%;">&nbsp;</td>
+                    <td style="width:45%;background-color: rgb(171,218,116);">
                         PAYMENT DETAIL
+                    </td>
+                </tr>
+				<tr>
+					<td>&nbsp;</td>
+					<td>&nbsp;</td>
+					<td>
                         <div>
                             Package : <br>
                             Size : <br>
                             Partnership Value : <br>
                             Revenue Sharing : <br>
                         </div>
-                    </td>
-                </tr>
+					</td>
+				</tr>
                 <tr>
                     <table style="width:100%;margin-top:20px;border-collapse: collapse;" border="1">
-                        <thead>
+                        <thead style="background-color: rgb(171,218,116);font-weight:bold;color:white;">
                             <tr>
                                 <th>NO</th>
                                 <th>DESCRIPTION</th>
                                 <th>VALUE</th>
-                                <th>PEB</th>
+                                <th>PER</th>
                                 <th>AMOUNT (IDR)</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td>1</td>
+                                <td style="text-align:center;">1</td>
                                 <td>Pembayaran</td>
                                 <td>&nbsp;</td>
                                 <td>&nbsp;</td>
                                 <td>&nbsp;</td>
                             </tr>
+                            <tr>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                            </tr>
+                            <tr>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                            </tr>
+                            <tr>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                            </tr>
                         </tbody>
-                        <tfoot>
+                        <tfoot style="background-color: rgb(171,218,116);font-weight:bold;color:white;">
                             <tr>
                                 <td colspan="2" style="text-align:right;font-weight:bold;">TOTAL</td>
                                 <td>&nbsp;</td>
@@ -337,7 +372,76 @@ $moneyFormat = new moneyFormat();
                         </tfoot>
                     </table>
                 </tr>
+				<tr>
+					<td>
+						<table style="width:75%;margin-top:20px;border-collapse: collapse;">
+							<tr>
+								<td style="border: 1px solid black; background-color: lightgrey; font-weight:bold;font-size:12pt" colspan="3">BANK DETAIL</td>
+							</tr>
+							<tr style="border-left: 1px solid black; border-right: 1px solid black">
+								<td>Name</td>
+								<td>:</td>
+								<td>PT GREEN ENERGI UTAMA</td>
+							</tr>
+							<tr style="border-left: 1px solid black; border-right: 1px solid black">
+								<td>Bank</td>
+								<td>:</td>
+								<td>PT Bank OCBC NISP Tbk</td>
+							</tr>
+							<tr style="border-left: 1px solid black; border-right: 1px solid black">
+								<td>Address</td>
+								<td>:</td>
+								<td>Jl. Jaksa Agung Suprapto No. 41, Samaan, Kec. Klojen, Kota Malang, Jawa Timur</td>
+							</tr>
+							<tr style="border-left: 1px solid black; border-right: 1px solid black">
+								<td>Telp.</td>
+								<td>:</td>
+								<td>(0341)363645</td>
+							</tr>
+							<tr style="border-left: 1px solid black; border-right: 1px solid black">
+								<td>Country</td>
+								<td>:</td>
+								<td>Indonesia (ID)</td>
+							</tr>
+							<tr style="border-left: 1px solid black; border-right: 1px solid black">
+								<td>IBAN/Account No.</td>
+								<td>:</td>
+								<td>200 8000 90090</td>
+							</tr>
+							<tr style="border-left: 1px solid black; border-right: 1px solid black;border-bottom: 1px solid black;">
+								<td>BIC/Swift Code</td>
+								<td>:</td>
+								<td>NISPIDJA</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<table style="width:75%;margin-top:20px;border-collapse: collapse;">
+							<tr>
+								<td style="border: 1px solid black; background-color: rgb(171,218,116); font-weight:bold;color: white;text-align:center;">Requested By</td>
+								<td style="border: 1px solid black; background-color: rgb(171,218,116); font-weight:bold;color: white;text-align:center;">Department</td>
+							</tr>
+							<tr>
+								<td  style="border-left: 1px solid black; border-right: 1px solid black;border-bottom: 1px solid black;">&nbsp;</td>
+								<td style="border-left: 1px solid black; border-right: 1px solid black;border-bottom: 1px solid black;">&nbsp;</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
             </table>
+
+			<div style="display:inline-block;margin-top:20px;text-align:center;margin-left:30px">
+				Prepared By<br> <br> <br> <br>
+				<span style="text-decoration:underline">{user name}</span> <br />
+				<span>Finance</span>
+			</div>
+			<div style="float:right;margin-top:20px;text-align:center;margin-right: 250px;">
+				Approved By<br> <br> <br> <br>
+				<span style="text-decoration:underline">{user name}</span> <br />
+				Director
+			</div>
         </div>
 
 		<div>

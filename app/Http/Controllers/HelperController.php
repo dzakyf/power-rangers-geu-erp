@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class HelperController extends Controller
 {
@@ -42,5 +43,25 @@ class HelperController extends Controller
         $city = $city->get();
 
         return response()->json($city);
+    }
+
+    public function postalCodeSearch(Request $request){
+        $params = $request->route()->parameters();
+
+        $subdistrict = $params['subdistrict'];
+        $district = $params['district'];
+        $city = $params['city'];
+        $province = $params['province'];
+
+        $postal = DB::table('master_kodepos')
+        ->select('ZipCode')
+        ->where('Sub_District', $subdistrict)
+        ->where('District', $district)
+        ->where('City', $city)
+        ->where('Province', $province)
+        ->limit(8);
+        
+        return response()->json($postal);
+
     }
 }

@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Services\GeneratorService;
 use App\Services\UserService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use PhpOffice\PhpWord\TemplateProcessor;
 
 class ApprovalController extends Controller {
     protected $generatorService;
@@ -22,8 +24,6 @@ class ApprovalController extends Controller {
     public function index(){
         return view('approval.index');
     }   
-
-    public function loadXml(){}
 
     public function detail(Request $request)
     {
@@ -44,15 +44,46 @@ class ApprovalController extends Controller {
         return view('approval.detail', compact('partner', 'pic', 'documents'));
     }
 
-    public function generateMOU(){
-        $path = public_path('ksodoc.docx');
+    public function generateMOU(Request $req){
+
+        $id = $req->query('id');
+        $path = public_path('mou.docx');
+        $doc = new TemplateProcessor($path);
+        $now = Carbon::now()->format('YmdHisv');
+
+        $data = DB::table('opportunity_partner')->select('*')->where('ID', '=', $id)->first();
+
+        $partner_name = $data->register_as == "individual" ? $data->full_name : $data->company_full_name;
+        $full_address = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
+
+        $doc->setValues([
+            'partner_name' => $partner_name ?? '${contoh}',
+            'partner_region' => $data->pi_city ?? '${contoh}',
+            'signed_at' => Carbon::now(),
+            'nama' => $data->pic ?? '${contoh}',
+            'ktp' => '$contoh',
+            'alamat' => $full_address,
+            'pic_name' => $data->pic,
+            'npwp' => $data->npwp,
+            'membership_term' => '${contoh}',
+            'membership_fee' => '${contoh}',
+            'warehouse_fee' => '${contoh}',
+            'inventory_fee' => '${contoh}',
+            'namapaket' => '${contoh}',
+
+        ]);
+
         
         if (!file_exists($path)) {
-            abort(404, 'Template not found');
+            return response()->json(['error' => 'File not found'], 404);
         }
+        $outputPath = storage_path("app/public/mou_$now.docx");
+
+        $doc->saveAs($outputPath);
         
-        return response()->download($path, 'ksodoc.docx');
+        return response()->download($outputPath)->deleteFileAfterSend(true);
     }
+     
 
     public function generateInvoice(){}
 
@@ -98,7 +129,15 @@ class ApprovalController extends Controller {
             $documents[$key]->url = "https://dev.hexamatika.com/geu/hcga/public/filevendor/".$value->file_path;
         };
 
-        return view('approval.progress', compact('partner', 'pic', 'documents'));
+        $status = DB::table('approval_request as ar')
+        ->select('ar.*', 'al.*') // Select columns you need
+        ->join('approval_log as al', 'ar.ID', '=', 'al.Request_Id') // Adjust foreign key
+        ->where('ar.Requester_Id', '=', $params['id'])
+        ->where('al.Level_Number', '=', '1')
+        ->orderBy('al.Action_Date', 'Desc') // Get first occurrence
+        ->first();
+
+        return view('approval.progress', compact('partner', 'pic', 'documents', 'status'));
 
     }
 } 
