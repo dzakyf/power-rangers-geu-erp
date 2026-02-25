@@ -42,6 +42,7 @@ function updatekan($rowId,$param, $salesID) {
     if ($cek && $a == 1) {
 		$osd = OpportunitySalesDtl::create([
 			'Sales_ID' => $salesID,
+			'Sales' => $param['customPayload_sales'],
 			'Task_ID' => $b,
 			'Created_By' => $Saya,
 			'Created_Date' => now(),
@@ -49,6 +50,7 @@ function updatekan($rowId,$param, $salesID) {
 
 		OpportunitySalesDtlLog::create([
 			'Sales_ID' => $salesID,
+			'Sales' => $param['customPayload_sales'],
 			'Task_ID' => $b,
 			'Created_By' => $Saya,
 			'Created_Date' => now(),

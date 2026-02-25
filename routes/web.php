@@ -4304,6 +4304,10 @@ Route::get('partner-reassign-sales-detail-leads', function () {
     return view('partner.reassign-sales-detail-leads');
 });
 
+Route::post('partner-reassign-sales-detail-update', function () {
+    return view('partner.reassign-sales-detail-update');
+});
+
 Route::get('partner-canceled-leads', function () {
     return view('partner.canceled-leads');
 });
@@ -4392,8 +4396,8 @@ $partnerApprovalPrefix = "partner-approval";
 
 Route::prefix('approval')->group(function(){
     Route::get('progress/generate-mou', [ApprovalController::class, 'generateMOU']);
-    Route::get('progress/{id}', [ApprovalController::class, 'showProgress']);
     Route::post("progress/submit", [ApprovalController::class, 'submit']);
+    Route::get('progress/{id}', [ApprovalController::class, 'showProgress']);
 });
 
 Route::get("$partnerApprovalPrefix-index", [ApprovalController::class, 'index']);

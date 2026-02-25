@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpWord\TemplateProcessor;
 
-class ApprovalController extends Controller {
+class ApprovalController extends Controller
+{
     protected $generatorService;
     protected $userService;
 
@@ -21,9 +22,10 @@ class ApprovalController extends Controller {
         $this->userService = $s;
     }
 
-    public function index(){
+    public function index()
+    {
         return view('approval.index');
-    }   
+    }
 
     public function detail(Request $request)
     {
@@ -38,13 +40,14 @@ class ApprovalController extends Controller {
 
 
         foreach ($documents as $key => $value) {
-            $documents[$key]->url = "https://dev.hexamatika.com/geu/hcga/public/filevendor/".$value->file_path;
+            $documents[$key]->url = "https://dev.hexamatika.com/geu/hcga/public/filevendor/" . $value->file_path;
         };
 
         return view('approval.detail', compact('partner', 'pic', 'documents'));
     }
 
-    public function generateMOU(Request $req){
+    public function generateMOU(Request $req)
+    {
 
         $id = $req->query('id');
         $path = public_path('mou.docx');
@@ -73,21 +76,22 @@ class ApprovalController extends Controller {
 
         ]);
 
-        
+
         if (!file_exists($path)) {
             return response()->json(['error' => 'File not found'], 404);
         }
         $outputPath = storage_path("app/public/mou_$now.docx");
 
         $doc->saveAs($outputPath);
-        
+
         return response()->download($outputPath)->deleteFileAfterSend(true);
     }
-     
 
-    public function generateInvoice(){}
 
-    public function submit(Request $r){
+    public function generateInvoice() {}
+
+    public function submit(Request $r)
+    {
         $body = $r->all();
 
         $id = DB::table('approval_request')->insertGetId([
@@ -111,7 +115,8 @@ class ApprovalController extends Controller {
         return "submitted";
     }
 
-    public function showProgress(Request $request){
+    public function showProgress(Request $request)
+    {
         $params = $request->route()->parameters();
 
 
@@ -126,18 +131,17 @@ class ApprovalController extends Controller {
 
 
         foreach ($documents as $key => $value) {
-            $documents[$key]->url = "https://dev.hexamatika.com/geu/hcga/public/filevendor/".$value->file_path;
+            $documents[$key]->url = "https://dev.hexamatika.com/geu/hcga/public/filevendor/" . $value->file_path;
         };
 
         $status = DB::table('approval_request as ar')
-        ->select('ar.*', 'al.*') // Select columns you need
-        ->join('approval_log as al', 'ar.ID', '=', 'al.Request_Id') // Adjust foreign key
-        ->where('ar.Requester_Id', '=', $params['id'])
-        ->where('al.Level_Number', '=', '1')
-        ->orderBy('al.Action_Date', 'Desc') // Get first occurrence
-        ->first();
+            ->select('ar.*', 'al.*')
+            ->join('approval_log as al', 'ar.ID', '=', 'al.Request_Id')
+            ->where('ar.Requester_Id', '=', $params['id'])
+            ->where('al.Level_Number', '=', '1')
+            ->orderBy('al.Action_Date', 'Desc')
+            ->first();
 
         return view('approval.progress', compact('partner', 'pic', 'documents', 'status'));
-
     }
-} 
+}

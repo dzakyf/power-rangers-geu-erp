@@ -43,6 +43,7 @@ foreach ($Query as $Fetch) {
 
 	echo "<row id=\"$Fetch->ID\">";
 	echo "<cell>$nomor</cell>";
+	echo "<cell>0</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Task_ID) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Created_By) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Full_Name) . "</cell>";

@@ -32,122 +32,71 @@ $Saya =  Auth::user()->username;
 
 <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
 	<div class="bs-stepper" id="customStepper">
-
 		<div class="bs-stepper-header" role="tablist">
-				<div class="step" data-target="#step1">
+			<div class="step" data-target="#step1">
 				<button type="button" class="step-trigger" role="tab">
 					<span class="bs-stepper-circle">1</span>
 					<span class="bs-stepper-label">Cek Dokumen</span>
 				</button>
-				</div>
-				<div class="line"></div>
-				<div class="step" data-target="#step2">
-					<button type="button" class="step-trigger" role="tab">
-						<span class="bs-stepper-circle">2</span>
-						<span class="bs-stepper-label">Penandatanganan MOU</span>
-					</button>
-				</div>
+			</div>
+			<div class="line"></div>
+			<div class="step" data-target="#step2">
+				<button type="button" class="step-trigger" role="tab">
+					<span class="bs-stepper-circle">2</span>
+					<span class="bs-stepper-label">Penandatanganan MOU</span>
+				</button>
+			</div>
 
-				<div class="line"></div>
+			<div class="line"></div>
 
-				<div class="step" data-target="#step3">
-					<button type="button" class="step-trigger" role="tab">
-						<span class="bs-stepper-circle">3</span>
-						<span class="bs-stepper-label">Penerbitan Invoice</span>
-					</button>
-				</div>
+			<div class="step" data-target="#step3">
+				<button type="button" class="step-trigger" role="tab">
+					<span class="bs-stepper-circle">3</span>
+					<span class="bs-stepper-label">Penerbitan Invoice</span>
+				</button>
+			</div>
 		</div>
 
 		<div class="bs-stepper-content">
 			<div id="step1" class="content" role="tabpanel">
-				<h5>Step 1</h5>
-				<p>Cek data diri & dokumen...</p>
 
 				@include('approval.stepper.detail')
 
-				<button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-					Action
-					</button>
-					<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-					<a class="dropdown-item" href="#" onclick="submitApproval('APPROVED')">Approve</a>
-					<a class="dropdown-item" href="#" onclick="submitApproval('REJECTED')">Reject</a>
-					</div>
-
-				@if(optional($status)->Action == "APPROVED")
-					<button class="btn btn-primary btn-next">Next</button>
-				@endif
 			</div>
-			
+
 			<div id="step2" class="content" role="tabpanel">
-				<h5>Step 2</h5>
-				<p>Penandatanganan MOU</p>
-
-				<div class="mt-2 mb-2 row">
-					<div class="col">
-						<a href="#" class="downloadMOU">Download Template MOU</a>
-					</div>
-				</div>
-				<div class="mt-2 mb-2 row">
-					<div class="col">
-						<div class="form-check">
-							<input class="form-check-input" type="checkbox" id="mouAgreement" required>
-							<label class="form-check-label" for="mouAgreement">
-								Saya telah membaca dengan seksama MOU & Menyetujui kesepakatan yang tertuang didalamnya
-							</label>
-						</div>
-						<!-- <a href="#" class="uploadMOU">Unggah MOU</a>
-						<input type="file" class="inputMOU" accept=".pdf" style="display:none;"> -->
-					</div>
-				</div>
-				
-				<button class="btn btn-secondary btn-prev">Previous</button>
-				<button class="btn btn-primary btn-next">Next</button>
+				@include('approval.stepper.mou')
 			</div>
-			
+
 			<div id="step3" class="content" role="tabpanel">
-				<h5>Step 3</h5>
-				<p>Penerbitan invoice down payment</p>
-				<div class="row m-1">
-					<a href="#" onclick="generateInvoice()">Terbitkan invoice</a>
-				</div>
-				<div class="row m-1">
-					<button class="btn btn-secondary btn-prev">Previous</button>
-				</div>
+				@include('approval.stepper.invoice-dp')
 			</div>
 		</div>
 	</div>
+</div>
 
-	<!-- Custom Navigation Buttons -->
-	<!-- <div class="mt-3">
-	<button class="btn btn-info" id="goToStep2">Go to Step 2</button>
-	<button class="btn btn-warning" id="resetStepper">Reset</button>
-	<button class="btn btn-danger" id="destroyStepper">Destroy</button>
-	<button class="btn btn-success" id="getCurrentStep">Get Current Step</button> -->
-	</div>
-
-	<!-- Current Step Display -->
-	<!-- <div class="mt-2" id="stepDisplay"></div> -->
+<!-- Current Step Display -->
+<!-- <div class="mt-2" id="stepDisplay"></div> -->
 </div>
 
 <div id="divlistOpportunity"></div>
 <div></div>
 <div id="divlistProjectList"></div>
 <script src="https://cdn.jsdelivr.net/npm/bs-stepper/dist/js/bs-stepper.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bs-stepper/dist/css/bs-stepper.min.css"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bs-stepper/dist/css/bs-stepper.min.css">
+</script>
 
 <script>
 	$(document).ready(function() {
 
-        $('#divlistOpportunity').show()
+		$('#divlistOpportunity').show()
 
-		// Initialize stepper with custom options
 		var stepperElement = $('.bs-stepper')[0];
 		window.stepper = new Stepper(stepperElement, {
-			linear: true,      // Force sequential steps
-			animation: true     // Enable fade animation
+			linear: true,
+			animation: true
 		});
-		
-		// Update current step display
+
 		function updateStepDisplay() {
 			var currentIndex = window.stepper._currentIndex + 1; // 1-based for display
 			$('#stepDisplay').html(`
@@ -156,35 +105,35 @@ $Saya =  Auth::user()->username;
 				</div>
 			`);
 		}
-		
+
 		// Initial display
 		updateStepDisplay();
-		
+
 		// Event listener for step changes
 		stepperElement.addEventListener('shown.bs-stepper', function(event) {
 			console.log('Moved to step:', event.detail.indexStep);
 			updateStepDisplay();
 		});
-		
-		
-		
+
+
+
 		$('.btn-next').on('click', function() {
 			window.stepper.next();
 		});
-		
+
 		$('.btn-prev').on('click', function() {
 			window.stepper.previous();
 		});
-		
+
 		$('#goToStep2').on('click', function() {
 			window.stepper.to(2); // Goes to step 2 (1-based index)
 		});
-		
+
 		$('#resetStepper').on('click', function() {
 			window.stepper.reset();
 			showNotification('Stepper reset to step 1');
 		});
-		
+
 		$('#destroyStepper').on('click', function() {
 			window.stepper.destroy();
 			$('#stepDisplay').html(`
@@ -194,12 +143,12 @@ $Saya =  Auth::user()->username;
 			`);
 			$(this).prop('disabled', true);
 		});
-		
+
 		$('#getCurrentStep').on('click', function() {
 			var currentIndex = window.stepper._currentIndex + 1;
 			alert('Current step: ' + currentIndex);
 		});
-		
+
 		// Helper function for notifications
 		function showNotification(message) {
 			var notification = $(`
@@ -210,7 +159,7 @@ $Saya =  Auth::user()->username;
 					</button>
 				</div>
 			`);
-			
+
 			$('#stepDisplay').after(notification);
 			setTimeout(function() {
 				notification.alert('close');
@@ -218,14 +167,14 @@ $Saya =  Auth::user()->username;
 		}
 	});
 
-	function submitApproval(type){
+	function submitApproval(type) {
 		let fd = new FormData()
-        let id = window.location.pathname.split('/')
-        // return
+		let id = window.location.pathname.split('/')
+		// return
 		fd.append('id', id[6]);
 		fd.append('type', type)
 		fd.append('_token', '{{ csrf_token() }}')
-		
+
 		$.ajax({
 			url: "submit",
 			type: "POST",
@@ -236,55 +185,56 @@ $Saya =  Auth::user()->username;
 				alert("Berhasil melakukan aksi");
 				window.location.reload()
 			},
-			error: function(err){
+			error: function(err) {
 				alert("Telah terjadi kesalahan.");
 			}
 		})
 	}
 
-	$('.downloadMOU').on('click', function(){
+	$('.downloadMOU').on('click', function() {
 		generateMOU()
 	})
 
-	$('.uploadMOU').on('click', function(){
+	$('.uploadMOU').on('click', function() {
 		console.log("uploading mou")
 	})
 
-	function generateInvoice(){
-		
+	function generateInvoice() {
+
 		$.ajax({
 			url: `/geu/hcga/public/partner-prints-invoice`,
 			type: "GET",
-			success: function(response, status){
+			success: function(response, status) {
 				console.log(response)
 				window.open('https://dev.hexamatika.com/geu/hcga/public/partner-prints-invoice', '_blank')
-			},error: function(err){
+			},
+			error: function(err) {
 				console.log(err)
 			}
 
 		})
 	}
 
-	function generateMOU(){
+	function generateMOU() {
 		const pathSegments = window.location.pathname.split('/');
 		const id = pathSegments[pathSegments.length - 1];
-		
+
 		$.ajax({
 			url: `generate-mou?id=${id}`,
 			type: "GET",
-			xhrFields:{
+			xhrFields: {
 				responseType: 'blob'
 			},
 			success: function(response, status, xhr) {
 				var blob = new Blob([response]);
 				var link = document.createElement('a');
 				link.href = window.URL.createObjectURL(blob);
-				link.download = 'mou.docx'; 
+				link.download = 'mou.docx';
 				link.click();
-				
+
 				window.URL.revokeObjectURL(link.href);
 			},
-			error: function(err){
+			error: function(err) {
 				alert("Telah terjadi kesalahan.");
 			}
 		})
