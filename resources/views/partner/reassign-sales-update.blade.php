@@ -52,6 +52,22 @@ function updatekan($rowId,$param, $salesID) {
 		OpportunitySales::where("ID", $rowId)->update([
 			'Sales' => $salesID,
 		]);
+
+		$cekDetail = OpportunitySalesDtl::where("Sales_ID", $cek->Sales_ID)->get();
+		foreach ($cekDetail as $key => $value) {
+			$old = json_decode(json_encode($value), true);
+			$old['Action_By'] = $Saya;
+			$old['Action_Status'] = "REASSIGN_SALES_FROM_" . $cek->Sales . "_TO_" . $salesID;
+			$old['Action_Date'] = now();
+			$old['Last_ID'] = $value->ID;
+			unset($old['ID']);
+
+			OpportunitySalesDtlLog::create($old);
+
+			OpportunitySalesDtl::where("ID", $value->ID)->update([
+				'Sales' => $salesID,
+			]);
+		}
     }
 		
 	

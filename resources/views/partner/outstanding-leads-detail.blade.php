@@ -7,8 +7,12 @@ use Illuminate\Database\Eloquent\Builder;
 
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
-// $LSP = "GEU-HO";
-// $Saya = "admin";
+
+$masterQualification = DB::table('master_leads_qualification')->get();
+$masterClassification = DB::table('master_leads_classification')->get();
+$masterResponse = DB::table('master_leads_response')->get();
+$masterReason = DB::table('master_leads_reason')->get();
+$masterStatus = DB::table('master_leads_status')->get();
 
 $Fetch = DB::table("opportunity")->where("ID", request()->get('ID'))->first();
 
@@ -85,50 +89,45 @@ if ($Fetch->Capital_Estimation == 1) {
 				<label for="Response">Response</label>
 				<select class="form-control" name="Response" id="Response">
 					<option value="" selected disabled>-- Pilih Response --</option>
-					<option value="Response" {{ $Fetch->Response == 'Response' ? 'selected' : '' }}>Response</option>
-					<option value="No Response" {{ $Fetch->Response == 'No Response' ? 'selected' : '' }}>No Response</option>
+					@foreach($masterResponse as $mr)
+						<option value="{{ $mr->status }}">{{ $mr->status }}</option>
+					@endforeach
 				</select>
 			</div>
 			<div class="col-md-6 mt-3">
 				<label for="Qualification">Kualifikasi</label>
 				<select class="form-control" name="Qualification" id="Qualification">
 					<option value="" selected disabled>-- Pilih Kualifikasi --</option>
-					<option value="Qualified" {{ $Fetch->Qualification == 'Qualified' ? 'selected' : '' }}>Qualified</option>
-					<option value="Unqualified" {{ $Fetch->Qualification == 'Unqualified' ? 'selected' : '' }}>Unqualified</option>
-					<option value="Unidentified" {{ $Fetch->Qualification == 'Unidentified' ? 'selected' : '' }}>Unidentified</option>
+					@foreach ($masterQualification as $mq)
+					<option value="{{ $mq->status }}">{{ $mq->status }}</option>
+					@endforeach
 				</select>
 			</div>
 			<div class="col-md-6 mt-3">
 				<label for="Classification">Klasifikasi</label>
 				<select class="form-control" name="Classification" id="Classification">
 					<option value="" selected disabled>-- Pilih Klasifikasi --</option>
-					<option value="Fresh" {{ $Fetch->Classification == 'Fresh' ? 'selected' : '' }}>Fresh</option>
-					<option value="FU 1" {{ $Fetch->Classification == 'FU 1' ? 'selected' : '' }}>FU 1</option>
-					<option value="FU 2" {{ $Fetch->Classification == 'FU 2' ? 'selected' : '' }}>FU 2</option>
-					<option value="Meeting 1" {{ $Fetch->Classification == 'Meeting 1' ? 'selected' : '' }}>Meeting 1</option>
-					<option value="Meeting 2" {{ $Fetch->Classification == 'Meeting 2' ? 'selected' : '' }}>Meeting 2</option>
+					@foreach ($masterClassification as $mc)
+					<option value="{{ $mc->status }}">{{ $mc->status }}</option>
+					@endforeach
 				</select>
 			</div>
 			<div class="col-md-6 mt-3">
 				<label for="Status">Status</label>
 				<select class="form-control" name="Status" id="Status" onchange="changeStatus()">
 					<option value="" selected disabled>-- Pilih Status --</option>
-					<option value="Cold" {{ $Fetch->Status == 'Cold' ? 'selected' : '' }}>Cold</option>
-					<option value="Warm" {{ $Fetch->Status == 'Warm' ? 'selected' : '' }}>Warm</option>
-					<option value="Deal" {{ $Fetch->Status == 'Deal' ? 'selected' : '' }}>Deal</option>
-					<option value="Cancel" {{ $Fetch->Status == 'Cancel' ? 'selected' : '' }}>Cancel</option>
+					@foreach ($masterStatus as $ms)
+					<option value="{{ $ms->status }}">{{ $ms->status }}</option>
+					@endforeach
 				</select>
 			</div>
 			<div class="col-md-6 mt-3" style="display:none" id="divReason">
 				<label for="Reason">Alasan Cancel</label>
 				<select class="form-control" name="Reason" id="Reason">
-					<option value="" selected disabled>-- Pilih Alasan Cancel --</option>
-					<option value="Tidak Tertarik" {{ $Fetch->Reason == 'Tidak Tertarik' ? 'selected' : '' }}>Tidak Tertarik</option>
-					<option value="Tidak Ada Modal" {{ $Fetch->Reason == 'Tidak Ada Modal' ? 'selected' : '' }}>Tidak Ada Modal</option>
-					<option value="Modal Tidak Sesuai" {{ $Fetch->Reason == 'Modal Tidak Sesuai' ? 'selected' : '' }}>Modal Tidak Sesuai</option>
-					<option value="Prospek Di Masa Depan" {{ $Fetch->Reason == 'Prospek Di Masa Depan' ? 'selected' : '' }}>Prospek Di Masa Depan</option>
-					<option value="Lokasi Tidak Sesuai" {{ $Fetch->Reason == 'Lokasi Tidak Sesuai' ? 'selected' : '' }}>Lokasi Tidak Sesuai</option>
-					<option value="Skema Bisnis  Tidak Sesuai" {{ $Fetch->Reason == 'Skema Bisnis  Tidak Sesuai' ? 'selected' : '' }}>Skema Bisnis  Tidak Sesuai</option>
+					<option value="" selected disabled>-- Pilih Cancel Reason --</option>
+					@foreach ($masterReason as $mr)
+					<option value="{{ $mr->status }}">{{$mr->status}}</option>
+					@endforeach
 				</select>
 			</div>
 			<div class="col-12 mt-3">

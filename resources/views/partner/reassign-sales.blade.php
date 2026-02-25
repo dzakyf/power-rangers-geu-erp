@@ -43,7 +43,6 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 				@endforeach
 			</select>
 			<input type="button" id="assign" name="assign" value="Assign" class="btn btn-success mt-2 mr-2" onclick="assign()" />
-
 		</div>
 	</div>
 	<div class="mt-3" id="divlistAssign"></div>
