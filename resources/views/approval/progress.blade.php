@@ -29,7 +29,6 @@ $Saya =  Auth::user()->username;
 	</ol>
 </div>
 
-
 <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
 	<div class="bs-stepper" id="customStepper">
 		<div class="bs-stepper-header" role="tablist">

@@ -9,7 +9,7 @@
                     <div class="row align-items-center">
                         <div class="col-md-6">
                             <div class="form-left-content">
-                                    <img src="{{ asset('large-logo.png') }}" alt="Logo">
+                                    <img src="{{ asset('large-logo.png') }}" width="300px" alt="Logo">
                                
                             </div>
                         </div>
