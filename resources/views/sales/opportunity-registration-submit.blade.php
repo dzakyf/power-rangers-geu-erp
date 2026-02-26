@@ -1,10 +1,11 @@
-<?php 
+<?php
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+
 try {
-	$username = auth()->check() ? auth()->user()->username : str_replace(' ','_', strtolower($data['full_name']));
+    $username = auth()->check() ? auth()->user()->username : str_replace(' ', '_', strtolower($data['full_name']));
     if (!auth()->check()) {
         $cekUser = DB::table('users')->get();
         foreach ($cekUser as $key => $value) {
@@ -42,7 +43,7 @@ try {
     $data['pi_city'] = $addr_city;
     $data['pi_province'] = $addr_province;
     $data['pi_postal'] = $addr_postal;
-    
+
 
     $data['gender'] = request()->input('Gender');
     $data['highest_education'] = request()->input('Last_Education');
@@ -64,6 +65,11 @@ try {
     $data['gross_annual'] = request()->input('Gross_Annual');
     $data['sources_of_funds'] = json_encode(array_filter([request()->input('Source_Personal_Savings'), request()->input('Source_Inheritance'), request()->input('Source_Business_Income'), request()->input('Source_Loan'), request()->input('Source_Pension')]));
 
+    // Recommendation to be approved
+    if (in_array($data['sources_of_funds'], ["savings", "business"])) {
+        $data['is_recommended_to_be_approved'] = 'Yes';
+    }
+
     // Partnership
     $data['warehouse_count'] = request()->input('Warehouse_Count');
     $data['motivation'] = request()->input('Motivation');
@@ -74,10 +80,10 @@ try {
     $data['location_status'] = request()->input('Location_Status');
 
     // Questions
-    for ($i=1;$i<=6;$i++) {
-        $data['q'.$i] = request()->input('Q'.$i);
+    for ($i = 1; $i <= 6; $i++) {
+        $data['q' . $i] = request()->input('Q' . $i);
     }
-    
+
     $data['package_option'] = request()->input('Package');
     $data['supporting_documents'] = json_encode(array_filter([request()->input('Doc_KTP'), request()->input('Doc_NPWP'), request()->input('Doc_Others')]));
 
@@ -90,63 +96,63 @@ try {
     $data['company_website'] = request()->input('Company_Website');
     $data['company_tax_id'] = request()->input('Company_Tax_ID');
     $data['company_nib'] = request()->input('Company_NIB');
-    
+
     // Company PIC
     $data['pic_name'] = request()->input('PIC_Name');
     $data['pic_position'] = request()->input('PIC_Position');
     $data['pic_phone'] = request()->input('PIC_Phone', '');
     $data['pic_email'] = request()->input('PIC_Email');
-    
+
     // Company financials
     $data['company_scale'] = request()->input('Company_Scale');
     $data['estimated_revenue'] = request()->input('Estimated_Revenue');
     $data['company_funds'] = json_encode(array_filter([request()->input('Company_Fund_Business'), request()->input('Company_Fund_Investor'), request()->input('Company_Fund_Loan'), request()->input('Company_Fund_CSR'), request()->input('Company_Fund_Private')]));
-    
+
     $data['company_warehouse_count'] = request()->input('Company_Warehouse_Count');
     $data['company_experience'] = request()->input('Company_Experience');
     $data['company_has_location'] = request()->input('Company_Has_Location');
     $data['location_types'] = json_encode(array_filter([request()->input('Loc_Warehouse'), request()->input('Loc_Store'), request()->input('Loc_Own'), request()->input('Loc_Rent')]));
 
     // Questioner Part 6 
-    for($i = 1; $i < 5; $i++){
-        $data['c_p6q'.$i] = $req->input('P6Q'.$i);
+    for ($i = 1; $i < 5; $i++) {
+        $data['c_p6q' . $i] = $req->input('P6Q' . $i);
 
-        if($i == 1 || $i == 3){
-            $data['c_p6q'.$i.'a1'] = $req->input('P6Q'.$i.'A1'); 
+        if ($i == 1 || $i == 3) {
+            $data['c_p6q' . $i . 'a1'] = $req->input('P6Q' . $i . 'A1');
         }
     }
 
-    for ($i=1;$i<=6;$i++) {
-        $data['c_q'.$i] = request()->input('C_Q'.$i);
+    for ($i = 1; $i <= 6; $i++) {
+        $data['c_q' . $i] = request()->input('C_Q' . $i);
     }
-    
+
     $data['company_package'] = request()->input('Company_Package');
     $data['company_documents'] = json_encode(array_filter([request()->input('C_Doc_Akta'), request()->input('C_Doc_NIB'), request()->input('C_Doc_NPWP'), request()->input('C_Doc_Others')]));
-    
+
     $id = DB::table('opportunity_partner')->insertGetId($data);
 
     foreach (json_decode($data['supporting_documents']) as $key => $value) {
-        $ext = explode('.', request()->input($value.'_File'));
+        $ext = explode('.', request()->input($value . '_File'));
 
         DB::table('opportunity_partner_file')->insert([
             'lead_id' => $data['lead_id'],
             'opportunity_id' => $id,
             'type' => $value,
             'file_type' => $ext[count($ext) - 1],
-            'file_path' => request()->input('Doc_'.$value.'_File') ?? "",
+            'file_path' => request()->input('Doc_' . $value . '_File') ?? "",
             'created_at' => now(),
             'created_by' => $username
         ]);
     }
 
     foreach (json_decode($data['company_documents']) as $key => $value) {
-        $ext = explode('.', request()->input($value.'_File'));
+        $ext = explode('.', request()->input($value . '_File'));
         DB::table('opportunity_partner_file')->insert([
             'lead_id' => $data['lead_id'],
             'opportunity_id' => $id,
             'type' => $value,
             'file_type' => $ext[count($ext) - 1],
-            'file_path' => request()->input('C_Doc_'.$value.'_File') ?? "",
+            'file_path' => request()->input('C_Doc_' . $value . '_File') ?? "",
             'created_at' => now(),
             'created_by' => $username
         ]);
@@ -162,7 +168,7 @@ try {
         DB::table('users')->insert([
             'username' => $username,
             'password' => bcrypt($pass),
-            'Emp_ID' => $data['lead_id'] ?? 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3),
+            'Emp_ID' => $data['lead_id'] ?? 'BP/' . $LSP . '/' . date('Ymdhis') . '/' . substr(md5($Saya), 0, 3),
             'Priv_ID' => "PARTNER",
             'Location' => 'GEU-HO',
             'Name' => $data['full_name'],
@@ -177,7 +183,6 @@ try {
 
     echo "success";
 } catch (\Exception $e) {
-    echo 'failed '.$e->getMessage();
+    echo 'failed ' . $e->getMessage();
     Log::error($e);
 }
-?>
