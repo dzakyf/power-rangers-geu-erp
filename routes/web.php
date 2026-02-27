@@ -9,9 +9,10 @@ use App\Http\Controllers\Partner\ListsController as PartnerListsController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\HelperController;
+use App\Http\Controllers\OperationalController;
 use App\Http\Controllers\Partner\TicketController as PartnerTicketController;
 use App\Http\Controllers\UploaderController;
-
+use Illuminate\Support\Facades\Broadcast;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,9 +36,9 @@ Route::get('partner-registration', function () {
 Route::get('partner-prints-invoice', [App\Http\Controllers\Finance\PartnerController::class, 'printInvoice']);
 Route::post('province', [App\Http\Controllers\HelperController::class, 'provinceSearch']);
 Route::post('city/{province}', [App\Http\Controllers\HelperController::class, 'citySearch']);
-Route::post('district/{province}/{city}', [HelperController::class, 'districtSearch']);
-Route::post('subdistrict/{province}/{city}/{district}', [HelperController::class, 'subdistrictSearch']);
-Route::post('postal-code/{province}/{city}/{district}/{subdistrict}', [HelperController::class, 'postalCodeSearch']);
+Route::post('district', [HelperController::class, 'districtSearch']);
+Route::get('subdistrict', [HelperController::class, 'subdistrictSearch']);
+Route::get('postal-code', [HelperController::class, 'postalCodeSearch']);
 
 Auth::routes();
 
@@ -4409,9 +4410,16 @@ Route::group(['middleware' => 'auth'], function () {
     /** ticket route */
     $ticketPref = "partner-ticket";
     Route::get("$ticketPref-new", [PartnerTicketController::class, 'ticketNew']);
+    Route::post("$ticketPref-new-submit", [PartnerTicketController::class, 'ticketNewSubmit']);
     Route::get("$ticketPref-open", [PartnerTicketController::class, 'ticketOpen']);
     Route::get("xml-$ticketPref-open", [PartnerTicketController::class, 'ticketOpenXml']);
     Route::get("$ticketPref-open-detail", [PartnerTicketController::class, 'ticketOpenDetail']);
+    Route::get("xml-$ticketPref-open-detail", [PartnerTicketController::class, 'ticketOpenDetailXml']);
+    Route::post("$ticketPref-open-detail-submit", [PartnerTicketController::class, 'ticketOpenDetailSubmit']);
+    Route::get("$ticketPref-history", [PartnerTicketController::class, 'ticketHistory']);
+    Route::get("xml-$ticketPref-history", [PartnerTicketController::class, 'ticketHistoryXml']);
+    Route::get("$ticketPref-history-detail", [PartnerTicketController::class, 'ticketHistoryDetail']);
+    Route::get("xml-$ticketPref-history-detail", [PartnerTicketController::class, 'ticketHistoryDetailXml']);
 
     /** broadcast route */
     $broadcastPref = "broadcast";
@@ -4419,5 +4427,15 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$broadcastPref-detail", [BroadcastController::class, 'detail']);
     Route::get("$broadcastPref-create", [BroadcastController::class, 'create']);
     Route::post("$broadcastPref-submit", [BroadcastController::class, 'submit']);
+    Route::get("$broadcastPref-load-data", [BroadcastController::class, 'indexXML']);
+    /** */
+
+    /** panduan operasional route */
+    $panduanOpsPref = "panduan";
+    Route::get("$panduanOpsPref-index", [OperationalController::class, 'index']);
+    Route::get("$panduanOpsPref-create", [OperationalController::class, 'create']);
+    Route::get("$panduanOpsPref-detail", [OperationalController::class, 'detail']);
+    Route::post("$panduanOpsPref-submit", [OperationalController::class, 'submit']);
+    Route::get("$panduanOpsPref-load-data", [OperationalController::class, 'loadXML']);
     /** */
 });

@@ -199,18 +199,16 @@ $Saya =  Auth::user()->username;
 	})
 
 	function generateInvoice() {
-
+		let id = window.location.pathname.split('/')[6]
 		$.ajax({
-			url: `/geu/hcga/public/partner-prints-invoice`,
+			url: `/geu/hcga/public/partner-prints-invoice?id=${id}&type=downpayment`,
 			type: "GET",
 			success: function(response, status) {
-				console.log(response)
-				window.open('https://dev.hexamatika.com/geu/hcga/public/partner-prints-invoice', '_blank')
+				window.open(`https://dev.hexamatika.com/geu/hcga/public/partner-prints-invoice?id=${id}&type=downpayment`, '_blank')
 			},
 			error: function(err) {
 				console.log(err)
 			}
-
 		})
 	}
 

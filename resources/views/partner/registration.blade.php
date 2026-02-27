@@ -22,7 +22,7 @@ $leadID = Auth::user()->Emp_ID ?? "";
 @extends('layout.mainlayout-mitra')
 
 @push('head')
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 @endpush
 @push('footer')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -33,43 +33,46 @@ $leadID = Auth::user()->Emp_ID ?? "";
 @csrf
 <!-- Main Content Header -->
 <div class="main-content-header">
-	<h1>Sales</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/">Opportunity</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">New Data (Leads)</span>
-		</li>
-	</ol>
+    <h1>Sales</h1>
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="/">Opportunity</a>
+        </li>
+        <li class="breadcrumb-item active">
+            <span class="active">New Data (Leads)</span>
+        </li>
+    </ol>
 </div>
 
 @include('partner.registration-form')
 
+@stack('registration-script')
 <script>
-	// toggle sections based on Register As
-	$(function() {
-		$('input[name="Register_As"]').change(function() {
-			var val = $(this).val();
-			if (val === 'company') {
-				$('#IndividualDiv').hide();
+    // toggle sections based on Register As
+    $(function() {
+        $('input[name="Register_As"]').change(function() {
+            var val = $(this).val();
+            if (val === 'company') {
+                $('#IndividualDiv').hide();
                 $('#IndividualDiv input[type="text"], #IndividualDiv textarea').val('');
                 $('#IndividualDiv input[type="checkbox"], #IndividualDiv input[type="radio"]').prop('checked', false).trigger('change');
                 $('#IndividualDiv select').val(null).trigger('change');
-				$('#CompanyDiv').show();
-			} else {
-				$('#CompanyDiv').hide();
+                $('#CompanyDiv').show();
+            } else {
+                $('#CompanyDiv').hide();
                 $('#CompanyDiv input[type="text"], #CompanyDiv textarea').val('');
                 $('#CompanyDiv input[type="checkbox"], #CompanyDiv input[type="radio"]').prop('checked', false).trigger('change');
                 $('#CompanyDiv select').val(null).trigger('change');
-				$('#IndividualDiv').show();
-			}
-		});
+                $('#IndividualDiv').show();
+            }
+        });
 
-		// initialize mask if field exists
-		if ($('#Estimated_Revenue').length) {
-			$('#Estimated_Revenue').mask('#,##0.00', { reverse: true });
-		}
+        // initialize mask if field exists
+        if ($('#Estimated_Revenue').length) {
+            $('#Estimated_Revenue').mask('#,##0.00', {
+                reverse: true
+            });
+        }
 
         var vaultKTP = new dhx.Vault("Doc_KTP_Files", {
             uploader: {
@@ -316,7 +319,7 @@ $leadID = Auth::user()->Emp_ID ?? "";
                 // vaultKTP.clearAll();
             }
         });
-        
+
         $('#Province').select2({
             placeholder: "Pilih Provinsi",
             allowClear: true,
@@ -330,10 +333,10 @@ $leadID = Auth::user()->Emp_ID ?? "";
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
-                processResults: function (data) {
+                processResults: function(data) {
                     // Tranforms the top-level key of the response object from 'items' to 'results'
                     return {
-                        results: $.map(data, function (item) {
+                        results: $.map(data, function(item) {
                             return {
                                 text: item.Province,
                                 id: item.Province
@@ -343,7 +346,7 @@ $leadID = Auth::user()->Emp_ID ?? "";
                 },
                 cache: true,
             }
-        }).on('change', function () {
+        }).on('change', function() {
             $('#City').empty(); // clear previous options
             $('#City').val(null).trigger('change'); // reset selection
             $('#City').select2({
@@ -351,7 +354,7 @@ $leadID = Auth::user()->Emp_ID ?? "";
                 allowClear: true,
                 width: '100%',
                 ajax: {
-                    url: function (params) {
+                    url: function(params) {
                         return 'city/' + btoa($('#Province').val());
                     },
                     dataType: 'json',
@@ -360,10 +363,10 @@ $leadID = Auth::user()->Emp_ID ?? "";
                     headers: {
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
-                    processResults: function (data) {
+                    processResults: function(data) {
                         // Tranforms the top-level key of the response object from 'items' to 'results'
                         return {
-                            results: $.map(data, function (item) {
+                            results: $.map(data, function(item) {
                                 return {
                                     text: item.City,
                                     id: item.City
@@ -434,60 +437,60 @@ $leadID = Auth::user()->Emp_ID ?? "";
         //             cache: true,
         //         }
         //     });
-        });
+    });
 
-	function isValidKey(e) {
-		var charCode = e.keyCode || e.which;
-		if (charCode == 46) return false;
-		return true;
-	}
-        var myCalendar;
-        myCalendar = new dhtmlXCalendarObject("Date");
-        myCalendar.setDateFormat("%Y-%m-%d");
-	$('#SubmitCustDetail').click(function() {
+    function isValidKey(e) {
+        var charCode = e.keyCode || e.which;
+        if (charCode == 46) return false;
+        return true;
+    }
+    var myCalendar;
+    myCalendar = new dhtmlXCalendarObject("Date");
+    myCalendar.setDateFormat("%Y-%m-%d");
+    $('#SubmitCustDetail').click(function() {
 
-		gettingVars = getAllValues();
+        gettingVars = getAllValues();
 
-		$.ajax({
-			headers: {
-				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-			},
-			url: "sales-opportunity-registration-submit?_token={{ csrf_token() }}",
-			type: "POST",
-			data: gettingVars,
-			success: function(data, textStatus, jqXHR) {
-				var dataPos = data.indexOf("success");
-				if (dataPos != '-1') {
-					var cariAWB = data.split(":");
-					alert('Data Kemitraan Berhasil Dikirim!');
+        $.ajax({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            url: "sales-opportunity-registration-submit?_token={{ csrf_token() }}",
+            type: "POST",
+            data: gettingVars,
+            success: function(data, textStatus, jqXHR) {
+                var dataPos = data.indexOf("success");
+                if (dataPos != '-1') {
+                    var cariAWB = data.split(":");
+                    alert('Data Kemitraan Berhasil Dikirim!');
 
-					location.reload();
-				} else {
-					var cariAWB = data.split("||");
-					alert(cariAWB[0]);
+                    location.reload();
+                } else {
+                    var cariAWB = data.split("||");
+                    alert(cariAWB[0]);
                     $('#' + cariAWB[1]).focus();
-				}
-			},
-			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Kesalahan Internal! Silakan coba lagi!");
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                alert("Kesalahan Internal! Silakan coba lagi!");
 
-			}
-		});
-	})
+            }
+        });
+    })
 
-	function getAllValues() {
-		var inputValues = [];
-		$('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
-			var type = $(this).attr("type");
-			if ((type == "checkbox" || type == "radio") && this.checked) {
-				inputValues.push($(this).attr("name") + "=" + $(this).val());
-			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			} else if ($(this).is("textarea")) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			}
-		})
-		return inputValues.join('&');
-	}
+    function getAllValues() {
+        var inputValues = [];
+        $('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
+            var type = $(this).attr("type");
+            if ((type == "checkbox" || type == "radio") && this.checked) {
+                inputValues.push($(this).attr("name") + "=" + $(this).val());
+            } else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
+                inputValues.push($(this).attr("id") + "=" + $(this).val());
+            } else if ($(this).is("textarea")) {
+                inputValues.push($(this).attr("id") + "=" + $(this).val());
+            }
+        })
+        return inputValues.join('&');
+    }
 </script>
 @endsection

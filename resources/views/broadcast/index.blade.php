@@ -28,17 +28,13 @@ $Saya =  Auth::user()->username;
 <div class="row">
     <div id="BroadcastList" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
     <div>
-        <!-- <input type="button" id="ekselBroadcastListDet" name="ekselBroadcastListDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="BroadcastList.toExcel('./export/generate.php');" /> -->
-        <!-- <input type="button" id="detailBP" name="detailBP" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailBP()" /> -->
         <input type="button" id="createBroadcast" name="createBroadcast" value="Create Broadcast" class="btn btn-info mt-2 mr-2" onclick="createBroadcast()" />
         <div class="btn-group" role="group">
         </div>
     </div>
 </div>
 
-
 <div id="divlistOpportunity"></div>
-<div></div>
 <div id="divlistProjectList"></div>
 <script src="https://cdn.jsdelivr.net/npm/bs-stepper/dist/js/bs-stepper.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bs-stepper/dist/css/bs-stepper.min.css">
@@ -61,23 +57,18 @@ $Saya =  Auth::user()->username;
     BroadcastList.init();
     refreshdata();
 
-    function createBroadcast() {
-        window.location.href = `approval/progress/${BroadcastList.getSelectedId()}`;
-    }
-
     function BroadcastListKlik() {
         BroadcastListID = BroadcastList.getSelectedId();
-        console.log(BroadcastListID)
         $("#divlistOpportunity").show();
         if (BroadcastListID != '') {
             $("#divlistProjectList").hide();
-            LoadM('divlistOpportunity', 'partner-approval-detail?ID=' + BroadcastListID);
+            LoadM('divlistOpportunity', 'broadcast-detail?ID=' + BroadcastListID);
         }
         return true;
     }
 
     function refreshdata() {
-        BroadcastList.clearAndLoad('xml-partner-business-lists');
+        BroadcastList.clearAndLoad('broadcast-load-data');
     }
 
     function delsOpportunity() {

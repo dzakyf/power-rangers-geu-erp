@@ -5,15 +5,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 
-// $LSP = Auth::user()->Location;
-// $Saya =  Auth::user()->username;
+$LSP = Auth::user()->Location;
+$Saya =  Auth::user()->username;
 
-$LSP = "GEU-HO";
-$Saya = "admin";
+// $LSP = "GEU-HO";
+// $Saya = "admin";
 
 // $leadID = "L/BP/".date('Y')."/".sprintf('%02d',date('m'))."/".strtoupper(substr(uniqid(), 0, 4));
 
-$leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
+$leadID = 'TT/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
 
 $masterCategory = DB::table('master_ticket_category')->get();
 ?>
@@ -44,20 +44,21 @@ $masterCategory = DB::table('master_ticket_category')->get();
 					<div class="row">
 						<div class="col-12">
 							<div class="form-group">
-								<label for="Date">Tanggal Pengajuan Ticket</label>
-								<input type="text" name="Date" id="Date" value="{{ date('Y-m-d') }}" readonly class="form-control" />
+								<input type="hidden" name="Ticket_No" id="Ticket_No" value="{{ $leadID }}">
+								<label for="Proposed_Date">Tanggal Pengajuan Ticket</label>
+								<input type="text" name="Proposed_Date" id="Proposed_Date" value="{{ date('Y-m-d') }}" readonly class="form-control" />
 							</div>
 						</div>
 						<div class="col-12">
 							<div class="form-group">
-								<label for="Type">Jenis Permasalahan</label>
-								<input type="text" name="Type" id="Type" value="" class="form-control" required />
+								<label for="Ticket_Type">Jenis Permasalahan</label>
+								<input type="text" name="Ticket_Type" id="Ticket_Type" value="" class="form-control" required />
 							</div>
 						</div>
 						<div class="col-12">
 							<div class="form-group">
-								<label for="Type">Kategori Ticket</label>
-								<select name="Category" id="Category" class="form-control" required>
+								<label for="Ticket_Category">Kategori Ticket</label>
+								<select name="Ticket_Category" id="Ticket_Category" class="form-control" required>
 									<option value="">-- Pilih kategori --</option>
 									@foreach ($masterCategory as $mc)
 									<option value="{{ $mc->status }}">{{$mc->status}}</option>
@@ -67,8 +68,8 @@ $masterCategory = DB::table('master_ticket_category')->get();
 						</div>
 						<div class="col-12">
 							<div class="form-group">
-								<label for="Subject">Judul Ticket</label>
-								<input type="text" name="Subject" id="Subject" value="" class="form-control" />
+								<label for="Ticket_Subject">Judul Ticket</label>
+								<input type="text" name="Ticket_Subject" id="Ticket_Subject" value="" class="form-control" />
 							</div>
 						</div>
 						<div class="col-12">
@@ -85,9 +86,9 @@ $masterCategory = DB::table('master_ticket_category')->get();
 						</div>
 						<div class="col-12">
 							<div class="form-group">
-								<label for="Attachment_Files">Lampiran Pendukung (Jika Ada)</label>
-								<div id="Attachment_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-								<input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Attachment_File" />
+								<label for="File_Documents">Lampiran Pendukung (Jika Ada)</label>
+								<div id="File_Documents" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+								<input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="File_Document" />
 							</div>
 						</div>
 					</div>
@@ -103,7 +104,7 @@ $masterCategory = DB::table('master_ticket_category')->get();
 </div>
 
 <script>
-	var vault = new dhx.Vault("Attachment_Files", {
+	var vault = new dhx.Vault("File_Documents", {
 		uploader: {
 			target: "upload-receiveinvoice.php"
 		},
@@ -112,10 +113,10 @@ $masterCategory = DB::table('master_ticket_category')->get();
 	});
 
 	vault.events.on("uploadComplete", function(obj) {
-		$("#Attachment_File").val(obj[0].name);
+		$("#File_Document").val(obj[0].name);
 	});
 	vault.events.on("uploadBegin", function(obj) {
-		$("#Attachment_File").val("");
+		$("#File_Document").val("");
 
 	});
 	vault.events.on("beforeAdd", function(fileItem) {
@@ -149,18 +150,18 @@ $masterCategory = DB::table('master_ticket_category')->get();
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "sales-opportunity-new-submit?_token={{ csrf_token() }}",
+			url: "partner-ticket-new-submit?_token={{ csrf_token() }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
 					var cariAWB = data.split(":");
-					alert('Data Opportunity Submitted!');
+					alert('Data Ticket Submitted!');
 
-					location.href = "sales-opportunity-new";
+					location.href = "partner-ticket-new";
 				} else {
-					alert('Opportunity Failed to Submit!');
+					alert('Ticket Failed to Submit!');
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {

@@ -27,3 +27,48 @@
 <div id="DivProcess"></div>
 
 </div>
+
+@push('registration-script')
+<script>
+    $(document).ready(function() {
+        loadProvince()
+    })
+
+
+
+    function loadProvince() {
+        $('#Address_Province').select2({
+            placeholder: "Loading province...",
+            allowClear: true,
+            ajax: ajaxConfig('province', 'get'),
+            minimumInputLength: 0
+        })
+    }
+
+    function ajaxConfig(url, method) {
+        return {
+            url: url,
+            type: method,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            dataType: 'json',
+            delay: 250,
+            processResults: function(d) {
+                console.log(d.data)
+                let res = $.map(d.data, function(item) {
+                    return {
+                        text: item.District,
+                        id: item.District
+                    };
+                })
+
+                return {
+                    results: res
+                }
+            },
+            cache: true
+        }
+    }
+</script>
+@endpush
