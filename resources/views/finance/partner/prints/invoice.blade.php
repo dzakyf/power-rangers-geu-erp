@@ -10,7 +10,7 @@ $LSP = Auth::user()->Location ?? "";
 $Saya =  Auth::user()->username ?? "";
 $Position =  Auth::user()->Position ?? "";
 
-
+// dd($data);
 ?>
 <html>
 <link type="text/css" rel="stylesheet" href="normalize.min.css" />
@@ -178,7 +178,7 @@ $moneyFormat = new moneyFormat();
 	}
 
 	.header {
-        padding-bottom: 20px;
+		padding-bottom: 20px;
 		border-bottom: 1px solid #000;
 		height: 80px;
 		width: auto;
@@ -217,31 +217,32 @@ $moneyFormat = new moneyFormat();
 		float: none;
 		border: 1px solid #000;
 	}
-    @font-face {
-        font-family: 'FontAwesome';
-        src: url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.eot?v=4.5.0');
-        src: url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.eot?#iefix&v=4.5.0') format('embedded-opentype'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.woff2?v=4.5.0') format('woff2'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.woff?v=4.5.0') format('woff'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.ttf?v=4.5.0') format('truetype'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.svg?v=4.5.0#fontawesomeregular') format('svg');
-        font-weight: normal;
-        font-style: normal;
-    }
-    
-    .fa {
-        display: inline-block;
-        font: normal normal normal 14px/1 FontAwesome;
-        font-size: inherit;
-        text-rendering: auto;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-    }
 
-    .fa-phone:before {
-        content: "\f095";
-    }
+	@font-face {
+		font-family: 'FontAwesome';
+		src: url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.eot?v=4.5.0');
+		src: url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.eot?#iefix&v=4.5.0') format('embedded-opentype'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.woff2?v=4.5.0') format('woff2'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.woff?v=4.5.0') format('woff'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.ttf?v=4.5.0') format('truetype'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.svg?v=4.5.0#fontawesomeregular') format('svg');
+		font-weight: normal;
+		font-style: normal;
+	}
 
-    
-.fa-envelope:before {
-  content: "\f0e0";
-}
+	.fa {
+		display: inline-block;
+		font: normal normal normal 14px/1 FontAwesome;
+		font-size: inherit;
+		text-rendering: auto;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	.fa-phone:before {
+		content: "\f095";
+	}
+
+
+	.fa-envelope:before {
+		content: "\f0e0";
+	}
 </style>
 
 <body class="A4">
@@ -249,43 +250,43 @@ $moneyFormat = new moneyFormat();
 
 		<div class="header">
 			<div style="float:left;width:20%;text-align:center;font-weight:bold;font-size:14px;font-family:arial">
-                <img src="{{ asset('assets/images/geu-logo-color.webp') }}" alt="">
-            </div>
-            <div style="float:right;width:420px;vertical-align:top;margin:0;height:70px;">
-                <table>
-                    <tr>
-                        <td style="border-right:1px solid #000;text-align:right;padding-right:10px;">
-                            <span style="color: rgb(171,218,116);font-weight:bold;font-size:12pt">PT. GREEN ENERGI UTAMA</span> <br>
-                            A2 Pergudangan Tanrise K-Walk. <br>
-                            65153 Malang, East Java, Indonesia <br>
-                        </td>
-                        <td style="padding-left: 10px;">
-                            <div style="display: flex; flex-direction: row; align-items: flex-start;flex-wrap: wrap;">
-                                <div style="margin-right: 10px;align-self: center;">
-                                    <span class="fa fa-phone" style="color: rgb(171,218,116); font-size: 16px;"></span>
-                                </div>
-                                <div>
-                                    <span>(+62) 341 306 4175</span> <br>
-                                    <span>(+62) 811 371 9299</span> <br>
-                                </div>
-                            </div>
-                            <span class="fa fa-envelope" style="color: rgb(171,218,116); font-size: 16px; margin-right: 5px;"></span>
-                            <span>cs@greenenergiutama.com</span>
-                        </td>
-                    </tr>
-                </table>
+				<img src="{{ asset('assets/images/geu-logo-color.webp') }}" alt="">
+			</div>
+			<div style="float:right;width:420px;vertical-align:top;margin:0;height:70px;">
+				<table>
+					<tr>
+						<td style="border-right:1px solid #000;text-align:right;padding-right:10px;">
+							<span style="color: rgb(171,218,116);font-weight:bold;font-size:12pt">PT. GREEN ENERGI UTAMA</span> <br>
+							A2 Pergudangan Tanrise K-Walk. <br>
+							65153 Malang, East Java, Indonesia <br>
+						</td>
+						<td style="padding-left: 10px;">
+							<div style="display: flex; flex-direction: row; align-items: flex-start;flex-wrap: wrap;">
+								<div style="margin-right: 10px;align-self: center;">
+									<span class="fa fa-phone" style="color: rgb(171,218,116); font-size: 16px;"></span>
+								</div>
+								<div>
+									<span>(+62) 341 306 4175</span> <br>
+									<span>(+62) 811 371 9299</span> <br>
+								</div>
+							</div>
+							<span class="fa fa-envelope" style="color: rgb(171,218,116); font-size: 16px; margin-right: 5px;"></span>
+							<span>cs@greenenergiutama.com</span>
+						</td>
+					</tr>
+				</table>
 
 			</div>
 		</div>
 
-        <div>
-            <table style="width:100%;margin-top:20px;">
-                <tr>
-                    <td style="font-weight:bold;font-size:12pt;vertical-align: top;">
-                        INVOICE KEMITRAAN
-                    </td>
+		<div>
+			<table style="width:100%;margin-top:20px;">
+				<tr>
+					<td style="font-weight:bold;font-size:12pt;vertical-align: top;">
+						INVOICE KEMITRAAN
+					</td>
 					<td>&nbsp;</td>
-                    <td>
+					<td>
 						<table>
 							<tr>
 								<td>Date</td>
@@ -298,80 +299,80 @@ $moneyFormat = new moneyFormat();
 								<td>&nbsp;</td>
 							</tr>
 						</table>
-                    </td>
-                </tr>
-                <tr style="vertical-align: top;font-weight:bold;color:white">
-                    <td style="width:45%;background-color: rgb(171,218,116);">
-                        PARTNERSHIP
-                    </td>
+					</td>
+				</tr>
+				<tr style="vertical-align: top;font-weight:bold;color:white">
+					<td style="width:45%;background-color: rgb(171,218,116);">
+						PARTNERSHIP
+					</td>
 					<td style="width:10%;">&nbsp;</td>
-                    <td style="width:45%;background-color: rgb(171,218,116);">
-                        PAYMENT DETAIL
-                    </td>
-                </tr>
+					<td style="width:45%;background-color: rgb(171,218,116);">
+						PAYMENT DETAIL
+					</td>
+				</tr>
 				<tr>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>
-                        <div>
-                            Package : <br>
-                            Size : <br>
-                            Partnership Value : <br>
-                            Revenue Sharing : <br>
-                        </div>
+						<div>
+							Package : <br>
+							Size : <br>
+							Partnership Value : <br>
+							Revenue Sharing : <br>
+						</div>
 					</td>
 				</tr>
-                <tr>
-                    <table style="width:100%;margin-top:20px;border-collapse: collapse;" border="1">
-                        <thead style="background-color: rgb(171,218,116);font-weight:bold;color:white;">
-                            <tr>
-                                <th>NO</th>
-                                <th>DESCRIPTION</th>
-                                <th>VALUE</th>
-                                <th>PER</th>
-                                <th>AMOUNT (IDR)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style="text-align:center;">1</td>
-                                <td>Pembayaran</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                            <tr>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                            <tr>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                            <tr>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                        </tbody>
-                        <tfoot style="background-color: rgb(171,218,116);font-weight:bold;color:white;">
-                            <tr>
-                                <td colspan="2" style="text-align:right;font-weight:bold;">TOTAL</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </tr>
+				<tr>
+					<table style="width:100%;margin-top:20px;border-collapse: collapse;" border="1">
+						<thead style="background-color: rgb(171,218,116);font-weight:bold;color:white;">
+							<tr>
+								<th>NO</th>
+								<th>DESCRIPTION</th>
+								<th>VALUE</th>
+								<th>PER</th>
+								<th>AMOUNT (IDR)</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td style="text-align:center;">1</td>
+								<td>{{ $data['description'] ?? "" }}</td>
+								<td>{{ $data['value'] ?? 0  }}</td>
+								<td>{{ $data['percentage'] * 100  }} %</td>
+								<td>{{ $data['amount'] ?? 0}}</td>
+							</tr>
+							<tr>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+							</tr>
+							<tr>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+							</tr>
+							<tr>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+							</tr>
+						</tbody>
+						<tfoot style="background-color: rgb(171,218,116);font-weight:bold;color:white;">
+							<tr>
+								<td colspan="2" style="text-align:right;font-weight:bold;">TOTAL</td>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+								<td>&nbsp;</td>
+							</tr>
+						</tfoot>
+					</table>
+				</tr>
 				<tr>
 					<td>
 						<table style="width:75%;margin-top:20px;border-collapse: collapse;">
@@ -424,13 +425,13 @@ $moneyFormat = new moneyFormat();
 								<td style="border: 1px solid black; background-color: rgb(171,218,116); font-weight:bold;color: white;text-align:center;">Department</td>
 							</tr>
 							<tr>
-								<td  style="border-left: 1px solid black; border-right: 1px solid black;border-bottom: 1px solid black;">&nbsp;</td>
+								<td style="border-left: 1px solid black; border-right: 1px solid black;border-bottom: 1px solid black;">&nbsp;</td>
 								<td style="border-left: 1px solid black; border-right: 1px solid black;border-bottom: 1px solid black;">&nbsp;</td>
 							</tr>
 						</table>
 					</td>
 				</tr>
-            </table>
+			</table>
 
 			<div style="display:inline-block;margin-top:20px;text-align:center;margin-left:30px">
 				Prepared By<br> <br> <br> <br>
@@ -442,7 +443,7 @@ $moneyFormat = new moneyFormat();
 				<span style="text-decoration:underline">{user name}</span> <br />
 				Director
 			</div>
-        </div>
+		</div>
 
 		<div>
 

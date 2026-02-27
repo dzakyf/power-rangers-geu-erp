@@ -5,17 +5,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 
-// $LSP = Auth::user()->Location;
-// $Saya =  Auth::user()->username;
-
-$LSP = "GEU-HO";
-$Saya = "admin";
-
-// $leadID = "L/BP/".date('Y')."/".sprintf('%02d',date('m'))."/".strtoupper(substr(uniqid(), 0, 4));
-
-$leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
-
-$masterCategory = DB::table('master_ticket_category')->get();
+$LSP = Auth::user()->Location;
+$Saya =  Auth::user()->username;
 ?>
 
 @extends('layout.mainlayout-mitra')
@@ -42,10 +33,11 @@ $masterCategory = DB::table('master_ticket_category')->get();
 			<div id="TicketOpen" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselTicketOpenDet" name="ekselTicketOpenDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="TicketOpen.toExcel('./export/generate.php');" />
-				<input type="button" id="detailLeads" name="detailLeads" value="Detail Ticket And Response" class="btn btn-success mt-2 mr-2" onclick="detailLeads()" />
+				<input type="button" id="detailLeads" name="detailLeads" value="Detail Ticket And Response" class="btn btn-success mt-2 mr-2" onclick="TicketOpenKlik()" />
 			</div>
 		</div>
 	</div>
+	<div id="divlistOpportunity"></div>
 	<div id="DivProcess"></div>
 
 </div>
@@ -54,10 +46,10 @@ $masterCategory = DB::table('master_ticket_category')->get();
 	function TicketOpenKlik() {
 
 		TicketOpenID = TicketOpen.getSelectedId();
-		$("#divlistOpportunity").show();
-		if (TicketOpenID != '') {
-			$("#divlistProjectList").hide();
-			LoadM('divlistOpportunity', 'partner-ticket-open-detail?ID=' + TicketOpenID);
+		if (TicketOpenID != null) {
+			LoadM('divlistOpportunity', 'partner-ticket-open-detail?Task_ID=' + TicketOpen.cells(TicketOpenID,1).getValue());
+		}else {
+			alert("Pilih baris data");
 		}
 		return true;
 	}

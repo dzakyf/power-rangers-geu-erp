@@ -17,7 +17,7 @@ class HelperController extends Controller
             ->orderBy("Province", "asc")
             ->limit(8);
         if ($search != '') {
-            $province->where("Province", "like", "%".$search."%");
+            $province->where("Province", "like", "%" . $search . "%");
         }
         $province = $province->get();
 
@@ -38,30 +38,87 @@ class HelperController extends Controller
             ->where("Province", $province)
             ->limit(8);
         if ($search != '') {
-            $city->where("City", "like", "%".$search."%");
+            $city->where("City", "like", "%" . $search . "%");
         }
         $city = $city->get();
 
         return response()->json($city);
     }
 
-    public function postalCodeSearch(Request $request){
-        $params = $request->route()->parameters();
+    public function districtSearch(Request $r)
+    {
+        $q = $r->query();
+        $province = $q['province'];
+        $city = $q['city'];
 
-        $subdistrict = $params['subdistrict'];
-        $district = $params['district'];
-        $city = $params['city'];
-        $province = $params['province'];
+        $res = DB::table('master_kodepos as mk')->select('*');
 
-        $postal = DB::table('master_kodepos')
-        ->select('ZipCode')
-        ->where('Sub_District', $subdistrict)
-        ->where('District', $district)
-        ->where('City', $city)
-        ->where('Province', $province)
-        ->limit(8);
-        
-        return response()->json($postal);
+        if ($province) {
+            $res->where('mk.Province', 'LIKE', '%' . $province . '%');
+        }
 
+        if ($city) {
+            $res->where('mk.City', 'LIKE', '%' . $city . '%');
+        }
+
+        $res = $res->limit(8)->get();
+
+        return response()->json(['data' => $res], 200);
+    }
+
+    public function subdistrictSearch(Request $r)
+    {
+        $q = $r->query();
+        $province = $q['province'];
+        $city = $q['city'];
+        $district = $q['district'];
+
+        $res = DB::table('master_kodepos as mk')->select('*');
+
+        if ($province) {
+            $res->where('mk.Province', 'LIKE', '%' . $province . '%');
+        }
+
+        if ($city) {
+            $res->where('mk.City', 'LIKE', '%' . $city . '%');
+        }
+        if ($district) {
+            $res->where('mk.District', 'LIKE', '%' . $district . '%');
+        }
+
+        $res = $res->limit(8)->get();
+
+        return response()->json(['data' => $res], 200);
+    }
+
+    public function postalCodeSearch(Request $r)
+    {
+        $q = $r->query();
+        $province = $q['province'];
+        $city = $q['city'];
+        $district = $q['district'];
+        $subdistrict = $q['subdistrict'];
+
+        $res = DB::table('master_kodepos as mk')->select('*');
+
+        if ($province) {
+            $res->where('mk.Province', 'LIKE', '%' . $province . '%');
+        }
+
+        if ($city) {
+            $res->where('mk.City', 'LIKE', '%' . $city . '%');
+        }
+
+        if ($district) {
+            $res->where('mk.District', 'LIKE', '%' . $district . '%');
+        }
+
+        if ($subdistrict) {
+            $res->where('mk.Sub_District', 'LIKE', '%' . $subdistrict . '%');
+        }
+
+        $res = $res->limit(8)->get();
+
+        return response()->json(['data' => $res], 200);
     }
 }
