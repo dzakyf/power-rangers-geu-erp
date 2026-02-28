@@ -32,7 +32,7 @@ if ($proforma) {
 					<br><br>
 					
 					Terima kasih<br>
-					PT. GREEN ENERGY UTAMA
+					PT. GREEN ENERGI UTAMA
 					
 		</div>";
 	DB::update(DB::raw("UPDATE proforma set Status='POSTED1', Last_Update = NOW() where Proforma_No='$_GET[ID]' AND Status='PROPOSED1'"));

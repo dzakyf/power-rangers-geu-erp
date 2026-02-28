@@ -431,7 +431,7 @@ Catatan : Sesuai dengan Pasal 4 Ayat 1 PMK RI No. 38/PMK.03/2010 tanggal 22 Pebr
     		<Br />For transfer payment, please transfer to
         </div>
    		 <div style="padding-top:7px;text-align:left;" align="left">
-	   	<b> PT GREEN ENERGY UTAMA</b>
+	   	<b> PT GREEN ENERGI UTAMA</b>
         
         </div>
 		<?php 

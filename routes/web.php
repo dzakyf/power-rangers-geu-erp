@@ -10,6 +10,7 @@ use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\HelperController;
 use App\Http\Controllers\OperationalController;
+use App\Http\Controllers\Partner\ChatListController as PartnerChatListController;
 use App\Http\Controllers\Partner\TicketController as PartnerTicketController;
 use App\Http\Controllers\UploaderController;
 use Illuminate\Support\Facades\Broadcast;
@@ -4406,6 +4407,13 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$partnerApprovalPrefix-index", [ApprovalController::class, 'index']);
     Route::get("$partnerApprovalPrefix-detail", [ApprovalController::class, 'detail']);
     /** */
+
+    /** chat route */
+    $chatPref = "partner-chat";
+    Route::get("$chatPref-list", [PartnerChatListController::class, 'chatList']);
+    Route::get("$chatPref-messages-{conversation}", [PartnerChatListController::class,'getMessages']);
+    Route::post("$chatPref-send", [PartnerChatListController::class, 'sendMessage']);
+    Route::post("$chatPref-fetch-new", [PartnerChatListController::class, 'fetchNewMessages']);
 
     /** ticket route */
     $ticketPref = "partner-ticket";

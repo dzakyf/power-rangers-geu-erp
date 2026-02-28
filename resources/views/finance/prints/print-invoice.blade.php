@@ -375,7 +375,7 @@ $moneyFormat = new moneyFormat();
 								<br>
 								<div style="width:auto;height:100px; word-wrap: break-word;border:1px solid #000;padding:10px;font-weight:bold">
 									Note:<br>
-									Harap ditransfer ke BANK MANDIRI CAB. MENARA THAMRIN A.N PT. GREEN ENERGY UTAMA A.C 103-000.714428-6
+									Harap ditransfer ke BANK MANDIRI CAB. MENARA THAMRIN A.N PT. GREEN ENERGI UTAMA A.C 103-000.714428-6
 								</div>
 							</td>
 

@@ -83,7 +83,7 @@ $subjek = "IMPORTANT : APPROVED REQUEST PAYMENT ACCOUNT PAYABLES BY BAPAK/IBU $g
 					
 					
 					Terima kasih<br>
-					GREEN ENERGY UTAMA
+					GREEN ENERGI UTAMA
 					
 		</div>";	
 	DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$getupperx->Email','$subjek','$badan','UNSENT',NOW(),NOW())"));
@@ -99,7 +99,7 @@ $subjek = "IMPORTANT : APPROVAL PERMINTAAN PEMBAYARAN ACCOUNT PAYABLE";
 					Anda dapat melakukan approval melalui link berikut ini :<a href=\'https://erp.ksps.co.id/erpksps/public/approvalapvendor2?linkkey=$linkkey\' >KLIK DISINI</a><br><br>
 					
 					Terima kasih<br>
-					GREEN ENERGY UTAMA
+					GREEN ENERGI UTAMA
 					
 		</div>";	
 	DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$getupper->Email','$subjek','$badan','UNSENT',NOW(),NOW())"));

@@ -179,7 +179,7 @@ html,table{
 				<img src='kspslogo.png' height="70"/>
 			</div>
 			<div style="float:right;width:80%;text-align:center;font-weight:bold;font-size:16px;font-family:arial">
-				PT. GREEN ENERGY UTAMA<br>
+				PT. GREEN ENERGI UTAMA<br>
 				SALARY SLIP<br>
 				
 				<img src="Barcode.php?id=<?php echo $salary->Task_ID; ?>" style="vertical-align:middle" height="40" />

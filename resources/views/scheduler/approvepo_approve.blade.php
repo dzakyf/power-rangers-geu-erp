@@ -64,7 +64,7 @@ if ($cekx) {
 					<br><br>
 					Anda dapat melakukan approval melalui link berikut ini :<a href=\"https://erp.ksps.co.id/erpksps/public/approvalpo?ID=$_GET[ID]&linkkey=$linkkey&saya=$cekmail->NIK\" >KLIK DISINI</a><br><br>
 					Terima kasih<br>
-					GREEN ENERGY UTAMA
+					GREEN ENERGI UTAMA
 					
 		</div>";
 		DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date,Approval_Via) VALUES('$cekmail->Email_To','$subjek','$badan','UNSENT',NOW(),NOW(),'LAST-FROM-MOBILE')"));

@@ -200,7 +200,7 @@ $moneyFormat = new moneyFormat();
 
 		<div class="header">
 			<div style="float:left;width:80%;text-align:center;font-weight:bold;font-size:14px;font-family:arial">
-				PT. GREEN ENERGY UTAMA<br>
+				PT. GREEN ENERGI UTAMA<br>
 				FORMULIR PERMOHONAN PEMBAYARAN<br><br>
 				NO <?= $proforma->Task_ID ?>
 			</div>
