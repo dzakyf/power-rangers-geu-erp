@@ -70,7 +70,7 @@
 					Anda dapat melakukan approval melalui link berikut ini :<a href=\'https://erp.ksps.co.id/erpksps/public/approvalpr?ID=$_POST[PR_No]&linkkey=$linkkey&saya=$Saya\' >KLIK DISINI</a><br><br>
 					
 					Terima kasih<br>
-					PT GREEN ENERGY UTAMA
+					PT GREEN ENERGI UTAMA
 					
 		</div>";
 	DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$getupper->Email','$subjek','$badan','UNSENT',NOW(),NOW())"));

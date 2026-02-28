@@ -45,7 +45,7 @@ $status = $cekx->Status;
 // 					Anda dapat melakukan approval melalui link berikut ini :<a href=\'https://erp.ksps.co.id/erpksps/public/approvalbankadvance2?ID=$cekx->Task_ID&linkkey=$linkkey&saya=$Saya\' >KLIK DISINI</a><br><br>
 					
 // 					Terima kasih<br>
-// 					GREEN ENERGY UTAMA
+// 					GREEN ENERGI UTAMA
 					
 // 		</div>";		
 // 	DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$getupper->Email','$subjek','$badan','UNSENT',NOW(),NOW())"));

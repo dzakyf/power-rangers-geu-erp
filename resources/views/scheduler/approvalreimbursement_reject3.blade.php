@@ -31,7 +31,7 @@ if ($cekx) {
 					<b>Telah Ditolak Oleh Direktur</b>
 					
 					Terima kasih<br>
-					GREEN ENERGY UTAMA
+					GREEN ENERGI UTAMA
 					
 		</div>";
 	DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$getupper->Email','$subjek','$badan','UNSENT',NOW(),NOW())"));

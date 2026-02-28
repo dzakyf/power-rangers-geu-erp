@@ -139,7 +139,7 @@ $moneyFormat = new moneyFormat();
 					<img src='./kspslogo.png' width="100" />
 				</div>
 				<div align="left" class="header-kanan">
-					<div style="font-weight:bold;font-size:12px;">PT. GREEN ENERGY UTAMA</div>
+					<div style="font-weight:bold;font-size:12px;">PT. GREEN ENERGI UTAMA</div>
 					<div>Blok A. 9, Jl. Lb. Bulus I No.12, RT.4/RW.6</div>
 					<div>Lb. Bulus, Kec. Cilandak, Kota Jakarta Selatan</div>
 					<div>Daerah Khusus Ibukota Jakarta 12440, Indonesia</div>
@@ -341,7 +341,7 @@ $moneyFormat = new moneyFormat();
 							<td width="100" valign="top" align="center">Jakarta, <?php echo ($_GET['Printed_Date'] != '') ?  date('d M Y', strtotime($_GET['Printed_Date'])) : date('d M Y'); ?></td>
 						</tr>
 						<tr>
-							<td height="120" valign="top" align="center">PT. GREEN ENERGY UTAMA<div style="padding-top:30px;vertical-align:middle;text-align:center">
+							<td height="120" valign="top" align="center">PT. GREEN ENERGI UTAMA<div style="padding-top:30px;vertical-align:middle;text-align:center">
 									<?php
 									$nama = ($rowc->Total > 100000000) ?  "GATOT SANTOSO" : "SUCI ANDRINI";
 									echo QrCode::size(60)->generate($nama . $rowc->PO_No); ?></div>

@@ -72,7 +72,7 @@
 				<br><br>
 				
 				Terima kasih
-				GREEN ENERGY UTAMA
+				GREEN ENERGI UTAMA
 				
 	</div>";
 	DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$getupper->Email','$subjek','$badan','UNSENT',NOW(),NOW())"));
@@ -104,7 +104,7 @@
 	// 				<br><br>
 
 	// 				Terima kasih
-	// 				GREEN ENERGY UTAMA
+	// 				GREEN ENERGI UTAMA
 
 	// 	</div>";
 	// 	DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$getupper->Email','$subjek','$badan','UNSENT',NOW(),NOW())"));
@@ -135,7 +135,7 @@
 	// 				<br><br>
 
 	// 				Terima kasih
-	// 				GREEN ENERGY UTAMA
+	// 				GREEN ENERGI UTAMA
 
 	// 	</div>";
 	// 	DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$getupper->Email','$subjek','$badan','UNSENT',NOW(),NOW())"));

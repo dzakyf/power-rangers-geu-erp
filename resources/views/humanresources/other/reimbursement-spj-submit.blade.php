@@ -60,7 +60,7 @@ VALUES ('$LSP','$_POST[Task_ID]','$_POST[Reference_No]','$_POST[User_Responsibil
 					Anda dapat melakukan approval melalui link berikut ini :<a href=\'https://erp.ksps.co.id/erpksps/public/approvalreimbursement?ID=$_POST[Task_ID]&linkkey=$salt&saya=$Saya\' >KLIK DISINI</a><br><br>
 					
 					Terima kasih<br>
-					PT. GREEN ENERGY UTAMA
+					PT. GREEN ENERGI UTAMA
 					
 		</div>";
 	DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date, linkkey) VALUES('$getupper->Email','$subjek','$badan','UNSENT',NOW(),NOW(),$salt)"));

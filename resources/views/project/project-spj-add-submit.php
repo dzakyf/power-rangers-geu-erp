@@ -55,7 +55,7 @@ if ($query) {
 						<br><br>
 						
 						Terima kasih
-						PT. GREEN ENERGY UTAMA
+						PT. GREEN ENERGI UTAMA
 						
 			</div>";
 	DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date,linkkey) VALUES('$mailto','$subjek','$badan','UNSENT',NOW(),NOW(),'$salt')"));

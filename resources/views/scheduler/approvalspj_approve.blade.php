@@ -39,7 +39,7 @@ if ($cekx) {
 					Anda dapat melihat pengajuan melalui link berikut ini :<a href=\'https://erp.ksps.co.id/erpksps/public/submitted-spj\' >KLIK DISINI</a><br><br>
 					
 					Terima kasih<br>
-					PT. GREEN ENERGY UTAMA
+					PT. GREEN ENERGI UTAMA
 					
 		</div>";
 	DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date, linkkey) VALUES('febriana.farida@ksps.co.id','$subjek','$badan','UNSENT',NOW(),NOW(),$salt)"));

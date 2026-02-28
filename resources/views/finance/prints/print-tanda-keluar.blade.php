@@ -154,7 +154,7 @@ $ket_sum = '';
 					<img src="{{ asset('kspslogo.png') }}" width="120px" class="no-border" alt="Logo">
 				</td>
 				<td width="59%">
-					<h2>PT. GREEN ENERGY UTAMA</h2>
+					<h2>PT. GREEN ENERGI UTAMA</h2>
 					Gedung Kopkarla 1 Jl. Lebak Bulus Raya No. 7 RT. 003 RW.002 <br />
 					Lebak Bulus Cilandak Kota Administrasi Jakarta Selatan <br />
 					DKI Jakarta, 12310,Indonesia
