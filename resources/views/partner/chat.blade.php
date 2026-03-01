@@ -21,7 +21,7 @@ $Saya =  Auth::user()->username;
     font-size: 18px;
     padding: 10px 15px;
     color: #fff;
-    background: linear-gradient(90deg, #4e73df, #1cc88a);
+    background: linear-gradient(90deg, #1cc88a, #4e73df);
     height: auto;
 }
 
@@ -74,7 +74,6 @@ $Saya =  Auth::user()->username;
 .message.me {
     background-color: #4e73df;
     color: #fff;
-    margin-left: auto;
     border-bottom-right-radius: 5px;
 }
 
@@ -91,6 +90,44 @@ $Saya =  Auth::user()->username;
 }
 .list-group-item {
     border-radius: 10px !important;
+}
+.read-status {
+    font-size: 11px;
+    margin-top: 4px;
+    opacity: 0.7;
+    text-align: right;
+    margin-bottom: 20px;
+}
+.message-row {
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 10px;
+}
+
+/* Pesan saya (kanan) */
+.me-row {
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* Pesan lawan (kiri) */
+.other-row {
+    justify-content: flex-start;
+}
+
+/* Bubble tetap */
+.message {
+    max-width: 70%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    font-size: 14px;
+}
+
+/* Read status di kiri bubble */
+.read-status {
+    font-size: 11px;
+    opacity: 0.7;
+    white-space: nowrap;
 }
 </style>
 <!-- Main Content Header -->
@@ -200,6 +237,58 @@ $Saya =  Auth::user()->username;
         let activeConversation = null;
         let lastMessageId = 0;
         let pollingInterval = null;
+        let firstMessageId = 0;
+        let loadingOld = false;
+        let noMoreOldData = false;
+
+        $('a[data-toggle="list"]').on('hidden.bs.tab', function (e) {
+            lastMessageId = 0;
+            firstMessageId = 0;
+            noMoreOldData = false;
+        });
+
+        // Detect tab aktif / tidak
+        document.addEventListener("visibilitychange", function() {
+
+            if(document.hidden){
+                clearInterval(pollingInterval);
+            } else {
+                startPolling();
+            }
+
+        });
+        
+        function renderMessage(msg){
+
+            let isMe = msg.created_by == "{{ $Saya }}";
+
+            if(isMe){
+
+                let readLabel = '';
+
+                if(msg.is_read == 1){
+                    readLabel = '<span class="read-status">✓ Sudah dibaca</span>';
+                }
+
+                return `
+                    <div class="message-row me-row" data-id="${msg.id}">
+                        ${readLabel}
+                        <div class="message me">
+                            ${msg.message}
+                        </div>
+                    </div>
+                `;
+            } else {
+
+                return `
+                    <div class="message-row other-row" data-id="${msg.id}">
+                        <div class="message other">
+                            ${msg.message}
+                        </div>
+                    </div>
+                `;
+            }
+        }
 
         function scrollToBottom($container){
             $container.scrollTop($container[0].scrollHeight);
@@ -224,8 +313,12 @@ $Saya =  Auth::user()->username;
                         : 'message other';
 
                     container.append(
-                        '<div class="'+className+'" data-id="'+msg.id+'">'+msg.message+'</div>'
+                        renderMessage(msg)
                     );
+
+                    if(i === 0){
+                        firstMessageId = msg.id;
+                    }
 
                     lastMessageId = msg.id;
                 });
@@ -244,7 +337,7 @@ $Saya =  Auth::user()->username;
 
             pollingInterval = setInterval(function(){
 
-                if(!activeConversation || !isWindowActive) return;
+                if(!activeConversation) return;
 
                 $.post('partner-chat-fetch-new', {
                     _token: '{{ csrf_token() }}',
@@ -265,7 +358,7 @@ $Saya =  Auth::user()->username;
                                 : 'message other';
 
                             container.append(
-                                '<div class="'+className+'" data-id="'+msg.id+'">'+msg.message+'</div>'
+                                renderMessage(msg)
                             );
 
                             lastMessageId = msg.id;
@@ -278,9 +371,41 @@ $Saya =  Auth::user()->username;
                         intervalTime = 5000; // idle → lambat
                     }
 
+                    updateReadStatus();
+
                 });
 
             }, intervalTime); // polling tiap 2 detik
+        }
+        
+        function updateReadStatus(){
+
+            if(!activeConversation) return;
+
+            $.post('partner-chat-check-read', {
+                _token: '{{ csrf_token() }}',
+                conversation_id: activeConversation
+            }, function(data){
+
+                // data = array message yg sudah berubah jadi is_read = 1
+
+                $.each(data, function(i, msg){
+
+                    let row = $('.message-row[data-id="'+msg.id+'"]');
+
+                    if(row.length){
+
+                        // kalau belum ada label read
+                        if(row.find('.read-status').length === 0){
+
+                            row.find('.message.me')
+                                .before('<span class="read-status">✓ Sudah dibaca</span>');
+                        }
+                    }
+
+                });
+
+            });
         }
 
         // =========================
@@ -326,7 +451,7 @@ $Saya =  Auth::user()->username;
                 let container = $('#chat-room-' + conversationId);
 
                 container.append(
-                    '<div class="message me" data-id="'+response.id+'">'+response.message+'</div>'
+                    renderMessage(response)
                 );
 
                 lastMessageId = response.id;
@@ -335,6 +460,54 @@ $Saya =  Auth::user()->username;
             });
         });
 
+        $('.chat-messages').on('scroll', function(){
+
+            let container = this;
+
+            if(container.scrollTop === 0 && !loadingOld && !noMoreOldData){
+
+                loadingOld = true;
+
+                let conversationId = $(this).attr('id').replace('chat-room-','');
+
+                let previousHeight = container.scrollHeight;
+
+                $(this).prepend('<div id="loadingOld" class="text-center py-2">Loading...</div>');
+
+                $.post('partner-chat-load-older', {
+                    _token: '{{ csrf_token() }}',
+                    conversation_id: conversationId,
+                    first_id: firstMessageId
+                }, function(data){
+
+                    $('#loadingOld').remove();
+
+                    if(data.length === 0){
+                        noMoreOldData = true;
+                        loadingOld = false;
+                        return;
+                    }
+
+                    let html = '';
+
+                    $.each(data, function(i, msg){
+
+                        html += renderMessage(msg);
+
+                        if(i === 0){
+                            firstMessageId = msg.id;
+                        }
+                    });
+
+                    $('#chat-room-' + conversationId).prepend(html);
+
+                    let newHeight = container.scrollHeight;
+                    container.scrollTop = newHeight - previousHeight;
+
+                    loadingOld = false;
+                });
+            }
+        });
     });
 </script>
 @endsection

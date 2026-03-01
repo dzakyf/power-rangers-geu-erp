@@ -1,11 +1,13 @@
 <?php
 
+namespace App\Services;
+
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class NotificationService
 {
-    public function makeNotification(string $title, string $content, string $type, string $senderId, string $recipientId, string $status = 'SENT', ?string $readAt = null, $metadata = null)
+    public function makeNotification(string $title, string $content, string $type, string $senderId, ?string $recipientId, ?string $status = 'SENT',  $metadata = null)
     {
         $expirationTime = Carbon::now()->add(3, 'day');
 
@@ -13,10 +15,9 @@ class NotificationService
             'Title' => $title,
             'Content' => $content,
             'Expires_At' => $expirationTime,
-            'Read_At' => $readAt,
-            'Type' => $type,
+            'Topic' => $type,
             'Sender_Id' => $senderId,
-            'Recipient_Id' => $recipientId,
+            'Recipient_Id' => $recipientId ?? null,
             'Metadata' => $metadata,
             'Status' => $status
         ]);

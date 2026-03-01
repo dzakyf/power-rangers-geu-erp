@@ -14,6 +14,9 @@ class ChatListController extends Controller
     public function chatList(Request $request)
     {
         $userId = Auth::id();
+        if (!auth()->user()->Admin_Chat) {
+            abort(403, 'Unauthorized access');
+        }
         $getUser = DB::table('users')->get()->pluck('Name', 'username');
         $roomChat = RoomChat::where("Users", "LIKE", "%ADMIN_USER%")->get();
 
@@ -24,9 +27,11 @@ class ChatListController extends Controller
     {
         $roomChat = RoomChat::where("ID", $conversation)->first();
         $messages = Chat::where('room_chat_id', $roomChat->ID)
+            ->orderBy('id', 'desc')
             ->limit(20)
-            ->orderBy('sent_date','DESC')
-            ->get();
+            ->get()
+            ->reverse()
+            ->values();
 
         return response()->json($messages);
     }
@@ -41,7 +46,9 @@ class ChatListController extends Controller
         $message = Chat::create([
             'room_chat_id' => $request->conversation_id,
             'created_by' => Auth::user()->username,
-            'message' => $request->message
+            'message' => $request->message,
+            'is_sent' => true,
+            'sent_date' => now(),
         ]);
 
         return response()->json($message);
@@ -58,5 +65,38 @@ class ChatListController extends Controller
             ->get();
 
         return response()->json($messages);
+    }
+    public function loadOlder(Request $request)
+    {
+        return Chat::where('room_chat_id', $request->conversation_id)
+            ->where('id', '<', $request->first_id)
+            ->orderBy('id', 'desc')
+            ->limit(20)
+            ->get()
+            ->reverse()
+            ->values();
+    }
+
+    public function markRead(Request $request)
+    {
+        Chat::where('room_chat_id', $request->conversation_id)
+            ->where('is_read', false)
+            ->where('created_by', '!=', auth()->user()->username)
+            ->update([
+                'is_read' => true,
+                'read_date' => now(),
+                ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function checkRead(Request $request)
+    {
+        return Chat::where('room_chat_id', $request->conversation_id)
+            ->where('created_by', Auth::user()->username) // pesan milik saya
+            ->where('is_read', 1)
+            // ->whereNull('read_synced') // optional jika mau lebih optimal
+            ->select('id')
+            ->get();
     }
 }
