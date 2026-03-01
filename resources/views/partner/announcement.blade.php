@@ -33,8 +33,9 @@ $Saya =  Auth::user()->username;
 		<div class="card-body">
 			<div id="AnnouncementList" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
-				<input type="button" id="ekselAnnouncementListDet" name="ekselAnnouncementListDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="AnnouncementList.toExcel('./export/generate.php');" />
-				<input type="button" id="detailLeads" name="detailLeads" value="Detail Ticket And Response" class="btn btn-success mt-2 mr-2" onclick="AnnouncementListKlik()" />
+				<input type="button" id="ekselAnnouncementListDet" name="ekselAnnouncementListDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="AnnouncementList.toExcel('./export/generate.php');" />
+				<input type="button" id="newAnnouncement" name="newAnnouncement" value="New Announcement" class="btn btn-info mt-2 mr-2" onclick="AnnouncementListNew()" />
+				{{-- <input type="button" id="detailLeads" name="detailLeads" value="Detail Ticket And Response" class="btn btn-success mt-2 mr-2" onclick="AnnouncementListKlik()" /> --}}
 			</div>
 		</div>
 	</div>
@@ -44,11 +45,16 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
+	function AnnouncementListNew() {
+
+		LoadM('divlistOpportunity', 'partner-announcement-new');
+		return true;
+	}
 	function AnnouncementListKlik() {
 
 		AnnouncementListID = AnnouncementList.getSelectedId();
 		if (AnnouncementListID != null) {
-			LoadM('divlistOpportunity', 'partner-ticket-open-detail?Task_ID=' + AnnouncementList.cells(AnnouncementListID,1).getValue());
+			LoadM('divlistOpportunity', 'partner-announcement-detail?Task=' + AnnouncementListID);
 		}else {
 			alert("Pilih baris data");
 		}
@@ -71,7 +77,7 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		AnnouncementList.clearAndLoad('xml-partner-ticket-open');
+		AnnouncementList.clearAndLoad('xml-partner-announcement');
 
 	}
 </script>

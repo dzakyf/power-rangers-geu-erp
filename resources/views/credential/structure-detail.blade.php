@@ -16,6 +16,12 @@
 						<input type="checkbox" id="BP_Approval" name="BP_Approval" @if($dm->BP_Approval) checked @endif>
 					</div>
 				</div>
+				<div class="col-md-6">
+					<div class="form-group">
+						<label for="Admin_Chat">As Admin for Chat</label>
+						<input type="checkbox" id="Admin_Chat" name="Admin_Chat" @if($dm->Admin_Chat) checked @endif>
+					</div>
+				</div>
 				<div class="col-12">
 					<button class="btn btn-success" onclick="submitkan()">Submit</button>
 				</div>

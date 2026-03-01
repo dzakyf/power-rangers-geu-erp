@@ -9,34 +9,7 @@
           <a href="#" class="btn mr-1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="View">
               <i data-feather="bell" class="icon"></i>
           </a>
-          <div class="dropdown-menu">
-              <a class="dropdown-item" style="white-space: normal; width:500px; ">
-                  <h6><strong>Notifikasi 1</strong></h6>
-                  <p style="
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            margin-bottom: 5px;
-            color: #6c757d;
-            font-size: 0.9rem;
-        ">Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p>
-              </a>
-              <div class="dropdown-divider"></div>
-              <a class="dropdown-item" style="white-space: normal; width:500px; ">
-                  <h6><strong>Notifikasi 1</strong></h6>
-                  <p style="
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            margin-bottom: 5px;
-            color: #6c757d;
-            font-size: 0.9rem;
-        ">Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p>
-              </a>
-              <div class="dropdown-divider"></div>
-          </div>
+          <div class="dropdown-menu" id="notifMenu" style="width: 500px;"></div>
       </li>
 
       <!-- Profile dropdown -->
@@ -69,3 +42,44 @@
           </div>
       </li>
   </ul>
+
+  @push('rightmenu-script')
+  <script>
+      $(document).ready(function() {
+          getNotifications()
+      })
+
+      function getNotifications() {
+          let notifs = $('#notifMenu')
+          notifs.empty()
+
+          $.ajax({
+              headers: {
+                  'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+              },
+              url: "notification-getall?_token={{ csrf_token() }}",
+              type: "GET",
+              success: function(data, textStatus, jqXHR) {
+                  if (data.length < 1) {
+                      notifs.append('<div class="p-3 text-center">No notifications</div>');
+                  }
+
+                  data.data.forEach(function(n, i) {
+                      notifs.append(`
+                <a class="dropdown-item" style="white-space:normal;">
+                    <h6><strong>${n.Title || 'Notification'}</strong></h6>
+                    <small>${n.Created_At ?? ""}</small>
+                    <p style="display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">${n.Content || ''}</p>
+                </a>
+            `);
+                      if (i < data.length - 1) menu.append('<div class="dropdown-divider"></div>');
+                  });
+              },
+              error: function(jqXHR, textStatus, errorThrown) {
+                  alert("Kesalahan Internal! Silakan coba lagi!");
+
+              }
+          });
+      }
+  </script>
+  @endpush

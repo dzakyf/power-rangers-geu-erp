@@ -57,6 +57,10 @@ $Saya =  Auth::user()->username;
     BroadcastList.init();
     refreshdata();
 
+    function createBroadcast() {
+        window.location.href = 'broadcast-create'
+    }
+
     function BroadcastListKlik() {
         BroadcastListID = BroadcastList.getSelectedId();
         $("#divlistOpportunity").show();

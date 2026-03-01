@@ -41,3 +41,5 @@
 <link rel="stylesheet" type="text/css" href="{{ asset('blockui.css') }}" />
 <link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolautosuggest.css') }}" />
 <link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolfieldset.css') }}" />
+
+@stack('rightmenu-script')

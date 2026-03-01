@@ -9,10 +9,13 @@ use App\Http\Controllers\Partner\ListsController as PartnerListsController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\HelperController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OperationalController;
 use App\Http\Controllers\Partner\ChatListController as PartnerChatListController;
 use App\Http\Controllers\Partner\TicketController as PartnerTicketController;
+use App\Http\Controllers\Partner\AnnouncementController as PartnerAnnouncementController;
 use App\Http\Controllers\UploaderController;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Broadcast;
 
 /*
@@ -4411,9 +4414,21 @@ Route::group(['middleware' => 'auth'], function () {
     /** chat route */
     $chatPref = "partner-chat";
     Route::get("$chatPref-list", [PartnerChatListController::class, 'chatList']);
-    Route::get("$chatPref-messages-{conversation}", [PartnerChatListController::class,'getMessages']);
+    Route::get("$chatPref-messages-{conversation}", [PartnerChatListController::class, 'getMessages']);
     Route::post("$chatPref-send", [PartnerChatListController::class, 'sendMessage']);
     Route::post("$chatPref-fetch-new", [PartnerChatListController::class, 'fetchNewMessages']);
+    Route::post("$chatPref-load-older", [PartnerChatListController::class, 'loadOlder']);
+    Route::post("$chatPref-mark-read", [PartnerChatListController::class, 'markRead']);
+    Route::post("$chatPref-check-read", [PartnerChatListController::class, 'checkRead']);
+
+    /** chat route */
+    $announcementPref = "partner-announcement";
+    Route::get("$announcementPref", [PartnerAnnouncementController::class, 'partnerAnnouncement']);
+    Route::get("xml-$announcementPref", [PartnerAnnouncementController::class, 'partnerAnnouncementXml']);
+    Route::get("$announcementPref-new", [PartnerAnnouncementController::class, 'partnerAnnouncementNew']);
+    Route::post("$announcementPref-new-submit", [PartnerAnnouncementController::class, 'partnerAnnouncementNewSubmit']);
+    Route::get("$announcementPref-detail", [PartnerAnnouncementController::class, 'partnerAnnouncementDetail']);
+    Route::post("$announcementPref-detail-submit", [PartnerAnnouncementController::class, 'partnerAnnouncementDetailSubmit']);
 
     /** ticket route */
     $ticketPref = "partner-ticket";
@@ -4445,5 +4460,10 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$panduanOpsPref-detail", [OperationalController::class, 'detail']);
     Route::post("$panduanOpsPref-submit", [OperationalController::class, 'submit']);
     Route::get("$panduanOpsPref-load-data", [OperationalController::class, 'loadXML']);
+    /** */
+
+    /**  notification route */
+    $notification = "notification";
+    Route::get("$notification-getall", [NotificationController::class, 'getAll']);
     /** */
 });

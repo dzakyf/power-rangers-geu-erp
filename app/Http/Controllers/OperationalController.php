@@ -4,16 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\GeneratorService;
+use App\Services\NotificationService;
+use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class OperationalController extends Controller
 {
     protected $generatorService;
+    protected $notificationService;
+    protected $userService;
 
-    public function __construct(GeneratorService $g)
+    public function __construct(GeneratorService $g, NotificationService $n, UserService $u)
     {
         $this->generatorService = $g;
+        $this->notificationService = $n;
+        $this->userService = $u;
     }
     public function index()
     {
@@ -43,6 +49,7 @@ class OperationalController extends Controller
 
     public function submit(Request $r)
     {
+        $user = $this->userService->getCurrentSessionUserInfo();
         $body = $r->all();
 
         $titleMapper = [
@@ -59,7 +66,8 @@ class OperationalController extends Controller
             'Title' => $title,
             'Short_Desc' => $body['Short_Desc'],
             'Version' => $body['Version'],
-            'Effective_Date' => $body['Effective_Date']
+            'Effective_Date' => $body['Effective_Date'],
+            'Changelog' => $body['Changelog']
         ]);
 
         $doc = $r->file('Doc');
@@ -70,14 +78,25 @@ class OperationalController extends Controller
 
         $doc->move(public_path('guide'), $filename);
 
-        $savePath = DB::table('meta_files')->insert([
+        $fileId = DB::table('meta_files')->insertGetId([
             'Filename' => $path,
             'Path' => $filename,
             'Extension' => $ext,
             'Description' => 'Saving Panduan file',
-            'Topic' => "knowledge",
+            'Topic' => "guide",
             'Map_To' => $panduanId
         ]);
+
+        $notif = $this->notificationService->makeNotification(
+            "Rilis panduan: $title, versi: {$body['Version']}",
+            "Administrator merilis: {$body['Short_Desc']}",
+            'guide',
+            $user->id,
+            null,
+            'SENT',
+            json_encode(['Id' => $panduanId]),
+            null
+        );
 
         return view('panduan.create');
     }

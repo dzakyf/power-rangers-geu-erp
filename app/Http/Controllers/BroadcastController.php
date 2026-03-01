@@ -4,16 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\GeneratorService;
+use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\NotificationService;
 
 class BroadcastController extends Controller
 {
     protected $generatorService;
+    protected $notificationService;
+    protected $userService;
 
-    public function __construct(GeneratorService $g)
+    public function __construct(GeneratorService $g, NotificationService $n, UserService $u)
     {
         $this->generatorService = $g;
+        $this->notificationService = $n;
+        $this->userService = $u;
     }
 
     public function index()
@@ -76,6 +82,7 @@ class BroadcastController extends Controller
         $doc = $r->file('Doc');
         $path = $this->generatorService->generateFilename();
         $ext = $r->file('Doc')->getClientOriginalExtension();
+        $user =  $this->userService->getCurrentSessionUserInfo();
 
         $filename = "$path.$ext";
 
@@ -98,6 +105,14 @@ class BroadcastController extends Controller
             'Topic' => "broadcast",
             'Map_To' => $bcastId
         ]);
+
+        $notif = $this->notificationService->makeNotification(
+            $body['Short_Desc'],
+            $body['Long_Desc'],
+            'broadcast',
+            $user->id,
+            $bcastId
+        );
 
         return view('broadcast.index');
     }
