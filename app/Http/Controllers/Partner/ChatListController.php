@@ -18,7 +18,21 @@ class ChatListController extends Controller
             abort(403, 'Unauthorized access');
         }
         $getUser = DB::table('users')->get()->pluck('Name', 'username');
-        $roomChat = RoomChat::where("Users", "LIKE", "%ADMIN_USER%")->get();
+        $roomChat = RoomChat::where("Users", "LIKE", "%ADMIN_USER%")->where(function($q) {
+            $q->where('User_ID_Left', 0)
+              ->orWhere('User_ID_Right', 0);
+        })->get();
+
+        $getChatCounts = Chat::whereIn('room_chat_id', $roomChat->pluck('ID'))
+            ->where('is_read', false)
+            ->where('created_by', '!=', auth()->user()->username)
+            ->groupBy('room_chat_id')
+            ->select('room_chat_id', DB::raw('count(*) as unread_count'))
+            ->pluck('unread_count', 'room_chat_id');
+
+         foreach ($roomChat as $chat) {
+             $chat->unread_count = $getChatCounts->get($chat->ID, 0);
+         }
 
         return view('partner.chat', compact('roomChat', 'getUser'));
     }

@@ -9,6 +9,7 @@ use App\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\NotificationService;
 
 class AnnouncementController extends Controller
 {
@@ -48,8 +49,9 @@ class AnnouncementController extends Controller
     {
         if (Auth::user()->Admin_Chat) {
             $getRoomChat = RoomChat::where("Users", "LIKE", "%ADMIN_USER%")->get();
+            $notif = new NotificationService();
             foreach ($getRoomChat as $key => $value) {
-                Chat::create([
+                $chat = Chat::create([
                     'room_chat_id' => $value->ID,
                     'created_by' => Auth::user()->username,
                     'message' => $request->input('Content'),
@@ -57,6 +59,24 @@ class AnnouncementController extends Controller
                     'sent_date' => now(),
                     'announcement_id' => $announcement->ID,
                 ]);
+
+                try {
+                    $breakUser = json_decode($value->Users);
+                    $breakUser = current(array_diff($breakUser, ['ADMIN_USERS']));
+    
+                    $user = DB::table('users')->where('username', $breakUser)->first();
+    
+                    $notif = $notif->makeNotification(
+                        $request->input('Title'),
+                        $request->input('Content'),
+                        'announcement',
+                        $user->id,
+                        $chat->ID
+                    );
+                } catch (\Throwable $th) {
+                    //throw $th;
+                }
+
             }
         }
     }

@@ -40,3 +40,4 @@
 <link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolfieldset.css') }}" />
 <script src="{{ asset('jquery.ajaxloader.1.5.1.js') }}"></script>
 <script src="{{ asset('blockui.js') }}"></script>
+@stack('rightmenu-script')

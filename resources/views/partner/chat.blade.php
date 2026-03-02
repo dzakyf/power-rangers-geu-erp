@@ -170,8 +170,8 @@ $Saya =  Auth::user()->username;
                                     <img src="https://i.pravatar.cc/100?u={{ $users }}" class="chat-avatar mr-3">
                                     <div class="flex-grow-1">
                                         <strong>{{ $getUser[$users] }}</strong>
-                                        <div class="chat-preview">
-                                            {{-- {{ $lastMessage->message ?? 'Belum ada pesan' }} --}}
+                                        <div class="chat-preview" id="preview-{{ $conversation->ID }}">
+                                            {{ $conversation->unread_count == 0 ? 'Belum ada pesan' : $conversation->unread_count . ' pesan belum dibaca' }}
                                         </div>
                                     </div>
                                 </div>
@@ -234,6 +234,7 @@ $Saya =  Auth::user()->username;
 <script>
     $(document).ready(function(){
 
+        let conversationId = "";
         let activeConversation = null;
         let lastMessageId = 0;
         let pollingInterval = null;
@@ -245,6 +246,11 @@ $Saya =  Auth::user()->username;
             lastMessageId = 0;
             firstMessageId = 0;
             noMoreOldData = false;
+        });
+
+        $('a[data-toggle="list"]').on('shown.bs.tab', function (e) {
+            conversationId = $(this).data('id');
+            markAsRead();
         });
 
         // Detect tab aktif / tidak
@@ -307,7 +313,10 @@ $Saya =  Auth::user()->username;
                 container.html('');
 
                 $.each(data, function(i, msg){
-
+                    if($('.message-row[data-id="'+msg.id+'"]').length > 0){
+                        return; // skip kalau sudah ada
+                    }
+                    
                     let className = msg.created_by == "{{ $Saya }}"
                         ? 'message me'
                         : 'message other';
@@ -325,6 +334,18 @@ $Saya =  Auth::user()->username;
 
                 scrollToBottom(container);
             });
+        }
+
+        function markAsRead(){
+
+            if(!conversationId) return;
+
+            $.post('partner-chat-mark-read', {
+                _token: '{{ csrf_token() }}',
+                conversation_id: conversationId
+            });
+
+            $('#preview-' + conversationId).text('Belum ada pesan');
         }
 
         let intervalTime = 2000; // 2 detik
@@ -367,6 +388,8 @@ $Saya =  Auth::user()->username;
                         if(shouldScroll){
                             scrollToBottom(container);
                         }
+
+                        markAsRead();
                     } else {
                         intervalTime = 5000; // idle → lambat
                     }

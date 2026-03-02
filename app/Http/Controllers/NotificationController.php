@@ -12,7 +12,6 @@ class NotificationController extends Controller
 {
     protected $userService;
 
-
     public function __construct(UserService $u)
     {
         $this->userService = $u;
