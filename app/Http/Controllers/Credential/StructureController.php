@@ -69,9 +69,11 @@ class StructureController extends Controller
     {
         $iduser = $request->ID;
         $BP_Approval = $request->BP_Approval == 'on' ? 1 : 0;
+        $Admin_Chat = $request->Admin_Chat == 'on' ? 1 : 0;
 
         DB::table("users")->where("id",$iduser)->update([
-            "BP_Approval" => $BP_Approval
+            "BP_Approval" => $BP_Approval,
+            "Admin_Chat" => $Admin_Chat,
         ]);
 
         echo "success";

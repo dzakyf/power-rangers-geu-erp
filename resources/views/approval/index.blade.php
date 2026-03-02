@@ -31,11 +31,11 @@ $Saya =  Auth::user()->username;
 <div class="row">
 	<div id="OpportunityLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
-        <input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
+		<input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
 		<input type="button" id="detailBP" name="detailBP" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailBP()" />
 		<input type="button" id="showProgress" name="showProgress" value="Show Progress" class="btn btn-info mt-2 mr-2" onclick="redirectToProgress()" />
 		<div class="btn-group" role="group">
-  </div>
+		</div>
 	</div>
 </div>
 
@@ -44,17 +44,18 @@ $Saya =  Auth::user()->username;
 <div></div>
 <div id="divlistProjectList"></div>
 <script src="https://cdn.jsdelivr.net/npm/bs-stepper/dist/js/bs-stepper.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bs-stepper/dist/css/bs-stepper.min.css"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bs-stepper/dist/css/bs-stepper.min.css">
+</script>
 
 <script>
 	$(document).ready(function() {
 		// Initialize stepper with custom options
 		var stepperElement = $('.bs-stepper')[0];
 		window.stepper = new Stepper(stepperElement, {
-			linear: true,      // Force sequential steps
-			animation: true     // Enable fade animation
+			linear: true, // Force sequential steps
+			animation: true // Enable fade animation
 		});
-		
+
 		// Update current step display
 		function updateStepDisplay() {
 			var currentIndex = window.stepper._currentIndex + 1; // 1-based for display
@@ -64,40 +65,40 @@ $Saya =  Auth::user()->username;
 				</div>
 			`);
 		}
-		
+
 		// Initial display
 		updateStepDisplay();
-		
+
 		// Event listener for step changes
 		stepperElement.addEventListener('shown.bs-stepper', function(event) {
 			console.log('Moved to step:', event.detail.indexStep);
 			updateStepDisplay();
 		});
-		
+
 		// =============================================
 		// CUSTOM BUTTON CONTROLS
 		// =============================================
-		
+
 		// 1. Next button handler
 		$('.btn-next').on('click', function() {
 			window.stepper.next();
 		});
-		
+
 		// 2. Previous button handler
 		$('.btn-prev').on('click', function() {
 			window.stepper.previous();
 		});
-		
+
 		// 3. Go to specific step (using to() method)
 		$('#goToStep2').on('click', function() {
 			window.stepper.to(2); // Goes to step 2 (1-based index)
 		});
-		
+
 		$('#resetStepper').on('click', function() {
 			window.stepper.reset();
 			showNotification('Stepper reset to step 1');
 		});
-		
+
 		$('#destroyStepper').on('click', function() {
 			window.stepper.destroy();
 			$('#stepDisplay').html(`
@@ -107,12 +108,12 @@ $Saya =  Auth::user()->username;
 			`);
 			$(this).prop('disabled', true);
 		});
-		
+
 		$('#getCurrentStep').on('click', function() {
 			var currentIndex = window.stepper._currentIndex + 1;
 			alert('Current step: ' + currentIndex);
 		});
-		
+
 		// Helper function for notifications
 		function showNotification(message) {
 			var notification = $(`
@@ -123,7 +124,7 @@ $Saya =  Auth::user()->username;
 					</button>
 				</div>
 			`);
-			
+
 			$('#stepDisplay').after(notification);
 			setTimeout(function() {
 				notification.alert('close');
@@ -131,16 +132,16 @@ $Saya =  Auth::user()->username;
 		}
 	});
 
-	function redirectToProgress(){
-		window.location.href = `approval/progress/${OpportunityLists.getSelectedId()}`;
+	function redirectToProgress() {
+		window.location.href = `partner-approval-progress/${OpportunityLists.getSelectedId()}`;
 	}
 
-	function submitApproval(type){
+	function submitApproval(type) {
 		let fd = new FormData()
 		fd.append('id', OpportunityLists.getSelectedId());
 		fd.append('type', type)
 		fd.append('_token', '{{ csrf_token() }}')
-		
+
 		$.ajax({
 			url: "approval/submit",
 			type: "POST",
@@ -150,17 +151,17 @@ $Saya =  Auth::user()->username;
 			success: function(response, status, xhr) {
 				alert("Berhasil melakukan aksi");
 			},
-			error: function(err){
+			error: function(err) {
 				alert("Telah terjadi kesalahan.");
 			}
 		})
 	}
 
-	$('.downloadMOU').on('click', function(){
+	$('.downloadMOU').on('click', function() {
 		generateMOU()
 	})
 
-	$('.uploadMOU').on('click', function(){
+	$('.uploadMOU').on('click', function() {
 		console.log("uploading mou")
 	})
 
@@ -256,13 +257,13 @@ $Saya =  Auth::user()->username;
 
 	function listDoc() {
 
-		DocumentListsDetailID = OpportunityLists.cells(OpportunityLists.getSelectedId(),12).getValue();
-		
-			$("#divlistProjectList").show();
+		DocumentListsDetailID = OpportunityLists.cells(OpportunityLists.getSelectedId(), 12).getValue();
 
-		if (DocumentListsDetailID !=''){
+		$("#divlistProjectList").show();
+
+		if (DocumentListsDetailID != '') {
 			$("#divlistOpportunity").hide();
-			LoadM('divlistProjectList','project-documents-detail?Task_ID=' + DocumentListsDetailID);
+			LoadM('divlistProjectList', 'project-documents-detail?Task_ID=' + DocumentListsDetailID);
 		}
 		return true;
 	}

@@ -15,6 +15,10 @@
 
         </div>
 
+        <div class="row">
+
+        </div>
+
         <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             Action
         </button>
@@ -22,6 +26,8 @@
             <a class="dropdown-item" href="#" onclick="submitApproval('APPROVED')">Approve</a>
             <a class="dropdown-item" href="#" onclick="submitApproval('REJECTED')">Reject</a>
         </div>
+
+
 
         @if(optional($status)->Action == "APPROVED")
         <button class="btn btn-primary btn-next">Next</button>

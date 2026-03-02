@@ -1,17 +1,3 @@
-<?php
-
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Builder;
-
-$LSP = Auth::user()->Location;
-$Saya =  Auth::user()->username;
-// $LSP = "GEU-HO";
-// $Saya = "admin";
-
-?>
-
 @extends('layout.mainlayout-mitra')
 
 @section('content-wrapper')
@@ -42,7 +28,7 @@ $Saya =  Auth::user()->username;
 			<div class="step" data-target="#step2">
 				<button type="button" class="step-trigger" role="tab">
 					<span class="bs-stepper-circle">2</span>
-					<span class="bs-stepper-label">Penandatanganan MOU</span>
+					<span class="bs-stepper-label">MOU</span>
 				</button>
 			</div>
 
@@ -54,6 +40,42 @@ $Saya =  Auth::user()->username;
 					<span class="bs-stepper-label">Penerbitan Invoice</span>
 				</button>
 			</div>
+			<div class="line"></div>
+
+			<div class="step" data-target="#step3">
+				<button type="button" class="step-trigger" role="tab">
+					<span class="bs-stepper-circle">4</span>
+					<span class="bs-stepper-label">Perjanjian Kerjasama</span>
+				</button>
+			</div>
+			<div class="line"></div>
+
+			<div class="step" data-target="#step3">
+				<button type="button" class="step-trigger" role="tab">
+					<span class="bs-stepper-circle">5</span>
+					<span class="bs-stepper-label">Survey Lokasi</span>
+				</button>
+			</div>
+			<div class="line"></div>
+
+			<div class="step" data-target="#step3">
+				<button type="button" class="step-trigger" role="tab">
+					<span class="bs-stepper-circle">6</span>
+					<span class="bs-stepper-label">Installment</span>
+				</button>
+			</div>
+
+			<div class="line"></div>
+
+			<div class="step" data-target="#step3">
+				<button type="button" class="step-trigger" role="tab">
+					<span class="bs-stepper-circle">6</span>
+					<span class="bs-stepper-label">Aktif</span>
+				</button>
+			</div>
+
+
+
 		</div>
 
 		<div class="bs-stepper-content">
@@ -92,8 +114,13 @@ $Saya =  Auth::user()->username;
 
 		var stepperElement = $('.bs-stepper')[0];
 		window.stepper = new Stepper(stepperElement, {
-			linear: true,
-			animation: true
+			linear: false,
+			animation: true,
+			selectors: {
+				steps: '.step',
+				trigger: '.step-trigger',
+				stepper: '.bs-stepper'
+			}
 		});
 
 		function updateStepDisplay() {
@@ -175,7 +202,7 @@ $Saya =  Auth::user()->username;
 		fd.append('_token', '{{ csrf_token() }}')
 
 		$.ajax({
-			url: "submit",
+			url: "partner-approval-progress/submit",
 			type: "POST",
 			processData: false,
 			contentType: false,
@@ -199,7 +226,8 @@ $Saya =  Auth::user()->username;
 	})
 
 	function generateInvoice() {
-		let id = window.location.pathname.split('/')[6]
+		let id = window.location.pathname.split('/')[5]
+
 		$.ajax({
 			url: `/geu/hcga/public/partner-prints-invoice?id=${id}&type=downpayment`,
 			type: "GET",

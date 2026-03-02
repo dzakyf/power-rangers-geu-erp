@@ -28,6 +28,31 @@ class PartnerController extends Controller
             ];
         }
 
+        if ($type == 'termin-1') {
+            $percentage = 0.6666;
+            $amount = $inv->estimated_revenue - ($inv->estimated_revenue * $percentage);
+
+            $res = [
+                'description' => "Pembayaran termin 1 (Facility Procurement)",
+                'value' => $inv->estimated_revenue,
+                'percentage' => $percentage,
+                'amount' => $amount
+            ];
+        }
+
+        if ($type == 'termin-2') {
+            $percentage = 0.2122;
+            $amount = $inv->estimated_revenue - ($inv->estimated_revenue * $percentage);
+
+            $res = [
+                'description' => "Pembayaran termin 2 (Working Capital)",
+                'value' => $inv->estimated_revenue,
+                'percentage' => $percentage,
+                'amount' => $amount
+            ];
+        }
+
+
         return view('finance.partner.prints.invoice', ['data' => $res]);
     }
 }

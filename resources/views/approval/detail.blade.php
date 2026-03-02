@@ -1,9 +1,9 @@
 <div class="card my-3">
     <div class="card-body">
         <h5 class="text-center">Form Registrasi Partnership</h5>
-    
+
         <div class="badge badge-info w-100 my-3 py-3">INFORMASI PARTNER</div>
-        
+
         <div id="ContentPages">
             <form class="needs-validation">
                 <div class="form-group">
@@ -17,11 +17,11 @@
                         <label class="form-check-label" for="Register_As_Company">Perusahaan</label>
                     </div>
                 </div>
-        
+
                 <!-- Individual Section -->
                 <div id="IndividualDiv" style="display: {{ $partner->register_as == 'individual' ? 'block' : 'none' }}; ">
                     <div class="badge badge-info w-100 my-3 py-3">1. Informasi Pribadi</div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -36,7 +36,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -51,7 +51,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -71,7 +71,8 @@
                                 <label><strong>Pendidikan Terakhir</strong></label>
                                 <div class="form-check">
                                     <input readonly class="form-check-input" type="radio" name="Last_Education" id="Last_Education_1" value="1" {{ (old('Last_Education', $partner->last_education ?? '') == '1') ? 'checked' : '' }} />
-                                    <label class="form-check-label" for="Last_Education_1">< SMA</label>
+                                    <label class="form-check-label" for="Last_Education_1">
+                                        < SMA</label>
                                 </div>
                                 <div class="form-check">
                                     <input readonly class="form-check-input" type="radio" name="Last_Education" id="Last_Education_2" value="2" {{ (old('Last_Education', $partner->last_education ?? '') == '2') ? 'checked' : '' }} />
@@ -92,7 +93,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><strong>Bagaimana Anda mengetahui program kemitraan ini?</strong></label>
                         <div class="row">
@@ -122,19 +123,19 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="PIC">PIC Penjualan</label>
                         <select name="PIC" id="PIC" class="form-control">
                             <option value="">-- Pilih PIC Penjualan --</option>
                             @foreach($pic as $p)
-                                <option value="{{ $p->username }}" {{ (old('PIC', $partner->PIC ?? '') == $p->username) ? 'selected' : '' }}>{{ $p->Name }}</option>
+                            <option value="{{ $p->username }}" {{ (old('PIC', $partner->PIC ?? '') == $p->username) ? 'selected' : '' }}>{{ $p->Name }}</option>
                             @endforeach
                         </select>
                     </div>
-            
+
                     <div class="badge badge-info w-100 my-3 py-3">2. Informasi Pekerjaan</div>
-                    
+
                     <div class="form-group">
                         <label><strong>Status Pekerjaan</strong></label>
                         <div class="row">
@@ -158,7 +159,7 @@
                             </div>
                         </div>
                     </div>
-    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -173,7 +174,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -200,9 +201,9 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="badge badge-info w-100 my-3 py-3">3. Informasi Keuangan</div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -231,7 +232,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><strong>Sumber Dana untuk Kemitraan</strong></label>
                         <div class="row">
@@ -261,9 +262,9 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="badge badge-info w-100 my-3 py-3">4. Informasi Kemitraan</div>
-                    
+
                     <div class="form-group">
                         <label><strong>Apakah Anda saat ini menjalankan kemitraan / bisnis dengan gudang? Berapa banyak?</strong></label>
                         <div class="row">
@@ -293,14 +294,14 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="Motivation">Motivasi untuk Bergabung dalam Kemitraan</label>
                         <textarea readonly name="Motivation" id="Motivation" rows="2" class="form-control">{{ old('Motivation', $partner->motivation ?? '') }}</textarea>
                     </div>
-                    
+
                     <div class="badge badge-info w-100 my-3 py-3">5. Informasi Lokasi</div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -308,7 +309,7 @@
                                 <select name="Province" id="Province" class="form-control">
                                     <option value="">-- Pilih --</option>
                                     @if(!empty($partner->province))
-                                        <option value="{{ $partner->province }}" selected>{{ $partner->province }}</option>
+                                    <option value="{{ $partner->province }}" selected>{{ $partner->province }}</option>
                                     @endif
                                 </select>
                             </div>
@@ -319,13 +320,13 @@
                                 <select name="City" id="City" class="form-control">
                                     <option value="">-- Pilih --</option>
                                     @if(!empty($partner->city))
-                                        <option value="{{ $partner->city }}" selected>{{ $partner->city }}</option>
+                                    <option value="{{ $partner->city }}" selected>{{ $partner->city }}</option>
                                     @endif
                                 </select>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><strong>Status Lokasi</strong></label>
                         <div class="row">
@@ -349,9 +350,9 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="badge badge-info w-100 my-3 py-3">Pertanyaan Kemitraan</div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -380,7 +381,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -409,7 +410,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -438,7 +439,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><strong>Pilihan Paket</strong></label>
                         <div class="row">
@@ -457,17 +458,17 @@
                         </div>
                         <small class="text-danger d-block mt-2">Catatan: Paket berisi detail seperti uang muka kemitraan dan nomor rekening.</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><strong>Dokumen Pendukung (Lampiran)</strong></label>
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-check">
                                     <!-- <input readonly class="form-check-input" type="checkbox" name="Doc_KTP" id="Doc_KTP" value="KTP" {{ (!empty($partner->doc_ktp) || (old('Doc_KTP') == 'KTP')) ? 'checked' : '' }} /> -->
-                                     @foreach($documents as $document)
-                                        <!-- <p>Type: {{ $document->type }}</p> -->
-                                        <p>File: {{ $document->type }}</p>
-                                        <a href="{{ $document->url }}">Download</a>
+                                    @foreach($documents as $document)
+                                    <!-- <p>Type: {{ $document->type }}</p> -->
+                                    <p>File: {{ $document->type }}</p>
+                                    <a href="{{ $document->url }}">Download</a>
                                     @endforeach
                                 </div>
                                 <div style="display:none;" id="Doc_KTP_Files_Div" class="mt-2 text-center">
@@ -501,11 +502,11 @@
                         </div>
                     </div>
                 </div>
-        
+
                 <!-- Company Section -->
                 <div id="CompanyDiv" style="display:{{ $partner->register_as == 'individual' ? 'none' : 'block' }};">
                     <div class="badge badge-info w-100 my-3 py-3">1. Informasi Perusahaan</div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -520,7 +521,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><strong>Bentuk Hukum</strong></label>
                         <div class="row">
@@ -558,7 +559,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
@@ -579,19 +580,19 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="Head_Office_Address">Alamat Kantor Pusat</label>
                         <input readonly type="text" name="Head_Office_Address" id="Head_Office_Address" class="form-control" value="{{ old('Head_Office_Address', $partner->head_office_address ?? '') }}" />
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="Company_Website">Website Perusahaan</label>
                         <input readonly type="text" name="Company_Website" id="Company_Website" class="form-control" value="{{ old('Company_Website', $partner->company_website ?? '') }}" />
                     </div>
-                    
+
                     <div class="badge badge-info w-100 my-3 py-3">2. PIC (Penanggung Jawab)</div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -606,7 +607,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -621,9 +622,9 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="badge badge-info w-100 my-3 py-3">3. Keuangan Perusahaan</div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -653,7 +654,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><strong>Sumber Dana</strong></label>
                         <div class="row">
@@ -683,9 +684,9 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="badge badge-info w-100 my-3 py-3">4. Informasi Kemitraan</div>
-                    
+
                     <div class="form-group">
                         <label><strong>Jumlah gudang / outlet operasional yang direncanakan</strong></label>
                         <div class="row">
@@ -709,14 +710,14 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="Company_Experience">Apakah Anda memiliki pengalaman dalam bisnis kemitraan?</label>
                         <textarea name="Company_Experience" id="Company_Experience" rows="2" class="form-control">{{ old('Company_Experience', $partner->company_experience ?? '') }}</textarea>
                     </div>
-                    
+
                     <div class="badge badge-info w-100 my-3 py-3">5. Lokasi Operasional</div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -753,9 +754,9 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="badge badge-info w-100 my-3 py-3">Pertanyaan Kemitraan</div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -784,7 +785,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -813,7 +814,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -842,7 +843,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><strong>Pilihan Paket</strong></label>
                         <div class="row">
@@ -861,7 +862,7 @@
                         </div>
                         <small class="text-danger d-block mt-2">Catatan: Paket berisi detail seperti uang muka kemitraan dan nomor rekening.</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label><strong>Dokumen Pendukung (Lampirkan)</strong></label>
                         <div class="row">
@@ -894,7 +895,7 @@
                 </div>
                 <input readonly class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_NPWP_File" />
                 <input readonly class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_Others_File" />
-        
+
                 <!-- div class="form-group mt-4">
                     <button type="button" id="SubmitCustDetail" class="btn btn-success btn-lg">Kirim</button>
                 </div -->

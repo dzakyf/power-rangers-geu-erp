@@ -6,10 +6,15 @@
       </div> -->
 
       <li class="nav-item dropdown profile-nav-item">
+
           <a href="#" class="btn mr-1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="View">
-              <i data-feather="bell" class="icon"></i>
+              <div class="row notif-icon-section">
+                  <i data-feather="bell" class="icon"></i>
+              </div>
           </a>
+
           <div class="dropdown-menu" id="notifMenu" style="width: 500px;"></div>
+
       </li>
 
       <!-- Profile dropdown -->
@@ -49,29 +54,53 @@
           getNotifications()
       })
 
+      function markAsRead(id) {
+          $.ajax({
+              headers: {
+                  'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+              },
+              url: `notification-read?id=${id}&_token={{ csrf_token() }}`,
+              type: "POST",
+              success: function(data, textStatus, jqXHR) {},
+              error: function(jqXHR, textStatus, errorThrown) {
+                  throw "error"
+              }
+          });
+
+      }
+
       function getNotifications() {
           let notifs = $('#notifMenu')
+          console.log($('.notif-icon-section'))
           notifs.empty()
 
           $.ajax({
               headers: {
                   'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
               },
-              url: "notification-getall?_token={{ csrf_token() }}",
+              url: "/geu/hcga/public/notification-getall?_token={{ csrf_token() }}",
               type: "GET",
               success: function(data, textStatus, jqXHR) {
-                  if (data.length < 1) {
+                  if (!data || data.data.length < 1) {
                       notifs.append('<div class="p-3 text-center">No notifications</div>');
+                  }
+
+                  let notYetReaded = data.data.some(item => item.Status === 'SENT')
+                  if (notYetReaded) {
+                      $('.notif-icon-section').append(`<h6 class="text-danger">!</h6>`)
                   }
 
                   data.data.forEach(function(n, i) {
                       notifs.append(`
-                <a class="dropdown-item" style="white-space:normal;">
+                <a class="dropdown-item" style="white-space:normal;"  onclick="markAsRead(${n.ID})">
                     <h6><strong>${n.Title || 'Notification'}</strong></h6>
                     <small>${n.Created_At ?? ""}</small>
                     <p style="display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">${n.Content || ''}</p>
                 </a>
             `);
+
+
+
                       if (i < data.length - 1) menu.append('<div class="dropdown-divider"></div>');
                   });
               },

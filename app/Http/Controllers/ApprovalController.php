@@ -144,4 +144,37 @@ class ApprovalController extends Controller
 
         return view('approval.progress', compact('partner', 'pic', 'documents', 'status'));
     }
+
+    public function getBenefitFacility(Request $r)
+    {
+        // {
+        //     $q = $r->query();
+        //     $hub = $q['hub_type'];
+
+        //     $benefit = DB::Table('master_facility')->select('*')->where('type', $hub)->get();
+
+        //     return response()->json($benefit);
+        // return view('approval.benefit-facility', compact(['benefit' => $benefit]));
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+        echo "<rows>";
+
+        $partners = DB::table('broadcast')->get();
+        foreach ($partners as $key => $partner) {
+            echo "<row id=\"$partner->ID\" >";
+            echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars($partner->Title) . "</cell>";
+            echo "<cell>1</cell>";
+            echo "</row>";
+        }
+
+        echo "</rows>";
+    }
+
+    public function submitBenefitFacility() {}
 }

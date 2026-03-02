@@ -14,6 +14,8 @@ use App\Http\Controllers\OperationalController;
 use App\Http\Controllers\Partner\ChatListController as PartnerChatListController;
 use App\Http\Controllers\Partner\TicketController as PartnerTicketController;
 use App\Http\Controllers\Partner\AnnouncementController as PartnerAnnouncementController;
+use App\Http\Controllers\Partner\BusinessFacilityController as PartnerBusinessFacilityController;
+use App\Http\Controllers\Partner\FacilityController as PartnerFacilityController;
 use App\Http\Controllers\UploaderController;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Broadcast;
@@ -4400,15 +4402,45 @@ Route::group(['middleware' => 'auth'], function () {
 
     /** partner registration approval */
     $partnerApprovalPrefix = "partner-approval";
-
     Route::prefix('approval')->group(function () {
-        Route::get('progress/generate-mou', [ApprovalController::class, 'generateMOU']);
-        Route::post("progress/submit", [ApprovalController::class, 'submit']);
-        Route::get('progress/{id}', [ApprovalController::class, 'showProgress']);
+        // Route::get('progress/generate-mou', [ApprovalController::class, 'generateMOU']);
+        // Route::post("progress/submit", [ApprovalController::class, 'submit']);
+        // Route::get('progress/{id}', [ApprovalController::class, 'showProgress']);
     });
 
+    Route::get("$partnerApprovalPrefix-progress/generate-mou", [ApprovalController::class, 'generateMOU']);
+    Route::post("$partnerApprovalPrefix-progress/submit", [ApprovalController::class, 'submit']);
+    Route::get("$partnerApprovalPrefix-progress/{id}", [ApprovalController::class, 'showProgress']);
     Route::get("$partnerApprovalPrefix-index", [ApprovalController::class, 'index']);
     Route::get("$partnerApprovalPrefix-detail", [ApprovalController::class, 'detail']);
+
+    /** Benefit Facility */
+    $facilityPref = 'partner-facility';
+    Route::get("$facilityPref", [PartnerFacilityController::class, 'index']);
+    Route::get("xml-$facilityPref", [PartnerFacilityController::class, 'indexXml']);
+    Route::get("$facilityPref-detail-booth", [PartnerFacilityController::class, 'indexDetailBooth']);
+    Route::get("xml-$facilityPref-detail-booth-inventory", [PartnerFacilityController::class, 'indexDetailBoothInventoryXml']);
+    Route::get("xml-$facilityPref-detail-booth-access", [PartnerFacilityController::class, 'indexDetailBoothAccessXml']);
+    Route::get("xml-$facilityPref-detail-booth-support", [PartnerFacilityController::class, 'indexDetailBoothSupportXml']);
+    Route::get("$facilityPref-detail-mobil", [PartnerFacilityController::class, 'indexDetailMobil']);
+    Route::get("xml-$facilityPref-detail-mobil-inventory", [PartnerFacilityController::class, 'indexDetailMobilInventoryXml']);
+    Route::get("xml-$facilityPref-detail-mobil-access", [PartnerFacilityController::class, 'indexDetailMobilAccessXml']);
+    Route::get("xml-$facilityPref-detail-mobil-support", [PartnerFacilityController::class, 'indexDetailMobilSupportXml']);
+    Route::post("$facilityPref-detail-update", [PartnerFacilityController::class, 'detailFacilityUpdate']);
+
+    /** Benefit Facility Mitra */
+    $facilityPref = 'partner-business-facility';
+    // Route::get("$facilityPref", [PartnerBusinessFacilityController::class, 'index']);
+    // Route::get("xml-$facilityPref", [PartnerBusinessFacilityController::class, 'indexXml']);
+    Route::get("$facilityPref-booth", [PartnerBusinessFacilityController::class, 'indexDetailBooth']);
+    Route::get("xml-$facilityPref-booth-inventory", [PartnerBusinessFacilityController::class, 'indexDetailBoothInventoryXml']);
+    Route::get("xml-$facilityPref-booth-access", [PartnerBusinessFacilityController::class, 'indexDetailBoothAccessXml']);
+    Route::get("xml-$facilityPref-booth-support", [PartnerBusinessFacilityController::class, 'indexDetailBoothSupportXml']);
+    Route::get("$facilityPref-mobil", [PartnerBusinessFacilityController::class, 'indexDetailMobil']);
+    Route::get("xml-$facilityPref-mobil-inventory", [PartnerBusinessFacilityController::class, 'indexDetailMobilInventoryXml']);
+    Route::get("xml-$facilityPref-mobil-access", [PartnerBusinessFacilityController::class, 'indexDetailMobilAccessXml']);
+    Route::get("xml-$facilityPref-mobil-support", [PartnerBusinessFacilityController::class, 'indexDetailMobilSupportXml']);
+    Route::post("$facilityPref-update", [PartnerBusinessFacilityController::class, 'detailFacilityUpdate']);
     /** */
 
     /** chat route */
@@ -4465,5 +4497,6 @@ Route::group(['middleware' => 'auth'], function () {
     /**  notification route */
     $notification = "notification";
     Route::get("$notification-getall", [NotificationController::class, 'getAll']);
+    Route::post("$notification-read", [NotificationController::class, 'markAsRead']);
     /** */
 });

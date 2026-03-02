@@ -1,13 +1,18 @@
 @if(auth()->user()->Priv_ID == 'PARTNER')
 @php
-    $conversation = \App\RoomChat::where('Users', 'LIKE', "%".auth()->user()->username."%")->first();
+    $conversation = \App\RoomChat::where('User_ID_LEFT', auth()->user()->id)->orWhere('User_ID_Right', auth()->user()->id)->first();
+    if (!$conversation) {
+        $conversation = \App\RoomChat::create([
+            'Users' => json_encode([auth()->user()->username, 'ADMIN_USERS']),
+            'User_ID_Left' => auth()->user()->id,
+        ]);
+    }
 @endphp
 <!-- Chat Container -->
 <div id="chatBox" class="chat-container1 shadow">
     
     <!-- Header -->
-    <div class="chat-header1 d-flex justify-content-center align-items-center"
-        onclick="toggleChat()">
+    <div class="chat-header1 d-flex justify-content-center align-items-center">
         <span class="chat-title">CS - GEU</span>
     </div>
 
@@ -176,20 +181,6 @@
     </style>
 
     <script>
-        function toggleChat() {
-            // document.getElementById("chatBox")
-            //     .classList.toggle("chat-minimized1");
-            const box = document.getElementById("chatBox");
-            box.classList.toggle("chat-minimized1");
-
-            // 🔥 Jika sekarang terbuka → mark read
-            if(!box.classList.contains("chat-minimized1")){
-                setTimeout(function(){
-                    markAsRead();
-                    scrollToBottom();
-                }, 300);
-            }
-        }
 
         // Auto scroll ke bawah saat load
         // document.addEventListener("DOMContentLoaded", function() {
@@ -207,11 +198,29 @@
             setTimeout(() => {
                 toggleChat();
             }, 500);
+            
+            function toggleChat() {
+                // document.getElementById("chatBox")
+                //     .classList.toggle("chat-minimized1");
+                const box = document.getElementById("chatBox");
+                box.classList.toggle("chat-minimized1");
+
+                // 🔥 Jika sekarang terbuka → mark read
+                if(!box.classList.contains("chat-minimized1")){
+                    setTimeout(function(){
+                        markAsRead();
+                        scrollToBottom();
+                    }, 300);
+                }
+            }
+            
+            $('.chat-header1').on('click', function(){
+                toggleChat();
+            });
 
             function scrollToBottom(){
                 const container = document.getElementById('chatBody1');
                 if(!container) return;
-                console.log(container.scrollHeight);
                 container.scrollTop = container.scrollHeight;
             }
             
