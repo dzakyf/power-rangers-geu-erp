@@ -1,3 +1,35 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Builder;
+
+$LSP = Auth::user()->Location;
+$Saya =  Auth::user()->username;
+// $LSP = "GEU-HO";
+// $Saya = "admin";
+
+
+?>
+
+@extends('layout.mainlayout-mitra')
+
+@section('content-wrapper')
+@csrf
+<!-- Main Content Header -->
+<div class="main-content-header">
+	<h1>Partner</h1>
+	<ol class="breadcrumb">
+		<li class="breadcrumb-item">
+			<a href="#">Partner</a>
+		</li>
+		<li class="breadcrumb-item active">
+			<span class="active">Business Lists</span>
+		</li>
+	</ol>
+</div>
+
 <div class="card my-3">
     <div class="card-body">
         <h5 class="">Keuntungan Mobil</h5>
@@ -211,3 +243,4 @@
         PFacilityBenefitsMobilSupport.sendData();
     }
 </script>
+@endsection

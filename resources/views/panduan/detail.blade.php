@@ -12,7 +12,7 @@ $Saya =  Auth::user()->username;
 @csrf
 <!-- Main Content Header -->
 <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
-    <h5>Form Buat Panduan</h5>
+    <h5>Detail Panduan</h5>
     <form id="broadcastForm" enctype="multipart/form-data">
         @csrf
         <div class="row">
