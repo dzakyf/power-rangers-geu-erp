@@ -2,7 +2,7 @@
 <?php
 ?>
 <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
-    <h5>Form broadcast</h5>
+    <h5>Detail broadcast</h5>
     <form id="broadcastForm" enctype="multipart/form-data">
         @csrf
         <div class="row">

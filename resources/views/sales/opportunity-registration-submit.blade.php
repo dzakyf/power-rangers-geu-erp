@@ -178,6 +178,7 @@ try {
             'Status' => 'ACTIVE',
             'Department' => 'PARTNER',
             'Company_ID' => 'GEU',
+            'Sub_Menu' = "MS00010,SM00047,SS00065,SI00231,SI00233,SM00048,SS00066,SI00237,SI00236",
         ]);
     }
 

@@ -67,13 +67,20 @@ class TicketController extends Controller
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
+        $priv = auth()->user()->Priv_ID;
         $getUsers = User::get();
         $usname = [];
         foreach ($getUsers as $key => $value) {
             $usname[$value->username] = $value->Name;
         }
         $nomor = 1;
-        $get = Ticket::where("Ticket_Status", '!=', 'CLOSED')->get();
+        $get = Ticket::where("Ticket_Status", '!=', 'CLOSED');
+        if ($priv == 'PARTNER') {
+            $get->where("Created_By", auth()->user()->username);
+        }
+
+        $get = $get->get();
+        
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->ID\">";
             echo "<cell>$nomor</cell>";

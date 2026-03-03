@@ -78,10 +78,10 @@
                              </div>
                              <div class="col">
                                  <label for="Address">Provinsi <span style="color: red;">*</span></label>
-                                 <!-- <input type="text" name="Address_Province" id="Address_Province" class="form-control" required /> -->
-                                 <select name="Address_Province" id="Address_Province" class="form-control">
+                                 <input type="text" name="Address_Province" id="Address_Province" class="form-control" required />
+                                 {{-- <select name="Address_Province" id="Address_Province" class="form-control">
                                      <option value="">-- Pilih --</option>
-                                 </select>
+                                 </select> --}}
                              </div>
                              <div class="col">
                                  <label for="Address">Kode Pos <span style="color: red;">*</span></label>
