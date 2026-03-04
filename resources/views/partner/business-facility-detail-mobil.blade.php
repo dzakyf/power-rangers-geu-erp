@@ -65,13 +65,25 @@ $Saya =  Auth::user()->username;
 <script>
 	FacilityBenefitsMobil = new dhtmlXGridObject('FacilityBenefitsMobil');
 	FacilityBenefitsMobil.setImagePath("./dhtmlx/imgs/");
-	FacilityBenefitsMobil.setHeader("No, Deskripsi, Detail,Tanggal Diterima, Status Diterima");
-	FacilityBenefitsMobil.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan");
-	FacilityBenefitsMobil.setInitWidths("60,200,200,100,100");
-	FacilityBenefitsMobil.setColAlign("center,left,left,center,center");
-	FacilityBenefitsMobil.setColSorting("int,str,str,str,int");
-	FacilityBenefitsMobil.setColTypes("ro,ro,ro,dhxCalendar,ch");
+	FacilityBenefitsMobil.setHeader("No, Deskripsi, Detail,Tanggal Diterima, Status Diterima, Tipe Asset, Qty, Satuan Harga, Total, Tanggal Order");
+	FacilityBenefitsMobil.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	FacilityBenefitsMobil.setInitWidths("60,200,200,100,100,100,100,100,100,100");
+	FacilityBenefitsMobil.setColAlign("center,left,left,center,center,center,right,right,right,center");
+	FacilityBenefitsMobil.setColSorting("int,str,str,str,int,str,int,int,int,str");
+	FacilityBenefitsMobil.setColTypes("ro,ro,ro,dhxCalendar,ch,ro,ron,ron,ron,ro");
 	FacilityBenefitsMobil.enableSmartRendering(true, 150);
+    FacilityBenefitsMobil.setNumberFormat("0,000", 6, ".", ",");
+    FacilityBenefitsMobil.setNumberFormat("0,000", 7, ".", ",");
+    FacilityBenefitsMobil.setNumberFormat("0,000", 8, ".", ",");
+    FacilityBenefitsMobil.attachEvent("onEditCell", function (stage, rowId, cellIndex, newValue, oldValue) {
+        if (cellIndex == 6 || cellIndex == 7) {
+            let qty = FacilityBenefitsMobil.cells(rowId, 6).getValue();
+            let price = FacilityBenefitsMobil.cells(rowId, 7).getValue();
+            let total = parseFloat(qty) * parseFloat(price);
+            FacilityBenefitsMobil.cells(rowId, 8).setValue(total);
+        }
+        return true;
+    });
     FacilityBenefitsMobil.setDateFormat("%Y-%m-%d"); 
 	PFacilityBenefitsMobil = new dataProcessor("partner-business-facility-update?Task={{ $id }}");
 	PFacilityBenefitsMobil.setTransactionMode({

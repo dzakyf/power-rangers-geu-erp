@@ -65,14 +65,26 @@ $Saya =  Auth::user()->username;
 <script>
 	FacilityBenefitsBooth = new dhtmlXGridObject('FacilityBenefitsBooth');
 	FacilityBenefitsBooth.setImagePath("./dhtmlx/imgs/");
-	FacilityBenefitsBooth.setHeader("No, Deskripsi, Tanggal Diterima, Status Diterima");
-	FacilityBenefitsBooth.attachHeader("#rspan,#text_filter,#text_filter,#rspan");
-	FacilityBenefitsBooth.setInitWidths("60,200,100,100");
-	FacilityBenefitsBooth.setColAlign("center,left,center,center");
-	FacilityBenefitsBooth.setColSorting("int,str,str,int");
-	FacilityBenefitsBooth.setColTypes("ro,ro,dhxCalendar,ch");
+	FacilityBenefitsBooth.setHeader("No, Deskripsi, Tanggal Diterima, Status Diterima,Tipe Asset, Qty, Satuan Harga, Total, Tanggal Order");
+	FacilityBenefitsBooth.attachHeader("#rspan,#text_filter,#text_filter,#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	FacilityBenefitsBooth.setInitWidths("60,200,100,100,100,100,100,100,100");
+	FacilityBenefitsBooth.setColAlign("center,left,center,center,center,right,right,right,center");
+	FacilityBenefitsBooth.setColSorting("int,str,str,int,str,int,int,int,str");
+	FacilityBenefitsBooth.setColTypes("ro,ro,dhxCalendar,ch,ro,ron,ron,ron,ro");
 	FacilityBenefitsBooth.enableSmartRendering(true, 150);
     FacilityBenefitsBooth.setDateFormat("%Y-%m-%d"); 
+    FacilityBenefitsBooth.setNumberFormat("0,000", 5, ".", ",");
+    FacilityBenefitsBooth.setNumberFormat("0,000", 6, ".", ",");
+    FacilityBenefitsBooth.setNumberFormat("0,000", 7, ".", ",");
+    FacilityBenefitsBooth.attachEvent("onEditCell", function (stage, rowId, cellIndex, newValue, oldValue) {
+        if (cellIndex == 5 || cellIndex == 6) {
+            let qty = FacilityBenefitsBooth.cells(rowId, 5).getValue();
+            let price = FacilityBenefitsBooth.cells(rowId, 6).getValue();
+            let total = parseFloat(qty) * parseFloat(price);
+            FacilityBenefitsBooth.cells(rowId, 7).setValue(total);
+        }
+        return true;
+    });
 	PFacilityBenefitsBooth = new dataProcessor("partner-business-facility-update?Task={{ $id }}");
 	PFacilityBenefitsBooth.setTransactionMode({
 		mode: "POST",

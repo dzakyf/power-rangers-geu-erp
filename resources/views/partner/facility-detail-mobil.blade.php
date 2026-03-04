@@ -33,14 +33,26 @@
 <script>
 	FacilityBenefitsMobil = new dhtmlXGridObject('FacilityBenefitsMobil');
 	FacilityBenefitsMobil.setImagePath("./dhtmlx/imgs/");
-	FacilityBenefitsMobil.setHeader("No, Deskripsi, Detail, Tanggal Terkirim, Status Kirim, Tanggal Diterima, Status Diterima");
-	FacilityBenefitsMobil.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#text_filter,#rspan");
-	FacilityBenefitsMobil.setInitWidths("60,200,200,100,100,100,100");
-	FacilityBenefitsMobil.setColAlign("center,left,left,center,center,center,center");
-	FacilityBenefitsMobil.setColSorting("int,str,str,str,int,str,int");
-	FacilityBenefitsMobil.setColTypes("ro,ro,ro,dhxCalendar,ch,dhxCalendar,ch");
+	FacilityBenefitsMobil.setHeader("No, Deskripsi, Detail, Tanggal Terkirim, Status Kirim, Tanggal Diterima, Status Diterima, Tipe Asset, Jumlah, Harga Satuan, Total, Tanggal Order");
+	FacilityBenefitsMobil.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#text_filter,#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	FacilityBenefitsMobil.setInitWidths("60,200,200,100,100,100,100,100,100,100,100,100,100");
+	FacilityBenefitsMobil.setColAlign("center,left,left,center,center,center,center,center,right,right,right,center");
+	FacilityBenefitsMobil.setColSorting("int,str,str,str,int,str,int,int,int,int,str");
+	FacilityBenefitsMobil.setColTypes("ro,ro,ro,dhxCalendar,ch,dhxCalendar,ch,ro,edn,edn,edn,dhxCalendar");
 	FacilityBenefitsMobil.enableSmartRendering(true, 150);
     FacilityBenefitsMobil.setDateFormat("%Y-%m-%d"); 
+    FacilityBenefitsMobil.setNumberFormat("0,000", 8, ".", ",");
+    FacilityBenefitsMobil.setNumberFormat("0,000", 9, ".", ",");
+    FacilityBenefitsMobil.setNumberFormat("0,000", 10, ".", ",");
+    FacilityBenefitsMobil.attachEvent("onEditCell", function (stage, rowId, cellIndex, newValue, oldValue) {
+        if (cellIndex == 8 || cellIndex == 9) {
+            let qty = FacilityBenefitsMobil.cells(rowId, 8).getValue();
+            let price = FacilityBenefitsMobil.cells(rowId, 9).getValue();
+            let total = parseFloat(qty) * parseFloat(price);
+            FacilityBenefitsMobil.cells(rowId, 10).setValue(total);
+        }
+        return true;
+    });
 	PFacilityBenefitsMobil = new dataProcessor("partner-facility-detail-update?Task={{ $_GET['ID'] }}");
 	PFacilityBenefitsMobil.setTransactionMode({
 		mode: "POST",
