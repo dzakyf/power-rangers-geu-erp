@@ -109,6 +109,19 @@ class BusinessFacilityController extends Controller
                     echo "<cell></cell>";
                     echo "<cell>0</cell>";
                 }
+                echo "<cell>".htmlspecialchars($facility->asset_type)."</cell>";
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $_GET['Task'])->first();
+                if ($cekDtl) {
+                    echo "<cell>".htmlspecialchars($cekDtl->Qty)."</cell>";
+                    echo "<cell>".htmlspecialchars($cekDtl->Price)."</cell>";
+                    echo "<cell>".htmlspecialchars($cekDtl->Total)."</cell>";
+                    echo "<cell>".htmlspecialchars($cekDtl->Order_Date)."</cell>";
+                }else {
+                    echo "<cell></cell>";
+                    echo "<cell></cell>";
+                    echo "<cell></cell>";
+                    echo "<cell></cell>";
+                }
             echo "</row>";
         }
 
@@ -262,6 +275,20 @@ class BusinessFacilityController extends Controller
                     echo "<cell></cell>";
                     echo "<cell>0</cell>";
                 }
+                echo "<cell>".htmlspecialchars($facility->asset_type)."</cell>";
+                
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $_GET['Task'])->first();
+                if ($cekDtl) {
+                    echo "<cell>".htmlspecialchars($cekDtl->Qty)."</cell>";
+                    echo "<cell>".htmlspecialchars($cekDtl->Price)."</cell>";
+                    echo "<cell>".htmlspecialchars($cekDtl->Total)."</cell>";
+                    echo "<cell>".htmlspecialchars($cekDtl->Order_Date)."</cell>";
+                }else {
+                    echo "<cell></cell>";
+                    echo "<cell></cell>";
+                    echo "<cell></cell>";
+                    echo "<cell></cell>";
+                }
             echo "</row>";
         }
 
@@ -410,6 +437,11 @@ class BusinessFacilityController extends Controller
         $b = $param[$rowId."_c2"]; // destination
         $c = $param[$rowId."_c3"]; // destination name
         $d = $param[$rowId."_c4"] ?? ''; // transport
+        $e = $param[$rowId."_c5"] ?? ''; // transport
+        $f = $param[$rowId."_c6"] ?? ''; // transport
+        $g = $param[$rowId."_c7"] ?? ''; // transport
+        $h = $param[$rowId."_c8"] ?? ''; // transport
+        $ix = $param[$rowId."_c9"] ?? ''; // transport
         $Saya = auth()->user()->username;
 
         if ((isset($param[$rowId."_c6"]) ? $d : $c) == 1) {
@@ -435,7 +467,103 @@ class BusinessFacilityController extends Controller
                         'Checked_Partner_By' => $Saya,
                         'Checked_Partner_Date' => now(),
                         'Received_Date' => isset($param[$rowId."_c6"]) ? $c : $b,
+                        'Created_By' => $Saya,
+                        'Created_Date' => now(),
                     ]);
+            }
+        }
+
+        if (isset($param[$rowId."_c9"])) {
+            if ($f != '' && $g != '' && $h != '') {
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $_GET['Task'])->first();
+                if ($cekDtl) {
+                    DB::table('opportunity_partner_facility_dtl')
+                        ->where('ID', $cekDtl->ID)
+                        ->update([
+                            'Qty' => $f,
+                            'Price' => $g,
+                            'Total' => $h,
+                            'Order_Date' => $ix,
+                        ]);
+                }else {
+                    DB::table('opportunity_partner_facility_dtl')
+                        ->insert([
+                            'Facility_ID' => $rowId,
+                            'Partner_ID' => $_GET['Task'],
+                            'Qty' => $f,
+                            'Price' => $g,
+                            'Total' => $h,
+                            'Order_Date' => $ix,
+                            'Created_By' => $Saya,
+                            'Created_Date' => now(),
+                        ]);
+                }
+            }
+    
+            if ($ix != '') {
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $_GET['Task'])->first();
+                if ($cekDtl) {
+                    DB::table('opportunity_partner_facility_dtl')
+                        ->where('ID', $cekDtl->ID)
+                        ->update([
+                            'Order_Date' => $ix
+                        ]);
+                }else {
+                    DB::table('opportunity_partner_facility_dtl')
+                        ->insert([
+                            'Facility_ID' => $rowId,
+                            'Partner_ID' => $_GET['Task'],
+                            'Order_Date' => $ix,
+                            'Created_By' => $Saya,
+                            'Created_Date' => now(),
+                        ]);
+                }
+            }
+        }else {
+            if ($e != '' && $f != '' && $g != '') {
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $_GET['Task'])->first();
+                if ($cekDtl) {
+                    DB::table('opportunity_partner_facility_dtl')
+                        ->where('ID', $cekDtl->ID)
+                        ->update([
+                            'Qty' => $e,
+                            'Price' => $f,
+                            'Total' => $g,
+                            'Order_Date' => $h
+                        ]);
+                }else {
+                    DB::table('opportunity_partner_facility_dtl')
+                        ->insert([
+                            'Facility_ID' => $rowId,
+                            'Partner_ID' => $_GET['Task'],
+                            'Qty' => $e,
+                            'Price' => $f,
+                            'Total' => $g,
+                            'Order_Date' => $h,
+                            'Created_By' => $Saya,
+                            'Created_Date' => now(),
+                        ]);
+                }
+            }
+    
+            if ($h != '') {
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $_GET['Task'])->first();
+                if ($cekDtl) {
+                    DB::table('opportunity_partner_facility_dtl')
+                        ->where('ID', $cekDtl->ID)
+                        ->update([
+                            'Order_Date' => $h
+                        ]);
+                }else {
+                    DB::table('opportunity_partner_facility_dtl')
+                        ->insert([
+                            'Facility_ID' => $rowId,
+                            'Partner_ID' => $_GET['Task'],
+                            'Order_Date' => $h,
+                            'Created_By' => $Saya,
+                            'Created_Date' => now(),
+                        ]);
+                }
             }
         }
 

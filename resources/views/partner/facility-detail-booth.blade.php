@@ -33,14 +33,26 @@
 <script>
 	FacilityBenefitsBooth = new dhtmlXGridObject('FacilityBenefitsBooth');
 	FacilityBenefitsBooth.setImagePath("./dhtmlx/imgs/");
-	FacilityBenefitsBooth.setHeader("No, Deskripsi, Tanggal Terkirim, Status Kirim, Tanggal Diterima, Status Diterima");
-	FacilityBenefitsBooth.attachHeader("#rspan,#text_filter,#text_filter,#rspan,#text_filter,#rspan");
-	FacilityBenefitsBooth.setInitWidths("60,200,100,100,100,100");
-	FacilityBenefitsBooth.setColAlign("center,left,center,center,center,center");
-	FacilityBenefitsBooth.setColSorting("int,str,str,int,str,int");
-	FacilityBenefitsBooth.setColTypes("ro,ro,dhxCalendar,ch,dhxCalendar,ch");
+	FacilityBenefitsBooth.setHeader("No, Deskripsi, Tipe Asset, Tanggal Terkirim, Status Kirim, Tanggal Diterima, Status Diterima, Qty, Harga Satuan, Total Harga, Tanggal Order");
+	FacilityBenefitsBooth.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#text_filter,#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
+	FacilityBenefitsBooth.setInitWidths("60,200,100,100,100,100,100,100,100,100,100");
+	FacilityBenefitsBooth.setColAlign("center,left,center,center,center,center,center,right,right,right,center");
+	FacilityBenefitsBooth.setColSorting("int,str,str,str,int,str,int,int,int,int,str");
+	FacilityBenefitsBooth.setColTypes("ro,ro,ro,dhxCalendar,ch,ro,ch,edn,edn,edn,dhxCalendar");
 	FacilityBenefitsBooth.enableSmartRendering(true, 150);
     FacilityBenefitsBooth.setDateFormat("%Y-%m-%d"); 
+    FacilityBenefitsBooth.setNumberFormat("0,000", 7, ".", ",");
+    FacilityBenefitsBooth.setNumberFormat("0,000", 8, ".", ",");
+    FacilityBenefitsBooth.setNumberFormat("0,000", 9, ".", ",");
+    FacilityBenefitsBooth.attachEvent("onEditCell", function (stage, rowId, cellIndex, newValue, oldValue) {
+        if (cellIndex == 7 || cellIndex == 8) {
+            let qty = FacilityBenefitsBooth.cells(rowId, 7).getValue();
+            let price = FacilityBenefitsBooth.cells(rowId, 8).getValue();
+            let total = parseFloat(qty) * parseFloat(price);
+            FacilityBenefitsBooth.cells(rowId, 9).setValue(total);
+        }
+        return true;
+    });
 	PFacilityBenefitsBooth = new dataProcessor("partner-facility-detail-update?Task={{ $_GET['ID'] }}");
 	PFacilityBenefitsBooth.setTransactionMode({
 		mode: "POST",
