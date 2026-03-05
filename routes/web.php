@@ -16,9 +16,8 @@ use App\Http\Controllers\Partner\TicketController as PartnerTicketController;
 use App\Http\Controllers\Partner\AnnouncementController as PartnerAnnouncementController;
 use App\Http\Controllers\Partner\BusinessFacilityController as PartnerBusinessFacilityController;
 use App\Http\Controllers\Partner\FacilityController as PartnerFacilityController;
+use App\Http\Controllers\ProjectionProfitController;
 use App\Http\Controllers\UploaderController;
-use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\Broadcast;
 
 /*
 |--------------------------------------------------------------------------
@@ -4498,5 +4497,14 @@ Route::group(['middleware' => 'auth'], function () {
     $notification = "notification";
     Route::get("$notification-getall", [NotificationController::class, 'getAll']);
     Route::post("$notification-read", [NotificationController::class, 'markAsRead']);
+    /** */
+
+    /** projection route */
+    $projection = "profit";
+    Route::get("$projection-index", [ProjectionProfitController::class, 'index']);
+    Route::get("$projection-create", [ProjectionProfitController::class, 'create']);
+    Route::get("$projection-submit", [ProjectionProfitController::class, 'submit']);
+    Route::get("$projection-data-projection", [ProjectionProfitController::class, 'projectionData']);
+    Route::get("$projection-data-expenditure", [ProjectionProfitController::class, 'expenditureData']);
     /** */
 });
