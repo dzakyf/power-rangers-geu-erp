@@ -16,8 +16,11 @@ use App\Http\Controllers\Partner\TicketController as PartnerTicketController;
 use App\Http\Controllers\Partner\AnnouncementController as PartnerAnnouncementController;
 use App\Http\Controllers\Partner\BusinessFacilityController as PartnerBusinessFacilityController;
 use App\Http\Controllers\Partner\FacilityController as PartnerFacilityController;
+use App\Http\Controllers\Partner\WarehouseController as PartnerWarehouseController;
+use App\Http\Controllers\Partner\WarehouseMonitoringController as PartnerWarehouseMonitoringController;
 use App\Http\Controllers\ProjectionProfitController;
 use App\Http\Controllers\UploaderController;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -4440,6 +4443,25 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$facilityPref-mobil-access", [PartnerBusinessFacilityController::class, 'indexDetailMobilAccessXml']);
     Route::get("xml-$facilityPref-mobil-support", [PartnerBusinessFacilityController::class, 'indexDetailMobilSupportXml']);
     Route::post("$facilityPref-update", [PartnerBusinessFacilityController::class, 'detailFacilityUpdate']);
+
+    /** Warehouse */
+    $warehousePref = 'partner-warehouse';
+    Route::get("$warehousePref-list", [PartnerWarehouseController::class, 'indexWarehouseList']);
+    Route::get("$warehousePref-list-nonaktifkan", [PartnerWarehouseController::class, 'nonActiveWarehouseList']);
+    Route::get("xml-$warehousePref-list", [PartnerWarehouseController::class, 'indexWarehouseListXml']);
+    Route::get("$warehousePref-list-new", [PartnerWarehouseController::class, 'newWarehouseList']);
+    Route::post("$warehousePref-list-new-submit", [PartnerWarehouseController::class, 'newWarehouseListSubmit']);
+    Route::get("$warehousePref-list-detail", [PartnerWarehouseController::class, 'detailWarehouseList']);
+    Route::post("$warehousePref-list-detail-update", [PartnerWarehouseController::class, 'detailWarehouseListUpdate']);
+    Route::get("xml-$warehousePref-list-detail", [PartnerWarehouseController::class, 'detailWarehouseListXml']);
+    Route::get("$warehousePref-list-detail-new", [PartnerWarehouseController::class, 'detailWarehouseListNew']);
+    Route::post("$warehousePref-list-detail-new-submit", [PartnerWarehouseController::class, 'detailWarehouseListNewSubmit']);
+    Route::get("$warehousePref-list-detail-detail", [PartnerWarehouseController::class, 'detailWarehouseListDetail']);
+    Route::post("$warehousePref-list-detail-detail-submit", [PartnerWarehouseController::class, 'detailWarehouseListDetailSubmit']);
+    Route::get("$warehousePref-open", [PartnerWarehouseController::class, 'indexOpenWarehouse']);
+
+
+    Route::get("$warehousePref-monitoring", [PartnerWarehouseMonitoringController::class, 'indexMonitoringWarehouse']);
     /** */
 
     /** chat route */
@@ -4500,11 +4522,23 @@ Route::group(['middleware' => 'auth'], function () {
     /** */
 
     /** projection route */
-    $projection = "profit";
+    $projection = "projection";
     Route::get("$projection-index", [ProjectionProfitController::class, 'index']);
-    Route::get("$projection-create", [ProjectionProfitController::class, 'create']);
-    Route::get("$projection-submit", [ProjectionProfitController::class, 'submit']);
+    Route::get("$projection-create", [ProjectionProfitController::class, 'createProjection']);
+    Route::get("$projection-submit-projection", [ProjectionProfitController::class, 'submitProjection']);
     Route::get("$projection-data-projection", [ProjectionProfitController::class, 'projectionData']);
-    Route::get("$projection-data-expenditure", [ProjectionProfitController::class, 'expenditureData']);
+    Route::post("$projection-upload", [ProjectionProfitController::class, 'uploadProjection']);
+    Route::get("$projection-template", [ProjectionProfitController::class, 'downloadProjectionTemplate']);
+
+    $expenditure = "expenditure";
+    Route::get("$expenditure-index", [ProjectionProfitController::class, 'indexExpenditure']);
+    Route::get("$expenditure-create", [ProjectionProfitController::class, 'createExpenditure']);
+    Route::get("$expenditure-template", [ProjectionProfitController::class, 'downloadExpenditureTemplate']);
+    Route::get("$expenditure-submit-expenditure", [ProjectionProfitController::class, 'submitExpenditure']);
+    Route::get("$expenditure-data-expenditure", [ProjectionProfitController::class, 'expenditureData']);
     /** */
+
+    /**partner route */
+    $partner = "partner";
+    Route::get("$partner-data", [UserController::class, 'getPartner']);
 });
