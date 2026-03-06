@@ -1,0 +1,92 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Builder;
+
+$LSP = Auth::user()->Location;
+$Saya =  Auth::user()->username;
+
+$partner = DB::table('approval_request')->where('Status', 'APPROVED')->get()->pluck('Requester_Id');
+$partner = DB::table('opportunity_partner')->whereIn('id', $partner)->get();
+
+$kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
+
+?>
+<div class="card mt-3">
+	<div class="card-body">
+		<h5>Partner Warehouse New</h5>
+		<div class="row" id="ContentPages">
+            <div class="col-md-6">
+                <label for="Warehouse_Location">Warehouse Location</label>
+                <select name="Warehouse_Location" id="Warehouse_Location" class="form-control">
+                    <option value="">-- Pilih Lokasi --</option>
+                    @foreach ($kotakab as $item)
+                        <option value="{{ $item->City }}">{{ $item->City }}</option>
+                    @endforeach
+                </select>
+            </div>
+			<div class="col-md-6">
+				<label for="Partner_Name">Mitra</label>
+                <select name="Partner_Name" id="Partner_Name" class="form-control">
+                    <option value="">-- Pilih Mitra --</option>
+                    @foreach ($partner as $item)
+                        <option value="{{ $item->lead_id }}">{{$item->full_name}}</option>
+                    @endforeach
+                </select>
+			</div>
+			<div class="col-12 mt-3">
+				<button class="btn btn-success" id="SubmitCustDetail">Submit</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<script>
+	$('#SubmitCustDetail').click(function() {
+
+		gettingVars = getAllValues();
+
+		$.ajax({
+			headers: {
+				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+			},
+			url: "partner-warehouse-list-new-submit?_token={{ csrf_token() }}",
+			type: "POST",
+			data: gettingVars,
+			success: function(data, textStatus, jqXHR) {
+				var dataPos = data.indexOf("success");
+				if (dataPos != '-1') {
+					var cariAWB = data.split(":");
+					alert('Data Opportunity Submitted!');
+
+					location.href = "partner-warehouse-list";
+				} else {
+					alert('Opportunity Failed to Submit!');
+				}
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				alert("Error Internal! Please Try again!");
+
+			}
+		});
+	})
+
+	function getAllValues() {
+		var inputValues = [];
+		$('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
+			var type = $(this).attr("type");
+			if ((type == "checkbox" || type == "radio") && this.checked) {
+				inputValues.push($(this).attr("name") + "=" + $(this).val());
+			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
+				inputValues.push($(this).attr("id") + "=" + $(this).val());
+			} else if ($(this).is("textarea")) {
+				inputValues.push($(this).attr("id") + "=" + $(this).val());
+			}
+		})
+		return inputValues.join('&');
+	}
+
+</script>
