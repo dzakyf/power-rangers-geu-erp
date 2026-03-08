@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Partner;
 
 use App\Http\Controllers\Controller;
 use App\User;
-use App\WarehosuePartner;
-use App\WarehosuePartnerSupplies;
+use App\WarehousePartner;
+use App\WarehousePartnerSupplies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -34,7 +34,7 @@ class WarehouseController extends Controller
         }
         $nomor = 1;
 
-        $get = WarehosuePartner::get();
+        $get = WarehousePartner::get();
         
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->id\">";
@@ -53,13 +53,13 @@ class WarehouseController extends Controller
 
     public function nonActiveWarehouseList(Request $request)
     {
-        $cek = WarehosuePartner::where("id", $request->Task)->first();
+        $cek = WarehousePartner::where("id", $request->Task)->first();
         $status = 'ACTIVE';
         if ($cek->warehouse_status == 'ACTIVE') {
             $status = "INACTIVE";
         }
 
-        WarehosuePartner::where("id", $request->Task)->update([
+        WarehousePartner::where("id", $request->Task)->update([
             'warehouse_status' => $status, 
         ]);
 
@@ -73,12 +73,12 @@ class WarehouseController extends Controller
 
     public function newWarehouseListSubmit(Request $request)
     {
-        $getCount = WarehosuePartner::count();
+        $getCount = WarehousePartner::count();
         $tricode = DB::table('master_kodepos')->where("City", $request->Warehouse_Location)->first();
 
         $Task_ID = "GEU/".strtoupper($tricode->tricode)."/".sprintf('%04d', $getCount + 1);
 
-        WarehosuePartner::create([
+        WarehousePartner::create([
             'warehouse_task_id' => $Task_ID,
             'partner_task_id' => $request->Partner_Name,
             'warehouse_location' => $request->Warehouse_Location,
@@ -97,7 +97,7 @@ class WarehouseController extends Controller
         $partner = DB::table('opportunity_partner')->whereIn('id', $partner)->get();
 
         $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
-        $wh = WarehosuePartner::where("id", $request->Task)->first();
+        $wh = WarehousePartner::where("id", $request->Task)->first();
         return view('partner.warehouse.list-detail', compact('wh', 'partner', 'kotakab'));
     }
 
@@ -107,7 +107,7 @@ class WarehouseController extends Controller
         $Task_ID = explode('/', $request->warehouse_task_id);
         $Task_ID = $Task_ID[0] . '/' . $tricode->tricode . "/" . $Task_ID[2];
 
-        WarehosuePartner::where('id', $request->id)->update([
+        WarehousePartner::where('id', $request->id)->update([
             'warehouse_task_id' => $Task_ID,
             'partner_task_id' => $request->Partner_Name,
             'warehouse_location' => $request->Warehouse_Location,
@@ -128,8 +128,8 @@ class WarehouseController extends Controller
 
         echo "<rows>";
 
-        $wh = WarehosuePartner::where("id", $request->Task)->first();
-        $partnerSupplies = WarehosuePartnerSupplies::where("warehouse_task_id", $wh->warehouse_task_id)->get();
+        $wh = WarehousePartner::where("id", $request->Task)->first();
+        $partnerSupplies = WarehousePartnerSupplies::where("warehouse_task_id", $wh->warehouse_task_id)->get();
         
         $nomor = 1;
 
@@ -155,14 +155,14 @@ class WarehouseController extends Controller
 
     public function detailWarehouseListNew(Request $request)
     {
-        $wh = WarehosuePartner::where("id", $request->Task)->first();
+        $wh = WarehousePartner::where("id", $request->Task)->first();
         $kelurahan = DB::table('master_kodepos')->where('City', $wh->warehouse_location)->select('District')->groupBy("District")->get();
         return view('partner.warehouse.list-detail-new', compact('wh', 'kelurahan'));
     }
 
     public function detailWarehouseListNewSubmit(Request $request)
     {
-        // WarehosuePartner::where();
+        // WarehousePartner::where();
         $r = $request->all();
 
         unset($r['_token']);
@@ -170,28 +170,28 @@ class WarehouseController extends Controller
         $r['created_by'] = auth()->user()->username;
         $r['created_date'] = now();
 
-        WarehosuePartnerSupplies::create($r);
+        WarehousePartnerSupplies::create($r);
 
         echo 'success';
     }
 
     public function detailWarehouseListDetail(Request $request)
     {
-        $wh = WarehosuePartner::where("id", $request->Task)->first();
+        $wh = WarehousePartner::where("id", $request->Task)->first();
         $kelurahan = DB::table('master_kodepos')->where('City', $wh->warehouse_location)->select('District')->groupBy("District")->get();
-        $wh = WarehosuePartnerSupplies::where("id", $request->Task)->first();
+        $wh = WarehousePartnerSupplies::where("id", $request->Task)->first();
         return view('partner.warehouse.list-detail-detail', compact('wh', 'kelurahan'));
     }
 
     public function detailWarehouseListDetailSubmit(Request $request)
     {
-        // WarehosuePartner::where();
+        // WarehousePartner::where();
         $r = $request->all();
 
         unset($r['id']);
         unset($r['_token']);
 
-        WarehosuePartnerSupplies::where('id', $request->id)->update($r);
+        WarehousePartnerSupplies::where('id', $request->id)->update($r);
 
         echo 'success';
     }
@@ -221,7 +221,7 @@ class WarehouseController extends Controller
 
         // $getPartnerID = DB::table('opportunity_partner')->where("lead_id", auth()->user()->Emp_ID)->first();
         
-        $get = WarehosuePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
+        $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
         
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->ID\">";
@@ -244,7 +244,7 @@ class WarehouseController extends Controller
         $partner = DB::table('opportunity_partner')->whereIn('id', $partner)->get();
 
         $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
-        $wh = WarehosuePartner::where("id", $request->Task)->first();
+        $wh = WarehousePartner::where("id", $request->Task)->first();
 
         return view('partner.warehouse.open', compact('kotakab', 'wh'));
     }
@@ -269,7 +269,7 @@ class WarehouseController extends Controller
 
         // $getPartnerID = DB::table('opportunity_partner')->where("lead_id", auth()->user()->Emp_ID)->first();
         
-        $get = WarehosuePartnerSupplies::where('warehouse_task_id', $request->task)->get();
+        $get = WarehousePartnerSupplies::where('warehouse_task_id', $request->task)->get();
         
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->ID\">";

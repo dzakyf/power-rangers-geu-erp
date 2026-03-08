@@ -20,9 +20,17 @@ class ProjectionProfitController extends Controller
         return view('projection.index');
     }
 
-    public function downloadExpenditureTemplate() {}
 
-    public function downloadProjectionTemplate() {}
+    public function downloadProjectionTemplate()
+    {
+        $template = storage_path(public_path('template-proyeksi.xlsx'));
+
+
+        if (!file_exists($template)) {
+            abort(404, 'File Tidak Ditemukan!');
+        }
+        return response()->download($template);
+    }
 
     public function indexExpenditure()
     {
@@ -56,7 +64,7 @@ class ProjectionProfitController extends Controller
         $spreadsheet = IOFactory::load($fullPath);
 
         // load sheet, table name
-        $sheet = $spreadsheet->getSheetByName('high-projection');
+        $sheet = $spreadsheet->getSheetByName($type);
 
         // // expenditure
         $rowIterator = $sheet->getRowIterator(2, 17);
@@ -211,11 +219,11 @@ class ProjectionProfitController extends Controller
     {
         $q = $r->query();
         $userId = $q['user_id'];
-        $projectionType = $q['projection_type'];
+        $projectionType = $q['projection_type'] ?? "%";
         $hubType = $q['hub_type'];
         $year = $q['year'];
 
-        $proj = DB::table('projections')->select('*')->where('User_Id', '=', $userId)->where('Projection_Type', '=', $projectionType)->where('Hub_Type', '=', $hubType)->where('Year', '=', $year)->get();
+        $proj = DB::table('projections')->select('*')->where('User_Id', '=', $userId)->where('Projection_Type', 'LIKE', $projectionType)->where('Hub_Type', '=', $hubType)->where('Year', '=', $year)->get();
 
 
         $xml = new SimpleXMLElement('<rows></rows>');
@@ -223,6 +231,8 @@ class ProjectionProfitController extends Controller
         foreach ($proj as $p) {
             $row = $xml->addChild('row');
             $row->addChild('cell', $p->ID);
+            $row->addChild('cell', $p->Hub_Type);
+            $row->addChild('cell', $p->Projection_Type);
             $row->addChild('cell', htmlspecialchars($p->Description));
             $row->addChild('cell', $p->Standard_Value);
             $row->addChild('cell', $p->Offset);
@@ -253,17 +263,19 @@ class ProjectionProfitController extends Controller
     {
         $q = $r->query();
         $userId = $q['user_id'];
-        $projectionType = $q['projection_type'];
+        $projectionType = $q['projection_type'] ?? "%";
         $hubType = $q['hub_type'];
         $year = '%';
 
-        $exp = DB::table('expenditure')->select('*')->where('User_Id', '=', $userId)->where('Projection_Type', '=', $projectionType)->where('Hub_Type', '=', $hubType)->where('Year', 'LIKE', $year)->get();
+        $exp = DB::table('expenditure')->select('*')->where('User_Id', '=', $userId)->where('Projection_Type', 'LIKE', $projectionType)->where('Hub_Type', '=', $hubType)->where('Year', 'LIKE', $year)->get();
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
         foreach ($exp as $p) {
             $row = $xml->addChild('row');
             $row->addChild('cell', $p->ID);
+            $row->addChild('cell', $p->Hub_Type);
+            $row->addChild('cell', $p->Projection_Type);
             $row->addChild('cell', htmlspecialchars($p->Description));
             $row->addChild('cell', $p->Short_Desc);
             $row->addChild('cell', $p->Offset);

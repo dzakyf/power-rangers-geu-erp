@@ -17,7 +17,23 @@
 <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
     <h5>Buat proyeksi</h5>
     <!-- <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div> -->
+
     <div class="col-12">
+        <div class="form-group">
+            <label for="Hub_Type">Template Proyeksi<span style="color: red;">*</span></label>
+            <div class="">
+                <a href="projection-template">Download template</a>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="Hub_Type">Tipe Hub <span style="color: red;">*</span></label>
+            <!-- <input type="text" name="Type" id="Type" class="form-control" required /> -->
+            <select name="Hub_Type" id="Hub_Type" class="form-control" required>
+                <option value="">-- Pilih Jenis--</option>
+                <option value="booth">Booth</option>
+                <option value="mobil" disabled>Mobil</option>
+            </select>
+        </div>
         <div class="form-group">
             <label for="Type">Tipe Proyeksi <span style="color: red;">*</span></label>
             <!-- <input type="text" name="Type" id="Type" class="form-control" required /> -->
@@ -48,9 +64,6 @@
 </div>
 
 <script>
-    $(document).ready(function() {
-        initPartnerGrid()
-    })
     let type = null;
     let year = null;
 
@@ -75,35 +88,7 @@
         if (vault && vault.uploader && vault.uploader.config) {
             vault.uploader.config.params.type = $("#Type").val();
             vault.uploader.config.params.year = $("#Year").val();
-            console.log('Updated params:', vault.uploader.config.params);
         }
     });
-
-    function initPartnerGrid() {
-        let tHeader = [
-            'No', 'Nama', 'Alamat'
-        ]
-
-        let tWidth = tHeader.map((e) => '110')
-        let headerAttachment = [
-            '#rspan', '#text_filter', '#text_filter'
-        ]
-        PartnerGrid = new dhtmlXGridObject('PartnerGrid');
-        PartnerGrid.setImagePath("./dhtmlx/imgs/");
-        PartnerGrid.setHeader(tHeader.join(','));
-        PartnerGrid.setInitWidths(tWidth.join(','));
-        // PartnerGrid.enableAutoWidth(true);
-        PartnerGrid.attachHeader(headerAttachment);
-        // ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-        // ProjectionGrid.setColAlign("center,left,left,left,left");
-        // ProjectionGrid.setColSorting("int,str,str,str,str");
-        // ProjectionGrid.setColTypes("ro,ro,ro,ro,ro");
-        // ProjectionGrid.enableSmartRendering(true, 150);
-        // ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
-        // PartnerGrid.attachEvent("onRowDblClicked", clickMitra);
-        PartnerGrid.setSkin("dhx_skyblue");
-        PartnerGrid.init();
-        PartnerGrid.clearAndLoad('partner-data');
-    }
 </script>
 @endsection
