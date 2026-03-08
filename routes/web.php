@@ -18,6 +18,8 @@ use App\Http\Controllers\Partner\BusinessFacilityController as PartnerBusinessFa
 use App\Http\Controllers\Partner\FacilityController as PartnerFacilityController;
 use App\Http\Controllers\Partner\WarehouseController as PartnerWarehouseController;
 use App\Http\Controllers\Partner\WarehouseMonitoringController as PartnerWarehouseMonitoringController;
+use App\Http\Controllers\Partner\MasterStockPriceController as PartnerMasterStockPriceController;
+use App\Http\Controllers\Partner\WarehouseStockRequestController as PartnerWarehouseStockRequestController;
 use App\Http\Controllers\ProjectionProfitController;
 use App\Http\Controllers\UploaderController;
 use App\Http\Controllers\UserController;
@@ -4444,6 +4446,12 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$facilityPref-mobil-support", [PartnerBusinessFacilityController::class, 'indexDetailMobilSupportXml']);
     Route::post("$facilityPref-update", [PartnerBusinessFacilityController::class, 'detailFacilityUpdate']);
 
+    /** Master Price Stock */
+    $masterPriceStockPref = "partner-master-stock-price";
+    Route::get("$masterPriceStockPref", [PartnerMasterStockPriceController::class, 'index']);
+    Route::get("xml-$masterPriceStockPref", [PartnerMasterStockPriceController::class, 'indexXml']);
+    Route::post("$masterPriceStockPref-update", [PartnerMasterStockPriceController::class, 'update']);
+
     /** Warehouse */
     $warehousePref = 'partner-warehouse';
     Route::get("$warehousePref-list", [PartnerWarehouseController::class, 'indexWarehouseList']);
@@ -4460,6 +4468,14 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$warehousePref-list-detail-detail-submit", [PartnerWarehouseController::class, 'detailWarehouseListDetailSubmit']);
     Route::get("$warehousePref-open", [PartnerWarehouseController::class, 'indexOpenWarehouse']);
 
+    Route::get("$warehousePref-request", [PartnerWarehouseStockRequestController::class, 'indexWarehouseStockRequest']);
+    Route::get("xml-$warehousePref-request", [PartnerWarehouseStockRequestController::class, 'indexWarehouseStockRequestXml']);
+    Route::get("$warehousePref-request-detail", [PartnerWarehouseStockRequestController::class, 'detailWarehouseStockRequest']);
+    Route::get("xml-$warehousePref-request-detail", [PartnerWarehouseStockRequestController::class, 'detailWarehouseStockRequestXml']);
+    Route::get("$warehousePref-request-detail-new", [PartnerWarehouseStockRequestController::class, 'detailWarehouseStockRequestNew']);
+    Route::post("$warehousePref-request-detail-new-submit", [PartnerWarehouseStockRequestController::class, 'detailWarehouseStockRequestNewSubmit']);
+
+    Route::post("partner-get-master-price", [PartnerMasterStockPriceController::class, 'getCurrentPrice']);
 
     Route::get("$warehousePref-monitoring", [PartnerWarehouseMonitoringController::class, 'indexMonitoringWarehouse']);
     /** */

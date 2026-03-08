@@ -30,7 +30,17 @@
 </div>
 
 <script>
+    var mitraId = null;
+    $(document).ready(function() {
+        initPartnerGrid()
+
+    })
+
     function redirectToCreateProjection() {
+        if (!mitraId) {
+            alert("Pilh mitra terlebih dahulu")
+            return
+        }
         window.location.href = 'projection-create'
     }
 
@@ -55,7 +65,8 @@
         // ProjectionGrid.setColTypes("ro,ro,ro,ro,ro");
         // ProjectionGrid.enableSmartRendering(true, 150);
         // ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
-        PartnerGrid.attachEvent("onRowDblClicked", clickMitra);
+        PartnerGrid.attachEvent("onRowDblClicked", doubleClickMitra);
+        PartnerGrid.attachEvent("onRowSelect", selectMitra);
         PartnerGrid.setSkin("dhx_skyblue");
         PartnerGrid.init();
         PartnerGrid.clearAndLoad('partner-data');
@@ -63,7 +74,7 @@
 
     function initProjectionGrid() {
         let tHeader = [
-            'No', ' Uraian', ' Standard',
+            'No', 'Tipe Hub', 'Tipe Proyeksi', ' Uraian', ' Standard',
             ' %', 'Tahun Ke-', ' Month 1 ', '',
             '', '', ' Month 2',
             '', '', '',
@@ -85,7 +96,7 @@
 
         let tWidth = tHeader.map((e) => '110')
         let headerAttachment = [
-            '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter',
+            '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter',
             'A', 'B', 'Total',
             'Offset (%)', 'A', 'B', 'Total',
             'Offset (%)', 'A', 'B', 'Total',
@@ -115,13 +126,13 @@
         // ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
         ProjectionGrid.setSkin("dhx_skyblue");
         ProjectionGrid.init();
-        ProjectionGrid.clearAndLoad('projection-data-projection?user_id=2345&hub_type=booth&projection_type=high&year=1');
+        ProjectionGrid.clearAndLoad('projection-data-projection?user_id=2345&hub_type=booth&projection_type=&year=1');
     }
 
 
     function initExpenditureGrid() {
         let tHeader = [
-            'No', ' Uraian', ' Standard',
+            'No', 'Tipe Hub', 'Tipe Proyeksi', 'Uraian', ' Standard',
             ' %', 'Tahun Ke-', ' Month 1 ',
             ' Month 2',
             ' Month 3',
@@ -138,7 +149,7 @@
         let tWidth = tHeader.map((e) => '140')
 
         let headerAttachment = [
-            '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter'
+            '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter'
         ]
 
         ExpenditureGrid = new dhtmlXGridObject('ExpenditureGrid');
@@ -156,19 +167,20 @@
         // ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
         ExpenditureGrid.setSkin("dhx_skyblue");
         ExpenditureGrid.init();
-        ExpenditureGrid.clearAndLoad('expenditure-data-expenditure?user_id=2345&hub_type=booth&projection_type=high&year=1');
+        ExpenditureGrid.clearAndLoad('expenditure-data-expenditure?user_id=2345&hub_type=booth&projection_type=&year=1');
 
     }
 
-    function clickMitra() {
+    function selectMitra(id, cellIdx) {
+        mitraId = PartnerGrid.cells(id, 0).getValue();
+    }
+
+    function doubleClickMitra() {
         initExpenditureGrid()
         initProjectionGrid()
     }
 
-    $(document).ready(function() {
-        initPartnerGrid()
 
-    })
 
     function ProjectionGridKlik() {
         ProjectionGridID = ProjectionGrid.getSelectedId();

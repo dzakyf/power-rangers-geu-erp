@@ -4,9 +4,9 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class WarehosuePartner extends Model
+class WarehouseStockRequest extends Model
 {
-    protected $table = "warehouse_partner";
+    protected $table = "warehouse_partner_stock_request";
     protected $guarded = ['id'];
     
     public $timestamps = false;
