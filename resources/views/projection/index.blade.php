@@ -41,7 +41,7 @@
             alert("Pilh mitra terlebih dahulu")
             return
         }
-        window.location.href = 'projection-create'
+        window.location.href = `projection-create?id=${mitraId}`
     }
 
     function initPartnerGrid() {
@@ -126,7 +126,7 @@
         // ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
         ProjectionGrid.setSkin("dhx_skyblue");
         ProjectionGrid.init();
-        ProjectionGrid.clearAndLoad('projection-data-projection?user_id=2345&hub_type=booth&projection_type=&year=1');
+        ProjectionGrid.clearAndLoad('projection-data-projection?user_id=2345&hub_type=&projection_type=&year=');
     }
 
 
@@ -167,7 +167,7 @@
         // ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
         ExpenditureGrid.setSkin("dhx_skyblue");
         ExpenditureGrid.init();
-        ExpenditureGrid.clearAndLoad('expenditure-data-expenditure?user_id=2345&hub_type=booth&projection_type=&year=1');
+        ExpenditureGrid.clearAndLoad(`expenditure-data-expenditure?user_id=${mitraId}&hub_type=&projection_type=&year=`);
 
     }
 
@@ -178,35 +178,6 @@
     function doubleClickMitra() {
         initExpenditureGrid()
         initProjectionGrid()
-    }
-
-
-
-    function ProjectionGridKlik() {
-        ProjectionGridID = ProjectionGrid.getSelectedId();
-        $("#divlistOpportunity").show();
-        if (ProjectionGridID != '') {
-            $("#divlistProjectList").hide();
-            LoadM('divlistOpportunity', 'panduan-detail?ID=' + ProjectionGridID);
-        }
-        return true;
-    }
-
-    function refreshdata() {
-        ProjectionGrid.clearAndLoad('projection-data-projection?user_id=2345&hub_type=booth&projection_type=high&year=1');
-    }
-
-
-    function detailBP() {
-        ProjectionGridKlik();
-    }
-
-
-
-
-    function LihatDetailProjectionGrid() {
-        taskid = ProjectionGrid.cells(ProjectionGrid.getSelectedId(), 1).getValue();
-        LoadM('divlistOpportunity', 'sales-opportunity-activity?taskid=' + taskid);
     }
 </script>
 @endsection

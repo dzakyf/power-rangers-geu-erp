@@ -30,6 +30,22 @@
 
 @push('registration-script')
 <script>
+    $('input[name="Register_As"]').change(function() {
+        var val = $(this).val();
+        if (val === 'company') {
+            $('#IndividualDiv').hide();
+            $('#IndividualDiv input[type="text"], #IndividualDiv textarea').val('');
+            $('#IndividualDiv input[type="checkbox"], #IndividualDiv input[type="radio"]').prop('checked', false).trigger('change');
+            $('#IndividualDiv select').val(null).trigger('change');
+            $('#CompanyDiv').show();
+        } else {
+            $('#CompanyDiv').hide();
+            $('#CompanyDiv input[type="text"], #CompanyDiv textarea').val('');
+            $('#CompanyDiv input[type="checkbox"], #CompanyDiv input[type="radio"]').prop('checked', false).trigger('change');
+            $('#CompanyDiv select').val(null).trigger('change');
+            $('#IndividualDiv').show();
+        }
+    });
     // $(document).ready(function() {
     //     loadProvince()
     // })

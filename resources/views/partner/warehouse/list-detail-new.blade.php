@@ -16,7 +16,7 @@ $Saya =  Auth::user()->username;
             <div class="col-md-6 mt-3">
                 <label for="recevied_date">Tanggal Terima</label>
 				<input type="hidden" class="form-control" id="warehouse_task_id" name="warehouse_task_id" value="{{ $wh->warehouse_task_id }}" readonly>
-				<input type="text" class="form-control" id="received_date" name="received_date" value="{{ date('Y-m-d') }}" readonly>
+				<input type="text" class="form-control bg-white" id="received_date" name="received_date" value="{{ date('Y-m-d') }}" readonly>
             </div>
 			<div class="col-md-6 mt-3">
 				<label for="pickup_type">Tipe Penjemputan</label>
@@ -101,6 +101,10 @@ $Saya =  Auth::user()->username;
 
 
 <script>
+	var myCalendar;
+	myCalendar = new dhtmlXCalendarObject(["received_date"]);
+	myCalendar.setDateFormat("%Y-%m-%d");
+
 		function showSeparators(ele)
 		{
 			const currencyFormatter = new Intl.NumberFormat('en-US', {

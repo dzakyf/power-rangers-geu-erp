@@ -43,9 +43,8 @@
                 <option value="high">Tinggi</option>
             </select>
         </div>
-        <div class="form-group">
+        <!-- <div class="form-group">
             <label for="Year">Tahun Proyeksi<span style="color: red;">*</span></label>
-            <!-- <input type="text" name="Type" id="Type" class="form-control" required /> -->
             <select name="Year" id="Year" class="form-control" required>
                 <option value="">-- Pilih Jenis--</option>
                 <option value="1">1</option>
@@ -53,7 +52,7 @@
                 <option value="3">3</option>
                 <option value="4">4</option>
             </select>
-        </div>
+        </div> -->
         <div class="form-group">
             <label for="File_Documents">Upload Proyeksi</label>
             <div id="File_Documents" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
@@ -66,6 +65,7 @@
 <script>
     let type = null;
     let year = null;
+    let userId = null;
 
     $("#Type, #Year").on('change', function() {
         $("#File_Documents").data('type', $("#Type").val());
@@ -85,9 +85,14 @@
     });
 
     vault.events.on("BeforeUploadFile", function(file) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('id');
+        console.log(userId)
         if (vault && vault.uploader && vault.uploader.config) {
             vault.uploader.config.params.type = $("#Type").val();
             vault.uploader.config.params.year = $("#Year").val();
+            vault.uploader.config.params.user_id = userId;
+            vault.uploader.config.params.hub_type = $("#Hub_Type").val();
         }
     });
 </script>

@@ -1,3 +1,4 @@
+@if(auth()->user()->Priv_ID != 'PARTNER')
 <div class="card mt-3">
 	<div class="card-body">
 		<h5>Partner Warehouse Detail</h5>
@@ -28,6 +29,7 @@
 		</div>
 	</div>
 </div>
+@endif
 
 <div class="card mt-3">
 	<div class="card-body">

@@ -20,6 +20,9 @@ use App\Http\Controllers\Partner\WarehouseController as PartnerWarehouseControll
 use App\Http\Controllers\Partner\WarehouseMonitoringController as PartnerWarehouseMonitoringController;
 use App\Http\Controllers\Partner\MasterStockPriceController as PartnerMasterStockPriceController;
 use App\Http\Controllers\Partner\WarehouseStockRequestController as PartnerWarehouseStockRequestController;
+use App\Http\Controllers\Partner\WarehouseJournalController as PartnerWarehouseJournalController;
+use App\Http\Controllers\Partner\WarehouseJournalSummaryController as PartnerWarehouseJournalSummaryController;
+use App\Http\Controllers\Partner\WarehouseAuditController as PartnerWarehouseAuditController;
 use App\Http\Controllers\ProjectionProfitController;
 use App\Http\Controllers\UploaderController;
 use App\Http\Controllers\UserController;
@@ -4478,6 +4481,40 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("partner-get-master-price", [PartnerMasterStockPriceController::class, 'getCurrentPrice']);
 
     Route::get("$warehousePref-monitoring", [PartnerWarehouseMonitoringController::class, 'indexMonitoringWarehouse']);
+    Route::get("xml-$warehousePref-monitoring", [PartnerWarehouseMonitoringController::class, 'indexMonitoringWarehouseXml']);
+    Route::get("$warehousePref-monitoring-detail", [PartnerWarehouseMonitoringController::class, 'detailMonitoringWarehouse']);
+    Route::get("xml-$warehousePref-monitoring-detail", [PartnerWarehouseMonitoringController::class, 'detailMonitoringWarehouseXml']);
+    Route::get("$warehousePref-monitoring-detail-list", [PartnerWarehouseMonitoringController::class, 'detailMonitoringWarehouseList']);
+    Route::get("xml-$warehousePref-monitoring-detail-supplies", [PartnerWarehouseMonitoringController::class, 'detailMonitoringWarehouseSuppliesXml']);
+    Route::get("xml-$warehousePref-monitoring-detail-request", [PartnerWarehouseMonitoringController::class, 'detailMonitoringWarehouseRequestXml']);
+
+    Route::get("$warehousePref-journal", [PartnerWarehouseJournalController::class, 'indexWarehouseJournal']);
+    Route::get("xml-$warehousePref-journal", [PartnerWarehouseJournalController::class, 'indexWarehouseJournalXml']);
+    Route::get("$warehousePref-journal-detail", [PartnerWarehouseJournalController::class, 'detailWarehouseJournal']);
+    Route::get("xml-$warehousePref-journal-detail", [PartnerWarehouseJournalController::class, 'detailWarehouseJournalXml']);
+    Route::get("$warehousePref-journal-detail-new", [PartnerWarehouseJournalController::class, 'detailWarehouseJournalNew']);
+    Route::post("$warehousePref-journal-detail-new-submit", [PartnerWarehouseJournalController::class, 'detailWarehouseJournalNewSubmit']);
+    Route::get("$warehousePref-journal-detail-detail", [PartnerWarehouseJournalController::class, 'detailWarehouseJournalDetail']);
+    Route::post("$warehousePref-journal-detail-detail-submit", [PartnerWarehouseJournalController::class, 'detailWarehouseJournalDetailSubmit']);
+
+    Route::get("$warehousePref-journal-monthly", [PartnerWarehouseJournalSummaryController::class, 'indexWarehouseJournalMonthly']);
+    Route::get("xml-$warehousePref-journal-monthly", [PartnerWarehouseJournalSummaryController::class, 'indexWarehouseJournalMonthlyXml']);
+    Route::get("$warehousePref-journal-monthly-detail", [PartnerWarehouseJournalSummaryController::class, 'detailWarehouseJournalMonthly']);
+    Route::get("xml-$warehousePref-journal-monthly-detail", [PartnerWarehouseJournalSummaryController::class, 'detailWarehouseJournalMonthlyXml']);
+    Route::get("$warehousePref-journal-monthly-detail-detail", [PartnerWarehouseJournalSummaryController::class, 'detailWarehouseJournalMonthlyDetail']);
+    Route::get("xml-$warehousePref-journal-monthly-detail-detail", [PartnerWarehouseJournalSummaryController::class, 'detailWarehouseJournalMonthlyDetailXml']);
+    Route::get("$warehousePref-journal-annually", [PartnerWarehouseJournalSummaryController::class, 'indexWarehouseJournalAnnually']);
+    Route::get("xml-$warehousePref-journal-annually", [PartnerWarehouseJournalSummaryController::class, 'indexWarehouseJournalAnnuallyXml']);
+    Route::get("$warehousePref-journal-annually-detail", [PartnerWarehouseJournalSummaryController::class, 'detailWarehouseJournalAnnually']);
+    Route::get("xml-$warehousePref-journal-annually-detail", [PartnerWarehouseJournalSummaryController::class, 'detailWarehouseJournalAnnuallyXml']);
+    Route::get("$warehousePref-journal-annually-detail-detail", [PartnerWarehouseJournalSummaryController::class, 'detailWarehouseJournalAnnuallyDetail']);
+    Route::get("xml-$warehousePref-journal-annually-detail-detail", [PartnerWarehouseJournalSummaryController::class, 'detailWarehouseJournalAnnuallyDetailXml']);
+
+    Route::get("$warehousePref-audit", [PartnerWarehouseAuditController::class, 'indexWarehouseAudit']);
+    Route::get("xml-$warehousePref-audit", [PartnerWarehouseAuditController::class, 'indexWarehouseAudit']);
+    Route::get("$warehousePref-audit-new", [PartnerWarehouseAuditController::class, 'newWarehouseAudit']);
+    Route::get("$warehousePref-audit-new-submit", [PartnerWarehouseAuditController::class, 'newWarehouseAuditSubmit']);
+    Route::get("$warehousePref-audit-detail", [PartnerWarehouseAuditController::class, 'detailWarehouseAudit']);
     /** */
 
     /** chat route */
