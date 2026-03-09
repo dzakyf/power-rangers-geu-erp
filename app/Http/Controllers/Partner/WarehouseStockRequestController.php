@@ -35,7 +35,11 @@ class WarehouseStockRequestController extends Controller
         }
         $nomor = 1;
 
-        $get = WarehousePartner::get();
+        if ($priv == 'PARTNER') {
+            $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
+        }else {
+            $get = WarehousePartner::get();
+        }
         
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->warehouse_task_id\">";

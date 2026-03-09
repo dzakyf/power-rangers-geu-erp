@@ -21,26 +21,25 @@
          <div class="row">
              <div class="col-md-3">
                  <div class="form-check">
-                     <input class="form-check-input" type="checkbox" name="Legal_PT" id="Legal_PT" value="PT" />
+                     <input class="form-check-input" type="radio" name="Business_Entity" id="Legal_PT" value="PT" />
                      <label class="form-check-label" for="Legal_PT">PT</label>
                  </div>
              </div>
              <div class="col-md-3">
-
                  <div class="form-check">
-                     <input class="form-check-input" type="checkbox" name="Legal_CV" id="Legal_CV" value="CV" />
+                     <input class="form-check-input" type="radio" name="Business_Entity" id="Legal_CV" value="CV" />
                      <label class="form-check-label" for="Legal_CV">CV</label>
                  </div>
              </div>
              <div class="col-md-3">
                  <div class="form-check">
-                     <input class="form-check-input" type="checkbox" name="Legal_Coop" id="Legal_Coop" value="Cooperative" />
+                     <input class="form-check-input" type="radio" name="Business_Entity" id="Legal_Coop" value="Cooperative" />
                      <label class="form-check-label" for="Legal_Coop">Koperasi</label>
                  </div>
              </div>
              <div class="col-md-3">
                  <div class="form-check">
-                     <input class="form-check-input" type="checkbox" name="Legal_Foundation" id="Legal_Foundation" value="Foundation" />
+                     <input class="form-check-input" type="radio" name="Business_Entity" id="Legal_Foundation" value="Foundation" />
                      <label class="form-check-label" for="Legal_Foundation">Yayasan</label>
                  </div>
              </div>
@@ -48,7 +47,7 @@
          <div class="row mt-2">
              <div class="col-md-12">
                  <div class="form-check">
-                     <input class="form-check-input" type="checkbox" name="Legal_Other" id="Legal_Other" value="Other" />
+                     <input class="form-check-input" type="radio" name="Business_Entity" id="Legal_Other" value="Other" />
                      <label class="form-check-label" for="Legal_Other">Lainnya</label>
                  </div>
              </div>

@@ -20,10 +20,24 @@ class ProjectionProfitController extends Controller
         return view('projection.index');
     }
 
+    public function indexFinancialStatements()
+    {
+        return view('projection.financial-statement');
+    }
+
+    public function indexDashboardPartnerMonitoring()
+    {
+        return;
+    }
+
+    public function indexProfitSharingApplication()
+    {
+        return;
+    }
 
     public function downloadProjectionTemplate()
     {
-        $template = storage_path(public_path('template-proyeksi.xlsx'));
+        $template = public_path('template-proyeksi.xlsx');
 
 
         if (!file_exists($template)) {
@@ -32,31 +46,20 @@ class ProjectionProfitController extends Controller
         return response()->download($template);
     }
 
-    public function indexExpenditure()
-    {
-        return view('expenditure.index');
-    }
-
-    public function createExpenditure()
-    {
-        throw new Exception("Not implemented");
-    }
 
     public function createProjection()
     {
         return view('projection.create');
     }
 
-    public function submitExpenditure()
-    {
-        throw new Exception("Not implemented");
-    }
 
     public function uploadProjection(Request $r)
     {
         $b = $r->all();
         $type = $b['type'];
+        $hubType = $b['hub_type'];
         $year = $b['year'];
+        $userId = $b['user_id'];
 
         $file = $r->file('file');
         $path = $file->storeAs('temp', 'upload_' . time() . '.' . $file->getClientOriginalExtension());
@@ -66,7 +69,8 @@ class ProjectionProfitController extends Controller
         // load sheet, table name
         $sheet = $spreadsheet->getSheetByName($type);
 
-        // // expenditure
+        //expenditure
+
         $rowIterator = $sheet->getRowIterator(2, 17);
         $data = [];
         foreach ($rowIterator as $row) {
@@ -84,17 +88,19 @@ class ProjectionProfitController extends Controller
             $data[] = $rowData;
         }
 
+
+        $count = 1;
         for ($i = 2; $i < count($data); $i++) {
             $b = $data[$i];
 
             $insExp = DB::table('expenditure')->insertGetId([
-                "User_Id" => '2345',
-                "Hub_Type" => "booth",
+                "User_Id" => $userId,
+                "Hub_Type" => $hubType,
                 "Description" => $b[0] ?? "",
-                "Short_Desc" => $b[1],
+                "Short_Desc" => $b[1] ?? "",
                 // "Standard_Value" => $b['standard_value'],
                 "Offset" => $b[2],
-                "Year" => $year,
+                "Year" => $count,
                 "Projection_Type" => $type,
                 "Month_1_Total" => $b[3],
                 "Month_2_Total" => $b[4],
@@ -112,92 +118,117 @@ class ProjectionProfitController extends Controller
         }
 
         // projection
-        $projRowIterator = $sheet->getRowIterator(26, 60);
-        $projData = [];
-        foreach ($projRowIterator as $row) {
-            $columnIterator = $row->getCellIterator();
-            $columnIterator->setIfNotExists(CellIterator::IF_NOT_EXISTS_RETURN_NULL);
-            $rowData = [];
-
-            $firstCell = $columnIterator->current();
-            $firstValue = $firstCell ? $firstCell->getValue() : null;
-
-            if ($firstValue === null || trim($firstValue) === '') {
-                continue;
-            }
-
-            foreach ($columnIterator as $cell) {
-                if ($cell !== null) {
-                    $value = $cell->getCalculatedValue();
-
-                    // $coordinate = $cell->getCoordinate();
-                    $rowData[] = $value;
-                }
-            }
-            $projData[] = $rowData;
+        $count = 1;
+        if ($type == 'high') {
+            $yearToRow = [
+                1 => [26, 60],
+                2 => [79, 113],
+                3 => [130, 164],
+                4 => [181, 215]
+            ];
+        } else {
+            $yearToRow = [
+                1 => [26, 60],
+                2 => [77, 111],
+                3 => [128, 162],
+                4 => [180, 214]
+            ];
         }
-        // dd($projData);
 
-        for ($i = 0; $i < count($projData); $i++) {
-            $b = $projData[$i];
 
-            $ins = DB::table('projections')->insertGetId([
-                "User_Id" => '2345',
-                "Hub_Type" => 'booth',
-                "Description" => $b[0] ?? "",
-                "Standard_Value" => $b[1],
-                "Offset" => $b[2],
-                "Year" => $year,
-                "Projection_Type" => $type,
-                "Month_1_A" => $b[3],
-                "Month_1_B" => $b[4],
-                "Month_1_Offset" => $b[5],
-                "Month_1_Total" => $b[6],
-                "Month_2_A" => $b[7],
-                "Month_2_B" => $b[8],
-                "Month_2_Total" => $b[9],
-                "Month_2_Offset" => $b[10],
-                "Month_3_A" => $b[11],
-                "Month_3_B" => $b[12],
-                "Month_3_Total" => $b[13],
-                "Month_3_Offset" => $b[14],
-                "Month_4_A" => $b[15],
-                "Month_4_B" => $b[16],
-                "Month_4_Total" => $b[17],
-                "Month_4_Offset" => $b[18],
-                "Month_5_A" => $b[19],
-                "Month_5_B" => $b[20],
-                "Month_5_Total" => $b[21],
-                "Month_5_Offset" => $b[22],
-                "Month_6_A" => $b[23],
-                "Month_6_B" => $b[24],
-                "Month_6_Total" => $b[25],
-                "Month_6_Offset" => $b[26],
-                "Month_7_A" => $b[27],
-                "Month_7_B" => $b[28],
-                "Month_7_Total" => $b[29],
-                "Month_7_Offset" => $b[30],
-                "Month_8_A" => $b[31],
-                "Month_8_B" => $b[32],
-                "Month_8_Total" => $b[33],
-                "Month_8_Offset" => $b[34],
-                "Month_9_A" => $b[35],
-                "Month_9_B" => $b[36],
-                "Month_9_Total" => $b[37],
-                "Month_9_Offset" => $b[38],
-                "Month_10_A" => $b[39],
-                "Month_10_B" => $b[40],
-                "Month_10_Total" => $b[41],
-                "Month_10_Offset" => $b[42],
-                "Month_11_A" => $b[43],
-                "Month_11_B" => $b[44],
-                "Month_11_Total" => $b[45],
-                "Month_11_Offset" => $b[46],
-                "Month_12_A" => $b[47],
-                "Month_12_B" => $b[48],
-                "Month_12_Total" => $b[49],
-                "Month_12_Offset" => $b[50],
-            ]);
+        for ($i = 1; $i <= 4; $i++) {
+            $rowNum = $yearToRow[$i];
+
+            $projRowIterator = $sheet->getRowIterator($rowNum[0], $rowNum[1]);
+            $projData = [];
+            foreach ($projRowIterator as $row) {
+                $columnIterator = $row->getCellIterator();
+                $columnIterator->setIfNotExists(CellIterator::IF_NOT_EXISTS_RETURN_NULL);
+                $rowData = [];
+
+                $firstCell = $columnIterator->current();
+                $firstValue = $firstCell ? $firstCell->getValue() : null;
+
+                if ($firstValue === null || trim($firstValue) === '') {
+                    continue;
+                }
+
+                foreach ($columnIterator as $cell) {
+                    if ($cell !== null) {
+                        $value = $cell->getCalculatedValue();
+                        // $value = $cell->getValue();
+
+                        // $coordinate = $cell->getCoordinate();
+                        $rowData[] = $value;
+                    }
+                }
+                $projData[] = $rowData;
+            }
+
+
+            for ($j = 0; $j < count($projData); $j++) {
+                $b = $projData[$j];
+
+                $ins = DB::table('projections')->insertGetId([
+                    "User_Id" => $userId,
+                    "Hub_Type" => $hubType,
+                    "Description" => $b[0] ?? "",
+                    "Standard_Value" => $b[1],
+                    "Offset" => $b[2],
+                    "Year" => $count,
+                    "Projection_Type" => $type,
+                    "Month_1_A" => $b[3],
+                    "Month_1_B" => $b[4],
+                    "Month_1_Total" => $b[5],
+                    "Month_1_Offset" => $b[6],
+                    "Month_2_A" => $b[7],
+                    "Month_2_B" => $b[8],
+                    "Month_2_Total" => $b[9],
+                    "Month_2_Offset" => $b[10],
+                    "Month_3_A" => $b[11],
+                    "Month_3_B" => $b[12],
+                    "Month_3_Total" => $b[13],
+                    "Month_3_Offset" => $b[14],
+                    "Month_4_A" => $b[15],
+                    "Month_4_B" => $b[16],
+                    "Month_4_Total" => $b[17],
+                    "Month_4_Offset" => $b[18],
+                    "Month_5_A" => $b[19],
+                    "Month_5_B" => $b[20],
+                    "Month_5_Total" => $b[21],
+                    "Month_5_Offset" => $b[22],
+                    "Month_6_A" => $b[23],
+                    "Month_6_B" => $b[24],
+                    "Month_6_Total" => $b[25],
+                    "Month_6_Offset" => $b[26],
+                    "Month_7_A" => $b[27],
+                    "Month_7_B" => $b[28],
+                    "Month_7_Total" => $b[29],
+                    "Month_7_Offset" => $b[30],
+                    "Month_8_A" => $b[31],
+                    "Month_8_B" => $b[32],
+                    "Month_8_Total" => $b[33],
+                    "Month_8_Offset" => $b[34],
+                    "Month_9_A" => $b[35],
+                    "Month_9_B" => $b[36],
+                    "Month_9_Total" => $b[37],
+                    "Month_9_Offset" => $b[38],
+                    "Month_10_A" => $b[39],
+                    "Month_10_B" => $b[40],
+                    "Month_10_Total" => $b[41],
+                    "Month_10_Offset" => $b[42],
+                    "Month_11_A" => $b[43],
+                    "Month_11_B" => $b[44],
+                    "Month_11_Total" => $b[45],
+                    "Month_11_Offset" => $b[46],
+                    "Month_12_A" => $b[47],
+                    "Month_12_B" => $b[48],
+                    "Month_12_Total" => $b[49],
+                    "Month_12_Offset" => $b[50],
+                ]);
+            }
+
+            $count++;
         }
 
         return response()->json([
@@ -205,25 +236,16 @@ class ProjectionProfitController extends Controller
         ]);
     }
 
-    public function submitProjection(Request $r)
-    {
-        return response()->json([
-            "message" => "success"
-        ], 200);
-    }
-
-    public function showProjection() {}
-
     // ?user_id=&hub_type=&projection_type=&year=
     public function projectionData(Request $r)
     {
         $q = $r->query();
         $userId = $q['user_id'];
         $projectionType = $q['projection_type'] ?? "%";
-        $hubType = $q['hub_type'];
-        $year = $q['year'];
+        $hubType = $q['hub_type'] ?? "%";
+        $year = $q['year'] ?? "%";
 
-        $proj = DB::table('projections')->select('*')->where('User_Id', '=', $userId)->where('Projection_Type', 'LIKE', $projectionType)->where('Hub_Type', '=', $hubType)->where('Year', '=', $year)->get();
+        $proj = DB::table('projections')->select('*')->where('User_Id', '=', $userId)->where('Projection_Type', 'LIKE', $projectionType)->where('Hub_Type', 'LIKE', $hubType)->where('Year', 'LIKE', $year)->get();
 
 
         $xml = new SimpleXMLElement('<rows></rows>');
@@ -256,8 +278,6 @@ class ProjectionProfitController extends Controller
         ]);
     }
 
-    public function showExpenditure() {}
-
     // ?user_id=&hub_type=&projection_type=&year=
     public function expenditureData(Request $r)
     {
@@ -267,7 +287,7 @@ class ProjectionProfitController extends Controller
         $hubType = $q['hub_type'];
         $year = '%';
 
-        $exp = DB::table('expenditure')->select('*')->where('User_Id', '=', $userId)->where('Projection_Type', 'LIKE', $projectionType)->where('Hub_Type', '=', $hubType)->where('Year', 'LIKE', $year)->get();
+        $exp = DB::table('expenditure')->select('*')->where('User_Id', '=', $userId)->where('Projection_Type', 'LIKE', $projectionType)->where('Hub_Type', 'LIKE', $hubType)->where('Year', 'LIKE', $year)->get();
 
         $xml = new SimpleXMLElement('<rows></rows>');
 

@@ -559,37 +559,42 @@
                  </div>
              </div>
              <small class="text-danger d-block mt-2">Catatan: Paket berisi detail seperti uang muka kemitraan dan nomor rekening.</small>
-         </div>
 
-         <div class="form-group">
-             <!-- <label><strong>Dokumen Pendukung (Lampirkan)</strong></label> -->
-             <div class="row">
-                 <div class="col-md-4">
-                     <div class="form-check">
+             <div id="IndividualDocuments" class="form-group">
+                 <label><strong>Dokumen Pendukung (Lampirkan)</strong></label>
+                 <div class="row">
+                     <div class="col-md-4">
+                         <div class="form-check">
+                             <input class="form-check-input" type="checkbox" name="Doc_KTP" id="Doc_KTP" value="Akta" />
+                             <label class="form-check-label" for="C_Doc_Akta">KTP</label>
+                         </div>
+                         <div style="display:none;" id="Doc_KTP_Files_Div" class="mt-2 text-center">
+                             <div id="Doc_KTP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_KTP_File" />
+                         </div>
                      </div>
-                     <div style="display:none;" id="Doc_KTP_Files_Div" class="mt-2 text-center">
-                         <div id="Doc_KTP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                         <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_KTP_File" />
+                     <div class="col-md-4">
+                         <div class="form-check">
+                             <input class="form-check-input" type="checkbox" name="Doc_NPWP" id="Doc_NPWP" value="Akta" />
+                             <label class="form-check-label" for="C_Doc_Akta">NPWP</label>
+                         </div>
+                         <div style="display:none;" id="Doc_NPWP_Files_Div" class="mt-2">
+                             <span class="badge badge-info py-2 mb-3 w-100">Upload NPWP</span>
+                             <div id="Doc_NPWP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_NPWP_File" />
+                         </div>
                      </div>
-                 </div>
-                 <div class="col-md-4">
-                     <div class="form-check">
-                     </div>
-                     <div style="display:none;" id="Doc_NPWP_Files_Div" class="mt-2">
-                         <span class="badge badge-info py-2 mb-3 w-100">Upload NPWP</span>
-                         <div id="Doc_NPWP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                         <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_NPWP_File" />
-                     </div>
-                 </div>
-                 <div class="col-md-4">
-                     <div class="form-check">
-                     </div>
-                     <div style="display:none;" id="Doc_Others_Files_Div" class="mt-2">
-                         <span class="badge badge-info py-2 mb-3 w-100">Upload Dokumen Lainnya</span>
-                         <div id="Doc_Others_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                         <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_Others_File" />
+                     <div class="col-md-4">
+                         <div class="form-check">
+                             <input class="form-check-input" type="checkbox" name="Doc_Others" id="Doc_Others" value="Akta" />
+                             <label class="form-check-label" for="C_Doc_Akta">Dokumen Lainnya</label>
+                         </div>
+                         <div style="display:none;" id="Doc_Others_Files_Div" class="mt-2">
+                             <span class="badge badge-info py-2 mb-3 w-100">Upload Dokumen Lainnya</span>
+                             <div id="Doc_Others_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_Others_File" />
+                         </div>
                      </div>
                  </div>
              </div>
          </div>
- </div>

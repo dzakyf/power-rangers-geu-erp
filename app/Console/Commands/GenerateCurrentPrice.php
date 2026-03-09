@@ -51,6 +51,7 @@ class GenerateCurrentPrice extends Command
         }
 
         MasterStockPrice::create([
+            'location' => 'GEU-HO',
             'date_for' => date("Y-m-d"),
             'price' => $get->price,
             'created_date' => now(),

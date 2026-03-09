@@ -35,8 +35,10 @@ $Saya =  Auth::user()->username;
 			<div>
 				<input type="button" id="ekselWarehouseListDet" name="ekselWarehouseListDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseList.toExcel('./export/generate.php');" />
 				<input type="button" id="detailWarehouseList" name="detailWarehouseList" value="Detail Warehouse List" class="btn btn-info mt-2 mr-2" onclick="WarehouseListKlik()" />
+				@if (auth()->user()->Priv_ID != 'PARTNER')
 				<input type="button" id="newWarehouseList" name="newWarehouseList" value="New Warehouse List" class="btn btn-success mt-2 mr-2" onclick="WarehouseListNew()" />
 				<input type="button" id="deactivateWarehouseList" name="deactivateWarehouseList" value="Change Warehouse Status" class="btn btn-danger mt-2 mr-2" onclick="NonAktifkanWarehouse()" />
+				@endif
 			</div>
 		</div>
 	</div>
