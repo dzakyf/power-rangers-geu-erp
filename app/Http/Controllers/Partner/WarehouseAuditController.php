@@ -67,6 +67,31 @@ class WarehouseAuditController extends Controller
     {
         DB::beginTransaction();
 
+        $details = [
+            'kondisi1',
+            'kondisi2',
+            'kondisi3',
+            'kondisi4',
+            'kondisi5',
+            'k31',
+            'k32',
+            'k33',
+            'k34',
+            'k35',
+            'warna',
+            'bau',
+            'apd',
+            'tumpahan',
+            'apar',
+            'rambu',
+            'adm1',
+            'adm2',
+            'adm3',
+            'adm4',
+        ];
+        
+        $r = $request->all();
+
         try{
 
             $audit = WarehousePartnerAudit::create([
@@ -84,16 +109,15 @@ class WarehouseAuditController extends Controller
                 'auditee'=>$request->auditee
             ]);
 
-
-            foreach($request->details as $detail){
+            foreach($details as $detail){
 
                 WarehousePartnerAuditDtl::create([
                     'audit_warehouse_id'=>$audit->id,
-                    'section'=>$detail['section'],
-                    'parameter'=>$detail['parameter'],
-                    'value'=>$detail['value'],
-                    'catatan'=>$detail['catatan'] ?? null
-                    ]);
+                    'section'=>$detail,
+                    'parameter'=>$request->$detail,
+                    'value'=>$request->$detail,
+                    'catatan'=>$r[$detail.'_note'] ?? null
+                ]);
 
             }
 

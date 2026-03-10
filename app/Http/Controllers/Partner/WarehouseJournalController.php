@@ -8,6 +8,7 @@ use App\User;
 use App\WarehousePartner;
 use App\WarehousePartnerJournal;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class WarehouseJournalController extends Controller
 {
@@ -31,6 +32,11 @@ class WarehouseJournalController extends Controller
         $usname = [];
         foreach ($getUsers as $key => $value) {
             $usname[$value->username] = $value->Name;
+            $usname[$value->Emp_ID] = $value->Name;
+        }
+        $getPartner = DB::table('opportunity_partner')->get();
+        foreach ($getPartner as $key => $value) {
+            $usname[$value->lead_id] = $value->full_name;
         }
         $nomor = 1;
 
@@ -45,7 +51,7 @@ class WarehouseJournalController extends Controller
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->partner_task_id) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
             echo "</row>";
