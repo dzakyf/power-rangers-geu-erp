@@ -23,6 +23,7 @@ use App\Http\Controllers\Partner\WarehouseStockRequestController as PartnerWareh
 use App\Http\Controllers\Partner\WarehouseJournalController as PartnerWarehouseJournalController;
 use App\Http\Controllers\Partner\WarehouseJournalSummaryController as PartnerWarehouseJournalSummaryController;
 use App\Http\Controllers\Partner\WarehouseAuditController as PartnerWarehouseAuditController;
+use App\Http\Controllers\Partner\ProfitSharingController as PartnerProfitSharingController;
 use App\Http\Controllers\ProjectionProfitController;
 use App\Http\Controllers\UploaderController;
 use App\Http\Controllers\UserController;
@@ -4576,20 +4577,34 @@ Route::group(['middleware' => 'auth'], function () {
 
     /** projection route */
     $projection = "projection";
+    $expenditure = "expenditure";
     Route::get("$projection-index", [ProjectionProfitController::class, 'index']);
     Route::get("$projection-create", [ProjectionProfitController::class, 'createProjection']);
     Route::get("$projection-submit-projection", [ProjectionProfitController::class, 'submitProjection']);
     Route::get("$projection-data-projection", [ProjectionProfitController::class, 'projectionData']);
     Route::post("$projection-upload", [ProjectionProfitController::class, 'uploadProjection']);
     Route::get("$projection-template", [ProjectionProfitController::class, 'downloadProjectionTemplate']);
-
-    $expenditure = "expenditure";
-    Route::get("$expenditure-index", [ProjectionProfitController::class, 'indexExpenditure']);
-    Route::get("$expenditure-create", [ProjectionProfitController::class, 'createExpenditure']);
-    Route::get("$expenditure-template", [ProjectionProfitController::class, 'downloadExpenditureTemplate']);
-    Route::get("$expenditure-submit-expenditure", [ProjectionProfitController::class, 'submitExpenditure']);
     Route::get("$expenditure-data-expenditure", [ProjectionProfitController::class, 'expenditureData']);
     /** */
+
+
+    /** profit sharing */
+    $profitSharingPref = 'partner-profit-sharing';
+    Route::get("$profitSharingPref", [PartnerProfitSharingController::class, 'indexProfitSharing']);
+    Route::get("xml-$profitSharingPref", [PartnerProfitSharingController::class, 'indexProfitSharingXml']);
+    Route::get("$profitSharingPref-lk-monthly", [PartnerProfitSharingController::class, 'lkMonthlyProfitSharing']);
+    Route::get("xml-$profitSharingPref-lk-monthly", [PartnerProfitSharingController::class, 'lkProfitSharingXml']);
+    Route::get("$profitSharingPref-lk-annually", [PartnerProfitSharingController::class, 'lkAnnuallyProfitSharing']);
+    Route::get("xml-$profitSharingPref-lk-annually", [PartnerProfitSharingController::class, 'lkProfitSharingXml']);
+    Route::get("$profitSharingPref-download", [PartnerProfitSharingController::class, 'downloadProfitSharingApplication']);
+    Route::post("$profitSharingPref-submit-application", [PartnerProfitSharingController::class, 'partnerSubmitProfitSharingApplication']);
+
+    Route::get("$profitSharingPref-data", [PartnerProfitSharingController::class, 'getProfitSharingApprovalData']);
+    Route::get("$profitSharingPref-data-log", [PartnerProfitSharingController::class, 'getProfitSharingApprovalDataLog']);
+
+    Route::post("$profitSharingPref-proceed", [ApprovalController::class, 'processProfitSharingToNextProgress']);
+    Route::get("$profitSharingPref-approval-index", [ApprovalController::class, 'indexProfitSharing']);
+    Route::get("$profitSharingPref-approval-create", [ApprovalController::class, 'createProfitSharingApplication']);
 
     /**partner route */
     $partner = "partner";

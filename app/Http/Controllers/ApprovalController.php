@@ -27,6 +27,16 @@ class ApprovalController extends Controller
         return view('approval.index');
     }
 
+    public function indexProfitSharing()
+    {
+        return view('approval.profit-sharing-index');
+    }
+
+    public function createProfitSharingApplication()
+    {
+        return view('approval.profit-sharing-create');
+    }
+
     public function detail(Request $request)
     {
         $partner = DB::table('opportunity_partner')->where('id', $request->ID)->first();
@@ -113,6 +123,51 @@ class ApprovalController extends Controller
         ]);
 
         return "submitted";
+    }
+
+    public function processProfitSharingToNextProgress(Request $r)
+    {
+        try {
+            $b = $r->all();
+            $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
+
+            $result = DB::transaction(function ($b) use ($req) {
+                $logId = DB::table('approval_log')->insertGetId([
+                    'Approver_Id' => $req->Requester_Id,
+                    'Notes' => $req->Note ?? "",
+                    'Action' => $b['action'],
+                    'Level_Number' => $req->Current_Level,
+                    'Next_Level' => $req->action == "APPROVED" ? $req->Next_Level + 1 : $req->Current_Level,
+                ]);
+
+                $updated = DB::table('approval_request')
+                    ->where('Request_Id', '=', $req->request_id)
+                    ->update([
+                        'Status' => 'APPROVED',
+                        'Requester_Id' => $req->Requester_Id,
+                        'Description' => "",
+                        'Current_Level' => $req->Current_Level,
+                        'Request_Type' => $req->Request_Type,
+                    ]);
+
+                return [
+                    'log_id' => $logId,
+                    'updated' => $updated,
+                    'message' => 'Transaction completed successfully'
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'success',
+                'data' => $result
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function showProgress(Request $request)

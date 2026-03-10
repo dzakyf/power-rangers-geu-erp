@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\User;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,21 +21,6 @@ class ProjectionProfitController extends Controller
         return view('projection.index');
     }
 
-    public function indexFinancialStatements()
-    {
-        return view('projection.financial-statement');
-    }
-
-    public function indexDashboardPartnerMonitoring()
-    {
-        return;
-    }
-
-    public function indexProfitSharingApplication()
-    {
-        return;
-    }
-
     public function downloadProjectionTemplate()
     {
         $template = public_path('template-proyeksi.xlsx');
@@ -47,11 +33,6 @@ class ProjectionProfitController extends Controller
     }
 
 
-    public function createProjection()
-    {
-        return view('projection.create');
-    }
-
 
     public function uploadProjection(Request $r)
     {
@@ -60,6 +41,7 @@ class ProjectionProfitController extends Controller
         $hubType = $b['hub_type'];
         $year = $b['year'];
         $userId = $b['user_id'];
+        // $getEmpID = User::where("id",$userId)->first()->Emp_ID ?? '';
 
         $file = $r->file('file');
         $path = $file->storeAs('temp', 'upload_' . time() . '.' . $file->getClientOriginalExtension());
