@@ -169,6 +169,7 @@ try {
             'username' => $username,
             'password' => bcrypt($pass),
             'Emp_ID' => $data['lead_id'] ?? 'BP/' . $LSP . '/' . date('Ymdhis') . '/' . substr(md5($Saya), 0, 3),
+            'Position' => "PARTNER",
             'Priv_ID' => "PARTNER",
             'Location' => 'GEU-HO',
             'Name' => $data['full_name'],

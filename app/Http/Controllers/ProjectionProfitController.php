@@ -21,6 +21,11 @@ class ProjectionProfitController extends Controller
         return view('projection.index');
     }
 
+    public function createProjection()
+    {
+        return view('projection.create');
+    }
+
     public function downloadProjectionTemplate()
     {
         $template = public_path('template-proyeksi.xlsx');
@@ -29,6 +34,7 @@ class ProjectionProfitController extends Controller
         if (!file_exists($template)) {
             abort(404, 'File Tidak Ditemukan!');
         }
+
         return response()->download($template);
     }
 

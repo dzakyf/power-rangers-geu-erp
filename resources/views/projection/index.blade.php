@@ -95,6 +95,27 @@
         ]
 
         let tWidth = tHeader.map((e) => '110')
+        let tColType = tHeader.map((e, key) => {
+            if (key == 0 || key == 4 || key == 5 || key >= 7) {
+                return 'ron'
+            } else {
+                return 'ro'
+            }
+        })
+        let tColAlign = tHeader.map((e, key) => {
+            if (key == 0 || key == 4 || key == 5 || key >= 7) {
+                return 'right'
+            } else {
+                return 'left'
+            }
+        })
+        let tColSort = tHeader.map((e, key) => {
+            if (key == 0 || key == 4 || key == 5 || key >= 7) {
+                return 'int'
+            } else {
+                return 'str'
+            }
+        })
         let headerAttachment = [
             '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter',
             'A', 'B', 'Total',
@@ -115,14 +136,21 @@
         ProjectionGrid.setImagePath("./dhtmlx/imgs/");
         ProjectionGrid.setHeader(tHeader.join(','));
         ProjectionGrid.setInitWidths(tWidth.join(','));
+        ProjectionGrid.setColAlign(tColAlign.join(','));
+        ProjectionGrid.setColSorting(tColSort.join(','));
+        ProjectionGrid.setColTypes(tColType.join(','));
         ProjectionGrid.enableAutoWidth(true);
         ProjectionGrid.attachHeader(headerAttachment);
+        ProjectionGrid.setNumberFormat("0,000", 4, ".", ",");
+        ProjectionGrid.setNumberFormat("0,000", 5, ".", ",");
+        for (let ind = 7; ind < tHeader.length; ind++) {
+            ProjectionGrid.setNumberFormat("0,000", ind, ".", ",");
+        }
         // ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
         // ProjectionGrid.setColAlign("center,left,left,left,left");
         // ProjectionGrid.setColSorting("int,str,str,str,str");
         // ProjectionGrid.setColTypes("ro,ro,ro,ro,ro");
         // ProjectionGrid.enableSmartRendering(true, 150);
-        // ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
         // ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
         ProjectionGrid.setSkin("dhx_skyblue");
         ProjectionGrid.init();
@@ -148,6 +176,28 @@
         ]
         let tWidth = tHeader.map((e) => '140')
 
+        let tColType = tHeader.map((e, key) => {
+            if (key == 0 || key == 5 || key >= 7) {
+                return 'ron'
+            } else {
+                return 'ro'
+            }
+        })
+        let tColAlign = tHeader.map((e, key) => {
+            if (key == 0 || key == 5 || key >= 7) {
+                return 'right'
+            } else {
+                return 'left'
+            }
+        })
+        let tColSort = tHeader.map((e, key) => {
+            if (key == 0 || key == 5 || key >= 7) {
+                return 'int'
+            } else {
+                return 'str'
+            }
+        })
+
         let headerAttachment = [
             '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter'
         ]
@@ -156,8 +206,15 @@
         ExpenditureGrid.setImagePath("./dhtmlx/imgs/");
         ExpenditureGrid.setHeader(tHeader.join(','));
         ExpenditureGrid.setInitWidths(tWidth.join(','));
+        ExpenditureGrid.setColAlign(tColAlign.join(','));
+        ExpenditureGrid.setColSorting(tColSort.join(','));
+        ExpenditureGrid.setColTypes(tColType.join(','));
         ExpenditureGrid.enableAutoWidth(true);
         ExpenditureGrid.attachHeader(headerAttachment);
+        ExpenditureGrid.setNumberFormat("0,000", 5, ".", ",");
+        for (let ind = 7; ind < tHeader.length; ind++) {
+            ExpenditureGrid.setNumberFormat("0,000", ind, ".", ",");
+        }
         // ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
         // ProjectionGrid.setColAlign("center,left,left,left,left");
         // ProjectionGrid.setColSorting("int,str,str,str,str");

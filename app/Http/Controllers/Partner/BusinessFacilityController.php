@@ -25,7 +25,7 @@ class BusinessFacilityController extends Controller
         echo "<rows>";
 
         // Sample data, replace with actual database query
-        $partners = DB::table('opportunity_partner')->get();
+        $partners = DB::table('opportunity_partner')->where('status', 'ACTIVE')->get();
         foreach ($partners as $key => $partner) {
             echo "<row id=\"$partner->id\" >";
                 echo "<cell>".($key + 1)."</cell>";

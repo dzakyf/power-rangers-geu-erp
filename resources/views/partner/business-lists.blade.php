@@ -52,16 +52,17 @@ $Saya =  Auth::user()->username;
 	}
 	OpportunityLists = new dhtmlXGridObject('OpportunityLists');
 	OpportunityLists.setImagePath("./dhtmlx/imgs/");
-	OpportunityLists.setHeader("No,Daftar Sebagai, Nama, Alamat, Jumlah Mitra/Bisnis Gudang, Motivasi Bergabung, Pertanyaan 1, Pertanyaan 2, Pertanyaan 3, Pertanyaan 4, Pertanyaan 5, Pertanyaan 6, Paket");
-	OpportunityLists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	OpportunityLists.setHeader("No,Daftar Sebagai, Nama, Alamat, Jumlah Mitra/Bisnis Gudang, Motivasi Bergabung, Pertanyaan 1, Pertanyaan 2, Pertanyaan 3, Pertanyaan 4, Pertanyaan 5, Pertanyaan 6, Paket, Link Whatsapp");
+	OpportunityLists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// OpportunityLists.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	OpportunityLists.setInitWidths("60,100,150,300,100,120,120,100,100,100,100,100,100");
-	OpportunityLists.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
-	OpportunityLists.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	OpportunityLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	OpportunityLists.setInitWidths("60,100,150,300,100,120,120,100,100,100,100,100,100,100");
+	OpportunityLists.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left,center");
+	OpportunityLists.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
+	OpportunityLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	OpportunityLists.enableSmartRendering(true, 150);
 	// OpportunityLists.setNumberFormat("0,000", 7, ".", ",");
 	OpportunityLists.attachEvent("onRowDblClicked", OpportunityListsKlik);
+	OpportunityLists.attachEvent("onRowSelect", OpportunityListsSelect);
 	OpportunityLists.setSkin("dhx_skyblue");
 	OpportunityLists.init();
 	refreshdata();
@@ -69,6 +70,23 @@ $Saya =  Auth::user()->username;
 	function refreshdata() {
 		OpportunityLists.clearAndLoad('xml-partner-business-lists');
 
+	}
+
+	function OpportunityListsSelect(rId, cInd) {
+		if (cInd == 13) {
+			if (OpportunityLists.cells(rId, cInd).getValue() == 'Blast') {
+				$.ajax({
+					url:"partner-business-lists-whatsapp",
+					method:"GET",
+					data:{rId},
+					success:function(res)
+					{
+						window.open(res, '_blank');
+					}
+				})
+			}
+		}
+		return true;
 	}
 
 	function delsOpportunity() {

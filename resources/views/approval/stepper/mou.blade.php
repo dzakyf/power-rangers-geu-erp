@@ -10,17 +10,40 @@
     <div class="mt-2 mb-2 row">
         <div class="col">
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="mouAgreement" required>
-                <label class="form-check-label" for="mouAgreement">
+                <!-- <input class="form-check-input" type="checkbox" id="mouAgreement" required> -->
+                <!-- <label class="form-check-label" for="mouAgreement">
                     Saya telah membaca dengan seksama MOU & Menyetujui kesepakatan yang tertuang didalamnya
-                </label>
+                </label> -->
             </div>
             <!-- <a href="#" class="uploadMOU">Unggah MOU</a>
 						<input type="file" class="inputMOU" accept=".pdf" style="display:none;"> -->
+            <label for="File_Documents">Upload Pengajuan</label>
+            <div id="File_Documents" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+            <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="File_Document" />
         </div>
     </div>
+</div>
 
-    <button class="btn btn-secondary btn-prev">Previous</button>
-    <button class="btn btn-primary btn-next">Next</button>
+<button class="btn btn-secondary btn-prev">Previous</button>
+<button class="btn btn-primary btn-next">Next</button>
 
 </div>
+
+@push('mou-script')
+<script>
+    let type = null;
+    let year = null;
+    let userId = null;
+
+
+    var vault = new dhx.Vault("File_Documents", {
+        uploader: {
+            target: "/geu/hcga/public/partner-onboarding-submit-mou",
+            params: {
+                '_token': '{{ csrf_token() }}',
+            }
+        },
+        filesLimit: 1
+    });
+</script>
+@endpush

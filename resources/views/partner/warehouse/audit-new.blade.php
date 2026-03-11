@@ -44,7 +44,7 @@
         <div class="form-group row align-items-center">
             <label class="col-md-3">Nomor Audit</label>
             <div class="col-md-6">
-                <input type="text" class="form-control" name="nomor_audit" id="nomor_audit">
+                <input type="text" class="form-control" name="nomor_audit" id="nomor_audit" value="{{ $nomor }}" readonly>
             </div>
         </div>
 
@@ -341,23 +341,23 @@
         <!-- G -->
         <div class="section-title">G. Temuan Audit</div>
 
-        <textarea class="form-control mb-3" rows="3" placeholder="Ringkasan Temuan"></textarea>
+        <textarea class="form-control mb-3" rows="3" placeholder="Ringkasan Temuan" id="ringkasan_temuan" name="ringkasan_temuan"></textarea>
 
         <label>Kategori Temuan</label><br>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori" id="kategori1" value="ringan">
-        <label class="form-check-label" for="kategori1">Ringan</label>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan1" value="ringan">
+        <label class="form-check-label" for="kategori_temuan1">Ringan</label>
         </div>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori" id="kategori2" value="sedang">
-        <label class="form-check-label" for="kategori2">Sedang</label>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan2" value="sedang">
+        <label class="form-check-label" for="kategori_temuan2">Sedang</label>
         </div>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori" id="kategori3" value="berat">
-        <label class="form-check-label" for="kategori3">Berat</label>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan3" value="berat">
+        <label class="form-check-label" for="kategori_temuan3">Berat</label>
         </div>
 
 
@@ -411,14 +411,53 @@
         <input class="form-control" name="auditee" id="auditee">
         </div>
 
+        <div class="col-12 mt-3">
+            <button class="btn btn-success w-100" id="SubmitCustDetail">Submit</button>
+        </div>
+
         </div>
     </div>
 </div>
 
+<script src="{{ asset('jquery.coolautosuggest.js') }}"></script>
+<script src="{{ asset('jquery.coolfieldset.js') }}"></script>
 <script>
 	var myCalendar;
 	myCalendar = new dhtmlXCalendarObject(["tanggal_audit"]);
 	myCalendar.setDateFormat("%Y-%m-%d");
+	myCalendar.attachEvent("onChange", function(date, state) {
+		if(state) {
+			date = new Date(date);
+			let year = date.getFullYear();
+			let month = date.getMonth() + 1;
+			let datenow = date.getDate();
+			date = year + "-" + String(month).padStart(2, '0') + "-" + String(datenow).padStart(2, "0");
+			$.ajax({
+				url:"partner-warehouse-audit-get-nomor",
+				type:"POST",
+				data:{_token: "{{ csrf_token() }}",date},
+				success:function(res){
+                    $('#nomor_audit').val(res);
+				}
+			})
+		}
+	});
+
+	$("#warehouse_task_id").coolautosuggest({
+		url:"partner-warehouse-audit-get-warehouse?chars=",
+		showThumbnail:false,
+		showDescription:true,
+		idField:$("#warehouse_task_id"),
+		width:700,
+		minChars:1,
+		onSelected:function(result){
+		  if(result!=null){
+			$("#warehouse_task_id").val(result.id);
+			$("#warehouse_location").val(result.location);
+		  }
+		}
+	});
+    
 	$('#SubmitCustDetail').click(function() {
 
 		gettingVars = getAllValues();
@@ -431,14 +470,13 @@
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {
-				var dataPos = data.indexOf("success");
-				if (dataPos != '-1') {
-					var cariAWB = data.split(":");
-					alert('Data Opportunity Submitted!');
-
-					location.href = "partner-warehouse-list";
+				var dataPos = data.status;
+				if (dataPos == 'success') {
+					// var cariAWB = data.split(":");
+					alert('Data Audit Submitted!');
+                    refreshdata();
 				} else {
-					alert('Opportunity Failed to Submit!');
+					alert('Audit Failed to Submit!');
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {

@@ -56,6 +56,12 @@ class ListsController extends Controller
                     echo "<cell>".htmlspecialchars($partner->c_q6)."</cell>";
                     echo "<cell>".htmlspecialchars($partner->company_package)."</cell>";
                 }
+
+                if ($partner->status == 'ACTIVE') {
+                    echo "<cell>Blast</cell>";
+                }else {
+                    echo "<cell></cell>";
+                }
             echo "</row>";
         }
 

@@ -29,6 +29,10 @@
 		</div>
 	</div>
 </div>
+<script>
+	$('#Warehouse_Location').select2();
+	$('#Partner_Name').select2();
+</script>
 @endif
 
 <div class="card mt-3">

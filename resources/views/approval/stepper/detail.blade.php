@@ -11,15 +11,12 @@
             @include('approval.stepper.detail-company')
             @endif
 
-            <p class="font-weight-bold"><strong>Status Approval: {{ optional($status)->Action }}</strong></p>
+            <!-- <p class="font-weight-bold"><strong>Status Approval: {{ optional($status)->Action }}</strong></p> -->
 
         </div>
 
-        <div class="row">
 
-        </div>
-
-        <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <!-- <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             Action
         </button>
         <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
@@ -28,10 +25,8 @@
         </div>
 
 
-
         @if(optional($status)->Action == "APPROVED")
         <button class="btn btn-primary btn-next">Next</button>
-        @endif
-
+        @endif -->
     </div>
 </div>

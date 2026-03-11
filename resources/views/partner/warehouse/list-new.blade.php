@@ -8,8 +8,9 @@ use Illuminate\Database\Eloquent\Builder;
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
 
-$partner = DB::table('approval_request')->where('Status', 'APPROVED')->get()->pluck('Requester_Id');
-$partner = DB::table('opportunity_partner')->whereIn('id', $partner)->get();
+$partner = DB::table('approval_request')->where('Status', 'APPROVED')->where('Request_Type', 'ONBOARDING')->get()->pluck('Requester_Id');
+$partner = DB::table('users')->whereIn("id", $partner)->get()->pluck('Emp_ID');
+$partner = DB::table('opportunity_partner')->whereIn('id', $partner)->orWhere('status', 'ACTIVE')->get();
 
 $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
 
@@ -45,6 +46,8 @@ $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
 
 
 <script>
+	$('#Warehouse_Location').select2();
+	$('#Partner_Name').select2();
 	$('#SubmitCustDetail').click(function() {
 
 		gettingVars = getAllValues();

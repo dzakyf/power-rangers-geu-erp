@@ -26,7 +26,7 @@
 			</div>
 			<div class="line"></div>
 			<div class="step" data-target="#step2">
-				<button type="button" class="step-trigger" role="tab">
+				<button type="button" class="step-trigger active" role="tab">
 					<span class="bs-stepper-circle">2</span>
 					<span class="bs-stepper-label">MOU</span>
 				</button>
@@ -34,7 +34,7 @@
 
 			<div class="line"></div>
 
-			<div class="step" data-target="#step3">
+			<div class="step " data-target="#step3">
 				<button type="button" class="step-trigger" role="tab">
 					<span class="bs-stepper-circle">3</span>
 					<span class="bs-stepper-label">Penerbitan Invoice</span>
@@ -106,6 +106,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bs-stepper/dist/js/bs-stepper.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bs-stepper/dist/css/bs-stepper.min.css">
 </script>
+@stack('mou-script')
 
 <script>
 	$(document).ready(function() {
@@ -197,19 +198,19 @@
 		let fd = new FormData()
 		let id = window.location.pathname.split('/')
 		// return
-		fd.append('id', id[6]);
+		fd.append('id', id[5]);
 		fd.append('type', type)
 		fd.append('_token', '{{ csrf_token() }}')
 
 		$.ajax({
-			url: "partner-approval-progress/submit",
+			url: "/geu/hcga/public/partner-approval-progress/submit",
 			type: "POST",
 			processData: false,
 			contentType: false,
 			data: fd,
 			success: function(response, status, xhr) {
 				alert("Berhasil melakukan aksi");
-				window.location.reload()
+				// window.location.reload()
 			},
 			error: function(err) {
 				alert("Telah terjadi kesalahan.");

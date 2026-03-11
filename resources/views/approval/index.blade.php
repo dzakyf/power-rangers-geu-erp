@@ -29,25 +29,49 @@ $Saya =  Auth::user()->username;
 </div>
 
 <div class="row">
-	<div id="OpportunityLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+	<div id="OpportunityLists" class="m-3" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+
+	<div id="ApprovalDataLists" class="m-3" style="width:auto;height:320px; background-color:white;overflow:hidden">
+	</div>
+
+	<div id="ApprovalDataLogLists" class="m-3" style="width:auto;height:320px; background-color:white;overflow:hidden">
+	</div>
 	<div>
 		<input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
-		<input type="button" id="detailBP" name="detailBP" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailBP()" />
 		<input type="button" id="showProgress" name="showProgress" value="Show Progress" class="btn btn-info mt-2 mr-2" onclick="redirectToProgress()" />
 		<div class="btn-group" role="group">
 		</div>
 	</div>
+
+	<div class="row m-1">
+		<div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
+		<div class="row col-md-12" style="width:auto;height:40px">
+			<div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+				<div class="btn-group" role="group">
+					<button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						Actio
+					</button>
+					<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+						<a class="dropdown-item" href="#" onclick="approveClick('APPROVED')">Approve</a>
+						<a class="dropdown-item" href="#" onclick="approveClick('REJECTED')">Reject</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
+	</div>
+
 </div>
 
 
-<div id="divlistOpportunity"></div>
-<div></div>
-<div id="divlistProjectList"></div>
+<div id="divlistApprovalData"></div>
+<div id="divlistApprovalDataLog"></div>
 <script src="https://cdn.jsdelivr.net/npm/bs-stepper/dist/js/bs-stepper.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bs-stepper/dist/css/bs-stepper.min.css">
 </script>
 
 <script>
+	let mitraId = null
 	$(document).ready(function() {
 		// Initialize stepper with custom options
 		var stepperElement = $('.bs-stepper')[0];
@@ -132,6 +156,39 @@ $Saya =  Auth::user()->username;
 		}
 	});
 
+	function approveClick(action) {
+
+		let formData = new FormData();
+
+		formData.append('id', mitraId);
+		formData.append('_token', '{{ csrf_token() }}')
+		formData.append('action', action)
+		formData.append('type', action)
+
+		$.ajax({
+			url: " partner-approval-progress/submit",
+			type: "POST",
+			data: formData,
+			processData: false,
+			contentType: false,
+			cache: false,
+			success: function(response) {
+				alert("Berhasil approve");
+
+				// $('#broadcastForm')[0].reset();
+
+			},
+			error: function(xhr, status, error) {
+				// console.log('Error details:', xhr.responseText);
+				alert("Telah terjadi kesalahan. Silakan coba lagi.");
+			},
+			complete: function() {
+				// $('#submitBtn').prop('disabled', false).text('Submit');
+			}
+		});
+
+	}
+
 	function redirectToProgress() {
 		window.location.href = `partner-approval-progress/${OpportunityLists.getSelectedId()}`;
 	}
@@ -165,17 +222,20 @@ $Saya =  Auth::user()->username;
 		console.log("uploading mou")
 	})
 
+	function ApprovalDataListsClick() {
+		initApprovalDataLog()
+	}
+
 
 	function OpportunityListsKlik() {
-
 		OpportunityListsID = OpportunityLists.getSelectedId();
-		console.log(OpportunityListsID)
-		$("#divlistOpportunity").show();
-		if (OpportunityListsID != '') {
-			$("#divlistProjectList").hide();
-			LoadM('divlistOpportunity', 'partner-approval-detail?ID=' + OpportunityListsID);
-		}
-		return true;
+		initApprovalData()
+		// $("#divlistApprovalData").show();
+		// if (OpportunityListsID != '') {
+		// 	$("#divlistProjectList").hide();
+		// 	LoadM('divlistOpportunity', 'partner-approval-detail?ID=' + OpportunityListsID);
+		// }
+		// return true;
 	}
 
 	OpportunityLists = new dhtmlXGridObject('OpportunityLists');
@@ -193,6 +253,44 @@ $Saya =  Auth::user()->username;
 	OpportunityLists.setSkin("dhx_skyblue");
 	OpportunityLists.init();
 	refreshdata();
+
+	function initApprovalData() {
+		ApprovalDataLists = new dhtmlXGridObject('ApprovalDataLists');
+		ApprovalDataLists.setImagePath("./dhtmlx/imgs/");
+		ApprovalDataLists.setHeader("No, Requested By, Tipe Approval, Status,  Note, Diapprove oleh");
+		ApprovalDataLists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+		// OpportunityLists.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+		ApprovalDataLists.setInitWidths("60,100,150,300,100,120,120,100,100,100,100,100,100");
+		ApprovalDataLists.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
+		ApprovalDataLists.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
+		ApprovalDataLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+		ApprovalDataLists.enableSmartRendering(true, 150);
+		// OpportunityLists.setNumberFormat("0,000", 7, ".", ",");
+		ApprovalDataLists.attachEvent("onRowDblClicked", ApprovalDataListsClick);
+		ApprovalDataLists.setSkin("dhx_skyblue");
+		ApprovalDataLists.init();
+		ApprovalDataLists.clearAndLoad('partner-onboarding-approval-data?type=ONBOARDING');
+
+		$('#ApprovalDataLists').append('<button>approve</button>')
+	}
+
+	function initApprovalDataLog() {
+		ApprovalDataLogLists = new dhtmlXGridObject('ApprovalDataLogLists');
+		ApprovalDataLogLists.setImagePath("./dhtmlx/imgs/");
+		ApprovalDataLogLists.setHeader("No,Daftar Sebagai, Nama, Alamat, Jumlah Mitra/Bisnis Gudang, Motivasi Bergabung, Pertanyaan 1, Pertanyaan 2, Pertanyaan 3, Pertanyaan 4, Pertanyaan 5, Pertanyaan 6, Paket");
+		ApprovalDataLogLists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+		// OpportunityLists.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+		ApprovalDataLogLists.setInitWidths("60,100,150,300,100,120,120,100,100,100,100,100,100");
+		ApprovalDataLogLists.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
+		ApprovalDataLogLists.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
+		ApprovalDataLogLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+		ApprovalDataLogLists.enableSmartRendering(true, 150);
+		// OpportunityLists.setNumberFormat("0,000", 7, ".", ",");
+		ApprovalDataLogLists.attachEvent("onRowDblClicked", OpportunityListsKlik);
+		ApprovalDataLogLists.setSkin("dhx_skyblue");
+		ApprovalDataLogLists.init();
+		ApprovalDataLogLists.clearAndLoad('partner-onboarding-approval-data-log');
+	}
 
 	function refreshdata() {
 		OpportunityLists.clearAndLoad('xml-partner-business-lists');

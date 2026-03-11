@@ -8,8 +8,10 @@ use App\Services\UserService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpWord\TemplateProcessor;
+
 
 class ApprovalController extends Controller
 {
@@ -37,6 +39,7 @@ class ApprovalController extends Controller
         return view('approval.profit-sharing-create');
     }
 
+
     public function detail(Request $request)
     {
         $partner = DB::table('opportunity_partner')->where('id', $request->ID)->first();
@@ -56,6 +59,9 @@ class ApprovalController extends Controller
         return view('approval.detail', compact('partner', 'pic', 'documents'));
     }
 
+    /** TODO :
+     * tamhain downpayment, payment thapa 2, pelunasan, generate mou number
+     */
     public function generateMOU(Request $req)
     {
 
@@ -70,26 +76,25 @@ class ApprovalController extends Controller
         $full_address = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
 
         $doc->setValues([
-            'partner_name' => $partner_name ?? '${contoh}',
+            'mou_number' => '',
+            'hub_type' => '',
+            'mitra_fullname' => $partner_name ?? '${contoh}',
             'partner_region' => $data->pi_city ?? '${contoh}',
             'signed_at' => Carbon::now(),
-            'nama' => $data->pic ?? '${contoh}',
-            'ktp' => '$contoh',
-            'alamat' => $full_address,
-            'pic_name' => $data->pic,
-            'npwp' => $data->npwp,
-            'membership_term' => '${contoh}',
-            'membership_fee' => '${contoh}',
-            'warehouse_fee' => '${contoh}',
-            'inventory_fee' => '${contoh}',
-            'namapaket' => '${contoh}',
-
+            'nama' => $data->pic ?? $partner_name,
+            'nik' => $data->ktp,
+            'NIK' => $data->ktp,
+            'full_address' => $full_address,
+            'downpayment' => 0,
+            'payment_phase2' => 0,
+            'repayment' => 0
         ]);
 
 
         if (!file_exists($path)) {
             return response()->json(['error' => 'File not found'], 404);
         }
+
         $outputPath = storage_path("app/public/mou_$now.docx");
 
         $doc->saveAs($outputPath);
@@ -98,17 +103,69 @@ class ApprovalController extends Controller
     }
 
 
-    public function generateInvoice() {}
 
     public function submit(Request $r)
     {
         $body = $r->all();
+        $user = 0;
+
+        try {
+            // $getUser = DB::table('users')->where('id', $id)->first();
+            $partner = DB::table('opportunity_partner')->where('id', $body['id'])->first();
+            if ($partner && $partner->lead_id != null) {
+                $cekUser = DB::table('users')->where("Emp_ID", $partner->lead_id)->first();
+                if (!$cekUser) {
+                    $pass = 'geupartner123';
+                    $username = str_replace(' ', '_', strtolower($partner->full_name));
+                    if (!auth()->check()) {
+                        $cekUser = DB::table('users')->get();
+                        foreach ($cekUser as $key => $value) {
+                            if ($value->username == $username) {
+                                $username = $username . rand(100, 999);
+                            }
+                        }
+                    }
+                    $contact = $partner->register_as == 'individu' ? $partner->contact : $partner->pic_phone;
+                    if ($partner->lead_id != null && $contact == '') {
+                        $opportunity = DB::table('opportunity')->where("Task_ID", $partner->lead_id)->first();
+                        $contact = $opportunity->Phone_Number;
+                    }
+                    DB::table('users')->insert([
+                        'username' => $username,
+                        'password' => bcrypt($pass),
+                        'Emp_ID' => $partner->lead_id,
+                        'Position' => "MITRA",
+                        'Priv_ID' => "MITRA",
+                        'Location' => 'GEU-HO',
+                        'Name' => $partner->full_name,
+                        'Contact' => $contact,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'Area' => $partner->city,
+                        'Status' => 'ACTIVE',
+                        'Department' => 'MITRA',
+                        'Company_ID' => 'GEU',
+                        'Sub_Menu' => "MS00010,SM00047,SS00065,SI00231,SI00233,SM00048,SS00066,SI00237,SI00236",
+                    ]);
+                    $cekUser = DB::table('users')->where("Emp_ID", $partner->lead_id)->first();
+                    if ($cekUser) {
+                        $user = $cekUser->id;
+                    }
+                }
+                DB::table('opportunity_partner')->where('id', $partner->id)->update([
+                    'status' => 'ACTIVE',
+                ]);
+            }
+        } catch (\Throwable $th) {
+            //throw $th;
+            Log::error($th);
+        }
 
         $id = DB::table('approval_request')->insertGetId([
             'Status' => $body['type'],
-            'Requester_Id' => $body['id'],
+            'Requester_Id' => $user,
             'Description' => "Initial Review",
             'Request_Type' => "ONBOARDING",
+            'Opportunity_Partner_Id' => $body['id']
         ]);
 
         $lastRow = DB::table('approval_request')->select('*')->where('ID', '=', $id)->first();
@@ -125,36 +182,37 @@ class ApprovalController extends Controller
         return "submitted";
     }
 
-    public function processProfitSharingToNextProgress(Request $r)
+    public function processOnboardingToNextProgress(Request $r)
     {
         try {
             $b = $r->all();
             $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
+            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'ONBOARDING')->first();
+            $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'ONBOARDING')->first();
 
-            $result = DB::transaction(function ($b) use ($req) {
+            $session = $this->userService->getCurrentSessionUserInfo();
+
+            $result = DB::transaction(function () use ($b, $req, $session, $level, $nextLevel) {
                 $logId = DB::table('approval_log')->insertGetId([
-                    'Approver_Id' => $req->Requester_Id,
-                    'Notes' => $req->Note ?? "",
-                    'Action' => $b['action'],
-                    'Level_Number' => $req->Current_Level,
-                    'Next_Level' => $req->action == "APPROVED" ? $req->Next_Level + 1 : $req->Current_Level,
+                    'Approver_Id' => $session->id,
+                    'Notes' => "",
+                    'Action' =>  $b['action'],
+                    'Level_Number' => $level->Level_Number,
+                    'Next_Level' => $b['action'] == "APPROVED" ? $level->Level_Number + 1 : $level->Level_Number,
+                    'Level_Id' => $level->ID,
+                    'Next_Level_Id' => $nextLevel->ID,
+                    'Request_Id' => $req->ID,
                 ]);
 
                 $updated = DB::table('approval_request')
-                    ->where('Request_Id', '=', $req->request_id)
+                    ->where('ID', '=', $req->ID)
                     ->update([
-                        'Status' => 'APPROVED',
-                        'Requester_Id' => $req->Requester_Id,
-                        'Description' => "",
-                        'Current_Level' => $req->Current_Level,
+                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
+                        'Description' => "Berhasil menuju tahap selanjutnya",
+                        'Current_Level' => $req->Current_Level + 1,
+                        'Level_Id' => $nextLevel->ID,
                         'Request_Type' => $req->Request_Type,
                     ]);
-
-                return [
-                    'log_id' => $logId,
-                    'updated' => $updated,
-                    'message' => 'Transaction completed successfully'
-                ];
             });
 
             return response()->json([
@@ -169,6 +227,100 @@ class ApprovalController extends Controller
             ], 500);
         }
     }
+
+
+    public function processProfitSharingToNextProgress(Request $r)
+    {
+        try {
+            $b = $r->all();
+            $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
+            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'PROFIT_SHARING')->first();
+            $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'PROFIT_SHARING')->first();
+
+            $session = $this->userService->getCurrentSessionUserInfo();
+
+            $result = DB::transaction(function () use ($b, $req, $session, $level, $nextLevel) {
+                $logId = DB::table('approval_log')->insertGetId([
+                    'Approver_Id' => $session->id,
+                    'Notes' => "",
+                    'Action' =>  $b['action'],
+                    'Level_Number' => $level->Level_Number,
+                    'Next_Level' => $b['action'] == "APPROVED" ? $level->Level_Number + 1 : $level->Level_Number,
+                    'Level_Id' => $level->ID,
+                    'Next_Level_Id' => $nextLevel->ID,
+                    'Request_Id' => $req->ID,
+                ]);
+
+                $updated = DB::table('approval_request')
+                    ->where('ID', '=', $req->ID)
+                    ->update([
+                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
+                        'Description' => "Berhasil menuju tahap selanjutnya",
+                        'Current_Level' => $req->Current_Level + 1,
+                        'Level_Id' => $nextLevel->ID,
+                        'Request_Type' => $req->Request_Type,
+                    ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'success',
+                'data' => $result
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function processRenewalToNextProgress(Request $r)
+    {
+        try {
+            $b = $r->all();
+            $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
+            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'RENEWAL')->first();
+            $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'RENEWAL')->first();
+
+            $session = $this->userService->getCurrentSessionUserInfo();
+
+            $result = DB::transaction(function () use ($b, $req, $session, $level, $nextLevel) {
+                $logId = DB::table('approval_log')->insertGetId([
+                    'Approver_Id' => $session->id,
+                    'Notes' => "",
+                    'Action' =>  $b['action'],
+                    'Level_Number' => $level->Level_Number,
+                    'Next_Level' => $b['action'] == "APPROVED" ? $level->Level_Number + 1 : $level->Level_Number,
+                    'Level_Id' => $level->ID,
+                    'Next_Level_Id' => $nextLevel->ID,
+                    'Request_Id' => $req->ID,
+                ]);
+
+                $updated = DB::table('approval_request')
+                    ->where('ID', '=', $req->ID)
+                    ->update([
+                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
+                        'Description' => "Berhasil menuju tahap selanjutnya",
+                        'Current_Level' => $req->Current_Level + 1,
+                        'Level_Id' => $nextLevel->ID,
+                        'Request_Type' => $req->Request_Type,
+                    ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'success',
+                'data' => $result
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     public function showProgress(Request $request)
     {

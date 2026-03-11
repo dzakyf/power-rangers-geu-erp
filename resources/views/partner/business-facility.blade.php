@@ -73,7 +73,7 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		FacilityBenefits.clearAndLoad('xml-partner-business-lists');
+		FacilityBenefits.clearAndLoad('xml-partner-business-facility');
 
 	}
 

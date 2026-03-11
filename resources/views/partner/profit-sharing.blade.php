@@ -34,8 +34,9 @@ $Saya =  Auth::user()->username;
 			<div id="ProfitSharing" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselProfitSharingDet" name="ekselProfitSharingDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ProfitSharing.toExcel('./export/generate.php');" />
-				<input type="button" id="detailProfitSharing" name="detailProfitSharing" value="Detail Warehouse Profit Sharing LK Monthly" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingLKMonthly()" />
-				<input type="button" id="detailProfitSharing" name="detailProfitSharing" value="Detail Warehouse Profit Sharing LK Annually" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingLKAnnually()" />
+				<input type="button" id="detailProfitSharingMonthly" name="detailProfitSharingMonthly" value="Detail Warehouse Profit Sharing LK Monthly" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingLKMonthly()" />
+				<input type="button" id="detailProfitSharingAnnually" name="detailProfitSharingAnnually" value="Detail Warehouse Profit Sharing LK Annually" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingLKAnnually()" />
+				<input type="button" id="detailProfitSharingDashboard" name="detailProfitSharingDashboard" value="Detail Warehouse Profit Sharing Dashboard" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingDashboard()" />
 			</div>
 		</div>
 	</div>
@@ -49,7 +50,7 @@ $Saya =  Auth::user()->username;
 
 		ProfitSharingID = ProfitSharing.getSelectedId();
 		if (ProfitSharingID != null) {
-			LoadM('divlistOpportunity', 'partner-profit-sharing-lk-monthly?Task=' + ProfitSharingID + "&date=2026-03");
+			LoadM('divlistOpportunity', 'partner-profit-sharing-lk-monthly?Task=' + ProfitSharingID);
 		}else {
 			alert("Pilih baris data");
 		}
@@ -59,7 +60,17 @@ $Saya =  Auth::user()->username;
 
 		ProfitSharingID = ProfitSharing.getSelectedId();
 		if (ProfitSharingID != null) {
-			LoadM('divlistOpportunity', 'partner-profit-sharing-lk-annually?Task=' + ProfitSharingID + "&date=2026-03");
+			LoadM('divlistOpportunity', 'partner-profit-sharing-lk-annually?Task=' + ProfitSharingID);
+		}else {
+			alert("Pilih baris data");
+		}
+		return true;
+	}
+	function ProfitSharingDashboard() {
+
+		ProfitSharingID = ProfitSharing.getSelectedId();
+		if (ProfitSharingID != null) {
+			LoadM('divlistOpportunity', 'partner-profit-sharing-dashboard?Task=' + ProfitSharingID);
 		}else {
 			alert("Pilih baris data");
 		}

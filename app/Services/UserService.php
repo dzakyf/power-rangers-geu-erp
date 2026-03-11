@@ -29,7 +29,9 @@ class UserService
 
     public function getMitraById($id)
     {
-        $partner = DB::table('users')->select('*')->where('Position', '=', 'MITRA')->where('id', '=', $id)->where('Status', '=', 'ACTIVE')->get();
+        $partner = DB::table('users')->select('*')
+            // ->where('Position', '=', 'MITRA')
+            ->where('id', '=', $id)->where('Status', '=', 'ACTIVE')->first();
 
         return $partner;
     }

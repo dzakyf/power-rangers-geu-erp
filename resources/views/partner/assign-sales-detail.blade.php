@@ -35,13 +35,13 @@ $Saya =  Auth::user()->username;
 	}
 	AssignSalesDetail = new dhtmlXGridObject('AssignSalesDetail');
 	AssignSalesDetail.setImagePath("./dhtmlx/imgs/");
-	AssignSalesDetail.setHeader("No,Task ID,Created Person,Full Name, Date, Active Contact, Partnership Interest, Capital Estimation (Modal/RP), Created Date, Source, Response, Kualifikasi, Klasifikasi, Status, Note Cancellation");
-	AssignSalesDetail.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	AssignSalesDetail.setHeader("No,Task ID,Created Person,Full Name, Date, Active Contact, Partnership Interest, Capital Estimation (Modal/RP), Created Date, Source, Response, Kualifikasi, Klasifikasi, Status, Note Cancellation, Link Whatsapp");
+	AssignSalesDetail.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// AssignSalesDetail.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	AssignSalesDetail.setInitWidths("60,150,100,200,100,120,120,200,100,100,100,100,100,100,100");
-	AssignSalesDetail.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
-	AssignSalesDetail.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	AssignSalesDetail.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	AssignSalesDetail.setInitWidths("60,150,100,200,100,120,120,200,100,100,100,100,100,100,100,100");
+	AssignSalesDetail.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
+	AssignSalesDetail.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
+	AssignSalesDetail.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	AssignSalesDetail.enableSmartRendering(true, 150);
 	// AssignSalesDetail.setNumberFormat("0,000", 7, ".", ",");
 	PAssignSalesDetail = new dataProcessor("partner-assign-sales-update");
@@ -70,6 +70,7 @@ $Saya =  Auth::user()->username;
         return true; // Return true to continue processing
     });
 	AssignSalesDetail.attachEvent("onRowDblClicked", AssignSalesDetailKlik);
+	AssignSalesDetail.attachEvent("onRowSelect", AssignSalesDetailSelect);
 	AssignSalesDetail.setSkin("dhx_skyblue");
 	AssignSalesDetail.init();
 	refreshdataDetail();
@@ -77,6 +78,23 @@ $Saya =  Auth::user()->username;
 	function refreshdataDetail() {
 		AssignSalesDetail.clearAndLoad('xml-partner-assign-sales-detail?ID={{ $_GET["ID"] }}');
 
+	}
+
+	function AssignSalesDetailSelect(rId, cInd) {
+		if (cInd == 15) {
+			if (AssignSalesDetail.cells(rId, cInd).getValue() == 'Blast') {
+				$.ajax({
+					url:"partner-assign-sales-detail-whatsapp",
+					method:"GET",
+					data:{rId},
+					success:function(res)
+					{
+						window.open(res, '_blank');
+					}
+				})
+			}
+		}
+		return true;
 	}
 
 	function detailLeads() {
