@@ -142,7 +142,7 @@ class ProfitSharingController extends Controller
 
         $calculate[501]['NULL'] = $calculate[501][51001] * $calculate[501][51002];
         // $percentage[501] = $calculate[501]['NULL'] / $calculate[401][40001];
-        
+
 
         // Hitung Opex
         $getAccount = MasterWarehouseAccount::where('group_account', '>', 501)->get();
@@ -179,20 +179,20 @@ class ProfitSharingController extends Controller
                     $exp = explode(',', $value->Rumus);
                     if (count($exp) > 0) {
                         if (!isset($calculate[$value->Judul])) {
-                            $calculate[$value->Judul]['NULL'] = 0; 
+                            $calculate[$value->Judul]['NULL'] = 0;
                         }
                         if ($value->Normal == 'CREDIT') {
                             $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) - array_sum($calculate[$exp[1]])) - (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
-                        }else {
+                        } else {
                             $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) + array_sum($calculate[$exp[1]])) + (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
                         }
                         // $percentage[$value->Judul] = $calculate[$value->Judul]['NULL']/$calculate[401][40001] * 100;
                     }
                 }
-            }else if($value->Level == 3) {
+            } else if ($value->Level == 3) {
                 $exp = explode(',', $value->Rumus);
                 if (!isset($calculate[$value->Judul])) {
-                    $calculate[$value->Judul]['NULL'] = 0; 
+                    $calculate[$value->Judul]['NULL'] = 0;
                 }
                 $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) * 60) / 100;
             }
@@ -204,9 +204,9 @@ class ProfitSharingController extends Controller
         }
         foreach ($get as $key => $Fetch) {
             $bold = "";
-            $style = "style='padding-left:".$Fetch->Indentation."px !important;'";
+            $style = "style='padding-left:" . $Fetch->Indentation . "px !important;'";
             if ($Fetch->Bold != null) {
-                $style = "style='padding-left:".$Fetch->Indentation."px !important;font-weight:bold;'";
+                $style = "style='padding-left:" . $Fetch->Indentation . "px !important;font-weight:bold;'";
                 $bold = "style='font-weight:bold;'";
             }
 
@@ -218,27 +218,27 @@ class ProfitSharingController extends Controller
                     echo "<cell $style>" . htmlspecialchars($calculate[$Fetch->Judul][$Fetch->Code]) . "</cell>";
                     echo "<cell $bold>" . htmlspecialchars($Fetch->Unit_Name) . "</cell>";
                     if ($Fetch->Unit_Name != 'Kg')
-                        echo "<cell $bold>" . htmlspecialchars(round($calculate[$Fetch->Judul][$Fetch->Code]/$rev * 100, 2)) . "%</cell>";
-                }else {
+                        echo "<cell $bold>" . htmlspecialchars(round($calculate[$Fetch->Judul][$Fetch->Code] / $rev * 100, 2)) . "%</cell>";
+                } else {
                     if (isset($calculate[$Fetch->Judul]['NULL'])) {
                         echo "<cell $style>" . htmlspecialchars($calculate[$Fetch->Judul]['NULL']) . "</cell>";
                         echo "<cell $bold>" . htmlspecialchars($Fetch->Unit_Name) . "</cell>";
                         if ($Fetch->Unit_Name != 'Kg')
-                            echo "<cell $bold>" . htmlspecialchars(round($calculate[$Fetch->Judul]['NULL']/$rev * 100, 2)) . "%</cell>";
-                    }else {
+                            echo "<cell $bold>" . htmlspecialchars(round($calculate[$Fetch->Judul]['NULL'] / $rev * 100, 2)) . "%</cell>";
+                    } else {
                         echo "<cell $style>" . htmlspecialchars(array_sum($calculate[$Fetch->Judul])) . "</cell>";
                         echo "<cell $bold>" . htmlspecialchars($Fetch->Unit_Name) . "</cell>";
                         if ($Fetch->Unit_Name != 'Kg')
-                            echo "<cell $bold>" . htmlspecialchars(round(array_sum($calculate[$Fetch->Judul])/$rev * 100,2)) . "%</cell>";
+                            echo "<cell $bold>" . htmlspecialchars(round(array_sum($calculate[$Fetch->Judul]) / $rev * 100, 2)) . "%</cell>";
                     }
                 }
-            }else {
+            } else {
                 if ($Fetch->Code != '' && $Fetch->Code != null && $Fetch->Rumus != '' && $Fetch->Rumus != null) {
-                    echo "<cell $style>".$calculate[$Fetch->Rumus][$Fetch->Code]."</cell>";
+                    echo "<cell $style>" . $calculate[$Fetch->Rumus][$Fetch->Code] . "</cell>";
                     echo "<cell $bold>" . htmlspecialchars($Fetch->Unit_Name) . "</cell>";
                     if ($Fetch->Unit_Name != 'Kg')
-                        echo "<cell $bold>".round($calculate[$Fetch->Rumus][$Fetch->Code]/$rev * 100, 2)."%</cell>";
-                }else {
+                        echo "<cell $bold>" . round($calculate[$Fetch->Rumus][$Fetch->Code] / $rev * 100, 2) . "%</cell>";
+                } else {
                     echo "<cell $style></cell>";
                     echo "<cell $bold>" . htmlspecialchars($Fetch->Unit_Name) . "</cell>";
                     echo "<cell $bold></cell>";
@@ -256,6 +256,174 @@ class ProfitSharingController extends Controller
         return view('partner.profit-sharing-lk-annually');
     }
 
+    public function dashboardProfitSharing(Request $request)
+    {
+        $getWarehouse = WarehousePartner::where('warehouse_task_id', $request->Task)->first();
+        $user = DB::table('users')->where("Emp_ID", $getWarehouse->partner_task_id)->first()->id ?? 0;
+        return view('partner.profit-sharing-dashboard', compact('user'));
+    }
+
+    public function dashboardUserProfitSharing()
+    {
+        return view('partner.profit-sharing-dashboard-user');
+    }
+
+    public function dashboardProfitSharingXml(Request $request)
+    {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+        echo "<rows>";
+        $priv = auth()->user()->Priv_ID;
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+        }
+
+        $getStartProjection = DB::table('projections')->where("User_ID", $request->mitra)->select('Created_At')->first();
+        if (!$getStartProjection) {
+            exit;
+        }
+        $tahunPembuatan = [
+            date('Y', strtotime($getStartProjection->Created_At)),
+            date('Y', strtotime($getStartProjection->Created_At . ' +1 year')),
+            date('Y', strtotime($getStartProjection->Created_At . ' +2 years')),
+            date('Y', strtotime($getStartProjection->Created_At . ' +3 years')),
+            date('Y', strtotime($getStartProjection->Created_At . ' +4 years')),
+        ];
+
+        $nomor = 1;
+
+        // Hitung Opex
+        $getAccount = MasterWarehouseAccount::where('group_account', '>', 501)->get();
+        $get = MasterWarehouseProfitLoss::where('type', $request->type)->get();
+
+        $calculate = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $calculate[$i][401][40001] = 0;
+            // $percentage[401] = 100;
+
+            // harga transfer
+            $calculate[$i][402][40002] = MasterStockPrice::where('date_for', 'LIKE', "$request->date%")->avg('price');
+
+            // quantity
+            $calculate[$i][501][51001] = WarehouseStockRequest::where('warehouse_task_id', $request->Task)->where('request_date', 'LIKE', $request->date . '%')->sum('request_qty');
+
+            // harga beli
+            // $calculate[$i][501][50002] = WarehousePartnerSupplies::where('received_date', 'LIKE', $request->date . '%')->avg('price');
+
+            $whs = WarehousePartnerSupplies::where("warehouse_task_id", $request->Task)->where('received_date', 'LIKE', $request->date . '%')->get();
+            $supplies = [];
+            $supplies['avg'] = 0;
+            foreach ($whs as $key => $value) {
+                $month = date('Y-m', strtotime($value->received_date));
+                if (!isset($supplies['qty'])) {
+                    $supplies['qty'] = 0;
+                }
+                if (!isset($supplies['avg'])) {
+                    $supplies['avg'] = $value->price;
+                }
+                $supplies['avg'] = (($supplies['avg'] * $supplies['qty']) + $value->total) / ($supplies['qty'] + $value->received_qty);
+            }
+
+            // harga beli
+            $calculate[$i][501][51002] = $supplies['avg'];
+
+            // pendapatan
+            $calculate[$i][401][40001] = $calculate[$i][402][40002] * $calculate[$i][501][51001];
+
+            $calculate[$i][501]['NULL'] = $calculate[$i][501][51001] * $calculate[$i][501][51002];
+
+
+            foreach ($getAccount as $key => $value) {
+                if (!isset($calculate[$i][$value->group_account])) {
+                    $calculate[$i][$value->group_account] = [];
+                }
+                if (!isset($calculate[$i][$value->group_account][$value->account_no])) {
+                    $calculate[$i][$value->group_account][$value->account_no] = 0;
+                }
+
+                $getOpex = WarehousePartnerJournal::where('warehouse_task_id', $request->Task)
+                    ->where('posting_date', 'LIKE', $request->date . '-' . sprintf('%02d', $i) . '%')
+                    ->where('account_no', $value->account_no)
+                    ->where('group_account', $value->group_account)
+                    ->sum('nominal');
+
+                $calculate[$i][$value->group_account][$value->account_no] += $getOpex;
+            }
+
+            //Hitung Pendaptan
+            // $percentage[501] = $calculate[$i][501]['NULL'] / $calculate[$i][401][40001];
+
+            $calculate[$i][599]['NULL'] = $calculate[$i][501]['NULL'] + array_sum($calculate[$i][502]);
+
+            foreach ($get as $key => $value) {
+                if ($value->Level == 2) {
+                    if ($value->Rumus != '') {
+                        $exp = explode(',', $value->Rumus);
+                        if (count($exp) > 0) {
+                            if (!isset($calculate[$i][$value->Judul])) {
+                                $calculate[$i][$value->Judul]['NULL'] = 0;
+                            }
+                            if ($value->Normal == 'CREDIT') {
+                                $calculate[$i][$value->Judul]['NULL'] += (array_sum($calculate[$i][$exp[0]]) - array_sum($calculate[$i][$exp[1]])) - (isset($exp[2]) ? array_sum($calculate[$i][$exp[2]]) : 0);
+                            } else {
+                                $calculate[$i][$value->Judul]['NULL'] += (array_sum($calculate[$i][$exp[0]]) + array_sum($calculate[$i][$exp[1]])) + (isset($exp[2]) ? array_sum($calculate[$i][$exp[2]]) : 0);
+                            }
+                            // $percentage[$value->Judul] = $calculate[$i][$value->Judul]['NULL']/$calculate[$i][401][40001] * 100;
+                        }
+                    }
+                } else if ($value->Level == 3) {
+                    $exp = explode(',', $value->Rumus);
+                    if (!isset($calculate[$i][$value->Judul])) {
+                        $calculate[$i][$value->Judul]['NULL'] = 0;
+                    }
+                    $calculate[$i][$value->Judul]['NULL'] += (array_sum($calculate[$i][$exp[0]]) * 60) / 100;
+                }
+            }
+        }
+
+        $tahunKe = 0;
+        for ($i = 0; $i < 4; $i++) {
+            $j = $i + 1;
+            if ($tahunPembuatan[$i] <= $request->date && $tahunPembuatan[$j] > $request->date) {
+                $tahunKe = $j;
+            }
+        }
+
+        $getProjection = DB::table('projections')->whereIn('Description', ['Pendapatan', 'Bagi Hasil Mitra'])->where('Hub_Type', $request->type)->where('Year', $tahunKe)->get();
+        foreach ($getProjection as $key => $value) {
+            for ($i = 1; $i <= 12; $i++) {
+                $value = json_decode(json_encode($value), true);
+                $proyeksi[$i][strtolower($value['Description'])] = $value['Month_' . $i . '_Total'];
+            }
+        }
+
+        for ($i = 1; $i <= 12; $i++) {
+            echo "<row id='$i'>";
+            echo "<cell>$nomor</cell>";
+            echo "<cell>" . date('F', strtotime($request->date . '-' . sprintf('%02d', $i) . '-01')) . "</cell>";
+            echo "<cell>" . $proyeksi[$i]['pendapatan'] . "</cell>";
+            echo "<cell>" . $calculate[$i][401][40001] . "</cell>";
+            echo "<cell>" . ($calculate[$i][599]['NULL'] + array_sum($calculate[$i][601])) . "</cell>";
+            echo "<cell>" . $proyeksi[$i]['bagi hasil mitra'] . "</cell>";
+            echo "<cell>" . $calculate[$i][801]['NULL'] . "</cell>";
+            echo "<cell>" . $calculate[$i][401][40001] / $proyeksi[$i]['pendapatan'] . "</cell>";
+            echo "<cell>" . $calculate[$i][801]['NULL'] / $proyeksi[$i]['bagi hasil mitra'] . "</cell>";
+            echo "<cell></cell>";
+            echo "<cell>" . ($calculate[$i][801]['NULL'] - ($calculate[$i][599]['NULL'] + array_sum($calculate[$i][601])) > 0 ? 'Surplis' : 'Defisit') . "</cell>";
+            echo "</row>";
+
+            $nomor++;
+        }
+        echo "</rows>";
+    }
+
 
     //?user_id=&type=
     public function getProfitSharingApprovalData(Request $r)
@@ -263,18 +431,24 @@ class ProfitSharingController extends Controller
         $q = $r->query();
         $type = $q['type'] ?? "%";
         $user_id = $q['user_id'] ?? "%";
+        $apprId = $q['id'] ?? "%";
+        $session = $this->userService->getCurrentSessionUserInfo();
 
-        $d = DB::table('approval_request as appr')->select('appr.*', 'usr.Name')->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')->where('appr.Request_Type', '=', $type)->where('appr.Request_Type', 'LIKE',  $type)->where('usr.id', 'LIKE', $user_id)->get();
+        if (in_array($session->Position, ["SALES", "MANAGER", "BOD", "HEAD"])) {
+            $d = DB::table('approval_request as appr')->select('appr.*', 'usr.Name', 'lv.Approver_Position')->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')
+                ->join('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID')->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Status', '=', 'NEED_APPROVAL')->where('lv.Approver_Position', '=', $session->Position)->get();
 
+            // MITRA, SUPERADMIN
+        } else {
+            $d = DB::table('approval_request as appr')->select('appr.*', 'usr.Name')->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')->where('appr.Request_Type', 'LIKE',  $type)->where('appr.ID', 'LIKE', $apprId)->orWhere('appr.Requester_Id', 'LIKE', $user_id)->get();
+        }
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
         foreach ($d as $p) {
             $row = $xml->addChild('row');
             $row->addChild('cell', $p->ID);
-
             $row->addChild('cell', $p->Name);
-
             $row->addChild('cell', $p->Request_Type);
             $row->addChild('cell', $p->Status);
             $row->addChild('cell', htmlspecialchars($p->Description));
@@ -306,11 +480,11 @@ class ProfitSharingController extends Controller
                 'approver.Name as Approved_By'
             )
             ->join('approval_log as log', 'request.ID', '=', 'log.Request_Id')
-            ->join('approval_level as level', 'log.Level_Number', '=', 'level.ID')
+            ->join('approval_level as level', 'log.Level_Id', '=', 'level.ID')
             ->join('users as requester', 'requester.id', '=', 'request.Requester_Id')
             ->leftJoin('users as approver', 'approver.id', '=', 'log.Approver_Id')
-            ->where('request.ID', '=', $requestId)
-            ->where('requester.id', '=', $userId)
+            ->where('request.ID', 'LIKE', $requestId)
+            // ->where('requester.id', 'LIKE', $userId)
             ->orderBy('log.ID', 'DESC')
             ->get();
 
@@ -337,10 +511,10 @@ class ProfitSharingController extends Controller
     {
         $q = $r->query();
         $body = $r->all();
-        $doc = $r->file('Doc');
+        $doc = $r->file('file');
 
         $path = $this->generatorService->generateFilename();
-        $ext = $r->file('Doc')->getClientOriginalExtension();
+        $ext = $r->file('file')->getClientOriginalExtension();
         $user = $this->userService->getCurrentSessionUserInfo();
 
         $id = DB::table('approval_request')->insertGetId([
@@ -383,11 +557,12 @@ class ProfitSharingController extends Controller
 
         $session = $this->userService->getCurrentSessionUserInfo();
         $userId = $b['user_id'] ?? $session->id;
-        dd($userId);
-        $partner = $this->userService->getMitraById($userId)[0];
+        $partner = $this->userService->getMitraById($userId);
+
 
         $nominal = 0;
         $location = $partner->City;
+        $date = Carbon::now()->day;
         $month = Carbon::now()->translatedFormat('F');
         $year = Carbon::now()->year;
         $bankName = $partner->Bank_Name;
@@ -399,6 +574,7 @@ class ProfitSharingController extends Controller
         $doc->setValues([
             'reference_no' => $referenceNo,
             'location' => $location,
+            'date' => $date,
             'month' => $month,
             'year' => $year,
             'nominal' => $nominal,

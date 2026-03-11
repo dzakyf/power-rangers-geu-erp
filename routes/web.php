@@ -10,6 +10,7 @@ use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\HelperController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OperationalController;
 use App\Http\Controllers\Partner\ChatListController as PartnerChatListController;
 use App\Http\Controllers\Partner\TicketController as PartnerTicketController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Partner\WarehouseJournalSummaryController as PartnerWar
 use App\Http\Controllers\Partner\WarehouseAuditController as PartnerWarehouseAuditController;
 use App\Http\Controllers\Partner\ProfitSharingController as PartnerProfitSharingController;
 use App\Http\Controllers\ProjectionProfitController;
+use App\Http\Controllers\RenewalController;
 use App\Http\Controllers\UploaderController;
 use App\Http\Controllers\UserController;
 
@@ -4289,6 +4291,10 @@ Route::group(['middleware' => 'auth'], function () {
         return view('partner.assign-sales-detail');
     });
 
+    Route::get('partner-assign-sales-detail-whatsapp', function () {
+        return view('partner.assign-sales-detail-whatsapp');
+    });
+
     Route::get('xml-partner-assign-sales-detail', function () {
         return view('partner.xml.assign-sales-detail');
     });
@@ -4401,6 +4407,10 @@ Route::group(['middleware' => 'auth'], function () {
         return view('partner.business-lists');
     });
 
+    Route::get('partner-business-lists-whatsapp', function () {
+        return view('partner.business-lists-whatsapp');
+    });
+
     Route::get('xml-partner-business-lists', [PartnerListsController::class, 'indexXML']);
 
     Route::get('partner-business-lists-detail', [PartnerListsController::class, 'detail']);
@@ -4410,11 +4420,11 @@ Route::group(['middleware' => 'auth'], function () {
 
     /** partner registration approval */
     $partnerApprovalPrefix = "partner-approval";
-    Route::prefix('approval')->group(function () {
-        // Route::get('progress/generate-mou', [ApprovalController::class, 'generateMOU']);
-        // Route::post("progress/submit", [ApprovalController::class, 'submit']);
-        // Route::get('progress/{id}', [ApprovalController::class, 'showProgress']);
-    });
+    // Route::prefix('approval')->group(function () {
+    // Route::get('progress/generate-mou', [ApprovalController::class, 'generateMOU']);
+    // Route::post("progress/submit", [ApprovalController::class, 'submit']);
+    // Route::get('progress/{id}', [ApprovalController::class, 'showProgress']);
+    // });
 
     Route::get("$partnerApprovalPrefix-progress/generate-mou", [ApprovalController::class, 'generateMOU']);
     Route::post("$partnerApprovalPrefix-progress/submit", [ApprovalController::class, 'submit']);
@@ -4512,10 +4522,12 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$warehousePref-journal-annually-detail-detail", [PartnerWarehouseJournalSummaryController::class, 'detailWarehouseJournalAnnuallyDetailXml']);
 
     Route::get("$warehousePref-audit", [PartnerWarehouseAuditController::class, 'indexWarehouseAudit']);
-    Route::get("xml-$warehousePref-audit", [PartnerWarehouseAuditController::class, 'indexWarehouseAudit']);
+    Route::get("xml-$warehousePref-audit", [PartnerWarehouseAuditController::class, 'indexWarehouseAuditXml']);
     Route::get("$warehousePref-audit-new", [PartnerWarehouseAuditController::class, 'newWarehouseAudit']);
-    Route::get("$warehousePref-audit-new-submit", [PartnerWarehouseAuditController::class, 'newWarehouseAuditSubmit']);
+    Route::post("$warehousePref-audit-new-submit", [PartnerWarehouseAuditController::class, 'newWarehouseAuditSubmit']);
     Route::get("$warehousePref-audit-detail", [PartnerWarehouseAuditController::class, 'detailWarehouseAudit']);
+    Route::get("$warehousePref-audit-get-warehouse", [PartnerWarehouseAuditController::class, 'getGudangWarehouseAudit']);
+    Route::post("$warehousePref-audit-get-nomor", [PartnerWarehouseAuditController::class, 'getNomorWarehouseAudit']);
     /** */
 
     /** chat route */
@@ -4596,17 +4608,41 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$profitSharingPref-lk-monthly", [PartnerProfitSharingController::class, 'lkProfitSharingXml']);
     Route::get("$profitSharingPref-lk-annually", [PartnerProfitSharingController::class, 'lkAnnuallyProfitSharing']);
     Route::get("xml-$profitSharingPref-lk-annually", [PartnerProfitSharingController::class, 'lkProfitSharingXml']);
+    Route::get("$profitSharingPref-dashboard", [PartnerProfitSharingController::class, 'dashboardProfitSharing']);
+    Route::get("$profitSharingPref-dashboard-user", [PartnerProfitSharingController::class, 'dashboardUserProfitSharing']);
+    Route::get("xml-$profitSharingPref-dashboard", [PartnerProfitSharingController::class, 'dashboardProfitSharingXml']);
     Route::get("$profitSharingPref-download", [PartnerProfitSharingController::class, 'downloadProfitSharingApplication']);
     Route::post("$profitSharingPref-submit-application", [PartnerProfitSharingController::class, 'partnerSubmitProfitSharingApplication']);
 
     Route::get("$profitSharingPref-data", [PartnerProfitSharingController::class, 'getProfitSharingApprovalData']);
     Route::get("$profitSharingPref-data-log", [PartnerProfitSharingController::class, 'getProfitSharingApprovalDataLog']);
 
-    Route::post("$profitSharingPref-proceed", [ApprovalController::class, 'processProfitSharingToNextProgress']);
+    // Route::post("$profitSharingPref-proceed", [ApprovalController::class, 'processProfitSharingToNextProgress']);
     Route::get("$profitSharingPref-approval-index", [ApprovalController::class, 'indexProfitSharing']);
     Route::get("$profitSharingPref-approval-create", [ApprovalController::class, 'createProfitSharingApplication']);
+    Route::post("$profitSharingPref-approve", [ApprovalController::class, 'processProfitSharingToNextProgress']);
 
     /**partner route */
     $partner = "partner";
     Route::get("$partner-data", [UserController::class, 'getPartner']);
+
+    /** renewal  */
+    $partnerRenewalPrefs = "partner-renewal";
+    Route::get("$partnerRenewalPrefs-renewal-index", [RenewalController::class, 'indexRenewal']);
+    Route::get("$partnerRenewalPrefs-data", [RenewalController::class, 'getRenewalData']);
+    Route::get("$partnerRenewalPrefs-data-log", [PartnerProfitSharingController::class, 'getProfitSharingApprovalDataLog']);
+    Route::get("$partnerRenewalPrefs-termination-index", [RenewalController::class, 'indexTermination']);
+    Route::get("$partnerRenewalPrefs-transfer-index", [RenewalController::class, 'indexTransferMitra']);
+    Route::get("$partnerRenewalPrefs-approval-index", [RenewalController::class, 'indexApproval']);
+    Route::get("$partnerRenewalPrefs-approval-create", [RenewalController::class, 'createApproval']);
+    Route::post("$partnerRenewalPrefs-approval-approve", [ApprovalController::class, 'processRenewalToNextProgress']);
+    Route::get("$partnerRenewalPrefs-download", [RenewalController::class, 'downloadRenewalApplication']);
+    Route::post("$partnerRenewalPrefs-submit-application", [RenewalController::class, 'uploadRenewalApplication']);
+
+    /** OnboardingController */
+    $onboardingPrefs = "partner-onboarding";
+    Route::get("$onboardingPrefs-approval-data", [OnboardingController::class, 'getOnboardingApprovalData']);
+    Route::get("$onboardingPrefs-approval-data-log", [OnboardingController::class, 'getOnboardingApprovalDataLog']);
+
+    Route::post("$onboardingPrefs-submit-mou", [OnboardingController::class, 'uploadMou']);
 });

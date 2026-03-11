@@ -2,6 +2,7 @@
     <div class="card">
         <div class="card-body">
             <h5 class="text-center">Form Registrasi Partnership</h5>
+            <input type="hidden" name="lead_id" id="lead_id" value="{{ $_GET['leads'] ?? '' }}">
 
             <div class="badge badge-info w-100 my-3 py-3">INFORMASI PARTNER</div>
             @include('form.registration-individual')

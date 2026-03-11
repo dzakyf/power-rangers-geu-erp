@@ -84,16 +84,30 @@ class WarehouseJournalSummaryController extends Controller
         foreach ($getAccounts as $key => $value) {
             $accName[$value->account_no] = $value->account_name;
         }
+        $accName[61999] = 'Logistik Penjemputan';
         $nomor = 1;
 
         $get = WarehousePartnerJournal::where('posting_date', 'LIKE', $request->date.'%')->where('warehouse_task_id', $request->Task)->selectRaw("account_no, SUM(nominal) as nom, MONTH(posting_date) as date")->groupBy('account_no')->groupBy('date')->get();
+        $count = count($get);
+        foreach ($get as $key => $value) {
+            if ($value->account_no == '61007' || $value->account_no == '61008') {
+                if (!isset($get[$count]->nom)) {
+                    $get[$count]->nom = 0;
+                }
+                $get[$count]->nom += $value->nom;
+            }
+        }
         
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->account_no||$request->date\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars(date('F', strtotime($request->date.'-'.$Fetch->date.'-01'))) . "</cell>";
-            echo "<cell>" . htmlspecialchars($accName[$Fetch->account_no]) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->nom) . "</cell>";
+            if ($Fetch->account_no == '61007' || $Fetch->account_no == '61008') {
+                continue;
+            }else {
+                echo "<cell>" . htmlspecialchars($accName[$Fetch->account_no]) . "</cell>";
+                echo "<cell>" . htmlspecialchars($Fetch->nom) . "</cell>";
+            }
             echo "</row>";
 
             $nomor++;

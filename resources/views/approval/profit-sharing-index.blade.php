@@ -17,16 +17,24 @@
 
 <div class="row m-1">
 
-    <input type="button" id="detailBP" name="detailBP" value="Buat Pengajuan" class="btn btn-success mb-2" onclick="redirectToCreateApplication()" />
+    <input type="button" id="pengajuan" name="pengajuan" value="Buat Pengajuan" class="btn btn-success mb-2" onclick="redirectToCreateApplication()" />
     <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
-    <div id="ExpenditureGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
-    <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
-    <div>
-        <!-- <input type="button" id="ekselProjectionGridDet" name="ekselProjectionGridDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="ProjectionGrid.toExcel('./export/generate.php');" /> -->
-        <!-- <input type="button" id="createBroadcast" name="createBroadcast" value="Create Panduan" class="btn btn-info mt-2 mr-2" onclick="createPanduan()" /> -->
-        <div class="btn-group" role="group">
+    <div class="row col-md-12" style="width:auto;height:40px">
+        <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+            <div class="btn-group" role="group">
+                <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Actio
+                </button>
+                <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                    <a class="dropdown-item" href="#" onclick="approveClick('APPROVED')">Approve</a>
+                    <a class="dropdown-item" href="#" onclick="approveClick('REJECTED')">Reject</a>
+                </div>
+            </div>
         </div>
     </div>
+
+    <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
+
 </div>
 
 <script>
@@ -39,10 +47,40 @@
         window.location.href = `partner-profit-sharing-approval-create?id=${mitraId}`
     }
 
+    function approveClick(action) {
+
+        let formData = new FormData();
+
+        formData.append('id', mitraId);
+        formData.append('_token', '{{ csrf_token() }}')
+        formData.append('action', action)
+
+        $.ajax({
+            url: " partner-profit-sharing-approve",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            cache: false,
+            success: function(response) {
+                alert("Berhasil approve");
+
+                // $('#broadcastForm')[0].reset();
+
+            },
+            error: function(xhr, status, error) {
+                // console.log('Error details:', xhr.responseText);
+                alert("Telah terjadi kesalahan. Silakan coba lagi.");
+            },
+            complete: function() {
+                // $('#submitBtn').prop('disabled', false).text('Submit');
+            }
+        });
+
+    }
+
     function initApprovalGrid() {
-        let tHeader = [
-            'No', 'Nama', 'Tipe Approval', 'Status'
-        ]
+        let tHeader = ['No', 'Nama', 'Tipe Approval', 'Status']
 
         let tWidth = tHeader.map((e) => '110')
         let headerAttachment = [
@@ -92,49 +130,7 @@
         // ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
         ProjectionGrid.setSkin("dhx_skyblue");
         ProjectionGrid.init();
-        ProjectionGrid.clearAndLoad('partner-profit-sharing-data-log?request_id=28&user_id=2345&type=PROFIT_SHARING');
-    }
-
-
-    function initExpenditureGrid() {
-        let tHeader = [
-            'No', 'Tipe Hub', 'Tipe Proyeksi', 'Uraian', ' Standard',
-            ' %', 'Tahun Ke-', ' Month 1 ',
-            ' Month 2',
-            ' Month 3',
-            ' Month 4',
-            ' Month 5',
-            ' Month 6',
-            'Month 7',
-            'Month 8',
-            'Month 9',
-            'Month 10',
-            'Month 11',
-            ' Month 12',
-        ]
-        let tWidth = tHeader.map((e) => '140')
-
-        let headerAttachment = [
-            '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter'
-        ]
-
-        ExpenditureGrid = new dhtmlXGridObject('ExpenditureGrid');
-        ExpenditureGrid.setImagePath("./dhtmlx/imgs/");
-        ExpenditureGrid.setHeader(tHeader.join(','));
-        ExpenditureGrid.setInitWidths(tWidth.join(','));
-        ExpenditureGrid.enableAutoWidth(true);
-        ExpenditureGrid.attachHeader(headerAttachment);
-        // ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-        // ProjectionGrid.setColAlign("center,left,left,left,left");
-        // ProjectionGrid.setColSorting("int,str,str,str,str");
-        // ProjectionGrid.setColTypes("ro,ro,ro,ro,ro");
-        // ProjectionGrid.enableSmartRendering(true, 150);
-        // ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
-        // ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
-        ExpenditureGrid.setSkin("dhx_skyblue");
-        ExpenditureGrid.init();
-        ExpenditureGrid.clearAndLoad(`expenditure-data-expenditure?user_id=${mitraId}&hub_type=&projection_type=&year=`);
-
+        ProjectionGrid.clearAndLoad(`partner-profit-sharing-data-log?request_id=${mitraId}&user_id=&type=PROFIT_SHARING`);
     }
 
     function selectMitra(id, cellIdx) {

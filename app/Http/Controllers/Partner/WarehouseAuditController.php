@@ -17,6 +17,44 @@ class WarehouseAuditController extends Controller
         return view('partner.warehouse.audit');
     }
 
+    public function getNomorWarehouseAudit(Request $request)
+    {
+        $year = date('Y', strtotime($request->date));
+        $count = WarehousePartnerAudit::where("tanggal_audit", 'LIKE', $year.'%')->count() + 1;
+        $nomor = 'ADT/GEU/'.$year.'/'.sprintf('%04d', $count);
+        return response()->json($nomor);
+    }
+
+    public function getGudangWarehouseAudit(Request $request)
+    {
+        if (strlen(trim($request->chars)) < 3) exit;
+
+        $arr=array();
+        $result = WarehousePartner::select(['warehouse_partner.partner_task_id','warehouse_partner.warehouse_location','warehouse_partner.warehouse_task_id','opportunity_partner.full_name'])
+        ->leftJoin('opportunity_partner', 'warehouse_partner.partner_task_id','=','opportunity_partner.lead_id')
+        ->where(function($q) use ($request) {
+            $q->where('warehouse_partner.warehouse_task_id','LIKE', "%$request->chars%")
+            ->orWhere('warehouse_partner.partner_task_id','LIKE', "%$request->chars%")
+            ->orWhere('warehouse_partner.warehouse_location','LIKE', "%$request->chars%")
+            ->orWhere('opportunity_partner.full_name','LIKE', "%$request->chars%");
+        })
+        ->where('opportunity_partner.full_name', '!=', null)
+        ->where('warehouse_partner.warehouse_status', 'ACTIVE')
+        ->limit(20)
+        ->get();
+        
+
+        if(count($result)>0){
+            foreach($result as $data){
+                
+                $Description= "Hub No: ". $data->warehouse_task_id."<br>BP No: ".$data->partner_task_id."<br>Full Name : ".$data->full_name;
+                $arr[]=array("id" => trim($data->warehouse_task_id), "data" => $data->partner_task_id, "description" => $Description, 'location' => $data->warehouse_location);
+            }
+        }
+
+        echo json_encode($arr);
+    }
+
     public function indexWarehouseAuditXml()
     {
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
@@ -38,7 +76,7 @@ class WarehouseAuditController extends Controller
         $get = WarehousePartnerAudit::get();
         
         foreach ($get as $key => $Fetch) {
-            $getGudang = WarehousePartner::where("warehouse_task_id", $Fetch->$Fetch->warehouse_task_id)->first();
+            $getGudang = WarehousePartner::where("warehouse_task_id", $Fetch->warehouse_task_id)->first();
             echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->nomor_audit) . "</cell>";
@@ -49,7 +87,7 @@ class WarehouseAuditController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->jenis_audit) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->kategori_temuan) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->ringkasan_temuan) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->created_by]) . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -60,7 +98,10 @@ class WarehouseAuditController extends Controller
     public function newWarehouseAudit()
     {
         $getGudang = WarehousePartner::get();
-        return view('partner.warehouse.audit-new', compact('getGudang'));
+        $year = date('Y');
+        $count = WarehousePartnerAudit::where("tanggal_audit", 'LIKE', $year.'%')->count() + 1;
+        $nomor = 'ADT/GEU/'.$year.'/'.sprintf('%04d', $count);
+        return view('partner.warehouse.audit-new', compact('getGudang', 'nomor'));
     }
 
     public function newWarehouseAuditSubmit(Request $request)
@@ -98,25 +139,28 @@ class WarehouseAuditController extends Controller
                 'tanggal_audit'=>$request->tanggal_audit,
                 'jenis_audit'=>$request->jenis_audit,
                 'nomor_audit'=>$request->nomor_audit,
+                'warehouse_task_id'=>$request->warehouse_task_id,
                 'kode_hub'=>$request->kode_hub,
-                'lokasi_warehouse'=>$request->lokasi_warehouse,
+                'warehouse_location'=>$request->warehouse_location,
                 'auditor'=>$request->auditor,
                 'ringkasan_temuan'=>$request->ringkasan_temuan,
                 'kategori_temuan'=>$request->kategori_temuan,
                 'foto_lokasi'=>$request->foto_lokasi ?? false,
                 'bukti_pendukung'=>$request->bukti_pendukung ?? false,
                 'verifikasi'=>$request->verifikasi,
+                'created_by' => auth()->user()->username,
                 'auditee'=>$request->auditee
             ]);
 
             foreach($details as $detail){
 
                 WarehousePartnerAuditDtl::create([
-                    'audit_warehouse_id'=>$audit->id,
+                    'nomor_audit'=>$request->nomor_audit,
                     'section'=>$detail,
                     'parameter'=>$request->$detail,
                     'value'=>$request->$detail,
-                    'catatan'=>$r[$detail.'_note'] ?? null
+                    'catatan'=>$r[$detail.'_note'] ?? null,
+                    'created_by' => auth()->user()->username,
                 ]);
 
             }

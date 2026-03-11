@@ -56,6 +56,12 @@ foreach ($Query as $Fetch) {
 	echo "<cell>" . htmlspecialchars($Fetch->Qualification) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Classification) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Status) . "</cell>";
+	echo "<cell>" . htmlspecialchars($Fetch->Cancel_Reason) . "</cell>";
+	if ($Fetch->Status == 'Deal') {
+		echo "<cell>" . htmlspecialchars('Blast') . "</cell>";
+	}else {
+		echo "<cell>" . htmlspecialchars('') . "</cell>";
+	}
 	echo "</row>";
 
 	$nomor++;
