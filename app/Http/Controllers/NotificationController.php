@@ -46,4 +46,15 @@ class NotificationController extends Controller
             'message' => "success. $lastRow marked notification as read."
         ], 200);
     }
+
+    /**TODO:
+     * implement blast WA, email, atau yang lain
+     */
+    public function reminderContractExpiration()
+    {
+        $remindAt = Carbon::now()->addMonths(3)->toDateString();
+        $all = DB::table('opportunity_partner')->select('*')->whereDate('contract_end_at', '=', $remindAt);
+
+        return response()->json(['message' => 'under development']);
+    }
 }

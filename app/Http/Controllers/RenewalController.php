@@ -32,9 +32,9 @@ class RenewalController extends Controller
         return view('renewal.renewal');
     }
 
-    public function indexExitTermination()
+    public function indexTermination()
     {
-        return view('renewal.termination');
+        return view('partner.renewal.termination');
     }
 
     public function indexTransferMitraOwnership()
@@ -52,9 +52,20 @@ class RenewalController extends Controller
         return view('renewal.approval');
     }
 
+
     public function createApproval()
     {
         return view('renewal.approval-create');
+    }
+
+    public function indexTerminationApproval()
+    {
+        return view('partner.renewal.termination-approval');
+    }
+
+    public function createTerminationApproval()
+    {
+        return view('partner.renewal.termination-approval-create');
     }
 
     public function uploadRenewalApplication(Request $r)
@@ -106,7 +117,6 @@ class RenewalController extends Controller
         $partner = $this->userService->getMitraById($userId);
 
 
-
         $month = Carbon::now()->translatedFormat('F');
         $year = Carbon::now()->year;
         $position = "";
@@ -135,7 +145,43 @@ class RenewalController extends Controller
         return response()->download($outputPath)->deleteFileAfterSend(true);
     }
 
-    public function getApprovalData() {}
+    public function downloadTerminationApplication(Request $r)
+    {
+        $b = $r->query();
+        $template = public_path('template-surat-terminasi-kemitraan.docx');
+        $doc = new TemplateProcessor($template);
+
+        $session = $this->userService->getCurrentSessionUserInfo();
+        $userId = $b['user_id'] ?? $session->id;
+        $partner = $this->userService->getMitraById($userId);
+
+        $month = Carbon::now()->translatedFormat('F');
+        $year = Carbon::now()->year;
+        $position = "";
+        $contractEnd = "";
+        $mitraFullname = $partner->Name;
+        $referenceNo = "000/RS/PFS/APL/{$month}/{$year}";
+
+        $doc->setValues([
+            'reference_no' => $referenceNo,
+            'contract_end' => $contractEnd,
+            'now' => Carbon::now(),
+            'mitra_fullname' => $mitraFullname,
+            'position' => $position
+        ]);
+
+        if (!file_exists($template)) {
+            abort(404, 'File tidak ditemukan!');
+        }
+
+        $uuid = Uuid::uuid4();
+
+        $outputPath = storage_path("app/public/termination_$uuid.docx");
+
+        $doc->saveAs($outputPath);
+
+        return response()->download($outputPath)->deleteFileAfterSend(true);
+    }
 
 
     public function getRenewalData(Request $r)
@@ -146,6 +192,31 @@ class RenewalController extends Controller
         $no = 1;
         foreach ($d as $p) {
             $row = $xml->addChild('row');
+            $row->addAttribute('ID', $p->id);
+            $row->addChild('cell', $no);
+            $row->addChild('cell', $p->lead_id);
+            $row->addChild('cell', $p->full_name);
+            $row->addChild('cell', $p->register_as);
+            $row->addChild('cell', $p->contract_end_at);
+
+            $no++;
+        }
+
+        return response()->make($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
+
+    public function getTerminationDAta()
+    {
+        $d = DB::table('opportunity_partner')->select('*')->get();
+
+        $xml = new SimpleXMLElement('<rows></rows>');
+
+        $no = 1;
+        foreach ($d as $p) {
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $p->id);
             $row->addChild('cell', $no);
             $row->addChild('cell', $p->lead_id);
             $row->addChild('cell', $p->full_name);

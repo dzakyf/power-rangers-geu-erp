@@ -57,6 +57,22 @@ $Saya =  Auth::user()->username;
 				</div>
 			</div>
 			<div class="col-md-6 mt-3">
+				<label for="uco_ffa">Kualitas UCO FFA</label>
+				<div class="row">
+					<div class="col-10">
+						<input type="text" id="uco_ffa" name="uco_ffa" class="form-control" value="{{ $wh->uco_ffa }}">
+					</div>
+				</div>
+			</div>
+			<div class="col-md-6 mt-3">
+				<label for="uco_mi">Kualitas UCO M&I</label>
+				<div class="row">
+					<div class="col-10">
+						<input type="text" id="uco_mi" name="uco_mi" class="form-control" value="{{ $wh->uco_mi }}">
+					</div>
+				</div>
+			</div>
+			<div class="col-md-6 mt-3">
 				<label for="price">Harga / Liter</label>
 				<div class="row">
 					<div class="col-10">

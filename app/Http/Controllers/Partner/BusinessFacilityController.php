@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Partner;
 
 use App\Http\Controllers\Controller;
+use App\User;
+use App\WarehousePartner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -16,55 +18,56 @@ class BusinessFacilityController extends Controller
 
     public function indexXml()
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
             header("Content-type: text/xml");
         }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
-
-        // Sample data, replace with actual database query
-        $partners = DB::table('opportunity_partner')->where('status', 'ACTIVE')->get();
-        foreach ($partners as $key => $partner) {
-            echo "<row id=\"$partner->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($partner->register_as)."</cell>";
-                if ($partner->register_as == 'individual') {
-                    echo "<cell>".htmlspecialchars($partner->full_name)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->address)."</cell>";
-                }else {
-                    echo "<cell>".htmlspecialchars($partner->company_official_name)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->head_office_address)."</cell>";
-                }
-                echo "<cell>".htmlspecialchars($partner->company_warehouse_count)."</cell>";
-                echo "<cell>".htmlspecialchars($partner->company_experience)."</cell>";
-                if ($partner->register_as == 'individual') {
-                    echo "<cell>".htmlspecialchars($partner->q1)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->q2)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->q3)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->q4)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->q5)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->q6)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->package_option)."</cell>";
-                }else {
-                    echo "<cell>".htmlspecialchars($partner->c_q1)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->c_q2)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->c_q3)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->c_q4)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->c_q5)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->c_q6)."</cell>";
-                    echo "<cell>".htmlspecialchars($partner->company_package)."</cell>";
-                }
-            echo "</row>";
+        $priv = auth()->user()->Priv_ID;
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+            $usname[$value->Emp_ID] = $value->Name;
         }
+        $getPartner = DB::table('opportunity_partner')->get();
+        foreach ($getPartner as $key => $value) {
+            $usname[$value->lead_id] = $value->full_name;
+        }
+        $nomor = 1;
 
+        if ($priv == 'MITRA') {
+            $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
+        }else {
+            $get = WarehousePartner::get();
+        }
+        
+        foreach ($get as $key => $Fetch) {
+            echo "<row id=\"$Fetch->id\">";
+            echo "<cell>$nomor</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->capacity) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
+            echo "</row>";
+
+            $nomor++;
+        }
         echo "</rows>";
     }
 
     public function indexDetailBooth()
     {
         $getOppt = DB::table('opportunity_partner')->where("Lead_ID", auth()->user()->Emp_ID)->first();
+        if (!$getOppt) {
+            abort(403, 'Unauthorized access');
+        }
+        $cekWarehouse = WarehousePartner::where('partner_task_Id', auth()->user()->Emp_ID)->where('warehouse_type', 'booth')->first();
         if (!$getOppt) {
             abort(403, 'Unauthorized access');
         }

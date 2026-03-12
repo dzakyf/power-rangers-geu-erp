@@ -36,11 +36,15 @@ class MasterStockPriceController extends Controller
         $get = MasterStockPrice::orderBy('created_date', 'desc')->get();
         
         foreach ($get as $key => $Fetch) {
+            $name = "AUTO_SYSTEM";
+            if ($Fetch->created_by != 'auto_sys') {
+                $name = $usname[$Fetch->created_by];
+            }
             echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->date_for) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->price) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->created_by]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($name) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->created_date) . "</cell>";
             echo "</row>";
 

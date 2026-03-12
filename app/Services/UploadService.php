@@ -2,11 +2,57 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpWord\TemplateProcessor;
+use Ramsey\Uuid\Uuid;
 
 class UploadService
 {
+
+    protected $userService;
+    protected $generatorService;
+    public function __construct(UserService $u, GeneratorService $g)
+    {
+        $this->userService = $u;
+    }
+
+    public function downloadTemplate(string $templateName, string $userId)
+    {
+        $template = public_path($templateName);
+        $doc = new TemplateProcessor($template);
+
+        $partner = $this->userService->getMitraById($userId);
+
+        $month = Carbon::now()->translatedFormat('F');
+        $year = Carbon::now()->year;
+        $position = "";
+        $contractEnd = "";
+        $mitraFullname = $partner->Name;
+        $referenceNo = "000/RS/PFS/APL/{$month}/{$year}";
+
+        $doc->setValues([
+            'reference_no' => $referenceNo,
+            'contract_end' => $contractEnd,
+            'now' => Carbon::now(),
+            'mitra_fullname' => $mitraFullname,
+            'position' => $position
+        ]);
+
+        if (!file_exists($template)) {
+            abort(404, 'File tidak ditemukan!');
+        }
+
+        $uuid = Uuid::uuid4();
+
+        $outputPath = storage_path("app/public/mou_$uuid.docx");
+
+        $doc->saveAs($outputPath);
+
+        return response()->download($outputPath)->deleteFileAfterSend(true);
+    }
+
     public function uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo)
     {
         $fileId = DB::table('meta_files')->insertGetId([

@@ -1,4 +1,4 @@
-@if(auth()->user()->Priv_ID == 'PARTNER')
+@if(auth()->user()->Priv_ID == 'MITRA')
 @php
     $conversation = \App\RoomChat::where('User_ID_LEFT', auth()->user()->id)->orWhere('User_ID_Right', auth()->user()->id)->first();
     if (!$conversation) {

@@ -41,7 +41,7 @@ class WarehouseStockRequestController extends Controller
         }
         $nomor = 1;
 
-        if ($priv == 'PARTNER') {
+        if ($priv == 'MITRA') {
             $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
         }else {
             $get = WarehousePartner::get();

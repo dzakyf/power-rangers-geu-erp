@@ -31,10 +31,11 @@ $Saya =  Auth::user()->username;
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">OPEN WAREHOUSE</div>
 	<div class="card">
 		<div class="card-body">
-			<div id="AnnouncementList" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+			<div id="WarehouseOpen" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
-				<input type="button" id="ekselAnnouncementListDet" name="ekselAnnouncementListDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="AnnouncementList.toExcel('./export/generate.php');" />
-				<input type="button" id="newAnnouncement" name="newAnnouncement" value="New Announcement" class="btn btn-info mt-2 mr-2" onclick="AnnouncementListNew()" />
+				<input type="button" id="ekselWarehouseOpenDet" name="ekselWarehouseOpenDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseOpen.toExcel('./export/generate.php');" />
+				<input type="button" id="newWarehouseOpen" name="newWarehouseOpen" value="Update Warehouse Detail" class="btn btn-info mt-2 mr-2" onclick="WarehouseOpenKlik()" />
+				<input type="button" id="detailWarehouseOpen" name="newWarehouseOpen" value="New Warehouse Detail" class="btn btn-success mt-2 mr-2" onclick="WarehouseOpenNew()" />
 			</div>
 		</div>
 	</div>
@@ -44,39 +45,39 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-	function AnnouncementListNew() {
+	function WarehouseOpenNew() {
 
-		LoadM('divlistOpportunity', 'partner-announcement-new');
+		LoadM('divlistOpportunity', 'partner-warehouse-open-new');
 		return true;
 	}
-	function AnnouncementListKlik() {
+	function WarehouseOpenKlik() {
 
-		AnnouncementListID = AnnouncementList.getSelectedId();
-		if (AnnouncementListID != null) {
-			LoadM('divlistOpportunity', 'partner-announcement-detail?Task=' + AnnouncementListID);
+		WarehouseOpenID = WarehouseOpen.getSelectedId();
+		if (WarehouseOpenID != null) {
+			LoadM('divlistOpportunity', 'partner-warehouse-open-detail?Task=' + WarehouseOpenID);
 		}else {
 			alert("Pilih baris data");
 		}
 		return true;
 	}
-	AnnouncementList = new dhtmlXGridObject('AnnouncementList');
-	AnnouncementList.setImagePath("./dhtmlx/imgs/");
-	AnnouncementList.setHeader("No,Tanggal Penerimaan, Tipe Penjemputan, Nama POO, Sumber, Coverage, Volume Diterima, Harga / Liter, Total Diterima, Volume Reject (Jika Ada), Bukti Timbangan / Barang");
-	AnnouncementList.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	// AnnouncementList.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	AnnouncementList.setInitWidths("60,100,150,200,100,120,100,150,100,100,100,100");
-	AnnouncementList.setColAlign("center,left,left,left,left,left,left,left,left,left,left");
-	AnnouncementList.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
-	AnnouncementList.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-	AnnouncementList.enableSmartRendering(true, 150);
-	// AnnouncementList.setNumberFormat("0,000", 7, ".", ",");
-	AnnouncementList.attachEvent("onRowDblClicked", AnnouncementListKlik);
-	AnnouncementList.setSkin("dhx_skyblue");
-	AnnouncementList.init();
+	WarehouseOpen = new dhtmlXGridObject('WarehouseOpen');
+	WarehouseOpen.setImagePath("./dhtmlx/imgs/");
+	WarehouseOpen.setHeader("No,Tanggal Penerimaan, Tipe Penjemputan, Nama POO, Sumber, Coverage, Volume Diterima, Harga / Liter, Total Diterima, Volume Reject (Jika Ada), Bukti Timbangan / Barang");
+	WarehouseOpen.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	// WarehouseOpen.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+	WarehouseOpen.setInitWidths("60,100,150,200,100,120,100,150,100,100,100,100");
+	WarehouseOpen.setColAlign("center,left,left,left,left,left,left,left,left,left,left");
+	WarehouseOpen.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
+	WarehouseOpen.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	WarehouseOpen.enableSmartRendering(true, 150);
+	// WarehouseOpen.setNumberFormat("0,000", 7, ".", ",");
+	WarehouseOpen.attachEvent("onRowDblClicked", WarehouseOpenKlik);
+	WarehouseOpen.setSkin("dhx_skyblue");
+	WarehouseOpen.init();
 	refreshdata();
 
 	function refreshdata() {
-		AnnouncementList.clearAndLoad('xml-partner-announcement');
+		WarehouseOpen.clearAndLoad('xml-partner-warehouse-open');
 
 	}
 </script>

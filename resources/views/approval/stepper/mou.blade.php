@@ -31,9 +31,8 @@
 
 @push('mou-script')
 <script>
-    let type = null;
-    let year = null;
     let userId = null;
+
 
 
     var vault = new dhx.Vault("File_Documents", {
@@ -44,6 +43,15 @@
             }
         },
         filesLimit: 1
+    });
+
+    vault.events.on("BeforeUploadFile", function(file) {
+        let opp_id = window.location.href.split('/').pop()
+        userId = opp_id
+
+        if (vault && vault.uploader && vault.uploader.config) {
+            vault.uploader.config.params.opportunity_id = opp_id;
+        }
     });
 </script>
 @endpush
