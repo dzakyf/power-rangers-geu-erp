@@ -75,7 +75,7 @@ class TicketController extends Controller
         }
         $nomor = 1;
         $get = Ticket::where("Ticket_Status", '!=', 'CLOSED');
-        if ($priv == 'PARTNER') {
+        if ($priv == 'MITRA') {
             $get->where("Created_By", auth()->user()->username);
         }
 

@@ -35,7 +35,7 @@ $Saya =  Auth::user()->username;
 			<div>
 				<input type="button" id="ekselWarehouseListDet" name="ekselWarehouseListDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseList.toExcel('./export/generate.php');" />
 				<input type="button" id="detailWarehouseList" name="detailWarehouseList" value="Detail Warehouse List" class="btn btn-info mt-2 mr-2" onclick="WarehouseListKlik()" />
-				@if (auth()->user()->Priv_ID != 'PARTNER')
+				@if (auth()->user()->Priv_ID != 'MITRA')
 				<input type="button" id="newWarehouseList" name="newWarehouseList" value="New Warehouse List" class="btn btn-success mt-2 mr-2" onclick="WarehouseListNew()" />
 				<input type="button" id="deactivateWarehouseList" name="deactivateWarehouseList" value="Change Warehouse Status" class="btn btn-danger mt-2 mr-2" onclick="NonAktifkanWarehouse()" />
 				@endif
@@ -79,15 +79,15 @@ $Saya =  Auth::user()->username;
 	}
 	WarehouseList = new dhtmlXGridObject('WarehouseList');
 	WarehouseList.setImagePath("./dhtmlx/imgs/");
-	WarehouseList.setHeader("No,Gudang ID, Lokasi Gudang, Nama Mitra, Status Gudang");
-	WarehouseList.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
+	WarehouseList.setHeader("No,Gudang ID, Lokasi Gudang, Nama Mitra, Kapasitas, Status Gudang,Dibuat Oleh");
+	WarehouseList.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// WarehouseList.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	WarehouseList.setInitWidths("60,100,150,200,100");
-	WarehouseList.setColAlign("center,left,left,left,left");
-	WarehouseList.setColSorting("int,str,str,str,str");
-	WarehouseList.setColTypes("ron,ro,ro,ro,ro,ro");
+	WarehouseList.setInitWidths("60,100,150,200,100,100,200");
+	WarehouseList.setColAlign("center,left,left,left,right,center,left");
+	WarehouseList.setColSorting("int,str,str,str,int,str,str");
+	WarehouseList.setColTypes("ron,ro,ro,ro,ron,ro,ro");
 	WarehouseList.enableSmartRendering(true, 150);
-	// WarehouseList.setNumberFormat("0,000", 7, ".", ",");
+	WarehouseList.setNumberFormat("0,000", 4, ".", ",");
 	WarehouseList.attachEvent("onRowDblClicked", WarehouseListKlik);
 	WarehouseList.setSkin("dhx_skyblue");
 	WarehouseList.init();

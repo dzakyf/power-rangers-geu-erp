@@ -62,7 +62,7 @@ class ProfitSharingController extends Controller
         }
         $nomor = 1;
 
-        if ($priv == 'PARTNER') {
+        if ($priv == 'MITRA') {
             $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
         } else {
             $get = WarehousePartner::get();
@@ -590,7 +590,7 @@ class ProfitSharingController extends Controller
 
         $uuid = Uuid::uuid4();
 
-        $outputPath = storage_path("app/public/mou_$uuid.docx");
+        $outputPath = storage_path("app/public/template-royalti-application_$uuid.docx");
 
         $doc->saveAs($outputPath);
 

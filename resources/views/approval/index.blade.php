@@ -29,8 +29,6 @@ $Saya =  Auth::user()->username;
 </div>
 
 <div class="row">
-	<div id="OpportunityLists" class="m-3" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-
 	<div id="ApprovalDataLists" class="m-3" style="width:auto;height:320px; background-color:white;overflow:hidden">
 	</div>
 
@@ -60,7 +58,6 @@ $Saya =  Auth::user()->username;
 		</div>
 		<div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
 	</div>
-
 </div>
 
 
@@ -71,89 +68,11 @@ $Saya =  Auth::user()->username;
 </script>
 
 <script>
-	let mitraId = null
+	let apprId = null
+	let OpptId = null
+
 	$(document).ready(function() {
-		// Initialize stepper with custom options
-		var stepperElement = $('.bs-stepper')[0];
-		window.stepper = new Stepper(stepperElement, {
-			linear: true, // Force sequential steps
-			animation: true // Enable fade animation
-		});
-
-		// Update current step display
-		function updateStepDisplay() {
-			var currentIndex = window.stepper._currentIndex + 1; // 1-based for display
-			$('#stepDisplay').html(`
-				<div class="alert alert-info">
-					Current Step: ${currentIndex} of 3
-				</div>
-			`);
-		}
-
-		// Initial display
-		updateStepDisplay();
-
-		// Event listener for step changes
-		stepperElement.addEventListener('shown.bs-stepper', function(event) {
-			console.log('Moved to step:', event.detail.indexStep);
-			updateStepDisplay();
-		});
-
-		// =============================================
-		// CUSTOM BUTTON CONTROLS
-		// =============================================
-
-		// 1. Next button handler
-		$('.btn-next').on('click', function() {
-			window.stepper.next();
-		});
-
-		// 2. Previous button handler
-		$('.btn-prev').on('click', function() {
-			window.stepper.previous();
-		});
-
-		// 3. Go to specific step (using to() method)
-		$('#goToStep2').on('click', function() {
-			window.stepper.to(2); // Goes to step 2 (1-based index)
-		});
-
-		$('#resetStepper').on('click', function() {
-			window.stepper.reset();
-			showNotification('Stepper reset to step 1');
-		});
-
-		$('#destroyStepper').on('click', function() {
-			window.stepper.destroy();
-			$('#stepDisplay').html(`
-				<div class="alert alert-danger">
-					Stepper destroyed - methods disabled
-				</div>
-			`);
-			$(this).prop('disabled', true);
-		});
-
-		$('#getCurrentStep').on('click', function() {
-			var currentIndex = window.stepper._currentIndex + 1;
-			alert('Current step: ' + currentIndex);
-		});
-
-		// Helper function for notifications
-		function showNotification(message) {
-			var notification = $(`
-				<div class="alert alert-success alert-dismissible fade show" role="alert">
-					${message}
-					<button type="button" class="close" data-dismiss="alert">
-						<span>&times;</span>
-					</button>
-				</div>
-			`);
-
-			$('#stepDisplay').after(notification);
-			setTimeout(function() {
-				notification.alert('close');
-			}, 2000);
-		}
+		initApprovalData()
 	});
 
 	function approveClick(action) {
@@ -190,7 +109,7 @@ $Saya =  Auth::user()->username;
 	}
 
 	function redirectToProgress() {
-		window.location.href = `partner-approval-progress/${OpportunityLists.getSelectedId()}`;
+		window.location.href = `partner-approval-progress/${OpptId}`;
 	}
 
 	function submitApproval(type) {
@@ -222,11 +141,6 @@ $Saya =  Auth::user()->username;
 		console.log("uploading mou")
 	})
 
-	function ApprovalDataListsClick() {
-		initApprovalDataLog()
-	}
-
-
 	function OpportunityListsKlik() {
 		OpportunityListsID = OpportunityLists.getSelectedId();
 		initApprovalData()
@@ -238,21 +152,21 @@ $Saya =  Auth::user()->username;
 		// return true;
 	}
 
-	OpportunityLists = new dhtmlXGridObject('OpportunityLists');
-	OpportunityLists.setImagePath("./dhtmlx/imgs/");
-	OpportunityLists.setHeader("No,Daftar Sebagai, Nama, Alamat, Jumlah Mitra/Bisnis Gudang, Motivasi Bergabung, Pertanyaan 1, Pertanyaan 2, Pertanyaan 3, Pertanyaan 4, Pertanyaan 5, Pertanyaan 6, Paket");
-	OpportunityLists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	// OpportunityLists.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	OpportunityLists.setInitWidths("60,100,150,300,100,120,120,100,100,100,100,100,100");
-	OpportunityLists.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
-	OpportunityLists.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	OpportunityLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-	OpportunityLists.enableSmartRendering(true, 150);
-	// OpportunityLists.setNumberFormat("0,000", 7, ".", ",");
-	OpportunityLists.attachEvent("onRowDblClicked", OpportunityListsKlik);
-	OpportunityLists.setSkin("dhx_skyblue");
-	OpportunityLists.init();
-	refreshdata();
+	// OpportunityLists = new dhtmlXGridObject('OpportunityLists');
+	// OpportunityLists.setImagePath("./dhtmlx/imgs/");
+	// OpportunityLists.setHeader("No,Daftar Sebagai, Nama, Alamat, Jumlah Mitra/Bisnis Gudang, Motivasi Bergabung, Pertanyaan 1, Pertanyaan 2, Pertanyaan 3, Pertanyaan 4, Pertanyaan 5, Pertanyaan 6, Paket");
+	// OpportunityLists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	// // OpportunityLists.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+	// OpportunityLists.setInitWidths("60,100,150,300,100,120,120,100,100,100,100,100,100");
+	// OpportunityLists.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
+	// OpportunityLists.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
+	// OpportunityLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	// OpportunityLists.enableSmartRendering(true, 150);
+	// // OpportunityLists.setNumberFormat("0,000", 7, ".", ",");
+	// OpportunityLists.attachEvent("onRowDblClicked", OpportunityListsKlik);
+	// OpportunityLists.setSkin("dhx_skyblue");
+	// OpportunityLists.init();
+	// refreshdata();
 
 	function initApprovalData() {
 		ApprovalDataLists = new dhtmlXGridObject('ApprovalDataLists');
@@ -267,14 +181,30 @@ $Saya =  Auth::user()->username;
 		ApprovalDataLists.enableSmartRendering(true, 150);
 		// OpportunityLists.setNumberFormat("0,000", 7, ".", ",");
 		ApprovalDataLists.attachEvent("onRowDblClicked", ApprovalDataListsClick);
+		ApprovalDataLists.attachEvent('onRowSelect', getRowId);
+
+		// });
 		ApprovalDataLists.setSkin("dhx_skyblue");
 		ApprovalDataLists.init();
-		ApprovalDataLists.clearAndLoad('partner-onboarding-approval-data?type=ONBOARDING');
+		ApprovalDataLists.clearAndLoad(`partner-onboarding-approval-data?type=ONBOARDING&user_id=`);
 
 		$('#ApprovalDataLists').append('<button>approve</button>')
 	}
 
-	function initApprovalDataLog() {
+	function getRowId(rowId) {
+		OpptId = ApprovalDataLists.getRowAttribute(rowId, "Oppt_Id");
+
+	}
+
+	function ApprovalDataListsClick(rowId) {
+		apprId = ApprovalDataLists.getRowAttribute(rowId, "ID");
+		OpptId = ApprovalDataLists.getRowAttribute(rowId, "Oppt_Id");
+
+		initApprovalDataLog(apprId)
+	}
+
+
+	function initApprovalDataLog(apprId) {
 		ApprovalDataLogLists = new dhtmlXGridObject('ApprovalDataLogLists');
 		ApprovalDataLogLists.setImagePath("./dhtmlx/imgs/");
 		ApprovalDataLogLists.setHeader("No,Daftar Sebagai, Nama, Alamat, Jumlah Mitra/Bisnis Gudang, Motivasi Bergabung, Pertanyaan 1, Pertanyaan 2, Pertanyaan 3, Pertanyaan 4, Pertanyaan 5, Pertanyaan 6, Paket");
@@ -289,7 +219,7 @@ $Saya =  Auth::user()->username;
 		ApprovalDataLogLists.attachEvent("onRowDblClicked", OpportunityListsKlik);
 		ApprovalDataLogLists.setSkin("dhx_skyblue");
 		ApprovalDataLogLists.init();
-		ApprovalDataLogLists.clearAndLoad('partner-onboarding-approval-data-log');
+		ApprovalDataLogLists.clearAndLoad(`partner-onboarding-approval-data-log?appr_id=${apprId}`);
 	}
 
 	function refreshdata() {
@@ -313,7 +243,7 @@ $Saya =  Auth::user()->username;
 
 
 	function detailBP() {
-		OpportunityListsKlik();
+		// OpportunityListsKlik();
 		// dhtmlx.confirm('Submit this Opportunity FU?', 'Opportunity', function(r) {
 
 		// 	if (r == true) {

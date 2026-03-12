@@ -18,6 +18,7 @@ use App\Http\Controllers\Partner\AnnouncementController as PartnerAnnouncementCo
 use App\Http\Controllers\Partner\BusinessFacilityController as PartnerBusinessFacilityController;
 use App\Http\Controllers\Partner\FacilityController as PartnerFacilityController;
 use App\Http\Controllers\Partner\WarehouseController as PartnerWarehouseController;
+use App\Http\Controllers\Partner\WarehouseOpenController as PartnerWarehouseOpenController;
 use App\Http\Controllers\Partner\WarehouseMonitoringController as PartnerWarehouseMonitoringController;
 use App\Http\Controllers\Partner\MasterStockPriceController as PartnerMasterStockPriceController;
 use App\Http\Controllers\Partner\WarehouseStockRequestController as PartnerWarehouseStockRequestController;
@@ -4431,6 +4432,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$partnerApprovalPrefix-progress/{id}", [ApprovalController::class, 'showProgress']);
     Route::get("$partnerApprovalPrefix-index", [ApprovalController::class, 'index']);
     Route::get("$partnerApprovalPrefix-detail", [ApprovalController::class, 'detail']);
+    Route::get("$partnerApprovalPrefix-data", [ApprovalController::class, 'getApprovalData']);
+    Route::get("$partnerApprovalPrefix-data-log", [ApprovalController::class, 'getApprovalDataLog']);
+
 
     /** Benefit Facility */
     $facilityPref = 'partner-facility';
@@ -4480,7 +4484,13 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$warehousePref-list-detail-new-submit", [PartnerWarehouseController::class, 'detailWarehouseListNewSubmit']);
     Route::get("$warehousePref-list-detail-detail", [PartnerWarehouseController::class, 'detailWarehouseListDetail']);
     Route::post("$warehousePref-list-detail-detail-submit", [PartnerWarehouseController::class, 'detailWarehouseListDetailSubmit']);
-    Route::get("$warehousePref-open", [PartnerWarehouseController::class, 'indexOpenWarehouse']);
+
+    Route::get("$warehousePref-open", [PartnerWarehouseOpenController::class, 'indexWarehouseOpen']);
+    Route::get("xml-$warehousePref-open", [PartnerWarehouseOpenController::class, 'indexWarehouseOpenXml']);
+    Route::get("$warehousePref-open-new", [PartnerWarehouseOpenController::class, 'newWarehouseOpen']);
+    Route::post("$warehousePref-open-new-submit", [PartnerWarehouseOpenController::class, 'newWarehouseOpenSubmit']);
+    Route::get("$warehousePref-open-detail", [PartnerWarehouseOpenController::class, 'detailWarehouseOpen']);
+    Route::post("$warehousePref-open-detail-submit", [PartnerWarehouseOpenController::class, 'detailWarehouseOpenSubmit']);
 
     Route::get("$warehousePref-request", [PartnerWarehouseStockRequestController::class, 'indexWarehouseStockRequest']);
     Route::get("xml-$warehousePref-request", [PartnerWarehouseStockRequestController::class, 'indexWarehouseStockRequestXml']);
@@ -4585,6 +4595,7 @@ Route::group(['middleware' => 'auth'], function () {
     $notification = "notification";
     Route::get("$notification-getall", [NotificationController::class, 'getAll']);
     Route::post("$notification-read", [NotificationController::class, 'markAsRead']);
+    Route::get("$notification-remind-contract-expiration", [NotificationController::class, 'reminderContractExpiration']);
     /** */
 
     /** projection route */
@@ -4631,13 +4642,24 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$partnerRenewalPrefs-renewal-index", [RenewalController::class, 'indexRenewal']);
     Route::get("$partnerRenewalPrefs-data", [RenewalController::class, 'getRenewalData']);
     Route::get("$partnerRenewalPrefs-data-log", [PartnerProfitSharingController::class, 'getProfitSharingApprovalDataLog']);
-    Route::get("$partnerRenewalPrefs-termination-index", [RenewalController::class, 'indexTermination']);
+    // Route::get("$partnerRenewalPrefs-termination-index", [RenewalController::class, 'indexTermination']);
     Route::get("$partnerRenewalPrefs-transfer-index", [RenewalController::class, 'indexTransferMitra']);
     Route::get("$partnerRenewalPrefs-approval-index", [RenewalController::class, 'indexApproval']);
     Route::get("$partnerRenewalPrefs-approval-create", [RenewalController::class, 'createApproval']);
     Route::post("$partnerRenewalPrefs-approval-approve", [ApprovalController::class, 'processRenewalToNextProgress']);
     Route::get("$partnerRenewalPrefs-download", [RenewalController::class, 'downloadRenewalApplication']);
     Route::post("$partnerRenewalPrefs-submit-application", [RenewalController::class, 'uploadRenewalApplication']);
+
+    /** exit/terminasi */
+    $partnerTerminationPrefs = "partner-termination";
+    Route::get("$partnerTerminationPrefs-index", [RenewalController::class, 'indexTermination']);
+    Route::get("$partnerTerminationPrefs-data", [RenewalController::class, 'getTerminationData']);
+    Route::get("$partnerTerminationPrefs-download", [RenewalController::class, 'downloadTerminationApplication']);
+    Route::get("$partnerTerminationPrefs-submit-application", [RenewalController::class, 'uploadTerminationApplication']);
+    Route::get("$partnerTerminationPrefs-approval-index", [RenewalController::class, 'indexTerminationApproval']);
+    Route::get("$partnerTerminationPrefs-approval-create", [RenewalController::class, 'createTerminationApproval']);
+    Route::post("$partnerTerminationPrefs-approval-approve", [ApprovalController::class, 'processTerminationToNextProgress']);
+
 
     /** OnboardingController */
     $onboardingPrefs = "partner-onboarding";

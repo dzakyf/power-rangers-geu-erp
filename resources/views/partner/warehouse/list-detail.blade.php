@@ -1,7 +1,7 @@
-@if(auth()->user()->Priv_ID != 'PARTNER')
+@if(auth()->user()->Priv_ID != 'MITRA')
 <div class="card mt-3">
 	<div class="card-body">
-		<h5>Partner Warehouse Detail</h5>
+		<h5>Partner Warehouse</h5>
 		<div class="row" id="ContentPages">
             <div class="col-md-6">
                 <label for="Warehouse_Location">Warehouse Location</label>
@@ -22,6 +22,17 @@
                         <option value="{{ $item->lead_id }}"{{ $item->lead_id == $wh->partner_task_id ? ' selected' : '' }}>{{$item->full_name}}</option>
                     @endforeach
                 </select>
+			</div>
+			<div class="col-md-6">
+				<label for="Capacity">Tipe Gudang</label>
+				<select name="Warehouse_Type" id="Warehouse_Type" class="form-control">
+					<option value="booth" {{ $wh->warehouse_type == 'booth' ? ' selected' : '' }}>booth</option>
+					<option value="mobil" {{ $wh->warehouse_type == 'mobil' ? ' selected' : '' }}>mobil</option>
+				</select>
+			</div>
+			<div class="col-md-6">
+				<label for="Capacity">Kapasitas</label>
+				<input type="text" name="Capacity" id="Capacity" class="form-control" value="{{ $wh->capacity }}">
 			</div>
 			<div class="col-12 mt-3">
 				<button class="btn btn-success" id="SubmitCustDetail">Submit</button>

@@ -8,10 +8,15 @@ use Illuminate\Database\Eloquent\Builder;
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
 
+$get = App\WarehousePartner::get()->pluck('partner_task_id');
+
 $partner = DB::table('approval_request')->where('Status', 'APPROVED')->where('Request_Type', 'ONBOARDING')->get()->pluck('Requester_Id');
 $partner = DB::table('users')->whereIn("id", $partner)->get()->pluck('Emp_ID');
-$partner = DB::table('opportunity_partner')->whereIn('id', $partner)->orWhere('status', 'ACTIVE')->get();
-
+$partner = DB::table('opportunity_partner')
+->whereIn('id', $partner)
+->whereNotIn('lead_id', $get)
+->where('status', 'ACTIVE')->get();
+ 
 $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
 
 ?>
@@ -20,7 +25,7 @@ $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
 		<h5>Partner Warehouse New</h5>
 		<div class="row" id="ContentPages">
             <div class="col-md-6">
-                <label for="Warehouse_Location">Warehouse Location</label>
+                <label for="Warehouse_Location">Lokasi Gudang</label>
                 <select name="Warehouse_Location" id="Warehouse_Location" class="form-control">
                     <option value="">-- Pilih Lokasi --</option>
                     @foreach ($kotakab as $item)
@@ -36,6 +41,18 @@ $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
                         <option value="{{ $item->lead_id }}">{{$item->full_name}}</option>
                     @endforeach
                 </select>
+			</div>
+			<div class="col-md-6">
+				<label for="Capacity">Tipe Gudang</label>
+				<select name="Warehouse_Type" id="Warehouse_Type" class="form-control">
+                    <option value="">-- Pilih Tipe Gudang --</option>
+					<option value="booth">booth</option>
+					<option value="mobil">mobil</option>
+				</select>
+			</div>
+			<div class="col-md-6">
+				<label for="Capacity">Kapasitas</label>
+				<input type="text" name="Capacity" id="Capacity" class="form-control">
 			</div>
 			<div class="col-12 mt-3">
 				<button class="btn btn-success" id="SubmitCustDetail">Submit</button>

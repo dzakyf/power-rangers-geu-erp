@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpWord\TemplateProcessor;
-
+use SimpleXMLElement;
 
 class ApprovalController extends Controller
 {
@@ -39,7 +39,6 @@ class ApprovalController extends Controller
         return view('approval.profit-sharing-create');
     }
 
-
     public function detail(Request $request)
     {
         $partner = DB::table('opportunity_partner')->where('id', $request->ID)->first();
@@ -64,7 +63,6 @@ class ApprovalController extends Controller
      */
     public function generateMOU(Request $req)
     {
-
         $id = $req->query('id');
         $path = public_path('mou.docx');
         $doc = new TemplateProcessor($path);
@@ -102,8 +100,6 @@ class ApprovalController extends Controller
         return response()->download($outputPath)->deleteFileAfterSend(true);
     }
 
-
-
     public function submit(Request $r)
     {
         $body = $r->all();
@@ -126,10 +122,12 @@ class ApprovalController extends Controller
                         }
                     }
                     $contact = $partner->register_as == 'individu' ? $partner->contact : $partner->pic_phone;
+
                     if ($partner->lead_id != null && $contact == '') {
                         $opportunity = DB::table('opportunity')->where("Task_ID", $partner->lead_id)->first();
                         $contact = $opportunity->Phone_Number;
                     }
+
                     DB::table('users')->insert([
                         'username' => $username,
                         'password' => bcrypt($pass),
@@ -383,5 +381,103 @@ class ApprovalController extends Controller
         echo "</rows>";
     }
 
-    public function submitBenefitFacility() {}
+
+    // ->where('requester.id', 'LIKE', $userId)
+    //?user_id=&type=
+    public function getApprovalData(Request $r)
+    {
+
+        $q = $r->query();
+        $type = $q['type'] ?? "%";
+        $session = $this->userService->getCurrentSessionUserInfo();
+        $user_id = $session->id ?? "%";
+        $apprId = $q['id'] ?? "%";
+
+        $d = DB::table('approval_request as appr')
+            ->select('appr.*', 'opp.*', 'usr.Name', 'lv.Approver_Position')
+            ->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id')
+            ->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')
+            ->join('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID');
+
+        if (in_array($session->Position, ["SALES", "MANAGER", "BOD", "HEAD", "CFO"])) {
+            $d->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Status', '=', 'NEED_APPROVAL')->where('lv.Approver_Position', '=', $session->Position);
+            // MITRA
+        } else if (in_array($session->Position, ["MITRA"])) {
+            $d->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Requester_Id', 'LIKE', $user_id);
+        } else {
+            $d->where('appr.Request_Type', 'LIKE',  $type)->orWhere(function ($query) use ($user_id, $apprId) {
+                $query->where('appr.Requester_Id', 'LIKE', $user_id)
+                    ->orWhere('appr.Opportunity_Partner_Id', 'LIKE', $apprId);
+            });
+        }
+
+        $d = $d->get();
+
+        $xml = new SimpleXMLElement('<rows></rows>');
+
+        $counter = 1;
+        foreach ($d as $p) {
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $p->ID);
+            $row->addAttribute('Oppt_Id', $p->id);
+            $row->addChild('cell', $counter);
+            $row->addChild('cell', $p->Name);
+            $row->addChild('cell', $p->Request_Type);
+            $row->addChild('cell', $p->Status);
+            $row->addChild('cell', htmlspecialchars($p->Description));
+            $row->addChild('cell', $p->Name);
+            $counter++;
+        }
+
+        return response()->make($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
+
+    public function getApprovalDataLog(Request $r)
+    {
+        $q = $r->query();
+        $apprId = $q['appr_id'] ?? "%";
+        $type = $q['type'] ?? "%";
+        $userId = $q['user_id'] ?? "";
+
+        $d = DB::table('approval_request as request')
+            ->select(
+                'request.*',
+                'log.Action',
+                'log.Approver_Id',
+                'log.Action_Date',
+                'log.Notes',
+                'log.Level_Number',
+                'level.Level_Name',
+                'requester.Name as Requested_By',
+                'approver.Name as Approved_By'
+            )
+            ->join('approval_log as log', 'request.ID', '=', 'log.Request_Id')
+            ->join('approval_level as level', 'log.Level_Id', '=', 'level.ID')
+            ->join('users as requester', 'requester.id', '=', 'request.Requester_Id')
+            ->leftJoin('users as approver', 'approver.id', '=', 'log.Approver_Id')
+            ->where('log.Request_Id', 'LIKE', $apprId)
+            ->orderBy('log.ID', 'DESC')
+            ->get();
+
+        $xml = new SimpleXMLElement('<rows></rows>');
+
+        $counter = 1;
+        foreach ($d as $p) {
+            $row = $xml->addChild('row');
+            $row->addChild('cell', $counter);
+            $row->addChild('cell', $p->Action);
+            $row->addChild('cell', htmlspecialchars($p->Level_Name));
+            $row->addChild('cell', $p->Request_Type);
+            $row->addChild('cell', $p->Requested_By);
+            $row->addChild('cell', $p->Approved_By);
+            $row->addChild('cell', $p->Action_Date);
+            $counter++;
+        }
+
+        return response()->make($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
 }

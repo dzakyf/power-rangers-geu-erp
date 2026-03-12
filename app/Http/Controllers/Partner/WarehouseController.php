@@ -39,7 +39,7 @@ class WarehouseController extends Controller
         }
         $nomor = 1;
 
-        if ($priv == 'PARTNER') {
+        if ($priv == 'MITRA') {
             $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
         }else {
             $get = WarehousePartner::get();
@@ -51,6 +51,7 @@ class WarehouseController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->capacity) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
             echo "</row>";
@@ -90,8 +91,10 @@ class WarehouseController extends Controller
         WarehousePartner::create([
             'warehouse_task_id' => $Task_ID,
             'partner_task_id' => $request->Partner_Name,
+            'warehouse_type' => $request->Warehouse_Type,
             'warehouse_location' => $request->Warehouse_Location,
             'warehouse_status' => 'ACTIVE',
+            'capacity' => $request->Capacity,
             'Location' => auth()->user()->Location,
             'Created_By' => auth()->user()->username,
             'Created_Date' => now(),
@@ -102,11 +105,14 @@ class WarehouseController extends Controller
 
     public function detailWarehouseList(Request $request)
     {
-        $partner = DB::table('approval_request')->where('Status', 'APPROVED')->get()->pluck('Requester_Id');
-        $partner = DB::table('opportunity_partner')->whereIn('id', $partner)->get();
-
-        $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
         $wh = WarehousePartner::where("id", $request->Task)->first();
+        $partner = DB::table('approval_request')->where('Status', 'APPROVED')->where('Request_Type', 'ONBOARDING')->get()->pluck('Requester_Id');
+        $partner = DB::table('users')->whereIn("id", $partner)->get()->pluck('Emp_ID');
+        $partner = DB::table('opportunity_partner')->where(function ($q) use ($partner, $wh) {
+            $q->whereIn('id', $partner)->orWhere('lead_id', $wh->partner_task_id);
+        })->where('status', 'ACTIVE')->get();
+        
+        $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
         return view('partner.warehouse.list-detail', compact('wh', 'partner', 'kotakab'));
     }
 
@@ -119,6 +125,8 @@ class WarehouseController extends Controller
         WarehousePartner::where('id', $request->id)->update([
             'warehouse_task_id' => $Task_ID,
             'partner_task_id' => $request->Partner_Name,
+            'warehouse_type' => $request->Warehouse_Type,
+            'capacity' => $request->Capacity,
             'warehouse_location' => $request->Warehouse_Location,
             'Location' => auth()->user()->Location,
         ]);
