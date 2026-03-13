@@ -100,7 +100,7 @@
         PartnerGrid.attachEvent("onRowSelect", selectMitra);
         PartnerGrid.setSkin("dhx_skyblue");
         PartnerGrid.init();
-        PartnerGrid.clearAndLoad(`partner-termination-data?user_id=${mitraId}&type=TERMINATION`);
+        PartnerGrid.clearAndLoad(`partner-termination-approval-data?user_id=${mitraId}&type=TERMINATION`);
     }
 
     function initApprovalLogGrid() {
@@ -127,7 +127,7 @@
         // ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
         ProjectionGrid.setSkin("dhx_skyblue");
         ProjectionGrid.init();
-        ProjectionGrid.clearAndLoad(`partner-termination-data-log?request_id=${mitraId}&user_id=&type=TERMINATION`);
+        ProjectionGrid.clearAndLoad(`partner-termination-approval-data-log?request_id=${mitraId}&user_id=&type=TERMINATION`);
     }
 
     function selectMitra(id, cellIdx) {
