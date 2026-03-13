@@ -35,7 +35,31 @@ class OnboardingController extends Controller
         $user = $this->userService->getCurrentSessionUserInfo();
 
         $filename = "$path.$ext";
-        $desc = "Upload request renewal";
+        $desc = "Upload renewal";
+        $topic = "renewal";
+        $mapTo = $user->id;
+        $doc->move(public_path('filevendor/2026/02'));
+        $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
+
+        DB::table('opportunity_partner')->where('id', $body['opportunity_id'])->update([
+            'contract_end_at' => Carbon::now()->addYear(4)
+        ]);
+
+        return response()->json(['message' => 'success']);
+    }
+
+    public function uploadPks(Request $r)
+    {
+        $q = $r->query();
+        $body = $r->all();
+        $doc = $r->file('file');
+
+        $path = $this->generatorService->generateFilename();
+        $ext = $r->file('file')->getClientOriginalExtension();
+        $user = $this->userService->getCurrentSessionUserInfo();
+
+        $filename = "$path.$ext";
+        $desc = "Upload pks";
         $topic = "renewal";
         $mapTo = $user->id;
         $doc->move(public_path('filevendor/2026/02'));

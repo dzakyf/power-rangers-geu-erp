@@ -47,7 +47,7 @@ $Saya =  Auth::user()->username;
 			<div class="btn-group" role="group" aria-label="Button group with nested dropdown">
 				<div class="btn-group" role="group">
 					<button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-						Actio
+						Action
 					</button>
 					<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
 						<a class="dropdown-item" href="#" onclick="approveClick('APPROVED')">Approve</a>
@@ -207,8 +207,8 @@ $Saya =  Auth::user()->username;
 	function initApprovalDataLog(apprId) {
 		ApprovalDataLogLists = new dhtmlXGridObject('ApprovalDataLogLists');
 		ApprovalDataLogLists.setImagePath("./dhtmlx/imgs/");
-		ApprovalDataLogLists.setHeader("No,Daftar Sebagai, Nama, Alamat, Jumlah Mitra/Bisnis Gudang, Motivasi Bergabung, Pertanyaan 1, Pertanyaan 2, Pertanyaan 3, Pertanyaan 4, Pertanyaan 5, Pertanyaan 6, Paket");
-		ApprovalDataLogLists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+		ApprovalDataLogLists.setHeader("No,Status, Deskripsi, Tipe, Requester, Diapprove oleh, Approved Pada");
+		ApprovalDataLogLists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 		// OpportunityLists.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 		ApprovalDataLogLists.setInitWidths("60,100,150,300,100,120,120,100,100,100,100,100,100");
 		ApprovalDataLogLists.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left");

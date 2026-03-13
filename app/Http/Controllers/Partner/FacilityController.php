@@ -106,10 +106,10 @@ class FacilityController extends Controller
                 }
                 if (isset($getCheckedByPartner[$facility->id])) {
                     echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell type='ro'>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? 'Checked' : 'Not Checked')."</cell>";
+                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? '1' : '0')."</cell>";
                 }else {
                     echo "<cell></cell>";
-                    echo "<cell type='ro'>Not Checked</cell>";
+                    echo "<cell>0</cell>";
                 }
                 $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $_GET['Task'])->first();
                 if ($cekDtl) {
@@ -170,10 +170,10 @@ class FacilityController extends Controller
                 }
                 if (isset($getCheckedByPartner[$facility->id])) {
                     echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell type='ro'>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? 'Checked' : 'Not Checked')."</cell>";
+                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? '1' : '0')."</cell>";
                 }else {
                     echo "<cell></cell>";
-                    echo "<cell type='ro'>Not Checked</cell>";
+                    echo "<cell>0</cell>";
                 }
             echo "</row>";
         }
@@ -222,10 +222,10 @@ class FacilityController extends Controller
                 }
                 if (isset($getCheckedByPartner[$facility->id])) {
                     echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell type='ro'>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? 'Checked' : 'Not Checked')."</cell>";
+                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? '1' : '0')."</cell>";
                 }else {
                     echo "<cell></cell>";
-                    echo "<cell type='ro'>Not Checked</cell>";
+                    echo "<cell>0</cell>";
                 }
             echo "</row>";
         }
@@ -287,10 +287,10 @@ class FacilityController extends Controller
                 }
                 if (isset($getCheckedByPartner[$facility->id])) {
                     echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell type='ro'>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? 'Checked' : 'Not Checked')."</cell>";
+                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? '1' : '0')."</cell>";
                 }else {
                     echo "<cell></cell>";
-                    echo "<cell type='ro'>Not Checked</cell>";
+                    echo "<cell>0</cell>";
                 }
                 echo "<cell>".htmlspecialchars($facility->asset_type)."</cell>";
                 
@@ -354,10 +354,10 @@ class FacilityController extends Controller
                 }
                 if (isset($getCheckedByPartner[$facility->id])) {
                     echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell type='ro'>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? 'Checked' : 'Not Checked')."</cell>";
+                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? '1' : '0')."</cell>";
                 }else {
                     echo "<cell></cell>";
-                    echo "<cell type='ro'>Not Checked</cell>";
+                    echo "<cell>0</cell>";
                 }
             echo "</row>";
         }
@@ -406,10 +406,10 @@ class FacilityController extends Controller
                 }
                 if (isset($getCheckedByPartner[$facility->id])) {
                     echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell type='ro'>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? 'Checked' : 'Not Checked')."</cell>";
+                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ? '1' : '0')."</cell>";
                 }else {
                     echo "<cell></cell>";
-                    echo "<cell type='ro'>Not Checked</cell>";
+                    echo "<cell>0</cell>";
                 }
             echo "</row>";
         }
@@ -502,6 +502,33 @@ class FacilityController extends Controller
                         'Checked_Sales_By' => $Saya,
                         'Checked_Sales_Date' => now(),
                         'Send_Date' => isset($param[$rowId."_c6"]) ? $c : $b,
+                    ]);
+            }
+        }
+
+        if ($f == 1) {
+            $cekDB = DB::table('opportunity_partner_facility')
+                    ->where('Facility_ID', $rowId)
+                    ->where("Partner_ID", $_GET['Task'])
+                    ->first();
+            if ($cekDB) {
+                DB::table('opportunity_partner_facility')
+                    ->where('ID', $cekDB->ID)
+                    ->update([
+                        'Checked_Partner' => $f,
+                        'Checked_Partner_By' => $Saya,
+                        'Checked_Partner_Date' => now(),
+                        'Received_Date' => $e,
+                    ]);
+            }else {
+                DB::table('opportunity_partner_facility')
+                    ->insert([
+                        'Facility_ID' => $rowId,
+                        'Partner_ID' => $_GET['Task'],
+                        'Checked_Partner' => $f,
+                        'Checked_Partner_By' => $Saya,
+                        'Checked_Partner_Date' => now(),
+                        'Received_Date' => $e,
                     ]);
             }
         }

@@ -4421,13 +4421,8 @@ Route::group(['middleware' => 'auth'], function () {
 
     /** partner registration approval */
     $partnerApprovalPrefix = "partner-approval";
-    // Route::prefix('approval')->group(function () {
-    // Route::get('progress/generate-mou', [ApprovalController::class, 'generateMOU']);
-    // Route::post("progress/submit", [ApprovalController::class, 'submit']);
-    // Route::get('progress/{id}', [ApprovalController::class, 'showProgress']);
-    // });
-
     Route::get("$partnerApprovalPrefix-progress/generate-mou", [ApprovalController::class, 'generateMOU']);
+    Route::get("$partnerApprovalPrefix-progress/generate-pks", [ApprovalController::class, 'generatePKS']);
     Route::post("$partnerApprovalPrefix-progress/submit", [ApprovalController::class, 'submit']);
     Route::get("$partnerApprovalPrefix-progress/{id}", [ApprovalController::class, 'showProgress']);
     Route::get("$partnerApprovalPrefix-index", [ApprovalController::class, 'index']);
@@ -4658,6 +4653,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$partnerTerminationPrefs-submit-application", [RenewalController::class, 'uploadTerminationApplication']);
     Route::get("$partnerTerminationPrefs-approval-index", [RenewalController::class, 'indexTerminationApproval']);
     Route::get("$partnerTerminationPrefs-approval-create", [RenewalController::class, 'createTerminationApproval']);
+    Route::get("$partnerTerminationPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);
+    Route::get("$partnerTerminationPrefs-approval-data-log", [ApprovalController::class, 'getApprovalDataLog']);
     Route::post("$partnerTerminationPrefs-approval-approve", [ApprovalController::class, 'processTerminationToNextProgress']);
 
 
@@ -4667,4 +4664,5 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$onboardingPrefs-approval-data-log", [OnboardingController::class, 'getOnboardingApprovalDataLog']);
 
     Route::post("$onboardingPrefs-submit-mou", [OnboardingController::class, 'uploadMou']);
+    Route::post("$onboardingPrefs-submit-pks", [OnboardingController::class, 'uploadPks']);
 });

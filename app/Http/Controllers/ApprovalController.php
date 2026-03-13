@@ -58,6 +58,46 @@ class ApprovalController extends Controller
         return view('approval.detail', compact('partner', 'pic', 'documents'));
     }
 
+    public function generatePKS(Request $r)
+    {
+        $id = $r->query('id');
+        $path = public_path('pks.docx');
+        $doc = new TemplateProcessor($path);
+        $now = Carbon::now()->format('YmdHisv');
+
+        $data = DB::table('opportunity_partner')->select('*')->where('ID', '=', $id)->first();
+
+        $partner_name = $data->register_as == "individual" ? $data->full_name : $data->company_full_name;
+        $full_address = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
+
+        $doc->setValues([
+            'partner_name' => $partner_name ?? '${contoh}',
+            'signed_at' => Carbon::Now(),
+            'partner_region' => $data->pi_city ?? '${contoh}',
+            'ktp' => $data->ktp,
+            'alamat' => $data->pic ?? $partner_name,
+            'pic_name' => $data->pic ?? $partner_name,
+            'npwp' => $data->npwp,
+            'membership_term' => 0,
+            'membership_fee' => 0,
+            'payment_phase2' => 0,
+            'warehouse_fee' => 0,
+            'inventory_fee' => 0,
+            'namapaket' => 0,
+        ]);
+
+
+        if (!file_exists($path)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        $outputPath = storage_path("app/public/pks_$now.docx");
+
+        $doc->saveAs($outputPath);
+
+        return response()->download($outputPath)->deleteFileAfterSend(true);
+    }
+
     /** TODO :
      * tamhain downpayment, payment thapa 2, pelunasan, generate mou number
      */
@@ -381,12 +421,10 @@ class ApprovalController extends Controller
         echo "</rows>";
     }
 
-
     // ->where('requester.id', 'LIKE', $userId)
     //?user_id=&type=
     public function getApprovalData(Request $r)
     {
-
         $q = $r->query();
         $type = $q['type'] ?? "%";
         $session = $this->userService->getCurrentSessionUserInfo();

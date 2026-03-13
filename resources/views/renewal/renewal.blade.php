@@ -10,7 +10,7 @@
             <a href="#">Partner</a>
         </li>
         <li class="breadcrumb-item active">
-            <span class="active">Proyeksi</span>
+            <span class="active">Renewal</span>
         </li>
     </ol>
 </div>

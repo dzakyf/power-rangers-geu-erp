@@ -26,7 +26,7 @@
 			</div>
 			<div class="line"></div>
 			<div class="step" data-target="#step2">
-				<button type="button" class="step-trigger active" role="tab">
+				<button type="button" class="step-trigger" role="tab">
 					<span class="bs-stepper-circle">2</span>
 					<span class="bs-stepper-label">MOU</span>
 				</button>
@@ -42,7 +42,7 @@
 			</div>
 			<div class="line"></div>
 
-			<div class="step" data-target="#step3">
+			<div class="step" data-target="#step4">
 				<button type="button" class="step-trigger" role="tab">
 					<span class="bs-stepper-circle">4</span>
 					<span class="bs-stepper-label">Perjanjian Kerjasama</span>
@@ -92,6 +92,10 @@
 			<div id="step3" class="content" role="tabpanel">
 				@include('approval.stepper.invoice-dp')
 			</div>
+
+			<div id="step4" class="content" role="tabpanel">
+				@include('approval.stepper.pks')
+			</div>
 		</div>
 	</div>
 </div>
@@ -107,6 +111,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bs-stepper/dist/css/bs-stepper.min.css">
 </script>
 @stack('mou-script')
+@stack('pks-script')
 
 <script>
 	$(document).ready(function() {
