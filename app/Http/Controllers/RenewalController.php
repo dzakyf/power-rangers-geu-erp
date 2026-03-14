@@ -24,7 +24,6 @@ class RenewalController extends Controller
         $this->userService = $u;
         $this->generatorService = $g;
         $this->uploaderService = $up;
-        // throw new \Exception('Not implemented');
     }
 
     public function indexRenewal()
@@ -138,7 +137,7 @@ class RenewalController extends Controller
 
         $uuid = Uuid::uuid4();
 
-        $outputPath = storage_path("app/public/mou_$uuid.docx");
+        $outputPath = storage_path("app/public/renewal_$uuid.docx");
 
         $doc->saveAs($outputPath);
 
