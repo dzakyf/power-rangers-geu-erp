@@ -1,5 +1,6 @@
 <?php
 
+use app\Htpp\Controllers\SurveyController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
@@ -4665,4 +4666,12 @@ Route::group(['middleware' => 'auth'], function () {
 
     Route::post("$onboardingPrefs-submit-mou", [OnboardingController::class, 'uploadMou']);
     Route::post("$onboardingPrefs-submit-pks", [OnboardingController::class, 'uploadPks']);
+
+
+    /** Survey controller */
+    $surveyPrefs = "partner-survey";
+    Route::get("$surveyPrefs-index", [SurveyController::class, 'indexSurvey']);
+    Route::get("$surveyPrefs-create", [SurveyController::class, 'createMasterDataSurvey']);
+    Route::get("$surveyPrefs-data-master", [SurveyController::class, 'getMasterDataSurvey']);
+    Route::get("$surveyPrefs-submit", [SurveyController::class, 'submitMasterDataSurvey']);
 });
