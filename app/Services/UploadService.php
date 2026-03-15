@@ -18,12 +18,12 @@ class UploadService
         $this->userService = $u;
     }
 
-    public function downloadTemplate(string $templateName, string $userId)
+    public function downloadTemplate(string $templateName, string $userId,  TemplateProcessor $doc)
     {
         $template = public_path($templateName);
         $doc = new TemplateProcessor($template);
 
-        $partner = $this->userService->getMitraById($userId);
+        $partner = $this->userService->getCurrentSessionUserInfo($userId);
 
         $month = Carbon::now()->translatedFormat('F');
         $year = Carbon::now()->year;

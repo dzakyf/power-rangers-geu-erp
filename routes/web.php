@@ -1,5 +1,6 @@
 <?php
 
+use app\Htpp\Controllers\ExpenditureController;
 use app\Htpp\Controllers\SurveyController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -4604,6 +4605,13 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$projection-upload", [ProjectionProfitController::class, 'uploadProjection']);
     Route::get("$projection-template", [ProjectionProfitController::class, 'downloadProjectionTemplate']);
     Route::get("$expenditure-data-expenditure", [ProjectionProfitController::class, 'expenditureData']);
+
+    /** Capex  */
+    $capexPrefs = "partner-capex";
+    Route::get("$capexPrefs-index", [ExpenditureController::class, 'indexCapex']);
+    Route::get("$capexPrefs-create", [ExpenditureController::class, 'createCapitalExpenditure']);
+    Route::post("$capexPrefs-submit", [ExpenditureController::class, 'submitCapitalExpenditure']);
+    Route::get("$capexPrefs-data", [ExpenditureController::class, 'getCapitalExpenditureData']);
     /** */
 
 
