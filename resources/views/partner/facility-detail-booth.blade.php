@@ -53,7 +53,7 @@
         }
         return true;
     });
-	PFacilityBenefitsBooth = new dataProcessor("partner-facility-detail-update?Task={{ $_GET['ID'] }}");
+	PFacilityBenefitsBooth = new dataProcessor("partner-facility-detail-update?Task={{ $partner->id }}&wh={{ $_GET['ID'] }}");
 	PFacilityBenefitsBooth.setTransactionMode({
 		mode: "POST",
 		total: true,
@@ -91,7 +91,7 @@
 	FacilityBenefitsBoothAccess.setColTypes("ro,ro,ro,dhxCalendar,ch,ro,ch");
 	FacilityBenefitsBoothAccess.enableSmartRendering(true, 150);
     FacilityBenefitsBoothAccess.setDateFormat("%Y-%m-%d"); 
-	PFacilityBenefitsBoothAccess = new dataProcessor("partner-facility-detail-update?Task={{ $_GET['ID'] }}");
+	PFacilityBenefitsBoothAccess = new dataProcessor("partner-facility-detail-update?Task={{ $partner->id }}&wh={{ $_GET['ID'] }}");
 	PFacilityBenefitsBoothAccess.setTransactionMode({
 		mode: "POST",
 		total: true,
@@ -129,7 +129,7 @@
 	FacilityBenefitsBoothSupport.setColTypes("ro,ro,ro,dhxCalendar,ch,dhxCalendar,ch");
 	FacilityBenefitsBoothSupport.enableSmartRendering(true, 150);
     FacilityBenefitsBoothSupport.setDateFormat("%Y-%m-%d"); 
-	PFacilityBenefitsBoothSupport = new dataProcessor("partner-facility-detail-update?Task={{ $_GET['ID'] }}");
+	PFacilityBenefitsBoothSupport = new dataProcessor("partner-facility-detail-update?Task={{ $partner->id }}&wh={{ $_GET['ID'] }}");
 	PFacilityBenefitsBoothSupport.setTransactionMode({
 		mode: "POST",
 		total: true,

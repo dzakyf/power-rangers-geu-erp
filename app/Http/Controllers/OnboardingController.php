@@ -42,6 +42,7 @@ class OnboardingController extends Controller
         $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
         DB::table('opportunity_partner')->where('id', $body['opportunity_id'])->update([
+            'contract_end_at' => Carbon::now(),
             'contract_end_at' => Carbon::now()->addYear(4)
         ]);
 
@@ -66,6 +67,7 @@ class OnboardingController extends Controller
         $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
         DB::table('opportunity_partner')->where('id', $body['opportunity_id'])->update([
+            'contract_end_at' => Carbon::now(),
             'contract_end_at' => Carbon::now()->addYear(4)
         ]);
 

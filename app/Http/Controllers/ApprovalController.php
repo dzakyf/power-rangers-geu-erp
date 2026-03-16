@@ -359,6 +359,52 @@ class ApprovalController extends Controller
         }
     }
 
+    public function processSurveyToNextProgress(Request $r)
+    {
+        try {
+            $b = $r->all();
+            $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
+            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'RENEWAL')->first();
+            $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'RENEWAL')->first();
+
+            $session = $this->userService->getCurrentSessionUserInfo();
+
+            $result = DB::transaction(function () use ($b, $req, $session, $level, $nextLevel) {
+                $logId = DB::table('approval_log')->insertGetId([
+                    'Approver_Id' => $session->id,
+                    'Notes' => "",
+                    'Action' =>  $b['action'],
+                    'Level_Number' => $level->Level_Number,
+                    'Next_Level' => $b['action'] == "APPROVED" ? $level->Level_Number + 1 : $level->Level_Number,
+                    'Level_Id' => $level->ID,
+                    'Next_Level_Id' => $nextLevel->ID,
+                    'Request_Id' => $req->ID,
+                ]);
+
+                $updated = DB::table('approval_request')
+                    ->where('ID', '=', $req->ID)
+                    ->update([
+                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
+                        'Description' => "Berhasil menuju tahap selanjutnya",
+                        'Current_Level' => $req->Current_Level + 1,
+                        'Level_Id' => $nextLevel->ID,
+                        'Request_Type' => $req->Request_Type,
+                    ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'success',
+                'data' => $result
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     public function showProgress(Request $request)
     {

@@ -1,11 +1,9 @@
 <?php
 
 use app\Htpp\Controllers\ExpenditureController;
-use app\Htpp\Controllers\SurveyController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
-use Illuminate\Support\Facades\Event;
 use App\Http\Controllers\Partner\ListsController as PartnerListsController;
 
 use App\Http\Controllers\ApprovalController;
@@ -28,8 +26,10 @@ use App\Http\Controllers\Partner\WarehouseJournalController as PartnerWarehouseJ
 use App\Http\Controllers\Partner\WarehouseJournalSummaryController as PartnerWarehouseJournalSummaryController;
 use App\Http\Controllers\Partner\WarehouseAuditController as PartnerWarehouseAuditController;
 use App\Http\Controllers\Partner\ProfitSharingController as PartnerProfitSharingController;
+use App\Http\Controllers\Partner\ValuationController as PartnerValuationController;
 use App\Http\Controllers\ProjectionProfitController;
 use App\Http\Controllers\RenewalController;
+use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\UploaderController;
 use App\Http\Controllers\UserController;
 
@@ -4682,4 +4682,15 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$surveyPrefs-create", [SurveyController::class, 'createMasterDataSurvey']);
     Route::get("$surveyPrefs-data-master", [SurveyController::class, 'getMasterDataSurvey']);
     Route::get("$surveyPrefs-submit", [SurveyController::class, 'submitMasterDataSurvey']);
+    Route::get("$surveyPrefs-approval-index", [SurveyController::class, 'indexApprovalSurvey']);
+    Route::get("$surveyPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);
+    Route::get("$surveyPrefs-approval-data-log", [ApprovalController::class, 'getApprovalDataLog']);
+    Route::get("$surveyPrefs-approval-submit", [ApprovalController::class, 'processSurveyToNextProgress']);
+
+    /** Perhitungan Valuasi */
+    $valuationPrefs = "partner-valuation";
+    Route::get("$valuationPrefs", [PartnerValuationController::class, 'indexValuation']);
+    Route::get("xml-$valuationPrefs", [PartnerValuationController::class, 'indexValuationXml']);
+    Route::get("$valuationPrefs-detail", [PartnerValuationController::class, 'detailValuation']);
+    Route::get("xml-$valuationPrefs-detail", [PartnerValuationController::class, 'detailValuationXml']);
 });
