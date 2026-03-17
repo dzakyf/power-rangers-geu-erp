@@ -44,17 +44,17 @@ class SurveyController extends Controller
             $row = $xml->addChild('row');
             $row->addAttribute('ID', $p->ID);
             $row->addChild('cell', $no);
+            $row->addChild('cell', $p->Location_Name);
+            $row->addChild('cell', $p->Recommendation_Type);
+            $row->addChild('cell', $p->Status);
+            $row->addChild('cell', $p->Surveyed_At);
             $row->addChild('cell', $p->Province);
             $row->addChild('cell', $p->City);
             $row->addChild('cell', $p->District);
             $row->addChild('cell', $p->Subdistrict);
             $row->addChild('cell', $p->Address);
-            $row->addChild('cell', $p->Location_Name);
             $row->addChild('cell', $p->Latitude);
             $row->addChild('cell', $p->Longitude);
-            $row->addChild('cell', $p->Recommendation_Type);
-            $row->addChild('cell', $p->Status);
-            $row->addChild('cell', $p->Created_At);
 
             $no++;
         }
@@ -67,34 +67,27 @@ class SurveyController extends Controller
     public function submitMasterDataSurvey(Request $r)
     {
         $b = $r->all();
+        $files = $r->files->all();
+
         $frontPic = $r->file('front_facing');
         $operationalPic = $r->file('operational');
         $vehicleAccessPic = $r->file('vehicle_access');
         $environtmentPic = $r->file('environtment');
 
-        $uploadedFiles = [];
+        // dd($r->files->all());
 
-        $fileInputs = ['front_facing', 'operational', 'vehicle_access', 'environment'];
-
-        foreach ($fileInputs as $inputName) {
-            if ($r->hasFile($inputName) && $r->file($inputName)->isValid()) {
-                $file = $r->file($inputName);
-                $path = $file->store("uploads/{$inputName}", 'public');
-                $uploadedFiles[$inputName] = $path;
-            }
-        }
 
         $id = DB::table('survey_location')->insertGetId([
-            "Province" => $b['Province'],
+            "Province" => $b['Province'] ?? "",
             "City" => $b['City'],
             "District" => $b['District'],
             "Subdistrict" => $b['Subdistrict'],
             "Address" => $b['Address'],
-            "Location_Name" => $b['Location_Name'],
+            "Location_Name" => $b['Location_Name'] ?? "",
             "Latitude" => $b['Latitude'],
             "Longitude" => $b['Longitude'],
-            "Recommendation_Type" => $b['Recommendation_Type'],
-            "Status" => $b['Status'],
+            "Recommendation_Type" => $b['Recommendation_Type'] ?? "INTERNAL",
+            "Status" => $b['Status'] ?? "ACTIVE",
             "Surveyor_Name" => $b['Surveyor_Name'],
             "Location_Owner_Name" => $b['Location_Owner_Name'],
             "Area" => $b['Area'],
@@ -129,25 +122,36 @@ class SurveyController extends Controller
             "F_p3_col2" =>   $b["F_p3_col2"],
             "F_p4_col1" =>   $b["F_p4_col1"],
             "F_p4_col2" =>   $b["F_p4_col2"],
-            "G_p1" =>   $b["G_p1"],
-            "G_p2" =>   $b["G_p2"],
-            "G_p3" =>   $b["G_p3"],
-            "H_p1_col1" =>   $b["H_p1_col1"],
-            "H_p1_col2" =>   $b["H_p1_col2"],
-            "Approval_Surveyor" =>   $b["Approval_Surveyor"],
-            "Approval_Manager" =>   $b["Approval_Manager"],
-            "Approval_COO" =>   $b["Approval_COO"],
+            "G_p1" =>   $b["G_p1"] ?? "",
+            "G_p2" =>   $b["G_p2"] ?? "",
+            "G_p3" =>   $b["G_p3"] ?? "",
+            "H_p1_col1" =>   $b["H_p1_col1"] ?? "",
+            "H_p1_col2" =>   $b["H_p1_col2"] ?? "",
+            "Approval_Surveyor" =>   $b["Approval_Surveyor"] ?? 1,
+            "Approval_Manager" =>   $b["Approval_Manager"] ?? 0,
+            "Approval_COO" =>   $b["Approval_COO"] ?? 0,
         ]);
+
+        $uploadedFiles = [];
+
+        $fileInputs = ['C_c1_File', 'C_c2_File', 'C_c3_File', 'C_c4_File'];
+
+        foreach ($fileInputs as $inputName) {
+            if ($r->hasFile($inputName) && $r->file($inputName)->isValid()) {
+                $file = $r->file($inputName);
+                $path = $file->store("uploads/{$inputName}", 'public');
+                $uploadedFiles[$inputName] = $path;
+            }
+        }
 
         $path = "";
         $filename = "";
         $desc = "foto tampak depan";
         $ext = "";
         $topic = "survey";
-        $mapTo = $id;
+        $mapTo = null;
 
         $this->uploadService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
-
 
         return response()->json(['message' => 'success']);
     }

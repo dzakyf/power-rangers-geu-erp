@@ -17,6 +17,7 @@ use App\Http\Controllers\Partner\TicketController as PartnerTicketController;
 use App\Http\Controllers\Partner\AnnouncementController as PartnerAnnouncementController;
 use App\Http\Controllers\Partner\BusinessFacilityController as PartnerBusinessFacilityController;
 use App\Http\Controllers\Partner\FacilityController as PartnerFacilityController;
+use App\Http\Controllers\Partner\AssetManagementController as PartnerAssetManagementController;
 use App\Http\Controllers\Partner\WarehouseController as PartnerWarehouseController;
 use App\Http\Controllers\Partner\WarehouseOpenController as PartnerWarehouseOpenController;
 use App\Http\Controllers\Partner\WarehouseMonitoringController as PartnerWarehouseMonitoringController;
@@ -4447,6 +4448,20 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$facilityPref-detail-mobil-support", [PartnerFacilityController::class, 'indexDetailMobilSupportXml']);
     Route::post("$facilityPref-detail-update", [PartnerFacilityController::class, 'detailFacilityUpdate']);
 
+    /** Asset Management */
+    $assetManagementPref = 'partner-asset-management';
+    Route::get("$assetManagementPref", [PartnerAssetManagementController::class, 'index']);
+    Route::get("xml-$assetManagementPref", [PartnerAssetManagementController::class, 'indexXml']);
+    Route::get("$assetManagementPref-detail-booth", [PartnerAssetManagementController::class, 'indexDetailBooth']);
+    Route::get("xml-$assetManagementPref-detail-booth-inventory", [PartnerAssetManagementController::class, 'indexDetailBoothInventoryXml']);
+    Route::get("xml-$assetManagementPref-detail-booth-access", [PartnerAssetManagementController::class, 'indexDetailBoothAccessXml']);
+    Route::get("xml-$assetManagementPref-detail-booth-support", [PartnerAssetManagementController::class, 'indexDetailBoothSupportXml']);
+    Route::get("$assetManagementPref-detail-mobil", [PartnerAssetManagementController::class, 'indexDetailMobil']);
+    Route::get("xml-$assetManagementPref-detail-mobil-inventory", [PartnerAssetManagementController::class, 'indexDetailMobilInventoryXml']);
+    Route::get("xml-$assetManagementPref-detail-mobil-access", [PartnerAssetManagementController::class, 'indexDetailMobilAccessXml']);
+    Route::get("xml-$assetManagementPref-detail-mobil-support", [PartnerAssetManagementController::class, 'indexDetailMobilSupportXml']);
+    Route::post("$assetManagementPref-detail-update", [PartnerAssetManagementController::class, 'detailFacilityUpdate']);
+
     /** Benefit Facility Mitra */
     $facilityPref = 'partner-business-facility';
     // Route::get("$facilityPref", [PartnerBusinessFacilityController::class, 'index']);
@@ -4680,8 +4695,8 @@ Route::group(['middleware' => 'auth'], function () {
     $surveyPrefs = "partner-survey";
     Route::get("$surveyPrefs-index", [SurveyController::class, 'indexSurvey']);
     Route::get("$surveyPrefs-create", [SurveyController::class, 'createMasterDataSurvey']);
-    Route::get("$surveyPrefs-data-master", [SurveyController::class, 'getMasterDataSurvey']);
-    Route::get("$surveyPrefs-submit", [SurveyController::class, 'submitMasterDataSurvey']);
+    Route::get("$surveyPrefs-data", [SurveyController::class, 'getMasterDataSurvey']);
+    Route::post("$surveyPrefs-submit", [SurveyController::class, 'submitMasterDataSurvey']);
     Route::get("$surveyPrefs-approval-index", [SurveyController::class, 'indexApprovalSurvey']);
     Route::get("$surveyPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);
     Route::get("$surveyPrefs-approval-data-log", [ApprovalController::class, 'getApprovalDataLog']);

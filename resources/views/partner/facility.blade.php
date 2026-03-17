@@ -34,8 +34,9 @@ $Saya =  Auth::user()->username;
 	<div id="FacilityBenefits" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
         <input type="button" id="ekselFacilityBenefitsDet" name="ekselFacilityBenefitsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="FacilityBenefits.toExcel('./export/generate.php');" />
-		<input type="button" id="detailBooth" name="detailBooth" value="Detail Booth" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlikBooth()" />
-		<input type="button" id="detailMobil" name="detailMobil" value="Detail Mobil" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlikMobil()" />
+		<input type="button" id="detailFacility" name="detailFacility" value="Detail Facility" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlik()" />
+		{{-- <input type="button" id="detailBooth" name="detailBooth" value="Detail Booth" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlikBooth()" />
+		<input type="button" id="detailMobil" name="detailMobil" value="Detail Mobil" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlikMobil()" /> --}}
 	</div>
 </div>
 <div id="divlistOpportunity"></div>
@@ -57,16 +58,30 @@ $Saya =  Auth::user()->username;
 		}
 		return true;
 	}
+	function FacilityBenefitsKlik() {
+
+		let FacilityBenefitsID = FacilityBenefits.getSelectedId();
+		let hub = FacilityBenefits.cells(FacilityBenefitsID, 5).getValue();
+		if (FacilityBenefitsID != '') {
+			if (hub == 'booth') {
+				LoadM('divlistOpportunity', 'partner-facility-detail-booth?ID=' + FacilityBenefitsID);
+			}else {
+				LoadM('divlistOpportunity', 'partner-facility-detail-mobil?ID=' + FacilityBenefitsID);
+			}
+		}
+		return true;
+	}
 	FacilityBenefits = new dhtmlXGridObject('FacilityBenefits');
 	FacilityBenefits.setImagePath("./dhtmlx/imgs/");
-	FacilityBenefits.setHeader("No,Gudang ID, Lokasi Gudang, Nama Mitra, Kapasitas, Status Gudang,Dibuat Oleh");
-	FacilityBenefits.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	FacilityBenefits.setHeader("No,Gudang ID, Lokasi Gudang, Nama Mitra, Kapasitas, Tipe HUB, Status Gudang,Dibuat Oleh");
+	FacilityBenefits.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// FacilityBenefits.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	FacilityBenefits.setInitWidths("60,100,150,200,100,100,200");
-	FacilityBenefits.setColAlign("center,left,left,left,right,center,left");
-	FacilityBenefits.setColSorting("int,str,str,str,int,str,str");
-	FacilityBenefits.setColTypes("ron,ro,ro,ro,ron,ro,ro");
+	FacilityBenefits.setInitWidths("60,100,150,200,100,100,100,200");
+	FacilityBenefits.setColAlign("center,left,left,left,right,center,center,left");
+	FacilityBenefits.setColSorting("int,str,str,str,int,str,str,str");
+	FacilityBenefits.setColTypes("ron,ro,ro,ro,ron,ro,ro,ro");
 	FacilityBenefits.enableSmartRendering(true, 150);
+	FacilityBenefits.attachEvent("onRowDblClicked", FacilityBenefitsKlik);
 	FacilityBenefits.setNumberFormat("0,000", 4, ".", ",");
 	FacilityBenefits.setSkin("dhx_skyblue");
 	FacilityBenefits.init();
