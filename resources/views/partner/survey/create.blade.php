@@ -581,15 +581,15 @@ $Saya =  Auth::user()->username;
         // attachFileChangeListeners();
     }
 
-    function renderTable() {
+    function renderTableLocationDocumentation() {
         let html = '';
 
         $.each(photoData, function(index, item) {
             const rowId = generateRowId(index);
             const sesuaiId = 'sesuai_' + index;
             const tidakId = 'tidak_' + index;
-            const fileInputId = 'file_' + index;
             const radioId = `C_c${index+1}`
+            const fileInputId = `${radioId}_File`;
 
             html += '<tr id="' + rowId + '">';
             html += '    <td>' + item.no + '</td>';
@@ -603,7 +603,7 @@ $Saya =  Auth::user()->username;
             html += '    </td>';
             html += '    <td>';
             html += '        <input type="file" id="' + fileInputId + '" style="display: none;">';
-            html += '        <button class="upload-btn" onclick="$(\'#' + fileInputId + '\').click();">Upload</button>';
+            html += '        <button class="upload-btn" type="button" onclick="$(\'#' + fileInputId + '\').click();">Upload</button>';
             html += '        <span class="file-name" id="fileName_' + index + '">No file chosen</span>';
             html += '    </td>';
             html += '</tr>';
@@ -617,7 +617,7 @@ $Saya =  Auth::user()->username;
 
 
     $(document).ready(function() {
-        renderTable()
+        renderTableLocationDocumentation()
         renderTableLocationAssessment()
         renderTableEnvirontmentAssessment()
         renderTableUCOEstimation()
@@ -629,15 +629,24 @@ $Saya =  Auth::user()->username;
 
             let formData = new FormData(this);
 
-            for (const [key, value] of formData.entries()) {
-                if (value instanceof File) {
-                    console.log(`${key}: File (${value.name})`);
-                } else {
-                    console.log(`${key}: ${value}`);
-                }
-            }
+            // for (const [key, value] of formData.entries()) {
+            //     if (value instanceof File) {
+            //         console.log(`${key}: File (${value.name})`);
+            //     } else {
+            //         console.log(`${key}: ${value}`);
+            //     }
+            // }
+            $.each(locationAssessmentData, function(index, item) {
+                const fileInput = document.getElementById('file_' + index);
 
-            return
+                if (fileInput && fileInput.files.length > 0) {
+                    formData.append('file_' + index, fileInput.files[0]);
+
+                    // formData.append('file_' + index + '_name', fileInput.files[0].name);
+                    // formData.append('file_' + index + '_size', fileInput.files[0].size);
+                }
+            });
+
 
             $('#submitBtn').prop('disabled', true).text('Submitting...');
 

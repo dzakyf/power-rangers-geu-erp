@@ -15,15 +15,23 @@
 <script>
 	ValuationListDetail = new dhtmlXGridObject('ValuationListDetail');
 	ValuationListDetail.setImagePath("./dhtmlx/imgs/");
-	ValuationListDetail.setHeader("No,Tanggal Pembelian, Keterangan, Quantity, Harga, Jumlah, Ekonomis (Tahun), Penyusutan Pertahun, Penyusutan perbulan, Status, Waktu Pakai (Bulan), NIlai Yang Terpakai, Sisa Waktu Penyusutan, Sisa Nilai Aset");
+	ValuationListDetail.setHeader("No,Tanggal Pembelian, Keterangan, Quantity, Harga, Jumlah, Ekonomis (Tahun), % Penyusutan Pertahun, Penyusutan perbulan, Status, Waktu Pakai (Bulan), NIlai Yang Terpakai, Sisa Waktu Penyusutan, Sisa Nilai Aset");
 	ValuationListDetail.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// ValuationListDetail.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	ValuationListDetail.setInitWidths("60,100,150,200,100,100,200,100,100,100,100,100,100,100");
-	ValuationListDetail.setColAlign("center,left,left,left,right,center,left,right,right,right,right,right,right,right");
+	ValuationListDetail.setColAlign("center,left,left,left,right,right,center,right,right,center,right,right,right,right");
 	ValuationListDetail.setColSorting("int,str,str,str,int,str,str,int,int,int,int,int,int,int");
-	ValuationListDetail.setColTypes("ron,ro,ro,ro,ron,ro,ro,ron,ron,ron,ron,ron,ron,ron,ron");
+	ValuationListDetail.setColTypes("ron,ro,ro,ro,ron,ron,ron,ron,ron,ro,ron,ron,ron,ron,ron");
 	ValuationListDetail.enableSmartRendering(true, 150);
 	ValuationListDetail.setNumberFormat("0,000", 4, ".", ",");
+	ValuationListDetail.setNumberFormat("0,000", 5, ".", ",");
+	ValuationListDetail.setNumberFormat("0,000", 6, ".", ",");
+	ValuationListDetail.setNumberFormat("0,000", 7, ".", ",");
+	ValuationListDetail.setNumberFormat("0,000", 8, ".", ",");
+	ValuationListDetail.setNumberFormat("0,000", 10, ".", ",");
+	ValuationListDetail.setNumberFormat("0,000", 11, ".", ",");
+	ValuationListDetail.setNumberFormat("0,000", 12, ".", ",");
+	ValuationListDetail.setNumberFormat("0,000", 13, ".", ",");
 	ValuationListDetail.setSkin("dhx_skyblue");
 	ValuationListDetail.init();
 	refreshdataDetail();

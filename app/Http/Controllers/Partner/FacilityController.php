@@ -52,6 +52,7 @@ class FacilityController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->capacity) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_type == '' ? 'booth' : $Fetch->warehouse_type) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
             echo "</row>";
