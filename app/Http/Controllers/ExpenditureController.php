@@ -1,6 +1,6 @@
 <?php
 
-namespace app\Htpp\Controllers;
+namespace app\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -12,7 +12,7 @@ class ExpenditureController extends Controller
 {
     public function __construct()
     {
-        throw new \Exception('Not implemented');
+        // throw new \Exception('Not implemented');
     }
 
     public function indexCapitalExpenditure()
@@ -22,7 +22,20 @@ class ExpenditureController extends Controller
 
     public function getCapitalExpenditureData(Request $r)
     {
-        $d = DB::table('capital_expenditure')->select('*')->get();
+        $b = $r->all();
+        $q = $r->query();
+
+        // opportunity_partner_facility_dtl <- opportunity_partner_facility -> master_facility
+        $d = DB::table('opportunity_partner as op')->select('op.full_name', 'opfd.*', 'mf.description')
+            ->join('opportunity_partner_facility_dtl as opfd', 'opfd.Partner_ID', '=', 'op.id')
+            ->join('master_facility as mf', 'mf.id', '=', 'opfd.Facility_ID')
+            ->where('op.id', '=', $q['opportunity_id']);
+
+
+        $d = $d->get();
+        // dd($d);
+
+        // $d = DB::table('capital_expenditure')->select('*')->get();
         $xml = new SimpleXMLElement('<rows></rows>');
 
         $counter = 1;
@@ -30,11 +43,10 @@ class ExpenditureController extends Controller
             $row = $xml->addChild('row');
             $row->addAttribute('ID', $p->ID);
             $row->addChild('cell', $counter);
-            $row->addChild('cell', $p->AssetName);
-            $row->addChild('cell', $p->Status);
-            $row->addChild('cell', $p->Cost);
-            $row->addChild('cell', $p->Purchased_At);
-            $row->addChild('cell', $p->Estimated_Life_Years);
+            $row->addChild('cell', $p->full_name);
+            $row->addChild('cell', htmlspecialchars($p->description));
+            $row->addChild('cell', $p->Qty);
+            $row->addChild('cell', $p->Total);
             $counter++;
         }
 
@@ -46,6 +58,13 @@ class ExpenditureController extends Controller
     public function createCapitalExpenditure()
     {
         return view('partner.capex.create');
+    }
+
+    public function editCapitalExpenditure(Request $r)
+    {
+
+        dd($r);
+        return response()->json(['message' => 'success']);
     }
 
     public function submitCapitalExpenditure(Request $r)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\UploadService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use SimpleXMLElement;
@@ -69,13 +70,7 @@ class SurveyController extends Controller
         $b = $r->all();
         $files = $r->files->all();
 
-        $frontPic = $r->file('front_facing');
-        $operationalPic = $r->file('operational');
-        $vehicleAccessPic = $r->file('vehicle_access');
-        $environtmentPic = $r->file('environtment');
-
         // dd($r->files->all());
-
 
         $id = DB::table('survey_location')->insertGetId([
             "Province" => $b['Province'] ?? "",
@@ -139,19 +134,20 @@ class SurveyController extends Controller
         foreach ($fileInputs as $inputName) {
             if ($r->hasFile($inputName) && $r->file($inputName)->isValid()) {
                 $file = $r->file($inputName);
-                $path = $file->store("uploads/{$inputName}", 'public');
+                $year = Carbon::now()->year;
+                $month = Carbon::now()->format('m');
+                $path = $file->store("$year/$month", 'public');
+                $ext = $file->getClientOriginalExtension();
                 $uploadedFiles[$inputName] = $path;
+
+                $filename = basename($path);
+                $desc = $inputName;
+                $topic = "survey";
+                $mapTo = $id;
+
+                $this->uploadService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
             }
         }
-
-        $path = "";
-        $filename = "";
-        $desc = "foto tampak depan";
-        $ext = "";
-        $topic = "survey";
-        $mapTo = null;
-
-        $this->uploadService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
         return response()->json(['message' => 'success']);
     }

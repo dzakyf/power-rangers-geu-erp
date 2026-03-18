@@ -168,7 +168,7 @@ class ApprovalController extends Controller
                         $contact = $opportunity->Phone_Number;
                     }
 
-                    DB::table('users')->insert([
+                    $userRowId = DB::table('users')->insertGetId([
                         'username' => $username,
                         'password' => bcrypt($pass),
                         'Emp_ID' => $partner->lead_id,
@@ -191,6 +191,7 @@ class ApprovalController extends Controller
                 }
                 DB::table('opportunity_partner')->where('id', $partner->id)->update([
                     'status' => 'ACTIVE',
+                    'user_row_id' => $userRowId
                 ]);
             }
         } catch (\Throwable $th) {
