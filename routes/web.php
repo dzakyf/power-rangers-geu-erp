@@ -1,6 +1,6 @@
 <?php
 
-use app\Htpp\Controllers\ExpenditureController;
+use App\Http\Controllers\ExpenditureController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
@@ -4623,9 +4623,10 @@ Route::group(['middleware' => 'auth'], function () {
 
     /** Capex  */
     $capexPrefs = "partner-capex";
-    Route::get("$capexPrefs-index", [ExpenditureController::class, 'indexCapex']);
+    Route::get("$capexPrefs-index", [ExpenditureController::class, 'indexCapitalExpenditure']);
     Route::get("$capexPrefs-create", [ExpenditureController::class, 'createCapitalExpenditure']);
     Route::post("$capexPrefs-submit", [ExpenditureController::class, 'submitCapitalExpenditure']);
+    Route::post("$capexPrefs-submit-edit", [ExpenditureController::class, 'editCapitalExpenditure']);
     Route::get("$capexPrefs-data", [ExpenditureController::class, 'getCapitalExpenditureData']);
     /** */
 
@@ -4654,7 +4655,7 @@ Route::group(['middleware' => 'auth'], function () {
 
     /**partner route */
     $partner = "partner";
-    Route::get("$partner-data", [UserController::class, 'getPartner']);
+    Route::get("$partner-data-active-mitra", [UserController::class, 'getPartner']);
 
     /** renewal  */
     $partnerRenewalPrefs = "partner-renewal";

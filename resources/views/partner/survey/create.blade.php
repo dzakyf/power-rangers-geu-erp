@@ -637,10 +637,11 @@ $Saya =  Auth::user()->username;
             //     }
             // }
             $.each(locationAssessmentData, function(index, item) {
-                const fileInput = document.getElementById('file_' + index);
+
+                const fileInput = document.getElementById(`C_c${index+1}_File`);
 
                 if (fileInput && fileInput.files.length > 0) {
-                    formData.append('file_' + index, fileInput.files[0]);
+                    formData.append(`C_c${index+1}_File`, fileInput.files[0]);
 
                     // formData.append('file_' + index + '_name', fileInput.files[0].name);
                     // formData.append('file_' + index + '_size', fileInput.files[0].size);
@@ -660,7 +661,7 @@ $Saya =  Auth::user()->username;
                 success: function(response) {
                     alert("Berhasil membuat broadcast");
 
-                    $('#surveyForm')[0].reset();
+                    //$('#surveyForm')[0].reset();
                 },
                 error: function(xhr, status, error) {
                     console.log('Error details:', xhr.responseText);

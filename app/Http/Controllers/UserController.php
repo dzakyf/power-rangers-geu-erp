@@ -394,6 +394,7 @@ class UserController extends Controller
 
         foreach ($users as $p) {
             $row = $xml->addChild('row');
+            $row->addAttribute('Opportunity_Id', $p->Opportunity_Id);
             $row->addChild('cell', $p->id);
             $row->addChild('cell', $p->Name);
             $row->addChild('cell', $p->Address);
