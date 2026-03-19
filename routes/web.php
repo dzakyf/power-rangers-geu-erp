@@ -4655,6 +4655,9 @@ Route::group(['middleware' => 'auth'], function () {
 
     /**partner route */
     $partner = "partner";
+    Route::get("test-canvas", function () {
+        return view('ui-components.signature-canvas');
+    });
     Route::get("$partner-data-active-mitra", [UserController::class, 'getPartner']);
 
     /** renewal  */
@@ -4688,7 +4691,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$onboardingPrefs-approval-data", [OnboardingController::class, 'getOnboardingApprovalData']);
     Route::get("$onboardingPrefs-approval-data-log", [OnboardingController::class, 'getOnboardingApprovalDataLog']);
 
+    Route::post("$onboardingPrefs-preview-mou", [OnboardingController::class, 'previewMou']);
     Route::post("$onboardingPrefs-submit-mou", [OnboardingController::class, 'uploadMou']);
+    Route::post("$onboardingPrefs-preview-pks", [OnboardingController::class, 'previewPks']);
     Route::post("$onboardingPrefs-submit-pks", [OnboardingController::class, 'uploadPks']);
 
 
