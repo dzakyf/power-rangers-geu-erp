@@ -9,6 +9,7 @@ use App\Services\UserService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpWord\TemplateProcessor;
 use SimpleXMLElement;
 
 class OnboardingController extends Controller
@@ -22,6 +23,61 @@ class OnboardingController extends Controller
         $this->generatorService = $g;
         $this->uploaderService = $up;
     }
+
+    public function previewMou(Request $r)
+    {
+        $id = $r->query('id');
+        $b = $r->all();
+        $path = public_path('mou.docx');
+        $doc = new TemplateProcessor($path);
+        $now = Carbon::now()->format('YmdHisv');
+
+        $data = DB::table('opportunity_partner')->select('*')->where('ID', '=', $id)->first();
+
+        $partner_name = $data->register_as == "individual" ? $data->full_name : $data->company_full_name;
+        $full_address = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
+
+        $doc->setValues([
+            'mou_number' => '',
+            'hub_type' => '',
+            'mitra_fullname' => $partner_name ?? '${contoh}',
+            'partner_region' => $data->pi_city ?? '${contoh}',
+            'signed_at' => Carbon::now(),
+            'nama' => $data->pic ?? $partner_name,
+            'nik' => $data->ktp,
+            'NIK' => $data->ktp,
+            'full_address' => $full_address,
+            'downpayment' => 0,
+            'payment_phase2' => 0,
+            'repayment' => 0
+        ]);
+
+        $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $b['signature']);
+        $imageData = base64_decode($base64Image);
+
+        $tempImage = tempnam(sys_get_temp_dir(), 'img') . '.png';
+        file_put_contents($tempImage, $imageData);
+
+        $doc->setImageValue('mitra_signature', [
+            'path' => $tempImage,
+            'height' => 100,
+            'ratio' => false
+        ]);
+
+        unlink($tempImage);
+
+        if (!file_exists($path)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        $outputPath = storage_path("app/public/mou_$now.docx");
+
+        $doc->saveAs($outputPath);
+
+        return response()->download($outputPath)->deleteFileAfterSend(true);
+    }
+
+    public function previewPks() {}
 
     public function uploadMou(Request $r)
     {
