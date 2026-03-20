@@ -24,15 +24,11 @@ class OnboardingController extends Controller
         $this->uploaderService = $up;
     }
 
-    public function previewMou(Request $r)
+    public function makeMou($body, $opportunityId, $templatePath)
     {
-        $id = $r->query('id');
-        $b = $r->all();
-        $path = public_path('mou.docx');
-        $doc = new TemplateProcessor($path);
-        $now = Carbon::now()->format('YmdHisv');
+        $doc = new TemplateProcessor($templatePath);
 
-        $data = DB::table('opportunity_partner')->select('*')->where('ID', '=', $id)->first();
+        $data = DB::table('opportunity_partner')->select('*')->where('ID', '=', $opportunityId)->first();
 
         $partner_name = $data->register_as == "individual" ? $data->full_name : $data->company_full_name;
         $full_address = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
@@ -52,7 +48,7 @@ class OnboardingController extends Controller
             'repayment' => 0
         ]);
 
-        $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $b['signature']);
+        $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $body['signature']);
         $imageData = base64_decode($base64Image);
 
         $tempImage = tempnam(sys_get_temp_dir(), 'img') . '.png';
@@ -66,9 +62,22 @@ class OnboardingController extends Controller
 
         unlink($tempImage);
 
+        return $doc;
+    }
+
+    public function previewMou(Request $r)
+    {
+        $id = $r->query('id');
+        $b = $r->all();
+        $path = public_path('mou.docx');
+
         if (!file_exists($path)) {
             return response()->json(['error' => 'File not found'], 404);
         }
+
+        $now = Carbon::now()->format('YmdHisv');
+        $doc = $this->makeMou($b, $id, $path);
+
 
         $outputPath = storage_path("app/public/mou_$now.docx");
 
@@ -77,32 +86,100 @@ class OnboardingController extends Controller
         return response()->download($outputPath)->deleteFileAfterSend(true);
     }
 
-    public function previewPks() {}
 
     public function uploadMou(Request $r)
     {
 
-        $q = $r->query();
         $body = $r->all();
-        $doc = $r->file('file');
+        // $doc = $r->file('file');
+        $path = public_path('mou.docx');
+        $doc = $this->makeMou($body, $body['opportunity_id'], $path);
 
         $path = $this->generatorService->generateFilename();
-        $ext = $r->file('file')->getClientOriginalExtension();
+        $ext = "png";
         $user = $this->userService->getCurrentSessionUserInfo();
 
         $filename = "$path.$ext";
-        $desc = "Upload renewal";
-        $topic = "renewal";
+        $desc = "Upload mou";
+        $topic = "mou";
         $mapTo = $user->id;
-        $doc->move(public_path('filevendor/2026/02'));
+
+        $year = Carbon::now()->year;
+        $month = Carbon::now()->format('m');
+        $now = Carbon::now()->format('YmdHisv');
+        $path = "filevendor/$year/$month/mou_$now.docx";
+        $doc->saveAs(public_path("$path"));
+
         $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
         DB::table('opportunity_partner')->where('id', $body['opportunity_id'])->update([
-            'contract_end_at' => Carbon::now(),
+            'contract_start_at' => Carbon::now(),
             'contract_end_at' => Carbon::now()->addYear(4)
         ]);
 
         return response()->json(['message' => 'success']);
+    }
+
+
+    public function makePks($body, $opportunityId, $templatePath)
+    {
+        $doc = new TemplateProcessor($templatePath);
+
+        $data = DB::table('opportunity_partner')->select('*')->where('ID', '=', $opportunityId)->first();
+
+        $partner_name = $data->register_as == "individual" ? $data->full_name : $data->company_full_name;
+        $full_address = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
+
+        $doc->setValues([
+            'mou_number' => '',
+            'hub_type' => '',
+            'mitra_fullname' => $partner_name ?? '${contoh}',
+            'partner_region' => $data->pi_city ?? '${contoh}',
+            'signed_at' => Carbon::now(),
+            'nama' => $data->pic ?? $partner_name,
+            'nik' => $data->ktp,
+            'NIK' => $data->ktp,
+            'full_address' => $full_address,
+            'downpayment' => 0,
+            'payment_phase2' => 0,
+            'repayment' => 0
+        ]);
+
+        $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $body['signature']);
+        $imageData = base64_decode($base64Image);
+
+        $tempImage = tempnam(sys_get_temp_dir(), 'img') . '.png';
+        file_put_contents($tempImage, $imageData);
+
+        $doc->setImageValue('mitra_signature', [
+            'path' => $tempImage,
+            'height' => 100,
+            'ratio' => false
+        ]);
+
+        unlink($tempImage);
+        return $doc;
+    }
+
+    public function previewPks(Request $r)
+    {
+        $id = $r->query('id');
+        $b = $r->all();
+        $path = public_path('pks.docx');
+
+        if (!file_exists($path)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        $now = Carbon::now()->format('YmdHisv');
+        $doc = $this->makePks($b, $id, $path);
+
+
+        $outputPath = storage_path("app/public/mou_$now.docx");
+
+        $doc->saveAs($outputPath);
+
+        return response()->download($outputPath)->deleteFileAfterSend(true);
     }
 
     public function uploadPks(Request $r)
@@ -122,10 +199,6 @@ class OnboardingController extends Controller
         $doc->move(public_path('filevendor/2026/02'));
         $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
-        DB::table('opportunity_partner')->where('id', $body['opportunity_id'])->update([
-            'contract_end_at' => Carbon::now(),
-            'contract_end_at' => Carbon::now()->addYear(4)
-        ]);
 
         return response()->json(['message' => 'success']);
     }

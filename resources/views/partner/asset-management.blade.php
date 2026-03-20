@@ -35,8 +35,8 @@ $Saya =  Auth::user()->username;
 	<div>
         <input type="button" id="ekselFacilityBenefitsDet" name="ekselFacilityBenefitsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="FacilityBenefits.toExcel('./export/generate.php');" />
 		<input type="button" id="detailFacility" name="detailFacility" value="Detail Facility" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlik()" />
-		<input type="button" id="detailBooth" name="detailBooth" value="Detail Booth" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlikBooth()" />
-		<input type="button" id="detailMobil" name="detailMobil" value="Detail Mobil" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlikMobil()" />
+		{{-- <input type="button" id="detailBooth" name="detailBooth" value="Detail Booth" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlikBooth()" />
+		<input type="button" id="detailMobil" name="detailMobil" value="Detail Mobil" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlikMobil()" /> --}}
 	</div>
 </div>
 <div id="divlistOpportunity"></div>

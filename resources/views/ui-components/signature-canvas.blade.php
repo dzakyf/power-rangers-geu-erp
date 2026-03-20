@@ -1,11 +1,13 @@
 @php
 // Set defaults if parameters not provided
 $canvasId = $canvasId ?? 'canvas-' . uniqid();
+$opportunityId = $opportunityId ?? 43;
 $width = $width ?? 800;
 $height = $height ?? 500;
 $borderColor = $borderColor ?? 'black';
 $showControls = $showControls ?? true;
 $saveUrl = $saveUrl ?? '404';
+$saveDocumentUrl = $saveDocumentUrl ?? "404";
 @endphp
 
 <div class="drawing-canvas-container">
@@ -29,7 +31,7 @@ $saveUrl = $saveUrl ?? '404';
             Submit & Preview
         </button>
 
-        <button id="saveDocument" style="display: none; background: #2196F3; color: white; padding: 5px 15px; margin-left: 10px;">
+        <button id="finalizeDocument" onclick="finalizeDocument()" style="display: none; background: #2196F3; color: white; padding: 5px 15px; margin-left: 10px;">
             Submit Document
         </button>
     </div>
@@ -38,6 +40,13 @@ $saveUrl = $saveUrl ?? '404';
     <form id="drawingForm" method="POST" action="{{ $saveUrl }}" style="display: none;">
         @csrf
         <input type="hidden" name="signature" id="imageData">
+        <!-- <input type="hidden" name="opportunityId" id="opportunityId" value="{{ $opportunityId }}"> -->
+    </form>
+
+    <form id="finalizeDocumentForm" method="POST" action="{{ $saveDocumentUrl }}" style="display: none;">
+        @csrf
+        <input type="hidden" name="signature" id="finalizeImageData">
+        <input type="hidden" name="opportunity_id" id="opportunity_id" value="{{ $opportunityId }}">
     </form>
 
     {{-- Save status message --}}
@@ -109,8 +118,113 @@ $saveUrl = $saveUrl ?? '404';
             $('#imageData').val(imageData)
             $('#drawingForm').submit()
 
-
         }
+
+        window.finalizeDocument = function() {
+            const imageData = canvas.toDataURL('image/png'); // You can also use 'image/jpeg'
+
+            $('#finalizeImageData').val(imageData)
+            $('#finalizeDocumentForm').submit()
+        }
+
+        // $('#finalizeDocument').on('click', function(e) {
+        //     e.preventDefault()
+        //     const imageData = canvas.toDataURL('image/png');
+        //     $('#imageData').val(imageData)
+
+        //     let fd = new FormData()
+        //     fd.append('signature', imageData)
+        //     fd.append('opportunity_id', $('#opportunityId').val())
+
+
+        //     $.ajax({
+        //         url: '{{ $saveDocumentUrl }}',
+        //         type: "POST",
+        //         data: fd,
+        //         processData: false,
+        //         contentType: false,
+        //         cache: false,
+        //         headers: {
+        //             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        //         },
+        //         xhrFields: {
+        //             responseType: 'blob'
+        //         },
+        //         success: function(response) {
+        //             // alert("Berhasil menyimpan");
+        //             console.log("Berhasil generate dokumen")
+        //             var blob = new Blob([response]);
+        //             var link = document.createElement('a');
+        //             link.href = window.URL.createObjectURL(blob);
+        //             link.download = 'mou.docx';
+        //             link.click();
+
+        //             window.URL.revokeObjectURL(link.href);
+        //             $('#finalizeDocument').show();
+
+
+
+
+        //             //$('#surveyForm')[0].reset();
+        //         },
+        //         error: function(xhr, status, error) {
+        //             console.log('Error details:', xhr.responseText);
+
+        //         },
+        //         complete: function() {
+        //             // $('#submitBtn').prop('disabled', false).text('Submit');
+        //         }
+        //     });
+        // })
+
+        $('#finalizeDocumentForm').on('submit', function(e) {
+
+            e.preventDefault()
+
+            let fd = new FormData(this)
+            // let fd = new FormData()
+            // fd.append('file', imageData)
+
+
+            $.ajax({
+                url: $(this).attr('action'),
+                type: "POST",
+                data: fd,
+                processData: false,
+                contentType: false,
+                cache: false,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function(response) {
+                    // alert("Berhasil menyimpan");
+                    console.log("Berhasil generate dokumen")
+                    var blob = new Blob([response]);
+                    var link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = 'mou.docx';
+                    link.click();
+
+                    window.URL.revokeObjectURL(link.href);
+                    $('#finalizeDocument').show();
+
+
+
+
+                    //$('#surveyForm')[0].reset();
+                },
+                error: function(xhr, status, error) {
+                    console.log('Error details:', xhr.responseText);
+
+                },
+                complete: function() {
+                    // $('#submitBtn').prop('disabled', false).text('Submit');
+                }
+            });
+        })
 
 
         $('#drawingForm').on('submit', function(e) {
@@ -145,7 +259,7 @@ $saveUrl = $saveUrl ?? '404';
                     link.click();
 
                     window.URL.revokeObjectURL(link.href);
-                    $('#saveDocument').show();
+                    $('#finalizeDocument').show();
 
 
 

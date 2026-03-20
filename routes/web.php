@@ -18,6 +18,7 @@ use App\Http\Controllers\Partner\AnnouncementController as PartnerAnnouncementCo
 use App\Http\Controllers\Partner\BusinessFacilityController as PartnerBusinessFacilityController;
 use App\Http\Controllers\Partner\FacilityController as PartnerFacilityController;
 use App\Http\Controllers\Partner\AssetManagementController as PartnerAssetManagementController;
+use App\Http\Controllers\Partner\OrderEquipmentController as PartnerOrderEquipmentController;
 use App\Http\Controllers\Partner\WarehouseController as PartnerWarehouseController;
 use App\Http\Controllers\Partner\WarehouseOpenController as PartnerWarehouseOpenController;
 use App\Http\Controllers\Partner\WarehouseMonitoringController as PartnerWarehouseMonitoringController;
@@ -4461,6 +4462,15 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$assetManagementPref-detail-mobil-access", [PartnerAssetManagementController::class, 'indexDetailMobilAccessXml']);
     Route::get("xml-$assetManagementPref-detail-mobil-support", [PartnerAssetManagementController::class, 'indexDetailMobilSupportXml']);
     Route::post("$assetManagementPref-detail-update", [PartnerAssetManagementController::class, 'detailFacilityUpdate']);
+    
+    $orderEquipmentPref = "partner-order-equipment";
+    Route::get("$orderEquipmentPref", [PartnerOrderEquipmentController::class, 'index']);
+    Route::get("xml-$orderEquipmentPref", [PartnerOrderEquipmentController::class, 'indexXml']);
+    Route::get("$orderEquipmentPref-detail-booth", [PartnerOrderEquipmentController::class, 'indexDetailBooth']);
+    Route::get("xml-$orderEquipmentPref-detail-booth-inventory", [PartnerOrderEquipmentController::class, 'indexDetailBoothInventoryXml']);
+    Route::get("$orderEquipmentPref-detail-mobil", [PartnerOrderEquipmentController::class, 'indexDetailMobil']);
+    Route::get("xml-$orderEquipmentPref-detail-mobil-inventory", [PartnerOrderEquipmentController::class, 'indexDetailMobilInventoryXml']);
+    Route::post("$orderEquipmentPref-detail-update", [PartnerOrderEquipmentController::class, 'detailFacilityUpdate']);
 
     /** Benefit Facility Mitra */
     $facilityPref = 'partner-business-facility';
