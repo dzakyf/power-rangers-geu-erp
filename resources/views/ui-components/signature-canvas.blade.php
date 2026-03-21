@@ -1,69 +1,67 @@
 @php
-// Set defaults if parameters not provided
-$canvasId = $canvasId ?? 'canvas-' . uniqid();
-$opportunityId = $opportunityId ?? 43;
-$width = $width ?? 800;
-$height = $height ?? 500;
-$borderColor = $borderColor ?? 'black';
-$showControls = $showControls ?? true;
-$saveUrl = $saveUrl ?? '404';
-$saveDocumentUrl = $saveDocumentUrl ?? "404";
+// Generate unique ID for this component instance
+$instanceId = uniqid('canvas_');
+$canvasId = "signature_canvas_{$instanceId}";
+$formId = "drawing_form_{$instanceId}";
+$finalizeFormId = "finalize_form_{$instanceId}";
+
+$opportunityId = $opportunityId ?? request('id', 43);
+$saveUrl = $saveUrl ?? "/geu/hcga/public/partner-onboarding-preview-pks?id=" . $opportunityId;
+$saveDocumentUrl = $saveDocumentUrl ?? "/geu/hcga/public/partner-onboarding-submit-pks?id=" . $opportunityId;
 @endphp
 
-<div class="drawing-canvas-container">
+<div class="signature-canvas-wrapper" data-instance-id="{{ $instanceId }}">
     <canvas
         id="{{ $canvasId }}"
-        width="{{ $width }}"
-        height="{{ $height }}"
+        width="800"
+        height="500"
         style="border:2px solid black; cursor:crosshair;"></canvas>
 
     <div style="margin-top: 10px;">
-        <button onclick="clearCanvas()" style="padding: 5px 15px; margin-right: 10px;">Clear</button>
-
-
-        <label style="margin-left: 20px;">
-            Brush Size:
-            <input type="range" id="brushSize" min="1" max="20" value="5">
-        </label>
-
-        {{-- Save button --}}
-        <button onclick="saveDrawing()" style="background: #4CAF50; color: white; padding: 5px 15px; margin-left: 20px;">
+        <button onclick="window.canvasInstances['{{ $instanceId }}'].clear()">Clear</button>
+        <button onclick="window.canvasInstances['{{ $instanceId }}'].save()"
+            style="background: #4CAF50; color: white;">
             Submit & Preview
         </button>
-
-        <button id="finalizeDocument" onclick="finalizeDocument()" style="display: none; background: #2196F3; color: white; padding: 5px 15px; margin-left: 10px;">
-            Submit Document
+        <button onclick="window.canvasInstances['{{ $instanceId }}'].finalize()"
+            style="background: #2196F3; color: white;">
+            Finalize Document
         </button>
     </div>
 
-    {{-- Optional: Hidden form for submitting --}}
-    <form id="drawingForm" method="POST" action="{{ $saveUrl }}" style="display: none;">
+    {{-- Hidden forms for this instance --}}
+    <form id="{{ $formId }}" method="POST" action="{{ $saveUrl }}" style="display: none;">
         @csrf
-        <input type="hidden" name="signature" id="imageData">
-        <!-- <input type="hidden" name="opportunityId" id="opportunityId" value="{{ $opportunityId }}"> -->
+        <input type="hidden" name="signature" id="signature_data_{{ $instanceId }}">
     </form>
 
-    <form id="finalizeDocumentForm" method="POST" action="{{ $saveDocumentUrl }}" style="display: none;">
+    <form id="{{ $finalizeFormId }}" method="POST" action="{{ $saveDocumentUrl }}" style="display: none;">
         @csrf
-        <input type="hidden" name="signature" id="finalizeImageData">
-        <input type="hidden" name="opportunity_id" id="opportunity_id" value="{{ $opportunityId }}">
+        <input type="hidden" name="signature" id="finalize_signature_{{ $instanceId }}">
+        <input type="hidden" name="opportunity_id" value="{{ $opportunityId }}">
     </form>
 
-    {{-- Save status message --}}
-    <div id="savestatus" style="margin-top: 10px; padding: 10px; display: none;"></div>
-    <div id="previewDoc" style="margin-top: 10px; padding: 10px; display: none;"></div>
-
+    <div id="status_{{ $instanceId }}" style="margin-top: 10px; display: none;"></div>
 </div>
-<!-- <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script> -->
 
 <script>
-    $(document).ready(function() {
+    window.canvasInstances = window.canvasInstances || {};
 
-        // Get the canvas element
-        const canvas = document.getElementById('{{ $canvasId }}');
+    (function() {
+        const instanceId = '{{ $instanceId }}';
+        const canvasId = '{{ $canvasId }}';
+        const formId = '{{ $formId }}';
+        const finalizeFormId = '{{ $finalizeFormId }}';
+        const signatureDataId = 'signature_data_{{ $instanceId }}';
+        const finalizeSignatureId = 'finalize_signature_{{ $instanceId }}';
+
+        // Get canvas element
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
         const ctx = canvas.getContext('2d');
 
-        // Drawing state
+        // Drawing state (instance-specific)
         let drawing = false;
         let currentColor = 'black';
 
@@ -73,24 +71,22 @@ $saveDocumentUrl = $saveDocumentUrl ?? "404";
         ctx.lineJoin = 'round';
         ctx.strokeStyle = currentColor;
 
-        // Mouse event handlers
+        // Drawing functions
         function startDrawing(e) {
             drawing = true;
             ctx.beginPath();
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
             ctx.moveTo(x, y);
         }
 
         function draw(e) {
             if (!drawing) return;
             e.preventDefault();
-
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
             ctx.lineTo(x, y);
             ctx.stroke();
             ctx.beginPath();
@@ -101,251 +97,96 @@ $saveDocumentUrl = $saveDocumentUrl ?? "404";
             drawing = false;
         }
 
-        // Clear canvas function
-        window.clearCanvas = function() {
+        function clearCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             showStatus('Canvas cleared', 'info');
         }
 
-        // Brush size changer
-        document.getElementById('brushSize').addEventListener('input', function(e) {
-            ctx.lineWidth = e.target.value;
-        });
-
-        window.saveDrawing = function() {
-            const imageData = canvas.toDataURL('image/png'); // You can also use 'image/jpeg'
-
-            $('#imageData').val(imageData)
-            $('#drawingForm').submit()
-
+        function changeColor(color) {
+            currentColor = color;
+            ctx.strokeStyle = color;
         }
 
-        window.finalizeDocument = function() {
-            const imageData = canvas.toDataURL('image/png'); // You can also use 'image/jpeg'
-
-            $('#finalizeImageData').val(imageData)
-            $('#finalizeDocumentForm').submit()
+        function saveDrawing() {
+            const imageData = canvas.toDataURL('image/png');
+            $(`#${signatureDataId}`).val(imageData);
+            $(`#${formId}`).submit();
         }
 
-        // $('#finalizeDocument').on('click', function(e) {
-        //     e.preventDefault()
-        //     const imageData = canvas.toDataURL('image/png');
-        //     $('#imageData').val(imageData)
-
-        //     let fd = new FormData()
-        //     fd.append('signature', imageData)
-        //     fd.append('opportunity_id', $('#opportunityId').val())
-
-
-        //     $.ajax({
-        //         url: '{{ $saveDocumentUrl }}',
-        //         type: "POST",
-        //         data: fd,
-        //         processData: false,
-        //         contentType: false,
-        //         cache: false,
-        //         headers: {
-        //             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        //         },
-        //         xhrFields: {
-        //             responseType: 'blob'
-        //         },
-        //         success: function(response) {
-        //             // alert("Berhasil menyimpan");
-        //             console.log("Berhasil generate dokumen")
-        //             var blob = new Blob([response]);
-        //             var link = document.createElement('a');
-        //             link.href = window.URL.createObjectURL(blob);
-        //             link.download = 'mou.docx';
-        //             link.click();
-
-        //             window.URL.revokeObjectURL(link.href);
-        //             $('#finalizeDocument').show();
-
-
-
-
-        //             //$('#surveyForm')[0].reset();
-        //         },
-        //         error: function(xhr, status, error) {
-        //             console.log('Error details:', xhr.responseText);
-
-        //         },
-        //         complete: function() {
-        //             // $('#submitBtn').prop('disabled', false).text('Submit');
-        //         }
-        //     });
-        // })
-
-        $('#finalizeDocumentForm').on('submit', function(e) {
-
-            e.preventDefault()
-
-            let fd = new FormData(this)
-            // let fd = new FormData()
-            // fd.append('file', imageData)
-
-
-            $.ajax({
-                url: $(this).attr('action'),
-                type: "POST",
-                data: fd,
-                processData: false,
-                contentType: false,
-                cache: false,
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                xhrFields: {
-                    responseType: 'blob'
-                },
-                success: function(response) {
-                    // alert("Berhasil menyimpan");
-                    console.log("Berhasil generate dokumen")
-                    var blob = new Blob([response]);
-                    var link = document.createElement('a');
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = 'mou.docx';
-                    link.click();
-
-                    window.URL.revokeObjectURL(link.href);
-                    $('#finalizeDocument').show();
-
-
-
-
-                    //$('#surveyForm')[0].reset();
-                },
-                error: function(xhr, status, error) {
-                    console.log('Error details:', xhr.responseText);
-
-                },
-                complete: function() {
-                    // $('#submitBtn').prop('disabled', false).text('Submit');
-                }
-            });
-        })
-
-
-        $('#drawingForm').on('submit', function(e) {
-
-            e.preventDefault()
-
-            let fd = new FormData(this)
-            // let fd = new FormData()
-            // fd.append('file', imageData)
-
-
-            $.ajax({
-                url: $(this).attr('action'),
-                type: "POST",
-                data: fd,
-                processData: false,
-                contentType: false,
-                cache: false,
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                xhrFields: {
-                    responseType: 'blob'
-                },
-                success: function(response) {
-                    // alert("Berhasil menyimpan");
-                    console.log("Berhasil generate dokumen")
-                    var blob = new Blob([response]);
-                    var link = document.createElement('a');
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = 'mou.docx';
-                    link.click();
-
-                    window.URL.revokeObjectURL(link.href);
-                    $('#finalizeDocument').show();
-
-
-
-
-                    //$('#surveyForm')[0].reset();
-                },
-                error: function(xhr, status, error) {
-                    console.log('Error details:', xhr.responseText);
-
-                },
-                complete: function() {
-                    // $('#submitBtn').prop('disabled', false).text('Submit');
-                }
-            });
-        })
-
-        // fetch('/save-drawing', {
-        //         method: 'POST',
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //             'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        //         },
-        //         body: JSON.stringify({
-        //             image: imageData,
-        //             filename: 'drawing-' + Date.now() + '.png'
-        //         })
-        //     })
-        //     .then(response => response.json())
-        //     .then(data => {
-        //         if (data.success) {
-        //             showStatus('Drawing saved successfully!', 'success');
-        //         } else {
-        //             showStatus('Error saving drawing', 'error');
-        //         }
-        //     })
-        //     .catch(error => {
-        //         console.error('Error:', error);
-        //         showStatus('Error saving drawing', 'error');
-        //     });
-        // }
-
-        // Method 2: Save using traditional form
-        function saveWithForm(imageData) {
-            document.getElementById('imageData').value = imageData;
-            document.getElementById('drawingForm').submit();
+        function finalizeDocument() {
+            const imageData = canvas.toDataURL('image/png');
+            $(`#${finalizeSignatureId}`).val(imageData);
+            console.log('Finalizing for instance:', instanceId);
+            $(`#${finalizeFormId}`).submit();
         }
 
-        // Helper function to show status messages
         function showStatus(message, type) {
-            const statusDiv = document.getElementById('saveStatus');
-            statusDiv.style.display = 'block';
+            const statusDiv = document.getElementById(`status_${instanceId}`);
+            if (!statusDiv) return;
             statusDiv.textContent = message;
-
-            // Style based on type
-            if (type === 'success') {
-                statusDiv.style.color = 'green';
-            } else if (type === 'error') {
-                statusDiv.style.color = 'red';
-            } else {
-                statusDiv.style.color = 'blue';
-            }
-
-            // Hide after 3 seconds
+            statusDiv.style.color = type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue';
+            statusDiv.style.display = 'block';
             setTimeout(() => {
                 statusDiv.style.display = 'none';
             }, 3000);
         }
 
-        // Add mouse event listeners
+        // Add event listeners
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
         canvas.addEventListener('mouseleave', stopDrawing);
-
-        // Touch events for mobile
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            startDrawing(e.touches[0]);
-        });
-
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            draw(e.touches[0]);
-        });
-
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
 
-    })
+        window.canvasInstances[instanceId] = {
+            clear: clearCanvas,
+            save: saveDrawing,
+            finalize: finalizeDocument,
+            changeColor: changeColor,
+            canvas: canvas,
+            ctx: ctx
+        };
+
+        // Handle form submissions for this instance
+        $(`#${formId}`).on('submit', function(e) {
+            e.preventDefault();
+            let fd = new FormData(this);
+
+            $.ajax({
+                url: $(this).attr('action'),
+                type: "POST",
+                data: fd,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    showStatus('Document generated successfully!', 'success');
+                    $().show()
+                },
+                error: function(xhr) {
+                    showStatus('Error generating document', 'error');
+                }
+            });
+        });
+
+        $(`#${finalizeFormId}`).on('submit', function(e) {
+            e.preventDefault();
+            let fd = new FormData(this);
+
+            $.ajax({
+                url: $(this).attr('action'),
+                type: "POST",
+                data: fd,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    showStatus('Document finalized!', 'success');
+                },
+                error: function(xhr) {
+                    showStatus('Error finalizing document', 'error');
+                }
+            });
+        });
+    })();
 </script>

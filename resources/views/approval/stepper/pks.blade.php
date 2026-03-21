@@ -1,19 +1,26 @@
 <div>
-    <h5>Step 2</h5>
+    <h5>Step 4</h5>
     <p>Penandatanganan PKS</p>
 
     <div class="mt-2 mb-2 row">
-        <div class="col">
+        <!-- <div class="col">
             <a href="#" class="downloadPKS">Download Template Perjanjian Kerjasama</a>
-        </div>
+        </div> -->
     </div>
     <div class="mt-2 mb-2 row">
         <div class="col">
             <div class="form-check">
             </div>
             <label for="File_Documents">Upload Pengajuan</label>
-            <div id="File_PKS" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-            <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="File_PKS" />
+            <!-- <div id="File_PKS" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+            <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="File_PKS" /> -->
+            @php
+            $id = request()->route('id') ?? null;
+            @endphp
+
+            @include('ui-components.signature-canvas', [
+            'saveUrl' => "/geu/hcga/public/partner-onboarding-preview-pks?id={$id}",
+            'saveDocumentUrl' => "/geu/hcga/public/partner-onboarding-submit-pks?id={$id}"]);
         </div>
     </div>
 </div>

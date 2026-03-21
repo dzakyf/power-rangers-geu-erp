@@ -131,18 +131,19 @@ class OnboardingController extends Controller
         $full_address = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
 
         $doc->setValues([
-            'mou_number' => '',
-            'hub_type' => '',
-            'mitra_fullname' => $partner_name ?? '${contoh}',
+            'partner_name' => $partner_name ?? '${contoh}',
+            'signed_at' => Carbon::Now(),
             'partner_region' => $data->pi_city ?? '${contoh}',
-            'signed_at' => Carbon::now(),
-            'nama' => $data->pic ?? $partner_name,
-            'nik' => $data->ktp,
-            'NIK' => $data->ktp,
-            'full_address' => $full_address,
-            'downpayment' => 0,
+            'ktp' => $data->ktp,
+            'alamat' => $data->pic ?? $partner_name,
+            'pic_name' => $data->pic ?? $partner_name,
+            'npwp' => $data->npwp,
+            'membership_term' => 0,
+            'membership_fee' => 0,
             'payment_phase2' => 0,
-            'repayment' => 0
+            'warehouse_fee' => 0,
+            'inventory_fee' => 0,
+            'namapaket' => 0,
         ]);
 
         $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $body['signature']);
@@ -175,7 +176,7 @@ class OnboardingController extends Controller
         $doc = $this->makePks($b, $id, $path);
 
 
-        $outputPath = storage_path("app/public/mou_$now.docx");
+        $outputPath = storage_path("app/public/pks_$now.docx");
 
         $doc->saveAs($outputPath);
 
@@ -184,21 +185,27 @@ class OnboardingController extends Controller
 
     public function uploadPks(Request $r)
     {
-        $q = $r->query();
         $body = $r->all();
-        $doc = $r->file('file');
+        // $doc = $r->file('file');
+        $path = public_path('pks.docx');
+        $doc = $this->makeMou($body, $body['opportunity_id'], $path);
 
         $path = $this->generatorService->generateFilename();
-        $ext = $r->file('file')->getClientOriginalExtension();
+        $ext = "png";
         $user = $this->userService->getCurrentSessionUserInfo();
 
         $filename = "$path.$ext";
         $desc = "Upload pks";
-        $topic = "renewal";
+        $topic = "pks";
         $mapTo = $user->id;
-        $doc->move(public_path('filevendor/2026/02'));
-        $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
+        $year = Carbon::now()->year;
+        $month = Carbon::now()->format('m');
+        $now = Carbon::now()->format('YmdHisv');
+        $path = "filevendor/$year/$month/pks_$now.docx";
+        $doc->saveAs(public_path("$path"));
+
+        $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
         return response()->json(['message' => 'success']);
     }
