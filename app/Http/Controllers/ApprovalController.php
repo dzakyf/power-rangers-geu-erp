@@ -29,6 +29,14 @@ class ApprovalController extends Controller
         return view('approval.index');
     }
 
+    public function indexTransferMembershipApproval(){
+        return view('approval.transfer-membership-index');
+   }
+
+    public function createTransferMembershipApproval(){
+        return view('approval.transfer-membership-create');
+    }
+
     public function indexProfitSharing()
     {
         return view('approval.profit-sharing-index');
@@ -37,6 +45,7 @@ class ApprovalController extends Controller
     public function createProfitSharingApplication()
     {
         return view('approval.profit-sharing-create');
+
     }
 
     public function detail(Request $request)
@@ -219,6 +228,10 @@ class ApprovalController extends Controller
         ]);
 
         return "submitted";
+    }
+
+    public function processTransferMembershipToNextProgress(Request $r){
+        return;
     }
 
     public function processOnboardingToNextProgress(Request $r)

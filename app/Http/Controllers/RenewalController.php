@@ -26,6 +26,22 @@ class RenewalController extends Controller
         $this->uploaderService = $up;
     }
 
+    public function indexTransferMembership(){
+
+    }
+
+    public function getTransferMembershipData(){
+
+    }
+
+    public function submitTransferMembershipApplication(){}
+
+    public function createTransferMembershipApplication(){
+        return view('partner.renewal.transfer-membership-create-application');
+    }
+
+
+
     public function indexRenewal()
     {
         return view('renewal.renewal');
