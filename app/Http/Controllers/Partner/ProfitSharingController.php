@@ -596,4 +596,104 @@ class ProfitSharingController extends Controller
 
         return response()->download($outputPath)->deleteFileAfterSend(true);
     }
+
+    public function makeProfitSharingApplication($b, $templatePath){
+        $doc = new TemplateProcessor($templatePath);
+
+        $session = $this->userService->getCurrentSessionUserInfo();
+        $userId = $b['user_id'] ?? $session->id;
+        $partner = $this->userService->getMitraById($userId);
+
+
+        $nominal = 0;
+        $location = $partner->City;
+        $date = Carbon::now()->day;
+        $month = Carbon::now()->translatedFormat('F');
+        $year = Carbon::now()->year;
+        $bankName = $partner->Bank_Name;
+        $accountName = $partner->Bank_Account_Name;
+        $accountNo = $partner->Bank_Account_No;
+        $mitraFullname = $partner->Name;
+        $referenceNo = "000/RS/PFS/APL/{$month}/{$year}";
+
+        $doc->setValues([
+            'reference_no' => $referenceNo,
+            'location' => $location,
+            'date' => $date,
+            'month' => $month,
+            'year' => $year,
+            'nominal' => $nominal,
+            'bank_name' => $bankName,
+            'account_name' => $accountName,
+            'account_no' => $accountNo,
+            'mitra_fullname' => $mitraFullname
+        ]);
+
+        $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $b['signature']);
+        $imageData = base64_decode($base64Image);
+
+        $tempImage = tempnam(sys_get_temp_dir(), 'img') . '.png';
+        file_put_contents($tempImage, $imageData);
+
+        $doc->setImageValue('mitra_signature', [
+            'path' => $tempImage,
+            'height' => 100,
+            'ratio' => false
+        ]);
+
+        unlink($tempImage);
+
+        return $doc;
+    }
+
+    public function previewProfitSharingApplication(Request $r){
+        $id = $r->query('id');
+        $b = $r->all();
+        $path = public_path('template-pengajuan-profit-sharing.docx');
+
+        if (!file_exists($path)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        $now = Carbon::now()->format('YmdHisv');
+        $doc = $this->makeProfitSharingApplication($b, $path);
+
+
+        $outputPath = storage_path("app/public/royalti-application-_$now.docx");
+
+        $doc->saveAs($outputPath);
+
+        return response()->download($outputPath)->deleteFileAfterSend(true);
+    }
+
+    public function finalizeProfitSharingApplication(Request $r){
+        $body = $r->all();
+        // $doc = $r->file('file');
+        $path = public_path('template-pengajuan-profit-sharing.docx');
+
+        if (!file_exists($path)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        $doc = $this->makeProfitSharingApplication($body, $path);
+
+        $path = $this->generatorService->generateFilename();
+        $ext = "png";
+        $user = $this->userService->getCurrentSessionUserInfo();
+
+        $filename = "$path.$ext";
+        $desc = "Upload pengajuan royalti";
+        $topic = "profit-sharing";
+        $mapTo = $user->id;
+
+        $year = Carbon::now()->year;
+        $month = Carbon::now()->format('m');
+        $now = Carbon::now()->format('YmdHisv');
+        $path = "filevendor/$year/$month/royalti-application-$now.docx";
+        $doc->saveAs(public_path("$path"));
+
+        $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
+
+        return response()->json(['message' => 'success']);
+    }
 }

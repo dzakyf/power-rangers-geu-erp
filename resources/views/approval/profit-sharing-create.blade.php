@@ -36,44 +36,23 @@
             </select>
         </div> -->
         <div class="form-group">
-            <label for="File_Documents">Upload Pengajuan</label>
-            <div id="File_Documents" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-            <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="File_Document" />
+            <label for="File_Documents">Upload Tanda Tangan Pengajuan</label>
+            {{-- <div id="File_Documents" class="with-header" style='height:200px;margin:0px;width:auto;'></div> --}}
+            {{-- <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="File_Document" /> --}}
+
+            @php
+            $id = request()->route('id') ?? null;
+            @endphp
+
+            @include('ui-components.signature-canvas', [
+            'saveUrl' => "/geu/hcga/public/partner-profit-sharing-preview-application?id={$id}",
+            'saveDocumentUrl' => "/geu/hcga/public/partner-profit-sharing-submit-application?id={$id}"]);
         </div>
     </div>
 
 </div>
 
 <script>
-    let type = null;
-    let year = null;
-    let userId = null;
-
-    $("#Type, #Year").on('change', function() {
-        $("#File_Documents").data('type', $("#Type").val());
-        $("#File_Documents").data('year', $("#Year").val());
-    });
-
-    var vault = new dhx.Vault("File_Documents", {
-        uploader: {
-            target: "partner-profit-sharing-submit-application",
-            params: {
-                '_token': '{{ csrf_token() }}',
-            }
-        },
-        filesLimit: 1
-    });
-
-    vault.events.on("BeforeUploadFile", function(file) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('id');
-
-        if (vault && vault.uploader && vault.uploader.config) {
-            vault.uploader.config.params.type = $("#Type").val();
-            vault.uploader.config.params.year = $("#Year").val();
-            vault.uploader.config.params.user_id = userId;
-            vault.uploader.config.params.hub_type = $("#Hub_Type").val();
-        }
-    });
+   
 </script>
 @endsection
