@@ -175,7 +175,6 @@ class OnboardingController extends Controller
         $now = Carbon::now()->format('YmdHisv');
         $doc = $this->makePks($b, $id, $path);
 
-
         $outputPath = storage_path("app/public/pks_$now.docx");
 
         $doc->saveAs($outputPath);

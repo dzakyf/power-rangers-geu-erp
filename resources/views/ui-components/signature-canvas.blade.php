@@ -5,7 +5,7 @@ $canvasId = "signature_canvas_{$instanceId}";
 $formId = "drawing_form_{$instanceId}";
 $finalizeFormId = "finalize_form_{$instanceId}";
 
-$opportunityId = $opportunityId ?? request('id', 43);
+$opportunityId = $opportunityId ?? request('id', "null");
 $saveUrl = $saveUrl ?? "/geu/hcga/public/partner-onboarding-preview-pks?id=" . $opportunityId;
 $saveDocumentUrl = $saveDocumentUrl ?? "/geu/hcga/public/partner-onboarding-submit-pks?id=" . $opportunityId;
 @endphp
@@ -162,7 +162,7 @@ $saveDocumentUrl = $saveDocumentUrl ?? "/geu/hcga/public/partner-onboarding-subm
                 contentType: false,
                 success: function(response) {
                     showStatus('Document generated successfully!', 'success');
-                    $().show()
+                    // $().show()
                 },
                 error: function(xhr) {
                     showStatus('Error generating document', 'error');
