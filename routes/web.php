@@ -4462,7 +4462,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$assetManagementPref-detail-mobil-access", [PartnerAssetManagementController::class, 'indexDetailMobilAccessXml']);
     Route::get("xml-$assetManagementPref-detail-mobil-support", [PartnerAssetManagementController::class, 'indexDetailMobilSupportXml']);
     Route::post("$assetManagementPref-detail-update", [PartnerAssetManagementController::class, 'detailFacilityUpdate']);
-    
+
     $orderEquipmentPref = "partner-order-equipment";
     Route::get("$orderEquipmentPref", [PartnerOrderEquipmentController::class, 'index']);
     Route::get("xml-$orderEquipmentPref", [PartnerOrderEquipmentController::class, 'indexXml']);
@@ -4662,7 +4662,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$profitSharingPref-approval-index", [ApprovalController::class, 'indexProfitSharing']);
     Route::get("$profitSharingPref-approval-create", [ApprovalController::class, 'createProfitSharingApplication']);
     Route::post("$profitSharingPref-approve", [ApprovalController::class, 'processProfitSharingToNextProgress']);
-    Route::post("$profitSharingPref-preview-application",[PartnerProfitSharingController::class, 'previewProfitSharingApplication']);
+    Route::post("$profitSharingPref-preview-application", [PartnerProfitSharingController::class, 'previewProfitSharingApplication']);
     Route::post("$profitSharingPref-submit-application", [PartnerProfitSharingController::class, 'finalizeProfitSharingApplication']);
 
     /**partner route */
@@ -4698,14 +4698,15 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$partnerTerminationPrefs-approval-approve", [ApprovalController::class, 'processTerminationToNextProgress']);
 
     /** transfer kepemilikan kemitraan */
-    $partnerTransferPrefs="partner-transfer-membership";
-    Route::get("$partnerTransferPrefs-index",[RenewalController::class,'indexTransferMembership']);
-    Route::get("$partnerTransferPrefs-create-application",[RenewalController::class,'createTransferMembershipApplication']);
-    Route::get("$partnerTransferPrefs-data",[RenewalController::class,'getTransferMembershipData']);
-    Route::get("$partnerTransferPrefs-preview-application", [RenewalController::class, 'previewTransferMembershipApplication']);
-    Route::post("$partnerTransferPrefs-submit-application",[RenewalController::class, 'submitTransferMembershipApplication']);
-    Route::get("$partnerTransferPrefs-approval-index",[ApprovalController::class, 'indexTransferMembershipApproval']);
-    Route::get("$partnerTransferPrefs-approval-create",[ApprovalController::class, 'createTransferMembershipApproval']);
+    $partnerTransferPrefs = "partner-transfer-membership";
+    Route::get("$partnerTransferPrefs-index", [RenewalController::class, 'indexTransferMembership']);
+    Route::get("$partnerTransferPrefs-create-application", [RenewalController::class, 'createTransferMembershipApplication']);
+    Route::get("$partnerTransferPrefs-data", [RenewalController::class, 'getTransferMembershipData']);
+    Route::post("$partnerTransferPrefs-update-application", [RenewalController::class, 'updateTransferMembershipApplication']);
+    Route::post("$partnerTransferPrefs-preview-application", [RenewalController::class, 'previewTransferMembershipApplication']);
+    Route::post("$partnerTransferPrefs-finalize-application", [RenewalController::class, 'finalizeTransferMembershipApplication']);
+    Route::get("$partnerTransferPrefs-approval-index", [ApprovalController::class, 'indexTransferMembershipApproval']);
+    Route::get("$partnerTransferPrefs-approval-create", [ApprovalController::class, 'createTransferMembershipApproval']);
     Route::get("$partnerTransferPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);
     Route::get("$partnerTransferPrefs-approval-data-log", [ApprovalController::class, 'getApprovalDataLog']);
     Route::get("$partnerTransferPrefs-approval-approve", [ApprovalController::class, 'processTransferMembershipToNextProgress']);
