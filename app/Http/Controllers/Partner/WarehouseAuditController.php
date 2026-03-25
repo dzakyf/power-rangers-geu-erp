@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Partner;
 
 use App\Http\Controllers\Controller;
+use App\MasterAuditCategory;
+use App\MasterAuditParameter;
+use App\MasterAuditTemuan;
 use App\User;
 use App\WarehousePartner;
 use App\WarehousePartnerAudit;
+use App\WarehousePartnerAuditCorretive;
 use App\WarehousePartnerAuditDtl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +25,7 @@ class WarehouseAuditController extends Controller
     {
         $year = date('Y', strtotime($request->date));
         $count = WarehousePartnerAudit::where("tanggal_audit", 'LIKE', $year.'%')->count() + 1;
-        $nomor = 'ADT/GEU/'.$year.'/'.sprintf('%04d', $count);
+        $nomor = 'AUDIT/GEU/'.$year.'/'.sprintf('%04d', $count);
         return response()->json($nomor);
     }
 
@@ -84,8 +88,8 @@ class WarehouseAuditController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($getGudang->warehouse_location) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->auditor) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->jenis_audit) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->kategori_temuan) . "</cell>";
+            echo "<cell>" . htmlspecialchars(ucfirst($Fetch->jenis_audit)) . "</cell>";
+            echo "<cell>" . htmlspecialchars(ucfirst($Fetch->kategori_temuan)) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->ringkasan_temuan) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->created_by]) . "</cell>";
             echo "</row>";
@@ -100,40 +104,72 @@ class WarehouseAuditController extends Controller
         $getGudang = WarehousePartner::get();
         $year = date('Y');
         $count = WarehousePartnerAudit::where("tanggal_audit", 'LIKE', $year.'%')->count() + 1;
-        $nomor = 'ADT/GEU/'.$year.'/'.sprintf('%04d', $count);
-        return view('partner.warehouse.audit-new', compact('getGudang', 'nomor'));
+        $nomor = 'AUDIT/GEU/'.$year.'/'.sprintf('%04d', $count);
+        $temuan = MasterAuditTemuan::all();
+        $users = User::where("Priv_ID", '!=', 'MITRA')->where('username', '!=', 'admin')->get();
+        $category = MasterAuditCategory::where('status', 'normal')->orderBy('urutan', 'asc')->get();
+        $param = [];
+        foreach ($category as $key => $value) {
+            $param[$value->category] = MasterAuditParameter::where("parameter_status", "NORMAL")->where('category', $value->category)->orderBy('parameter_id')->get();
+        }
+
+        $urut = range('A', 'Z');
+
+        return view('partner.warehouse.audit-new', compact('getGudang', 'nomor', 'users', 'temuan', 'param', 'category', 'urut'));
     }
 
     public function newWarehouseAuditSubmit(Request $request)
     {
         DB::beginTransaction();
 
-        $details = [
-            'kondisi1',
-            'kondisi2',
-            'kondisi3',
-            'kondisi4',
-            'kondisi5',
-            'k31',
-            'k32',
-            'k33',
-            'k34',
-            'k35',
-            'warna',
-            'bau',
-            'apd',
-            'tumpahan',
-            'apar',
-            'rambu',
-            'adm1',
-            'adm2',
-            'adm3',
-            'adm4',
+        $details = MasterAuditParameter::get();
+
+        $nilai = [
+            'kondisi' => [
+                'sesuai' => 5,
+                'tidak' => 0
+            ],
+            'k3' =>  [
+                'sesuai' => 5,
+                'tidak' => 0
+            ],
+            'warna' =>  [
+                'baik' => 7.5,
+                'cukup' => 4,
+                'buruk' => 0
+            ],
+            'bau' =>  [
+                'baik' => 7.5,
+                'cukup' => 4,
+                'buruk' => 0
+            ],
+            'apd' =>  [
+                'ada' => 5,
+                'tidak' => 0
+            ],
+            'tumpahan' =>  [
+                'ada' => 5,
+                'tidak' => 0
+            ],
+            'apar' =>  [
+                'ada' => 5,
+                'tidak' => 0
+            ],
+            'rambu' =>  [
+                'ada' => 5,
+                'tidak' => 0
+            ],
+            'adm' =>  [
+                'sesuai' => 3.75,
+                'tidak' => 0
+            ],
         ];
         
         $r = $request->all();
 
         try{
+
+            $totalScoring = 0;
 
             $audit = WarehousePartnerAudit::create([
                 'tanggal_audit'=>$request->tanggal_audit,
@@ -143,27 +179,60 @@ class WarehouseAuditController extends Controller
                 'kode_hub'=>$request->kode_hub,
                 'warehouse_location'=>$request->warehouse_location,
                 'auditor'=>$request->auditor,
-                'ringkasan_temuan'=>$request->ringkasan_temuan,
+                'ringkasan_temuan'=>$request->ringkasan_temuan ?? '',
                 'kategori_temuan'=>$request->kategori_temuan,
                 'foto_lokasi'=>$request->foto_lokasi ?? false,
+                'foto_lokasi_path'=>$request->foto_lokasi_path ?? '',
                 'bukti_pendukung'=>$request->bukti_pendukung ?? false,
+                'bukti_pendukung_path'=>$request->bukti_pendukung_path ?? '',
                 'verifikasi'=>$request->verifikasi,
                 'created_by' => auth()->user()->username,
-                'auditee'=>$request->auditee
+                'auditee'=>$request->auditee,
+                'area_temuan' => $request->detail_temuan,
             ]);
 
             foreach($details as $detail){
+                $pecahList = explode(',', $detail->parameter_list);
+                $pecahScore = explode(',', $detail->parameter_score);
+                $scoreList = [];
+                for ($i=0; $i < count($pecahList); $i++) { 
+                    $scoreList[$pecahList[$i]] = $pecahScore[$i];
+                }
+
+                $scoring = $scoreList[$r[$detail->parameter_id]];
+
+                $totalScoring += $scoring;
 
                 WarehousePartnerAuditDtl::create([
-                    'nomor_audit'=>$request->nomor_audit,
-                    'section'=>$detail,
-                    'parameter'=>$request->$detail,
-                    'value'=>$request->$detail,
-                    'catatan'=>$r[$detail.'_note'] ?? null,
+                    'nomor_audit' => $request->nomor_audit,
+                    'section' => $detail->parameter_id,
+                    'parameter' => $r[$detail->parameter_id],
+                    'value' => $scoring,
+                    'catatan' => $r[$detail->parameter_id.'_note'] ?? null,
                     'created_by' => auth()->user()->username,
                 ]);
 
             }
+
+            WarehousePartnerAudit::where('id', $audit->id)->update([
+                'total_score' => $totalScoring,
+            ]);
+
+            $temuan = explode("||", $request->detail_temuan);
+
+            $masterCorrective = MasterAuditTemuan::where("area", $temuan[0])->where('parameter', $temuan[1])->first();
+
+            WarehousePartnerAuditCorretive::create([
+                'nomor_audit' => $request->nomor_audit,
+                'kategori_temuan' => $request->kategori_temuan,
+                'ringkasan_temuan' => $request->ringkasan_temuan ?? '',
+                'area_temuan' => $temuan[0],
+                'corrective_days' => $masterCorrective->ca_days,
+                'parameter_temuan' => $temuan[1],
+                'status' => 'CREATED',
+                'created_by' => auth()->user()->username,
+                'created_date' => now(),
+            ]);
 
             DB::commit();
 
@@ -185,13 +254,62 @@ class WarehouseAuditController extends Controller
 
     public function detailWarehouseAudit(Request $request)
     {
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+        }
         $getAudit = WarehousePartnerAudit::where("id", $request->Task)->first();
         $getAuditDtl = WarehousePartnerAuditDtl::where("nomor_audit", $getAudit->nomor_audit)->get();
-        return view('partner.warehouse.audit-detail', compact('getAudit', 'getAuditDtl'));
+        $kat = 'critical';
+        if ($getAudit->kategori_temuan == 'ringan') {
+            $kat = 'minor';
+        }else if($getAudit->kategori_temuan == 'sedang') {
+            $kat = 'major';
+        }
+        $masterTemuan = MasterAuditTemuan::where("category", $kat)->get();
+        if (isset($usname[$getAudit->auditor])) {
+            $getAudit->auditor = $usname[$getAudit->auditor];
+        }
+        if (isset($usname[$getAudit->auditee])) {
+            $getAudit->auditee = $usname[$getAudit->auditee];
+        }
+        if (isset($usname[$getAudit->verifikasi])) {
+            $getAudit->verifikasi = $usname[$getAudit->verifikasi];
+        }
+        $category = MasterAuditCategory::where('status', 'normal')->orderBy('urutan', 'asc')->get();
+        $param = [];
+        foreach ($category as $key => $value) {
+            $param[$value->category] = MasterAuditParameter::where("parameter_status", "NORMAL")->where('category', $value->category)->orderBy('parameter_id')->get();
+        }
+
+        $urut = range('A', 'Z');
+        
+        return view('partner.warehouse.audit-detail', compact('getAudit', 'getAuditDtl', 'masterTemuan', 'usname', 'param', 'category', 'urut'));
     }
 
     public function detailWarehouseAuditSubmit()
     {
         //
+    }
+
+    public function getTemuan(Request $request)
+    {
+        $nilai = 'critical';
+        if ($request->nilai == 'ringan') {
+            $nilai = 'minor';
+        }else if($request->nilai == 'sedang') {
+            $nilai = 'major';
+        }
+
+        $res = MasterAuditTemuan::where('category', $nilai)->get();
+
+        $result = [
+            'status' => 'success',
+            'data' => $res,
+        ];
+
+        echo json_encode($result);
+        
     }
 }

@@ -28,7 +28,7 @@ $Saya =  Auth::user()->username;
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">JOURNAL MONITORING</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">AUDIT</div>
 	<div class="card">
 		<div class="card-body">
 			<div id="WarehouseAudit" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>

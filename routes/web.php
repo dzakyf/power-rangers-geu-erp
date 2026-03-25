@@ -9,10 +9,15 @@ use App\Http\Controllers\Partner\ListsController as PartnerListsController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\HelperController;
+use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OperationalController;
+use App\Http\Controllers\Partner\TrainingController as PartnerTrainingController;
 use App\Http\Controllers\Partner\ChatListController as PartnerChatListController;
+use App\Http\Controllers\Partner\MasterSOPController as PartnerMasterSOPController;
+use App\Http\Controllers\Partner\MasterAuditController as PartnerMasterAuditController;
+use App\Http\Controllers\Partner\MasterTrainingController as PartnerMasterTrainingController;
 use App\Http\Controllers\Partner\TicketController as PartnerTicketController;
 use App\Http\Controllers\Partner\AnnouncementController as PartnerAnnouncementController;
 use App\Http\Controllers\Partner\BusinessFacilityController as PartnerBusinessFacilityController;
@@ -29,6 +34,7 @@ use App\Http\Controllers\Partner\WarehouseJournalSummaryController as PartnerWar
 use App\Http\Controllers\Partner\WarehouseAuditController as PartnerWarehouseAuditController;
 use App\Http\Controllers\Partner\ProfitSharingController as PartnerProfitSharingController;
 use App\Http\Controllers\Partner\ValuationController as PartnerValuationController;
+use App\Http\Controllers\Partner\WarehouseCorrectiveController as PartnerWarehouseCorrectiveController;
 use App\Http\Controllers\ProjectionProfitController;
 use App\Http\Controllers\RenewalController;
 use App\Http\Controllers\SurveyController;
@@ -4560,7 +4566,24 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$warehousePref-audit-detail", [PartnerWarehouseAuditController::class, 'detailWarehouseAudit']);
     Route::get("$warehousePref-audit-get-warehouse", [PartnerWarehouseAuditController::class, 'getGudangWarehouseAudit']);
     Route::post("$warehousePref-audit-get-nomor", [PartnerWarehouseAuditController::class, 'getNomorWarehouseAudit']);
+
+    Route::post("$warehousePref-audit-get-temuan", [PartnerWarehouseAuditController::class, 'getTemuan']);
+
+    $correctivePref = "$warehousePref-corrective-action";
+    Route::get($correctivePref, [PartnerWarehouseCorrectiveController::class, 'indexCorrective']);
+    Route::get("xml-$correctivePref", [PartnerWarehouseCorrectiveController::class, 'indexCorrectiveXml']);
+    Route::get("$correctivePref-detail", [PartnerWarehouseCorrectiveController::class, 'detailCorrective']);
+    Route::post("$correctivePref-detail-submit", [PartnerWarehouseCorrectiveController::class, 'detailCorrectiveSubmit']);
     /** */
+
+    /** audit category route */
+    $masterAuditPref = "partner-master-audit";
+    Route::get("$masterAuditPref-category", [PartnerMasterAuditController::class, 'indexMasterAuditCategory']);
+    Route::get("xml-$masterAuditPref-category", [PartnerMasterAuditController::class, 'indexMasterAuditCategoryXml']);
+
+    /** sop compliance route */
+    $sopPref = "partner-master-sop";
+    Route::get($sopPref, [PartnerMasterSOPController::class, 'indexSOP']);
 
     /** chat route */
     $chatPref = "partner-chat";
@@ -4716,7 +4739,6 @@ Route::group(['middleware' => 'auth'], function () {
     $onboardingPrefs = "partner-onboarding";
     Route::get("$onboardingPrefs-approval-data", [OnboardingController::class, 'getOnboardingApprovalData']);
     Route::get("$onboardingPrefs-approval-data-log", [OnboardingController::class, 'getOnboardingApprovalDataLog']);
-
     Route::post("$onboardingPrefs-preview-mou", [OnboardingController::class, 'previewMou']);
     Route::post("$onboardingPrefs-submit-mou", [OnboardingController::class, 'uploadMou']);
     Route::post("$onboardingPrefs-preview-pks", [OnboardingController::class, 'previewPks']);
@@ -4740,4 +4762,65 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$valuationPrefs", [PartnerValuationController::class, 'indexValuationXml']);
     Route::get("$valuationPrefs-detail", [PartnerValuationController::class, 'detailValuation']);
     Route::get("xml-$valuationPrefs-detail", [PartnerValuationController::class, 'detailValuationXml']);
+    Route::get("xml-$valuationPrefs-detail-aggregate", [PartnerValuationController::class, 'detailAggregateValuationXml']);
+
+    /** Training (LMS) */
+    $masterTrainingPref = "partner-master-training";
+    Route::get("$masterTrainingPref", [PartnerMasterTrainingController::class, 'indexTraining']);
+    Route::get("xml-$masterTrainingPref", [PartnerMasterTrainingController::class, 'indexTrainingXml']);
+    Route::post("$masterTrainingPref-update", [PartnerMasterTrainingController::class, 'updateTraining']);
+
+    $trainingPref = "partner-training";
+    Route::get("$trainingPref-certificate", [PartnerTrainingController::class, 'certificateTraining']);
+
+
+    /** Marketing & Branding */
+    $marketingPrefs = "partner-branding";
+    Route::get("$marketingPrefs-marketing-index", [MarketingController::class, 'indexMarketing']);
+    Route::get("$marketingPrefs-marketing-recap", [MarketingController::class, 'getRecapMarketingData']);
+    Route::get("$marketingPrefs-promotion-index", [MarketingController::class, 'indexPromotion']);
+    Route::get("$marketingPrefs-marketing-data", [MarketingController::class, 'getMarketingData']);
+    Route::get("$marketingPrefs-promotion-data", [MarketingController::class, 'getPromotionData']);
+    Route::post("$marketingPrefs-marketing-submit", [MarketingController::class, 'submitMarketing']);
+    Route::post("$marketingPrefs-promotion-submit", [MarketingController::class, 'submitPromotion']);
+    Route::get("$marketingPrefs-monitoring-index", [MarketingController::class, 'indexMonitoring']);
+    Route::get("$marketingPrefs-monitoring-data", [MarketingController::class, 'getMonitoringPromotionData']);
+    Route::get("$marketingPrefs-monitoring-submit", [MarketingController::class, 'submitMonitoring']);
+    Route::post("$marketingPrefs-followup-submit", [MarketingController::class, 'followupPromotion']);
+
+    Route::get("partner-uco-inbound-timbang", function () {
+        return "OK";
+    });
+
+    Route::get("partner-uco-inbound-quality-check", function () {
+        return "OK";
+    });
+
+    Route::get("partner-uco-inbound-category", function () {
+        return "OK";
+    });
+
+    Route::get("partner-uco-outbound-pickup-request", function () {
+        return "OK";
+    });
+
+    Route::get("partner-uco-outbound-pickup-parameter", function () {
+        return "OK";
+    });
+
+    Route::get("partner-uco-outbound-report-inbound-source", function () {
+        return "OK";
+    });
+
+    Route::get("partner-uco-outbound-report-stock-trace", function () {
+        return "OK";
+    });
+
+    Route::get("partner-uco-outbound-report-stock-reconciliation", function () {
+        return "OK";
+    });
+
+    Route::get("partner-uco-outbound-report-stock-opname-adjustment", function () {
+        return "OK";
+    });
 });

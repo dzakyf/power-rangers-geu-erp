@@ -40,6 +40,10 @@
             <div id="File_Documents" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="File_Document" />
         </div>
+
+        @include('partner.valuation.list-detail', [
+        'dataUrl' => "xml-partner-valuation-detail-aggregate"
+        ])
     </div>
 
 </div>
