@@ -1,3 +1,12 @@
+@php
+$queryParams = [
+'partner' => $partner->id ?? "",
+'warehouse' => $warehouse->warehouse_task_id ?? ""
+];
+$dataUrl = $dataUrl ?? "xml-partner-valuation-detail?" . http_build_query($queryParams);
+$encodedUrl = rawurlencode($dataUrl);
+@endphp
+
 <div class="mt-3">
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LIST DETAIL WAREHOUSE</div>
 	<div class="card">
@@ -37,7 +46,7 @@
 	refreshdataDetail();
 
 	function refreshdataDetail() {
-		ValuationListDetail.clearAndLoad('xml-partner-valuation-detail?partner={{$partner->id}}&warehouse={{$warehouse->warehouse_task_id}}');
+		ValuationListDetail.clearAndLoad('{!! $dataUrl !!}');
 
 	}
 </script>

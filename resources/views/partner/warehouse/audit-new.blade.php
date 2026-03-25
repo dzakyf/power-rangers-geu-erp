@@ -3,6 +3,9 @@
         transform: scale(1.5);
     }
 </style>
+@php
+    $indexUrut = 0;
+@endphp
 <div class="card mt-3">
     <div class="card-body" id="ContentPages">
         <div class="audit-title">
@@ -10,7 +13,7 @@
         </div>
 
         <!-- A. INFORMASI UMUM -->
-        <div class="section-title">A. Informasi Umum</div>
+        <div class="section-title">{{ $urut[$indexUrut++] }}. Informasi Umum</div>
 
         <div class="form-group row align-items-center">
             <label class="col-md-3">Tanggal Audit</label>
@@ -65,278 +68,52 @@
         <div class="form-group row align-items-center">
             <label class="col-md-3">Auditor / PIC Inspeksi</label>
             <div class="col-md-6">
-                <input type="text" class="form-control" name="auditor" id="auditor">
+                <select name="auditor" id="auditor" class="form-control">
+                    <option value="">-- Pilih auditor --</option>
+                    @foreach ($users as $item)
+                    <option value="{{ $item->username }}">{{ $item->Name }}</option>
+                    @endforeach
+                </select>
             </div>
         </div>
 
 
         <!-- B -->
-        <div class="section-title">B. Kondisi Umum Warehouse</div>
+        @foreach ($category as $item)
+            <div class="section-title">{{ $urut[$indexUrut++] }}. {{ $item->category_description }}</div>
 
-        <table class="table table-bordered" style="vertical-align: middle;">
-
-        <thead class="thead-light">
-            <tr>
-                <th width="5%">No</th>
-                <th>Parameter</th>
-                <th width="10%">Sesuai</th>
-                <th width="10%">Tidak Sesuai</th>
-                <th width="25%">Catatan</th>
-            </tr>
-        </thead>
-
-        <tbody>
-
-        <tr>
-            <td>1</td>
-            <td>Area bersih & bebas bau menyengat</td>
-            <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="kondisi1" value="sesuai"></td>
-            <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="kondisi1" value="tidak"></td>
-            <td><input class="form-control" name="kondisi1_note" id="kondisi1_note" /></td>
-        </tr>
-
-        <tr>
-            <td>2</td>
-            <td>Tidak ada tumpahan minyak</td>
-            <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="kondisi2" value="sesuai"></td>
-            <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="kondisi2" value="tidak"></td>
-            <td><input class="form-control" name="kondisi2_note" id="kondisi2_note" /></td>
-        </tr>
-
-        <tr>
-            <td>3</td>
-            <td>Kebersihan & kelayakan area operasional</td>
-            <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="kondisi3" value="sesuai"></td>
-            <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="kondisi3" value="tidak"></td>
-            <td><input class="form-control" name="kondisi3_note" id="kondisi3_note" /></td>
-        </tr>
-
-        <tr>
-            <td>4</td>
-            <td>Penerangan & ventilasi memadai</td>
-            <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="kondisi4" value="sesuai"></td>
-            <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="kondisi4" value="tidak"></td>
-            <td><input class="form-control" name="kondisi4_note" id="kondisi4_note" /></td>
-        </tr>
-
-        <tr>
-            <td>5</td>
-            <td>Akses kendaraan operasional aman dan lancar</td>
-            <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="kondisi5" value="sesuai"></td>
-            <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="kondisi5" value="tidak"></td>
-            <td><input class="form-control" name="kondisi5_note" id="kondisi5_note" /></td>
-        </tr>
-
-        </tbody>
-        </table>
-
-
-        <!-- C -->
-        <div class="section-title">C. Penyimpanan & Peralatan K3</div>
-
-        <table class="table table-bordered">
+            <table class="table table-bordered" style="vertical-align: middle;">
 
             <thead class="thead-light">
-            <tr>
-                <th>No</th>
-                <th>Parameter</th>
-                <th>Sesuai</th>
-                <th>Tidak Sesuai</th>
-                <th>Catatan</th>
-            </tr>
+                <tr>
+                    <th width="5%">No</th>
+                    <th>Parameter</th>
+                    @php
+                        $pecah = explode(',', $item->parameter_list)
+                    @endphp
+                    @foreach ($pecah as $isi)
+                    <th width="10%">{{ ucfirst($isi) }}</th>
+                    @endforeach
+                    <th width="25%">Catatan</th>
+                </tr>
             </thead>
 
             <tbody>
 
-            <tr>
-                <td>1</td>
-                <td>Tangki / IBC sesuai standar</td>
-                <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="k31" value="sesuai"></td>
-                <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="k31" value="tidak"></td>
-                <td><input class="form-control" name="k31_note" id="k31_note" /></td>
-            </tr>
-
-            <tr>
-                <td>2</td>
-                <td>Booth</td>
-                <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="k32" value="sesuai"></td>
-                <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="k32" value="tidak"></td>
-                <td><input class="form-control" name="k32_note" id="k32_note" /></td>
-            </tr>
-
-            <tr>
-                <td>3</td>
-                <td>Motor</td>
-                <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="k33" value="sesuai"></td>
-                <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="k33" value="tidak"></td>
-                <td><input class="form-control" name="k33_note" id="k33_note" /></td>
-            </tr>
-
-            <tr>
-                <td>4</td>
-                <td>Mobil</td>
-                <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="k34" value="sesuai"></td>
-                <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="k34" value="tidak"></td>
-                <td><input class="form-control" name="k34_note" id="k34_note" /></td>
-            </tr>
-
-            <tr>
-                <td>5</td>
-                <td>CCTV</td>
-                <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="k35" value="sesuai"></td>
-                <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="k35" value="tidak"></td>
-                <td><input class="form-control" name="k35_note" id="k35_note" /></td>
-            </tr>
+                @foreach ($param[$item->category] as $value)
+                <tr>
+                    <td>{{ $loop->iteration }}</td>
+                    <td>{{ $value->parameter }}</td>
+                    @foreach ($pecah as $isi)
+                    <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="{{ $value->parameter_id }}" value="{{ $isi }}"></td>
+                    @endforeach
+                    <td><input class="form-control" name="{{$value->parameter_id}}_note" autocomplete="false" id="{{$value->parameter_id}}_note" /></td>
+                </tr>
+                @endforeach
 
             </tbody>
-        </table>
-
-
-        <!-- D -->
-        <div class="section-title">D. Kualitas Minyak Jelantah</div>
-
-        <table class="table table-bordered">
-
-        <thead class="thead-light">
-        <tr>
-        <th>No</th>
-        <th>Parameter</th>
-        <th>Baik</th>
-        <th>Cukup</th>
-        <th>Buruk</th>
-        <th>Catatan</th>
-        </tr>
-        </thead>
-
-        <tbody>
-
-        <tr>
-        <td>1</td>
-        <td>Warna</td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="warna" value="baik"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="warna" value="cukup"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="warna" value="buruk"></td>
-        <td><input class="form-control" name="warna_note" id="warna_note" /></td>
-        </tr>
-
-        <tr>
-        <td>2</td>
-        <td>Bau</td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="bau" value="baik"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="bau" value="cukup"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="bau" value="buruk"></td>
-        <td><input class="form-control" name="bau_note" id="bau_note" /></td>
-        </tr>
-
-        </tbody>
-        </table>
-
-
-        <!-- E -->
-        <div class="section-title">E. Peralatan & Keamanan</div>
-
-        <table class="table table-bordered">
-
-        <thead class="thead-light">
-        <tr>
-        <th>No</th>
-        <th>Parameter</th>
-        <th>Ada</th>
-        <th>Tidak Ada</th>
-        <th>Catatan</th>
-        </tr>
-        </thead>
-
-        <tbody>
-
-        <tr>
-        <td>1</td>
-        <td>APD (sarung tangan, sepatu, dll)</td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="apd" value="ada"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="apd" value="tidak"></td>
-        <td><input class="form-control" name="apd_note" id="apd_note" /></td>
-        </tr>
-
-        <tr>
-        <td>2</td>
-        <td>Alat penanganan tumpahan</td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="tumpahan" value="ada"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="tumpahan" ></td>
-        <td><input class="form-control" name="tumpahan_note" id="tumpahan_note" /></td>
-        </tr>
-
-        <tr>
-        <td>3</td>
-        <td>Alat pemadam api ringan (APAR)</td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="apar" value="ada"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="apar" value="tidak"></td>
-        <td><input class="form-control" name="apar_note" id="apar_note" /></td>
-        </tr>
-
-        <tr>
-        <td>4</td>
-        <td>Rambu keselamatan</td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="rambu" value="ada"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="rambu" value="tidak"></td>
-        <td><input class="form-control" name="rambu_note" id="rambu_note" /></td>
-        </tr>
-
-        </tbody>
-        </table>
-
-
-        <!-- F -->
-        <div class="section-title">F. Administrasi & Operasional</div>
-
-        <table class="table table-bordered">
-
-        <thead class="thead-light">
-        <tr>
-        <th>No</th>
-        <th>Parameter</th>
-        <th>Sesuai</th>
-        <th>Tidak Sesuai</th>
-        <th>Catatan</th>
-        </tr>
-        </thead>
-
-        <tbody>
-
-        <tr>
-        <td>1</td>
-        <td>Kesesuaian pencatatan stok utama dengan data di ERP</td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="adm1" value="sesuai"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="adm1" value="tidak"></td>
-        <td><input class="form-control" name="adm1_note" id="adm1_note" /></td>
-        </tr>
-
-        <tr>
-        <td>2</td>
-        <td>Jadwal pickup dipatuhi</td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="adm2" value="sesuai"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="adm2" value="tidak"></td>
-        <td><input class="form-control" name="adm2_note" id="adm2_note" /></td>
-        </tr>
-
-        <tr>
-        <td>3</td>
-        <td>Kondisi booth / mobil tertata dan layak operasional</td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="adm3" value="sesuai"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="adm3" value="tidak"></td>
-        <td><input class="form-control" name="adm3_note" id="adm3_note" /></td>
-        </tr>
-
-        <tr>
-        <td>4</td>
-        <td>Pencatatan aktivitas pengumpulan dilakukan secara rutin</td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="adm4" value="sesuai"></td>
-        <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="adm4" value="tidak"></td>
-        <td><input class="form-control" name="adm4_note" id="adm4_note" /></td>
-        </tr>
-
-        </tbody>
-        </table>
-
+            </table>
+        @endforeach
 
         <!-- G -->
         <div class="section-title">G. Temuan Audit</div>
@@ -359,6 +136,13 @@
         <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan3" value="berat">
         <label class="form-check-label" for="kategori_temuan3">Berat</label>
         </div>
+        
+        <div id="divTemuan" class="my-3" style="display:none;">
+            <label for="">Detail temuan</label> <br>
+            <select name="detail_temuan" id="detail_temuan" class="form-control w-75">
+                <option value=""> -- Pilih Temuan --</option>
+            </select>
+        </div>
 
 
         <!-- H -->
@@ -376,6 +160,13 @@
         <label class="form-check-label" for="foto2">Tidak</label>
         </div>
 
+        <div id="divFoto" class="my-3" style="display:none;">
+            <div class="col-3">
+				<div id="foto_lokasi_paths" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+				<input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="foto_lokasi_path" />
+            </div>
+        </div>
+
         <br><br>
 
         <label>Bukti Pendukung</label><br>
@@ -390,25 +181,42 @@
         <label class="form-check-label" for="bukti2">Tidak</label>
         </div>
 
+        <div id="divBukti" class="my-3" style="display:none;">
+            <div class="col-3">
+				<div id="bukti_pendukung_paths" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+				<input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="bukti_pendukung_path" />
+            </div>
+        </div>
+
 
         <!-- I -->
         <div class="section-title">I. Tanda Tangan</div>
 
         <div class="row">
 
-        <div class="col-md-4">
+        {{-- <div class="col-md-4">
         <label>Auditor</label>
         <input class="form-control">
-        </div>
+        </div> --}}
 
         <div class="col-md-4">
         <label>Verifikasi</label>
-        <input class="form-control" name="verifikasi" id="verifikasi">
+            <select name="verifikasi" id="verifikasi" class="form-control">
+                <option value="">-- Pilih verifikator --</option>
+                @foreach ($users as $item)
+                <option value="{{ $item->username }}">{{ $item->Name }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div class="col-md-4">
         <label>Auditee</label>
-        <input class="form-control" name="auditee" id="auditee">
+            <select name="auditee" id="auditee" class="form-control">
+                <option value="">-- Pilih auditee --</option>
+                @foreach ($users as $item)
+                <option value="{{ $item->username }}">{{ $item->Name }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div class="col-12 mt-3">
@@ -422,6 +230,82 @@
 <script src="{{ asset('jquery.coolautosuggest.js') }}"></script>
 <script src="{{ asset('jquery.coolfieldset.js') }}"></script>
 <script>
+	var vaultFoto_lokasi_path = new dhx.Vault("foto_lokasi_paths", {
+		uploader: {
+			target: "upload-receiveinvoice.php"
+		},
+		filesLimit: 1
+
+	});
+
+	vaultFoto_lokasi_path.events.on("uploadComplete", function(obj) {
+		console.log("upload complete")
+		$("#foto_lokasi_path").val(obj[0].name);
+	});
+
+	vaultFoto_lokasi_path.events.on("uploadBegin", function(obj) {
+		console.log("upload begin")
+		$("#foto_lokasi_path").val("");
+
+	});
+	vaultFoto_lokasi_path.events.on("beforeAdd", function(fileItem) {
+		if (vaultFoto_lokasi_path.data.getLength() >= 1) {
+			alert('Only can upload 1 file per checkpoint.');
+			return false;
+		}
+	});
+
+
+	vaultFoto_lokasi_path.events.on("beforeAdd", function(item) {
+		var extension = item.file.name.split(".").pop().toLowerCase();
+
+		var allowed = ["pdf","jpg","jpeg","png","gif","webp"];
+
+		var predicate = allowed.includes(extension);
+
+		if (!predicate) {
+			dhtmlx.alert("Hanya boleh mengupload file PDF atau gambar (JPG, PNG, GIF, WEBP)");
+		}
+		return predicate;
+	});
+	var vaultBukti_pendukung_path = new dhx.Vault("bukti_pendukung_paths", {
+		uploader: {
+			target: "upload-receiveinvoice.php"
+		},
+		filesLimit: 1
+
+	});
+
+	vaultBukti_pendukung_path.events.on("uploadComplete", function(obj) {
+		console.log("upload complete")
+		$("#bukti_pendukung_path").val(obj[0].name);
+	});
+
+	vaultBukti_pendukung_path.events.on("uploadBegin", function(obj) {
+		console.log("upload begin")
+		$("#bukti_pendukung_path").val("");
+
+	});
+	vaultBukti_pendukung_path.events.on("beforeAdd", function(fileItem) {
+		if (vaultBukti_pendukung_path.data.getLength() >= 1) {
+			alert('Only can upload 1 file per checkpoint.');
+			return false;
+		}
+	});
+
+
+	vaultBukti_pendukung_path.events.on("beforeAdd", function(item) {
+		var extension = item.file.name.split(".").pop().toLowerCase();
+
+		var allowed = ["pdf","jpg","jpeg","png","gif","webp"];
+
+		var predicate = allowed.includes(extension);
+
+		if (!predicate) {
+			dhtmlx.alert("Hanya boleh mengupload file PDF atau gambar (JPG, PNG, GIF, WEBP)");
+		}
+		return predicate;
+	});
 	var myCalendar;
 	myCalendar = new dhtmlXCalendarObject(["tanggal_audit"]);
 	myCalendar.setDateFormat("%Y-%m-%d");
@@ -457,6 +341,47 @@
 		  }
 		}
 	});
+
+    $('input[name="kategori_temuan"]').on('change', function() {
+        let nilai = $(this).val()
+        $.ajax({
+            url:"partner-warehouse-audit-get-temuan",
+            type:"POST",
+            data:{_token: "{{ csrf_token() }}", nilai},
+            success:function(res) {
+                res = JSON.parse(res),
+                $('#detail_temuan').find('option').not(':first').remove();
+                if (res.data.length > 0) {
+                    $('#divTemuan').show();
+                    for (let i = 0; i < res.data.length; i++) {
+                        const ele = res.data[i];
+                        $('#detail_temuan').append($("<option />", {
+                            text: ele.area + " - " + ele.parameter,
+                            value : ele.area + "||" + ele.parameter,
+                        }));
+                    }
+                }
+            }
+        })
+    })
+
+    $('input[name="foto"]').on('change', function() {
+        let nilai = $(this).val()
+        if (nilai == 'ada') {
+            $('#divFoto').show();
+        }else {
+            $('#divFoto').hide();
+        }
+    });
+
+    $('input[name="bukti"]').on('change', function() {
+        let nilai = $(this).val()
+        if (nilai == 'ada') {
+            $('#divBukti').show();
+        }else {
+            $('#divBukti').hide();
+        }
+    });
     
 	$('#SubmitCustDetail').click(function() {
 
@@ -475,6 +400,7 @@
 					// var cariAWB = data.split(":");
 					alert('Data Audit Submitted!');
                     refreshdata();
+                    $('#divlistOpportunity').html('');
 				} else {
 					alert('Audit Failed to Submit!');
 				}

@@ -66,6 +66,10 @@
             <button type="button" class="btn btn-primary" id="previewBtn">Preview Document</button>
             <button type="button" class="btn btn-primary" id="submitBtn" style="display:none;">Finalisasi Document</button>
         </form>
+
+        @include('partner.valuation.list-detail', [
+        'dataUrl' => "xml-partner-valuation-detail-aggregate"
+        ])
     </div>
 
 </div>
