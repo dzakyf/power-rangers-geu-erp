@@ -16,6 +16,7 @@ use App\Http\Controllers\OperationalController;
 use App\Http\Controllers\Partner\TrainingController as PartnerTrainingController;
 use App\Http\Controllers\Partner\ChatListController as PartnerChatListController;
 use App\Http\Controllers\Partner\MasterSOPController as PartnerMasterSOPController;
+use App\Http\Controllers\Partner\MasterMaterialController as PartnerMasterMaterialController;
 use App\Http\Controllers\Partner\MasterAuditController as PartnerMasterAuditController;
 use App\Http\Controllers\Partner\MasterTrainingController as PartnerMasterTrainingController;
 use App\Http\Controllers\Partner\TicketController as PartnerTicketController;
@@ -4688,12 +4689,14 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$profitSharingPref-preview-application", [PartnerProfitSharingController::class, 'previewProfitSharingApplication']);
     Route::post("$profitSharingPref-submit-application", [PartnerProfitSharingController::class, 'finalizeProfitSharingApplication']);
 
-    /**partner route */
+    /**master data route */
     $partner = "partner";
-    Route::get("test-canvas", function () {
-        return view('ui-components.signature-canvas');
-    });
+    // Route::get("test-canvas", function () {
+    //     return view('ui-components.signature-canvas');
+    // });
     Route::get("$partner-data-active-mitra", [UserController::class, 'getPartner']);
+    Route::get("$partner-data-sales", [UserController::class, 'getSalesperson']);
+
 
     /** renewal  */
     $partnerRenewalPrefs = "partner-renewal";
@@ -4770,23 +4773,68 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$masterTrainingPref", [PartnerMasterTrainingController::class, 'indexTrainingXml']);
     Route::post("$masterTrainingPref-update", [PartnerMasterTrainingController::class, 'updateTraining']);
 
+    $masterMaterialPref = "partner-master-material";
+    Route::get("$masterMaterialPref", [PartnerMasterMaterialController::class, 'indexMaterial']);
+    Route::get("xml-$masterMaterialPref", [PartnerMasterMaterialController::class, 'indexMaterialXml']);
+    Route::get("$masterMaterialPref-new", [PartnerMasterMaterialController::class, 'newMaterial']);
+    Route::get("xml-$masterMaterialPref-user", [PartnerMasterMaterialController::class, 'userMaterialXml']);
+    Route::post("$masterMaterialPref-new-submit", [PartnerMasterMaterialController::class, 'newMaterialSubmit']);
+    Route::get("$masterMaterialPref-detail", [PartnerMasterMaterialController::class, 'detailMaterial']);
+    Route::post("$masterMaterialPref-detail-submit", [PartnerMasterMaterialController::class, 'detailMaterialSubmit']);
+
     $trainingPref = "partner-training";
+    Route::get("$trainingPref", [PartnerTrainingController::class, 'indexTraining']);
+    Route::get("xml-$trainingPref", [PartnerTrainingController::class, 'indexTrainingXml']);
+    Route::get("$trainingPref-new", [PartnerTrainingController::class, 'newTraining']);
+    Route::post("$trainingPref-new-submit", [PartnerTrainingController::class, 'newTraining']);
+    Route::get("$trainingPref-detail", [PartnerTrainingController::class, 'detailTraining']);
+    Route::get("$trainingPref-approval", [PartnerTrainingController::class, 'approvalTraining']);
+    Route::post("$trainingPref-get-speaker", [PartnerTrainingController::class, 'getSpeaker']);
+    Route::get("xml-$trainingPref-approval", [PartnerTrainingController::class, 'approvalTrainingXml']);
+    Route::get("$trainingPref-approval-detail", [PartnerTrainingController::class, 'approvalTrainingDetail']);
+    Route::post("$trainingPref-approval-detail-submit", [PartnerTrainingController::class, 'approvalTrainingDetailSubmit']);
+    Route::get("$trainingPref-list", [PartnerTrainingController::class, 'listTraining']);
+    Route::get("xml-$trainingPref-list", [PartnerTrainingController::class, 'listTrainingXml']);
+    Route::get("$trainingPref-list-detail", [PartnerTrainingController::class, 'listTrainingDetail']);
+    Route::get("xml-$trainingPref-list-detail-participant", [PartnerTrainingController::class, 'listTrainingDetailParticipantXml']);
+    Route::get("xml-$trainingPref-list-detail-material", [PartnerTrainingController::class, 'listTrainingDetailMaterialXml']);
+    Route::get("$trainingPref-attend", [PartnerTrainingController::class, 'attendTraining']);
+    Route::get("xml-$trainingPref-attend", [PartnerTrainingController::class, 'attendTrainingXml']);
+    Route::get("$trainingPref-attend-presence", [PartnerTrainingController::class, 'attendTrainingPrecense']);
+    Route::get("$trainingPref-assignment", [PartnerTrainingController::class, 'assignmentTraining']);
+    Route::get("xml-$trainingPref-assignment", [PartnerTrainingController::class, 'assignmentTrainingXml']);
+    Route::get("$trainingPref-create", [PartnerTrainingController::class, 'createTraining']);
+    Route::post("$trainingPref-create-submit", [PartnerTrainingController::class, 'createTrainingSubmit']);
+    Route::get("$trainingPref-application", [PartnerTrainingController::class, 'applicationTraining']);
+    Route::post("$trainingPref-application-submit", [PartnerTrainingController::class, 'applicationTrainingSubmit']);
     Route::get("$trainingPref-certificate", [PartnerTrainingController::class, 'certificateTraining']);
+    Route::get("xml-$trainingPref-certificate", [PartnerTrainingController::class, 'certificateTrainingXml']);
+    Route::get("$trainingPref-certificate-print", [PartnerTrainingController::class, 'certificateTrainingPrint']);
 
 
     /** Marketing & Branding */
     $marketingPrefs = "partner-branding";
     Route::get("$marketingPrefs-marketing-index", [MarketingController::class, 'indexMarketing']);
-    Route::get("$marketingPrefs-marketing-recap", [MarketingController::class, 'getRecapMarketingData']);
+    Route::get("$marketingPrefs-marketing-recap-data", [MarketingController::class, 'getRecapMarketingData']);
+    Route::get("$marketingPrefs-marketing-recap-index", [MarketingController::class, 'indexMarketingRecap']);
+
     Route::get("$marketingPrefs-promotion-index", [MarketingController::class, 'indexPromotion']);
     Route::get("$marketingPrefs-marketing-data", [MarketingController::class, 'getMarketingData']);
     Route::get("$marketingPrefs-promotion-data", [MarketingController::class, 'getPromotionData']);
+    Route::get("$marketingPrefs-marketing-create", [MarketingController::class, 'createMarketingData']);
     Route::post("$marketingPrefs-marketing-submit", [MarketingController::class, 'submitMarketing']);
+    Route::get("$marketingPrefs-promotion-create", [MarketingController::class, 'createPromotionData']);
     Route::post("$marketingPrefs-promotion-submit", [MarketingController::class, 'submitPromotion']);
     Route::get("$marketingPrefs-monitoring-index", [MarketingController::class, 'indexMonitoring']);
+    Route::get("$marketingPrefs-monitoring-create", [MarketingController::class, 'createMonitoringData']);
     Route::get("$marketingPrefs-monitoring-data", [MarketingController::class, 'getMonitoringPromotionData']);
-    Route::get("$marketingPrefs-monitoring-submit", [MarketingController::class, 'submitMonitoring']);
+    Route::post("$marketingPrefs-monitoring-submit", [MarketingController::class, 'submitMonitoring']);
     Route::post("$marketingPrefs-followup-submit", [MarketingController::class, 'followupPromotion']);
+    Route::get("$marketingPrefs-approval-index", [ApprovalController::class, 'indexMarketingApproval']);
+    Route::get("$marketingPrefs-approval-index", [ApprovalController::class, 'indexMarketingApproval']);
+    Route::post("$marketingPrefs-approval-submit", [ApprovalController::class, 'processPromotionApproval']);
+    Route::get("partner-approval-data", [ApprovalController::class, 'getApprovalData']);
+
 
     Route::get("partner-uco-inbound-timbang", function () {
         return "OK";
