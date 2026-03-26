@@ -29,11 +29,13 @@ class ApprovalController extends Controller
         return view('approval.index');
     }
 
-    public function indexTransferMembershipApproval(){
+    public function indexTransferMembershipApproval()
+    {
         return view('approval.transfer-membership-index');
-   }
+    }
 
-    public function createTransferMembershipApproval(){
+    public function createTransferMembershipApproval()
+    {
         return view('approval.transfer-membership-create');
     }
 
@@ -42,10 +44,14 @@ class ApprovalController extends Controller
         return view('approval.profit-sharing-index');
     }
 
+    public function indexMarketingApproval()
+    {
+        return view('partner.branding.approval-index');
+    }
+
     public function createProfitSharingApplication()
     {
         return view('approval.profit-sharing-create');
-
     }
 
     public function detail(Request $request)
@@ -94,7 +100,6 @@ class ApprovalController extends Controller
             'inventory_fee' => 0,
             'namapaket' => 0,
         ]);
-
 
         if (!file_exists($path)) {
             return response()->json(['error' => 'File not found'], 404);
@@ -230,7 +235,8 @@ class ApprovalController extends Controller
         return "submitted";
     }
 
-    public function processTransferMembershipToNextProgress(Request $r){
+    public function processTransferMembershipToNextProgress(Request $r)
+    {
         return;
     }
 
@@ -492,38 +498,66 @@ class ApprovalController extends Controller
         $apprId = $q['id'] ?? "%";
 
         $d = DB::table('approval_request as appr')
-            ->select('appr.*', 'opp.*', 'usr.Name', 'lv.Approver_Position')
-            ->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id')
+            ->select('appr.*',  'usr.Name', 'lv.Approver_Position')
             ->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')
-            ->join('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID');
+            ->leftJoin('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID');
 
-        if (in_array($session->Position, ["SALES", "MANAGER", "BOD", "HEAD", "CFO"])) {
+
+        // dd($d->get());
+
+        if ($type == "ONBOARDING") {
+            $d = $d->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id');
+        }
+
+        if ($type == "BRANDING_PROMOTION") {
+            $d = $d->join('branding_promotion as bp', 'appr.Map_To', '=', 'bp.ID');
+        }
+
+        if ($type == "PROFIT_SHARING") {
+            $d = $d->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id');
+        }
+
+        if ($type == "RENEWAL") {
+        }
+
+        if ($type == "TERMINATION") {
+        }
+
+
+        if ($type == "SURVEY") {
+            $d = $d->join('survey_location as sl', 'appr.Map_To', '=', 'opp.sl');
+        }
+
+
+        if (in_array($session->Position, ["SALES", "MANAGER", "DIRECTOR", "HEAD", "CFO"])) {
             $d->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Status', '=', 'NEED_APPROVAL')->where('lv.Approver_Position', '=', $session->Position);
             // MITRA
         } else if (in_array($session->Position, ["MITRA"])) {
             $d->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Requester_Id', 'LIKE', $user_id);
         } else {
-            $d->where('appr.Request_Type', 'LIKE',  $type)->orWhere(function ($query) use ($user_id, $apprId) {
-                $query->where('appr.Requester_Id', 'LIKE', $user_id)
-                    ->orWhere('appr.Opportunity_Partner_Id', 'LIKE', $apprId);
-            });
+            $d->where('appr.Request_Type', 'LIKE',  $type)
+                ->where(function ($query) use ($user_id, $apprId) {
+                    $query->where('appr.Requester_Id', 'LIKE', $user_id)
+                        ->orWhere('appr.Opportunity_Partner_Id', 'LIKE', $apprId);
+                });
         }
 
         $d = $d->get();
+        // dd($d);
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
         $counter = 1;
         foreach ($d as $p) {
             $row = $xml->addChild('row');
-            $row->addAttribute('ID', $p->ID);
-            $row->addAttribute('Oppt_Id', $p->id);
+            $row->addAttribute('id', $p->ID);
+            // $row->addAttribute('Oppt_Id', $p->id);
+            // $row->addAttribute('Mapper_Id', $p->Map_To);
             $row->addChild('cell', $counter);
             $row->addChild('cell', $p->Name);
             $row->addChild('cell', $p->Request_Type);
             $row->addChild('cell', $p->Status);
-            $row->addChild('cell', htmlspecialchars($p->Description));
-            $row->addChild('cell', $p->Name);
+            $row->addChild('cell', $p->Submitted_At);
             $counter++;
         }
 
@@ -537,7 +571,7 @@ class ApprovalController extends Controller
         $q = $r->query();
         $apprId = $q['appr_id'] ?? "%";
         $type = $q['type'] ?? "%";
-        $userId = $q['user_id'] ?? "";
+        $userId = $q['user_id'] ?? "%";
 
         $d = DB::table('approval_request as request')
             ->select(
@@ -552,7 +586,7 @@ class ApprovalController extends Controller
                 'approver.Name as Approved_By'
             )
             ->join('approval_log as log', 'request.ID', '=', 'log.Request_Id')
-            ->join('approval_level as level', 'log.Level_Id', '=', 'level.ID')
+            ->leftJoin('approval_level as level', 'log.Level_Id', '=', 'level.ID')
             ->join('users as requester', 'requester.id', '=', 'request.Requester_Id')
             ->leftJoin('users as approver', 'approver.id', '=', 'log.Approver_Id')
             ->where('log.Request_Id', 'LIKE', $apprId)
@@ -577,5 +611,59 @@ class ApprovalController extends Controller
         return response()->make($xml->asXML(), 200, [
             'Content-Type' => 'application/xml'
         ]);
+    }
+
+    public function processPromotionApproval(Request $r)
+    {
+        try {
+            $b = $r->all();
+            $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
+
+            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'BRANDING_PROMOTION')->first();
+
+            $nextLevel = null;
+
+            if ($level->Next_Level_Id) {
+                $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'BRANDING_PROMOTION')->first();
+            }
+
+            $session = $this->userService->getCurrentSessionUserInfo();
+
+            $result = DB::transaction(function () use ($b, $req, $session, $level, $nextLevel) {
+                $logId = DB::table('approval_log')->insertGetId([
+                    'Approver_Id' => $session->id,
+                    'Notes' => "",
+                    'Action' =>  $b['action'],
+                    'Level_Number' => $level->Level_Number,
+                    'Next_Level' => $b['action'] == "APPROVED" ? $level->Level_Number + 1 : $level->Level_Number,
+                    'Level_Id' => $level->ID,
+                    'Next_Level_Id' => $nextLevel->ID ?? null,
+                    'Request_Id' => $req->ID,
+                ]);
+
+                $updated = DB::table('approval_request')
+                    ->where('ID', '=', $req->ID)
+                    ->update([
+                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
+                        'Description' => "Berhasil menuju tahap selanjutnya",
+                        'Current_Level' => $req->Current_Level + 1,
+                        'Level_Id' => $nextLevel->ID ?? null,
+                        'Request_Type' => $req->Request_Type,
+                    ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'success',
+                'data' => $result
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction failed: ' . $e->getMessage()
+            ], 500);
+        }
+
+        return response()->json(['message' => 'success']);
     }
 }

@@ -57,7 +57,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	MasterTraining.setInitWidths("60,100,200,100,100,100,100");
 	MasterTraining.setColAlign("center,center,left,center,center,center");
 	MasterTraining.setColSorting("int,str,int,str,str,str");
-	MasterTraining.setColTypes("ron,ed,ed,ed,ed,ed");
+	MasterTraining.setColTypes("ron,ed,ed,ed,ed,ro");
 	MasterTraining.enableSmartRendering(true, 150);
     MasterTraining.setDateFormat("%Y-%m-%d");
 	PMasterTraining = new dataProcessor("partner-master-training-update");

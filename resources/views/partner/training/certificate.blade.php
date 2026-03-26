@@ -1,51 +1,77 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Certificate</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif&family=Pinyon+Script&display=swap" rel="stylesheet">
-    <style>
-        .pinyon-script-regular {
-            font-family: "Pinyon Script", cursive;
-            font-weight: 400;
-            font-style: normal;
-        }
-        .noto-serif {
-            font-family: "Noto Serif", serif;
-            font-weight: 400;
-            font-style: normal;
-        }
+<?php
 
-    </style>
-</head>
-<body>
-    <div style="position: relative">
-        <img src="/geu/hcga/public/assets/images/SERTIFIKAT.png" style="width: 29.2cm" alt="Sertifikat">
-        <div style="position: absolute;left: calc(13.5cm - 0.333333 * 12 * 1cm);top:8cm;font-size:52pt;color:#a7852c" class="pinyon-script-regular">Dzaky Fauzan</div>
-        <div style="position: absolute;left: calc(15.5cm - 0.333333 * 11 * 1cm);top:10.2cm;font-size:21pt;color:#a7852c" class="noto-serif">PARTICIPANT</div>
-        <div style="position: absolute;left: calc(9.5cm - 0.333333 * 11 * 1cm);top:11.5cm;font-size:10.3pt;color:#554415;max-width:17cm;text-align:center" class="noto-serif">Has completed the “Operational SOP” training held on August 10-16, 2026. This training covered sourcing of UCO, logistic, and operational Hub GEU Express.</div>
-    </div>
-</body>
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Builder;
+
+$LSP = Auth::user()->Location;
+$Saya =  Auth::user()->username;
+
+?>
+
+@extends('layout.mainlayout-mitra')
+
+@section('content-wrapper')
+@csrf
+<!-- Main Content Header -->
+<div class="main-content-header">
+	<h1>Partner</h1>
+	<ol class="breadcrumb">
+		<li class="breadcrumb-item">
+			<a href="/">Training</a>
+		</li>
+		<li class="breadcrumb-item active">
+			<span class="active">Approval</span>
+		</li>
+	</ol>
+</div>
+
+<div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">AUDIT</div>
+	<div class="card">
+		<div class="card-body">
+			<div id="TrainingApproval" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+			<div>
+				<input type="button" id="ekselTrainingApprovalDet" name="ekselTrainingApprovalDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="TrainingApproval.toExcel('./export/generate.php');" />
+				<input type="button" id="detailTrainingApproval" name="detailTrainingApproval" value="Cetak Certificate" class="btn btn-info mt-2 mr-2" onclick="TrainingApprovalKlik()" />
+			</div>
+		</div>
+	</div>
+	<div id="divlistOpportunity"></div>
+	<div id="DivProcess"></div>
+
+</div>
+
 <script>
-    var css = '@page { size: landscape; }',
-    head = document.head || document.getElementsByTagName('head')[0],
-    style = document.createElement('style');
+	function TrainingApprovalKlik() {
+        
+		let TrainingApprovalID = TrainingApproval.getSelectedId();
+		if (TrainingApprovalID != null) {
+            window.open('partner-training-certificate-print?Task=' + TrainingApprovalID, '_blank');
+		}else {
+			alert("Pilih baris data");
+		}
+		return true;
+	}
+	TrainingApproval = new dhtmlXGridObject('TrainingApproval');
+	TrainingApproval.setImagePath("./dhtmlx/imgs/");
+	TrainingApproval.setHeader("No,Training Name, Participant Name, Participant Position, Participant Department, Participant Email,Request Date, Request Fee, Keterangan Tambahan, Status, Waktu pembuatan");
+	TrainingApproval.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	// TrainingApproval.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+	TrainingApproval.setInitWidths("60,100,100,100,100,100,150,200,auto,100,100");
+	TrainingApproval.setColAlign("center,left,left,left,left,left,left,right,left,left");
+	TrainingApproval.setColSorting("int,str,str,str,str,str,str,int,str,str,str");
+	TrainingApproval.setColTypes("ron,ro,ro,ro,ro,ro,ro,ron,ro,ro,ro,ro");
+	TrainingApproval.enableSmartRendering(true, 150);
+	TrainingApproval.setNumberFormat("0,000", 6, ".", ",");
+	// TrainingApproval.attachEvent("onRowDblClicked", TrainingApprovalKlik);
+	TrainingApproval.setSkin("dhx_skyblue");
+	TrainingApproval.init();
+	refreshdata();
 
-    style.type = 'text/css';
-    style.media = 'print';
-
-    if (style.styleSheet){
-    style.styleSheet.cssText = css;
-    } else {
-    style.appendChild(document.createTextNode(css));
-    }
-
-    head.appendChild(style);
-
-    window.print();
+	function refreshdata() {
+		TrainingApproval.clearAndLoad('xml-partner-training-certificate');
+	}
 </script>
-</html>
+@endsection

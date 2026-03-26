@@ -44,4 +44,11 @@ class UserService
 
         return $partner;
     }
+
+    public function getSales()
+    {
+        $sales = DB::table('users as usr')->select('usr.*')->where('usr.Status', '=', 'ACTIVE')->where('usr.Position', '=', 'SALES')->get();
+
+        return $sales;
+    }
 }

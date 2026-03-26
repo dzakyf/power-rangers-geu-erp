@@ -12,7 +12,7 @@ class MasterTrainingController extends Controller
 {
     public function indexTraining()
     {
-        $frequency = (new MasterTraining)->frequency;
+        $frequency = (new MasterTraining)->frequencyMonth;
         return view('partner.master-training', compact('frequency'));
     }
 
@@ -44,7 +44,7 @@ class MasterTrainingController extends Controller
 
             echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->training_for) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->target) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->training_name) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->frequency) . "</cell>";
             echo "<cell>" . htmlspecialchars($month) . "</cell>";
@@ -83,7 +83,7 @@ class MasterTrainingController extends Controller
             $rowId = $checkids[$i]; //id or row which was updated 
             if ($rowId != 'customPayload') {
                 $newId = $rowId; //will be used for insert operation	
-                $mode = $param[$rowId."_!nativeeditor_status"]; 
+                $mode = $param[$rowId."_!nativeeditor_status"];
             
                     switch($mode){
                         case "updated":
@@ -119,9 +119,12 @@ class MasterTrainingController extends Controller
 
         $Saya = auth()->user()->username;
         $LSP = auth()->user()->Location;
+        $counter = MasterTraining::where("created_date", "LIKE", date('Y') . "%")->count();
+        $task = "TRN/GEU/".date("Y")."/".sprintf("%04d", $counter + 1);
         
         MasterTraining::create([
-            'training_for' => $a,
+            'training_no' => $task,
+            'target' => $a,
             'training_name' => $b,
             'frequency' => $c,
             'training_month' => $this->getDateMonth($d),
@@ -142,7 +145,7 @@ class MasterTrainingController extends Controller
         $LSP = auth()->user()->Location;
 
         MasterTraining::where('id', $rowId)->update([
-            'training_for' => $a,
+            'target' => $a,
             'training_name' => $b,
             'frequency' => $c,
             'training_month' => $this->getDateMonth($d),

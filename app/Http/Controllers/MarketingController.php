@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\UploadService;
+use App\Services\UserService;
 use Carbon\Carbon;
+use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use SimpleXMLElement;
@@ -12,12 +14,14 @@ use SimpleXMLElement;
 class MarketingController extends Controller
 {
     protected $uploadService;
+    protected $userService;
     protected $year;
     protected $month;
 
-    public function __construct(UploadService $up)
+    public function __construct(UploadService $up, UserService $u)
     {
         $this->uploadService = $up;
+        $this->userService = $u;
         $this->year = Carbon::now()->year;
         $this->month = Carbon::now()->format('m');
     }
@@ -25,6 +29,11 @@ class MarketingController extends Controller
     public function indexMarketing()
     {
         return view('partner.branding.marketing-index');
+    }
+
+    public function indexMarketingRecap()
+    {
+        return view('partner.branding.marketing-recap');
     }
 
     public function indexPromotion()
@@ -37,26 +46,44 @@ class MarketingController extends Controller
         return view('partner.branding.monitoring-index');
     }
 
+    public function createMarketingData(Request $r)
+    {
+        return view('partner.branding.marketing-create');
+    }
+
+    public function createPromotionData(Request $r)
+    {
+        return view('partner.branding.promotion-create');
+    }
+
+    public function createMonitoringData(Request $r)
+    {
+        return view('partner.branding.monitoring-create');
+    }
+
     public function getMarketingData()
     {
 
-        $d = DB::table('branding_marketing as m')->select('m.*', 'mf.*')
+        $d = DB::table('branding_marketing as m')->select('m.*', 'm.Description as Marketing_Desc', 'm.Created_At as Marketing_Created_At', 'mf.*')
             ->leftJoin('meta_files as mf', 'mf.Map_To', '=', 'm.ID')
             ->get();
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
+        $count = 1;
         foreach ($d as $d) {
             $row = $xml->addChild('row');
             $row->addAttribute('ID', $d->ID);
+            $row->addChild('cell', $count);
             $row->addChild('cell', $d->Code);
             $row->addChild('cell', $d->Name);
             $row->addChild('cell', $d->Type);
             $row->addChild('cell', $d->Platform);
             $row->addChild('cell', $d->Channel);
-            $row->addChild('cell', $d->Description);
-            $row->addChild('cell', $d->Created_At);
+            $row->addChild('cell', $d->Marketing_Desc);
             $row->addChild('cell', $d->Status);
+            $row->addChild('cell', $d->Marketing_Created_At);
+            $count++;
         }
 
         return response()->make($xml->asXML(), 200, [
@@ -66,24 +93,30 @@ class MarketingController extends Controller
 
     public function getPromotionData()
     {
-        $d = DB::table('branding_promotion as p')->select('p.ID as Promotion_Id', 'p.*', 'p.Description as Promotion_Desc', 'mf.ID as File_Id', 'mf.*')
+        $d = DB::table('branding_promotion as p')->select('p.ID as Promotion_Id', 'p.*', 'p.Description as Promotion_Desc', 'p.Created_At as Applied_At', 'bm.Code as Marketing_Code', 'mf.ID as File_Id', 'mf.*')
+            ->join('branding_marketing as bm', 'bm.ID', '=', 'p.Marketing_Id')
             ->leftJoin('meta_files as mf', 'mf.Map_To', '=', 'p.ID')
             ->get();
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
+
+        $count = 1;
         foreach ($d as $d) {
             $row = $xml->addChild('row');
             $row->addAttribute('ID', $d->Promotion_Id);
+            $row->addChild('cell', $count);
             $row->addChild('cell', $d->Code);
+            $row->addChild('cell', $d->Applied_At);
             $row->addChild('cell', htmlspecialchars($d->Department));
             $row->addChild('cell', $d->Type);
             $row->addChild('cell', $d->Platform);
-            $row->addChild('cell', $d->Marketing_Id);
+            $row->addChild('cell', $d->Marketing_Code);
             $row->addChild('cell', htmlspecialchars($d->Promotion_Desc));
             $row->addChild('cell', $d->Audience);
             $row->addChild('cell', $d->Estimation);
             $row->addChild('cell', $d->Status);
+            $count++;
         }
 
         return response()->make($xml->asXML(), 200, [
@@ -94,23 +127,27 @@ class MarketingController extends Controller
     public function getMonitoringPromotionData()
     {
         $d = DB::table('branding_monitoring as bm')
-            ->select('bm.*', 'bm.ID as Monitoring_Id', 'bp.*', 'bp.ID as Promotion_Id', 'bp.Code as Promotion_Code')
+            ->select('bm.*', 'bm.ID as Monitoring_Id', 'bp.*', 'bp.ID as Promotion_Id', 'bp.Code as Promotion_Code', 'us.Name as PIC_Name')
             ->leftJoin('branding_promotion as bp', 'bp.ID', '=', 'bm.Promotion_Id')
+            ->leftJoin('users as us', 'us.id', '=', 'bm.PIC_Id')
             ->get();
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
+        $count = 1;
         foreach ($d as $d) {
             $row = $xml->addChild('row');
             $row->addAttribute('Monitoring_Id', $d->Monitoring_Id);
             $row->addAttribute('Promotion_Id', $d->Promotion_Id);
+            $row->addChild('cell', $count);
             $row->addChild('cell', $d->Promotion_Code);
             $row->addChild('cell', $d->Campaign_Start_At);
             $row->addChild('cell', $d->Campaign_End_At);
             $row->addChild('cell', $d->Platform);
             $row->addChild('cell', $d->Budget_Realization);
             $row->addChild('cell', $d->Campaign_Status);
-            $row->addChild('cell', $d->PIC_Id);
+            $row->addChild('cell', $d->PIC_Name);
+            $count++;
         }
 
         return response()->make($xml->asXML(), 200, [
@@ -158,10 +195,10 @@ class MarketingController extends Controller
         $b = $r->all();
 
         $allFiles = $r->allFiles();
-
+        $user = $this->userService->getCurrentSessionUserInfo();
 
         $promotionId = DB::table('branding_promotion')->insertGetId([
-            "Code"  => $b["code"],
+            "Code"  => "XXXX",
             "Department"  => $b["department"],
             "Type"  => $b["type"],
             "Platform"  => $b["platform"],
@@ -192,6 +229,22 @@ class MarketingController extends Controller
             }
         }
 
+        $level = DB::table('approval_level as al')->select('*')
+            ->where("al.Request_Type", '=', 'BRANDING_PROMOTION')
+            ->where("al.Level_Number", '=', 1)
+            ->get();
+
+        $approvalId = DB::table('approval_request')->insertGetId([
+            "Status" => "NEED_APPROVAL",
+            "Requester_Id" => $user->id,
+            "Description" => $level[0]->Description,
+            "Current_Level" => $level[0]->Level_Number,
+            "Request_Type" => $level[0]->Request_Type,
+            "Level_Id" => $level[0]->ID,
+            // "Opportunity_Partner_Id" => "",
+            "Map_To" => $promotionId,
+        ]);
+
         return response()->json(['message' => 'success']);
     }
 
@@ -205,8 +258,8 @@ class MarketingController extends Controller
             "Campaign_End_At" => $b["campaign_end_at"],
             "Platform" => $b["platform"],
             "Budget_Realization" => $b["budget_realization"],
-            "Campaign_Status" => $b["campaign_status"],
-            "PIC_Id" => $b["PIC_id"],
+            "Campaign_Status" => $b["status"],
+            "PIC_Id" => $b["sales"],
         ]);
 
         return response()->json(['message' => 'success']);
@@ -238,28 +291,93 @@ class MarketingController extends Controller
     public function getRecapMarketingData(Request $r)
     {
 
-        $d = DB::table('opportunity_partner')->select('*')->get();
+        $d = DB::table('opportunity')->select('ID',  'Source_Channel', 'Date')->get();
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
+        $allData = [];
+        $monthlyData = [];
 
-        $data = [[
-            "Month" => "",
-            "Year" => "",
-            "Platform" => "",
-            "Ads_Fee" => "",
-            "Leads" => "",
-            "Content_Url" => "",
-        ]];
+        foreach ($d as $item) {
+            $date = new DateTime($item->Date);
+            $month = $date->format('F');
+            $year = $date->format('Y');
+            $source = $item->Source_Channel ?? 'Unknown';
+            $key = $month . '_' . $year . '_' . $source;
 
-        foreach ($data as $d) {
+            if ($year == '-0001' || $source == 'Unknown' || $source == '') {
+                continue;
+            }
+
+            if (!isset($monthlyData[$key])) {
+                $monthlyData[$key] = [
+                    'Month' => $month,
+                    'Year' =>  $year,
+                    'Platform' => $source,
+                    'Ads_Fee' => 0,
+                    'Leads' => 0,
+                    'Content_Url' => '#'
+                ];
+            }
+
+            $monthlyData[$key]['Leads']++;
+
+            if (isset($item->Ads_Fee)) {
+                $monthlyData[$key]['Ads_Fee'] += $item->Ads_Fee;
+            }
+
+            if (isset($item->Leads)) {
+                $monthlyData[$key]['Leads'] += $item->Leads;
+            }
+
+            if (isset($item->Content_Url) && $item->Content_Url) {
+                if (empty($monthlyData[$key]['Content_Url'])) {
+                    $monthlyData[$key]['Content_Url'] = $item->Content_Url;
+                } else {
+                    $monthlyData[$key]['Content_Url'] .= ', ' . $item->Content_Url;
+                }
+            }
+        }
+
+        $allData = array_values($monthlyData);
+
+        usort($allData, function ($a, $b) {
+            $monthOrder = array_flip([
+                'January',
+                'February',
+                'March',
+                'April',
+                'May',
+                'June',
+                'July',
+                'August',
+                'September',
+                'October',
+                'November',
+                'December'
+            ]);
+
+            if ($a['Year'] != $b['Year']) {
+                return $a['Year'] - $b['Year'];
+            }
+
+            return $monthOrder[$a['Month']] - $monthOrder[$b['Month']];
+        });
+
+        // dd($allData);
+
+        $counter = 1;
+        foreach ($allData as $d) {
             $row = $xml->addChild('row');
             // $row->addAttribute('Opportunity_Id', $d->id);
+            $row->addChild('cell', $counter);
             $row->addChild('cell', $d['Month']);
             $row->addChild('cell', $d['Year']);
             $row->addChild('cell', $d['Platform']);
             $row->addChild('cell', $d['Ads_Fee']);
-            $row->addChild('cell', $d['Content']);
+            $row->addChild('cell', $d['Leads']);
+            $row->addChild('cell', $d['Content_Url']);
+            $counter++;
         }
 
         return response()->make($xml->asXML(), 200, [

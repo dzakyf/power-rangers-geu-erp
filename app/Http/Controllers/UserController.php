@@ -404,4 +404,23 @@ class UserController extends Controller
             'Content-Type' => 'application/xml'
         ]);
     }
+
+    public function getSalesperson()
+    {
+        $users = $this->users->getSales();
+        $xml = new SimpleXMLElement('<rows></rows>');
+
+        // dd($users);
+
+        foreach ($users as $p) {
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $p->id);
+            $row->addChild('cell', $p->Name);
+            $row->addChild('cell', $p->Address);
+        }
+
+        return response()->make($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
 }
