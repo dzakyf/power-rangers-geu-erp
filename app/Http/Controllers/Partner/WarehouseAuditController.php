@@ -91,6 +91,7 @@ class WarehouseAuditController extends Controller
             echo "<cell>" . htmlspecialchars(ucfirst($Fetch->jenis_audit)) . "</cell>";
             echo "<cell>" . htmlspecialchars(ucfirst($Fetch->kategori_temuan)) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->ringkasan_temuan) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->total_score) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->created_by]) . "</cell>";
             echo "</row>";
 

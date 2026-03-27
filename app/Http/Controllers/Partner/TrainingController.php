@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Partner;
 
 use App\Http\Controllers\Controller;
 use App\MasterMaterial;
+use App\MasterSatisfication;
 use App\MasterTraining;
 use App\Training;
 use App\TrainingApplication;
 use App\TrainingAttendance;
 use App\TrainingMaterial;
+use App\TrainingSatisfication;
+use App\TrainingSatisficationDtl;
 use App\User;
 use DateTime;
 use Illuminate\Http\Request;
@@ -665,22 +668,263 @@ class TrainingController extends Controller
 
     public function satisficationTrainingXml()
     {
-        //
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+        echo "<rows>";
+        $priv = auth()->user()->Priv_ID;
+        $Saya = auth()->user()->username;
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+            $users[] = $value->username;
+        }
+        $nomor = 1;
+
+        $get = TrainingApplication::where('attendances', 1)->where('participant', $Saya)->orderBy('participant', 'ASC');
+        $get = $get->get();
+        
+        foreach ($get as $key => $Fetch) {
+            $date = date('d F Y', strtotime($Fetch->training_date_from));
+            if ($Fetch->training_date_from != $Fetch->training_date_to) {
+                $date .= " - " . date('d F Y', strtotime($Fetch->training_date_to));
+            }
+            $training = Training::where('id', $Fetch->training_id)->first();
+            $warna = "";
+            if ($Fetch->attendance) {
+                $warna = "style='background-color:#7FB77E'";
+            }
+            echo "<row id=\"$Fetch->id\">";
+            echo "<cell $warna>$nomor</cell>";
+            echo "<cell $warna>" . htmlspecialchars($training->training_name) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($date) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($training->method) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($training->address) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($Fetch->attendance ? 'Hadir' : 'Belum melakukan presensi') . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($Fetch->satisfication_score) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars(!$Fetch->satisfication_score ? 'BELUM' : 'SUDAH') . "</cell>";
+            echo "</row>";
+
+            $nomor++;
+        }
+
+        echo "</rows>";
     }
 
     public function satisficationTrainingNew(Request $request)
     {
-        return view('partner.training.satisfication-new');
+        $masterSatisfication = MasterSatisfication::where('target', 'participant')->get();
+        $training = TrainingApplication::where('id',$request->Task)->first();
+        return view('partner.training.satisfication-new', compact('masterSatisfication','training'));
     }
 
     public function satisficationTrainingNewSubmit(Request $request)
     {
-        //
+        try {
+            DB::beginTransaction();
+            $r = $request->except('_token');
+            $counter = TrainingSatisfication::where('created_date', 'LIKE', date("Y")."%")->count();
+            $task = "NPK/GEU/".date("Y")."/".sprintf("%04d", $counter + 1);
+            $satisfy = TrainingSatisfication::create([
+                'satisfication_no' => $task,
+                'assessor' => auth()->user()->username,
+                'type' => 'participant',
+                'training_no' => $r['training_no'],
+                'training_id' => $r['training_id'],
+                'created_by' => auth()->user()->username,
+                'created_date' => now(),
+            ]);
+
+            $masterSatisfication = MasterSatisfication::where('target', 'participant')->get();
+            $totalScore = 0;
+            foreach ($masterSatisfication as $key => $value) {
+                if (isset($r['question'.$value->id])) {
+                    TrainingSatisficationDtl::create([
+                        'satisfication_no' => $task,
+                        'satisfication_id' => $value->id,
+                        'satisfication_score' => $r['question'.$value->id],
+                        'satisfication_note' => $r['question'.$value->id.'_note'] ?? '',
+                        'created_by' => auth()->user()->username,
+                        'created_date' => now(),
+                    ]);
+                }
+
+                $totalScore += $r['question'.$value->id];
+            }
+
+            TrainingSatisfication::where('id', $satisfy->id)->update([
+                'satisfication_score' => $totalScore,
+            ]);
+
+            $cek = TrainingApplication::where('training_no', $r['training_no'])->where('training_id', $r['training_no'])->where('participant', auth()->user()->username)->first();
+            if ($cek) {
+                TrainingApplication::where('id', $cek->id)->update([
+                    'satisfication_score' => $totalScore,
+                ]);
+            }
+            
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error($th);
+            return response()->json([
+                'status' => 'error',
+            ]);
+        }
+        
     }
 
-    public function satisficationTrainingDetail()
+    public function satisficationTrainingDetail(Request $request)
     {
-        //
+        $masterSatisfication = MasterSatisfication::where('target', 'participant')->get();
+        $training = TrainingApplication::where('id',$request->Task)->first();
+        $satisfication = TrainingSatisfication::where('training_id', $training->training_id)->where('assessor', $training->participant)->where('training_no', $training->training_no)->first();
+        $satisficationDtl = TrainingSatisficationDtl::where('satisfication_no', $satisfication->satisfication_no)->get();
+        $satisfyDtl = [];
+        foreach ($satisficationDtl as $key => $value) {
+            $satisfyDtl[$value->satisfication_id] = [
+                'score' => $value->satisfication_score,
+                'note' => $value->satisfication_note,
+            ];
+        }
+        return view('partner.training.satisfication-detail', compact('masterSatisfication','training', 'satisfication', 'satisficationDtl', 'satisfyDtl'));
+    }
+
+    public function satisficationManagerTraining()
+    {
+        return view('partner.training.satisfication-manager');
+    }
+
+    public function satisficationManagerTrainingXml()
+    {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+        echo "<rows>";
+        $priv = auth()->user()->Priv_ID;
+        $Saya = auth()->user()->username;
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+            $users[] = $value->username;
+        }
+        $nomor = 1;
+
+        $get = Training::where('training_date_to', '<', date("Y-m-d"))->orderBy('training_date_from', 'DESC');
+        $get = $get->get();
+        
+        foreach ($get as $key => $Fetch) {
+            $date = date('d F Y', strtotime($Fetch->training_date_from));
+            if ($Fetch->training_date_from != $Fetch->training_date_to) {
+                $date .= " - " . date('d F Y', strtotime($Fetch->training_date_to));
+            }
+            $penilaian = TrainingSatisfication::where('assessor', $Saya)->where('training_no', $Fetch->training_no)->where('training_id', $Fetch->id)->where('type', 'manager')->first();
+            $warna = "";
+            echo "<row id=\"$Fetch->id\">";
+            echo "<cell $warna>$nomor</cell>";
+            echo "<cell $warna>" . htmlspecialchars($Fetch->training_name) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($date) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($Fetch->method) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($Fetch->address) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($penilaian ? $penilaian->satisfication_score : '') . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($penilaian ? 'SUDAH' : 'BELUM') . "</cell>";
+            echo "</row>";
+
+            $nomor++;
+        }
+
+        echo "</rows>";
+    }
+
+    public function satisficationManagerTrainingNew(Request $request)
+    {
+        $masterSatisfication = MasterSatisfication::where('target', 'manager')->get();
+        $training = Training::where('id',$request->Task)->first();
+        return view('partner.training.satisfication-manager-new', compact('masterSatisfication','training'));
+    }
+
+    public function satisficationManagerTrainingNewSubmit(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+            $r = $request->except('_token');
+            $counter = TrainingSatisfication::where('created_date', 'LIKE', date("Y")."%")->count();
+            $task = "NPK/GEU/".date("Y")."/".sprintf("%04d", $counter + 1);
+            $satisfy = TrainingSatisfication::create([
+                'satisfication_no' => $task,
+                'assessor' => auth()->user()->username,
+                'type' => 'manager',
+                'training_no' => $r['training_no'],
+                'training_id' => $r['training_id'],
+                'created_by' => auth()->user()->username,
+                'created_date' => now(),
+            ]);
+
+            $masterSatisfication = MasterSatisfication::where('target', 'manager')->get();
+            $totalScore = 0;
+            foreach ($masterSatisfication as $key => $value) {
+                if (isset($r['question'.$value->id])) {
+                    TrainingSatisficationDtl::create([
+                        'satisfication_no' => $task,
+                        'satisfication_id' => $value->id,
+                        'satisfication_score' => $r['question'.$value->id],
+                        'satisfication_note' => $r['question'.$value->id.'_note'] ?? '',
+                        'created_by' => auth()->user()->username,
+                        'created_date' => now(),
+                    ]);
+                }
+
+                $totalScore += $r['question'.$value->id];
+            }
+
+            TrainingSatisfication::where('id', $satisfy->id)->update([
+                'satisfication_score' => $totalScore,
+            ]);            
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error($th);
+            return response()->json([
+                'status' => 'error',
+            ]);
+        }
+        
+    }
+
+    public function satisficationManagerTrainingDetail(Request $request)
+    {
+        $masterSatisfication = MasterSatisfication::where('target', 'manager')->get();
+        $training = Training::where('id',$request->Task)->first();
+        $satisfication = TrainingSatisfication::where('training_id', $training->id)->where('type', 'manager')->where('assessor', auth()->user()->username)->where('training_no', $training->training_no)->first();
+        $satisficationDtl = TrainingSatisficationDtl::where('satisfication_no', $satisfication->satisfication_no)->get();
+        $satisfyDtl = [];
+        foreach ($satisficationDtl as $key => $value) {
+            $satisfyDtl[$value->satisfication_id] = [
+                'score' => $value->satisfication_score,
+                'note' => $value->satisfication_note,
+            ];
+        }
+        return view('partner.training.satisfication-manager-detail', compact('masterSatisfication','training', 'satisfication', 'satisficationDtl', 'satisfyDtl'));
     }
 
     public function satisficationTrainingDetailParticipant()

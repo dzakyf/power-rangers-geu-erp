@@ -24,7 +24,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 			<a href="#">Master</a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">SOP Compliance</span>
+			<span class="active">Master Training</span>
 		</li>
 	</ol>
 </div>
