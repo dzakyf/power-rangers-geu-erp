@@ -22,13 +22,13 @@ $Saya =  Auth::user()->username;
 			<a href="/">Training</a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">Approval</span>
+			<span class="active">List Training</span>
 		</li>
 	</ol>
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">AUDIT</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LIST TRAINING BASED ON TARGET</div>
 	<div class="card">
 		<div class="card-body">
             <div>
