@@ -65,12 +65,133 @@ class SurveyController extends Controller
         ]);
     }
 
+    public function getSurveyTotalScore(Request $r)
+    {
+        return response()->json(['message' => 'success']);
+    }
+
     public function submitMasterDataSurvey(Request $r)
     {
         $b = $r->all();
         $files = $r->files->all();
+        // dd($b);
 
         // dd($r->files->all());
+
+        $photo = 0; //section C
+        $checklist = 0; // section D
+        $environtment = 0; // Section E
+        $ucoEstimation = 0; // Section F
+
+        // section c
+        for ($i = 1; $i <= 4; $i++) {
+            $photo += $b["C_c$i"] * 2.5;
+        }
+
+        // section D
+        for ($j = 1; $j <= 9; $j++) {
+            $count = $b["D_c$j"];
+
+            if ($count == 1 && $j !== 9) {
+                $checklist += ($count * 6);
+            } else if ($count == 1) {
+                $checklist += ($count * 7);
+            }
+        }
+
+        // Section E
+        for ($k = 1; $k <= 4; $k++) {
+            $input = $b["E_p$k"];
+
+            if ($k == 1) {
+
+                if ($input == 1) {
+                    $environtment += 1;
+                }
+
+                if ($input == 2) {
+                    $environtment += 3;
+                }
+
+                if ($input == 3) {
+                    $environtment += 5;
+                }
+            }
+
+            if ($k == 2) {
+
+                if ($input == 1) {
+                    $environtment += 1;
+                }
+
+                if ($input == 2) {
+                    $environtment += 3;
+                }
+
+                if ($input == 3) {
+                    $environtment += 5;
+                }
+            }
+
+            if ($k == 3) {
+
+                if ($input == 1) {
+                    $environtment += 1;
+                }
+
+                if ($input == 2) {
+                    $environtment += 3;
+                }
+
+                if ($input == 3) {
+                    $environtment += 5;
+                }
+            }
+
+            if ($k == 4) {
+
+                if ($input == 1) {
+                    $environtment += 1;
+                }
+
+                if ($input == 2) {
+                    $environtment += 3;
+                }
+
+                if ($input == 3) {
+                    $environtment += 5;
+                }
+            }
+        }
+
+        // section F
+        $ton = $b["F_p5_col2"];
+
+
+        if ($ton > 15) {
+            $ucoEstimation += 15;
+        }
+
+        if ($ton >= 10 && $ton <= 15) {
+            $ucoEstimation += 12;
+        }
+
+        if ($ton >= 6 && $ton <= 10) {
+            $ucoEstimation += 8;
+        }
+
+
+        if ($ton >= 4 && $ton <= 6) {
+            $ucoEstimation += 5;
+        }
+
+
+        if ($ton < 4) {
+            $ucoEstimation += 2;
+        }
+
+        $totalScore = $photo + $checklist + $environtment + $ucoEstimation;
+
 
         $id = DB::table('survey_location')->insertGetId([
             "Province" => $b['Province'] ?? "",
@@ -91,6 +212,7 @@ class SurveyController extends Controller
             "C_c2" =>   $b["C_c2"],
             "C_c3" =>   $b["C_c3"],
             "C_c4" =>   $b["C_c4"],
+            "C_Total_Score" => $photo,
             "D_c1" =>   $b["D_c1"],
             "D_c2" =>   $b["D_c2"],
             "D_c3" =>   $b["D_c3"],
@@ -100,6 +222,7 @@ class SurveyController extends Controller
             "D_c7" =>   $b["D_c7"],
             "D_c8" =>   $b["D_c8"],
             "D_c9" =>   $b["D_c9"],
+            "D_Total_Score" => $checklist,
             "D_c1_Notes" => $b['D_c1_Notes'],
             "D_c2_Notes" => $b['D_c2_Notes'],
             "D_c3_Notes" => $b['D_c3_Notes'],
@@ -109,6 +232,11 @@ class SurveyController extends Controller
             "D_c7_Notes" => $b['D_c7_Notes'],
             "D_c8_Notes" => $b['D_c8_Notes'],
             "D_c9_Notes" => $b['D_c9_Notes'],
+            "E_p1" =>   $b["E_p1"],
+            "E_p2" =>   $b["E_p2"],
+            "E_p3" =>   $b["E_p3"],
+            "E_p4" =>   $b["E_p4"],
+            "E_Total_Score" => $environtment,
             "F_p1_col1" =>   $b["F_p1_col1"],
             "F_p1_col2" =>   $b["F_p1_col2"],
             "F_p2_col1" =>   $b["F_p2_col1"],
@@ -117,6 +245,7 @@ class SurveyController extends Controller
             "F_p3_col2" =>   $b["F_p3_col2"],
             "F_p4_col1" =>   $b["F_p4_col1"],
             "F_p4_col2" =>   $b["F_p4_col2"],
+            "F_Total_Score" => $ucoEstimation,
             "G_p1" =>   $b["G_p1"] ?? "",
             "G_p2" =>   $b["G_p2"] ?? "",
             "G_p3" =>   $b["G_p3"] ?? "",
@@ -126,6 +255,7 @@ class SurveyController extends Controller
             "Approval_Manager" =>   $b["Approval_Manager"] ?? 0,
             "Approval_COO" =>   $b["Approval_COO"] ?? 0,
         ]);
+
 
         $uploadedFiles = [];
 
@@ -148,7 +278,29 @@ class SurveyController extends Controller
                 $this->uploadService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
             }
         }
+        $analysisResult = "Tidak Diketahui";
 
-        return response()->json(['message' => 'success']);
+        if ($totalScore >= 80 && $totalScore <= 100) {
+            $analysisResult = "Layak";
+        }
+
+        if ($totalScore >= 70 && $totalScore <= 79) {
+            $analysisResult = "Layak Bersyarat";
+        }
+        if ($totalScore < 70) {
+            $analysisResult = "Tidak Layak";
+        }
+
+
+
+        return response()->json(['message' => 'success', 'data' => [
+            'survey_id' => $id,
+            'C_Total_Score' => $photo,
+            'D_Total_Score' => $checklist,
+            'E_Total_Score' => $environtment,
+            'F_Total_Score' => $ucoEstimation,
+            'Total_Score' => $totalScore,
+            'Analysis_Result' => $analysisResult
+        ]]);
     }
 };

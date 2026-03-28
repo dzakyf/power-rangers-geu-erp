@@ -14,6 +14,7 @@ use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OperationalController;
+use App\Http\Controllers\Partner\UCOReportController as PartnerUCOReportController;
 use App\Http\Controllers\Partner\TrainingController as PartnerTrainingController;
 use App\Http\Controllers\Partner\ChatListController as PartnerChatListController;
 use App\Http\Controllers\Partner\MasterSOPController as PartnerMasterSOPController;
@@ -4437,7 +4438,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$partnerApprovalPrefix-progress/generate-mou", [ApprovalController::class, 'generateMOU']);
     Route::get("$partnerApprovalPrefix-progress/generate-pks", [ApprovalController::class, 'generatePKS']);
     Route::post("$partnerApprovalPrefix-progress/submit", [ApprovalController::class, 'submit']);
-    Route::get("$partnerApprovalPrefix-progress/{id}", [ApprovalController::class, 'showProgress']);
+    Route::get("$partnerApprovalPrefix-progress", [ApprovalController::class, 'showProgress']);
     Route::get("$partnerApprovalPrefix-index", [ApprovalController::class, 'index']);
     Route::get("$partnerApprovalPrefix-detail", [ApprovalController::class, 'detail']);
     Route::get("$partnerApprovalPrefix-data", [ApprovalController::class, 'getApprovalData']);
@@ -4743,6 +4744,7 @@ Route::group(['middleware' => 'auth'], function () {
     /** OnboardingController */
     $onboardingPrefs = "partner-onboarding";
     Route::get("$onboardingPrefs-approval-data", [OnboardingController::class, 'getOnboardingApprovalData']);
+    Route::get("$onboardingPrefs-approval-submit", [OnboardingController::class, 'processOnboardingApproval']);
     Route::get("$onboardingPrefs-approval-data-log", [OnboardingController::class, 'getOnboardingApprovalDataLog']);
     Route::post("$onboardingPrefs-preview-mou", [OnboardingController::class, 'previewMou']);
     Route::post("$onboardingPrefs-submit-mou", [OnboardingController::class, 'uploadMou']);
@@ -4880,9 +4882,7 @@ Route::group(['middleware' => 'auth'], function () {
         return "OK";
     });
 
-    Route::get("partner-uco-outbound-report-inbound-source", function () {
-        return "OK";
-    });
+    Route::get("partner-uco-outbound-report-inbound-source", [PartnerUCOReportController::class, 'indexInboundSource']);
 
     Route::get("partner-uco-outbound-report-stock-trace", function () {
         return "OK";

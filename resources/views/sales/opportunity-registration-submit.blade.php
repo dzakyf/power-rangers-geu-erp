@@ -66,8 +66,11 @@ try {
     $data['sources_of_funds'] = json_encode(array_filter([request()->input('Source_Personal_Savings'), request()->input('Source_Inheritance'), request()->input('Source_Business_Income'), request()->input('Source_Loan'), request()->input('Source_Pension')]));
 
     // Recommendation to be approved
+    $data['is_recommended_to_be_approved'] = '3'; // In Consideration
     if (in_array($data['sources_of_funds'], ["savings", "business"])) {
-        $data['is_recommended_to_be_approved'] = 'Yes';
+        $data['is_recommended_to_be_approved'] = '1'; // Yes
+    } else if (in_array($data['sources_of_funds'], ["loan", "pension"])) {
+        $data['is_recommended_to_be_approved'] = '2'; // No
     }
 
     // Partnership
