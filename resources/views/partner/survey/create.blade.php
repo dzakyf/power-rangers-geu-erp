@@ -263,9 +263,12 @@ $Saya =  Auth::user()->username;
             </tbody>
         </table>
 
+        <div id="AnalysisResult" class="analysis-result">
+            <h6>Hasil Analisis</h6>
+        </div>
 
         <h6>H. Rekomendasi Surveyor</h6>
-        <table class="table table-bordered">
+        <table class=" table table-bordered">
             <thead>
                 <tr>
                     <th scope="col">Status</th>
@@ -405,47 +408,66 @@ $Saya =  Auth::user()->username;
             no: 1,
             source: "Restoran",
             source_value: 1500,
-            uco_estimation: 27000
+            uco_estimation: 27000,
+            total_estimation: 0
         },
         {
             no: 2,
             source: "Warung makan",
             source_value: 2800,
-            uco_estimation: 50400
+            uco_estimation: 50400,
+            total_estimation: 0
+
         },
         {
             no: 3,
             source: "Hotel",
             source_value: 450,
-            uco_estimation: 32400
+            uco_estimation: 32400,
+            total_estimation: 0
         },
         {
             no: 4,
             source: "Rumah Tangga",
             source_value: 11000,
-            uco_estimation: 11000
+            uco_estimation: 11000,
+            total_estimation: 0
+        },
+        {
+            no: 5,
+            source: "Total",
+            source_value: 0,
+            uco_estimation: 0,
+            total_estimation: 0
         }
     ];
 
     const surveyorAnalysisData = [{
             no: 1,
             parameter: "Potensi Supply",
-            parameter_evaluation: "Baik"
+            parameter_evaluation: 0
         },
         {
             no: 2,
             parameter: "Akses Operasional",
-            parameter_evaluation: "Baik"
+            parameter_evaluation: 0
         },
         {
             no: 3,
             parameter: "Lingkungan",
-            parameter_evaluation: "Mendukung"
+            parameter_evaluation: 0
+        }, {
+            no: 4,
+            parameter: "Potensi Pengumpulan UCO",
+            parameter_evaluation: 0
         }
     ];
 
     const surveyorRecommendationData = [{
             status: "Layak",
+        },
+        {
+            status: "Layak Bersyarat"
         },
         {
             status: "Tidak Layak",
@@ -458,7 +480,7 @@ $Saya =  Auth::user()->username;
         return 'row_' + index;
     }
 
-    function renderTableSurveyorRecommendation() {
+    function renderTableSurveyorRecommendation(data) {
         let html = '';
 
         $.each(surveyorRecommendationData, function(index, item) {
@@ -482,14 +504,23 @@ $Saya =  Auth::user()->username;
         // attachFileChangeListeners();
     }
 
-    function renderTableSurveyorAnalysis() {
+    function renderTableSurveyorAnalysis(data) {
         let html = '';
+        let d = data
+
+
+        surveyorAnalysisData[0]['parameter_evaluation'] = d.C_Total_Score
+        surveyorAnalysisData[1]['parameter_evaluation'] = d.D_Total_Score
+        surveyorAnalysisData[2]['parameter_evaluation'] = d.E_Total_Score
+        surveyorAnalysisData[3]['parameter_evaluation'] = d.F_Total_Score
+
 
         $.each(surveyorAnalysisData, function(index, item) {
             const rowId = generateRowId(index);
             const sesuaiId = 'sesuai_' + index;
             const tidakId = 'tidak_' + index;
             const fileInputId = 'file_' + index;
+
 
             html += '<tr id="' + rowId + '">';
             html += '    <td>' + item.no + '</td>';
@@ -504,7 +535,7 @@ $Saya =  Auth::user()->username;
         // attachFileChangeListeners();
     }
 
-    function renderTableUCOEstimation() {
+    function renderTableUCOEstimation(data) {
         let html = '';
 
         $.each(ucoPotentialData, function(index, item) {
@@ -512,19 +543,158 @@ $Saya =  Auth::user()->username;
             const rowId = generateRowId(index);
             const sourceValId = `F_p${idx}_col1`
             const UCOEstimationId = `F_p${idx}_col2`
+            const totalEstimationId = `F_p${idx}_col3`
+            const isRow5 = (idx == 5); // Row 5 will be the total row
 
             html += '<tr id="' + rowId + '">';
-            html += '    <td>' + item.no + '</td>';
-            html += '    <td>' + item.source + '</td>';
-            html += '    <td>' + '<input type="number" id="' + sourceValId + '" name="' + sourceValId + '" min="1" max="999999" />' + '</td>';
-            html += '    <td>' + '<input type="number" id="' + UCOEstimationId + '" name="' + UCOEstimationId + '" min="1" max="999999" />' + '</td>';
-            html += '</tr>';
+            html += '      <td>' + item.no + '';
+            html += '      <td>' + item.source + '';
+
+            // Column 1 (Source Value)
+            if (isRow5) {
+                html += '      <td><input type="number" id="' + sourceValId + '" name="' + sourceValId + '" class="source-value total-source" data-row="' + idx + '" readonly style="background-color:#e9ecef; font-weight:bold;" />';
+            } else {
+                html += '      <td><input type="number" id="' + sourceValId + '" name="' + sourceValId + '" class="source-value" data-row="' + idx + '" min="0" step="0.01" />';
+            }
+
+            // Column 2 (UCO Estimation)
+            if (isRow5) {
+                html += '      <td><input type="number" id="' + UCOEstimationId + '" name="' + UCOEstimationId + '" class="uco-estimation total-uco" data-row="' + idx + '" readonly style="background-color:#e9ecef; font-weight:bold;" />';
+            } else {
+                html += '      <td><input type="number" id="' + UCOEstimationId + '" name="' + UCOEstimationId + '" class="uco-estimation" data-row="' + idx + '" min="0" step="0.01" />';
+            }
+
+            // Column 3 (Total Estimation)
+            if (isRow5) {
+                html += '      <td><input type="number" id="' + totalEstimationId + '" name="' + totalEstimationId + '" class="total-estimation total-sum" data-row="' + idx + '" readonly style="background-color:#e9ecef; font-weight:bold;" />';
+            } else {
+                html += '      <td><input type="number" id="' + totalEstimationId + '" name="' + totalEstimationId + '" class="total-estimation" data-row="' + idx + '" readonly style="background-color:#f8f9fa;" />';
+            }
+            html += '     </tr>';
         });
 
         $('#F_Checklist').html(html);
 
-        // Add file change event listeners
-        // attachFileChangeListeners();
+        // Initialize calculations
+        initializeUCOCalculations();
+    }
+
+    function initializeUCOCalculations() {
+        // Function to calculate individual row total (col3 = col1 + col2)
+        function calculateRowTotal(row) {
+            const sourceVal = parseFloat($(`#F_p${row}_col1`).val()) || 0;
+            const ucoVal = parseFloat($(`#F_p${row}_col2`).val()) || 0;
+            const total = sourceVal * ucoVal;
+            $(`#F_p${row}_col3`).val(total.toFixed(2));
+            console.log(`Row ${row}: ${sourceVal} + ${ucoVal} = ${total.toFixed(2)}`);
+            return {
+                sourceVal,
+                ucoVal,
+                total
+            };
+        }
+
+        // Function to calculate sum of column 1 from rows 1-4 and put in row 5 col1
+        function calculateRow5Col1() {
+            let sumSource = 0;
+
+            // Sum all Source values from rows 1-4
+            for (let i = 1; i <= 4; i++) {
+                const sourceVal = parseFloat($(`#F_p${i}_col1`).val()) || 0;
+                sumSource += sourceVal;
+                console.log(`Row ${i} col1: ${sourceVal}, Running sum: ${sumSource}`);
+            }
+
+            // Set row 5 col1 to the sum
+            $('#F_p5_col1').val(sumSource.toFixed(2));
+            console.log(`Row 5 col1 (Total Source) set to: ${sumSource.toFixed(2)}`);
+
+            return sumSource;
+        }
+
+        // Function to calculate sum of column 2 from rows 1-4 and put in row 5 col2
+        function calculateRow5Col2() {
+            let sumUCO = 0;
+
+            // Sum all UCO values from rows 1-4
+            for (let i = 1; i <= 4; i++) {
+                const ucoVal = parseFloat($(`#F_p${i}_col2`).val()) || 0;
+                sumUCO += ucoVal;
+                console.log(`Row ${i} col2: ${ucoVal}, Running sum: ${sumUCO}`);
+            }
+
+            // Set row 5 col2 to the sum
+            $('#F_p5_col2').val(sumUCO.toFixed(2));
+            console.log(`Row 5 col2 (Total UCO) set to: ${sumUCO.toFixed(2)}`);
+
+            return sumUCO;
+        }
+
+        // Function to calculate sum of column 3 from rows 1-4 and put in row 5 col3
+        function calculateRow5Col3() {
+            let sumTotal = 0;
+
+            // Sum all Total Estimation values from rows 1-4
+            for (let i = 1; i <= 4; i++) {
+                const totalVal = parseFloat($(`#F_p${i}_col3`).val()) || 0;
+                sumTotal += totalVal;
+                console.log(`Row ${i} col3: ${totalVal}, Running sum: ${sumTotal}`);
+            }
+
+            // Set row 5 col3 to the sum
+            $('#F_p5_col3').val(sumTotal.toFixed(2));
+            console.log(`Row 5 col3 (Total Estimation Sum) set to: ${sumTotal.toFixed(2)}`);
+
+            return sumTotal;
+        }
+
+        // Function to recalculate all rows
+        function recalculateAll() {
+            console.log('Recalculating all...');
+
+            // Calculate row totals for rows 1-4 (non-total rows)
+            for (let i = 1; i <= 4; i++) {
+                calculateRowTotal(i);
+            }
+
+            // Calculate row 5 col1 (sum of rows 1-4 col1)
+            calculateRow5Col1();
+
+            // Calculate row 5 col2 (sum of rows 1-4 col2)
+            calculateRow5Col2();
+
+            // Calculate row 5 col3 (sum of rows 1-4 col3)
+            calculateRow5Col3();
+        }
+
+        // Event handlers
+        function handleInputChange() {
+            const row = $(this).data('row');
+            console.log(`Change detected on row ${row}, element: ${$(this).attr('id')}, value: ${$(this).val()}`);
+
+            if (row == 5) {
+                // If row 5 changes, row 5 col3 is already a sum from rows 1-4 col3
+                // No action needed as row 5 col3 is calculated from rows 1-4
+                console.log('Row 5 is a total row, values are calculated automatically');
+            } else {
+                // For rows 1-4, update the current row's total (col3 = col1 + col2)
+                calculateRowTotal(row);
+
+                // Then update all row 5 totals
+                calculateRow5Col1(); // Update total source (sum of rows 1-4 col1)
+                calculateRow5Col2(); // Update total UCO (sum of rows 1-4 col2)
+                calculateRow5Col3(); // Update total estimation (sum of rows 1-4 col3)
+            }
+        }
+
+        // Attach event listeners
+        $(document).off('input', '.source-value, .uco-estimation');
+        $(document).on('input', '.source-value, .uco-estimation', handleInputChange);
+
+        // Initial calculation
+        recalculateAll();
+
+        console.log('Initialization complete');
     }
 
     function renderTableEnvirontmentAssessment() {
@@ -535,12 +705,23 @@ $Saya =  Auth::user()->username;
             const sesuaiId = 'sesuai_' + index;
             const tidakId = 'tidak_' + index;
             const fileInputId = 'file_' + index;
+            const name = `E_p${index+1}`
+
+            var selectedValue = item.rating_value || "";
 
             html += '<tr id="' + rowId + '">';
-            html += '    <td>' + item.no + '</td>';
-            html += '    <td>' + item.parameter + '</td>';
-            html += '    <td>' + item.parameter_evaluation + '</td>';
-            html += '    <td>' + item.explanation + '</td>';
+            html += '     <td>' + item.no + '</td>';
+            html += '     <td>' + item.parameter + '</td>';
+            html += '     <td>';
+            html += '         <select name="' + name + '" class="rating-select" data-rowid="' + rowId + '">';
+            html += '             <option value="">-- Pilih --</option>';
+            html += '             <option value="1"' + (selectedValue == "1" ? ' selected' : '') + '>Kurang</option>';
+            html += '             <option value="2"' + (selectedValue == "2" ? ' selected' : '') + '>Sedang</option>';
+            html += '             <option value="3"' + (selectedValue == "3" ? ' selected' : '') + '>Tinggi</option>';
+            html += '         </select>';
+            html += '     </td>';
+            html += '     <td>' + item.parameter_evaluation + '</td>';
+            html += '     <td>' + item.explanation + '</td>';
             html += '</tr>';
         });
 
@@ -615,13 +796,17 @@ $Saya =  Auth::user()->username;
         // attachFileChangeListeners();
     }
 
+    function showAnalysisResult(data) {
+        $('#AnalysisResult').html('<h6>H. Hasil Analisis</h6><h6>' + data.Analysis_Result + '</h6>');
+    }
+
 
     $(document).ready(function() {
         renderTableLocationDocumentation()
         renderTableLocationAssessment()
         renderTableEnvirontmentAssessment()
         renderTableUCOEstimation()
-        renderTableSurveyorAnalysis()
+
         renderTableSurveyorRecommendation()
 
         $('#surveyForm').on('submit', function(e) {
@@ -660,8 +845,15 @@ $Saya =  Auth::user()->username;
                 cache: false,
                 success: function(response) {
                     alert("Berhasil membuat broadcast");
+                    let data = response.data
+                    let analysisRes = "Unknown"
+
+
 
                     //$('#surveyForm')[0].reset();
+                    renderTableSurveyorAnalysis(data)
+                    renderTableSurveyorRecommendation(data)
+                    showAnalysisResult(data)
                 },
                 error: function(xhr, status, error) {
                     console.log('Error details:', xhr.responseText);

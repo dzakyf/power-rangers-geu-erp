@@ -428,17 +428,18 @@ class ApprovalController extends Controller
 
     public function showProgress(Request $request)
     {
+        $q = $request->query();
         $params = $request->route()->parameters();
 
 
-        $partner = DB::table('opportunity_partner')->where('id', $params['id'])->first();
+        $partner = DB::table('opportunity_partner')->where('id', $q['id'])->first();
 
         $pic = [];
         if (Schema::hasTable('users')) {
             $pic = DB::table('users')->select('username', DB::raw("COALESCE(name, username) as Name"))->get();
         }
 
-        $documents = DB::table('opportunity_partner_file')->where('opportunity_id', $params['id'])->get();
+        $documents = DB::table('opportunity_partner_file')->where('opportunity_id', $q['id'])->get();
 
 
         foreach ($documents as $key => $value) {
@@ -448,7 +449,7 @@ class ApprovalController extends Controller
         $status = DB::table('approval_request as ar')
             ->select('ar.*', 'al.*')
             ->join('approval_log as al', 'ar.ID', '=', 'al.Request_Id')
-            ->where('ar.Requester_Id', '=', $params['id'])
+            ->where('ar.Requester_Id', '=', $q['id'])
             ->where('al.Level_Number', '=', '1')
             ->orderBy('al.Action_Date', 'Desc')
             ->first();
@@ -497,38 +498,45 @@ class ApprovalController extends Controller
         $user_id = $session->id ?? "%";
         $apprId = $q['id'] ?? "%";
 
-        $d = DB::table('approval_request as appr')
-            ->select('appr.*',  'usr.Name', 'lv.Approver_Position')
-            ->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')
-            ->leftJoin('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID');
+        // Head Table 
+        $d = DB::table('approval_request as appr');
 
 
         // dd($d->get());
 
+
+        // Join untuk informasi tambahan  
         if ($type == "ONBOARDING") {
-            $d = $d->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id');
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'opp.is_recommended_to_be_approved as Is_Recommended_To_Be_Approved', 'opp.lead_id as Code')
+                ->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id');
         }
 
         if ($type == "BRANDING_PROMOTION") {
-            $d = $d->join('branding_promotion as bp', 'appr.Map_To', '=', 'bp.ID');
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position')
+                ->join('branding_promotion as bp', 'appr.Map_To', '=', 'bp.ID');
         }
 
         if ($type == "PROFIT_SHARING") {
-            $d = $d->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id');
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position')
+                ->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id');
         }
 
         if ($type == "RENEWAL") {
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position')
+                ->join('partner_renewal as opp', 'appr.Map_To', '=', 'opp.ID');
         }
 
         if ($type == "TERMINATION") {
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position')
+                ->join('partner_termination as opp', 'appr.Map_To', '=', 'opp.ID');
         }
-
 
         if ($type == "SURVEY") {
-            $d = $d->join('survey_location as sl', 'appr.Map_To', '=', 'opp.sl');
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position')
+                ->join('survey_location as sl', 'appr.Map_To', '=', 'opp.sl');
         }
 
-
+        // Filtering jabatan
         if (in_array($session->Position, ["SALES", "MANAGER", "DIRECTOR", "HEAD", "CFO"])) {
             $d->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Status', '=', 'NEED_APPROVAL')->where('lv.Approver_Position', '=', $session->Position);
             // MITRA
@@ -542,22 +550,35 @@ class ApprovalController extends Controller
                 });
         }
 
+
+        $d = $d->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')
+            ->leftJoin('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID');
+
         $d = $d->get();
         // dd($d);
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
         $counter = 1;
+        $approvalMapper = [
+            "1" => "Yes",
+            "2" => "No",
+            "3" => "Dalam Pertimbangan"
+        ];
+        $recommendation = $p->Is_Recommended_To_Be_Approved ?? 3;
         foreach ($d as $p) {
             $row = $xml->addChild('row');
             $row->addAttribute('id', $p->ID);
-            // $row->addAttribute('Oppt_Id', $p->id);
-            // $row->addAttribute('Mapper_Id', $p->Map_To);
+            $row->addAttribute('Oppt_Id', $p->Opportunity_Partner_Id);
+            $row->addAttribute('Mapper_Id', $p->Map_To);
             $row->addChild('cell', $counter);
             $row->addChild('cell', $p->Name);
+            $row->addChild('cell', $p->Code ?? "");
             $row->addChild('cell', $p->Request_Type);
             $row->addChild('cell', $p->Status);
             $row->addChild('cell', $p->Submitted_At);
+            $row->addChild('cell', $approvalMapper[$recommendation]);
+
             $counter++;
         }
 
@@ -570,8 +591,7 @@ class ApprovalController extends Controller
     {
         $q = $r->query();
         $apprId = $q['appr_id'] ?? "%";
-        $type = $q['type'] ?? "%";
-        $userId = $q['user_id'] ?? "%";
+
 
         $d = DB::table('approval_request as request')
             ->select(
