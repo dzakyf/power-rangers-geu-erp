@@ -4676,11 +4676,19 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$profitSharingPref-lk-monthly", [PartnerProfitSharingController::class, 'lkProfitSharingXml']);
     Route::get("$profitSharingPref-lk-annually", [PartnerProfitSharingController::class, 'lkAnnuallyProfitSharing']);
     Route::get("xml-$profitSharingPref-lk-annually", [PartnerProfitSharingController::class, 'lkProfitSharingXml']);
-    Route::get("$profitSharingPref-dashboard", [PartnerProfitSharingController::class, 'dashboardProfitSharing']);
-    Route::get("$profitSharingPref-dashboard-user", [PartnerProfitSharingController::class, 'dashboardUserProfitSharing']);
-    Route::get("xml-$profitSharingPref-dashboard", [PartnerProfitSharingController::class, 'dashboardProfitSharingXml']);
+    Route::get("$profitSharingPref-overview", [PartnerProfitSharingController::class, 'overviewProfitSharing']);
+    Route::get("$profitSharingPref-overview-user", [PartnerProfitSharingController::class, 'overviewUserProfitSharing']);
+    Route::get("xml-$profitSharingPref-overview", [PartnerProfitSharingController::class, 'overviewProfitSharingXml']);
     Route::get("$profitSharingPref-download", [PartnerProfitSharingController::class, 'downloadProfitSharingApplication']);
     Route::post("$profitSharingPref-submit-application", [PartnerProfitSharingController::class, 'partnerSubmitProfitSharingApplication']);
+
+    Route::get("$profitSharingPref-overview2", [PartnerProfitSharingController::class, 'indexProfitSharingOverview2']);
+    Route::get("xml-$profitSharingPref-overview2", [PartnerProfitSharingController::class, 'indexProfitSharingOverview2Xml']);
+    Route::get("$profitSharingPref-management-fee", [PartnerProfitSharingController::class, 'indexProfitSharingManagementFee']);
+    Route::get("xml-$profitSharingPref-management-fee", [PartnerProfitSharingController::class, 'indexProfitSharingManagementFeeXml']);
+    
+    Route::get("$profitSharingPref-mitra-monthly", [PartnerProfitSharingController::class, 'monthlyMitraprofitSharing']);
+    Route::get("$profitSharingPref-mitra-annually", [PartnerProfitSharingController::class, 'annuallyMitraprofitSharing']);
 
     Route::get("$profitSharingPref-data", [PartnerProfitSharingController::class, 'getProfitSharingApprovalData']);
     Route::get("$profitSharingPref-data-log", [PartnerProfitSharingController::class, 'getProfitSharingApprovalDataLog']);

@@ -69,11 +69,16 @@ class ProfitSharingController extends Controller
         }
 
         foreach ($get as $key => $Fetch) {
+            $type = ucwords($Fetch->warehouse_type);
+            if ($type == '') {
+                $type = 'Booth';
+            }
             echo "<row id=\"$Fetch->warehouse_task_id\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($type) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
             echo "</row>";
@@ -183,6 +188,9 @@ class ProfitSharingController extends Controller
                         }
                         if ($value->Normal == 'CREDIT') {
                             $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) - array_sum($calculate[$exp[1]])) - (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
+                            if ($value->Judul == '701') {
+                                $calculate[$value->Judul]['NULL'] -= ($calculate[401][40001] * 2.5) / 100;
+                            }
                         } else {
                             $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) + array_sum($calculate[$exp[1]])) + (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
                         }
@@ -256,19 +264,19 @@ class ProfitSharingController extends Controller
         return view('partner.profit-sharing-lk-annually');
     }
 
-    public function dashboardProfitSharing(Request $request)
+    public function overviewProfitSharing(Request $request)
     {
         $getWarehouse = WarehousePartner::where('warehouse_task_id', $request->Task)->first();
         $user = DB::table('users')->where("Emp_ID", $getWarehouse->partner_task_id)->first()->id ?? 0;
-        return view('partner.profit-sharing-dashboard', compact('user'));
+        return view('partner.profit-sharing-overview', compact('user'));
     }
 
-    public function dashboardUserProfitSharing()
+    public function overviewUserProfitSharing()
     {
-        return view('partner.profit-sharing-dashboard-user');
+        return view('partner.profit-sharing-overview-user');
     }
 
-    public function dashboardProfitSharingXml(Request $request)
+    public function overviewProfitSharingXml(Request $request)
     {
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
@@ -695,5 +703,362 @@ class ProfitSharingController extends Controller
         $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
         return response()->json(['message' => 'success']);
+    }
+
+    public function monthlyMitraprofitSharing()
+    {
+        $getMitra = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->first();
+        if (!$getMitra) {
+            abort(403, 'Anda tidak memiliki akses ke halaman ini');
+        }
+        return view('partner.mitra-profit-sharing-lk-monthly', compact('getMitra'));
+    }
+
+    public function annuallyMitraprofitSharing()
+    {
+        $getMitra = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->first();
+        if (!$getMitra) {
+            abort(403, 'Anda tidak memiliki akses ke halaman ini');
+        }
+        return view('partner.mitra-profit-sharing-lk-annually', compact('getMitra'));
+    }
+
+    public function indexProfitSharingOverview2()
+    {
+        return view('partner.profit-sharing.overview2');
+    }
+
+    public function indexProfitSharingOverview2Xml()
+    {
+        /*
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        */
+
+        echo "<rows>";
+        $priv = auth()->user()->Priv_ID;
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+            $usname[$value->Emp_ID] = $value->Name;
+        }
+        $getPartner = DB::table('opportunity_partner')->get();
+        foreach ($getPartner as $key => $value) {
+            $usname[$value->lead_id] = $value->full_name;
+        }
+        $nomor = 1;
+
+        if ($priv == 'MITRA') {
+            $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
+        } else {
+            $get = WarehousePartner::get();
+        }
+        $percentage[401] = 100;
+
+        foreach ($get as $key => $Fetch) {
+        $calculate = [];
+            //Hitung Pendaptan
+            $calculate[401][40001] = 0;
+
+            // harga transfer
+            $calculate[402][40002] = MasterStockPrice::whereBetween('date_for', [$Fetch->Created_Date, Carbon::now()])->avg('price');
+
+            // quantity
+            $calculate[501][51001] = WarehouseStockRequest::where('warehouse_task_id', $Fetch->warehouse_task_id)->whereBetween('request_date', [$Fetch->Created_Date, Carbon::now()])->sum('request_qty');
+
+            // harga beli
+            // $calculate[501][50002] = WarehousePartnerSupplies::where('received_date', 'LIKE', $request->date . '%')->avg('price');
+
+            $whs = WarehousePartnerSupplies::where("warehouse_task_id", $Fetch->warehouse_task_id)->whereBetween('received_date', [$Fetch->Created_Date, Carbon::now()])->get();
+            $supplies = [];
+            $supplies['avg'] = 0;
+            foreach ($whs as $key => $value) {
+                $month = date('Y-m', strtotime($value->received_date));
+                if (!isset($supplies['qty'])) {
+                    $supplies['qty'] = 0;
+                }
+                if (!isset($supplies['avg'])) {
+                    $supplies['avg'] = $value->price;
+                }
+                $supplies['avg'] = (($supplies['avg'] * $supplies['qty']) + $value->total) / ($supplies['qty'] + $value->received_qty);
+            }
+
+            // harga beli
+            $calculate[501][51002] = $supplies['avg'];
+
+            // pendapatan
+            $calculate[401][40001] = $calculate[402][40002] * $calculate[501][51001];
+
+            $calculate[501]['NULL'] = $calculate[501][51001] * $calculate[501][51002];
+            // $percentage[501] = $calculate[501]['NULL'] / $calculate[401][40001];
+
+
+            // Hitung Opex
+            $getAccount = MasterWarehouseAccount::where('group_account', '>', 501)->get();
+            foreach ($getAccount as $key => $value) {
+                if (!isset($calculate[$value->group_account])) {
+                    $calculate[$value->group_account] = [];
+                }
+                if (!isset($calculate[$value->group_account][$value->account_no])) {
+                    $calculate[$value->group_account][$value->account_no] = 0;
+                }
+
+                $getOpex = WarehousePartnerJournal::where('warehouse_task_id', $Fetch->warehouse_task_id)
+                    ->whereBetween('posting_date', [$Fetch->Created_Date, Carbon::now()])
+                    ->where('account_no', $value->account_no)
+                    ->where('group_account', $value->group_account)
+                    ->sum('nominal');
+
+                $calculate[$value->group_account][$value->account_no] += $getOpex;
+            }
+
+            $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502]);
+
+            $get = MasterWarehouseProfitLoss::where('type', $Fetch->warehouse_type)->get();
+            $normal = [];
+            foreach ($get as $key => $value) {
+                if ($value->Normal != '' && $value->Normal != null) {
+                    $normal[$value->Judul] = $value->Normal;
+                }
+            }
+
+            foreach ($get as $key => $value) {
+                if ($value->Level == 2) {
+                    if ($value->Rumus != '') {
+                        $exp = explode(',', $value->Rumus);
+                        if (count($exp) > 0) {
+                            if (!isset($calculate[$value->Judul])) {
+                                $calculate[$value->Judul]['NULL'] = 0;
+                            }
+                            if ($value->Normal == 'CREDIT') {
+                                $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) - array_sum($calculate[$exp[1]])) - (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
+                                if ($value->Judul == '701') {
+                                    $calculate[$value->Judul]['NULL'] -= ($calculate[401][40001] * 2.5) / 100;
+                                }
+                            } else {
+                                $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) + array_sum($calculate[$exp[1]])) + (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
+                            }
+                            // $percentage[$value->Judul] = $calculate[$value->Judul]['NULL']/$calculate[401][40001] * 100;
+                        }
+                    }
+                } else if ($value->Level == 3) {
+                    $exp = explode(',', $value->Rumus);
+                    if (!isset($calculate[$value->Judul])) {
+                        $calculate[$value->Judul]['NULL'] = 0;
+                    }
+                    $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) * 60) / 100;
+                }
+            }
+
+            $rev = $calculate[401][40001];
+            if ($rev == 0) {
+                $rev = 1;
+            }
+
+            $type = ucwords($Fetch->warehouse_type);
+            if ($type == '') {
+                $type = 'Booth';
+            }
+            
+            $d = DB::table('opportunity_partner as op')->select('op.full_name', 'opfd.*', 'mf.description')
+                ->join('opportunity_partner_facility_dtl as opfd', 'opfd.Partner_ID', '=', 'op.id')
+                ->join('master_facility as mf', 'mf.id', '=', 'opfd.Facility_ID')
+                ->where('op.lead_id', '=', $Fetch->partner_task_id)->sum('Total');
+
+            $netprofit = isset($calculate[701]) ? $calculate[701]['NULL'] : 0;
+            $ebitda = isset($calculate[899]) ? $calculate[899]['NULL'] : 0;
+            $opex = $ebitda - $netprofit;
+            echo "<row id=\"$Fetch->warehouse_task_id\">";
+            echo "<cell>$nomor</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($type) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
+            echo "<cell>" . htmlspecialchars($d) . "</cell>";
+            echo "<cell>" . htmlspecialchars($netprofit) . "</cell>";
+            echo "<cell>" . htmlspecialchars($opex) . "</cell>";
+            echo "<cell>" . htmlspecialchars($ebitda) . "</cell>";
+            echo "<cell>" . htmlspecialchars(0) . "</cell>";
+            echo "<cell>" . htmlspecialchars(round((isset($calculate[899]) ? $calculate[899]['NULL'] : 0) / ($d ?: 1) * 100, 2)) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
+            echo "</row>";
+
+            $nomor++;
+        }
+        echo "</rows>";
+    }
+
+    public function indexProfitSharingManagementFee()
+    {
+        return view('partner.profit-sharing.management-fee');
+    }
+
+    public function indexProfitSharingManagementFeeXml()
+    {
+        /*
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        */
+
+        echo "<rows>";
+        $priv = auth()->user()->Priv_ID;
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+            $usname[$value->Emp_ID] = $value->Name;
+        }
+        $getPartner = DB::table('opportunity_partner')->get();
+        foreach ($getPartner as $key => $value) {
+            $usname[$value->lead_id] = $value->full_name;
+        }
+        $nomor = 1;
+
+        if ($priv == 'MITRA') {
+            $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
+        } else {
+            $get = WarehousePartner::get();
+        }
+        $percentage[401] = 100;
+
+        foreach ($get as $key => $Fetch) {
+        $calculate = [];
+            //Hitung Pendaptan
+            $calculate[401][40001] = 0;
+
+            // harga transfer
+            $calculate[402][40002] = MasterStockPrice::whereBetween('date_for', [$Fetch->Created_Date, Carbon::now()])->avg('price');
+
+            // quantity
+            $calculate[501][51001] = WarehouseStockRequest::where('warehouse_task_id', $Fetch->warehouse_task_id)->whereBetween('request_date', [$Fetch->Created_Date, Carbon::now()])->sum('request_qty');
+
+            // harga beli
+            // $calculate[501][50002] = WarehousePartnerSupplies::where('received_date', 'LIKE', $request->date . '%')->avg('price');
+
+            $whs = WarehousePartnerSupplies::where("warehouse_task_id", $Fetch->warehouse_task_id)->whereBetween('received_date', [$Fetch->Created_Date, Carbon::now()])->get();
+            $supplies = [];
+            $supplies['avg'] = 0;
+            foreach ($whs as $key => $value) {
+                $month = date('Y-m', strtotime($value->received_date));
+                if (!isset($supplies['qty'])) {
+                    $supplies['qty'] = 0;
+                }
+                if (!isset($supplies['avg'])) {
+                    $supplies['avg'] = $value->price;
+                }
+                $supplies['avg'] = (($supplies['avg'] * $supplies['qty']) + $value->total) / ($supplies['qty'] + $value->received_qty);
+            }
+
+            // harga beli
+            $calculate[501][51002] = $supplies['avg'];
+
+            // pendapatan
+            $calculate[401][40001] = $calculate[402][40002] * $calculate[501][51001];
+
+            $calculate[501]['NULL'] = $calculate[501][51001] * $calculate[501][51002];
+            // $percentage[501] = $calculate[501]['NULL'] / $calculate[401][40001];
+
+
+            // Hitung Opex
+            $getAccount = MasterWarehouseAccount::where('group_account', '>', 501)->get();
+            foreach ($getAccount as $key => $value) {
+                if (!isset($calculate[$value->group_account])) {
+                    $calculate[$value->group_account] = [];
+                }
+                if (!isset($calculate[$value->group_account][$value->account_no])) {
+                    $calculate[$value->group_account][$value->account_no] = 0;
+                }
+
+                $getOpex = WarehousePartnerJournal::where('warehouse_task_id', $Fetch->warehouse_task_id)
+                    ->whereBetween('posting_date', [$Fetch->Created_Date, Carbon::now()])
+                    ->where('account_no', $value->account_no)
+                    ->where('group_account', $value->group_account)
+                    ->sum('nominal');
+
+                $calculate[$value->group_account][$value->account_no] += $getOpex;
+            }
+
+            $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502]);
+
+            $get = MasterWarehouseProfitLoss::where('type', $Fetch->warehouse_type)->get();
+            $normal = [];
+            foreach ($get as $key => $value) {
+                if ($value->Normal != '' && $value->Normal != null) {
+                    $normal[$value->Judul] = $value->Normal;
+                }
+            }
+
+            foreach ($get as $key => $value) {
+                if ($value->Level == 2) {
+                    if ($value->Rumus != '') {
+                        $exp = explode(',', $value->Rumus);
+                        if (count($exp) > 0) {
+                            if (!isset($calculate[$value->Judul])) {
+                                $calculate[$value->Judul]['NULL'] = 0;
+                            }
+                            if ($value->Normal == 'CREDIT') {
+                                $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) - array_sum($calculate[$exp[1]])) - (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
+                                if ($value->Judul == '701') {
+                                    $calculate[$value->Judul]['NULL'] -= ($calculate[401][40001] * 2.5) / 100;
+                                }
+                            } else {
+                                $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) + array_sum($calculate[$exp[1]])) + (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
+                            }
+                            // $percentage[$value->Judul] = $calculate[$value->Judul]['NULL']/$calculate[401][40001] * 100;
+                        }
+                    }
+                } else if ($value->Level == 3) {
+                    $exp = explode(',', $value->Rumus);
+                    if (!isset($calculate[$value->Judul])) {
+                        $calculate[$value->Judul]['NULL'] = 0;
+                    }
+                    $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) * 60) / 100;
+                }
+            }
+
+            $rev = $calculate[401][40001];
+            if ($rev == 0) {
+                $rev = 1;
+            }
+
+            $type = ucwords($Fetch->warehouse_type);
+            if ($type == '') {
+                $type = 'Booth';
+            }
+            
+            $d = DB::table('opportunity_partner as op')->select('op.full_name', 'opfd.*', 'mf.description')
+                ->join('opportunity_partner_facility_dtl as opfd', 'opfd.Partner_ID', '=', 'op.id')
+                ->join('master_facility as mf', 'mf.id', '=', 'opfd.Facility_ID')
+                ->where('op.lead_id', '=', $Fetch->partner_task_id)->sum('Total');
+
+            $netprofit = isset($calculate[701]) ? $calculate[701]['NULL'] : 0;
+            $managementfee = isset($calculate[601][61007]) ? $calculate[601][61007] : 0;
+            $bagiHasilMitra = isset($calculate[801]['NULL']) ? $calculate[801]['NULL'] : 0;
+            $bagiHasil = $netprofit - $bagiHasilMitra;
+            echo "<row id=\"$Fetch->warehouse_task_id\">";
+            echo "<cell>$nomor</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($type) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
+            echo "<cell>" . htmlspecialchars($managementfee) . "</cell>";
+            echo "<cell>" . htmlspecialchars($bagiHasil) . "</cell>";
+            echo "<cell>" . htmlspecialchars($managementfee - $bagiHasil) . "</cell>";
+            echo "</row>";
+
+            $nomor++;
+        }
+        echo "</rows>";
     }
 }

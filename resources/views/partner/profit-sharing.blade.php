@@ -36,7 +36,7 @@ $Saya =  Auth::user()->username;
 				<input type="button" id="ekselProfitSharingDet" name="ekselProfitSharingDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ProfitSharing.toExcel('./export/generate.php');" />
 				<input type="button" id="detailProfitSharingMonthly" name="detailProfitSharingMonthly" value="Detail Warehouse Profit Sharing LK Monthly" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingLKMonthly()" />
 				<input type="button" id="detailProfitSharingAnnually" name="detailProfitSharingAnnually" value="Detail Warehouse Profit Sharing LK Annually" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingLKAnnually()" />
-				<input type="button" id="detailProfitSharingDashboard" name="detailProfitSharingDashboard" value="Detail Warehouse Profit Sharing Dashboard" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingDashboard()" />
+				<input type="button" id="detailProfitSharingOverview" name="detailProfitSharingOverview" value="Detail Warehouse Profit Sharing Overview" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingOverview()" />
 			</div>
 		</div>
 	</div>
@@ -50,7 +50,7 @@ $Saya =  Auth::user()->username;
 
 		ProfitSharingID = ProfitSharing.getSelectedId();
 		if (ProfitSharingID != null) {
-			LoadM('divlistOpportunity', 'partner-profit-sharing-lk-monthly?Task=' + ProfitSharingID);
+			LoadM('divlistOpportunity', 'partner-profit-sharing-lk-monthly?Task=' + ProfitSharingID + "&type=" + ProfitSharing.cells(ProfitSharingID, 4).getValue());
 		}else {
 			alert("Pilih baris data");
 		}
@@ -60,17 +60,17 @@ $Saya =  Auth::user()->username;
 
 		ProfitSharingID = ProfitSharing.getSelectedId();
 		if (ProfitSharingID != null) {
-			LoadM('divlistOpportunity', 'partner-profit-sharing-lk-annually?Task=' + ProfitSharingID);
+			LoadM('divlistOpportunity', 'partner-profit-sharing-lk-annually?Task=' + ProfitSharingID + "&type=" + ProfitSharing.cells(ProfitSharingID, 4).getValue());
 		}else {
 			alert("Pilih baris data");
 		}
 		return true;
 	}
-	function ProfitSharingDashboard() {
+	function ProfitSharingOverview() {
 
 		ProfitSharingID = ProfitSharing.getSelectedId();
 		if (ProfitSharingID != null) {
-			LoadM('divlistOpportunity', 'partner-profit-sharing-dashboard?Task=' + ProfitSharingID);
+			LoadM('divlistOpportunity', 'partner-profit-sharing-overview?Task=' + ProfitSharingID + "&type=" + ProfitSharing.cells(ProfitSharingID, 4).getValue());
 		}else {
 			alert("Pilih baris data");
 		}
@@ -78,12 +78,12 @@ $Saya =  Auth::user()->username;
 	}
 	ProfitSharing = new dhtmlXGridObject('ProfitSharing');
 	ProfitSharing.setImagePath("./dhtmlx/imgs/");
-	ProfitSharing.setHeader("No,Gudang ID, Lokasi Gudang, Nama Mitra, Status Gudang");
-	ProfitSharing.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
+	ProfitSharing.setHeader("No,Gudang ID, Lokasi Gudang, Nama Mitra, Jenis Booth, Status Gudang");
+	ProfitSharing.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// ProfitSharing.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	ProfitSharing.setInitWidths("60,100,150,200,100");
-	ProfitSharing.setColAlign("center,left,left,left,left");
-	ProfitSharing.setColSorting("int,str,str,str,str");
+	ProfitSharing.setInitWidths("60,100,150,200,100,100");
+	ProfitSharing.setColAlign("center,left,left,left,left,left");
+	ProfitSharing.setColSorting("int,str,str,str,str,str");
 	ProfitSharing.setColTypes("ron,ro,ro,ro,ro,ro");
 	ProfitSharing.enableSmartRendering(true, 150);
 	// ProfitSharing.setNumberFormat("0,000", 7, ".", ",");

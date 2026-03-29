@@ -2,17 +2,13 @@
     <div class="card-body">
 		<div>
 			<input type="text" id="date_filter" name="date_filter" value="{{ date('Y-m') }}" size="10" readonly>
-			<select name="type" id="type">
-				<option value="booth">booth</option>
-				<option value="mobil">mobil</option>
-			</select>
 			<button class="btn btn-success" onclick="refreshdataDetail()">Refresh</button>
 		</div>
         <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LAPORAN KEUANGAN</div>
         <div id="ProfitSharingLkMonthly" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
         <div>
             <input type="button" id="ekselProfitSharingLkMonthlyDet" name="ekselProfitSharingLkMonthlyDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ProfitSharingLkMonthly.toExcel('./export/generate.php');" />
-            <input type="button" id="detailProfitSharingLkMonthly" name="detailProfitSharingLkMonthly" value="Detail Warehouse Profit Sharing LK Monthly" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingLkMonthlyLKManually()" />
+            {{-- <input type="button" id="detailProfitSharingLkMonthly" name="detailProfitSharingLkMonthly" value="Detail Warehouse Profit Sharing LK Monthly" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingLkMonthlyLKManually()" /> --}}
         </div>
     </div>
 </div>
@@ -22,16 +18,16 @@
 	var myCalendar;
 	myCalendar = new dhtmlXCalendarObject(["date_filter"]);
 	myCalendar.setDateFormat("%Y-%m");
-	function ProfitSharingLkMonthlyLKManually() {
+	// function ProfitSharingLkMonthlyLKManually() {
 
-		ProfitSharingLkMonthlyID = ProfitSharingLkMonthly.getSelectedId();
-		if (ProfitSharingLkMonthlyID != null) {
-			LoadM('divlistOpportunity', 'partner-profit-sharing-lk-monthly?Task=' + ProfitSharingLkMonthlyID);
-		}else {
-			alert("Pilih baris data");
-		}
-		return true;
-	}
+	// 	ProfitSharingLkMonthlyID = ProfitSharingLkMonthly.getSelectedId();
+	// 	if (ProfitSharingLkMonthlyID != null) {
+	// 		LoadM('divlistOpportunityDetail', 'partner-profit-sharing-lk-monthly-detail?Task=' + ProfitSharingLkMonthlyID);
+	// 	}else {
+	// 		alert("Pilih baris data");
+	// 	}
+	// 	return true;
+	// }
 	ProfitSharingLkMonthly = new dhtmlXGridObject('ProfitSharingLkMonthly');
 	ProfitSharingLkMonthly.setImagePath("./dhtmlx/imgs/");
 	ProfitSharingLkMonthly.setHeader(",Description, Value, Satuan, Percentage");
@@ -43,12 +39,13 @@
 	ProfitSharingLkMonthly.setColTypes("ron,ro,ron,ro,ro,ro");
 	ProfitSharingLkMonthly.enableSmartRendering(true, 150);
 	ProfitSharingLkMonthly.setNumberFormat("0,000", 2, ".", ",");
-	ProfitSharingLkMonthly.attachEvent("onRowDblClicked", ProfitSharingLkMonthlyLKManually);
+	// ProfitSharingLkMonthly.attachEvent("onRowDblClicked", ProfitSharingLkMonthlyLKManually);
 	ProfitSharingLkMonthly.setSkin("dhx_skyblue");
 	ProfitSharingLkMonthly.init();
 	refreshdataDetail();
 
 	function refreshdataDetail() {
-		ProfitSharingLkMonthly.clearAndLoad('xml-partner-profit-sharing-lk-monthly?Task={{$_GET["Task"]}}&date=' + $('#date_filter').val() + "&type=" + $('#type').val());
+		let type = "{{ strtolower($_GET['type']) ?? 'booth' }}";
+		ProfitSharingLkMonthly.clearAndLoad('xml-partner-profit-sharing-lk-monthly?Task={{$_GET["Task"]}}&date=' + $('#date_filter').val() + "&type=" + type);
 	}
 </script>
