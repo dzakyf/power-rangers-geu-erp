@@ -1,0 +1,68 @@
+@extends('layout.mainlayout-mitra')
+
+@section('content-wrapper')
+@csrf
+<!-- Main Content Header -->
+<div class="main-content-header">
+	<h1>Partner</h1>
+	<ol class="breadcrumb">
+		<li class="breadcrumb-item">
+			<a href="/">Warehouse</a>
+		</li>
+		<li class="breadcrumb-item active">
+			<span class="active">Monitoring Monthly</span>
+		</li>
+	</ol>
+</div>
+<div class="card mt-3">
+    <div class="card-body">
+		<div>
+			<input type="text" id="date_filter" name="date_filter" value="{{ date('Y-m') }}" size="10" readonly>
+			<button class="btn btn-success" onclick="refreshdata()">Refresh</button>
+		</div>
+        <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LAPORAN KEUANGAN</div>
+        <div id="ProfitSharingLkMonthly" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+        <div>
+            <input type="button" id="ekselProfitSharingLkMonthlyDet" name="ekselProfitSharingLkMonthlyDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ProfitSharingLkMonthly.toExcel('./export/generate.php');" />
+            {{-- <input type="button" id="detailProfitSharingLkMonthly" name="detailProfitSharingLkMonthly" value="Detail Warehouse Profit Sharing LK Monthly" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingLkMonthlyLKManually()" /> --}}
+        </div>
+    </div>
+</div>
+<div id="divlistOpportunity"></div>
+
+<script>
+	var myCalendar;
+	myCalendar = new dhtmlXCalendarObject(["date_filter"]);
+	myCalendar.setDateFormat("%Y-%m");
+	// function ProfitSharingLkMonthlyLKManually() {
+
+	// 	ProfitSharingLkMonthlyID = ProfitSharingLkMonthly.getSelectedId();
+	// 	if (ProfitSharingLkMonthlyID != null) {
+	// 		LoadM('divlistOpportunity', 'partner-profit-sharing-lk-monthly-detail?Task=' + ProfitSharingLkMonthlyID);
+	// 	}else {
+	// 		alert("Pilih baris data");
+	// 	}
+	// 	return true;
+	// }
+	ProfitSharingLkMonthly = new dhtmlXGridObject('ProfitSharingLkMonthly');
+	ProfitSharingLkMonthly.setImagePath("./dhtmlx/imgs/");
+	ProfitSharingLkMonthly.setHeader(",Description, Value, Satuan, Percentage");
+	ProfitSharingLkMonthly.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
+	// ProfitSharingLkMonthly.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+	ProfitSharingLkMonthly.setInitWidths("60,200,150,100,80");
+	ProfitSharingLkMonthly.setColAlign("center,left,right,center,right");
+	ProfitSharingLkMonthly.setColSorting("int,str,int,str,str");
+	ProfitSharingLkMonthly.setColTypes("ron,ro,ron,ro,ro,ro");
+	ProfitSharingLkMonthly.enableSmartRendering(true, 150);
+	ProfitSharingLkMonthly.setNumberFormat("0,000", 2, ".", ",");
+	// ProfitSharingLkMonthly.attachEvent("onRowDblClicked", ProfitSharingLkMonthlyLKManually);
+	ProfitSharingLkMonthly.setSkin("dhx_skyblue");
+	ProfitSharingLkMonthly.init();
+	refreshdata();
+
+	function refreshdata() {
+		let type = "{{ $getMitra->warehouse_type == '' ? 'booth' : $getMitra->warehouse_type }}";
+		ProfitSharingLkMonthly.clearAndLoad('xml-partner-profit-sharing-lk-monthly?Task={{$getMitra->warehouse_task_id}}&date=' + $('#date_filter').val() + "&type=" + type);
+	}
+</script>
+@endsection
