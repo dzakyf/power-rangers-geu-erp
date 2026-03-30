@@ -90,6 +90,7 @@
                     @foreach ($pecah as $isi)
                     <th width="10%">{{ ucfirst($isi) }}</th>
                     @endforeach
+                    <th width="10%">Kategori Temuan</th>
                     <th width="25%">Catatan</th>
                 </tr>
             </thead>
@@ -103,6 +104,13 @@
                     @foreach ($pecah as $isi)
                     <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="{{ $value->parameter_id }}" value="{{ $isi }}"></td>
                     @endforeach
+                    <td>
+                        <select name="{{ $value->parameter_id }}_category" id="{{ $value->parameter_id }}_category" class="form-control category-temuan" disabled>
+                            <option value="minor">minor</option>
+                            <option value="major">major</option>
+                            <option value="critical">critical</option>
+                        </select>
+                    </td>
                     <td><input class="form-control" name="{{$value->parameter_id}}_note" autocomplete="false" id="{{$value->parameter_id}}_note" /></td>
                 </tr>
                 @endforeach
@@ -120,30 +128,19 @@
         <label>Kategori Temuan</label><br>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan1" value="ringan" {{ $getAudit->kategori_temuan == 'ringan' ? 'checked' : '' }} disabled>
-        <label class="form-check-label" for="kategori_temuan1">Ringan</label>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan1" value="Baik" {{ $getAudit->kategori_temuan == 'Baik' ? 'checked' : '' }} disabled>
+        <label class="form-check-label" for="kategori_temuan1">Baik</label>
         </div>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan2" value="sedang" {{ $getAudit->kategori_temuan == 'sedang' ? 'checked' : '' }} disabled>
-        <label class="form-check-label" for="kategori_temuan2">Sedang</label>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan2" value="Perlu Perbaikan" {{ $getAudit->kategori_temuan == 'Perlu Perbaikan' ? 'checked' : '' }} disabled>
+        <label class="form-check-label" for="kategori_temuan2">Perlu Perbaikan</label>
         </div>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan3" value="berat" {{ $getAudit->kategori_temuan == 'berat' ? 'checked' : '' }} disabled>
-        <label class="form-check-label" for="kategori_temuan3">Berat</label>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan3" value="Perlu Tindakan Khusus" {{ $getAudit->kategori_temuan == 'Perlu Tindakan Khusus' ? 'checked' : '' }} disabled>
+        <label class="form-check-label" for="kategori_temuan3">Perlu Tindakan Khusus</label>
         </div>
-        
-        <div id="divTemuan" class="my-3" style="display:{{ $getAudit->area_temuan != '' ? 'block' : 'none' }};">
-            <label for="">Detail temuan</label> <br>
-            <select name="detail_temuan" id="detail_temuan" class="form-control w-75" disabled>
-                <option value=""> -- Pilih Temuan --</option>
-                @foreach ($masterTemuan as $item)
-                <option value="{{ $item->area . '||' . $item->parameter }}"{{$item->area . '||' . $item->parameter == $getAudit->area_temuan ? ' selected' : ''}}>{{ $item->area . ' - ' . $item->parameter }}</option>
-                @endforeach
-            </select>
-        </div>
-
 
         <!-- H -->
         <div class="section-title">H. Dokumentasi</div>
@@ -225,16 +222,23 @@
     // Populate detail values from PHP data
     var auditDetails = {!! json_encode($getAuditDtl->pluck('parameter', 'section')->toArray()) !!};
     var auditNotes = {!! json_encode($getAuditDtl->pluck('catatan', 'section')->toArray()) !!};
+    var auditCategories = {!! json_encode($getAuditDtl->pluck('kategori_temuan', 'section')->toArray()) !!};
 
     // Set values for all form fields
     $(document).ready(function() {
         for (let section in auditDetails) {
             let value = auditDetails[section];
             let note = auditNotes[section];
+            let temuan = auditCategories[section] == '' ? 'minor' : auditCategories[section];
+            let cekKategoriTemuan = value != 'baik' && value != 'sesuai' && value != 'ada' ? true : false;
             
             // Set radio button values
             $('input[name="' + section + '"][value="' + value + '"]').prop('checked', true);
             $('input[name="' + section + '"]').prop('disabled', true);
+
+            if (cekKategoriTemuan) {
+                $('#' + section + '_category').val(temuan).prop('disabled', true);
+            }
             
             // Set note values
             let noteField = $('#' + section + '_note');

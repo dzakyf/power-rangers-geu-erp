@@ -48,11 +48,14 @@ class WarehouseCorrectiveController extends Controller
 
             $warna = "";
 
+            if ($dueDate < date("Y-m-d") || $Fetch->kategori_temuan == 'critical') {
+                $warna = "style='background-color:#D75656'";
+            }
+            if ($Fetch->kategori_temuan == 'major') {
+                $warna = "style='background-color:#F7C85C'";
+            }
             if ($Fetch->status == 'CLOSED') {
                 $warna = "style='background-color:#7FB77E'";
-            }else
-            if ($dueDate < date("Y-m-d")) {
-                $warna = "style='background-color:#D75656'";
             }
 
             echo "<row id=\"$Fetch->id\">";
@@ -64,10 +67,11 @@ class WarehouseCorrectiveController extends Controller
             echo "<cell $warna >" . htmlspecialchars($getGudang->warehouse_location) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($Fetchx->auditor) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars(ucfirst($Fetchx->jenis_audit)) . "</cell>";
-            echo "<cell $warna >" . htmlspecialchars(ucfirst($Fetchx->kategori_temuan)) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars(ucfirst($Fetch->kategori_temuan)) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($Fetch->area_temuan) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($Fetch->parameter_temuan) . "</cell>";
-            echo "<cell $warna >" . htmlspecialchars($Fetchx->ringkasan_temuan) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($Fetch->ringkasan_temuan) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($Fetch->parameter_catatan) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($usname[$Fetchx->created_by]) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($Fetch->corrective_action) . "</cell>";
             echo "</row>";
@@ -87,23 +91,8 @@ class WarehouseCorrectiveController extends Controller
         $corrective = WarehousePartnerAuditCorretive::where("id", $request->Task)->first();
         $getAudit = WarehousePartnerAudit::where("nomor_audit", $corrective->nomor_audit)->first();
         $getAuditDtl = WarehousePartnerAuditDtl::where("nomor_audit", $corrective->nomor_audit)->first();
-        $kat = 'critical';
-        if ($getAudit->kategori_temuan == 'ringan') {
-            $kat = 'minor';
-        }else if($getAudit->kategori_temuan == 'sedang') {
-            $kat = 'major';
-        }
-        $masterTemuan = MasterAuditTemuan::where("category", $kat)->get();
-        if (isset($usname[$getAudit->auditor])) {
-            $getAudit->auditor = $usname[$getAudit->auditor];
-        }
-        if (isset($usname[$getAudit->auditee])) {
-            $getAudit->auditee = $usname[$getAudit->auditee];
-        }
-        if (isset($usname[$getAudit->verifikasi])) {
-            $getAudit->verifikasi = $usname[$getAudit->verifikasi];
-        }
-        return view('partner.warehouse.corrective-detail', compact('corrective', 'getAudit', 'getAuditDtl', 'masterTemuan'));
+        $kat = $getAudit->kategori_temuan;
+        return view('partner.warehouse.corrective-detail', compact('corrective', 'getAudit', 'getAuditDtl'));
     }
 
     public function detailCorrectiveSubmit(Request $request)

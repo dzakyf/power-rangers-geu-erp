@@ -51,7 +51,9 @@ class ApprovalController extends Controller
 
     public function createProfitSharingApplication()
     {
-        return view('approval.profit-sharing-create');
+        $partner = $this->userService->getCurrentSessionUserInfo();
+
+        return view('approval.profit-sharing-create', compact('partner'));
     }
 
     public function detail(Request $request)
@@ -319,6 +321,10 @@ class ApprovalController extends Controller
                         'Request_Type' => $req->Request_Type,
                     ]);
             });
+
+            // Akunting 
+            if ($session->Position === "BOD") {
+            }
 
             return response()->json([
                 'success' => true,

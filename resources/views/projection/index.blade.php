@@ -69,7 +69,7 @@
         PartnerGrid.attachEvent("onRowSelect", selectMitra);
         PartnerGrid.setSkin("dhx_skyblue");
         PartnerGrid.init();
-        PartnerGrid.clearAndLoad('partner-data');
+        PartnerGrid.clearAndLoad('partner-data-active-mitra');
     }
 
     function initProjectionGrid() {

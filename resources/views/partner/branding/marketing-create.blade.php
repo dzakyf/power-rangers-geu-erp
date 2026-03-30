@@ -107,6 +107,15 @@ $Saya =  Auth::user()->username;
         <div class="row">
             <div class="col-md-6">
                 <div class="form-group">
+                    <label for="media_url">Media Url</label>
+                    <input type="text" name="media_url" id="media_url" class="form-control" />
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
                     <label for="design">Dokumen Pendukung</label>
                     <input type="file" name="design" id="design" class="form-control" />
                 </div>

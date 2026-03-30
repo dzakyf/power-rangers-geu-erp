@@ -38,7 +38,7 @@ $Saya =  Auth::user()->username;
             </div>
             <div id="TableGrid1" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
             <div>
-                <!-- <input type="button" id="detailTableGrid1" name="detailTableGrid1" value="Formulir Capital Expenditure" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
+                <input type="button" id="createCapex" name="createCapex" value="Buat Capex" class="btn btn-info mt-2 mr-2" onclick="redirectToCapexForm()" />
                 <input type="button" id="ekselTableGrid1Det" name="ekselTableGrid1Det" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="TableGrid1.toExcel('./export/generate.php');" />
                 <!-- <input type="button" id="detailTableGrid1" name="detailTableGrid1" value="Detail" class="btn btn-info mt-2 mr-2" onclick="TableGrid1Klik()" /> -->
             </div>
@@ -51,8 +51,8 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
+    let opportunityId = null
     $(document).ready(function() {
-        let opportunityId = null
         initTableGrid1(opportunityId)
 
         $('#MitraList').select2({
@@ -96,9 +96,11 @@ $Saya =  Auth::user()->username;
 
         $('#MitraList').on('select2:select', function(e) {
             var data = e.params.data;
-            console.log('Selected:', data);
+
 
             initTableGrid1(data.opportunityId)
+            opportunityId = data.opportunityId
+            console.log('Selected:', opportunityId);
         });
 
         $('#MitraList').on('select2:unselect', function(e) {
@@ -107,10 +109,18 @@ $Saya =  Auth::user()->username;
 
     })
 
+    function redirectToCapexForm() {
+        if (!opportunityId) {
+            alert('silahkan pilih mitra terlebih dahulu')
+            return
+        }
+        window.location.href = `partner-capex-create?id=${opportunityId}`
+    }
+
     function initTableGrid1(opportunityId) {
         TableGrid1 = new dhtmlXGridObject('TableGrid1');
         TableGrid1.setImagePath("./dhtmlx/imgs/");
-        TableGrid1.setHeader("No, Nama Lengkap, Deskripsi, Jumlah, Total");
+        TableGrid1.setHeader("No,  Deskripsi,  Total");
         TableGrid1.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
         // TableGrid1.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
         TableGrid1.setInitWidths("60,100,150,200,100");

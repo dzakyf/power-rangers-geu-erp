@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\NotificationService;
 use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -11,10 +12,12 @@ use Illuminate\Support\Facades\DB;
 class NotificationController extends Controller
 {
     protected $userService;
+    protected $notificationService;
 
-    public function __construct(UserService $u)
+    public function __construct(UserService $u, NotificationService $n)
     {
         $this->userService = $u;
+        $this->notificationService = $n;
     }
 
     public function getAll()
@@ -53,8 +56,23 @@ class NotificationController extends Controller
     public function reminderContractExpiration()
     {
         $remindAt = Carbon::now()->addMonths(3)->toDateString();
-        $all = DB::table('opportunity_partner')->select('*')->whereDate('contract_end_at', '=', $remindAt);
+        $all = DB::table('opportunity_partner')->select('*')->whereDate('contract_end_at', '=', $remindAt)->get();
 
-        return response()->json(['message' => 'under development']);
+        foreach ($all as $d) {
+            $this->notificationService->makeNotification("Reminder Membership", "Pemberitahuan bahwa masa aktif membership anda: $d->full_name tersisa 3 bulan lagi.", "membership");
+        }
+
+        return response()->json(['message' => 'success']);
+    }
+
+    public function sendRoyaltyNotification(Request $r)
+    {
+
+        $month = Carbon::now()->format('m');
+        $now = Carbon::now();
+
+        $this->notificationService->makeNotification("Pembayaran Bagi Hasil Berhasil", "Pembayaran bagi hasil untuk periode $month telah berhasil ditransfer.Nominal: Rp XXXXX, Tanggal Transfer: $now, Silakan cek bukti transfer pada menu riwayat pembayaran.", "membership");
+
+        return response()->json(['message' => 'success']);
     }
 }

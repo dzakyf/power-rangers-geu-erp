@@ -94,6 +94,7 @@
                     @foreach ($pecah as $isi)
                     <th width="10%">{{ ucfirst($isi) }}</th>
                     @endforeach
+                    <th width="10%">Kategori</th>
                     <th width="25%">Catatan</th>
                 </tr>
             </thead>
@@ -105,8 +106,15 @@
                     <td>{{ $loop->iteration }}</td>
                     <td>{{ $value->parameter }}</td>
                     @foreach ($pecah as $isi)
-                    <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg" name="{{ $value->parameter_id }}" value="{{ $isi }}"></td>
+                    <td style="vertical-align: middle;" class="text-center"><input type="radio" class="radio-lg catTemuan" name="{{ $value->parameter_id }}" value="{{ $isi }}"></td>
                     @endforeach
+                    <td>
+                        <select name="{{ $value->parameter_id }}_category" id="{{ $value->parameter_id }}_category" class="form-control" disabled>
+                            <option value="minor">minor</option>
+                            <option value="major">major</option>
+                            <option value="critical">critical</option>
+                        </select>
+                    </td>
                     <td><input class="form-control" name="{{$value->parameter_id}}_note" autocomplete="false" id="{{$value->parameter_id}}_note" /></td>
                 </tr>
                 @endforeach
@@ -123,27 +131,19 @@
         <label>Kategori Temuan</label><br>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan1" value="ringan">
-        <label class="form-check-label" for="kategori_temuan1">Ringan</label>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan1" value="Baik">
+        <label class="form-check-label" for="kategori_temuan1">Baik</label>
         </div>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan2" value="sedang">
-        <label class="form-check-label" for="kategori_temuan2">Sedang</label>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan2" value="Perlu Perbaikan">
+        <label class="form-check-label" for="kategori_temuan2">Perlu Perbaikan</label>
         </div>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan3" value="berat">
-        <label class="form-check-label" for="kategori_temuan3">Berat</label>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan3" value="Perlu Tindakan Khusus">
+        <label class="form-check-label" for="kategori_temuan3">Perlu Tindakan Khusus</label>
         </div>
-        
-        <div id="divTemuan" class="my-3" style="display:none;">
-            <label for="">Detail temuan</label> <br>
-            <select name="detail_temuan" id="detail_temuan" class="form-control w-75">
-                <option value=""> -- Pilih Temuan --</option>
-            </select>
-        </div>
-
 
         <!-- H -->
         <div class="section-title">H. Dokumentasi</div>
@@ -230,6 +230,15 @@
 <script src="{{ asset('jquery.coolautosuggest.js') }}"></script>
 <script src="{{ asset('jquery.coolfieldset.js') }}"></script>
 <script>
+    $('.catTemuan').on('change', function() {
+        let name = $(this).attr('name');
+        let value = $(this).val();
+        if (value != 'sesuai' && value != 'baik' && value != 'ada') {
+            $(`#${name}_category`).prop('disabled', false);
+        }else {
+            $(`#${name}_category`).prop('disabled', true);
+        }
+    })
 	var vaultFoto_lokasi_path = new dhx.Vault("foto_lokasi_paths", {
 		uploader: {
 			target: "upload-receiveinvoice.php"

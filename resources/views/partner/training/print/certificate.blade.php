@@ -53,6 +53,12 @@
         <div style="position: absolute;left: calc(13.5cm - 0.333333 * {{strlen($certificate->participant_name)}} * 1cm);top:8cm;font-size:52pt;color:#a7852c" class="pinyon-script-regular">{{ ucfirst(strtolower($certificate->participant_name)) }}</div>
         <div style="position: absolute;left: calc(15.5cm - 0.333333 * 11 * 1cm);top:10.2cm;font-size:21pt;color:#a7852c" class="noto-serif">PARTICIPANT</div>
         <div style="position: absolute;left: calc(9.5cm - 0.333333 * 11 * 1cm);top:11.5cm;font-size:10.3pt;color:#554415;max-width:17cm;text-align:center" class="noto-serif">Has completed the “{{ $training->training_name }}” training held on {{ $date }}. {{ $training->training_coverage != '' ? "This training covered " . $training->training_coverage : '' }}</div>
+        <div style="position: absolute;left: calc(5cm - 0.333333 * {{strlen($certificate->signature1_name)}} * 1cm);top:16cm;font-size:19pt;color:#a7852c" class="noto-serif">{{ $signature->signature1_name ?? '' }}</div>
+        <div style="position: absolute;left: calc(12.6cm - 0.333333 * {{strlen($certificate->signature2_name)}} * 1cm);top:16cm;font-size:19pt;color:#a7852c" class="noto-serif">{{ $signature->signature2_name ?? '' }}</div>
+        <div style="position: absolute;left: calc(20cm - 0.333333 * {{strlen($certificate->signature3_name)}} * 1cm);top:16cm;font-size:19pt;color:#a7852c" class="noto-serif">{{ $signature->signature3_name ?? '' }}</div>
+        <div style="position: absolute;left: calc(13cm - 0.333333 * {{strlen($certificate->signature1_position ?? '')}} * 1cm);top:17cm;font-size:16pt;color:#554415;max-width:17cm;text-align:center;font-style: italic;" class="noto-serif"> {{ $signature->signature1_position ?? '' }}</div>
+        <div style="position: absolute;left: calc(5cm - 0.333333 * {{strlen($certificate->signature2_position ?? '')}} * 1cm);top:17cm;font-size:16pt;color:#554415;max-width:17cm;text-align:center;font-style: italic;" class="noto-serif"> {{ $signature->signature2_position ?? '' }}</div>
+        <div style="position: absolute;left: calc(20cm - 0.333333 * {{strlen($certificate->signature3_position ?? '')}} * 1cm);top:17cm;font-size:16pt;color:#554415;max-width:17cm;text-align:center;font-style: italic;" class="noto-serif"> {{ $signature->signature3_position ?? '' }}</div>
     </div>
 </body>
 <script>
@@ -71,6 +77,6 @@
 
     head.appendChild(style);
 
-    window.print();
+    // window.print();
 </script>
 </html>
