@@ -21,6 +21,27 @@ $Saya =  Auth::user()->username;
                         <input type="text" name="material_name" id="material_name" class="form-control" value="">
                     </div>
                 </div>
+                <div class="col-md-12 mb-3">
+                    <div class="form-group">
+                        <label for="material_category">Kategori Materi</label>
+						<select name="material_category" id="material_category" class="form-control">
+							<option value="Training">Training</option>
+							<option value="Umum">Umum</option>
+							<option value="News">News</option>
+						</select>
+                    </div>
+                </div>
+                <div class="col-md-12 mb-3">
+                    <div class="form-group">
+                        <label for="material_link">Link</label> <br>
+                        <input type="text" name="material_link" id="material_link" class="form-control" value="">
+                    </div>
+                </div>
+				<div class="col-12 mb-3">
+					<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">ATTACHMENT</div>
+					<div id="material_attachments" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
+					<input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="material_attachment" />
+				</div>
                 <div class="col-md-6 mb-3">
                     <div class="form-group">
                         <label for="material_download">Dapat di download</label> <br>
@@ -48,6 +69,44 @@ $Saya =  Auth::user()->username;
 <div id="divlistOpportunityDetail"></div>
 
 <script>    
+	var vaultMaterial_attachment = new dhx.Vault("material_attachments", {
+		uploader: {
+			target: "upload-receiveinvoice.php"
+		},
+		filesLimit: 1
+
+	});
+
+	vaultMaterial_attachment.events.on("uploadComplete", function(obj) {
+		console.log("upload complete")
+		$("#material_attachment").val(obj[0].name);
+	});
+
+	vaultMaterial_attachment.events.on("uploadBegin", function(obj) {
+		console.log("upload begin")
+		$("#material_attachment").val("");
+
+	});
+	vaultMaterial_attachment.events.on("beforeAdd", function(fileItem) {
+		if (vaultMaterial_attachment.data.getLength() >= 1) {
+			alert('Only can upload 1 file per checkpoint.');
+			return false;
+		}
+	});
+
+
+	vaultMaterial_attachment.events.on("beforeAdd", function(item) {
+		var extension = item.file.name.split(".").pop().toLowerCase();
+
+		var allowed = ["pdf","jpg","jpeg","png","gif","webp"];
+
+		var predicate = allowed.includes(extension);
+
+		if (!predicate) {
+			dhtmlx.alert("Hanya boleh mengupload file PDF atau gambar (JPG, PNG, GIF, WEBP)");
+		}
+		return predicate;
+	});
 	MasterMaterialUser = new dhtmlXGridObject('MasterMaterialUser');
 	MasterMaterialUser.setImagePath("./dhtmlx/imgs/");
 	MasterMaterialUser.setHeader("No,checklist, Nama, Posisi, Department");

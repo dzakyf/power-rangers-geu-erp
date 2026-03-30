@@ -61,8 +61,21 @@ class MarketingController extends Controller
         return view('partner.branding.monitoring-create');
     }
 
-    public function getMarketingData()
+    public function selectMarketingData(Request $r)
     {
+        $q = $r->query();
+
+        if (!empty($q['marketing_id'])) {
+            return $this->getMarketingDataById($r);
+        }
+
+        return $this->getMarketingData($r);
+    }
+
+    public function getMarketingData(Request $r)
+    {
+
+        $q = $r->query();
 
         $d = DB::table('branding_marketing as m')->select('m.*', 'm.Description as Marketing_Desc', 'm.Created_At as Marketing_Created_At', 'mf.*')
             ->leftJoin('meta_files as mf', 'mf.Map_To', '=', 'm.ID')
@@ -83,6 +96,43 @@ class MarketingController extends Controller
             $row->addChild('cell', $d->Marketing_Desc);
             $row->addChild('cell', $d->Status);
             $row->addChild('cell', $d->Marketing_Created_At);
+            $row->addChild('cell', $d->Media_Url);
+            $count++;
+        }
+
+        return response()->make($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
+
+    public function getMarketingDataById(Request $r)
+    {
+        $q = $r->query();
+
+        // dd($q);
+
+        $d = DB::table('branding_marketing as m')->select('m.*', 'm.ID as Marketing_Id', 'm.Description as Marketing_Desc', 'm.Created_At as Marketing_Created_At', 'mf.ID as File_Id')
+            ->leftJoin('meta_files as mf', 'mf.Map_To', '=', 'm.ID')
+            ->where('m.ID', '=', $q['marketing_id'])
+            ->get();
+
+
+        $xml = new SimpleXMLElement('<rows></rows>');
+
+        $count = 1;
+        foreach ($d as $d) {
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $d->ID);
+            $row->addChild('cell', $count);
+            $row->addChild('cell', $d->Code);
+            $row->addChild('cell', $d->Name);
+            $row->addChild('cell', $d->Type);
+            $row->addChild('cell', $d->Platform);
+            $row->addChild('cell', $d->Channel);
+            $row->addChild('cell', $d->Marketing_Desc);
+            $row->addChild('cell', $d->Status);
+            $row->addChild('cell', $d->Marketing_Created_At);
+            $row->addChild('cell', $d->Media_Url);
             $count++;
         }
 
@@ -156,6 +206,8 @@ class MarketingController extends Controller
     }
 
 
+
+
     public function submitMarketing(Request $r)
     {
         $b = $r->all();
@@ -170,8 +222,8 @@ class MarketingController extends Controller
             "Channel" => $b['channel'],
             "Description" => $b['description'],
             "Status" => $b['status'],
+            "Media_Url" => $b['media_url']
         ]);
-
 
         $path = $file->store("$this->year/$this->month", 'public');
         $ext = $file->getClientOriginalExtension();

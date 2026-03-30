@@ -62,7 +62,7 @@ $Saya =  Auth::user()->username;
 	}
 	MasterMaterial = new dhtmlXGridObject('MasterMaterial');
 	MasterMaterial.setImagePath("./dhtmlx/imgs/");
-	MasterMaterial.setHeader("No,No Materi, Nama Materi, Pembicara, Dapat Didownload, Dapat dilihat, Attachment, Status, Dibuat oleh");
+	MasterMaterial.setHeader("No,No Materi, Nama Materi, Kategori, Dapat Didownload, Dapat dilihat, Attachment, Status, Dibuat oleh");
 	MasterMaterial.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// MasterMaterial.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	MasterMaterial.setInitWidths("60,100,150,200,100,100,100,100,auto");

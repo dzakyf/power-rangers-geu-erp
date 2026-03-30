@@ -238,7 +238,7 @@ class TrainingController extends Controller
     public function approvalTrainingDetail(Request $request)
     {
         $master = MasterTraining::where("training_no", $request->training_no)->first();
-        $masterMaterial = MasterMaterial::where("material_status", 'OPEN')->get();
+        $masterMaterial = MasterMaterial::where("material_status", 'OPEN')->where('material_category', 'Training')->get();
         return view('partner.training.approval-detail', compact('master', 'masterMaterial'));
     }
 
@@ -284,7 +284,7 @@ class TrainingController extends Controller
         }
         $nomor = 1;
 
-        $get = MasterMaterial::where('material_status', 'OPEN')->get();
+        $get = MasterMaterial::where('material_status', 'OPEN')->where('material_category', 'Training')->get();
         
         foreach ($get as $key => $Fetch) {
             $speakers = $users;
@@ -989,6 +989,245 @@ class TrainingController extends Controller
     {
         $certificate = TrainingApplication::where("id", $request->Task)->first();
         $training = Training::where('id', $certificate->training_id)->first();
-        return view('partner.training.print.certificate', compact('certificate', 'training'));
+        $signature = DB::table('certificate_signature')->first();
+        return view('partner.training.print.certificate', compact('certificate', 'training', 'signature'));
+    }
+
+    public function certificateMentorTraining(Request $request)
+    {
+        return view('partner.training.certificate-mentor');
+    }
+
+    public function certificateMentorTrainingXml()
+    {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+        echo "<rows>";
+        $priv = auth()->user()->Priv_ID;
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+        }
+        $nomor = 1;
+
+        $get = TrainingMaterial::where('training_id', '!=', null)->orderBy('created_date', 'desc');
+        $get = $get->get();
+        
+        foreach ($get as $key => $Fetchx) {
+            $Fetch = Training::where('id', $Fetchx->training_id)->first();
+            $date = date('d F Y', strtotime($Fetch->training_date_from));
+            if ($Fetch->training_date_day > 1) {
+                $date .= " - " . date('d F Y', strtotime($Fetch->training_date_to));
+            }
+            $name = $usname[$Fetch->created_by];
+            echo "<row id=\"$Fetchx->id\">";
+            echo "<cell>$nomor</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->training_name) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetchx->material_speaker]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($date) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->training_fee) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->status) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->created_date) . "</cell>";
+            echo "<cell>" . htmlspecialchars($name) . "</cell>";
+            echo "</row>";
+
+            $nomor++;
+        }
+
+        echo "</rows>";
+    }
+    
+    public function certificateMentorTrainingPrint(Request $request)
+    {
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+        }
+        $certificate = TrainingMaterial::where("id", $request->Task)->first();
+        $training = Training::where('id', $certificate->training_id)->first();
+        $signature = DB::table('certificate_signature')->first();
+        return view('partner.training.print.certificate-mentor', compact('certificate', 'training', 'signature','usname'));
+    }
+
+    public function certificateTrainingSignature()
+    {
+        $sign = DB::table('certificate_signature')->first();
+        return view('partner.training.certificate-signature', compact('sign'));
+    }
+
+    public function certificateTrainingSignatureSubmit(Request $request)
+    {
+        $cek = DB::table('certificate_signature')->first();
+        if (!$cek) {
+            DB::table('certificate_signature')->insert([
+                'signature1_name' => $request->signature1_name,
+                'signature1_position' => $request->signature1_position,
+                'signature2_name' => $request->signature2_name,
+                'signature2_position' => $request->signature2_position,
+                'signature3_name' => $request->signature3_name,
+                'signature3_position' => $request->signature3_position,
+                'created_by' => auth()->user()->username,
+                'created_date' => now(),
+            ]);
+        }else {
+            DB::table('certificate_signature')->where('id', $cek->id)->update([
+                'signature1_name' => $request->signature1_name,
+                'signature1_position' => $request->signature1_position,
+                'signature2_name' => $request->signature2_name,
+                'signature2_position' => $request->signature2_position,
+                'signature3_name' => $request->signature3_name,
+                'signature3_position' => $request->signature3_position,
+                'updated_by' => auth()->user()->username,
+                'updated_date' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+        ]);
+    }
+
+    public function libraryTraining()
+    {
+        return view('partner.training.library');
+    }
+
+    public function libraryTrainingXml()
+    {
+        /*
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+    */
+        echo "<rows>";
+        $priv = auth()->user()->Priv_ID;
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+        }
+        $nomor = 1;
+
+        $training = TrainingAttendance::where('participant', auth()->user()->username)->where('attendance', 1)->get()->pluck('training_no');
+        $material = TrainingMaterial::whereIn('training_no', $training)->get()->pluck('material_no');
+
+        $get = MasterMaterial::where('material_status', "OPEN")->where(function($q) use($material) {
+            $q->whereIn('material_no', $material)->orWhereIn('material_category', ['Umum', 'News']);
+        })->orderBy('created_date', 'desc')->get();
+        
+        foreach ($get as $key => $Fetch) {
+            $link = $Fetch->material_attachment;
+            if ($link == '') {
+                $link = $Fetch->material_link;
+            }
+            $name = $usname[$Fetch->created_by];
+            echo "<row id=\"$Fetch->id||$link\">";
+            echo "<cell>$nomor</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->material_no) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->material_name) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->material_category) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->material_view ? $link : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->material_download ? 'Download' : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($name) . "</cell>";
+            echo "</row>";
+
+            $nomor++;
+        }
+
+        echo "</rows>";
+    }
+
+    public function reportMitraTraining()
+    {
+        return view('partner.training.report-mitra');
+    }
+
+    public function reportMitraTrainingXml()
+    {
+        /*
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        */
+
+        echo "<rows>";
+        $priv = auth()->user()->Priv_ID;
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+            $users[] = $value->username;
+        }
+        $nomor = 1;
+
+        $get = Training::orderBy('training_date_from', 'DESC')->where('target','mitra');
+        $get = $get->get();
+        
+        foreach ($get as $key => $Fetch) {
+            $date = date('d F Y', strtotime($Fetch->training_date_from));
+            if ($Fetch->training_date_from != $Fetch->training_date_to) {
+                $date .= " - " . date('d F Y', strtotime($Fetch->training_date_to));
+            }
+            $time = "Full Day";
+            if ($Fetch->training_time_from != null) {
+                $time = date('H:i', strtotime($Fetch->training_time_from)) . " - " . date('H:i', strtotime($Fetch->training_time_to));
+            }
+            $warna = "";
+            $status = "OPEN";
+            if ($Fetch->training_date_from <= date("Y-m-d") && $Fetch->training_date_to >= date("Y-m-d")) {
+                $warna = 'style="background-color:#F7C85C"';
+                $status = "ON PROGRESS";
+            }else if($Fetch->training_date_to < date("Y-m-d")) {
+                $warna = 'style="background-color:#7FB77E"';
+                $status = "DONE";
+            }
+            // $participantSatisfication = TrainingSatisfication::where('training_id', $Fetch->id)->where('training_no', $Fetch->training_no)->where('type', 'participant')->first();
+            $avgParticipantSatisfication = TrainingSatisficationDtl::whereIn('satisfication_no', function($q) use($Fetch) {
+                $q->select('satisfication_no')->from('training_satisfication')->where('training_id', $Fetch->id)->where('training_no', $Fetch->training_no)->where('type', 'participant');
+            })->avg('satisfication_score');
+
+            // $managerSatisfication = TrainingSatisfication::where('training_id', $Fetch->id)->where('training_no', $Fetch->training_no)->where('type', 'manager')->first();
+            $avgManagerSatisfication = TrainingSatisficationDtl::whereIn('satisfication_no', function($q) use($Fetch) {
+                $q->select('satisfication_no')->from('training_satisfication')->where('training_id', $Fetch->id)->where('training_no', $Fetch->training_no)->where('type', 'manager');
+            })->avg('satisfication_score');
+
+            $speakers = TrainingMaterial::where('training_id', $Fetch->id)->get()->pluck('material_speaker')->unique()->filter()->values();
+            $speakersText = "";
+            foreach ($speakers as $kunci => $value) {
+                $speakersText  .= htmlspecialchars($usname[$value]) . ($kunci < count($speakers) - 1 ? ", " : "");
+            }
+            // $speakerText = implode(", ", $speakers);
+
+            echo "<row id=\"$Fetch->id\">";
+            echo "<cell $warna>$nomor</cell>";
+            echo "<cell $warna>" . htmlspecialchars($Fetch->training_name) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($date) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($time) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($speakersText) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($Fetch->training_fee) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($Fetch->method) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($Fetch->address) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars(round($avgParticipantSatisfication, 0)) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars(round($avgManagerSatisfication, 0)) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($Fetch->created_date) . "</cell>";
+            echo "</row>";
+
+            $nomor++;
+        }
+
+        echo "</rows>";
     }
 }

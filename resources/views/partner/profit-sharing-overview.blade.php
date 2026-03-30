@@ -14,10 +14,6 @@ $Saya =  Auth::user()->username;
 		<div class="card-body">
 		<div>
 			<input type="text" id="date_filter" name="date_filter" value="{{ date('Y') }}" size="10" readonly>
-			<select name="type" id="type">
-				<option value="booth">booth</option>
-				<option value="mobil">mobil</option>
-			</select>
 			<button class="btn btn-success" onclick="refreshdataDetail()">Refresh</button>
 		</div>
         <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">DASHBOARD PROFIT SHARING</div>
@@ -56,6 +52,7 @@ $Saya =  Auth::user()->username;
 	refreshdataDetail();
 
 	function refreshdataDetail() {
-		ProfitSharingDetailDashboard.clearAndLoad('xml-partner-profit-sharing-dashboard?date=' + $('#date_filter').val() + "&type=" + $('#type').val() + '&mitra={{$user}}');
+		let type = "{{ strtolower($_GET['type']) ?? 'booth' }}";
+		ProfitSharingDetailDashboard.clearAndLoad('xml-partner-profit-sharing-overview?date=' + $('#date_filter').val() + "&type=" + type + '&mitra={{$user}}');
 	}
 </script>

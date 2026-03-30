@@ -4583,7 +4583,16 @@ Route::group(['middleware' => 'auth'], function () {
     /** audit category route */
     $masterAuditPref = "partner-master-audit";
     Route::get("$masterAuditPref-category", [PartnerMasterAuditController::class, 'indexMasterAuditCategory']);
+    Route::get("$masterAuditPref-category-new", [PartnerMasterAuditController::class, 'newMasterAuditCategory']);
+    Route::post("$masterAuditPref-category-new-submit", [PartnerMasterAuditController::class, 'newMasterAuditCategorySubmit']);
+    Route::get("$masterAuditPref-category-detail", [PartnerMasterAuditController::class, 'detailMasterAuditCategory']);
     Route::get("xml-$masterAuditPref-category", [PartnerMasterAuditController::class, 'indexMasterAuditCategoryXml']);
+    Route::get("$masterAuditPref-parameter", [PartnerMasterAuditController::class, 'indexMasterAuditParameter']);
+    Route::get("xml-$masterAuditPref-parameter", [PartnerMasterAuditController::class, 'indexMasterAuditParameterXml']);
+    Route::get("$masterAuditPref-parameter-new", [PartnerMasterAuditController::class, 'newMasterAuditParameter']);
+    Route::post("$masterAuditPref-parameter-new-submit", [PartnerMasterAuditController::class, 'newMasterAuditParameterSubmit']);
+    Route::get("$masterAuditPref-parameter-detail", [PartnerMasterAuditController::class, 'detailMasterAuditParameter']);
+    Route::post("$masterAuditPref-parameter-detail-submit", [PartnerMasterAuditController::class, 'newMasterAuditParameterSubmit']);
 
     /** sop compliance route */
     $sopPref = "partner-master-sop";
@@ -4686,9 +4695,13 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$profitSharingPref-overview2", [PartnerProfitSharingController::class, 'indexProfitSharingOverview2Xml']);
     Route::get("$profitSharingPref-management-fee", [PartnerProfitSharingController::class, 'indexProfitSharingManagementFee']);
     Route::get("xml-$profitSharingPref-management-fee", [PartnerProfitSharingController::class, 'indexProfitSharingManagementFeeXml']);
-    
+
     Route::get("$profitSharingPref-mitra-monthly", [PartnerProfitSharingController::class, 'monthlyMitraprofitSharing']);
     Route::get("$profitSharingPref-mitra-annually", [PartnerProfitSharingController::class, 'annuallyMitraprofitSharing']);
+
+    Route::get("$profitSharingPref-overview-mitra", [PartnerProfitSharingController::class, 'indexOverviewMitraProfitSharing']);
+    Route::get("xml-$profitSharingPref-overview-mitra", [PartnerProfitSharingController::class, 'indexOverviewMitraProfitSharingXml']);
+    Route::get("$profitSharingPref-overview-detail", [PartnerProfitSharingController::class, 'detailOverviewMitraProfitSharing']);
 
     Route::get("$profitSharingPref-data", [PartnerProfitSharingController::class, 'getProfitSharingApprovalData']);
     Route::get("$profitSharingPref-data-log", [PartnerProfitSharingController::class, 'getProfitSharingApprovalDataLog']);
@@ -4699,6 +4712,11 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$profitSharingPref-approve", [ApprovalController::class, 'processProfitSharingToNextProgress']);
     Route::post("$profitSharingPref-preview-application", [PartnerProfitSharingController::class, 'previewProfitSharingApplication']);
     Route::post("$profitSharingPref-submit-application", [PartnerProfitSharingController::class, 'finalizeProfitSharingApplication']);
+
+    Route::get("$profitSharingPref-royalty-index", [PartnerProfitSharingController::class, 'indexRoyaltyPayment']);
+    Route::get("$profitSharingPref-royalty-data", [PartnerProfitSharingController::class, 'getRoyaltyPaymentData']);
+    // Route::post("$profitSharingPref-royalty-submit", [PartnerProfitSharingController::class, 'submitRoyaltyPayment']);
+    // Route::post("$profitSharingPref-send-notification", [NotificationController::class, 'sendRoyaltyNotification']);
 
     /**master data route */
     $partner = "partner";
@@ -4792,6 +4810,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$masterMaterialPref-user", [PartnerMasterMaterialController::class, 'userMaterialXml']);
     Route::post("$masterMaterialPref-new-submit", [PartnerMasterMaterialController::class, 'newMaterialSubmit']);
     Route::get("$masterMaterialPref-detail", [PartnerMasterMaterialController::class, 'detailMaterial']);
+    Route::get("xml-$masterMaterialPref-detail-user", [PartnerMasterMaterialController::class, 'detailMaterialXml']);
+    Route::post("$masterMaterialPref-detail-submit", [PartnerMasterMaterialController::class, 'detailMaterialSubmit']);
+    Route::get("$masterMaterialPref-detail", [PartnerMasterMaterialController::class, 'detailMaterial']);
     Route::post("$masterMaterialPref-detail-submit", [PartnerMasterMaterialController::class, 'detailMaterialSubmit']);
 
     $masterSatisficationPref = "partner-master-satisfication";
@@ -4834,9 +4855,18 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$trainingPref-satisfication-manager-new", [PartnerTrainingController::class, 'satisficationManagerTrainingNew']);
     Route::post("$trainingPref-satisfication-manager-new-submit", [PartnerTrainingController::class, 'satisficationManagerTrainingNewSubmit']);
     Route::get("$trainingPref-satisfication-manager-detail", [PartnerTrainingController::class, 'satisficationManagerTrainingDetail']);
+    Route::get("$trainingPref-certificate-signature", [PartnerTrainingController::class, 'certificateTrainingSignature']);
+    Route::post("$trainingPref-certificate-signature-submit", [PartnerTrainingController::class, 'certificateTrainingSignatureSubmit']);
     Route::get("$trainingPref-certificate", [PartnerTrainingController::class, 'certificateTraining']);
     Route::get("xml-$trainingPref-certificate", [PartnerTrainingController::class, 'certificateTrainingXml']);
     Route::get("$trainingPref-certificate-print", [PartnerTrainingController::class, 'certificateTrainingPrint']);
+    Route::get("$trainingPref-certificate-mentor", [PartnerTrainingController::class, 'certificateMentorTraining']);
+    Route::get("xml-$trainingPref-certificate-mentor", [PartnerTrainingController::class, 'certificateMentorTrainingXml']);
+    Route::get("$trainingPref-certificate-mentor-print", [PartnerTrainingController::class, 'certificateMentorTrainingPrint']);
+    Route::get("$trainingPref-library", [PartnerTrainingController::class, 'libraryTraining']);
+    Route::get("xml-$trainingPref-library", [PartnerTrainingController::class, 'libraryTrainingXml']);
+    Route::get("$trainingPref-report-mitra", [PartnerTrainingController::class, 'reportMitraTraining']);
+    Route::get("xml-$trainingPref-report-mitra", [PartnerTrainingController::class, 'reportMitraTrainingXml']);
 
 
     /** Marketing & Branding */
@@ -4846,7 +4876,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$marketingPrefs-marketing-recap-index", [MarketingController::class, 'indexMarketingRecap']);
 
     Route::get("$marketingPrefs-promotion-index", [MarketingController::class, 'indexPromotion']);
-    Route::get("$marketingPrefs-marketing-data", [MarketingController::class, 'getMarketingData']);
+    Route::get("$marketingPrefs-marketing-data", [MarketingController::class, 'selectMarketingData']);
     Route::get("$marketingPrefs-promotion-data", [MarketingController::class, 'getPromotionData']);
     Route::get("$marketingPrefs-marketing-create", [MarketingController::class, 'createMarketingData']);
     Route::post("$marketingPrefs-marketing-submit", [MarketingController::class, 'submitMarketing']);
@@ -4865,9 +4895,13 @@ Route::group(['middleware' => 'auth'], function () {
 
     $partnerCompliance = "partner-compliance";
     Route::get("$partnerCompliance-tax-index", [ComplianceController::class, 'indexTax']);
+    Route::post("$partnerCompliance-tax-update", [ComplianceController::class, 'updateTaxCompliance']);
     Route::get("$partnerCompliance-legal-index", [ComplianceController::class, 'indexLegal']);
-    Route::get("$partnerCompliance-tax-data", [ComplianceController::class, 'getTaxComplianceData']);
+    Route::get("$partnerCompliance-tax-data", [ComplianceController::class, 'selectTaxComplianceData']);
     Route::get("$partnerCompliance-legal-data", [ComplianceController::class, 'getLegalComplianceData']);
+    Route::post("$partnerCompliance-legal-submit", [ComplianceController::class, 'inputLegalCompliance']);
+    Route::get("$partnerCompliance-legal-create", [ComplianceController::class, 'createLegalCompliance']);
+
 
 
     Route::get("partner-uco-inbound-timbang", function () {

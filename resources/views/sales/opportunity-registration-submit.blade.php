@@ -87,7 +87,16 @@ try {
         $data['q' . $i] = request()->input('Q' . $i);
     }
 
-    $data['package_option'] = request()->input('Package');
+    $packageMapper = [
+        "option1" => 'mobil',
+        "option2" => 'booth'
+    ];
+
+    $package = (!empty($packageInput) && isset($packageMapper[$packageInput]))
+        ? $packageMapper[$packageInput]
+        : null;
+
+    $data['package_option'] = $package;
     $data['supporting_documents'] = json_encode(array_filter([request()->input('Doc_KTP'), request()->input('Doc_NPWP'), request()->input('Doc_Others')]));
 
     // Company-specific

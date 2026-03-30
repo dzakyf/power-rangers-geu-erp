@@ -23,7 +23,7 @@
             <div>
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
 
-                <!-- <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" /> -->
+                <input type="button" id="createLegal" name="createLegal" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateLegal()" />
                 <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
             </div>
         </div>
@@ -37,12 +37,12 @@
         initTableGrid1()
     })
 
-    function redirectToCreateApplication() {
-        window.location.href = `partner-branding-marketing-create`
+    function redirectToCreateLegal() {
+        window.location.href = `partner-compliance-legal-create`
     }
 
     function initTableGrid1() {
-        let tHeader = ['No', 'Nama Dokumen', 'Keterangan']
+        let tHeader = ['No', 'Nama Dokumen', 'Keterangan', 'Link Download', 'Dibuat Pada']
 
         let tWidth = tHeader.map((e) => '200')
         let headerAttachment = [
@@ -54,14 +54,17 @@
         Grid1.setInitWidths(tWidth.join(','));
         // Grid1.enableAutoWidth(true);
         Grid1.attachHeader(headerAttachment);
-        Grid1.setColTypes(tHeader.map((e) => 'ro').join(','));
+        // Grid1.setColTypes(tHeader.map((e, i) => i === 3 ? 'link' : 'ro').join(','));
+        Grid1.setColTypes('ro,ro,ro,link,ro');
+
+
         // ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
         // ProjectionGrid.setColAlign("center,left,left,left,left");
         // ProjectionGrid.setColSorting("int,str,str,str,str");
         // ProjectionGrid.enableSmartRendering(true, 150);
         // ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
         // Grid1.enableAutoWidth(true);
-        // Grid1.attachEvent("onRowDblClicked", doubleClickMitra);
+        Grid1.attachEvent("onRowDblClicked", doubleClickMitra);
         Grid1.attachEvent("onRowSelect", selectMitra);
         Grid1.setSkin("dhx_skyblue");
         Grid1.init();
@@ -78,8 +81,14 @@
         $('#transfer_application_id').val(transferApplicationId)
     }
 
-    function doubleClickMitra() {
-        initDetailTableGrid1()
+    function doubleClickMitra(rowId, cellIndex) {
+        if (cellIndex === 3) {
+            let cellValue = Grid1.cells(rowId, cellIndex).getValue();
+            let url = cellValue;
+            if (url) {
+                window.open(url, '_blank');
+            }
+        }
     }
 
     $('#updateApplicationInfoForm').on('submit', function(e) {

@@ -125,47 +125,6 @@ class WarehouseAuditController extends Controller
 
         $details = MasterAuditParameter::get();
 
-        $nilai = [
-            'kondisi' => [
-                'sesuai' => 5,
-                'tidak' => 0
-            ],
-            'k3' =>  [
-                'sesuai' => 5,
-                'tidak' => 0
-            ],
-            'warna' =>  [
-                'baik' => 7.5,
-                'cukup' => 4,
-                'buruk' => 0
-            ],
-            'bau' =>  [
-                'baik' => 7.5,
-                'cukup' => 4,
-                'buruk' => 0
-            ],
-            'apd' =>  [
-                'ada' => 5,
-                'tidak' => 0
-            ],
-            'tumpahan' =>  [
-                'ada' => 5,
-                'tidak' => 0
-            ],
-            'apar' =>  [
-                'ada' => 5,
-                'tidak' => 0
-            ],
-            'rambu' =>  [
-                'ada' => 5,
-                'tidak' => 0
-            ],
-            'adm' =>  [
-                'sesuai' => 3.75,
-                'tidak' => 0
-            ],
-        ];
-        
         $r = $request->all();
 
         try{
@@ -210,29 +169,33 @@ class WarehouseAuditController extends Controller
                     'parameter' => $r[$detail->parameter_id],
                     'value' => $scoring,
                     'catatan' => $r[$detail->parameter_id.'_note'] ?? null,
+                    'kategori_temuan' => $r[$detail->parameter_id.'_category'] ?? '',
                     'created_by' => auth()->user()->username,
+                ]);
+
+                $task = "SOP/GEU/".date('Y')."/".sprintf('%05d', WarehousePartnerAuditCorretive::where('created_date', 'LIKE', date('Y').'%')->count() + 1);
+
+                $masterCorrective = MasterAuditTemuan::where('category', $r[$detail->parameter_id.'_category'])->first();
+                
+                WarehousePartnerAuditCorretive::create([
+                    'nomor_corrective' => $task,
+                    'nomor_audit' => $request->nomor_audit,
+                    'kategori_temuan' => $request->kategori_temuan,
+                    'ringkasan_temuan' => $request->ringkasan_temuan ?? '',
+                    'area_temuan' => $detail->category,
+                    'corrective_days' => $masterCorrective->ca_days,
+                    'parameter_id' => $detail->parameter_id,
+                    'parameter_note' => $r[$detail->parameter_id.'_category'] ?? null,
+                    'parameter_temuan' => $detail->parameter,
+                    'status' => 'CREATED',
+                    'created_by' => auth()->user()->username,
+                    'created_date' => now(),
                 ]);
 
             }
 
             WarehousePartnerAudit::where('id', $audit->id)->update([
                 'total_score' => $totalScoring,
-            ]);
-
-            $temuan = explode("||", $request->detail_temuan);
-
-            $masterCorrective = MasterAuditTemuan::where("area", $temuan[0])->where('parameter', $temuan[1])->first();
-
-            WarehousePartnerAuditCorretive::create([
-                'nomor_audit' => $request->nomor_audit,
-                'kategori_temuan' => $request->kategori_temuan,
-                'ringkasan_temuan' => $request->ringkasan_temuan ?? '',
-                'area_temuan' => $temuan[0],
-                'corrective_days' => $masterCorrective->ca_days,
-                'parameter_temuan' => $temuan[1],
-                'status' => 'CREATED',
-                'created_by' => auth()->user()->username,
-                'created_date' => now(),
             ]);
 
             DB::commit();

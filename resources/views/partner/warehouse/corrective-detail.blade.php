@@ -377,28 +377,18 @@
         <label>Kategori Temuan</label><br>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan1" value="ringan" {{ $getAudit->kategori_temuan == 'ringan' ? 'checked' : '' }} disabled>
-        <label class="form-check-label" for="kategori_temuan1">Ringan</label>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan1" value="baik" {{ $getAudit->kategori_temuan == 'baik' ? 'checked' : '' }} disabled>
+        <label class="form-check-label" for="kategori_temuan1">Baik</label>
         </div>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan2" value="sedang" {{ $getAudit->kategori_temuan == 'sedang' ? 'checked' : '' }} disabled>
-        <label class="form-check-label" for="kategori_temuan2">Sedang</label>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan2" value="perbaikan" {{ $getAudit->kategori_temuan == 'perbaikan' ? 'checked' : '' }} disabled>
+        <label class="form-check-label" for="kategori_temuan2">Perlu Perbaikan</label>
         </div>
 
         <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan3" value="berat" {{ $getAudit->kategori_temuan == 'berat' ? 'checked' : '' }} disabled>
-        <label class="form-check-label" for="kategori_temuan3">Berat</label>
-        </div>
-        
-        <div id="divTemuan" class="my-3" style="display:{{ $getAudit->area_temuan != '' ? 'block' : 'none' }};">
-            <label for="">Detail temuan</label> <br>
-            <select name="detail_temuan" id="detail_temuan" class="form-control w-75" disabled>
-                <option value=""> -- Pilih Temuan --</option>
-                @foreach ($masterTemuan as $item)
-                <option value="{{ $item->area . '||' . $item->parameter }}"{{$item->area . '||' . $item->parameter == $getAudit->area_temuan ? ' selected' : ''}}>{{ $item->area . ' - ' . $item->parameter }}</option>
-                @endforeach
-            </select>
+        <input class="form-check-input" type="radio" class="radio-lg" name="kategori_temuan" id="kategori_temuan3" value="tindakan" {{ $getAudit->kategori_temuan == 'tindakan' ? 'checked' : '' }} disabled>
+        <label class="form-check-label" for="kategori_temuan3">Perlu Tindakan Khusus</label>
         </div>
 
 
