@@ -58,8 +58,10 @@ class NotificationController extends Controller
         $remindAt = Carbon::now()->addMonths(3)->toDateString();
         $all = DB::table('opportunity_partner')->select('*')->whereDate('contract_end_at', '=', $remindAt)->get();
 
+        // dd($remindAt, $all);
+
         foreach ($all as $d) {
-            $this->notificationService->makeNotification("Reminder Membership", "Pemberitahuan bahwa masa aktif membership anda: $d->full_name tersisa 3 bulan lagi.", "membership");
+            $this->notificationService->makeNotification("Reminder Membership", "Pemberitahuan bahwa masa aktif membership anda: $d->full_name tersisa 3 bulan lagi.", "membership", null, $d->user_row_id);
         }
 
         return response()->json(['message' => 'success']);

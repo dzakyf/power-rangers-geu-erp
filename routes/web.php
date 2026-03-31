@@ -4715,6 +4715,7 @@ Route::group(['middleware' => 'auth'], function () {
 
     Route::get("$profitSharingPref-royalty-index", [PartnerProfitSharingController::class, 'indexRoyaltyPayment']);
     Route::get("$profitSharingPref-royalty-data", [PartnerProfitSharingController::class, 'getRoyaltyPaymentData']);
+    Route::post("$profitSharingPref-royalty-update", [PartnerProfitSharingController::class, 'updateRoyaltyPaymentData']);
     // Route::post("$profitSharingPref-royalty-submit", [PartnerProfitSharingController::class, 'submitRoyaltyPayment']);
     // Route::post("$profitSharingPref-send-notification", [NotificationController::class, 'sendRoyaltyNotification']);
 
@@ -4787,7 +4788,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$surveyPrefs-approval-index", [SurveyController::class, 'indexApprovalSurvey']);
     Route::get("$surveyPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);
     Route::get("$surveyPrefs-approval-data-log", [ApprovalController::class, 'getApprovalDataLog']);
-    Route::get("$surveyPrefs-approval-submit", [ApprovalController::class, 'processSurveyToNextProgress']);
+    Route::post("$surveyPrefs-approval-submit", [ApprovalController::class, 'processSurveyToNextProgress']);
 
     /** Perhitungan Valuasi */
     $valuationPrefs = "partner-valuation";
@@ -4796,6 +4797,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$valuationPrefs-detail", [PartnerValuationController::class, 'detailValuation']);
     Route::get("xml-$valuationPrefs-detail", [PartnerValuationController::class, 'detailValuationXml']);
     Route::get("xml-$valuationPrefs-detail-aggregate", [PartnerValuationController::class, 'detailAggregateValuationXml']);
+    Route::get("$valuationPrefs-summary", [PartnerValuationController::class, 'summaryValuation']);
+    Route::get("xml-$valuationPrefs-summary", [PartnerValuationController::class, 'summaryValuationXml']);
 
     /** Training (LMS) */
     $masterTrainingPref = "partner-master-training";
@@ -4867,6 +4870,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$trainingPref-library", [PartnerTrainingController::class, 'libraryTrainingXml']);
     Route::get("$trainingPref-report-mitra", [PartnerTrainingController::class, 'reportMitraTraining']);
     Route::get("xml-$trainingPref-report-mitra", [PartnerTrainingController::class, 'reportMitraTrainingXml']);
+    Route::get("$trainingPref-mail", [PartnerTrainingController::class, 'mailTraining']);
 
 
     /** Marketing & Branding */

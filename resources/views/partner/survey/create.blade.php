@@ -465,12 +465,15 @@ $Saya =  Auth::user()->username;
 
     const surveyorRecommendationData = [{
             status: "Layak",
+            value: "1"
         },
         {
-            status: "Layak Bersyarat"
+            status: "Layak Bersyarat",
+            value: "2"
         },
         {
             status: "Tidak Layak",
+            value: "3"
         },
 
     ];
@@ -488,12 +491,14 @@ $Saya =  Auth::user()->username;
             const sesuaiId = 'sesuai_' + index;
             const tidakId = 'tidak_' + index;
             const fileInputId = 'file_' + index;
-            const radioId = `H_p${index+1}_col${index+1}`
+            const radioId = `H_p1_col1`
             const val = index === 1 ? 1 : 0
+            const status = item.status
 
             html += '<tr id="' + rowId + '">';
             html += '    <td class="radio-group">';
-            html += '        <input type="radio" name="' + radioId + '" value="' + val + '" id="' + status + '">';
+            html += '<input type="radio" name="' + radioId + '" value="' + item.value + '" id="' + status + '">';
+            html += '<label for="' + status + '">' + status + '</label>';
             html += '    </td>';
             html += '</tr>';
         });

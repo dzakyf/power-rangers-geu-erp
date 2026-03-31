@@ -181,6 +181,7 @@ $saveDocumentUrl = $saveDocumentUrl ?? "/geu/hcga/public/partner-onboarding-subm
                 processData: false,
                 contentType: false,
                 success: function(response) {
+                    console.log(response)
                     showStatus('Document finalized!', 'success');
                 },
                 error: function(xhr) {

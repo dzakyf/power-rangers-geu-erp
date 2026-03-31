@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\UploadService;
+use App\Services\UserService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,10 +13,12 @@ use SimpleXMLElement;
 class SurveyController extends Controller
 {
     protected $uploadService;
+    protected $userService;
 
-    public function __construct(UploadService $up)
+    public function __construct(UploadService $up, UserService $us)
     {
         $this->uploadService = $up;
+        $this->userService = $us;
     }
 
     public function indexSurvey()
@@ -193,7 +196,8 @@ class SurveyController extends Controller
         $totalScore = $photo + $checklist + $environtment + $ucoEstimation;
 
 
-        $id = DB::table('survey_location')->insertGetId([
+        $surveyId = DB::table('survey_location')->insertGetId([
+            "Code" => "XXXX",
             "Province" => $b['Province'] ?? "",
             "City" => $b['City'],
             "District" => $b['District'],
@@ -203,7 +207,7 @@ class SurveyController extends Controller
             "Latitude" => $b['Latitude'],
             "Longitude" => $b['Longitude'],
             "Recommendation_Type" => $b['Recommendation_Type'] ?? "INTERNAL",
-            "Status" => $b['Status'] ?? "ACTIVE",
+            "Status" => "NEED_APPROVAL" ?? "ACTIVE",
             "Surveyor_Name" => $b['Surveyor_Name'],
             "Location_Owner_Name" => $b['Location_Owner_Name'],
             "Area" => $b['Area'],
@@ -257,6 +261,48 @@ class SurveyController extends Controller
         ]);
 
 
+        try {
+            // $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
+            $level = DB::table('approval_level')->select('*')->where('Level_Number', 1)->where('Request_Type', '=', 'SURVEY')->first();
+            $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'SURVEY')->first();
+
+            $session = $this->userService->getCurrentSessionUserInfo();
+
+            $result = DB::transaction(function () use ($surveyId, $session, $level, $nextLevel) {
+                $updated = DB::table('approval_request')
+                    ->insertGetId([
+                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
+                        'Description' => "Berhasil menuju tahap selanjutnya",
+                        'Current_Level' => 1,
+                        'Level_Id' => $nextLevel->ID,
+                        'Requester_Id' => $session->id,
+                        'Request_Type' => "survey",
+                        "Map_To" => $surveyId
+                    ]);
+                $logId = DB::table('approval_log')->insertGetId([
+                    'Approver_Id' => $session->id,
+                    'Notes' => "",
+                    'Action' =>  "APPROVED",
+                    'Level_Number' => $level->Level_Number,
+                    'Next_Level' =>  2,
+                    'Level_Id' => $level->ID,
+                    'Next_Level_Id' => $nextLevel->ID,
+                    'Request_Id' => $updated,
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'success',
+                'data' => $result
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction failed: ' . $e->getMessage()
+            ], 500);
+        }
+
         $uploadedFiles = [];
 
         $fileInputs = ['C_c1_File', 'C_c2_File', 'C_c3_File', 'C_c4_File'];
@@ -278,6 +324,7 @@ class SurveyController extends Controller
                 $this->uploadService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
             }
         }
+
         $analysisResult = "Tidak Diketahui";
 
         if ($totalScore >= 80 && $totalScore <= 100) {
@@ -287,10 +334,10 @@ class SurveyController extends Controller
         if ($totalScore >= 70 && $totalScore <= 79) {
             $analysisResult = "Layak Bersyarat";
         }
+
         if ($totalScore < 70) {
             $analysisResult = "Tidak Layak";
         }
-
 
 
         return response()->json(['message' => 'success', 'data' => [

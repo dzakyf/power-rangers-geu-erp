@@ -9,6 +9,7 @@ use App\MasterAuditTemuan;
 use App\User;
 use App\WarehousePartner;
 use App\WarehousePartnerAudit;
+use App\WarehousePartnerAuditCorrectiveDtl;
 use App\WarehousePartnerAuditCorretive;
 use App\WarehousePartnerAuditDtl;
 use Illuminate\Http\Request;
@@ -151,7 +152,23 @@ class WarehouseAuditController extends Controller
                 'area_temuan' => $request->detail_temuan,
             ]);
 
+            $task = "SOP/GEU/".date('Y')."/".sprintf('%05d', WarehousePartnerAuditCorretive::where('created_date', 'LIKE', date('Y').'%')->count() + 1);
+
+            $corrective = WarehousePartnerAuditCorretive::create([
+                'nomor_corrective' => $task,
+                'nomor_audit' => $request->nomor_audit,
+                'kategori_temuan' => $request->kategori_temuan,
+                'ringkasan_temuan' => $request->ringkasan_temuan ?? '',
+                'area_temuan' => $request->detail_temuan,
+                'status' => 'CREATED',
+                'created_by' => auth()->user()->username,
+                'created_date' => now(),
+            ]);
+
+            $totalCorrectiveScore = 0;
+            
             foreach($details as $detail){
+                $correctiveScore = 0;
                 $pecahList = explode(',', $detail->parameter_list);
                 $pecahScore = explode(',', $detail->parameter_score);
                 $scoreList = [];
@@ -173,11 +190,18 @@ class WarehouseAuditController extends Controller
                     'created_by' => auth()->user()->username,
                 ]);
 
-                $task = "SOP/GEU/".date('Y')."/".sprintf('%05d', WarehousePartnerAuditCorretive::where('created_date', 'LIKE', date('Y').'%')->count() + 1);
-
                 $masterCorrective = MasterAuditTemuan::where('category', $r[$detail->parameter_id.'_category'])->first();
+
                 
-                WarehousePartnerAuditCorretive::create([
+                if ($r[$detail->parameter_id.'_category'] == 'minor') {
+                    $correctiveScore = 1;
+                }else if($r[$detail->parameter_id.'_category'] == 'major') {
+                    $correctiveScore = 3;
+                }else if($r[$detail->parameter_id.'_category'] == 'critical') {
+                    $correctiveScore = 5;
+                }
+                
+                WarehousePartnerAuditCorrectiveDtl::create([
                     'nomor_corrective' => $task,
                     'nomor_audit' => $request->nomor_audit,
                     'kategori_temuan' => $request->kategori_temuan,
@@ -187,15 +211,21 @@ class WarehouseAuditController extends Controller
                     'parameter_id' => $detail->parameter_id,
                     'parameter_note' => $r[$detail->parameter_id.'_category'] ?? null,
                     'parameter_temuan' => $detail->parameter,
+                    'corrective_score' => $correctiveScore,
                     'status' => 'CREATED',
                     'created_by' => auth()->user()->username,
                     'created_date' => now(),
                 ]);
 
+                $totalCorrectiveScore += $correctiveScore;
             }
 
             WarehousePartnerAudit::where('id', $audit->id)->update([
                 'total_score' => $totalScoring,
+            ]);
+
+            WarehousePartnerAuditCorretive::where('id', $corrective->id)->update([
+                'total_score' => $totalCorrectiveScore,
             ]);
 
             DB::commit();

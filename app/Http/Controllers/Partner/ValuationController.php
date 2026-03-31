@@ -215,8 +215,87 @@ class ValuationController extends Controller
         ]);
     }
 
+    public function summaryValuation()
+    {
+        return view('partner.valuation.summary');
+    }
+
     public function summaryValuationXml(Request $request)
     {
-        //
+        /*
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        */
+        echo "<rows>";
+        $nomor = 1;
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+            $usname[$value->Emp_ID] = $value->Name;
+        }
+
+        $getAsset = DB::table('master_facility')->where('asset_type', 'Asset')->get();
+        $asId = $getAsset->pluck('id');
+        $asset = $getAsset->keyBy('id');
+
+        // $facility = OpportunityPartnerFacility::where("Partner_ID", $request->partner)->whereIn('Facility_ID', $asId)->where('warehouse_task_id', $request->warehouse)->first();
+        // $facId = $facility->pluck('ID');
+
+        $get = WarehousePartner::get();
+        foreach ($get as $key => $value) {
+            $optp = DB::table('opportunity_partner')->where("lead_id", $value->partner_task_id)->select(['contract_start_at','id'])->first();
+
+            $sumInvest = OpportunityPartnerFacilityDtl::where('Partner_ID', $optp->id ?? 0)->where('warehouse_task_id', $value->warehouse_task_id)->sum('Total');
+
+            $facilityDtl = OpportunityPartnerFacilityDtl::whereIn("Facility_ID", $asId)->where('Partner_ID', $optp->id ?? 0)->where('warehouse_task_id', $value->warehouse_task_id)->get();
+    
+            $cat = "";
+            $sumTotal = 0;
+            $sumDepr = 0;
+            $sumSisa = 0;
+            foreach ($facilityDtl as $key => $Fetch) {
+                // $warehouse = WarehousePartner::where('warehouse_task_id', $Fetch->warehouse_task_id)->first();
+                // $d = DB::table('capital_expenditure as ce')
+                //     ->join('opportunity_partner as op', 'op.id', '=', 'ce.Opportunity_Id')
+                //     ->select('ce.Asset_Name', 'ce.Cost')
+                //     ->where('op.lead_id', $warehouse->partner_task_id)
+                //     ->get();
+                
+                $startDate = new DateTime($Fetch->Order_Date);
+                $endDate = new DateTime();
+    
+                $interval = $startDate->diff($endDate);
+                $month = floor($interval->days / 12);
+    
+                $prosen = round(1 / $asset[$Fetch->Facility_ID]->depreciation_year);
+                $depr = $Fetch->Total * $prosen;
+
+                $sumTotal += $Fetch->Total;
+                $sumDepr += $depr * $month;
+                $sumSisa += $Fetch->Total - ($depr * $month);
+            }
+            
+
+            echo "<row id=\"$value->warehouse_task_id\">";
+            echo "<cell>$nomor</cell>";
+            echo "<cell>" . htmlspecialchars($value->warehouse_task_id) . "</cell>";
+            echo "<cell>" . htmlspecialchars($value->warehouse_location) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$value->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($value->capacity) . "</cell>";
+            echo "<cell>" . htmlspecialchars($value->warehouse_status) . "</cell>";
+            echo "<cell>" . htmlspecialchars($sumInvest) . "</cell>";
+            echo "<cell>" . htmlspecialchars($sumTotal) . "</cell>";
+            echo "<cell>" . htmlspecialchars($sumDepr) . "</cell>";
+            echo "<cell>" . htmlspecialchars($sumSisa) . "</cell>";
+            echo "</row>";
+            $nomor++;
+        }
+
+        echo "</rows>";
     }
 }

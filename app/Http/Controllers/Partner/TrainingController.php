@@ -1031,8 +1031,6 @@ class TrainingController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->training_name) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetchx->material_speaker]) . "</cell>";
             echo "<cell>" . htmlspecialchars($date) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->training_fee) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->status) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->created_date) . "</cell>";
             echo "<cell>" . htmlspecialchars($name) . "</cell>";
             echo "</row>";
@@ -1229,5 +1227,23 @@ class TrainingController extends Controller
         }
 
         echo "</rows>";
+    }
+
+    public function mailTraining(Request $request)
+    {
+        $training = Training::where('id', $request->Task)->first();
+        $training->date = date('d F Y', strtotime($training->training_date_from));
+        if ($training->training_date_from != $training->training_date_to) {
+            $training->date .= " - " . date('d F Y', strtotime($training->training_date_to));
+        }
+        $training->time = "Full Day";
+        if ($training->training_time_from != null) {
+            $training->time = date('H:i', strtotime($training->training_time_from)) . " - " . date('H:i', strtotime($training->training_time_to));
+        }
+        $training->speakers = TrainingMaterial::where('training_id', $training->id)->get()->pluck('material_speaker')->unique()->filter()->values();
+        if ($training->method == 'offline') {
+            $training->method = $training->address;
+        }
+        return view('partner.training.mail', compact('training'));
     }
 }
