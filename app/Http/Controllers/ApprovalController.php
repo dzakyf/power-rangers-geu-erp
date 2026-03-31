@@ -390,8 +390,8 @@ class ApprovalController extends Controller
         try {
             $b = $r->all();
             $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
-            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'RENEWAL')->first();
-            $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'RENEWAL')->first();
+            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'SURVEY')->first();
+            $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'SURVEY')->first();
 
             $session = $this->userService->getCurrentSessionUserInfo();
 
@@ -538,8 +538,8 @@ class ApprovalController extends Controller
         }
 
         if ($type == "SURVEY") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position')
-                ->join('survey_location as sl', 'appr.Map_To', '=', 'opp.sl');
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'sl.Code as Code')
+                ->join('survey_location as sl', 'appr.Map_To', '=', 'sl.ID');
         }
 
         // Filtering jabatan
@@ -571,8 +571,9 @@ class ApprovalController extends Controller
             "2" => "No",
             "3" => "Dalam Pertimbangan"
         ];
-        $recommendation = $p->Is_Recommended_To_Be_Approved ?? 3;
         foreach ($d as $p) {
+
+            $recommendation = $p->Is_Recommended_To_Be_Approved ?? 3;
             $row = $xml->addChild('row');
             $row->addAttribute('id', $p->ID);
             $row->addAttribute('Oppt_Id', $p->Opportunity_Partner_Id);

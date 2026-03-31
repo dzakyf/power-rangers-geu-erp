@@ -20,6 +20,7 @@ use DatePeriod;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PDO;
 use PhpOffice\PhpWord\TemplateProcessor;
 use Ramsey\Uuid\Uuid;
 use SimpleXMLElement;
@@ -30,6 +31,9 @@ class ProfitSharingController extends Controller
     protected $uploaderService;
     protected $generatorService;
     protected $now;
+    protected $currDate;
+    protected $year;
+    protected $month;
 
     public function __construct(UserService $u, GeneratorService $g, UploadService $up)
     {
@@ -38,6 +42,10 @@ class ProfitSharingController extends Controller
         $this->uploaderService = $up;
         $this->userService = $u;
         $this->now = Carbon::now();
+        $this->year = Carbon::now()->year;
+        $this->month = Carbon::now()->format('m');
+
+        $this->currDate = Carbon::now()->format('Y-m-d');
         Carbon::setLocale('id');
     }
     public function indexProfitSharing()
@@ -47,7 +55,7 @@ class ProfitSharingController extends Controller
 
     public function indexRoyaltyPayment()
     {
-        return view('partner.royalty-index');
+        return view('partner.profit-sharing.royalty-history-index');
     }
 
     public function indexProfitSharingXml()
@@ -97,12 +105,6 @@ class ProfitSharingController extends Controller
             $nomor++;
         }
         echo "</rows>";
-    }
-
-    public function getRoyaltyPaymentData(Request $r)
-    {
-
-        return response()->json(['message' => 'success']);
     }
 
     public function lkMonthlyProfitSharing(Request $request)
@@ -311,16 +313,23 @@ class ProfitSharingController extends Controller
         }
 
         $getStartProjection = DB::table('projections')->where("User_ID", $request->mitra)->select('Created_At')->first();
-        if (!$getStartProjection) {
-            exit;
+        if ($getStartProjection) {
+            $tahunPembuatan = [
+                date('Y', strtotime($getStartProjection->Created_At)),
+                date('Y', strtotime($getStartProjection->Created_At . ' +1 year')),
+                date('Y', strtotime($getStartProjection->Created_At . ' +2 years')),
+                date('Y', strtotime($getStartProjection->Created_At . ' +3 years')),
+                date('Y', strtotime($getStartProjection->Created_At . ' +4 years')),
+            ];
+        } else {
+            $tahunPembuatan = [
+                date('Y'),
+                date('Y', strtotime('+1 year')),
+                date('Y', strtotime('+2 years')),
+                date('Y', strtotime('+3 years')),
+                date('Y', strtotime('+4 years')),
+            ];
         }
-        $tahunPembuatan = [
-            date('Y', strtotime($getStartProjection->Created_At)),
-            date('Y', strtotime($getStartProjection->Created_At . ' +1 year')),
-            date('Y', strtotime($getStartProjection->Created_At . ' +2 years')),
-            date('Y', strtotime($getStartProjection->Created_At . ' +3 years')),
-            date('Y', strtotime($getStartProjection->Created_At . ' +4 years')),
-        ];
 
         $nomor = 1;
 
@@ -421,7 +430,8 @@ class ProfitSharingController extends Controller
             }
         }
 
-        $getProjection = DB::table('projections')->whereIn('Description', ['Pendapatan', 'Bagi Hasil Mitra'])->where('Hub_Type', $request->type)->where('Year', $tahunKe)->get();
+        $getProjection = DB::table('projections')->whereIn('Description', ['Pendapatan', 'Bagi Hasil Mitra'])->where('Hub_Type', $request->type)->where('User_Id', $request->mitra)->where('Year', $tahunKe)->get();
+        $proyeksi = [];
         foreach ($getProjection as $key => $value) {
             for ($i = 1; $i <= 12; $i++) {
                 $value = json_decode(json_encode($value), true);
@@ -430,6 +440,9 @@ class ProfitSharingController extends Controller
         }
 
         for ($i = 1; $i <= 12; $i++) {
+            if (!isset($proyeksi[$i])) {
+                continue;
+            }
             echo "<row id='$i'>";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . date('F', strtotime($request->date . '-' . sprintf('%02d', $i) . '-01')) . "</cell>";
@@ -668,7 +681,7 @@ class ProfitSharingController extends Controller
 
         unlink($tempImage);
 
-        return $doc;
+        return ['doc' => $doc, 'contract_no' => $referenceNo];
     }
 
     public function previewProfitSharingApplication(Request $r)
@@ -687,7 +700,7 @@ class ProfitSharingController extends Controller
 
         $outputPath = storage_path("app/public/royalti-application-_$now.docx");
 
-        $doc->saveAs($outputPath);
+        $doc['doc']->saveAs($outputPath);
 
         return response()->download($outputPath)->deleteFileAfterSend(true);
     }
@@ -695,6 +708,8 @@ class ProfitSharingController extends Controller
     public function finalizeProfitSharingApplication(Request $r)
     {
         $body = $r->all();
+
+        $session = $this->userService->getCurrentSessionUserInfo();
         // $doc = $r->file('file');
         $path = public_path('template-pengajuan-profit-sharing.docx');
 
@@ -708,7 +723,6 @@ class ProfitSharingController extends Controller
         $ext = "png";
         $user = $this->userService->getCurrentSessionUserInfo();
 
-
         $filename = "$path.$ext";
         $desc = "Upload pengajuan royalti";
         $topic = "profit-sharing";
@@ -718,180 +732,96 @@ class ProfitSharingController extends Controller
         $month = Carbon::now()->format('m');
         $now = Carbon::now()->format('YmdHisv');
         $path = "filevendor/$year/$month/royalti-application-$now.docx";
-        $doc->saveAs(public_path("$path"));
-
+        $doc['doc']->saveAs(public_path("$path"));
 
 
         try {
             DB::beginTransaction();
             $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
+            $taskId = "XXXX";
+
+            $partner = DB::table('opportunity_partner as op')
+                ->select('op.*')
+                ->join('users as usr', 'usr.id', '=', 'op.user_row_id')
+                ->where('op.user_row_id', '=', $session->id)
+                ->get();
+
+            // dd($partner);
+
+            //TODO: ambil dari laporan keuangan
+            $royalti = 9900000;
+            $total = ($royalti * 0.11) + $royalti;
+
             $ap = DB::table('erp_ksps.account_payable')->insertGetId([
-                'Task_ID'                => 'TASK-2024-001',
-                'Location'               => 'Jakarta Pusat',
-                'Department'             => 'Finance',
-                'PIC'                    => 'Budi Santoso',
-                'Purchase_Category'      => 'Operasional',
-                'Purchase_Sub_Category'  => 'Utilitas',
-                'Purchase_Type'          => 'Direct Purchase',
-                'Reference'              => 'REF-2024-00123',
-                'Description'            => 'Pembayaran royalti Q1 2024',
-                'Subtotal'               => 10000000.00,
-                'PPN'                    => 1100000.00,
-                'PPN_Type'               => 'PPN 11%',
-                'PPH'                    => 200000.00,
-                'Total'                  => 10900000.00,
-                'Remain_Val'             => 10900000.00,
-                'Status'                 => 'PENDING',
-                'Dateinsert'             => '2024-03-01 08:00:00',
-                'Created_By'             => 'Admin01',
-                'Date_Received'          => '2024-03-02',
-                'Received_By'            => 'Siti Rahayu',
-                'Inv_Type'               => 'INVOICE',
-                'Due_Date'               => '2024-03-31',
-                'Inv_Vendor'             => 'INV/2024/03/001',
-                'Subject_Payment'        => 'Pembayaran Royalti Maret 2024',
-                'Inv_Vendor_Date'        => '2024-03-01',
-                'Vendor_ID'              => 'VND-001',
-                'Vendor_Name'            => 'PT Maju Bersama',
-                'Finance_Ref'            => 'FIN-REF-2024-001',
-                'Finance_Received_Date'  => '2024-03-03',
-                'Finance_Received_By'    => 'Dewi Kusuma',
-                'Manual'                 => 0,
-                'Paid'                   => 0,
-                'PIC_Phone'              => '081234567890',
-                'Note'                   => 'Pembayaran royalti bulanan',
-                'PIC_Paid'               => 'Budi Santoso',
-                'Last_Date_Payment'      => '2024-03-31',
-                'PO_References'          => 'PO-2024-001',
-                'PPH_Type'               => 'PPH23',
-                'PPH23_4'                => 0.00,
-                'PPH23_2'                => 200000.00,
-                'PPH23_15'               => 0.00,
-                'PPH42'                  => 0.00,
-                'PPH_21_5'               => 0.00,
-                'DP'                     => 0.00,
-                'Management_Fee'         => 500000.00,
-                'Delivery_Costs'         => 150000.00,
-                'Currency'               => 'IDR',
-                'Currency_Kurs'          => 1.00,
-                'Currency_Value'         => 10900000.00,
-                'Revisi_Journ'           => 0,
-                'Status_Approval'        => 'APPROVED',
-                'COA_Approval'           => '1-1100',
-                'File_Document'          => 'dokumen/inv_2024_001.pdf',
-                'Bank_Name'              => 'Bank Central Asia',
-                'Bank_Acc'               => '1234567890',
-                'Bank_Acc_Name'          => 'PT Maju Bersama',
-                'Bank_Type'              => 'Giro',
-                'Payment_Type'           => 'Transfer',
-                'Payment_Reference'      => 'TRF-2024-001',
-                'Payment_Acc_No'         => '0987654321',
-                'Payment_Note'           => 'Transfer royalti Q1',
-                'materai'                => 0,
-            ]);
-
-            $prof = DB::table('erp_ksps.proforma')->insertGetId([
-                'Location'               => 'Jakarta Pusat',
-                'Proforma_No'            => 'PRF-2024-03-001',
-                'Subject'                => 'Tagihan Royalti Maret 2024',
-                'Invoice_No'             => 'INV/2024/03/001',
-                'Account_No'             => '1234567890',
-                'Account_Name'           => 'PT Maju Bersama',
-                'Qty'                    => 1,
-                'Periode_Tagihan'        => '2024-03-01',
-                'Proforma_Type'          => 'ROYALTI',
-                'Subtotal_PO'            => 10000000.00,
-                'Man_Fee'                => 500000.00,
-                'Total'                  => 10500000.00,
-                'Periode'                => '2024-03',
-                'Status'                 => 'PENDING',
-                'Last_Update'            => '2024-03-01 08:00:00',
-                'Created_NIK'            => '1990001',
-                'Dateinsert'             => '2024-03-01 08:00:00',
-                'invoice_Category'       => 'ROYALTI',
-                'Currency'               => '1',
-                'Validation'             => 0,
-                'Validation_Date'        => '2024-03-05',
-                'Validation_By'          => 'Dewi Kusuma',
-                'Rekon_Proforma_Date'    => '2024-03-06',
-                'Need_Rekon'             => 1,
-                'Nilai_Rekon'            => 10500000.00,
-                'Selisih'                => 0.00,
-                'Bill_Type'              => 'PROFORMA',
-                'BA_Status'              => 'DRAFT',
-                'BA_Date'                => '2024-03-07',
-                'BA_No'                  => 'BA/2024/03/001',
-                'BA_File_Uploaded'       => $now,
-                'Signed_By'              => 'Budi Santoso',
-                'Signed_By_Position'     => 'Finance Manager',
-                'Signed_By2'             => 'Siti Rahayu',
-                'Signed_By_Position2'    => 'Finance Supervisor',
-                'Signed_By3'             => 'Ahmad Fauzi',
-                'Signed_By_Position3'    => 'Director',
-                'Signed_By_KSPS'         => 'Eko Prasetyo',
-                'Signed_By_Position_KSPS' => 'KSPS Manager',
-                'Management_Fee'         => 500000.00,
-                'Posting'                => 0,
-                'Posting_By'             => 'Admin01',
-                'Posting_Date'           => '2024-03-08',
-                'Invoice_To'             => 'PT Maju Bersama',
-                'fpp_date'               => '2024-03-10',
-                'note'                   => 'Tagihan royalti bulan Maret 2024',
-            ]);
-
-            $ar = DB::table('erp_ksps.account_receive')->insertGetId([
-                'Location'                   => 'Jakarta Selatan',
-                'Contract_No'                => 'CONT-2024-03-001',
-                'Cust_ID'                    => 'CUST-001',
-                'Bank_Acc'                   => '9876543210',
-                'Inv_No'                     => 'INV/2024/03/001',
-                'Inv_No_KSPS'                => 'INV-KSPS/2024/03/001',
-                'PIC'                        => 'Budi Santoso',
-                'Inv_Date'                   => '2024-03-01',
-                'Ref_Doc'                    => 'REF-DOC-2024-001',
-                'Cat_AR'                     => 'ROYALTI',
-                'AR_No'                      => 'AR-2024-03-001',
-                'AR_Date'                    => '2024-03-01',
-                'AR_Val'                     => 15000000.00,
-                'Due_Date'                   => '2024-03-31',
-                'TOP'                        => 30,
-                'Status'                     => 'OUTSTANDING',
-                'TTK'                        => '2026-01-01',
-                'PTP'                        => '2024-03-25',
-                'Collector'                  => 'Eko Prasetyo',
-                'Penerima'                   => 'Siti Rahayu',
-                'Resp_Cat'                   => 'ROYALTI',
-                'Payment'                    => 0.00,
-                'AR_Paid'                    => 0.00,
-                'AR_Remain'                  => 15000000.00,
-                'Claim_Val'                  => 0.00,
-                'Claim_Reference'            => 'CLAIM-REF-2024-001',
-                'Remark'                     => 'Tagihan royalti bulan Maret',
-                'Date_Received'              => '2024-03-02',
-                'Received_By'                => 'Dewi Kusuma',
-                'User_Trx'                   => 'Admin01',
-                'Date_Trx'                   => '2024-03-01 08:00:00',
-                'Debt_Collector'             => 'Ahmad Fauzi',
-                'Delivery_Date'              => '2024-03-03',
-                'Delivery_Using'             => 'Kurir Internal',
-                'Date_Receive'               => '2024-03-04',
-                'PIC_Receive'                => 'Budi Santoso',
-                'TOP_Date'                   => '2024-03-31',
-                'update_by'                  => 'Admin01',
-                'Delivery_Note'              => 'Dokumen diterima dengan baik',
-                'Delivered'                  => 1,
-                'Date_Status'                => '2024-03-04 10:00:00',
-                'Delivery_From_Invoice'      => 1,
-                'Delivery_From_Invoice_Note' => 'Invoice dikirim via kurir',
-                'Delivery_From_Invoice_Date' => '2024-03-03',
-                'Delivery_From_Invoice_By'   => 'Eko Prasetyo',
-                'Receive_Inv_Task'           => 'TASK-AR-2024-001',
-                'Email'                      => '1',
-                'Email_Date'                 => '2024-03-01',
+                'Task_ID'                => $taskId,        // ID tugas/tiket internal sistem
+                'Location'               => $partner[0]->city,                      // lokasi cabang/gudang terkait transaksi
+                'Department'             => '',                      // departemen yang mengajukan pembayaran
+                'PIC'                    => '',                      // penanggung jawab transaksi dari internal
+                'Purchase_Category'      => '',                      // kategori pembelian (royalti, operasional, dll)
+                'Purchase_Sub_Category'  => '',                      // sub-kategori pembelian
+                'Purchase_Type'          => '',                      // jenis pembelian (direct, indirect, dll)
+                'Reference'              => $doc['contract_no'],   // nomor kontrak atau nomor PO sebagai referensi
+                'Description'            => "Pembayaran royalti $year", // keterangan singkat transaksi
+                'Subtotal'               => $royalti,             // nilai sebelum pajak (DPP - Dasar Pengenaan Pajak)
+                'PPN'                    => $royalti * 0.11,              // Pajak Pertambahan Nilai 11% dari DPP
+                'PPN_Type'               => null,                    // jenis PPN (masukan/keluaran), null jika tidak berlaku
+                'PPH'                    => 0,               // PPh 23 dipotong oleh pembayar, 2% dari bruto
+                'Total'                  => $total,             // total yang dibayarkan = Subtotal + PPN - PPH
+                'Remain_Val'             => $total,             // sisa nilai yang belum dibayar, awal = Total
+                'Status'                 => 'WAITING_PAYMENT',               // status pembayaran: PENDING = belum diproses
+                'Dateinsert'             => $now,                    // tanggal data diinput ke sistem
+                'Created_By'             => $session->username,                      // user yang membuat pengajuan
+                'Date_Received'          => $this->currDate,         // tanggal invoice diterima oleh tim finance
+                'Received_By'            => '',                      // nama penerima invoice dari vendor
+                'Inv_Type'               => 'SINGLE',                // tipe invoice: SINGLE = satu invoice per transaksi
+                'Due_Date'               => '',                      // tanggal jatuh tempo pembayaran ke vendor
+                'Inv_Vendor'             => '',                      // nomor invoice yang diterbitkan oleh vendor
+                'Subject_Payment'        => "Pembayaran Royalti $month $year", // judul/perihal pembayaran
+                'Inv_Vendor_Date'        => '',                      // tanggal terbit invoice dari vendor
+                'Vendor_ID'              => '',                      // ID vendor/mitra di sistem
+                'Vendor_Name'            => '',                      // nama vendor/mitra penerima pembayaran
+                'Finance_Ref'            => '',                      // nomor referensi internal tim finance
+                'Finance_Received_Date'  => '',                      // tanggal finance menerima dan memverifikasi dokumen
+                'Finance_Received_By'    => '',                      // nama staff finance yang menerima dokumen
+                'Manual'                 => 0,                       // flag apakah entry manual (1) atau otomatis sistem (0)
+                'Paid'                   => 0,                       // flag pembayaran: Jumlah yang sudah dibayarkan ke mitra 
+                'PIC_Phone'              => '',                      // nomor telepon PIC untuk konfirmasi pembayaran
+                'Note'                   => "Pembayaran royalti bulan $month", // catatan tambahan transaksi
+                'PIC_Paid'               => '',                      // nama PIC yang melakukan pembayaran
+                'Last_Date_Payment'      => '',                      // tanggal realisasi pembayaran terakhir
+                'PO_References'          => '',                      // nomor PO jika ada, opsional untuk membership/royalti
+                'PPH_Type'               => '0',                     // jenis PPh yang dikenakan (23, 21, 4(2), dll)
+                'PPH23_4'                => 0.00,                    // PPh 23 tarif 4% (tanpa NPWP)
+                'PPH23_2'                => 0.00,               // PPh 23 tarif 2% (memiliki NPWP) dari bruto
+                'PPH23_15'               => 0.00,                    // PPh 23 tarif 15% (dividen, bunga, royalti tertentu)
+                'PPH42'                  => 0.00,                    // PPh pasal 4 ayat 2 (pajak final, sewa tanah/bangunan)
+                'PPH_21_5'               => 0.00,                    // PPh 21 tarif 5% untuk penghasilan untuk tipe individu
+                'DP'                     => 0.00,                    // uang muka / down payment yang sudah dibayarkan
+                'Management_Fee'         => 0,                       // biaya manajemen jika ada
+                'Delivery_Costs'         => 0,                       // biaya pengiriman/ongkos kirim dokumen fisik
+                'Currency'               => 'IDR',                   // mata uang transaksi
+                'Currency_Kurs'          => 1.00,                    // kurs konversi ke IDR, 1.00 jika sudah IDR
+                'Currency_Value'         => $total,             // nilai transaksi setelah konversi kurs
+                'Revisi_Journ'           => 0,                       // flag apakah ada revisi jurnal akuntansi (0 = tidak)
+                'Status_Approval'        => 'PENDING',              // status persetujuan: APPROVED/PENDING/REJECTED
+                'COA_Approval'           => '',                // kode akun COA (Chart of Accounts) yang dibebankan
+                'File_Document'          => $path,                      // path file dokumen pendukung (invoice, kontrak, dll)
+                'Bank_Name'              => $session->Bank_Name,                      // nama bank tujuan pembayaran vendor
+                'Bank_Acc'               => $session->Bank_Account_No,                      // nomor rekening bank tujuan
+                'Bank_Acc_Name'          => $session->Bank_Account_Name,                      // nama pemilik rekening tujuan
+                'Bank_Type'              => '',                      // jenis rekening: Giro / Tabungan
+                'Payment_Type'           => '',                      // metode pembayaran: Transfer / Cek / Giro
+                'Payment_Reference'      => '',                      // nomor referensi bukti transfer
+                'Payment_Acc_No'         => '',                      // nomor rekening sumber pembayaran (rekening perusahaan)
+                'Payment_Note'           => '',                      // keterangan pada slip transfer
+                'materai'                => 0,                       // flag meterai: 1 jika dokumen perlu meterai Rp10.000
+                'Opportunity_Id' => $partner[0]->id,
             ]);
 
             DB::commit();
+
+            // return view('approval.profit-sharing-create', compact('partner'));
 
             return response()->json([
                 'status'  => 'success',
@@ -905,6 +835,45 @@ class ProfitSharingController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function updateRoyaltyPaymentData(Request $r)
+    {
+        $b = $r->all();
+        $allFiles = $r->allFiles();
+
+        $id = DB::table('account_payable as ap')->where('ap.ID', '=', $b['Application_Id'])->update([
+            'Status' => $b['Status'],
+        ]);
+
+        if (isset($allFiles['Transfer_Doc'])) {
+            $files = $allFiles['Transfer_Doc'];
+
+            $files = is_array($files) ? $files : [$files];
+
+            foreach ($files as $file) {
+                if ($file->isValid()) {
+                    $path = $file->store("$this->year/$this->month", 'public');
+                    $ext = $file->getClientOriginalExtension();
+
+                    $filename = basename($path);
+                    $desc = "Bukti Transfer";
+                    $topic = "profit-sharing";
+                    $mapTo = $id;
+
+                    $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
+
+                    $updatedId = DB::table('account_payable as ap')->where('ap.ID', '=', $b['Application_Id'])->update([
+                        'Url_Transfer' => "https://dev.hexamatika.com/geu/hcga/public/filevendor/$path",
+                    ]);
+                }
+            }
+        }
+
+
+
+
+        return response()->json(['message' => 'success'], 200);
     }
 
     public function monthlyMitraprofitSharing()
@@ -961,6 +930,7 @@ class ProfitSharingController extends Controller
             $get = WarehousePartner::get();
         }
         $percentage[401] = 100;
+        $bep = 24;
 
         foreach ($get as $key => $Fetch) {
             $calculate = [];
@@ -1069,8 +1039,7 @@ class ProfitSharingController extends Controller
 
             $d = DB::table('opportunity_partner as op')->select('op.full_name', 'opfd.*', 'mf.description')
                 ->join('opportunity_partner_facility_dtl as opfd', 'opfd.Partner_ID', '=', 'op.id')
-                ->join('master_facility as mf', 'mf.id', '=', 'opfd.Facility_ID')
-                ->where('op.lead_id', '=', $Fetch->partner_task_id)->sum('Total');
+                ->where('op.lead_id', '=', $Fetch->partner_task_id)->sum('opfd.Total');
 
             $netprofit = isset($calculate[701]) ? $calculate[701]['NULL'] : 0;
             $ebitda = isset($calculate[899]) ? $calculate[899]['NULL'] : 0;
@@ -1086,7 +1055,7 @@ class ProfitSharingController extends Controller
             echo "<cell>" . htmlspecialchars($netprofit) . "</cell>";
             echo "<cell>" . htmlspecialchars($opex) . "</cell>";
             echo "<cell>" . htmlspecialchars($ebitda) . "</cell>";
-            echo "<cell>" . htmlspecialchars(0) . "</cell>";
+            echo "<cell>" . htmlspecialchars($bep) . "</cell>";
             echo "<cell>" . htmlspecialchars(round((isset($calculate[899]) ? $calculate[899]['NULL'] : 0) / ($d ?: 1) * 100, 2)) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
             echo "</row>";
@@ -1134,6 +1103,32 @@ class ProfitSharingController extends Controller
         $percentage[401] = 100;
 
         foreach ($get as $key => $Fetch) {
+            $us = User::where('Emp_ID', $Fetch->partner_task_id)->first();
+            $getStartProjection = DB::table('projections')->where("User_ID", $us->id)->select('Created_At')->first();
+            if ($getStartProjection) {
+                $tahunPembuatan = [
+                    date('Y', strtotime($getStartProjection->Created_At)) => 1,
+                    date('Y', strtotime($getStartProjection->Created_At . ' +1 year')) => 2,
+                    date('Y', strtotime($getStartProjection->Created_At . ' +2 years')) => 3,
+                    date('Y', strtotime($getStartProjection->Created_At . ' +3 years')) => 4,
+                    date('Y', strtotime($getStartProjection->Created_At . ' +4 years')) => 5,
+                ];
+            } else {
+                $tahunPembuatan = [
+                    date('Y') => 1,
+                    date('Y', strtotime('+1 year')) => 2,
+                    date('Y', strtotime('+2 years')) => 3,
+                    date('Y', strtotime('+3 years')) => 4,
+                    date('Y', strtotime('+4 years')) => 5,
+                ];
+            }
+
+            // $ambilProjection = DB::table('projections')->where("User_ID", $us->id)->whereYear('Created_At', $tahunPembuatan[date('Y')])->first()->toArray();
+
+
+            $tahun = DB::table('projections')->where("User_ID", $us->id)->select('Created_At')->orderBy('Created_At', 'desc')->first();
+            $tahun = date('Y', strtotime($tahun->Created_At ?? date('Y-m-d')));
+
             $calculate = [];
             //Hitung Pendaptan
             $calculate[401][40001] = 0;
@@ -1405,9 +1400,44 @@ class ProfitSharingController extends Controller
         return view('partner.profit-sharing.overview-mitra', compact('warehouse', 'date'));
     }
 
+    public function getRoyaltyPaymentData(Request $r)
+    {
+        $b  = $r->all();
+        $session = $this->userService->getCurrentSessionUserInfo();
 
-    // public function submitRoyaltyPayment(Request $r)
-    // {
-    //     return response()->json(['message' => 'success']);
-    // }
+        $d = DB::table('account_payable as ap');
+
+        if (in_array($session->Position, ["MITRA"])) {
+            $d = $d->join('opportunity_partner as op', 'op.id', '=', 'ap.Opportunity_Id')
+                ->where("op.user_row_id", "=", $session->id);
+        }
+
+        $d =  $d->select('ap.*')
+            ->orderBy('ID', 'DESC')->get();
+
+        $xml = new SimpleXMLElement('<rows></rows>');
+
+        $counter = 1;
+
+        foreach ($d as $p) {
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $p->ID);
+            $row->addChild('cell', $counter);
+            $row->addChild('cell', $p->Task_ID);
+            $row->addChild('cell', $p->Reference);
+            $row->addChild('cell', $p->Total);
+            $row->addChild('cell', $p->Status);
+            $row->addChild('cell', $p->Created_By);
+            if (!$p->Url_Transfer) {
+                $row->addChild('cell', "Belum Ada Bukti Transfer");
+            } else {
+                $row->addChild('cell', "Lihat Bukti Transfer^ $p->Url_Transfer");
+            }
+            $counter++;
+        }
+
+        return response()->make($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
 }

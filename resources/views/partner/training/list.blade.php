@@ -44,6 +44,7 @@ $Saya =  Auth::user()->username;
 			<div>
 				<input type="button" id="ekselTrainingListDet" name="ekselTrainingListDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="TrainingList.toExcel('./export/generate.php');" />
 				<input type="button" id="detailTrainingList" name="detailTrainingList" value="Detail Pelatihan" class="btn btn-info mt-2 mr-2" onclick="TrainingListKlik()" />
+				<input type="button" id="emailTrainingList" name="emailTrainingList" value="Email Pelatihan" class="btn btn-secondary mt-2 mr-2" onclick="TrainingListEmail()" />
 			</div>
 		</div>
 	</div>
@@ -58,6 +59,17 @@ $Saya =  Auth::user()->username;
 		let TrainingListID = TrainingList.getSelectedId()
 		if (TrainingListID.length != null) {
 			LoadM('divlistOpportunity', 'partner-training-list-detail?Task=' + TrainingListID + "&target=" + $('#target').val());
+		}else {
+			alert("Pilih baris data");
+		}
+		return true;
+	}
+	function TrainingListEmail() {
+        
+		let TrainingListID = TrainingList.getSelectedId()
+		if (TrainingListID.length != null) {
+			window.open('partner-training-mail?Task=' + TrainingListID, '_blank');
+			// LoadM('divlistOpportunity', 'partner-training-mail?Task=' + TrainingListID);
 		}else {
 			alert("Pilih baris data");
 		}

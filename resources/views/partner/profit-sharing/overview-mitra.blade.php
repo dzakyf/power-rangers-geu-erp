@@ -34,7 +34,7 @@ $Saya =  Auth::user()->username;
 			<div id="ProfitSharing" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselProfitSharingDet" name="ekselProfitSharingDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ProfitSharing.toExcel('./export/generate.php');" />
-				<input type="button" id="detailProfitSharing" name="detailProfitSharing" value="Detail Audit" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingKlik()" />
+				{{-- <input type="button" id="detailProfitSharing" name="detailProfitSharing" value="Detail Audit" class="btn btn-info mt-2 mr-2" onclick="ProfitSharingKlik()" /> --}}
 			</div>
 		</div>
 	</div>
@@ -61,11 +61,11 @@ $Saya =  Auth::user()->username;
 	ProfitSharing.attachHeader("#rspan,#text_filter,#text_filter,#text_filter");
 	// ProfitSharing.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	ProfitSharing.setInitWidths("60,100,150,200");
-	ProfitSharing.setColAlign("center,left,left,left");
-	ProfitSharing.setColSorting("int,str,str,str");
-	ProfitSharing.setColTypes("ron,ro,ro,ro");
+	ProfitSharing.setColAlign("center,left,left,right");
+	ProfitSharing.setColSorting("int,str,str,int");
+	ProfitSharing.setColTypes("ron,ro,ro,ron");
 	ProfitSharing.enableSmartRendering(true, 150);
-	// ProfitSharing.setNumberFormat("0,000", 7, ".", ",");
+	ProfitSharing.setNumberFormat("0,000", 3, ".", ",");
 	ProfitSharing.attachEvent("onRowDblClicked", ProfitSharingKlik);
 	ProfitSharing.setSkin("dhx_skyblue");
 	ProfitSharing.init();

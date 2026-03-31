@@ -32,16 +32,32 @@ $Saya =  Auth::user()->username;
         <div class="row">
             <div class="col-md-6">
                 <div class="form-group">
-                    <label for="Asset_Name">Asset Name <span style="color: red;">*</span></label>
-                    <input type="text" name="Asset_Name" id="Asset_Name" class="form-control" required />
+                    <label for="Qty">Qty <span style="color: red;">*</span></label>
+                    <input type="number" name="Qty" id="Qty" class="form-control" required />
                 </div>
             </div>
         </div>
         <div class="row">
             <div class="col-md-6">
                 <div class="form-group">
-                    <label for="Cost">Cost <span style="color: red;">*</span></label>
-                    <input type="number" name="Cost" id="Cost" class="form-control" required />
+                    <label for="Price">Price <span style="color: red;">*</span></label>
+                    <input type="number" name="Price" id="Price" class="form-control" required />
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="Total">Total <span style="color: red;">*</span></label>
+                    <input type="number" name="Total" id="Total" class="form-control" required readonly />
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="Description">Description <span style="color: red;">*</span></label>
+                    <input type="text" name="Description" id="Description" class="form-control" required />
                 </div>
             </div>
         </div>
@@ -53,6 +69,11 @@ $Saya =  Auth::user()->username;
 <script>
     let opportunityId = new URLSearchParams(window.location.search).get('id') ?? null;
 
+    $('#Qty, #Price').on('input', function() {
+        let qty = parseFloat($('#Qty').val()) || 0;
+        let price = parseFloat($('#Price').val()) || 0;
+        $('#Total').val(qty * price);
+    });
     $(document).ready(function() {
         $('#capexForm').on('submit', function(e) {
             e.preventDefault();
