@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Builder;
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
 
+$partner = DB::table('warehouse_partner')
+	->where('partner_task_id', auth()->user()->Emp_ID)
+	->first();
+
 ?>
 
 @extends('layout.mainlayout-mitra')
@@ -45,7 +49,7 @@ $Saya =  Auth::user()->username;
 
 		WarehouseMonitoringDetailID = WarehouseMonitoringDetail.getSelectedId();
 		if (WarehouseMonitoringDetailID != null) {
-			LoadM('divlistOpportunityDetail', 'partner-warehouse-monitoring-detail-list?Task={{$_GET["Task"]}}' + "&date=" + WarehouseMonitoringDetailID);
+			LoadM('divlistOpportunityDetail', 'partner-warehouse-monitoring-detail-list?Task={{$partner->warehouse_task_id}}' + "&date=" + WarehouseMonitoringDetailID);
 		}else {
 			alert("Pilih baris data");
 		}
@@ -74,7 +78,7 @@ $Saya =  Auth::user()->username;
 	refreshdataDetail();
 
 	function refreshdataDetail() {
-		WarehouseMonitoringDetail.clearAndLoad('xml-partner-warehouse-monitoring-detail?Task={{$_GET["Task"]}}');
+		WarehouseMonitoringDetail.clearAndLoad('xml-partner-warehouse-monitoring-detail?Task={{$partner->warehouse_task_id}}');
 
 	}
 </script>

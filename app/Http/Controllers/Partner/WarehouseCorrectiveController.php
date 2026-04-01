@@ -7,6 +7,7 @@ use App\MasterAuditTemuan;
 use App\User;
 use App\WarehousePartner;
 use App\WarehousePartnerAudit;
+use App\WarehousePartnerAuditCorrectiveDtl;
 use App\WarehousePartnerAuditCorretive;
 use App\WarehousePartnerAuditDtl;
 use Illuminate\Http\Request;
@@ -67,6 +68,68 @@ class WarehouseCorrectiveController extends Controller
             echo "<cell $warna >" . htmlspecialchars($getGudang->warehouse_location) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($Fetchx->auditor) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars(ucfirst($Fetchx->jenis_audit)) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($Fetch->ringkasan_temuan) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($Fetch->parameter_catatan) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($Fetch->corrective_score) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($usname[$Fetchx->created_by]) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($Fetch->corrective_action) . "</cell>";
+            echo "</row>";
+
+            $nomor++;
+        }
+        echo "</rows>";
+    }
+    public function detailCorrective(Request $request)
+    {
+        return view('partner.warehouse.corrective-detail');
+    }
+
+    public function detailCorrectiveXml(Request $request)
+    {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+        echo "<rows>";
+        $priv = auth()->user()->Priv_ID;
+        $getUsers = User::get();
+        $usname = [];
+        foreach ($getUsers as $key => $value) {
+            $usname[$value->username] = $value->Name;
+        }
+        $nomor = 1;
+
+        $getDtl = WarehousePartnerAuditCorrectiveDtl::where("nomor_audit", $request->Task)->get();
+        foreach ($getDtl as $key => $Fetch) {
+            $Fetchx = WarehousePartnerAudit::where('nomor_audit', $Fetch->nomor_audit)->first();
+            $getGudang = WarehousePartner::where("warehouse_task_id", $Fetchx->warehouse_task_id)->first();
+
+            $dueDate = date('Y-m-d', strtotime($Fetchx->tanggal_audit . " + $Fetch->corrective_days days"));
+
+            $warna = "";
+
+            if ($dueDate < date("Y-m-d") || $Fetch->kategori_temuan == 'critical') {
+                $warna = "style='background-color:#D75656'";
+            }
+            if ($Fetch->kategori_temuan == 'major') {
+                $warna = "style='background-color:#F7C85C'";
+            }
+            if ($Fetch->status == 'CLOSED') {
+                $warna = "style='background-color:#7FB77E'";
+            }
+
+            echo "<row id=\"$Fetch->id\">";
+            echo "<cell $warna >$nomor</cell>";
+            echo "<cell $warna >" . htmlspecialchars($Fetch->nomor_audit) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($Fetchx->tanggal_audit) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($dueDate) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($Fetchx->warehouse_task_id) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($getGudang->warehouse_location) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($Fetchx->auditor) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars(ucfirst($Fetchx->jenis_audit)) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars(ucfirst($Fetch->kategori_temuan)) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($Fetch->area_temuan) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($Fetch->parameter_temuan) . "</cell>";
@@ -81,7 +144,7 @@ class WarehouseCorrectiveController extends Controller
         echo "</rows>";
     }
 
-    public function detailCorrective(Request $request)
+    public function detailCorrectiveDetail(Request $request)
     {
         $getUsers = User::get();
         $usname = [];
@@ -92,10 +155,10 @@ class WarehouseCorrectiveController extends Controller
         $getAudit = WarehousePartnerAudit::where("nomor_audit", $corrective->nomor_audit)->first();
         $getAuditDtl = WarehousePartnerAuditDtl::where("nomor_audit", $corrective->nomor_audit)->first();
         $kat = $getAudit->kategori_temuan;
-        return view('partner.warehouse.corrective-detail', compact('corrective', 'getAudit', 'getAuditDtl'));
+        return view('partner.warehouse.corrective-detail-corrective', compact('corrective', 'getAudit', 'getAuditDtl'));
     }
 
-    public function detailCorrectiveSubmit(Request $request)
+    public function detailCorrectiveDetailSubmit(Request $request)
     {
         try {
             DB::beginTransaction();

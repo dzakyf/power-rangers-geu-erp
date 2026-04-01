@@ -14,6 +14,7 @@ use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OperationalController;
+use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOReportController as PartnerUCOReportController;
 use App\Http\Controllers\Partner\TrainingController as PartnerTrainingController;
 use App\Http\Controllers\Partner\ChatListController as PartnerChatListController;
@@ -4577,7 +4578,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get($correctivePref, [PartnerWarehouseCorrectiveController::class, 'indexCorrective']);
     Route::get("xml-$correctivePref", [PartnerWarehouseCorrectiveController::class, 'indexCorrectiveXml']);
     Route::get("$correctivePref-detail", [PartnerWarehouseCorrectiveController::class, 'detailCorrective']);
-    Route::post("$correctivePref-detail-submit", [PartnerWarehouseCorrectiveController::class, 'detailCorrectiveSubmit']);
+    Route::get("xml-$correctivePref-detail", [PartnerWarehouseCorrectiveController::class, 'detailCorrectiveXml']);
+    Route::get("$correctivePref-detail-corrective", [PartnerWarehouseCorrectiveController::class, 'detailCorrectiveDetail']);
+    Route::post("$correctivePref-detail-corrective-submit", [PartnerWarehouseCorrectiveController::class, 'detailCorrectiveDetailSubmit']);
     /** */
 
     /** audit category route */
@@ -4778,6 +4781,11 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$onboardingPrefs-preview-pks", [OnboardingController::class, 'previewPks']);
     Route::post("$onboardingPrefs-submit-pks", [OnboardingController::class, 'uploadPks']);
 
+    /** Partner Sales */
+    $salesPrefs = "partner-sales";
+    Route::get("$salesPrefs-tiering", [PartnerSalesController::class, 'tieringSales']);
+    Route::get("$salesPrefs-team-performance", [PartnerSalesController::class, 'teamPerformanceSales']);
+
 
     /** Survey controller */
     $surveyPrefs = "partner-survey";
@@ -4895,6 +4903,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$marketingPrefs-approval-index", [ApprovalController::class, 'indexMarketingApproval']);
     Route::post("$marketingPrefs-approval-submit", [ApprovalController::class, 'processPromotionApproval']);
     Route::get("partner-approval-data", [ApprovalController::class, 'getApprovalData']);
+    Route::get("$marketingPrefs-evaluation-index", [MarketingController::class, 'indexEvaluation']);
+    Route::get("$marketingPrefs-evaluation-data", [MarketingController::class, 'getEvaluationData']);
+    Route::post("$marketingPrefs-evaluation-submit", [MarketingController::class, 'submitPromotionEvaluation']);
 
 
     $partnerCompliance = "partner-compliance";

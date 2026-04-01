@@ -77,6 +77,6 @@
 
     head.appendChild(style);
 
-    // window.print();
+    window.print();
 </script>
 </html>

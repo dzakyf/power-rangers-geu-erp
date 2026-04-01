@@ -31,6 +31,14 @@ $Saya =  Auth::user()->username;
         @csrf
         <div class="row">
             <div class="col-md-6">
+                <label for="Mitra_Id">Pilih Mitra <span style="color: red;">*</span></label>
+                <select id="Mitra_Id" class="custom-select">
+                    <option></option>
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
                 <div class="form-group">
                     <label for="Qty">Qty <span style="color: red;">*</span></label>
                     <input type="number" name="Qty" id="Qty" class="form-control" required />
@@ -56,7 +64,7 @@ $Saya =  Auth::user()->username;
         <div class="row">
             <div class="col-md-6">
                 <div class="form-group">
-                    <label for="Description">Description <span style="color: red;">*</span></label>
+                    <label for="Description">Asset / Description <span style="color: red;">*</span></label>
                     <input type="text" name="Description" id="Description" class="form-control" required />
                 </div>
             </div>
@@ -74,6 +82,8 @@ $Saya =  Auth::user()->username;
         let price = parseFloat($('#Price').val()) || 0;
         $('#Total').val(qty * price);
     });
+
+
     $(document).ready(function() {
         $('#capexForm').on('submit', function(e) {
             e.preventDefault();
@@ -116,6 +126,58 @@ $Saya =  Auth::user()->username;
                     $('#submitBtn').prop('disabled', false).text('Submit');
                 }
             });
+        });
+
+        $('#Mitra_Id').select2({
+            ajax: {
+                url: 'partner-data-active-mitra',
+                dataType: 'xml',
+                delay: 300,
+                data: function(params) {
+                    return {
+                        search: params.term,
+                        page: params.page || 1
+                    };
+                },
+                processResults: function(xmlData) {
+                    var results = [];
+
+                    $(xmlData).find('row').each(function() {
+                        var cells = $(this).find('cell');
+                        var opportunityId = $(this).attr('Opportunity_Id');
+
+                        results.push({
+                            id: cells.eq(0).text(),
+                            text: cells.eq(1).text(),
+                            cell2: cells.eq(2).text(),
+                            opportunityId: opportunityId,
+                        });
+                    });
+
+                    return {
+                        results: results,
+                        pagination: {
+                            more: results.length === 20
+                        }
+                    };
+                }
+            },
+            minimumInputLength: 0,
+            placeholder: 'Cari Mitra...',
+            allowClear: true
+        });
+
+        $('#Mitra_Id').on('select2:select', function(e) {
+            var data = e.params.data;
+
+
+            initTableGrid1(data.opportunityId)
+            opportunityId = data.opportunityId
+            console.log('Selected:', opportunityId);
+        });
+
+        $('#Mitra_Id').on('select2:unselect', function(e) {
+            console.log('Unselected');
         });
     });
 </script>
