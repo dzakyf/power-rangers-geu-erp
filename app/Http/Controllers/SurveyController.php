@@ -291,11 +291,11 @@ class SurveyController extends Controller
                 ]);
             });
 
-            return response()->json([
-                'success' => true,
-                'message' => 'success',
-                'data' => $result
-            ], 200);
+            // return response()->json([
+            //     'success' => true,
+            //     'message' => 'success',
+            //     'data' => $result
+            // ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -319,7 +319,7 @@ class SurveyController extends Controller
                 $filename = basename($path);
                 $desc = $inputName;
                 $topic = "survey";
-                $mapTo = $id;
+                $mapTo = $surveyId;
 
                 $this->uploadService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
             }
@@ -341,7 +341,7 @@ class SurveyController extends Controller
 
 
         return response()->json(['message' => 'success', 'data' => [
-            'survey_id' => $id,
+            // 'survey_id' => $id,
             'C_Total_Score' => $photo,
             'D_Total_Score' => $checklist,
             'E_Total_Score' => $environtment,

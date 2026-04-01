@@ -249,35 +249,25 @@ $Saya =  Auth::user()->username;
             </tbody>
         </table>
 
-        <h6>G. Analisis Surveyor</h6>
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Parameter</th>
-                    <th scope="col">Penilaian</th>
+        <div id="SurveyorAnalysis" style="display:none;">
+            <h6>G. Analisis Surveyor</h6>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Parameter</th>
+                        <th scope="col">Penilaian</th>
 
-                </tr>
-            </thead>
-            <tbody id="G_Checklist">
-            </tbody>
-        </table>
-
-        <div id="AnalysisResult" class="analysis-result">
-            <h6>Hasil Analisis</h6>
+                    </tr>
+                </thead>
+                <tbody id="G_Checklist">
+                </tbody>
+            </table>
         </div>
 
-        <h6>H. Rekomendasi Surveyor</h6>
-        <table class=" table table-bordered">
-            <thead>
-                <tr>
-                    <th scope="col">Status</th>
-                    <th scope="col">Keterangan</th>
-                </tr>
-            </thead>
-            <tbody id="H_Checklist">
-            </tbody>
-        </table>
+        <div id="AnalysisResult" class="analysis-result" style="display:none;">
+            <h6>Hasil Analisis</h6>
+        </div>
 
         <!-- <h6>I. Persetujuan</h6>
         <table class="table table-bordered">
@@ -859,6 +849,8 @@ $Saya =  Auth::user()->username;
                     renderTableSurveyorAnalysis(data)
                     renderTableSurveyorRecommendation(data)
                     showAnalysisResult(data)
+                    $('#AnalysisResult').show()
+                    $('#SurveyorAnalysis').show()
                 },
                 error: function(xhr, status, error) {
                     console.log('Error details:', xhr.responseText);

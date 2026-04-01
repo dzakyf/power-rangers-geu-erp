@@ -24,6 +24,8 @@
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
 
                 <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
+                <input type="button" id="evaluation" name="evaluation" value="Evaluasi" class="btn btn-success mt-2 mr-2" />
+
                 <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
             </div>
         </div>
@@ -95,6 +97,8 @@
 
 <script>
     var transferApplicationId = null;
+    var promotionId = null;
+
     $(document).ready(function() {
         initTableGrid1()
     })
@@ -102,6 +106,14 @@
     function redirectToCreateApplication() {
         window.location.href = `partner-branding-monitoring-create`
     }
+
+    function redirectToPromotionEvaluation() {
+        window.location.href = `partner-branding-evaluation-index?promotion_id=${promotionId}`
+    }
+
+    $('#evaluation').on('click', function() {
+        redirectToPromotionEvaluation()
+    })
 
     function initTableGrid1() {
         let tHeader = ['No', 'Code Promosi', 'Tanggal Mulai', 'Tanggal Berakhir', 'Platform', 'Budger Realisasi', 'Status Campaign', 'PIC']
@@ -136,6 +148,7 @@
 
     function selectMitra(id, cellIdx) {
         transferApplicationId = Grid1.cells(id, 0).getValue();
+        promotionId = Grid1.getRowAttribute(id, 'Promotion_Id')
 
         $('#transfer_application_id').val(transferApplicationId)
     }

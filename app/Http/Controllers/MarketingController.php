@@ -46,6 +46,86 @@ class MarketingController extends Controller
         return view('partner.branding.monitoring-index');
     }
 
+    public function indexEvaluation()
+    {
+        return view('partner.branding.evaluation-index');
+    }
+
+    public function getEvaluationData(Request $r)
+    {
+        $q = $r->query();
+
+        $d = DB::table('branding_monitoring as bm')
+            ->select([
+                'bm.*',
+                'bm.ID as Monitoring_Id',
+                'bp.*',
+                'bp.ID as Promotion_Id',
+                'bp.Code as Promotion_Code',
+                'us.Name as PIC_Name',
+                DB::raw('(
+            SELECT COUNT(*)
+            FROM opportunity o
+            WHERE o.Created_Date BETWEEN bm.Campaign_Start_At AND bm.Campaign_End_At
+        ) as Total_Leads'),
+                DB::raw('(
+            SELECT COUNT(*)
+            FROM opportunity o
+            WHERE o.Status = \'Deal\'
+              AND o.Created_Date BETWEEN bm.Campaign_Start_At AND bm.Campaign_End_At
+        ) as Total_Deals'),
+            ])
+            ->leftJoin('branding_promotion as bp', 'bp.ID', '=', 'bm.Promotion_Id')
+            ->leftJoin('users as us', 'us.id', '=', 'bm.PIC_Id')
+            ->where('bp.ID', '=', $q['promotion_id'])
+            ->get();
+
+        $config = DB::table('config_system as cs')->select('*')->where('Constraint', '=', 'TOTAL_HUB_INVESTATION')->first();
+
+
+
+        $xml = new SimpleXMLElement('<rows></rows>');
+
+        $count = 1;
+        $costPerLead = $d[0]->Budget_Realization / $d[0]->Total_Leads;
+        $conversionRate = (($d[0]->Total_Deals / $d[0]->Total_Leads) * 100) . "%";
+        $costPerAcquisition = $d[0]->Budget_Realization / $d[0]->Total_Deals;
+        $priceDealLead = $config->Value;
+        $revenue = $priceDealLead * $d[0]->Total_Deals;
+        $ROI = (($revenue - $d[0]->Budget_Realization) / $d[0]->Budget_Realization * 100) . "%";
+        foreach ($d as $d) {
+
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $d->ID);
+            $row->addChild('cell', $count);
+            $row->addChild('cell', $d->Platform);
+            $row->addChild('cell', $d->Budget_Realization);
+            $row->addChild('cell', $d->Total_Leads);
+            $row->addChild('cell', $costPerLead);
+            $row->addChild('cell', $d->Total_Deals);
+            $row->addChild('cell', $conversionRate);
+            $row->addChild('cell', $costPerAcquisition);
+            $row->addChild('cell', $priceDealLead);
+            $row->addChild('cell', $revenue);
+            $row->addChild('cell', $ROI);
+
+            $count++;
+        }
+
+        return response()->make($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
+
+    public function submitPromotionEvaluation(Request $r)
+    {
+        $b = $r->all();
+
+        dd($b);
+
+        return response()->json(['message' => 'success']);
+    }
+
     public function createMarketingData(Request $r)
     {
         return view('partner.branding.marketing-create');

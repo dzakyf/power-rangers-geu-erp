@@ -1171,6 +1171,15 @@ class TrainingController extends Controller
         }
         $nomor = 1;
 
+        $nilai = [
+            0 => 'Belum dinilai',
+            1 => 'Sangat Tidak Puas',
+            2 => 'Tidak Puas',
+            3 => 'Cukup Puas',
+            4 => 'Puas',
+            5 => 'Sangat Puas',
+        ];
+
         $get = Training::orderBy('training_date_from', 'DESC')->where('target','mitra');
         $get = $get->get();
         
@@ -1218,8 +1227,8 @@ class TrainingController extends Controller
             echo "<cell $warna>" . htmlspecialchars($Fetch->training_fee) . "</cell>";
             echo "<cell $warna>" . htmlspecialchars($Fetch->method) . "</cell>";
             echo "<cell $warna>" . htmlspecialchars($Fetch->address) . "</cell>";
-            echo "<cell $warna>" . htmlspecialchars(round($avgParticipantSatisfication, 0)) . "</cell>";
-            echo "<cell $warna>" . htmlspecialchars(round($avgManagerSatisfication, 0)) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($nilai[round($avgParticipantSatisfication, 0)]) . "</cell>";
+            echo "<cell $warna>" . htmlspecialchars($nilai[round($avgManagerSatisfication, 0)]) . "</cell>";
             echo "<cell $warna>" . htmlspecialchars($Fetch->created_date) . "</cell>";
             echo "</row>";
 

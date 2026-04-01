@@ -48,7 +48,7 @@ $Saya =  Auth::user()->username;
 
 		WarehouseCorrectiveID = WarehouseCorrective.getSelectedId();
 		if (WarehouseCorrectiveID != null) {
-			LoadM('divlistOpportunity', 'partner-warehouse-corrective-action-detail?Task=' + WarehouseCorrectiveID);
+			LoadM('divlistOpportunity', 'partner-warehouse-corrective-action-detail?Task=' + WarehouseCorrective.cells(WarehouseCorrectiveID, 1).getValue());
 		}else {
 			alert("Pilih baris data");
 		}
@@ -56,13 +56,13 @@ $Saya =  Auth::user()->username;
 	}
 	WarehouseCorrective = new dhtmlXGridObject('WarehouseCorrective');
 	WarehouseCorrective.setImagePath("./dhtmlx/imgs/");
-	WarehouseCorrective.setHeader("No,Nomor Audit, Tanggal Audit, Due Date Corrective, No Gudang, Lokasi Gudang, Auditor, Jenis Audit, Kategori Temuan, Area Temuan, Parameter Temuan, Ringkasan Temuan, Catatan Audit, Created By, Corrective Action");
-	WarehouseCorrective.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	WarehouseCorrective.setHeader("No,Nomor Audit, Tanggal Audit, Due Date Corrective, No Gudang, Lokasi Gudang, Auditor, Jenis Audit, Ringkasan Temuan, Catatan Audit, Corrective Score, Created By, Corrective Action");
+	WarehouseCorrective.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// WarehouseCorrective.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	WarehouseCorrective.setInitWidths("60,150,100,100,150,200,100,100,100,100,100,100,100,100,auto");
-	WarehouseCorrective.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left");
-	WarehouseCorrective.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	WarehouseCorrective.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	WarehouseCorrective.setInitWidths("60,150,100,100,150,200,100,100,100,100,100,100,auto");
+	WarehouseCorrective.setColAlign("center,left,left,left,left,left,left,left,left,left");
+	WarehouseCorrective.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str");
+	WarehouseCorrective.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	WarehouseCorrective.enableSmartRendering(true, 150);
 	// WarehouseCorrective.setNumberFormat("0,000", 7, ".", ",");
 	WarehouseCorrective.attachEvent("onRowDblClicked", WarehouseCorrectiveKlik);
