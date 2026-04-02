@@ -116,7 +116,7 @@
     }
 
     function initApprovalGrid() {
-        let tHeader = ['No', 'Nama', 'Tipe Approval', 'Status', 'Disubmit Pada']
+        let tHeader = ['No', 'Nama', 'Code', 'Tipe Approval', 'Status', 'Disubmit Pada']
 
         let tWidth = tHeader.map((e) => '200')
         let headerAttachment = [

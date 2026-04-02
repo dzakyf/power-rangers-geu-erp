@@ -4880,13 +4880,11 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$trainingPref-report-mitra", [PartnerTrainingController::class, 'reportMitraTrainingXml']);
     Route::get("$trainingPref-mail", [PartnerTrainingController::class, 'mailTraining']);
 
-
     /** Marketing & Branding */
     $marketingPrefs = "partner-branding";
     Route::get("$marketingPrefs-marketing-index", [MarketingController::class, 'indexMarketing']);
     Route::get("$marketingPrefs-marketing-recap-data", [MarketingController::class, 'getRecapMarketingData']);
     Route::get("$marketingPrefs-marketing-recap-index", [MarketingController::class, 'indexMarketingRecap']);
-
     Route::get("$marketingPrefs-promotion-index", [MarketingController::class, 'indexPromotion']);
     Route::get("$marketingPrefs-marketing-data", [MarketingController::class, 'selectMarketingData']);
     Route::get("$marketingPrefs-promotion-data", [MarketingController::class, 'getPromotionData']);
