@@ -3,25 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\GeneratorService;
 use App\Services\UploadService;
 use App\Services\UserService;
 use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpWord\TemplateProcessor;
 use SimpleXMLElement;
 
 class MarketingController extends Controller
 {
     protected $uploadService;
     protected $userService;
+    protected $generatorService;
     protected $year;
     protected $month;
 
-    public function __construct(UploadService $up, UserService $u)
+    public function __construct(UploadService $up, UserService $u, GeneratorService $g)
     {
         $this->uploadService = $up;
         $this->userService = $u;
+        $this->generatorService = $g;
         $this->year = Carbon::now()->year;
         $this->month = Carbon::now()->format('m');
     }
@@ -320,64 +324,133 @@ class MarketingController extends Controller
         return response()->json(['message' => 'success']);
     }
 
+    public function makePromotionVoucherDocs($id, $applicationCode)
+    {
+
+        $path = public_path('template-voucher-marketing.docx');
+
+        if (!file_exists($path)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        $doc = new TemplateProcessor($path);
+
+        $session = $this->userService->getCurrentSessionUserInfo();
+
+        $promotion = DB::table('branding_promotion as bp')
+            ->select('bp.*')
+            ->where('bp.ID', '=', $id)
+            ->get();
+
+
+        $ref_no = "DOC-{$applicationCode}";
+
+        $doc->setValues([
+            'vendor_code' => $session->Emp_ID,
+            'site' => $session->City ?? '',
+            'marketing_platform' => $promotion[0]->Platform,
+            'budget_realization' => $this->generatorService->rupiahFormatter($promotion[0]->Estimation),
+            'nominal_spelled' => $this->generatorService->spellRupiah($promotion[0]->Estimation),
+            'vp_finance_name' => 'Fariza N Kartosudarmo',
+            'uploaded_at' => Carbon::now(),
+            'checker_name' => '',
+            'sales_name' => $session->Name,
+            'media_url' => $promotion[0]->Media_Url
+        ]);
+
+        return [
+            'doc' => $doc,
+            'reference_no' => $ref_no,
+        ];
+    }
+
 
     //TODO: ganti ke document creation phpoffice
     public function submitPromotion(Request $r)
     {
-        $b = $r->all();
-
-        $allFiles = $r->allFiles();
+        $b    = $r->all();
         $user = $this->userService->getCurrentSessionUserInfo();
 
-        $promotionId = DB::table('branding_promotion')->insertGetId([
-            "Code"  => "XXXX",
-            "Department"  => $b["department"],
-            "Type"  => $b["type"],
-            "Platform"  => $b["platform"],
-            "Marketing_Id"  => $b["marketing_id"],
-            "Description"  => $b["description"],
-            "Audience"  => $b["audience"],
-            "Estimation"  => $b["estimation"],
-            "Status"  => $b["status"],
-        ]);
+        // Store these outside transaction so we can clean up on failure
+        $savedFilePath = null;
 
-        if (isset($allFiles['RAB'])) {
-            $files = $allFiles['RAB'];
+        DB::beginTransaction();
 
-            $files = is_array($files) ? $files : [$files];
+        try {
 
-            foreach ($files as $file) {
-                if ($file->isValid()) {
-                    $path = $file->store("$this->year/$this->month", 'public');
-                    $ext = $file->getClientOriginalExtension();
+            $highest = DB::table('branding_promotion')->max('ID');
+            $applicationCode = $this->generatorService->generateApplicationCode($highest, "PROM-VCH");
 
-                    $filename = basename($path);
-                    $desc = "Design marketing";
-                    $topic = "branding-marketing";
-                    $mapTo = $promotionId;
+            $promotionId = DB::table('branding_promotion')->insertGetId([
+                "Code"         => $applicationCode,
+                "Department"   => $b["department"],
+                "Type"         => $b["type"],
+                "Platform"     => $b["platform"],
+                "Marketing_Id" => $b["marketing_id"],
+                "Description"  => $b["description"],
+                "Audience"     => $b["audience"],
+                "Estimation"   => $b["estimation"],
+                "Status"       => $b["status"],
+            ]);
 
-                    $this->uploadService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
-                }
+            $doc      = $this->makePromotionVoucherDocs($promotionId, $applicationCode);
+            $path     = "{$this->generatorService->generateUUID()}.docx";
+            $filename = "filevendor/$this->year/$this->month/{$path}";
+            $desc     = "Voucher Promosi";
+            $topic    = "branding-promotion";
+
+
+            // Save file to disk
+            $savedFilePath = public_path($filename);
+            $doc['doc']->saveAs($savedFilePath);
+
+
+            // Upload metadata to DB
+            $this->uploadService->uploadMetaFile(
+                $path,
+                $filename,
+                $desc,
+                'docx',
+                $topic,
+                $promotionId
+            );
+
+            $level = DB::table('approval_level as al')
+                ->select('*')
+                ->where("al.Request_Type", '=', 'BRANDING_PROMOTION')
+                ->where("al.Level_Number", '=', 1)
+                ->first(); // use first() instead of get()[0]
+
+            if (!$level) {
+                throw new \Exception("Approval level not found for BRANDING_PROMOTION level 1.");
             }
+
+            DB::table('approval_request')->insertGetId([
+                "Status"        => "NEED_APPROVAL",
+                "Requester_Id"  => $user->id,
+                "Description"   => $level->Description,
+                "Current_Level" => $level->Level_Number,
+                "Request_Type"  => $level->Request_Type,
+                "Level_Id"      => $level->ID,
+                "Map_To"        => $promotionId,
+            ]);
+
+            DB::commit();
+
+            return response()->json(['message' => 'success']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            // Clean up saved file if it was created before the failure
+            if ($savedFilePath && file_exists($savedFilePath)) {
+                unlink($savedFilePath);
+            }
+
+            return response()->json([
+                'message' => 'Failed to submit promotion.',
+                'error'   => $e->getMessage(),
+            ], 500);
         }
-
-        $level = DB::table('approval_level as al')->select('*')
-            ->where("al.Request_Type", '=', 'BRANDING_PROMOTION')
-            ->where("al.Level_Number", '=', 1)
-            ->get();
-
-        $approvalId = DB::table('approval_request')->insertGetId([
-            "Status" => "NEED_APPROVAL",
-            "Requester_Id" => $user->id,
-            "Description" => $level[0]->Description,
-            "Current_Level" => $level[0]->Level_Number,
-            "Request_Type" => $level[0]->Request_Type,
-            "Level_Id" => $level[0]->ID,
-            // "Opportunity_Partner_Id" => "",
-            "Map_To" => $promotionId,
-        ]);
-
-        return response()->json(['message' => 'success']);
     }
 
     public function submitMonitoring(Request $r)

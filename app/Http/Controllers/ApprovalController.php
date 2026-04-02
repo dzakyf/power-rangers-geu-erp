@@ -518,7 +518,7 @@ class ApprovalController extends Controller
         }
 
         if ($type == "BRANDING_PROMOTION") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position')
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'bp.Code')
                 ->join('branding_promotion as bp', 'appr.Map_To', '=', 'bp.ID');
         }
 

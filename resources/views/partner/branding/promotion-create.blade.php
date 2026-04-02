@@ -153,7 +153,7 @@ $Saya =  Auth::user()->username;
                 success: function(response) {
                     alert("Berhasil membuat data promosi");
 
-                    $('#broadcastForm')[0].reset();
+                    $('#createPromotion')[0].reset();
 
                 },
                 error: function(xhr, status, error) {

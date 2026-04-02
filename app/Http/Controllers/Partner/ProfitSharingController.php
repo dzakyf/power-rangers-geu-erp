@@ -7,6 +7,7 @@ use App\MasterStockPrice;
 use App\MasterWarehouseAccount;
 use App\MasterWarehouseProfitLoss;
 use App\Services\GeneratorService;
+use App\Services\NotificationService;
 use App\Services\UploadService;
 use App\Services\UserService;
 use App\User;
@@ -34,13 +35,15 @@ class ProfitSharingController extends Controller
     protected $currDate;
     protected $year;
     protected $month;
+    protected $notificationService;
 
-    public function __construct(UserService $u, GeneratorService $g, UploadService $up)
+    public function __construct(UserService $u, GeneratorService $g, UploadService $up, NotificationService $n)
     {
 
         $this->generatorService = $g;
         $this->uploaderService = $up;
         $this->userService = $u;
+        $this->notificationService = $n;
         $this->now = Carbon::now();
         $this->year = Carbon::now()->year;
         $this->month = Carbon::now()->format('m');

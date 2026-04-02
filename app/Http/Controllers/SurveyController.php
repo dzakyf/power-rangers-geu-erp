@@ -44,6 +44,8 @@ class SurveyController extends Controller
         $xml = new SimpleXMLElement('<rows></rows>');
 
         $no = 1;
+
+
         foreach ($d as $p) {
             $row = $xml->addChild('row');
             $row->addAttribute('ID', $p->ID);
@@ -52,13 +54,28 @@ class SurveyController extends Controller
             $row->addChild('cell', $p->Recommendation_Type);
             $row->addChild('cell', $p->Status);
             $row->addChild('cell', $p->Surveyed_At);
-            $row->addChild('cell', $p->Province);
-            $row->addChild('cell', $p->City);
-            $row->addChild('cell', $p->District);
-            $row->addChild('cell', $p->Subdistrict);
-            $row->addChild('cell', $p->Address);
-            $row->addChild('cell', $p->Latitude);
-            $row->addChild('cell', $p->Longitude);
+            // $row->addChild('cell', $p->Province);
+            // $row->addChild('cell', $p->City);
+            // $row->addChild('cell', $p->District);
+            // $row->addChild('cell', $p->Subdistrict);
+            // $row->addChild('cell', $p->Address);
+            // $row->addChild('cell', $p->Latitude);
+            // $row->addChild('cell', $p->Longitude);
+
+            if ($p->Total_Score >= 80 && $p->Total_Score <= 100) {
+                $recommendation = "Layak";
+            }
+
+            if ($p->Total_Score >= 70 && $p->Total_Score <= 79) {
+                $recommendation = "Layak Bersyarat";
+            }
+
+            if ($p->Total_Score < 70) {
+                $recommendation = "Tidak Layak";
+            }
+
+            $row->addChild('cell', $p->Total_Score);
+            $row->addChild('cell', $recommendation);
 
             $no++;
         }
@@ -253,8 +270,7 @@ class SurveyController extends Controller
             "G_p1" =>   $b["G_p1"] ?? "",
             "G_p2" =>   $b["G_p2"] ?? "",
             "G_p3" =>   $b["G_p3"] ?? "",
-            "H_p1_col1" =>   $b["H_p1_col1"] ?? "",
-            "H_p1_col2" =>   $b["H_p1_col2"] ?? "",
+            "Total_Score" => $totalScore,
             "Approval_Surveyor" =>   $b["Approval_Surveyor"] ?? 1,
             "Approval_Manager" =>   $b["Approval_Manager"] ?? 0,
             "Approval_COO" =>   $b["Approval_COO"] ?? 0,
