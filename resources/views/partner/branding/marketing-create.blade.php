@@ -107,13 +107,26 @@ $Saya =  Auth::user()->username;
         <div class="row">
             <div class="col-md-6">
                 <div class="form-group">
+                    <label for="Media_Type">Tipe Media <span style="color: red;">*</span></label>
+                    <select name="Media_Type" id="Media_Type" class="form-control" required>
+                        <option value="">-- Pilih Jenis--</option>
+                        <option value="URL">Url</option>
+                        <option value="UPLOAD">Upload Dokumen</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="media_url" class="row" style="display:none;">
+            <div class="col-md-6">
+                <div class="form-group">
                     <label for="media_url">Media Url</label>
                     <input type="text" name="media_url" id="media_url" class="form-control" />
                 </div>
             </div>
         </div>
 
-        <div class="row">
+        <div id="design" class="row" style="display:none;">
             <div class="col-md-6">
                 <div class="form-group">
                     <label for="design">Dokumen Pendukung</label>
@@ -128,6 +141,19 @@ $Saya =  Auth::user()->username;
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     $(document).ready(function() {
+        $('#Media_Type').on('change', function(e) {
+            let value = $(this).val()
+
+            if (value === "URL") {
+                $("#media_url").show()
+                $("#design").hide()
+            }
+            if (value === "UPLOAD") {
+                $("#media_url").hide()
+                $("#design").show()
+            }
+        })
+
         $('#createMarketingForm').on('submit', function(e) {
             e.preventDefault();
 

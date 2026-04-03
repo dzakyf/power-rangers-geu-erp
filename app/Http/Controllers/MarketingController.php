@@ -161,16 +161,23 @@ class MarketingController extends Controller
 
         $q = $r->query();
 
-        $d = DB::table('branding_marketing as m')->select('m.*', 'm.Description as Marketing_Desc', 'm.Created_At as Marketing_Created_At', 'mf.*')
-            ->leftJoin('meta_files as mf', 'mf.Map_To', '=', 'm.ID')
+        $d = DB::table('branding_marketing as m')
+            ->select('m.*', 'm.ID as Marketing_Id', 'mf.ID as File_Id', 'm.Description as Marketing_Desc', 'm.Created_At as Marketing_Created_At', 'mf.*')
+            ->leftJoin('meta_files as mf', function ($join) {
+                $join->on('mf.Map_To', '=', 'm.ID')
+                    ->where('mf.Topic', '=', 'branding-marketing');
+            })
             ->get();
 
+
         $xml = new SimpleXMLElement('<rows></rows>');
+
+        // dd($d);
 
         $count = 1;
         foreach ($d as $d) {
             $row = $xml->addChild('row');
-            $row->addAttribute('ID', $d->ID);
+            $row->addAttribute('ID', $d->Marketing_Id);
             $row->addChild('cell', $count);
             $row->addChild('cell', $d->Code);
             $row->addChild('cell', $d->Name);
@@ -180,7 +187,7 @@ class MarketingController extends Controller
             $row->addChild('cell', $d->Marketing_Desc);
             $row->addChild('cell', $d->Status);
             $row->addChild('cell', $d->Marketing_Created_At);
-            $row->addChild('cell', $d->Media_Url);
+            $row->addChild('cell', "Lihat Url^ " . $d->Media_Url);
             $count++;
         }
 
@@ -195,9 +202,13 @@ class MarketingController extends Controller
 
         // dd($q);
 
-        $d = DB::table('branding_marketing as m')->select('m.*', 'm.ID as Marketing_Id', 'm.Description as Marketing_Desc', 'm.Created_At as Marketing_Created_At', 'mf.ID as File_Id')
-            ->leftJoin('meta_files as mf', 'mf.Map_To', '=', 'm.ID')
-            ->where('m.ID', '=', $q['marketing_id'])
+        $d = DB::table('branding_marketing as m')
+            ->select('m.*', 'm.ID as Marketing_Id', 'mf.ID as File_Id', 'm.Description as Marketing_Desc', 'm.Created_At as Marketing_Created_At', 'mf.*')
+            ->leftJoin('meta_files as mf', function ($join) {
+                $join->on('mf.Map_To', '=', 'm.ID')
+                    ->where('mf.Topic', '=', 'branding-marketing');
+            })
+            ->where('m.ID', $q['marketing_id'])
             ->get();
 
 
@@ -290,16 +301,44 @@ class MarketingController extends Controller
     }
 
 
+    public function updateMarketingData(Request $r)
+    {
+        $b = $r->all();
+
+        try {
+
+            DB::beginTransaction();
+
+            $updated = DB::table('branding_marketing as bp')->where('bp.ID', '=', $b['Marketing_Id'])->update([
+                "Code" => $b['Code'],
+                "Name" => $b['Name'],
+                "Type" => $b['Type'],
+                "Platform" => $b['Platform'],
+                "Channel" => $b['Channel'],
+                "Description" => $b['Description'],
+                "Status" => $b['Status'],
+                "Media_Url" => $b['Media_Url']
+            ]);
+
+            DB::commit();
+            return response()->json(['message' => 'success']);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return response()->json(['message' => $th->getMessage()]);
+        }
+    }
+
 
 
     public function submitMarketing(Request $r)
     {
         $b = $r->all();
 
-        $file = $r->file('design');
+        $highest = DB::table('branding_marketing')->max('ID');
+        $applicationCode = $this->generatorService->generateApplicationCode($highest, "MKT"); // Marketing
 
         $marketingId = DB::table('branding_marketing')->insertGetId([
-            "Code" => "XXXX",
+            "Code" => $applicationCode,
             "Name" => $b['name'],
             "Type" => $b['type'],
             "Platform" => $b['platform'],
@@ -309,17 +348,25 @@ class MarketingController extends Controller
             "Media_Url" => $b['media_url']
         ]);
 
-        $path = $file->store("$this->year/$this->month", 'public');
-        $ext = $file->getClientOriginalExtension();
 
-        $filename = basename($path);
-        $desc = "Design marketing";
-        $topic = "branding-marketing";
-        $mapTo = $marketingId;
+        $file = $r->file('design');
 
-        $this->uploadService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
+        if ($file && $file->isValid()) {
+            $path = $file->store("$this->year/$this->month", 'public');
+            $ext = $file->getClientOriginalExtension();
 
-        // $file = $file->storeAs("$this->year/$this->month", 'public');
+            $filename = basename($path);
+            $desc = "Design marketing";
+            $topic = "branding-marketing";
+            $mapTo = $marketingId;
+
+            $this->uploadService->uploadMetaFile($filename, $path, $desc, $ext, $topic, $mapTo);
+
+            $marketingId = DB::table('branding_marketing as bm')->where('bm.ID', '=', $marketingId)->update([
+                "Media_Url" => "{$r->root()}/filevendor/$path",
+            ]);
+        }
+
 
         return response()->json(['message' => 'success']);
     }
@@ -365,7 +412,6 @@ class MarketingController extends Controller
     }
 
 
-    //TODO: ganti ke document creation phpoffice
     public function submitPromotion(Request $r)
     {
         $b    = $r->all();
@@ -400,12 +446,10 @@ class MarketingController extends Controller
             $topic    = "branding-promotion";
 
 
-            // Save file to disk
             $savedFilePath = public_path($filename);
             $doc['doc']->saveAs($savedFilePath);
 
 
-            // Upload metadata to DB
             $this->uploadService->uploadMetaFile(
                 $path,
                 $filename,

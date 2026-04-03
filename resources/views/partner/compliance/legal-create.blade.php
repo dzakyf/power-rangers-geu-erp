@@ -48,12 +48,24 @@ $Saya =  Auth::user()->username;
         <div class="row">
             <div class="col-md-6">
                 <div class="form-group">
+                    <label for="Media_Type">Tipe Media <span style="color: red;">*</span></label>
+                    <select name="Media_Type" id="Media_Type" class="form-control" required>
+                        <option value="">-- Pilih Jenis--</option>
+                        <option value="URL">Url</option>
+                        <option value="UPLOAD">Upload Dokumen</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div id="media_url_section" class="row" style="display:none;">
+            <div class="col-md-6">
+                <div class="form-group">
                     <label for="Media_Url">Media URL <span style="color: red;">*</span></label>
                     <input type="text" name="Media_Url" id="Media_Url" class="form-control" required />
                 </div>
             </div>
         </div>
-        <div class="row">
+        <div id="legal_section" class="row" style="display:none;">
             <div class="col-md-6">
                 <div class="form-group">
                     <label for="legal_doc">Upload Dokumen <span style="color: red;">*</span></label>
@@ -70,6 +82,19 @@ $Saya =  Auth::user()->username;
     let opportunityId = new URLSearchParams(window.location.search).get('id') ?? null;
 
     $(document).ready(function() {
+
+        $('#Media_Type').on('change', function(e) {
+            let val = $(this).val()
+            if (val == "URL") {
+                $('#media_url_section').show()
+                $('#legal_section').hide()
+            }
+
+            if (val == "UPLOAD") {
+                $('#media_url_section').hide()
+                $('#legal_section').show()
+            }
+        })
         $('#legalForm').on('submit', function(e) {
             e.preventDefault();
 
