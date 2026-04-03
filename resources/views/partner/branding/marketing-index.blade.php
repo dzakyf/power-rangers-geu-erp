@@ -38,80 +38,147 @@
     <div class="card w-100">
         <div class="card-body">
             <h5>Detail Informasi Marketing</h5>
-            <form id="marketingDetailForm">
+            <form id="updateMarketingDetailForm" action="partner-branding-marketing-update" method="POST">
+                @csrf
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="Code">Code</label>
-                            <input type="text" name="Code" id="Code" class="form-control" readonly />
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="Name">Name</label>
-                            <input type="text" name="Name" id="Name" class="form-control" readonly />
+                            <label for="Code">Kode Promosi <span style="color: red;">*</span></label>
+                            <input type="text" name="Code" id="Code" class="form-control" required readonly />
                         </div>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="Type">Type</label>
-                            <input type="text" name="Type" id="Type" class="form-control" readonly />
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="Platform">Platform</label>
-                            <input type="text" name="Platform" id="Platform" class="form-control" readonly />
+                            <label for="Name">Nama Materi Promosi <span style="color: red;">*</span></label>
+                            <input type="text" name="Name" id="Name" class="form-control" required />
                         </div>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="Channel">Channel</label>
-                            <input type="text" name="Channel" id="Channel" class="form-control" readonly />
+                            <label for="Type">Jenis Materi <span style="color: red;">*</span></label>
+                            <!-- <input type="text" name="Type" id="Type" class="form-control" required /> -->
+                            <select name="Type" id="Type" class="form-control" required>
+                                <option value="">-- Pilih Jenis--</option>
+                                <option value="BANNER">Banner</option>
+                                <option value="VIDEO">Video</option>
+                                <option value="POSTER">Poster</option>
+                                <option value="DIGITAL_ADS">Digital Ads</option>
+                            </select>
                         </div>
                     </div>
+                </div>
+                <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="Status">Status</label>
-                            <input type="text" name="Status" id="Status" class="form-control" readonly />
+                            <label for="Platform">Platform <span style="color: red;">*</span></label>
+                            <!-- <input type="text" name="Type" id="Type" class="form-control" required /> -->
+                            <select name="Platform" id="Platform" class="form-control" required>
+                                <option value="">-- Pilih Jenis--</option>
+                                <option value="ONLINE">Online</option>
+                                <option value="OFFLINE">Offline</option>
+                            </select>
                         </div>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="Description">Description</label>
-                            <textarea name="Description" id="Description" class="form-control" rows="3" readonly></textarea>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="Created_At">Created At</label>
-                            <input type="text" name="Created_At" id="Created_At" class="form-control" readonly />
+                            <label for="Channel">Channel <span style="color: red;">*</span></label>
+                            <!-- <input type="text" name="Type" id="Type" class="form-control" required /> -->
+                            <select name="Channel" id="Channel" class="form-control" required>
+                                <option value="">-- Pilih Jenis--</option>
+                                <option value="GOOGLE_ADS">Google Ads</option>
+                                <option value="TIKTOK">TikTok</option>
+                                <option value="FANPAGE">Fanpage</option>
+                                <option value="EVENT">Event</option>
+                                <option value="INSTAGRAM">Instagram</option>
+                                <option value="FACEBOOK">Facebook</option>
+                            </select>
                         </div>
                     </div>
                 </div>
                 <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="Status">Status <span style="color: red;">*</span></label>
+                            <!-- <input type="text" name="Type" id="Type" class="form-control" required /> -->
+                            <select name="Status" id="Status" class="form-control" required>
+                                <option value="">-- Pilih Jenis--</option>
+                                <option value="ACTIVE">Aktif</option>
+                                <option value="NONACTIVE">Non-Aktif</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="Description">Deskripsi <span style="color: red;">*</span></label>
+                            <input type="text" name="Description" id="Description" class="form-control" required />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="Media_Type">Tipe Media <span style="color: red;">*</span></label>
+                            <select name="Media_Type" id="Media_Type" class="form-control" required>
+                                <option value="">-- Pilih Jenis--</option>
+                                <option value="URL">Url</option>
+                                <option value="UPLOAD">Upload Dokumen</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="design" class="row" style="display:none;">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="design">Dokumen Pendukung</label>
+                            <input type="file" name="design" id="design" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+
+                <div id="media_url" class="row" style="display:none;">
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="Media_Url">Media Url</label>
-                            <textarea name="Media_Url" id="Media_Url" class="form-control" rows="3" readonly></textarea>
+                            <input type="text" name="Media_Url" id="Media_Url" class="form-control" />
                         </div>
                     </div>
                 </div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
             </form>
         </div>
     </div>
 </div>
 
 <script>
-    var transferApplicationId = null;
+    var marketingId = null;
     $(document).ready(function() {
         initTableGrid1()
+
+        $('#Media_Type').on('change', function(e) {
+            let value = $(this).val()
+
+            if (value === "URL") {
+                $("#media_url").show()
+                $("#design").hide()
+            }
+            if (value === "UPLOAD") {
+                $("#media_url").hide()
+                $("#design").show()
+            }
+        })
+
     })
 
     function redirectToCreateApplication() {
@@ -130,14 +197,14 @@
         Grid1.setInitWidths(tWidth.join(','));
         // Grid1.enableAutoWidth(true);
         Grid1.attachHeader(headerAttachment);
-        Grid1.setColTypes(tHeader.map((e) => 'ro').join(','));
+        Grid1.setColTypes(tHeader.map((e, i) => i === 9 ? 'link' : 'ro').join(','));
         // ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
         // ProjectionGrid.setColAlign("center,left,left,left,left");
         // ProjectionGrid.setColSorting("int,str,str,str,str");
         // ProjectionGrid.enableSmartRendering(true, 150);
         // ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
         // Grid1.enableAutoWidth(true);
-        Grid1.attachEvent("onRowDblClicked", doubleClickTableGrid1);
+        // Grid1.attachEvent("onRowDblClicked", doubleClickTableGrid1);
         Grid1.attachEvent("onRowSelect", selectMitra);
         Grid1.setSkin("dhx_skyblue");
         Grid1.init();
@@ -150,7 +217,7 @@
 
     $('#detailGrid1').on('click', function() {
         $.ajax({
-            url: `partner-branding-marketing-data?marketing_id=${transferApplicationId}`, // replace with your actual endpoint
+            url: `partner-branding-marketing-data?marketing_id=${marketingId}`, // replace with your actual endpoint
             type: "GET",
             dataType: "xml",
             success: function(xmlResponse) {
@@ -169,6 +236,11 @@
                 $('#Created_At').val($(cells[8]).text());
                 $('#Media_Url').val($(cells[9]).text());
 
+                if ($(cells[9]).text()) {
+                    $('#media_url').show()
+                    $('#Media_Type').val('URL')
+                }
+
                 $('#Grid1Detail').show();
             },
             error: function(xhr, status, error) {
@@ -179,32 +251,33 @@
     });
 
     function selectMitra(id, cellIdx) {
-        transferApplicationId = Grid1.cells(id, 0).getValue();
+        marketingId = Grid1.getRowAttribute(id, 'ID');
 
-        $('#transfer_application_id').val(transferApplicationId)
+        $('#marketingId').val(marketingId)
     }
 
     function doubleClickTableGrid1() {
         initDetailTableGrid1()
     }
 
-    $('#updateApplicationInfoForm').on('submit', function(e) {
+    $('#updateMarketingDetailForm').on('submit', function(e) {
         e.preventDefault();
 
         let formData = new FormData(this);
+        formData.append('Marketing_Id', marketingId)
 
         $('#submitBtn').prop('disabled', true).text('Submitting...');
 
         $.ajax({
-            url: `partner-transfer-membership-update-application`,
-            type: "POST",
+            url: $(this).attr('action'),
+            type: $(this).attr('method'),
             data: formData,
             processData: false,
             contentType: false,
             cache: false,
             success: function(response, status, xhr) {
                 alert("Berhasil mengupdate info pengajuan")
-                $('#updateApplicationInfoForm')[0].reset()
+                // $('#updateMarketinDetailForm')[0].reset()
             },
             error: function(xhr, status, error) {
                 console.log('Error details:', xhr.responseText);
@@ -212,7 +285,7 @@
             },
             complete: function() {
                 $('#submitBtn').prop('disabled', false).text('Submit');
-                $('#transfer_application_id').val(transferApplicationId)
+                $('#marketingId').val(marketingId)
             }
         });
 

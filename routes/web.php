@@ -4890,6 +4890,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$marketingPrefs-promotion-data", [MarketingController::class, 'getPromotionData']);
     Route::get("$marketingPrefs-marketing-create", [MarketingController::class, 'createMarketingData']);
     Route::post("$marketingPrefs-marketing-submit", [MarketingController::class, 'submitMarketing']);
+    Route::post("$marketingPrefs-marketing-update", [MarketingController::class, 'updateMarketingData']);
     Route::get("$marketingPrefs-promotion-create", [MarketingController::class, 'createPromotionData']);
     Route::post("$marketingPrefs-promotion-submit", [MarketingController::class, 'submitPromotion']);
     Route::get("$marketingPrefs-monitoring-index", [MarketingController::class, 'indexMonitoring']);
@@ -4911,7 +4912,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$partnerCompliance-tax-update", [ComplianceController::class, 'updateTaxCompliance']);
     Route::get("$partnerCompliance-legal-index", [ComplianceController::class, 'indexLegal']);
     Route::get("$partnerCompliance-tax-data", [ComplianceController::class, 'selectTaxComplianceData']);
-    Route::get("$partnerCompliance-legal-data", [ComplianceController::class, 'getLegalComplianceData']);
+    Route::get("$partnerCompliance-legal-data", [ComplianceController::class, 'selectLegalComplianceData']);
     Route::post("$partnerCompliance-legal-submit", [ComplianceController::class, 'inputLegalCompliance']);
     Route::get("$partnerCompliance-legal-create", [ComplianceController::class, 'createLegalCompliance']);
 

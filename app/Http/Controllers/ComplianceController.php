@@ -117,9 +117,48 @@ class ComplianceController extends Controller
         ]);
     }
 
+    public function selectLegalComplianceData(Request $r)
+    {
+        $q = $r->query();
+
+        if (!empty($q['legal_id'])) {
+            return $this->getLegalComplianceDataById($r);
+        }
+
+        return $this->getLegalComplianceData($r);
+    }
+
     public function getLegalComplianceData(Request $r)
     {
         $d = DB::table('config_legal as cl')->select('cl.*')
+            ->get();
+
+        $xml = new SimpleXMLElement('<rows></rows>');
+
+
+        $count = 1;
+        foreach ($d as $d) {
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $d->ID);
+            $row->addChild('cell', $count);
+            $row->addChild('cell', $d->Document_Name);
+            $row->addChild('cell', $d->Description);
+            $row->addChild('cell', 'Lihat Dokumen^ ' . $d->Media_Url); // display full link and open it
+            $row->addChild('cell', $d->Created_At);
+
+            $count++;
+        }
+
+        return response()->make($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
+
+    public function getLegalComplianceDataById(Request $r)
+    {
+        $q = $r->query();
+
+        $d = DB::table('config_legal as cl')->select('cl.*')->where('cl.ID', '=', $q['legal_id'])
             ->get();
 
         $xml = new SimpleXMLElement('<rows></rows>');
@@ -167,6 +206,7 @@ class ComplianceController extends Controller
         $files = $r->file('legal_doc'); // now expects legal_doc[] array
 
         try {
+            DB::beginTransaction();
             $id = DB::table('config_legal')->insertGetId([
                 'Document_Name' => $b['Document_Name'],
                 'Description'   => $b['Description'],
@@ -186,11 +226,14 @@ class ComplianceController extends Controller
                 }
             }
 
+            DB::commit();
+
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Data berhasil disimpan'
             ], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'status'  => 'error',
                 'message' => $e->getMessage()
