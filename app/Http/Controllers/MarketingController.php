@@ -179,6 +179,7 @@ class MarketingController extends Controller
             $row = $xml->addChild('row');
             $row->addAttribute('ID', $d->Marketing_Id);
             $row->addChild('cell', $count);
+            $row->addChild('cell', $d->Marketing_Id);
             $row->addChild('cell', $d->Code);
             $row->addChild('cell', $d->Name);
             $row->addChild('cell', $d->Type);
@@ -304,6 +305,7 @@ class MarketingController extends Controller
     public function updateMarketingData(Request $r)
     {
         $b = $r->all();
+
 
         try {
 
