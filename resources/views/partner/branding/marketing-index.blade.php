@@ -186,29 +186,36 @@
     }
 
     function initTableGrid1() {
-        let tHeader = ['No', 'Code', 'Nama Materi', 'Jenis Materi', 'Platform', 'Channel', 'Deskripsi', 'Status', 'Tanggal Upload', 'Media Url']
-        let tWidth = tHeader.map((e) => '200')
+        let tHeader = ['No', null, 'Code', 'Nama Materi', 'Jenis Materi', 'Platform', 'Channel', 'Deskripsi', 'Status', 'Tanggal Upload', 'Media Url']
+        let tWidth = tHeader.map((e, i) => i == 1 ? 0 : '200')
         let headerAttachment = [
             '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter'
         ]
+
         Grid1 = new dhtmlXGridObject('MembershipGrid');
         Grid1.setImagePath("./dhtmlx/imgs/");
         Grid1.setHeader(tHeader.join(','));
         Grid1.setInitWidths(tWidth.join(','));
-        // Grid1.enableAutoWidth(true);
         Grid1.attachHeader(headerAttachment);
-        Grid1.setColTypes(tHeader.map((e, i) => i === 9 ? 'link' : 'ro').join(','));
-        // ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-        // ProjectionGrid.setColAlign("center,left,left,left,left");
-        // ProjectionGrid.setColSorting("int,str,str,str,str");
-        // ProjectionGrid.enableSmartRendering(true, 150);
-        // ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
-        // Grid1.enableAutoWidth(true);
-        // Grid1.attachEvent("onRowDblClicked", doubleClickTableGrid1);
+        Grid1.setColTypes(tHeader.map((e, i) => i === 10 ? 'link' : 'ed').join(','));
+
+        Grid1.setColumnIds("No,Marketing_Id,Code,Name,Type,Platform,Channel,Description,Status,Created_At,Media_Url");
+
         Grid1.attachEvent("onRowSelect", selectMitra);
         Grid1.setSkin("dhx_skyblue");
         Grid1.init();
         Grid1.clearAndLoad('partner-branding-marketing-data');
+
+        let dp = new dataProcessor("partner-branding-marketing-update/");
+        dp.setTransactionMode({
+            mode: "REST",
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                "Content-Type": "application/x-www-form-urlencoded",
+            }
+        });
+        dp.init(Grid1);
+        dp.enableDataNames(true)
     }
 
     function initDetailTableGrid1() {

@@ -4890,7 +4890,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$marketingPrefs-promotion-data", [MarketingController::class, 'getPromotionData']);
     Route::get("$marketingPrefs-marketing-create", [MarketingController::class, 'createMarketingData']);
     Route::post("$marketingPrefs-marketing-submit", [MarketingController::class, 'submitMarketing']);
-    Route::post("$marketingPrefs-marketing-update", [MarketingController::class, 'updateMarketingData']);
+    Route::put("$marketingPrefs-marketing-update/{id}", [MarketingController::class, 'updateMarketingData']);
     Route::get("$marketingPrefs-promotion-create", [MarketingController::class, 'createPromotionData']);
     Route::post("$marketingPrefs-promotion-submit", [MarketingController::class, 'submitPromotion']);
     Route::get("$marketingPrefs-monitoring-index", [MarketingController::class, 'indexMonitoring']);
