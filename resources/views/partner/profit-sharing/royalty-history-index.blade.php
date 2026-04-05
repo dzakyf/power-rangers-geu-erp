@@ -49,7 +49,7 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="Status">Status Kontrak Setelah Transfer <span style="color: red;">*</span></label>
+                            <label for="Status">Update Status Ke<span style="color: red;">*</span></label>
                             <select name="Status" id="Status" class="form-control" required>
                                 <option value="">-- Pilih Jenis--</option>
                                 <option value="WAITING_PAYMENT">Menunggu Pembayaran</option>

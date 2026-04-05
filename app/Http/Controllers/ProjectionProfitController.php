@@ -28,7 +28,7 @@ class ProjectionProfitController extends Controller
 
     public function downloadProjectionTemplate()
     {
-        $template = public_path('template-proyeksi.xlsx');
+        $template = public_path('template-proyeksi-final.xlsx');
 
 
         if (!file_exists($template)) {
@@ -238,9 +238,10 @@ class ProjectionProfitController extends Controller
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
+        $counter = 1;
         foreach ($proj as $p) {
             $row = $xml->addChild('row');
-            $row->addChild('cell', $p->ID);
+            $row->addChild('cell', $counter);
             $row->addChild('cell', $p->Hub_Type);
             $row->addChild('cell', $p->Projection_Type);
             $row->addChild('cell', htmlspecialchars($p->Description));
@@ -259,6 +260,8 @@ class ProjectionProfitController extends Controller
                 $row->addChild('cell', $p->$rowTotal);
                 $row->addChild('cell', $p->$rowOffset);
             }
+
+            $counter++;
         }
 
         return response()->make($xml->asXML(), 200, [
@@ -279,9 +282,10 @@ class ProjectionProfitController extends Controller
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
+        $counter = 1;
         foreach ($exp as $p) {
             $row = $xml->addChild('row');
-            $row->addChild('cell', $p->ID);
+            $row->addChild('cell', $counter);
             $row->addChild('cell', $p->Hub_Type);
             $row->addChild('cell', $p->Projection_Type);
             $row->addChild('cell', htmlspecialchars($p->Description));
@@ -294,6 +298,8 @@ class ProjectionProfitController extends Controller
 
                 $row->addChild('cell', $p->$rowTotal);
             }
+
+            $counter++;
         }
 
         return response()->make($xml->asXML(), 200, [

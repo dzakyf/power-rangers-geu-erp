@@ -25,24 +25,22 @@
                 <a href="projection-template">Download template</a>
             </div>
         </div>
-        <div class="form-group">
+        <!-- <div class="form-group">
             <label for="Hub_Type">Tipe Hub <span style="color: red;">*</span></label>
-            <!-- <input type="text" name="Type" id="Type" class="form-control" required /> -->
             <select name="Hub_Type" id="Hub_Type" class="form-control" required>
                 <option value="">-- Pilih Jenis--</option>
                 <option value="booth">Booth</option>
                 <option value="mobil" disabled>Mobil</option>
             </select>
-        </div>
-        <div class="form-group">
+        </div> -->
+        <!-- <div class="form-group">
             <label for="Type">Tipe Proyeksi <span style="color: red;">*</span></label>
-            <!-- <input type="text" name="Type" id="Type" class="form-control" required /> -->
             <select name="Type" id="Type" class="form-control" required>
                 <option value="">-- Pilih Jenis--</option>
                 <option value="low">Rendah</option>
                 <option value="high">Tinggi</option>
             </select>
-        </div>
+        </div> -->
         <!-- <div class="form-group">
             <label for="Year">Tahun Proyeksi<span style="color: red;">*</span></label>
             <select name="Year" id="Year" class="form-control" required>

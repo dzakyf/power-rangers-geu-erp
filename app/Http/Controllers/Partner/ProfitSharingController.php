@@ -21,7 +21,10 @@ use DatePeriod;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use PDO;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Worksheet\CellIterator;
 use PhpOffice\PhpWord\TemplateProcessor;
 use Ramsey\Uuid\Uuid;
 use SimpleXMLElement;
@@ -554,7 +557,7 @@ class ProfitSharingController extends Controller
         $body = $r->all();
         $doc = $r->file('file');
 
-        $path = $this->generatorService->generateFilename();
+        $path = $this->generatorService->generateUUID();
         $ext = $r->file('file')->getClientOriginalExtension();
         $user = $this->userService->getCurrentSessionUserInfo();
 
@@ -619,6 +622,7 @@ class ProfitSharingController extends Controller
             'month' => $month,
             'year' => $year,
             'nominal' => $nominal,
+            'terbialng' => $this->generatorService->spellRupiah($nominal),
             'bank_name' => $bankName,
             'account_name' => $accountName,
             'account_no' => $accountNo,
@@ -655,7 +659,8 @@ class ProfitSharingController extends Controller
         $accountName = $partner->Bank_Account_Name;
         $accountNo = $partner->Bank_Account_No;
         $mitraFullname = $partner->Name;
-        $referenceNo = "000/RS/PFS/APL/{$month}/{$year}";
+        $highest = DB::table('account_payable as ap')->max('ID');
+        $referenceNo = $this->generatorService->generateApplicationCode($highest, 'DOC-PFS');
 
         $doc->setValues([
             'reference_no' => $referenceNo,
@@ -664,6 +669,7 @@ class ProfitSharingController extends Controller
             'month' => $month,
             'year' => $year,
             'nominal' => $nominal,
+            'terbilang' => $this->generatorService->spellRupiah($nominal),
             'bank_name' => $bankName,
             'account_name' => $accountName,
             'account_no' => $accountNo,
@@ -722,7 +728,7 @@ class ProfitSharingController extends Controller
 
         $doc = $this->makeProfitSharingApplication($body, $path);
 
-        $path = $this->generatorService->generateFilename();
+        $path = $this->generatorService->generateUUID();
         $ext = "png";
         $user = $this->userService->getCurrentSessionUserInfo();
 
@@ -1442,5 +1448,211 @@ class ProfitSharingController extends Controller
         return response()->make($xml->asXML(), 200, [
             'Content-Type' => 'application/xml'
         ]);
+    }
+
+    public function createMitraProjection(Request $r)
+    {
+        $b = $r->all();
+        $type = $b['type'];
+        $year = $b['year'];
+        $userId = $b['user_id'] ?? "2345";
+
+        $file = $r->file('file');
+        $path = $file->storeAs('temp', 'upload_' . time() . '.' . $file->getClientOriginalExtension());
+        $fullPath = Storage::path($path);
+        $spreadsheet = IOFactory::load($fullPath);
+
+        $partner = DB::table('opportunity_partner as op')
+            ->select('op.package_option', 'wp.warehouse_task_id')
+            ->join('warehouse_partner as wp', 'wp.partner_task_id', '=', 'op.lead_id')
+            ->where('user_row_id', '=', $userId)->get();
+
+
+        $sheet = $spreadsheet->getSheetByName('Proyeksi');
+
+        $typeProjection = ['high', 'low'];
+
+
+        DB::beginTransaction();
+
+        try {
+            // restart, hapus semua yang ada
+            DB::table('expenditure')->where('User_Id', $userId)->delete();
+            DB::table('projections')->where('User_Id', $userId)->delete();
+
+            for ($type = 0; $type < count($typeProjection); $type++) {
+
+                $rowIterator = null;
+
+                if ($typeProjection[$type] == 'high') {
+                    $rowIterator = $sheet->getRowIterator(4, 17);
+                }
+
+                if ($typeProjection[$type] == 'low') {
+                    $rowIterator = $sheet->getRowIterator(231, 244);
+                }
+
+                $data = [];
+
+                foreach ($rowIterator as $row) {
+                    $columnIterator = $row->getCellIterator();
+                    $columnIterator->setIfNotExists(CellIterator::IF_NOT_EXISTS_RETURN_NULL);
+                    $rowData = [];
+                    foreach ($columnIterator as $cell) {
+                        if ($cell !== null) {
+                            $value = $cell->getCalculatedValue();
+                            $rowData[] = $value;
+                        }
+                    }
+                    $data[] = $rowData;
+                }
+
+                $count = 1;
+                for ($i = 0; $i < count($data); $i++) {
+                    $b = $data[$i];
+
+                    DB::table('expenditure')->insertGetId([
+                        "User_Id" => $userId,
+                        "Hub_Type" => $partner[0]->package_option,
+                        "Description" => $b[0] ?? "",
+                        "Short_Desc" => $b[1] ?? "",
+                        "Offset" => $b[2],
+                        "Year" => $count,
+                        "Projection_Type" => $typeProjection[$type],
+                        "Month_1_Total" => $b[5],
+                        "Month_2_Total" => $b[9],
+                        "Month_3_Total" => $b[13],
+                        "Month_4_Total" => $b[17],
+                        "Month_5_Total" => $b[21],
+                        "Month_6_Total" => $b[25],
+                        "Month_7_Total" => $b[29],
+                        "Month_8_Total" => $b[33],
+                        "Month_9_Total" => $b[37],
+                        "Month_10_Total" => $b[41],
+                        "Month_11_Total" => $b[45],
+                        "Month_12_Total" => $b[49],
+                    ]);
+                }
+
+                $count = 1;
+
+                if ($typeProjection[$type] == 'high') {
+                    $yearToRow = [
+                        1 => [26, 73],
+                        2 => [79, 124],
+                        3 => [130, 175],
+                        4 => [181, 226]
+                    ];
+                }
+
+                if ($typeProjection[$type] == 'low') {
+                    $yearToRow = [
+                        1 => [253, 298],
+                        2 => [304, 349],
+                        3 => [355, 400],
+                        4 => [407, 452]
+                    ];
+                }
+
+                for ($i = 1; $i <= 4; $i++) {
+                    $rowNum = $yearToRow[$i];
+
+                    $projRowIterator = $sheet->getRowIterator($rowNum[0], $rowNum[1]);
+                    $projData = [];
+                    foreach ($projRowIterator as $row) {
+                        $columnIterator = $row->getCellIterator();
+                        $columnIterator->setIfNotExists(CellIterator::IF_NOT_EXISTS_RETURN_NULL);
+                        $rowData = [];
+
+                        $firstCell = $columnIterator->current();
+                        $firstValue = $firstCell ? $firstCell->getValue() : null;
+
+                        foreach ($columnIterator as $cell) {
+                            if ($cell !== null) {
+                                $value = $cell->getCalculatedValue();
+                                $rowData[] = $value;
+                            }
+                        }
+                        $projData[] = $rowData;
+                    }
+
+                    for ($j = 0; $j < count($projData); $j++) {
+                        $b = $projData[$j];
+
+                        DB::table('projections')->insertGetId([
+                            "User_Id" => $userId,
+                            "Hub_Type" => $partner[0]->package_option,
+                            "warehouse_task_id" => $partner[0]->warehouse_task_id,
+                            "Description" => $b[0] ?? "",
+                            "Standard_Value" => $b[1],
+                            "Offset" => $b[2],
+                            "Year" => $count,
+                            "Projection_Type" => $typeProjection[$type],
+                            "Month_1_A" => $b[3],
+                            "Month_1_B" => $b[4],
+                            "Month_1_Total" => $b[5],
+                            "Month_1_Offset" => $b[6],
+                            "Month_2_A" => $b[7],
+                            "Month_2_B" => $b[8],
+                            "Month_2_Total" => $b[9],
+                            "Month_2_Offset" => $b[10],
+                            "Month_3_A" => $b[11],
+                            "Month_3_B" => $b[12],
+                            "Month_3_Total" => $b[13],
+                            "Month_3_Offset" => $b[14],
+                            "Month_4_A" => $b[15],
+                            "Month_4_B" => $b[16],
+                            "Month_4_Total" => $b[17],
+                            "Month_4_Offset" => $b[18],
+                            "Month_5_A" => $b[19],
+                            "Month_5_B" => $b[20],
+                            "Month_5_Total" => $b[21],
+                            "Month_5_Offset" => $b[22],
+                            "Month_6_A" => $b[23],
+                            "Month_6_B" => $b[24],
+                            "Month_6_Total" => $b[25],
+                            "Month_6_Offset" => $b[26],
+                            "Month_7_A" => $b[27],
+                            "Month_7_B" => $b[28],
+                            "Month_7_Total" => $b[29],
+                            "Month_7_Offset" => $b[30],
+                            "Month_8_A" => $b[31],
+                            "Month_8_B" => $b[32],
+                            "Month_8_Total" => $b[33],
+                            "Month_8_Offset" => $b[34],
+                            "Month_9_A" => $b[35],
+                            "Month_9_B" => $b[36],
+                            "Month_9_Total" => $b[37],
+                            "Month_9_Offset" => $b[38],
+                            "Month_10_A" => $b[39],
+                            "Month_10_B" => $b[40],
+                            "Month_10_Total" => $b[41],
+                            "Month_10_Offset" => $b[42],
+                            "Month_11_A" => $b[43],
+                            "Month_11_B" => $b[44],
+                            "Month_11_Total" => $b[45],
+                            "Month_11_Offset" => $b[46],
+                            "Month_12_A" => $b[47],
+                            "Month_12_B" => $b[48],
+                            "Month_12_Total" => $b[49],
+                            "Month_12_Offset" => $b[50],
+                        ]);
+                    }
+
+                    $count++;
+                }
+            }
+
+            DB::commit();
+
+            return response()->json(["message" => "success"]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                "message" => "failed",
+                "error" => $e->getMessage()
+            ], 500);
+        }
     }
 }

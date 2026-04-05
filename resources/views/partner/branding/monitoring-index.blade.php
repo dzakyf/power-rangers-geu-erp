@@ -26,7 +26,7 @@
                 <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
                 <input type="button" id="evaluation" name="evaluation" value="Evaluasi" class="btn btn-success mt-2 mr-2" />
 
-                <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
+                <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="Grid1.toExcel('./export/generate.php');" />
             </div>
         </div>
     </div>
@@ -115,8 +115,10 @@
         redirectToPromotionEvaluation()
     })
 
+
+
     function initTableGrid1() {
-        let tHeader = ['No', 'Code Promosi', 'Tanggal Mulai', 'Tanggal Berakhir', 'Platform', 'Budger Realisasi', 'Status Campaign', 'PIC']
+        let tHeader = ['No', 'Code Promosi', 'Tanggal Mulai', 'Tanggal Berakhir', 'Platform', 'Budget Realisasi', 'Status Campaign', 'PIC', 'Total Leads', 'Cost per Lead', 'Total Deals', 'Conversion Rate', 'Cost per Acquisition', 'Price per Deal', 'Revenue', 'RoI']
 
         let tWidth = tHeader.map((e) => '200')
         let headerAttachment = [

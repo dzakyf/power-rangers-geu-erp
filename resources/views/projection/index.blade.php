@@ -16,17 +16,79 @@
 </div>
 
 <div class="row m-1">
+    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">MITRA</div>
+    <div class="card">
+        <div class="card-body">
+            <!-- <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
+            <div>
+                <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
+                <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
+                <input type="button" id="detailGrid1" name="detailGrid1" value="Detail Data" class="btn btn-info mt-2 mr-2" />
 
-    <input type="button" id="detailBP" name="detailBP" value="Buat Proyeksi" class="btn btn-success mb-2" onclick="redirectToCreateProjection()" />
-    <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
-    <div id="ExpenditureGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
-    <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
-    <div>
-        <!-- <input type="button" id="ekselProjectionGridDet" name="ekselProjectionGridDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="ProjectionGrid.toExcel('./export/generate.php');" /> -->
-        <!-- <input type="button" id="createBroadcast" name="createBroadcast" value="Create Panduan" class="btn btn-info mt-2 mr-2" onclick="createPanduan()" /> -->
-        <div class="btn-group" role="group">
+            </div> -->
+            <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
+            <input type="button" id="detailBP" name="detailBP" value="Buat Proyeksi" class="btn btn-success mb-2" onclick="redirectToCreateProjection()" />
+            <!-- <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
+            <div> -->
         </div>
     </div>
+</div>
+
+
+<div id="HiddenExpenditureSection" class="row m-1" style="display:none;">
+    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">HIDDEN EXPENDITURE</div>
+    <div class="card">
+        <div class="card-body">
+            <!-- <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
+            <div>
+                <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
+                <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
+                <input type="button" id="detailGrid1" name="detailGrid1" value="Detail Data" class="btn btn-info mt-2 mr-2" />
+
+            </div> -->
+            <!-- <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
+            <input type="button" id="detailBP" name="detailBP" value="Buat Proyeksi" class="btn btn-success mb-2" onclick="redirectToCreateProjection()" /> -->
+            <div id="ExpenditureGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
+            <!-- <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div> -->
+            <div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="ProjectionSection" class="row m-1" style="display:none;">
+    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PROYEKSI</div>
+    <div class="card">
+        <div class="card-body">
+            <!-- <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
+            <div>
+                <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
+                <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
+                <input type="button" id="detailGrid1" name="detailGrid1" value="Detail Data" class="btn btn-info mt-2 mr-2" />
+
+            </div> -->
+            <!-- <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
+            <input type="button" id="detailBP" name="detailBP" value="Buat Proyeksi" class="btn btn-success mb-2" onclick="redirectToCreateProjection()" /> -->
+
+            <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
+            <div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row m-1">
+
+
+    <!-- <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div> -->
+
+
+    <!-- <input type="button" id="ekselProjectionGridDet" name="ekselProjectionGridDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="ProjectionGrid.toExcel('./export/generate.php');" /> -->
+    <!-- <input type="button" id="createBroadcast" name="createBroadcast" value="Create Panduan" class="btn btn-info mt-2 mr-2" onclick="createPanduan()" /> -->
+    <div class="btn-group" role="group">
+    </div>
+</div>
 </div>
 
 <script>
@@ -73,6 +135,7 @@
     }
 
     function initProjectionGrid() {
+        $('#ProjectionSection').show()
         let tHeader = [
             'No', 'Tipe Hub', 'Tipe Proyeksi', ' Uraian', ' Standard',
             ' %', 'Tahun Ke-', ' Month 1 ', '',
@@ -139,7 +202,6 @@
         ProjectionGrid.setColAlign(tColAlign.join(','));
         ProjectionGrid.setColSorting(tColSort.join(','));
         ProjectionGrid.setColTypes(tColType.join(','));
-        ProjectionGrid.enableAutoWidth(true);
         ProjectionGrid.attachHeader(headerAttachment);
         ProjectionGrid.setNumberFormat("0,000", 4, ".", ",");
         ProjectionGrid.setNumberFormat("0,000", 5, ".", ",");
@@ -154,11 +216,12 @@
         // ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
         ProjectionGrid.setSkin("dhx_skyblue");
         ProjectionGrid.init();
-        ProjectionGrid.clearAndLoad('projection-data-projection?user_id=2345&hub_type=&projection_type=&year=');
+        ProjectionGrid.clearAndLoad(`projection-data-projection?user_id=${mitraId}&hub_type=&projection_type=&year=`);
     }
 
 
     function initExpenditureGrid() {
+        $('#HiddenExpenditureSection').show()
         let tHeader = [
             'No', 'Tipe Hub', 'Tipe Proyeksi', 'Uraian', ' Standard',
             ' %', 'Tahun Ke-', ' Month 1 ',
@@ -209,7 +272,6 @@
         ExpenditureGrid.setColAlign(tColAlign.join(','));
         ExpenditureGrid.setColSorting(tColSort.join(','));
         ExpenditureGrid.setColTypes(tColType.join(','));
-        ExpenditureGrid.enableAutoWidth(true);
         ExpenditureGrid.attachHeader(headerAttachment);
         ExpenditureGrid.setNumberFormat("0,000", 5, ".", ",");
         for (let ind = 7; ind < tHeader.length; ind++) {
@@ -230,6 +292,7 @@
 
     function selectMitra(id, cellIdx) {
         mitraId = PartnerGrid.cells(id, 0).getValue();
+
     }
 
     function doubleClickMitra() {
