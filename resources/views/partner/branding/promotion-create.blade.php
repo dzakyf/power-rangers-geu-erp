@@ -182,10 +182,11 @@ $Saya =  Auth::user()->username;
 
                     $(xmlData).find('row').each(function() {
                         var cells = $(this).find('cell');
+                        console.log(cells)
 
                         results.push({
-                            id: cells.eq(0).text(),
-                            text: cells.eq(1).text(),
+                            id: cells.eq(1).text(),
+                            text: cells.eq(2).text(),
                             cell2: cells.eq(2).text(),
                         });
                     });

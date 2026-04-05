@@ -95,7 +95,7 @@ class OnboardingController extends Controller
         $path = public_path('mou.docx');
         $doc = $this->makeMou($body, $body['opportunity_id'], $path);
 
-        $path = $this->generatorService->generateFilename();
+        $path = $this->generatorService->generateUUID();
         $ext = "png";
         $user = $this->userService->getCurrentSessionUserInfo();
 
@@ -189,7 +189,7 @@ class OnboardingController extends Controller
         $path = public_path('pks.docx');
         $doc = $this->makeMou($body, $body['opportunity_id'], $path);
 
-        $path = $this->generatorService->generateFilename();
+        $path = $this->generatorService->generateUUID();
         $ext = "png";
         $user = $this->userService->getCurrentSessionUserInfo();
 

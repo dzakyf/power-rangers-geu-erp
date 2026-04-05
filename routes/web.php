@@ -4666,7 +4666,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$projection-create", [ProjectionProfitController::class, 'createProjection']);
     Route::get("$projection-submit-projection", [ProjectionProfitController::class, 'submitProjection']);
     Route::get("$projection-data-projection", [ProjectionProfitController::class, 'projectionData']);
-    Route::post("$projection-upload", [ProjectionProfitController::class, 'uploadProjection']);
+    Route::post("$projection-upload", [PartnerProfitSharingController::class, 'createMitraProjection']);
     Route::get("$projection-template", [ProjectionProfitController::class, 'downloadProjectionTemplate']);
     Route::get("$expenditure-data-expenditure", [ProjectionProfitController::class, 'expenditureData']);
 
@@ -4890,7 +4890,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$marketingPrefs-promotion-data", [MarketingController::class, 'getPromotionData']);
     Route::get("$marketingPrefs-marketing-create", [MarketingController::class, 'createMarketingData']);
     Route::post("$marketingPrefs-marketing-submit", [MarketingController::class, 'submitMarketing']);
-    Route::put("$marketingPrefs-marketing-update/{id}", [MarketingController::class, 'updateMarketingData']);
+    Route::put("$marketingPrefs-marketing-update", [MarketingController::class, 'updateMarketingData']);
     Route::get("$marketingPrefs-promotion-create", [MarketingController::class, 'createPromotionData']);
     Route::post("$marketingPrefs-promotion-submit", [MarketingController::class, 'submitPromotion']);
     Route::get("$marketingPrefs-monitoring-index", [MarketingController::class, 'indexMonitoring']);
@@ -4905,6 +4905,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$marketingPrefs-evaluation-index", [MarketingController::class, 'indexEvaluation']);
     Route::get("$marketingPrefs-evaluation-data", [MarketingController::class, 'getEvaluationData']);
     Route::post("$marketingPrefs-evaluation-submit", [MarketingController::class, 'submitPromotionEvaluation']);
+    Route::get("$marketingPrefs-export", [MarketingController::class, 'exportMarketingData']);
 
 
     $partnerCompliance = "partner-compliance";

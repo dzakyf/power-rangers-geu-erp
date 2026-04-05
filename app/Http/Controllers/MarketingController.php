@@ -87,14 +87,14 @@ class MarketingController extends Controller
         $config = DB::table('config_system as cs')->select('*')->where('Constraint', '=', 'TOTAL_HUB_INVESTATION')->first();
 
 
-
         $xml = new SimpleXMLElement('<rows></rows>');
 
         $count = 1;
-        $costPerLead = $d[0]->Budget_Realization / $d[0]->Total_Leads;
-        $conversionRate = (($d[0]->Total_Deals / $d[0]->Total_Leads) * 100) . "%";
-        $costPerAcquisition = $d[0]->Budget_Realization / $d[0]->Total_Deals;
-        $priceDealLead = $config->Value;
+        $totalLeads = $d[0]->Total_Leads;
+        $costPerLead = $totalLeads != 0 ? $d[0]->Budget_Realization / $d[0]->Total_Leads : 0;
+        $conversionRate = $totalLeads != 0 ? (($d[0]->Total_Deals / $totalLeads) * 100) : 0 . "%";
+        $costPerAcquisition = $totalLeads != 0 ? $d[0]->Budget_Realization / $d[0]->Total_Deals : 0;
+        $priceDealLead = $config->Value * $totalLeads;
         $revenue = $priceDealLead * $d[0]->Total_Deals;
         $ROI = (($revenue - $d[0]->Budget_Realization) / $d[0]->Budget_Realization * 100) . "%";
         foreach ($d as $d) {
@@ -125,7 +125,20 @@ class MarketingController extends Controller
     {
         $b = $r->all();
 
-        dd($b);
+        $id = DB::table('branding_followup')->insertGetId([
+            "Promotion_Id" => $b['Promotion_Id'],
+            "Platform" => $b['Platform'],
+            "Total_Budget" => $b['Budget_Realization'],
+            "Total_Leads" => $b['Total_Leads'],
+            "Cost_Per_Lead" => $b['Cost_Per_Lead'],
+            "Total_Deal" => $b['Total_Deal'],
+            "Conversion_Rate" => $b['Conversion_Rate'],
+            "Cost_Per_Acquisition" => $b['Cost_Per_Acquisition'],
+            "Price_Deal_Lead" => $b['Price_Deal_Lead'],
+            "Revenue" => $b['Revenue'],
+            "ROI" => $b['ROI'],
+            "Recommendation" => $b['Recommendation'],
+        ]);
 
         return response()->json(['message' => 'success']);
     }
@@ -212,7 +225,6 @@ class MarketingController extends Controller
             ->where('m.ID', $q['marketing_id'])
             ->get();
 
-
         $xml = new SimpleXMLElement('<rows></rows>');
 
         $count = 1;
@@ -241,7 +253,10 @@ class MarketingController extends Controller
     {
         $d = DB::table('branding_promotion as p')->select('p.ID as Promotion_Id', 'p.*', 'p.Description as Promotion_Desc', 'p.Created_At as Applied_At', 'bm.Code as Marketing_Code', 'mf.ID as File_Id', 'mf.*')
             ->join('branding_marketing as bm', 'bm.ID', '=', 'p.Marketing_Id')
-            ->leftJoin('meta_files as mf', 'mf.Map_To', '=', 'p.ID')
+            ->leftJoin('meta_files as mf', function ($join) {
+                $join->on('mf.Map_To', '=', 'p.ID')
+                    ->where('mf.topic', '=', 'branding-promotion');
+            })
             ->get();
 
         $xml = new SimpleXMLElement('<rows></rows>');
@@ -272,15 +287,47 @@ class MarketingController extends Controller
 
     public function getMonitoringPromotionData()
     {
-        $d = DB::table('branding_monitoring as bm')
-            ->select('bm.*', 'bm.ID as Monitoring_Id', 'bp.*', 'bp.ID as Promotion_Id', 'bp.Code as Promotion_Code', 'us.Name as PIC_Name')
+        $query = DB::table('branding_monitoring as bm')
+            ->select([
+                'bm.*',
+                'bm.ID as Monitoring_Id',
+                'bp.*',
+                'bp.ID as Promotion_Id',
+                'bp.Code as Promotion_Code',
+                'us.Name as PIC_Name',
+                DB::raw('(
+            SELECT COUNT(*)
+            FROM opportunity o
+            WHERE o.Created_Date BETWEEN bm.Campaign_Start_At AND bm.Campaign_End_At
+        ) as Total_Leads'),
+                DB::raw('(
+            SELECT COUNT(*)
+            FROM opportunity o
+            WHERE o.Status = \'Deal\'
+              AND o.Created_Date BETWEEN bm.Campaign_Start_At AND bm.Campaign_End_At
+        ) as Total_Deals'),
+            ])
             ->leftJoin('branding_promotion as bp', 'bp.ID', '=', 'bm.Promotion_Id')
-            ->leftJoin('users as us', 'us.id', '=', 'bm.PIC_Id')
-            ->get();
+            ->leftJoin('users as us', 'us.id', '=', 'bm.PIC_Id');
+
+        if (!empty($q['promotion_id'])) {
+            $query->where('bp.ID', '=', $q['promotion_id']);
+        }
+
+        $d = $query->get();
+
+        $config = DB::table('config_system as cs')->select('*')->where('Constraint', '=', 'TOTAL_HUB_INVESTATION')->first();
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
         $count = 1;
+        $totalLeads = $d[0]->Total_Leads;
+        $costPerLead = $totalLeads != 0 ? $d[0]->Budget_Realization / $d[0]->Total_Leads : 0;
+        $conversionRate = $totalLeads != 0 ? (($d[0]->Total_Deals / $totalLeads) * 100) : 0 . "%";
+        $costPerAcquisition = $totalLeads != 0 ? $d[0]->Budget_Realization / $d[0]->Total_Deals : 0;
+        $priceDealLead = $config->Value * $totalLeads;
+        $revenue = $priceDealLead * $d[0]->Total_Deals;
+        $ROI = (($revenue - $d[0]->Budget_Realization) / $d[0]->Budget_Realization * 100) . "%";
         foreach ($d as $d) {
             $row = $xml->addChild('row');
             $row->addAttribute('Monitoring_Id', $d->Monitoring_Id);
@@ -293,6 +340,14 @@ class MarketingController extends Controller
             $row->addChild('cell', $d->Budget_Realization);
             $row->addChild('cell', $d->Campaign_Status);
             $row->addChild('cell', $d->PIC_Name);
+            $row->addChild('cell', $d->Total_Leads);
+            $row->addChild('cell', $costPerLead);
+            $row->addChild('cell', $d->Total_Deals);
+            $row->addChild('cell', $conversionRate);
+            $row->addChild('cell', $costPerAcquisition);
+            $row->addChild('cell', $priceDealLead);
+            $row->addChild('cell', $revenue);
+            $row->addChild('cell', $ROI);
             $count++;
         }
 
@@ -634,5 +689,11 @@ class MarketingController extends Controller
         return response()->make($xml->asXML(), 200, [
             'Content-Type' => 'application/xml'
         ]);
+    }
+
+
+    public function exportMarketingData(Request $r)
+    {
+        return $this->getEvaluationData($r);
     }
 }

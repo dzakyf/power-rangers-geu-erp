@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\MasterMaterial;
 use App\MasterSatisfication;
 use App\MasterTraining;
+use App\Services\NotificationService;
 use App\Training;
 use App\TrainingApplication;
 use App\TrainingAttendance;
@@ -20,6 +21,12 @@ use Illuminate\Support\Facades\Log;
 
 class TrainingController extends Controller
 {
+    protected $notificationService;
+
+    public function __construct(NotificationService $n)
+    {
+        $this->notificationService = $n;
+    }
     public function indexTraining()
     {
         return view('partner.training.training');
@@ -366,6 +373,18 @@ class TrainingController extends Controller
                     'training_time_to' => $r['training_time_to'],
                     'training_fee' => $r['training_fee'],
                 ]);
+
+                $trainingDate = date('d F Y', strtotime($training->training_date_from));
+                if ($training->training_date_from != $training->training_date_to) {
+                    $trainingDate .= " - " . date('d F Y', strtotime($training->training_date_to));
+                }
+                
+                $subject = "Invitation Training";
+                $msg = "Anda dijadwalkan mengikuti " . $r['training_name'] . " pada " . $trainingDate . ".";
+
+                $getUsId = User::where('username', $value->participant)->first();
+                
+                $this->notificationService->makeNotification($subject, $msg, 'training', auth()->user()->id, $getUsId->id);
             }
 
             foreach ($material['material'] as $key => $value) {
@@ -1254,5 +1273,13 @@ class TrainingController extends Controller
             $training->method = $training->address;
         }
         return view('partner.training.mail', compact('training'));
+    }
+
+    public function notification()
+    {
+        $a = "Invitation Training";
+        $b = "Anda dijadwalkan mengikuti [Nama Training] pada [Tanggal].";
+
+        $getTraining = TrainingAttendance::where("participant", auth()->user()->username)->where('attendance', 1)->get();
     }
 }

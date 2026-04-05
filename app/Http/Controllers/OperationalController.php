@@ -71,7 +71,7 @@ class OperationalController extends Controller
         ]);
 
         $doc = $r->file('Doc');
-        $path = $this->generatorService->generateFilename();
+        $path = $this->generatorService->generateUUID();
         $ext = $r->file('Doc')->getClientOriginalExtension();
 
         $filename = "$path.$ext";

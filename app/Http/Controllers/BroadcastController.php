@@ -80,7 +80,7 @@ class BroadcastController extends Controller
     {
         $body = $r->all();
         $doc = $r->file('Doc');
-        $path = $this->generatorService->generateFilename();
+        $path = $this->generatorService->generateUUID();
         $ext = $r->file('Doc')->getClientOriginalExtension();
         $user =  $this->userService->getCurrentSessionUserInfo();
 

@@ -273,7 +273,7 @@ class RenewalController extends Controller
         $body = $r->all();
         $doc = $r->file('file');
 
-        $path = $this->generatorService->generateFilename();
+        $path = $this->generatorService->generateUUID();
         $ext = $r->file('file')->getClientOriginalExtension();
         $user = $this->userService->getCurrentSessionUserInfo();
 

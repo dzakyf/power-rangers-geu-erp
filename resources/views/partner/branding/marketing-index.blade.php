@@ -39,6 +39,7 @@
         <div class="card-body">
             <h5>Detail Informasi Marketing</h5>
             <form id="updateMarketingDetailForm" action="partner-branding-marketing-update" method="POST">
+                @method('PUT')
                 @csrf
                 <div class="row">
                     <div class="col-md-6">
@@ -109,7 +110,7 @@
                             <select name="Status" id="Status" class="form-control" required>
                                 <option value="">-- Pilih Jenis--</option>
                                 <option value="ACTIVE">Aktif</option>
-                                <option value="NONACTIVE">Non-Aktif</option>
+                                <option value="INACTIVE">Non-Aktif</option>
                             </select>
                         </div>
                     </div>
@@ -191,31 +192,50 @@
         let headerAttachment = [
             '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter'
         ]
+        let colId = ['No', 'Marketing_Id', 'Code', 'Name', 'Type', 'Platform', 'Channel', 'Description', 'Status', 'Created_At', 'Media_Url'].join(',')
+
 
         Grid1 = new dhtmlXGridObject('MembershipGrid');
         Grid1.setImagePath("./dhtmlx/imgs/");
         Grid1.setHeader(tHeader.join(','));
         Grid1.setInitWidths(tWidth.join(','));
         Grid1.attachHeader(headerAttachment);
-        Grid1.setColTypes(tHeader.map((e, i) => i === 10 ? 'link' : 'ed').join(','));
+        Grid1.setColTypes(tHeader.map((e, i) => {
+            if (i === 10) {
+                return 'link';
+            } else {
+                return 'ro';
+            }
+        }).join(','));
 
-        Grid1.setColumnIds("No,Marketing_Id,Code,Name,Type,Platform,Channel,Description,Status,Created_At,Media_Url");
-
+        Grid1.setColumnIds(colId);
         Grid1.attachEvent("onRowSelect", selectMitra);
         Grid1.setSkin("dhx_skyblue");
-        Grid1.init();
-        Grid1.clearAndLoad('partner-branding-marketing-data');
 
-        let dp = new dataProcessor("partner-branding-marketing-update/");
-        dp.setTransactionMode({
-            mode: "REST",
-            headers: {
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-                "Content-Type": "application/x-www-form-urlencoded",
-            }
-        });
-        dp.init(Grid1);
-        dp.enableDataNames(true)
+
+        Grid1.init();
+
+        // let dp = new dataProcessor("partner-branding-marketing-update/");
+        // dp.setTransactionMode({
+        //     mode: "REST",
+        //     headers: {
+        //         "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+        //         "Content-Type": "application/x-www-form-urlencoded",
+        //     }
+        // });
+
+        // dp.init(Grid1);
+        // dp.enableDataNames(true)
+
+        // combo = Grid1.getColumnCombo(8);
+
+        // combo.addOption([
+        //     // ["", "-- Select Status --"], // shown when value is empty/null
+        //     ["NONACTIVE", "NONACTIVE"],
+        //     ["ACTIVE", "ACTIVE"]
+        // ])
+
+        Grid1.clearAndLoad('partner-branding-marketing-data');
     }
 
     function initDetailTableGrid1() {

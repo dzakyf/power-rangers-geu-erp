@@ -28,6 +28,7 @@ $Saya =  Auth::user()->username;
     <h5>Form Evaluasi Promosi</h5>
     <form id="createMarketingForm" enctype="multipart/form-data" action="partner-branding-evaluation-submit">
         @csrf
+
         <div class="row">
             <div class="col-md-6">
                 <div class="form-group">
@@ -170,7 +171,11 @@ $Saya =  Auth::user()->username;
         $('#createMarketingForm').on('submit', function(e) {
             e.preventDefault();
 
+            const params = new URLSearchParams(window.location.search);
+            const promotionId = params.get('promotion_id');
+
             let formData = new FormData(this);
+            formData.append('Promotion_Id', promotionId)
 
             $('#submitBtn').prop('disabled', true).text('Submitting...');
 
