@@ -56,7 +56,6 @@
     </div>
 </div>
 
-
 <div id="ProjectionSection" class="row m-1" style="display:none;">
     <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PROYEKSI</div>
     <div class="card">
@@ -296,7 +295,12 @@
     }
 
     function doubleClickMitra() {
-        initExpenditureGrid()
+        const position = "{{ $session->Position }}"
+
+        if (position !== "MITRA") {
+            initExpenditureGrid()
+        }
+
         initProjectionGrid()
     }
 </script>

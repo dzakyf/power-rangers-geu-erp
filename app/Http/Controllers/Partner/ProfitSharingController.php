@@ -22,6 +22,7 @@ use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use PDO;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Worksheet\CellIterator;
@@ -54,9 +55,24 @@ class ProfitSharingController extends Controller
         $this->currDate = Carbon::now()->format('Y-m-d');
         Carbon::setLocale('id');
     }
+
+    public function indexProjection()
+    {
+        $session = $this->userService->getCurrentSessionUserInfo();
+
+        return view('projection.index', compact('session'));
+    }
+
+    public function createProjection()
+    {
+        return view('projection.create');
+    }
+
     public function indexProfitSharing()
     {
-        return view('partner.profit-sharing');
+        $session = $this->userService->getCurrentSessionUserInfo();
+
+        return view('partner.profit-sharing', compact('session'));
     }
 
     public function indexRoyaltyPayment()
@@ -468,6 +484,114 @@ class ProfitSharingController extends Controller
         echo "</rows>";
     }
 
+    // ?user_id=&hub_type=&projection_type=&year=
+    public function projectionData(Request $r)
+    {
+        $q = $r->query();
+        $userId = $q['user_id'];
+        $projectionType = $q['projection_type'] ?? "%";
+        $hubType = $q['hub_type'] ?? "%";
+        $year = $q['year'] ?? "%";
+        $session = $this->userService->getCurrentSessionUserInfo();
+
+        $proj = DB::table('projections')->select('*')
+            ->where('User_Id', '=', $userId)
+            ->where('Projection_Type', 'LIKE', $projectionType)
+            ->where('Hub_Type', 'LIKE', $hubType)
+            ->where('Year', 'LIKE', $year);
+
+
+        if (in_array($session->Position, ["MITRA"])) {
+            $proj = $proj->where('Is_Hidden', '=', 0);
+        }
+
+        $proj = $proj->get();
+
+
+        $xml = new SimpleXMLElement('<rows></rows>');
+
+        $counter = 1;
+        foreach ($proj as $p) {
+            $row = $xml->addChild('row');
+            $row->addChild('cell', $counter);
+            $row->addChild('cell', $p->Hub_Type);
+            $row->addChild('cell', $p->Projection_Type);
+            $row->addChild('cell', htmlspecialchars($p->Description));
+            $row->addChild('cell', $p->Standard_Value);
+            $row->addChild('cell', $p->Offset);
+            $row->addChild('cell', $p->Year);
+
+            for ($month = 1; $month <= 12; $month++) {
+                $rowA = "Month_{$month}_A";
+                $rowB = "Month_{$month}_B";
+                $rowTotal = "Month_{$month}_Total";
+                $rowOffset = "Month_{$month}_Offset";
+
+                $row->addChild('cell', $p->$rowA);
+                $row->addChild('cell', $p->$rowB);
+                $row->addChild('cell', $p->$rowTotal);
+                $row->addChild('cell', $p->$rowOffset);
+            }
+
+            $counter++;
+        }
+
+        return response()->make($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
+
+
+    // ?user_id=&hub_type=&projection_type=&year=
+    public function expenditureData(Request $r)
+    {
+        $q = $r->query();
+        $userId = $q['user_id'];
+        $projectionType = $q['projection_type'] ?? "%";
+        $hubType = $q['hub_type'];
+        $year = '%';
+
+        $exp = DB::table('expenditure')->select('*')->where('User_Id', '=', $userId)->where('Projection_Type', 'LIKE', $projectionType)->where('Hub_Type', 'LIKE', $hubType)->where('Year', 'LIKE', $year)->get();
+
+        $xml = new SimpleXMLElement('<rows></rows>');
+
+        $counter = 1;
+        foreach ($exp as $p) {
+            $row = $xml->addChild('row');
+            $row->addChild('cell', $counter);
+            $row->addChild('cell', $p->Hub_Type);
+            $row->addChild('cell', $p->Projection_Type);
+            $row->addChild('cell', htmlspecialchars($p->Description));
+            $row->addChild('cell', $p->Short_Desc);
+            $row->addChild('cell', $p->Offset);
+            $row->addChild('cell', $p->Year);
+
+            for ($month = 1; $month <= 12; $month++) {
+                $rowTotal = "Month_{$month}_Total";
+
+                $row->addChild('cell', $p->$rowTotal);
+            }
+
+            $counter++;
+        }
+
+        return response()->make($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
+
+    public function downloadProjectionTemplate()
+    {
+        $template = public_path('template-proyeksi-final.xlsx');
+
+
+        if (!file_exists($template)) {
+            abort(404, 'File Tidak Ditemukan!');
+        }
+
+        return response()->download($template);
+    }
+
 
     //?user_id=&type=
     public function getProfitSharingApprovalData(Request $r)
@@ -589,10 +713,7 @@ class ProfitSharingController extends Controller
     }
 
     // ?user_id=
-    /** TODO: 
-     * Ambil nominal dari laporan keuangan 
-     * Input tanda tangan digital
-     * */
+
     public function downloadProfitSharingApplication(Request $r)
     {
         $b = $r->query();
@@ -613,7 +734,9 @@ class ProfitSharingController extends Controller
         $accountName = $partner->Bank_Account_Name;
         $accountNo = $partner->Bank_Account_No;
         $mitraFullname = $partner->Name;
-        $referenceNo = "000/RS/PFS/APL/{$month}/{$year}";
+
+        $highest = DB::table('account_payable as ap')->max('ID');
+        $referenceNo = $this->generatorService->generateApplicationCode($highest, 'DOC-PFS');
 
         $doc->setValues([
             'reference_no' => $referenceNo,
@@ -642,6 +765,9 @@ class ProfitSharingController extends Controller
         return response()->download($outputPath)->deleteFileAfterSend(true);
     }
 
+    /** TODO: 
+     *  Ambil revenue dari finance
+     * */
     public function makeProfitSharingApplication($b, $templatePath)
     {
         $doc = new TemplateProcessor($templatePath);
@@ -650,7 +776,27 @@ class ProfitSharingController extends Controller
         $userId = $b['user_id'] ?? $session->id;
         $partner = $this->userService->getMitraById($userId);
 
-        $nominal = 0;
+        $wh = [
+            0 => (object) [
+                "transfer_price"     => 1000,
+                "total_qty"          => 2000,
+                "bensin"             => 1000,
+                "parkir"             => 5000,
+                "raw_material_price" => 900000
+            ]
+        ];
+
+        $getTotalOverHeadCost = 1233412;
+
+        $revenue     = $wh[0]->transfer_price * $wh[0]->total_qty;
+        $directPrice = $wh[0]->bensin + $wh[0]->parkir;
+        $cogs        = $wh[0]->raw_material_price + $directPrice;
+
+        $totalOverheadCost = $getTotalOverHeadCost;
+        $capitalAllocation = 0.025 * $revenue;
+        $netMargin = $revenue - $cogs - $totalOverheadCost - $capitalAllocation;
+        $nominalRoyalty = 0.6 * $netMargin;
+
         $location = $partner->City;
         $date = Carbon::now()->day;
         $month = Carbon::now()->translatedFormat('F');
@@ -668,8 +814,8 @@ class ProfitSharingController extends Controller
             'date' => $date,
             'month' => $month,
             'year' => $year,
-            'nominal' => $nominal,
-            'terbilang' => $this->generatorService->spellRupiah($nominal),
+            'nominal' => $nominalRoyalty,
+            'terbilang' => $this->generatorService->spellRupiah($nominalRoyalty),
             'bank_name' => $bankName,
             'account_name' => $accountName,
             'account_no' => $accountNo,
@@ -690,7 +836,7 @@ class ProfitSharingController extends Controller
 
         unlink($tempImage);
 
-        return ['doc' => $doc, 'contract_no' => $referenceNo];
+        return ['doc' => $doc, 'contract_no' => $referenceNo, 'royalti' => $nominalRoyalty];
     }
 
     public function previewProfitSharingApplication(Request $r)
@@ -748,7 +894,7 @@ class ProfitSharingController extends Controller
             DB::beginTransaction();
             $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
-            $taskId = "XXXX";
+            $taskId = preg_replace('/DOC-?/', '', $doc['contract_no']);
 
             $partner = DB::table('opportunity_partner as op')
                 ->select('op.*')
@@ -758,8 +904,7 @@ class ProfitSharingController extends Controller
 
             // dd($partner);
 
-            //TODO: ambil dari laporan keuangan
-            $royalti = 9900000;
+            $royalti = $doc['royalti'];
             $total = ($royalti * 0.11) + $royalti;
 
             $ap = DB::table('erp_ksps.account_payable')->insertGetId([
@@ -1453,8 +1598,6 @@ class ProfitSharingController extends Controller
     public function createMitraProjection(Request $r)
     {
         $b = $r->all();
-        $type = $b['type'];
-        $year = $b['year'];
         $userId = $b['user_id'] ?? "2345";
 
         $file = $r->file('file');
@@ -1484,6 +1627,7 @@ class ProfitSharingController extends Controller
 
                 $rowIterator = null;
 
+                // hidden expenditure
                 if ($typeProjection[$type] == 'high') {
                     $rowIterator = $sheet->getRowIterator(4, 17);
                 }
@@ -1536,6 +1680,8 @@ class ProfitSharingController extends Controller
 
                 $count = 1;
 
+
+                // proyeksi
                 if ($typeProjection[$type] == 'high') {
                     $yearToRow = [
                         1 => [26, 73],
@@ -1578,12 +1724,22 @@ class ProfitSharingController extends Controller
 
                     for ($j = 0; $j < count($projData); $j++) {
                         $b = $projData[$j];
+                        $isHidden = 0;
+
+                        $coa = DB::table('master_coa as mc')->select('mc.ID')
+                            ->whereRaw('LOWER(mc.Name) = ?', [strtolower($b[0])])->first();
+
+                        //hide profit
+                        if (Str::lower(str_replace(' ', '', $b[0])) == "profitperusahaan") {
+                            $isHidden = 1;
+                        }
 
                         DB::table('projections')->insertGetId([
                             "User_Id" => $userId,
                             "Hub_Type" => $partner[0]->package_option,
                             "warehouse_task_id" => $partner[0]->warehouse_task_id,
                             "Description" => $b[0] ?? "",
+                            "Coa_Id" => $coa->ID ?? null,
                             "Standard_Value" => $b[1],
                             "Offset" => $b[2],
                             "Year" => $count,
@@ -1636,6 +1792,7 @@ class ProfitSharingController extends Controller
                             "Month_12_B" => $b[48],
                             "Month_12_Total" => $b[49],
                             "Month_12_Offset" => $b[50],
+                            "Is_Hidden" => $isHidden,
                         ]);
                     }
 

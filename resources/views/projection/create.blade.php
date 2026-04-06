@@ -18,39 +18,26 @@
     <h5>Buat proyeksi</h5>
     <!-- <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div> -->
 
-    <div class="col-12">
+    <div class="col-md-6">
         <div class="form-group">
             <label for="Hub_Type">Template Proyeksi<span style="color: red;">*</span></label>
             <div class="">
                 <a href="projection-template">Download template</a>
             </div>
         </div>
-        <!-- <div class="form-group">
-            <label for="Hub_Type">Tipe Hub <span style="color: red;">*</span></label>
-            <select name="Hub_Type" id="Hub_Type" class="form-control" required>
-                <option value="">-- Pilih Jenis--</option>
-                <option value="booth">Booth</option>
-                <option value="mobil" disabled>Mobil</option>
+        <div id="SelectMitra" class="form-group">
+            <label for="Mitra">Pilih Mitra <span style="color: red;">*</span></label>
+            <select name="Mitra" id="Mitra" class="form-control" required>
+                <option value="">-- Pilih Mitra--</option>
+            </select>
+        </div>
+        <!-- <div id="SelectWarehouse" class="form-group">
+            <label for="Warehouse">Gudang <span style="color: red;">*</span></label>
+            <select name="Warehouse" id="Warehouse" class="form-control" required>
+                <option value="">-- Pilih Gudang--</option>
             </select>
         </div> -->
-        <!-- <div class="form-group">
-            <label for="Type">Tipe Proyeksi <span style="color: red;">*</span></label>
-            <select name="Type" id="Type" class="form-control" required>
-                <option value="">-- Pilih Jenis--</option>
-                <option value="low">Rendah</option>
-                <option value="high">Tinggi</option>
-            </select>
-        </div> -->
-        <!-- <div class="form-group">
-            <label for="Year">Tahun Proyeksi<span style="color: red;">*</span></label>
-            <select name="Year" id="Year" class="form-control" required>
-                <option value="">-- Pilih Jenis--</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-            </select>
-        </div> -->
+
         <div class="form-group">
             <label for="File_Documents">Upload Proyeksi</label>
             <div id="File_Documents" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
@@ -61,6 +48,106 @@
 </div>
 
 <script>
+    let mitraId = null;
+    $(document).ready(function() {
+        $('#Mitra').select2({
+            ajax: {
+                url: 'partner-data-active-mitra',
+                dataType: 'xml',
+                delay: 300,
+                data: function(params) {
+                    return {
+                        search: params.term,
+                        page: params.page || 1
+                    };
+                },
+                processResults: function(xmlData) {
+                    var results = [];
+
+                    $(xmlData).find('row').each(function() {
+                        var cells = $(this).find('cell');
+
+                        results.push({
+                            id: cells.eq(0).text(),
+                            text: cells.eq(1).text(),
+                            cell2: cells.eq(2).text(),
+                        });
+                    });
+
+                    return {
+                        results: results,
+                        pagination: {
+                            more: results.length === 20
+                        }
+                    };
+                }
+            },
+            minimumInputLength: 0,
+            placeholder: 'Cari Mitra...',
+            allowClear: true
+        });
+
+        $('#Mitra').on('select2:select', function(e) {
+            var data = e.params.data;
+
+            mitraId = data.id
+            console.log('Selected:', mitraId);
+        });
+
+        $('#Mitra').on('select2:unselect', function(e) {
+            console.log('Unselected');
+        });
+
+
+        // $('#Warehouse').select2({
+        //     ajax: {
+        //         url: 'partner-data-active-mitra',
+        //         dataType: 'xml',
+        //         delay: 300,
+        //         data: function(params) {
+        //             return {
+        //                 search: params.term,
+        //                 page: params.page || 1
+        //             };
+        //         },
+        //         processResults: function(xmlData) {
+        //             var results = [];
+
+        //             $(xmlData).find('row').each(function() {
+        //                 var cells = $(this).find('cell');
+
+        //                 results.push({
+        //                     id: cells.eq(0).text(),
+        //                     text: cells.eq(1).text(),
+        //                     cell2: cells.eq(2).text(),
+        //                 });
+        //             });
+
+        //             return {
+        //                 results: results,
+        //                 pagination: {
+        //                     more: results.length === 20
+        //                 }
+        //             };
+        //         }
+        //     },
+        //     minimumInputLength: 0,
+        //     placeholder: 'Cari Gudang...',
+        //     allowClear: true
+        // });
+
+        // $('#Warehouse').on('select2:select', function(e) {
+        //     var data = e.params.data;
+
+
+        //     opportunityId = data.opportunityId
+        //     console.log('Selected:', opportunityId);
+        // });
+
+        // $('#Warehouse').on('select2:unselect', function(e) {
+        //     console.log('Unselected');
+        // });
+    })
     let type = null;
     let year = null;
     let userId = null;
@@ -75,8 +162,6 @@
             target: "projection-upload",
             params: {
                 '_token': '{{ csrf_token() }}',
-                'type': $("#Type").val(),
-                'year': $('#Year').val()
             }
         },
         filesLimit: 1
@@ -85,12 +170,8 @@
     vault.events.on("BeforeUploadFile", function(file) {
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('id');
-        console.log(userId)
         if (vault && vault.uploader && vault.uploader.config) {
-            vault.uploader.config.params.type = $("#Type").val();
-            vault.uploader.config.params.year = $("#Year").val();
-            vault.uploader.config.params.user_id = userId;
-            vault.uploader.config.params.hub_type = $("#Hub_Type").val();
+            vault.uploader.config.params.user_id = mitraId || userId;
         }
     });
 </script>

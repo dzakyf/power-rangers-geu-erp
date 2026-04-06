@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Partner;
 use App\Http\Controllers\Controller;
 use App\MasterAuditCategory;
 use App\MasterAuditParameter;
+use App\MasterAuditScore;
 use App\MasterAuditTemuan;
 use App\User;
 use App\WarehousePartner;
@@ -14,6 +15,7 @@ use App\WarehousePartnerAuditCorretive;
 use App\WarehousePartnerAuditDtl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class WarehouseAuditController extends Controller
 {
@@ -62,6 +64,8 @@ class WarehouseAuditController extends Controller
 
     public function indexWarehouseAuditXml()
     {
+
+        $scores = MasterAuditScore::get();
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
         } else {
@@ -77,12 +81,76 @@ class WarehouseAuditController extends Controller
             $usname[$value->username] = $value->Name;
         }
         $nomor = 1;
+        $scoresRange = [];
+        foreach ($scores as $key => $value) {
+            if (Str::contains($value->score_range, '-')) {
+                $pecah = explode('-', $value->score_range);
+                if (count($pecah) == 2) {
+                    $min = intval(trim($pecah[0]));
+                    $max = intval(trim($pecah[1]));
+                    $scoresRange[] = [
+                        'range' => range($min, $max),
+                        'desc' => $value->status,
+                        'id' => $value->id,
+                    ];
+                }
+            }else if(Str::contains($value->score_range, '>')) {
+                $pecah = explode('>', $value->score_range);
+                if (count($pecah) == 2) {
+                    $min = intval(trim($pecah[1]));
+                    $scoresRange[] = [
+                        'range' => range($min, 100),
+                        'desc' => $value->status,
+                        'id' => $value->id,
+                    ];
+                }else if(count($pecah) == 1){
+                    $min = intval(trim($pecah[0]));
+                    $scoresRange[] = [
+                        'range' => range($min, 100),
+                        'desc' => $value->status,
+                        'id' => $value->id,
+                    ];
+                }
+            }else if(Str::contains($value->score_range, '<')) {
+                $pecah = explode('<', $value->score_range);
+                if (count($pecah) == 2) {
+                    $max = intval(trim($pecah[1]));
+                    $scoresRange[] = [
+                        'range' => range(0, $max),
+                        'desc' => $value->status,
+                        'id' => $value->id,
+                    ];
+                }else if(count($pecah) == 1){
+                    $max = intval(trim($pecah[0]));
+                    $scoresRange[] = [
+                        'range' => range(0, $max),
+                        'desc' => $value->status,
+                        'id' => $value->id,
+                    ];
+                }
+            }
+        }
 
         $get = WarehousePartnerAudit::get();
         
         foreach ($get as $key => $Fetch) {
             $getGudang = WarehousePartner::where("warehouse_task_id", $Fetch->warehouse_task_id)->first();
-            echo "<row id=\"$Fetch->id\">";
+            $warna = "";
+            foreach ($scoresRange as $kunci => $value) {
+                if (in_array($Fetch->total_score, $value['range'])) {
+                    $Fetch->score_description = $value['desc'];
+                    if ($value['id'] == 1) {
+                        $warna = "style='background-color:green;font-weight:bold;'";
+                    }else if($value['id'] == 2) {
+                        $warna = "style='background-color:skyblue;font-weight:bold;'";
+                    }else if($value['id'] == 3) {
+                        $warna = "style='background-color:yellow;font-weight:bold;'";
+                    }else {
+                        $warna = "style='background-color:red;font-weight:bold;'";
+                    }
+                }
+            }
+            echo "<row $warna id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->nomor_audit) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->tanggal_audit) . "</cell>";
@@ -93,6 +161,7 @@ class WarehouseAuditController extends Controller
             echo "<cell>" . htmlspecialchars(ucfirst($Fetch->kategori_temuan)) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->ringkasan_temuan) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->total_score) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->score_description) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->created_by]) . "</cell>";
             echo "</row>";
 
