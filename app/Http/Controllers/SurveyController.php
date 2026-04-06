@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\GeneratorService;
 use App\Services\UploadService;
 use App\Services\UserService;
 use Carbon\Carbon;
@@ -14,11 +15,13 @@ class SurveyController extends Controller
 {
     protected $uploadService;
     protected $userService;
+    protected $generatorService;
 
-    public function __construct(UploadService $up, UserService $us)
+    public function __construct(GeneratorService $g, UploadService $up, UserService $us)
     {
         $this->uploadService = $up;
         $this->userService = $us;
+        $this->generatorService = $g;
     }
 
     public function indexSurvey()
@@ -34,6 +37,54 @@ class SurveyController extends Controller
     public function createMasterDataSurvey()
     {
         return view('partner.survey.create');
+    }
+
+    public function dashboardSurvey()
+    {
+        // butuh data : 
+        // - monitoring proses pencarian lokasi
+        // - target kota 
+        // - jumlah lokasi disurvey 
+        // - jumlah hub disetujui 
+        // - aging survey  >30 hari 
+
+        $statistic = DB::table('survey_location as sl')
+            ->select([
+                DB::raw('COUNT(*) as Total_All'),
+                DB::raw("SUM(CASE WHEN sl.status = 'DONE_SURVEY' THEN 1 ELSE 0 END) as Total_Done_Survey"),
+                DB::raw('SUM(CASE WHEN DATEDIFF(CURDATE(), sl.Surveyed_At) > 30 THEN 1 ELSE 0 END) as Total_Expired'),
+            ])
+            ->first();
+
+        $locationCounter = DB::table('survey_location')
+            ->select(['City', DB::raw('COUNT(*) as Total')])
+            ->groupBy('City')
+            ->orderBy('Total', 'Desc')
+            ->get();
+
+        $locationCounterWStatus = DB::table('survey_location')
+            ->select([
+                'City',
+                DB::raw('COUNT(*) as Total'),
+                'Status',
+                DB::raw('DATEDIFF(CURDATE(), Surveyed_At) as Days_Since_Created')
+            ])
+            ->groupBy('City')
+            ->orderBy('Total', 'Desc')
+            ->get();
+
+        $newestEntry = DB::table('survey_location')
+            ->select([
+                DB::raw("CONCAT('Alternatif', ' : ', Address, ', ',City) as Alternative"),
+            ])
+            ->orderBy('ID', 'desc')
+            ->limit(4)
+            ->get();
+
+        // dd($locationCounterWStatus, $newestEntry);
+
+
+        return view('partner.survey.dashboard', compact('statistic', 'locationCounter', 'locationCounterWStatus', 'newestEntry'));
     }
 
 
@@ -212,9 +263,11 @@ class SurveyController extends Controller
 
         $totalScore = $photo + $checklist + $environtment + $ucoEstimation;
 
+        $highest = DB::table('survey_location as sl')->max('ID');
+        $applicatonCode = $this->generatorService->generateApplicationCode($highest, 'SVY');
 
         $surveyId = DB::table('survey_location')->insertGetId([
-            "Code" => "XXXX",
+            "Code" => $applicatonCode,
             "Province" => $b['Province'] ?? "",
             "City" => $b['City'],
             "District" => $b['District'],

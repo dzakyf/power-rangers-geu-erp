@@ -4662,13 +4662,12 @@ Route::group(['middleware' => 'auth'], function () {
     /** projection route */
     $projection = "projection";
     $expenditure = "expenditure";
-    Route::get("$projection-index", [ProjectionProfitController::class, 'index']);
-    Route::get("$projection-create", [ProjectionProfitController::class, 'createProjection']);
-    Route::get("$projection-submit-projection", [ProjectionProfitController::class, 'submitProjection']);
-    Route::get("$projection-data-projection", [ProjectionProfitController::class, 'projectionData']);
+    Route::get("$projection-index", [PartnerProfitSharingController::class, 'indexProjection']);
+    Route::get("$projection-create", [PartnerProfitSharingController::class, 'createProjection']);
+    Route::get("$projection-data-projection", [PartnerProfitSharingController::class, 'projectionData']);
     Route::post("$projection-upload", [PartnerProfitSharingController::class, 'createMitraProjection']);
-    Route::get("$projection-template", [ProjectionProfitController::class, 'downloadProjectionTemplate']);
-    Route::get("$expenditure-data-expenditure", [ProjectionProfitController::class, 'expenditureData']);
+    Route::get("$projection-template", [PartnerProfitSharingController::class, 'downloadProjectionTemplate']);
+    Route::get("$expenditure-data-expenditure", [PartnerProfitSharingController::class, 'expenditureData']);
 
     /** Capital expenditure  */
     $capexPrefs = "partner-capex";
@@ -4783,12 +4782,25 @@ Route::group(['middleware' => 'auth'], function () {
 
     /** Partner Sales */
     $salesPrefs = "partner-sales";
+    Route::get("$salesPrefs-master-target", [PartnerSalesController::class, 'masterTarget']);
+    Route::get("xml-$salesPrefs-master-target", [PartnerSalesController::class, 'masterTargetXml']);
+    Route::post("$salesPrefs-master-target-update", [PartnerSalesController::class, 'masterTargetUpdate']);
     Route::get("$salesPrefs-tiering", [PartnerSalesController::class, 'tieringSales']);
+    Route::get("xml-$salesPrefs-tiering", [PartnerSalesController::class, 'tieringSalesXml']);
     Route::get("$salesPrefs-team-performance", [PartnerSalesController::class, 'teamPerformanceSales']);
+    Route::get("$salesPrefs-pipeline-leads", [PartnerSalesController::class, 'pipelineLeads']);
+    Route::get("xml-$salesPrefs-pipeline-leads", [PartnerSalesController::class, 'pipelineLeadsXml']);
+    Route::get("$salesPrefs-ratio-pipeline-leads", [PartnerSalesController::class, 'ratioPipelineLeads']);
+    Route::get("xml-$salesPrefs-ratio-pipeline-leads", [PartnerSalesController::class, 'ratioPipelineLeadsXml']);
+    Route::get("$salesPrefs-ratio-pipeline-deal", [PartnerSalesController::class, 'ratioPipelineDeal']);
+    Route::get("xml-$salesPrefs-ratio-pipeline-deal", [PartnerSalesController::class, 'ratioPipelineDealXml']);
+    Route::get("$salesPrefs-aftersales-profit-mitra", [PartnerSalesController::class, 'teamPerformanceSales']);
+    Route::get("$salesPrefs-aftersales-handling-complain", [PartnerSalesController::class, 'teamPerformanceSales']);
 
 
     /** Survey controller */
     $surveyPrefs = "partner-survey";
+    Route::get("$surveyPrefs-dashboard", [SurveyController::class, 'dashboardSurvey']);
     Route::get("$surveyPrefs-index", [SurveyController::class, 'indexSurvey']);
     Route::get("$surveyPrefs-create", [SurveyController::class, 'createMasterDataSurvey']);
     Route::get("$surveyPrefs-data", [SurveyController::class, 'getMasterDataSurvey']);

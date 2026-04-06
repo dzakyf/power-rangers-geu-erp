@@ -1081,26 +1081,33 @@ class TrainingController extends Controller
 
     public function certificateTrainingSignatureSubmit(Request $request)
     {
+        $req = json_decode($request->data, true);
         $cek = DB::table('certificate_signature')->first();
         if (!$cek) {
             DB::table('certificate_signature')->insert([
-                'signature1_name' => $request->signature1_name,
-                'signature1_position' => $request->signature1_position,
-                'signature2_name' => $request->signature2_name,
-                'signature2_position' => $request->signature2_position,
-                'signature3_name' => $request->signature3_name,
-                'signature3_position' => $request->signature3_position,
+                'signature1_name' => $req['signature1_name'],
+                'signature1_position' => $req['signature1_position'],
+                'signature1_draw' => $req['signature_data_' . $req['signature_data1']],
+                'signature2_name' => $req['signature2_name'],
+                'signature2_position' => $req['signature2_position'],
+                'signature2_draw' => $req['signature_data_' . $req['signature_data2']],
+                'signature3_name' => $req['signature3_name'],
+                'signature3_position' => $req['signature3_position'],
+                'signature3_draw' => $req['signature_data_' . $req['signature_data3']],
                 'created_by' => auth()->user()->username,
                 'created_date' => now(),
             ]);
         }else {
             DB::table('certificate_signature')->where('id', $cek->id)->update([
-                'signature1_name' => $request->signature1_name,
-                'signature1_position' => $request->signature1_position,
-                'signature2_name' => $request->signature2_name,
-                'signature2_position' => $request->signature2_position,
-                'signature3_name' => $request->signature3_name,
-                'signature3_position' => $request->signature3_position,
+                'signature1_name' => $req['signature1_name'],
+                'signature1_position' => $req['signature1_position'],
+                'signature1_draw' => $req['signature_data_' . $req['signature_data1']],
+                'signature2_name' => $req['signature2_name'],
+                'signature2_position' => $req['signature2_position'],
+                'signature2_draw' => $req['signature_data_' . $req['signature_data2']],
+                'signature3_name' => $req['signature3_name'],
+                'signature3_position' => $req['signature3_position'],
+                'signature3_draw' => $req['signature_data_' . $req['signature_data3']],
                 'updated_by' => auth()->user()->username,
                 'updated_date' => now(),
             ]);

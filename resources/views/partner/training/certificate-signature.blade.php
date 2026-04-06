@@ -84,6 +84,7 @@ $finalizeFormId3 = "finalize_form_{$instanceId3}";
 						
 						{{-- Hidden forms for this instance --}}
 						<input type="hidden" name="signature" id="signature_data_{{ $instanceId1 }}">
+						<input type="hidden" name="signature" id="signature_data1" value="{{ $instanceId1 }}">
 
 						<div id="status_{{ $instanceId1 }}" style="margin-top: 10px; display: none;"></div>
 					</div>
@@ -134,6 +135,7 @@ $finalizeFormId3 = "finalize_form_{$instanceId3}";
 						
 						{{-- Hidden forms for this instance --}}
 						<input type="hidden" name="signature" id="signature_data_{{ $instanceId2 }}">
+						<input type="hidden" name="signature" id="signature_data2" value="{{ $instanceId2 }}">
 						<div id="status_{{ $instanceId2 }}" style="margin-top: 10px; display: none;"></div>
 					</div>
                 </div>
@@ -183,6 +185,7 @@ $finalizeFormId3 = "finalize_form_{$instanceId3}";
 						
 						{{-- Hidden forms for this instance --}}
 						<input type="hidden" name="signature" id="signature_data_{{ $instanceId3 }}">
+						<input type="hidden" name="signature" id="signature_data3" value="{{ $instanceId3 }}">
 						<div id="status_{{ $instanceId3 }}" style="margin-top: 10px; display: none;"></div>
 					</div>
                 </div>
@@ -234,52 +237,6 @@ $finalizeFormId3 = "finalize_form_{$instanceId3}";
 		}
 	})
 
-	$('#SubmitCustDetail').click(function() {
-		const imageData = canvas.toDataURL('image/png');
-		$(`#${signatureDataId}`).val(imageData);
-
-		gettingVars = getAllValues();
-
-		$.ajax({
-			headers: {
-				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-			},
-			url: "partner-training-certificate-signature-submit?_token={{ csrf_token() }}",
-			type: "POST",
-			data: gettingVars,
-			success: function(data, textStatus, jqXHR) {
-				var dataPos = data.status;
-				if (dataPos == 'success') {
-					// var cariAWB = data.split(":");
-					alert('Training Application Submitted!');
-                    refreshdata();
-                    $('#divlistOpportunity').html('');
-                    window.reload();
-				} else {
-					alert('Application Failed to Submit!');
-				}
-			},
-			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
-
-			}
-		});
-	})
-
-	function getAllValues() {
-		var inputValues = {};
-		$('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
-			var type = $(this).attr("type");
-			if ((type == "checkbox" || type == "radio") && this.checked) {
-				inputValues[$(this).attr("name")] = $(this).val();
-			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-				inputValues[$(this).attr("id")] = $(this).val();
-			} else if ($(this).is("textarea")) {
-				inputValues[$(this).attr("id")] = $(this).val();
-			}
-		})
-		return inputValues;
-	}
     window.canvasInstances = window.canvasInstances || {};
 
     (function() {
@@ -287,102 +244,366 @@ $finalizeFormId3 = "finalize_form_{$instanceId3}";
         const canvasId1 = '{{ $canvasId1 }}';
         const formId1 = '{{ $formId1 }}';
         const finalizeFormId1 = '{{ $finalizeFormId1 }}';
-        const signatureDataId = 'signature_data_{{ $instanceId1 }}';
-        const finalizeSignatureId = 'finalize_signature_{{ $instanceId1 }}';
+        const signatureDataId1 = 'signature_data_{{ $instanceId1 }}';
+        const finalizeSignatureId1 = 'finalize_signature_{{ $instanceId1 }}';
+
+        const instanceId2 = '{{ $instanceId2 }}';
+        const canvasId2 = '{{ $canvasId2 }}';
+        const formId2 = '{{ $formId2 }}';
+        const finalizeFormId2 = '{{ $finalizeFormId2 }}';
+        const signatureDataId2 = 'signature_data_{{ $instanceId2 }}';
+        const finalizeSignatureId2 = 'finalize_signature_{{ $instanceId2 }}';
+
+        const instanceId3 = '{{ $instanceId3 }}';
+        const canvasId3 = '{{ $canvasId3 }}';
+        const formId3 = '{{ $formId3 }}';
+        const finalizeFormId3 = '{{ $finalizeFormId3 }}';
+        const signatureDataId3 = 'signature_data_{{ $instanceId3 }}';
+        const finalizeSignatureId3 = 'finalize_signature_{{ $instanceId3 }}';
 
         // Get canvas element
-        const canvas = document.getElementById(canvasId1);
-        if (!canvas) return;
+        const canvas1 = document.getElementById(canvasId1);
+        const canvas2 = document.getElementById(canvasId2);
+        const canvas3 = document.getElementById(canvasId3);
+        if (canvas1) {
 
-        const ctx = canvas.getContext('2d');
+			const ctx1 = canvas1.getContext('2d');
+	
+			// Drawing state (instance-specific)
+			let drawing = false;
+			let currentColor = 'black';
+	
+			// Set initial drawing style
+			ctx1.lineWidth = 5;
+			ctx1.lineCap = 'round';
+			ctx1.lineJoin = 'round';
+			ctx1.strokeStyle = currentColor;
+	
+			// Drawing functions
+			function startDrawing1(e) {
+				drawing = true;
+				ctx1.beginPath();
+				const rect = canvas1.getBoundingClientRect();
+				const x = (e.clientX || e.touches[0].clientX) - rect.left;
+				const y = (e.clientY || e.touches[0].clientY) - rect.top;
+				ctx1.moveTo(x, y);
+			}
+	
+			function draw1(e) {
+				if (!drawing) return;
+				e.preventDefault();
+				const rect = canvas1.getBoundingClientRect();
+				const x = (e.clientX || e.touches[0].clientX) - rect.left;
+				const y = (e.clientY || e.touches[0].clientY) - rect.top;
+				ctx1.lineTo(x, y);
+				ctx1.stroke();
+				ctx1.beginPath();
+				ctx1.moveTo(x, y);
+			}
+	
+			function stopDrawing1() {
+				drawing = false;
+			}
+	
+			function clearCanvas1() {
+				ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+				showStatus('Canvas cleared', 'info');
+			}
+	
+			function changeColor1(color) {
+				currentColor = color;
+				ctx1.strokeStyle = color;
+			}
+	
+			function saveDrawing1() {
+				const imageData1 = canvas1.toDataURL('image/png');
+				$(`#${signatureDataId1}`).val(imageData1);
+				$(`#${formId1}`).submit();
+			}
+	
+			function finalizeDocument1() {
+				const imageData = canvas1.toDataURL('image/png');
+				$(`#${finalizeSignatureId1}`).val(imageData);
+				console.log('Finalizing for instance:', instanceId1);
+				$(`#${finalizeFormId1}`).submit();
+			}
+	
+			function showStatus1(message, type) {
+				const statusDiv = document.getElementById(`status_${instanceId1}`);
+				if (!statusDiv) return;
+				statusDiv.textContent = message;
+				statusDiv.style.color = type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue';
+				statusDiv.style.display = 'block';
+				setTimeout(() => {
+					statusDiv.style.display = 'none';
+				}, 3000);
+			}
+	
+			// Add event listeners
+			canvas1.addEventListener('mousedown', startDrawing1);
+			canvas1.addEventListener('mousemove', draw1);
+			canvas1.addEventListener('mouseup', stopDrawing1);
+			canvas1.addEventListener('mouseleave', stopDrawing1);
+			canvas1.addEventListener('touchstart', startDrawing1);
+			canvas1.addEventListener('touchmove', draw1);
+			canvas1.addEventListener('touchend', stopDrawing1);
+	
+			window.canvasInstances[instanceId1] = {
+				clear: clearCanvas1,
+				save: saveDrawing1,
+				finalize: finalizeDocument1,
+				changeColor: changeColor1,
+				canvas: canvas1,
+				ctx: ctx1
+			};
+		}
+		if (canvas2) {
+			// Similar setup for canvas2 with its own context and functions
+			const ctx2 = canvas2.getContext('2d');
+	
+			// Drawing state (instance-specific)
+			let drawing = false;
+			let currentColor = 'black';
+	
+			// Set initial drawing style
+			ctx2.lineWidth = 5;
+			ctx2.lineCap = 'round';
+			ctx2.lineJoin = 'round';
+			ctx2.strokeStyle = currentColor;
+	
+			// Drawing functions
+			function startDrawing2(e) {
+				drawing = true;
+				ctx2.beginPath();
+				const rect = canvas2.getBoundingClientRect();
+				const x = (e.clientX || e.touches[0].clientX) - rect.left;
+				const y = (e.clientY || e.touches[0].clientY) - rect.top;
+				ctx2.moveTo(x, y);
+			}
+	
+			function draw2(e) {
+				if (!drawing) return;
+				e.preventDefault();
+				const rect = canvas2.getBoundingClientRect();
+				const x = (e.clientX || e.touches[0].clientX) - rect.left;
+				const y = (e.clientY || e.touches[0].clientY) - rect.top;
+				ctx2.lineTo(x, y);
+				ctx2.stroke();
+				ctx2.beginPath();
+				ctx2.moveTo(x, y);
+			}
+	
+			function stopDrawing2() {
+				drawing = false;
+			}
+	
+			function clearCanvas2() {
+				ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+				showStatus('Canvas cleared', 'info');
+			}
+	
+			function changeColor2(color) {
+				currentColor = color;
+				ctx2.strokeStyle = color;
+			}
+	
+			function saveDrawing2() {
+				const imageData2 = canvas2.toDataURL('image/png');
+				$(`#${signatureDataId2}`).val(imageData2);
+				$(`#${formId2}`).submit();
+			}
+	
+			function finalizeDocument2() {
+				const imageData = canvas2.toDataURL('image/png');
+				$(`#${finalizeSignatureId2}`).val(imageData);
+				console.log('Finalizing for instance:', instanceId2);
+				$(`#${finalizeFormId2}`).submit();
+			}
+	
+			function showStatus2(message, type) {
+				const statusDiv = document.getElementById(`status_${instanceId2}`);
+				if (!statusDiv) return;
+				statusDiv.textContent = message;
+				statusDiv.style.color = type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue';
+				statusDiv.style.display = 'block';
+				setTimeout(() => {
+					statusDiv.style.display = 'none';
+				}, 3000);
+			}
+	
+			// Add event listeners
+			canvas2.addEventListener('mousedown', startDrawing2);
+			canvas2.addEventListener('mousemove', draw2);
+			canvas2.addEventListener('mouseup', stopDrawing2);
+			canvas2.addEventListener('mouseleave', stopDrawing2);
+			canvas2.addEventListener('touchstart', startDrawing2);
+			canvas2.addEventListener('touchmove', draw2);
+			canvas2.addEventListener('touchend', stopDrawing2);
+	
+			window.canvasInstances[instanceId2] = {
+				clear: clearCanvas2,
+				save: saveDrawing2,
+				finalize: finalizeDocument2,
+				changeColor: changeColor2,
+				canvas: canvas2,
+				ctx: ctx2
+			};
+		}
+		if (canvas3) {
+			// Similar setup for canvas3 with its own context and functions
+			const ctx3 = canvas3.getContext('2d');
+	
+			// Drawing state (instance-specific)
+			let drawing = false;
+			let currentColor = 'black';
+	
+			// Set initial drawing style
+			ctx3.lineWidth = 5;
+			ctx3.lineCap = 'round';
+			ctx3.lineJoin = 'round';
+			ctx3.strokeStyle = currentColor;
+	
+			// Drawing functions
+			function startDrawing3(e) {
+				drawing = true;
+				ctx3.beginPath();
+				const rect = canvas3.getBoundingClientRect();
+				const x = (e.clientX || e.touches[0].clientX) - rect.left;
+				const y = (e.clientY || e.touches[0].clientY) - rect.top;
+				ctx3.moveTo(x, y);
+			}
+	
+			function draw3(e) {
+				if (!drawing) return;
+				e.preventDefault();
+				const rect = canvas3.getBoundingClientRect();
+				const x = (e.clientX || e.touches[0].clientX) - rect.left;
+				const y = (e.clientY || e.touches[0].clientY) - rect.top;
+				ctx3.lineTo(x, y);
+				ctx3.stroke();
+				ctx3.beginPath();
+				ctx3.moveTo(x, y);
+			}
+	
+			function stopDrawing3() {
+				drawing = false;
+			}
+	
+			function clearCanvas3() {
+				ctx3.clearRect(0, 0, canvas3.width, canvas3.height);
+				showStatus('Canvas cleared', 'info');
+			}
+	
+			function changeColor3(color) {
+				currentColor = color;
+				ctx3.strokeStyle = color;
+			}
+	
+			function saveDrawing3() {
+				const imageData3 = canvas3.toDataURL('image/png');
+				$(`#${signatureDataId3}`).val(imageData3);
+				$(`#${formId3}`).submit();
+			}
+	
+			function finalizeDocument3() {
+				const imageData = canvas3.toDataURL('image/png');
+				$(`#${finalizeSignatureId3}`).val(imageData);
+				console.log('Finalizing for instance:', instanceId3);
+				$(`#${finalizeFormId3}`).submit();
+			}
+	
+			function showStatus3(message, type) {
+				const statusDiv = document.getElementById(`status_${instanceId3}`);
+				if (!statusDiv) return;
+				statusDiv.textContent = message;
+				statusDiv.style.color = type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue';
+				statusDiv.style.display = 'block';
+				setTimeout(() => {
+					statusDiv.style.display = 'none';
+				}, 3000);
+			}
+	
+			// Add event listeners
+			canvas3.addEventListener('mousedown', startDrawing3);
+			canvas3.addEventListener('mousemove', draw3);
+			canvas3.addEventListener('mouseup', stopDrawing3);
+			canvas3.addEventListener('mouseleave', stopDrawing3);
+			canvas3.addEventListener('touchstart', startDrawing3);
+			canvas3.addEventListener('touchmove', draw3);
+			canvas3.addEventListener('touchend', stopDrawing3);
+	
+			window.canvasInstances[instanceId3] = {
+				clear: clearCanvas3,
+				save: saveDrawing3,
+				finalize: finalizeDocument3,
+				changeColor: changeColor3,
+				canvas: canvas3,
+				ctx: ctx3
+			};
+		}
 
-        // Drawing state (instance-specific)
-        let drawing = false;
-        let currentColor = 'black';
 
-        // Set initial drawing style
-        ctx.lineWidth = 5;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = currentColor;
+		$('#SubmitCustDetail').click(function() {
+			const imageData1 = canvas1.toDataURL('image/png');
+			$(`#${signatureDataId1}`).val(imageData1);
 
-        // Drawing functions
-        function startDrawing(e) {
-            drawing = true;
-            ctx.beginPath();
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX || e.touches[0].clientX) - rect.left;
-            const y = (e.clientY || e.touches[0].clientY) - rect.top;
-            ctx.moveTo(x, y);
-        }
+			const imageData2 = canvas2.toDataURL('image/png');
+			$(`#${signatureDataId2}`).val(imageData2);
 
-        function draw(e) {
-            if (!drawing) return;
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX || e.touches[0].clientX) - rect.left;
-            const y = (e.clientY || e.touches[0].clientY) - rect.top;
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-        }
+			const imageData3 = canvas3.toDataURL('image/png');
+			$(`#${signatureDataId3}`).val(imageData3);
 
-        function stopDrawing() {
-            drawing = false;
-        }
+			gettingVars = getAllValues();
 
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            showStatus('Canvas cleared', 'info');
-        }
+			let fd = new FormData();
+			fd.append('data', JSON.stringify(gettingVars));
 
-        function changeColor(color) {
-            currentColor = color;
-            ctx.strokeStyle = color;
-        }
+			fd.append('signature1_upload', document.getElementById('signature1_upload').files[0]);
+			fd.append('signature2_upload', document.getElementById('signature2_upload').files[0]);
+			fd.append('signature3_upload', document.getElementById('signature3_upload').files[0]);
 
-        function saveDrawing() {
-            const imageData = canvas.toDataURL('image/png');
-            $(`#${signatureDataId}`).val(imageData);
-            $(`#${formId1}`).submit();
-        }
+			$.ajax({
+				headers: {
+					'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+				},
+				url: "partner-training-certificate-signature-submit?_token={{ csrf_token() }}",
+				type: "POST",
+				data: fd,
+				processData: false,
+				contentType: false,
+				success: function(data, textStatus, jqXHR) {
+					var dataPos = data.status;
+					if (dataPos == 'success') {
+						// var cariAWB = data.split(":");
+						alert('Training Application Submitted!');
+						refreshdata();
+						$('#divlistOpportunity').html('');
+						window.reload();
+					} else {
+						alert('Application Failed to Submit!');
+					}
+				},
+				error: function(jqXHR, textStatus, errorThrown) {
+					alert("Error Internal! Please Try again!");
 
-        function finalizeDocument() {
-            const imageData = canvas.toDataURL('image/png');
-            $(`#${finalizeSignatureId}`).val(imageData);
-            console.log('Finalizing for instance:', instanceId1);
-            $(`#${finalizeFormId1}`).submit();
-        }
+				}
+			});
+		})
 
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById(`status_${instanceId1}`);
-            if (!statusDiv) return;
-            statusDiv.textContent = message;
-            statusDiv.style.color = type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue';
-            statusDiv.style.display = 'block';
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 3000);
-        }
-
-        // Add event listeners
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseleave', stopDrawing);
-        canvas.addEventListener('touchstart', startDrawing);
-        canvas.addEventListener('touchmove', draw);
-        canvas.addEventListener('touchend', stopDrawing);
-
-        window.canvasInstances[instanceId1] = {
-            clear: clearCanvas,
-            save: saveDrawing,
-            finalize: finalizeDocument,
-            changeColor: changeColor,
-            canvas: canvas,
-            ctx: ctx
-        };
+		function getAllValues() {
+			var inputValues = {};
+			$('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
+				var type = $(this).attr("type");
+				if ((type == "checkbox" || type == "radio") && this.checked) {
+					inputValues[$(this).attr("name")] = $(this).val();
+				} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
+					inputValues[$(this).attr("id")] = $(this).val();
+				} else if ($(this).is("textarea")) {
+					inputValues[$(this).attr("id")] = $(this).val();
+				}
+			})
+			return inputValues;
+		}
 
         // Handle form submissions for this instance
         $(`#${formId1}`).on('submit', function(e) {
