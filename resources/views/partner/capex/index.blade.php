@@ -110,10 +110,7 @@ $Saya =  Auth::user()->username;
     })
 
     function redirectToCapexForm() {
-        if (!opportunityId) {
-            alert('silahkan pilih mitra terlebih dahulu')
-            return
-        }
+
         window.location.href = `partner-capex-create?id=${opportunityId}`
     }
 

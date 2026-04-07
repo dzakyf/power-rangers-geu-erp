@@ -3,7 +3,9 @@
 @csrf
 <!-- Main Content Header -->
 
+<h4>Dashboard Survey</h4>
 <div class="row mt-3">
+
     <div class="col-sm-3">
         <div class="card">
             <div class="card-body">
@@ -39,7 +41,7 @@
             <div class="card-body">
                 <h5 class="card-title">Hub Disetujui</h5>
                 <div class="row">
-                    <div class="col-sm-1">
+                    <div class="col-sm-2">
                         <h3 class="card-text">{{$statistic->Total_Done_Survey}}</h3>
                     </div>
                     <div class="col-sm">

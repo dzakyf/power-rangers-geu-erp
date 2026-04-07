@@ -30,13 +30,13 @@
 	}
 	WarehouseCorrectiveDtl = new dhtmlXGridObject('WarehouseCorrectiveDtl');
 	WarehouseCorrectiveDtl.setImagePath("./dhtmlx/imgs/");
-	WarehouseCorrectiveDtl.setHeader("No,Nomor Audit, Tanggal Audit, Due Date Corrective, No Gudang, Lokasi Gudang, Auditor, Jenis Audit, Kategori Temuan, Area Temuan, Parameter Temuan, Ringkasan Temuan, Catatan Audit, Created By, Corrective Action");
-	WarehouseCorrectiveDtl.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	WarehouseCorrectiveDtl.setHeader("No,Nomor Audit, Tanggal Audit, Due Date Corrective, No Gudang, Lokasi Gudang, Auditor, Jenis Audit, Kategori Temuan, Area Temuan, Parameter Temuan, Kepatuhan, Ringkasan Temuan, Catatan Audit, Created By, Corrective Action");
+	WarehouseCorrectiveDtl.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// WarehouseCorrectiveDtl.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	WarehouseCorrectiveDtl.setInitWidths("60,150,100,100,150,200,100,100,100,100,100,100,100,100,auto");
-	WarehouseCorrectiveDtl.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left");
-	WarehouseCorrectiveDtl.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	WarehouseCorrectiveDtl.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	WarehouseCorrectiveDtl.setInitWidths("60,150,100,100,150,200,100,100,100,100,100,100,100,100,100,300");
+	WarehouseCorrectiveDtl.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left");
+	WarehouseCorrectiveDtl.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
+	WarehouseCorrectiveDtl.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	WarehouseCorrectiveDtl.enableSmartRendering(true, 150);
 	// WarehouseCorrectiveDtl.setNumberFormat("0,000", 7, ".", ",");
 	WarehouseCorrectiveDtl.attachEvent("onRowDblClicked", WarehouseCorrectiveDtlKlik);

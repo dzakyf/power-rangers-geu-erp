@@ -170,8 +170,6 @@ $Saya =  Auth::user()->username;
         $('#Mitra_Id').on('select2:select', function(e) {
             var data = e.params.data;
 
-
-            initTableGrid1(data.opportunityId)
             opportunityId = data.opportunityId
             console.log('Selected:', opportunityId);
         });

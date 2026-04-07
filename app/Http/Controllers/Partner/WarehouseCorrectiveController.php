@@ -133,6 +133,7 @@ class WarehouseCorrectiveController extends Controller
             echo "<cell $warna >" . htmlspecialchars(ucfirst($Fetch->kategori_temuan)) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($Fetch->area_temuan) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($Fetch->parameter_temuan) . "</cell>";
+            echo "<cell $warna >" . htmlspecialchars($Fetch->audit_compliance == null ? ($Fetch->corrective_score > 0 ? 'Patuh' : 'Tidak Patuh') : $Fetch->audit_compliance) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($Fetch->ringkasan_temuan) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($Fetch->parameter_catatan) . "</cell>";
             echo "<cell $warna >" . htmlspecialchars($usname[$Fetchx->created_by]) . "</cell>";
@@ -151,7 +152,7 @@ class WarehouseCorrectiveController extends Controller
         foreach ($getUsers as $key => $value) {
             $usname[$value->username] = $value->Name;
         }
-        $corrective = WarehousePartnerAuditCorretive::where("id", $request->Task)->first();
+        $corrective = WarehousePartnerAuditCorrectiveDtl::where("id", $request->Task)->first();
         $getAudit = WarehousePartnerAudit::where("nomor_audit", $corrective->nomor_audit)->first();
         $getAuditDtl = WarehousePartnerAuditDtl::where("nomor_audit", $corrective->nomor_audit)->first();
         $kat = $getAudit->kategori_temuan;
@@ -163,9 +164,10 @@ class WarehouseCorrectiveController extends Controller
         try {
             DB::beginTransaction();
 
-            WarehousePartnerAuditCorretive::where('id', $request->id)->update([
+            WarehousePartnerAuditCorrectiveDtl::where('id', $request->id)->update([
                 'corrective_date' => date('Y-m-d'),
                 'corrective_action' => $request->corrective_action,
+                'audit_compliance' => $request->audit_compliance,
                 'status' => $request->status,
             ]);
 
