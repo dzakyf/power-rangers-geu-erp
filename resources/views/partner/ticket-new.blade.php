@@ -103,7 +103,23 @@ $masterCategory = DB::table('master_ticket_category')->get();
 
 </div>
 
+<script src="{{ asset('jquery.coolautosuggest.js') }}"></script>
+<script src="{{ asset('jquery.coolfieldset.js') }}"></script>
 <script>
+	$("#GEU_Express_ID").coolautosuggest({
+		url:"partner-warehouse-audit-get-warehouse?chars=",
+		showThumbnail:false,
+		showDescription:true,
+		idField:$("#GEU_Express_ID"),
+		width:500,
+		minChars:1,
+		onSelected:function(result){
+		if(result!=null){
+			$("#GEU_Express_ID").val(result.id); 
+
+		}
+		}
+	});
 	var vault = new dhx.Vault("File_Documents", {
 		uploader: {
 			target: "upload-receiveinvoice.php"

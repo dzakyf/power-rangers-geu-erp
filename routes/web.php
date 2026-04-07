@@ -4705,6 +4705,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$profitSharingPref-overview-mitra", [PartnerProfitSharingController::class, 'indexOverviewMitraProfitSharingXml']);
     Route::get("$profitSharingPref-overview-detail", [PartnerProfitSharingController::class, 'detailOverviewMitraProfitSharing']);
 
+    Route::get("$profitSharingPref-dashboard", [PartnerProfitSharingController::class, 'dashboardProfitSharing']);
+    Route::get("xml-$profitSharingPref-dashboard", [PartnerProfitSharingController::class, 'dashboardProfitSharingXml']);
+
     Route::get("$profitSharingPref-data", [PartnerProfitSharingController::class, 'getProfitSharingApprovalData']);
     Route::get("$profitSharingPref-data-log", [PartnerProfitSharingController::class, 'getProfitSharingApprovalDataLog']);
 
@@ -4794,8 +4797,10 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$salesPrefs-ratio-pipeline-leads", [PartnerSalesController::class, 'ratioPipelineLeadsXml']);
     Route::get("$salesPrefs-ratio-pipeline-deal", [PartnerSalesController::class, 'ratioPipelineDeal']);
     Route::get("xml-$salesPrefs-ratio-pipeline-deal", [PartnerSalesController::class, 'ratioPipelineDealXml']);
-    Route::get("$salesPrefs-aftersales-profit-mitra", [PartnerSalesController::class, 'teamPerformanceSales']);
-    Route::get("$salesPrefs-aftersales-handling-complain", [PartnerSalesController::class, 'teamPerformanceSales']);
+    Route::get("$salesPrefs-aftersales-profit-mitra", [PartnerSalesController::class, 'afterSalesProfitMitra']);
+    Route::get("xml-$salesPrefs-aftersales-profit-mitra", [PartnerSalesController::class, 'afterSalesProfitMitraXml']);
+    Route::get("$salesPrefs-aftersales-handling-complain", [PartnerSalesController::class, 'afterSalesHandlingComplain']);
+    Route::get("xml-$salesPrefs-aftersales-handling-complain", [PartnerSalesController::class, 'afterSalesHandlingComplainXml']);
 
 
     /** Survey controller */

@@ -20,6 +20,16 @@
 
             <div class="col-12 mt-3">
                 <div class="form-group">
+                    <label for="audit_compliance">Kepatuhan</label>
+                    <select name="audit_compliance" id="audit_compliance" class="form-control" {{ $corrective->status == 'CLOSED' ? 'disabled' : '' }}>
+                        <option value="Tidak Patuh" {{ $corrective->audit_compliance == 'Tidak Patuh' ? 'selected' : '' }}>Tidak Patuh</option>
+                        <option value="Patuh" {{ $corrective->audit_compliance == 'Patuh' ? 'selected' : '' }}>Patuh</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-12 mt-3">
+                <div class="form-group">
                     <label for="status">Status</label>
                     <select name="status" id="status" class="form-control" {{ $corrective->status == 'CLOSED' ? 'disabled' : '' }}>
                         <option value="IN_PROGRESS" {{ $corrective->status == 'IN_PROGRESS' ? 'selected' : '' }}>IN PROGRESS</option>
