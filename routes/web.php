@@ -10,6 +10,7 @@ use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\ComplianceController;
 use App\Http\Controllers\HelperController;
+use App\Http\Controllers\KPIController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OnboardingController;
@@ -4731,6 +4732,10 @@ Route::group(['middleware' => 'auth'], function () {
     // });
     Route::get("$partner-data-active-mitra", [UserController::class, 'getPartner']);
     Route::get("$partner-data-sales", [UserController::class, 'getSalesperson']);
+    Route::get("$partner-profile", [UserController::class, 'profilePage']);
+    Route::get("$partner-profile-data", [UserController::class, 'getMitraData']);
+    Route::get("$partner-profile-update", [UserController::class, 'updateMitraData']);
+
 
 
     /** renewal  */
@@ -4791,6 +4796,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$salesPrefs-tiering", [PartnerSalesController::class, 'tieringSales']);
     Route::get("xml-$salesPrefs-tiering", [PartnerSalesController::class, 'tieringSalesXml']);
     Route::get("$salesPrefs-team-performance", [PartnerSalesController::class, 'teamPerformanceSales']);
+    Route::get("xml-$salesPrefs-team-performance", [PartnerSalesController::class, 'teamPerformanceSalesXml']);
     Route::get("$salesPrefs-pipeline-leads", [PartnerSalesController::class, 'pipelineLeads']);
     Route::get("xml-$salesPrefs-pipeline-leads", [PartnerSalesController::class, 'pipelineLeadsXml']);
     Route::get("$salesPrefs-ratio-pipeline-leads", [PartnerSalesController::class, 'ratioPipelineLeads']);
@@ -4969,4 +4975,13 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("partner-uco-outbound-report-stock-opname-adjustment", function () {
         return "OK";
     });
+
+
+    $partnerkpi = "partner-kpi";
+
+    Route::get("$partnerkpi-index", [KPIController::class, 'indexKPI']);
+    Route::get("$partnerkpi-data", [KPIController::class, 'getMasterDataKPI']);
+    Route::get("$partnerkpi-create", [KPIController::class, 'createMasterKPIData']);
+    Route::post("$partnerkpi-data-update", [KPIController::class, 'updateMasterKPIData']);
+    Route::post("$partnerkpi-data-submit", [KPIController::class, 'submitMasterKPIData']);
 });

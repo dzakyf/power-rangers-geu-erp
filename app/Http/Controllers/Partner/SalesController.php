@@ -14,6 +14,7 @@ use App\WarehouseStockRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use SimpleXMLElement;
 
 class SalesController extends Controller
 {
@@ -151,6 +152,124 @@ class SalesController extends Controller
     {
         return view('partner.sales.team-performance');
     }
+
+
+    // TODO hitung profit sharing achievement (after sales profit mitra)
+    public function teamPerformanceSalesXml(Request $r)
+    {
+        $year     = date('Y');
+        $standard = 70;
+
+        // Get all sales users
+        $salesUsers = DB::table('users')
+            ->where('Priv_ID', 'SALES')
+            ->get()
+            ->keyBy('username');
+
+        // Get targets per sales per month
+        $targets = DB::table('opportunity_target')
+            ->where('Year', $year)
+            ->get()
+            ->groupBy('Sales')
+            ->map(fn($rows) => $rows->keyBy('Month'));
+
+        // Get achieved deals per sales per month
+        $deals = DB::table('opportunity as o')
+            ->join('opportunity_sales as s', 'o.Sales_ID', '=', 's.Sales_ID')
+            ->select(
+                's.Sales as Sales_ID',
+                DB::raw("MONTH(o.Updated_Date) as Month"),
+                DB::raw("COUNT(*) as Deal_Count")
+            )
+            ->where('o.Status', 'Deal')
+            ->whereYear('o.Updated_Date', $year)
+            ->groupBy('s.Sales', DB::raw("MONTH(o.Updated_Date)"))
+            ->get()
+            ->groupBy('Sales_ID')
+            ->map(fn($rows) => $rows->keyBy('Month'));
+
+        // get complaint data 
+        $complaints = $this->aftersalesHandlingComplainCollection();
+
+        // Step 1: Build $salesData as single source of truth per username per month
+        $salesData = [];
+        foreach ($salesUsers as $username => $user) {
+            for ($month = 1; $month <= 12; $month++) {
+                $t                   = $targets[$username][$month] ?? null;
+                $complaint           = $complaints[$username][$month] ?? null;
+
+                $dealCount           = $deals[$username][$month]->Deal_Count ?? 0;
+                $totalComplain       = $complaint->total_complain ?? 0;
+                $closed              = $complaint->closed ?? 0;
+
+                $acvDeal              = ($t && $t->Target > 0) ? round(($dealCount / $t->Target) * 100, 2) : 0;
+                $acvAftersalesProfit  = 0; // plug your query here
+                $acvHandlingComplaint = $totalComplain > 0 ? round(($closed / $totalComplain) * 100, 2) : 0;
+                $performance          = round(($acvDeal + $acvAftersalesProfit + $acvHandlingComplaint) / 3, 2);
+
+                $salesData[$username][$month] = [
+                    'acvDeal'              => $acvDeal,
+                    'acvAftersalesProfit'  => $acvAftersalesProfit,
+                    'acvHandlingComplaint' => $acvHandlingComplaint,
+                    'performance'          => $performance,
+                ];
+            }
+        }
+
+        // Step 2: Calculate rank per month across all sales
+        $globalRank = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $monthPerf = [];
+
+            foreach ($salesUsers as $username => $user) {
+                $monthPerf[$username] = $salesData[$username][$month]['performance'];
+            }
+
+            arsort($monthPerf);
+
+            $rank     = 1;
+            $prevPerf = null;
+            $prevRank = 1;
+
+            foreach ($monthPerf as $username => $perf) {
+                if ($prevPerf !== null && $perf < $prevPerf) {
+                    $rank = $prevRank + 1;
+                }
+                $globalRank[$username][$month] = $rank;
+                $prevPerf                      = $perf;
+                $prevRank                      = $rank;
+                $rank++;
+            }
+        }
+
+        // Step 3: Build XML
+        $xml = new \SimpleXMLElement('<rows/>');
+        $id  = 1;
+
+        foreach ($salesUsers as $username => $user) {
+            for ($month = 1; $month <= 12; $month++) {
+                $data   = $salesData[$username][$month];
+                $status = $data['performance'] >= $standard ? 'Above Target' : 'Below Target';
+                $rank   = $globalRank[$username][$month];
+
+                $row = $xml->addChild('row');
+                $row->addChild('cell', $id++);
+                $row->addChild('cell', htmlspecialchars($user->Name));
+                $row->addChild('cell', $month);
+                $row->addChild('cell', $year);
+                $row->addChild('cell', $data['acvDeal']);
+                $row->addChild('cell', $data['acvAftersalesProfit']);
+                $row->addChild('cell', $data['acvHandlingComplaint']);
+                $row->addChild('cell', $data['performance']);
+                $row->addChild('cell', $standard);
+                $row->addChild('cell', $status);
+                $row->addChild('cell', $rank);
+            }
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
 
     public function pipelineLeads()
     {
@@ -362,6 +481,7 @@ class SalesController extends Controller
         return view('partner.sales.ratio-pipeline-deal');
     }
 
+
     public function ratioPipelineDealXml()
     {
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
@@ -383,6 +503,7 @@ class SalesController extends Controller
                 $target[$value->username] = [];
             }
         }
+
         for ($i = 1; $i <= 12; $i++) {
             foreach ($target as $key => $value) {
                 $target[$key][$i] = 0;
@@ -688,6 +809,31 @@ class SalesController extends Controller
     public function aftersalesHandlingComplain()
     {
         return view('partner.sales.aftersales-handling-complain');
+    }
+
+    public function aftersalesHandlingComplainCollection()
+    {
+        $get = DB::table('ticket')
+            ->join('warehouse_partner as w', 'ticket.GEU_Express_ID', '=', 'w.warehouse_task_id')
+            ->join('opportunity as o', 'w.partner_task_id', '=', 'o.Task_ID')
+            ->join('opportunity_sales as s', 'o.Sales_ID', '=', 's.Sales_ID')
+            ->select([
+                's.Sales as Sales_ID',
+                DB::raw("YEAR(ticket.Proposed_Date) as tahun"),
+                DB::raw("MONTH(ticket.Proposed_Date) as bulan"),
+                DB::raw("COUNT(*) as total_complain"),
+                DB::raw("SUM(CASE WHEN ticket.Ticket_Status = 'In Progress' OR ticket.Ticket_Status = 'Open' THEN 1 ELSE 0 END) as unresolved"),
+                DB::raw("SUM(CASE WHEN ticket.Ticket_Status = 'Closed' THEN 1 ELSE 0 END) as closed"),
+            ])
+            ->groupBy('s.Sales')
+            ->groupByRaw("YEAR(ticket.Proposed_Date)")
+            ->groupByRaw("MONTH(ticket.Proposed_Date)")
+            ->orderByRaw("YEAR(ticket.Proposed_Date), MONTH(ticket.Proposed_Date)")
+            ->get()
+            ->groupBy('Sales_ID')
+            ->map(fn($rows) => $rows->keyBy('bulan'));
+
+        return $get;
     }
 
     public function aftersalesHandlingComplainXml()

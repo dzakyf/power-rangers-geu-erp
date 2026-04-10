@@ -54,7 +54,7 @@
     <div class="col-sm-3">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Survey Kritis (>30 Hari)</h5>
+                <h5 class="card-title">Survey Kritis (>90 Hari)</h5>
                 <div class="row">
                     <div class="col-sm-1">
                         <h3 class="card-text">{{$statistic->Total_Expired}}</h3>

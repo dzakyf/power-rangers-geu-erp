@@ -8,6 +8,7 @@ use App\Services\UserService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use SimpleXMLElement;
 
 class ComplianceController extends Controller
@@ -199,6 +200,75 @@ class ComplianceController extends Controller
         return response()->json(['message' => 'success']);
     }
 
+    public function updateLegalComplianceData(Request $r)
+    {
+        $b = $r->all();
+        $files = $r->file('legal_doc');
+
+        try {
+            DB::beginTransaction();
+
+            $existing = DB::table('config_legal')->where('ID', $b['ID'])->first();
+
+            if (!$existing) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Data tidak ditemukan'
+                ], 404);
+            }
+
+            // Update main record
+            DB::table('config_legal')->where('ID', $b['ID'])->update([
+                'Document_Name' => $b['Document_Name'],
+                'Description'   => $b['Description'],
+                'Media_Url'     => $b['Media_Url'],
+            ]);
+
+            if (!empty($files)) {
+                $existingFiles = DB::table('meta_files')
+                    ->where('Map_To', $b['ID'])
+                    ->where('Topic', 'legal-compliance')
+                    ->get();
+
+                // Delete old physical files and meta records
+                foreach ($existingFiles as $oldFile) {
+                    if (Storage::disk('public')->exists($oldFile->Path)) {
+                        Storage::disk('public')->delete($oldFile->Path);
+                    }
+                }
+
+                DB::table('meta_files')
+                    ->where('Map_To', $b['ID'])
+                    ->where('Topic', 'legal-compliance')
+                    ->delete();
+
+                // Upload new files
+                foreach ($files as $file) {
+                    $path     = $file->store("$this->year/$this->month", 'public');
+                    $ext      = $file->getClientOriginalExtension();
+                    $filename = basename($path);
+                    $desc     = "Legal compliance document";
+                    $topic    = "legal-compliance";
+
+                    $this->uploadService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $b['ID']);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Data berhasil diupdate'
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function inputLegalCompliance(Request $r)
     {
         $b = $r->all();
@@ -239,5 +309,14 @@ class ComplianceController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function deleteLegalCompliance(Request $r)
+    {
+        $b = $r->all();
+
+        $id =  DB::table('users')->where('ID', '=', $b['User_Id'])->delete();
+
+        return response()->json(['status' => 'success', 'message' => "succcess"]);
     }
 }

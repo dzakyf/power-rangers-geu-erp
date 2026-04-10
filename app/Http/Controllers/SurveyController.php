@@ -52,7 +52,7 @@ class SurveyController extends Controller
             ->select([
                 DB::raw('COUNT(*) as Total_All'),
                 DB::raw("SUM(CASE WHEN sl.status = 'DONE_SURVEY' THEN 1 ELSE 0 END) as Total_Done_Survey"),
-                DB::raw('SUM(CASE WHEN DATEDIFF(CURDATE(), sl.Surveyed_At) > 30 THEN 1 ELSE 0 END) as Total_Expired'),
+                DB::raw('SUM(CASE WHEN DATEDIFF(CURDATE(), sl.Surveyed_At) > 90 THEN 1 ELSE 0 END) as Total_Expired'),
             ])
             ->first();
 
