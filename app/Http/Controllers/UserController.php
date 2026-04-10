@@ -20,6 +20,43 @@ class UserController extends Controller
         $this->users = $u;
     }
 
+    public function profileMitraPage()
+    {
+        return view('partner.profile.index');
+    }
+
+    public function getMitraData(Request $r)
+    {
+        $b = $r->all();
+
+        $d = DB::table('users as us')->where('us.ID', '=', $b['User_Id'])->first();
+
+        if (!$d) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $d
+        ]);
+    }
+
+    public function updateMitraData(Request $r)
+    {
+        $b = $r->all();
+        $upd = DB::table('users')->where('ID', '=', $b['User_Id'])
+            ->update([
+                "Bank_Account_No" => $b['Bank_Account_No'],
+                "Bank_Name" => $b['Bank_Name'],
+                "Bank_Account_Name" => $b['Bank_Account_Name'],
+            ]);
+
+        return response()->json(['message' => 'success']);
+    }
+
     public function AuthRouteAPI(Request $request)
     {
         return $request->user();
