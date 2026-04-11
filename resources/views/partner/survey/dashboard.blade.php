@@ -11,7 +11,7 @@
             <div class="card-body">
                 <h5 class="card-title">Target Kota</h5>
                 <div class="row">
-                    <div class="col-sm-1">
+                    <div class="col-sm-3">
                         <h3 class="card-text">{{$statistic->Total_All}}</h3>
                     </div>
                     <div class="col-sm">
@@ -26,7 +26,7 @@
             <div class="card-body">
                 <h5 class="card-title">Lokasi Disurvey</h5>
                 <div class="row">
-                    <div class="col-sm-1">
+                    <div class="col-sm-3">
                         <h3 class="card-text">{{$statistic->Total_All}}</h3>
                     </div>
                     <div class="col-sm">
@@ -41,7 +41,7 @@
             <div class="card-body">
                 <h5 class="card-title">Hub Disetujui</h5>
                 <div class="row">
-                    <div class="col-sm-2">
+                    <div class="col-sm-3">
                         <h3 class="card-text">{{$statistic->Total_Done_Survey}}</h3>
                     </div>
                     <div class="col-sm">
@@ -56,7 +56,7 @@
             <div class="card-body">
                 <h5 class="card-title">Survey Kritis (>90 Hari)</h5>
                 <div class="row">
-                    <div class="col-sm-1">
+                    <div class="col-sm-3">
                         <h3 class="card-text">{{$statistic->Total_Expired}}</h3>
                     </div>
                     <div class="col-sm">

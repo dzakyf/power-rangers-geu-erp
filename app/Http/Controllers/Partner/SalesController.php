@@ -143,9 +143,32 @@ class SalesController extends Controller
         return view('partner.sales.tiering');
     }
 
+    public function tieringSalesCollection()
+    {
+        $d = DB::table('users_statistics as us')
+            ->select('us.*', 'usr.Name as Sales_Name')
+            ->join('users as usr', 'usr.id', '=', 'us.User_Id')
+            ->get();
+
+        return $d;
+    }
+
     public function tieringSalesXml()
     {
-        //
+        $t = $this->tieringSalesCollection();
+
+        $xml = new SimpleXMLElement('<rows/>');
+
+        $counter = 1;
+        foreach ($t as $row) {
+            $xmlRow = $xml->addChild('row');
+            $xmlRow->addChild('cell', $counter++);
+            $xmlRow->addChild('cell', $row->Current_Tier);
+            $xmlRow->addChild('cell', $row->Sales_Name);
+            $xmlRow->addChild('cell', $row->Current_Achievement_Streak);
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
     }
 
     public function teamPerformanceSales()
@@ -153,12 +176,9 @@ class SalesController extends Controller
         return view('partner.sales.team-performance');
     }
 
-
-    // TODO hitung profit sharing achievement (after sales profit mitra)
-    public function teamPerformanceSalesXml(Request $r)
+    private function buildSalesPerformanceData(Request $r): array
     {
-        $year     = date('Y');
-        $standard = 70;
+        $year = date('Y');
 
         // Get all sales users
         $salesUsers = DB::table('users')
@@ -188,26 +208,44 @@ class SalesController extends Controller
             ->groupBy('Sales_ID')
             ->map(fn($rows) => $rows->keyBy('Month'));
 
-        // get complaint data 
-        $complaints = $this->aftersalesHandlingComplainCollection();
+        // Get complaint and profit data
+        $complaints  = $this->aftersalesHandlingComplainCollection();
+        $salesProfit = $this->aftersalesProfitMitraCollection($r);
 
-        // Step 1: Build $salesData as single source of truth per username per month
+        // Flatten salesProfit into lookup[$sales_id][$month]
+        $profitLookup = [];
+        foreach ($salesProfit as $salesRow) {
+            foreach ($salesRow['warehouses'] as $warehouse) {
+                foreach ($warehouse['monthly'] as $monthlyEntry) {
+                    foreach ($monthlyEntry as $month => $data) {
+                        $profitLookup[$salesRow['sales_id']][$month]['proyeksi']   = ($profitLookup[$salesRow['sales_id']][$month]['proyeksi'] ?? 0) + $data['proyeksi'];
+                        $profitLookup[$salesRow['sales_id']][$month]['bagi_hasil'] = ($profitLookup[$salesRow['sales_id']][$month]['bagi_hasil'] ?? 0) + $data['bagi_hasil'];
+                    }
+                }
+            }
+        }
+
+        // Step 1: Build $salesData per username per month
         $salesData = [];
         foreach ($salesUsers as $username => $user) {
             for ($month = 1; $month <= 12; $month++) {
-                $t                   = $targets[$username][$month] ?? null;
-                $complaint           = $complaints[$username][$month] ?? null;
+                $t         = $targets[$username][$month] ?? null;
+                $complaint = $complaints[$username][$month] ?? null;
+                $profit    = $profitLookup[$username][$month] ?? null;
 
-                $dealCount           = $deals[$username][$month]->Deal_Count ?? 0;
-                $totalComplain       = $complaint->total_complain ?? 0;
-                $closed              = $complaint->closed ?? 0;
+                $dealCount     = $deals[$username][$month]->Deal_Count ?? 0;
+                $totalComplain = $complaint->total_complain ?? 0;
+                $closed        = $complaint->closed ?? 0;
+                $proyeksi      = $profit['proyeksi'] ?? 0;
+                $bagiHasil     = $profit['bagi_hasil'] ?? 0;
 
                 $acvDeal              = ($t && $t->Target > 0) ? round(($dealCount / $t->Target) * 100, 2) : 0;
-                $acvAftersalesProfit  = 0; // plug your query here
+                $acvAftersalesProfit  = $proyeksi > 0 ? round(($bagiHasil / $proyeksi) * 100, 2) : 0;
                 $acvHandlingComplaint = $totalComplain > 0 ? round(($closed / $totalComplain) * 100, 2) : 0;
                 $performance          = round(($acvDeal + $acvAftersalesProfit + $acvHandlingComplaint) / 3, 2);
 
                 $salesData[$username][$month] = [
+                    'user'                 => $user,
                     'acvDeal'              => $acvDeal,
                     'acvAftersalesProfit'  => $acvAftersalesProfit,
                     'acvHandlingComplaint' => $acvHandlingComplaint,
@@ -219,18 +257,17 @@ class SalesController extends Controller
         // Step 2: Calculate rank per month across all sales
         $globalRank = [];
         for ($month = 1; $month <= 12; $month++) {
-            $monthPerf = [];
-
-            foreach ($salesUsers as $username => $user) {
-                $monthPerf[$username] = $salesData[$username][$month]['performance'];
-            }
+            $monthPerf = array_column(array_map(
+                fn($username) => ['username' => $username, 'perf' => $salesData[$username][$month]['performance']],
+                array_keys($salesData)
+            ), 'perf', 'username');
 
             arsort($monthPerf);
 
-            $rank     = 1;
+            $rank =  1;
             $prevPerf = null;
             $prevRank = 1;
-
+            $counter = 1;
             foreach ($monthPerf as $username => $perf) {
                 if ($prevPerf !== null && $perf < $prevPerf) {
                     $rank = $prevRank + 1;
@@ -242,19 +279,30 @@ class SalesController extends Controller
             }
         }
 
-        // Step 3: Build XML
+        return [$salesData, $globalRank];
+    }
+
+
+    // TODO: check output
+    public function teamPerformanceSalesXml(Request $r)
+    {
+        $year     = date('Y');
+        $standard = 70;
+
+        [$salesData, $globalRank] = $this->buildSalesPerformanceData($r);
+
+        // dd($salesData);
+
         $xml = new \SimpleXMLElement('<rows/>');
         $id  = 1;
 
-        foreach ($salesUsers as $username => $user) {
-            for ($month = 1; $month <= 12; $month++) {
-                $data   = $salesData[$username][$month];
+        foreach ($salesData as $username => $months) {
+            foreach ($months as $month => $data) {
                 $status = $data['performance'] >= $standard ? 'Above Target' : 'Below Target';
-                $rank   = $globalRank[$username][$month];
 
                 $row = $xml->addChild('row');
                 $row->addChild('cell', $id++);
-                $row->addChild('cell', htmlspecialchars($user->Name));
+                $row->addChild('cell', htmlspecialchars($data['user']->Name));
                 $row->addChild('cell', $month);
                 $row->addChild('cell', $year);
                 $row->addChild('cell', $data['acvDeal']);
@@ -263,7 +311,7 @@ class SalesController extends Controller
                 $row->addChild('cell', $data['performance']);
                 $row->addChild('cell', $standard);
                 $row->addChild('cell', $status);
-                $row->addChild('cell', $rank);
+                $row->addChild('cell', $globalRank[$username][$month]);
             }
         }
 
@@ -598,6 +646,195 @@ class SalesController extends Controller
     {
         return view('partner.sales.aftersales-profit-mitra');
     }
+
+
+    //based on sales id 
+    public function aftersalesProfitMitraCollection(Request $r)
+    {
+        $year   = date('Y');
+        $months = range(1, 12);
+        $q      = $r->query();
+
+        // ============================================================
+        // 1. Get all SALES users (filter by sales_id if provided)
+        // ============================================================
+        $salesQuery = DB::table('users')->where('Priv_ID', 'SALES');
+
+        if (!empty($q['sales_id'])) {
+            $salesQuery->where('username', $q['sales_id']);
+        }
+
+        $salesUsers = $salesQuery->get()->keyBy('username');
+
+        // ============================================================
+        // 2. Get all OPEX account definitions from master
+        // ============================================================
+        $opexAccounts = MasterWarehouseAccount::where('group_account', '>', 501)->get();
+
+        // ============================================================
+        // 3. Get profit/loss formula definitions per warehouse type
+        // ============================================================
+        $profitLossFormulas = MasterWarehouseProfitLoss::all()->groupBy('type');
+
+        // ============================================================
+        // 4. Build result collection per sales
+        // ============================================================
+        $result = $salesUsers->map(function ($salesUser) use ($year, $months, $opexAccounts, $profitLossFormulas) {
+
+            // Get all warehouses assigned to this sales via opportunity
+            $warehouseIds = DB::table('opportunity as o')
+                ->join('opportunity_sales as s', 'o.Sales_ID', '=', 's.Sales_ID')
+                ->join('warehouse_partner as w', 'o.Task_ID', '=', 'w.partner_task_id')
+                ->where('s.Sales', $salesUser->username)
+                ->where('o.Status', 'Deal')
+                ->pluck('w.warehouse_task_id');
+
+            if ($warehouseIds->isEmpty()) {
+                return null;
+            }
+
+            $warehouses = WarehousePartner::select([
+                'warehouse_task_id',
+                'warehouse_type',
+                'partner_task_id',
+                'warehouse_location',
+                'warehouse_status',
+                'capacity'
+            ])->whereIn('warehouse_task_id', $warehouseIds)->get();
+
+            // --------------------------------------------------------
+            // Calculate financial data per warehouse per month
+            // --------------------------------------------------------
+            $warehouseData = $warehouses->map(function ($warehouse) use ($year, $months, $opexAccounts, $profitLossFormulas, $salesUser) {
+
+                // Get the mitra user account
+                $mitraUser = User::where('Emp_ID', $warehouse->partner_task_id)->first();
+
+                // Determine projection year mapping based on first projection created
+                $firstProjection = DB::table('projections')
+                    ->where('User_ID', $mitraUser->id)
+                    ->value('Created_At');
+
+                $baseDate        = $firstProjection ?? now();
+                $projectionYears = collect(range(0, 4))->mapWithKeys(fn($i) => [
+                    date('Y', strtotime("$baseDate +$i years")) => $i + 1
+                ]);
+
+                $warehouseType = ucwords($warehouse->warehouse_type) ?: 'Booth';
+                $formulas      = $profitLossFormulas[$warehouse->warehouse_type] ?? collect();
+
+                $monthlyData = collect($months)->map(function ($month) use ($warehouse, $mitraUser, $opexAccounts, $formulas, $projectionYears, $year) {
+                    $start = "$year-" . str_pad($month, 2, '0', STR_PAD_LEFT) . "-01";
+                    $end   = date('Y-m-t', strtotime($start));
+
+                    $calculate = [];
+
+                    // Revenue: avg stock price × qty requested
+                    $avgStockPrice         = MasterStockPrice::whereBetween('date_for', [$start, $end])->avg('price') ?? 0;
+                    $qtyRequested          = WarehouseStockRequest::where('warehouse_task_id', $warehouse->warehouse_task_id)
+                        ->whereBetween('request_date', [$start, $end])
+                        ->sum('request_qty');
+
+                    $calculate[401][40001] = $avgStockPrice * $qtyRequested;
+                    $calculate[402][40002] = $avgStockPrice;
+
+                    // COGS: weighted average purchase price × qty
+                    $supplies    = WarehousePartnerSupplies::where('warehouse_task_id', $warehouse->warehouse_task_id)
+                        ->whereBetween('received_date', [$start, $end])
+                        ->get();
+
+                    $avgBuyPrice = 0;
+                    $totalQty    = 0;
+                    foreach ($supplies as $supply) {
+                        $avgBuyPrice = (($avgBuyPrice * $totalQty) + $supply->total) / ($totalQty + $supply->received_qty);
+                        $totalQty   += $supply->received_qty;
+                    }
+
+                    $calculate[501][51001]  = $qtyRequested;
+                    $calculate[501][51002]  = $avgBuyPrice;
+                    $calculate[501]['NULL'] = $qtyRequested * $avgBuyPrice;
+
+                    // OPEX: sum journal entries per account
+                    foreach ($opexAccounts as $account) {
+                        $calculate[$account->group_account][$account->account_no] = WarehousePartnerJournal::where('warehouse_task_id', $warehouse->warehouse_task_id)
+                            ->whereBetween('posting_date', [$start, $end])
+                            ->where('account_no', $account->account_no)
+                            ->where('group_account', $account->group_account)
+                            ->sum('nominal');
+                    }
+
+                    $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502] ?? []);
+
+                    // Apply profit/loss formulas
+                    foreach ($formulas as $formula) {
+                        $exp = explode(',', $formula->Rumus);
+
+                        if ($formula->Level == 2 && $formula->Rumus != '') {
+                            $calculate[$formula->Judul]['NULL'] = $formula->Normal == 'CREDIT'
+                                ? (array_sum($calculate[$exp[0]] ?? []) - array_sum($calculate[$exp[1]] ?? [])) - (isset($exp[2]) ? array_sum($calculate[$exp[2]] ?? []) : 0)
+                                : (array_sum($calculate[$exp[0]] ?? []) + array_sum($calculate[$exp[1]] ?? [])) + (isset($exp[2]) ? array_sum($calculate[$exp[2]] ?? []) : 0);
+
+                            if ($formula->Judul == '701') {
+                                $calculate[$formula->Judul]['NULL'] -= ($calculate[401][40001] * 2.5) / 100;
+                            }
+                        }
+
+                        if ($formula->Level == 3) {
+                            $calculate[$formula->Judul]['NULL'] = (array_sum($calculate[$exp[0]] ?? []) * 60) / 100;
+                        }
+                    }
+
+                    $bagiHasil = $calculate[801]['NULL'] ?? 0;
+
+                    $proyeksi = DB::table('projections')
+                        ->where(function ($q) use ($warehouse, $mitraUser) {
+                            $q->where('warehouse_task_id', $warehouse->warehouse_task_id)
+                                ->orWhere('User_Id', $mitraUser->id);
+                        })
+                        ->where('Projection_Type', 'high')
+                        ->where('Hub_Type', $warehouse->warehouse_type)
+                        ->where('Year', $projectionYears[date('Y', strtotime($start))] ?? 1)
+                        ->where('Description', 'Profit Mitra')
+                        ->sum('Month_' . $month . '_Total');
+
+                    return [
+                        $month => [
+                            'proyeksi'   => $proyeksi,
+                            'bagi_hasil' => $bagiHasil,
+                            'month' => $month,
+                            'surplus' => $bagiHasil - $proyeksi,
+                            'performance' => $proyeksi > 0 ? round(($bagiHasil / $proyeksi) * 100, 2) : 0,
+                        ]
+                    ];
+                    // return [
+                    //     'month' => $month,
+                    //     'proyeksi'   => $proyeksi,
+                    //     'bagi_hasil' => $bagiHasil,
+                    //     'surplus' => $bagiHasil - $proyeksi,
+                    //     'performance' => $proyeksi > 0 ? round(($bagiHasil / $proyeksi) * 100, 2) : 0,
+                    // ];
+                });
+
+                return [
+                    'warehouse_id'       => $warehouse->warehouse_task_id,
+                    'warehouse_location' => $warehouse->warehouse_location,
+                    'mitra_name'         => $mitraUser->Name ?? '-',
+                    'warehouse_type'     => $warehouseType,
+                    'monthly'            => $monthlyData,
+                ];
+            });
+
+            return [
+                'sales_row_id' => $salesUser->id,
+                'sales_id'   => $salesUser->username,
+                'sales_name' => $salesUser->Name,
+                'warehouses' => $warehouseData,
+            ];
+        })->filter(); // Remove null entries (sales with no warehouses)
+
+        return $result->values();
+    }
+
 
     public function aftersalesProfitMitraXml()
     {
