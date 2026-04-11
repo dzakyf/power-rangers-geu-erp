@@ -45,13 +45,13 @@ $Saya =  Auth::user()->username;
 <script>
 	SalesTiering = new dhtmlXGridObject('SalesTiering');
 	SalesTiering.setImagePath("./dhtmlx/imgs/");
-	SalesTiering.setHeader("No,Tiering, Member");
-	SalesTiering.attachHeader("#rspan,#text_filter,#text_filter");
+	SalesTiering.setHeader("No,Tiering, Member, Current Streak");
+	SalesTiering.attachHeader("#rspan,#text_filter,#text_filter,#text_filter");
 	// SalesTiering.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	SalesTiering.setInitWidths("60,100,200");
-	SalesTiering.setColAlign("center,left,left");
-	SalesTiering.setColSorting("int,str,str");
-	SalesTiering.setColTypes("ron,ro,ro");
+	SalesTiering.setInitWidths("60,100,200,200");
+	SalesTiering.setColAlign("center,left,left,left");
+	SalesTiering.setColSorting("int,str,str,str");
+	SalesTiering.setColTypes("ron,ro,ro,ro");
 	SalesTiering.enableSmartRendering(true, 150);
 	// SalesTiering.attachEvent("onRowDblClicked", SalesTieringLKManually);
 	SalesTiering.setSkin("dhx_skyblue");
@@ -59,7 +59,7 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		SalesTiering.clearAndLoad('xml-partner-partner-tiering');
+		SalesTiering.clearAndLoad('xml-partner-sales-tiering');
 	}
 </script>
 @endsection

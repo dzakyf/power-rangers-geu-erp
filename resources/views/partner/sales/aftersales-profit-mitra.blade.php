@@ -22,13 +22,13 @@ $Saya =  Auth::user()->username;
 			<a href="/">Sales & Marketing</a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">Pipeline Leads</span>
+			<span class="active">Profit Mitra</span>
 		</li>
 	</ol>
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PIPELINE LEADS</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PROFIT MITRA</div>
 	<div class="card">
 		<div class="card-body">
 			<div id="SalesPipelineLeads" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
@@ -52,10 +52,10 @@ $Saya =  Auth::user()->username;
 	SalesPipelineLeads.setColAlign("center,left,left,left,left,right,right,right,right,right,right,right,right,right");
 	SalesPipelineLeads.setColSorting("int,str,int,int,int,int,int,int,int,int,int,int,int,int");
 	SalesPipelineLeads.setColTypes("ron,ro,ro,ro,ro,ro,ron,ron,ron,ron,ron,ron,ron,ron");
-	SalesPipelineLeads.setNumberFormat("0,000",4,",",".");
-	SalesPipelineLeads.setNumberFormat("0,000",5,",",".");
-	SalesPipelineLeads.setNumberFormat("0,000",6,",",".");
-	SalesPipelineLeads.setNumberFormat("0,000",7,",",".");
+	SalesPipelineLeads.setNumberFormat("0,000", 4, ",", ".");
+	SalesPipelineLeads.setNumberFormat("0,000", 5, ",", ".");
+	SalesPipelineLeads.setNumberFormat("0,000", 6, ",", ".");
+	SalesPipelineLeads.setNumberFormat("0,000", 7, ",", ".");
 	SalesPipelineLeads.enableSmartRendering(true, 150);
 	// SalesPipelineLeads.attachEvent("onRowDblClicked", SalesPipelineLeadsLKManually);
 	SalesPipelineLeads.setSkin("dhx_skyblue");
