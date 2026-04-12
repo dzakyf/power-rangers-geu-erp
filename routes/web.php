@@ -3919,7 +3919,6 @@ Route::group(['middleware' => 'auth'], function () {
         return view('mymenu.cash-advance-add-submit');
     });
 
-
     Route::get('/approvalcashadvance', function () {
         return view('scheduler.approvalcashadvance');
     });
@@ -4733,9 +4732,9 @@ Route::group(['middleware' => 'auth'], function () {
     // });
     Route::get("$partner-data-active-mitra", [UserController::class, 'getPartner']);
     Route::get("$partner-data-sales", [UserController::class, 'getSalesperson']);
-    Route::get("$partner-profile", [UserController::class, 'profilePage']);
+    Route::get("my-profile", [UserController::class, 'profilePage']);
     Route::get("$partner-profile-data", [UserController::class, 'getMitraData']);
-    Route::get("$partner-profile-update", [UserController::class, 'updateMitraData']);
+    Route::post("$partner-profile-update", [UserController::class, 'updateMitraData']);
 
 
 
@@ -4809,6 +4808,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("test-xml-$salesPrefs-aftersales-profit-mitra", [PartnerSalesController::class, 'afterSalesProfitMitraCollection']);
     Route::get("$salesPrefs-aftersales-handling-complain", [PartnerSalesController::class, 'afterSalesHandlingComplain']);
     Route::get("xml-$salesPrefs-aftersales-handling-complain", [PartnerSalesController::class, 'afterSalesHandlingComplainXml']);
+    Route::get("$salesPrefs-performance/monthly-update", [PartnerSalesController::class, 'updateAllSalesPerformance']);
 
 
     /** Survey controller */
