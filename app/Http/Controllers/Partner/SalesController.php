@@ -11,6 +11,7 @@ use App\WarehousePartner;
 use App\WarehousePartnerJournal;
 use App\WarehousePartnerSupplies;
 use App\WarehouseStockRequest;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,14 @@ use SimpleXMLElement;
 
 class SalesController extends Controller
 {
+    private $performanceStandard;
+
+    public function __construct()
+    {
+        $this->performanceStandard = 70; //integer sebelum persen
+
+    }
+
     public function masterTarget()
     {
         return view('partner.sales.master-target');
@@ -166,6 +175,7 @@ class SalesController extends Controller
             $xmlRow->addChild('cell', $row->Current_Tier);
             $xmlRow->addChild('cell', $row->Sales_Name);
             $xmlRow->addChild('cell', $row->Current_Achievement_Streak);
+            $xmlRow->addChild('cell', $row->Updated_At);
         }
 
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
@@ -208,9 +218,13 @@ class SalesController extends Controller
             ->groupBy('Sales_ID')
             ->map(fn($rows) => $rows->keyBy('Month'));
 
+
         // Get complaint and profit data
         $complaints  = $this->aftersalesHandlingComplainCollection();
         $salesProfit = $this->aftersalesProfitMitraCollection($r);
+        $tiering = $this->tieringSalesCollection();
+        $tiering = $tiering->groupBy('User_Id')->map(fn($rows) => $rows->keyBy(fn($row) => date('Y-m', strtotime($row->Created_At))));
+
 
         // Flatten salesProfit into lookup[$sales_id][$month]
         $profitLookup = [];
@@ -244,11 +258,17 @@ class SalesController extends Controller
                 $acvHandlingComplaint = $totalComplain > 0 ? round(($closed / $totalComplain) * 100, 2) : 0;
                 $performance          = round(($acvDeal + $acvAftersalesProfit + $acvHandlingComplaint) / 3, 2);
 
+                $monthKey    = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT);
+                $tierEntry   = $tiering[$user->id][$monthKey] ?? null;
+                $currentTier = $tierEntry->Current_Tier ?? '-';
+
+
                 $salesData[$username][$month] = [
                     'user'                 => $user,
-                    'acvDeal'              => $acvDeal,
-                    'acvAftersalesProfit'  => $acvAftersalesProfit,
-                    'acvHandlingComplaint' => $acvHandlingComplaint,
+                    'acv_deal'              => $acvDeal,
+                    'current_tier'           => $currentTier,
+                    'acv_aftersales_profit'  => $acvAftersalesProfit,
+                    'acv_handling_complaint' => $acvHandlingComplaint,
                     'performance'          => $performance,
                 ];
             }
@@ -279,19 +299,22 @@ class SalesController extends Controller
             }
         }
 
-        return [$salesData, $globalRank];
+        return [
+            'periode' => $year,
+            'performance' => $salesData,
+            'rank' => $globalRank
+        ];
     }
-
 
     // TODO: check output
     public function teamPerformanceSalesXml(Request $r)
     {
         $year     = date('Y');
-        $standard = 70;
+        $standard = $this->performanceStandard;
 
-        [$salesData, $globalRank] = $this->buildSalesPerformanceData($r);
-
-        // dd($salesData);
+        $result     = $this->buildSalesPerformanceData($r);
+        $salesData  = $result['performance'];
+        $globalRank = $result['rank'];
 
         $xml = new \SimpleXMLElement('<rows/>');
         $id  = 1;
@@ -305,9 +328,9 @@ class SalesController extends Controller
                 $row->addChild('cell', htmlspecialchars($data['user']->Name));
                 $row->addChild('cell', $month);
                 $row->addChild('cell', $year);
-                $row->addChild('cell', $data['acvDeal']);
-                $row->addChild('cell', $data['acvAftersalesProfit']);
-                $row->addChild('cell', $data['acvHandlingComplaint']);
+                $row->addChild('cell', $data['acv_deal']);
+                $row->addChild('cell', $data['acv_aftersales_profit']);
+                $row->addChild('cell', $data['acv_handling_complaint']);
                 $row->addChild('cell', $data['performance']);
                 $row->addChild('cell', $standard);
                 $row->addChild('cell', $status);
@@ -1131,5 +1154,53 @@ class SalesController extends Controller
         }
 
         echo "</rows>";
+    }
+
+    // cron api
+    public function updateAllSalesPerformance(Request $r)
+    {
+        $currMonth   = Carbon::now()->month;
+        $now         = Carbon::now();
+
+        $salesData   = $this->buildSalesPerformanceData($r);
+        $performance = $salesData['performance'];
+
+        foreach ($performance as $username => $months) {
+            $monthData   = $months[$currMonth] ?? null;
+
+            if (!$monthData) continue;
+
+            $user                    = $monthData['user'];
+            $performanceStatus       = $monthData['performance'] >= $this->performanceStandard ? 'ABOVE' : 'BELOW';
+            $currentAchievementStreak = DB::table('users_statistics')
+                ->where('User_Id', $user->id)
+                ->value('Current_Achievement_Streak') ?? 0;
+
+            $currentAchievementStreak = $performanceStatus == 'ABOVE'
+                ? $currentAchievementStreak + 1
+                : 1;
+
+            if ($currentAchievementStreak > 3) {
+                $newTier = 'GOLD';
+            } elseif ($currentAchievementStreak == 3) {
+                $newTier = 'SILVER';
+            } else {
+                $newTier = 'BRONZE';
+            }
+
+            DB::table('users_statistics')->updateOrInsert(
+                ['User_Id' => $user->id],
+                [
+                    'Current_Achievement_Streak' => $currentAchievementStreak,
+                    'Current_Tier'               => $newTier,
+                    'Updated_At'                 => $now,
+                ]
+            );
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Sales performance updated'
+        ]);
     }
 }

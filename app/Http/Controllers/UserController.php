@@ -20,7 +20,7 @@ class UserController extends Controller
         $this->users = $u;
     }
 
-    public function profileMitraPage()
+    public function profilePage()
     {
         return view('partner.profile.index');
     }
@@ -29,7 +29,7 @@ class UserController extends Controller
     {
         $b = $r->all();
 
-        $d = DB::table('users as us')->where('us.ID', '=', $b['User_Id'])->first();
+        $d = DB::table('users as us')->where('us.ID', '=', 2344)->first();
 
         if (!$d) {
             return response()->json([
@@ -49,9 +49,23 @@ class UserController extends Controller
         $b = $r->all();
         $upd = DB::table('users')->where('ID', '=', $b['User_Id'])
             ->update([
-                "Bank_Account_No" => $b['Bank_Account_No'],
-                "Bank_Name" => $b['Bank_Name'],
-                "Bank_Account_Name" => $b['Bank_Account_Name'],
+                'username'         => $b['username'],
+                'Emp_ID'           => $b['Emp_ID'],
+                'Priv_ID'          => $b['Priv_ID'],
+                'Status'           => $b['Status'],
+                'created_at'       => $b['created_at'],
+                'Name'             => $b['Name'],
+                'Contact'          => $b['Contact'],
+                'email'            => $b['email'],
+                'Address'          => $b['Address'],
+                'City'             => $b['City'],
+                'Location'         => $b['Location'],
+                'Position'         => $b['Position'],
+                'Department'       => $b['Department'],
+                'Area'             => $b['Area'],
+                'Bank_Name'        => $b['Bank_Name'],
+                'Bank_Account_No'  => $b['Bank_Account_No'],
+                'Bank_Account_Name' => $b['Bank_Account_Name'],
             ]);
 
         return response()->json(['message' => 'success']);
