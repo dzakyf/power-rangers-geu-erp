@@ -459,7 +459,7 @@ class MarketingController extends Controller
             'uploaded_at' => Carbon::now(),
             'checker_name' => '',
             'sales_name' => $session->Name,
-            'media_url' => $promotion[0]->Media_Url
+            'media' => $promotion[0]->Media_Url
         ]);
 
         return [
