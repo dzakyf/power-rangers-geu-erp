@@ -29,7 +29,10 @@ class UserController extends Controller
     {
         $b = $r->all();
 
-        $d = DB::table('users as us')->where('us.ID', '=', 2344)->first();
+        $session = $this->users->getCurrentSessionUserInfo();
+        $id = !empty($b['User_Id']) ? $b['User_Id'] : $session->id;
+
+        $d = DB::table('users as us')->where('us.ID', '=', $id)->first();
 
         if (!$d) {
             return response()->json([

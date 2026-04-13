@@ -41,6 +41,7 @@ use App\Http\Controllers\Partner\WarehouseAuditController as PartnerWarehouseAud
 use App\Http\Controllers\Partner\ProfitSharingController as PartnerProfitSharingController;
 use App\Http\Controllers\Partner\ValuationController as PartnerValuationController;
 use App\Http\Controllers\Partner\WarehouseCorrectiveController as PartnerWarehouseCorrectiveController;
+use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\ProjectionProfitController;
 use App\Http\Controllers\RenewalController;
 use App\Http\Controllers\SurveyController;
@@ -4944,9 +4945,11 @@ Route::group(['middleware' => 'auth'], function () {
 
 
 
-    Route::get("partner-uco-inbound-timbang", function () {
-        return view('uco.inbound-timbang');
-    });
+    $partnerUCO = "partner-uco";
+    Route::get("$partnerUCO-inbound-timbang", [PartnerUCOReportController::class, 'indexInboundUCO']);
+    Route::get("$partnerUCO-inbound-timbang-create", [PartnerUCOReportController::class, 'createInboundUCO']);
+    Route::post("$partnerUCO-inbound-timbang-submit", [PartnerUCOReportController::class, 'submitInboundUCO']);
+    Route::get("$partnerUCO-inbound-timbang-data", [PartnerUCOReportController::class, 'getUCOInboundXml']);
 
     Route::get("partner-uco-inbound-quality-check", function () {
         return view('uco.inbound-quality-check');
@@ -4979,11 +4982,11 @@ Route::group(['middleware' => 'auth'], function () {
     });
 
 
-    $partnerkpi = "partner-kpi";
+    $partnerkpi = "partner-performance";
 
-    Route::get("$partnerkpi-index", [KPIController::class, 'indexKPI']);
-    Route::get("$partnerkpi-data", [KPIController::class, 'getMasterDataKPI']);
-    Route::get("$partnerkpi-create", [KPIController::class, 'createMasterKPIData']);
-    Route::post("$partnerkpi-data-update", [KPIController::class, 'updateMasterKPIData']);
-    Route::post("$partnerkpi-data-submit", [KPIController::class, 'submitMasterKPIData']);
+    Route::get("$partnerkpi-index", [PerformanceController::class, 'index']);
+    Route::get("$partnerkpi-kpi-data", [PerformanceController::class, 'getMasterKPIData']);
+    Route::get("$partnerkpi-kpi-create", [PerformanceController::class, 'createMasterKPIData']);
+    Route::post("$partnerkpi-kpi-update", [PerformanceController::class, 'updateMasterKPIData']);
+    Route::post("$partnerkpi-kpi-submit", [PerformanceController::class, 'submitMasterKPIData']);
 });

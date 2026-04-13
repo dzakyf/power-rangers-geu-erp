@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class KPIController extends Controller
+class PerformanceController extends Controller
 {
     public function index()
     {
@@ -17,10 +17,29 @@ class KPIController extends Controller
         return view('partner.performance.create');
     }
 
-
     public function getMasterKPIData()
     {
-        return response(200);
+        $d = DB::table('config_kpi as ck')->select('ck.*')->get();
+
+        $xml = new \SimpleXMLElement('<rows/>');
+
+        $counter = 1;
+        // dd($d);
+        foreach ($d as $d) {
+
+            $row = $xml->addChild('row');
+
+            $row->addChild('cell', $counter);
+            $row->addChild('cell', $d->Work_Area);
+            $row->addChild('cell', $d->Indicator);
+            $row->addChild('cell', "$d->Weight %");
+            $row->addChild('cell', $d->Target);
+            $row->addChild('cell', htmlspecialchars($d->Departement));
+
+            $counter++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
     }
 
     public function submitMasterKPIData(Request $r)
