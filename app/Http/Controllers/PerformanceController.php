@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class PerformanceController extends Controller
 {
-    public function index()
+    public function indexKPI()
     {
         return view('partner.performance.index');
     }

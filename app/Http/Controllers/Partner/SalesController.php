@@ -858,6 +858,146 @@ class SalesController extends Controller
         return $result->values();
     }
 
+    public function aftersalesProfitMitraXmlV2()
+    {
+        $year         = date('Y');
+        $opexAccounts = MasterWarehouseAccount::where('group_account', '>', 501)->get();
+        $formulas     = MasterWarehouseProfitLoss::all()->groupBy('type');
+
+        // Get all warehouses
+        $warehouses = WarehousePartner::select([
+            'warehouse_task_id',
+            'warehouse_type',
+            'partner_task_id',
+            'warehouse_location',
+        ]);
+
+        if (auth()->user()->Priv_ID == "MITRA") {
+            $warehouses->where('partner_task_id', auth()->user()->Emp_ID);
+        }
+
+        $warehouses = $warehouses->get();
+
+        $xml    = new SimpleXMLElement('<rows/>');
+        $id     = 1;
+
+        foreach ($warehouses as $warehouse) {
+            $mitraUser = User::where('Emp_ID', $warehouse->partner_task_id)->first();
+            if (!$mitraUser) continue;
+
+            // Get sales assigned to this warehouse
+
+            $salesName = DB::table('opportunity as o')
+                ->join('users as u', 'u.username', '=', 'o.Created_By')
+                ->where('o.Task_ID', $warehouse->partner_task_id)
+                ->value('u.Name') ?? 'NO ASSIGNMENT';
+
+            // Determine projection year mapping
+            $firstProjection = DB::table('projections')
+                ->where('User_ID', $mitraUser->id)
+                ->value('Created_At');
+
+            $baseDate        = $firstProjection ?? now();
+            $projectionYears = collect(range(0, 4))->mapWithKeys(fn($i) => [
+                date('Y', strtotime("$baseDate +$i years")) => $i + 1
+            ]);
+
+            $warehouseFormulas = $formulas[$warehouse->warehouse_type] ?? collect();
+
+            for ($month = 1; $month <= 12; $month++) {
+                $start = "$year-" . str_pad($month, 2, '0', STR_PAD_LEFT) . "-01";
+                $end   = date('Y-m-t', strtotime($start));
+
+                $calculate = [];
+
+                // Revenue
+                $avgStockPrice         = MasterStockPrice::whereBetween('date_for', [$start, $end])->avg('price') ?? 0;
+                $qtyRequested          = WarehouseStockRequest::where('warehouse_task_id', $warehouse->warehouse_task_id)
+                    ->whereBetween('request_date', [$start, $end])
+                    ->sum('request_qty');
+
+                $calculate[401][40001] = $avgStockPrice * $qtyRequested;
+                $calculate[402][40002] = $avgStockPrice;
+
+                // COGS
+                $supplies    = WarehousePartnerSupplies::where('warehouse_task_id', $warehouse->warehouse_task_id)
+                    ->whereBetween('received_date', [$start, $end])
+                    ->get();
+
+                $avgBuyPrice = 0;
+                $totalQty    = 0;
+                foreach ($supplies as $supply) {
+                    $avgBuyPrice = (($avgBuyPrice * $totalQty) + $supply->total) / ($totalQty + $supply->received_qty);
+                    $totalQty   += $supply->received_qty;
+                }
+
+                $calculate[501][51001]  = $qtyRequested;
+                $calculate[501][51002]  = $avgBuyPrice;
+                $calculate[501]['NULL'] = $qtyRequested * $avgBuyPrice;
+
+                // OPEX
+                foreach ($opexAccounts as $account) {
+                    $calculate[$account->group_account][$account->account_no] = WarehousePartnerJournal::where('warehouse_task_id', $warehouse->warehouse_task_id)
+                        ->whereBetween('posting_date', [$start, $end])
+                        ->where('account_no', $account->account_no)
+                        ->where('group_account', $account->group_account)
+                        ->sum('nominal');
+                }
+
+                $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502] ?? []);
+
+                // Apply profit/loss formulas
+                foreach ($warehouseFormulas as $formula) {
+                    if ($formula->Rumus == '') continue;
+                    $exp = explode(',', $formula->Rumus);
+
+                    if ($formula->Level == 2) {
+                        $calculate[$formula->Judul]['NULL'] = $formula->Normal == 'CREDIT'
+                            ? (array_sum($calculate[$exp[0]] ?? []) - array_sum($calculate[$exp[1]] ?? [])) - (isset($exp[2]) ? array_sum($calculate[$exp[2]] ?? []) : 0)
+                            : (array_sum($calculate[$exp[0]] ?? []) + array_sum($calculate[$exp[1]] ?? [])) + (isset($exp[2]) ? array_sum($calculate[$exp[2]] ?? []) : 0);
+
+                        if ($formula->Judul == '701') {
+                            $calculate[$formula->Judul]['NULL'] -= ($calculate[401][40001] * 2.5) / 100;
+                        }
+                    }
+
+                    if ($formula->Level == 3) {
+                        $calculate[$formula->Judul]['NULL'] = (array_sum($calculate[$exp[0]] ?? []) * 60) / 100;
+                    }
+                }
+
+                $bagiHasil = $calculate[801]['NULL'] ?? 0;
+
+                $proyeksi = DB::table('projections')
+                    ->where(function ($q) use ($warehouse, $mitraUser) {
+                        $q->where('warehouse_task_id', $warehouse->warehouse_task_id)
+                            ->orWhere('User_Id', $mitraUser->id);
+                    })
+                    ->where('Projection_Type', 'high')
+                    ->where('Hub_Type', $warehouse->warehouse_type)
+                    ->where('Year', $projectionYears[date('Y', strtotime($start))] ?? 1)
+                    ->where('Description', 'Profit Mitra')
+                    ->sum('Month_' . $month . '_Total');
+
+                $surplus = $bagiHasil - $proyeksi ?? 0;
+                $performance = $proyeksi != 0 ?  $bagiHasil / $proyeksi : 0;
+
+                $row = $xml->addChild('row');
+                $row->addChild('cell', $id++);
+                $row->addChild('cell', htmlspecialchars($salesName));
+                $row->addChild('cell', $month);
+                $row->addChild('cell', $year);
+                $row->addChild('cell', htmlspecialchars($warehouse->warehouse_location ?? '-'));
+                $row->addChild('cell', $proyeksi);
+                $row->addChild('cell', $bagiHasil);
+                $row->addChild('cell', $surplus);
+                $row->addChild('cell', $performance);
+            }
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
 
     public function aftersalesProfitMitraXml()
     {
@@ -1098,63 +1238,105 @@ class SalesController extends Controller
 
     public function aftersalesHandlingComplainXml()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml; charset=UTF-8");
-        } else {
-            header("Content-type: text/xml; charset=UTF-8");
-        }
+        $xml    = new SimpleXMLElement('<rows/>');
+        $id     = 1;
 
-        echo "<?xml version='1.0' encoding='UTF-8'?>\n";
-        echo "<rows>";
-
-        // mapping user
-        $getUsers = User::get();
-        $usname = [];
-        foreach ($getUsers as $value) {
-            $usname[$value->username] = $value->Name;
-            $usname[$value->Emp_ID] = $value->Name;
-        }
-
-        $nomor = 1;
-
-        // query utama
-        $get = DB::table('ticket')
-            ->join('warehouse_partner as w', 'ticket.GEU_Express_ID', '=', 'w.warehouse_task_id')
-            ->join('opportunity as o', 'w.partner_task_id', '=', 'o.Task_ID')
-            ->join('opportunity_sales as s', 'o.Sales_ID', '=', 's.Sales_ID')
+        $get = DB::table('ticket as t')
+            ->join('warehouse_partner as w', 't.GEU_Express_ID', '=', 'w.warehouse_task_id')
+            ->join('opportunity as o', 'o.Task_ID', '=', 'w.partner_task_id')
+            ->join('opportunity_sales as s', 's.Sales_ID', '=', 'o.Sales_ID')
+            ->join('users as u', 'u.username', '=', 's.Sales')
             ->select([
+                'u.Name as Sales_Name',
                 's.Sales as Sales_ID',
-                DB::raw("YEAR(ticket.Proposed_Date) as tahun"),
-                DB::raw("MONTH(ticket.Proposed_Date) as bulan"),
+                DB::raw("YEAR(t.Proposed_Date) as tahun"),
+                DB::raw("MONTH(t.Proposed_Date) as bulan"),
                 DB::raw("COUNT(*) as total_complain"),
-                DB::raw("SUM(CASE WHEN ticket.Ticket_Status = 'Open' THEN 1 ELSE 0 END) as Open"),
-                DB::raw("SUM(CASE WHEN ticket.Ticket_Status = 'In Progress' THEN 1 ELSE 0 END) as In_Progress"),
-                DB::raw("SUM(CASE WHEN ticket.Ticket_Status = 'Closed' THEN 1 ELSE 0 END) as Closed"),
+                DB::raw("SUM(CASE WHEN t.Ticket_Status = 'Open' THEN 1 ELSE 0 END) as Open"),
+                DB::raw("SUM(CASE WHEN t.Ticket_Status = 'In Progress' THEN 1 ELSE 0 END) as In_Progress"),
+                DB::raw("SUM(CASE WHEN t.Ticket_Status = 'Closed' THEN 1 ELSE 0 END) as Closed"),
             ])
-            ->groupBy('s.Sales')
-            ->groupByRaw("YEAR(ticket.Proposed_Date)")
-            ->groupByRaw("MONTH(ticket.Proposed_Date)")
-            ->orderByRaw("YEAR(ticket.Proposed_Date), MONTH(ticket.Proposed_Date)")
+            ->groupBy('s.Sales', 'u.Name')
+            ->groupByRaw("YEAR(t.Proposed_Date)")
+            ->groupByRaw("MONTH(t.Proposed_Date)")
+            ->orderByRaw("YEAR(t.Proposed_Date), MONTH(t.Proposed_Date)")
             ->get();
 
-        // output
-        foreach ($get as $Fetch) {
-
-            echo "<row id=\"$nomor\">";
-            echo "<cell>$nomor</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->Sales_ID) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->tahun) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->bulan) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->total_complain) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->Closed) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->In_Progress + $Fetch->Open) . "</cell>";
-            echo "</row>";
-
-            $nomor++;
+        foreach ($get as $row) {
+            $performance = $row->total_complain != 0 ? round(($row->Closed / $row->total_complain) * 100, 2) : 0;
+            $xmlRow = $xml->addChild('row');
+            $xmlRow->addChild('cell', $id++);
+            $xmlRow->addChild('cell', htmlspecialchars($row->Sales_Name));
+            $xmlRow->addChild('cell', htmlspecialchars($row->tahun));
+            $xmlRow->addChild('cell', htmlspecialchars($row->bulan));
+            $xmlRow->addChild('cell', htmlspecialchars($row->total_complain));
+            $xmlRow->addChild('cell', htmlspecialchars($row->Closed));
+            $xmlRow->addChild('cell', htmlspecialchars($row->In_Progress + $row->Open));
+            $xmlRow->addChild('cell', htmlspecialchars($performance));
         }
 
-        echo "</rows>";
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
     }
+
+    // public function aftersalesHandlingComplainXml()
+    // {
+    //     if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+    //         header("Content-type: application/xhtml+xml; charset=UTF-8");
+    //     } else {
+    //         header("Content-type: text/xml; charset=UTF-8");
+    //     }
+
+    //     echo "<?xml version='1.0' encoding='UTF-8'>\n";
+    //     echo "<rows>";
+
+    //     // mapping user
+    //     $getUsers = User::get();
+    //     $usname = [];
+    //     foreach ($getUsers as $value) {
+    //         $usname[$value->username] = $value->Name;
+    //         $usname[$value->Emp_ID] = $value->Name;
+    //     }
+
+    //     $nomor = 1;
+
+    //     // query utama
+    //     $get = DB::table('ticket')
+    //         ->join('warehouse_partner as w', 'ticket.GEU_Express_ID', '=', 'w.warehouse_task_id')
+    //         ->join('opportunity as o', 'w.partner_task_id', '=', 'o.Task_ID')
+    //         ->join('opportunity_sales as s', 'o.Sales_ID', '=', 's.Sales_ID')
+    //         ->select([
+    //             's.Sales as Sales_ID',
+    //             DB::raw("YEAR(ticket.Proposed_Date) as tahun"),
+    //             DB::raw("MONTH(ticket.Proposed_Date) as bulan"),
+    //             DB::raw("COUNT(*) as total_complain"),
+    //             DB::raw("SUM(CASE WHEN ticket.Ticket_Status = 'Open' THEN 1 ELSE 0 END) as Open"),
+    //             DB::raw("SUM(CASE WHEN ticket.Ticket_Status = 'In Progress' THEN 1 ELSE 0 END) as In_Progress"),
+    //             DB::raw("SUM(CASE WHEN ticket.Ticket_Status = 'Closed' THEN 1 ELSE 0 END) as Closed"),
+    //         ])
+    //         ->groupBy('s.Sales')
+    //         ->groupByRaw("YEAR(ticket.Proposed_Date)")
+    //         ->groupByRaw("MONTH(ticket.Proposed_Date)")
+    //         ->orderByRaw("YEAR(ticket.Proposed_Date), MONTH(ticket.Proposed_Date)")
+    //         ->get();
+
+    //     // output
+    //     foreach ($get as $Fetch) {
+
+    //         echo "<row id=\"$nomor\">";
+    //         echo "<cell>$nomor</cell>";
+    //         echo "<cell>" . htmlspecialchars($Fetch->Sales_ID) . "</cell>";
+    //         echo "<cell>" . htmlspecialchars($Fetch->tahun) . "</cell>";
+    //         echo "<cell>" . htmlspecialchars($Fetch->bulan) . "</cell>";
+    //         echo "<cell>" . htmlspecialchars($Fetch->total_complain) . "</cell>";
+    //         echo "<cell>" . htmlspecialchars($Fetch->Closed) . "</cell>";
+    //         echo "<cell>" . htmlspecialchars($Fetch->In_Progress + $Fetch->Open) . "</cell>";
+    //         echo "</row>";
+
+    //         $nomor++;
+    //     }
+
+    //     echo "</rows>";
+    // }
 
     // cron api
     public function updateAllSalesPerformance(Request $r)

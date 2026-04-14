@@ -4805,7 +4805,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$salesPrefs-ratio-pipeline-deal", [PartnerSalesController::class, 'ratioPipelineDeal']);
     Route::get("xml-$salesPrefs-ratio-pipeline-deal", [PartnerSalesController::class, 'ratioPipelineDealXml']);
     Route::get("$salesPrefs-aftersales-profit-mitra", [PartnerSalesController::class, 'afterSalesProfitMitra']);
-    Route::get("xml-$salesPrefs-aftersales-profit-mitra", [PartnerSalesController::class, 'afterSalesProfitMitraXml']);
+    Route::get("xml-$salesPrefs-aftersales-profit-mitra", [PartnerSalesController::class, 'afterSalesProfitMitraXmlV2']);
     Route::get("test-xml-$salesPrefs-aftersales-profit-mitra", [PartnerSalesController::class, 'afterSalesProfitMitraCollection']);
     Route::get("$salesPrefs-aftersales-handling-complain", [PartnerSalesController::class, 'afterSalesHandlingComplain']);
     Route::get("xml-$salesPrefs-aftersales-handling-complain", [PartnerSalesController::class, 'afterSalesHandlingComplainXml']);
@@ -4984,7 +4984,7 @@ Route::group(['middleware' => 'auth'], function () {
 
     $partnerkpi = "partner-performance";
 
-    Route::get("$partnerkpi-index", [PerformanceController::class, 'index']);
+    Route::get("$partnerkpi-kpi-index", [PerformanceController::class, 'indexKPI']);
     Route::get("$partnerkpi-kpi-data", [PerformanceController::class, 'getMasterKPIData']);
     Route::get("$partnerkpi-kpi-create", [PerformanceController::class, 'createMasterKPIData']);
     Route::post("$partnerkpi-kpi-update", [PerformanceController::class, 'updateMasterKPIData']);

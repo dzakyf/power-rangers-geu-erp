@@ -47,7 +47,7 @@ $Saya =  Auth::user()->username;
 	SalesPipelineLeads.setImagePath("./dhtmlx/imgs/");
 	SalesPipelineLeads.setHeader("No,Sales, Bulan, Tahun, Hub, Proyeksi Profit Sharing, Acv Profit Sharing, Surplus/Minus, Performance");
 	SalesPipelineLeads.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	SalesPipelineLeads.attachFooter("Total,#cspan,#stat_total,#stat_total,#stat_total,#stat_total,#stat_total,#stat_total,#stat_total,#stat_total,");
+	SalesPipelineLeads.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#stat_total,#stat_total,#stat_total,#stat_total,#stat_total,");
 	SalesPipelineLeads.setInitWidths("60,200,100,100,100,100,100,100,100,100,100,100,100,100");
 	SalesPipelineLeads.setColAlign("center,left,left,left,left,right,right,right,right,right,right,right,right,right");
 	SalesPipelineLeads.setColSorting("int,str,int,int,int,int,int,int,int,int,int,int,int,int");
