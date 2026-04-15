@@ -4944,7 +4944,6 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$partnerCompliance-legal-create", [ComplianceController::class, 'createLegalCompliance']);
 
 
-
     $partnerUCO = "partner-uco";
     Route::get("$partnerUCO-inbound-timbang", [PartnerUCOReportController::class, 'indexInboundUCO']);
     Route::get("$partnerUCO-inbound-timbang-create", [PartnerUCOReportController::class, 'createInboundUCO']);
@@ -4955,9 +4954,11 @@ Route::group(['middleware' => 'auth'], function () {
         return view('uco.inbound-quality-check');
     });
 
-    Route::get("partner-uco-inbound-category", function () {
-        return view('uco.inbound-category');
-    });
+    Route::get("partner-uco-unit-category", [PartnerUCOReportController::class, 'indexUnitCategory']);
+
+    Route::get("$partnerUCO-outbound", [PartnerUCOReportController::class, 'indexOutboundUCO']);
+    Route::get("$partnerUCO-outbound-data", [PartnerUCOReportController::class, 'getUCOOutboundXml']);
+
 
     Route::get("partner-uco-outbound-pickup-request", function () {
         return "OK";

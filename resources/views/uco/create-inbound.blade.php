@@ -38,8 +38,8 @@
                                 <label for="Unit">Unit <span style="color: red;">*</span></label>
                                 <select class="form-control" id="Unit" name="Unit" required>
                                     <option value="">-- Select Unit --</option>
-                                    <option value="KG">KG</option>
-                                    <option value="TON">TON</option>
+                                    <option value="KG">Kg</option>
+                                    <option value="TON">Ton</option>
                                     <option value="LITER">Liter</option>
                                 </select>
                             </div>

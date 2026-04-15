@@ -27,9 +27,60 @@ class UCOReportController extends Controller
         return view('uco.inbound');
     }
 
+    public function indexOutboundUCO()
+    {
+        return view('uco.outbound');
+    }
+
+    public function indexUnitCategory()
+    {
+        return view('uco.category');
+    }
+
     public function createInboundUCO()
     {
         return view('uco.create-inbound');
+    }
+
+    public function getUCOOutboundXml()
+    {
+        try {
+            $data = DB::table('uco_inbound as ui')
+                ->select(
+                    'ui.*',
+                    'users.name as User_Name'
+                )
+                ->join('users', 'ui.Picked_Up_By', '=', 'users.id')
+                ->where('ui.Status', '=', 'OUTBOUND')
+                ->get();
+
+            $xml = new SimpleXMLElement('<rows/>');
+
+            $counter = 1;
+
+            foreach ($data as $d) {
+                $row = $xml->addChild('row');
+
+                $row->addChild('cell', $counter);
+                $row->addChild('cell', htmlspecialchars($d->WO_No));
+                $row->addChild('cell', htmlspecialchars($d->POO_Name));
+                $row->addChild('cell', $d->Weight);
+                $row->addChild('cell', htmlspecialchars($d->Unit));
+                $row->addChild('cell', $d->User_Name);
+                $row->addChild('cell', $d->Created_At);
+                $row->addChild('cell', $d->Outbound_Date);
+
+                $counter++;
+            }
+
+            return response($xml->asXML(), 200)
+                ->header('Content-Type', 'application/xml');
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function getUcoInboundXml()
@@ -41,6 +92,7 @@ class UCOReportController extends Controller
                     'users.name as User_Name'
                 )
                 ->join('users', 'ui.Picked_Up_By', '=', 'users.id')
+                ->where('ui.Status', '=', 'INBOUND')
                 ->get();
 
             $xml = new SimpleXMLElement('<rows/>');

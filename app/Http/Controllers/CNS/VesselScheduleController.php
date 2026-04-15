@@ -65,12 +65,28 @@ class VesselScheduleController extends Controller
 
     public function newVesselSchedule()
     {
-        //
+        return view('cns.vs.vessel-schedule-new');
     }
 
-    public function newVesselScheduleSubmit()
+    public function newVesselScheduleSubmit(Request $request)
     {
-        //
+        $vs = new VesselSchedule();
+        $vs->Task_ID = "VS/GEU/" . substr(md5(auth()->user()->username), 0 , 5) . "/" . date('YmdHis');
+        $vs->Order_No = $request->input('Order_No');
+        $vs->Qty = $request->input('Qty1') . " x " . $request->input('Qty2');
+        $vs->Qty1 = $request->input('Qty1');
+        $vs->Qty2 = $request->input('Qty2');
+        $vs->Vessel = $request->input('Vessel');
+        $vs->POL = $request->input('POL');
+        $vs->POD = $request->input('POD');
+        $vs->Stuffing = $request->input('Stuffing');
+        $vs->Checking_CY = $request->input('Checking_CY');
+        $vs->ETD = $request->input('ETD');
+        $vs->ATD = $request->input('ATD');
+        $vs->ETA = $request->input('ETA');
+        $vs->ATA = $request->input('ATA');
+        $vs->Note = $request->input('Note');
+        $vs->save();
     }
 
     public function editVesselSchedule()
@@ -88,7 +104,7 @@ class VesselScheduleController extends Controller
         //
     }
 
-    public function detailVesselScheduleSubmit()
+    public function detailVesselScheduleSubmit(Request $request)
     {
         //
     }
