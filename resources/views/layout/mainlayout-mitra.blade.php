@@ -9,6 +9,7 @@
 <body>
     <!-- Preloader -->
     @include('layout.partials.loader')
+    @include('ui-components.modal')
 
     <!-- Top Navbar -->
     @include('layout.partials.top-nav-mitra')
@@ -32,6 +33,7 @@
 
     <!-- Footer Scripts -->
     @include('layout.partials.footer-scripts')
+
 </body>
 
 </html>
@@ -39,6 +41,8 @@
 
 <script src="{{ asset('jquery.ajaxloader.1.5.1.js') }}"></script>
 <script src="{{ asset('blockui.js') }}"></script>
+<script src="{{ asset('js/signature-canvas.js') }}"></script>
+
 <link rel="stylesheet" type="text/css" href="{{ asset('blockui.css') }}" />
 <link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolautosuggest.css') }}" />
 <link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolfieldset.css') }}" />
@@ -46,3 +50,5 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 @stack('rightmenu-script')
+@stack('modals-script')
+@stack('scripts')

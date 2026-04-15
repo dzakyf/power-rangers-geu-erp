@@ -35,7 +35,8 @@ $Saya =  Auth::user()->username;
 			<div>
 				<input type="button" id="ekselVesselScheduleDet" name="ekselVesselScheduleDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="VesselSchedule.toExcel('./export/generate.php');" />
 				<input type="button" id="newSchedule" name="newSchedule" value="New Schedule" class="btn btn-info mt-2 mr-2" onclick="VesselScheduleNew()" />
-				{{-- <input type="button" id="detailLeads" name="detailLeads" value="Detail Ticket And Response" class="btn btn-success mt-2 mr-2" onclick="VesselScheduleKlik()" /> --}}
+				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail Schedule" class="btn btn-info mt-2 mr-2" onclick="VesselScheduleKlik()" />
+				<input type="button" id="openShipmentLink" name="openShipmentLink" value="Open ShipmentLink" class="btn btn-info mt-2 mr-2" onclick="OpenShipmentLink()" />
 			</div>
 		</div>
 	</div>
@@ -45,16 +46,20 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
+	function openShipmentLink()
+	 {
+		window.open("https://www.shipmentlink.com","_blank");
+	 }
 	function VesselScheduleNew() {
 
-		LoadM('divlistOpportunity', 'partner-announcement-new');
+		LoadM('divlistOpportunity', 'cns-vessel-schedule-new');
 		return true;
 	}
 	function VesselScheduleKlik() {
 
 		VesselScheduleID = VesselSchedule.getSelectedId();
 		if (VesselScheduleID != null) {
-			LoadM('divlistOpportunity', 'partner-announcement-detail?Task=' + VesselScheduleID);
+			LoadM('divlistOpportunity', 'cns-vessel-schedule-detail?Task=' + VesselScheduleID);
 		}else {
 			alert("Pilih baris data");
 		}
@@ -62,7 +67,7 @@ $Saya =  Auth::user()->username;
 	}
 	VesselSchedule = new dhtmlXGridObject('VesselSchedule');
 	VesselSchedule.setImagePath("./dhtmlx/imgs/");
-	VesselSchedule.setHeader("No,Order (DO)/Booking Confirmation (BC),Qty,Kapal,POL,POD,Stuffing,Checking,Closing CY,ETD,ATD,ETA,ATD,Estimated Day(s), Actual Day(s), Note");
+	VesselSchedule.setHeader("No,Order (DO)/Booking Confirmation (BC),Qty,Kapal,POL,POD,Stuffing,Checking,Closing CY,ETD,ATD,ETA,ATD,Estimated Day(s), Actual Day(s), Note"); 
 	VesselSchedule.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// VesselSchedule.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	VesselSchedule.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,auto");
@@ -77,7 +82,7 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		VesselSchedule.clearAndLoad('xml-partner-announcement');
+		VesselSchedule.clearAndLoad('xml-cns-vessel-schedule');
 
 	}
 </script>
