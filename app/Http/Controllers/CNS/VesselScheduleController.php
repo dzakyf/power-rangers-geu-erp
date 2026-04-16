@@ -101,7 +101,7 @@ class VesselScheduleController extends Controller
 
     public function detailVesselSchedule()
     {
-        //
+        return view('cns.vs.vessel-schedule-detail');
     }
 
     public function detailVesselScheduleSubmit(Request $request)

@@ -10,7 +10,7 @@ $Saya =  Auth::user()->username;
 
 ?>
 
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
 @csrf
@@ -67,7 +67,7 @@ $Saya =  Auth::user()->username;
 	}
 	VesselSchedule = new dhtmlXGridObject('VesselSchedule');
 	VesselSchedule.setImagePath("./dhtmlx/imgs/");
-	VesselSchedule.setHeader("No,Order (DO)/Booking Confirmation (BC),Qty,Kapal,POL,POD,Stuffing,Checking,Closing CY,ETD,ATD,ETA,ATD,Estimated Day(s), Actual Day(s), Note"); 
+	VesselSchedule.setHeader("No,Order (DO)/Booking Confirmation (BC),Qty,Kapal,POL,POD,Stuffing,Checking,Closing CY,ETD,ATD,ETA,ATA,Estimated Day(s), Actual Day(s), Note"); 
 	VesselSchedule.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// VesselSchedule.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	VesselSchedule.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,auto");

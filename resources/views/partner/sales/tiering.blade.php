@@ -45,7 +45,7 @@ $Saya =  Auth::user()->username;
 <script>
 	SalesTiering = new dhtmlXGridObject('SalesTiering');
 	SalesTiering.setImagePath("./dhtmlx/imgs/");
-	SalesTiering.setHeader("No,Tiering, Member, Current Streak, Last Update");
+	SalesTiering.setHeader("No,Tiering, Member, Last Update");
 	SalesTiering.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
 	// SalesTiering.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	SalesTiering.setInitWidths("60,100,200,200,200");

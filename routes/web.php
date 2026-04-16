@@ -15,6 +15,10 @@ use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OperationalController;
+use App\Http\Controllers\CNS\VesselScheduleController;
+use App\Http\Controllers\CNS\ShipmentInstructionController;
+use App\Http\Controllers\CNS\FinalShipmentInstructionController;
+use App\Http\Controllers\CNS\MasterCompanyController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOReportController as PartnerUCOReportController;
 use App\Http\Controllers\Partner\TrainingController as PartnerTrainingController;
@@ -150,6 +154,9 @@ Route::group(['middleware' => 'auth'], function () {
     });
     Route::get('/home-project', function () {
         return view('home-project');
+    });
+    Route::get('/home-cns', function () {
+        return view('home-cns');
     });
     Route::get('/mailingcheck', function () {
         return view('scheduler.mailer');
@@ -4988,6 +4995,24 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$partnerkpi-kpi-index", [PerformanceController::class, 'indexKPI']);
     Route::get("$partnerkpi-kpi-data", [PerformanceController::class, 'getMasterKPIData']);
     Route::get("$partnerkpi-kpi-create", [PerformanceController::class, 'createMasterKPIData']);
-    Route::post("$partnerkpi-kpi-update", [PerformanceController::class, 'updateMasterKPIData']);
+    Route::get("$partnerkpi-kpi-update", [PerformanceController::class, 'updateMasterKPIDataPage']);
     Route::post("$partnerkpi-kpi-submit", [PerformanceController::class, 'submitMasterKPIData']);
+    Route::post("$partnerkpi-kpi-submit-edit", [PerformanceController::class, 'updateMasterKPIData']);
+
+
+    Route::get('cns-vessel-schedule', [VesselScheduleController::class, 'indexVesselSchedule']);
+    Route::get('xml-cns-vessel-schedule', [VesselScheduleController::class, 'indexVesselScheduleXml']);
+    Route::get('cns-vessel-schedule-new', [VesselScheduleController::class, 'newVesselSchedule']);
+    Route::post('cns-vessel-schedule-new-submit', [VesselScheduleController::class, 'newVesselScheduleSubmit']);
+
+    Route::get('cns-export-stuffing-monitoring', function () {
+        return view('cns.export.stuffing-monitoring');
+    });
+
+    Route::get('cns-master-company', [MasterCompanyController::class, 'indexMasterCompany']);
+
+    Route::get('cns-export-shipment-instruction', [ShipmentInstructionController::class, 'indexShipmentInstruction']);
+    Route::get('xml-cns-export-shipment-instruction', [ShipmentInstructionController::class, 'indexShipmentInstructionXml']);
+    Route::get('cns-export-shipment-instruction-new', [ShipmentInstructionController::class, 'newShipmentInstruction']);
+    Route::get('cns-export-final-shipment-instruction', [FinalShipmentInstructionController::class, 'indexFinalShipmentInstruction']);
 });

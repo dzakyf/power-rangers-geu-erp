@@ -150,6 +150,20 @@ $dsess2 =  Auth::user()->Main_Menu ?? '';
                         </a>
 
                     </div>	
+                <?php } 
+                    if(strpos($dsess, "MS00010") !== false ) {
+                ?>
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="home-cns" role="button" aria-haspopup="true" aria-expanded="false" onclick="document.cookie='topnav=mymenu;expires=<?php echo $expired?>'">
+                            <div class="dropdown-title">
+                                <i data-feather="truck" class="icon"></i>
+                                <span class="title">
+                                    CNS
+                                </span>
+                            </div>
+                        </a>
+
+                    </div>	
                 <?php
                     }
 				

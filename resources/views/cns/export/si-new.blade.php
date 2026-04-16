@@ -5,8 +5,53 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 
+function getRomawi($bln)
+{
+	switch ($bln) {
+		case 1:
+			return "I";
+			break;
+		case 2:
+			return "II";
+			break;
+		case 3:
+			return "III";
+			break;
+		case 4:
+			return "IV";
+			break;
+		case 5:
+			return "V";
+			break;
+		case 6:
+			return "VI";
+			break;
+		case 7:
+			return "VII";
+			break;
+		case 8:
+			return "VIII";
+			break;
+		case 9:
+			return "IX";
+			break;
+		case 10:
+			return "X";
+			break;
+		case 11:
+			return "XI";
+			break;
+		case 12:
+			return "XII";
+			break;
+	}
+}
+
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
+$counter = DB::table("shipment_instructions")->where('SI_Date', "LIKE", date("Y-m"). "%")->count();
+
+$SINo = "SI/EXP/" . ($counter + 1) . "/" . getRomawi(date("n")) . "/" . date("Y");
 
 ?>
 <div class="mt-3">
@@ -30,12 +75,7 @@ $Saya =  Auth::user()->username;
 						<div class="col-12">
 							<div class="form-group">
 								<label for="SI_No">SI No</label>
-                                <select name="SI_No" id="SI_No" class="form-control" required>
-                                    <option value="">-- Pilih SI No --</option>
-                                    @foreach ($vss as $vs)
-                                        <option value="{{ $vs->SI_No }}">{{ $vs->SI_No }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" name="SI_No" id="SI_No" value="{{ $SINo }}" class="form-control" required readonly />
 							</div>
 						</div>
 						<div class="col-12">
@@ -171,9 +211,8 @@ $Saya =  Auth::user()->username;
 
                         </div>
                         <div class="col-12">
-			                <div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+			                <div id="ShipmentInstructionNew" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
                         </div>
-                        
 					</div>
 				</div>
 			</div>
@@ -204,7 +243,7 @@ $Saya =  Auth::user()->username;
 	ShipmentInstructionNew.setNumberFormat("0,000", 9, ".", ",");
 	ShipmentInstructionNew.setNumberFormat("0,000", 10, ".", ",");
 	ShipmentInstructionNew.setNumberFormat("0,000", 11, ".", ",");
-	ShipmentInstructionNew.attachEvent("onRowDblClicked", ShipmentInstructionNewKlik);
+	// ShipmentInstructionNew.attachEvent("onRowDblClicked", ShipmentInstructionNewKlik);
 	ShipmentInstructionNew.setSkin("dhx_skyblue");
 	ShipmentInstructionNew.init();
 
