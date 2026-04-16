@@ -192,6 +192,28 @@ $dsess2 =  Auth::user()->Main_Menu;
     <?php 
     }
     ?>
+    <?php if (strpos($dsess,"MS00011")!== false) { 
+    ?>
+    <div class="col-md-2 text-center">
+        <a
+            href="home-cns"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+            onclick="document.cookie='topnav=mitra;expires=<?php echo $expired?>'"
+            oncontextmenu="document.cookie='topnav=mitra;expires=<?php echo $expired?>'">
+            <div class="shadow bg-white text-center">
+                <span class="text-center" style="font-size: 120px; color: Dodgerblue;">
+                <i class="icofont-speed-boat"></i>
+                </span>
+                <h3 class="text-center">CNS
+                </h3>
+            </div>
+        </a>
+    </div>
+    <?php 
+    }
+    ?>
 </div>
 
 

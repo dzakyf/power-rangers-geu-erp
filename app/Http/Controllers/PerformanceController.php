@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -17,9 +18,45 @@ class PerformanceController extends Controller
         return view('partner.performance.create');
     }
 
-    public function getMasterKPIData()
+    public function getMasterKPIData(Request $r)
     {
+        $q = $r->query();
+
+        if (!empty($q['kpi_id'])) {
+            return $this->getMasterKPIDataDetail($r);
+        }
+
         $d = DB::table('config_kpi as ck')->select('ck.*')->get();
+
+        $xml = new \SimpleXMLElement('<rows/>');
+
+        $counter = 1;
+        // dd($d);
+        foreach ($d as $d) {
+
+            $row = $xml->addChild('row');
+
+            $row->addAttribute('ID', $d->ID);
+            $row->addChild('cell', $counter);
+            $row->addChild('cell', $d->Periode ? Carbon::parse($d->Periode)->year : "-");
+            $row->addChild('cell', $d->Work_Area);
+            $row->addChild('cell', $d->Indicator);
+            $row->addChild('cell', "$d->Weight %");
+            $row->addChild('cell', $d->Target);
+            $row->addChild('cell', $d->Realization);
+            $row->addChild('cell', htmlspecialchars($d->Departement));
+
+            $counter++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    public function getMasterKPIDataDetail(Request $r)
+    {
+
+        $q = $r->query();
+        $d = DB::table('config_kpi as ck')->select('ck.*')->where('ck.ID', '=', $q['kpi_id'])->get();
 
         $xml = new \SimpleXMLElement('<rows/>');
 
@@ -34,7 +71,9 @@ class PerformanceController extends Controller
             $row->addChild('cell', $d->Indicator);
             $row->addChild('cell', "$d->Weight %");
             $row->addChild('cell', $d->Target);
+            $row->addChild('cell', $d->Realization);
             $row->addChild('cell', htmlspecialchars($d->Departement));
+            $row->addChild('cell', $d->Periode);
 
             $counter++;
         }
@@ -74,6 +113,11 @@ class PerformanceController extends Controller
         }
     }
 
+    public function updateMasterKPIDataPage()
+    {
+        return view('partner.performance.edit');
+    }
+
     public function updateMasterKPIData(Request $r)
     {
         $b = $r->all();
@@ -95,6 +139,7 @@ class PerformanceController extends Controller
                 'Indicator'   => $b['Indicator'],
                 'Weight'      => $b['Weight'],
                 'Target'      => $b['Target'],
+                'Realization'      => $b['Realization'],
                 'Periode'     => $b['Periode'],
                 'Departement' => $b['Departement'],
             ]);

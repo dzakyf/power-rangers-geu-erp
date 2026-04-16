@@ -22,7 +22,7 @@ $priv = Auth::user()->Priv_ID;
 $Saya = Auth::user()->username;
 $nomor = 1;
 
-$Fetchx = DB::select(DB::raw("SELECT * FROM supplier ORDER BY Company_Name"));
+$Fetchx = DB::select(DB::raw("SELECT * FROM supplier WHERE Location = '$LSP' ORDER BY Company_Name"));
 
 echo "<rows>";
 

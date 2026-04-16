@@ -152,6 +152,7 @@ class SalesController extends Controller
         return view('partner.sales.tiering');
     }
 
+    // current data 
     public function tieringSalesCollection()
     {
         $d = DB::table('users_statistics as us')
@@ -162,9 +163,25 @@ class SalesController extends Controller
         return $d;
     }
 
+    // historical logs
+    public function tieringSalesLogsCollection()
+    {
+        $d = DB::table('sales_performance_ranking_logs as sprl')
+            ->select(
+                'sprl.*',
+                'usr.Name as Sales_Name',
+                'us.Current_Achievement_Streak',
+            )
+            ->join('users as usr', 'usr.id', '=', 'sprl.User_Id')
+            ->join('users_statistics as us', 'us.User_Id', '=', 'sprl.User_Id')
+            ->get();
+
+        return $d;
+    }
+
     public function tieringSalesXml()
     {
-        $t = $this->tieringSalesCollection();
+        $t = $this->tieringSalesLogsCollection();
 
         $xml = new SimpleXMLElement('<rows/>');
 
@@ -174,8 +191,7 @@ class SalesController extends Controller
             $xmlRow->addChild('cell', $counter++);
             $xmlRow->addChild('cell', $row->Current_Tier);
             $xmlRow->addChild('cell', $row->Sales_Name);
-            $xmlRow->addChild('cell', $row->Current_Achievement_Streak);
-            $xmlRow->addChild('cell', $row->Updated_At);
+            $xmlRow->addChild('cell', Carbon::parse($row->Created_At)->format('Y-m'));
         }
 
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
@@ -1341,48 +1357,69 @@ class SalesController extends Controller
     // cron api
     public function updateAllSalesPerformance(Request $r)
     {
-        $currMonth   = Carbon::now()->month;
-        $now         = Carbon::now();
+        $currMonth = Carbon::now()->month;
+        $now       = Carbon::now();
 
         $salesData   = $this->buildSalesPerformanceData($r);
         $performance = $salesData['performance'];
 
-        foreach ($performance as $username => $months) {
-            $monthData   = $months[$currMonth] ?? null;
+        DB::beginTransaction();
 
-            if (!$monthData) continue;
+        try {
+            foreach ($performance as $username => $months) {
+                $monthData = $months[$currMonth] ?? null;
 
-            $user                    = $monthData['user'];
-            $performanceStatus       = $monthData['performance'] >= $this->performanceStandard ? 'ABOVE' : 'BELOW';
-            $currentAchievementStreak = DB::table('users_statistics')
-                ->where('User_Id', $user->id)
-                ->value('Current_Achievement_Streak') ?? 0;
+                if (!$monthData) continue;
 
-            $currentAchievementStreak = $performanceStatus == 'ABOVE'
-                ? $currentAchievementStreak + 1
-                : 1;
+                $user             = $monthData['user'];
+                $performanceStatus = $monthData['performance'] >= $this->performanceStandard ? 'ABOVE' : 'BELOW';
 
-            if ($currentAchievementStreak > 3) {
-                $newTier = 'GOLD';
-            } elseif ($currentAchievementStreak == 3) {
-                $newTier = 'SILVER';
-            } else {
-                $newTier = 'BRONZE';
+                $currentAchievementStreak = DB::table('users_statistics')
+                    ->where('User_Id', $user->id)
+                    ->value('Current_Achievement_Streak') ?? 0;
+
+                $currentAchievementStreak = $performanceStatus === 'ABOVE'
+                    ? $currentAchievementStreak + 1
+                    : 1;
+
+                if ($currentAchievementStreak > 3) {
+                    $newTier = 'GOLD';
+                } elseif ($currentAchievementStreak === 3) {
+                    $newTier = 'BRONZE';
+                } else {
+                    $newTier = 'SILVER';
+                }
+
+                DB::table('users_statistics')->updateOrInsert(
+                    ['User_Id' => $user->id],
+                    [
+                        'Current_Achievement_Streak' => $currentAchievementStreak,
+                        'Current_Tier'               => $newTier,
+                        'Updated_At'                 => $now,
+                    ]
+                );
+
+                DB::table('sales_performance_ranking_logs')->insert([
+                    'User_Id'      => $user->id,
+                    'Current_Tier' => $newTier,
+                    'Created_At'   => $now,
+                ]);
             }
 
-            DB::table('users_statistics')->updateOrInsert(
-                ['User_Id' => $user->id],
-                [
-                    'Current_Achievement_Streak' => $currentAchievementStreak,
-                    'Current_Tier'               => $newTier,
-                    'Updated_At'                 => $now,
-                ]
-            );
-        }
+            DB::commit();
 
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Sales performance updated'
-        ]);
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Sales performance updated',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to update sales performance',
+                // 'error'   => $e->getMessage(), // remove this in production
+            ], 500);
+        }
     }
 }

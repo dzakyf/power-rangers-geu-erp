@@ -1,210 +1,261 @@
 <?php
-error_reporting(0);
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
-	
-	$LSP = Auth::user()->Location;
-	$Saya =  Auth::user()->username;
-	
-	$priv =  Auth::user()->Priv_ID;
-	$fetch = DB::table("supplier")->where("ID",$_GET['ID'])->first();
-	$sobjf = DB::select(DB::raw("SHOW FIELDS FROM supplier"));
 
-	echo "<script>";
-
-		foreach($sobjf as $objf){
-		$idobj = $objf->Field;
-		$isinya = $fetch->$idobj;
-			
-				echo "$('#$idobj').val('$isinya'); \n";
-		}
-	
-	echo "</script>";
+$LSP = Auth::user()->Location;
+$Saya =  Auth::user()->username;
 
 ?>
-<div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">DETAIL SUPPLIER</div>
-<div id="ContentPages">
-	<table cellpadding="0" cellspacing="0" width="100%" align="center" style="padding-top:10;" border="0">
-		<tr>
-		<td align="center">
-			<table cellpadding="0" cellspacing="0" width="100%" border="0" style="border-left: outset #cdcdcd;border-top: outset #cdcdcd; border-bottom: inset #cdcdcd; border-right: inset #cdcdcd;">
-			<tr height="30">
-				<td class="badan" width="150">Supplier Name</td>
-				<td class="badan" width="30">:</td>
-				<td class="badan_kiri" width='250'>
-				            	<input type="hidden" size="30" id="ID" style="border:none;outline:none;" />
+<div class="mt-3">
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION</div>
+	<div class="card">
+		<div class="card-body">
+			<div id="ContentPages">
+				<div class="FormInput_Form_Content">
+					<div class="row">
+						<div class="col-12">
+							<div class="form-group">
+								<label for="Order_No">Order No</label>
+                                <select name="Order_No" id="Order_No" class="form-control" required>
+                                    <option value="">-- Pilih Order No --</option>
+                                    @foreach ($vss as $vs)
+                                        <option value="{{ $vs->Order_No }}" {{ $vs->Order_No == $si->Order_No ? 'selected' : '' }}>{{ $vs->Order_No }}</option>
+                                    @endforeach
+                                </select>
+							</div>
+						</div>
+						<div class="col-12">
+							<div class="form-group">
+								<label for="SI_No">SI No</label>
+                                <input type="text" name="SI_No" id="SI_No" value="{{ $si->SI_No }}" class="form-control" required readonly />
+							</div>
+						</div>
+						<div class="col-12">
+							<div class="form-group">
+								<label for="SI_Date">SI Date</label>
+                                <input name="SI_Date" id="SI_Date" class="form-control" value="{{ $si->SI_Date }}" required readonly />
+							</div>
+						</div>
+                        {{-- <div class="col-12">
+                            <div class="form-group">
+                                <label for="Jam">Jam</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="form-control" required readonly />
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="form-control" required readonly />
+                                    </div>
+                                </div>
+                            </div>
+                        </div> --}}
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="Shipper">Shipper</label>
+                                <select name="Shipper" id="Shipper" class="form-control" required>
+                                    <option value="">-- Pilih Shipper --</option>
+                                    @foreach ($companies as $shipper)
+                                        <option value="{{ $shipper->Company_ID }}" {{ $shipper->Company_ID == $si->Shipper ? 'selected' : '' }}>{{ $shipper->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="Consignee">Consignee</label>
+                                <select name="Consignee" id="Consignee" class="form-control" required>
+                                    <option value="">-- Pilih Consignee --</option>
+                                    @foreach ($companies as $consignee)
+                                        <option value="{{ $consignee->Company_ID }}" {{ $consignee->Company_ID == $si->Consignee ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="Notify">Notify Party</label>
+                                <select name="Notify" id="Notify" class="form-control" required>
+                                    <option value="">-- Pilih Notify --</option>
+                                    @foreach ($companies as $notify)
+                                        <option value="{{ $notify->Company_ID }}" {{ $notify->Company_ID == $si->Notify ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="Destination_Letter">Destination Letter</label>
+                                <select name="Destination_Letter" id="Destination_Letter" class="form-control" required>
+                                    <option value="">-- Pilih Destination Letter --</option>
+                                    @foreach ($companies as $destination_Letter)
+                                        <option value="{{ $destination_Letter->Company_ID }}" {{ $destination_Letter->Company_ID == $si->Destination_Letter ? 'selected' : '' }}>{{ $destination_Letter->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="Delivery_Terms">Delivery Terms</label>
+                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="{{ $si->Delivery_Terms }}" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="Contract_No">Contract No</label>
+                                <input type="text" name="Contract_No" id="Contract_No" value="{{ $si->Contract_No }}" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="Voyage">Voyage</label>
+                                <input type="text" name="Voyage" id="Voyage" value="{{ $si->Voyage }}" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="ETD">ETD</label>
+                                <input type="text" name="ETD" id="ETD" value="{{ $si->ETD }}" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="ETA">ETA</label>
+                                <input type="text" name="ETA" id="ETA" value="{{ $si->ETA }}" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="Stuffing">Stuffing</label>
+                                <input type="text" name="Stuffing" id="Stuffing" value="{{ $si->Stuffing }}" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="PEB_No">PEB No</label>
+                                <input type="text" name="PEB_No" id="PEB_No" value="{{ $si->PEB_No }}" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="PEB_Date">PEB Date</label>
+                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ $si->PEB_Date }}" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="BL_No">B/L No</label>
+                                <input type="text" name="BL_No" id="BL_No" value="{{ $si->BL_No }}" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="POL">Port of Loading</label>
+                                <input type="text" name="POL" id="POL" value="{{ $si->POL }}" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="POD">Port of Discharge</label>
+                                <input type="text" name="POD" id="POD" value="{{ $si->POD }}" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-12">
+			                <div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+                        </div>
+                        
+					</div>
+				</div>
+			</div>
+			<div id="divtom">
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Publish" class="btn btn-success mt-2 mr-2" />
+			</div>
+		</div>
+	</div>
+	<div id="DivProcess"></div>
 
-						<input type="text" size="30" id="Company_Name" style="border:none;outline:none;" />
-
-				</td>
-				<td class="badan" width="100">Contact Person</td>
-				<td class="badan" width="30">:</td>
-				<td class="badan_kiri" width='250'>
-						<input type="text" size="30" id="Contact_Person" style="border:none;outline:none;" />
-				</td>
-			</tr>
-			<tr height="30">
-				<td class="badan">Address</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'>
-						<input type="text"  size="40" id="Address" style="border:none;outline:none;" />
-				</td>
-				<td class="badan">Street</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'>
-							<input type="text" size="40" id="Street"  tabindex='7' style="border:none;outline:none;" />
-				</td>
-			</tr>
-			<tr height="30">
-				<td class="badan">City </td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="15" id="City" tabindex='2' style="border:none;outline:none;" /></td>        
-				<td class="badan">Phone </td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="Phone" tabindex='8' style="border:none;outline:none;" /></td>        
-			</tr>
-			<tr height="30">
-				<td class="badan">Fax</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="Fax" style="border:none;outline:none;" /></td>        
-				<td class="badan">HP</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="HP" style="border:none;outline:none;" /></td>        
-			</tr>
-			<tr height="30">
-				<td class="badan">Email</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="30" id="Email" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">NPWP</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="30" id="NPWP" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Sales Name</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="30" id="Sales_Name" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">Sales No</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="Sales_Phone" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Payment Method</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="50" id="Payment" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">Note</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="50" id="Note" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Bank Name (Rp)</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="40" id="Bank_Rupiah" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">Bank Account (Rp)</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="Bank_Rupiah_Account" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Bank Account Name (Rp)</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="30" id="Bank_Rupiah_Name" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">Bank Foreign</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="40" id="Bank_Foreign" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Bank Foreign Account</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="Bank_Foreign_Account" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">Bank Foreign Name</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="30" id="Bank_Foreign_Name" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Bank Foreign Currency</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="5" value="" id="Bank_Foreign_Currency" style="border:none;outline:none;" /></td>        
-
-				<td class="badan"></td>
-				<td class="badan"></td>
-				<td class="badan_kiri" width='250'>	
-					<input type="button" id="UpdateData" NAME="UpdateData" onclick="Submitkan()" value="Submit Data" />                
-				</td>        
-
-			</tr>
-
-			</table>
-		</td>
-		</tr>
-	</table>
 </div>
 
 <script>
-
-		
-function getAllValues() {
-    var inputValues = [];
-    $('#ContentPages input,select,textarea').each(function() {
-        var type = $(this).attr("type");
-        if ((type == "checkbox" || type == "radio") && this.checked) {
-            inputValues.push($(this).attr("id") + "=" + $(this).val());
-        }
-        else if (type != "button" || type != "submit") {
-            inputValues.push($(this).attr("id") + "=" + $(this).val());
-      	 } else if ($this.is("textarea")) {
-            inputValues.push($(this).attr("id") + "=" + $(this).val());
-        }
-    })
-	
-    return inputValues.join('&');
-}
-
-function Submitkan(){
-	dapat = getAllValues();
-	$.ajax({
-		 headers: {
-        'X-CSRF-TOKEN': "{{ csrf_token() }}"
-		 },
     
-		url : "master-vendor-detail-submit?_token={{ csrf_token() }}",
-		type: "POST",
-		data : dapat,
-		success: function(data, textStatus, jqXHR)
-		{
-			if (data == 'success'){
-				alert('Detail Supplier Updated!');
+	ShipmentInstructionNew = new dhtmlXGridObject('ShipmentInstructionNew');
+	ShipmentInstructionNew.setImagePath("./dhtmlx/imgs/");
+	ShipmentInstructionNew.setHeader("No, Dari Jam, Hingga Jam, Nopol, Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross (Kg), Gross (MT), Qty (Kgs) Note");
+	ShipmentInstructionNew.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	// ShipmentInstructionNew.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+	ShipmentInstructionNew.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,100,auto");
+	ShipmentInstructionNew.setColAlign("center,left,left,left,left,left,right,right,right,right,right,right,left");
+	ShipmentInstructionNew.setColSorting("int,str,str,str,str,str,int,int,int,int,int,int,str");
+	ShipmentInstructionNew.setColTypes("ro,ed,ed,ed,ed,ed,edn,edn,edn,edn,edn,edn,ed");
+	ShipmentInstructionNew.enableSmartRendering(true, 150);
+	ShipmentInstructionNew.setNumberFormat("0,000", 6, ".", ",");
+	ShipmentInstructionNew.setNumberFormat("0,000", 7, ".", ",");
+	ShipmentInstructionNew.setNumberFormat("0,000", 8, ".", ",");
+	ShipmentInstructionNew.setNumberFormat("0,000", 9, ".", ",");
+	ShipmentInstructionNew.setNumberFormat("0,000", 10, ".", ",");
+	ShipmentInstructionNew.setNumberFormat("0,000", 11, ".", ",");
+	ShipmentInstructionNew.attachEvent("onRowDblClicked", ShipmentInstructionNewKlik);
+	ShipmentInstructionNew.setSkin("dhx_skyblue");
+	ShipmentInstructionNew.init();
 
-				setTimeout(function(){
-						
-					$("#PRSupplierDet").html('');
-					
-					refreshdata();
-				},1000);				
+	function refreshdata() {
+		ShipmentInstructionNew.clearAndLoad('xml-cns-export-shipment-instruction-new?Order_No=' + $('#Order_No').find('option:selected').val());
 
-			}else{
-				
+	}
+
+    $('#Order_No').on('change', function() {
+        refreshdata();  
+    });
+
+	var myCalendar;
+	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "ETD", "ETA", "SI_Date"]);
+	myCalendar.setDateFormat("%Y-%m-%d");
+
+	$('#SubmitCustDetail').click(function() {
+
+		gettingVars = getAllValues();
+
+		$.ajax({
+			headers: {
+				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+			},
+			url: "cns-export-shipment-instruction-new-submit?_token={{ csrf_token() }}",
+			type: "POST",
+			data: gettingVars,
+			success: function(data, textStatus, jqXHR) {
+				var dataPos = data.indexOf("success");
+				if (dataPos != '-1') {
+					var cariAWB = data.split(":");
+					alert('Data Announcement Submitted!');
+
+					// location.href = "partner-announcement";
+                    refreshdata();
+                    $('#divlistOpportunity').html('')
+				} else {
+					alert('Announcement Failed to Submit!');
+				}
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				alert("Error Internal! Please Try again!");
+
 			}
-		},
-		error: function (jqXHR, textStatus, errorThrown)
-		{
-		 alert( "error" );
-	
-		}
-	});
-}
+		});
+	})
 
-
+	function getAllValues() {
+		var inputValues = [];
+		$('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
+			var type = $(this).attr("type");
+			if ((type == "checkbox" || type == "radio") && this.checked) {
+				inputValues.push($(this).attr("name") + "=" + $(this).val());
+			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
+				inputValues.push($(this).attr("id") + "=" + $(this).val());
+			} else if ($(this).is("textarea")) {
+				inputValues.push($(this).attr("id") + "=" + $(this).val());
+			}
+		})
+		return inputValues.join('&');
+	}
 </script>

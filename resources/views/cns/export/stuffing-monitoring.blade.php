@@ -10,7 +10,7 @@ $Saya =  Auth::user()->username;
 
 ?>
 
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
 @csrf
@@ -67,7 +67,7 @@ $Saya =  Auth::user()->username;
 	}
 	ShipmentInstruction = new dhtmlXGridObject('ShipmentInstruction');
 	ShipmentInstruction.setImagePath("./dhtmlx/imgs/");
-	ShipmentInstruction.setHeader("No,SI No,Jam, Nopol, Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross, Gross (MT), Note");
+	ShipmentInstruction.setHeader("No,Order No,Jam, Nopol, Kontainer, Seal, Tare, Netto (Kg), Netto (MT), Gross, Gross (MT), Note");
 	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// ShipmentInstruction.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	ShipmentInstruction.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,auto");
