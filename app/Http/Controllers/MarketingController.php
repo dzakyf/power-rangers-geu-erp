@@ -6,12 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Services\GeneratorService;
 use App\Services\UploadService;
 use App\Services\UserService;
+use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
 use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpWord\TemplateProcessor;
 use SimpleXMLElement;
+use Imagick;
+
+
 
 class MarketingController extends Controller
 {
@@ -420,7 +425,7 @@ class MarketingController extends Controller
             $this->uploadService->uploadMetaFile($filename, $path, $desc, $ext, $topic, $mapTo);
 
             $marketingId = DB::table('branding_marketing as bm')->where('bm.ID', '=', $marketingId)->update([
-                "Media_Url" => "{$r->root()}/filevendor/$path",
+                "Media_Url" => "{$r->root()}/$path",
             ]);
         }
 
@@ -428,45 +433,243 @@ class MarketingController extends Controller
         return response()->json(['message' => 'success']);
     }
 
-    public function makePromotionVoucherDocs($id, $applicationCode)
+    public function makePromotionVoucherDocs($r, $id, $applicationCode, $filesAttachment)
     {
-
         $path = public_path('template-voucher-marketing.docx');
 
+        // dd($filesAttachment);
+
         if (!file_exists($path)) {
-            return response()->json(['error' => 'File not found'], 404);
+            throw new \Exception('Template file not found: ' . $path);
         }
 
-        $doc = new TemplateProcessor($path);
-
+        $doc     = new TemplateProcessor($path);
         $session = $this->userService->getCurrentSessionUserInfo();
 
         $promotion = DB::table('branding_promotion as bp')
             ->select('bp.*')
             ->where('bp.ID', '=', $id)
-            ->get();
-
+            ->first();
 
         $ref_no = "DOC-{$applicationCode}";
 
         $doc->setValues([
-            'vendor_code' => $session->Emp_ID,
-            'site' => $session->City ?? '',
-            'marketing_platform' => $promotion[0]->Platform,
-            'budget_realization' => $this->generatorService->rupiahFormatter($promotion[0]->Estimation),
-            'nominal_spelled' => $this->generatorService->spellRupiah($promotion[0]->Estimation),
-            'vp_finance_name' => 'Fariza N Kartosudarmo',
-            'uploaded_at' => Carbon::now(),
-            'checker_name' => '',
-            'sales_name' => $session->Name,
-            'media' => $promotion[0]->Media_Url
+            'vendor_code'        => $session->Emp_ID,
+            'site'               => $session->City ?? '',
+            'marketing_platform' => $promotion->Platform,
+            'budget_realization' => $this->generatorService->rupiahFormatter($promotion->Estimation),
+            'nominal_spelled'    => $this->generatorService->spellRupiah($promotion->Estimation),
+            'vp_finance_name'    => 'Fariza N Kartosudarmo',
+            'uploaded_at'        => Carbon::now()->format('d F Y'),
+            'checker_name'       => '',
+            'sales_name'         => $session->Name,
         ]);
 
+        // ── 1. Save filled DOCX to temp ───────────────────────────────────
+        $tempDocx = tempnam(sys_get_temp_dir(), 'voucher_') . '.docx';
+        $doc->saveAs($tempDocx);
+
+        // ── 2. Convert DOCX → HTML → PDF via Dompdf ──────────────────────
+        $convertedPdf = $this->convertDocxToPdfViaDompdf($tempDocx);
+
+        // ── 3. Collect PDF attachments ────────────────────────────────────
+        // $pdfAttachments = collect($filesAttachment)
+        //     ->filter(fn($file) => strtolower($file->Extension) === 'pdf')
+        //     ->map(fn($file) => public_path('filevendor', $file->Path))
+        //     ->filter(fn($path) => file_exists($path))
+        //     ->values()
+        //     ->toArray();
+
+        // dd($pdfAttachments);
+        $pdfAttachments = [
+            "/var/www/html/dev/geu/hcga/public/filevendor/filevendor/2026/04/QfvmkOhyjfMZ48CSsRFi4IECYXgA8BfRLqdc59c7.pdf"
+        ];
+
+        // dd([
+        //     'filesAttachment'     => $filesAttachment,
+        //     'first'               => $filesAttachment->first(),
+        //     'first_path'          => $filesAttachment->first()->Path ?? 'no path',
+        //     'public_path_test'    => public_path($filesAttachment->first()->Path ?? ''),
+        // ]);
+
+        \Log::info('Before merge', [
+            'converted_pdf'        => $convertedPdf,
+            'converted_pdf_exists' => file_exists($convertedPdf),
+            'pdf_attachments'      => $pdfAttachments,
+            'pdf_attachments_exist' => array_map('file_exists', $pdfAttachments),
+        ]);
+
+        $finalPdf = $this->mergePdfs(
+            array_merge([$convertedPdf], $pdfAttachments)
+        );
+
+        \Log::info('After merge', [
+            'final_pdf'        => $finalPdf,
+            'final_pdf_exists' => file_exists($finalPdf),
+            'final_pdf_size'   => file_exists($finalPdf) ? filesize($finalPdf) : 0,
+        ]);
+
+
+        // ── 4. Merge voucher PDF + attachments ────────────────────────────
+        $finalPdf = $this->mergePdfs(
+            array_merge([$convertedPdf], $pdfAttachments)
+        );
+
+        // ── 5. Cleanup ────────────────────────────────────────────────────
+        @unlink($tempDocx);
+        @unlink($convertedPdf);
+
         return [
-            'doc' => $doc,
+            'doc'     => $finalPdf,
             'reference_no' => $ref_no,
         ];
     }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Convert DOCX → PDF using PhpWord HTML export + Dompdf
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    private function convertDocxToPdfViaDompdf(string $docxPath): string
+    {
+        // ── Load DOCX into PhpWord ────────────────────────────────────────
+        $phpWord   = \PhpOffice\PhpWord\IOFactory::load($docxPath);
+
+        // ── Export to HTML string ─────────────────────────────────────────
+        $tempHtml  = tempnam(sys_get_temp_dir(), 'voucher_html_') . '.html';
+        $writer    = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML');
+        $writer->save($tempHtml);
+
+        $html = file_get_contents($tempHtml);
+        @unlink($tempHtml);
+
+        // ── Render with Dompdf ────────────────────────────────────────────
+        $options = new \Dompdf\Options();
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $outputPath = tempnam(sys_get_temp_dir(), 'voucher_pdf_') . '.pdf';
+        file_put_contents($outputPath, $dompdf->output());
+
+        if (!file_exists($outputPath)) {
+            throw new \Exception('Dompdf failed to generate PDF');
+        }
+
+        return $outputPath;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Merge multiple PDFs into one using FPDI
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    private function mergePdfs(array $pdfPaths): string
+    {
+        // Use TcpdfFpdi instead of Fpdi — no FPDF dependency needed
+        $fpdi = new \setasign\Fpdi\TcpdfFpdi();
+
+        foreach ($pdfPaths as $pdfPath) {
+            if (!file_exists($pdfPath)) {
+                \Log::warning("mergePdfs: skipping missing file {$pdfPath}");
+                continue;
+            }
+
+            try {
+                $pageCount = $fpdi->setSourceFile($pdfPath);
+
+                for ($i = 1; $i <= $pageCount; $i++) {
+                    $tpl         = $fpdi->importPage($i);
+                    $size        = $fpdi->getTemplateSize($tpl);
+                    $orientation = $size['width'] > $size['height'] ? 'L' : 'P';
+
+                    $fpdi->AddPage($orientation, [$size['width'], $size['height']]);
+                    $fpdi->useTemplate($tpl);
+                }
+            } catch (\Exception $e) {
+                \Log::warning("mergePdfs: skipped {$pdfPath} — " . $e->getMessage());
+                continue;
+            }
+        }
+
+        $outputPath = tempnam(sys_get_temp_dir(), 'merged_pdf_') . '.pdf';
+        $fpdi->Output($outputPath, 'F');
+
+        return $outputPath;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Resolve full path from file record
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    private function resolvePath(object $file): string
+    {
+        // If already an absolute path, use as-is
+        if (str_starts_with($file->Path, '/')) {
+            return $file->Path;
+        }
+
+        // If relative like "filevendor/2026/04/filename.pdf"
+        if (str_starts_with($file->Path, 'filevendor/')) {
+            return public_path($file->Path);
+        }
+
+        // If just a filename like "filename.pdf"
+        return "/var/www/html/dev/geu/hcga/public/filevendor/{$this->year}/{$this->month}/{$file->Path}";
+    }
+
+
+
+
+
+
+
+    // public function makePromotionVoucherDocs($r, $id, $applicationCode, $filesAttachment)
+    // {
+
+    //     $path = public_path('template-voucher-marketing.docx');
+
+    //     if (!file_exists($path)) {
+    //         return response()->json(['error' => 'File not found'], 404);
+    //     }
+
+    //     $filesAttachment = "{$r->root()}/filevendor/$filesAttachment->Path}";
+
+    //     $doc = new TemplateProcessor($path);
+
+    //     $session = $this->userService->getCurrentSessionUserInfo();
+
+    //     $promotion = DB::table('branding_promotion as bp')
+    //         ->select('bp.*')
+    //         ->where('bp.ID', '=', $id)
+    //         ->get();
+
+
+    //     $ref_no = "DOC-{$applicationCode}";
+
+
+
+    //     $doc->setValues([
+    //         'vendor_code' => $session->Emp_ID,
+    //         'site' => $session->City ?? '',
+    //         'marketing_platform' => $promotion[0]->Platform,
+    //         'budget_realization' => $this->generatorService->rupiahFormatter($promotion[0]->Estimation),
+    //         'nominal_spelled' => $this->generatorService->spellRupiah($promotion[0]->Estimation),
+    //         'vp_finance_name' => 'Fariza N Kartosudarmo',
+    //         'uploaded_at' => Carbon::now(),
+    //         'checker_name' => '',
+    //         'sales_name' => $session->Name,
+    //         'media' => $promotion[0]->Media_Url
+    //     ]);
+
+    //     return [
+    //         'doc' => $doc,
+    //         'reference_no' => $ref_no,
+    //     ];
+    // }
 
 
     public function submitPromotion(Request $r)
@@ -474,15 +677,17 @@ class MarketingController extends Controller
         $b    = $r->all();
         $user = $this->userService->getCurrentSessionUserInfo();
 
-        // Store these outside transaction so we can clean up on failure
-        $savedFilePath = null;
+
+        // Store paths outside transaction for cleanup on failure
+        $savedFilePaths = [];
 
         DB::beginTransaction();
 
         try {
-
-            $highest = DB::table('branding_promotion')->max('ID');
+            $highest         = DB::table('branding_promotion')->max('ID');
             $applicationCode = $this->generatorService->generateApplicationCode($highest, "PROM-VCH");
+
+
 
             $promotionId = DB::table('branding_promotion')->insertGetId([
                 "Code"         => $applicationCode,
@@ -496,55 +701,76 @@ class MarketingController extends Controller
                 "Status"       => $b["status"],
             ]);
 
-            $doc      = $this->makePromotionVoucherDocs($promotionId, $applicationCode);
-            $path     = "{$this->generatorService->generateUUID()}.docx";
-            $filename = "filevendor/$this->year/$this->month/{$path}";
-            $desc     = "Voucher Promosi";
-            $topic    = "branding-promotion";
+            $topic  = "branding-promotion";
+            $folder = "filevendor/$this->year/$this->month";
 
 
-            $savedFilePath = public_path($filename);
-            $doc['doc']->saveAs($savedFilePath);
+            //file
+            $filesAttachment = DB::table('meta_files as mf')->select('mf.*')->where('mf.Map_To', '=', $b['marketing_id'])->where('mf.Topic', '=', 'branding-marketing')->get();
 
 
-            $this->uploadService->uploadMetaFile(
-                $path,
-                $filename,
-                $desc,
-                'docx',
-                $topic,
-                $promotionId
-            );
+            // ─── Generated .docx ──────────────────────────────────────────────
+            $doc      = $this->makePromotionVoucherDocs($r, 1, $applicationCode, $filesAttachment);
 
-            $level = DB::table('approval_level as al')
-                ->select('*')
-                ->where("al.Request_Type", '=', 'BRANDING_PROMOTION')
-                ->where("al.Level_Number", '=', 1)
-                ->first(); // use first() instead of get()[0]
+            // dd($doc);
+            return response()->file($doc['doc'], [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $doc['reference_no'] . '.pdf"',
+            ])->deleteFileAfterSend(true);
 
-            if (!$level) {
-                throw new \Exception("Approval level not found for BRANDING_PROMOTION level 1.");
-            }
+            $path         = "{$this->generatorService->generateUUID()}.docx";
+            $filename     = "{$folder}/{$path}";
+            $savedDocPath = public_path($filename);
 
-            DB::table('approval_request')->insertGetId([
-                "Status"        => "NEED_APPROVAL",
-                "Requester_Id"  => $user->id,
-                "Description"   => $level->Description,
-                "Current_Level" => $level->Level_Number,
-                "Request_Type"  => $level->Request_Type,
-                "Level_Id"      => $level->ID,
-                "Map_To"        => $promotionId,
-            ]);
+            $doc['doc']->saveAs($savedDocPath);
 
-            DB::commit();
+            $savedFilePaths[] = $savedDocPath;
+
+
+            // $this->uploadService->uploadMetaFile(
+            //     $path,
+            //     $filename,
+            //     "Voucher Promosi - Dokumen",
+            //     'docx',
+            //     $topic,
+            //     $promotionId
+            // );
+
+
+
+
+            // // ─── Approval ─────────────────────────────────────────────────────
+            // $level = DB::table('approval_level as al')
+            //     ->select('*')
+            //     ->where("al.Request_Type", '=', 'BRANDING_PROMOTION')
+            //     ->where("al.Level_Number", '=', 1)
+            //     ->first();
+
+            // if (!$level) {
+            //     throw new \Exception("Approval level not found for BRANDING_PROMOTION level 1.");
+            // }
+
+            // DB::table('approval_request')->insertGetId([
+            //     "Status"        => "NEED_APPROVAL",
+            //     "Requester_Id"  => $user->id,
+            //     "Description"   => $level->Description,
+            //     "Current_Level" => $level->Level_Number,
+            //     "Request_Type"  => $level->Request_Type,
+            //     "Level_Id"      => $level->ID,
+            //     "Map_To"        => $promotionId,
+            // ]);
+
+            // DB::commit();
 
             return response()->json(['message' => 'success']);
         } catch (\Exception $e) {
             DB::rollBack();
 
-            // Clean up saved file if it was created before the failure
-            if ($savedFilePath && file_exists($savedFilePath)) {
-                unlink($savedFilePath);
+            // ─── Clean up all saved files on failure ──────────────────────────
+            foreach ($savedFilePaths as $filePath) {
+                if (file_exists($filePath)) {
+                    unlink($filePath);
+                }
             }
 
             return response()->json([

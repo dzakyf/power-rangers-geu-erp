@@ -119,15 +119,14 @@ $Saya =  Auth::user()->username;
             </div>
         </div>
 
-
-        <div class="row">
+        <!-- <div class="row">
             <div class="col-md-6">
                 <div class="form-group">
-                    <label for="RAB">Dokumen Pendukung</label>
-                    <input type="file" name="RAB" id="RAB" class="form-control" multiple accept=".png, .pdf, image/png, application/pdf" />
+                    <label for="Voucher">Dokumen Pendukung</label>
+                    <input type="file" name="Voucher[]" id="RAB" class="form-control" accept=".png, .pdf, image/png, application/pdf" />
                 </div>
             </div>
-        </div>
+        </div> -->
         <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
     </form>
 </div>
@@ -150,15 +149,45 @@ $Saya =  Auth::user()->username;
                 processData: false,
                 contentType: false,
                 cache: false,
-                success: function(response) {
+                xhrFields: {
+                    responseType: 'blob' // ← tell jQuery to expect binary data
+                },
+                success: function(response, status, xhr) {
+                    // ── Get filename from response header or use default ──
+                    const disposition = xhr.getResponseHeader('Content-Disposition');
+                    let filename = 'voucher-promosi.pdf';
+
+                    if (disposition) {
+                        const match = disposition.match(/filename="(.+)"/);
+                        if (match) filename = match[1];
+                    }
+
+                    // ── Create blob URL and trigger download ──────────────
+                    const blob = new Blob([response], {
+                        type: 'application/pdf'
+                    });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+
+                    window.URL.revokeObjectURL(url); // cleanup
                     alert("Berhasil membuat data promosi");
-
-                    $('#createPromotion')[0].reset();
-
                 },
                 error: function(xhr, status, error) {
-                    console.log('Error details:', xhr.responseText);
-
+                    // ── Error response is also a blob, need to parse it ───
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        try {
+                            const json = JSON.parse(reader.result);
+                            console.log('Error details:', json);
+                            alert('Error: ' + (json.error ?? error));
+                        } catch (e) {
+                            console.log('Error details:', reader.result);
+                        }
+                    };
+                    reader.readAsText(xhr.responseJSON ?? xhr.response);
                 },
                 complete: function() {
                     $('#submitBtn').prop('disabled', false).text('Submit');
