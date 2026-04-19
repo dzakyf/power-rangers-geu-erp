@@ -473,17 +473,17 @@ class MarketingController extends Controller
         $convertedPdf = $this->convertDocxToPdfViaDompdf($tempDocx);
 
         // ── 3. Collect PDF attachments ────────────────────────────────────
-        // $pdfAttachments = collect($filesAttachment)
-        //     ->filter(fn($file) => strtolower($file->Extension) === 'pdf')
-        //     ->map(fn($file) => public_path('filevendor', $file->Path))
-        //     ->filter(fn($path) => file_exists($path))
-        //     ->values()
-        //     ->toArray();
+        $pdfAttachments = collect($filesAttachment)
+            ->filter(fn($file) => strtolower($file->Extension) === 'pdf')
+            ->map(fn($file) => public_path('filevendor/' . $file->Path))
+            ->filter(fn($path) => file_exists($path))
+            ->values()
+            ->toArray();
 
         // dd($pdfAttachments);
-        $pdfAttachments = [
-            "/var/www/html/dev/geu/hcga/public/filevendor/filevendor/2026/04/QfvmkOhyjfMZ48CSsRFi4IECYXgA8BfRLqdc59c7.pdf"
-        ];
+        // $pdfAttachments = [
+        //     "/var/www/html/dev/geu/hcga/public/filevendor/filevendor/2026/04/QfvmkOhyjfMZ48CSsRFi4IECYXgA8BfRLqdc59c7.pdf"
+        // ];
 
         // dd([
         //     'filesAttachment'     => $filesAttachment,
@@ -492,22 +492,22 @@ class MarketingController extends Controller
         //     'public_path_test'    => public_path($filesAttachment->first()->Path ?? ''),
         // ]);
 
-        \Log::info('Before merge', [
-            'converted_pdf'        => $convertedPdf,
-            'converted_pdf_exists' => file_exists($convertedPdf),
-            'pdf_attachments'      => $pdfAttachments,
-            'pdf_attachments_exist' => array_map('file_exists', $pdfAttachments),
-        ]);
+        // \Log::info('Before merge', [
+        //     'converted_pdf'        => $convertedPdf,
+        //     'converted_pdf_exists' => file_exists($convertedPdf),
+        //     'pdf_attachments'      => $pdfAttachments,
+        //     'pdf_attachments_exist' => array_map('file_exists', $pdfAttachments),
+        // ]);
 
         $finalPdf = $this->mergePdfs(
             array_merge([$convertedPdf], $pdfAttachments)
         );
 
-        \Log::info('After merge', [
-            'final_pdf'        => $finalPdf,
-            'final_pdf_exists' => file_exists($finalPdf),
-            'final_pdf_size'   => file_exists($finalPdf) ? filesize($finalPdf) : 0,
-        ]);
+        // \Log::info('After merge', [
+        //     'final_pdf'        => $finalPdf,
+        //     'final_pdf_exists' => file_exists($finalPdf),
+        //     'final_pdf_size'   => file_exists($finalPdf) ? filesize($finalPdf) : 0,
+        // ]);
 
 
         // ── 4. Merge voucher PDF + attachments ────────────────────────────
@@ -601,30 +601,6 @@ class MarketingController extends Controller
         return $outputPath;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
-    // Resolve full path from file record
-    // ─────────────────────────────────────────────────────────────────────────────
-
-    private function resolvePath(object $file): string
-    {
-        // If already an absolute path, use as-is
-        if (str_starts_with($file->Path, '/')) {
-            return $file->Path;
-        }
-
-        // If relative like "filevendor/2026/04/filename.pdf"
-        if (str_starts_with($file->Path, 'filevendor/')) {
-            return public_path($file->Path);
-        }
-
-        // If just a filename like "filename.pdf"
-        return "/var/www/html/dev/geu/hcga/public/filevendor/{$this->year}/{$this->month}/{$file->Path}";
-    }
-
-
-
-
-
 
 
     // public function makePromotionVoucherDocs($r, $id, $applicationCode, $filesAttachment)
@@ -713,30 +689,37 @@ class MarketingController extends Controller
             $doc      = $this->makePromotionVoucherDocs($r, 1, $applicationCode, $filesAttachment);
 
             // dd($doc);
-            return response()->file($doc['doc'], [
-                'Content-Type'        => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $doc['reference_no'] . '.pdf"',
-            ])->deleteFileAfterSend(true);
+
 
             $path         = "{$this->generatorService->generateUUID()}.docx";
             $filename     = "{$folder}/{$path}";
             $savedDocPath = public_path($filename);
 
-            $doc['doc']->saveAs($savedDocPath);
+            // Ensure directory exists
+            if (!file_exists(dirname($savedDocPath))) {
+                mkdir(dirname($savedDocPath), 0755, true);
+            }
 
-            $savedFilePaths[] = $savedDocPath;
+            // Move the temp merged PDF to your desired location
+            copy($doc['doc'], $savedDocPath);
+
+            // Optional: clean up temp file
+            @unlink($doc['doc']);
+
+            // $this->store
+            // $doc['doc']->saveAs($savedDocPath);
+
+            // $savedFilePaths[] = $savedDocPath;
 
 
-            // $this->uploadService->uploadMetaFile(
-            //     $path,
-            //     $filename,
-            //     "Voucher Promosi - Dokumen",
-            //     'docx',
-            //     $topic,
-            //     $promotionId
-            // );
-
-
+            $this->uploadService->uploadMetaFile(
+                $path,
+                $filename,
+                "Voucher Promosi - Dokumen",
+                'docx',
+                $topic,
+                $promotionId
+            );
 
 
             // // ─── Approval ─────────────────────────────────────────────────────
@@ -762,7 +745,10 @@ class MarketingController extends Controller
 
             // DB::commit();
 
-            return response()->json(['message' => 'success']);
+            return response()->file($doc['doc'], [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $doc['reference_no'] . '.pdf"',
+            ])->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             DB::rollBack();
 
