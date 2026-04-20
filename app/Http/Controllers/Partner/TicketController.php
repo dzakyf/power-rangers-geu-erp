@@ -32,7 +32,7 @@ class TicketController extends Controller
     {
         $Saya = auth()->user()->username;
         $dt = \Carbon\Carbon::now();
-        
+
         $arr = $request->all();
         unset($arr['_token']);
 
@@ -40,14 +40,14 @@ class TicketController extends Controller
         $arr['Created_Date'] = $dt;
         $arr['Ticket_Status'] = "OPEN";
 
-       $ticket = Ticket::create($arr);
+        $ticket = Ticket::create($arr);
 
-       $arr['Action_By'] = $Saya;
-       $arr['Action_Date'] = $dt;
-       $arr['Action_Status'] = "CREATE_TICKET_PARTNER";
-       $arr['Last_ID'] = $ticket->ID;
+        $arr['Action_By'] = $Saya;
+        $arr['Action_Date'] = $dt;
+        $arr['Action_Status'] = "CREATE_TICKET_PARTNER";
+        $arr['Last_ID'] = $ticket->ID;
 
-       TicketLog::create($arr);
+        TicketLog::create($arr);
 
         echo "success";
     }
@@ -80,7 +80,7 @@ class TicketController extends Controller
         }
 
         $get = $get->get();
-        
+
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->ID\">";
             echo "<cell>$nomor</cell>";
@@ -98,7 +98,6 @@ class TicketController extends Controller
             $nomor++;
         }
         echo "</rows>";
-
     }
 
     public function ticketOpenDetail()
@@ -137,12 +136,12 @@ class TicketController extends Controller
         $this->Saya = Auth::user()->username;
         try {
             $arr = $request->all();
-    
+
             $arr['Created_By'] = $this->Saya;
             $arr['Created_Date'] = $this->dt;
-    
+
             $tr = TicketResponse::create($arr);
-    
+
             if ($arr['Status_Progress'] == 'CLOSED') {
                 $tt = Ticket::where("Ticket_No", $request->Ticket_No)->first();
                 if ($tt) {
@@ -152,14 +151,14 @@ class TicketController extends Controller
                     ]);
                 }
             }
-    
+
             $arr['Action_By'] = $this->Saya;
             $arr['Action_Status'] = $this->dt;
             $arr['Action_Status'] = "CREATE_TICKET_RESPONS";
             $arr['Last_ID'] = $tr->ID;
-    
+
             TicketResponseLog::create($arr);
-    
+
             echo "success";
         } catch (\Throwable $th) {
             Log::error($th);
@@ -172,28 +171,38 @@ class TicketController extends Controller
         return view('partner.ticket-history');
     }
 
-    public function ticketHistoryXml()
+    public function ticketHistoryXml(Request $r)
     {
+        $q             = $r->query();
+        $wh = !empty($q['wh']) ? $q['wh'] : null;
+
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
         } else {
             header("Content-type: text/xml");
         }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
+        echo "<?xml version='1.0' encoding='iso-8859-1'?>";
         echo "<rows>";
+
         $getUsers = User::get();
-        $usname = [];
-        foreach ($getUsers as $key => $value) {
+        $usname   = [];
+        foreach ($getUsers as $value) {
             $usname[$value->username] = $value->Name;
         }
+
         $nomor = 1;
-        $get = Ticket::where("Ticket_Status", 'CLOSED')->get();
-        foreach ($get as $key => $Fetch) {
+
+        $get = Ticket::where("Ticket_Status", 'CLOSED')
+            ->when($wh, fn($query) => $query->where('GEU_Express_ID', $wh))
+            ->get();
+
+        foreach ($get as $Fetch) {
             echo "<row id=\"$Fetch->ID\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Ticket_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By] ?? $Fetch->Created_By) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->GEU_Express_ID) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Ticket_Status) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Proposed_Date) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Ticket_Type) . "</cell>";
@@ -205,8 +214,8 @@ class TicketController extends Controller
 
             $nomor++;
         }
-        echo "</rows>";
 
+        echo "</rows>";
     }
 
     public function ticketHistoryDetail()

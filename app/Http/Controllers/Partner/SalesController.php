@@ -1265,6 +1265,7 @@ class SalesController extends Controller
             ->select([
                 'u.Name as Sales_Name',
                 's.Sales as Sales_ID',
+                'w.warehouse_task_id as Warehouse_ID',
                 DB::raw("YEAR(t.Proposed_Date) as tahun"),
                 DB::raw("MONTH(t.Proposed_Date) as bulan"),
                 DB::raw("COUNT(*) as total_complain"),
@@ -1281,10 +1282,13 @@ class SalesController extends Controller
         foreach ($get as $row) {
             $performance = $row->total_complain != 0 ? round(($row->Closed / $row->total_complain) * 100, 2) : 0;
             $xmlRow = $xml->addChild('row');
+            $xmlRow->addAttribute('Sales_Username', $row->Sales_ID);
+            $xmlRow->addAttribute('Warehouse_ID', $row->Warehouse_ID);
             $xmlRow->addChild('cell', $id++);
-            $xmlRow->addChild('cell', htmlspecialchars($row->Sales_Name));
-            $xmlRow->addChild('cell', htmlspecialchars($row->tahun));
+            $xmlRow->addChild('cell', htmlspecialchars($row->Sales_ID));
+            $xmlRow->addChild('cell', htmlspecialchars($row->Warehouse_ID));
             $xmlRow->addChild('cell', htmlspecialchars($row->bulan));
+            $xmlRow->addChild('cell', htmlspecialchars($row->tahun));
             $xmlRow->addChild('cell', htmlspecialchars($row->total_complain));
             $xmlRow->addChild('cell', htmlspecialchars($row->Closed));
             $xmlRow->addChild('cell', htmlspecialchars($row->In_Progress + $row->Open));
@@ -1421,5 +1425,54 @@ class SalesController extends Controller
                 // 'error'   => $e->getMessage(), // remove this in production
             ], 500);
         }
+    }
+
+    public function membershipDashboardPage()
+    {
+        return view('partner.membership-dashboard');
+    }
+
+    public function membershipDashboardData(Request $r)
+    {
+        $q       = $r->query();
+        $periode = $q['periode'] ?? null;
+
+        // est dp
+        $dp          = DB::table('config_system')->where('Constraint', 'ONBOARDING_DOWNPAYMENT')->first();
+        $activeCount = DB::table('opportunity_partner')->where('Status', 'ACTIVE')->count();
+        $est_dp      = $activeCount * ($dp->Value ?? 0);
+
+        // leads source - count by Source_Channel
+        $leads_source = DB::table('opportunity')
+            ->select('Source_Channel', DB::raw('COUNT(*) as count'))
+            ->groupBy('Source_Channel')
+            ->get();
+
+        // sales funnel - count by Classification
+        $sales_funnel = DB::table('opportunity')
+            ->select('Classification', DB::raw('COUNT(*) as count'))
+            ->groupBy('Classification')
+            ->get();
+
+        $data = [
+            'est_dp'       => $est_dp,
+            'est_revenue'  => 87000000,
+            'brand_licence' => 16000000,
+            'leads_source' => $leads_source,
+            'sales_funnel' => $sales_funnel,
+        ];
+
+        return $data;
+    }
+
+
+    public function mitraDashboardPage()
+    {
+        return view('partner.mitra-dashboard');
+    }
+
+    public function mitraDashboard(Request $r)
+    {
+        return;
     }
 }
