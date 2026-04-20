@@ -34,6 +34,7 @@ $Saya =  Auth::user()->username;
 			<div id="SalesPipelineLeads" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselSalesPipelineLeadsDet" name="ekselSalesPipelineLeadsDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="SalesPipelineLeads.toExcel('./export/generate.php');" />
+				<input type="button" id="redirectToTicketHistory" name="ekselSalesPipelineLeadsDet" class="btn btn-warning mt-2 mr-2" value="Lihat Tiket" />
 			</div>
 		</div>
 	</div>
@@ -43,23 +44,39 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-	SalesPipelineLeads = new dhtmlXGridObject('SalesPipelineLeads');
-	SalesPipelineLeads.setImagePath("./dhtmlx/imgs/");
-	SalesPipelineLeads.setHeader("No,Sales, Bulan, Tahun, Ticket Complain, Solve, Pending, Performance (%)");
-	SalesPipelineLeads.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	SalesPipelineLeads.attachFooter("Total,#cspan,#cspan,#cspan,#stat_total,#stat_total,#stat_total,#stat_total,#stat_total,#stat_total,");
-	SalesPipelineLeads.setInitWidths("60,200,100,100,100,100,100,100,100,100,100,100,100,100");
-	SalesPipelineLeads.setColAlign("center,left,right,right,right,right,right,right,right,right,right,right,right,right");
-	SalesPipelineLeads.setColSorting("int,str,int,int,int,int,int,int,int,int,int,int,int,int");
-	SalesPipelineLeads.setColTypes("ron,ro,ron,ron,ron,ron,ron,ron,ron,ron,ron,ron,ron,ron");
-	SalesPipelineLeads.setNumberFormat("0,000", 4, ",", ".");
-	SalesPipelineLeads.setNumberFormat("0,000", 5, ",", ".");
-	SalesPipelineLeads.setNumberFormat("0,000", 6, ",", ".");
-	SalesPipelineLeads.enableSmartRendering(true, 150);
-	// SalesPipelineLeads.attachEvent("onRowDblClicked", SalesPipelineLeadsLKManually);
-	SalesPipelineLeads.setSkin("dhx_skyblue");
-	SalesPipelineLeads.init();
-	refreshdata();
+	let wh = '';
+	$(document).ready(function() {
+		$('#redirectToTicketHistory').on('click', function() {
+			window.open(`partner-ticket-history?wh=${wh}`)
+		})
+
+		SalesPipelineLeads = new dhtmlXGridObject('SalesPipelineLeads');
+		SalesPipelineLeads.setImagePath("./dhtmlx/imgs/");
+		SalesPipelineLeads.setHeader("No,Sales, Gudang, Bulan, Tahun, Ticket Complain, Solve, Pending, Performance (%)");
+		SalesPipelineLeads.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+		SalesPipelineLeads.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#stat_total,#stat_total,#stat_total,#stat_total,#stat_total,");
+		SalesPipelineLeads.setInitWidths("60,200,100,100,100,100,100,100,100,100,100,100,100,100");
+		SalesPipelineLeads.setColAlign("center,left,right,right,right,right,right,right,right,right,right,right,right,right");
+		SalesPipelineLeads.setColSorting("int,str,int,int,int,int,int,int,int,int,int,int,int,int");
+		SalesPipelineLeads.setColTypes("ron,ro,ron,ro,ro,ron,ron,ron,ron,ron,ron,ron,ron,ron");
+		SalesPipelineLeads.setNumberFormat("0,000", 4, ",", ".");
+		SalesPipelineLeads.setNumberFormat("0,000", 5, ",", ".");
+		SalesPipelineLeads.setNumberFormat("0,000", 6, ",", ".");
+		SalesPipelineLeads.enableSmartRendering(true, 150);
+		// SalesPipelineLeads.attachEvent("onRowDblClicked", SalesPipelineLeadsLKManually);
+		SalesPipelineLeads.attachEvent("onRowSelect", selectSales)
+		SalesPipelineLeads.setSkin("dhx_skyblue");
+		SalesPipelineLeads.init();
+		refreshdata();
+	})
+
+
+	function selectSales(id, cellIdx) {
+		wh = SalesPipelineLeads.getRowAttribute(id, 'Warehouse_ID');
+
+	}
+
+
 
 	function refreshdata() {
 		SalesPipelineLeads.clearAndLoad('xml-partner-sales-aftersales-handling-complain');

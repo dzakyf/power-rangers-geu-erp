@@ -4999,6 +4999,11 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$partnerkpi-kpi-submit", [PerformanceController::class, 'submitMasterKPIData']);
     Route::post("$partnerkpi-kpi-submit-edit", [PerformanceController::class, 'updateMasterKPIData']);
 
+    $partnerDashboard = "partner-dashboard";
+
+    Route::get("$partnerDashboard-membership", [PartnerSalesController::class, 'membershipDashboardPage']);
+    Route::get("$partnerDashboard-membership-data", [PartnerSalesController::class, 'membershipDashboardData']);
+
 
     Route::get('cns-vessel-schedule', [VesselScheduleController::class, 'indexVesselSchedule']);
     Route::get('xml-cns-vessel-schedule', [VesselScheduleController::class, 'indexVesselScheduleXml']);
