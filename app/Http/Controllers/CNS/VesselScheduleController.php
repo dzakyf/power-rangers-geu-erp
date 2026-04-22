@@ -35,7 +35,8 @@ class VesselScheduleController extends Controller
             echo "<cell>" . htmlspecialchars($vessel->POL) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->POD) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Stuffing) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Checking_CY) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Checking_BC) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Closing_CY) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->ETD) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->ATD) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->ETA) . "</cell>";
@@ -48,7 +49,7 @@ class VesselScheduleController extends Controller
             } else {
                 echo "<cell></cell>";
             }
-            if ($vessel->ATD != "0000-00-00" && $vessel->ATA != "0000-00-00") {
+            if (($vessel->ATD != "0000-00-00" && $vessel->ATA != "0000-00-00") && ($vessel->ATD != null && $vessel->ATA != null)) {
                 $atd = new \DateTime($vessel->ATD);
                 $ata = new \DateTime($vessel->ATA);
                 $interval = $atd->diff($ata);
@@ -70,6 +71,11 @@ class VesselScheduleController extends Controller
 
     public function newVesselScheduleSubmit(Request $request)
     {
+        $cek = VesselSchedule::where('Order_No', $request->input('Order_No'))->first();
+        if ($cek) {
+            echo "duplicate";
+            return;
+        }
         $vs = new VesselSchedule();
         $vs->Task_ID = "VS/GEU/" . substr(md5(auth()->user()->username), 0 , 5) . "/" . date('YmdHis');
         $vs->Order_No = $request->input('Order_No');
@@ -80,13 +86,15 @@ class VesselScheduleController extends Controller
         $vs->POL = $request->input('POL');
         $vs->POD = $request->input('POD');
         $vs->Stuffing = $request->input('Stuffing');
-        $vs->Checking_CY = $request->input('Checking_CY');
+        $vs->Checking_BC = $request->input('Checking_BC');
+        $vs->Closing_CY = $request->input('Closing_CY');
         $vs->ETD = $request->input('ETD');
-        $vs->ATD = $request->input('ATD');
         $vs->ETA = $request->input('ETA');
-        $vs->ATA = $request->input('ATA');
         $vs->Note = $request->input('Note');
+        $vs->Created_By = auth()->user()->username;
         $vs->save();
+
+        echo "success";
     }
 
     public function editVesselSchedule()
@@ -99,13 +107,32 @@ class VesselScheduleController extends Controller
         //
     }
 
-    public function detailVesselSchedule()
+    public function detailVesselSchedule(Request $request)
     {
-        return view('cns.vs.vessel-schedule-detail');
+        $vs = VesselSchedule::where('id', $request->task)->first();
+        return view('cns.vs.vessel-schedule-detail', compact('vs'));
     }
 
     public function detailVesselScheduleSubmit(Request $request)
     {
-        //
+        $vs = VesselSchedule::where('id', $request->input('id'))->first();
+        $vs->Qty = $request->input('Qty1') . " x " . $request->input('Qty2');
+        $vs->Qty1 = $request->input('Qty1');
+        $vs->Qty2 = $request->input('Qty2');
+        $vs->Vessel = $request->input('Vessel');
+        $vs->POL = $request->input('POL');
+        $vs->POD = $request->input('POD');
+        $vs->Stuffing = $request->input('Stuffing');
+        $vs->Checking_BC = $request->input('Checking_BC');
+        $vs->Closing_CY = $request->input('Closing_CY');
+        $vs->ETD = $request->input('ETD');
+        $vs->ATD = $request->input('ATD');
+        $vs->ETA = $request->input('ETA');
+        $vs->ATA = $request->input('ATA');
+        $vs->Note = $request->input('Note');
+        $vs->Created_By = auth()->user()->username;
+        $vs->save();
+
+        echo "success";
     }
 }

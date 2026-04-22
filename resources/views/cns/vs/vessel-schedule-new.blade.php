@@ -63,27 +63,37 @@ $Saya =  Auth::user()->username;
 							</div>
 						</div>
 						<div class="col-12">
-							<div class="form-group">
-								<label for="Stuffing">Stuffing</label>
-								<input type="text" name="Stuffing" id="Stuffing" value="{{ date('Y-m-d') }}" class="form-control" required readonly />
-							</div>
-						</div>
-						<div class="col-12">
-							<div class="form-group">
-								<label for="Checking_CY">Checking_CY</label>
-								<input type="text" name="Checking_CY" id="Checking_CY" value="{{ date('Y-m-d') }}" class="form-control" required readonly />
-							</div>
-						</div>
-						<div class="col-12">
-							<div class="form-group">
-								<label for="ETD">ETD</label>
-								<input type="text" name="ETD" id="ETD" value="{{ date('Y-m-d') }}" class="form-control" required readonly />
-							</div>
-						</div>
-						<div class="col-12">
-							<div class="form-group">
-								<label for="ETA">ETA</label>
-								<input type="text" name="ETA" id="ETA" value="{{ date('Y-m-d') }}" class="form-control" required readonly />
+							<div class="row">
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="Stuffing">Stuffing</label>
+										<input type="text" name="Stuffing" id="Stuffing" value="{{ date('Y-m-d') }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="Checking_BC">Checking BC</label>
+										<input type="text" name="Checking_BC" id="Checking_BC" value="{{ date('Y-m-d') }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="Closing_CY">Closing CY</label>
+										<input type="text" name="Closing_CY" id="Closing_CY" value="{{ date('Y-m-d') }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="ETD">ETD</label>
+										<input type="text" name="ETD" id="ETD" value="{{ date('Y-m-d') }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="ETA">ETA</label>
+										<input type="text" name="ETA" id="ETA" value="{{ date('Y-m-d') }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
 							</div>
 						</div>
 						<div class="col-12">
@@ -96,7 +106,7 @@ $Saya =  Auth::user()->username;
 				</div>
 			</div>
 			<div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Publish" class="btn btn-success mt-2 mr-2" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit Schedule" class="btn btn-success mt-2 mr-2" />
 			</div>
 		</div>
 	</div>
@@ -107,7 +117,7 @@ $Saya =  Auth::user()->username;
 <script>
 
 	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["Stuffing", "Checking_CY", "ETD", "ATD", "ETA", "ATA"]);
+	myCalendar = new dhtmlXCalendarObject(["Stuffing", "Checking_BC", "Closing_CY", "ETD", "ATD", "ETA", "ATA"]);
 	myCalendar.setDateFormat("%Y-%m-%d");
 
 	$('#SubmitCustDetail').click(function() {
@@ -125,7 +135,7 @@ $Saya =  Auth::user()->username;
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
 					var cariAWB = data.split(":");
-					alert('Data Announcement Submitted!');
+					alert('Data Vessel Schedule Submitted!');
 
 					// location.href = "partner-announcement";
                     refreshdata();

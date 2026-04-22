@@ -19,25 +19,25 @@ $Saya =  Auth::user()->username;
 	<h1>Partner</h1>
 	<ol class="breadcrumb">
 		<li class="breadcrumb-item">
-			<a href="/">Shipment Instruction</a>
+			<a href="/">Final Shipment Instruction</a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">Shipment Instruction List</span>
+			<span class="active">Final Shipment Instruction List</span>
 		</li>
 	</ol>
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION LIST</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">FINAL SHIPMENT INSTRUCTION LIST</div>
 	<div class="card">
 		<div class="card-body">
 			<div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
-				<input type="button" id="newSchedule" name="newSchedule" value="New Schedule" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionNew()" />
-				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail Schedule" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
-				<input type="button" id="createCI" name="createCI" value="Create Commercial Invoice" class="btn btn-info mt-2 mr-2" onclick="CreateCI()" />
-				<input type="button" id="createPL" name="createPL" value="Create Packing List" class="btn btn-info mt-2 mr-2" onclick="CreatePL()" />
+				<input type="button" id="newSchedule" name="newSchedule" value="New SI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
+				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail SI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
+				<input type="button" id="printSI" name="printSI" value="Print SI" class="btn btn-secondary mt-2 mr-2" onclick="PrintSI()" />
+				<input type="button" id="createToFSI" name="createToFSI" value="Create Final SI" class="btn btn-success mt-2 mr-2" onclick="CreateToFSI()" />
 			</div>
 		</div>
 	</div>
@@ -47,11 +47,18 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-	function openShipmentLink()
+	function PrintSI()
 	 {
-		window.open("https://www.shipmentlink.com","_blank");
+		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
+		if (ShipmentInstructionID != null) {
+			// window.open('cns-export-final-shipment-instruction-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
+			window.open('assets/export_fsi.docx', '_blank');
+		}else {
+			alert("Pilih baris data");
+		}
+		return true;
 	 }
-	function ShipmentInstructionNew() {
+	function ShipmentInstructionNewBtn() {
 
 		LoadM('divlistOpportunity', 'cns-export-final-shipment-instruction-new');
 		return true;
