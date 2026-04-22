@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Partner;
 
 use App\Http\Controllers\Controller;
 use App\Services\UserService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Safe\Exceptions\SimplexmlException;
 use SimpleXMLElement;
 
 class UCOReportController extends Controller
@@ -160,5 +162,175 @@ class UCOReportController extends Controller
     public function requestPickupUCO()
     {
         return;
+    }
+
+    public function trackExportedStockIndex()
+    {
+        return view('cns.inventory.index');
+    }
+
+    public function trackExportedStockCreatePage()
+    {
+        return view('cns.inventory.create');
+    }
+
+    public function trackExportedStockData(Request $r)
+    {
+        $q = $r->query();
+        $attachment = false;
+
+        if ($r->filled('ID')) {
+            return $this->trackExportedStockDataById($r);
+        }
+
+        $vs = DB::table('vessel_schedules as vs')
+            ->join('vessel_schedule_dtls as vsdtl', 'vsdtl.Task_ID', '=', 'vs.Task_ID')
+            ->select('vs.*', 'vs.Created_Date as Scheduled_At', 'vsdtl.*')
+            ->get();
+
+        $xml = new SimpleXMLElement('<rows/>');
+
+        $counter = 1;
+
+        foreach ($vs as $vs) {
+            $row = $xml->addChild('row');
+
+            $row->addChild('cell', $counter);
+            $row->addChild('cell', $vs->Task_ID);
+            $row->addChild('cell', $vs->Order_No);
+            $row->addChild('cell', Carbon::parse($vs->Scheduled_At)->format('F'));
+            $row->addChild('cell', Carbon::parse($vs->Scheduled_At)->format('d/m/Y'));
+            $row->addChild('cell', 'Pelindo');
+            $row->addChild('cell', $vs->POL);
+            $row->addChild('cell', $vs->Police_No);
+            $row->addChild('cell', $vs->ATD);
+            $row->addChild('cell', $vs->ATA);
+            $row->addChild('cell', $vs->Gross_KG);
+            $row->addChild('cell', $vs->Note);
+
+            if (!$attachment) {
+                $row->addChild('cell', "Belum ada lampiran.");
+            } else {
+                $row->addChild('cell', "Link^ $vs->Note");
+            }
+
+            // $row->addChild('cell', $vs->Updated_By);
+            // $row->addChild('cell', $vs->Updated_Date);
+
+            $counter++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    public function trackExportedStockDataById(Request $r)
+    {
+        $q = $r->query();
+
+        $attachment = false;
+
+        $vs = DB::table('vessel_schedules as vs')
+            ->join('vessel_schedule_dtls as vsdtl', 'vsdtl.Task_ID', '=', 'vs.Task_ID')
+            ->select('vs.*', 'vs.Created_Date as Scheduled_At', 'vsdtl.*')
+            ->where('vs.id', '=', $q['ID'])
+            ->get();
+
+        $xml = new SimpleXMLElement('<rows/>');
+
+        $counter = 1;
+
+        foreach ($vs as $vs) {
+            $row = $xml->addChild('row');
+
+            $row->addChild('cell', $counter);
+            $row->addChild('cell', $vs->Task_ID);
+            $row->addChild('cell', $vs->Order_No);
+            $row->addChild('cell', Carbon::parse($vs->Scheduled_At)->format('F'));
+            $row->addChild('cell', Carbon::parse($vs->Scheduled_At)->format('d/m/Y'));
+            $row->addChild('cell', 'Pelindo');
+            $row->addChild('cell', $vs->POL);
+            $row->addChild('cell', $vs->Police_No);
+            $row->addChild('cell', $vs->ATD);
+            $row->addChild('cell', $vs->ATA);
+            $row->addChild('cell', $vs->Gross_KG);
+            $row->addChild('cell', $vs->Note);
+
+            if (!$attachment) {
+                $row->addChild('cell', "Belum ada lampiran.");
+            } else {
+                $row->addChild('cell', "Link^ $vs->Note");
+            }
+
+            // $row->addChild('cell', $vs->Updated_By);
+            // $row->addChild('cell', $vs->Updated_Date);
+
+            $counter++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    public function submitExportedStock(Request $r)
+    {
+        $id = DB::table('vessel_schedule')
+            ->insertGetId($r->only([
+                'Order_No',
+                'Qty',
+                'Qty1',
+                'Qty2',
+                'Vessel',
+                'POL',
+                'POD',
+                'Stuffing',
+                'Checking_BC',
+                'Closing_CY',
+                'ETD',
+                'ATD',
+                'ETA',
+                'ATA',
+                'Note',
+                'Updated_By',
+                'Updated_Date',
+            ]));
+
+        return response()->json(['success' => true, 'message' => 'Record created successfully']);
+    }
+
+
+    public function updateExportedStock(Request $r)
+    {
+        DB::table('vessel_schedules')
+            ->where('id', $r->id)
+            ->update($r->only([
+                'Order_No',
+                'Qty',
+                'Qty1',
+                'Qty2',
+                'Vessel',
+                'POL',
+                'POD',
+                'Stuffing',
+                'Checking_BC',
+                'Closing_CY',
+                'ETD',
+                'ATD',
+                'ETA',
+                'ATA',
+                'Note',
+                'Updated_By',
+                'Updated_Date',
+            ]));
+
+        return response()->json(['success' => true, 'message' => 'Record updated successfully']);
+    }
+
+
+    public function deleteExportedStock(Request $r)
+    {
+        DB::table('vessel_schedules')
+            ->where('id', $r->id)
+            ->delete();
+
+        return response()->json(['success' => true, 'message' => 'Record updated successfully']);
     }
 }

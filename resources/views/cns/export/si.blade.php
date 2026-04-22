@@ -34,9 +34,10 @@ $Saya =  Auth::user()->username;
 			<div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
-				<input type="button" id="newSchedule" name="newSchedule" value="New SI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionNew()" />
+				<input type="button" id="newSchedule" name="newSchedule" value="New SI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail SI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
-				<input type="button" id="createToFSI" name="createToFSI" value="Create Final SI" class="btn btn-info mt-2 mr-2" onclick="CreateToFSI()" />
+				<input type="button" id="printSI" name="printSI" value="Print SI" class="btn btn-secondary mt-2 mr-2" onclick="PrintSI()" />
+				<input type="button" id="createToFSI" name="createToFSI" value="Create Final SI" class="btn btn-success mt-2 mr-2" onclick="CreateToFSI()" />
 			</div>
 		</div>
 	</div>
@@ -46,11 +47,28 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-	function openShipmentLink()
-	 {
-		window.open("https://www.shipmentlink.com","_blank");
-	 }
-	function ShipmentInstructionNew() {
+	function PrintSI()
+	{
+		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
+		if (ShipmentInstructionID != null) {
+			// window.open('cns-export-shipment-instruction-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue(), '_blank');
+			window.open('assets/export-si.docx', '_blank');
+		}else {
+			alert("Pilih baris data");
+		}
+		return true;
+	}
+	function CreateToFSI()
+	{
+		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
+		if (ShipmentInstructionID != null) {
+			window.open('cns-export-shipment-instruction-generate-fsi?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue(), '_blank');
+		}else {
+			alert("Pilih baris data");
+		}
+		return true;
+	}
+	function ShipmentInstructionNewBtn() {
 
 		LoadM('divlistOpportunity', 'cns-export-shipment-instruction-new');
 		return true;

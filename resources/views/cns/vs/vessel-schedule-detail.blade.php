@@ -19,7 +19,8 @@ $Saya =  Auth::user()->username;
 						<div class="col-12">
 							<div class="form-group">
 								<label for="Order_No">Order No</label>
-								<input type="text" name="Order_No" id="Order_No" value="" class="form-control" required value="{{ $vs->Order_No }}" />
+								<input type="hidden" name="id" id="id" value="{{ $vs->id }}" />
+								<input type="text" name="Order_No" id="Order_No" class="form-control" required value="{{ $vs->Order_No }}" readonly />
 							</div>
 						</div>
 						<div class="col-12">
@@ -37,8 +38,8 @@ $Saya =  Auth::user()->username;
 									<div class="col">
 										<select name="Qty2" id="Qty2" class="form-control" required>
 											<option value="">-- Pilih Qty --</option>
-											<option value="20 FT">20 FT</option>
-											<option value="20 ISOTANK">20 ISOTANK</option>
+											<option value="20 FT" {{ $vs->Qty2 == '20 FT' ? 'selected' : '' }}>20 FT</option>
+											<option value="20 ISOTANK" {{ $vs->Qty2 == '20 ISOTANK' ? 'selected' : ''}}>20 ISOTANK</option>
 										</select>
 									</div>
 								</div>
@@ -63,39 +64,49 @@ $Saya =  Auth::user()->username;
 							</div>
 						</div>
 						<div class="col-12">
-							<div class="form-group">
-								<label for="Stuffing">Stuffing</label>
-								<input type="text" name="Stuffing" id="Stuffing" value="{{ $vs->Stuffing }}" class="form-control" required readonly />
-							</div>
-						</div>
-						<div class="col-12">
-							<div class="form-group">
-								<label for="Checking_CY">Checking_CY</label>
-								<input type="text" name="Checking_CY" id="Checking_CY" value="{{ $vs->Checking_CY }}" class="form-control" required readonly />
-							</div>
-						</div>
-						<div class="col-12">
-							<div class="form-group">
-								<label for="ETD">ETD</label>
-								<input type="text" name="ETD" id="ETD" value="{{ $vs->ETD }}" class="form-control" required readonly />
-							</div>
-						</div>
-						<div class="col-12">
-							<div class="form-group">
-								<label for="ATD">ATD</label>
-								<input type="text" name="ATD" id="ATD" value="{{ $vs->ATD }}" class="form-control" readonly />
-							</div>
-						</div>
-						<div class="col-12">
-							<div class="form-group">
-								<label for="ETA">ETA</label>
-								<input type="text" name="ETA" id="ETA" value="{{ $vs->ETA }}" class="form-control" required readonly />
-							</div>
-						</div>
-						<div class="col-12">
-							<div class="form-group">
-								<label for="ATA">ATA</label>
-								<input type="text" name="ATA" id="ATA" value="{{ $vs->ATA }}" class="form-control" readonly />
+							<div class="row">
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="Stuffing">Stuffing</label>
+										<input type="text" name="Stuffing" id="Stuffing" value="{{ $vs->Stuffing }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="Checking_BC">Checking BC</label>
+										<input type="text" name="Checking_BC" id="Checking_BC" value="{{ $vs->Checking_BC }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="Closing_CY">Closing CY</label>
+										<input type="text" name="Closing_CY" id="Closing_CY" value="{{ $vs->Closing_CY }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="ETD">ETD</label>
+										<input type="text" name="ETD" id="ETD" value="{{ $vs->ETD }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="ATD">ATD</label>
+										<input type="text" name="ATD" id="ATD" value="{{ $vs->ATD ?? "" }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="ETA">ETA</label>
+										<input type="text" name="ETA" id="ETA" value="{{ $vs->ETA }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group">
+										<label for="ATA">ATA</label>
+										<input type="text" name="ATA" id="ATA" value="{{ $vs->ATA ?? "" }}" class="form-control bg-white" required readonly />
+									</div>
+								</div>
 							</div>
 						</div>
 						<div class="col-12">
@@ -117,41 +128,9 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-	var vault = new dhx.Vault("File_Documents", {
-		uploader: {
-			target: "upload-receiveinvoice.php"
-		},
-		filesLimit: 1
-
-	});
-
-	vault.events.on("uploadComplete", function(obj) {
-		$("#File_Document").val(obj[0].name);
-	});
-	vault.events.on("uploadBegin", function(obj) {
-		$("#File_Document").val("");
-
-	});
-	vault.events.on("beforeAdd", function(fileItem) {
-		if (vault.data.getLength() >= 1) {
-			alert('Only can upload 1 file per checkpoint.');
-			return false;
-		}
-	});
-
-
-	vault.events.on("beforeAdd", function(item) {
-		var extension = item.file.name.split(".").pop();
-
-		var predicate = extension === "pdf";
-		if (!predicate) {
-			dhtmlx.alert("Hanya Boleh mengupload tipe file PDF");
-		}
-		return predicate;
-	});
 
 	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["Stuffing", "Checking_CY", "ETD", "ATD", "ETA", "ATA"]);
+	myCalendar = new dhtmlXCalendarObject(["Stuffing", "Checking_BC", "Checking_CY", "ETD", "ATD", "ETA", "ATA"]);
 	myCalendar.setDateFormat("%Y-%m-%d");
 
 	$('#SubmitCustDetail').click(function() {
@@ -162,7 +141,7 @@ $Saya =  Auth::user()->username;
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "cns-vessel-schedule-new-submit?_token={{ csrf_token() }}",
+			url: "cns-vessel-schedule-detail-submit?_token={{ csrf_token() }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {

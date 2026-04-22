@@ -46,7 +46,7 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-	function openShipmentLink()
+	function OpenShipmentLink()
 	 {
 		window.open("https://www.shipmentlink.com","_blank");
 	 }
@@ -59,7 +59,7 @@ $Saya =  Auth::user()->username;
 
 		VesselScheduleID = VesselSchedule.getSelectedId();
 		if (VesselScheduleID != null) {
-			LoadM('divlistOpportunity', 'cns-vessel-schedule-detail?Task=' + VesselScheduleID);
+			LoadM('divlistOpportunity', 'cns-vessel-schedule-detail?task=' + VesselScheduleID);
 		}else {
 			alert("Pilih baris data");
 		}
@@ -68,12 +68,12 @@ $Saya =  Auth::user()->username;
 	VesselSchedule = new dhtmlXGridObject('VesselSchedule');
 	VesselSchedule.setImagePath("./dhtmlx/imgs/");
 	VesselSchedule.setHeader("No,Order (DO)/Booking Confirmation (BC),Qty,Kapal,POL,POD,Stuffing,Checking,Closing CY,ETD,ATD,ETA,ATA,Estimated Day(s), Actual Day(s), Note"); 
-	VesselSchedule.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	VesselSchedule.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// VesselSchedule.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	VesselSchedule.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,auto");
+	VesselSchedule.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,100,100,100,100,100");
 	VesselSchedule.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left");
-	VesselSchedule.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	VesselSchedule.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	VesselSchedule.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
+	VesselSchedule.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	VesselSchedule.enableSmartRendering(true, 150);
 	// VesselSchedule.setNumberFormat("0,000", 7, ".", ",");
 	VesselSchedule.attachEvent("onRowDblClicked", VesselScheduleKlik);
