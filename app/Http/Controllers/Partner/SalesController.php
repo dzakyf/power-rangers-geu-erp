@@ -234,7 +234,6 @@ class SalesController extends Controller
             ->groupBy('Sales_ID')
             ->map(fn($rows) => $rows->keyBy('Month'));
 
-
         // Get complaint and profit data
         $complaints  = $this->aftersalesHandlingComplainCollection();
         $salesProfit = $this->aftersalesProfitMitraCollection($r);
@@ -1457,22 +1456,132 @@ class SalesController extends Controller
         $data = [
             'est_dp'       => $est_dp,
             'est_revenue'  => 87000000,
-            'brand_licence' => 16000000,
+            'brand_license' => 16000000,
             'leads_source' => $leads_source,
             'sales_funnel' => $sales_funnel,
         ];
 
-        return $data;
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Sales performance updated',
+            'data' => $data
+        ]);
+    }
+
+    public function aftersalesDashboardPage()
+    {
+        return view('partner.aftersales-dashboard');
+    }
+
+    public function afterSalesDashboardData(Request $r)
+    {
+
+        $q = $r->query();
+
+
+        $hubStats = DB::table('warehouse_partner as wp')
+            ->selectRaw("
+        SUM(CASE WHEN wp.Status = 'ACTIVE' THEN 1 ELSE 0 END) as operating,
+        SUM(CASE WHEN wp.Status = 'INACTIVE' THEN 1 ELSE 0 END) as closed,
+        SUM(CASE WHEN wp.Status = 'PREPARING' THEN 1 ELSE 0 END) as prepared
+    ")
+            ->first();
+
+        $data = [
+            'hub_stats' => [
+                'operating' => $hubStats->operating ?? 0,
+                'prepared'  => $hubStats->prepared ?? 0,
+                'closed'    => $hubStats->closed ?? 0,
+            ],
+            'performance' => [
+                'high' => 0,
+                'medium' => 0,
+                'low' => 0
+            ],
+            'support_request_count' => [
+                'operational' => 0,
+                'other' => 0
+            ],
+            'contract_monitoring' => [
+                'active' => 0,
+                'almost_deadline' => 0,
+                'expired' => 0
+            ],
+            'support_performance' => [
+                'open_ticket' => 0,
+                'resolved' => 0,
+                'mttr' => 0, // avg time to respond
+                'mttf' => 0, // avg time to fix
+            ],
+            'net_profit' => [
+                [
+                    'warehouse' => '',
+                    'amount' => 0
+                ]
+            ],
+            'projection' => [
+                [
+                    'warehouse' => '',
+                    'amount' => 0
+                ]
+            ],
+            'complaints_list' => [],
+            'total_income' => 0,
+            'total_net_profit' => 0,
+            'uco_volume' => 0,
+            'uco_volume_sold' => 0,
+            'management_fee' => 0,
+            'company_royalty' => 0,
+            'company_total_profit' => 0
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'success',
+            'data' => $data
+        ]);
     }
 
 
-    public function mitraDashboardPage()
+    public function financialInsightDashboardPage()
     {
-        return view('partner.mitra-dashboard');
+        return view('partner.financial-insight-dashboard');
     }
 
-    public function mitraDashboard(Request $r)
+    public function financialInsightDashboardData(Request $r)
     {
-        return;
+        $q = $r->query();
+        $b = $r->all();
+
+
+        $data = [
+            'total_profit_sharing' => 0,
+            'total_revenue' => 0,
+            'total_operational_cost' => 0,
+            'total_qty' => 0,
+            'total_investation' => 0,
+            'total_roi' => 0,
+            'margin_profit' => 0, //percentage
+            'projection_against_bep' => [
+                [
+                    'month' => 'January',
+                    'projection' => 0,
+                    'bep' => 0
+                ]
+            ],
+            'projection_against_profit_sharing' => [
+                [
+                    'month' => 'January',
+                    'projection' => 0,
+                    'profit_sharing' => 0
+                ]
+            ]
+        ];
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Financial dashboard',
+            'data' => $data
+        ]);
     }
 }

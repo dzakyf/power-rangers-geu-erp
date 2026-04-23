@@ -1850,8 +1850,66 @@ class ProfitSharingController extends Controller
                         $b = $projData[$j];
                         $isHidden = 0;
 
-                        $coa = DB::table('master_coa as mc')->select('mc.ID')
-                            ->whereRaw('LOWER(mc.Name) = ?', [strtolower($b[0])])->first();
+                        $coaId = null;
+
+                        switch (strtolower($b[0])) {
+                            case 'working capital':
+                                $coaId = 2;
+                                break;
+                            case 'saldo mengendap':
+                                $coaId = 3;
+                                break;
+                            case 'pendapatan':
+                                $coaId = 182;
+                                break;
+                            case 'harga transfer':
+                                $coaId = 295;
+                                break;
+                            case 'hpp':
+                                $coaId = 223;
+                                break;
+                            case 'bensin':
+                                $coaId = 264;
+                                break;
+                            case 'parkir':
+                                $coaId = 273;
+                                break;
+                            case 'service kendaraan':
+                                $coaId = 286;
+                                break;
+                            case 'wifi':
+                                $coaId = 364;
+                                break;
+                            case 'listrik':
+                                $coaId = 362;
+                                break;
+                            case 'kebersihan & keamanan':
+                                $coaId = 366;
+                                break;
+                            case 'logistic penjemputan':
+                                $coaId = 287;
+                                break;
+                            case 'biaya konversi':
+                                $coaId = 290;
+                                break;
+                            case 'biaya iscc':
+                                $coaId = 365;
+                                break;
+                            case 'total cogs':
+                                $coaId = 224;
+                                break;
+                            case 'bagi hasil mitra':
+                                $coaId = 312;
+                                break;
+                            case 'beban tenaga kerja':
+                                $coaId = 314;
+                                break;
+                            case 'sewa lokasi':
+                                $coaId = 356;
+                                break;
+                            default:
+                                break;
+                        }
 
                         //hide profit
                         if (Str::lower(str_replace(' ', '', $b[0])) == "profitperusahaan") {
@@ -1863,7 +1921,7 @@ class ProfitSharingController extends Controller
                             "Hub_Type" => $partner[0]->package_option,
                             "warehouse_task_id" => $partner[0]->warehouse_task_id,
                             "Description" => $b[0] ?? "",
-                            "Coa_Id" => $coa->ID ?? null,
+                            "Coa_Id" => $coaId,
                             "Standard_Value" => $b[1],
                             "Offset" => $b[2],
                             "Year" => $count,

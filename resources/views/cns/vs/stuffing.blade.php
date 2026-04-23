@@ -31,6 +31,11 @@ $Saya =  Auth::user()->username;
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">STUFFING LIST</div>
 	<div class="card">
 		<div class="card-body">
+			<div>
+				<span style='background-color: #ffccccff' class="p-2 border"></span> : Stuffing Not Started<br>
+				<span style='background-color: #feffccff' class="p-2 border"></span> : Stuffing Yet Complete<br>
+				<span style='background-color: #ccffcfff' class="p-2 border"></span> : Stuffing Complete<br>
+			</div>
 			<div id="StuffingVessel" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselStuffingVesselDet" name="ekselStuffingVesselDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="StuffingVessel.toExcel('./export/generate.php');" />
@@ -64,7 +69,7 @@ $Saya =  Auth::user()->username;
 	StuffingVessel.setImagePath("./dhtmlx/imgs/");
 	StuffingVessel.setHeader("No,Order (DO)/Booking Confirmation (BC),Qty,Kapal,POL,POD,Stuffing,Checking,Closing CY,ETD,ATD,ETA,ATA,Estimated Day(s), Actual Day(s), Note, Container (Seal)"); 
 	StuffingVessel.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	// StuffingVessel.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+	StuffingVessel.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total,#stat_total,#stat_total,#stat_total");
 	StuffingVessel.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,100,100,100,100,100,800");
 	StuffingVessel.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
 	StuffingVessel.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str");

@@ -33,7 +33,15 @@ class StuffingController extends Controller
         // Sample data, replace with actual database query
         $vessels = VesselSchedule::get();
         foreach ($vessels as $key => $vessel) {
-            echo "<row id=\"$vessel->id\" >";
+            $warna = "style='background-color: #ffccccff'";
+            if (isset($vsd[$vessel->Order_No])) {
+                if (count($vsd[$vessel->Order_No]) < $vessel->Qty1) {
+                    $warna = "style='background-color: #feffccff'";
+                }else if (count($vsd[$vessel->Order_No]) == $vessel->Qty1) {
+                    $warna = "style='background-color: #ccffcfff'";
+                }
+            }
+            echo "<row id=\"$vessel->id\" $warna>";
             echo "<cell>" . ($key + 1) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Order_No) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Qty) . "</cell>";
@@ -107,6 +115,7 @@ class StuffingController extends Controller
             echo "<cell>" . htmlspecialchars($vessel->Netto_MT) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Gross_KG) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Gross_MT) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Note) . "</cell>";
             echo "</row>";
         }
 
@@ -178,6 +187,7 @@ class StuffingController extends Controller
             $vsd->Gross_KG = $j;
             $vsd->Gross_MT = $k;
             $vsd->Note = $l;
+            $vsd->Status = 'CLOSED';
             $vsd->Updated_By = auth()->user()->username;
             $vsd->Updated_Date = date('Y-m-d H:i:s');
         }
@@ -221,6 +231,7 @@ class StuffingController extends Controller
             $vsd->Gross_KG = $j;
             $vsd->Gross_MT = $k;
             $vsd->Note = $l;
+            $vsd->Status = 'CLOSED';
             $vsd->Created_By = auth()->user()->username;
             $vsd->Created_Date = date('Y-m-d H:i:s');
 
@@ -238,13 +249,33 @@ class StuffingController extends Controller
     {
         $vsd = VesselScheduleDtl::where('id', $rowId)->first();
         if ($vsd) {
-            if ($vsd->delete()) {
-                return "deleted";
-            } else {
-                return "error";
-            }
+            $vsd->Status = 'CANCELED';
+
+            return "deleted";
         }else {
             return "error";
         }
+    }
+
+    public function comboPoliceNumber()
+    {
+        header('Content-Type: application/json');
+            
+        echo "{
+        options: ["; 
+        $qy = VesselScheduleDtl::get();
+        $dx = "";
+        foreach ($qy as $ax){
+            
+                $dx .= "{value:'$ax->Police_No',text:'$ax->Police_No - $ax->Order_No'},";
+
+            
+        }
+        $dx = substr($dx,0,-1);
+
+        echo "
+        $dx
+        ]
+        }"; 
     }
 }

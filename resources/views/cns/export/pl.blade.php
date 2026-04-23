@@ -19,25 +19,24 @@ $Saya =  Auth::user()->username;
 	<h1>Partner</h1>
 	<ol class="breadcrumb">
 		<li class="breadcrumb-item">
-			<a href="/">Final Shipment Instruction</a>
+			<a href="/">Packing List</a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">Final Shipment Instruction List</span>
+			<span class="active">Packing List List</span>
 		</li>
 	</ol>
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">FINAL SHIPMENT INSTRUCTION LIST</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PACKING LIST LIST</div>
 	<div class="card">
 		<div class="card-body">
 			<div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
-				<input type="button" id="newSchedule" name="newSchedule" value="New SI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
-				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail SI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
-				<input type="button" id="printSI" name="printSI" value="Print SI" class="btn btn-secondary mt-2 mr-2" onclick="PrintSI()" />
-				<input type="button" id="createToFSI" name="createToFSI" value="Create Final SI" class="btn btn-success mt-2 mr-2" onclick="CreateToFSI()" />
+				<input type="button" id="newSchedule" name="newSchedule" value="New PL" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
+				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail PL" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
+				<input type="button" id="printPL" name="printPL" value="Print PL" class="btn btn-secondary mt-2 mr-2" onclick="PrintPL()" />
 			</div>
 		</div>
 	</div>

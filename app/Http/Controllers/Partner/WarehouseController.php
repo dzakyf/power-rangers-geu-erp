@@ -41,10 +41,10 @@ class WarehouseController extends Controller
 
         if ($priv == 'MITRA') {
             $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
-        }else {
+        } else {
             $get = WarehousePartner::get();
         }
-        
+
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
@@ -70,7 +70,7 @@ class WarehouseController extends Controller
         }
 
         WarehousePartner::where("id", $request->Task)->update([
-            'warehouse_status' => $status, 
+            'warehouse_status' => $status,
         ]);
 
         echo "<script>alert('berhasil mengubah status');refreshdata();$('#divlistOpportunity').html();</script>";
@@ -86,7 +86,7 @@ class WarehouseController extends Controller
         $getCount = WarehousePartner::count();
         $tricode = DB::table('master_kodepos')->where("City", $request->Warehouse_Location)->first();
 
-        $Task_ID = "GEU/".strtoupper($tricode->tricode)."/".sprintf('%04d', $getCount + 1);
+        $Task_ID = "GEU/" . strtoupper($tricode->tricode) . "/" . sprintf('%04d', $getCount + 1);
 
         WarehousePartner::create([
             'warehouse_task_id' => $Task_ID,
@@ -111,7 +111,7 @@ class WarehouseController extends Controller
         $partner = DB::table('opportunity_partner')->where(function ($q) use ($partner, $wh) {
             $q->whereIn('id', $partner)->orWhere('lead_id', $wh->partner_task_id);
         })->where('status', 'ACTIVE')->get();
-        
+
         $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
         return view('partner.warehouse.list-detail', compact('wh', 'partner', 'kotakab'));
     }
@@ -147,7 +147,7 @@ class WarehouseController extends Controller
 
         $wh = WarehousePartner::where("id", $request->Task)->first();
         $partnerSupplies = WarehousePartnerSupplies::where("warehouse_task_id", $wh->warehouse_task_id)->get();
-        
+
         $nomor = 1;
 
         foreach ($partnerSupplies as $key => $Fetch) {
@@ -237,9 +237,9 @@ class WarehouseController extends Controller
         $nomor = 1;
 
         // $getPartnerID = DB::table('opportunity_partner')->where("lead_id", auth()->user()->Emp_ID)->first();
-        
+
         $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
-        
+
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->ID\">";
             echo "<cell>$nomor</cell>";
@@ -285,9 +285,9 @@ class WarehouseController extends Controller
         $nomor = 1;
 
         // $getPartnerID = DB::table('opportunity_partner')->where("lead_id", auth()->user()->Emp_ID)->first();
-        
+
         $get = WarehousePartnerSupplies::where('warehouse_task_id', $request->task)->get();
-        
+
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->ID\">";
             echo "<cell>$nomor</cell>";

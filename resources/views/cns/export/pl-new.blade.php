@@ -63,11 +63,11 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 					<div class="row">
 						<div class="col-12">
 							<div class="form-group">
-								<label for="SI_No">SI No</label>
-                                <select name="SI_No" id="SI_No" class="form-control" required>
+								<label for="Final_SI_No">SI No</label>
+                                <select name="Final_SI_No" id="Final_SI_No" class="form-control" required>
                                     <option value="">-- Pilih SI No --</option>
                                     @foreach ($sis as $si)
-                                        <option value="{{ $si->SI_No }}">{{ $si->SI_No }}</option>
+                                        <option value="{{ $si->Final_SI_No }}">{{ $si->Final_SI_No }}</option>
                                     @endforeach
                                 </select>
 							</div>

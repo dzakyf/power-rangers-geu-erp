@@ -27,22 +27,47 @@ class ShipmentInstructionController extends Controller
 
         echo "<rows>";
 
+        $vsds = VesselScheduleDtl::whereNotNull('SI_No')->get();
+        foreach ($vsds as $key => $vsd) {
+            if (!isset($vsdData[$vsd->SI_No])) {
+                $vsdData[$vsd->SI_No] = [
+                    'list' => [],
+                    'tare' => 0,
+                    'netto_kg' => 0,
+                    'netto_mt' => 0,
+                    'gross_kg' => 0,
+                    'gross_mt' => 0
+                ];
+            }
+            $vsdData[$vsd->SI_No]['list'][] = $vsd->Container . " (" . $vsd->Seal . ")";
+            $vsdData[$vsd->SI_No]['tare'] += $vsd->Tare;
+            $vsdData[$vsd->SI_No]['netto_kg'] += $vsd->Netto_KG;
+            $vsdData[$vsd->SI_No]['netto_mt'] += $vsd->Netto_MT;
+            $vsdData[$vsd->SI_No]['gross_kg'] += $vsd->Gross_KG;
+            $vsdData[$vsd->SI_No]['gross_mt'] += $vsd->Gross_MT;
+        }
+
         $shipments = ShipmentInstruction::where('Status', "CREATED")->get();
         foreach ($shipments as $key => $shipment) {
             echo "<row id=\"$shipment->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
             echo "<cell>" . htmlspecialchars($shipment->Order_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Qty) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Vessel) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->POL) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->POD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Stuffing) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Checking_CY) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->ETD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->ATD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->ETA) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->ATA) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Note) . "</cell>";
+            echo "<cell>" . htmlspecialchars($shipment->SI_No) . "</cell>";
+            if (isset($vsdData[$shipment->SI_No])) {
+                echo "<cell>" . htmlspecialchars(implode(', ', $vsdData[$shipment->SI_No]['list'])) . "</cell>";
+                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['tare']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_kg']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_mt']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_kg']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_mt']) . "</cell>";
+            }else {
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+            }
             echo "</row>";
         }
 
@@ -52,8 +77,9 @@ class ShipmentInstructionController extends Controller
     public function newShipmentInstruction()
     {
         $vss = VesselSchedule::get();
+        $masProducts = DB::table('master_product_cns')->get();
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
-        return view('cns.export.si-new', compact('vss', 'companies'));
+        return view('cns.export.si-new', compact('vss', 'companies', 'masProducts'));
     }
 
     public function getOrderDetail(Request $request)
@@ -83,7 +109,7 @@ class ShipmentInstructionController extends Controller
     {
         // Validate the request data
         $request->validate([
-            'Order_No' => 'required|exists:vessel_schedule,Order_No',
+            'Order_No' => 'required|exists:vessel_schedules,Order_No',
             'Container1' => 'required',
             'Container2' => 'nullable',
             'Container3' => 'nullable',
@@ -108,23 +134,23 @@ class ShipmentInstructionController extends Controller
             'Qty1' => $request->input('Qty1'),
             'Qty2' => $request->input('Qty2'),
             'SI_Date' => $request->input('SI_Date'),
-            'Shipper' => $request->input('Shipper'),
-            'Consignee' => $request->input('Consignee'),
-            'Notify' => $request->input('Notify'),
-            'Destination_Letter' => $request->input('Destination_Letter'),
-            'Delivery_Terms' => $request->input('Delivery_Terms'),
-            'Contract_No' => $request->input('Contract_No'),
-            'Voyage' => $request->input('Voyage'),
-            'Delivery_Terms' => $request->input('Delivery_Terms'),
+            'Shipper' => $request->input('Shipper') ?? '',
+            'Consignee' => $request->input('Consignee') ?? '',
+            'Notify' => $request->input('Notify') ?? '',
+            'Destination_Letter' => $request->input('Destination_Letter') ?? '',
+            'Delivery_Terms' => $request->input('Delivery_Terms') ?? '',
+            'Contract_No' => $request->input('Contract_No') ?? '',
+            'Voyage' => $request->input('Voyage') ?? '',
             'ETD' => $request->input('ETD'),
             'ETA' => $request->input('ETA'),
             'Stuffing' => $request->input('Stuffing'),
-            'POL' => $request->input('POL'),
-            'POD' => $request->input('POD'),
+            'POL' => $request->input('POL') ?? "",
+            'POD' => $request->input('POD') ?? "",
             'PEB_Date' => $request->input('PEB_Date'),
-            'PEB_No' => $request->input('PEB_No'),
-            'BL_No' => $request->input('BL_No'),
+            'PEB_No' => $request->input('PEB_No') ?? '',
+            'BL_No' => $request->input('BL_No') ?? '',
             'HS_Code' => $request->input('HS_Code'),
+            'Product_Name' => $request->input('Product_Name'),
             'Status' => "CREATED",
             'Created_Date' => now(),
             'Created_By' => auth()->user()->username
@@ -144,7 +170,7 @@ class ShipmentInstructionController extends Controller
         $counter = DB::table("shipment_instructions")->where('SI_Date', "LIKE", date("Y-m"). "%")->where('Status', "FINAL")->count();
 
         $SINo = "FINALSI/EXP/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
-        ShipmentInstruction::where("ID", $request->task)->update([
+        ShipmentInstruction::where("SI_No", $request->Task)->update([
             'Final_SI_No' => $SINo,
             'Status' => "FINAL",
             'Updated_Date' => now(),
@@ -196,5 +222,41 @@ class ShipmentInstructionController extends Controller
                 return "XII";
                 break;
         }
+    }
+
+    public function detailShipmentInstruction(Request $request)
+    {
+        $si = ShipmentInstruction::where('id', $request->Task)->first();
+        $dtls = VesselScheduleDtl::where('SI_No', $si->SI_No)->get();
+        $masProducts = DB::table('master_product_cns')->get();
+        $containers = VesselScheduleDtl::where('SI_No', $si->SI_No)->get();
+        $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        return view('cns.export.si-detail', compact('si', 'dtls', 'masProducts', 'containers', 'companies'));
+    }
+
+    public function detailShipmentInstructionSubmit(Request $request)
+    {
+        $si = ShipmentInstruction::where('id', $request->input('id'))->first();
+        $si->Shipper = $request->input('Shipper') ?? '';
+        $si->Consignee = $request->input('Consignee') ?? '';
+        $si->Notify = $request->input('Notify') ?? '';
+        $si->Destination_Letter = $request->input('Destination_Letter') ?? '';
+        $si->Delivery_Terms = $request->input('Delivery_Terms') ?? '';
+        $si->Contract_No = $request->input('Contract_No') ?? '';
+        $si->Voyage = $request->input('Voyage') ?? '';
+        $si->Delivery_Terms = $request->input('Delivery_Terms') ?? '';
+        $si->ETD = $request->input('ETD');
+        $si->ETA = $request->input('ETA');
+        $si->Stuffing = $request->input('Stuffing');
+        $si->POL = $request->input('POL') ?? "";
+        $si->POD = $request->input('POD') ?? "";
+        $si->PEB_Date = $request->input('PEB_Date');
+        $si->PEB_No = $request->input('PEB_No') ?? '';
+        $si->BL_No = $request->input('BL_No') ?? '';
+        $si->HS_Code = $request->input('HS_Code');
+        $si->Product_Name = $request->input('Product_Name');
+        $si->save();
+
+        return response()->json(['success' => true, 'message' => 'Shipment Instruction updated successfully']);
     }
 }

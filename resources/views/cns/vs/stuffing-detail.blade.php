@@ -101,10 +101,10 @@ $Saya =  Auth::user()->username;
 	StuffingDetail.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// StuffingDetail.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	StuffingDetail.setInitWidths("60,100,100,100,200,150,150,100,100,100,100,100,auto");
-	StuffingDetail.setColAlign("center,center,center,center,center,center,center,right,right,right,right,right,right,left");
+	StuffingDetail.setColAlign("center,center,center,center,center,center,center,right,right,right,right,right,left");
 	StuffingDetail.setDateFormat("%Y-%m-%d");
 	StuffingDetail.setColSorting("int,str,str,str,str,str,str,int,int,int,int,int,int,str");
-	StuffingDetail.setColTypes("ro,ed,ed,dhxCalendar,ed,ed,ed,edn,edn,edn,edn,edn,edn,ed");
+	StuffingDetail.setColTypes("ro,ed,ed,dhxCalendar,combo,ed,ed,edn,edn,ron,ron,ron,ed");
 	StuffingDetail.enableSmartRendering(true, 150);
 	StuffingDetail.setNumberFormat("0,000", 7, ".", ",");
 	StuffingDetail.setNumberFormat("0,000", 8, ".", ",");
@@ -132,7 +132,7 @@ $Saya =  Auth::user()->username;
     PStuffingDetail.attachEvent("onAfterUpdateFinish", function (id,state, data) {
         alert("Data Successfully Submitted!");
         setTimeout(function() {
-            refreshdata();
+            refreshdataDetail();
         }, 500);
     });
 	StuffingDetail.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
@@ -159,6 +159,10 @@ $Saya =  Auth::user()->username;
 	});
 	StuffingDetail.setSkin("dhx_skyblue");
 	StuffingDetail.init();
+
+	comboStuffingDetail = StuffingDetail.getColumnCombo(4);
+	comboStuffingDetail.enableFilteringMode(true);
+	comboStuffingDetail.load("xml-cns-stuffing-combo-police-no");
 	refreshdataDetail();
 
 	function refreshdataDetail() {

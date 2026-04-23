@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\ShipmentInstruction;
 use App\VesselSchedule;
+use App\VesselScheduleDtl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -26,22 +27,47 @@ class FinalShipmentInstructionController extends Controller
 
         echo "<rows>";
 
+        $vsds = VesselScheduleDtl::whereNotNull('SI_No')->get();
+        foreach ($vsds as $key => $vsd) {
+            if (!isset($vsdData[$vsd->SI_No])) {
+                $vsdData[$vsd->SI_No] = [
+                    'list' => [],
+                    'tare' => 0,
+                    'netto_kg' => 0,
+                    'netto_mt' => 0,
+                    'gross_kg' => 0,
+                    'gross_mt' => 0
+                ];
+            }
+            $vsdData[$vsd->SI_No]['list'][] = $vsd->Container . " (" . $vsd->Seal . ")";
+            $vsdData[$vsd->SI_No]['tare'] += $vsd->Tare;
+            $vsdData[$vsd->SI_No]['netto_kg'] += $vsd->Netto_KG;
+            $vsdData[$vsd->SI_No]['netto_mt'] += $vsd->Netto_MT;
+            $vsdData[$vsd->SI_No]['gross_kg'] += $vsd->Gross_KG;
+            $vsdData[$vsd->SI_No]['gross_mt'] += $vsd->Gross_MT;
+        }
+
         $shipments = ShipmentInstruction::where('Status', "FINAL")->get();
         foreach ($shipments as $key => $shipment) {
             echo "<row id=\"$shipment->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
             echo "<cell>" . htmlspecialchars($shipment->Order_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Qty) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Vessel) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->POL) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->POD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Stuffing) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Checking_CY) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->ETD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->ATD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->ETA) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->ATA) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Note) . "</cell>";
+            echo "<cell>" . htmlspecialchars($shipment->SI_No) . "</cell>";
+            if (isset($vsdData[$shipment->SI_No])) {
+                echo "<cell>" . htmlspecialchars(implode(', ', $vsdData[$shipment->SI_No]['list'])) . "</cell>";
+                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['tare']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_kg']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_mt']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_kg']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_mt']) . "</cell>";
+            }else {
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+            }
             echo "</row>";
         }
 
@@ -52,8 +78,9 @@ class FinalShipmentInstructionController extends Controller
     {
         $vss = VesselSchedule::get();
         $sis = ShipmentInstruction::where('Status', "CREATED")->get();
+        $masProducts = DB::table('master_product_cns')->get();
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
-        return view('cns.export.si-new', compact('vss', 'sis', 'companies'));
+        return view('cns.export.fsi-new', compact('vss', 'sis', 'companies', 'masProducts'));
     }
 
     public function getSI(Request $request)
