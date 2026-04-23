@@ -44,19 +44,19 @@ $Saya =  Auth::user()->username;
 								</div>
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Vessel">Vessel</label>
 								<input type="text" name="Vessel" id="Vessel" value="" class="form-control" required />
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4">
 							<div class="form-group">
 								<label for="POL">POL</label>
 								<input type="text" name="POL" id="POL" value="" class="form-control" required />
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4">
 							<div class="form-group">
 								<label for="POD">POD</label>
 								<input type="text" name="POD" id="POD" value="" class="form-control" required />

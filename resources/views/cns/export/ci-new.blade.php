@@ -49,9 +49,9 @@ function getRomawi($bln)
 
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
-$counter = DB::table("commercial_invoices")->where('SI_Date', "LIKE", date("Y-m"). "%")->count();
+$counter = DB::table("commercial_invoices")->where('Inv_Date', "LIKE", date("Y-m"). "%")->count();
 
-$SINo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/" . date("Y");
+$InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/" . date("Y");
 
 ?>
 <div class="mt-3">
@@ -61,30 +61,30 @@ $SINo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/" 
 			<div id="ContentPages">
 				<div class="FormInput_Form_Content">
 					<div class="row">
-						<div class="col-12">
+						<div class="col-md-4">
 							<div class="form-group">
-								<label for="SI_No">SI No</label>
-                                <select name="SI_No" id="SI_No" class="form-control" required>
-                                    <option value="">-- Pilih Order No --</option>
+								<label for="Final_SI_No">Final SI No</label>
+                                <select name="Final_SI_No" id="Final_SI_No" class="form-control" required>
+                                    <option value="">-- Pilih Final SI --</option>
                                     @foreach ($sis as $si)
-                                        <option value="{{ $si->SI_No }}">{{ $si->SI_No }}</option>
+                                        <option value="{{ $si->Final_SI_No }}">{{ $si->Final_SI_No }}</option>
                                     @endforeach
                                 </select>
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4">
 							<div class="form-group">
-								<label for="SI_No">Inv No</label>
-                                <input type="text" name="SI_No" id="SI_No" value="{{ $SINo }}" class="form-control" required readonly />
+								<label for="Inv_No">Inv No</label>
+                                <input type="text" name="Inv_No" id="Inv_No" value="{{ $InvNo }}" class="form-control" required readonly />
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4">
 							<div class="form-group">
-								<label for="SI_Date">SI Date</label>
-                                <input name="SI_Date" id="SI_Date" class="form-control" value="{{ date('Y-m-d') }}" required />
+								<label for="Inv_Date">Inv Date</label>
+                                <input name="Inv_Date" id="Inv_Date" class="form-control" value="{{ date('Y-m-d') }}" required />
 							</div>
 						</div>
-                        <div class="col-12">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
                                 <select name="Consignee" id="Consignee" class="form-control" required>
@@ -95,43 +95,43 @@ $SINo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/" 
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Description">Description of Cargo</label>
                                 <input type="text" name="Description" id="Description" value="" class="form-control" required />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Qty">Qty (MT)</label>
                                 <input type="text" name="Qty" id="Qty" value="0" onchange="calculateTotal()" class="form-control" required />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Unit_Price">Unit Price (MT)</label>
                                 <input type="text" name="Unit_Price" id="Unit_Price" value="0" class="form-control" onchange="calculateTotal()" required />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Amount">Amount</label>
                                 <input type="text" name="Amount" id="Amount" value="0" class="form-control" onchange="calculateTotal()" required />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Advance_Payment">Advance Payment</label>
                                 <input type="text" name="Advance_Payment" id="Advance_Payment" value="0" class="form-control" onchange="calculateTotal()" required />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Other">Other</label>
                                 <input type="text" name="Other" id="Other" value="0" class="form-control" onchange="calculateTotal()" required />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Total">Total</label>
                                 <input type="text" name="Total" id="Total" value="0" class="form-control" onchange="calculateTotal()" required />
@@ -139,6 +139,7 @@ $SINo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/" 
                         </div>
 					</div>
 				</div>
+				{{-- STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION --}}
 			</div>
 			<div id="divtom">
 				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Publish" class="btn btn-success mt-2 mr-2" />
@@ -187,7 +188,7 @@ $SINo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/" 
 	// ShipmentInstructionNew.init();
 
 	// function refreshdata() {
-	// 	ShipmentInstructionNew.clearAndLoad('xml-cns-export-shipment-instruction-new?Order_No=' + $('#Order_No').find('option:selected').val());
+	// 	ShipmentInstructionNew.clearAndLoad('xml-cns-export-commercial-invoice?Order_No=' + $('#Order_No').find('option:selected').val());
 
 	// }
 
@@ -198,18 +199,19 @@ $SINo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/" 
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-            url: "cns-export-shipment-instruction-new-get-order",
+            url: "cns-export-commercial-invoice-get-si",
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
                 SI_No: $('#SI_No').find('option:selected').val()
             },
             success: function(response) {
-                $('#Qty').val(response.Qty1);
+                $('#Qty').val(response.Netto_MT ?? 0);
+                $('#Consignee').find('option[value="'+response.Consignee+'"]').attr('selected', true);
                 $.unblockUI();
             },
             error:function() {
-                alert('Error fetching order details. Please try again.');
+                alert('Error fetching si details. Please try again.');
                 $.unblockUI();
             }
         });
@@ -227,7 +229,7 @@ $SINo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/" 
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "cns-export-shipment-instruction-new-submit?_token={{ csrf_token() }}",
+			url: "cns-export-commercial-invoice-submit?_token={{ csrf_token() }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {

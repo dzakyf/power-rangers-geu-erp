@@ -173,4 +173,28 @@ class StuffingMonitoringController extends Controller
             return "error";
         }
     }
+
+    
+
+    public function comboPoliceNumber()
+    {
+        header('Content-Type: application/json');
+            
+        echo "{
+        options: ["; 
+        $qy = VesselScheduleDtl::get();
+        $dx = "";
+        foreach ($qy as $ax){
+            
+                $dx .= "{value:'$ax->Police_No',text:'$ax->Police_No - $ax->Order_No'},";
+
+            
+        }
+        $dx = substr($dx,0,-1);
+
+        echo "
+        $dx
+        ]
+        }"; 
+    }
 }

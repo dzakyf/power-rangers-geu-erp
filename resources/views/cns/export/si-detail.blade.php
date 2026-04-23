@@ -19,12 +19,7 @@ $Saya =  Auth::user()->username;
 						<div class="col-12">
 							<div class="form-group">
 								<label for="Order_No">Order No</label>
-                                <select name="Order_No" id="Order_No" class="form-control" required>
-                                    <option value="">-- Pilih Order No --</option>
-                                    @foreach ($vss as $vs)
-                                        <option value="{{ $vs->Order_No }}" {{ $vs->Order_No == $si->Order_No ? 'selected' : '' }}>{{ $vs->Order_No }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" name="Order_No" id="Order_No" value="{{ $si->Order_No }}" class="form-control" required readonly />
 							</div>
 						</div>
 						<div class="col-12">
@@ -36,7 +31,29 @@ $Saya =  Auth::user()->username;
 						<div class="col-12">
 							<div class="form-group">
 								<label for="SI_Date">SI Date</label>
-                                <input name="SI_Date" id="SI_Date" class="form-control" value="{{ $si->SI_Date }}" required readonly />
+                                <input name="SI_Date" id="SI_Date" class="form-control" value="{{ $si->SI_Date }}" required />
+							</div>
+						</div>
+						<div class="col-12">
+							<div class="form-group">
+								<label for="Qty1">Qty</label>
+								<div class="row">
+									<div class="col">
+										<select name="Qty1" id="Qty1" class="form-control" required>
+											<option value="">-- Pilih Qty --</option>
+											@foreach (range(1,1000) as $item)
+											<option value="{{$item}}" {{ $item == $si->Qty1 ? 'selected' : '' }}>{{$item}}</option>
+											@endforeach
+										</select>
+									</div>
+									<div class="col">
+										<select name="Qty2" id="Qty2" class="form-control" required>
+											<option value="">-- Pilih Qty --</option>
+											<option value="20 FT" {{ $si->Qty2 == '20 FT' ? 'selected' : '' }}>20 FT</option>
+											<option value="20 ISOTANK" {{ $si->Qty2 == '20 ISOTANK' ? 'selected' : '' }}>20 ISOTANK</option>
+										</select>
+									</div>
+								</div>
 							</div>
 						</div>
                         {{-- <div class="col-12">
@@ -58,7 +75,7 @@ $Saya =  Auth::user()->username;
                                 <select name="Shipper" id="Shipper" class="form-control" required>
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
-                                        <option value="{{ $shipper->Company_ID }}" {{ $shipper->Company_ID == $si->Shipper ? 'selected' : '' }}>{{ $shipper->Company_Name }}</option>
+                                        <option value="{{ $shipper->Company_ID }}" {{ $si->Shipper == $shipper->Company_ID ? '' : '' }}>{{ $shipper->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -69,7 +86,7 @@ $Saya =  Auth::user()->username;
                                 <select name="Consignee" id="Consignee" class="form-control" required>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
-                                        <option value="{{ $consignee->Company_ID }}" {{ $consignee->Company_ID == $si->Consignee ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
+                                        <option value="{{ $consignee->Company_ID }}" {{ $si->Consignee == $consignee->Company_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -80,7 +97,7 @@ $Saya =  Auth::user()->username;
                                 <select name="Notify" id="Notify" class="form-control" required>
                                     <option value="">-- Pilih Notify --</option>
                                     @foreach ($companies as $notify)
-                                        <option value="{{ $notify->Company_ID }}" {{ $notify->Company_ID == $si->Notify ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
+                                        <option value="{{ $notify->Company_ID }}" {{ $si->Notify == $notify->Company_ID ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -91,7 +108,7 @@ $Saya =  Auth::user()->username;
                                 <select name="Destination_Letter" id="Destination_Letter" class="form-control" required>
                                     <option value="">-- Pilih Destination Letter --</option>
                                     @foreach ($companies as $destination_Letter)
-                                        <option value="{{ $destination_Letter->Company_ID }}" {{ $destination_Letter->Company_ID == $si->Destination_Letter ? 'selected' : '' }}>{{ $destination_Letter->Company_Name }}</option>
+                                        <option value="{{ $destination_Letter->Company_ID }}" {{ $si->Destination_Letter == $destination_Letter->Company_ID ? 'selected' : '' }}>{{ $destination_Letter->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -115,21 +132,25 @@ $Saya =  Auth::user()->username;
                             </div>
                         </div>
                         <div class="col-12">
-                            <div class="form-group">
-                                <label for="ETD">ETD</label>
-                                <input type="text" name="ETD" id="ETD" value="{{ $si->ETD }}" class="form-control" required />
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="form-group">
-                                <label for="ETA">ETA</label>
-                                <input type="text" name="ETA" id="ETA" value="{{ $si->ETA }}" class="form-control" required />
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="form-group">
-                                <label for="Stuffing">Stuffing</label>
-                                <input type="text" name="Stuffing" id="Stuffing" value="{{ $si->Stuffing }}" class="form-control" required />
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="ETD">ETD</label>
+                                        <input type="text" name="ETD" id="ETD" value="{{ $si->ETD }}" class="form-control bg-white" required readonly />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="ETA">ETA</label>
+                                        <input type="text" name="ETA" id="ETA" value="{{ $si->ETA }}" class="form-control bg-white" required readonly />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="Stuffing">Stuffing</label>
+                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ $si->Stuffing }}" class="form-control bg-white" required readonly />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-12">
@@ -163,14 +184,51 @@ $Saya =  Auth::user()->username;
                             </div>
                         </div>
                         <div class="col-12">
-			                <div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+                            <div class="form-group">
+                                <label for="Product_Name">Product Name</label>
+                                <select name="Product_Name" id="Product_Name" class="form-control">
+                                    <option value="">-- Pilih Product --</option>
+                                    @foreach ($masProducts as $item)
+                                    <option value="{{ $item->description }}" {{ $item->description == $si->Product_Name ? 'selected' : '' }}>{{ $item->description }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
-                        
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="HS_Code">HS Code</label>
+                                <select name="HS_Code" id="HS_Code" class="form-control">
+                                    <option value="">-- Pilih HS Code --</option>
+                                    <option value="15180090" {{ $si->HS_Code == '15180090' ? 'selected' : '' }}>15180090</option>
+                                    <option value="15119020" {{ $si->HS_Code == '15119020' ? 'selected' : '' }}>15119020</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="row no-gutters" id="containerList">
+                                @foreach ($dtls as $kunci => $item)
+                                    <div class="col-12">
+                                        <div class="form-group">
+                                            <label for="Container{{ $loop->iteration }}">Container {{ $loop->iteration }}</label>
+                                            <select name="Container{{ $loop->iteration }}" id="Container{{ $loop->iteration }}" class="form-control">
+                                                <option value="">-- Pilih Container --</option>
+                                                @foreach ($containers as $key => $container)
+                                                    <option value="{{ $container->ID }}" {{ $kunci == $key ? 'selected' : '' }}>{{ $container->Container }} ({{ $container->Seal }})</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="col-12">
+			                {{-- <div id="ShipmentInstructionNew" style="width:auto;height:320px; background-color:white;overflow:hidden"></div> --}}
+                        </div>
 					</div>
 				</div>
 			</div>
 			<div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Publish" class="btn btn-success mt-2 mr-2" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit Final SI" class="btn btn-success mt-2 mr-2" />
 			</div>
 		</div>
 	</div>
@@ -180,33 +238,84 @@ $Saya =  Auth::user()->username;
 
 <script>
     
-	ShipmentInstructionNew = new dhtmlXGridObject('ShipmentInstructionNew');
-	ShipmentInstructionNew.setImagePath("./dhtmlx/imgs/");
-	ShipmentInstructionNew.setHeader("No, Dari Jam, Hingga Jam, Nopol, Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross (Kg), Gross (MT), Qty (Kgs) Note");
-	ShipmentInstructionNew.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	// ShipmentInstructionNew.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	ShipmentInstructionNew.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,100,auto");
-	ShipmentInstructionNew.setColAlign("center,left,left,left,left,left,right,right,right,right,right,right,left");
-	ShipmentInstructionNew.setColSorting("int,str,str,str,str,str,int,int,int,int,int,int,str");
-	ShipmentInstructionNew.setColTypes("ro,ed,ed,ed,ed,ed,edn,edn,edn,edn,edn,edn,ed");
-	ShipmentInstructionNew.enableSmartRendering(true, 150);
-	ShipmentInstructionNew.setNumberFormat("0,000", 6, ".", ",");
-	ShipmentInstructionNew.setNumberFormat("0,000", 7, ".", ",");
-	ShipmentInstructionNew.setNumberFormat("0,000", 8, ".", ",");
-	ShipmentInstructionNew.setNumberFormat("0,000", 9, ".", ",");
-	ShipmentInstructionNew.setNumberFormat("0,000", 10, ".", ",");
-	ShipmentInstructionNew.setNumberFormat("0,000", 11, ".", ",");
-	ShipmentInstructionNew.attachEvent("onRowDblClicked", ShipmentInstructionNewKlik);
-	ShipmentInstructionNew.setSkin("dhx_skyblue");
-	ShipmentInstructionNew.init();
+	var myCalendar;
+	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "SI_Date", "ETD", "ETA"]);
+	myCalendar.setDateFormat("%Y-%m-%d");
 
-	function refreshdata() {
-		ShipmentInstructionNew.clearAndLoad('xml-cns-export-shipment-instruction-new?Order_No=' + $('#Order_No').find('option:selected').val());
+	// ShipmentInstructionNew = new dhtmlXGridObject('ShipmentInstructionNew');
+	// ShipmentInstructionNew.setImagePath("./dhtmlx/imgs/");
+	// ShipmentInstructionNew.setHeader("No, Dari Jam, Hingga Jam, Nopol, Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross (Kg), Gross (MT), Qty (Kgs) Note");
+	// ShipmentInstructionNew.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	// // ShipmentInstructionNew.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+	// ShipmentInstructionNew.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,100,auto");
+	// ShipmentInstructionNew.setColAlign("center,left,left,left,left,left,right,right,right,right,right,right,left");
+	// ShipmentInstructionNew.setColSorting("int,str,str,str,str,str,int,int,int,int,int,int,str");
+	// ShipmentInstructionNew.setColTypes("ro,ed,ed,ed,ed,ed,edn,edn,edn,edn,edn,edn,ed");
+	// ShipmentInstructionNew.enableSmartRendering(true, 150);
+	// ShipmentInstructionNew.setNumberFormat("0,000", 6, ".", ",");
+	// ShipmentInstructionNew.setNumberFormat("0,000", 7, ".", ",");
+	// ShipmentInstructionNew.setNumberFormat("0,000", 8, ".", ",");
+	// ShipmentInstructionNew.setNumberFormat("0,000", 9, ".", ",");
+	// ShipmentInstructionNew.setNumberFormat("0,000", 10, ".", ",");
+	// ShipmentInstructionNew.setNumberFormat("0,000", 11, ".", ",");
+	// // ShipmentInstructionNew.attachEvent("onRowDblClicked", ShipmentInstructionNewKlik);
+	// ShipmentInstructionNew.setSkin("dhx_skyblue");
+	// ShipmentInstructionNew.init();
 
-	}
+	// function refreshdata() {
+	// 	ShipmentInstructionNew.clearAndLoad('xml-cns-export-shipment-instruction-detail?Order_No=' + $('#Order_No').find('option:selected').val());
+
+	// }
 
     $('#Order_No').on('change', function() {
-        refreshdata();  
+        // refreshdata();  
+        $.blockUI();
+        $.ajax({
+			headers: {
+				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+			},
+            url: "cns-export-shipment-instruction-detail-get-order",
+            type: "POST",
+            data: {
+                _token: "{{ csrf_token() }}",
+                Order_No: $('#Order_No').find('option:selected').val()
+            },
+            success: function(response) {
+                $('#ETA').val(response.ETA);
+                $('#ETD').val(response.ETD);
+                $('#Stuffing').val(response.Stuffing);
+                $('#POL').val(response.POL);
+                $('#POD').val(response.POD);
+                $('#Voyage').val(response.Vessel);
+                $('#Qty1').val(response.Qty1);
+                $('#Qty2').val(response.Qty2);
+                $('#containerList').html('');
+                let counter = 1;
+                let string = "";
+                response.orderDetails.forEach(function(container, index) {
+                    string += `<option value="${container.ID}">${container.Container} (${container.Seal})</option>`;
+                });
+                while (counter <= response.Qty1) {
+                    $('#containerList').append(`
+                    <div class="col-12">
+                        <div class="form-group">
+                            <label for="Container${counter}">Container ${counter}</label>
+                            <select name="Container${counter}" id="Container${counter}" class="form-control">
+                                <option value="">-- Pilih Container --</option>
+                        `+ string + `
+                                    </select>
+                                </div>
+                            </div>
+                    `);
+                    counter++;
+                }
+                $.unblockUI();
+            },
+            error:function() {
+                alert('Error fetching order details. Please try again.');
+                $.unblockUI();
+            }
+        });
     });
 
 	var myCalendar;
@@ -221,7 +330,7 @@ $Saya =  Auth::user()->username;
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "cns-export-shipment-instruction-new-submit?_token={{ csrf_token() }}",
+			url: "cns-export-shipment-instruction-detail-submit?_token={{ csrf_token() }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {

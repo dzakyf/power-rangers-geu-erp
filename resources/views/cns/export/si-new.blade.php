@@ -235,12 +235,27 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                         </div>
                         <div class="col-12">
                             <div class="form-group">
-                                <label for="HS_Code">HS Code</label>
-                                <input type="text" name="HS_Code" id="HS_Code" value="" class="form-control" />
+                                <label for="Product_Name">Product Name</label>
+                                <select name="Product_Name" id="Product_Name" class="form-control">
+                                    <option value="">-- Pilih Product --</option>
+                                    @foreach ($masProducts as $item)
+                                    <option value="{{ $item->description }}">{{ $item->description }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                         <div class="col-12">
-                            <div class="row" id="containerList">
+                            <div class="form-group">
+                                <label for="HS_Code">HS Code</label>
+                                <select name="HS_Code" id="HS_Code" class="form-control">
+                                    <option value="">-- Pilih HS Code --</option>
+                                    <option value="15180090">15180090</option>
+                                    <option value="15119020">15119020</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="row no-gutters" id="containerList">
                                 <select name="Container1" id="Container1" class="form-control">
                                     <option value="">-- Pilih Container --</option>
                                 </select>
@@ -253,7 +268,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 				</div>
 			</div>
 			<div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Publish" class="btn btn-success mt-2 mr-2" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit Final SI" class="btn btn-success mt-2 mr-2" />
 			</div>
 		</div>
 	</div>

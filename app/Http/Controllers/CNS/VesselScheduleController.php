@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
+use App\ShipmentInstruction;
 use App\VesselSchedule;
 use Illuminate\Http\Request;
 
@@ -13,7 +14,7 @@ class VesselScheduleController extends Controller
         return view('cns.vs.vessel-schedule');
     }
 
-    public function indexVesselScheduleXml()
+    public function indexVesselScheduleXml(Request $request)
     {
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
@@ -25,7 +26,7 @@ class VesselScheduleController extends Controller
         echo "<rows>";
 
         // Sample data, replace with actual database query
-        $vessels = VesselSchedule::get();
+        $vessels = VesselSchedule::whereBetween('Stuffing', [$request->tgl1, $request->tgl2])->get();
         foreach ($vessels as $key => $vessel) {
             echo "<row id=\"$vessel->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
@@ -116,6 +117,15 @@ class VesselScheduleController extends Controller
     public function detailVesselScheduleSubmit(Request $request)
     {
         $vs = VesselSchedule::where('id', $request->input('id'))->first();
+
+        $cekSI = ShipmentInstruction::where('Order_No', $vs->Order_No)->first();
+
+        if ($cekSI) {
+            $cekSI->Order_No = $request->input('Order_No');
+            $cekSI->save();
+        }
+
+        $vs->Order_No = $request->input('Order_No');
         $vs->Qty = $request->input('Qty1') . " x " . $request->input('Qty2');
         $vs->Qty1 = $request->input('Qty1');
         $vs->Qty2 = $request->input('Qty2');

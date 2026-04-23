@@ -1,9 +1,9 @@
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
 <!-- Main Content Header -->
 <div class="main-content-header">
-	<h1>PROCUREMENT</h1>
+	<h1>CNS</h1>
 	<ol class="breadcrumb">
 		<li class="breadcrumb-item">
 			<a href="/dashboard1">Master Vendor</a>

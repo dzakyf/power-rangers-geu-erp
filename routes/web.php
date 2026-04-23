@@ -22,7 +22,8 @@ use App\Http\Controllers\CNS\MasterCompanyController;
 use App\Http\Controllers\CNS\StuffingController as CNSStuffingController;
 use App\Http\Controllers\CNS\StuffingMonitoringController as CNSStuffingMonitoringController;
 use App\Http\Controllers\CNS\PackingListController as CNSPackingListController;
-use App\Http\Controllers\CNS\CommercialInvoiceController as CommercialInvoiceController;
+use App\Http\Controllers\CNS\CommercialInvoiceController as CNSCommercialInvoiceController;
+use App\Http\Controllers\CNS\WeightBridgeTicketController as CNSWeightBridgeTicketController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOReportController as PartnerUCOReportController;
 use App\Http\Controllers\Partner\TrainingController as PartnerTrainingController;
@@ -5007,6 +5008,9 @@ Route::group(['middleware' => 'auth'], function () {
 
     Route::get("$partnerDashboard-membership", [PartnerSalesController::class, 'membershipDashboardPage']);
     Route::get("$partnerDashboard-membership-data", [PartnerSalesController::class, 'membershipDashboardData']);
+    Route::get("$partnerDashboard-financial-insight", [PartnerSalesController::class, 'financialInsightDashboardPage']);
+    Route::get("$partnerDashboard-financial-insight-data", [PartnerSalesController::class, 'financialInsightDashboardData']);
+
 
     $vesselPref = "cns-vessel-schedule";
     Route::get("$vesselPref", [VesselScheduleController::class, "indexVesselSchedule"]);
@@ -5022,31 +5026,45 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$stuffPref-detail", [CNSStuffingController::class, "detailStuffing"]);
     Route::get("xml-$stuffPref-detail", [CNSStuffingController::class, "detailStuffingXml"]);
     Route::post("$stuffPref-detail-update", [CNSStuffingController::class, "updateDetailStuffing"]);
+    Route::get("xml-$stuffPref-combo-police-no", [CNSStuffingController::class, "comboPoliceNumber"]);
 
-    Route::get('cns-export-stuffing-monitoring', [CNSStuffingMonitoringController::class, 'indexStuffingMonitoring']);
-    Route::get('xml-cns-export-stuffing-monitoring', [CNSStuffingMonitoringController::class, 'indexStuffingMonitoringXml']);
+    $stuffMonitoringPref = "cns-export-stuffing-monitoring";
+    Route::get("$stuffMonitoringPref", [CNSStuffingMonitoringController::class, 'indexStuffingMonitoring']);
+    Route::get("xml-$stuffMonitoringPref", [CNSStuffingMonitoringController::class, 'indexStuffingMonitoringXml']);
 
     Route::get('cns-master-company', [MasterCompanyController::class, 'indexMasterCompany']);
 
-    Route::get('cns-export-shipment-instruction', [ShipmentInstructionController::class, 'indexShipmentInstruction']);
-    Route::get('xml-cns-export-shipment-instruction', [ShipmentInstructionController::class, 'indexShipmentInstructionXml']);
-    Route::get('cns-export-shipment-instruction-new', [ShipmentInstructionController::class, 'newShipmentInstruction']);
-    Route::post('cns-export-shipment-instruction-new-get-order', [ShipmentInstructionController::class, 'getOrderDetail']);
-    Route::post('cns-export-shipment-instruction-new-submit', [ShipmentInstructionController::class, 'newShipmentInstructionSubmit']);
-    Route::get('cns-export-shipment-instruction-generate-fsi', [ShipmentInstructionController::class, 'generateFinalShipmentInstruction']);
+    $siPref = "cns-export-shipment-instruction";
+    Route::get("$siPref", [ShipmentInstructionController::class, 'indexShipmentInstruction']);
+    Route::get("xml-$siPref", [ShipmentInstructionController::class, 'indexShipmentInstructionXml']);
+    Route::get("$siPref-new", [ShipmentInstructionController::class, 'newShipmentInstruction']);
+    Route::post("$siPref-new-get-order", [ShipmentInstructionController::class, 'getOrderDetail']);
+    Route::post("$siPref-new-submit", [ShipmentInstructionController::class, 'newShipmentInstructionSubmit']);
+    Route::get("$siPref-generate-fsi", [ShipmentInstructionController::class, 'generateFinalShipmentInstruction']);
+    Route::get("$siPref-detail", [ShipmentInstructionController::class, 'detailShipmentInstruction']);
+    Route::post("$siPref-detail-submit", [ShipmentInstructionController::class, 'detailShipmentInstructionSubmit']);
 
-    Route::get('cns-export-final-shipment-instruction', [FinalShipmentInstructionController::class, 'indexFinalShipmentInstruction']);
-    Route::get('xml-cns-export-final-shipment-instruction', [FinalShipmentInstructionController::class, 'indexFinalShipmentInstructionXml']);
-    Route::get('cns-export-final-shipment-instruction-new', [FinalShipmentInstructionController::class, 'newFinalShipmentInstruction']);
-    Route::post('cns-export-final-shipment-instruction-new-get-si', [FinalShipmentInstructionController::class, 'getSI']);
-    
-    Route::get('cns-export-packing-list', [CNSPackingListController::class, 'indexPackingList']);
-    Route::get('xml-cns-export-packing-list', [CNSPackingListController::class, 'indexPackingListXml']);
-    Route::get('cns-export-packing-list-new', [CNSPackingListController::class, 'newPackingList']);
-    
-    Route::get('cns-export-commercial-invoice', [CNSPackingListController::class, 'indexPackingList']);
-    Route::get('xml-cns-export-commercial-invoice', [CNSPackingListController::class, 'indexPackingListXml']);
-    Route::get('cns-export-commercial-invoice-new', [CNSPackingListController::class, 'newPackingList']);
+    $fsiPref = "cns-export-final-shipment-instruction";
+    Route::get("$fsiPref", [FinalShipmentInstructionController::class, 'indexFinalShipmentInstruction']);
+    Route::get("xml-$fsiPref", [FinalShipmentInstructionController::class, 'indexFinalShipmentInstructionXml']);
+    Route::get("$fsiPref-new", [FinalShipmentInstructionController::class, 'newFinalShipmentInstruction']);
+    Route::post("$fsiPref-new-get-si", [FinalShipmentInstructionController::class, 'getSI']);
+
+    $packingListPref = "cns-export-packing-list";
+    Route::get("$packingListPref", [CNSPackingListController::class, 'indexPackingList']);
+    Route::get("xml-$packingListPref", [CNSPackingListController::class, 'indexPackingListXml']);
+    Route::get("$packingListPref-new", [CNSPackingListController::class, 'newPackingList']);
+
+    $commercialInvoicePref = "cns-export-commercial-invoice";
+    Route::get("$commercialInvoicePref", [CNSCommercialInvoiceController::class, 'indexCommercialInvoice']);
+    Route::get("xml-$commercialInvoicePref", [CNSCommercialInvoiceController::class, 'indexCommercialInvoiceXml']);
+    Route::get("$commercialInvoicePref-new", [CNSCommercialInvoiceController::class, 'newCommercialInvoice']);
+    Route::post("$commercialInvoicePref-get-si", [CNSCommercialInvoiceController::class, 'getSIDetail']);
+
+    $wbtPref = "cns-export-weight-bridge-ticket";
+    Route::get("$wbtPref", [CNSWeightBridgeTicketController::class, 'indexWeightBridgeTicket']);
+    Route::get("xml-$wbtPref", [CNSWeightBridgeTicketController::class, 'indexWeightBridgeTicketXml']);
+    Route::get("$wbtPref-new", [CNSWeightBridgeTicketController::class, 'newWeightBridgeTicket']);
 
     $cnsInventoryPref = "cns-inventory-tracking";
     Route::get("$cnsInventoryPref-index", [PartnerUCOReportController::class, 'trackExportedStockIndex'])->name($cnsInventoryPref . '.index');

@@ -31,6 +31,11 @@ $Saya =  Auth::user()->username;
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">VESSEL SCHEDULE LIST</div>
 	<div class="card">
 		<div class="card-body">
+			<div class="mb-2">
+				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-d', strtotime('-7 days')) }}" class="form-control-sm" />
+				s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
+				<button onclick="refreshdata()" class="btn btn-primary p-2">Refresh</button>
+			</div>
 			<div id="VesselSchedule" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselVesselScheduleDet" name="ekselVesselScheduleDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="VesselSchedule.toExcel('./export/generate.php');" />
@@ -67,7 +72,7 @@ $Saya =  Auth::user()->username;
 	}
 	VesselSchedule = new dhtmlXGridObject('VesselSchedule');
 	VesselSchedule.setImagePath("./dhtmlx/imgs/");
-	VesselSchedule.setHeader("No,Order (DO)/Booking Confirmation (BC),Qty,Kapal,POL,POD,Stuffing,Checking,Closing CY,ETD,ATD,ETA,ATA,Estimated Day(s), Actual Day(s), Note"); 
+	VesselSchedule.setHeader("No,Order (DO)/Booking Confirmation (BC),Qty,Vessel,POL,POD,Stuffing,Checking,Closing CY,ETD,ATD,ETA,ATA,Estimated Day(s), Actual Day(s), Note"); 
 	VesselSchedule.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// VesselSchedule.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	VesselSchedule.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,100,100,100,100,100");
@@ -82,7 +87,7 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		VesselSchedule.clearAndLoad('xml-cns-vessel-schedule');
+		VesselSchedule.clearAndLoad('xml-cns-vessel-schedule?tgl1=' + $('#tgl1').val() + '&tgl2=' + $('#tgl2').val());
 
 	}
 </script>

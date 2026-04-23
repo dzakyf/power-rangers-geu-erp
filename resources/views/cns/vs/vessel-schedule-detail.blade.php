@@ -20,7 +20,7 @@ $Saya =  Auth::user()->username;
 							<div class="form-group">
 								<label for="Order_No">Order No</label>
 								<input type="hidden" name="id" id="id" value="{{ $vs->id }}" />
-								<input type="text" name="Order_No" id="Order_No" class="form-control" required value="{{ $vs->Order_No }}" readonly />
+								<input type="text" name="Order_No" id="Order_No" class="form-control" required value="{{ $vs->Order_No }}" />
 							</div>
 						</div>
 						<div class="col-12">
@@ -45,68 +45,64 @@ $Saya =  Auth::user()->username;
 								</div>
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Vessel">Vessel</label>
 								<input type="text" name="Vessel" id="Vessel" value="{{ $vs->Vessel }}" class="form-control" required />
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4">
 							<div class="form-group">
 								<label for="POL">POL</label>
 								<input type="text" name="POL" id="POL" value="{{ $vs->POL }}" class="form-control" required />
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4">
 							<div class="form-group">
 								<label for="POD">POD</label>
 								<input type="text" name="POD" id="POD" value="{{ $vs->POD }}" class="form-control" required />
 							</div>
 						</div>
-						<div class="col-12">
-							<div class="row">
-								<div class="col-md-6">
-									<div class="form-group">
-										<label for="Stuffing">Stuffing</label>
-										<input type="text" name="Stuffing" id="Stuffing" value="{{ $vs->Stuffing }}" class="form-control bg-white" required readonly />
-									</div>
-								</div>
-								<div class="col-md-6">
-									<div class="form-group">
-										<label for="Checking_BC">Checking BC</label>
-										<input type="text" name="Checking_BC" id="Checking_BC" value="{{ $vs->Checking_BC }}" class="form-control bg-white" required readonly />
-									</div>
-								</div>
-								<div class="col-md-6">
-									<div class="form-group">
-										<label for="Closing_CY">Closing CY</label>
-										<input type="text" name="Closing_CY" id="Closing_CY" value="{{ $vs->Closing_CY }}" class="form-control bg-white" required readonly />
-									</div>
-								</div>
-								<div class="col-md-6">
-									<div class="form-group">
-										<label for="ETD">ETD</label>
-										<input type="text" name="ETD" id="ETD" value="{{ $vs->ETD }}" class="form-control bg-white" required readonly />
-									</div>
-								</div>
-								<div class="col-md-6">
-									<div class="form-group">
-										<label for="ATD">ATD</label>
-										<input type="text" name="ATD" id="ATD" value="{{ $vs->ATD ?? "" }}" class="form-control bg-white" required readonly />
-									</div>
-								</div>
-								<div class="col-md-6">
-									<div class="form-group">
-										<label for="ETA">ETA</label>
-										<input type="text" name="ETA" id="ETA" value="{{ $vs->ETA }}" class="form-control bg-white" required readonly />
-									</div>
-								</div>
-								<div class="col-md-6">
-									<div class="form-group">
-										<label for="ATA">ATA</label>
-										<input type="text" name="ATA" id="ATA" value="{{ $vs->ATA ?? "" }}" class="form-control bg-white" required readonly />
-									</div>
-								</div>
+						<div class="col-md-2">
+							<div class="form-group">
+								<label for="Stuffing">Stuffing</label>
+								<input type="text" name="Stuffing" id="Stuffing" value="{{ $vs->Stuffing }}" class="form-control bg-white" required readonly />
+							</div>
+						</div>
+						<div class="col-md-2">
+							<div class="form-group">
+								<label for="Checking_BC">Checking BC</label>
+								<input type="text" name="Checking_BC" id="Checking_BC" value="{{ $vs->Checking_BC }}" class="form-control bg-white" required readonly />
+							</div>
+						</div>
+						<div class="col-md-2">
+							<div class="form-group">
+								<label for="Closing_CY">Closing CY</label>
+								<input type="text" name="Closing_CY" id="Closing_CY" value="{{ $vs->Closing_CY }}" class="form-control bg-white" required readonly />
+							</div>
+						</div>
+						<div class="col-md-2">
+							<div class="form-group">
+								<label for="ETD">ETD</label>
+								<input type="text" name="ETD" id="ETD" value="{{ $vs->ETD }}" class="form-control bg-white" required readonly />
+							</div>
+						</div>
+						<div class="col-md-2">
+							<div class="form-group">
+								<label for="ATD">ATD</label>
+								<input type="text" name="ATD" id="ATD" value="{{ $vs->ATD ?? "" }}" class="form-control bg-white" required readonly />
+							</div>
+						</div>
+						<div class="col-md-2">
+							<div class="form-group">
+								<label for="ETA">ETA</label>
+								<input type="text" name="ETA" id="ETA" value="{{ $vs->ETA }}" class="form-control bg-white" required readonly />
+							</div>
+						</div>
+						<div class="col-md-2">
+							<div class="form-group">
+								<label for="ATA">ATA</label>
+								<input type="text" name="ATA" id="ATA" value="{{ $vs->ATA ?? "" }}" class="form-control bg-white" required readonly />
 							</div>
 						</div>
 						<div class="col-12">
@@ -119,7 +115,7 @@ $Saya =  Auth::user()->username;
 				</div>
 			</div>
 			<div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Publish" class="btn btn-success mt-2 mr-2" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Update Data" class="btn btn-success mt-2 mr-2" />
 			</div>
 		</div>
 	</div>

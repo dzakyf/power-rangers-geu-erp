@@ -34,10 +34,9 @@ $Saya =  Auth::user()->username;
 			<div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
-				<input type="button" id="newSchedule" name="newSchedule" value="New SI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
-				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail SI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
-				<input type="button" id="printSI" name="printSI" value="Print SI" class="btn btn-secondary mt-2 mr-2" onclick="PrintSI()" />
-				<input type="button" id="createToFSI" name="createToFSI" value="Create Final SI" class="btn btn-success mt-2 mr-2" onclick="CreateToFSI()" />
+				<input type="button" id="newSchedule" name="newSchedule" value="New CI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
+				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail CI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
+				<input type="button" id="printCI" name="printCI" value="Print CI" class="btn btn-secondary mt-2 mr-2" onclick="PrintCI()" />
 			</div>
 		</div>
 	</div>
@@ -47,11 +46,11 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-	function PrintSI()
+	function PrintCI()
 	 {
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			window.open('cns-export-shipment-instruction-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
+			window.open('cns-export-commercial-invoice-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
 		}else {
 			alert("Pilih baris data");
 		}
@@ -59,14 +58,14 @@ $Saya =  Auth::user()->username;
 	 }
 	function ShipmentInstructionNewBtn() {
 
-		LoadM('divlistOpportunity', 'cns-export-shipment-instruction-new');
+		LoadM('divlistOpportunity', 'cns-export-commercial-invoice-new');
 		return true;
 	}
 	function ShipmentInstructionKlik() {
 
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			LoadM('divlistOpportunity', 'cns-export-shipment-instruction-detail?Task=' + ShipmentInstructionID);
+			LoadM('divlistOpportunity', 'cns-export-commercial-invoice-detail?Task=' + ShipmentInstructionID);
 		}else {
 			alert("Pilih baris data");
 		}
@@ -75,12 +74,12 @@ $Saya =  Auth::user()->username;
 	ShipmentInstruction = new dhtmlXGridObject('ShipmentInstruction');
 	ShipmentInstruction.setImagePath("./dhtmlx/imgs/");
 	ShipmentInstruction.setHeader("No,SI No, Invoice No, Invoice Date, Consignee, Description of Cargo, Qty (MT), Unit Price (MT), Amount, Subtotal, Advance Payment, Other, Total, Note");
-	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// ShipmentInstruction.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	ShipmentInstruction.setInitWidths("60,150,150,150,150,100,100,100,100,100,auto");
-	ShipmentInstruction.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left");
-	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str");
-	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	ShipmentInstruction.setInitWidths("60,150,150,150,150,250,100,150,150,150,150,150,150,200");
+	ShipmentInstruction.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left");
+	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
+	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	ShipmentInstruction.enableSmartRendering(true, 150);
 	// ShipmentInstruction.setNumberFormat("0,000", 7, ".", ",");
 	ShipmentInstruction.attachEvent("onRowDblClicked", ShipmentInstructionKlik);
@@ -89,7 +88,7 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		ShipmentInstruction.clearAndLoad('xml-cns-export-shipment-instruction');
+		ShipmentInstruction.clearAndLoad('xml-cns-export-commercial-invoice');
 
 	}
 </script>
