@@ -5033,10 +5033,15 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$stuffMonitoringPref", [CNSStuffingMonitoringController::class, 'indexStuffingMonitoringXml']);
 
     Route::get('cns-master-company', [MasterCompanyController::class, 'indexMasterCompany']);
+    Route::get('xml-cns-master-company', [MasterCompanyController::class, 'indexMasterCompanyXml']);
+    Route::get('cns-master-company-new', [MasterCompanyController::class, 'newMasterCompany']);
+    Route::post('cns-master-company-new-submit', [MasterCompanyController::class, 'newMasterCompanySubmit']);
+    Route::get('cns-master-company-detail', [MasterCompanyController::class, 'detailMasterCompany']);
 
     $siPref = "cns-export-shipment-instruction";
     Route::get("$siPref", [ShipmentInstructionController::class, 'indexShipmentInstruction']);
     Route::get("xml-$siPref", [ShipmentInstructionController::class, 'indexShipmentInstructionXml']);
+    Route::get("$siPref-print", [ShipmentInstructionController::class, 'printShipmentInstruction']);
     Route::get("$siPref-new", [ShipmentInstructionController::class, 'newShipmentInstruction']);
     Route::post("$siPref-new-get-order", [ShipmentInstructionController::class, 'getOrderDetail']);
     Route::post("$siPref-new-submit", [ShipmentInstructionController::class, 'newShipmentInstructionSubmit']);
