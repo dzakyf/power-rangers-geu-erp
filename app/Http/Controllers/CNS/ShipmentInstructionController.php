@@ -74,6 +74,17 @@ class ShipmentInstructionController extends Controller
         echo "</rows>";
     }
 
+    public function printShipmentInstruction(Request $request)
+    {
+        $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        foreach ($company as $key => $value) {
+            $companies[$value->Supplier_ID] = $value;
+        }
+        $shipment = ShipmentInstruction::where('SI_No', $request->Task)->first();
+        $vsds = VesselScheduleDtl::where('SI_No', $request->Task)->get();
+        return view('cns.export.print.si', compact('shipment', 'vsds','companies'));
+    }
+
     public function newShipmentInstruction()
     {
         $vss = VesselSchedule::get();

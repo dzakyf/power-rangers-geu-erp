@@ -475,12 +475,12 @@ class MarketingController extends Controller
         // ── 3. Collect PDF attachments ────────────────────────────────────
         $pdfAttachments = collect($filesAttachment)
             ->filter(fn($file) => strtolower($file->Extension) === 'pdf')
-            ->map(fn($file) => public_path('filevendor/' . $file->Path))
+            ->map(fn($file) => public_path($file->Path))
             ->filter(fn($path) => file_exists($path))
             ->values()
             ->toArray();
 
-        // dd($pdfAttachments);
+        // dd($filesAttachment, $pdfAttachments);
         // $pdfAttachments = [
         //     "/var/www/html/dev/geu/hcga/public/filevendor/filevendor/2026/04/QfvmkOhyjfMZ48CSsRFi4IECYXgA8BfRLqdc59c7.pdf"
         // ];
@@ -492,28 +492,28 @@ class MarketingController extends Controller
         //     'public_path_test'    => public_path($filesAttachment->first()->Path ?? ''),
         // ]);
 
-        // \Log::info('Before merge', [
-        //     'converted_pdf'        => $convertedPdf,
-        //     'converted_pdf_exists' => file_exists($convertedPdf),
-        //     'pdf_attachments'      => $pdfAttachments,
-        //     'pdf_attachments_exist' => array_map('file_exists', $pdfAttachments),
-        // ]);
+        \Log::info('Before merge', [
+            'converted_pdf'        => $convertedPdf,
+            'converted_pdf_exists' => file_exists($convertedPdf),
+            'pdf_attachments'      => $pdfAttachments,
+            'pdf_attachments_exist' => array_map('file_exists', $pdfAttachments),
+        ]);
 
         $finalPdf = $this->mergePdfs(
             array_merge([$convertedPdf], $pdfAttachments)
         );
 
-        // \Log::info('After merge', [
-        //     'final_pdf'        => $finalPdf,
-        //     'final_pdf_exists' => file_exists($finalPdf),
-        //     'final_pdf_size'   => file_exists($finalPdf) ? filesize($finalPdf) : 0,
-        // ]);
+        \Log::info('After merge', [
+            'final_pdf'        => $finalPdf,
+            'final_pdf_exists' => file_exists($finalPdf),
+            'final_pdf_size'   => file_exists($finalPdf) ? filesize($finalPdf) : 0,
+        ]);
 
 
         // ── 4. Merge voucher PDF + attachments ────────────────────────────
-        $finalPdf = $this->mergePdfs(
-            array_merge([$convertedPdf], $pdfAttachments)
-        );
+        // $finalPdf = $this->mergePdfs(
+        //     array_merge([$convertedPdf], $pdfAttachments)
+        // );
 
         // ── 5. Cleanup ────────────────────────────────────────────────────
         @unlink($tempDocx);
@@ -688,7 +688,6 @@ class MarketingController extends Controller
             // ─── Generated .docx ──────────────────────────────────────────────
             $doc      = $this->makePromotionVoucherDocs($r, 1, $applicationCode, $filesAttachment);
 
-            // dd($doc);
 
 
             $path         = "{$this->generatorService->generateUUID()}.docx";
@@ -701,10 +700,10 @@ class MarketingController extends Controller
             }
 
             // Move the temp merged PDF to your desired location
-            copy($doc['doc'], $savedDocPath);
+            // copy($doc['doc'], $savedDocPath);
 
             // Optional: clean up temp file
-            @unlink($doc['doc']);
+            // @unlink($doc['doc']);
 
             // $this->store
             // $doc['doc']->saveAs($savedDocPath);
@@ -712,14 +711,14 @@ class MarketingController extends Controller
             // $savedFilePaths[] = $savedDocPath;
 
 
-            $this->uploadService->uploadMetaFile(
-                $path,
-                $filename,
-                "Voucher Promosi - Dokumen",
-                'docx',
-                $topic,
-                $promotionId
-            );
+            // $this->uploadService->uploadMetaFile(
+            //     $path,
+            //     $filename,
+            //     "Voucher Promosi - Dokumen",
+            //     'docx',
+            //     $topic,
+            //     $promotionId
+            // );
 
 
             // // ─── Approval ─────────────────────────────────────────────────────
@@ -758,6 +757,7 @@ class MarketingController extends Controller
                     unlink($filePath);
                 }
             }
+            // print_r($e);
 
             return response()->json([
                 'message' => 'Failed to submit promotion.',

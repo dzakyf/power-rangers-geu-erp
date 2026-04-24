@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\MasterStockPrice;
 use App\MasterWarehouseAccount;
 use App\MasterWarehouseProfitLoss;
+use App\Services\GeneratorService;
 use App\User;
 use App\WarehousePartner;
 use App\WarehousePartnerJournal;
@@ -20,11 +21,12 @@ use SimpleXMLElement;
 class SalesController extends Controller
 {
     private $performanceStandard;
+    private $generatorService;
 
-    public function __construct()
+    public function __construct(GeneratorService $g)
     {
         $this->performanceStandard = 70; //integer sebelum persen
-
+        $this->generatorService = $g;
     }
 
     public function masterTarget()
@@ -1428,7 +1430,7 @@ class SalesController extends Controller
 
     public function membershipDashboardPage()
     {
-        return view('partner.membership-dashboard');
+        return view('partner.dashboard.membership-index');
     }
 
     public function membershipDashboardData(Request $r)
@@ -1442,34 +1444,89 @@ class SalesController extends Controller
         $est_dp      = $activeCount * ($dp->Value ?? 0);
 
         // leads source - count by Source_Channel
-        $leads_source = DB::table('opportunity')
-            ->select('Source_Channel', DB::raw('COUNT(*) as count'))
-            ->groupBy('Source_Channel')
+        $leadsSource = DB::table('opportunity')
+            ->select(
+                DB::raw("CASE 
+            WHEN Source_Channel IS NULL OR Source_Channel = '' 
+            THEN 'Tidak Diketahui' 
+            ELSE Source_Channel 
+        END as source_channel"),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy(DB::raw("CASE 
+        WHEN Source_Channel IS NULL OR Source_Channel = '' 
+        THEN 'Tidak Diketahui' 
+        ELSE Source_Channel 
+    END"))
             ->get();
 
-        // sales funnel - count by Classification
-        $sales_funnel = DB::table('opportunity')
-            ->select('Classification', DB::raw('COUNT(*) as count'))
-            ->groupBy('Classification')
+        $funnelOrder = ['fresh', 'qualified', 'warm', 'deal'];
+
+        $rawFunnel = DB::table('opportunity')
+            ->select(DB::raw('LOWER(Status) as status'), DB::raw('COUNT(*) as count'))
+            ->groupBy('Status')
             ->get();
+
+        $salesFunnel = collect($funnelOrder)->map(function ($stage) use ($rawFunnel) {
+            $found = $rawFunnel->firstWhere('status', $stage);
+            return [
+                'status' => ucfirst($stage),
+                'count'  => $found ? $found->count : 0,
+            ];
+        })->values();
+
+        $salesFunnel = $salesFunnel->map(function ($item, $index) use ($salesFunnel) {
+            $prev      = $salesFunnel->get($index - 1);
+            $prevCount = $index === 0
+                ? $item['count']
+                : ($prev !== null ? $prev['count'] : 0);
+
+            $ratio = $prevCount > 0
+                ? round(($item['count'] / $prevCount) * 100, 1)
+                : 0;
+
+            return array_merge($item, [
+                'ratio'       => $ratio,
+                'ratio_label' => $ratio . '%',
+            ]);
+        });
+
+        $estRevenue = 87000000;
+        $brandLicense = 16000000;
 
         $data = [
-            'est_dp'       => $est_dp,
-            'est_revenue'  => 87000000,
-            'brand_license' => 16000000,
-            'leads_source' => $leads_source,
-            'sales_funnel' => $sales_funnel,
+            'est_dp' => $est_dp,
+            'est_dp_formatted'        => $this->generatorService->rupiahFormatter($est_dp),
+            'est_revenue'   => $estRevenue,
+            'est_revenue_formatted' => $this->generatorService->rupiahFormatter($estRevenue),
+            'brand_license' => $brandLicense,
+            'brand_license_formatted' => $this->generatorService->rupiahFormatter($brandLicense),
+            'leads_source'  => [
+                'labels'  => $leadsSource->pluck('source_channel')->toArray(),
+                'data_arr' => $leadsSource->pluck('count')->toArray(),
+                'data'    => $leadsSource,
+            ],
+            'sales_funnel'  => [
+                'labels'       => $salesFunnel->pluck('status')->toArray(),
+                'data_arr'     => $salesFunnel->pluck('count')->toArray(),
+                // 'ratios'       => $salesFunnel->pluck('ratio')->toArray(),
+                // 'ratio_labels' => $salesFunnel->pluck('ratio_label')->toArray(),
+                'data'         => $salesFunnel,
+            ],
         ];
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Sales performance updated',
+            'message' => 'Dashboard data',
             'data' => $data
         ]);
     }
 
+    public function totalNetAchieve() {}
+
     public function aftersalesDashboardPage()
     {
+
         return view('partner.aftersales-dashboard');
     }
 

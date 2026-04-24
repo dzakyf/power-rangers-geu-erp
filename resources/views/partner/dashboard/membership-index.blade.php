@@ -1,0 +1,256 @@
+@extends('layout.mainlayout-mitra')
+@section('content-wrapper')
+@csrf
+<!-- Main Content Header -->
+
+<h4>Dashboard Kemitraan</h4>
+<div class="row mt-3">
+    <div class="col-sm-12 mt-3 mb-3">
+        <input type="date" id="start" name="start_date">
+        <input type="date" id="end" name="end_date">
+        <button type="button" class="btn btn-primary">Submit</button>
+    </div>
+    <div class="col-sm-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Down Payment</h5>
+                <div class="row">
+                    <div class="col-sm text-right">
+                        <h4 id="DownPayment" class="card-text"></h4>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Estimated Revenue</h5>
+                <div class="row">
+
+                    <div class="col-sm text-right">
+                        <h4 id="EstimatedRevenue" class="card-text"></h4>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Brand License</h5>
+                <div class="row">
+                    <div class="col-sm text-right">
+                        <h4 id="BrandLicense" class="card-text"></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-3 mb-3">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Leads Source</h5>
+                <div class="row">
+                    <div class="col-sm">
+                        <canvas id="LeadsSource" width="100" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Sales Funnel</h5>
+                <div class="row">
+                    <div class="col-sm">
+                        <canvas id="SalesFunnel" width="100" height="100"></canvas>
+                    </div>
+                    <div class="col-sm">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover table-sm" id="salesFunnelTable">
+                                <thead class="thead">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Kualifikasi</th>
+                                        <th>Number</th>
+                                        <th>Rate Ratio</th>
+                                        <!-- <th>Progress</th> -->
+                                    </tr>
+                                </thead>
+                                <tbody id="salesFunnelBody">
+                                    <tr>
+                                        <td colspan="5" class="text-center">Loading...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.js" integrity="sha512-D4pL3vNgjkHR/qq+nZywuS6Hg1gwR+UzrdBW6Yg8l26revKyQHMgPq9CLJ2+HHalepS+NuGw1ayCCsGXu9JCXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+    $(document).ready(function() {
+        getDashboardData()
+    })
+
+    $('#start').on('change', function() {
+        $('#end').attr('min', $(this).val()); // end can't be before start
+    });
+
+    $('#end').on('change', function() {
+        $('#start').attr('max', $(this).val()); // start can't be after end
+    });
+
+    function getDashboardData() {
+        $.ajax({
+            url: 'partner-dashboard-membership-data',
+            method: 'GET',
+            success: function(response) {
+                let data = response.data
+                initLeadsSourceChart(data.leads_source.labels, data.leads_source.data_arr);
+                initSalesFunnelChart(data.sales_funnel.labels, data.sales_funnel.data_arr);
+                renderSalesFunnelTable(data.sales_funnel.data);
+                $("#DownPayment").html(data.est_dp_formatted);
+                $("#EstimatedRevenue").html(data.est_revenue_formatted);
+                $("#BrandLicense").html(data.brand_license_formatted);
+
+            },
+            error: function(xhr) {
+                console.error('Failed to load dashboard data:', xhr);
+            }
+        });
+    }
+
+    function renderSalesFunnelTable(data) {
+        const statusColor = {
+            'Fresh': 'primary',
+            'Qualified': 'info',
+            'Warm': 'warning',
+            'Deal': 'success',
+        };
+
+        const rows = data.map(function(item, index) {
+            const badge = statusColor[item.status] || 'secondary';
+            const ratio = item.ratio;
+
+            // Progress bar color: red if low, yellow if mid, green if high
+            const barColor = ratio >= 75 ? 'success' : ratio >= 40 ? 'warning' : 'danger';
+
+            return `
+            <tr>
+                <td>${index + 1}</td>
+                <td><span>${item.status}</span></td>
+                <td>${item.count}</td>
+                <td>${item.ratio_label}</td>
+            </tr>
+        `;
+        }).join('');
+
+        $('#salesFunnelBody').html(rows);
+    }
+
+
+    function initLeadsSourceChart(labels, datas) {
+        const ctx = document.getElementById('LeadsSource').getContext('2d');
+
+        const myChart = new Chart(ctx, {
+            type: 'doughnut', // change to 'pie' for pie chart
+
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'My Dataset',
+                    data: datas,
+                    backgroundColor: [
+                        '#ef4444',
+                        '#3b82f6',
+                        '#f59e0b',
+                        '#22c55e'
+                    ],
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    hoverOffset: 8
+                }]
+            },
+
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percent = ((value / total) * 100).toFixed(1);
+                                return ` ${context.label}: ${value} (${percent}%)`;
+                            }
+                        }
+                    }
+                },
+
+                // Doughnut-specific: controls the hole size (0 = full pie, 0.5 = default)
+                cutout: '60%' // remove this line if using type: 'pie'
+            }
+        });
+    }
+
+    function initSalesFunnelChart(labels, datas) {
+        const ctx = document.getElementById('SalesFunnel').getContext('2d');
+
+        const myChart = new Chart(ctx, {
+            type: 'bar', // change to 'pie' for pie chart
+
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'My Dataset',
+                    data: datas,
+                    backgroundColor: [
+                        '#ef4444',
+                        '#3b82f6',
+                        '#f59e0b',
+                        '#22c55e'
+                    ],
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    hoverOffset: 8
+                }]
+            },
+
+            options: {
+                responsive: true,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false,
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.x;
+
+                                return ` ${context.label}: ${value}`;
+                            }
+                        }
+                    }
+                },
+            }
+        });
+    }
+</script>
+@endsection
