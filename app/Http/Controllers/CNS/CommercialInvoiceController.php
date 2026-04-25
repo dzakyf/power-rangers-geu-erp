@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\ShipmentInstruction;
 use App\VesselScheduleDtl;
+use App\CommercialInvoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -27,6 +28,16 @@ class CommercialInvoiceController extends Controller
         echo "<rows>";
 
         echo "</rows>";
+    }
+
+    public function printCommercialInvoice()
+    {
+        $company = DB::table('supplier')->where("Location", auth()->user()->Location)->first();
+        foreach ($company as $key => $value) {
+            $companies[$value->Supplier_ID] = $value;
+        }
+        $invoice = CommercialInvoice::where('Status', "CREATED")->first();
+        return view('cns.export.print.ci', compact('invoice', 'companies'));
     }
 
     public function newCommercialInvoice()

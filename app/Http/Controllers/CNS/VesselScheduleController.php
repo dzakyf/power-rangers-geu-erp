@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\ShipmentInstruction;
 use App\VesselSchedule;
+use App\PackingList;
 use Illuminate\Http\Request;
 
 class VesselScheduleController extends Controller
@@ -124,6 +125,14 @@ class VesselScheduleController extends Controller
             $cekSI->Order_No = $request->input('Order_No');
             $cekSI->save();
         }
+
+        $cekPackingList = PackingList::where('Order_No', $vs->Order_No)->first();
+        
+        if ($cekPackingList) {
+            $cekPackingList->Order_No = $request->input('Order_No');
+            $cekPackingList->save();
+        }
+
 
         $vs->Order_No = $request->input('Order_No');
         $vs->Qty = $request->input('Qty1') . " x " . $request->input('Qty2');

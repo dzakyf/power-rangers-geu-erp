@@ -5051,6 +5051,7 @@ Route::group(['middleware' => 'auth'], function () {
 
     $fsiPref = "cns-export-final-shipment-instruction";
     Route::get("$fsiPref", [FinalShipmentInstructionController::class, 'indexFinalShipmentInstruction']);
+    Route::get("$fsiPref-print", [FinalShipmentInstructionController::class, 'printFinalShipmentInstruction']);
     Route::get("xml-$fsiPref", [FinalShipmentInstructionController::class, 'indexFinalShipmentInstructionXml']);
     Route::get("$fsiPref-new", [FinalShipmentInstructionController::class, 'newFinalShipmentInstruction']);
     Route::post("$fsiPref-new-get-si", [FinalShipmentInstructionController::class, 'getSI']);
@@ -5063,6 +5064,7 @@ Route::group(['middleware' => 'auth'], function () {
     $commercialInvoicePref = "cns-export-commercial-invoice";
     Route::get("$commercialInvoicePref", [CNSCommercialInvoiceController::class, 'indexCommercialInvoice']);
     Route::get("xml-$commercialInvoicePref", [CNSCommercialInvoiceController::class, 'indexCommercialInvoiceXml']);
+    Route::get("$commercialInvoicePref-print", [CNSCommercialInvoiceController::class, 'printCommercialInvoice']);
     Route::get("$commercialInvoicePref-new", [CNSCommercialInvoiceController::class, 'newCommercialInvoice']);
     Route::post("$commercialInvoicePref-get-si", [CNSCommercialInvoiceController::class, 'getSIDetail']);
 
