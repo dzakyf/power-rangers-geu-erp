@@ -51,7 +51,7 @@ class FinalShipmentInstructionController extends Controller
         foreach ($shipments as $key => $shipment) {
             echo "<row id=\"$shipment->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Order_No) . "</cell>";
+            echo "<cell>" . htmlspecialchars($shipment->Final_SI_No) . "</cell>";
             echo "<cell>" . htmlspecialchars($shipment->SI_No) . "</cell>";
             if (isset($vsdData[$shipment->SI_No])) {
                 echo "<cell>" . htmlspecialchars(implode(', ', $vsdData[$shipment->SI_No]['list'])) . "</cell>";
@@ -72,6 +72,17 @@ class FinalShipmentInstructionController extends Controller
         }
 
         echo "</rows>";
+    }
+
+    public function printFinalShipmentInstruction(Request $request)
+    {
+        $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        foreach ($company as $key => $value) {
+            $companies[$value->Supplier_ID] = $value;
+        }
+        $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
+        $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
+        return view('cns.export.print.fsi', compact('shipment', 'vsds','companies'));
     }
 
     public function newFinalShipmentInstruction()

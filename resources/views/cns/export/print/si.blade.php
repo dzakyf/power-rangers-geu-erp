@@ -5,20 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Shipping Instruction</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; }
 
     body {
       font-family: Arial, sans-serif;
       font-size: 9pt;
       background: #fff;
       color: #000;
+      padding: 10mm 0;
     }
 
     .page {
       width: 210mm;
       min-height: 297mm;
       margin: 0 auto;
-      padding: 10mm 12mm;
+      padding: 0 10mm;
       background: #fff;
     }
 
@@ -180,6 +181,7 @@
 
     /* Signature */
     .signature-section {
+      margin-left: 5cm;
       margin-top: 4px;
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -189,274 +191,372 @@
     .sig-name { text-decoration: underline; font-weight: 500; }
     .sig-title { font-size: 7.5pt; }
 
+    .layout-table{
+        width:100%;
+        border-collapse:collapse;
+    }
+
+    .layout-table thead{
+        display:table-header-group;
+    }
+
+    .layout-table tfoot{
+        display:table-footer-group;
+    }
+
+    .layout-table tbody{
+        display:table-row-group;
+    }
     /* Print styles */
     @media print {
-      body { background: #fff; }
-      .page {
-        width: 100%;
+
+      @page {
+        size: A4;
         margin: 0;
-        padding: 8mm 10mm;
       }
-      @page { size: A4; margin: 0; }
+
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 0 10mm;
+      }
+
+      .footer{
+          margin-top:auto;
+      }
+      /* Beri ruang agar konten tidak tertutup footer */
+
     }
   </style>
 </head>
-<body>
-<div class="page">
+@php
+    $gross = 0;
+    $netto = 0;
+    $mt = 0;
+    foreach ($vsds as $key => $value) {
+      $gross += $value->Gross_KG;
+      $netto += $value->Netto_KG;
+      $mt += round($value->Netto_KG/1000,2);
+    }
+@endphp
+<body style="background-color: #e0e0e0;">
+<div class="page" style="background-color: #fff;box-shadow: 0 10px 10px rgba(0,0,0,0.1);">
 
-  <!-- Header -->
-  <div class="header-text" style="margin:-1cm;margin-bottom:.1cm">
-    <img src="{{$companies[$shipment->Shipper]->Letterhead}}" alt="Header" width="100%">
-  </div>
-
-  <!-- Title Block -->
-  <div class="title-block">
-    <div class="logo-cell">
-        <div style="position:relative">
-            <img style="position: absolute;left:-35px;top:-33px" src="{{$companies[$shipment->Shipper]->Logo}}" alt="Logo" width="70px" height="70px">
-
-        </div>
-    </div>
-    <div class="title-right">
-      <div class="title-heading">SHIPPING INSTRUCTION</div>
-      <div class="meta-row">
-        <div class="meta-cell">
-          <div class="meta-label">Process Owner :</div>
-        </div>
-        <div class="meta-cell">
-          <div class="meta-label">Revision: #00</div>
-        </div>
-        <div class="meta-cell">
-          <div class="meta-label">Effective Date:</div>
-        </div>
-        <div class="meta-cell">
-          <div class="meta-label">Doc ID:</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Info Section -->
-  <div class="info-section">
-
-    <!-- Left: Party boxes -->
-    <div class="party-group">
-      <div class="party-box">
-        <div class="party-label">SHIPPER</div>
-        <div class="party-value">
-            {{$companies[$shipment->Shipper]->Company_Name}}<br>
-            {{$companies[$shipment->Shipper]->Address}}<br>
-            {{$companies[$shipment->Shipper]->City}}
-        </div>
-      </div>
-      <div class="party-box">
-        <div class="party-label">CONSIGNEE</div>
-        <div class="party-value">
-            {{$companies[$shipment->Consignee]->Company_Name}}<br>
-            {{$companies[$shipment->Consignee]->Address}}<br>
-            {{$companies[$shipment->Consignee]->City}}
-        </div>
-      </div>
-      <div class="party-box">
-        <div class="party-label">NOTIFY PARTY</div>
-        <div class="party-value">
-            {{$companies[$shipment->Notify]->Company_Name}}<br>
-            {{$companies[$shipment->Notify]->Address}}<br>
-            {{$companies[$shipment->Notify]->City}}
-        </div>
-      </div>
-      <!-- B/L, Port of Loading, Port of Discharge -->
-      <div class="bl-box">
-        <table class="bl-table">
-          <tr>
-            <td class="lbl">B/L No</td>
-            <td>{{ $shipment->BL_No }}</td>
-          </tr>
-          <tr>
-            <td class="lbl">Port of Loading</td>
-            <td>{{ $shipment->POL }}</td>
-          </tr>
-          <tr>
-            <td class="lbl">Port of Discharge</td>
-            <td>{{ $shipment->POD }}</td>
-          </tr>
-        </table>
-      </div>
-    </div>
-
-    <!-- Right: Fields -->
-    <div class="fields-group">
-      <!-- SI fields -->
-      <table class="field-table">
-        <tr>
-          <td class="flbl">SI No.</td>
-          <td class="fval">{{ $shipment->SI_No }}</td>
-        </tr>
-        <tr>
-          <td class="flbl">Date</td>
-          <td class="fval">{{ $shipment->SI_Date }}</td>
-        </tr>
-        <tr>
-          <td class="flbl" style="vertical-align:top; padding-top:8px;">To</td>
-          <td class="fval" style="min-height:40px;">{{ $companies[$shipment->Destination_Letter]->Company_Name }}</td>
-        </tr>
-        <tr>
-          <td class="flbl">Terms of<br>Delivery</td>
-          <td class="fval">{{ $shipment->Delivery_Terms }}</td>
-        </tr>
-        <tr>
-          <td class="flbl">Contract_No</td>
-          <td class="fval">{{ $shipment->Contract_No }}</td>
-        </tr>
-      </table>
-
-      <!-- Shipment fields -->
-      <table class="field-table">
-        <tr>
-          <td class="flbl">Shipped by</td>
-          <td class="fval">{{ $shipment->Shipped_By }}</td>
-        </tr>
-        <tr>
-          <td class="flbl">Voyage</td>
-          <td class="fval">{{ $shipment->Voyage }}</td>
-        </tr>
-        <tr>
-          <td class="flbl">ETD</td>
-          <td class="fval">{{ $shipment->ETD }}</td>
-        </tr>
-        <tr>
-          <td class="flbl">ETA</td>
-          <td class="fval">{{ $shipment->ETA }}</td>
-        </tr>
-        <tr>
-          <td class="flbl">Stuffing date</td>
-          <td class="fval">{{ $shipment->Stuffing }}</td>
-        </tr>
-        <tr>
-          <td class="flbl">PEB</td>
-          <td class="fval">{{ $shipment->PEB }}</td>
-        </tr>
-        <tr>
-          <td class="flbl">Date PEB</td>
-          <td class="fval">{{ $shipment->PEB_Date }}</td>
-        </tr>
-        <tr>
-          <td class="flbl">Quantity</td>
-          <td class="fval">{{ $shipment->Qty }}</td>
-        </tr>
-      </table>
-
-      <table class="field-table" style="border:none !important;">
-        <tr>
-            <td class="flbl" style="border:none !important;">&nbsp;</td>
-            <td class="fval" style="border:none !important;">
-                <!-- Goods Condition -->
-                <div class="goods-header">A.&nbsp;&nbsp;&nbsp;Good, Clean and Suitable for Flexibag</div>
-            </td>
-        </tr>
-      </table>
-    </div>
-  </div>
-
-
-  <!-- Main cargo table -->
-  <table class="main-table">
+  <table class="layout-table" style="width:100%">
     <thead>
       <tr>
-        <th rowspan="2" style="width:160px;">SEQ</th>
-        <th rowspan="2">DESCRIPTION</th>
-        <th>NET WEIGHT</th>
-        <th>GROSS WEIGHT</th>
-        <th>QTY</th>
-        <th>QTY</th>
-      </tr>
-      <tr>
-        <th>(KG)</th>
-        <th>(KG)</th>
-        <th>(KGS)</th>
-        <th>(TON)</th>
+        <td>
+          <!-- Header -->
+          <div class="header-text" style="margin:-1cm;margin-bottom:.1cm;margin-top:0">
+            <img src="{{$companies[$shipment->Shipper]->Letterhead}}" alt="Header" width="100%">
+          </div>
+        </td>
       </tr>
     </thead>
-    <tbody>
+    <tbody class="content">
       <tr>
-        <td style="border-bottom:none;">
-          <div class="shipping-mark">
-            SHIPPING MARK: FREIGHT PREPAID<br>
-            SHIPPED ON BOARD<br>
-            <span class="red">${tqty_ton} MT ISCC EU CERTIFIED USED<br>
-            COOKING OIL.<br>
-            ENTIRELY OF VEGETABLE ORIGIN.<br>
-            PACKING IN FLEXIBAG</span><br>
-            GW ${total_gross} KGS<br>
-            NW ${total_net} KGS<br>
-            HS Code : ${hscode}<br>
-            COUNTRY OF ORIGIN: INDONESIA<br>
+        <td>
+          <!-- Title Block -->
+          <div class="title-block">
+            <div class="logo-cell">
+                <div style="position:relative">
+                    <img style="position: absolute;left:-35px;top:-33px" src="{{$companies[$shipment->Shipper]->Logo}}" alt="Logo" width="70px" height="70px">
+
+                </div>
+            </div>
+            <div class="title-right">
+              <div class="title-heading">SHIPPING INSTRUCTION</div>
+              <div class="meta-row">
+                <div class="meta-cell">
+                  <div class="meta-label">Process Owner :</div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-label">Revision: #00</div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-label">Effective Date:</div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-label">Doc ID:</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Info Section -->
+          <div class="info-section">
+
+            <!-- Left: Party boxes -->
+            <div class="party-group">
+              <div class="party-box">
+                <div class="party-label">SHIPPER</div>
+                <div class="party-value">
+                    {{$companies[$shipment->Shipper]->Company_Name}}<br>
+                    {{$companies[$shipment->Shipper]->Address}}<br>
+                    {{$companies[$shipment->Shipper]->City}}
+                </div>
+              </div>
+              <div class="party-box">
+                <div class="party-label">CONSIGNEE</div>
+                <div class="party-value">
+                    {{$companies[$shipment->Consignee]->Company_Name}}<br>
+                    {{$companies[$shipment->Consignee]->Address}}<br>
+                    {{$companies[$shipment->Consignee]->City}}
+                </div>
+              </div>
+              <div class="party-box">
+                <div class="party-label">NOTIFY PARTY</div>
+                <div class="party-value">
+                    {{$companies[$shipment->Notify]->Company_Name}}<br>
+                    {{$companies[$shipment->Notify]->Address}}<br>
+                    {{$companies[$shipment->Notify]->City}}
+                </div>
+              </div>
+              <!-- B/L, Port of Loading, Port of Discharge -->
+              <div class="bl-box">
+                <table class="bl-table">
+                  <tr>
+                    <td class="lbl">B/L No</td>
+                    <td>{{ $shipment->BL_No }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Port of Loading</td>
+                    <td>{{ $shipment->POL }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Port of Discharge</td>
+                    <td>{{ $shipment->POD }}</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+
+            <!-- Right: Fields -->
+            <div class="fields-group">
+              <!-- SI fields -->
+              <table class="field-table">
+                <tr>
+                  <td class="flbl">SI No.</td>
+                  <td class="fval">{{ $shipment->SI_No }}</td>
+                </tr>
+                <tr>
+                  <td class="flbl">Date</td>
+                  <td class="fval">{{ $shipment->SI_Date }}</td>
+                </tr>
+                <tr>
+                  <td class="flbl" style="vertical-align:top; padding-top:8px;">To</td>
+                  <td class="fval" style="min-height:40px;">{{ $companies[$shipment->Destination_Letter]->Company_Name }}</td>
+                </tr>
+                <tr>
+                  <td class="flbl">Terms of<br>Delivery</td>
+                  <td class="fval">{{ $shipment->Delivery_Terms }}</td>
+                </tr>
+                <tr>
+                  <td class="flbl">Contract_No</td>
+                  <td class="fval">{{ $shipment->Contract_No }}</td>
+                </tr>
+              </table>
+
+              <!-- Shipment fields -->
+              <table class="field-table">
+                <tr>
+                  <td class="flbl">Shipped by</td>
+                  <td class="fval">{{ $shipment->Shipped_By }}</td>
+                </tr>
+                <tr>
+                  <td class="flbl">Voyage</td>
+                  <td class="fval">{{ $shipment->Voyage }}</td>
+                </tr>
+                <tr>
+                  <td class="flbl">ETD</td>
+                  <td class="fval">{{ $shipment->ETD }}</td>
+                </tr>
+                <tr>
+                  <td class="flbl">ETA</td>
+                  <td class="fval">{{ $shipment->ETA }}</td>
+                </tr>
+                <tr>
+                  <td class="flbl">Stuffing date</td>
+                  <td class="fval">{{ $shipment->Stuffing }}</td>
+                </tr>
+                <tr>
+                  <td class="flbl">PEB</td>
+                  <td class="fval">{{ $shipment->PEB }}</td>
+                </tr>
+                <tr>
+                  <td class="flbl">Date PEB</td>
+                  <td class="fval">{{ $shipment->PEB_Date }}</td>
+                </tr>
+                <tr>
+                  <td class="flbl">Quantity</td>
+                  <td class="fval">{{ $shipment->Qty }}</td>
+                </tr>
+              </table>
+
+              <table class="field-table" style="border:none !important;">
+                <tr>
+                    <td class="flbl" style="border:none !important;">&nbsp;</td>
+                    <td class="fval" style="border:none !important;">
+                        <!-- Goods Condition -->
+                        <div class="goods-header">A.&nbsp;&nbsp;&nbsp;{{ Str::contains($shipment->Qty2, 'FT') ? 'Good, Clean and Suitable for Flexibag' : 'Good and Clean' }}</div>
+                    </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Main cargo table -->
+          <table class="main-table">
+            <thead>
+              <tr>
+                <th rowspan="2" style="width:160px;">SEQ</th>
+                <th rowspan="2">DESCRIPTION</th>
+                <th>NET WEIGHT</th>
+                <th>GROSS WEIGHT</th>
+                <th>QTY</th>
+                <th>QTY</th>
+              </tr>
+              <tr>
+                <th>(KG)</th>
+                <th>(KG)</th>
+                <th>(KGS)</th>
+                <th>(TON)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="border-bottom:none;">
+                  <div class="shipping-mark">
+                    SHIPPING MARK: FREIGHT PREPAID<br>
+                    SHIPPED ON BOARD<br>
+                    <span class="red">{{ number_format($mt, 2, ',', '.') }} MT {{ strtoupper($shipment->Product_Name) }}<br>
+                    {{ Str::contains($shipment->Qty2, 'FT') ? 'PACKING IN FLEXIBAG' : '' }}</span><br>
+                    GW {{ number_format($gross, 0, ',', '.') }} KGS<br>
+                    NW {{ number_format($netto, 0, ',', '.') }} KGS<br>
+                    HS Code : {{ $shipment->HS_Code }}<br>
+                    COUNTRY OF ORIGIN: INDONESIA<br>
+                  </div>
+                </td>
+                <td style="border-bottom:none;vertical-align:middle;">
+                  <div class="desc-cell">
+                    <span class="bold-red">
+                      {{ number_format($mt, 2, ',', '.') }} MT {{ strtoupper($shipment->Product_Name) }}&nbsp;{{ Str::contains($shipment->Qty2, 'FT') ? 'PACKING IN FLEXIBAG' : '' }}
+                    </span><br>
+                    GW {{ number_format($gross, 0, ',', '.') }} KGS<br>
+                    NW {{ number_format($netto, 0, ',', '.') }} KGS<br>
+                    HS Code : {{ $shipment->HS_Code }}<br>
+                    COUNTRY OF ORIGIN: INDONESIA
+                  </div>
+                </td>
+                <td style="border-bottom:none;" class="center">&nbsp;</td>
+                <td style="border-bottom:none;" class="center">&nbsp;</td>
+                <td style="border-bottom:none;" class="center">&nbsp;</td>
+                <td style="border-bottom:none;" class="center">&nbsp;</td>
+              </tr>
+              @foreach ($vsds as $item)
+              <tr>
+                <td style="font-size:7.5pt;text-align:center;border-top:none;border-bottom:none;">{{ $loop->iteration }}</td>
+                <td style="border-top:none;border-bottom:none;">
+                    Container No. {{$item->Container}} / {{$item->Seal}}
+                </td>
+                <td style="border-top:none;border-bottom:none;" class="center">{{ number_format($item->Netto_KG,0,',','.')}}</td>
+                <td style="border-top:none;border-bottom:none;" class="center"> {{ number_format($item->Gross_KG,0,',','.') }} </td>
+                <td style="border-top:none;border-bottom:none;" class="center">{{ number_format($item->Netto_KG,0,',','.') }}</td>
+                <td style="border-top:none;border-bottom:none;" class="center">{{ number_format(round($item->Netto_KG/1000,2),2,',','.') }}</td>
+              </tr> 
+              @endforeach
+              <tr class="total-row">
+                <td colspan="2" style="text-align:right; padding-right:8px;">Total</td>
+                <td class="center">{{ number_format($netto,0,',','.')}}</td>
+                <td class="center"> {{ number_format($gross,0,',','.') }} </td>
+                <td class="center">{{ number_format($netto,0,',','.') }}</td>
+                <td class="center">{{ number_format(round($netto/1000,2),2,',','.') }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Signatures -->
+          <div class="signature-section">
+            <div class="sig-left">
+              <p style="margin-bottom: 70px;">Best Regards,</p>
+              <p class="sig-name">Muhammad Abdul Jabar</p>
+              <p class="sig-title">Commercial and Sustainability Specialist</p>
+            </div>
+            <div class="sig-right">
+              <p style="margin-bottom: 70px;">&nbsp;</p>
+              <p class="sig-name">Hani Septyana</p>
+              <p class="sig-title">Commercial and Sustainability Manager</p>
+            </div>
           </div>
         </td>
-        <td style="border-bottom:none;">
-          <div class="desc-cell">
-            <span class="bold-red">
-              ${tqty_ton} MT ISCC EU CERTIFIED REFINED USED COOKING OIL
-              ENTIRELY OF VEGETABLE ORIGIN. &nbsp;PACKING IN FLEXIBAG
-            </span><br>
-            GW ${total_gross} KGS<br>
-            NW ${total_net} KGS<br>
-            HS Code : ${hscode}<br>
-            COUNTRY OF ORIGIN: INDONESIA
-          </div>
-        </td>
-        <td style="border-bottom:none;" class="center">&nbsp;</td>
-        <td style="border-bottom:none;" class="center">&nbsp;</td>
-        <td style="border-bottom:none;" class="center">&nbsp;</td>
-        <td style="border-bottom:none;" class="center">&nbsp;</td>
       </tr>
-      @foreach ($vsds as $item)
-      @php
-        if (!isset($nett) && !isset($gross)) {
-            $nett = 0;
-            $gross = 0;
-        }
-          $nett += $item->Netto_KG;
-          $gross += $item->Gross_KG;
-      @endphp
       <tr>
-        <td style="font-size:7.5pt;text-align:center;border-top:none;border-bottom:none;">{{ $loop->iteration }}</td>
-        <td style="border-top:none;border-bottom:none;">
-            Container No. {{$item->Container}} / {{$item->Seal}}
+        <td>
+          <div class="footer-space"></div>
         </td>
-        <td style="border-top:none;border-bottom:none;" class="center">{{ number_format($item->Netto_KG,0,',','.')}}</td>
-        <td style="border-top:none;border-bottom:none;" class="center"> {{ number_format($item->Gross_KG,0,',','.') }} </td>
-        <td style="border-top:none;border-bottom:none;" class="center">{{ number_format($item->Netto_KG,0,',','.') }}</td>
-        <td style="border-top:none;border-bottom:none;" class="center">{{ number_format(round($item->Netto_KG/1000,2),2,',','.') }}</td>
-      </tr> 
-      @endforeach
-      <tr class="total-row">
-        <td colspan="2" style="text-align:right; padding-right:8px;">Total</td>
-        <td class="center">{{ number_format($nett,0,',','.')}}</td>
-        <td class="center"> {{ number_format($gross,0,',','.') }} </td>
-        <td class="center">{{ number_format($nett,0,',','.') }}</td>
-        <td class="center">{{ number_format(round($nett/1000,2),2,',','.') }}</td>
       </tr>
     </tbody>
+    <tfoot class="footer">
+      <tr>
+        <td>
+          <!-- Footer -->
+          <div class="footer-fixed" style="margin-left:-1.3cm;margin-bottom:0;">
+              @if ($companies[$shipment->Shipper]->Footer != '')
+                  <img src="{{$companies[$shipment->Shipper]->Footer}}" alt="Footer" style="width: 21cm;">
+              @endif
+          </div>
+        </td>
+      </tr>
+    </tfoot>
   </table>
 
-  <!-- Signatures -->
-  <div class="signature-section">
-    <div class="sig-left">
-      <p style="margin-bottom: 30px;">Best Regards,</p>
-      <p class="sig-name">Muhammad Abdul Jabar</p>
-      <p class="sig-title">Commercial and Sustainability Specialist</p>
-    </div>
-    <div class="sig-right">
-      <p style="margin-bottom: 30px;">&nbsp;</p>
-      <p class="sig-name">Hani Septyana</p>
-      <p class="sig-title">Commercial and Sustainability Manager</p>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <div class="footer-text">${footer}</div>
-
 </div>
+<script>
+
+function adjustFooterSpace(){
+
+    const page = document.querySelector('.page');
+    const content = document.querySelector('.content');
+    const footer = document.querySelector('.footer');
+    const spacer = document.querySelector('.footer-space');
+
+    if(!page || !content || !footer || !spacer) return;
+
+    const pageHeight = page.offsetHeight;
+    const contentHeight = content.offsetHeight;
+    const footerHeight = footer.offsetHeight;
+
+    const totalUsed = contentHeight + footerHeight;
+
+    if(totalUsed >= pageHeight){
+        /* konten sudah penuh halaman */
+        spacer.style.height = "0px";
+        return;
+    }
+
+    
+    const remaining = pageHeight - totalUsed;
+    
+    spacer.style.height = remaining + "mm";
+}
+
+
+/* jalankan setelah DOM siap */
+window.addEventListener("load", () => {
+    setTimeout(adjustFooterSpace,150);
+});
+
+/* jika resize */
+window.addEventListener("resize", adjustFooterSpace);
+
+/* sebelum print */
+window.addEventListener("beforeprint", adjustFooterSpace);
+
+</script>
 </body>
 </html>

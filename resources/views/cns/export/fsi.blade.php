@@ -51,8 +51,8 @@ $Saya =  Auth::user()->username;
 	 {
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			// window.open('cns-export-final-shipment-instruction-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
-			window.open('assets/export_fsi.docx', '_blank');
+			window.open('cns-export-final-shipment-instruction-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
+			// window.open('assets/export_fsi.docx', '_blank');
 		}else {
 			alert("Pilih baris data");
 		}
