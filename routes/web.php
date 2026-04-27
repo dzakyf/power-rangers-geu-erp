@@ -5010,6 +5010,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$partnerDashboard-membership-data", [PartnerSalesController::class, 'membershipDashboardData']);
     Route::get("$partnerDashboard-financial-insight", [PartnerSalesController::class, 'financialInsightDashboardPage']);
     Route::get("$partnerDashboard-financial-insight-data", [PartnerSalesController::class, 'financialInsightDashboardData']);
+    Route::get("$partnerDashboard-aftersales", [PartnerSalesController::class, 'aftersalesDashboardPage']);
+    Route::get("$partnerDashboard-aftersales-data", [PartnerSalesController::class, 'aftersalesDashboardData']);
 
 
     $vesselPref = "cns-vessel-schedule";

@@ -1522,7 +1522,146 @@ class SalesController extends Controller
         ]);
     }
 
-    public function totalNetAchieve() {}
+    // get per warehouse, per month
+    public function calculateWarehouse(Request $r)
+    {
+        // Accept input date range
+        $startOfMonth = date('Y-m-01', strtotime($r->date_start ?? now()));
+        $endOfMonth   = date('Y-m-t',  strtotime($r->date_end ?? now()));
+        $currMonth  = date('Y-m', strtotime($startOfMonth));
+
+        $supplies = [];
+
+        $defaultMonth = ['qty' => 0, 'avg' => 0, 'qty_out' => 0, 'avg_out' => 0, 'expenses' => []];
+
+        // Stock IN
+        WarehousePartnerSupplies::where("warehouse_task_id", $r->Task)
+            ->whereBetween('received_date', [$startOfMonth, $endOfMonth])
+            ->get()
+            ->each(function ($item) use (&$supplies, $defaultMonth) {
+                $month  = date('Y-m', strtotime($item->received_date));
+                $supplies[$month] ??= $defaultMonth; // initialize ALL keys including overhead_cost
+
+                $prev   = $supplies[$month];
+                $newQty = $prev['qty'] + $item->received_qty;
+
+                $supplies[$month]['qty'] = $newQty;
+                $supplies[$month]['avg'] = $newQty > 0
+                    ? (($prev['avg'] * $prev['qty']) + $item->total) / $newQty
+                    : 0;
+            });
+
+        // Stock OUT
+        WarehouseStockRequest::where("warehouse_task_id", $r->Task)
+            ->whereBetween('request_date', [$startOfMonth, $endOfMonth])
+            ->get()
+            ->each(function ($item) use (&$supplies, $defaultMonth) {
+                $month  = date('Y-m', strtotime($item->request_date));
+                $supplies[$month] ??= $defaultMonth; // initialize ALL keys including overhead_cost
+
+                $prev   = $supplies[$month];
+                $newQty = $prev['qty_out'] + $item->request_qty;
+
+                $supplies[$month]['qty_out'] = $newQty;
+                $supplies[$month]['avg_out'] = $newQty > 0
+                    ? (($prev['avg_out'] * $prev['qty_out']) + $item->total) / $newQty
+                    : 0;
+            });
+
+        // Overhead cost
+        WarehousePartnerJournal::where("warehouse_task_id", $r->Task)
+            ->whereBetween('posting_date', [$startOfMonth, $endOfMonth])
+            ->get()
+            ->each(function ($item) use (&$supplies, $defaultMonth) {
+                $month = date('Y-m', strtotime($item->posting_date));
+                $supplies[$month] ??= $defaultMonth;
+
+                array_push($supplies[$month]['expenses'], [
+                    'item' => $item->account_name,
+                    'nominal' => $item->nominal,
+                    'coa' => $item->account_no
+                ]);
+            });
+
+        ksort($supplies);
+
+
+
+        // Flat result
+        $result = collect($supplies)->mapWithKeys(function ($data, $month) {
+            $expenses = $data['expenses'] ?? [];
+
+            // Direct cost — filter by Bensin, Parkir
+            $directCostItems = ['Bensin', 'Parkir'];
+            $direct_cost = array_sum(
+                array_column(
+                    array_filter($expenses, fn($e) => in_array($e['item'], $directCostItems)),
+                    'nominal'
+                )
+            );
+
+            // Overhead cost — filter by specific items
+            $overheadCostItems = [
+                'Service Kendaraan',
+                'Wifi',
+                'Listrik',
+                'Kebersihan & Keamanan',
+                'Logistic Penjemputan',
+                'Biaya ISCC',
+                'Biaya Konversi',
+                'Biaya Cadangan',
+            ];
+
+            $overhead_cost = array_sum(
+                array_column(
+                    array_filter($expenses, fn($e) => in_array($e['item'], $overheadCostItems)),
+                    'nominal'
+                )
+            );
+
+            // Raw material price — avg price * qty_out
+            $raw_material_price = ($data['avg'] ?? 0) * ($data['qty_out'] ?? 0);
+
+            // COGS — direct_cost + raw_material_price
+            $cogs = $direct_cost + $raw_material_price;
+
+            return [
+                $month => [
+                    'qty_out'            => $data['qty_out']       ?? 0,
+                    'avg_out'            => round($data['avg_out'] ?? 0),
+                    'raw_material_price' => $raw_material_price,
+                    'direct_cost'        => $direct_cost,
+                    'overhead_cost'      => $overhead_cost,
+                    'cogs'               => $cogs,
+                ]
+            ];
+        });
+
+
+
+        // dd($result, $currMonth, $result[$currMonth], $wh);
+
+        $getTotalOverHeadCost = $result[$currMonth]['overhead_cost'] ?? 0;
+
+        $income =  $result[$currMonth]['avg_out'] * $result[$currMonth]['qty_out'];
+        $cogs        = $result[$currMonth]['cogs'];
+
+        $capitalAllocation = 0.025 * $income;
+        $netProfit = $income - $cogs - $getTotalOverHeadCost - $capitalAllocation;
+        $nominalRoyalty = 0.6 * $netProfit;
+
+        return [
+            'income' => $income,
+            'total_overhead_cost' => $getTotalOverHeadCost,
+            'net_profit' => $netProfit,
+            'nominal_royalty' => $nominalRoyalty,
+            'raw_material_price' => $result[$currMonth]['raw_material_price'],
+            'direct_cost'        => $result[$currMonth]['direct_cost'],
+            'overhead_cost'      => $result[$currMonth]['overhead_cost'],
+            'cogs'               => $result[$currMonth]['cogs'],
+
+        ];
+    }
 
     public function aftersalesDashboardPage()
     {
@@ -1530,19 +1669,114 @@ class SalesController extends Controller
         return view('partner.aftersales-dashboard');
     }
 
+    private function resolveContractStatus(?string $contractEndAt): string
+    {
+        if (!$contractEndAt) {
+            return 'UNKNOWN';
+        }
+
+        $endDate = Carbon::parse($contractEndAt);
+        $now = Carbon::now();
+
+        if ($endDate->isPast()) {
+            return 'EXPIRED';
+        }
+
+        if ($endDate->lt($now->copy()->addMonths(3))) {
+            return 'RENEWAL_SOON';
+        }
+
+        return 'ACTIVE';
+    }
+
     public function afterSalesDashboardData(Request $r)
     {
 
         $q = $r->query();
 
+        $calculatedWh = $this->calculateWarehouse($r);
 
-        $hubStats = DB::table('warehouse_partner as wp')
+        $hubStats = DB::table('opportunity_partner as wp')
             ->selectRaw("
         SUM(CASE WHEN wp.Status = 'ACTIVE' THEN 1 ELSE 0 END) as operating,
         SUM(CASE WHEN wp.Status = 'INACTIVE' THEN 1 ELSE 0 END) as closed,
         SUM(CASE WHEN wp.Status = 'PREPARING' THEN 1 ELSE 0 END) as prepared
+        ")
+            ->first();
+
+        $contractMonitoring = DB::table('opportunity_partner as op')
+            ->where('op.status', 'ACTIVE')
+            ->get()
+            ->map(function ($row) {
+                $row->contract_status = $this->resolveContractStatus($row->contract_end_at);
+                return $row;
+            })
+            ->groupBy('contract_status')
+            ->map(fn($group) => $group->count())
+            ->union(collect([
+                'ACTIVE'       => 0,
+                'RENEWAL_SOON' => 0,
+                'EXPIRED'      => 0,
+                'UNKNOWN'      => 0,
+            ]));
+
+        $ticket = DB::table('ticket as t')
+            ->selectRaw("
+        SUM(CASE WHEN t.Ticket_Status = 'OPEN' THEN 1 ELSE 0 END) as open_count,
+        SUM(CASE WHEN t.Ticket_Status = 'CLOSED' THEN 1 ELSE 0 END) as resolved
     ")
             ->first();
+
+        $avgTime = DB::table('ticket_log as tl1')
+            ->selectRaw("
+    ROUND(AVG(TIMESTAMPDIFF(HOUR, tl1.Action_Date, tl2.Action_Date))) as avg_hours,
+    (
+        SELECT ROUND(AVG(TIMESTAMPDIFF(HOUR, tl_open.Action_Date, tl_closed.Action_Date)))
+        FROM ticket_log as tl_open
+        JOIN ticket_log as tl_closed
+            ON tl_open.Ticket_No = tl_closed.Ticket_No
+            AND tl_closed.Ticket_Status = 'CLOSED'
+            AND tl_closed.Action_Date != '0000-00-00 00:00:00'
+            AND tl_closed.Action_Date = (
+                SELECT MIN(Action_Date)
+                FROM ticket_log
+                WHERE Ticket_No = tl_open.Ticket_No
+                AND Ticket_Status = 'CLOSED'
+                AND Action_Date > tl_open.Action_Date
+                AND Action_Date != '0000-00-00 00:00:00'
+            )
+        WHERE tl_open.Ticket_Status = 'OPEN'
+        AND tl_open.Action_Date != '0000-00-00 00:00:00'
+    ) as avg_resolution_hours
+")
+            ->join('ticket_log as tl2', function ($join) {
+                $join->on('tl1.Ticket_No', '=', 'tl2.Ticket_No')
+                    ->whereRaw('tl2.Action_Date = (
+            SELECT MIN(Action_Date)
+            FROM ticket_log
+            WHERE Ticket_No = tl1.Ticket_No
+            AND Action_Date > tl1.Action_Date
+            AND Action_Date != "0000-00-00 00:00:00"
+         )');
+            })
+            ->where('tl1.Action_Date', '!=', '0000-00-00 00:00:00')
+            ->first();
+
+        // dd($avgTime);
+
+        $supportRequestCount = DB::table('ticket as t')
+            ->selectRaw("
+        SUM(CASE WHEN t.Ticket_Category = 'ERP'         THEN 1 ELSE 0 END) as erp_count,
+        SUM(CASE WHEN t.Ticket_Category = 'Operational' THEN 1 ELSE 0 END) as operational_count,
+        SUM(CASE WHEN t.Ticket_Category = 'Financial'   THEN 1 ELSE 0 END) as financial_count,
+        SUM(CASE WHEN t.Ticket_Category = 'Partnership' THEN 1 ELSE 0 END) as partnership_count,
+        SUM(CASE WHEN t.Ticket_Category = 'Other'       THEN 1 ELSE 0 END) as other_count
+    ")
+            ->first();
+
+        $totalIncome = 0;
+
+        $totalNetProfit = 0;
 
         $data = [
             'hub_stats' => [
@@ -1556,19 +1790,22 @@ class SalesController extends Controller
                 'low' => 0
             ],
             'support_request_count' => [
-                'operational' => 0,
-                'other' => 0
+                'operational' => $supportRequestCount->operational_count,
+                'other' => $supportRequestCount->other_count,
+                'erp' => $supportRequestCount->erp_count,
+                'financial' => $supportRequestCount->financial_count,
+                'partnership' => $supportRequestCount->partnership_count,
             ],
             'contract_monitoring' => [
-                'active' => 0,
-                'almost_deadline' => 0,
-                'expired' => 0
+                'active' => $contractMonitoring['ACTIVE'],
+                'renewal_soon' => $contractMonitoring['RENEWAL_SOON'],
+                'expired' => $contractMonitoring['EXPIRED']
             ],
             'support_performance' => [
-                'open_ticket' => 0,
-                'resolved' => 0,
-                'mttr' => 0, // avg time to respond
-                'mttf' => 0, // avg time to fix
+                'open_ticket' => $ticket->open_count,
+                'resolved' => $ticket->resolved,
+                'mttr' => $avgTime->avg_hours, // avg time to respond
+                'mttf' => $avgTime->avg_resolution_hours, // avg time to fix
             ],
             'net_profit' => [
                 [
@@ -1583,8 +1820,8 @@ class SalesController extends Controller
                 ]
             ],
             'complaints_list' => [],
-            'total_income' => 0,
-            'total_net_profit' => 0,
+            'total_income' => $totalIncome,
+            'total_net_profit' => $totalNetProfit,
             'uco_volume' => 0,
             'uco_volume_sold' => 0,
             'management_fee' => 0,
