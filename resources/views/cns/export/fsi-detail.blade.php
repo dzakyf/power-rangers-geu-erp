@@ -75,7 +75,7 @@ $Saya =  Auth::user()->username;
                                 <select name="Shipper" id="Shipper" class="form-control" required>
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
-                                        <option value="{{ $shipper->Company_ID }}" {{ $si->Shipper == $shipper->Company_ID ? '' : '' }}>{{ $shipper->Company_Name }}</option>
+                                        <option value="{{ $shipper->Supplier_ID }}" {{ $si->Shipper == $shipper->Supplier_ID ? '' : '' }}>{{ $shipper->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -86,7 +86,7 @@ $Saya =  Auth::user()->username;
                                 <select name="Consignee" id="Consignee" class="form-control" required>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
-                                        <option value="{{ $consignee->Company_ID }}" {{ $si->Consignee == $consignee->Company_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
+                                        <option value="{{ $consignee->Supplier_ID }}" {{ $si->Consignee == $consignee->Supplier_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -97,7 +97,7 @@ $Saya =  Auth::user()->username;
                                 <select name="Notify" id="Notify" class="form-control" required>
                                     <option value="">-- Pilih Notify --</option>
                                     @foreach ($companies as $notify)
-                                        <option value="{{ $notify->Company_ID }}" {{ $si->Notify == $notify->Company_ID ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
+                                        <option value="{{ $notify->Supplier_ID }}" {{ $si->Notify == $notify->Supplier_ID ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -108,7 +108,7 @@ $Saya =  Auth::user()->username;
                                 <select name="Destination_Letter" id="Destination_Letter" class="form-control" required>
                                     <option value="">-- Pilih Destination Letter --</option>
                                     @foreach ($companies as $destination_Letter)
-                                        <option value="{{ $destination_Letter->Company_ID }}" {{ $si->Destination_Letter == $destination_Letter->Company_ID ? 'selected' : '' }}>{{ $destination_Letter->Company_Name }}</option>
+                                        <option value="{{ $destination_Letter->Supplier_ID }}" {{ $si->Destination_Letter == $destination_Letter->Supplier_ID ? 'selected' : '' }}>{{ $destination_Letter->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>

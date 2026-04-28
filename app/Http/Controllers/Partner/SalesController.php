@@ -1659,6 +1659,7 @@ class SalesController extends Controller
             'direct_cost'        => $result[$currMonth]['direct_cost'],
             'overhead_cost'      => $result[$currMonth]['overhead_cost'],
             'cogs'               => $result[$currMonth]['cogs'],
+            'gross_margin' => $result[$currMonth]['cogs'] - $income
 
         ];
     }
@@ -1666,7 +1667,7 @@ class SalesController extends Controller
     public function aftersalesDashboardPage()
     {
 
-        return view('partner.aftersales-dashboard');
+        return view('partner.dashboard.aftersales-index');
     }
 
     private function resolveContractStatus(?string $contractEndAt): string
@@ -1693,6 +1694,7 @@ class SalesController extends Controller
     {
 
         $q = $r->query();
+        $whid = $q['Task'];
 
         $calculatedWh = $this->calculateWarehouse($r);
 
@@ -1774,10 +1776,6 @@ class SalesController extends Controller
     ")
             ->first();
 
-        $totalIncome = 0;
-
-        $totalNetProfit = 0;
-
         $data = [
             'hub_stats' => [
                 'operating' => $hubStats->operating ?? 0,
@@ -1809,24 +1807,24 @@ class SalesController extends Controller
             ],
             'net_profit' => [
                 [
-                    'warehouse' => '',
-                    'amount' => 0
+                    'warehouse' => $whid,
+                    'amount' => $calculatedWh['net_profit']
                 ]
             ],
             'projection' => [
                 [
-                    'warehouse' => '',
+                    'warehouse' => $whid,
                     'amount' => 0
                 ]
             ],
             'complaints_list' => [],
-            'total_income' => $totalIncome,
-            'total_net_profit' => $totalNetProfit,
+            'total_income' => $calculatedWh['income'],
+            'total_net_profit' => $calculatedWh['net_profit'],
             'uco_volume' => 0,
             'uco_volume_sold' => 0,
-            'management_fee' => 0,
-            'company_royalty' => 0,
-            'company_total_profit' => 0
+            'management_fee' => 0, //hidden cost 
+            'company_royalty' => $calculatedWh['nominal_royalty'],
+            'company_total_profit' => $calculatedWh['gross_margin']
         ];
 
         return response()->json([

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\ShipmentInstruction;
 use App\VesselSchedule;
 use App\PackingList;
+use App\VesselScheduleLog;
 use Illuminate\Http\Request;
 
 class VesselScheduleController extends Controller
@@ -96,6 +97,30 @@ class VesselScheduleController extends Controller
         $vs->Created_By = auth()->user()->username;
         $vs->save();
 
+        $vsl = new VesselScheduleLog();
+        $vsl->Task_ID = "VS/GEU/" . substr(md5(auth()->user()->username), 0 , 5) . "/" . date('YmdHis');
+        $vsl->Order_No = $request->input('Order_No');
+        $vsl->Qty = $request->input('Qty1') . " x " . $request->input('Qty2');
+        $vsl->Qty1 = $request->input('Qty1');
+        $vsl->Qty2 = $request->input('Qty2');
+        $vsl->Vessel = $request->input('Vessel');
+        $vsl->POL = $request->input('POL');
+        $vsl->POD = $request->input('POD');
+        $vsl->Stuffing = $request->input('Stuffing');
+        $vsl->Checking_BC = $request->input('Checking_BC');
+        $vsl->Closing_CY = $request->input('Closing_CY');
+        $vsl->ETD = $request->input('ETD');
+        $vsl->ETA = $request->input('ETA');
+        $vsl->Note = $request->input('Note');
+        $vsl->Created_By = auth()->user()->username;
+        $vsl->Created_Date = now();
+        $vsl->Action_By = auth()->user()->username;
+        $vsl->Action_Date = now();
+        $vsl->Action_Status = "CREATED";
+        $vsl->Last_ID = $vs->id;
+
+        $vsl->save();
+
         echo "success";
     }
 
@@ -133,7 +158,6 @@ class VesselScheduleController extends Controller
             $cekPackingList->save();
         }
 
-
         $vs->Order_No = $request->input('Order_No');
         $vs->Qty = $request->input('Qty1') . " x " . $request->input('Qty2');
         $vs->Qty1 = $request->input('Qty1');
@@ -151,6 +175,15 @@ class VesselScheduleController extends Controller
         $vs->Note = $request->input('Note');
         $vs->Created_By = auth()->user()->username;
         $vs->save();
+
+        $vs = VesselSchedule::where('id', $request->input('id'))->first();
+        $vs = $vs->toArray();
+        $vs['Last_ID'] = $vs['id'];
+        unset($vs['id']);
+        $vs['Action_By'] = auth()->user()->username;
+        $vs['Action_Date'] = now();
+        $vs['Action_Status'] = "UPDATE DATA";
+        $vsl = VesselSchedule::create($vs);
 
         echo "success";
     }

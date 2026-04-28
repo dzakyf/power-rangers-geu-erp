@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
+use App\PackingList;
 use App\ShipmentInstruction;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
+use App\VesselScheduleLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -52,6 +54,7 @@ class FinalShipmentInstructionController extends Controller
             echo "<row id=\"$shipment->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
             echo "<cell>" . htmlspecialchars($shipment->Final_SI_No) . "</cell>";
+            echo "<cell>" . htmlspecialchars($shipment->Final_SI_Date) . "</cell>";
             echo "<cell>" . htmlspecialchars($shipment->SI_No) . "</cell>";
             if (isset($vsdData[$shipment->SI_No])) {
                 echo "<cell>" . htmlspecialchars(implode(', ', $vsdData[$shipment->SI_No]['list'])) . "</cell>";
@@ -107,5 +110,122 @@ class FinalShipmentInstructionController extends Controller
         } else {
             return response()->json(['error' => 'Shipment Instruction not found'], 404);
         }
+    }
+
+    function getRomawi($bln)
+    {
+        switch ($bln) {
+            case 1:
+                return "I";
+                break;
+            case 2:
+                return "II";
+                break;
+            case 3:
+                return "III";
+                break;
+            case 4:
+                return "IV";
+                break;
+            case 5:
+                return "V";
+                break;
+            case 6:
+                return "VI";
+                break;
+            case 7:
+                return "VII";
+                break;
+            case 8:
+                return "VIII";
+                break;
+            case 9:
+                return "IX";
+                break;
+            case 10:
+                return "X";
+                break;
+            case 11:
+                return "XI";
+                break;
+            case 12:
+                return "XII";
+                break;
+        }
+    }
+
+    public function generatePackingList(Request $request)
+    {
+        $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
+        if (!$shipment) {
+            return response()->json(['error' => 'Shipment Instruction not found'], 404);
+        }
+
+        // $shipment->Status = "PACKING_LIST";
+        // $shipment->save();
+
+        $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
+
+        $vs = $vs->toArray();
+        $vs['Last_ID'] = $vs['id'];
+        $vs['Action_By'] = auth()->user()->username;
+        $vs['Action_Date'] = now();
+        $vs['Action_Status'] = "CREATE PL";
+        unset($vs['id']);
+        VesselScheduleLog::create($vs);
+
+        $counter = PackingList::where('PL_Date', "LIKE", date("Y-m") . "%")->count();
+        
+        $shipment = json_decode(json_encode($shipment), true);
+        $shipment["Packing_List_No"] = "PL-GEU/EXP-BC/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
+        $shipment['PL_Date'] = $request->PL_Date;
+        $shipment['Created_By'] = auth()->user()->username;
+        $shipment['Created_Date'] = now();
+        $shipment['Updated_By'] = null;
+        $shipment['Updated_Date'] = null;
+        $shipment['Status'] = "CREATED";
+        PackingList::create($shipment);
+
+        echo "<script>alert('Packing List generated successfully');</script>";
+
+        // return response()->json(['message' => 'Packing List generated successfully']);
+    }
+
+    public function generateCommercialInvoice(Request $request)
+    {
+        $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
+        if (!$shipment) {
+            return response()->json(['error' => 'Shipment Instruction not found'], 404);
+        }
+
+        $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
+
+        $vs = $vs->toArray();
+        $vs['Last_ID'] = $vs['id'];
+        $vs['Action_By'] = auth()->user()->username;
+        $vs['Action_Date'] = now();
+        $vs['Action_Status'] = "CREATE CI";
+        unset($vs['id']);
+        VesselScheduleLog::create($vs);
+    
+        $counter = DB::table('commercial_invoice')->where('Inv_Date', "LIKE", date("Y-m") . "%")->count();
+        
+        $shipment = json_decode(json_encode($shipment), true);
+        $shipment["Inv_No"] = sprintf('%03d',$counter + 1) . "/INV-GEU/" . $this->getRomawi(date("n")) . "/" . date("Y");
+        $shipment['Inv_Date'] = date("Y-m-d");
+        $shipment['Shipper'] = $shipment['Shipper'] ?? '';
+        $shipment['Consignee'] = $shipment['Consignee'] ?? '';
+        $shipment['Description'] = "";
+        $shipment['Qty'] = "";
+        $shipment['Amount'] = 0;
+        $shipment['Advance_Payment'] = 0;
+        $shipment['Other'] = 0;
+        $shipment['Total'] = 0;
+        $shipment["Status"] = "CREATED";
+        $shipment['Created_By'] = auth()->user()->username;
+        $shipment['Created_Date'] = now();
+        DB::table('commercial_invoice')->insert($shipment);
+
+        return response()->json(['message' => 'Commercial Invoice generated successfully']);
     }
 }

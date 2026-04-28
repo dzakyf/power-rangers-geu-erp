@@ -130,13 +130,19 @@
 			<tr height="30">
 				<td class="badan">Logo Inverse</td>
 				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="file" id="Logo_Inverse" style="border:none;outline:none;" /></td>        
+				<td class="badan_kiri" width='250'><input type="file" id="Logo_Inverse" style="border:none;outline:none;" /></td>     
 
+				<td class="badan">Stamps</td>
+				<td class="badan">:</td>
+				<td class="badan_kiri" width='250'><input type="file" id="Stamps" style="border:none;outline:none;" /></td>              
+
+			</tr>
+			<tr height="30">
 				<td class="badan"></td>
 				<td class="badan"></td>
 				<td class="badan_kiri" width='250'>	
 					<input type="button" id="UpdateData" NAME="UpdateData" onclick="Submitkan()" value="Submit Data" />                
-				</td>        
+				</td>               
 
 			</tr>
 
@@ -195,6 +201,10 @@ function Submitkan(){
 	formData.append('Logo_Inverse', $('#Logo_Inverse')[0].files[0]);
 	if ($('#Logo_Inverse')[0].files[0] && !isValidImage($('#Logo_Inverse')[0].files[0])) {
 		dhtmlx.alert('File Logo Inverse harus jpg, jpeg, atau png');
+	}
+	formData.append('Stamps', $('#Stamps')[0].files[0]);
+	if ($('#Stamps')[0].files[0] && !isValidImage($('#Stamps')[0].files[0])) {
+		dhtmlx.alert('File Stamps harus jpg, jpeg, atau png');
 	}
 
 	$.ajax({

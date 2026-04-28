@@ -37,7 +37,10 @@ $Saya =  Auth::user()->username;
 				<input type="button" id="newSchedule" name="newSchedule" value="New Final SI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail Final SI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
 				<input type="button" id="printSI" name="printSI" value="Print Final SI" class="btn btn-secondary mt-2 mr-2" onclick="PrintSI()" />
-				<input type="button" id="createToFSI" name="createToFSI" value="Create Final SI" class="btn btn-success mt-2 mr-2" onclick="CreateToFSI()" />
+				<input type="text" name="PL_Date" id="PL_Date" value="{{ date("Y-m-d") }}" class="form-control w-25 mt-2 mr-2" placeholder="PL Date" style="display:none;" readonly />
+				<input type="button" id="createPL" name="createPL" value="Create Packing List" class="btn btn-success mt-2 mr-2" onclick="CreatePL()" />
+				<input type="text" name="CI_Date" id="CI_Date" value="{{ date("Y-m-d") }}" class="form-control w-25 mt-2 mr-2" placeholder="CI Date" style="display:none;" readonly />
+				<input type="button" id="createCI" name="createCI" value="Create Commercial Invoice" class="btn btn-success mt-2 mr-2" onclick="CreateCI()" />
 			</div>
 		</div>
 	</div>
@@ -47,6 +50,37 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
+	var myCalendarMain;
+	myCalendarMain = new dhtmlXCalendarObject(["PL_Date", 'CI_Date']);
+	myCalendarMain.setDateFormat("%Y-%m-%d");
+	function CreatePL() {
+		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
+		if (ShipmentInstructionID != null) {
+			let display = $('#PL_Date').css('display');
+			if (display == 'none') {
+				$('#PL_Date').css('display', 'inline-block');
+			} else {
+				$('#PL_Date').css('display', 'none');
+				LoadM('DivProcess', 'cns-export-final-shipment-instruction-create-pl?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue() + '&PL_Date=' + $('#PL_Date').val());
+
+				setTimeout(() => {
+					refreshdata();
+				}, 500);
+			}
+		}else {
+			alert("Pilih baris data");
+		}
+		return true;
+	 }
+	function CreateCI() {
+		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
+		if (ShipmentInstructionID != null) {
+			LoadM('DivProcess', 'cns-export-final-shipment-instruction-create-ci?Task=' + ShipmentInstructionID);
+		}else {
+			alert("Pilih baris data");
+		}
+		return true;
+	 }
 	function PrintSI()
 	 {
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
@@ -75,13 +109,13 @@ $Saya =  Auth::user()->username;
 	}
 	ShipmentInstruction = new dhtmlXGridObject('ShipmentInstruction');
 	ShipmentInstruction.setImagePath("./dhtmlx/imgs/");
-	ShipmentInstruction.setHeader("No,Final SI No, SI No, Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross, Gross (MT), Note");
+	ShipmentInstruction.setHeader("No,Final SI No, Final SI Date, SI No, Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross, Gross (MT), Note");
 	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// ShipmentInstruction.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	ShipmentInstruction.setInitWidths("60,150,150,150,150,100,100,100,100,100,auto");
-	ShipmentInstruction.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left");
-	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str");
-	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	ShipmentInstruction.setInitWidths("60,150,100,150,150,150,100,100,100,100,100,auto");
+	ShipmentInstruction.setColAlign("center,left,center,left,left,left,left,left,left,left,left,left,left,left");
+	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
+	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	ShipmentInstruction.enableSmartRendering(true, 150);
 	// ShipmentInstruction.setNumberFormat("0,000", 7, ".", ",");
 	ShipmentInstruction.attachEvent("onRowDblClicked", ShipmentInstructionKlik);

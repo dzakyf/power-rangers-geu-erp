@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\ShipmentInstruction;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
+use App\VesselScheduleDtlLog;
+use App\VesselScheduleLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -138,6 +140,16 @@ class ShipmentInstructionController extends Controller
             }
         }
 
+        $vs = VesselSchedule::where("Order_No", $orderNo)->first();
+
+        $vs = $vs->toArray();
+        $vs['Last_ID'] = $vs['id'];
+        $vs['Action_By'] = auth()->user()->username;
+        $vs['Action_Date'] = now();
+        $vs['Action_Status'] = "CREATE SI";
+        unset($vs['id']);
+        VesselScheduleLog::create($vs);
+
         ShipmentInstruction::create([
             'SI_No' => $request->input('SI_No'),
             'Order_No' => $orderNo,
@@ -171,6 +183,13 @@ class ShipmentInstructionController extends Controller
             VesselScheduleDtl::where("ID", $value)->update([
                 'SI_No' => $request->SI_No
             ]);
+            $value = json_decode(json_encode($value), true);
+            $value['Last_ID'] = $value['id'];
+            unset($value['id']);
+            $value['Action_By'] = auth()->user()->username;
+            $value['Action_Date'] = now();
+            $value['Action_Status'] = "CREATE SI (Detail)";
+            VesselScheduleDtlLog::create($value);
         }
 
         return response()->json(['success' => true, 'message' => 'Shipment Instruction submitted successfully']);
@@ -183,6 +202,7 @@ class ShipmentInstructionController extends Controller
         $SINo = "FINALSI/EXP/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
         ShipmentInstruction::where("SI_No", $request->Task)->update([
             'Final_SI_No' => $SINo,
+            'Final_SI_Date' => $request->FSI_Date,
             'Status' => "FINAL",
             'Updated_Date' => now(),
             'Updated_By' => auth()->user()->username
@@ -248,6 +268,17 @@ class ShipmentInstructionController extends Controller
     public function detailShipmentInstructionSubmit(Request $request)
     {
         $si = ShipmentInstruction::where('id', $request->input('id'))->first();
+
+        $vs = VesselSchedule::where("Order_No", $si->Order_No)->first();
+
+        $vs = $vs->toArray();
+        $vs['Last_ID'] = $vs['id'];
+        $vs['Action_By'] = auth()->user()->username;
+        $vs['Action_Date'] = now();
+        $vs['Action_Status'] = "UPDATE SI";
+        unset($vs['id']);
+        VesselScheduleLog::create($vs);
+
         $si->Shipper = $request->input('Shipper') ?? '';
         $si->Consignee = $request->input('Consignee') ?? '';
         $si->Notify = $request->input('Notify') ?? '';
