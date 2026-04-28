@@ -15,10 +15,12 @@ use Illuminate\Database\Eloquent\Builder;
 	echo "<script>";
 
 		foreach($sobjf as $objf){
-		$idobj = $objf->Field;
-		$isinya = $fetch->$idobj;
-			
+			$idobj = $objf->Field;
+			$isinya = $fetch->$idobj;
+			if ($idobj != 'Logo' && $idobj != 'Logo_Inverse' && $idobj != 'LetterHead' && $idobj != 'Footer'){
 				echo "$('#$idobj').val('$isinya'); \n";
+			}
+			
 		}
 	
 	echo "</script>";
@@ -138,11 +140,39 @@ use Illuminate\Database\Eloquent\Builder;
 				<td class="badan">:</td>
 				<td class="badan_kiri" width='250'><input type="text" size="5" value="" id="Bank_Foreign_Currency" style="border:none;outline:none;" /></td>        
 
+				<td class="badan">Upload Header</td>
+				<td class="badan">:</td>
+				<td class="badan_kiri" width='250'><input type="file" id="LetterHead" style="border:none;outline:none;" /></td>        
+
+			</tr>
+			<tr height="30">
+				<td class="badan">Footer</td>
+				<td class="badan">:</td>
+				<td class="badan_kiri" width='250'>
+					<input type="file" id="Footer" style="border:none;outline:none;" />
+				</td>        
+
+				<td class="badan">Logo</td>
+				<td class="badan">:</td>
+				<td class="badan_kiri" width='250'><input type="file" id="Logo" style="border:none;outline:none;" /></td>  
+
+			</tr>
+			<tr height="30">
+				<td class="badan">Logo Inverse</td>
+				<td class="badan">:</td>
+				<td class="badan_kiri" width='250'><input type="file" id="Logo_Inverse" style="border:none;outline:none;" /></td>     
+
+				<td class="badan">Stamps</td>
+				<td class="badan">:</td>
+				<td class="badan_kiri" width='250'><input type="file" id="Stamps" style="border:none;outline:none;" /></td>              
+
+			</tr>
+			<tr height="30">
 				<td class="badan"></td>
 				<td class="badan"></td>
 				<td class="badan_kiri" width='250'>	
 					<input type="button" id="UpdateData" NAME="UpdateData" onclick="Submitkan()" value="Submit Data" />                
-				</td>        
+				</td>               
 
 			</tr>
 
@@ -154,6 +184,13 @@ use Illuminate\Database\Eloquent\Builder;
 
 <script>
 
+function isValidImage(file) {
+  const allowedExtensions = ['jpg', 'jpeg', 'png'];
+  const fileName = file.name.toLowerCase();
+  const extension = fileName.split('.').pop();
+
+  return allowedExtensions.includes(extension);
+}
 		
 function getAllValues() {
     var inputValues = [];
@@ -174,14 +211,43 @@ function getAllValues() {
 
 function Submitkan(){
 	dapat = getAllValues();
+	let formData = new FormData();
+
+	formData.append('_token', '{{ csrf_token() }}')
+	formData.append('param', dapat)
+
+	formData.append('LetterHead', $('#LetterHead')[0].files[0]);
+	if ($('#LetterHead')[0].files[0] && !isValidImage($('#LetterHead')[0].files[0])) {
+		dhtmlx.alert('File Kop Surat harus jpg, jpeg, atau png');
+	}
+	formData.append('Footer', $('#Footer')[0].files[0]);
+	if ($('#Footer')[0].files[0] && !isValidImage($('#Footer')[0].files[0])) {
+		dhtmlx.alert('File Footer harus jpg, jpeg, atau png');
+	}
+	formData.append('Logo', $('#Logo')[0].files[0]);
+	if ($('#Logo')[0].files[0] && !isValidImage($('#Logo')[0].files[0])) {
+		dhtmlx.alert('File Logo harus jpg, jpeg, atau png');
+	}
+	formData.append('Logo_Inverse', $('#Logo_Inverse')[0].files[0]);
+	if ($('#Logo_Inverse')[0].files[0] && !isValidImage($('#Logo_Inverse')[0].files[0])) {
+		dhtmlx.alert('File Logo Inverse harus jpg, jpeg, atau png');
+	}
+	formData.append('Stamps', $('#Stamps')[0].files[0]);
+	if ($('#Stamps')[0].files[0] && !isValidImage($('#Stamps')[0].files[0])) {
+		dhtmlx.alert('File Stamps harus jpg, jpeg, atau png');
+	}
+
 	$.ajax({
 		 headers: {
         'X-CSRF-TOKEN': "{{ csrf_token() }}"
 		 },
     
-		url : "master-vendor-detail-submit?_token={{ csrf_token() }}",
+		url : "cns-master-company-detail-submit?_token={{ csrf_token() }}",
 		type: "POST",
-		data : dapat,
+		data : formData,
+		processData: false,
+		contentType: false,
+		cache: false,
 		success: function(data, textStatus, jqXHR)
 		{
 			if (data == 'success'){

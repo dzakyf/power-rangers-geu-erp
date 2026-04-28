@@ -37,6 +37,7 @@ $Saya =  Auth::user()->username;
 				<input type="button" id="newSchedule" name="newSchedule" value="New SI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail SI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
 				<input type="button" id="printSI" name="printSI" value="Print SI" class="btn btn-secondary mt-2 mr-2" onclick="PrintSI()" />
+				<input type="text" name="FSI_Date" id="FSI_Date" class="form-control w-25 mt-2 mr-2" placeholder="FSI Date" value="{{ date('Y-m-d') }}" style="display:none;" readonly />
 				<input type="button" id="createToFSI" name="createToFSI" value="Create Final SI" class="btn btn-success mt-2 mr-2" onclick="CreateToFSI()" />
 			</div>
 		</div>
@@ -47,6 +48,9 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
+	var myCalendarMain;
+	myCalendarMain = new dhtmlXCalendarObject(["FSI_Date"]);
+	myCalendarMain.setDateFormat("%Y-%m-%d");
 	function PrintSI()
 	{
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
@@ -58,12 +62,25 @@ $Saya =  Auth::user()->username;
 		}
 		return true;
 	}
+	function openFSIDate()
+	{
+		let display = $('#FSI_Date').css("display");
+		if (display == 'none') {
+			$('#FSI_Date').css('display','inline-block');
+		}else {
+			$('#FSI_Date').css('display','none');
+			LoadM('divlistOpportunity', 'cns-export-shipment-instruction-generate-fsi?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue() + "&FSI_Date=" + $('#FSI_Date').val());
+
+			setTimeout(() => {
+				refreshdata();
+			}, 500);
+		}
+	}
 	function CreateToFSI()
 	{
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			LoadM('divlistOpportunity', 'cns-export-shipment-instruction-generate-fsi?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue());
-			refreshdata();
+			openFSIDate();
 		}else {
 			alert("Pilih baris data");
 		}

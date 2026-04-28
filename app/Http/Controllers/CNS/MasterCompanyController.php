@@ -43,6 +43,11 @@ class MasterCompanyController extends Controller
                     echo "<cell>".htmlspecialchars(($dapat->Supplier_Group_Category))."</cell>";
                     echo "<cell>".htmlspecialchars(($dapat->Address))."</cell>";
                     echo "<cell>".htmlspecialchars(($dapat->Contact_Person))."</cell>";
+                    echo "<cell>".htmlspecialchars(($dapat->Letterhead == null ? 'Tidak ada' : 'Ada'))."</cell>";
+                    echo "<cell>".htmlspecialchars(($dapat->Footer == null ? 'Tidak ada' : 'Ada'))."</cell>";
+                    echo "<cell>".htmlspecialchars(($dapat->Logo == null ? 'Tidak ada' : 'Ada'))."</cell>";
+                    echo "<cell>".htmlspecialchars(($dapat->Logo_Inverse == null ? 'Tidak ada' : 'Ada'))."</cell>";
+                    echo "<cell>".htmlspecialchars(($dapat->Stamps == null ? 'Tidak ada' : 'Ada'))."</cell>";
                 echo "</row>";	
 
         $nomor++;
@@ -116,6 +121,13 @@ class MasterCompanyController extends Controller
             $arr['Logo_Inverse'] = "filesupplier/".$filename;
         }
 
+        if ($request->Stamps != 'undefined') {
+            $file = $request->Stamps;
+            $filename = "Stamps_".time().".".$file->getClientOriginalExtension();
+            $file->move(public_path('filesupplier'), $filename);
+            $arr['Stamps'] = "filesupplier/".$filename;
+        }
+
         $arr['Supplier_ID'] = $Supplier_ID;
         $arr['Status'] = "NORMAL";
         $arr['Created_By'] = $Saya;
@@ -131,5 +143,71 @@ class MasterCompanyController extends Controller
     {
         $company = DB::table("supplier")->where("ID", $request->ID)->first();
         return view('cns.master.company-detail', compact('company'));
+    }
+
+    public function detailMasterCompanySubmit(Request $request)
+    {
+        $param = $request->param;
+        $param = explode('&', $param);
+        foreach ($param as $key => $value) {
+            $value = explode('=', $value);
+            $params[$value[0]] = $value[1];
+        }
+        $ars = "";
+        $ax = "";
+        $isi = "";
+        $arr = [];
+        foreach($params as $key=>$value)
+        {
+                
+                if ($key !='ID' && $key !='UpdateData' && $key != 'LetterHead' && $key != 'Footer' && $key != 'Logo' && $key != 'Logo_Inverse'){
+                    $ars .= "$key = '$value',";
+                    $ax .="$key,";
+                    $isi.="'$value',";
+                    $arr[$key] = $value;
+                }
+        }
+        $Saya = Auth::User()->username;
+        $LSP = Auth::user()->Location;
+
+        if ($request->LetterHead != 'undefined') {
+            $file = $request->LetterHead;
+            $filename = "LetterHead_".time().".".$file->getClientOriginalExtension();
+            $file->move(public_path('filesupplier'), $filename);
+            $arr['Letterhead'] = "filesupplier/".$filename;
+        }
+
+        if ($request->Footer != 'undefined') {
+            $file = $request->Footer;
+            $filename = "Footer_".time().".".$file->getClientOriginalExtension();
+            $file->move(public_path('filesupplier'), $filename);
+            $arr['Footer'] = "filesupplier/".$filename;
+        }
+
+        if ($request->Logo != 'undefined') {
+            $file = $request->Logo;
+            $filename = "Logo_".time().".".$file->getClientOriginalExtension();
+            $file->move(public_path('filesupplier'), $filename);
+            $arr['Logo'] = "filesupplier/".$filename;
+        }
+
+        if ($request->Logo_Inverse != 'undefined') {
+            $file = $request->Logo_Inverse;
+            $filename = "LogoInverse_".time().".".$file->getClientOriginalExtension();
+            $file->move(public_path('filesupplier'), $filename);
+            $arr['Logo_Inverse'] = "filesupplier/".$filename;
+        }
+
+        if ($request->Stamps != 'undefined') {
+            $file = $request->Stamps;
+            $filename = "Stamps_".time().".".$file->getClientOriginalExtension();
+            $file->move(public_path('filesupplier'), $filename);
+            $arr['Stamps'] = "filesupplier/".$filename;
+        }
+
+        DB::table('supplier')->where('ID', $params['ID'])->update($arr);
+
+        // DB::insert(DB::raw("INSERT INTO supplier($ax,Status,Supplier_ID,Created_By,Location) VALUES($isi,'NORMAL','$Supplier_ID','$Saya','$LSP')"));
+        return "success";
     }
 }

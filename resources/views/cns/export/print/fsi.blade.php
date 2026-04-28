@@ -349,7 +349,7 @@
                 </tr>
                 <tr>
                   <td class="flbl">Date</td>
-                  <td class="fval">{{ $shipment->SI_Date }}</td>
+                  <td class="fval">{{ $shipment->Final_SI_Date }}</td>
                 </tr>
                 <tr>
                   <td class="flbl" style="vertical-align:top; padding-top:8px;">To</td>

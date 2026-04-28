@@ -74,13 +74,13 @@ $Saya =  Auth::user()->username;
 	}
 	ShipmentInstruction = new dhtmlXGridObject('ShipmentInstruction');
 	ShipmentInstruction.setImagePath("./dhtmlx/imgs/");
-	ShipmentInstruction.setHeader("No,Order (DO)/Booking Confirmation (BC), SI No, Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross, Gross (MT), Note");
+	ShipmentInstruction.setHeader("No,Packing List No, Final SI No,Packing List Date, Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross, Gross (MT), Note");
 	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// ShipmentInstruction.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	ShipmentInstruction.setInitWidths("60,150,150,150,150,100,100,100,100,100,auto");
-	ShipmentInstruction.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left");
-	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str");
-	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	ShipmentInstruction.setInitWidths("60,150,150,100,150,150,100,100,100,100,100,auto");
+	ShipmentInstruction.setColAlign("center,left,left,center,left,left,left,left,left,left,left,left,left,left");
+	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
+	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	ShipmentInstruction.enableSmartRendering(true, 150);
 	// ShipmentInstruction.setNumberFormat("0,000", 7, ".", ",");
 	ShipmentInstruction.attachEvent("onRowDblClicked", ShipmentInstructionKlik);

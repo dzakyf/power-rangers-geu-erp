@@ -125,7 +125,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 <select name="Shipper" id="Shipper" class="form-control" required>
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
-                                        <option value="{{ $shipper->Company_ID }}">{{ $shipper->Company_Name }}</option>
+                                        <option value="{{ $shipper->Supplier_ID }}">{{ $shipper->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -136,7 +136,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 <select name="Consignee" id="Consignee" class="form-control" required>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
-                                        <option value="{{ $consignee->Company_ID }}">{{ $consignee->Company_Name }}</option>
+                                        <option value="{{ $consignee->Supplier_ID }}">{{ $consignee->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -147,7 +147,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 <select name="Notify" id="Notify" class="form-control" required>
                                     <option value="">-- Pilih Notify --</option>
                                     @foreach ($companies as $notify)
-                                        <option value="{{ $notify->Company_ID }}">{{ $notify->Company_Name }}</option>
+                                        <option value="{{ $notify->Supplier_ID }}">{{ $notify->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -158,7 +158,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 <select name="Destination_Letter" id="Destination_Letter" class="form-control" required>
                                     <option value="">-- Pilih Destination Letter --</option>
                                     @foreach ($companies as $destination_Letter)
-                                        <option value="{{ $destination_Letter->Company_ID }}">{{ $destination_Letter->Company_Name }}</option>
+                                        <option value="{{ $destination_Letter->Supplier_ID }}">{{ $destination_Letter->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>

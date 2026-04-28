@@ -64,7 +64,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 						<div class="col-12">
 							<div class="form-group">
 								<label for="Order_No">Order No</label>
-                                <select name="Order_No" id="Order_No" class="form-control" required>
+                                <select name="Order_No" id="Order_No" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Order No --</option>
                                     @foreach ($vss as $vs)
                                         <option value="{{ $vs->Order_No }}">{{ $vs->Order_No }}</option>
@@ -75,13 +75,13 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 						<div class="col-12">
 							<div class="form-group">
 								<label for="SI_No">SI No</label>
-                                <input type="text" name="SI_No" id="SI_No" value="{{ $SINo }}" class="form-control" required readonly />
+                                <input type="text" name="SI_No" id="SI_No" value="{{ $SINo }}" class="form-control shadow-sm" required readonly />
 							</div>
 						</div>
 						<div class="col-12">
 							<div class="form-group">
 								<label for="SI_Date">SI Date</label>
-                                <input name="SI_Date" id="SI_Date" class="form-control" value="{{ date('Y-m-d') }}" required />
+                                <input name="SI_Date" id="SI_Date" class="form-control shadow-sm" value="{{ date('Y-m-d') }}" required />
 							</div>
 						</div>
 						<div class="col-12">
@@ -89,7 +89,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 								<label for="Qty1">Qty</label>
 								<div class="row">
 									<div class="col">
-										<select name="Qty1" id="Qty1" class="form-control" required>
+										<select name="Qty1" id="Qty1" class="form-control shadow-sm" required>
 											<option value="">-- Pilih Qty --</option>
 											@foreach (range(1,1000) as $item)
 											<option value="{{$item}}">{{$item}}</option>
@@ -97,7 +97,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 										</select>
 									</div>
 									<div class="col">
-										<select name="Qty2" id="Qty2" class="form-control" required>
+										<select name="Qty2" id="Qty2" class="form-control shadow-sm" required>
 											<option value="">-- Pilih Qty --</option>
 											<option value="20 FT">20 FT</option>
 											<option value="20 ISOTANK">20 ISOTANK</option>
@@ -111,74 +111,74 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 <label for="Jam">Jam</label>
                                 <div class="row">
                                     <div class="col-6">
-                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="form-control" required readonly />
+                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="form-control shadow-sm" required readonly />
                                     </div>
                                     <div class="col-6">
-                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="form-control" required readonly />
+                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="form-control shadow-sm" required readonly />
                                     </div>
                                 </div>
                             </div>
                         </div> --}}
-                        <div class="col-12">
+                        <div class="col-3">
                             <div class="form-group">
                                 <label for="Shipper">Shipper</label>
-                                <select name="Shipper" id="Shipper" class="form-control" required>
+                                <select name="Shipper" id="Shipper" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
-                                        <option value="{{ $shipper->Company_ID }}">{{ $shipper->Company_Name }}</option>
+                                        <option value="{{ $shipper->Supplier_ID }}">{{ $shipper->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-3">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control" required>
+                                <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
-                                        <option value="{{ $consignee->Company_ID }}">{{ $consignee->Company_Name }}</option>
+                                        <option value="{{ $consignee->Supplier_ID }}">{{ $consignee->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-3">
                             <div class="form-group">
                                 <label for="Notify">Notify Party</label>
-                                <select name="Notify" id="Notify" class="form-control" required>
+                                <select name="Notify" id="Notify" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Notify --</option>
                                     @foreach ($companies as $notify)
-                                        <option value="{{ $notify->Company_ID }}">{{ $notify->Company_Name }}</option>
+                                        <option value="{{ $notify->Supplier_ID }}">{{ $notify->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-3">
                             <div class="form-group">
                                 <label for="Destination_Letter">Destination Letter</label>
-                                <select name="Destination_Letter" id="Destination_Letter" class="form-control" required>
+                                <select name="Destination_Letter" id="Destination_Letter" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Destination Letter --</option>
                                     @foreach ($companies as $destination_Letter)
-                                        <option value="{{ $destination_Letter->Company_ID }}">{{ $destination_Letter->Company_Name }}</option>
+                                        <option value="{{ $destination_Letter->Supplier_ID }}">{{ $destination_Letter->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-4">
                             <div class="form-group">
                                 <label for="Delivery_Terms">Delivery Terms</label>
-                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="" class="form-control" required />
+                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="" class="form-control shadow-sm" required />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-4">
                             <div class="form-group">
                                 <label for="Contract_No">Contract No</label>
-                                <input type="text" name="Contract_No" id="Contract_No" value="" class="form-control" required />
+                                <input type="text" name="Contract_No" id="Contract_No" value="" class="form-control shadow-sm" required />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-4">
                             <div class="form-group">
                                 <label for="Voyage">Voyage</label>
-                                <input type="text" name="Voyage" id="Voyage" value="" class="form-control" required />
+                                <input type="text" name="Voyage" id="Voyage" value="" class="form-control shadow-sm" required />
                             </div>
                         </div>
                         <div class="col-12">
@@ -186,57 +186,57 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="ETD">ETD</label>
-                                        <input type="text" name="ETD" id="ETD" value="{{ date("Y-m-d") }}" class="form-control bg-white" required readonly />
+                                        <input type="text" name="ETD" id="ETD" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="ETA">ETA</label>
-                                        <input type="text" name="ETA" id="ETA" value="{{ date("Y-m-d") }}" class="form-control bg-white" required readonly />
+                                        <input type="text" name="ETA" id="ETA" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="Stuffing">Stuffing</label>
-                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ date("Y-m-d") }}" class="form-control bg-white" required readonly />
+                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-6">
                             <div class="form-group">
                                 <label for="PEB_No">PEB No</label>
-                                <input type="text" name="PEB_No" id="PEB_No" value="" class="form-control" />
+                                <input type="text" name="PEB_No" id="PEB_No" value="" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-6">
                             <div class="form-group">
                                 <label for="PEB_Date">PEB Date</label>
-                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ date("Y-m-d") }}" class="form-control" />
+                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ date("Y-m-d") }}" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-4">
                             <div class="form-group">
                                 <label for="BL_No">B/L No</label>
-                                <input type="text" name="BL_No" id="BL_No" value="" class="form-control" />
+                                <input type="text" name="BL_No" id="BL_No" value="" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-4">
                             <div class="form-group">
                                 <label for="POL">Port of Loading</label>
-                                <input type="text" name="POL" id="POL" value="" class="form-control" />
+                                <input type="text" name="POL" id="POL" value="" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-4">
                             <div class="form-group">
                                 <label for="POD">Port of Discharge</label>
-                                <input type="text" name="POD" id="POD" value="" class="form-control" />
+                                <input type="text" name="POD" id="POD" value="" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-6">
                             <div class="form-group">
                                 <label for="Product_Name">Product Name</label>
-                                <select name="Product_Name" id="Product_Name" class="form-control">
+                                <select name="Product_Name" id="Product_Name" class="form-control shadow-sm">
                                     <option value="">-- Pilih Product --</option>
                                     @foreach ($masProducts as $item)
                                     <option value="{{ $item->description }}">{{ $item->description }}</option>
@@ -244,10 +244,10 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-6">
                             <div class="form-group">
                                 <label for="HS_Code">HS Code</label>
-                                <select name="HS_Code" id="HS_Code" class="form-control">
+                                <select name="HS_Code" id="HS_Code" class="form-control shadow-sm">
                                     <option value="">-- Pilih HS Code --</option>
                                     <option value="15180090">15180090</option>
                                     <option value="15119020">15119020</option>
@@ -256,7 +256,8 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                         </div>
                         <div class="col-12">
                             <div class="row no-gutters" id="containerList">
-                                <select name="Container1" id="Container1" class="form-control">
+                                <label for="Container1">Container 1</label>
+                                <select name="Container1" id="Container1" class="form-control shadow-sm">
                                     <option value="">-- Pilih Container --</option>
                                 </select>
                             </div>
@@ -340,7 +341,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                     <div class="col-12">
                         <div class="form-group">
                             <label for="Container${counter}">Container ${counter}</label>
-                            <select name="Container${counter}" id="Container${counter}" class="form-control">
+                            <select name="Container${counter}" id="Container${counter}" class="form-control shadow-sm">
                                 <option value="">-- Pilih Container --</option>
                         `+ string + `
                                     </select>
@@ -348,6 +349,9 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                             </div>
                     `);
                     counter++;
+                }
+                for (let i = 1; i < counter; i++) {
+                    $('#Container' + i).find("option:nth-child("+ (i+1) +")").attr('selected', 'selected')
                 }
                 $.unblockUI();
             },

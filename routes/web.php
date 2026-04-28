@@ -5039,6 +5039,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('cns-master-company-new', [MasterCompanyController::class, 'newMasterCompany']);
     Route::post('cns-master-company-new-submit', [MasterCompanyController::class, 'newMasterCompanySubmit']);
     Route::get('cns-master-company-detail', [MasterCompanyController::class, 'detailMasterCompany']);
+    Route::post('cns-master-company-detail-submit', [MasterCompanyController::class, 'detailMasterCompanySubmit']);
 
     $siPref = "cns-export-shipment-instruction";
     Route::get("$siPref", [ShipmentInstructionController::class, 'indexShipmentInstruction']);
@@ -5057,11 +5058,14 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$fsiPref", [FinalShipmentInstructionController::class, 'indexFinalShipmentInstructionXml']);
     Route::get("$fsiPref-new", [FinalShipmentInstructionController::class, 'newFinalShipmentInstruction']);
     Route::post("$fsiPref-new-get-si", [FinalShipmentInstructionController::class, 'getSI']);
+    Route::get("$fsiPref-create-pl", [FinalShipmentInstructionController::class, 'generatePackingList']);
+    Route::get("$fsiPref-create-ci", [FinalShipmentInstructionController::class, 'generateCommercialInvoice']);
 
     $packingListPref = "cns-export-packing-list";
     Route::get("$packingListPref", [CNSPackingListController::class, 'indexPackingList']);
     Route::get("xml-$packingListPref", [CNSPackingListController::class, 'indexPackingListXml']);
     Route::get("$packingListPref-new", [CNSPackingListController::class, 'newPackingList']);
+    Route::post("$packingListPref-new-get-si", [CNSPackingListController::class, 'getSI']);
 
     $commercialInvoicePref = "cns-export-commercial-invoice";
     Route::get("$commercialInvoicePref", [CNSCommercialInvoiceController::class, 'indexCommercialInvoice']);
