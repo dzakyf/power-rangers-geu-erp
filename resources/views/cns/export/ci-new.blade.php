@@ -64,7 +64,7 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
 						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Final_SI_No">Final SI No</label>
-                                <select name="Final_SI_No" id="Final_SI_No" class="form-control" required>
+                                <select name="Final_SI_No" id="Final_SI_No" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Final SI --</option>
                                     @foreach ($sis as $si)
                                         <option value="{{ $si->Final_SI_No }}">{{ $si->Final_SI_No }}</option>
@@ -75,22 +75,22 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
 						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Inv_No">Inv No</label>
-                                <input type="text" name="Inv_No" id="Inv_No" value="{{ $InvNo }}" class="form-control" required readonly />
+                                <input type="text" name="Inv_No" id="Inv_No" value="{{ $InvNo }}" class="form-control shadow-sm" required readonly />
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Inv_Date">Inv Date</label>
-                                <input name="Inv_Date" id="Inv_Date" class="form-control" value="{{ date('Y-m-d') }}" required />
+                                <input name="Inv_Date" id="Inv_Date" class="form-control shadow-sm" value="{{ date('Y-m-d') }}" required />
 							</div>
 						</div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control" required>
+                                <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
-                                        <option value="{{ $consignee->Company_ID }}">{{ $consignee->Company_Name }}</option>
+                                        <option value="{{ $consignee->Supplier_ID }}">{{ $consignee->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -98,43 +98,43 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Description">Description of Cargo</label>
-                                <input type="text" name="Description" id="Description" value="" class="form-control" required />
+                                <input type="text" name="Description" id="Description" value="" class="form-control shadow-sm" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Qty">Qty (MT)</label>
-                                <input type="text" name="Qty" id="Qty" value="0" onchange="calculateTotal()" class="form-control" required />
+                                <input type="text" name="Qty" id="Qty" value="0" onchange="calculateTotal()" class="form-control shadow-sm" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Unit_Price">Unit Price (MT)</label>
-                                <input type="text" name="Unit_Price" id="Unit_Price" value="0" class="form-control" onchange="calculateTotal()" required />
+                                <input type="text" name="Unit_Price" id="Unit_Price" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Amount">Amount</label>
-                                <input type="text" name="Amount" id="Amount" value="0" class="form-control" onchange="calculateTotal()" required />
+                                <input type="text" name="Amount" id="Amount" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Advance_Payment">Advance Payment</label>
-                                <input type="text" name="Advance_Payment" id="Advance_Payment" value="0" class="form-control" onchange="calculateTotal()" required />
+                                <input type="text" name="Advance_Payment" id="Advance_Payment" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Other">Other</label>
-                                <input type="text" name="Other" id="Other" value="0" class="form-control" onchange="calculateTotal()" required />
+                                <input type="text" name="Other" id="Other" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Total">Total</label>
-                                <input type="text" name="Total" id="Total" value="0" class="form-control" onchange="calculateTotal()" required />
+                                <input type="text" name="Total" id="Total" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required />
                             </div>
                         </div>
 					</div>
@@ -142,7 +142,7 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
 				{{-- STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION --}}
 			</div>
 			<div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Publish" class="btn btn-success mt-2 mr-2" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit" class="btn btn-success mt-2 mr-2" />
 			</div>
 		</div>
 	</div>
@@ -164,7 +164,7 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
         $('#Total').val((subs - advance) + other);
     }
 	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "SI_Date", "ETD", "ETA"]);
+	myCalendar = new dhtmlXCalendarObject(["Inv_Date"]);
 	myCalendar.setDateFormat("%Y-%m-%d");
 
 	// ShipmentInstructionNew = new dhtmlXGridObject('ShipmentInstructionNew');
@@ -192,7 +192,7 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
 
 	// }
 
-    $('#SI_No').on('change', function() {
+    $('#Final_SI_No').on('change', function() {
         // refreshdata();  
         $.blockUI();
         $.ajax({
@@ -203,10 +203,11 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
-                SI_No: $('#SI_No').find('option:selected').val()
+                Final_SI_No: $('#Final_SI_No').find('option:selected').val()
             },
             success: function(response) {
                 $('#Qty').val(response.Netto_MT ?? 0);
+                $('#Description').val(response.Product_Name ?? "");
                 $('#Consignee').find('option[value="'+response.Consignee+'"]').attr('selected', true);
                 $.unblockUI();
             },
@@ -229,14 +230,14 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "cns-export-commercial-invoice-submit?_token={{ csrf_token() }}",
+			url: "cns-export-commercial-invoice-new-submit?_token={{ csrf_token() }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
 					var cariAWB = data.split(":");
-					alert('Data Announcement Submitted!');
+					alert('Data Commercial Invoice Submitted!');
 
 					// location.href = "partner-announcement";
                     refreshdata();

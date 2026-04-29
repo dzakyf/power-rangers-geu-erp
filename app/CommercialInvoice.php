@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CommercialInvoice extends Model
 {
-    protected $guarded = ['id'];
+    protected $primaryKey = 'ID';
+    protected $guarded = ['ID'];
     public $timestamps = false;
 }

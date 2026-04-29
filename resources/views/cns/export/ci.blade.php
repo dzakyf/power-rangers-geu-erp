@@ -50,7 +50,7 @@ $Saya =  Auth::user()->username;
 	 {
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			window.open('cns-export-commercial-invoice-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
+			window.open('cns-export-commercial-invoice-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue(), '_blank');
 		}else {
 			alert("Pilih baris data");
 		}
@@ -65,7 +65,7 @@ $Saya =  Auth::user()->username;
 
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			LoadM('divlistOpportunity', 'cns-export-commercial-invoice-detail?Task=' + ShipmentInstructionID);
+			LoadM('divlistOpportunity', 'cns-export-commercial-invoice-detail?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue());
 		}else {
 			alert("Pilih baris data");
 		}

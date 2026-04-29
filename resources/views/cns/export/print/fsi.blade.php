@@ -349,11 +349,14 @@
                 </tr>
                 <tr>
                   <td class="flbl">Date</td>
-                  <td class="fval">{{ $shipment->Final_SI_Date }}</td>
+                  <td class="fval">{{ date("F, d Y",strtotime($shipment->Final_SI_Date)) }}</td>
                 </tr>
                 <tr>
                   <td class="flbl" style="vertical-align:top; padding-top:8px;">To</td>
-                  <td class="fval" style="min-height:40px;">{{ $companies[$shipment->Destination_Letter]->Company_Name }}</td>
+                  <td class="fval" style="min-height:40px;">
+                    {{ $companies[$shipment->Destination_Letter]->Company_Name }} <br>
+                    {{ $companies[$shipment->Destination_Letter]->Address }}
+                  </td>
                 </tr>
                 <tr>
                   <td class="flbl">Terms of<br>Delivery</td>
@@ -377,15 +380,15 @@
                 </tr>
                 <tr>
                   <td class="flbl">ETD</td>
-                  <td class="fval">{{ $shipment->ETD }}</td>
+                  <td class="fval">{{ date("F, d Y",strtotime($shipment->ETD)) }}</td>
                 </tr>
                 <tr>
                   <td class="flbl">ETA</td>
-                  <td class="fval">{{ $shipment->ETA }}</td>
+                  <td class="fval">{{ date("F, d Y",strtotime($shipment->ETA)) }}</td>
                 </tr>
                 <tr>
                   <td class="flbl">Stuffing date</td>
-                  <td class="fval">{{ $shipment->Stuffing }}</td>
+                  <td class="fval">{{ date("F, d Y",strtotime($shipment->Stuffing)) }}</td>
                 </tr>
                 <tr>
                   <td class="flbl">PEB</td>
@@ -393,7 +396,7 @@
                 </tr>
                 <tr>
                   <td class="flbl">Date PEB</td>
-                  <td class="fval">{{ $shipment->PEB_Date }}</td>
+                  <td class="fval">{{ date("F, d Y",strtotime($shipment->PEB_Date)) }}</td>
                 </tr>
                 <tr>
                   <td class="flbl">Quantity</td>

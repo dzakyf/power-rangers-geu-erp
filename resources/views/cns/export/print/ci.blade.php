@@ -13,7 +13,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Job Sheet Report</title>
+<title>COMMERCIAL INVOICE</title>
 <style>
     body {
         font-family: Arial, Helvetica, sans-serif;
@@ -45,8 +45,6 @@
     .header {
         text-align: center;
         position: relative;
-        margin-bottom: 20px;
-        padding-top: 80px;
     }
 
     .logo {
@@ -72,7 +70,7 @@
     hr {
         border: none;
         border-top: 1px solid #aaa;
-        margin: 20px 0;
+        margin: 10px 0;
     }
 
     .section-title {
@@ -152,184 +150,98 @@
     <div class="sheet padding-10mm">
 
         <div class="header">
-            <div class="logo">
-                    <img src='#' height="100" />
-                    <div class="company-name">{{ $companies[$invoice->Shipper]->Company_Name ?? '' }}</div>
-            </div>
-            <div class="title">Job Sheet Report</div>
+            <div class="title">COMMERCIAL INVOICE</div>
         </div>
         
+        <hr>
+        <div>
+            Invoice No: {{ $invoice->Inv_No }}
+        </div>
         <hr>
 
         <table>
             <tr style="border-top:none;">
-                <td width="50%">&nbsp;</td>
-                <td>
-                    <table>
-                        <tr style="padding:0;">
-                            <td style="padding:0;vertical-align:top;font-weight:bold;">Address</td>
-                            <td style="padding:0;vertical-align:top;font-weight:bold;">:</td>
-                            <td style="padding:0;vertical-align:top">
-                                <span class="blue">
-                                    Plaza Summarecon Bekasi<br>
-                                    8th Floor - Unit 801,<br>
-                                    Jl Bolevard Ahmad Yani KA No.1<br>
-                                    Bekasi 17142 - Indonesia.
-                                </span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding:0;vertical-align:top;font-weight:bold;">Telephone</td>
-                            <td style="padding:0;vertical-align:top;font-weight:bold;">:</td>
-                            <td style="padding:0;vertical-align:top" class="blue">
-                                +62 21 8946 1980
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding:0;vertical-align:top;font-weight:bold;">Fax</td>
-                            <td style="padding:0;vertical-align:top;font-weight:bold;">:</td>
-                            <td style="padding:0;vertical-align:top" class="blue">
-                                +62 21 8946 1978
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding:0;vertical-align:top;font-weight:bold;">Email</td>
-                            <td style="padding:0;vertical-align:top;font-weight:bold;">:</td>
-                            <td style="padding:0;vertical-align:top" class="blue">
-                                {{ $responsibility->email ?? '' }}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding:0;vertical-align:top;font-weight:bold;">NPWP</td>
-                            <td style="padding:0;vertical-align:top;font-weight:bold;">:</td>
-                            <td style="padding:0;vertical-align:top" class="blue">
-                                070.406.319.7-016.000
-                            </td>
-                        </tr>
-                    </table>
+                <td width="70%" style="vertical-align: top;">
+                    <h3 style="margin:0;margin-bottom:10px;color:red;">PT GREEN ENERGI UTAMA</h3>
+                    <div>
+                        GRAHA AKTIVA - 4TH FLOOR, SUITE 403 A, <br />
+                        JALAN HR. RASUNA SAID BLOK X-1 KAV. 03 000/000
+                    </div>
+                </td>
+                <td style="text-align:right;margin-top:0">
+                    <img src="{{ asset('/assets/images/large-logo.png') }}" alt="Logo" class="large-logo" height="70" align="center">
                 </td>
             </tr>
         </table>
 
-        <div class="grid-3-cust">
-
-            <div>
-                <div class="section-title">Customer Details</div>
-                <div class="blue">
-                    {{ $jobsheet->Customer_Name }}<br>
-                    <span style="width:170px;height:auto">
-                        {{ $jobsheet->Customer_Address }}
-                    </span>
-                </div>
-            </div>
-
-            <div>
-                &nbsp;
-            </div>
-
-            <div>
-                <div class="section-title">Site Details</div>
-                <div class="blue">
-                    {{ $jobsheet->Site_Name }}<br>
-                    <span style="width:170px;height:auto">
-                        {{ $jobsheet->Site_Address }}
-                    </span>
-                </div>
-            </div>
-
-        </div>
-
-        <div class="section-title">Job Details</div>
-
-        <div class="job-details">
-            <div>
-                <div><span class="label">Job Type:</span> <span class="blue">{{ $jobsheet->Job_Type }}</span></div>
-                <div><span class="label">Contact Name:</span> <span class="blue">{{ $jobsheet->Contact_Name }}</span></div>
-            </div>
-            <div>
-                <div><span class="label">Job Number:</span> <span class="blue">{{ $jobsheet->Job_Number }}</span></div>
-                <div><span class="label">Job Category:</span> <span class="blue">{{ $jobsheet->Job_Category }}</span></div>
-            </div>
-        </div>
-
-        <div class="section-title">Description</div>
-        <div class="blue">
-            {{ $jobsheet->Description }}
-        </div>
-
-        <div class="section-title">Job Tasks</div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Task</th>
-                    <th>Status</th>
-                    <th>Summary</th>
-                    <th>Sub Task(s)</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($jobsheettask as $task)
-                <tr>
-                    <td class="blue">{{ $task->Task }}</td>
-                    <td class="blue">{{ $task->Status }}</td>
-                    <td class="blue">{{ $task->Summary }}</td>
-                    <td class="blue">{{ $task->Job_Task }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-
-        <div class="footer">
-            Internal use only
-        </div>
-
-    </div>
-
-    <div class="sheet padding-10mm">
-
-        <div class="header">
-            <div class="logo">
-                    <img src='<?php echo $logo?>' height="<?php echo $ukuran?>" />
-                    <div class="company-name">PT Dürr Systems Indonesia</div>
-            </div>
-            <div class="title">Job Sheet Report</div>
-        </div>
-        
         <hr>
+        <span>{{ date("F, d Y",strtotime($invoice->Inv_Date)) }}</span>
+        <hr style="margin-bottom:0">
+        <span style="font-size: 18pt;color:red;">Consignee :</span>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Attachment</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="blue">{{ $jobsheet->File_Document == '' ? 'Not Applicable' : $jobsheettask }}</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <div class="grid-3">
-
-            <div style="margin-top:60px;font-weight:bold;font-size:16px;">
-                Print Name :
-            </div>
-
+        <div style="min-height: 200px;">
+            {{$companies[$invoice->Consignee]->Company_Name}}
             <div>
-                <div style="background: #dcdcdc;padding:5px;margin-top:20px">Supplier Signature</div>
+                {{$companies[$invoice->Consignee]->Address}}
             </div>
-
-            
-            <div>
-                <div style="background: #dcdcdc;padding:5px;margin-top:20px">Customer Signature</div>
-            </div>
-
         </div>
 
-        <div class="footer">
-            Internal use only
+        <div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="border:1px solid black;">DESCRIPTION OF CARGO</th>
+                        <th style="border:1px solid black;">QTY (MT)</th>
+                        <th style="border:1px solid black;">UNIT PRICE (MT)</th>
+                        <th style="border:1px solid black;">AMOUNT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="border:1px solid black;">{{ $invoice->Description }}</td>
+                        <td style="border:1px solid black;"><span style="float:right">{{ number_format($invoice->Qty,2,",",".") }}</span></td>
+                        <td style="border:1px solid black;">$<span style="float:right">{{ number_format($invoice->Unit_Price,2,",",".") }}</span></td>
+                        <td style="border:1px solid black;">$<span style="float:right">{{ number_format($invoice->Amount,2,",",".") }}</span></td>
+                    </tr>
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>SUBTOTAL</td>
+                        <td>$<span style="float:right">{{ number_format($invoice->Amount,2,",",".") }}</span></td>
+                    </tr>
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>ADVANCE PAYMENT</td>
+                        <td>$<span style="float:right">{{ number_format($invoice->Advance_Payment,2,",",".") }}</span></td>
+                    </tr>
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>OTHER</td>
+                        <td>$<span style="float:right">{{ number_format($invoice->Other,2,",",".") }}</span></td>
+                    </tr>
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td style="border-top:1px solid black;border-bottom:1px solid black;font-weight:bold;">AMOUNT TO BE PAID</td>
+                        <td style="border-top:1px solid black;border-bottom:1px solid black;font-weight:bold;">$<span style="float:right">{{ number_format($invoice->Total,2,",",".") }}</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div>
+            PAYMENT INFORMATION
+            <hr>
+            <div>
+                Name of Bank : PT BANK CENTRAL ASIA Tbk
+            </div>
+            <div>
+                Name Account : PT Green Energi Utama
+            </div>
+            <div>
+                No. Account : 5215905168
+            </div>
         </div>
 
     </div>

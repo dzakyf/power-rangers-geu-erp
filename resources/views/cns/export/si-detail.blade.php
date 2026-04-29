@@ -16,22 +16,22 @@ $Saya =  Auth::user()->username;
 			<div id="ContentPages">
 				<div class="FormInput_Form_Content">
 					<div class="row">
-						<div class="col-12">
+						<div class="col-md-4 col-12">
 							<div class="form-group">
 								<label for="Order_No">Order No</label>
-                                <input type="text" name="Order_No" id="Order_No" value="{{ $si->Order_No }}" class="form-control" required readonly />
+                                <input type="text" name="Order_No" id="Order_No" value="{{ $si->Order_No }}" class="form-control shadow-sm" required readonly />
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4 col-12">
 							<div class="form-group">
 								<label for="SI_No">SI No</label>
-                                <input type="text" name="SI_No" id="SI_No" value="{{ $si->SI_No }}" class="form-control" required readonly />
+                                <input type="text" name="SI_No" id="SI_No" value="{{ $si->SI_No }}" class="form-control shadow-sm" required readonly />
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4 col-12">
 							<div class="form-group">
 								<label for="SI_Date">SI Date</label>
-                                <input name="SI_Date" id="SI_Date" class="form-control" value="{{ $si->SI_Date }}" required />
+                                <input name="SI_Date" id="SI_Date" class="form-control shadow-sm" value="{{ $si->SI_Date }}" required />
 							</div>
 						</div>
 						<div class="col-12">
@@ -39,7 +39,7 @@ $Saya =  Auth::user()->username;
 								<label for="Qty1">Qty</label>
 								<div class="row">
 									<div class="col">
-										<select name="Qty1" id="Qty1" class="form-control" required>
+										<select name="Qty1" id="Qty1" class="form-control shadow-sm" required>
 											<option value="">-- Pilih Qty --</option>
 											@foreach (range(1,1000) as $item)
 											<option value="{{$item}}" {{ $item == $si->Qty1 ? 'selected' : '' }}>{{$item}}</option>
@@ -47,7 +47,7 @@ $Saya =  Auth::user()->username;
 										</select>
 									</div>
 									<div class="col">
-										<select name="Qty2" id="Qty2" class="form-control" required>
+										<select name="Qty2" id="Qty2" class="form-control shadow-sm" required>
 											<option value="">-- Pilih Qty --</option>
 											<option value="20 FT" {{ $si->Qty2 == '20 FT' ? 'selected' : '' }}>20 FT</option>
 											<option value="20 ISOTANK" {{ $si->Qty2 == '20 ISOTANK' ? 'selected' : '' }}>20 ISOTANK</option>
@@ -61,18 +61,18 @@ $Saya =  Auth::user()->username;
                                 <label for="Jam">Jam</label>
                                 <div class="row">
                                     <div class="col-6">
-                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="form-control" required readonly />
+                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="form-control shadow-sm" required readonly />
                                     </div>
                                     <div class="col-6">
-                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="form-control" required readonly />
+                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="form-control shadow-sm" required readonly />
                                     </div>
                                 </div>
                             </div>
                         </div> --}}
-                        <div class="col-12">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Shipper">Shipper</label>
-                                <select name="Shipper" id="Shipper" class="form-control" required>
+                                <select name="Shipper" id="Shipper" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
                                         <option value="{{ $shipper->Supplier_ID }}" {{ $si->Shipper == $shipper->Supplier_ID ? '' : '' }}>{{ $shipper->Company_Name }}</option>
@@ -80,10 +80,10 @@ $Saya =  Auth::user()->username;
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control" required>
+                                <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
                                         <option value="{{ $consignee->Supplier_ID }}" {{ $si->Consignee == $consignee->Supplier_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
@@ -91,10 +91,10 @@ $Saya =  Auth::user()->username;
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Notify">Notify Party</label>
-                                <select name="Notify" id="Notify" class="form-control" required>
+                                <select name="Notify" id="Notify" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Notify --</option>
                                     @foreach ($companies as $notify)
                                         <option value="{{ $notify->Supplier_ID }}" {{ $si->Notify == $notify->Supplier_ID ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
@@ -102,10 +102,10 @@ $Saya =  Auth::user()->username;
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Destination_Letter">Destination Letter</label>
-                                <select name="Destination_Letter" id="Destination_Letter" class="form-control" required>
+                                <select name="Destination_Letter" id="Destination_Letter" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Destination Letter --</option>
                                     @foreach ($companies as $destination_Letter)
                                         <option value="{{ $destination_Letter->Supplier_ID }}" {{ $si->Destination_Letter == $destination_Letter->Supplier_ID ? 'selected' : '' }}>{{ $destination_Letter->Company_Name }}</option>
@@ -113,80 +113,80 @@ $Saya =  Auth::user()->username;
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Delivery_Terms">Delivery Terms</label>
-                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="{{ $si->Delivery_Terms }}" class="form-control" required />
+                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="{{ $si->Delivery_Terms }}" class="form-control shadow-sm" required />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Contract_No">Contract No</label>
-                                <input type="text" name="Contract_No" id="Contract_No" value="{{ $si->Contract_No }}" class="form-control" required />
+                                <input type="text" name="Contract_No" id="Contract_No" value="{{ $si->Contract_No }}" class="form-control shadow-sm" required />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Voyage">Voyage</label>
-                                <input type="text" name="Voyage" id="Voyage" value="{{ $si->Voyage }}" class="form-control" required />
+                                <input type="text" name="Voyage" id="Voyage" value="{{ $si->Voyage }}" class="form-control shadow-sm" required />
                             </div>
                         </div>
                         <div class="col-12">
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4 col-12">
                                     <div class="form-group">
                                         <label for="ETD">ETD</label>
-                                        <input type="text" name="ETD" id="ETD" value="{{ $si->ETD }}" class="form-control bg-white" required readonly />
+                                        <input type="text" name="ETD" id="ETD" value="{{ $si->ETD }}" class="form-control shadow-sm bg-white" required readonly />
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4 col-12">
                                     <div class="form-group">
                                         <label for="ETA">ETA</label>
-                                        <input type="text" name="ETA" id="ETA" value="{{ $si->ETA }}" class="form-control bg-white" required readonly />
+                                        <input type="text" name="ETA" id="ETA" value="{{ $si->ETA }}" class="form-control shadow-sm bg-white" required readonly />
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4 col-12">
                                     <div class="form-group">
                                         <label for="Stuffing">Stuffing</label>
-                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ $si->Stuffing }}" class="form-control bg-white" required readonly />
+                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ $si->Stuffing }}" class="form-control shadow-sm bg-white" required readonly />
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="PEB_No">PEB No</label>
-                                <input type="text" name="PEB_No" id="PEB_No" value="{{ $si->PEB_No }}" class="form-control" />
+                                <input type="text" name="PEB_No" id="PEB_No" value="{{ $si->PEB_No }}" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="PEB_Date">PEB Date</label>
-                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ $si->PEB_Date }}" class="form-control" />
+                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ $si->PEB_Date }}" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="BL_No">B/L No</label>
-                                <input type="text" name="BL_No" id="BL_No" value="{{ $si->BL_No }}" class="form-control" />
+                                <input type="text" name="BL_No" id="BL_No" value="{{ $si->BL_No }}" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="POL">Port of Loading</label>
-                                <input type="text" name="POL" id="POL" value="{{ $si->POL }}" class="form-control" />
+                                <input type="text" name="POL" id="POL" value="{{ $si->POL }}" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="POD">Port of Discharge</label>
-                                <input type="text" name="POD" id="POD" value="{{ $si->POD }}" class="form-control" />
+                                <input type="text" name="POD" id="POD" value="{{ $si->POD }}" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="Product_Name">Product Name</label>
-                                <select name="Product_Name" id="Product_Name" class="form-control">
+                                <select name="Product_Name" id="Product_Name" class="form-control shadow-sm">
                                     <option value="">-- Pilih Product --</option>
                                     @foreach ($masProducts as $item)
                                     <option value="{{ $item->description }}" {{ $item->description == $si->Product_Name ? 'selected' : '' }}>{{ $item->description }}</option>
@@ -194,23 +194,23 @@ $Saya =  Auth::user()->username;
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="HS_Code">HS Code</label>
-                                <select name="HS_Code" id="HS_Code" class="form-control">
+                                <select name="HS_Code" id="HS_Code" class="form-control shadow-sm">
                                     <option value="">-- Pilih HS Code --</option>
                                     <option value="15180090" {{ $si->HS_Code == '15180090' ? 'selected' : '' }}>15180090</option>
                                     <option value="15119020" {{ $si->HS_Code == '15119020' ? 'selected' : '' }}>15119020</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-12 col-12">
                             <div class="row no-gutters" id="containerList">
                                 @foreach ($dtls as $kunci => $item)
                                     <div class="col-12">
                                         <div class="form-group">
                                             <label for="Container{{ $loop->iteration }}">Container {{ $loop->iteration }}</label>
-                                            <select name="Container{{ $loop->iteration }}" id="Container{{ $loop->iteration }}" class="form-control">
+                                            <select name="Container{{ $loop->iteration }}" id="Container{{ $loop->iteration }}" class="form-control shadow-sm">
                                                 <option value="">-- Pilih Container --</option>
                                                 @foreach ($containers as $key => $container)
                                                     <option value="{{ $container->ID }}" {{ $kunci == $key ? 'selected' : '' }}>{{ $container->Container }} ({{ $container->Seal }})</option>
@@ -300,7 +300,7 @@ $Saya =  Auth::user()->username;
                     <div class="col-12">
                         <div class="form-group">
                             <label for="Container${counter}">Container ${counter}</label>
-                            <select name="Container${counter}" id="Container${counter}" class="form-control">
+                            <select name="Container${counter}" id="Container${counter}" class="form-control shadow-sm">
                                 <option value="">-- Pilih Container --</option>
                         `+ string + `
                                     </select>

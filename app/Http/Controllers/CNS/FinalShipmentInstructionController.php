@@ -102,11 +102,10 @@ class FinalShipmentInstructionController extends Controller
         $SINo = $request->input('SI_No');
         $shipment = ShipmentInstruction::where('SI_No', $SINo)->first();
         if ($shipment) {
-            return response()->json([
-                'Vessel' => $shipment->Vessel,
-                'Qty1' => $shipment->Qty1,
-                'Qty2' => $shipment->Qty2,
-            ]);
+            $vsd = VesselScheduleDtl::where("SI_No", $SINo)->get();
+            $shipment->orderDetails = $vsd;
+            unset($shipment->id);
+            return response()->json($shipment);
         } else {
             return response()->json(['error' => 'Shipment Instruction not found'], 404);
         }
@@ -207,6 +206,8 @@ class FinalShipmentInstructionController extends Controller
         $vs['Action_Status'] = "CREATE CI";
         unset($vs['id']);
         VesselScheduleLog::create($vs);
+
+        $getVSD = VesselScheduleDtl::where("Order_No", $vs->Order_No)->where("SI_No", $shipment->SI_No)->sum('Netto_MT');
     
         $counter = DB::table('commercial_invoice')->where('Inv_Date', "LIKE", date("Y-m") . "%")->count();
         
@@ -216,7 +217,7 @@ class FinalShipmentInstructionController extends Controller
         $shipment['Shipper'] = $shipment['Shipper'] ?? '';
         $shipment['Consignee'] = $shipment['Consignee'] ?? '';
         $shipment['Description'] = "";
-        $shipment['Qty'] = "";
+        $shipment['Qty'] = $getVSD;
         $shipment['Amount'] = 0;
         $shipment['Advance_Payment'] = 0;
         $shipment['Other'] = 0;

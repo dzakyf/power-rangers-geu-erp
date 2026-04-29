@@ -61,7 +61,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 			<div id="ContentPages">
 				<div class="FormInput_Form_Content">
 					<div class="row">
-						<div class="col-12">
+						<div class="col-md-4 col-12">
 							<div class="form-group">
 								<label for="Order_No">Order No</label>
                                 <select name="Order_No" id="Order_No" class="form-control shadow-sm" required>
@@ -72,13 +72,13 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 </select>
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4 col-12">
 							<div class="form-group">
 								<label for="SI_No">SI No</label>
                                 <input type="text" name="SI_No" id="SI_No" value="{{ $SINo }}" class="form-control shadow-sm" required readonly />
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4 col-12">
 							<div class="form-group">
 								<label for="SI_Date">SI Date</label>
                                 <input name="SI_Date" id="SI_Date" class="form-control shadow-sm" value="{{ date('Y-m-d') }}" required />
@@ -119,7 +119,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 </div>
                             </div>
                         </div> --}}
-                        <div class="col-3">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Shipper">Shipper</label>
                                 <select name="Shipper" id="Shipper" class="form-control shadow-sm" required>
@@ -130,7 +130,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 </select>
                             </div>
                         </div>
-                        <div class="col-3">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
                                 <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
@@ -141,7 +141,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 </select>
                             </div>
                         </div>
-                        <div class="col-3">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Notify">Notify Party</label>
                                 <select name="Notify" id="Notify" class="form-control shadow-sm" required>
@@ -152,7 +152,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 </select>
                             </div>
                         </div>
-                        <div class="col-3">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Destination_Letter">Destination Letter</label>
                                 <select name="Destination_Letter" id="Destination_Letter" class="form-control shadow-sm" required>
@@ -163,19 +163,19 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 </select>
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Delivery_Terms">Delivery Terms</label>
                                 <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="" class="form-control shadow-sm" required />
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Contract_No">Contract No</label>
                                 <input type="text" name="Contract_No" id="Contract_No" value="" class="form-control shadow-sm" required />
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Voyage">Voyage</label>
                                 <input type="text" name="Voyage" id="Voyage" value="" class="form-control shadow-sm" required />
@@ -183,19 +183,19 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                         </div>
                         <div class="col-12">
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="ETD">ETD</label>
                                         <input type="text" name="ETD" id="ETD" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="ETA">ETA</label>
                                         <input type="text" name="ETA" id="ETA" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="Stuffing">Stuffing</label>
                                         <input type="text" name="Stuffing" id="Stuffing" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
@@ -203,37 +203,37 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 </div>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="PEB_No">PEB No</label>
                                 <input type="text" name="PEB_No" id="PEB_No" value="" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="PEB_Date">PEB Date</label>
                                 <input type="text" name="PEB_Date" id="PEB_Date" value="{{ date("Y-m-d") }}" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="BL_No">B/L No</label>
                                 <input type="text" name="BL_No" id="BL_No" value="" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="POL">Port of Loading</label>
                                 <input type="text" name="POL" id="POL" value="" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="POD">Port of Discharge</label>
                                 <input type="text" name="POD" id="POD" value="" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="Product_Name">Product Name</label>
                                 <select name="Product_Name" id="Product_Name" class="form-control shadow-sm">
@@ -244,7 +244,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                                 </select>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="HS_Code">HS Code</label>
                                 <select name="HS_Code" id="HS_Code" class="form-control shadow-sm">
