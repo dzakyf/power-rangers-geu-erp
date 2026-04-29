@@ -24,8 +24,12 @@ use App\Http\Controllers\CNS\StuffingMonitoringController as CNSStuffingMonitori
 use App\Http\Controllers\CNS\PackingListController as CNSPackingListController;
 use App\Http\Controllers\CNS\CommercialInvoiceController as CNSCommercialInvoiceController;
 use App\Http\Controllers\CNS\WeightBridgeTicketController as CNSWeightBridgeTicketController;
+use App\Http\Controllers\CNS\CertificateOfOriginController as CNSCertificateOfOriginController;
+use App\Http\Controllers\CNS\DeliveryNoteController as CNSDeliveryNoteController;
+use App\Http\Controllers\CNS\SustainabilityDeclarationController as CNSSustainabilityDeclarationController;
+use App\Http\Controllers\CNS\QualityController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
-use App\Http\Controllers\Partner\UCOReportController as PartnerUCOReportController;
+use App\Http\Controllers\Partner\UCOReportController as UCOLogisticController;
 use App\Http\Controllers\Partner\TrainingController as PartnerTrainingController;
 use App\Http\Controllers\Partner\ChatListController as PartnerChatListController;
 use App\Http\Controllers\Partner\MasterSOPController as PartnerMasterSOPController;
@@ -4740,14 +4744,15 @@ Route::group(['middleware' => 'auth'], function () {
 
     /**master data route */
     $partner = "partner";
-    // Route::get("test-canvas", function () {
-    //     return view('ui-components.signature-canvas');
-    // });
+
     Route::get("$partner-data-active-mitra", [UserController::class, 'getPartner']);
     Route::get("$partner-data-sales", [UserController::class, 'getSalesperson']);
     Route::get("my-profile", [UserController::class, 'profilePage']);
     Route::get("$partner-profile-data", [UserController::class, 'getMitraData']);
     Route::post("$partner-profile-update", [UserController::class, 'updateMitraData']);
+
+    $cns = "cns";
+    Route::get("$cns-data-police-license", [UCOLogisticController::class, 'getPoliceLicenseNumber']);
 
 
 
@@ -4957,19 +4962,19 @@ Route::group(['middleware' => 'auth'], function () {
 
 
     $partnerUCO = "partner-uco";
-    Route::get("$partnerUCO-inbound-timbang", [PartnerUCOReportController::class, 'indexInboundUCO']);
-    Route::get("$partnerUCO-inbound-timbang-create", [PartnerUCOReportController::class, 'createInboundUCO']);
-    Route::post("$partnerUCO-inbound-timbang-submit", [PartnerUCOReportController::class, 'submitInboundUCO']);
-    Route::get("$partnerUCO-inbound-timbang-data", [PartnerUCOReportController::class, 'getUCOInboundXml']);
+    Route::get("$partnerUCO-inbound-timbang", [UCOLogisticController::class, 'indexInboundUCO']);
+    Route::get("$partnerUCO-inbound-timbang-create", [UCOLogisticController::class, 'createInboundUCO']);
+    Route::post("$partnerUCO-inbound-timbang-submit", [UCOLogisticController::class, 'submitInboundUCO']);
+    Route::get("$partnerUCO-inbound-timbang-data", [UCOLogisticController::class, 'getUCOInboundXml']);
 
     Route::get("partner-uco-inbound-quality-check", function () {
         return view('uco.inbound-quality-check');
     });
 
-    Route::get("partner-uco-unit-category", [PartnerUCOReportController::class, 'indexUnitCategory']);
+    Route::get("partner-uco-unit-category", [UCOLogisticController::class, 'indexUnitCategory']);
 
-    Route::get("$partnerUCO-outbound", [PartnerUCOReportController::class, 'indexOutboundUCO']);
-    Route::get("$partnerUCO-outbound-data", [PartnerUCOReportController::class, 'getUCOOutboundXml']);
+    Route::get("$partnerUCO-outbound", [UCOLogisticController::class, 'indexOutboundUCO']);
+    Route::get("$partnerUCO-outbound-data", [UCOLogisticController::class, 'getUCOOutboundXml']);
 
 
     Route::get("partner-uco-outbound-pickup-request", function () {
@@ -4980,7 +4985,7 @@ Route::group(['middleware' => 'auth'], function () {
         return "OK";
     });
 
-    Route::get("partner-uco-outbound-report-inbound-source", [PartnerUCOReportController::class, 'indexInboundSource']);
+    Route::get("partner-uco-outbound-report-inbound-source", [UCOLogisticController::class, 'indexInboundSource']);
 
     Route::get("partner-uco-outbound-report-stock-trace", function () {
         return "OK";
@@ -5064,8 +5069,12 @@ Route::group(['middleware' => 'auth'], function () {
     $packingListPref = "cns-export-packing-list";
     Route::get("$packingListPref", [CNSPackingListController::class, 'indexPackingList']);
     Route::get("xml-$packingListPref", [CNSPackingListController::class, 'indexPackingListXml']);
+    Route::get("$packingListPref-print", [CNSPackingListController::class, 'printPackingList']);
     Route::get("$packingListPref-new", [CNSPackingListController::class, 'newPackingList']);
     Route::post("$packingListPref-new-get-si", [CNSPackingListController::class, 'getSI']);
+    Route::post("$packingListPref-new-submit", [CNSPackingListController::class, 'newPackingListSubmit']);
+    Route::get("$packingListPref-detail", [CNSPackingListController::class, 'detailPackingList']);
+    Route::post("$packingListPref-detail-submit", [CNSPackingListController::class, 'detailPackingListSubmit']);
 
     $commercialInvoicePref = "cns-export-commercial-invoice";
     Route::get("$commercialInvoicePref", [CNSCommercialInvoiceController::class, 'indexCommercialInvoice']);
@@ -5073,17 +5082,60 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$commercialInvoicePref-print", [CNSCommercialInvoiceController::class, 'printCommercialInvoice']);
     Route::get("$commercialInvoicePref-new", [CNSCommercialInvoiceController::class, 'newCommercialInvoice']);
     Route::post("$commercialInvoicePref-get-si", [CNSCommercialInvoiceController::class, 'getSIDetail']);
+    Route::post("$commercialInvoicePref-new-submit", [CNSCommercialInvoiceController::class, 'newCommercialInvoiceSubmit']);
+    Route::get("$commercialInvoicePref-detail", [CNSCommercialInvoiceController::class, 'detailCommercialInvoice']);
+    Route::post("$commercialInvoicePref-detail-submit", [CNSCommercialInvoiceController::class, 'detailCommercialInvoiceSubmit']);
 
     $wbtPref = "cns-export-weight-bridge-ticket";
     Route::get("$wbtPref", [CNSWeightBridgeTicketController::class, 'indexWeightBridgeTicket']);
     Route::get("xml-$wbtPref", [CNSWeightBridgeTicketController::class, 'indexWeightBridgeTicketXml']);
     Route::get("$wbtPref-new", [CNSWeightBridgeTicketController::class, 'newWeightBridgeTicket']);
+    Route::get("$wbtPref-print", [CNSWeightBridgeTicketController::class, 'printWeightBridgeTicket']);
+    Route::post("$wbtPref-new-get-order", [CNSWeightBridgeTicketController::class, 'getSIDetail']);
+    Route::post("$wbtPref-new-submit", [CNSWeightBridgeTicketController::class, 'newWeightBridgeTicketSubmit']);
+    Route::get("$wbtPref-detail", [CNSWeightBridgeTicketController::class, 'detailWeightBridgeTicket']);
+    Route::post("$wbtPref-detail-submit", [CNSWeightBridgeTicketController::class, 'detailWeightBridgeTicketSubmit']);
+
+    $cooPref = "cns-export-certificate-origin";
+    Route::get("$cooPref", [CNSCertificateOfOriginController::class, 'indexCertificateOfOrigin']);
+    Route::get("xml-$cooPref", [CNSCertificateOfOriginController::class, 'indexCertificateOfOriginXml']);
+    Route::get("$cooPref-print", [CNSCertificateOfOriginController::class, 'printCertificateOfOrigin']);
+    Route::get("$cooPref-new", [CNSCertificateOfOriginController::class, 'newCertificateOfOrigin']);
+    Route::post("$cooPref-new-submit", [CNSCertificateOfOriginController::class, 'newCertificateOfOriginSubmit']);
+    Route::get("$cooPref-detail", [CNSCertificateOfOriginController::class, 'detailCertificateOfOrigin']);
+    Route::post("$cooPref-detail-submit", [CNSCertificateOfOriginController::class, 'detailCertificateOfOriginSubmit']);
+
+    $sdPref = "cns-export-sustainability-declaration";
+    Route::get("$sdPref", [CNSSustainabilityDeclarationController::class, 'indexSustainabilityDeclaration']);
+    Route::get("xml-$sdPref", [CNSSustainabilityDeclarationController::class, 'indexSustainabilityDeclarationXml']);
+    Route::get("$sdPref-print", [CNSSustainabilityDeclarationController::class, 'printSustainabilityDeclaration']);
+    Route::get("$sdPref-new", [CNSSustainabilityDeclarationController::class, 'newSustainabilityDeclaration']);
+    Route::post("$sdPref-new-submit", [CNSSustainabilityDeclarationController::class, 'newSustainabilityDeclarationSubmit']);
+    Route::get("$sdPref-detail", [CNSSustainabilityDeclarationController::class, 'detailSustainabilityDeclaration']);
+    Route::post("$sdPref-detail-submit", [CNSSustainabilityDeclarationController::class, 'detailSustainabilityDeclarationSubmit']);
+
+    $dnPref = "cns-export-delivery-note";
+    Route::get("$dnPref", [CNSDeliveryNoteController::class, 'indexDeliveryNote']);
+    Route::get("xml-$dnPref", [CNSDeliveryNoteController::class, 'indexDeliveryNoteXml']);
+    Route::get("$dnPref-print", [CNSDeliveryNoteController::class, 'printDeliveryNote']);
+    Route::get("$dnPref-new", [CNSDeliveryNoteController::class, 'newDeliveryNote']);
+    Route::post("$dnPref-new-submit", [CNSDeliveryNoteController::class, 'newDeliveryNoteSubmit']);
+    Route::get("$dnPref-detail", [CNSDeliveryNoteController::class, 'detailDeliveryNote']);
+    Route::post("$dnPref-detail-submit", [CNSDeliveryNoteController::class, 'detailDeliveryNoteSubmit']);
 
     $cnsInventoryPref = "cns-inventory-tracking";
-    Route::get("$cnsInventoryPref-index", [PartnerUCOReportController::class, 'trackExportedStockIndex'])->name($cnsInventoryPref . '.index');
-    Route::get("$cnsInventoryPref-create", [PartnerUCOReportController::class, 'trackExportedStockCreatePage'])->name($cnsInventoryPref . '.create');
-    Route::get("$cnsInventoryPref-data", [PartnerUCOReportController::class, 'trackExportedStockData'])->name($cnsInventoryPref . '.data');
-    Route::post("$cnsInventoryPref-submit", [PartnerUCOReportController::class, 'submitExportedStock'])->name($cnsInventoryPref . '.submit');
-    Route::post("$cnsInventoryPref-submit-edit", [PartnerUCOReportController::class, 'updateExportedStock'])->name($cnsInventoryPref . '.submit-edit');
-    Route::delete("$cnsInventoryPref-delete", [PartnerUCOReportController::class, 'deleteExportedStock'])->name($cnsInventoryPref . '.delete');
+    Route::get("$cnsInventoryPref-index", [UCOLogisticController::class, 'trackExportedStockIndex'])->name($cnsInventoryPref . '.index');
+    Route::get("$cnsInventoryPref-create", [UCOLogisticController::class, 'trackExportedStockCreatePage'])->name($cnsInventoryPref . '.create');
+    Route::get("$cnsInventoryPref-data", [UCOLogisticController::class, 'trackExportedStockData'])->name($cnsInventoryPref . '.data');
+    Route::post("$cnsInventoryPref-submit", [UCOLogisticController::class, 'submitExportedStock'])->name($cnsInventoryPref . '.submit');
+    Route::post("$cnsInventoryPref-submit-edit", [UCOLogisticController::class, 'updateExportedStock'])->name($cnsInventoryPref . '.submit-edit');
+    Route::delete("$cnsInventoryPref-delete", [UCOLogisticController::class, 'deleteExportedStock'])->name($cnsInventoryPref . '.delete');
+
+    $cnsQualityPref = "cns-quality";
+    Route::get("$cnsQualityPref-index", [QualityController::class, 'qualityControlIndexPage'])->name($cnsQualityPref . '.index');
+    Route::get("$cnsQualityPref-create", [QualityController::class, 'insertQualityControlPage'])->name($cnsQualityPref . '.create');
+    Route::get("$cnsQualityPref-data", [QualityController::class, 'getQualityControlData'])->name($cnsQualityPref . '.data');
+    Route::post("$cnsQualityPref-submit", [QualityController::class, 'insertQualityControl'])->name($cnsQualityPref . '.submit');
+    Route::post("$cnsQualityPref-submit-edit", [QualityController::class, 'editQualityControl'])->name($cnsQualityPref . '.submit-edit');
+    Route::delete("$cnsQualityPref-delete", [QualityController::class, 'deleteQualityControl'])->name($cnsQualityPref . '.delete');
 });

@@ -164,6 +164,7 @@ class UCOReportController extends Controller
         return;
     }
 
+
     public function trackExportedStockIndex()
     {
         return view('cns.inventory.index');
@@ -183,30 +184,61 @@ class UCOReportController extends Controller
             return $this->trackExportedStockDataById($r);
         }
 
+        $month    = $r->query('month');    // e.g. "2026-04"
+        $policeNo = $r->query('police_no');
+
         $vs = DB::table('vessel_schedules as vs')
             ->join('vessel_schedule_dtls as vsdtl', 'vsdtl.Task_ID', '=', 'vs.Task_ID')
             ->select('vs.*', 'vs.Created_Date as Scheduled_At', 'vsdtl.*')
+            ->when($month,    fn($q) => $q->whereRaw("DATE_FORMAT(vs.Created_Date, '%Y-%m') = ?", [$month]))
+            ->when($policeNo, fn($q) => $q->where(fn($q2) => $q2
+                ->where('vsdtl.Police_No', $policeNo)
+                ->orWhere('vsdtl.Container', $policeNo)
+            ))
             ->get();
+
+        $prevMonth = $month
+            ? Carbon::createFromFormat('Y-m', $month)->subMonth()->format('Y-m')
+            : Carbon::now()->subMonth()->format('Y-m');
+
+        $openingStock = DB::table('vessel_schedules as vs')
+            ->join('vessel_schedule_dtls as vsdtl', 'vsdtl.Task_ID', '=', 'vs.Task_ID')
+            ->whereRaw("DATE_FORMAT(vs.Created_Date, '%Y-%m') = ?", [$prevMonth])
+            ->when($policeNo, fn($q) => $q->where(fn($q2) => $q2
+                ->where('vsdtl.Police_No', $policeNo)
+                ->orWhere('vsdtl.Container', $policeNo)
+            ))
+            ->sum(DB::raw('vsdtl.Stock_In - vsdtl.Stock_Out'));
 
         $xml = new SimpleXMLElement('<rows/>');
 
         $counter = 1;
+        $runningStock = $openingStock;
 
         foreach ($vs as $vs) {
+
             $row = $xml->addChild('row');
+            $runningStock = $runningStock + $vs->Stock_In - $vs->Stock_Out;
+            $currentStock = $runningStock;
+            // dd($currentStock, $vs->Stock_In, $vs->Stock_Out);
 
             $row->addChild('cell', $counter);
-            $row->addChild('cell', $vs->Task_ID);
-            $row->addChild('cell', $vs->Order_No);
             $row->addChild('cell', Carbon::parse($vs->Scheduled_At)->format('F'));
-            $row->addChild('cell', Carbon::parse($vs->Scheduled_At)->format('d/m/Y'));
+            $row->addChild('cell', Carbon::parse($vs->Scheduled_At)->format('d-M-Y'));
+
             $row->addChild('cell', 'Pelindo');
-            $row->addChild('cell', $vs->POL);
             $row->addChild('cell', $vs->Police_No);
-            $row->addChild('cell', $vs->ATD);
-            $row->addChild('cell', $vs->ATA);
-            $row->addChild('cell', $vs->Gross_KG);
+
+            // $row->addChild('cell', $vs->Task_ID);
+            // $row->addChild('cell', $vs->Order_No);
+
+            // $row->addChild('cell', $vs->POL);
+            $row->addChild('cell', $vs->Qty_SJ);
+            $row->addChild('cell', $vs->Stock_In);
+            $row->addChild('cell', $vs->Stock_Out);
+            $row->addChild('cell', $currentStock);
             $row->addChild('cell', $vs->Note);
+
 
             if (!$attachment) {
                 $row->addChild('cell', "Belum ada lampiran.");
@@ -236,6 +268,7 @@ class UCOReportController extends Controller
             ->get();
 
         $xml = new SimpleXMLElement('<rows/>');
+
 
         $counter = 1;
 
@@ -332,5 +365,18 @@ class UCOReportController extends Controller
             ->delete();
 
         return response()->json(['success' => true, 'message' => 'Record updated successfully']);
+    }
+
+    public function getPoliceLicenseNumber()
+    {
+        $list = DB::table('vessel_schedule_dtls as vsdtl')
+            ->join('vessel_schedules as vs', 'vs.Task_ID', '=', 'vsdtl.Task_ID')
+            ->whereNotNull('vsdtl.Container')
+            ->where('vsdtl.Container', '!=', '')
+            ->select('vsdtl.Container as police_license', 'vs.Vessel as vessel_name')
+            ->distinct()
+            ->get();
+
+        return response()->json(['status' => 'success', 'data' => $list]);
     }
 }

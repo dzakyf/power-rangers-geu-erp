@@ -46,12 +46,12 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-	function PrintSI()
+	function PrintPL()
 	 {
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			// window.open('cns-export-packing-list-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
-			window.open('assets/export_pl.docx', '_blank');
+			window.open('cns-export-packing-list-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
+			// window.open('assets/export_pl.docx', '_blank');
 		}else {
 			alert("Pilih baris data");
 		}

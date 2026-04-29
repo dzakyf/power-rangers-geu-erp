@@ -5,7 +5,9 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\PackingList;
 use App\ShipmentInstruction;
+use App\VesselSchedule;
 use App\VesselScheduleDtl;
+use App\VesselScheduleLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -81,6 +83,17 @@ class PackingListController extends Controller
 
         echo "</rows>";
     }
+
+    public function printPackingList(Request $request)
+    {
+        $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        foreach ($company as $key => $value) {
+            $companies[$value->Supplier_ID] = $value;
+        }
+        $shipment = PackingList::where('Packing_List_No', $request->Task)->first();
+        $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
+        return view('cns.export.print.pl', compact('shipment', 'vsds','companies'));
+    }
     
     function getRomawi($bln)
     {
@@ -138,6 +151,62 @@ class PackingListController extends Controller
         $masProducts = DB::table('master_product_cns')->get();
 
         return view('cns.export.pl-new', compact('plno','fsis', 'companies', 'masProducts'));
+    }
+
+    public function newPackingListSubmit(Request $request)
+    {
+        $shipment = ShipmentInstruction::where("Final_SI_No", $request->Final_SI_No)->first();
+
+        if (!$shipment) {
+            echo "error";
+            exit;
+        }
+
+        $pl = new PackingList();
+        $pl->Packing_List_No = $request->input('Packing_List_No');
+        $pl->Final_SI_No = $request->input('Final_SI_No');
+        $pl->SI_No = $shipment->SI_No;
+        $pl->Order_No = $shipment->Order_No;
+        $pl->SI_Date = $shipment->SI_Date;
+        $pl->Final_SI_Date = $shipment->Final_SI_Date;
+        $pl->Qty = $request->input('Qty1') . " x " . $request->input('Qty2');
+        $pl->Qty1 = $request->input('Qty1');
+        $pl->Qty2 = $request->input('Qty2');
+        $pl->PL_Date = $request->input('PL_Date');
+        $pl->Shipper = $request->input('Shipper') ?? '';
+        $pl->Consignee = $request->input('Consignee') ?? '';
+        $pl->Notify = $request->input('Notify') ?? '';
+        $pl->Destination_Letter = $request->input('Destination_Letter') ?? '';
+        $pl->Delivery_Terms = $request->input('Delivery_Terms') ?? '';
+        $pl->Contract_No = $request->input('Contract_No') ?? '';
+        $pl->Voyage = $request->input('Voyage') ?? '';
+        $pl->ETD = $request->input('ETD');
+        $pl->ETA = $request->input('ETA');
+        $pl->Stuffing = $request->input('Stuffing');
+        $pl->POL = $request->input('POL') ?? "";
+        $pl->POD = $request->input('POD') ?? "";
+        $pl->PEB_Date = $request->input('PEB_Date');
+        $pl->PEB_No = $request->input('PEB_No') ?? '';
+        $pl->BL_No = $request->input('BL_No') ?? '';
+        $pl->HS_Code = $request->input('HS_Code');
+        $pl->Product_Name = $request->input('Product_Name');
+        $pl->Status = "CREATED";
+        $pl->Created_Date = now();
+        $pl->Created_By = auth()->user()->username;
+        $pl->save();
+
+        $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
+        $vs = json_decode(json_encode($vs), true);
+        $vs['Last_ID'] = $vs['id'];
+        unset($vs['id']);
+
+        $vs['Action_By'] = auth()->user()->username;
+        $vs['Action_Date'] = now();
+        $vs['Action_Status'] = "CREATE PACKING LIST WITH NO: " . $request->input('Packing_List_No');
+
+        VesselScheduleLog::create($vs);
+
+        echo "success";
     }
 
     public function getSI(Request $request)

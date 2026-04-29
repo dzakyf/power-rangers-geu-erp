@@ -46,12 +46,12 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-	function PrintSI()
+	function PrintWBT()
 	 {
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			// window.open('cns-export-weight-bridge-ticket-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
-			window.open('assets/export_fsi.docx', '_blank');
+			window.open('cns-export-weight-bridge-ticket-print?Task=' + ShipmentInstructionID, '_blank');
+			// window.open('assets/export_fsi.docx', '_blank');
 		}else {
 			alert("Pilih baris data");
 		}
@@ -74,13 +74,13 @@ $Saya =  Auth::user()->username;
 	}
 	ShipmentInstruction = new dhtmlXGridObject('ShipmentInstruction');
 	ShipmentInstruction.setImagePath("./dhtmlx/imgs/");
-	ShipmentInstruction.setHeader("No,Packing List No, Final SI No, Container (Seal)");
-	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter");
+	ShipmentInstruction.setHeader("No,Packing List No, Final SI No, Contract No, Voyage, Departure Date, B/L No, Container, Created By, Created Date");
+	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// ShipmentInstruction.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	ShipmentInstruction.setInitWidths("60,150,150,1000");
-	ShipmentInstruction.setColAlign("center,left,left,left");
-	ShipmentInstruction.setColSorting("int,str,str,str");
-	ShipmentInstruction.setColTypes("ron,ro,ro,ro");
+	ShipmentInstruction.setInitWidths("60,150,150,150,150,150,150,1000,150,150");
+	ShipmentInstruction.setColAlign("center,left,left,left,left,left,left,left,left,left");
+	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str");
+	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	ShipmentInstruction.enableSmartRendering(true, 150);
 	// ShipmentInstruction.setNumberFormat("0,000", 7, ".", ",");
 	ShipmentInstruction.attachEvent("onRowDblClicked", ShipmentInstructionKlik);
