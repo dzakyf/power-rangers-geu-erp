@@ -18,7 +18,7 @@ class ShipmentInstructionController extends Controller
         return view('cns.export.si');
     }
 
-    public function indexShipmentInstructionXml()
+    public function indexShipmentInstructionXml(Request $request)
     {
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
@@ -49,12 +49,13 @@ class ShipmentInstructionController extends Controller
             $vsdData[$vsd->SI_No]['gross_mt'] += $vsd->Gross_MT;
         }
 
-        $shipments = ShipmentInstruction::where('Status', "CREATED")->get();
+        $shipments = ShipmentInstruction::whereBetween('SI_Date', [$request->tgl1, $request->tgl2])->where('Status', "CREATED")->get();
         foreach ($shipments as $key => $shipment) {
             echo "<row id=\"$shipment->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
             echo "<cell>" . htmlspecialchars($shipment->Order_No) . "</cell>";
             echo "<cell>" . htmlspecialchars($shipment->SI_No) . "</cell>";
+            echo "<cell>" . htmlspecialchars(date("d F Y", strtotime($shipment->SI_Date))) . "</cell>";
             if (isset($vsdData[$shipment->SI_No])) {
                 echo "<cell>" . htmlspecialchars(implode(', ', $vsdData[$shipment->SI_No]['list'])) . "</cell>";
                 echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['tare']) . "</cell>";
@@ -116,6 +117,17 @@ class ShipmentInstructionController extends Controller
         } else {
             return response()->json(['error' => 'Order not found'], 404);
         }
+    }
+    
+    public function getSINo(Request $request)
+    {
+        $strtime = strtotime($request->date);
+        $months = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+        $romawi = $months[date('n', $strtime) - 1];
+        $counter = ShipmentInstruction::where("SI_Date", 'LIKE', date("Y-m", $strtime).'%')->count();
+        $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . $romawi . "/" . date("Y", $strtime);
+
+        echo $SINo;
     }
     
     public function newShipmentInstructionSubmit(Request $request)

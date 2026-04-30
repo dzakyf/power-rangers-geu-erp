@@ -37,13 +37,13 @@ class VesselScheduleController extends Controller
             echo "<cell>" . htmlspecialchars($vessel->Vessel) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->POL) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->POD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Stuffing) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Checking_BC) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Closing_CY) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ETD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ATD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ETA) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ATA) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Stuffing != "" ? date("d F Y", strtotime($vessel->Stuffing)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Checking_BC != "" ? date("d F Y", strtotime($vessel->Checking_BC)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Closing_CY != "" ? date("d F Y", strtotime($vessel->Closing_CY)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ETD != "" ? date("d F Y", strtotime($vessel->ETD)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ATD != "" ? date("d F Y", strtotime($vessel->ATD)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ETA != "" ? date("d F Y", strtotime($vessel->ETA)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ATA != "" ? date("d F Y", strtotime($vessel->ATA)) : '') . "</cell>";
             if ($vessel->ETD != "0000-00-00" && $vessel->ETA != "0000-00-00") {
                 $etd = new \DateTime($vessel->ETD);
                 $eta = new \DateTime($vessel->ETA);
@@ -144,6 +144,12 @@ class VesselScheduleController extends Controller
     {
         $vs = VesselSchedule::where('id', $request->input('id'))->first();
 
+        $cek = VesselSchedule::where('Order_No', $request->input('Order_No'))->where("ID", '!=', $request->input('id'))->first();
+        if ($cek) {
+            echo "duplicate";
+            return;
+        }
+
         $cekSI = ShipmentInstruction::where('Order_No', $vs->Order_No)->first();
 
         if ($cekSI) {
@@ -186,5 +192,59 @@ class VesselScheduleController extends Controller
         $vsl = VesselSchedule::create($vs);
 
         echo "success";
+    }
+
+    public function detailLogVesselScheduleXml(Request $request)
+    {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+        echo "<rows>";
+
+        // Sample data, replace with actual database query
+        $vessels = VesselScheduleLog::where('Last_ID', $request->task)->get();
+        foreach ($vessels as $key => $vessel) {
+            echo "<row id=\"$vessel->id\" >";
+            echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Action_By) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Action_Date) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Action_Status) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Order_No) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Qty) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Vessel) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->POL) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->POD) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Stuffing != "" ? date("d F Y", strtotime($vessel->Stuffing)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Checking_BC != "" ? date("d F Y", strtotime($vessel->Checking_BC)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Closing_CY != "" ? date("d F Y", strtotime($vessel->Closing_CY)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ETD != "" ? date("d F Y", strtotime($vessel->ETD)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ATD != "" ? date("d F Y", strtotime($vessel->ATD)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ETA != "" ? date("d F Y", strtotime($vessel->ETA)) : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ATA != "" ? date("d F Y", strtotime($vessel->ATA)) : '') . "</cell>";
+            if ($vessel->ETD != "0000-00-00" && $vessel->ETA != "0000-00-00") {
+                $etd = new \DateTime($vessel->ETD);
+                $eta = new \DateTime($vessel->ETA);
+                $interval = $etd->diff($eta);
+                echo "<cell>" . htmlspecialchars($interval->format('%a days')) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+            }
+            if (($vessel->ATD != "0000-00-00" && $vessel->ATA != "0000-00-00") && ($vessel->ATD != null && $vessel->ATA != null)) {
+                $atd = new \DateTime($vessel->ATD);
+                $ata = new \DateTime($vessel->ATA);
+                $interval = $atd->diff($ata);
+                echo "<cell>" . htmlspecialchars($interval->format('%a days')) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+            }
+            echo "<cell>" . htmlspecialchars($vessel->Note) . "</cell>";
+            echo "</row>";
+        }
+
+        echo "</rows>";
     }
 }

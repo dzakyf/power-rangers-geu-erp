@@ -14,7 +14,7 @@ class StuffingController extends Controller
         return view('cns.vs.stuffing');
     }
 
-    public function indexStuffingXml()
+    public function indexStuffingXml(Request $request)
     {
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
@@ -31,7 +31,7 @@ class StuffingController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $vessels = VesselSchedule::get();
+        $vessels = VesselSchedule::whereBetween('Stuffing',[$request->tgl1,$request->tgl2])->get();
         foreach ($vessels as $key => $vessel) {
             $warna = "style='background-color: #ffccccff'";
             if (isset($vsd[$vessel->Order_No])) {
@@ -48,13 +48,13 @@ class StuffingController extends Controller
             echo "<cell>" . htmlspecialchars($vessel->Vessel) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->POL) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->POD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Stuffing) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Checking_BC) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Closing_CY) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ETD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ATD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ETA) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ATA) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Stuffing != "" ? date("d F Y",strtotime($vessel->Stuffing)) : "") . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Checking_BC != "" ? date("d F Y",strtotime($vessel->Checking_BC)) : "") . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Closing_CY != "" ? date("d F Y",strtotime($vessel->Closing_CY)) : "") . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ETD != "" ? date("d F Y",strtotime($vessel->ETD)) : "") . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ATD != "" ? date("d F Y",strtotime($vessel->ATD)) : "") . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ETA != "" ? date("d F Y",strtotime($vessel->ETA)) : "") . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->ATA != "" ? date("d F Y",strtotime($vessel->ATA)) : "") . "</cell>";
             if ($vessel->ETD != "0000-00-00" && $vessel->ETA != "0000-00-00") {
                 $etd = new \DateTime($vessel->ETD);
                 $eta = new \DateTime($vessel->ETA);
@@ -106,7 +106,7 @@ class StuffingController extends Controller
             echo "<cell>" . ($key + 1) . "</cell>";
             echo "<cell>" . htmlspecialchars(date("H:i",strtotime($vessel->Time_From))) . "</cell>";
             echo "<cell>" . htmlspecialchars(date("H:i",strtotime($vessel->Time_To))) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Date) . "</cell>";
+            echo "<cell>" . htmlspecialchars(date('d F Y', strtotime($vessel->Date))) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Police_No) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Container) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Seal) . "</cell>";
@@ -177,7 +177,7 @@ class StuffingController extends Controller
         if ($vsd) {
             $vsd->Time_From = $a;
             $vsd->Time_To = $b;
-            $vsd->Date = $c;
+            $vsd->Date = date("Y-m-d", strtotime($c));
             $vsd->Police_No = $d;
             $vsd->Container = $e;
             $vsd->Seal = $f;
@@ -221,7 +221,7 @@ class StuffingController extends Controller
             $vsd->Task_ID = $cekOrder->Task_ID;
             $vsd->Time_From = $a;
             $vsd->Time_To = $b;
-            $vsd->Date = $c;
+            $vsd->Date = date("Y-m-d", strtotime($c));
             $vsd->Police_No = $d;
             $vsd->Container = $e;
             $vsd->Seal = $f;

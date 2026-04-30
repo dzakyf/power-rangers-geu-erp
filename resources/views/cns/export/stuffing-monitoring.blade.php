@@ -31,6 +31,11 @@ $Saya =  Auth::user()->username;
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">STUFFING MONITORING LIST</div>
 	<div class="card">
 		<div class="card-body">
+			<div class="mb-2">
+				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
+				s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
+				<button onclick="refreshdataDetail()" class="btn btn-primary p-2">Refresh</button>
+			</div>
 			<div id="StuffingMonitoring" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div class="mt-3">
 				<button class="btn btn-primary mr-3" onclick="addRowStuffingMonitoring()">Add Container</button>
@@ -58,7 +63,7 @@ $Saya =  Auth::user()->username;
 	// StuffingMonitoring.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	StuffingMonitoring.setInitWidths("60,100,100,100,100,200,150,150,100,100,100,100,100,auto");
 	StuffingMonitoring.setColAlign("center,center,center,center,center,center,center,center,right,right,right,right,right,right,left");
-	StuffingMonitoring.setDateFormat("%Y-%m-%d");
+	StuffingMonitoring.setDateFormat("%d %M %Y");
 	StuffingMonitoring.setColSorting("int,str,str,str,str,str,str,str,int,int,int,int,int,int,str");
 	StuffingMonitoring.setColTypes("ro,ed,ed,ed,dhxCalendar,ed,ed,ed,edn,edn,edn,edn,edn,edn,ed");
 	StuffingMonitoring.enableSmartRendering(true, 150);
@@ -118,7 +123,7 @@ $Saya =  Auth::user()->username;
 	refreshdataDetail();
 
 	function refreshdataDetail() {
-		StuffingMonitoring.clearAndLoad('xml-cns-export-stuffing-monitoring');
+		StuffingMonitoring.clearAndLoad('xml-cns-export-stuffing-monitoring?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
 	}
 
 	function addRowStuffingMonitoring()

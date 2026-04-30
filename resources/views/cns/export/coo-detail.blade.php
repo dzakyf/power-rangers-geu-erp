@@ -10,12 +10,18 @@ $Saya = Auth::user()->username;
                 <div class="row">
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label>COO No</label>
-                            <input type="text" name="COO_No" id="COO_No" value="{{ $coo->COO_No }}" class="form-control shadow-sm" required readonly />
+                            <label>WBT No</label>
+                            <select name="WBT_No" id="WBT_No" class="form-control shadow-sm">
+                                <option value="">-- Pilih WBT --</option>
+                                @foreach ($wbts as $item)
+                                <option value="{{ $item->WBT_No }}">{{ $item->WBT_No }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
+                            <input type="hidden" name="COO_No" id="COO_No" value="{{ $coo->COO_No }}" class="form-control shadow-sm" required readonly />
                             <label>Export Invoice Number</label>
                             <input type="text" name="Fin_Inv_No" id="Fin_Inv_No" value="{{ $coo->Fin_Inv_No }}" class="form-control shadow-sm" />
                         </div>

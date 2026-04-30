@@ -10,12 +10,18 @@ $Saya = Auth::user()->username;
                 <div class="row">
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label>COO No</label>
-                            <input type="text" name="COO_No" id="COO_No" value="{{ $CooNo }}" class="form-control shadow-sm" required readonly />
+                            <label>WBT No</label>
+                            <select name="WBT_No" id="WBT_No" class="form-control shadow-sm">
+                                <option value="">-- Pilih WBT --</option>
+                                @foreach ($wbts as $item)
+                                <option value="{{ $item->WBT_No }}">{{ $item->WBT_No }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
+                            <input type="hidden" name="COO_No" id="COO_No" value="{{ $CooNo }}" class="form-control shadow-sm" required readonly />
                             <label>Export Invoice Number</label>
                             <input type="text" name="Fin_Inv_No" id="Fin_Inv_No" value="" class="form-control shadow-sm" />
                         </div>
@@ -106,7 +112,11 @@ $Saya = Auth::user()->username;
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>HS Code</label>
-                            <input type="text" name="HS_Code" id="HS_Code" value="15119020" class="form-control shadow-sm" />
+                            <select name="HS_Code" id="HS_Code" class="form-control shadow-sm">
+                                <option value="">-- Pilih HS Code --</option>
+                                <option value="15180090">15180090</option>
+                                <option value="15119020" selected>15119020</option>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -180,6 +190,43 @@ $Saya = Auth::user()->username;
     function removeRow(btn) {
         $(btn).closest('tr').remove();
     }
+
+    $('#WBT_No').on('change', function() {
+        $.blockUI();
+        $.ajax({
+			headers: {
+				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+			},
+            url: "cns-export-certificate-origin-new-get-wbt",
+            type: "POST",
+            data: {
+                _token: "{{ csrf_token() }}",
+                WBT_No: $('#WBT_No').find('option:selected').val()
+            },
+            success: function(response) {
+                Object.keys(response).forEach(function(key) {
+                    if (key != 'orderDetails' && key != 'WBT_No') {
+                        $('#' + key).val(response[key]);
+                    }
+                });
+                $('#containerBody').html('');
+                let counter = 1;
+                let string = "";
+                response.forEach(function(container, index) {
+                    $('#containerBody').append('<tr>' +
+                        '<td><input type="text" name="containers[]" class="form-control form-control-sm" value="'+container.Container+'" /></td>' +
+                        '<td><input type="text" name="seals[]" class="form-control form-control-sm" value="'+container.Seal+'" /></td>' +
+                        '<td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">X</button></td>' +
+                    '</tr>');
+                });
+                $.unblockUI();
+            },
+            error:function() {
+                alert('Error fetching order details. Please try again.');
+                $.unblockUI();
+            }
+        });
+    })
 
     $('#SubmitCOO').click(function () {
         $.blockUI();

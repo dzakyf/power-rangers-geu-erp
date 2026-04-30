@@ -36,6 +36,11 @@ $Saya =  Auth::user()->username;
 				<span style='background-color: #feffccff' class="p-2 border"></span> : Stuffing Yet Complete<br>
 				<span style='background-color: #ccffcfff' class="p-2 border"></span> : Stuffing Complete<br>
 			</div>
+			<div class="mb-2">
+				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
+				s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
+				<button onclick="refreshdata()" class="btn btn-primary p-2">Refresh</button>
+			</div>
 			<div id="StuffingVessel" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselStuffingVesselDet" name="ekselStuffingVesselDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="StuffingVessel.toExcel('./export/generate.php');" />
@@ -73,7 +78,7 @@ $Saya =  Auth::user()->username;
 	StuffingVessel.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,100,100,100,100,100,800");
 	StuffingVessel.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
 	StuffingVessel.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	StuffingVessel.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	StuffingVessel.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	StuffingVessel.enableSmartRendering(true, 150);
 	// StuffingVessel.setNumberFormat("0,000", 7, ".", ",");
 	StuffingVessel.attachEvent("onRowDblClicked", StuffingVesselKlik);
@@ -82,7 +87,7 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		StuffingVessel.clearAndLoad('xml-cns-stuffing');
+		StuffingVessel.clearAndLoad('xml-cns-stuffing?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
 
 	}
 </script>

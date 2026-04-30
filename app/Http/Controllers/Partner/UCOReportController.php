@@ -184,6 +184,7 @@ class UCOReportController extends Controller
             return $this->trackExportedStockDataById($r);
         }
 
+
         $month    = $r->query('month');    // e.g. "2026-04"
         $policeNo = $r->query('police_no');
 
@@ -191,9 +192,10 @@ class UCOReportController extends Controller
             ->join('vessel_schedule_dtls as vsdtl', 'vsdtl.Task_ID', '=', 'vs.Task_ID')
             ->select('vs.*', 'vs.Created_Date as Scheduled_At', 'vsdtl.*')
             ->when($month,    fn($q) => $q->whereRaw("DATE_FORMAT(vs.Created_Date, '%Y-%m') = ?", [$month]))
-            ->when($policeNo, fn($q) => $q->where(fn($q2) => $q2
-                ->where('vsdtl.Police_No', $policeNo)
-                ->orWhere('vsdtl.Container', $policeNo)
+            ->when($policeNo, fn($q) => $q->where(
+                fn($q2) => $q2
+                    ->where('vsdtl.Police_No', $policeNo)
+                    ->orWhere('vsdtl.Container', $policeNo)
             ))
             ->get();
 
@@ -204,9 +206,10 @@ class UCOReportController extends Controller
         $openingStock = DB::table('vessel_schedules as vs')
             ->join('vessel_schedule_dtls as vsdtl', 'vsdtl.Task_ID', '=', 'vs.Task_ID')
             ->whereRaw("DATE_FORMAT(vs.Created_Date, '%Y-%m') = ?", [$prevMonth])
-            ->when($policeNo, fn($q) => $q->where(fn($q2) => $q2
-                ->where('vsdtl.Police_No', $policeNo)
-                ->orWhere('vsdtl.Container', $policeNo)
+            ->when($policeNo, fn($q) => $q->where(
+                fn($q2) => $q2
+                    ->where('vsdtl.Police_No', $policeNo)
+                    ->orWhere('vsdtl.Container', $policeNo)
             ))
             ->sum(DB::raw('vsdtl.Stock_In - vsdtl.Stock_Out'));
 
@@ -303,6 +306,26 @@ class UCOReportController extends Controller
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
     }
 
+    public function trackExportedStockDataJSON(Request $r)
+    {
+        $vs = DB::table('vessel_schedules as vs')
+            ->join('vessel_schedule_dtls as vsdtl', 'vsdtl.Task_ID', '=', 'vs.Task_ID')
+            ->select(
+                'vs.id',
+                'vs.Created_Date as Date',
+                'vsdtl.Police_No',
+                'vsdtl.Note',
+                'vsdtl.Status',
+                'vsdtl.Qty_SJ',
+                'vsdtl.Stock_In',
+                'vsdtl.Stock_Out'
+            )
+            ->where('vsdtl.ID', '=', $r->query('ID'))
+            ->get();
+
+        return response()->json($vs);
+    }
+
     public function submitExportedStock(Request $r)
     {
         $id = DB::table('vessel_schedule')
@@ -332,26 +355,16 @@ class UCOReportController extends Controller
 
     public function updateExportedStock(Request $r)
     {
-        DB::table('vessel_schedules')
+        DB::table('vessel_schedule_dtls')
             ->where('id', $r->id)
             ->update($r->only([
-                'Order_No',
-                'Qty',
-                'Qty1',
-                'Qty2',
-                'Vessel',
-                'POL',
-                'POD',
-                'Stuffing',
-                'Checking_BC',
-                'Closing_CY',
-                'ETD',
-                'ATD',
-                'ETA',
-                'ATA',
-                'Note',
-                'Updated_By',
-                'Updated_Date',
+                "Date",
+                "Police_No",
+                "Note",
+                "Status",
+                "Qty_SJ",
+                "Stock_In",
+                "Stock_Out",
             ]));
 
         return response()->json(['success' => true, 'message' => 'Record updated successfully']);
@@ -372,8 +385,8 @@ class UCOReportController extends Controller
         $list = DB::table('vessel_schedule_dtls as vsdtl')
             ->join('vessel_schedules as vs', 'vs.Task_ID', '=', 'vsdtl.Task_ID')
             ->whereNotNull('vsdtl.Container')
-            ->where('vsdtl.Container', '!=', '')
-            ->select('vsdtl.Container as police_license', 'vs.Vessel as vessel_name')
+            ->where('vsdtl.Police_No', '!=', '')
+            ->select('vsdtl.Police_No as police_license', 'vs.Vessel as vessel_name')
             ->distinct()
             ->get();
 

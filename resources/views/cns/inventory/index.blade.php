@@ -12,8 +12,6 @@
     </ol>
 </div>
 
-
-
 <div id="ProjectionSection" class="row m-1">
     <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">UCO TRACKING</div>
     <div class="card">
@@ -36,17 +34,15 @@
             </div>
             <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
             <div>
-                <input type="button" id="CreateQC" name="CreateQC" value="Create" class="btn btn-info mt-2 mr-2" onclick="createQC()" />
+                <!-- <input type="button" id="CreateQC" name="CreateQC" value="Create" class="btn btn-info mt-2 mr-2" onclick="createQC()" /> -->
                 <input type="button" id="DetailQC" name="DetailQC" value="Detail" class="btn btn-info mt-2 mr-2" onclick="detailQC()" />
                 <!-- <input type="button" id="DeleteQC" name="DeleteQC" value="Delete" class="btn btn-info mt-2 mr-2" onclick="deleteQC()" /> -->
-
             </div>
         </div>
     </div>
 </div>
 
-@include('cns.quality.create')
-@include('cns.quality.edit')
+@include('cns.inventory.edit')
 <script>
     var mitraId = null;
     $(document).ready(function() {
@@ -219,7 +215,6 @@
 
     function selectMitra(id, cellIdx) {
         mitraId = PartnerGrid.cells(id, 0).getValue();
-
     }
 
     function doubleClickMitra() {

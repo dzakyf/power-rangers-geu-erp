@@ -32,7 +32,7 @@ $Saya =  Auth::user()->username;
 	<div class="card">
 		<div class="card-body">
 			<div class="mb-2">
-				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-d', strtotime('-7 days')) }}" class="form-control-sm" />
+				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
 				s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
 				<button onclick="refreshdata()" class="btn btn-primary p-2">Refresh</button>
 			</div>

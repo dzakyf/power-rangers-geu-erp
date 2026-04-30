@@ -329,7 +329,7 @@ use Illuminate\Database\Eloquent\Builder;
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "cns-export-shipment-instruction-new-submit?_token={{ csrf_token() }}",
+			url: "cns-export-packing-list-new-submit?_token={{ csrf_token() }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {

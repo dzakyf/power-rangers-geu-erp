@@ -19,7 +19,7 @@ class WeightBridgeTicketController extends Controller
         return view('cns.export.wbt');
     }
 
-    public function indexWeightBridgeTicketXml()
+    public function indexWeightBridgeTicketXml(Request $request)
     {
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
@@ -30,7 +30,7 @@ class WeightBridgeTicketController extends Controller
 
         echo "<rows>";
         $nomor = 1;
-        $wbt = WeightBridgeTicket::get();
+        $wbt = WeightBridgeTicket::whereBetween('Departure_Date', [$request->tgl1, $request->tgl2])->get();
         foreach ($wbt as $key => $value) {
             $vsd = VesselScheduleDtl::where("SI_No", $value->SI_No)->get();
             foreach ($vsd as $k => $v) {
@@ -45,7 +45,7 @@ class WeightBridgeTicketController extends Controller
                 echo "<cell>".htmlspecialchars($value->Final_SI_No)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Contract_No)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Voyage)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Departure_Date)."</cell>";
+                echo "<cell>".htmlspecialchars(date("d F Y", strtotime($value->Departure_Date)))."</cell>";
                 echo "<cell>".htmlspecialchars($value->BL_No)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Container)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Created_By)."</cell>";

@@ -199,6 +199,7 @@ class QualityController extends Controller
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
     }
 
+
     public function editQualityControl(Request $r)
     {
         $date = Carbon::parse($r->Created_At ?? $this->now)->toDateString();

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\CNS;
 use App\CertificateOfOrigin;
 use App\CertificateOfOriginDtl;
 use App\Http\Controllers\Controller;
+use App\WeightBridgeTicket;
+use App\WeightBridgeTicketDtl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -77,17 +79,28 @@ class CertificateOfOriginController extends Controller
             ->count();
         $months = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
         $romawi = $months[date('n') - 1];
+        $wbts = DB::table('weight_bridge_ticket')->get();
         $CooNo = "COO-GEU/" . sprintf('%03d', $counter + 1) . "/$romawi/" . date('Y');
 
-        return view('cns.export.coo-new', compact('companies', 'CooNo'));
+        return view('cns.export.coo-new', compact('companies', 'CooNo', 'wbts'));
     }
 
     public function newCertificateOfOriginSubmit(Request $request)
     {
         $r = $request->all();
+        $wbt = WeightBridgeTicket::where("WBT_No", $r['WBT_No'])->first();
+        if (!$wbt) {
+            echo "error";
+            exit;
+        }
+
         unset($r['_token']);
         unset($r['containers']);
         unset($r['seals']);
+
+        $r['Packing_List_No'] = $wbt->Packing_List_No;
+        $r['Final_SI_No'] = $wbt->Final_SI_No;
+        $r['SI_No'] = $wbt->SI_No;
 
         $r['Created_By']   = auth()->user()->username;
         $r['Created_Date'] = now();
@@ -107,6 +120,22 @@ class CertificateOfOriginController extends Controller
         }
 
         echo "success";
+    }
+
+    public function getCertificateOfOriginWBT(Request $request)
+    {
+        $json = [];
+        $wbt = WeightBridgeTicket::where('WBT_No', $request->WBT_No)->first();
+        if (!$wbt) {
+            $json = [
+                'status' => 'error',
+                'message' => 'error',
+            ];
+        }
+
+        $json = WeightBridgeTicketDtl::where("WBT_No", $request->WBT_No)->join('vessel_schedule_dtls', 'weight_bridge_ticket_dtl.VSD_ID', '=', 'vessel_schedule_dtls.id')->select('weight_bridge_ticket_dtl.*', 'vessel_schedule_dtls.Container as Container', 'vessel_schedule_dtls.Seal as Seal')->get();
+
+        return response()->json($json);
     }
 
     public function detailCertificateOfOrigin(Request $request)

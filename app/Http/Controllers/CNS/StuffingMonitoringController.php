@@ -13,7 +13,7 @@ class StuffingMonitoringController extends Controller
         return view('cns.export.stuffing-monitoring');
     }
 
-    public function indexStuffingMonitoringXml()
+    public function indexStuffingMonitoringXml(Request $request)
     {
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
@@ -24,14 +24,14 @@ class StuffingMonitoringController extends Controller
 
         echo "<rows>";
 
-        $vessels = VesselScheduleDtl::get();
+        $vessels = VesselScheduleDtl::whereBetween('Date', [$request->tgl1,$request->tgl2])->get();
         foreach ($vessels as $key => $vessel) {
             echo "<row id=\"$vessel->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Order_No) . "</cell>";
             echo "<cell>" . htmlspecialchars(date("H:i",strtotime($vessel->Time_From))) . "</cell>";
             echo "<cell>" . htmlspecialchars(date("H:i",strtotime($vessel->Time_To))) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Date) . "</cell>";
+            echo "<cell>" . htmlspecialchars(date("d M Y",strtotime($vessel->Date))) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Police_No) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Container) . "</cell>";
             echo "<cell>" . htmlspecialchars($vessel->Seal) . "</cell>";
@@ -96,21 +96,22 @@ class StuffingMonitoringController extends Controller
         $j = $param[$rowId . "_c10"]; // Gross KG
         $k = $param[$rowId . "_c11"]; // Gross MT
         $l = $param[$rowId . "_c12"]; // Gross MT
+        $m = $param[$rowId . "_c13"]; // Gross MT
 
         $vsd = VesselScheduleDtl::where('id', $rowId)->first();
         if ($vsd) {
-            $vsd->Time_From = $a;
-            $vsd->Time_To = $b;
-            $vsd->Date = $c;
-            $vsd->Police_No = $d;
-            $vsd->Container = $e;
-            $vsd->Seal = $f;
-            $vsd->Tare = $g;
-            $vsd->Netto_KG = $h;
-            $vsd->Netto_MT = $ix;
-            $vsd->Gross_KG = $j;
-            $vsd->Gross_MT = $k;
-            $vsd->Note = $l;
+            $vsd->Time_From = $b;
+            $vsd->Time_To = $c;
+            $vsd->Date = date("Y-m-d",strtotime($d));
+            $vsd->Police_No = $e;
+            $vsd->Container = $f;
+            $vsd->Seal = $g;
+            $vsd->Tare = $h;
+            $vsd->Netto_KG = $ix;
+            $vsd->Netto_MT = $j;
+            $vsd->Gross_KG = $k;
+            $vsd->Gross_MT = $l;
+            $vsd->Note = $m;
             $vsd->Updated_By = auth()->user()->username;
             $vsd->Updated_Date = date('Y-m-d H:i:s');
         }
@@ -136,20 +137,22 @@ class StuffingMonitoringController extends Controller
         $j = $param[$rowId . "_c10"]; // Gross KG
         $k = $param[$rowId . "_c11"]; // Gross MT
         $l = $param[$rowId . "_c12"]; // Gross MT
+        $m = $param[$rowId . "_c13"]; // Gross MT
 
         $vsd = new VesselScheduleDtl();
-        $vsd->Time_From = $a;
-        $vsd->Time_To = $b;
-        $vsd->Date = $c;
-        $vsd->Police_No = $d;
-        $vsd->Container = $e;
-        $vsd->Seal = $f;
-        $vsd->Tare = $g;
-        $vsd->Netto_KG = $h;
-        $vsd->Netto_MT = $ix;
-        $vsd->Gross_KG = $j;
-        $vsd->Gross_MT = $k;
-        $vsd->Note = $l;
+        $vsd->Order_No = $a;
+        $vsd->Time_From = $b;
+        $vsd->Time_To = $c;
+        $vsd->Date = date("Y-m-d",strtotime($d));
+        $vsd->Police_No = $e;
+        $vsd->Container = $f;
+        $vsd->Seal = $g;
+        $vsd->Tare = $h;
+        $vsd->Netto_KG = $ix;
+        $vsd->Netto_MT = $j;
+        $vsd->Gross_KG = $k;
+        $vsd->Gross_MT = $l;
+        $vsd->Note = $m;
         $vsd->Created_By = auth()->user()->username;
         $vsd->Created_Date = date('Y-m-d H:i:s');
 
