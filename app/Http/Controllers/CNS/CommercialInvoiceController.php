@@ -18,7 +18,7 @@ class CommercialInvoiceController extends Controller
         return view('cns.export.ci');
     }
 
-    public function indexCommercialInvoiceXml()
+    public function indexCommercialInvoiceXml(Request $request)
     {
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
@@ -35,13 +35,13 @@ class CommercialInvoiceController extends Controller
         }
 
         $nomor = 1;
-        $cis = CommercialInvoice::get();
+        $cis = CommercialInvoice::whereBetween('Inv_Date', [$request->tgl1, $request->tgl2])->get();
         foreach ($cis as $key => $value) {
             echo "<row id=\"$value->ID\">";
                 echo "<cell>$nomor</cell>";
                 echo "<cell>".htmlspecialchars($value->SI_No)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Inv_No)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Inv_Date)."</cell>";
+                echo "<cell>".htmlspecialchars(date("d F Y", strtotime($value->Inv_Date)))."</cell>";
                 echo "<cell>".htmlspecialchars($companies[$value->Consignee])."</cell>";
                 echo "<cell>".htmlspecialchars($value->Description)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Qty)."</cell>";

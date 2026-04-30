@@ -18,7 +18,7 @@ class FinalShipmentInstructionController extends Controller
         return view('cns.export.fsi');
     }
 
-    public function indexFinalShipmentInstructionXml()
+    public function indexFinalShipmentInstructionXml(Request $request)
     {
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
@@ -49,7 +49,7 @@ class FinalShipmentInstructionController extends Controller
             $vsdData[$vsd->SI_No]['gross_mt'] += $vsd->Gross_MT;
         }
 
-        $shipments = ShipmentInstruction::where('Status', "FINAL")->get();
+        $shipments = ShipmentInstruction::whereBetween("Final_SI_Date", [$request->tgl1, $request->tgl2])->where('Status', "FINAL")->get();
         foreach ($shipments as $key => $shipment) {
             echo "<row id=\"$shipment->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";

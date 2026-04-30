@@ -18,7 +18,7 @@ class PackingListController extends Controller
         return view('cns.export.pl');
     }
 
-    public function indexPackingListXml()
+    public function indexPackingListXml(Request $request)
     {
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
@@ -49,20 +49,13 @@ class PackingListController extends Controller
             $vsdData[$vsd->SI_No]['gross_mt'] += $vsd->Gross_MT;
         }
 
-        $final = [];
-
-        $fsi = ShipmentInstruction::where("Status", "FINAL")->get();
-        foreach ($fsi as $key => $value) {
-            $final[$value->SI_No] = $value->Final_SI_No;
-        }
-
-        $shipments = PackingList::where('Status', "CREATED")->get();
+        $shipments = PackingList::whereBetween('PL_Date',[$request->tgl1, $request->tgl2])->where('Status', "CREATED")->get();
         foreach ($shipments as $key => $shipment) {
             echo "<row id=\"$shipment->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
             echo "<cell>" . htmlspecialchars($shipment->Packing_List_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars($final[$shipment->SI_No]) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->PL_Date) . "</cell>";
+            echo "<cell>" . htmlspecialchars($shipment->Final_SI_No) . "</cell>";
+            echo "<cell>" . htmlspecialchars(date("d F Y", strtotime($shipment->PL_Date))) . "</cell>";
             if (isset($vsdData[$shipment->SI_No])) {
                 echo "<cell>" . htmlspecialchars(implode(', ', $vsdData[$shipment->SI_No]['list'])) . "</cell>";
                 echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['tare']) . "</cell>";
@@ -219,5 +212,22 @@ class PackingListController extends Controller
         } else {
             return response()->json(['error' => 'Shipment Instruction not found'], 404);
         }
+    }
+
+    public function detailPackingList(Request $request)
+    {
+        $counter = PackingList::where('PL_Date', "LIKE", date("Y-m") . "%")->count();
+
+        $plno = "PL-GEU/EXP-BC/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
+
+        $fsis = ShipmentInstruction::where("Status", "FINAL")->where("Final_SI_No", '!=', null)->get();
+
+        $companies = DB::table('supplier')->where("Status", "NORMAL")->where("Location", auth()->user()->Location)->get();
+
+        $masProducts = DB::table('master_product_cns')->get();
+
+        $pl = PackingList::where("ID", $request->Task)->first();
+
+        return view('cns.export.pl-detail', compact('plno','fsis', 'companies', 'masProducts', 'pl'));
     }
 }

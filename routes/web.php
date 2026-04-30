@@ -5026,6 +5026,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$vesselPref-new-submit", [VesselScheduleController::class, "newVesselScheduleSubmit"]);
     Route::get("$vesselPref-detail", [VesselScheduleController::class, "detailVesselSchedule"]);
     Route::post("$vesselPref-detail-submit", [VesselScheduleController::class, "detailVesselScheduleSubmit"]);
+    Route::get("xml-$vesselPref-detail-log", [VesselScheduleController::class, "detailLogVesselScheduleXml"]);
 
     $stuffPref = "cns-stuffing";
     Route::get("$stuffPref", [CNSStuffingController::class, "indexStuffing"]);
@@ -5038,6 +5039,7 @@ Route::group(['middleware' => 'auth'], function () {
     $stuffMonitoringPref = "cns-export-stuffing-monitoring";
     Route::get("$stuffMonitoringPref", [CNSStuffingMonitoringController::class, 'indexStuffingMonitoring']);
     Route::get("xml-$stuffMonitoringPref", [CNSStuffingMonitoringController::class, 'indexStuffingMonitoringXml']);
+    Route::post("$stuffMonitoringPref-update", [CNSStuffingMonitoringController::class, 'updateStuffingMonitoring']);
 
     Route::get('cns-master-company', [MasterCompanyController::class, 'indexMasterCompany']);
     Route::get('xml-cns-master-company', [MasterCompanyController::class, 'indexMasterCompanyXml']);
@@ -5051,6 +5053,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$siPref", [ShipmentInstructionController::class, 'indexShipmentInstructionXml']);
     Route::get("$siPref-print", [ShipmentInstructionController::class, 'printShipmentInstruction']);
     Route::get("$siPref-new", [ShipmentInstructionController::class, 'newShipmentInstruction']);
+    Route::post("$siPref-new-get-si-no", [ShipmentInstructionController::class, 'getSINo']);
     Route::post("$siPref-new-get-order", [ShipmentInstructionController::class, 'getOrderDetail']);
     Route::post("$siPref-new-submit", [ShipmentInstructionController::class, 'newShipmentInstructionSubmit']);
     Route::get("$siPref-generate-fsi", [ShipmentInstructionController::class, 'generateFinalShipmentInstruction']);
@@ -5101,6 +5104,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$cooPref", [CNSCertificateOfOriginController::class, 'indexCertificateOfOriginXml']);
     Route::get("$cooPref-print", [CNSCertificateOfOriginController::class, 'printCertificateOfOrigin']);
     Route::get("$cooPref-new", [CNSCertificateOfOriginController::class, 'newCertificateOfOrigin']);
+    Route::post("$cooPref-new-get-wbt", [CNSCertificateOfOriginController::class, 'getCertificateOfOriginWBT']);
     Route::post("$cooPref-new-submit", [CNSCertificateOfOriginController::class, 'newCertificateOfOriginSubmit']);
     Route::get("$cooPref-detail", [CNSCertificateOfOriginController::class, 'detailCertificateOfOrigin']);
     Route::post("$cooPref-detail-submit", [CNSCertificateOfOriginController::class, 'detailCertificateOfOriginSubmit']);
@@ -5127,6 +5131,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$cnsInventoryPref-index", [UCOLogisticController::class, 'trackExportedStockIndex'])->name($cnsInventoryPref . '.index');
     Route::get("$cnsInventoryPref-create", [UCOLogisticController::class, 'trackExportedStockCreatePage'])->name($cnsInventoryPref . '.create');
     Route::get("$cnsInventoryPref-data", [UCOLogisticController::class, 'trackExportedStockData'])->name($cnsInventoryPref . '.data');
+    Route::get("$cnsInventoryPref-data-json", [UCOLogisticController::class, 'trackExportedStockDataJSON'])->name($cnsInventoryPref . '.data-json');
     Route::post("$cnsInventoryPref-submit", [UCOLogisticController::class, 'submitExportedStock'])->name($cnsInventoryPref . '.submit');
     Route::post("$cnsInventoryPref-submit-edit", [UCOLogisticController::class, 'updateExportedStock'])->name($cnsInventoryPref . '.submit-edit');
     Route::delete("$cnsInventoryPref-delete", [UCOLogisticController::class, 'deleteExportedStock'])->name($cnsInventoryPref . '.delete');

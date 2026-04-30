@@ -81,7 +81,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 						<div class="col-md-4 col-12">
 							<div class="form-group">
 								<label for="SI_Date">SI Date</label>
-                                <input name="SI_Date" id="SI_Date" class="form-control shadow-sm" value="{{ date('Y-m-d') }}" required />
+                                <input type="text" name="SI_Date" id="SI_Date" class="form-control bg-white shadow-sm" value="{{ date('Y-m-d') }}" required readonly/>
 							</div>
 						</div>
 						<div class="col-12">
@@ -280,8 +280,32 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 <script>
     
 	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "SI_Date", "ETD", "ETA"]);
+	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "ETD", "ETA"]);
 	myCalendar.setDateFormat("%Y-%m-%d");
+
+    var myCalendarSIDate;
+    myCalendarSIDate = new dhtmlXCalendarObject(['SI_Date']);
+    myCalendarSIDate.setDateFormat("%Y-%m-%d");
+    myCalendarSIDate.attachEvent("onChange", function(date, state) {
+        console.log(state);
+        console.log(date);
+		if(state) {
+			date = new Date(date);
+			let year = date.getFullYear();
+			let month = date.getMonth() + 1;
+			let datenow = date.getDate();
+			date = year + "-" + String(month).padStart(2, '0') + "-" + String(datenow).padStart(2, "0");
+			$.ajax({
+				url:"cns-export-shipment-instruction-new-get-si-no",
+				type:"POST",
+				data:{_token: "{{ csrf_token() }}",date},
+				success:function(res){
+					// let data = JSON.parse(res);
+                    $('#SI_No').val(res);
+				}
+			})
+		}
+	});
 
 	// ShipmentInstructionNew = new dhtmlXGridObject('ShipmentInstructionNew');
 	// ShipmentInstructionNew.setImagePath("./dhtmlx/imgs/");
@@ -361,10 +385,6 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
             }
         });
     });
-
-	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "ETD", "ETA", "SI_Date"]);
-	myCalendar.setDateFormat("%Y-%m-%d");
 
 	$('#SubmitCustDetail').click(function() {
 

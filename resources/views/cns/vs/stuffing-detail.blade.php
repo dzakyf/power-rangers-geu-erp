@@ -41,6 +41,15 @@ $Saya =  Auth::user()->username;
 
 </div>
 
+<div class="mt-3">
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">VESSEL SCHEDULE LOG</div>
+	<div class="card">
+		<div class="card-body">
+			<div id="StuffingDetailLog" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+		</div>
+	</div>
+</div>
+
 <script>
 
 	var myCalendar;
@@ -188,5 +197,27 @@ $Saya =  Auth::user()->username;
 		} else {
 			alert("Pilih baris yang ingin dihapus!");
 		}
+	}
+
+
+	
+	StuffingDetailLog = new dhtmlXGridObject('StuffingDetailLog');
+	StuffingDetailLog.setImagePath("./dhtmlx/imgs/");
+	StuffingDetailLog.setHeader("No, Action By, Action Date, Action Status, Order (DO)/Booking Confirmation (BC),Qty,Kapal,POL,POD,Stuffing,Checking,Closing CY,ETD,ATD,ETA,ATA,Estimated Day(s), Actual Day(s), Note, Container (Seal)");
+	StuffingDetailLog.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	// StuffingDetailLog.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+	StuffingDetailLog.setInitWidths("60,100,100,200,150,100,200,150,150,100,100,100,100,100,100,100,100,100,100,800");
+	StuffingDetailLog.setColAlign("center,center,center,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
+	StuffingDetailLog.setDateFormat("%d %F %Y");
+	StuffingDetailLog.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
+	StuffingDetailLog.setColTypes("rom,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	StuffingDetailLog.enableSmartRendering(true, 150);
+	StuffingDetailLog.setSkin("dhx_skyblue");
+	StuffingDetailLog.init();
+	refreshdataDataLog();
+
+	function refreshdataDataLog() {
+		StuffingDetailLog.clearAndLoad('xml-cns-stuffing-detail-log?Task={{$_GET["task"]}}');
+
 	}
 </script>
