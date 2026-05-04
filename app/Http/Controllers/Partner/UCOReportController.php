@@ -164,7 +164,6 @@ class UCOReportController extends Controller
         return;
     }
 
-
     public function trackExportedStockIndex()
     {
         return view('cns.inventory.index');
@@ -352,7 +351,6 @@ class UCOReportController extends Controller
         return response()->json(['success' => true, 'message' => 'Record created successfully']);
     }
 
-
     public function updateExportedStock(Request $r)
     {
         DB::table('vessel_schedule_dtls')
@@ -369,7 +367,6 @@ class UCOReportController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Record updated successfully']);
     }
-
 
     public function deleteExportedStock(Request $r)
     {

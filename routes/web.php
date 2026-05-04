@@ -116,8 +116,6 @@ Route::group(['middleware' => 'auth'], function () {
         return view('dashboard.xml.sales-po');
     });
 
-
-
     Route::get('/privilege-information', function () {
         return view('privilege-information');
     });
@@ -5017,6 +5015,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$partnerDashboard-financial-insight-data", [PartnerSalesController::class, 'financialInsightDashboardData']);
     Route::get("$partnerDashboard-aftersales", [PartnerSalesController::class, 'aftersalesDashboardPage']);
     Route::get("$partnerDashboard-aftersales-data", [PartnerSalesController::class, 'aftersalesDashboardData']);
+    Route::get("$partnerDashboard-compliance", [PartnerWarehouseCorrectiveController::class, 'complianceDashboardPage']);
+    Route::get("$partnerDashboard-compliance-data", [PartnerWarehouseCorrectiveController::class, 'complianceDashboardData']);
 
 
     $vesselPref = "cns-vessel-schedule";
