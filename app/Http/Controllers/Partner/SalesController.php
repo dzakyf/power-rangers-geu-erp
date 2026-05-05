@@ -166,8 +166,11 @@ class SalesController extends Controller
     }
 
     // historical logs
-    public function tieringSalesLogsCollection()
+    public function tieringSalesLogsCollection(Request $r)
     {
+        $start = $r->start ? Carbon::parse($r->start)->startOfDay() : null;
+        $end   = $r->end   ? Carbon::parse($r->end)->endOfDay()     : null;
+
         $d = DB::table('sales_performance_ranking_logs as sprl')
             ->select(
                 'sprl.*',
@@ -176,14 +179,16 @@ class SalesController extends Controller
             )
             ->join('users as usr', 'usr.id', '=', 'sprl.User_Id')
             ->join('users_statistics as us', 'us.User_Id', '=', 'sprl.User_Id')
+            ->when($start, fn($q) => $q->where('sprl.Created_At', '>=', $start))
+            ->when($end,   fn($q) => $q->where('sprl.Created_At', '<=', $end))
             ->get();
 
         return $d;
     }
 
-    public function tieringSalesXml()
+    public function tieringSalesXml(Request $r)
     {
-        $t = $this->tieringSalesLogsCollection();
+        $t = $this->tieringSalesLogsCollection($r);
 
         $xml = new SimpleXMLElement('<rows/>');
 
@@ -1586,7 +1591,6 @@ class SalesController extends Controller
         ksort($supplies);
 
 
-
         // Flat result
         $result = collect($supplies)->mapWithKeys(function ($data, $month) {
             $expenses = $data['expenses'] ?? [];
@@ -1641,9 +1645,18 @@ class SalesController extends Controller
 
         // dd($result, $currMonth, $result[$currMonth], $wh);
 
+        $result[$currMonth] ??= [
+            'qty_out'            => 0,
+            'avg_out'            => 0,
+            'raw_material_price' => 0,
+            'direct_cost'        => 0,
+            'overhead_cost'      => 0,
+            'cogs'               => 0,
+        ];
+
         $getTotalOverHeadCost = $result[$currMonth]['overhead_cost'] ?? 0;
 
-        $income =  $result[$currMonth]['avg_out'] * $result[$currMonth]['qty_out'];
+        $income = $result[$currMonth]['avg_out'] * $result[$currMonth]['qty_out'];
         $cogs        = $result[$currMonth]['cogs'];
 
         $capitalAllocation = 0.025 * $income;
@@ -1692,7 +1705,6 @@ class SalesController extends Controller
 
     public function afterSalesDashboardData(Request $r)
     {
-
         $q = $r->query();
         $whid = $q['Task'];
 
@@ -1722,35 +1734,19 @@ class SalesController extends Controller
                 'UNKNOWN'      => 0,
             ]));
 
+        $carbonDate = $r->date_start ? Carbon::parse($r->date_start)->format('Y-m') : null;
+
         $ticket = DB::table('ticket as t')
+            ->when($carbonDate, fn($q) => $q->whereRaw('DATE_FORMAT(t.Created_Date, "%Y-%m") = ?', [$carbonDate]))
             ->selectRaw("
         SUM(CASE WHEN t.Ticket_Status = 'OPEN' THEN 1 ELSE 0 END) as open_count,
         SUM(CASE WHEN t.Ticket_Status = 'CLOSED' THEN 1 ELSE 0 END) as resolved
     ")
             ->first();
 
+        $dateFilter       = $carbonDate ? "AND DATE_FORMAT(tl_open.Action_Date, '%Y-%m') = '$carbonDate'" : '';
+
         $avgTime = DB::table('ticket_log as tl1')
-            ->selectRaw("
-    ROUND(AVG(TIMESTAMPDIFF(HOUR, tl1.Action_Date, tl2.Action_Date))) as avg_hours,
-    (
-        SELECT ROUND(AVG(TIMESTAMPDIFF(HOUR, tl_open.Action_Date, tl_closed.Action_Date)))
-        FROM ticket_log as tl_open
-        JOIN ticket_log as tl_closed
-            ON tl_open.Ticket_No = tl_closed.Ticket_No
-            AND tl_closed.Ticket_Status = 'CLOSED'
-            AND tl_closed.Action_Date != '0000-00-00 00:00:00'
-            AND tl_closed.Action_Date = (
-                SELECT MIN(Action_Date)
-                FROM ticket_log
-                WHERE Ticket_No = tl_open.Ticket_No
-                AND Ticket_Status = 'CLOSED'
-                AND Action_Date > tl_open.Action_Date
-                AND Action_Date != '0000-00-00 00:00:00'
-            )
-        WHERE tl_open.Ticket_Status = 'OPEN'
-        AND tl_open.Action_Date != '0000-00-00 00:00:00'
-    ) as avg_resolution_hours
-")
             ->join('ticket_log as tl2', function ($join) {
                 $join->on('tl1.Ticket_No', '=', 'tl2.Ticket_No')
                     ->whereRaw('tl2.Action_Date = (
@@ -1762,11 +1758,34 @@ class SalesController extends Controller
          )');
             })
             ->where('tl1.Action_Date', '!=', '0000-00-00 00:00:00')
+            ->when($carbonDate, fn($q) => $q->whereRaw('DATE_FORMAT(tl1.Action_Date, "%Y-%m") = ?', [$carbonDate]))
+            ->selectRaw("
+                ROUND(AVG(TIMESTAMPDIFF(HOUR, tl1.Action_Date, tl2.Action_Date))) as avg_hours,
+                (
+                    SELECT ROUND(AVG(TIMESTAMPDIFF(HOUR, tl_open.Action_Date, tl_closed.Action_Date)))
+                    FROM ticket_log as tl_open
+                    JOIN ticket_log as tl_closed
+                        ON tl_open.Ticket_No = tl_closed.Ticket_No
+                        AND tl_closed.Ticket_Status = 'CLOSED'
+                        AND tl_closed.Action_Date != '0000-00-00 00:00:00'
+                        AND tl_closed.Action_Date = (
+                            SELECT MIN(Action_Date)
+                            FROM ticket_log
+                            WHERE Ticket_No = tl_open.Ticket_No
+                            AND Ticket_Status = 'CLOSED'
+                            AND Action_Date > tl_open.Action_Date
+                            AND Action_Date != '0000-00-00 00:00:00'
+                        )
+                    WHERE tl_open.Ticket_Status = 'OPEN'
+                    AND tl_open.Action_Date != '0000-00-00 00:00:00'
+                    $dateFilter
+                ) as avg_resolution_hours
+            ")
             ->first();
 
-        // dd($avgTime);
 
         $supportRequestCount = DB::table('ticket as t')
+            ->when($carbonDate, fn($q) => $q->whereRaw('DATE_FORMAT(t.Created_Date, "%Y-%m") = ?', [$carbonDate]))
             ->selectRaw("
         SUM(CASE WHEN t.Ticket_Category = 'ERP'         THEN 1 ELSE 0 END) as erp_count,
         SUM(CASE WHEN t.Ticket_Category = 'Operational' THEN 1 ELSE 0 END) as operational_count,
@@ -1788,11 +1807,11 @@ class SalesController extends Controller
                 'low' => 0
             ],
             'support_request_count' => [
-                'operational' => $supportRequestCount->operational_count,
-                'other' => $supportRequestCount->other_count,
-                'erp' => $supportRequestCount->erp_count,
-                'financial' => $supportRequestCount->financial_count,
-                'partnership' => $supportRequestCount->partnership_count,
+                'operational' => $supportRequestCount->operational_count ?? 0,
+                'other' => $supportRequestCount->other_count ?? 0,
+                'erp' => $supportRequestCount->erp_count ?? 0,
+                'financial' => $supportRequestCount->financial_count ?? 0,
+                'partnership' => $supportRequestCount->partnership_count ?? 0,
             ],
             'contract_monitoring' => [
                 'active' => $contractMonitoring['ACTIVE'],
@@ -1800,10 +1819,10 @@ class SalesController extends Controller
                 'expired' => $contractMonitoring['EXPIRED']
             ],
             'support_performance' => [
-                'open_ticket' => $ticket->open_count,
-                'resolved' => $ticket->resolved,
-                'mttr' => $avgTime->avg_hours, // avg time to respond
-                'mttf' => $avgTime->avg_resolution_hours, // avg time to fix
+                'open_ticket' => $ticket->open_count ?? 0,
+                'resolved' => $ticket->resolved ?? 0,
+                'mttr' => $avgTime->avg_hours ?? 0, // avg time to respond
+                'mttf' => $avgTime->avg_resolution_hours ?? 0, // avg time to fix
             ],
             'net_profit' => [
                 [

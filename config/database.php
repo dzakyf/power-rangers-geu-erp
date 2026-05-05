@@ -52,7 +52,7 @@ return [
             'password' => env('DB_PASSWORD', 'Pgn3Zee'),
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => 'utf8',
-            'collation' => 'utf8_unicode_ci',
+            'collation' => 'utf8mb4_general_ci',
             'prefix' => '',
             'prefix_indexes' => true,
             'strict' => false,

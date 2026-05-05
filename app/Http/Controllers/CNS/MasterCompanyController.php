@@ -91,7 +91,7 @@ class MasterCompanyController extends Controller
         $ax = substr($ax,0,-1);
         $isi = substr($isi,0,-1);
         $cekakun = DB::table('supplier')->where('Location', $LSP)->orderBy('ID','desc')->count();
-        $Supplier_ID = $LSP."-SUP-".sprintf("%04d", $cekakun+1);
+        $Supplier_ID = "GEU-COMP-".($arr['Is_Consignee'] ? '2' : '1').sprintf("%04d", $cekakun+1);
 
         if ($request->LetterHead != 'undefined') {
             $file = $request->LetterHead;
