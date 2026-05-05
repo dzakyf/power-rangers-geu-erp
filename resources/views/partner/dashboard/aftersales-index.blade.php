@@ -13,7 +13,7 @@
     </div>
     <div class="col-auto">
         <label for="start" class="d-block mb-1">Pilih Periode</label>
-        <input type="month" id="start" name="start_date" class="form-control">
+        <input type="month" id="start" name="start_date" class="form-control" value="{{ date('Y-m') }}">
     </div>
     <div class="col-auto">
         <button type="button" class="btn btn-primary" onclick="getDashboardData()">Filter</button>
@@ -268,10 +268,10 @@
 
     function getDashboardData() {
         $.ajax({
-            url: 'partner-dashboard-aftersales-data?Task=GEU/HQO/0001&date_start=2026-03-01',
+            url: 'partner-dashboard-aftersales-data?Task=GEU/HQO/0001',
             method: 'GET',
             data: {
-                start_date: $('#start').val(),
+                date_start: `${$('#start').val()}-01`,
                 end_date: $('#end').val()
             },
             success: function(response) {

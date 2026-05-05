@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 		foreach($sobjf as $objf){
 			$idobj = $objf->Field;
 			$isinya = $fetch->$idobj;
-			if ($idobj != 'Logo' && $idobj != 'Logo_Inverse' && $idobj != 'LetterHead' && $idobj != 'Footer'){
+			if ($idobj != 'Logo' && $idobj != 'Logo_Inverse' && $idobj != 'LetterHead' && $idobj != 'Footer' && $idobj != 'Stamps' && $idobj != 'Is_Consignee' && $idobj != 'Created_By' && $idobject != 'Created_Date') {
 				echo "$('#$idobj').val('$isinya'); \n";
 			}
 			
@@ -26,161 +26,280 @@ use Illuminate\Database\Eloquent\Builder;
 	echo "</script>";
 
 ?>
-<div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">DETAIL SUPPLIER</div>
-<div id="ContentPages">
-	<table cellpadding="0" cellspacing="0" width="100%" align="center" style="padding-top:10;" border="0">
-		<tr>
-		<td align="center">
-			<table cellpadding="0" cellspacing="0" width="100%" border="0" style="border-left: outset #cdcdcd;border-top: outset #cdcdcd; border-bottom: inset #cdcdcd; border-right: inset #cdcdcd;">
-			<tr height="30">
-				<td class="badan" width="150">Supplier Name</td>
-				<td class="badan" width="30">:</td>
-				<td class="badan_kiri" width='250'>
-				            	<input type="hidden" size="30" id="ID" style="border:none;outline:none;" />
-
-						<input type="text" size="30" id="Company_Name" style="border:none;outline:none;" />
-
-				</td>
-				<td class="badan" width="100">Contact Person</td>
-				<td class="badan" width="30">:</td>
-				<td class="badan_kiri" width='250'>
-						<input type="text" size="30" id="Contact_Person" style="border:none;outline:none;" />
-				</td>
-			</tr>
-			<tr height="30">
-				<td class="badan">Address</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'>
-						<input type="text"  size="40" id="Address" style="border:none;outline:none;" />
-				</td>
-				<td class="badan">Street</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'>
-							<input type="text" size="40" id="Street"  tabindex='7' style="border:none;outline:none;" />
-				</td>
-			</tr>
-			<tr height="30">
-				<td class="badan">City </td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="15" id="City" tabindex='2' style="border:none;outline:none;" /></td>        
-				<td class="badan">Phone </td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="Phone" tabindex='8' style="border:none;outline:none;" /></td>        
-			</tr>
-			<tr height="30">
-				<td class="badan">Fax</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="Fax" style="border:none;outline:none;" /></td>        
-				<td class="badan">HP</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="HP" style="border:none;outline:none;" /></td>        
-			</tr>
-			<tr height="30">
-				<td class="badan">Email</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="30" id="Email" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">NPWP</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="30" id="NPWP" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Sales Name</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="30" id="Sales_Name" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">Sales No</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="Sales_Phone" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Payment Method</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="50" id="Payment" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">Note</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="50" id="Note" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Bank Name (Rp)</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="40" id="Bank_Rupiah" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">Bank Account (Rp)</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="Bank_Rupiah_Account" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Bank Account Name (Rp)</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="30" id="Bank_Rupiah_Name" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">Bank Foreign</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="40" id="Bank_Foreign" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Bank Foreign Account</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="20" id="Bank_Foreign_Account" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">Bank Foreign Name</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="30" id="Bank_Foreign_Name" style="border:none;outline:none;"/></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Bank Foreign Currency</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="text" size="5" value="" id="Bank_Foreign_Currency" style="border:none;outline:none;" /></td>        
-
-				<td class="badan">Upload Header</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="file" id="LetterHead" style="border:none;outline:none;" /></td>        
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Footer</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'>
-					<input type="file" id="Footer" style="border:none;outline:none;" />
-				</td>        
-
-				<td class="badan">Logo</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="file" id="Logo" style="border:none;outline:none;" /></td>  
-
-			</tr>
-			<tr height="30">
-				<td class="badan">Logo Inverse</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="file" id="Logo_Inverse" style="border:none;outline:none;" /></td>     
-
-				<td class="badan">Stamps</td>
-				<td class="badan">:</td>
-				<td class="badan_kiri" width='250'><input type="file" id="Stamps" style="border:none;outline:none;" /></td>              
-
-			</tr>
-			<tr height="30">
-				<td class="badan"></td>
-				<td class="badan"></td>
-				<td class="badan_kiri" width='250'>	
-					<input type="button" id="UpdateData" NAME="UpdateData" onclick="Submitkan()" value="Submit Data" />                
-				</td>               
-
-			</tr>
-
-			</table>
-		</td>
-		</tr>
-	</table>
+<div class="mt-3">
+	<div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">NEW COMPANY</div>
+	<div class="card">
+		<div class="card-body pt-2">
+			Please fill in the form below to create a new company.
+			<div id="ContentPages">
+				<table cellpadding="0" cellspacing="0" width="100%" align="center" style="padding-top:10;" border="0">
+					<tr>
+					<td align="center">
+						<table cellpadding="0" cellspacing="0" width="100%" border="0" style="border-left: outset #cdcdcd;border-top: outset #cdcdcd; border-bottom: inset #cdcdcd; border-right: inset #cdcdcd;">
+						<tr height="30">
+							<td class="badan" width="150">
+								<label for="Company_Name">
+									Company Name
+								</label>
+							</td>
+							<td class="badan" width="10">:</td>
+							<td class="badan_kiri" width='250'>
+								<input type="hidden" size="30" id="ID" style="border:none;outline:none;" />
+								<input type="text" size="30" id="Company_Name" style="border:1px solid lightgrey;border-radius:10px;outline:none;" />
+			
+							</td>
+							<td class="badan" width="100">
+								<label for="Contact_Person">
+									Contact Person
+								</label>
+							</td>
+							<td class="badan" width="10">:</td>
+							<td class="badan_kiri" width='250'>
+								<input type="text" size="30" id="Contact_Person" style="border:1px solid lightgrey;border-radius:10px;outline:none;" />
+							</td>
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Address">
+									Address
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'>
+								<input type="text"  size="40" id="Address" style="border:1px solid lightgrey;border-radius:10px;outline:none;" />
+							</td>
+							<td class="badan">
+								<label for="Street">
+									Street
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'>
+								<input type="text" size="40" id="Street"  tabindex='7' style="border:1px solid lightgrey;border-radius:10px;outline:none;" />
+							</td>
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="City">
+									City
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="15" id="City" tabindex='2' style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+							<td class="badan">
+								<label for="Phone">
+									Phone
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="20" id="Phone" tabindex='8' style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Fax">
+									Fax
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="20" id="Fax" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+							<td class="badan">
+								<label for="HP">
+									HP
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="20" id="HP" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Email">
+									Email
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="30" id="Email" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+							<td class="badan">
+								<label for="NPWP">
+									NPWP
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="30" id="NPWP" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Sales_Name">
+									Sales Name
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="30" id="Sales_Name" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+							<td class="badan">
+								<label for="Sales_Phone">
+									Sales No
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="20" id="Sales_Phone" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Payment">
+									Payment Method
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="50" id="Payment" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+							<td class="badan">
+								<label for="Note">
+									Note
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="50" id="Note" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Bank_Rupiah">
+									Bank Name (Rp)
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="40" id="Bank_Rupiah" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+							<td class="badan">
+								<label for="Bank_Rupiah_Account">
+									Bank Account (Rp)
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="20" id="Bank_Rupiah_Account" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Bank_Rupiah_Name">
+									Bank Account Name (Rp)
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="30" id="Bank_Rupiah_Name" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+							<td class="badan">
+								<label for="Bank_Foreign">
+									Bank Foreign
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="40" id="Bank_Foreign" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Bank_Foreign_Account">
+									Bank Foreign Account
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="20" id="Bank_Foreign_Account" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+							<td class="badan">
+								<label for="Bank_Foreign_Name">
+									Bank Foreign Name
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="30" id="Bank_Foreign_Name" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Bank_Foreign_Currency">
+									Bank Foreign Currency
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="text" size="5" value="" id="Bank_Foreign_Currency" style="border:1px solid lightgrey;border-radius:10px;outline:none;" /></td>   
+			
+							<td class="badan">
+								<label for="LetterHead">
+									Upload Header
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="file" id="LetterHead" style="border:none;outline:none;" /></td>   
+			
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Footer">
+									Footer
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'>
+								<input type="file" id="Footer" style="border:none;outline:none;" />
+							</td>   
+			
+							<td class="badan">
+								<label for="Logo">
+									Logo
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="file" id="Logo" style="border:none;outline:none;" /></td>  
+			
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Logo_Inverse">
+									Logo Inverse
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="file" id="Logo_Inverse" style="border:none;outline:none;" /></td>
+			
+							<td class="badan">
+								<label for="Stamps">
+									Stamps
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="file" id="Stamps" style="border:none;outline:none;" /></td>    
+			
+						</tr>
+						<tr height="30">
+							<td class="badan">
+								<label for="Is_Consignee">
+									Is Consignee
+								</label>
+							</td>
+							<td class="badan">:</td>
+							<td class="badan_kiri" width='250'><input type="checkbox" id="Is_Consignee" style="border:1px solid lightgrey;border-radius:10px;outline:none;" {{ $company->Is_Consignee ? 'checked' : '' }} /></td>
+			
+							<td class="badan"></td>
+							<td class="badan"></td>
+							<td class="badan_kiri" width='250'>	
+								<input type="button" class="btn btn-success my-2 mr-2 p-2" id="UpdateData" NAME="UpdateData" onclick="Submitkan()" value="Submit Data" /> 
+							</td>
+			
+						</tr>
+			
+						</table>
+					</td>
+					</tr>
+				</table>
+			</div>
+		</div>
+	</div>
 </div>
+
 
 <script>
 
@@ -251,11 +370,11 @@ function Submitkan(){
 		success: function(data, textStatus, jqXHR)
 		{
 			if (data == 'success'){
-				alert('Detail Supplier Updated!');
+				alert('Detail Company Updated!');
 
 				setTimeout(function(){
 						
-					$("#PRSupplierDet").html('');
+					$("#PRCompanyDet").html('');
 					
 					refreshdata();
 				},1000);				
