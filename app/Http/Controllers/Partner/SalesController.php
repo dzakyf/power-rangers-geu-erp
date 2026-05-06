@@ -1539,6 +1539,24 @@ class SalesController extends Controller
 
         $defaultMonth = ['qty' => 0, 'avg' => 0, 'qty_out' => 0, 'avg_out' => 0, 'expenses' => []];
 
+        $wh = DB::table('warehouse_partner as wp')->select('wp.warehouse_task_id', 'wp.warehouse_type')->where('wp.warehouse_task_id', '=', $r->Task)->first();
+        $type = null;
+
+        if ($wh->warehouse_type == "booth") {
+            $type = "BOOTH";
+        }
+
+        if ($wh->warehouse_type == "mobil") {
+            $type = "CAR";
+        }
+
+        $config = DB::table('config_system')
+            ->whereIn('Constraint', ["TOTAL_HUB_INVESTATION_$type", 'CAPITAL_ALLOC_MULTIPLIER'])
+            ->pluck('Value', 'Constraint');
+
+        $totalInvestationConfig   = $config["TOTAL_HUB_INVESTATION_$type"] ?? 0;
+        $capitalAllocMultiplier   = $config['CAPITAL_ALLOC_MULTIPLIER']    ?? 0.025;
+
         // Stock IN
         WarehousePartnerSupplies::where("warehouse_task_id", $r->Task)
             ->whereBetween('received_date', [$startOfMonth, $endOfMonth])
@@ -1592,7 +1610,7 @@ class SalesController extends Controller
 
 
         // Flat result
-        $result = collect($supplies)->mapWithKeys(function ($data, $month) {
+        $result = collect($supplies)->mapWithKeys(function ($data, $month) use ($totalInvestationConfig, $capitalAllocMultiplier) {
             $expenses = $data['expenses'] ?? [];
 
             // Direct cost — filter by Bensin, Parkir
@@ -1616,6 +1634,7 @@ class SalesController extends Controller
                 'Biaya Cadangan',
             ];
 
+
             $overhead_cost = array_sum(
                 array_column(
                     array_filter($expenses, fn($e) => in_array($e['item'], $overheadCostItems)),
@@ -1629,6 +1648,22 @@ class SalesController extends Controller
             // COGS — direct_cost + raw_material_price
             $cogs = $direct_cost + $raw_material_price;
 
+
+            $empCoa = ['Gaji'];
+            $employeeSalary = array_sum(array_column(array_filter($expenses, fn($e) => in_array($e['item'], $empCoa)), 'nominal'));
+
+            $rentalCoa = ['Biaya Sewa'];
+            $rentalCost = array_sum(array_column(array_filter($expenses, fn($e) => in_array($e['item'], $rentalCoa)), 'nominal'));
+
+
+            $opex = $direct_cost + $overhead_cost + $employeeSalary + $rentalCost;
+
+            $totalInvestation = $totalInvestationConfig;
+            $income = $data['qty_out'] * $data['avg_out'];
+            $capitalAllocation = $income * $capitalAllocMultiplier;
+            $netProfit =  $income - $cogs - $overhead_cost - $capitalAllocation;
+            $ebitda = $netProfit - $opex;
+
             return [
                 $month => [
                     'qty_out'            => $data['qty_out']       ?? 0,
@@ -1637,43 +1672,62 @@ class SalesController extends Controller
                     'direct_cost'        => $direct_cost,
                     'overhead_cost'      => $overhead_cost,
                     'cogs'               => $cogs,
+                    'employee_salary'    => $employeeSalary,
+                    'rental_cost'        => $rentalCost,
+                    'opex'               => $opex,
+                    'total_investation'  => $totalInvestation,
+                    'ebitda' => $ebitda,
+                    'net_profit' => $netProfit,
+                    'total_roi' => ($ebitda / $totalInvestation) * 100,
+                    'qty_in' => $data['qty'] ?? 0,
                 ]
             ];
         });
 
 
-
         // dd($result, $currMonth, $result[$currMonth], $wh);
 
         $result[$currMonth] ??= [
+            'qty_in'            => 0,
             'qty_out'            => 0,
             'avg_out'            => 0,
             'raw_material_price' => 0,
             'direct_cost'        => 0,
             'overhead_cost'      => 0,
             'cogs'               => 0,
+            'employee_salary'    => 0,
+            'rental_cost'        => 0,
+            'opex'               => 0,
+            'total_investation'  => 0,
+            'ebitda'             => 0,
+            'net_profit'         => 0,
+            'total_roi'         => 0
         ];
 
-        $getTotalOverHeadCost = $result[$currMonth]['overhead_cost'] ?? 0;
+        $row = $result[$currMonth];
 
-        $income = $result[$currMonth]['avg_out'] * $result[$currMonth]['qty_out'];
-        $cogs        = $result[$currMonth]['cogs'];
-
-        $capitalAllocation = 0.025 * $income;
-        $netProfit = $income - $cogs - $getTotalOverHeadCost - $capitalAllocation;
-        $nominalRoyalty = 0.6 * $netProfit;
+        $income         = $row['net_profit'] + $row['cogs'] + ($row['net_profit'] * $capitalAllocMultiplier);
+        $nominalRoyalty = 0.6 * $row['net_profit'];
+        $revenue           = $row['raw_material_price'] + $row['direct_cost'];
 
         return [
-            'income' => $income,
-            'total_overhead_cost' => $getTotalOverHeadCost,
-            'net_profit' => $netProfit,
-            'nominal_royalty' => $nominalRoyalty,
-            'raw_material_price' => $result[$currMonth]['raw_material_price'],
-            'direct_cost'        => $result[$currMonth]['direct_cost'],
-            'overhead_cost'      => $result[$currMonth]['overhead_cost'],
-            'cogs'               => $result[$currMonth]['cogs'],
-            'gross_margin' => $result[$currMonth]['cogs'] - $income
-
+            'qty_in'                => $row['qty_in'],
+            'total_investation'     => $row['total_investation'],
+            'total_transaction'     => 0,
+            'opex'                  => $row['opex'],
+            'income'                => $income,
+            'total_overhead_cost'   => $row['overhead_cost'],
+            'net_profit'            => $row['net_profit'],
+            'nominal_royalty'       => $nominalRoyalty,
+            'raw_material_price'    => $row['raw_material_price'],
+            'direct_cost'           => $row['direct_cost'],
+            'overhead_cost'         => $row['overhead_cost'],
+            'cogs'                  => $row['cogs'],
+            'ebitda'                => $row['ebitda'],
+            'gross_margin'          => $row['cogs'] - $income,
+            'percent_profit_margin' => $income > 0 ? round(($row['net_profit'] / $income) * 100, 2) : 0,
+            'revenue'               => $revenue,
+            'total_roi'             => $row['total_roi']
         ];
     }
 
@@ -1864,15 +1918,17 @@ class SalesController extends Controller
         $q = $r->query();
         $b = $r->all();
 
+        $calculatedWh = $this->calculateWarehouse($r);
 
         $data = [
-            'total_profit_sharing' => 0,
-            'total_revenue' => 0,
-            'total_operational_cost' => 0,
-            'total_qty' => 0,
-            'total_investation' => 0,
-            'total_roi' => 0,
+            'total_profit_sharing' => $calculatedWh['nominal_royalty'],
+            'total_revenue' => $calculatedWh['revenue'],
+            'total_operational_cost' => $calculatedWh['opex'],
+            'total_qty' => $calculatedWh['qty_in'],
+            'total_investation' => $calculatedWh['total_investation'],
+            'total_roi' => $calculatedWh['total_roi'], // percent
             'margin_profit' => 0, //percentage
+            'uco_transaction' => 0, //in kg
             'projection_against_bep' => [
                 [
                     'month' => 'January',
