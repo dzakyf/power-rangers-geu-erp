@@ -155,6 +155,12 @@
         ProjectionGrid.setSkin("dhx_skyblue");
         ProjectionGrid.init();
         ProjectionGrid.clearAndLoad(`cns-quality-data`);
+        ProjectionGrid.attachEvent('onRowDblClicked', function(rId, cInd) {
+            console.log(rId, cInd);
+            if (cInd == 18) {
+                window.open(ProjectionGrid.cells(rId, cInd).getValue(), '_blank');
+            }
+        })
     }
 
 

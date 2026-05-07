@@ -22,9 +22,9 @@
             <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <div>
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
-
                 <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
                 <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
+                <input type="button" id="generateVoucherRAB" name="generateVoucherRAB" class="btn btn-info mt-2 mr-2" value="Generate RAB" onclick="downloadVoucherRAB()" />
             </div>
         </div>
     </div>
@@ -135,9 +135,48 @@
     }
 
     function selectMitra(id, cellIdx) {
-        transferApplicationId = Grid1.cells(id, 0).getValue();
+        transferApplicationId = Grid1.getRowAttribute(id, 'ID');
+
+        console.log(transferApplicationId)
 
         $('#transfer_application_id').val(transferApplicationId)
+    }
+
+    function downloadVoucherRAB() {
+        if (!transferApplicationId) {
+            alert('Pilih data promosi terlebih dahulu.');
+            return;
+        }
+
+        fetch(`partner-branding-promotion-generate-rab?marketing_id=${transferApplicationId}`, {
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('Gagal mengunduh dokumen.');
+                const disposition = res.headers.get('Content-Disposition') || '';
+                const match = disposition.match(/filename="?([^";\n]+)"?/);
+                const filename = match ? match[1] : 'voucher-rab.pdf';
+                return res.blob().then(blob => ({
+                    blob,
+                    filename
+                }));
+            })
+            .then(({
+                blob,
+                filename
+            }) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            })
+            .catch(err => alert(err.message));
     }
 
     function doubleClickMitra() {

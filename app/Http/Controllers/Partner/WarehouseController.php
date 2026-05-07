@@ -308,4 +308,21 @@ class WarehouseController extends Controller
         }
         echo "</rows>";
     }
+
+
+    public function getWarehouses(Request $r)
+    {
+        $data = DB::table('warehouse_partner as wp')
+            ->leftJoin('opportunity_partner as op', 'wp.partner_task_id', '=', 'op.lead_id')
+            ->leftJoin('users as u', 'u.id', '=', 'op.user_row_id')
+            ->select('wp.id',  'wp.warehouse_task_id', 'wp.warehouse_location', 'wp.warehouse_status', 'wp.Created_Date')
+            ->when($r->partner_id,        fn($q) => $q->where('op.lead_id',            $r->partner_id))
+            ->when($r->wh_loc,            fn($q) => $q->where('wp.warehouse_location', $r->wh_loc))
+            ->when($r->wh_type,           fn($q) => $q->where('wp.warehouse_type',     $r->wh_type))
+            ->when($r->wh_id, fn($q) => $q->where('wp.warehouse_task_id',  $r->wh_id))
+            ->orderBy('wp.id', 'desc')
+            ->get();
+
+        return response()->json(['status' => 'success', 'data' => $data]);
+    }
 }

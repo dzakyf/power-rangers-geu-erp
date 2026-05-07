@@ -64,7 +64,7 @@ class WeightBridgeTicketController extends Controller
             return redirect()->back()->with('error', 'Data not found');
         }
         if ($wbt->Shipper == null) {
-            $wbt->Shipper = 'SUP10139';
+            $wbt->Shipper = 'SUP10001';
         }
         $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         foreach ($company as $key => $value) {

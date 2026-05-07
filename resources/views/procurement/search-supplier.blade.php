@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 if (strlen(trim($_GET['chars'])) < 4) exit;
 
 $arr=array();
-$result = DB::select(DB::raw("SELECT * FROM supplier WHERE (LOWER(Company_Name) LIKE LOWER('%".$_GET['chars']."%') 
+$result = DB::select(DB::raw("SELECT * FROM supplier WHERE Location = '$LSP' AND (LOWER(Company_Name) LIKE LOWER('%".$_GET['chars']."%') 
 OR LOWER(Company_Name) LIKE ('%".$_GET['chars']."%') 
 ) 
 ORDER BY Company_Name ASC LIMIT 20"));

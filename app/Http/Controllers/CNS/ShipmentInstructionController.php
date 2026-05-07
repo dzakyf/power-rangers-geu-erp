@@ -30,6 +30,7 @@ class ShipmentInstructionController extends Controller
         echo "<rows>";
 
         $vsds = VesselScheduleDtl::whereNotNull('SI_No')->get();
+        $vsdData = [];
         foreach ($vsds as $key => $vsd) {
             if (!isset($vsdData[$vsd->SI_No])) {
                 $vsdData[$vsd->SI_No] = [
@@ -93,6 +94,8 @@ class ShipmentInstructionController extends Controller
         $vss = VesselSchedule::get();
         $masProducts = DB::table('master_product_cns')->get();
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        $companiesConsignee = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        $companiesVendor = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         return view('cns.export.si-new', compact('vss', 'companies', 'masProducts'));
     }
 
@@ -192,16 +195,17 @@ class ShipmentInstructionController extends Controller
         ]);
 
         foreach ($containers as $key => $value) {
+            // $values = VesselScheduleDtl::where("ID", $value)->first();
             VesselScheduleDtl::where("ID", $value)->update([
                 'SI_No' => $request->SI_No
             ]);
-            $value = json_decode(json_encode($value), true);
-            $value['Last_ID'] = $value['id'];
-            unset($value['id']);
-            $value['Action_By'] = auth()->user()->username;
-            $value['Action_Date'] = now();
-            $value['Action_Status'] = "CREATE SI (Detail)";
-            VesselScheduleDtlLog::create($value);
+            // $values = json_decode(json_encode($values), true);
+            // $values['Last_ID'] = $values['ID'];
+            // unset($values['ID']);
+            // $values['Action_By'] = auth()->user()->username;
+            // $values['Action_Date'] = now();
+            // $values['Action_Status'] = "CREATE SI (Detail)";
+            // VesselScheduleDtlLog::create($values);
         }
 
         return response()->json(['success' => true, 'message' => 'Shipment Instruction submitted successfully']);

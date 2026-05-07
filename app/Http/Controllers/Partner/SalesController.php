@@ -1910,14 +1910,11 @@ class SalesController extends Controller
 
     public function financialInsightDashboardPage()
     {
-        return view('partner.financial-insight-dashboard');
+        return view('partner.dashboard.financial-insight-dashboard');
     }
 
     public function financialInsightDashboardData(Request $r)
     {
-        $q = $r->query();
-        $b = $r->all();
-
         $calculatedWh = $this->calculateWarehouse($r);
 
         $data = [
