@@ -197,6 +197,20 @@
             @endif
           </tr>
         </table>
+        <div>
+          <table>
+            <tr>
+              <td>
+                <!-- Footer -->
+                <div class="footer-fixed" style="margin-left:-1.3cm;margin-bottom:0;">
+                    @if ($companies[$wbt->Shipper]->Footer != '')
+                        <img src="{{$companies[$wbt->Shipper]->Footer}}" alt="Footer" style="width: 100%">
+                    @endif
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
     </div>
   @endfor
 </body>

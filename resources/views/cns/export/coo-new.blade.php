@@ -204,21 +204,23 @@ $Saya = Auth::user()->username;
                 WBT_No: $('#WBT_No').find('option:selected').val()
             },
             success: function(response) {
-                Object.keys(response).forEach(function(key) {
-                    if (key != 'orderDetails' && key != 'WBT_No') {
-                        $('#' + key).val(response[key]);
-                    }
-                });
-                $('#containerBody').html('');
-                let counter = 1;
-                let string = "";
-                response.forEach(function(container, index) {
-                    $('#containerBody').append('<tr>' +
-                        '<td><input type="text" name="containers[]" class="form-control form-control-sm" value="'+container.Container+'" /></td>' +
-                        '<td><input type="text" name="seals[]" class="form-control form-control-sm" value="'+container.Seal+'" /></td>' +
-                        '<td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">X</button></td>' +
-                    '</tr>');
-                });
+                if (response.status != 'error') {
+                    Object.keys(response.data.wbt).forEach(function(key) {
+                        if (key != 'orderDetails' && key != 'WBT_No') {
+                            $('#' + key).val(response[key]);
+                        }
+                    });
+                    $('#containerBody').html('');
+                    let counter = 1;
+                    let string = "";
+                    response.data.details.forEach(function(container, index) {
+                        $('#containerBody').append('<tr>' +
+                            '<td><input type="text" name="containers[]" class="form-control form-control-sm" value="'+container.Container+'" /></td>' +
+                            '<td><input type="text" name="seals[]" class="form-control form-control-sm" value="'+container.Seal+'" /></td>' +
+                            '<td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">X</button></td>' +
+                        '</tr>');
+                    });
+                }
                 $.unblockUI();
             },
             error:function() {

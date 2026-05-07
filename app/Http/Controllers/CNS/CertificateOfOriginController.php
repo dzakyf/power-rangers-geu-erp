@@ -135,6 +135,16 @@ class CertificateOfOriginController extends Controller
 
         $json = WeightBridgeTicketDtl::where("WBT_No", $request->WBT_No)->join('vessel_schedule_dtls', 'weight_bridge_ticket_dtl.VSD_ID', '=', 'vessel_schedule_dtls.id')->select('weight_bridge_ticket_dtl.*', 'vessel_schedule_dtls.Container as Container', 'vessel_schedule_dtls.Seal as Seal')->get();
 
+        $json = [
+            'status' => 'success',
+            'message' => 'success',
+            'data' => [
+                'wbt' => $wbt,
+                'details' => $json
+            ]
+        ];
+
+
         return response()->json($json);
     }
 

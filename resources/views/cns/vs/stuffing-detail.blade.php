@@ -210,14 +210,14 @@ $Saya =  Auth::user()->username;
 	StuffingDetailLog.setColAlign("center,center,center,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
 	StuffingDetailLog.setDateFormat("%d %F %Y");
 	StuffingDetailLog.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	StuffingDetailLog.setColTypes("rom,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	StuffingDetailLog.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	StuffingDetailLog.enableSmartRendering(true, 150);
 	StuffingDetailLog.setSkin("dhx_skyblue");
 	StuffingDetailLog.init();
 	refreshdataDataLog();
 
 	function refreshdataDataLog() {
-		StuffingDetailLog.clearAndLoad('xml-cns-stuffing-detail-log?Task={{$_GET["task"]}}');
+		StuffingDetailLog.clearAndLoad('xml-cns-vessel-schedule-detail-log?task={{$_GET["task"]}}');
 
 	}
 </script>

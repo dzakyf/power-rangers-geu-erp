@@ -270,7 +270,7 @@
                 </div>
             </div>
             <div class="title-right">
-              <div class="title-heading">SHIPPING INSTRUCTION</div>
+              <div class="title-heading">{{ $shipment->Status == "FINAL" && $shipment->Final_SI_No != null ? 'FINAL ' : '' }}SHIPPING INSTRUCTION</div>
               <div class="meta-row">
                 <div class="meta-cell">
                   <div class="meta-label">Process Owner :</div>
@@ -341,8 +341,8 @@
               <!-- SI fields -->
               <table class="field-table">
                 <tr>
-                  <td class="flbl">SI No.</td>
-                  <td class="fval">{{ $shipment->SI_No }}</td>
+                  <td class="flbl">{{ $shipment->Status == "FINAL" && $shipment->Final_SI_No != null ? 'Final ' : '' }}SI No.</td>
+                  <td class="fval">{{ $shipment->Status == "FINAL" && $shipment->Final_SI_No != null ? $shipment->Final_SI_No : $shipment->SI_No }}</td>
                 </tr>
                 <tr>
                   <td class="flbl">Date</td>

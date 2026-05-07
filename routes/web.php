@@ -27,7 +27,10 @@ use App\Http\Controllers\CNS\WeightBridgeTicketController as CNSWeightBridgeTick
 use App\Http\Controllers\CNS\CertificateOfOriginController as CNSCertificateOfOriginController;
 use App\Http\Controllers\CNS\DeliveryNoteController as CNSDeliveryNoteController;
 use App\Http\Controllers\CNS\SustainabilityDeclarationController as CNSSustainabilityDeclarationController;
+use App\Http\Controllers\CNS\SalesOrderController as CNSSalesOrderController;
+use App\Http\Controllers\CNS\PurchaseRequestController as CNSPurchaseRequestController;
 use App\Http\Controllers\CNS\QualityController;
+use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOReportController as UCOLogisticController;
 use App\Http\Controllers\Partner\TrainingController as PartnerTrainingController;
@@ -4520,6 +4523,7 @@ Route::group(['middleware' => 'auth'], function () {
 
     /** Warehouse */
     $warehousePref = 'partner-warehouse';
+    Route::get("$warehousePref-data", [PartnerWarehouseController::class, 'getWarehouses']);
     Route::get("$warehousePref-list", [PartnerWarehouseController::class, 'indexWarehouseList']);
     Route::get("$warehousePref-list-nonaktifkan", [PartnerWarehouseController::class, 'nonActiveWarehouseList']);
     Route::get("xml-$warehousePref-list", [PartnerWarehouseController::class, 'indexWarehouseListXml']);
@@ -4929,6 +4933,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$marketingPrefs-promotion-index", [MarketingController::class, 'indexPromotion']);
     Route::get("$marketingPrefs-marketing-data", [MarketingController::class, 'selectMarketingData']);
     Route::get("$marketingPrefs-promotion-data", [MarketingController::class, 'getPromotionData']);
+    Route::get("$marketingPrefs-promotion-generate-rab", [MarketingController::class, 'generateVoucherRAB']);
     Route::get("$marketingPrefs-marketing-create", [MarketingController::class, 'createMarketingData']);
     Route::post("$marketingPrefs-marketing-submit", [MarketingController::class, 'submitMarketing']);
     Route::put("$marketingPrefs-marketing-update", [MarketingController::class, 'updateMarketingData']);
@@ -5079,6 +5084,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$packingListPref-detail", [CNSPackingListController::class, 'detailPackingList']);
     Route::post("$packingListPref-detail-submit", [CNSPackingListController::class, 'detailPackingListSubmit']);
 
+
+
     $commercialInvoicePref = "cns-export-commercial-invoice";
     Route::get("$commercialInvoicePref", [CNSCommercialInvoiceController::class, 'indexCommercialInvoice']);
     Route::get("xml-$commercialInvoicePref", [CNSCommercialInvoiceController::class, 'indexCommercialInvoiceXml']);
@@ -5143,4 +5150,26 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$cnsQualityPref-submit", [QualityController::class, 'insertQualityControl'])->name($cnsQualityPref . '.submit');
     Route::post("$cnsQualityPref-submit-edit", [QualityController::class, 'editQualityControl'])->name($cnsQualityPref . '.submit-edit');
     Route::delete("$cnsQualityPref-delete", [QualityController::class, 'deleteQualityControl'])->name($cnsQualityPref . '.delete');
+
+    $salesOrderCNSPref = "cns-sales-order";
+    Route::get("$salesOrderCNSPref", [CNSSalesOrderController::class, 'indexSalesOrder']);
+    Route::get("xml-$salesOrderCNSPref", [CNSSalesOrderController::class, 'indexSalesOrderXml']);
+    Route::get("$salesOrderCNSPref-new", [CNSSalesOrderController::class, 'newSalesOrder']);
+    Route::post("$salesOrderCNSPref-new-submit", [CNSSalesOrderController::class, 'newSalesOrderSubmit']);
+    Route::get("$salesOrderCNSPref-detail", [CNSSalesOrderController::class, 'detailSalesOrder']);
+    Route::post("$salesOrderCNSPref-detail-submit", [CNSSalesOrderController::class, 'detailSalesOrderSubmit']);
+
+    $procPref = "cns-procurement";
+    $prPref = "$procPref-purchase-request";
+    Route::get("$prPref", [CNSPurchaseRequestController::class, 'indexPurchaseRequest']);
+    Route::get("xml-$prPref", [CNSPurchaseRequestController::class, 'indexPurchaseRequestXml']);
+    Route::get("$prPref-new", [CNSPurchaseRequestController::class, 'newPurchaseRequest']);
+    Route::post("$prPref-new-submit", [CNSPurchaseRequestController::class, 'newPurchaseRequestSubmit']);
+    Route::post("$prPref-new-update", [CNSPurchaseRequestController::class, 'newPurchaseRequestUpdate']);
+    Route::get("$prPref-detail", [CNSPurchaseRequestController::class, 'detailPurchaseRequest']);
+    Route::get("xml-$prPref-detail", [CNSPurchaseRequestController::class, 'detailPurchaseRequestXml']);
+
+    $exportAnnexPref = "cns-export-annex";
+    Route::get("$exportAnnexPref-index", [CNSAnnexVIIController::class, 'indexAnnex']);
+    Route::get("$exportAnnexPref-data", [CNSAnnexVIIController::class, 'getAnnexData']);
 });
