@@ -9,12 +9,12 @@ use Illuminate\Support\Facades\DB;
 
 class PurchaseOrderController extends Controller
 {
-    public function indexPurchaseRequest()
+    public function indexPurchaseOrder()
     {
-        return view('cns.procurement.purchase-request');
+        return view('cns.procurement.purchase-order');
     }
 
-    public function indexPurchaseRequestXml()
+    public function indexPurchaseOrderXml()
     {
 	
         if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
@@ -29,61 +29,42 @@ class PurchaseOrderController extends Controller
         $LSP = Auth::user()->Location;
         $getnik = Auth::user()->Emp_ID;
         $dept = Auth::user()->Department;
-
-        $getlevelsx = DB::table("organization_structure")->where("NIK",$getnik)->first();
-        $lepel = 1;
-
-        if ($getlevelsx) {
-            if ($getlevelsx->Level1 == 1) $lepel = 1;
-            else if ($getlevelsx->Level2 == 1) $lepel = 2;
-            else if ($getlevelsx->Level3 == 1) $lepel = 3;
-            else if ($getlevelsx->Level4 == 1) $lepel = 4;
-            else if ($getlevelsx->Level5 == 1) $lepel = 5;
-            else if ($getlevelsx->Level6 == 1) $lepel = 6;
-            else if ($getlevelsx->Level7 == 1) $lepel = 7;
-            else if ($getlevelsx->Level8 == 1) $lepel = 8;
-        }
-
-
-        $kueri = DB::table("purchase_order_cns")->orderBy("ID","DESC")->get();
-
         echo "<rows>";
-        if ($lepel == 3){
-            if ($dept == 'FIN'){
-                $kueri = DB::table("purchase_order_cns")->where("Status",'APPROVAL_FINANCE')->orderBy("ID","DESC")->get();
-            }else{
-                $kueri = DB::table("purchase_order_cns")->where("Approval_Department",$dept)->where("Status","APPROVAL_UPPER")->orderBy("ID","DESC")->get();
 
-            }
-        }elseif($lepel == 2){
-            $kueri = DB::table("purchase_order_cns")->where("Status",'APPROVAL_VP')->orderBy("ID","DESC")->get();
-
-        }elseif($lepel == 4){
-            if ($dept == 'GEA'){
-                $kueri = DB::table("purchase_order_cns")->where("Status",'APPROVAL_GA')->orderBy("ID","DESC")->get();
-
-            }
-        }
-
+        $kueri = DB::table('purcahse_order_cns')->where("Status", "CLOSED")->get();
         $nomor = 1;
-        $warnanya = "";
-        foreach($kueri as $Fetch){
 
-                echo "<row id=\"$Fetch->ID\">";
-                        echo "<cell $warnanya>$nomor</cell>";
-                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->PR_No))."</cell>";
-                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->PR_Date))."</cell>";
-                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Supplier))."</cell>"; 
-                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Payment_Term))."</cell>"; 
-                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Supplies_Type))."</cell>";
-                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Status))."</cell>";
-                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Note))."</cell>";
-                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Created_Date))."</cell>";
-                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Created_By))."</cell>";
-                    echo "</row>";	
+            foreach($kueri as $Fetch){
+                $Row_Usr = DB::table("users")->where("username",$Fetch->User_Trx)->first();
+                $namasup = DB::table("supplier")->where("Supplier_ID",$Fetch->Supplier)->first();
 
+            
+                $datadesc = "";
+                $sql_detail = DB::table("purchase_order_dtl")->where("PR_No",$Fetch->PR_No)->get();
+                foreach($sql_detail as $row_detail){
+                    $datadesc .= $row_detail->Product_Desc . " ($row_detail->Qty $row_detail->Unit),";
+                }
+                
+                $datadesc = rtrim($datadesc,",");
+            
+                echo "<row id=\"$Fetch->PO_No\">";
+                    echo "<cell>$nomor</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->PO_No))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->PR_No))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->PO_No_KSPS))."</cell>";
+                    echo "<cell>".htmlspecialchars(($namasup->Company_Name))."</cell>";
+                    echo "<cell>".htmlspecialchars(((date("d-m-Y H:i", strtotime($Fetch->Date_Trx)))))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Purchase_Category))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Purchase_Sub_Category))."</cell>"; 
+                    echo "<cell>".htmlspecialchars(($Fetch->Purchase_Type))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Row_Usr->Name))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Row_Usr->Department))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Status))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Created_By))."</cell>";
+                    echo "<cell>".htmlspecialchars(($datadesc))."</cell>";
+                echo "</row>";
                 $nomor++;
-        }
+            }
 
         echo "</rows>";
     }

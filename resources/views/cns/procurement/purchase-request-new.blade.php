@@ -237,7 +237,6 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 				<textarea id="Note" cols="100" rows="5" required>- Price include PPN and delivery cost to PT PEL
 - Payment 50% before delivery and 50% 14 days after delivery (valid on working days)
 - The product be received in PT PEL not later than April 25, 2026</textarea>
-
 			</div>
 			<div id="gridPRNewDetail" style="width:auto;height:200px; background-color:white;overflow:hidden"></div>
 			<div id="divtom">
@@ -250,6 +249,9 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 
 		</div>
 	</div>
+
+</div>
+<div id="PRSupplierDet"></div>
 
 
 	<script>
@@ -468,8 +470,5 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 		}
 	</script>
 
-
-</div>
-<div id="PRSupplierDet"></div>
 
 @endsection

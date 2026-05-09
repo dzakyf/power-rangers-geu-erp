@@ -14,7 +14,7 @@ class PurchaseRequestController extends Controller
         return view('cns.procurement.purchase-request');
     }
 
-    public function indexPurchaseRequestXml()
+    public function indexPurchaseRequestXml(Request $request)
     {
 	
         if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
@@ -45,7 +45,7 @@ class PurchaseRequestController extends Controller
         }
 
 
-        $kueri = DB::table("purchase_request_cns")->orderBy("ID","DESC")->get();
+        $kueri = DB::table("purchase_request_cns")->whereBetween('PR_Date', [$request->tgl1, $request->tgl2])->orderBy("ID","DESC")->get();
 
         echo "<rows>";
         if ($lepel == 3){
@@ -86,6 +86,20 @@ class PurchaseRequestController extends Controller
         }
 
         echo "</rows>";
+    }
+
+    public function newsPurchaseRequest()
+    {
+        $LSP = Auth::user()->Location;
+        $Saya =  Auth::user()->username;
+        $NIK =  Auth::user()->Emp_ID;
+
+        $dpt =  Auth::user()->Department;
+        $date = date('Y');
+        $count = DB::table('purchase_request_cns')->where("PR_Date", "LIKE", $date . "%")->where("Location", $LSP)->count() + 1;
+        $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
+
+        return view('cns.procurement.purchase-request-news', compact('PR_No', 'NIK', 'Saya'));
     }
 
     public function newPurchaseRequest()
@@ -281,5 +295,177 @@ class PurchaseRequestController extends Controller
         }
 
         echo "</rows>";
+    }
+
+    public function detailPurchaseRequestApprove(Request $request)
+    {
+        $cek = DB::table('purchase_request_cns')->where('PR_No', $request->PR_No)->first();
+        if (!$cek) {
+            echo "error";
+            return;
+        }
+
+        DB::table('purchase_request_cns')->where('PR_No', $request->PR_No)->update([
+            'Status' => 'APPROVED',
+            'Approval_Date' => now(),
+            'Approval_User' => auth()->user()->username,
+        ]);
+
+        DB::table('purchase_log')->insert([
+            'Location' => Auth::user()->Location,
+            'Task_ID' => $request->PR_No,
+            'Category' => '',
+            'Sub_Category' => '',
+            'Purchase_Type' => $request->Supplies_Type,
+            'Transaction' => 'PURCHASE-REQUEST',
+            'Status' => 'APPROVED',
+            'Remark' => $request->Note,
+            'Date_Trx' => now(),
+            'User_Trx' => Auth::user()->username,
+        ]);
+
+        echo "success";
+    }
+
+    public function detailPurchaseRequestReject(Request $request)
+    {
+        $cek = DB::table('purchase_request_cns')->where('PR_No', $request->PR_No)->first();
+        if (!$cek) {
+            echo "error";
+            return;
+        }
+
+        DB::table('purchase_request_cns')->where('PR_No', $request->PR_No)->update([
+            'Status' => 'REJECTED',
+            'Approval_Date' => now(),
+            'Approval_User' => auth()->user()->username,
+        ]);
+
+        DB::table('purchase_log')->insert([
+            'Location' => Auth::user()->Location,
+            'Task_ID' => $request->PR_No,
+            'Category' => '',
+            'Sub_Category' => '',
+            'Purchase_Type' => $request->Supplies_Type,
+            'Transaction' => 'PURCHASE-REQUEST',
+            'Status' => 'REJECTED',
+            'Remark' => $request->Note,
+            'Date_Trx' => now(),
+            'User_Trx' => Auth::user()->username,
+        ]);
+        
+        echo "success";
+    }
+
+    public function outstandingPurchaseRequest()
+    {
+        return view('cns.procurement.purchase-request-outstanding');
+    }
+
+    public function outstandingPurchaseRequestXml()
+    {
+        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml"); } else {
+            header("Content-type: text/xml");
+        }
+        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+
+        $LSP = Auth::user()->Location;
+        $PRApproval = Auth::user()->PR_Approval;
+        $Saya = Auth::user()->username;
+
+        echo "<rows>";
+        $kueri = DB::select(DB::raw("SELECT * FROM purchase_request_cns WHERE PO_Status IN ('NORMAL','PARTIAL') AND Status = 'APPROVED' ORDER BY ID ASC"));
+        $nomor = 1;
+        $warnanya = "";
+
+        foreach($kueri as $Fetch){
+
+                echo "<row id=\"$Fetch->ID\">";
+                        echo "<cell $warnanya>$nomor</cell>";
+                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->PR_No))."</cell>";
+                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->PR_Date))."</cell>";
+                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Supplier))."</cell>"; 
+                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Payment_Term))."</cell>"; 
+                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Supplies_Type))."</cell>";
+                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Status))."</cell>";
+                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Note))."</cell>";
+                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Created_Date))."</cell>";
+                        echo "<cell $warnanya>".htmlspecialchars(($Fetch->Created_By))."</cell>";
+                    echo "</row>";	
+
+                $nomor++;
+        }
+
+        echo "</rows>";
+    }
+
+    Public function outstandingPurchaseRequestDetail(Request $request)
+    {
+        return view('cns.procurement.purchase-request-outstanding-detail');
+    }
+
+    public function outstandingPurchaseRequestDetailXml(Request $request)
+    {
+        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml"); } else {
+            header("Content-type: text/xml");
+        }
+        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+
+        $LSP = Auth::user()->Location;
+        $PRApproval = Auth::user()->PR_Approval;
+        $Saya = Auth::user()->username;
+        
+        $po = DB::table('purchase_order_cns')->where("PR_No", $_GET['ID'])->get();
+        foreach ($po as $key => $value) {
+            $getPOCounter = DB::table('purchase_order_cns_dtl')->where("PO_No", $value->PO_No)->get();
+            foreach ($getPOCounter as $kunci => $item) {
+                $qtyPO[$value->Product_Desc] = ($qtyPO[$value->Product_Desc] ?? 0) + $item->Qty;
+            }
+        }
+
+        echo "<rows>";
+        $kueri = DB::select(DB::raw("SELECT * FROM purchase_request_cns_dtl WHERE PR_No='$_GET[ID]' ORDER BY ID ASC"));
+
+        $nomor = 1;
+        $warnanya = "";
+
+        foreach($kueri as $Fetch){
+
+            echo "<row id=\"$Fetch->ID\">";
+                    echo "<cell $warnanya>$nomor</cell>";
+                    echo "<cell $warnanya>".htmlspecialchars(($Fetch->Purchase_Type))."</cell>";
+                    echo "<cell $warnanya>".htmlspecialchars(($Fetch->Product_Desc))."</cell>";
+                    echo "<cell $warnanya>".htmlspecialchars(($Fetch->Product_Desc))."</cell>"; 
+                    echo "<cell $warnanya>".htmlspecialchars(($Fetch->Qty))."</cell>"; 
+                    echo "<cell $warnanya>".htmlspecialchars((0))."</cell>"; 
+                    echo "<cell $warnanya>".htmlspecialchars(($qtyPO[$Fetch->Product_Desc] ?? 0))."</cell>"; 
+                    echo "<cell $warnanya>".htmlspecialchars($Fetch->Qty - ($qtyPO[$Fetch->Product_Desc] ?? 0))."</cell>"; 
+                    echo "<cell $warnanya>".htmlspecialchars(($Fetch->Specification))."</cell>";
+                    echo "<cell $warnanya>".htmlspecialchars(($Fetch->Unit))."</cell>";
+                    echo "<cell $warnanya>".htmlspecialchars(($Fetch->Remark))."</cell>";
+                    echo "<cell $warnanya>".htmlspecialchars(($Fetch->Category))."</cell>";
+                    echo "<cell $warnanya>".htmlspecialchars(($Fetch->Purchase_Category))."</cell>";
+                    echo "<cell $warnanya>".htmlspecialchars(($Fetch->Default_Price))."</cell>";
+                    echo "<cell $warnanya>".htmlspecialchars((0))."</cell>";
+                echo "</row>";	
+
+                $nomor++;
+        }
+
+        echo "</rows>";
+    }
+
+    public function outstandingPurchaseRequestDetailSubmit()
+    {
+        //
+    }
+
+    public function outstandingPurchaseRequestDetailUpdate()
+    {
+        //
     }
 }
