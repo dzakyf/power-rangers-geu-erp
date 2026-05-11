@@ -1540,15 +1540,17 @@ class SalesController extends Controller
         $defaultMonth = ['qty' => 0, 'avg' => 0, 'qty_out' => 0, 'avg_out' => 0, 'expenses' => []];
 
         $wh = DB::table('warehouse_partner as wp')->select('wp.warehouse_task_id', 'wp.warehouse_type')->where('wp.warehouse_task_id', '=', $r->Task)->first();
-        $type = null;
+        $type = "BOOTH";
+        if ($wh) {
+            if ($wh->warehouse_type == "booth") {
+                $type = "BOOTH";
+            }
 
-        if ($wh->warehouse_type == "booth") {
-            $type = "BOOTH";
+            if ($wh->warehouse_type == "mobil") {
+                $type = "CAR";
+            }
         }
 
-        if ($wh->warehouse_type == "mobil") {
-            $type = "CAR";
-        }
 
         $config = DB::table('config_system')
             ->whereIn('Constraint', ["TOTAL_HUB_INVESTATION_$type", 'CAPITAL_ALLOC_MULTIPLIER'])
@@ -1688,7 +1690,7 @@ class SalesController extends Controller
         // dd($result, $currMonth, $result[$currMonth], $wh);
 
         $result[$currMonth] ??= [
-            'qty_in'            => 0,
+            'qty_in'             => 0,
             'qty_out'            => 0,
             'avg_out'            => 0,
             'raw_material_price' => 0,
@@ -1698,17 +1700,63 @@ class SalesController extends Controller
             'employee_salary'    => 0,
             'rental_cost'        => 0,
             'opex'               => 0,
-            'total_investation'  => 0,
+            'total_investation'  => $totalInvestationConfig,
             'ebitda'             => 0,
             'net_profit'         => 0,
-            'total_roi'         => 0
+            'total_roi'          => 0,
         ];
 
         $row = $result[$currMonth];
 
         $income         = $row['net_profit'] + $row['cogs'] + ($row['net_profit'] * $capitalAllocMultiplier);
         $nominalRoyalty = 0.6 * $row['net_profit'];
-        $revenue           = $row['raw_material_price'] + $row['direct_cost'];
+        $revenue        = $row['raw_material_price'] + $row['direct_cost'];
+
+        // Projection from projections table — same year/month logic for both descriptions.
+        // Year count is derived from the earliest Created_At for this warehouse,
+        // so Year 1 = months 1-12, Year 2 = months 13-24, etc.
+        $cursor = Carbon::parse($startOfMonth);
+
+        $projectionRoyaltyHigh  = 0;
+        $projectionRoyaltyLow   = 0;
+        $projectionNetProfitHigh = 0;
+        $projectionNetProfitLow  = 0;
+
+        $firstCreatedAt = DB::table('projections')
+            ->where('warehouse_task_id', $r->Task)
+            ->whereIn('Description', ['Bagi Hasil Mitra', 'Net Profit'])
+            ->min('Created_At');
+
+        if ($firstCreatedAt) {
+            $origin     = Carbon::parse($firstCreatedAt)->startOfMonth();
+            $monthIndex = $origin->diffInMonths($cursor) + 1;
+
+            if ($monthIndex >= 1) {
+                $yearCount = (int) floor(($monthIndex - 1) / 12) + 1;
+                $colIndex  = (($monthIndex - 1) % 12) + 1;
+                $col       = "Month_{$colIndex}_Total";
+
+                $allProjRows = DB::table('projections')
+                    ->where('warehouse_task_id', $r->Task)
+                    ->whereIn('Description', ['Bagi Hasil Mitra', 'Net Margin'])
+                    ->where('Year', $yearCount)
+                    ->whereIn('Projection_Type', ['high', 'low'])
+                    ->get();
+
+                foreach ($allProjRows as $projRow) {
+                    $type = strtolower($projRow->Projection_Type);
+                    $val  = $projRow->$col ?? 0;
+
+                    if ($projRow->Description === 'Bagi Hasil Mitra') {
+                        if ($type === 'high') $projectionRoyaltyHigh  = $val;
+                        if ($type === 'low')  $projectionRoyaltyLow   = $val;
+                    } elseif ($projRow->Description === 'Net Margin') {
+                        if ($type === 'high') $projectionNetProfitHigh = $val;
+                        if ($type === 'low')  $projectionNetProfitLow  = $val;
+                    }
+                }
+            }
+        }
 
         return [
             'qty_in'                => $row['qty_in'],
@@ -1727,7 +1775,11 @@ class SalesController extends Controller
             'gross_margin'          => $row['cogs'] - $income,
             'percent_profit_margin' => $income > 0 ? round(($row['net_profit'] / $income) * 100, 2) : 0,
             'revenue'               => $revenue,
-            'total_roi'             => $row['total_roi']
+            'total_roi'             => $row['total_roi'],
+            'projection_net_profit_high' => $projectionNetProfitHigh,
+            'projection_net_profit_low'  => $projectionNetProfitLow,
+            'projection_royalty_high'    => $projectionRoyaltyHigh,
+            'projection_royalty_low'     => $projectionRoyaltyLow,
         ];
     }
 
@@ -1915,37 +1967,90 @@ class SalesController extends Controller
 
     public function financialInsightDashboardData(Request $r)
     {
-        $calculatedWh = $this->calculateWarehouse($r);
+        $start = Carbon::parse($r->date_start ?? now())->startOfMonth();
+        $end   = Carbon::parse($r->date_end   ?? now())->startOfMonth();
+
+        // Accumulated totals across all months
+        $res = [
+            'qty_in'              => 0,
+            'total_investation'   => 0,
+            'total_transaction'   => 0,
+            'opex'                => 0,
+            'income'              => 0,
+            'total_overhead_cost' => 0,
+            'net_profit'          => 0,
+            'nominal_royalty'     => 0,
+            'raw_material_price'  => 0,
+            'direct_cost'         => 0,
+            'overhead_cost'       => 0,
+            'cogs'                => 0,
+            'ebitda'              => 0,
+            'gross_margin'        => 0,
+            'revenue'             => 0,
+            'total_roi'           => 0,
+            'net_profit_high' => 0,
+            'net_profit_low' => 0
+        ];
+        $meta = [];
+
+        $projectionVsBEP = []; //projection vs realisation bep 
+        $projectionVsRoyalty = []; //projection vs realisation royalty/profit sharing 
+
+        $cursor = $start->copy();
+        while ($cursor <= $end) {
+            $monthRequest = $r;
+            $monthRequest->merge([
+                'date_start' => $cursor->format('Y-m-01'),
+                'date_end'   => $cursor->format('Y-m-t'),
+            ]);
+
+            $monthly = $this->calculateWarehouse($monthRequest);
+
+            foreach ($res as $key => $_) {
+                $res[$key] += $monthly[$key] ?? 0;
+            }
+
+            $res['total_investation'] = $monthly['total_investation'];
+
+            $projectionVsBEP[] = [
+                'month'          => $cursor->format('Y-m'),
+                'total_investation' => $monthly['total_investation'],
+                'projection_net_margin_high' => $monthly['projection_net_profit_high'],
+                'projection_net_margin_low' => $monthly['projection_net_profit_low'],
+                'net_margin' => $monthly['income']
+            ];
+            // $meta = [
+            //     'month' => $cursor->format('Y-m')
+            // ];
+
+            $projectionVsRoyalty[] = [
+                'month'          => $cursor->format('Y-m'),
+                'projection_net_profit_high' => $monthly['projection_royalty_high'],
+                'projection_net_profit_low' => $monthly['projection_royalty_low'],
+                'profit_sharing' => $monthly['nominal_royalty'],
+            ];
+
+            $cursor->addMonth();
+        }
 
         $data = [
-            'total_profit_sharing' => $calculatedWh['nominal_royalty'],
-            'total_revenue' => $calculatedWh['revenue'],
-            'total_operational_cost' => $calculatedWh['opex'],
-            'total_qty' => $calculatedWh['qty_in'],
-            'total_investation' => $calculatedWh['total_investation'],
-            'total_roi' => $calculatedWh['total_roi'], // percent
-            'margin_profit' => 0, //percentage
-            'uco_transaction' => 0, //in kg
-            'projection_against_bep' => [
-                [
-                    'month' => 'January',
-                    'projection' => 0,
-                    'bep' => 0
-                ]
-            ],
-            'projection_against_profit_sharing' => [
-                [
-                    'month' => 'January',
-                    'projection' => 0,
-                    'profit_sharing' => 0
-                ]
-            ]
+            'total_profit_sharing'   => $res['nominal_royalty'],
+            'total_revenue'          => $res['revenue'],
+            'total_operational_cost' => $res['opex'],
+            'total_qty'              => $res['qty_in'],
+            'total_investation'      => $res['total_investation'],
+            'total_roi'              => $res['total_roi'],
+            'margin_profit'          => 0,
+            'uco_transaction'        => 0,
+            'projection_against_bep' => $projectionVsBEP,
+            'projection_against_profit_sharing' =>  $projectionVsRoyalty,
         ];
 
         return response()->json([
             'status'  => 'success',
             'message' => 'Financial dashboard',
-            'data' => $data
+            'meta' => $meta,
+            'data'    => $data,
         ]);
     }
 }

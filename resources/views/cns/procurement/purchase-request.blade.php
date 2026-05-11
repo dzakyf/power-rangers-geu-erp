@@ -26,11 +26,21 @@
 		 <div class="badan">
 			 <input type="button" name="openPurchaseRequest" id="openPurchaseRequest" class="btn btn-primary mt-2 mr-2" value="Create New" onclick="PurchaseManagementNew()" />
 			 <input type="button" name="detailPurchaseRequest" id="detailPurchaseRequest" class="btn btn-info mt-2 mr-2" value="Open Detail" onclick="PurchaseManagementDoubleClick()" />
+			 <input type="button" name="detailPurchaseRequest" id="detailPurchaseRequest" class="btn btn-info mt-2 mr-2" value="Print PR" onclick="PurchaseManagementPrint()" />
 			 <input type="button" name="ExportProduct" id="ExportProduct" class="btn btn-warning mt-2 mr-2" value="Excel" onclick="PurchaseManagement.toExcel('./export/generate.php');" />
 		</div>
 	</div>
 	<div id="PurchaseManagementDiv"></div>
 	<script>
+	function PurchaseManagementPrint() {
+		PurchaseManagementMID = PurchaseManagement.getSelectedId();
+		if (PurchaseManagementMID != null) {
+			window.open('cns-procurement-purchase-request-print?PR_No=' + PurchaseManagement.cells(PurchaseManagementMID, 1).getValue(), '_blank');
+		}else {
+			alert("Pilih baris data");
+		}
+		
+	}
 		function PurchaseManagementDoubleClick() {
 
 			PurchaseManagementMID = PurchaseManagement.getSelectedId();

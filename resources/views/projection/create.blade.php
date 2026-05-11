@@ -31,12 +31,17 @@
                 <option value="">-- Pilih Mitra--</option>
             </select>
         </div>
-        <!-- <div id="SelectWarehouse" class="form-group">
-            <label for="Warehouse">Gudang <span style="color: red;">*</span></label>
-            <select name="Warehouse" id="Warehouse" class="form-control" required>
-                <option value="">-- Pilih Gudang--</option>
-            </select>
-        </div> -->
+
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="BEP_At">Bulan BEP <span style="color: red;">*</span></label>
+                <input type="number" class="form-control" min="1" max="12" id="BEP_At" name="BEP_At" required>
+            </div>
+            <div class="form-group col-md-6">
+                <label for="BEP_Projection">Besaran BEP <span style="color: red;">*</span></label>
+                <input type="number" class="form-control" min="0" id="BEP_Projection" name="BEP_Projection" required>
+            </div>
+        </div>
 
         <div class="form-group">
             <label for="File_Documents">Upload Proyeksi</label>
@@ -44,7 +49,6 @@
             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="File_Document" />
         </div>
     </div>
-
 </div>
 
 <script>

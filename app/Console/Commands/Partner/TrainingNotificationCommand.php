@@ -66,7 +66,7 @@ class TrainingNotificationCommand extends Command
             ]);
         }
 
-        $cekTraining = Training::where('training_from_date', date('Y-m-d', strtotime('-3 days')))
+        $cekTraining = Training::where('training_date_from', date('Y-m-d', strtotime('-3 days')))
             ->get();
         foreach ($cekTraining as $key => $value) {
             $this->notificationService->makeNotification(
@@ -78,7 +78,7 @@ class TrainingNotificationCommand extends Command
             );
         }
 
-        $cekTraining = Training::where('training_from_date', date('Y-m-d', strtotime('-1 day')))
+        $cekTraining = Training::where('training_date_from', date('Y-m-d', strtotime('-1 day')))
             ->get();
         foreach ($cekTraining as $key => $value) {
             $this->notificationService->makeNotification(

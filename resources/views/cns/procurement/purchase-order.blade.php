@@ -17,6 +17,11 @@
 
 <!-- Stats Card -->
 <div class="row">
+    <div class="mb-2">
+        Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
+        s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
+        <button onclick="refreshdata()" class="btn btn-primary p-2">Refresh</button>
+    </div>
     <div id="POMgt" style="width:auto;height:350px; background-color:white;overflow:hidden"></div>
     <input type="button" id="poExport" NAME="poExport" value="Export" class="btn btn-warning mt-2 mr-2" onclick="POMgt.toExcel('./export/generate.php');" />
 
@@ -29,7 +34,7 @@
         POID = POMgt.cells(POMgtMID, 1).getValue();
 
         POMgtMID = POMgt.getSelectedId();
-        LoadM('POMgtDiv', 'purchasing-order-approved-detail?ID=' + POID);
+        LoadM('POMgtDiv', 'cns-procurement-purchase-order-detail?ID=' + POID);
 
     }
     POMgt = new dhtmlXGridObject('POMgt');
@@ -46,6 +51,9 @@
     POMgt.attachEvent("onRowDblClicked", POMgtDoubleClick);
     POMgt.setSkin("dhx_skyblue");
     POMgt.init();
-    POMgt.loadXML("xml-purchasing-order-approved");
+    refreshdata();
+    function refreshdata() {
+        POMgt.clearAndLoad("xml-cns-procurement-purchase-order?tgl1=" + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
+    }
 </script>
 @endsection

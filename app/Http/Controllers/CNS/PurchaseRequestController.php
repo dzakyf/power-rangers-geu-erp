@@ -88,6 +88,11 @@ class PurchaseRequestController extends Controller
         echo "</rows>";
     }
 
+    public function printPurchaseRequest()
+    {
+        return view('cns.procurement.print.purchase-request');
+    }
+
     public function newsPurchaseRequest()
     {
         $LSP = Auth::user()->Location;
@@ -418,13 +423,10 @@ class PurchaseRequestController extends Controller
         $LSP = Auth::user()->Location;
         $PRApproval = Auth::user()->PR_Approval;
         $Saya = Auth::user()->username;
-        
-        $po = DB::table('purchase_order_cns')->where("PR_No", $_GET['ID'])->get();
-        foreach ($po as $key => $value) {
-            $getPOCounter = DB::table('purchase_order_cns_dtl')->where("PO_No", $value->PO_No)->get();
-            foreach ($getPOCounter as $kunci => $item) {
-                $qtyPO[$value->Product_Desc] = ($qtyPO[$value->Product_Desc] ?? 0) + $item->Qty;
-            }
+
+        $getPOCounter = DB::table('purchase_order_cns_dtl')->where("PR_No", $request->ID)->get();
+        foreach ($getPOCounter as $kunci => $item) {
+            $qtyPO[$item->Product_Desc] = ($qtyPO[$item->Product_Desc] ?? 0) + $item->Qty;
         }
 
         echo "<rows>";
@@ -459,13 +461,270 @@ class PurchaseRequestController extends Controller
         echo "</rows>";
     }
 
-    public function outstandingPurchaseRequestDetailSubmit()
+    public function outstandingPurchaseRequestDetailSubmit(Request $request)
     {
-        //
+        $cek = DB::table('purchase_request_cns')->where('PR_No', $request->PR_No)->first();
+        if (!$cek) {
+            echo "error";
+            return;
+        }
+        
+        $psid = DB::table('purchase_summary_cns')->insertGetId([
+            'Task_ID' => $request->PS_No,
+            'PR_No' => $request->PR_No,
+            'Purchase_Category' => $cek->Category,
+            'Purchase_Sub_Category' => $cek->Sub_Category,
+            'Purchase_Type' => $cek->Supplies_Type,
+            'Purchase_Date' => now(),
+            'Status' => "CLOSED",
+            'V1_ID' => $request->Supplier,
+            'V1_Cur' => "IDR",
+            'V1_Fee_Mgt' => $request->Other,
+            'V1_VAT' => $request->Tax,
+            'V1_Fee_VAT' => 0,
+            'V1_PPH' => 0,
+            'V1_DC' => $request->Shipping,
+            'V1_Discount' => 0,
+            'V1_Note' => $request->Note,
+            'V1_Total' => $request->Total,
+            'Created_Date' => now(),
+            'Created_By' => auth()->user()->username,
+            'Location' => auth()->user()->Location,
+            'Note' => date('Y-m-d H:i:s') . ' : User ' . auth()->user()->username . ' => ' . $request->Note,
+            'Priority' => $cek->Priority_Status,
+        ]);
+
+        $countPO = DB::table('purchase_order_cns')->where("PO_Date", 'LIKE', date('Y',strtotime($request->PO_Date)). '%')->count() + 1;
+        $pono = "PO-EXP/" . sprintf("%03d", $countPO) . '/' . date('Y');
+
+        DB::table('purchase_order_cns')->insertGetId([
+            'Task_ID' => $request->PS_No,
+            'Term_Payment' => $request->Payment_Term,
+            'Pay_Term' => $request->Payment_Term,
+            'Location' => auth()->user()->Location,
+            'Process_By' => auth()->user()->Emp_ID,
+            'Purchase_Type' => $cek->Supplies_Type,
+            'Purchase_Category' => $cek->Category,
+            'Purchase_Sub_Category' => $cek->Sub_Category,
+            'PR_No' => $cek->PR_No,
+            'PO_No' => $pono,
+            'Subject_Payment' => "",
+            'PO_No_KSPS' => $pono,
+            'PO_Date' => $request->PO_Date,
+            'PO_Method' => 'POSTPAID',
+            'PO_Dest' => NULL,
+            'Department' => '',
+            'Supplier' => $cek->Supplier,
+            'Subtotal' => $request->Subtotal,
+            'Discount' => 0,
+            'PPN' => $request->Tax,
+            'PPH' => 0,
+            'Delivery_Fee' => $request->Shipping,
+            'Management_Fee' => $request->Other,
+            'Management_Fee_Exclude_PPN' => 0,
+            'Total' => $request->Total,
+            'Total_Paid' => 0,
+            'Status' => 'CLOSED',
+            'Remark' => $request->Note,
+            'Date_Trx' => now(),
+            'User_Trx' => auth()->user()->username,
+            'Status_Receive' => 'WAITING',
+        ]);
+
+        $getAllSummary = DB::table('purchase_summary_cns_detail')->where('Task_ID', $request->PS_No)->get();
+        foreach ($getAllSummary as $key => $value) {
+            DB::table('purchase_order_cns_dtl')->insertGetId([
+                'Location' => auth()->user()->Location,
+                'PR_No' => $cek->PR_No,
+                'PO_No' => $pono,
+                'Category' => $value->Purchase_Category,
+                'Sub_Category' => $value->Purchase_Sub_Category,
+                'Purchase_Type' => $value->Purchase_Type,
+                'Product_Code' => $value->Product_Code,
+                'Barcode' => $value->Product_Code,
+                'Product_Desc' => $value->Product_Desc,
+                'Specification' => $value->Specification,
+                'Brand' => null,
+                'Product_Type' => $value->Purchase_Type,
+                'Qty' => $value->Proposed,
+                'Unit' => $value->Unit_Name,
+                'Price' => $value->V1_Propose,
+                'Discount' => 0,
+                'Subtotal' => $value->V1_TOP,
+                'PPN' => 0,
+                'PPN_pct' => 0,
+                'Total' => $value->V1_TOP,
+                'Remark' => '',
+            ]);
+        }
+
+
+        DB::table('purchase_log')->insert([
+            'Location' => Auth::user()->Location,
+            'Task_ID' => $request->PR_No,
+            'Category' => '',
+            'Sub_Category' => '',
+            'Purchase_Type' => $request->Supplies_Type,
+            'Transaction' => 'PURCHASE-REQUEST',
+            'Status' => 'CREATE-PO',
+            'Remark' => $request->Note,
+            'Date_Trx' => now(),
+            'User_Trx' => Auth::user()->username,
+        ]);
+
+        echo 'success';
     }
 
-    public function outstandingPurchaseRequestDetailUpdate()
+    public function outstandingPurchaseRequestDetailUpdate(Request $request)
     {
-        //
+        header("Content-type: text/xml");
+        echo('<?xml version="1.0" encoding="iso-8859-1"?>'); 
+
+        error_reporting(E_ALL ^ E_NOTICE);
+
+        echo "<data>";
+
+        $request_body = urldecode(file_get_contents('php://input'));
+
+        $ids = explode("&",$request_body);
+        $param = [];
+        foreach($ids as $datax){
+            
+            $idenya = explode("=",$datax);
+            $param[$idenya[0]] = $idenya[1];
+            
+        }
+        $checkids = explode(",",$param["ids"]);
+
+        for ($i=0; $i < sizeof($checkids); $i++) { 
+            $action = "";
+            $rowId = $checkids[$i]; //id or row which was updated 
+            $newId = $rowId; //will be used for insert operation	
+            $mode = $param[$rowId."_!nativeeditor_status"]; 
+                switch($mode){
+                    case "updated":
+                        $action = $this->outstandingPurchaseRequestDetailUpdateUpdatekan($rowId,$param, $request->PS_No);
+                        break;
+                }
+                    
+            
+                
+            echo "<action type='".$action."' sid='".$rowId."' tid='".$newId."'/>";	
+        }
+        echo "</data>";
+
+        $done = 1;
+        $prd = DB::table('purchase_request_cns_dtl')->where("PR_No", $request->PR_No)->get();
+        foreach ($prd as $key => $value) {
+            $remain = $value->Qty;
+            $pod = DB::table('purchase_summary_cns_detail')->where("PR_Related", $request->PR_No)->where('Product_Desc', $value->Product_Desc)->get();
+            if (count($pod) > 0) {
+                foreach ($pod as $kunci => $item) {
+                    $remain -= $item->Qty;
+                }
+                if ($remain > 0) {
+                    $done = 0;
+                }
+            }else {
+                $done = 0;
+            }
+        }
+
+        if ($done) {
+            DB::table('purchase_request_cns')->where("PR_No", $request->PR_No)->update([
+                'PO_Status' => 'CLOSED',
+            ]);
+
+
+            DB::table('purchase_log')->insert([
+                'Location' => Auth::user()->Location,
+                'Task_ID' => $request->PR_No,
+                'Category' => '',
+                'Sub_Category' => '',
+                'Purchase_Type' => "",
+                'Transaction' => 'PURCHASE-REQUEST',
+                'Status' => 'DONE PR TO PO',
+                'Remark' => "",
+                'Date_Trx' => now(),
+                'User_Trx' => Auth::user()->username,
+            ]);
+        }else {
+            DB::table('purchase_request_cns')->where("PR_No", $request->PR_No)->update([
+                'PO_Status' => 'PARTIAL',
+            ]);
+
+
+            DB::table('purchase_log')->insert([
+                'Location' => Auth::user()->Location,
+                'Task_ID' => $request->PR_No,
+                'Category' => '',
+                'Sub_Category' => '',
+                'Purchase_Type' => "",
+                'Transaction' => 'PURCHASE-REQUEST',
+                'Status' => 'PARTIALLY CREATED PO',
+                'Remark' => "",
+                'Date_Trx' => now(),
+                'User_Trx' => Auth::user()->username,
+            ]);
+        }
+
+        
+    }
+
+    public function outstandingPurchaseRequestDetailUpdateUpdatekan(string $rowId, array $param, string $PS_No)
+    {
+        $a = $param[$rowId."_c1"];
+        $b = $param[$rowId."_c2"];
+        $c = $param[$rowId."_c3"];
+        $d = $param[$rowId."_c4"];
+        $e = $param[$rowId."_c5"];
+        $f = $param[$rowId."_c6"];
+        $g = $param[$rowId."_c7"];
+        $h = $param[$rowId."_c8"];
+        $ix = $param[$rowId."_c9"];
+        $j = $param[$rowId."_c10"];
+        $k = $param[$rowId."_c11"];
+        $l = $param[$rowId."_c12"];
+        $m = $param[$rowId."_c13"];
+        $n = $param[$rowId."_c14"];
+
+        if($e <= 0) {
+            return 'zeroqty';
+        }
+
+        $cek = DB::table('purchase_request_cns_dtl')->where("ID", $rowId)->first();
+        if (!$cek) {
+            return 'error';
+        }
+        
+        $pscdid = DB::table('purchase_summary_cns_detail')->insertGetId([
+            'Task_ID' => $PS_No,
+            'Purchase_Category' => $cek->Category,
+            'Purchase_Sub_Category' => $cek->Purchase_Category,
+            'Purchase_Type' => $cek->Purchase_Type,
+            'Product_Code' => $cek->Product_Code,
+            'Product_Desc' => $cek->Product_Desc,
+            'Default_Price' => $cek->Default_Price,
+            'Qty' => $cek->Qty,
+            'Proposed' => $e,
+            'Specification' => $cek->Specification,
+            'Unit_Name' => $cek->Unit,
+            'Recommended_Spec' => $cek->Specification,
+            'V1_Propose' => $cek->Default_Price,
+            'V1_TOP' => $n,
+            'V1_Win' => 1,
+            'Note' => $j,
+            'Created_Date' => now(),
+            'Created_By' => auth()->user()->username,
+            'Location' => auth()->user()->Location,
+            'PR_Related' => $cek->PR_No,
+            'Status_Request' => "NORMAL",
+        ]);
+
+        DB::table('purchase_request_cns_dtl')->where("ID", $rowId)->update([
+            'PSD_ID' => $pscdid,
+        ]);
+
+        return 'update';
     }
 }

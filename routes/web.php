@@ -5184,6 +5184,7 @@ Route::group(['middleware' => 'auth'], function () {
     $prPref = "$procPref-purchase-request";
     Route::get("$prPref", [CNSPurchaseRequestController::class, 'indexPurchaseRequest']);
     Route::get("xml-$prPref", [CNSPurchaseRequestController::class, 'indexPurchaseRequestXml']);
+    Route::get("$prPref-print", [CNSPurchaseRequestController::class, 'printPurchaseRequest']);
     Route::get("$prPref-new", [CNSPurchaseRequestController::class, 'newPurchaseRequest']);
     Route::get("$prPref-news", [CNSPurchaseRequestController::class, 'newsPurchaseRequest']);
     Route::post("$prPref-new-submit", [CNSPurchaseRequestController::class, 'newPurchaseRequestSubmit']);
@@ -5197,17 +5198,16 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$prPref-outstanding", [CNSPurchaseRequestController::class, 'outstandingPurchaseRequestXml']);
     Route::get("$prPref-outstanding-detail", [CNSPurchaseRequestController::class, 'outstandingPurchaseRequestDetail']);
     Route::get("xml-$prPref-outstanding-detail", [CNSPurchaseRequestController::class, 'outstandingPurchaseRequestDetailXml']);
+    Route::post("$prPref-outstanding-detail-submit", [CNSPurchaseRequestController::class, 'outstandingPurchaseRequestDetailSubmit']);
+    Route::post("$prPref-outstanding-detail-update", [CNSPurchaseRequestController::class, 'outstandingPurchaseRequestDetailUpdate']);
 
-    $prPref = "$procPref-purchase-order";
-    Route::get("$prPref", [CNSPurchaseOrderController::class, 'indexPurchaseOrder']);
-    Route::get("xml-$prPref", [CNSPurchaseOrderController::class, 'indexPurchaseOrderXml']);
-    Route::get("$prPref-new", [CNSPurchaseOrderController::class, 'newPurchaseOrder']);
-    Route::get("$prPref-news", [CNSPurchaseOrderController::class, 'newsPurchaseOrder']);
-    Route::post("$prPref-new-submit", [CNSPurchaseOrderController::class, 'newPurchaseOrderSubmit']);
-    Route::post("$prPref-new-update", [CNSPurchaseOrderController::class, 'newPurchaseOrderUpdate']);
-    Route::get("$prPref-detail", [CNSPurchaseOrderController::class, 'detailPurchaseOrder']);
-    Route::get("xml-$prPref-detail", [CNSPurchaseOrderController::class, 'detailPurchaseOrderXml']);
-
+    $poPref = "$procPref-purchase-order";
+    Route::get("$poPref", [CNSPurchaseOrderController::class, 'indexPurchaseOrder']);
+    Route::get("xml-$poPref", [CNSPurchaseOrderController::class, 'indexPurchaseOrderXml']);
+    Route::get("$poPref-detail", [CNSPurchaseOrderController::class, 'detailPurchaseOrder']);
+    Route::get("xml-$poPref-detail", [CNSPurchaseOrderController::class, 'detailPurchaseOrderXml']);
+    Route::get("$poPref-print", [CNSPurchaseOrderController::class, 'printPurchaseOrder']);
+    
     $exportAnnexPref = "cns-export-annex";
     Route::get("$exportAnnexPref-index", [CNSAnnexVIIController::class, 'indexAnnex']);
     Route::get("$exportAnnexPref-data", [CNSAnnexVIIController::class, 'getAnnexData']);
