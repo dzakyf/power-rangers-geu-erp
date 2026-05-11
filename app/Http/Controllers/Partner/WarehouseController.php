@@ -34,8 +34,10 @@ class WarehouseController extends Controller
             $usname[$value->Emp_ID] = $value->Name;
         }
         $getPartner = DB::table('opportunity_partner')->get();
+        $usaddress = [];
         foreach ($getPartner as $key => $value) {
             $usname[$value->lead_id] = $value->full_name;
+            $usaddress[$value->lead_id] = $value->address;
         }
         $nomor = 1;
 
@@ -49,8 +51,9 @@ class WarehouseController extends Controller
             echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usaddress[$Fetch->partner_task_id] ?? '') . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->capacity) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
@@ -86,7 +89,7 @@ class WarehouseController extends Controller
         $getCount = WarehousePartner::count();
         $tricode = DB::table('master_kodepos')->where("City", $request->Warehouse_Location)->first();
 
-        $Task_ID = "GEU/" . strtoupper($tricode->tricode) . "/" . sprintf('%04d', $getCount + 1);
+        $Task_ID = "GEU-EXP/" . strtoupper($tricode->tricode) . "/" . sprintf('%04d', $getCount + 1);
 
         WarehousePartner::create([
             'warehouse_task_id' => $Task_ID,

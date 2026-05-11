@@ -12,8 +12,19 @@
         </select>
     </div>
     <div class="col-auto">
-        <label class="d-block mb-1">Pilih Periode</label>
-        <input type="month" id="filter_date" class="form-control d-inline-block w-auto" value="{{ date('Y-m') }}">
+        <div class="row">
+            <div class="col-auto">
+                <label class="d-block mb-1">Pilih Periode Awal</label>
+                <input type="month" id="filter_date_start" class="form-control d-inline-block w-auto" value="{{ date('Y-m') }}">
+
+            </div>
+            <div class="col-auto">
+                <label class="d-block mb-1">Pilih Periode Akhir</label>
+                <input type="month" id="filter_date_end" class="form-control d-inline-block w-auto" value="{{ date('Y-m') }}">
+
+            </div>
+
+        </div>
     </div>
     <div class="col-auto">
         <button type="button" class="btn btn-primary" onclick="loadData()">Filter</button>
@@ -93,18 +104,23 @@
 
 {{-- Charts --}}
 <div class="row mb-3">
-    <!-- <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <h6 class="card-title">Projection vs BEP</h6>
-                <canvas id="chart_projection_bep" height="120"></canvas>
-            </div>
-        </div>
-    </div> -->
     <div class="col-md-6 mb-3">
         <div class="card h-100">
             <div class="card-body">
-                <h6 class="card-title">Projection vs Profit Sharing</h6>
+                <h6 class="card-title">Proyeksi vs BEP </h6>
+                <canvas id="chart_projection_bep" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="card-title mb-0">Proyeksi vs Profit Sharing</h6>
+                    <div class="d-flex gap-2 align-items-center">
+
+                    </div>
+                </div>
                 <canvas id="chart_projection_profit_sharing" height="120"></canvas>
             </div>
         </div>
@@ -135,17 +151,18 @@
     }
 
     function loadData() {
-        const date = document.getElementById('filter_date').value;
+        const dateStart = document.getElementById('filter_date_start').value;
+        const dateEnd = document.getElementById('filter_date_end').value;
         const whid = document.getElementById('filter_warehouse').value;
         const params = new URLSearchParams();
-        if (date) params.set('date_start', date + '-01');
+        if (dateStart) params.set('date_start', dateStart + '-01');
+        if (dateEnd) params.set('date_end', dateEnd + '-01');
         if (whid) params.set('Task', whid);
         const qs = params.toString() ? '?' + params.toString() : '';
 
         fetch(`partner-dashboard-financial-insight-data${qs}`)
             .then(r => r.json())
             .then(d => {
-                console.log(d)
                 document.getElementById('card_total_profit_sharing').textContent = 'Rp ' + fmt(d.data.total_profit_sharing);
                 document.getElementById('card_total_revenue').textContent = 'Rp ' + fmt(d.data.total_revenue);
                 document.getElementById('card_total_operational_cost').textContent = 'Rp ' + fmt(d.data.total_operational_cost);
@@ -162,24 +179,52 @@
 
     function renderBepChart(data) {
         const labels = data.map(r => r.month);
-        const projection = data.map(r => r.projection);
-        const bep = data.map(r => r.bep);
+        const totalInvestasi = data.map(r => r.total_investation);
+        const projectionNetMarginHigh = data.map(r => r.projection_net_margin_high);
+        const projectionNetMarginLow = data.map(r => r.projection_net_margin_low);
+        const netMargin = data.map(r => r.net_margin);
 
         if (chartBep) chartBep.destroy();
         chartBep = new Chart(document.getElementById('chart_projection_bep'), {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels,
                 datasets: [{
-                        label: 'Projection',
-                        data: projection,
-                        backgroundColor: 'rgba(54,162,235,0.7)'
+                        label: 'Total Investasi',
+                        data: totalInvestasi,
+                        borderColor: 'rgba(54,162,235,1)',
+                        backgroundColor: 'rgba(54,162,235,0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 4,
                     },
                     {
-                        label: 'BEP',
-                        data: bep,
-                        backgroundColor: 'rgba(255,99,132,0.7)'
-                    }
+                        label: 'Projection Net Margin (High)',
+                        data: projectionNetMarginHigh,
+                        borderColor: 'rgba(75,192,192,1)',
+                        backgroundColor: 'rgba(75,192,192,0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 4,
+                    },
+                    {
+                        label: 'Projection Net Margin (Low)',
+                        data: projectionNetMarginLow,
+                        borderColor: 'rgba(153,102,255,1)',
+                        backgroundColor: 'rgba(153,102,255,0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 4,
+                    },
+                    {
+                        label: 'Net Margin',
+                        data: netMargin,
+                        borderColor: 'rgba(255,99,132,1)',
+                        backgroundColor: 'rgba(255,99,132,0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 4,
+                    },
                 ]
             },
             options: {
@@ -195,23 +240,41 @@
 
     function renderProfitSharingChart(data) {
         const labels = data.map(r => r.month);
-        const projection = data.map(r => r.projection);
+        const projectionHigh = data.map(r => r.projection_net_profit_high);
+        const projectionLow = data.map(r => r.projection_net_profit_low);
         const profitSharing = data.map(r => r.profit_sharing);
 
         if (chartProfitSharing) chartProfitSharing.destroy();
         chartProfitSharing = new Chart(document.getElementById('chart_projection_profit_sharing'), {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels,
                 datasets: [{
-                        label: 'Projection',
-                        data: projection,
-                        backgroundColor: 'rgba(75,192,192,0.7)'
+                        label: 'Projection Net Profit (High)',
+                        data: projectionHigh,
+                        borderColor: 'rgba(75,192,192,1)',
+                        backgroundColor: 'rgba(75,192,192,0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 4,
+                    },
+                    {
+                        label: 'Projection Net Profit (Low)',
+                        data: projectionLow,
+                        borderColor: 'rgba(54,162,235,1)',
+                        backgroundColor: 'rgba(54,162,235,0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 4,
                     },
                     {
                         label: 'Profit Sharing',
                         data: profitSharing,
-                        backgroundColor: 'rgba(255,159,64,0.7)'
+                        borderColor: 'rgba(255,159,64,1)',
+                        backgroundColor: 'rgba(255,159,64,0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 4,
                     }
                 ]
             },

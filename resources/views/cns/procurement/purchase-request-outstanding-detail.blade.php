@@ -11,6 +11,14 @@ use Illuminate\Database\Eloquent\Builder;
 
 	$dpt =  Auth::user()->Department;
 	$date = date('Y-m');
+
+	$ps = DB::select(DB::raw("SELECT COUNT(ID) as jumlah FROM purchase_summary_cns WHERE Location = '$LSP' and Purchase_Date LIKE '$date%'"));
+		
+	$NoR = $ps->jumlah + 1;
+	if ( $NoR < 10 ) $NoR = "0$NoR";
+	$dateR = date('YmdHis');
+	$psno = "PS/".$LSP."/$dateR-" . sprintf("%02d", $NoR); 
+
 	$fetch = DB::table("purchase_request_cns")->where("ID",$_GET['ID'])->first();
 	$fetch->Supplier_Name = $fetch->Supplier != '' ? DB::table('supplier')->where("Supplier_ID", $fetch->Supplier)->value('Supplier_Name') : '';
 	$sobjf = DB::select(DB::raw("SHOW FIELDS FROM purchase_request_cns"));
@@ -41,7 +49,8 @@ use Illuminate\Database\Eloquent\Builder;
 					<div class="FormInput_right">
 							
 							<input type="text" id="PR_No" size="50" readonly="readonly" disabled="disabled"/>        	
-							:: <input type="text" readonly="readonly" id="ID" size="5"  disabled="disabled"/>           
+							<input type="hidden" id="PS_No" size="50" readonly="readonly" value="{{ $psno }}"/>
+							<input type="hidden" readonly="readonly" id="ID" size="5"  disabled="disabled"/>           
 							:: <input type="text" readonly="readonly" id="Status" size="12" disabled="disabled" />           
 	
 						</div>
@@ -183,7 +192,63 @@ use Illuminate\Database\Eloquent\Builder;
 					</div>
 					
 					
-				<div id="gridPRNewDetail" style="width:auto;height:200px; background-color:white;overflow:hidden"></div>
+					<div id="gridPRNewDetail" style="width:auto;height:200px; background-color:white;overflow:hidden"></div>
+                    <div class="FormInput_left">
+
+                        Subtotal
+
+                    </div>
+                    <div class="FormInput_right">
+
+                        <input type="text" id="Subtotal" size="10" value="0" readonly required />
+
+                    </div>
+                    <div class="FormInput_left">
+
+                        Tax
+
+                    </div>
+                    <div class="FormInput_right">
+
+                        <input type="text" id="Tax" size="10" value="0" onkeyup="recalc()" required />
+
+                    </div>
+                    <div class="FormInput_left">
+
+                        Shipping
+
+                    </div>
+                    <div class="FormInput_right">
+
+                        <input type="text" id="Shipping" size="10" value="0" onkeyup="recalc()" required />
+
+                    </div>
+                    <div class="FormInput_left">
+
+                        Other
+
+                    </div>
+                    <div class="FormInput_right">
+
+                        <input type="text" id="Other" size="10" value="0" onkeyup="recalc()" required />
+
+                    </div>
+                    <div class="FormInput_left">
+                        Total
+                    </div>
+                    <div class="FormInput_right">
+
+                        <input type="text" id="Total" size="10" value="0" required />
+
+                    </div>
+                    <div class="FormInput_left">
+                        PO Date
+                    </div>
+                    <div class="FormInput_right">
+
+                        <input type="date" id="PO_Date" size="5" value="{{ date("Y-m-d") }}" required />
+
+                    </div>
 				<div class="FormInput_left">
 							
 							References/FPB (Manual)
@@ -203,12 +268,9 @@ use Illuminate\Database\Eloquent\Builder;
 							<textarea id="Note" cols="100" rows="2"></textarea>
 	
 						</div>
-						@if($fetch->Status == 'APPROVAL_UPPER')
 				<div id="divtom2">
-					<input type="button" id="Rejects" NAME="Rejects" class="btn btn-danger mt-2 mr-2" value="REJECT" />                
-					<input type="button" id="SubmitPRNewDetail" NAME="SubmitPRNewDetail" class="btn btn-success mt-2 mr-2" value="Approve &amp; Submit" />                
+					<input type="button" id="SubmitPRNewDetail" NAME="SubmitPRNewDetail" class="btn btn-success mt-2 mr-2" value="Submit to PO" />
 				</div>
-				@endif
 				<div id="WinCOA"></div>
 				
 				
@@ -257,7 +319,7 @@ function getAllValues() {
 PRNewDetail = new dhtmlXGridObject('gridPRNewDetail');
 PRNewDetail.setImagePath("dhtmlx/imgs/");
 PRNewDetail.setHeader("No,Purchase Type,Product Code,Product Desc,Qty,Qty PO, Ordered, Remaining,Specification,Measurement,Note,Category,SubCat,Prices, Total");
-PRNewDetail.setInitWidths("50,100,100,250,50,50,50,50,,200,100,100,100,100,100,100");
+PRNewDetail.setInitWidths("50,100,100,250,50,50,50,50,200,100,100,100,100,100,100");
 PRNewDetail.setColTypes("ron,ro,ro,ro,ron,edn,ron,ron,ro,ro,ro,ro,ro,edn,ron");
 PRNewDetail.setColAlign("center,left,center,left,right,right,right,right,left,center,center,center,center,right,right");
 PRNewDetail.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
@@ -271,14 +333,17 @@ PRNewDetail.setNumberFormat("0,000",14,".",",");
 PRNewDetail.enableKeyboardSupport(true);
 PRNewDetail.setSkin("dhx_skyblue");
 PRNewDetail.enableMultiline(true);
-PPRNewDetail = new dataProcessor("purchasing-request-approval-detail-update");
+PPRNewDetail = new dataProcessor("cns-procurement-purchase-request-outstanding-detail-update");
 	PPRNewDetail.setTransactionMode({
 	 mode: "POST",
 	  total:true,
 	  headers:{
 		'X-CSRF-TOKEN': "{{ csrf_token() }}"
 	  }	,
-	  payload: {"PR_No":"<?php echo $fetch->PR_No;  ?>"}
+	  payload: {
+		"PR_No":"<?php echo $fetch->PR_No;  ?>",
+		"PS_No": "{{ $psno }}"
+	}
 
 
 	})
@@ -311,13 +376,82 @@ PRNewDetail.attachEvent('onEditCell', function(stage, rId, cInd, nValue, oValue)
 			}
 			
 			PRNewDetail.cells(rId, 7).setValue(parseFloat(qty - qtyPO - qtyOrdered));
+			recalc();
 		}
 	}
 	return true; // Allow the edit
 })
+PPRNewDetail.attachEvent("onBeforeDataSending", function (id,state, data) {
+	// Modify or add payload data here
+	// console.log(data)
+	return true; // Return true to continue processing
+});
+PPRNewDetail.attachEvent("onAfterUpdateFinish", function (id,state, data) {
+		$.blockUI(); 
+	
+		dapat = getAllValues();
+		$.ajax({
+			 headers: {
+			'X-CSRF-TOKEN': "{{ csrf_token() }}"
+			 },
+		
+			url : "cns-procurement-purchase-request-outstanding-detail-submit?_token={{ csrf_token() }}",
+			type: "POST",
+			data : dapat,
+			success: function(data, textStatus, jqXHR)
+			{
+				if (data == 'success'){
+					alert('Purchase Request Approved!');
+					$.unblockUI(); 
+					setTimeout(function(){
+							
+						refreshdata();
+						$("#PurchaseManagementDiv").html('');
+					
+					},1000);				
+
+				}else{
+					alert('Gagal Update');
+				}
+			},
+			error: function (jqXHR, textStatus, errorThrown)
+			{
+			 alert( "error" );
+		
+			}
+		});		
+});
 refreshDataDetail();
 function refreshDataDetail (){
     PRNewDetail.clearAndLoad("xml-cns-procurement-purchase-request-outstanding-detail?ID=<?php echo $fetch->PR_No;  ?>");
+}
+
+function recalc() {
+	let total = 0;
+	if (PRNewDetail.getRowsNum() > 0) {
+		let getIds = PRNewDetail.getAllRowIds().split(',');
+		for (let i = 0; i < getIds.length; i++) {
+			const ele = getIds[i];
+			total += parseFloat(PRNewDetail.cells(ele, 14).getValue());
+		}
+	}
+	let tax = parseFloat($('#Tax').val());
+	if (Number.isNaN(tax)) {
+		tax = 0;
+		$('#Tax').val('0');
+	}
+	let shipping = parseFloat($('#Shipping').val());
+	if (Number.isNaN(shipping)) {
+		shipping = 0;
+		$('#Shipping').val('0');
+	}
+	let other = parseFloat($('#Other').val());
+	if (Number.isNaN(other)) {
+		other = 0;
+		$('#Other').val('0');
+	}
+	$('#Subtotal').val(total.toFixed(2));
+	$('#Total').val(parseFloat(total + tax + shipping + other).toFixed(2));
 }
 
 $("#AddPRNewDetail").click(function(){
@@ -364,40 +498,7 @@ if(count == 0){
 		// 	}else{
 		// 		sip *= 0;
 		// 	}
-		// }
-		$.blockUI(); 
-	
-		dapat = getAllValues();
-		$.ajax({
-			 headers: {
-			'X-CSRF-TOKEN': "{{ csrf_token() }}"
-			 },
-		
-			url : "cns-procurement-purchase-request-detail-approve?_token={{ csrf_token() }}",
-			type: "POST",
-			data : dapat,
-			success: function(data, textStatus, jqXHR)
-			{
-				if (data == 'success'){
-					alert('Purchase Request Approved!');
-					$.unblockUI(); 
-					setTimeout(function(){
-							
-						refreshdata();
-						$("#PurchaseManagementDiv").html('');
-					
-					},1000);				
-
-				}else{
-					alert('Gagal Update');
-				}
-			},
-			error: function (jqXHR, textStatus, errorThrown)
-			{
-			 alert( "error" );
-		
-			}
-		});			
+		// }	
 			
 				
 	}

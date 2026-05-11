@@ -57,35 +57,37 @@ $Saya =  Auth::user()->username;
 					LoadM('divlistOpportunity', 'partner-warehouse-list-nonaktifkan?Task=' + WarehouseListID);
 				}
 			})
-		}else {
+		} else {
 			dhtmlx.alert("Pilih baris data");
 		}
 		return true;
 	}
+
 	function WarehouseListNew() {
 
 		LoadM('divlistOpportunity', 'partner-warehouse-list-new');
 		return true;
 	}
+
 	function WarehouseListKlik() {
 
 		WarehouseListID = WarehouseList.getSelectedId();
 		if (WarehouseListID != null) {
 			LoadM('divlistOpportunity', 'partner-warehouse-list-detail?Task=' + WarehouseListID);
-		}else {
+		} else {
 			alert("Pilih baris data");
 		}
 		return true;
 	}
 	WarehouseList = new dhtmlXGridObject('WarehouseList');
 	WarehouseList.setImagePath("./dhtmlx/imgs/");
-	WarehouseList.setHeader("No,Gudang ID, Lokasi Gudang, Nama Mitra, Kapasitas, Status Gudang,Dibuat Oleh");
-	WarehouseList.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	// WarehouseList.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	WarehouseList.setInitWidths("60,100,150,200,100,100,200");
-	WarehouseList.setColAlign("center,left,left,left,right,center,left");
-	WarehouseList.setColSorting("int,str,str,str,int,str,str");
-	WarehouseList.setColTypes("ron,ro,ro,ro,ron,ro,ro");
+	WarehouseList.setHeader("No,Gudang ID,Nama Mitra,  Lokasi Gudang, Alamat, Kapasitas, Status Gudang,Dibuat Oleh");
+	WarehouseList.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	// WarehouseList.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+	WarehouseList.setInitWidths("60,100,150,200,200,100,100,200");
+	WarehouseList.setColAlign("center,left,left,left,left,right,center,left");
+	WarehouseList.setColSorting("int,str,str,str,str,int,str,str");
+	WarehouseList.setColTypes("ron,ro,ro,ro,ro,ron,ro,ro");
 	WarehouseList.enableSmartRendering(true, 150);
 	WarehouseList.setNumberFormat("0,000", 4, ".", ",");
 	WarehouseList.attachEvent("onRowDblClicked", WarehouseListKlik);

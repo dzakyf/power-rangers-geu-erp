@@ -31,68 +31,6 @@
 </div>
 
 
-<!-- <div id="Grid1Detail" class="row m-1" style="display:none;"> -->
-<!-- <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PROMOTION</div>
-<div class="card w-100">
-    <div class="card-body">
-        <div>
-        </div>
-        <h5>Update Informasi Kemitraan</h5>
-        <form id="updateApplicationInfoForm" enctype="multipart/form-data">
-            @csrf
-            <input type="hidden" name="transfer_application_id" id="transfer_application_id" class="form-control" readonly />
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="result">Hasil Due Dilligence<span style="color: red;">*</span></label>
-                        <input type="text" name="result" id="result" class="form-control" required />
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="effective_transfer_at">Tanggal Efektif Transfer<span style="color: red;">*</span></label>
-                        <input type="date" name="effective_transfer_at" id="effective_transfer_at" class="form-control" required />
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="status">Status Kontrak Setelah Transfer <span style="color: red;">*</span></label>
-                        <select name="status" id="status" class="form-control" required>
-                            <option value="">-- Pilih Jenis--</option>
-                            <option value="ACTIVE">AKTIF</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="fee">Biaya Administrasi<span style="color: red;">*</span></label>
-                        <input type="text" name="fee" id="fee" class="form-control" required />
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="notes">Notes</label>
-                        <input type="text" name="notes" id="notes" class="form-control" />
-                    </div>
-                </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
-        </form>
-    </div>
-</div>
-</div> -->
-
 <script>
     var transferApplicationId = null;
     $(document).ready(function() {
