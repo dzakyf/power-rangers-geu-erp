@@ -41,7 +41,7 @@ class PerformanceController extends Controller
             $row->addChild('cell', $d->Periode ? Carbon::parse($d->Periode)->year : "-");
             $row->addChild('cell', $d->Work_Area);
             $row->addChild('cell', $d->Indicator);
-            $row->addChild('cell', "$d->Weight %");
+            $row->addChild('cell', "$d->Weight");
             $row->addChild('cell', $d->Target);
             $row->addChild('cell', $d->Realization);
             $row->addChild('cell', htmlspecialchars($d->Departement));

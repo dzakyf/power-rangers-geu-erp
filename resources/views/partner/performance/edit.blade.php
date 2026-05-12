@@ -77,7 +77,7 @@
             <div class="col-md-6">
                 <div class="form-group">
                     <label for="Realization">Realisasi <span style="color: red;">*</span></label>
-                    <textarea name="Realization" id="Realization" class="form-control" rows="3" required></textarea>
+                    <input type="number" name="Realization" id="Realization" class="form-control" min="0" required>
                 </div>
             </div>
         </div>

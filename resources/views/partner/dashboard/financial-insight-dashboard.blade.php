@@ -104,14 +104,7 @@
 
 {{-- Charts --}}
 <div class="row mb-3">
-    <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <h6 class="card-title">Proyeksi vs BEP </h6>
-                <canvas id="chart_projection_bep" height="120"></canvas>
-            </div>
-        </div>
-    </div>
+
     <div class="col-md-6 mb-3">
         <div class="card h-100">
             <div class="card-body">
@@ -122,6 +115,14 @@
                     </div>
                 </div>
                 <canvas id="chart_projection_profit_sharing" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">Proyeksi vs BEP </h6>
+                <canvas id="chart_projection_bep" height="120"></canvas>
             </div>
         </div>
     </div>
