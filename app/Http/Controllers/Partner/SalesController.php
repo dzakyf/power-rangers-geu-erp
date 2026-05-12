@@ -2017,7 +2017,7 @@ class SalesController extends Controller
                 'total_investation' => $monthly['total_investation'],
                 'projection_net_margin_high' => $monthly['projection_net_profit_high'],
                 'projection_net_margin_low' => $monthly['projection_net_profit_low'],
-                'net_margin' => $monthly['income']
+                'net_margin' => $monthly['net_profit']
             ];
             // $meta = [
             //     'month' => $cursor->format('Y-m')

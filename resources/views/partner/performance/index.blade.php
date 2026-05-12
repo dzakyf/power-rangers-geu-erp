@@ -49,7 +49,7 @@
     }
 
     function initTableGrid1() {
-        let tHeader = ['No', 'Tahun Periode', 'Area Kerja', 'Indikator', 'Weight', 'Target', 'Realisasi', 'Departement']
+        let tHeader = ['No', 'Tahun Periode', 'Area Kerja', 'Indikator', 'Weight (%)', 'Target', 'Realisasi (%)', 'Departement']
 
         let tWidth = tHeader.map((e) => '200')
         let headerAttachment = [
