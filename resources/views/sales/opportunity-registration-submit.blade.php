@@ -141,6 +141,8 @@ try {
     $data['company_package'] = request()->input('Company_Package');
     $data['company_documents'] = json_encode(array_filter([request()->input('C_Doc_Akta'), request()->input('C_Doc_NIB'), request()->input('C_Doc_NPWP'), request()->input('C_Doc_Others')]));
 
+    $data['created_at'] = Carbon::now();
+
     $id = DB::table('opportunity_partner')->insertGetId($data);
 
     foreach (json_decode($data['supporting_documents']) as $key => $value) {

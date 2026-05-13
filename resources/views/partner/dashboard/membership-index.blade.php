@@ -4,12 +4,31 @@
 <!-- Main Content Header -->
 
 <h4>Dashboard Kemitraan</h4>
-<div class="row mt-3">
-    <div class="col-sm-12 mt-3 mb-3">
-        <input type="date" id="start" name="start_date">
-        <input type="date" id="end" name="end_date">
-        <button type="button" class="btn btn-primary">Submit</button>
+<div class="row mt-3 mb-2 align-items-end">
+    <!-- <div class="col-auto">
+        <label class="d-block mb-1">Pilih Gudang</label>
+        <select id="filter_warehouse" class="form-control d-inline-block w-auto">
+            <option value="">-- Semua Gudang --</option>
+        </select>
+    </div> -->
+    <div class="col-auto">
+        <div class="row">
+            <div class="col-auto">
+                <label class="d-block mb-1">Pilih Periode Awal</label>
+                <input type="month" id="filter_date_start" class="form-control d-inline-block w-auto" value="{{ date('Y-m') }}">
+
+            </div>
+            <div class="col-auto">
+                <label class="d-block mb-1">Pilih Periode Akhir</label>
+                <input type="month" id="filter_date_end" class="form-control d-inline-block w-auto" value="{{ date('Y-m') }}">
+            </div>
+        </div>
     </div>
+    <div class="col-auto">
+        <button type="button" class="btn btn-primary" onclick="getDashboardData()">Filter</button>
+    </div>
+</div>
+<div class="row mt-3">
     <div class="col-sm-3">
         <div class="card">
             <div class="card-body">
@@ -44,6 +63,18 @@
                 <div class="row">
                     <div class="col-sm text-right">
                         <h4 id="BrandLicense" class="card-text"></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Top Product</h5>
+                <div class="row">
+                    <div class="col-sm text-right">
+                        <h4 id="TopProduct" class="card-text"></h4>
                     </div>
                 </div>
             </div>
@@ -100,22 +131,49 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.js" integrity="sha512-D4pL3vNgjkHR/qq+nZywuS6Hg1gwR+UzrdBW6Yg8l26revKyQHMgPq9CLJ2+HHalepS+NuGw1ayCCsGXu9JCXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
+    let leadsSourceChart = null;
+    let salesFunnelChart = null;
+
     $(document).ready(function() {
-        getDashboardData()
-    })
-
-    $('#start').on('change', function() {
-        $('#end').attr('min', $(this).val()); // end can't be before start
+        loadWarehouses();
+        getDashboardData();
     });
 
-    $('#end').on('change', function() {
-        $('#start').attr('max', $(this).val()); // start can't be after end
+    $('#filter_date_start').on('change', function() {
+        $('#filter_date_end').attr('min', $(this).val());
     });
+
+    $('#filter_date_end').on('change', function() {
+        $('#filter_date_start').attr('max', $(this).val());
+    });
+
+    function loadWarehouses() {
+        fetch('partner-warehouse-data')
+            .then(r => r.json())
+            .then(d => {
+                const sel = document.getElementById('filter_warehouse');
+                d.data.forEach(w => {
+                    const opt = document.createElement('option');
+                    opt.value = w.warehouse_task_id;
+                    opt.textContent = w.warehouse_task_id + ' — ' + w.warehouse_location;
+                    sel.appendChild(opt);
+                });
+            });
+    }
 
     function getDashboardData() {
+        const warehouse = $('#filter_warehouse').val();
+        const dateStart = $('#filter_date_start').val();
+        const dateEnd = $('#filter_date_end').val();
+
         $.ajax({
             url: 'partner-dashboard-membership-data',
             method: 'GET',
+            data: {
+                warehouse: warehouse,
+                date_start: dateStart,
+                date_end: dateEnd,
+            },
             success: function(response) {
                 let data = response.data
                 initLeadsSourceChart(data.leads_source.labels, data.leads_source.data_arr);
@@ -124,7 +182,7 @@
                 $("#DownPayment").html(data.est_dp_formatted);
                 $("#EstimatedRevenue").html(data.est_revenue_formatted);
                 $("#BrandLicense").html(data.brand_license_formatted);
-
+                $("#TopProduct").html(data.top_product);
             },
             error: function(xhr) {
                 console.error('Failed to load dashboard data:', xhr);
@@ -162,9 +220,10 @@
 
 
     function initLeadsSourceChart(labels, datas) {
+        if (leadsSourceChart) leadsSourceChart.destroy();
         const ctx = document.getElementById('LeadsSource').getContext('2d');
 
-        const myChart = new Chart(ctx, {
+        leadsSourceChart = new Chart(ctx, {
             type: 'doughnut', // change to 'pie' for pie chart
 
             data: {
@@ -209,9 +268,10 @@
     }
 
     function initSalesFunnelChart(labels, datas) {
+        if (salesFunnelChart) salesFunnelChart.destroy();
         const ctx = document.getElementById('SalesFunnel').getContext('2d');
 
-        const myChart = new Chart(ctx, {
+        salesFunnelChart = new Chart(ctx, {
             type: 'bar', // change to 'pie' for pie chart
 
             data: {

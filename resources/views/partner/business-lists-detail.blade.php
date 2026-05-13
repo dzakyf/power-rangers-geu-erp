@@ -531,14 +531,14 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-check">
-                                    <input readonly class="form-check-input" type="radio" name="Package" id="Package_1" value="option1" {{ (old('Package', $partner->package_option ?? '') == 'option1') ? 'checked' : '' }} />
-                                    <label class="form-check-label" for="Package_1">Opsi 1</label>
+                                    <input readonly class="form-check-input" type="radio" name="Package" id="Package_1" value="mobil" {{ (old('Package', $partner->package_option ?? '') == 'mobil') ? 'checked' : '' }} />
+                                    <label class="form-check-label" for="Package_1">Mobil Listrik</label>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-check">
-                                    <input readonly class="form-check-input" type="radio" name="Package" id="Package_2" value="option2" {{ (old('Package', $partner->package_option ?? '') == 'option2') ? 'checked' : '' }} />
-                                    <label class="form-check-label" for="Package_2">Opsi 2</label>
+                                    <input readonly class="form-check-input" type="radio" name="Package" id="Package_2" value="booth" {{ (old('Package', $partner->package_option ?? '') == 'booth') ? 'checked' : '' }} />
+                                    <label class="form-check-label" for="Package_2">Booth</label>
                                 </div>
                             </div>
                         </div>
@@ -931,14 +931,14 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-check">
-                                    <input readonly class="form-check-input" type="radio" name="Company_Package" id="Company_Package_1" value="option1" {{ (old('Company_Package', $partner->company_package ?? '') == 'option1') ? 'checked' : '' }} />
-                                    <label class="form-check-label" for="Company_Package_1">Opsi 1</label>
+                                    <input readonly class="form-check-input" type="radio" name="Company_Package" id="Company_Package_1" value="mobil" {{ (old('Company_Package', $partner->company_package ?? '') == 'mobil') ? 'checked' : '' }} />
+                                    <label class="form-check-label" for="Company_Package_1">Mobil Listrik</label>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-check">
-                                    <input readonly class="form-check-input" type="radio" name="Company_Package" id="Company_Package_2" value="option2" {{ (old('Company_Package', $partner->company_package ?? '') == 'option2') ? 'checked' : '' }} />
-                                    <label class="form-check-label" for="Company_Package_2">Opsi 2</label>
+                                    <input readonly class="form-check-input" type="radio" name="Company_Package" id="Company_Package_2" value="booth" {{ (old('Company_Package', $partner->company_package ?? '') == 'booth') ? 'checked' : '' }} />
+                                    <label class="form-check-label" for="Company_Package_2">Booth</label>
                                 </div>
                             </div>
                         </div>

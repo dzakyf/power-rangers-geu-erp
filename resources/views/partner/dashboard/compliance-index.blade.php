@@ -12,8 +12,14 @@
         </select>
     </div>
     <div class="col-auto">
-        <label for="start" class="d-block mb-1">Pilih Periode</label>
-        <input type="month" id="filter_date" class="form-control d-inline-block w-auto">
+        <label class="d-block mb-1">Pilih Gudang</label>
+        <select id="filter_whid" class="form-control d-inline-block w-auto">
+            <option value="">-- Semua Gudang --</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <label for="filter_date" class="d-block mb-1">Pilih Periode</label>
+        <input type="month" id="filter_date" class="form-control d-inline-block w-auto" value="{{ date('Y-m') }}">
     </div>
     <div class="col-auto">
         <button type="button" class="btn btn-primary" onclick="loadComplianceData()">Filter</button>
@@ -115,8 +121,23 @@
     let complianceRateChart = null;
 
     $(document).ready(function() {
+        loadWarehouses();
         loadComplianceData();
     });
+
+    function loadWarehouses() {
+        fetch('partner-warehouse-data')
+            .then(r => r.json())
+            .then(d => {
+                const sel = document.getElementById('filter_whid');
+                d.data.forEach(w => {
+                    const opt = document.createElement('option');
+                    opt.value = w.warehouse_task_id;
+                    opt.textContent = w.warehouse_task_id + ' — ' + w.warehouse_location;
+                    sel.appendChild(opt);
+                });
+            });
+    }
 
     function loadComplianceData() {
         const whid = $('#filter_whid').val();
