@@ -503,14 +503,14 @@
          <div class="row">
              <div class="col-md-6">
                  <div class="form-check">
-                     <input class="form-check-input" type="radio" name="Company_Package" id="Company_Package_1" value="1" />
-                     <label class="form-check-label" for="Company_Package_1">Opsi 1</label>
+                     <input class="form-check-input" type="radio" name="Company_Package" id="Company_Package_1" value="mobil" />
+                     <label class="form-check-label" for="Company_Package_1">Mobil Listrik</label>
                  </div>
              </div>
              <div class="col-md-6">
                  <div class="form-check">
-                     <input class="form-check-input" type="radio" name="Company_Package" id="Company_Package_2" value="2" />
-                     <label class="form-check-label" for="Company_Package_2">Opsi 2</label>
+                     <input class="form-check-input" type="radio" name="Company_Package" id="Company_Package_2" value="booth" />
+                     <label class="form-check-label" for="Company_Package_2">Booth</label>
                  </div>
              </div>
          </div>

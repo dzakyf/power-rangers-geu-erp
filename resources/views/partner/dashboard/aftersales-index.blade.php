@@ -12,6 +12,12 @@
         </select>
     </div>
     <div class="col-auto">
+        <label class="d-block mb-1">Pilih Gudang</label>
+        <select id="filter_warehouse" class="form-control d-inline-block w-auto">
+            <option value="">-- Semua Gudang --</option>
+        </select>
+    </div>
+    <div class="col-auto">
         <label for="start" class="d-block mb-1">Pilih Periode</label>
         <input type="month" id="start" name="start_date" class="form-control" value="{{ date('Y-m') }}">
     </div>
@@ -252,6 +258,7 @@
 
 <script>
     $(document).ready(function() {
+        loadWarehouses();
         getDashboardData();
 
         $('#start').on('change', function() {
@@ -262,6 +269,20 @@
         });
     });
 
+    function loadWarehouses() {
+        fetch('partner-warehouse-data')
+            .then(r => r.json())
+            .then(d => {
+                const sel = document.getElementById('filter_warehouse');
+                d.data.forEach(w => {
+                    const opt = document.createElement('option');
+                    opt.value = w.warehouse_task_id;
+                    opt.textContent = w.warehouse_task_id + ' — ' + w.warehouse_location;
+                    sel.appendChild(opt);
+                });
+            });
+    }
+
     function formatRp(amount) {
         return 'Rp ' + Number(amount).toLocaleString('id-ID');
     }
@@ -271,6 +292,7 @@
             url: 'partner-dashboard-aftersales-data?Task=GEU/HQO/0001',
             method: 'GET',
             data: {
+                warehouse: $('#filter_warehouse').val(),
                 date_start: `${$('#start').val()}-01`,
                 end_date: $('#end').val()
             },

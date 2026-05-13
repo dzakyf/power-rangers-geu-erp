@@ -28,17 +28,17 @@ echo "<rows>";
 $Query = DB::table("opportunity")->where("Location", $LSP)->orderBy("ID", "DESC")->get();
 
 foreach ($Query as $Fetch) {
-    if ($Fetch->Capital_Estimation == 1) {
-        $estimation = "<50 Juta";
-    } elseif ($Fetch->Capital_Estimation == 2) {
-        $estimation = "100 Juta - 200 Juta";
-    } elseif ($Fetch->Capital_Estimation == 3) {
-        $estimation = "200 Juta - 300 Juta";
-    } elseif ($Fetch->Capital_Estimation == 4) {
-        $estimation = "300 Juta";
-    } else {
-        $estimation = "50 Juta - 100 Juta";
-    }
+	if ($Fetch->Capital_Estimation == 1) {
+		$estimation = "<50 Juta";
+	} elseif ($Fetch->Capital_Estimation == 2) {
+		$estimation = "100 Juta - 200 Juta";
+	} elseif ($Fetch->Capital_Estimation == 3) {
+		$estimation = "200 Juta - 300 Juta";
+	} elseif ($Fetch->Capital_Estimation == 4) {
+		$estimation = "300 Juta";
+	} else {
+		$estimation = "50 Juta - 100 Juta";
+	}
 
 	echo "<row id=\"$Fetch->ID\">";
 	echo "<cell>$nomor</cell>";
@@ -47,7 +47,7 @@ foreach ($Query as $Fetch) {
 	echo "<cell>" . htmlspecialchars($Fetch->Full_Name) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Date) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Phone_Number) . "</cell>";
-	echo "<cell>" . htmlspecialchars("Opsi " . $Fetch->Partnership_Interest) . "</cell>";
+	echo "<cell>" . htmlspecialchars($Fetch->Hub_Type) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Created_Date) . "</cell>";
 	echo "</row>";
 

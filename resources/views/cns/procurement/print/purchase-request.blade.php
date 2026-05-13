@@ -154,7 +154,7 @@ $moneyFormat = new moneyFormat();
 					<tr>
 						<td width="500">
 							<div style="color:#779161;font-weight:bold;font-size:12px;float:none;padding-left:5px;padding-top:3px;padding-bottom:3px;">
-								PURCHASE ORDER
+								PURCHASE REQUEST
 							</div>
 						</td>
 						<td>

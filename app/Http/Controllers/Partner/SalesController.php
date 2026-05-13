@@ -1440,28 +1440,38 @@ class SalesController extends Controller
 
     public function membershipDashboardData(Request $r)
     {
-        $q       = $r->query();
-        $periode = $q['periode'] ?? null;
+        $q         = $r->query();
+        $periode   = $q['periode'] ?? null;
+        $dateStart = $r->date_start ? Carbon::parse($r->date_start)->startOfMonth() : null;
+        $dateEnd   = $r->date_end   ? Carbon::parse($r->date_end)->endOfMonth()     : null;
 
         // est dp
         $dp          = DB::table('config_system')->where('Constraint', 'ONBOARDING_DOWNPAYMENT')->first();
-        $activeCount = DB::table('opportunity_partner')->where('Status', 'ACTIVE')->count();
+        $activeCount = DB::table('opportunity_partner')->where('Status', 'ACTIVE')
+            ->when($dateStart, fn($q) => $q->whereDate('created_at', '>=', $dateStart))
+            ->when($dateEnd,   fn($q) => $q->whereDate('created_at', '<=', $dateEnd))
+            ->count();
+
         $est_dp      = $activeCount * ($dp->Value ?? 0);
 
         // leads source - count by Source_Channel
         $leadsSource = DB::table('opportunity')
             ->select(
-                DB::raw("CASE 
-            WHEN Source_Channel IS NULL OR Source_Channel = '' 
-            THEN 'Tidak Diketahui' 
-            ELSE Source_Channel 
-        END as source_channel"),
+                DB::raw("CASE
+            WHEN Source_Channel IS NULL OR Source_Channel = ''
+            THEN 'Tidak Diketahui'
+            ELSE Source_Channel
+        END as source_channel,
+        count(Hub_Type) as popular_product
+        "),
                 DB::raw('COUNT(*) as count')
             )
-            ->groupBy(DB::raw("CASE 
-        WHEN Source_Channel IS NULL OR Source_Channel = '' 
-        THEN 'Tidak Diketahui' 
-        ELSE Source_Channel 
+            ->when($dateStart, fn($q) => $q->whereDate('Created_Date', '>=', $dateStart))
+            ->when($dateEnd,   fn($q) => $q->whereDate('Created_Date', '<=', $dateEnd))
+            ->groupBy(DB::raw("CASE
+        WHEN Source_Channel IS NULL OR Source_Channel = ''
+        THEN 'Tidak Diketahui'
+        ELSE Source_Channel
     END"))
             ->get();
 
@@ -1469,6 +1479,8 @@ class SalesController extends Controller
 
         $rawFunnel = DB::table('opportunity')
             ->select(DB::raw('LOWER(Status) as status'), DB::raw('COUNT(*) as count'))
+            ->when($dateStart, fn($q) => $q->whereDate('Created_Date', '>=', $dateStart))
+            ->when($dateEnd,   fn($q) => $q->whereDate('Created_Date', '<=', $dateEnd))
             ->groupBy('Status')
             ->get();
 
@@ -1499,6 +1511,17 @@ class SalesController extends Controller
         $estRevenue = 87000000;
         $brandLicense = 16000000;
 
+        $hubTypeCounts = DB::table('opportunity')
+            ->when($dateStart, fn($q) => $q->whereDate('Created_Date', '>=', $dateStart))
+            ->when($dateEnd,   fn($q) => $q->whereDate('Created_Date', '<=', $dateEnd))
+            ->selectRaw("LOWER(Hub_Type) as hub_type, COUNT(*) as count")
+            ->groupBy('Hub_Type')
+            ->pluck('count', 'hub_type');
+
+        $mobil = $hubTypeCounts->get('mobil', 0);
+        $booth = $hubTypeCounts->get('booth', 0);
+        $topProduct = $mobil >= $booth ? 'Mobil Listrik' : 'Booth';
+
         $data = [
             'est_dp' => $est_dp,
             'est_dp_formatted'        => $this->generatorService->rupiahFormatter($est_dp),
@@ -1506,6 +1529,7 @@ class SalesController extends Controller
             'est_revenue_formatted' => $this->generatorService->rupiahFormatter($estRevenue),
             'brand_license' => $brandLicense,
             'brand_license_formatted' => $this->generatorService->rupiahFormatter($brandLicense),
+            'top_product' => $topProduct,
             'leads_source'  => [
                 'labels'  => $leadsSource->pluck('source_channel')->toArray(),
                 'data_arr' => $leadsSource->pluck('count')->toArray(),
@@ -1812,7 +1836,7 @@ class SalesController extends Controller
     public function afterSalesDashboardData(Request $r)
     {
         $q = $r->query();
-        $whid = $q['Task'];
+        $whid = $q['warehouse'];
 
         $calculatedWh = $this->calculateWarehouse($r);
 
@@ -1850,7 +1874,8 @@ class SalesController extends Controller
     ")
             ->first();
 
-        $dateFilter       = $carbonDate ? "AND DATE_FORMAT(tl_open.Action_Date, '%Y-%m') = '$carbonDate'" : '';
+        $dateFilter      = $carbonDate ? "AND DATE_FORMAT(tl_open.Action_Date, '%Y-%m') = '$carbonDate'" : '';
+        $warehouseFilter = $whid ? "AND tl_open.GEU_Express_ID = '$whid'" : '';
 
         $avgTime = DB::table('ticket_log as tl1')
             ->join('ticket_log as tl2', function ($join) {
@@ -1865,6 +1890,7 @@ class SalesController extends Controller
             })
             ->where('tl1.Action_Date', '!=', '0000-00-00 00:00:00')
             ->when($carbonDate, fn($q) => $q->whereRaw('DATE_FORMAT(tl1.Action_Date, "%Y-%m") = ?', [$carbonDate]))
+            ->when($whid, fn($q) => $q->where('tl1.GEU_Express_ID', $whid))
             ->selectRaw("
                 ROUND(AVG(TIMESTAMPDIFF(HOUR, tl1.Action_Date, tl2.Action_Date))) as avg_hours,
                 (
@@ -1885,6 +1911,7 @@ class SalesController extends Controller
                     WHERE tl_open.Ticket_Status = 'OPEN'
                     AND tl_open.Action_Date != '0000-00-00 00:00:00'
                     $dateFilter
+                    $warehouseFilter
                 ) as avg_resolution_hours
             ")
             ->first();
@@ -1892,13 +1919,13 @@ class SalesController extends Controller
 
         $supportRequestCount = DB::table('ticket as t')
             ->when($carbonDate, fn($q) => $q->whereRaw('DATE_FORMAT(t.Created_Date, "%Y-%m") = ?', [$carbonDate]))
+            ->when($whid, fn($q) => $q->whereRaw('GEU_Express_ID = ?', [$whid]))
             ->selectRaw("
         SUM(CASE WHEN t.Ticket_Category = 'ERP'         THEN 1 ELSE 0 END) as erp_count,
         SUM(CASE WHEN t.Ticket_Category = 'Operational' THEN 1 ELSE 0 END) as operational_count,
         SUM(CASE WHEN t.Ticket_Category = 'Financial'   THEN 1 ELSE 0 END) as financial_count,
         SUM(CASE WHEN t.Ticket_Category = 'Partnership' THEN 1 ELSE 0 END) as partnership_count,
-        SUM(CASE WHEN t.Ticket_Category = 'Other'       THEN 1 ELSE 0 END) as other_count
-    ")
+        SUM(CASE WHEN t.Ticket_Category = 'Other'       THEN 1 ELSE 0 END) as other_count")
             ->first();
 
         $data = [

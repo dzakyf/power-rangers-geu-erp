@@ -5211,4 +5211,6 @@ Route::group(['middleware' => 'auth'], function () {
     $exportAnnexPref = "cns-export-annex";
     Route::get("$exportAnnexPref-index", [CNSAnnexVIIController::class, 'indexAnnex']);
     Route::get("$exportAnnexPref-data", [CNSAnnexVIIController::class, 'getAnnexData']);
+    Route::get("$exportAnnexPref-print", [CNSAnnexVIIController::class, 'printAnnex']);
+    Route::get("$exportAnnexPref-print-sample", [CNSAnnexVIIController::class, 'printAnnexSample']);
 });

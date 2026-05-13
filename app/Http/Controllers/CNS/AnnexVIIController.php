@@ -27,4 +27,14 @@ class AnnexVIIController extends Controller
     public function detailAnnexData() {}
 
     public function deleteAnnexDatra() {}
+
+    public function printAnnex()
+    {
+        return view('cns.export.print.annex-print');
+    }
+
+    public function printAnnexSample()
+    {
+        return view('cns.export.print.annex-print-sample');
+    }
 }
