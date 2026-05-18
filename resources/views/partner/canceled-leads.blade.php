@@ -103,7 +103,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 				var blob = new Blob([response]);
 				var link = document.createElement('a');
 				link.href = window.URL.createObjectURL(blob);
-				link.download = 'import-leads-template.csv'; 
+				link.download = 'import-leads-template.xlsx';
 				link.click();
 				
 				window.URL.revokeObjectURL(link.href);

@@ -47,7 +47,7 @@ try {
 
     $data['gender'] = request()->input('Gender');
     $data['highest_education'] = request()->input('Last_Education');
-    // $data['source_channels'] = array_filter([request()->input('Source_Instagram'), request()->input('Source_Facebook'), request()->input('Source_Tiktok'), request()->input('Source_Website'), request()->input('Source_Event')])[0] ?? null;
+    // $data['source_channels'] = array_filter([request()->input('Source_Instagram'), request()->input('Source_Facebook'), request()->input('Source_TikTok'), request()->input('Source_Website'), request()->input('Source_Event')])[0] ?? null;
     $data['source_channels'] = request()->input('Source') ?? null;
     $data['pic'] = request()->input('PIC');
 

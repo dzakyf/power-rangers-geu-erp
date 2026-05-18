@@ -35,7 +35,7 @@ use App\Http\Controllers\CNS\PurchaseOrderController as CNSPurchaseOrderControll
 use App\Http\Controllers\CNS\QualityController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
-use App\Http\Controllers\Partner\UCOReportController as UCOLogisticController;
+use App\Http\Controllers\Partner\UCOController as UCOLogisticController;
 use App\Http\Controllers\Partner\TrainingController as PartnerTrainingController;
 use App\Http\Controllers\Partner\ChatListController as PartnerChatListController;
 use App\Http\Controllers\Partner\MasterSOPController as PartnerMasterSOPController;
@@ -48,6 +48,8 @@ use App\Http\Controllers\Partner\AnnouncementController as PartnerAnnouncementCo
 use App\Http\Controllers\Partner\BusinessFacilityController as PartnerBusinessFacilityController;
 use App\Http\Controllers\Partner\FacilityController as PartnerFacilityController;
 use App\Http\Controllers\Partner\AssetManagementController as PartnerAssetManagementController;
+use App\Http\Controllers\Partner\LeadsController;
+use App\Http\Controllers\Partner\MasterDataController;
 use App\Http\Controllers\Partner\OrderEquipmentController as PartnerOrderEquipmentController;
 use App\Http\Controllers\Partner\WarehouseController as PartnerWarehouseController;
 use App\Http\Controllers\Partner\WarehouseOpenController as PartnerWarehouseOpenController;
@@ -87,11 +89,12 @@ Route::get('partner-registration', function () {
 });
 
 Route::get('partner-prints-invoice', [App\Http\Controllers\Finance\PartnerController::class, 'printInvoice']);
-Route::post('province', [App\Http\Controllers\HelperController::class, 'provinceSearch']);
-Route::post('city/{province}', [App\Http\Controllers\HelperController::class, 'citySearch']);
-Route::post('district', [HelperController::class, 'districtSearch']);
-Route::get('subdistrict', [HelperController::class, 'subdistrictSearch']);
-Route::get('postal-code', [HelperController::class, 'postalCodeSearch']);
+// Route::post('province', [App\Http\Controllers\HelperController::class, 'provinceSearch']);
+// Route::post('city/{province}', [App\Http\Controllers\HelperController::class, 'citySearch']);
+// Route::post('district', [HelperController::class, 'districtSearch']);
+// Route::get('subdistrict', [HelperController::class, 'subdistrictSearch']);
+// Route::get('postal-code', [HelperController::class, 'postalCodeSearch']);
+
 
 Auth::routes();
 
@@ -4455,6 +4458,45 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post('upload-csv', [UploaderController::class, 'uploadAndInsertFromCsv']);
     Route::get('download-leads-template', [UploaderController::class, 'downloadLeadsTemplate']);
 
+    /** Master Data */
+    $masterData = "master";
+    Route::get("$masterData-lead-qualification", [MasterDataController::class, 'getLeadQualification']);
+    Route::get("$masterData-lead-classification", [MasterDataController::class, 'getLeadClassification']);
+    route::get("$masterData-lead-status", [Masterdatacontroller::class, 'getLeadStatus']);
+    route::get("$masterData-lead-response", [Masterdatacontroller::class, 'getLeadResponse']);
+    route::get("$masterData-lead-cancel-reason", [Masterdatacontroller::class, 'getLeadCancelReason']);
+    Route::get("$masterData-province", [MasterDataController::class, 'provinceSearch']);
+    Route::get("$masterData-city", [MasterDataController::class, 'citySearch']);
+    Route::get("$masterData-district", [MasterDataController::class, 'districtSearch']);
+    Route::get("$masterData-subdistrict", [MasterDataController::class, 'subdistrictSearch']);
+    Route::get("$masterData-postal-code", [MasterDataController::class, 'postalCodeSearch']);
+
+    /** POO (Point of Origin UCO) */
+    Route::get("$masterData-poo", [MasterDataController::class, 'POOPageIndex']);
+    Route::get("$masterData-poo-data", [MasterDataController::class, 'getPOO']);
+    Route::get("$masterData-poo-create", [MasterDataController::class, 'createPOOPage']);
+    Route::post("$masterData-poo-create-submit", [MasterDataController::class, 'createPOO']);
+    Route::get("$masterData-poo-update", [MasterDataController::class, 'updatePOOPage']);
+    Route::post("$masterData-poo-update-submit", [MasterDataController::class, 'updatePOO']);
+
+    /** Work Order */
+    $workOrderPref = "partner-work-order";
+    Route::get("$workOrderPref", [UCOLogisticController::class, 'indexWorkOrder']);
+    Route::get("$workOrderPref-data", [UCOLogisticController::class, 'getWorkOrder']);
+    Route::get("$workOrderPref-create", [UCOLogisticController::class, 'createWorkOrder']);
+    Route::post("$workOrderPref-create-submit", [UCOLogisticController::class, 'submitWorkOrder']);
+
+
+    /** Ticket */
+    $ucoTicket = "partner-uco-ticket";
+    Route::get("$ucoTicket", []);
+
+    /** leads */
+    $partnerLeads =  "partner-leads";
+    Route::get("$partnerLeads", [LeadsController::class, 'getLeads']);
+    Route::post("$partnerLeads-update", [LeadsController::class, 'updateLeads']);
+    Route::delete("$partnerLeads", [LeadsController::class, 'deleteLeads']);
+
     /** partner registration approval */
     $partnerApprovalPrefix = "partner-approval";
     Route::get("$partnerApprovalPrefix-progress/generate-mou", [ApprovalController::class, 'generateMOU']);
@@ -5193,7 +5235,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$prPref-detail", [CNSPurchaseRequestController::class, 'detailPurchaseRequestXml']);
     Route::post("$prPref-detail-approve", [CNSPurchaseRequestController::class, 'detailPurchaseRequestApprove']);
     Route::post("$prPref-detail-reject", [CNSPurchaseRequestController::class, 'detailPurchaseRequestReject']);
-    
+
     Route::get("$prPref-outstanding", [CNSPurchaseRequestController::class, 'outstandingPurchaseRequest']);
     Route::get("xml-$prPref-outstanding", [CNSPurchaseRequestController::class, 'outstandingPurchaseRequestXml']);
     Route::get("$prPref-outstanding-detail", [CNSPurchaseRequestController::class, 'outstandingPurchaseRequestDetail']);
@@ -5207,7 +5249,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$poPref-detail", [CNSPurchaseOrderController::class, 'detailPurchaseOrder']);
     Route::get("xml-$poPref-detail", [CNSPurchaseOrderController::class, 'detailPurchaseOrderXml']);
     Route::get("$poPref-print", [CNSPurchaseOrderController::class, 'printPurchaseOrder']);
-    
+
     $exportAnnexPref = "cns-export-annex";
     Route::get("$exportAnnexPref-index", [CNSAnnexVIIController::class, 'indexAnnex']);
     Route::get("$exportAnnexPref-data", [CNSAnnexVIIController::class, 'getAnnexData']);

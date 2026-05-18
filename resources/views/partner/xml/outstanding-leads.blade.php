@@ -16,7 +16,6 @@ if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
 echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
 
-
 $LSP = Auth::user()->Location ?? 'GEU-HO';
 $DOP = Auth::user()->DOP ?? '';
 $priv = Auth::user()->Priv_ID ?? '';
@@ -33,17 +32,17 @@ $Query = DB::table('opportunity_sales_dtl')->whereIn("Sales_ID", $Query)->get()-
 $Query = DB::table("opportunity")->where("Location", $LSP)->whereIn("Task_ID", $Query)->whereNotIn('Status', ['Deal', 'Cancel'])->orderBy("ID", "DESC")->get();
 
 foreach ($Query as $Fetch) {
-    if ($Fetch->Capital_Estimation == 1) {
-        $estimation = "<50 Juta";
-    } elseif ($Fetch->Capital_Estimation == 2) {
-        $estimation = "100 Juta - 200 Juta";
-    } elseif ($Fetch->Capital_Estimation == 3) {
-        $estimation = "200 Juta - 300 Juta";
-    } elseif ($Fetch->Capital_Estimation == 4) {
-        $estimation = "300 Juta";
-    } else {
-        $estimation = "50 Juta - 100 Juta";
-    }
+	if ($Fetch->Capital_Estimation == 1) {
+		$estimation = "<50 Juta";
+	} elseif ($Fetch->Capital_Estimation == 2) {
+		$estimation = "100 Juta - 200 Juta";
+	} elseif ($Fetch->Capital_Estimation == 3) {
+		$estimation = "200 Juta - 300 Juta";
+	} elseif ($Fetch->Capital_Estimation == 4) {
+		$estimation = "300 Juta";
+	} else {
+		$estimation = "50 Juta - 100 Juta";
+	}
 
 	echo "<row id=\"$Fetch->ID\">";
 	echo "<cell>$nomor</cell>";

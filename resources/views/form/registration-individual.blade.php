@@ -147,8 +147,8 @@
                              <label class="form-check-label" for="Source_Facebook">Facebook</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="Source" id="Source_Tiktok" value="Tiktok" />
-                             <label class="form-check-label" for="Source_Tiktok">Tiktok</label>
+                             <input class="form-check-input" type="radio" name="Source" id="Source_TikTok" value="TikTok" />
+                             <label class="form-check-label" for="Source_TikTok">TikTok</label>
                          </div>
                      </div>
                      <div class="col-md-6">
