@@ -32,18 +32,17 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 <div class="row">
 	<div id="OpportunityLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
-        <input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
+		<input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
 		<input type="button" id="detailLeads" name="detailLeads" value="Detail Leads" class="btn btn-info mt-2 mr-2" onclick="detailLeads()" />
-		<input type="button" id="assignToSales" name="assignToSales" value="Assign to Sales" class="btn btn-primary mt-2 mr-2" onclick="assignToSales()"/>
+		<input type="button" id="assignToSales" name="assignToSales" value="Assign to Sales" class="btn btn-primary mt-2 mr-2" onclick="assignToSales()" />
 		<div id="divAssignToSales" style="display: none;">
 			<select name="Sales" id="Sales" class="mr-2">
 				<option value="">-- Pilih Sales --</option>
 				@foreach($pic as $p)
-					<option value="{{ $p->username }}">{{ $p->Name }}</option>
+				<option value="{{ $p->username }}">{{ $p->Name }}</option>
 				@endforeach
 			</select>
 			<input type="button" id="assign" name="assign" value="Assign" class="btn btn-success mt-2 mr-2" onclick="assign()" />
-
 		</div>
 
 		<input type="file" id="csvFileInput" accept=".csv" style="display: none;">
@@ -51,11 +50,14 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>
+<div id="divDetailLeads" style="display:none;">
+	@include('partner.leads-detail')
+</div>
 <script>
 	function assignToSales() {
 		if ($('#divAssignToSales').css('display') == 'none') {
 			$('#divAssignToSales').css('display', 'inline-block');
-		}else {
+		} else {
 			$('#divAssignToSales').css('display', 'none');
 			$('#Sales').val('');
 		}
@@ -86,29 +88,29 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 		}
 		POpportunityLists.sendData();
 	}
-	$('#csvFileInput').on('change', function(){
+	$('#csvFileInput').on('change', function() {
 		let file = this.files[0]
 
 		ImportCSV(file)
 	})
 
-	function downloadCSVTemplate(){
+	function downloadCSVTemplate() {
 		$.ajax({
 			url: "download-leads-template",
 			type: "GET",
-			xhrFields:{
+			xhrFields: {
 				responseType: 'blob'
 			},
 			success: function(response, status, xhr) {
 				var blob = new Blob([response]);
 				var link = document.createElement('a');
 				link.href = window.URL.createObjectURL(blob);
-				link.download = 'import-leads-template.csv'; 
+				link.download = 'import-leads-template.xlsx';
 				link.click();
-				
+
 				window.URL.revokeObjectURL(link.href);
 			},
-			error: function(err){
+			error: function(err) {
 				alert("Telah terjadi kesalahan.");
 			}
 		})
@@ -122,15 +124,15 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 
 		$.ajax({
 			url: "upload-csv",
-			data: fd, 
+			data: fd,
 			type: "POST",
 			processData: false,
 			contentType: false,
-			success: function(res){
+			success: function(res) {
 				alert("Berhasil mengunggah file!")
 				$('#csvFileInput').val(null)
 			},
-			error: function(){
+			error: function() {
 				alert("Gagal mengunggah file!")
 			}
 		})
@@ -170,33 +172,32 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	POpportunityLists.setTransactionMode("POST", true);
 	POpportunityLists.setUpdateMode("Off");
 	POpportunityLists.init(OpportunityLists);
-    POpportunityLists.attachEvent("onBeforeDataSending", function (id,state, data) {
-        // Modify or add payload data here
+	POpportunityLists.attachEvent("onBeforeDataSending", function(id, state, data) {
+		// Modify or add payload data here
 		let sales = $('#Sales').val()
-        // console.log(data)
-        data.customPayload = {
-            // Add your payload properties dynamically
-            sales: sales,
-            // ... and so on
-        };
-        // console.log(id)
-        return true; // Return true to continue processing
-    });
-    POpportunityLists.attachEvent("onAfterUpdateFinish", function (id,state, data) {
-        alert("Data Successfully Submitted!");
-        setTimeout(function() {
-            refreshdata();
+		// console.log(data)
+		data.customPayload = {
+			// Add your payload properties dynamically
+			sales: sales,
+			// ... and so on
+		};
+		// console.log(id)
+		return true; // Return true to continue processing
+	});
+	POpportunityLists.attachEvent("onAfterUpdateFinish", function(id, state, data) {
+		alert("Data Successfully Submitted!");
+		setTimeout(function() {
+			refreshdata();
 			assignToSales();
-        }, 500);
-    });
-	OpportunityLists.attachEvent("onRowDblClicked", OpportunityListsKlik);
+		}, 500);
+	});
+	OpportunityLists.attachEvent("onRowDblClicked", detailLeads);
 	OpportunityLists.setSkin("dhx_skyblue");
 	OpportunityLists.init();
 	refreshdata();
 
 	function refreshdata() {
 		OpportunityLists.clearAndLoad('xml-partner-fresh-leads');
-
 	}
 
 	function delsOpportunity() {
@@ -215,17 +216,14 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 
 
 	function detailLeads() {
-		OpportunityListsKlik();
-		// dhtmlx.confirm('Submit this Opportunity FU?', 'Opportunity', function(r) {
-
-		// 	if (r == true) {
-		// 		POpportunityLists.sendData();
-		// 		alert('Data Successfully Submitted!');
-		// 		setTimeout(function() {
-		// 			refreshdata();
-		// 		}, 1000);
-		// 	}
-		// })
+		var id = OpportunityLists.getSelectedId();
+		if (!id) {
+			alert('Pilih Leads terlebih dulu');
+			return;
+		}
+		$('#ID').val(id);
+		$('#divDetailLeads').show();
+		getLeads();
 	}
 
 
@@ -257,13 +255,13 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 
 	function listDoc() {
 
-		DocumentListsDetailID = OpportunityLists.cells(OpportunityLists.getSelectedId(),12).getValue();
-		
-			$("#divlistProjectList").show();
+		DocumentListsDetailID = OpportunityLists.cells(OpportunityLists.getSelectedId(), 12).getValue();
 
-		if (DocumentListsDetailID !=''){
+		$("#divlistProjectList").show();
+
+		if (DocumentListsDetailID != '') {
 			$("#divlistOpportunity").hide();
-			LoadM('divlistProjectList','project-documents-detail?Task_ID=' + DocumentListsDetailID);
+			LoadM('divlistProjectList', 'project-documents-detail?Task_ID=' + DocumentListsDetailID);
 		}
 		return true;
 	}

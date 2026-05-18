@@ -65,8 +65,8 @@ if ($Fetch->Capital_Estimation == 1) {
 					</div>
 					<div class="col-md-4">
 						<div class="form-check">
-							<input class="form-check-input" type="radio" name="Source_Channel" readonly id="Source_Tiktok" value="Tiktok" {{ $Fetch->Source_Channel == 'Tiktok' ? 'checked' : '' }} />
-							<label class="form-check-label" for="Source_Tiktok">Tiktok</label>
+							<input class="form-check-input" type="radio" name="Source_Channel" readonly id="Source_TikTok" value="TikTok" {{ $Fetch->Source_Channel == 'TikTok' ? 'checked' : '' }} />
+							<label class="form-check-label" for="Source_TikTok">TikTok</label>
 						</div>
 						<div class="form-check">
 							<input class="form-check-input" type="radio" name="Source_Channel" readonly id="Source_Website" value="Website" {{ $Fetch->Source_Channel == 'Website' ? 'checked' : '' }} />
@@ -86,6 +86,8 @@ if ($Fetch->Capital_Estimation == 1) {
 </div>
 
 <script>
+	function updateLeads() {}
+
 	function changeStatus() {
 		var Status = $("#Status").find('option:selected').val();
 		if (Status == 'Cancel') {

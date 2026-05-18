@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Services\GeneratorService;
 use App\Services\UserService;
 use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class UploaderController extends Controller
 {
@@ -23,22 +24,18 @@ class UploaderController extends Controller
 
     public function downloadLeadsTemplate()
     {
-        $path = public_path('import-leads-template.csv');
+        $path = public_path('import-leads-template.xlsx');
 
         if (!file_exists($path)) {
             abort(404, "Template tidak tersedia");
         };
 
-        return response()->download($path, 'import-leads-template.csv');
+        return response()->download($path);
     }
 
     public function uploadAndInsertFromCsv(Request $r)
     {
-        $file = $r->file('csv_file');
-        $csvData = array_map('str_getcsv', file($file));
-        $headers = array_shift($csvData);
-
-        $successCount = 0;
+        $file = $r->file('template');
 
         $estimationModalMapper = [
             '>300 Juta' => 4,
@@ -46,30 +43,40 @@ class UploaderController extends Controller
             '100-200 Juta' => 2,
             '<50 Juta' => 1
         ];
+
         try {
-            foreach ($csvData as $idx => $row) {
+            $spreadsheet = IOFactory::load($file->getPathname());
+            $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+
+            array_shift($rows); // skip header row
+
+            foreach ($rows as $row) {
+                // columns: A=0, B=1, C=2, D=3, E=4
+                $namaLengkap    = $row[0];
+                $phone          = $row[1];
+                $source         = $row[2];
+                $tipeHub        = $row[3];
+                $estimasiModal  = $row[4];
+
                 if (empty(array_filter($row))) {
                     continue;
                 }
 
-                $data = array_combine($headers, $row);
-
                 DB::table('opportunity')->insert([
-                    'Full_Name' => $data['Nama Lengkap'],
-                    'Source_Channel' => $data['Source'],
-                    'Phone_Number' => $data['Phone'],
-                    'Hub_Type' => $data['Tipe Hub'],
-                    'Task_ID' => $this->generatorService->generateTaskID(),
-                    'Location' => $this->userService->getUserOfficeLocation(),
-                    'Date' => Carbon::now(),
+                    'Full_Name'            => $namaLengkap,
+                    'Source_Channel'       => $source,
+                    'Phone_Number'         => $phone,
+                    'Hub_Type'             => $tipeHub,
+                    'Task_ID'              => $this->generatorService->generateTaskID(),
+                    'Location'             => $this->userService->getUserOfficeLocation(),
+                    'Date'                 => Carbon::now(),
                     'Partnership_Interest' => "1",
-                    'Capital_Estimation' => $estimationModalMapper[$data['Estimasi Modal']],
-                    'Created_By' => $this->userService->getCurrentSessionUser(),
-                    'Status' => "",
-                    'Updated_By' => "",
+                    'Capital_Estimation'   => $estimationModalMapper[$estimasiModal] ?? null,
+                    'Created_By'           => $this->userService->getCurrentSessionUser(),
+                    'Status'               => "Fresh",
+                    'Classification'        => "Fresh",
+                    'Updated_By'           => "",
                 ]);
-
-                $successCount++;
             }
 
             return "Success";

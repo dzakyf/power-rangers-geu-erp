@@ -72,7 +72,7 @@ $Saya =  Auth::user()->username;
                     <select name="channel" id="channel" class="form-control" required>
                         <option value="">-- Pilih Jenis--</option>
                         <option value="GOOGLE_ADS">Google Ads</option>
-                        <option value="TIKTOK">TikTok</option>
+                        <option value="TikTok">TikTok</option>
                         <option value="FANPAGE">Fanpage</option>
                         <option value="EVENT">Event</option>
                         <option value="INSTAGRAM">Instagram</option>

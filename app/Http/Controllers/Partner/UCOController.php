@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Safe\Exceptions\SimplexmlException;
 use SimpleXMLElement;
 
-class UCOReportController extends Controller
+class UCOController extends Controller
 {
 
     private $userService;
@@ -389,4 +389,92 @@ class UCOReportController extends Controller
 
         return response()->json(['status' => 'success', 'data' => $list]);
     }
+
+    public function indexWorkOrder()
+    {
+        return view('partner.work-order.index');
+    }
+
+    public function getWorkOrder(Request $r)
+    {
+        $id     = $r->query('id');
+        $format = $r->query('format', 'json');
+
+        $query = DB::table('work_order as wo')
+            ->leftJoin('master_poo as mp', 'mp.ID', '=', 'wo.POO_Id')
+            ->select(
+                'wo.ID',
+                'wo.POO_Id',
+                'mp.Name as POO_Name',
+                'wo.Status',
+                DB::raw("DATE_FORMAT(wo.Work_Order_Date, '%Y-%m-%d') as Work_Order_Date"),
+                'wo.Created_At',
+                'wo.Updated_At'
+            );
+
+        if ($id) {
+            $query->where('wo.ID', $id);
+        }
+
+        $rows = $query->get();
+
+        if ($format === 'xml') {
+            $xml     = new SimpleXMLElement('<rows/>');
+            $counter = 1;
+
+            foreach ($rows as $row) {
+                $item = $xml->addChild('row');
+                $item->addAttribute('ID', $row->ID);
+
+                $item->addChild('cell', $counter);
+                $item->addChild('cell', htmlspecialchars((string) $row->ID));
+                $item->addChild('cell', htmlspecialchars((string) $row->POO_Name));
+                $item->addChild('cell', htmlspecialchars((string) $row->Status));
+                $item->addChild('cell', htmlspecialchars((string) $row->Work_Order_Date));
+                $item->addChild('cell', htmlspecialchars((string) $row->Created_At));
+                $item->addChild('cell', htmlspecialchars((string) $row->Updated_At));
+
+                $counter++;
+            }
+
+            return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+        }
+
+        return response()->json(['data' => $rows]);
+    }
+
+
+    public function createWorkOrder(Request $r)
+    {
+        return view('partner.work-order.create');
+    }
+
+    public function submitWorkOrder(Request $r)
+    {
+        DB::beginTransaction();
+
+        try {
+            DB::table('work_order')->insert([
+                'POO_Id'          => $r->input('POO_Id'),
+                'Status'          => $r->input('Status'),
+                'Work_Order_Date' => $r->input('Work_Order_Date'),
+            ]);
+
+            DB::commit();
+
+            return response()->json(['status' => 'success', 'message' => 'Work order berhasil dibuat.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getPickupRequest(Request $r) {}
+
+    public function createPickupRequest(Request $r) {}
+
+    public function createTicket(Request $r) {}
+
+    public function getTicket(Request $r) {}
 }

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,34 +20,33 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolautosuggest.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolfieldset.css') }}" />
 
-    <script  src="{{ asset('jquery2.min.js')}}"></script>
-    <script  src="{{ asset('timeline.min.js')}}"></script>
+    <script src="{{ asset('jquery2.min.js')}}"></script>
+    <script src="{{ asset('timeline.min.js')}}"></script>
 
     <script>
-    function LoadM(DivID,PathID){
+        function LoadM(DivID, PathID) {
 
-        $("#"+DivID).ajaxloader(PathID);	
-        
-    }
+            $("#" + DivID).ajaxloader(PathID);
 
+        }
     </script>
 
 
     <link rel="STYLESHEET" type="text/css" href="{{ asset('dhtmlx/dhtmlx.css') }}">
-    <script  src="{{ asset('dhtmlx/dhtmlx.js')}}"></script>
+    <script src="{{ asset('dhtmlx/dhtmlx.js')}}"></script>
 
 
 
-    <script type="text/javascript"  src="{{ asset('./jquery.confirm.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('./jquery.confirm.js') }}"></script>
     <script type="text/javascript" src="http://code.jquery.com/jquery-migrate-1.0.0.js"></script>
 
-    <link rel="stylesheet" type="text/css"  href="{{ asset('form_input.css') }}" />
-    <link rel="stylesheet" type="text/css"  href="{{ asset('./jquery-confirm.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('form_input.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('./jquery-confirm.css') }}" />
     <link href="https://fonts.googleapis.com/css?family=Roboto:400,500" rel="stylesheet">
 
-    <script  src="{{ asset('vault.js?v=3.0.0')}}"></script>
-    <link rel="stylesheet" type="text/css"  href="{{ asset('vault.css') }}" />
-    <link rel="stylesheet" type="text/css"  href="{{ asset('css/timeline.min.css') }}" />
+    <script src="{{ asset('vault.js?v=3.0.0')}}"></script>
+    <link rel="stylesheet" type="text/css" href="{{ asset('vault.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('css/timeline.min.css') }}" />
 
     <script src="{{ asset('jquery.coolautosuggest.js') }}"></script>
     <script src="{{ asset('jquery.coolfieldset.js') }}"></script>
@@ -54,10 +54,10 @@
     <link rel="STYLESHEET" type="text/css" href="{{ asset('dhtmlx/diagram-editor.css') }}">
     <link rel="STYLESHEET" type="text/css" href="{{ asset('dhtmlx/diagram.css') }}">
 
-    <script  src="{{ asset('dhtmlx/diagram.js')}}"></script>
-    <script  src="{{ asset('dhtmlx/diagram-editor.js')}}"></script>
-    <script  src="{{ asset('highcharts/highcharts.js')}}"></script>
-    <script  src="{{ asset('highcharts/modules/exporting.js')}}"></script>
+    <script src="{{ asset('dhtmlx/diagram.js')}}"></script>
+    <script src="{{ asset('dhtmlx/diagram-editor.js')}}"></script>
+    <script src="{{ asset('highcharts/highcharts.js')}}"></script>
+    <script src="{{ asset('highcharts/modules/exporting.js')}}"></script>
 
     <script src="{{ asset('/assets/js/jquery.min.js') }}"></script>
     <script src="{{ asset('/assets/js/popper.min.js') }}"></script>
@@ -78,11 +78,12 @@
     <script src="{{ asset('jquery.ajaxloader.1.5.1.js') }}"></script>
     <script src="{{ asset('blockui.js') }}"></script>
 </head>
+
 <body class="p-md-5 p-0" style="background-color: #f8f9fa;">
-    <?php 
+    <?php
     $LSP = "GEU";
     $Saya = 'guest';
-    $leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
+    $leadID = 'BP/' . $LSP . '/' . date('Ymdhis') . '/' . substr(md5($Saya), 0, 3);
     ?>
     <div class="container-fluid p-md-5 p-0">
         <div class="card">
@@ -130,8 +131,8 @@
                                         <label class="form-check-label" for="Source_Facebook">Facebook</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="Source_Channel" id="Source_Tiktok" value="Tiktok" />
-                                        <label class="form-check-label" for="Source_Tiktok">Tiktok</label>
+                                        <input class="form-check-input" type="radio" name="Source_Channel" id="Source_TikTok" value="TikTok" />
+                                        <label class="form-check-label" for="Source_TikTok">TikTok</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -165,7 +166,8 @@
                         <div class="col-sm-10">
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="Capital_Estimation" id="Capital_Estimation_1" value="1">
-                                <label class="form-check-label" for="Capital_Estimation_1"><50 Juta</label>
+                                <label class="form-check-label" for="Capital_Estimation_1">
+                                    <50 Juta</label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="Capital_Estimation" id="Capital_Estimation_2" value="2">
@@ -192,52 +194,52 @@
         var myCalendar;
         myCalendar = new dhtmlXCalendarObject("Date");
         myCalendar.setDateFormat("%Y-%m-%d");
-	$('#SubmitCustDetail').click(function() {
+        $('#SubmitCustDetail').click(function() {
 
-		gettingVars = getAllValues();
+            gettingVars = getAllValues();
 
-		$.ajax({
-			headers: {
-				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-			},
-			url: "sales-opportunity-new-submit?_token={{ csrf_token() }}",
-			type: "POST",
-			data: gettingVars,
-			success: function(data, textStatus, jqXHR) {
-				var dataPos = data.indexOf("success");
-				if (dataPos != '-1') {
-					var cariAWB = data.split(":");
-					alert('Data Leads Submitted!');
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                url: "sales-opportunity-new-submit?_token={{ csrf_token() }}",
+                type: "POST",
+                data: gettingVars,
+                success: function(data, textStatus, jqXHR) {
+                    var dataPos = data.indexOf("success");
+                    if (dataPos != '-1') {
+                        var cariAWB = data.split(":");
+                        alert('Data Leads Submitted!');
 
-					location.reload();
-				} else {
-					var cariAWB = data.split("||");
-					alert(cariAWB[0]);
-                    $('#' + cariAWB[1]).focus();
-				}
-			},
-			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
+                        location.reload();
+                    } else {
+                        var cariAWB = data.split("||");
+                        alert(cariAWB[0]);
+                        $('#' + cariAWB[1]).focus();
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    alert("Error Internal! Please Try again!");
 
-			}
-		});
-	})
+                }
+            });
+        })
 
-	function getAllValues() {
-		var inputValues = [];
-		$('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
-			var type = $(this).attr("type");
-			if ((type == "checkbox" || type == "radio") && this.checked) {
-				inputValues.push($(this).attr("name") + "=" + $(this).val());
-			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			} else if ($(this).is("textarea")) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			}
-		})
-		return inputValues.join('&');
-	}
-
+        function getAllValues() {
+            var inputValues = [];
+            $('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
+                var type = $(this).attr("type");
+                if ((type == "checkbox" || type == "radio") && this.checked) {
+                    inputValues.push($(this).attr("name") + "=" + $(this).val());
+                } else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
+                    inputValues.push($(this).attr("id") + "=" + $(this).val());
+                } else if ($(this).is("textarea")) {
+                    inputValues.push($(this).attr("id") + "=" + $(this).val());
+                }
+            })
+            return inputValues.join('&');
+        }
     </script>
 </body>
+
 </html>

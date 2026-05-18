@@ -33,54 +33,53 @@ $Saya =  Auth::user()->username;
 <div class="row">
 	<div id="OpportunityLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
-        <input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
+		<input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
 		<input type="button" id="detailLeads" name="detailLeads" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailLeads()" />
-				<!-- <input type="button" id="delets" name="delets" value="Cancel Opportunity" class="btn btn-danger mt-2 mr-2" onclick="delsOpportunity()" /> -->
-		
+		<!-- <input type="button" id="delets" name="delets" value="Cancel Opportunity" class="btn btn-danger mt-2 mr-2" onclick="delsOpportunity()" /> -->
+
 		<div class="btn-group mt-2 mr-2" role="group">
 			<button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 				<i class="fas fa-download"></i> Action
 			</button>
 			<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
 				<a class="dropdown-item" href="#" onclick="document.getElementById('csvFileInput').click(); return false;">
-					<i class="fas fa-file-csv"></i> Import .csv
+					<i class="fas fa-file-csv"></i> Import Data
 				</a>
 				<a class="dropdown-item" href="#" onclick="downloadCSVTemplate()">
-					<i class="fas fa-file-csv"></i> Download template (.csv)
+					<i class="fas fa-file-csv"></i> Download template
 				</a>
 			</div>
 		</div>
 
-		<input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+		<input type="file" id="csvFileInput" accept=".xlsx" style="display: none;">
 	</div>
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>
 <script>
-
-	$('#csvFileInput').on('change', function(){
+	$('#csvFileInput').on('change', function() {
 		let file = this.files[0]
 
 		ImportCSV(file)
 	})
 
-	function downloadCSVTemplate(){
+	function downloadCSVTemplate() {
 		$.ajax({
 			url: "download-leads-template",
 			type: "GET",
-			xhrFields:{
+			xhrFields: {
 				responseType: 'blob'
 			},
 			success: function(response, status, xhr) {
 				var blob = new Blob([response]);
 				var link = document.createElement('a');
 				link.href = window.URL.createObjectURL(blob);
-				link.download = 'import-leads-template.csv'; 
+				link.download = 'import-leads-template.xlsx';
 				link.click();
-				
+
 				window.URL.revokeObjectURL(link.href);
 			},
-			error: function(err){
+			error: function(err) {
 				alert("Telah terjadi kesalahan.");
 			}
 		})
@@ -89,20 +88,20 @@ $Saya =  Auth::user()->username;
 	function ImportCSV(file) {
 		let fd = new FormData()
 
-		fd.append('csv_file', file)
+		fd.append('template', file)
 		fd.append('_token', '{{ csrf_token() }}')
 
 		$.ajax({
 			url: "upload-csv",
-			data: fd, 
+			data: fd,
 			type: "POST",
 			processData: false,
 			contentType: false,
-			success: function(res){
+			success: function(res) {
 				alert("Berhasil mengunggah file!")
 				$('#csvFileInput').val(null)
 			},
-			error: function(){
+			error: function() {
 				alert("Gagal mengunggah file!")
 			}
 		})
@@ -115,7 +114,7 @@ $Saya =  Auth::user()->username;
 		if (OpportunityListsID != null) {
 			$("#divlistProjectList").hide();
 			LoadM('divlistOpportunity', 'partner-outstanding-leads-detail?ID=' + OpportunityListsID);
-		}else {
+		} else {
 			alert("Pilih Leads terlebih dulu");
 		}
 		return true;
@@ -212,13 +211,13 @@ $Saya =  Auth::user()->username;
 
 	function listDoc() {
 
-		DocumentListsDetailID = OpportunityLists.cells(OpportunityLists.getSelectedId(),12).getValue();
-		
-			$("#divlistProjectList").show();
+		DocumentListsDetailID = OpportunityLists.cells(OpportunityLists.getSelectedId(), 12).getValue();
 
-		if (DocumentListsDetailID !=''){
+		$("#divlistProjectList").show();
+
+		if (DocumentListsDetailID != '') {
 			$("#divlistOpportunity").hide();
-			LoadM('divlistProjectList','project-documents-detail?Task_ID=' + DocumentListsDetailID);
+			LoadM('divlistProjectList', 'project-documents-detail?Task_ID=' + DocumentListsDetailID);
 		}
 		return true;
 	}
