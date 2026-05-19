@@ -40,46 +40,46 @@ if ($Fetch->Capital_Estimation == 1) {
 			</div>
 			<div class="col-md-6">
 				<label for="Full_Name">Full Name</label>
-				<input type="text" id="Full_Name" name="Full_Name" class="form-control" value="{{ $Fetch->Full_Name }}" readonly />
+				<input type="text" id="Full_Name" name="Full_Name" class="form-control" value="{{ $Fetch->Full_Name }}" />
 			</div>
 			<div class="col-md-6 mt-3">
 				<label for="Phone_Number">Contact</label>
-				<input type="text" id="Phone_Number" name="Phone_Number" class="form-control" value="{{ $Fetch->Phone_Number }}" readonly />
+				<input type="text" id="Phone_Number" name="Phone_Number" class="form-control" value="{{ $Fetch->Phone_Number }}" />
 			</div>
 			<div class="col-md-6 mt-3">
 				<label for="Partnership_Interest">Partnership Interest</label>
-				<input type="text" id="Partnership_Interest" name="Partnership_Interest" class="form-control" value="Opsi {{ $Fetch->Partnership_Interest }}" readonly />
+				<input type="text" id="Partnership_Interest" name="Partnership_Interest" class="form-control" value="Opsi {{ $Fetch->Hub_Type }}" />
 			</div>
 			<div class="col-md-6 mt-3">
 				<label for="Capital_Estimation">Capital Estimation</label>
-				<input type="text" id="Capital_Estimation" name="Capital_Estimation" class="form-control" value="{{ $estimation }}" readonly />
+				<input type="text" id="Capital_Estimation" name="Capital_Estimation" class="form-control" value="{{ $estimation }}" />
 			</div>
 			<div class="col-md-6 mt-3">
 				<label class="col-form-label"><strong>Bagaimana Anda mengetahui program kemitraan ini?</strong></label>
 				<div class="row">
 					<div class="col-md-4">
 						<div class="form-check">
-							<input class="form-check-input" type="radio" name="Source_Channel" disabled id="Source_Instagram" value="Instagram" {{ $Fetch->Source_Channel == 'Instagram' ? 'checked' : '' }} />
+							<input class="form-check-input" type="radio" name="Source_Channel" id="Source_Instagram" value="Instagram" {{ $Fetch->Source_Channel == 'Instagram' ? 'checked' : '' }} />
 							<label class="form-check-label" for="Source_Instagram">Instagram</label>
 						</div>
 						<div class="form-check">
-							<input class="form-check-input" type="radio" name="Source_Channel" disabled id="Source_Facebook" value="Facebook" {{ $Fetch->Source_Channel == 'Facebook' ? 'checked' : '' }} />
+							<input class="form-check-input" type="radio" name="Source_Channel" id="Source_Facebook" value="Facebook" {{ $Fetch->Source_Channel == 'Facebook' ? 'checked' : '' }} />
 							<label class="form-check-label" for="Source_Facebook">Facebook</label>
 						</div>
 					</div>
 					<div class="col-md-4">
 						<div class="form-check">
-							<input class="form-check-input" type="radio" name="Source_Channel" disabled id="Source_TikTok" value="TikTok" {{ $Fetch->Source_Channel == 'TikTok' ? 'checked' : '' }} />
+							<input class="form-check-input" type="radio" name="Source_Channel" id="Source_TikTok" value="TikTok" {{ $Fetch->Source_Channel == 'TikTok' ? 'checked' : '' }} />
 							<label class="form-check-label" for="Source_TikTok">TikTok</label>
 						</div>
 						<div class="form-check">
-							<input class="form-check-input" type="radio" name="Source_Channel" disabled id="Source_Website" value="Website" {{ $Fetch->Source_Channel == 'Website' ? 'checked' : '' }} />
+							<input class="form-check-input" type="radio" name="Source_Channel" id="Source_Website" value="Website" {{ $Fetch->Source_Channel == 'Website' ? 'checked' : '' }} />
 							<label class="form-check-label" for="Source_Website">Website</label>
 						</div>
 					</div>
 					<div class="col-md-4">
 						<div class="form-check">
-							<input class="form-check-input" type="radio" name="Source_Channel" disabled id="Source_Event" value="Event" {{ $Fetch->Source_Channel == 'Event' ? 'checked' : '' }} />
+							<input class="form-check-input" type="radio" name="Source_Channel" id="Source_Event" value="Event" {{ $Fetch->Source_Channel == 'Event' ? 'checked' : '' }} />
 							<label class="form-check-label" for="Source_Event">Pameran/Acara</label>
 						</div>
 					</div>

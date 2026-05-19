@@ -244,191 +244,26 @@ class ApprovalController extends Controller
 
     public function processOnboardingToNextProgress(Request $r)
     {
-        try {
-            $b = $r->all();
-            $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
-            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'ONBOARDING')->first();
-            $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'ONBOARDING')->first();
-
-            $session = $this->userService->getCurrentSessionUserInfo();
-
-            $result = DB::transaction(function () use ($b, $req, $session, $level, $nextLevel) {
-                $logId = DB::table('approval_log')->insertGetId([
-                    'Approver_Id' => $session->id,
-                    'Notes' => "",
-                    'Action' =>  $b['action'],
-                    'Level_Number' => $level->Level_Number,
-                    'Next_Level' => $b['action'] == "APPROVED" ? $level->Level_Number + 1 : $level->Level_Number,
-                    'Level_Id' => $level->ID,
-                    'Next_Level_Id' => $nextLevel->ID,
-                    'Request_Id' => $req->ID,
-                ]);
-
-                $updated = DB::table('approval_request')
-                    ->where('ID', '=', $req->ID)
-                    ->update([
-                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
-                        'Description' => "Berhasil menuju tahap selanjutnya",
-                        'Current_Level' => $req->Current_Level + 1,
-                        'Level_Id' => $nextLevel->ID,
-                        'Request_Type' => $req->Request_Type,
-                    ]);
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'success',
-                'data' => $result
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Transaction failed: ' . $e->getMessage()
-            ], 500);
-        }
+        $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
+        return response()->json($result, $result['success'] ? 200 : 500);
     }
-
 
     public function processProfitSharingToNextProgress(Request $r)
     {
-        try {
-            $b = $r->all();
-            $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
-            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'PROFIT_SHARING')->first();
-            $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'PROFIT_SHARING')->first();
-
-            $session = $this->userService->getCurrentSessionUserInfo();
-
-            $result = DB::transaction(function () use ($b, $req, $session, $level, $nextLevel) {
-                $logId = DB::table('approval_log')->insertGetId([
-                    'Approver_Id' => $session->id,
-                    'Notes' => "",
-                    'Action' =>  $b['action'],
-                    'Level_Number' => $level->Level_Number,
-                    'Next_Level' => $b['action'] == "APPROVED" ? $level->Level_Number + 1 : $level->Level_Number,
-                    'Level_Id' => $level->ID,
-                    'Next_Level_Id' => $nextLevel->ID,
-                    'Request_Id' => $req->ID,
-                ]);
-
-                $updated = DB::table('approval_request')
-                    ->where('ID', '=', $req->ID)
-                    ->update([
-                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
-                        'Description' => "Berhasil menuju tahap selanjutnya",
-                        'Current_Level' => $req->Current_Level + 1,
-                        'Level_Id' => $nextLevel->ID,
-                        'Request_Type' => $req->Request_Type,
-                    ]);
-            });
-
-            // Akunting 
-            if ($session->Position === "BOD") {
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'success',
-                'data' => $result
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Transaction failed: ' . $e->getMessage()
-            ], 500);
-        }
+        $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
+        return response()->json($result, $result['success'] ? 200 : 500);
     }
 
     public function processRenewalToNextProgress(Request $r)
     {
-        try {
-            $b = $r->all();
-            $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
-            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'RENEWAL')->first();
-            $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'RENEWAL')->first();
-
-            $session = $this->userService->getCurrentSessionUserInfo();
-
-            $result = DB::transaction(function () use ($b, $req, $session, $level, $nextLevel) {
-                $logId = DB::table('approval_log')->insertGetId([
-                    'Approver_Id' => $session->id,
-                    'Notes' => "",
-                    'Action' =>  $b['action'],
-                    'Level_Number' => $level->Level_Number,
-                    'Next_Level' => $b['action'] == "APPROVED" ? $level->Level_Number + 1 : $level->Level_Number,
-                    'Level_Id' => $level->ID,
-                    'Next_Level_Id' => $nextLevel->ID,
-                    'Request_Id' => $req->ID,
-                ]);
-
-                $updated = DB::table('approval_request')
-                    ->where('ID', '=', $req->ID)
-                    ->update([
-                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
-                        'Description' => "Berhasil menuju tahap selanjutnya",
-                        'Current_Level' => $req->Current_Level + 1,
-                        'Level_Id' => $nextLevel->ID,
-                        'Request_Type' => $req->Request_Type,
-                    ]);
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'success',
-                'data' => $result
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Transaction failed: ' . $e->getMessage()
-            ], 500);
-        }
+        $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
+        return response()->json($result, $result['success'] ? 200 : 500);
     }
 
     public function processSurveyToNextProgress(Request $r)
     {
-        try {
-            $b = $r->all();
-            $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
-            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'SURVEY')->first();
-            $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'SURVEY')->first();
-
-            $session = $this->userService->getCurrentSessionUserInfo();
-
-            $result = DB::transaction(function () use ($b, $req, $session, $level, $nextLevel) {
-                $logId = DB::table('approval_log')->insertGetId([
-                    'Approver_Id' => $session->id,
-                    'Notes' => "",
-                    'Action' =>  $b['action'],
-                    'Level_Number' => $level->Level_Number,
-                    'Next_Level' => $b['action'] == "APPROVED" ? $level->Level_Number + 1 : $level->Level_Number,
-                    'Level_Id' => $level->ID,
-                    'Next_Level_Id' => $nextLevel->ID,
-                    'Request_Id' => $req->ID,
-                ]);
-
-                $updated = DB::table('approval_request')
-                    ->where('ID', '=', $req->ID)
-                    ->update([
-                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
-                        'Description' => "Berhasil menuju tahap selanjutnya",
-                        'Current_Level' => $req->Current_Level + 1,
-                        'Level_Id' => $nextLevel->ID,
-                        'Request_Type' => $req->Request_Type,
-                    ]);
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'success',
-                'data' => $result
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Transaction failed: ' . $e->getMessage()
-            ], 500);
-        }
+        $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
+        return response()->json($result, $result['success'] ? 200 : 500);
     }
 
 
@@ -494,6 +329,102 @@ class ApprovalController extends Controller
         echo "</rows>";
     }
 
+    /**
+     * Create a new approval request with its initial log entry.
+     *
+     * @param  string  $requestType   e.g. 'ONBOARDING', 'PROFIT_SHARING'
+     * @param  int     $requesterId
+     * @param  string  $action        initial action written to the log
+     * @param  array   $extra         extra columns merged into approval_request (e.g. Map_To, Opportunity_Partner_Id)
+     * @return int     the new approval_request ID
+     */
+    public function createApprovalRequest(string $requestType, int $requesterId, string $action, array $extra = []): int
+    {
+        return DB::transaction(function () use ($requestType, $requesterId, $action, $extra) {
+            $id = DB::table('approval_request')->insertGetId(array_merge([
+                'Status'       => $action,
+                'Requester_Id' => $requesterId,
+                'Description'  => 'Initial Review',
+                'Request_Type' => $requestType,
+            ], $extra));
+
+            $request = DB::table('approval_request')->where('ID', $id)->first();
+
+            DB::table('approval_log')->insert([
+                'Approver_Id'  => $this->userService->getCurrentSessionUserInfo()->id,
+                'Notes'        => '',
+                'Action'       => $action,
+                'Request_Id'   => $id,
+                'Level_Number' => $request->Current_Level,
+                'Next_Level'   => (int) $request->Current_Level + 1,
+            ]);
+
+            return $id;
+        });
+    }
+
+    /**
+     * Advance an approval request to its next level and log the action.
+     * Works for any Request_Type — driven entirely by the level config in approval_level.
+     *
+     * @param  int     $requestId
+     * @param  string  $action    'APPROVED' | 'REJECTED' | any string
+     * @param  string  $notes
+     * @return array   ['success' => bool, 'message' => string]
+     */
+    public function processToNextLevel(int $requestId, string $action, string $notes = ''): array
+    {
+        try {
+            $session = $this->userService->getCurrentSessionUserInfo();
+
+            $req = DB::table('approval_request')->where('ID', $requestId)->first();
+            if (!$req) {
+                return ['success' => false, 'message' => 'Approval request not found'];
+            }
+
+            $level = DB::table('approval_level')
+                ->where('ID', $req->Level_Id)
+                ->where('Request_Type', $req->Request_Type)
+                ->first();
+
+            if (!$level) {
+                return ['success' => false, 'message' => 'Approval level not found'];
+            }
+
+            $nextLevel = $level->Next_Level_Id
+                ? DB::table('approval_level')
+                ->where('ID', $level->Next_Level_Id)
+                ->where('Request_Type', $req->Request_Type)
+                ->first()
+                : null;
+
+            DB::transaction(function () use ($req, $level, $nextLevel, $session, $action, $notes) {
+                DB::table('approval_log')->insert([
+                    'Approver_Id'   => $session->id,
+                    'Notes'         => $notes,
+                    'Action'        => $action,
+                    'Level_Number'  => $level->Level_Number,
+                    'Next_Level'    => $action === 'APPROVED' ? $level->Level_Number + 1 : $level->Level_Number,
+                    'Level_Id'      => $level->ID,
+                    'Next_Level_Id' => $nextLevel->ID ?? null,
+                    'Request_Id'    => $req->ID,
+                ]);
+
+                DB::table('approval_request')->where('ID', $req->ID)->update([
+                    'Status'        => $session->Position === 'BOD' ? 'APPROVED' : 'NEED_APPROVAL',
+                    'Description'   => 'Berhasil menuju tahap selanjutnya',
+                    'Current_Level' => $req->Current_Level + 1,
+                    'Level_Id'      => $nextLevel->ID ?? null,
+                    'Request_Type'  => $req->Request_Type,
+                ]);
+            });
+
+            return ['success' => true, 'message' => 'success'];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
     // ->where('requester.id', 'LIKE', $userId)
     //?user_id=&type=
     public function getApprovalData(Request $r)
@@ -506,7 +437,6 @@ class ApprovalController extends Controller
 
         // Head Table 
         $d = DB::table('approval_request as appr');
-
 
         // dd($d->get());
 
@@ -642,55 +572,7 @@ class ApprovalController extends Controller
 
     public function processPromotionApproval(Request $r)
     {
-        try {
-            $b = $r->all();
-            $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
-
-            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'BRANDING_PROMOTION')->first();
-
-            $nextLevel = null;
-
-            if ($level->Next_Level_Id) {
-                $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'BRANDING_PROMOTION')->first();
-            }
-
-            $session = $this->userService->getCurrentSessionUserInfo();
-
-            $result = DB::transaction(function () use ($b, $req, $session, $level, $nextLevel) {
-                $logId = DB::table('approval_log')->insertGetId([
-                    'Approver_Id' => $session->id,
-                    'Notes' => "",
-                    'Action' =>  $b['action'],
-                    'Level_Number' => $level->Level_Number,
-                    'Next_Level' => $b['action'] == "APPROVED" ? $level->Level_Number + 1 : $level->Level_Number,
-                    'Level_Id' => $level->ID,
-                    'Next_Level_Id' => $nextLevel->ID ?? null,
-                    'Request_Id' => $req->ID,
-                ]);
-
-                $updated = DB::table('approval_request')
-                    ->where('ID', '=', $req->ID)
-                    ->update([
-                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
-                        'Description' => "Berhasil menuju tahap selanjutnya",
-                        'Current_Level' => $req->Current_Level + 1,
-                        'Level_Id' => $nextLevel->ID ?? null,
-                        'Request_Type' => $req->Request_Type,
-                    ]);
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'success',
-                'data' => $result
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Transaction failed: ' . $e->getMessage()
-            ], 500);
-        }
-
-        return response()->json(['message' => 'success']);
+        $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
+        return response()->json($result, $result['success'] ? 200 : 500);
     }
 }

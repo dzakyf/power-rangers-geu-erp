@@ -470,9 +470,17 @@ class UCOController extends Controller
         }
     }
 
+    public function indexPickupRequest()
+    {
+        return view('partner.pickup.index');
+    }
+
     public function getPickupRequest(Request $r) {}
 
-    public function createPickupRequest(Request $r) {}
+    public function createPickupRequest(Request $r)
+    {
+        return view('partner.pickup.create');
+    }
 
     public function createTicket(Request $r) {}
 

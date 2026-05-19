@@ -4486,6 +4486,12 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$workOrderPref-create", [UCOLogisticController::class, 'createWorkOrder']);
     Route::post("$workOrderPref-create-submit", [UCOLogisticController::class, 'submitWorkOrder']);
 
+    /** Pickup */
+    $pickupPref = "partner-pickup";
+    Route::get("$pickupPref", [UCOLogisticController::class, 'indexPickupRequest']);
+    Route::get("$pickupPref-create", [UCOLogisticController::class, 'createPickupRequest']);
+    Route::get("$pickupPref-create-submit", [UCOLogisticController::class, 'createPickupRequest']);
+
 
     /** Ticket */
     $ucoTicket = "partner-uco-ticket";

@@ -15,16 +15,20 @@ $Saya =  Auth::user()->username;
 		<div id="AssignSalesDetail" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 		<div>
 			<input type="button" id="ekselAssignSalesDetailDet" name="ekselAssignSalesDetailDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="AssignSalesDetail.toExcel('./export/generate.php');" />
-			<input type="button" id="detailLeads" name="detailLeads" value="Detail Leads" class="btn btn-info mt-2 mr-2" onclick="detailLeads()" />
-	
+			<input type="button" id="detailLeads" name="detailLeads" value="Detail Leads" class="btn btn-info mt-2 mr-2" onclick="showLeadsDetail()" />
+
 			<input type="file" id="csvFileInput" accept=".csv" style="display: none;">
 		</div>
 	</div>
 </div>
-<div class="mt-3" id="divlistAssignDetail"></div>
+<!-- <div class="mt-3" id="divlistAssignDetail"></div> -->
+<div class="mt-3" id="divLeadsDetail" style="display:none;">
+	@include('partner.leads-detail')
+</div>
+
+
 <script>
 	function AssignSalesDetailKlik() {
-
 		AssignSalesDetailID = AssignSalesDetail.getSelectedId();
 		$("#divlistAssignDetail").show();
 		if (AssignSalesDetailID != '') {
@@ -57,19 +61,19 @@ $Saya =  Auth::user()->username;
 	PAssignSalesDetail.setTransactionMode("POST", true);
 	PAssignSalesDetail.setUpdateMode("Off");
 	PAssignSalesDetail.init(AssignSalesDetail);
-    PAssignSalesDetail.attachEvent("onBeforeDataSending", function (id,state, data) {
-        // Modify or add payload data here
+	PAssignSalesDetail.attachEvent("onBeforeDataSending", function(id, state, data) {
+		// Modify or add payload data here
 		let sales = $('#Sales').val()
-        // console.log(data)
-        data.customPayload = {
-            // Add your payload properties dynamically
-            sales: sales,
-            // ... and so on
-        };
-        // console.log(id)
-        return true; // Return true to continue processing
-    });
-	AssignSalesDetail.attachEvent("onRowDblClicked", AssignSalesDetailKlik);
+		// console.log(data)
+		data.customPayload = {
+			// Add your payload properties dynamically
+			sales: sales,
+			// ... and so on
+		};
+		// console.log(id)
+		return true; // Return true to continue processing
+	});
+	AssignSalesDetail.attachEvent("onRowDblClicked", showLeadsDetail);
 	AssignSalesDetail.attachEvent("onRowSelect", AssignSalesDetailSelect);
 	AssignSalesDetail.setSkin("dhx_skyblue");
 	AssignSalesDetail.init();
@@ -84,11 +88,12 @@ $Saya =  Auth::user()->username;
 		if (cInd == 15) {
 			if (AssignSalesDetail.cells(rId, cInd).getValue() == 'Blast') {
 				$.ajax({
-					url:"partner-assign-sales-detail-whatsapp",
-					method:"GET",
-					data:{rId},
-					success:function(res)
-					{
+					url: "partner-assign-sales-detail-whatsapp",
+					method: "GET",
+					data: {
+						rId
+					},
+					success: function(res) {
 						window.open(res, '_blank');
 					}
 				})
@@ -99,5 +104,16 @@ $Saya =  Auth::user()->username;
 
 	function detailLeads() {
 		AssignSalesDetailKlik();
+	}
+
+	function showLeadsDetail() {
+		var id = AssignSalesDetail.getSelectedId();
+		if (!id) {
+			alert('Pilih data terlebih dulu');
+			return;
+		}
+		$('#ID').val(id);
+		$('#divLeadsDetail').show();
+		getLeads();
 	}
 </script>

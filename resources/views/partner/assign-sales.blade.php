@@ -31,12 +31,14 @@ $Saya =  Auth::user()->username;
 <div class="row">
 	<div id="AssignSales" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
-        <input type="button" id="ekselAssignSalesDet" name="ekselAssignSalesDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="AssignSales.toExcel('./export/generate.php');" />
+		<input type="button" id="ekselAssignSalesDet" name="ekselAssignSalesDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="AssignSales.toExcel('./export/generate.php');" />
 		<input type="button" id="detailassign" name="detailassign" value="Detail Assignment Leads" class="btn btn-info mt-2 mr-2" onclick="detailassign()" />
 		<button class="btn btn-success mr-2 mt-2" onclick="closeAssignment()">Close Assignment</button>
 	</div>
 	<div class="mt-3" id="divlistAssign"></div>
 </div>
+
+
 <script>
 	function closeAssignment() {
 		AssignSalesID = AssignSales.getSelectedId();
@@ -46,22 +48,22 @@ $Saya =  Auth::user()->username;
 		}
 
 		dhtmlx.confirm('Close Assignment?', 'Assignment Leads', function(r) {
-				
-			if (r==true){
+
+			if (r == true) {
 				AssignSales.cells(AssignSalesID, 2).setValue("CLOSED");
 				PAssignSales.setUpdated(AssignSalesID, "updated");
 				PAssignSales.sendData();
-				setTimeout(function(){
+				setTimeout(function() {
 					alert("Berhasil menutup assignment")
 					refreshdata();
 					$('#divlistAssign').html('');
-				},500);
-				
+				}, 500);
+
 			}
 		});
 	}
-	function AssignSalesKlik() {
 
+	function AssignSalesKlik() {
 		AssignSalesID = AssignSales.getSelectedId();
 		$("#divlistAssign").show();
 		if (AssignSalesID != null) {
@@ -70,6 +72,7 @@ $Saya =  Auth::user()->username;
 		}
 		return true;
 	}
+
 	AssignSales = new dhtmlXGridObject('AssignSales');
 	AssignSales.setImagePath("./dhtmlx/imgs/");
 	AssignSales.setHeader("No, Assignment ID, Status Assignment,Propose Date, Proposed By");

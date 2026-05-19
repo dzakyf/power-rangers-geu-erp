@@ -29,17 +29,17 @@ $Query = DB::table("opportunity_sales_dtl")->where('Sales_ID', $_GET['ID'])->ord
 
 foreach ($Query as $Fetch) {
 	$Fetch = DB::table("opportunity")->where("Task_ID", $Fetch->Task_ID)->first();
-    if ($Fetch->Capital_Estimation == 1) {
-        $estimation = "<50 Juta";
-    } elseif ($Fetch->Capital_Estimation == 2) {
-        $estimation = "100 Juta - 200 Juta";
-    } elseif ($Fetch->Capital_Estimation == 3) {
-        $estimation = "200 Juta - 300 Juta";
-    } elseif ($Fetch->Capital_Estimation == 4) {
-        $estimation = "300 Juta";
-    } else {
-        $estimation = "50 Juta - 100 Juta";
-    }
+	if ($Fetch->Capital_Estimation == 1) {
+		$estimation = "<50 Juta";
+	} elseif ($Fetch->Capital_Estimation == 2) {
+		$estimation = "100 Juta - 200 Juta";
+	} elseif ($Fetch->Capital_Estimation == 3) {
+		$estimation = "200 Juta - 300 Juta";
+	} elseif ($Fetch->Capital_Estimation == 4) {
+		$estimation = "300 Juta";
+	} else {
+		$estimation = "50 Juta - 100 Juta";
+	}
 
 	echo "<row id=\"$Fetch->ID\">";
 	echo "<cell>$nomor</cell>";
@@ -59,7 +59,7 @@ foreach ($Query as $Fetch) {
 	echo "<cell>" . htmlspecialchars($Fetch->Cancel_Reason) . "</cell>";
 	if ($Fetch->Status == 'Deal') {
 		echo "<cell>" . htmlspecialchars('Blast') . "</cell>";
-	}else {
+	} else {
 		echo "<cell>" . htmlspecialchars('') . "</cell>";
 	}
 	echo "</row>";
