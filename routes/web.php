@@ -4470,6 +4470,11 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$masterData-district", [MasterDataController::class, 'districtSearch']);
     Route::get("$masterData-subdistrict", [MasterDataController::class, 'subdistrictSearch']);
     Route::get("$masterData-postal-code", [MasterDataController::class, 'postalCodeSearch']);
+    Route::get("$masterData-facility", [MasterDataController::class, 'indexWarehouseFacility']);
+    Route::get("$masterData-facility-create", [MasterDataController::class, 'createWarehouseFacility']);
+    Route::post("$masterData-facility-create-submit", [MasterDataController::class, 'submitWarehouseFacility']);
+    Route::get("$masterData-facility-data", [MasterDataController::class, 'getWarehouseFacility']);
+    Route::delete("$masterData-facility-delete", [MasterDataController::class, 'deleteWarehouseFacility']);
 
     /** POO (Point of Origin UCO) */
     Route::get("$masterData-poo", [MasterDataController::class, 'POOPageIndex']);
@@ -4478,6 +4483,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$masterData-poo-create-submit", [MasterDataController::class, 'createPOO']);
     Route::get("$masterData-poo-update", [MasterDataController::class, 'updatePOOPage']);
     Route::post("$masterData-poo-update-submit", [MasterDataController::class, 'updatePOO']);
+
+
+
 
     /** Work Order */
     $workOrderPref = "partner-work-order";

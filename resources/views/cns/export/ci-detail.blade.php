@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">COMMERCIAL INVOICE</div>
 	<div class="card">
 		<div class="card-body">
 			<div id="ContentPages">

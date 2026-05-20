@@ -38,7 +38,7 @@
 
 
     <script type="text/javascript" src="{{ asset('./jquery.confirm.js') }}"></script>
-    <script type="text/javascript" src="http://code.jquery.com/jquery-migrate-1.0.0.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-migrate-1.0.0.js"></script>
 
     <link rel="stylesheet" type="text/css" href="{{ asset('form_input.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ asset('./jquery-confirm.css') }}" />

@@ -23,7 +23,7 @@
 
                         <div class="form-group">
                             <label for="POO_Id">Point of Origin (POO)</label>
-                            <select class="form-control select2" id="POO_Id" name="POO_Id" style="width:100%"></select>
+                            <select class="form-control" id="POO_Id" name="POO_Id"></select>
                         </div>
 
                         <div class="form-row">
@@ -50,14 +50,12 @@
     </div>
 </div>
 
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
 <script>
     $(document).ready(function() {
         $('#POO_Id').select2({
             placeholder: '-- Pilih POO --',
             allowClear: true,
+            width: '100%',
             ajax: {
                 url: 'master-poo-data',
                 dataType: 'json',
