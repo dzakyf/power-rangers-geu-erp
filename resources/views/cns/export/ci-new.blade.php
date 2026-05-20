@@ -55,7 +55,7 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">COMMERCIAL INVOIEC</div>
 	<div class="card">
 		<div class="card-body">
 			<div id="ContentPages">

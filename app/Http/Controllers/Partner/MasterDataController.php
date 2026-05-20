@@ -283,4 +283,119 @@ class MasterDataController extends Controller
 
         return response()->json(['data' => $res->get()], 200);
     }
+
+    public function indexWarehouseFacility()
+    {
+        return view('partner.warehouse.facility.index');
+    }
+
+    public function createWarehouseFacility()
+    {
+        return view('partner.warehouse.facility.create');
+    }
+
+    public function getWarehouseFacility(Request $request)
+    {
+        $facilityType = $request->input('hub_type'); // mobil | booth
+        $category     = $request->input('type');          // inventory | access | support
+        $format       = $request->input('format');        // json | (default xml)
+
+        $allowedFacilityTypes = ['mobil', 'booth'];
+        if (!in_array($facilityType, $allowedFacilityTypes)) {
+            return response()->json(['error' => 'Invalid facility_type. Must be one of: ' . implode(', ', $allowedFacilityTypes)], 422);
+        }
+
+        $allowedCategories = ['inventory', 'access', 'support'];
+        if (!in_array($category, $allowedCategories)) {
+            return response()->json(['error' => 'Invalid type. Must be one of: ' . implode(', ', $allowedCategories)], 422);
+        }
+
+        $facilities = DB::table('master_facility')
+            ->where('type', $facilityType)
+            ->where('category', $category)
+            ->where('is_deleted', 0)
+            ->get();
+
+        $rows = [];
+
+        foreach ($facilities as $index => $facility) {
+            $children = json_decode($facility->children);
+
+            if (is_array($children)) {
+                $children = implode(', ', $children);
+            } elseif (is_object($children)) {
+                $parts = [];
+                foreach ($children as $k => $v) {
+                    $parts[] = "$k : " . (is_array($v) ? implode(', ', $v) : json_encode($v));
+                }
+                $children = implode(', ', $parts);
+            }
+
+            $entry = [
+                'no'          => $index + 1,
+                'description' => $facility->description,
+                'children'    => (string) $children,
+            ];
+
+            if ($category === 'inventory') {
+                $entry['asset_type'] = $facility->asset_type;
+            }
+
+            $rows[] = array_merge(['id' => $facility->id], $entry);
+        }
+
+        if ($format === 'json') {
+            return response()->json(['data' => $rows]);
+        }
+
+        $xml = new \SimpleXMLElement('<rows/>');
+        foreach ($rows as $row) {
+            $node = $xml->addChild('row');
+            $node->addAttribute('id', $row['id']);
+            foreach ($row as $key => $value) {
+                if ($key === 'id') {
+                    continue;
+                }
+                $node->addChild('cell', htmlspecialchars((string) $value));
+            }
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'text/xml');
+    }
+
+    public function submitWarehouseFacility(Request $request)
+    {
+        DB::transaction(function () use ($request) {
+            DB::table('master_facility')->insert([
+                'type'              => $request->input('type'),
+                'category'          => $request->input('category'),
+                'sub_category'      => $request->input('category'),
+                'description'       => $request->input('description'),
+                'children'          => json_encode($request->input('children', [])),
+                'asset_type'        => $request->input('asset_type') ?? '',
+                'depreciation_year' => $request->input('depreciation_year'),
+            ]);
+        });
+
+        return response()->json(['status' => 'success']);
+    }
+
+    public function deleteWarehouseFacility(Request $r)
+    {
+        $id = $r->input('id');
+
+        if (!$id) {
+            return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
+        }
+
+        $deleted = DB::transaction(function () use ($id) {
+            return DB::table('master_facility')->where('id', $id)->where('is_deleted', 0)->update(['is_deleted' => 1]);
+        });
+
+        if (!$deleted) {
+            return response()->json(['status' => 'error', 'message' => 'Record not found'], 404);
+        }
+
+        return response()->json(['status' => 'success']);
+    }
 }

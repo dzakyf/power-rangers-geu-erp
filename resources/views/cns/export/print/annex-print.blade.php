@@ -362,7 +362,7 @@
 
       <!-- 7. Recovery Facility -->
       <div class="recovery-facility-box">
-        <div class="carrier-title">7. Recovery Facility ☐ Laboratory ☐ Name:</div>
+        <div class="carrier-title">7. Recovery Facility Laboratory Name:</div>
         <div class="field-row">
           <div class="field-label">Address:</div>
           <div class="field-value">{{ $shipment->recovery_address ?? '' }}</div>
@@ -393,7 +393,7 @@
       <!-- 9. Usual description -->
       <div class="carrier-section">
         <div class="carrier-title">9. Usual description of the waste:</div>
-        <div class="field-value" style="min-height: 30px;">Used Cooking Oil – Not for feed / food</div>
+        <div class="field-value" style="min-height: 30px;">Used Cooking Oil - Not for feed / food</div>
       </div>
 
       <!-- 10. Waste identification -->
@@ -473,7 +473,7 @@
 
   <!-- Section 14: Shipment received -->
   <div class="carrier-section" style="margin-top: 5px;">
-    <div class="carrier-title">14. Shipment received at recovery facility ☐ or labotoro ☐ Quantity received: tonnes: kg</div>
+    <div class="carrier-title">14. Shipment received at recovery facility or laboratory Quantity received: tonnes: kg</div>
     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
       <div>
         <div>Name:</div>
