@@ -30,10 +30,10 @@ $Saya = Auth::user()->username;
         <div class="card-body">
             <div id="DeliveryNote" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
             <div>
-                <input type="button" id="ekselDeliveryNoteDet" name="ekselDeliveryNoteDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="DeliveryNote.toExcel('./export/generate.php');" />
                 <input type="button" id="newDN" name="newDN" value="New DN" class="btn btn-primary mt-2 mr-2" onclick="DeliveryNoteNewBtn()" />
                 <input type="button" id="detailDN" name="detailDN" value="Detail DN" class="btn btn-info mt-2 mr-2" onclick="DeliveryNoteKlik()" />
                 <input type="button" id="printDN" name="printDN" value="Print DN" class="btn btn-secondary mt-2 mr-2" onclick="PrintDN()" />
+                <input type="button" id="ekselDeliveryNoteDet" name="ekselDeliveryNoteDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="DeliveryNote.toExcel('./export/generate.php');" />
             </div>
         </div>
     </div>

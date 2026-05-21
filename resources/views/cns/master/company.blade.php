@@ -34,8 +34,8 @@
 		<div id="MasterCompany" style="width:auto; height:400px;"></div>
 	</div>
 	<div class="m-2">
-		<button class="btn btn-success" id="ExportProduct" onclick="MasterCompany.toExcel('./export/generate.php');">Excel</button>
 		<button class="btn btn-primary" id="NewProduct" onclick="NewCompany();">New Company</button>
+		<button class="btn btn-success" id="ExportProduct" onclick="MasterCompany.toExcel('./export/generate.php');">Excel</button>
 	</div>
 </div>
 <script>

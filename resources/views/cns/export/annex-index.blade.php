@@ -39,9 +39,10 @@ $Saya =  Auth::user()->username;
 			<div id="AnnexVii" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselAnnexViiDet" name="ekselAnnexViiDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="AnnexVii.toExcel('./export/generate.php');" />
-				<input type="button" id="newSchedule" name="newSchedule" value="New CI" class="btn btn-primary mt-2 mr-2" onclick="AnnexViiNewBtn()" />
-				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail CI" class="btn btn-info mt-2 mr-2" onclick="AnnexViiKlik()" />
-				<input type="button" id="printCI" name="printCI" value="Print CI" class="btn btn-secondary mt-2 mr-2" onclick="PrintCI()" />
+				<input type="button" id="newSchedule" name="newSchedule" value="New Annex" class="btn btn-primary mt-2 mr-2" onclick="AnnexViiNewBtn()" />
+				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail Annex" class="btn btn-info mt-2 mr-2" onclick="AnnexViiKlik()" />
+				<input type="button" id="printAnnex" name="printAnnex" value="Print Annex" class="btn btn-secondary mt-2 mr-2" onclick="PrintAnnex()" />
+				<input type="button" id="printAnnexSample" name="printAnnexSample" value="Print Annex Sample" class="btn btn-secondary mt-2 mr-2" onclick="PrintAnnexSample()" />
 			</div>
 		</div>
 	</div>
@@ -51,26 +52,30 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-	function PrintCI()
+	function PrintAnnex()
 	 {
 		AnnexViiID = AnnexVii.getSelectedId();
 		if (AnnexViiID != null) {
-			window.open('cns-export-commercial-invoice-print?Task=' + AnnexVii.cells(AnnexViiID, 2).getValue(), '_blank');
+			window.open('cns-export-annex-print?Task=' + AnnexVii.cells(AnnexViiID, 2).getValue(), '_blank');
 		}else {
 			alert("Pilih baris data");
 		}
 		return true;
 	 }
+	function PrintAnnexSample()
+	 {
+		window.open('cns-export-annex-print-sample?', '_blank');
+	 }
 	function AnnexViiNewBtn() {
 
-		LoadM('divlistOpportunity', 'cns-export-commercial-invoice-new');
+		LoadM('divlistOpportunity', 'cns-export-annex-new');
 		return true;
 	}
 	function AnnexViiKlik() {
 
 		AnnexViiID = AnnexVii.getSelectedId();
 		if (AnnexViiID != null) {
-			LoadM('divlistOpportunity', 'cns-export-commercial-invoice-detail?Task=' + AnnexVii.cells(AnnexViiID, 2).getValue());
+			LoadM('divlistOpportunity', 'cns-export-annex-detail?Task=' + AnnexVii.cells(AnnexViiID, 2).getValue());
 		}else {
 			alert("Pilih baris data");
 		}
@@ -93,7 +98,7 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		AnnexVii.clearAndLoad('xml-cns-export-commercial-invoice?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
+		AnnexVii.clearAndLoad('xml-cns-export-annex?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
 
 	}
 </script>

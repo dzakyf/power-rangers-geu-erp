@@ -96,6 +96,24 @@ class FinalShipmentInstructionController extends Controller
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         return view('cns.export.fsi-new', compact('vss', 'sis', 'companies', 'masProducts'));
     }
+    
+    
+    public function newFinalShipmentInstructionSubmit(Request $request)
+    {
+        $counter = DB::table("shipment_instructions")->where('SI_Date', "LIKE", date("Y-m"). "%")->where('Status', "FINAL")->count();
+
+        $SINo = "FINALSI/EXP/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
+        ShipmentInstruction::where("SI_No", $request->SI_No)->update([
+            'Final_SI_No' => $SINo,
+            'Final_SI_Date' => $request->SI_Date,
+            'Status' => "FINAL",
+            'Updated_Date' => now(),
+            'Updated_By' => auth()->user()->username
+        ]);
+
+        // return response()->json(['success' => true, 'message' => 'Shipment Instruction finalized successfully']);
+        echo "<script>alert('Done Generate to Final SI')</script>";
+    }
 
     public function getSI(Request $request)
     {

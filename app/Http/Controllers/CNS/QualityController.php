@@ -39,7 +39,7 @@ class QualityController extends Controller
             $year = $this->now->format('Y');
             $month = $this->now->format('m');
             $extension = $file->getClientOriginalExtension();
-            $filename = Str::uuid() . '.' . $extension;
+            $filename = (string) Str::uuid() . '.' . $extension;
             $destination = public_path("filevendor/{$year}/{$month}");
 
             if (!file_exists($destination)) {
@@ -224,5 +224,57 @@ class QualityController extends Controller
             ->update(['Is_Deleted' => 1]);
 
         return response()->json(['status' => 'success']);
+    }
+
+
+    public function printQualityControl(Request $r)
+    {
+        $date = Carbon::parse($r->input('date'))->toDateString();
+
+        $rows = DB::table('uco_quality_control')
+            ->whereDate('Created_At', $date)
+            ->where('Is_Deleted', '!=', 1)
+            ->get()
+            ->keyBy(fn($row) => strtolower($row->Type));
+
+        $top    = $rows['top']    ?? null;
+        $middle = $rows['middle'] ?? null;
+        $bottom = $rows['bottom'] ?? null;
+
+        $template = new \PhpOffice\PhpWord\TemplateProcessor(public_path('template-form-qc.docx'));
+
+        $template->setValue('code',                  $r->input('code', '-'));
+        $template->setValue('inspection_date',        Carbon::parse($date)->format('d F Y'));
+        $template->setValue('inspection_date ',       Carbon::parse($date)->format('d F Y'));
+        $template->setValue('inspector',              $r->input('inspector', '-'));
+
+        $template->setValue('ffa_top_palmitic',       $top    ? $top->FFA_As_Palmitic    : '-');
+        $template->setValue('ffa_top_oleic',          $top    ? $top->FFA_As_Oleic       : '-');
+        $template->setValue('ffa_top_moisture',       $top    ? $top->MC                 : '-');
+        $template->setValue('ffa_top_impurities',     $top    ? $top->IMP                : '-');
+        $template->setValue('ffa_top_impurities ',    $top    ? $top->IMP                : '-');
+
+        $template->setValue('ffa_mid_palmitic',       $middle ? $middle->FFA_As_Palmitic : '-');
+        $template->setValue('ffa_mid_oleic',          $middle ? $middle->FFA_As_Oleic    : '-');
+        $template->setValue('ffa_mid_moisture',       $middle ? $middle->MC              : '-');
+        $template->setValue('ffa_mid_impurities',     $middle ? $middle->IMP             : '-');
+
+        $template->setValue('ffa_bot_palmitic',       $bottom ? $bottom->FFA_As_Palmitic : '-');
+        $template->setValue('ffa_bot_oleic',          $bottom ? $bottom->FFA_As_Oleic    : '-');
+        $template->setValue('ffa_bot_moisture',       $bottom ? $bottom->MC              : '-');
+        $template->setValue('ffa_bot _impurities',    $bottom ? $bottom->IMP             : '-');
+
+        $filename = 'QC-' . $date . '.docx';
+        $tempPath = storage_path('app/temp/' . $filename);
+
+        if (!file_exists(dirname($tempPath))) {
+            mkdir(dirname($tempPath), 0755, true);
+        }
+
+        $template->saveAs($tempPath);
+
+        return response()->download($tempPath, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ])->deleteFileAfterSend(true);
     }
 }
