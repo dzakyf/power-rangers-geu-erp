@@ -24,6 +24,7 @@
                 <input type="button" id="CreateQC" name="CreateQC" value="Create" class="btn btn-info mt-2 mr-2" onclick="createQC()" />
                 <input type="button" id="DetailQC" name="DetailQC" value="Detail" class="btn btn-info mt-2 mr-2" onclick="detailQC()" />
                 <input type="button" id="DeleteQC" name="DeleteQC" value="Delete" class="btn btn-info mt-2 mr-2" onclick="deleteQC()" />
+                <input type="button" id="PrintQC" name="PrintQC" value="Print" class="btn btn-secondary mt-2 mr-2" onclick="printQC()" />
 
             </div>
         </div>
@@ -54,6 +55,22 @@
             return;
         }
         prefillEditQC(rowId);
+    }
+
+    function printQC() {
+        var rowId = ProjectionGrid.getSelectedRowId();
+        if (!rowId) {
+            alert('Pilih data terlebih dahulu');
+            return;
+        }
+
+        var tanggal = ProjectionGrid.cells(rowId, 1).getValue();
+        var date = new Date(tanggal);
+        var formatted = date.getFullYear() + '-' +
+            String(date.getMonth() + 1).padStart(2, '0') + '-' +
+            String(date.getDate()).padStart(2, '0');
+
+        window.location.href = 'cns-quality-print?date=' + formatted;
     }
 
     function deleteQC() {

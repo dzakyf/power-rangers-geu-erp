@@ -43,9 +43,9 @@ $Saya =  Auth::user()->username;
 			</div>
 			<div id="StuffingVessel" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
-				<input type="button" id="ekselStuffingVesselDet" name="ekselStuffingVesselDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="StuffingVessel.toExcel('./export/generate.php');" />
 				<input type="button" id="DetailVesselSchedule" name="DetailVesselSchedule" value="Detail Vessel Schedule" class="btn btn-primary mt-2 mr-2" onclick="StuffingVesselKlik()" />
-				<input type="button" id="openShipmentLink" name="openShipmentLink" value="Open ShipmentLink" class="btn btn-info mt-2 mr-2" onclick="openShipmentLink()" />
+				<input type="button" id="openShipmentLink" name="openShipmentLink" value="Open ShipmentLink" class="btn btn-secondary mt-2 mr-2" onclick="openShipmentLink()" />
+				<input type="button" id="ekselStuffingVesselDet" name="ekselStuffingVesselDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="StuffingVessel.toExcel('./export/generate.php');" />
 			</div>
 		</div>
 	</div>

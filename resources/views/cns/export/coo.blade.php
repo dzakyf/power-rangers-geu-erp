@@ -33,10 +33,10 @@ $Saya =  Auth::user()->username;
 		<div class="card-body">
 			<div id="CertificateOrigin" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
-				<input type="button" id="ekselCertificateOriginDet" name="ekselCertificateOriginDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="CertificateOrigin.toExcel('./export/generate.php');" />
 				<input type="button" id="newSchedule" name="newSchedule" value="New COO" class="btn btn-primary mt-2 mr-2" onclick="CertificateOriginNewBtn()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail COO" class="btn btn-info mt-2 mr-2" onclick="CertificateOriginKlik()" />
 				<input type="button" id="printCOO" name="printCOO" value="Print COO" class="btn btn-secondary mt-2 mr-2" onclick="PrintCOO()" />
+				<input type="button" id="ekselCertificateOriginDet" name="ekselCertificateOriginDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="CertificateOrigin.toExcel('./export/generate.php');" />
 			</div>
 		</div>
 	</div>

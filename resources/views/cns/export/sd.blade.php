@@ -30,10 +30,10 @@ $Saya = Auth::user()->username;
         <div class="card-body">
             <div id="SustainabilityDeclaration" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
             <div>
-                <input type="button" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="SustainabilityDeclaration.toExcel('./export/generate.php');" />
                 <input type="button" id="newSD" value="New SD" class="btn btn-primary mt-2 mr-2" onclick="SDNewBtn()" />
                 <input type="button" id="detailSD" value="Detail SD" class="btn btn-info mt-2 mr-2" onclick="SDKlik()" />
                 <input type="button" id="printSD" value="Print SD" class="btn btn-secondary mt-2 mr-2" onclick="PrintSD()" />
+                <input type="button" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="SustainabilityDeclaration.toExcel('./export/generate.php');" />
             </div>
         </div>
     </div>

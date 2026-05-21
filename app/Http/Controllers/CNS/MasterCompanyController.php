@@ -25,6 +25,16 @@ class MasterCompanyController extends Controller
             ->get();
     }
 
+    public function getSupplierCompany(Request $r)
+    {
+        return  view('cns.master.supplier');
+    }
+
+    public function getBuyerCompany(Request $r)
+    {
+        return  view('cns.master.buyer');
+    }
+
     public function indexMasterCompanyXml(Request $request)
     {
         header("Content-type: text/xml");

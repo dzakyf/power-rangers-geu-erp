@@ -522,6 +522,7 @@ $Saya =  Auth::user()->username;
                       </tr>
                       <tr class="total-row">
                         <td colspan="4" class="text-right">TOTAL</td>
+                        <input type="hidden" name="totalAmount" id="totalAmount" value="">
                         <td class="text-right" id="totalDisplay">Rp 0</td>
                         <td class="no-print"></td>
                       </tr>
@@ -616,6 +617,7 @@ $Saya =  Auth::user()->username;
       const total = subtotal + tax + ship + other;
       document.getElementById('subtotalDisplay').textContent = fmt(subtotal);
       document.getElementById('totalDisplay').textContent = 'Rp ' + fmt(total);
+      document.getElementById('totalAmount').value = total;
     }
 
     function resetForm() {

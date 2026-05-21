@@ -80,7 +80,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 						</div>
 						<div class="col-md-4 col-12">
 							<div class="form-group">
-								<label for="SI_Date">SI Date</label>
+								<label for="SI_Date">Final SI Date</label>
                                 <input name="SI_Date" id="SI_Date" class="form-control" value="{{ date('Y-m-d') }}" required />
 							</div>
 						</div>

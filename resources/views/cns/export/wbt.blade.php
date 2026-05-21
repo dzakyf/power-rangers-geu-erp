@@ -38,10 +38,10 @@ $Saya =  Auth::user()->username;
 			</div>
 			<div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
-				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
 				<input type="button" id="newSchedule" name="newSchedule" value="New WBT" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail WBT" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
 				<input type="button" id="printWBT" name="printWBT" value="Print WBT" class="btn btn-secondary mt-2 mr-2" onclick="PrintWBT()" />
+				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
 			</div>
 		</div>
 	</div>

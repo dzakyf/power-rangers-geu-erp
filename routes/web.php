@@ -5107,6 +5107,8 @@ Route::group(['middleware' => 'auth'], function () {
 
     $masterCompanyPref = "cns-master-company";
     Route::get("$masterCompanyPref", [MasterCompanyController::class, "indexMasterCompany"]);
+    Route::get("$masterCompanyPref-supplier", [MasterCompanyController::class, "getSupplierCompany"]);
+    Route::get("$masterCompanyPref-buyer", [MasterCompanyController::class, "getBuyerCompany"]);
     Route::get("xml-$masterCompanyPref", [MasterCompanyController::class, "indexMasterCompanyXml"]);
     Route::get("$masterCompanyPref-new", [MasterCompanyController::class, "newMasterCompany"]);
     Route::post("$masterCompanyPref-new-submit", [MasterCompanyController::class, "newMasterCompanySubmit"]);
@@ -5147,6 +5149,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("xml-$fsiPref", [FinalShipmentInstructionController::class, 'indexFinalShipmentInstructionXml']);
     Route::get("$fsiPref-new", [FinalShipmentInstructionController::class, 'newFinalShipmentInstruction']);
     Route::post("$fsiPref-new-get-si", [FinalShipmentInstructionController::class, 'getSI']);
+    Route::post("$fsiPref-new-submit", [FinalShipmentInstructionController::class, 'newFinalShipmentInstructionSubmit']);
     Route::get("$fsiPref-create-pl", [FinalShipmentInstructionController::class, 'generatePackingList']);
     Route::get("$fsiPref-create-ci", [FinalShipmentInstructionController::class, 'generateCommercialInvoice']);
 
@@ -5226,6 +5229,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$cnsQualityPref-submit", [QualityController::class, 'insertQualityControl'])->name($cnsQualityPref . '.submit');
     Route::post("$cnsQualityPref-submit-edit", [QualityController::class, 'editQualityControl'])->name($cnsQualityPref . '.submit-edit');
     Route::delete("$cnsQualityPref-delete", [QualityController::class, 'deleteQualityControl'])->name($cnsQualityPref . '.delete');
+    Route::get("$cnsQualityPref-print", [QualityController::class, 'printQualityControl']);
 
     $salesOrderCNSPref = "cns-sales-order";
     Route::get("$salesOrderCNSPref", [CNSSalesOrderController::class, 'indexSalesOrder']);
@@ -5234,6 +5238,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$salesOrderCNSPref-new-submit", [CNSSalesOrderController::class, 'newSalesOrderSubmit']);
     Route::get("$salesOrderCNSPref-detail", [CNSSalesOrderController::class, 'detailSalesOrder']);
     Route::post("$salesOrderCNSPref-detail-submit", [CNSSalesOrderController::class, 'detailSalesOrderSubmit']);
+    Route::get("$salesOrderCNSPref-print", [CNSSalesOrderController::class, 'printSalesOrder']);
 
     $procPref = "cns-procurement";
 

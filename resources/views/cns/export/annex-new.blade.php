@@ -4,54 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
-
-function getRomawi($bln)
-{
-	switch ($bln) {
-		case 1:
-			return "I";
-			break;
-		case 2:
-			return "II";
-			break;
-		case 3:
-			return "III";
-			break;
-		case 4:
-			return "IV";
-			break;
-		case 5:
-			return "V";
-			break;
-		case 6:
-			return "VI";
-			break;
-		case 7:
-			return "VII";
-			break;
-		case 8:
-			return "VIII";
-			break;
-		case 9:
-			return "IX";
-			break;
-		case 10:
-			return "X";
-			break;
-		case 11:
-			return "XI";
-			break;
-		case 12:
-			return "XII";
-			break;
-	}
-}
-
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
-$counter = DB::table("commercial_invoices")->where('Inv_Date', "LIKE", date("Y-m"). "%")->count();
-
-$InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/" . date("Y");
 
 ?>
 <div class="mt-3">

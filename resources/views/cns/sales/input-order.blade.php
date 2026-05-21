@@ -41,6 +41,7 @@ $Saya =  Auth::user()->username;
 				<input type="button" id="ekselSalesOrderDet" name="ekselSalesOrderDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="SalesOrder.toExcel('./export/generate.php');" />
 				<input type="button" id="DetailSalesOrder" name="DetailSalesOrder" value="Detail Sales Order" class="btn btn-primary mt-2 mr-2" onclick="SalesOrderKlik()" />
 				<input type="button" id="NewSalesOrder" name="NewSalesOrder" value="New Sales Order" class="btn btn-info mt-2 mr-2" onclick="SalesOrderNew()" />
+				<input type="button" id="PrintSalesOrder" name="PrintSalesOrder" value="Print Sales Order" class="btn btn-info mt-2 mr-2" onclick="SalesOrderPrint()" />
 			</div>
 		</div>
 	</div>
@@ -56,6 +57,17 @@ $Saya =  Auth::user()->username;
 
 	function SalesOrderNew() {
 		LoadM('divlistOpportunity', 'cns-sales-order-new');
+	}
+
+	function SalesOrderPrint() {
+
+		SalesOrderID = SalesOrder.getSelectedId();
+		if (SalesOrderID != null) {
+			window.open('cns-sales-order-print?task=' + SalesOrderID, '_blank');
+		} else {
+			alert("Pilih baris data");
+		}
+		return true;
 	}
 
 	function SalesOrderKlik() {

@@ -38,10 +38,10 @@ $Saya =  Auth::user()->username;
 			</div>
 			<div id="VesselSchedule" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
-				<input type="button" id="ekselVesselScheduleDet" name="ekselVesselScheduleDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="VesselSchedule.toExcel('./export/generate.php');" />
-				<input type="button" id="newSchedule" name="newSchedule" value="New Schedule" class="btn btn-info mt-2 mr-2" onclick="VesselScheduleNew()" />
+				<input type="button" id="newSchedule" name="newSchedule" value="New Schedule" class="btn btn-primary mt-2 mr-2" onclick="VesselScheduleNew()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail Schedule" class="btn btn-info mt-2 mr-2" onclick="VesselScheduleKlik()" />
-				<input type="button" id="openShipmentLink" name="openShipmentLink" value="Open ShipmentLink" class="btn btn-info mt-2 mr-2" onclick="OpenShipmentLink()" />
+				<input type="button" id="openShipmentLink" name="openShipmentLink" value="Open ShipmentLink" class="btn btn-secondary mt-2 mr-2" onclick="OpenShipmentLink()" />
+				<input type="button" id="ekselVesselScheduleDet" name="ekselVesselScheduleDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="VesselSchedule.toExcel('./export/generate.php');" />
 			</div>
 		</div>
 	</div>

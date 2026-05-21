@@ -38,7 +38,6 @@ $Saya =  Auth::user()->username;
 			</div>
 			<div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
-				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
 				<input type="button" id="newSchedule" name="newSchedule" value="New Final SI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail Final SI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
 				<input type="button" id="printSI" name="printSI" value="Print Final SI" class="btn btn-secondary mt-2 mr-2" onclick="PrintSI()" />
@@ -46,6 +45,7 @@ $Saya =  Auth::user()->username;
 				<input type="button" id="createPL" name="createPL" value="Create Packing List" class="btn btn-success mt-2 mr-2" onclick="CreatePL()" />
 				<input type="text" name="CI_Date" id="CI_Date" value="{{ date("Y-m-d") }}" class="form-control w-25 mt-2 mr-2" placeholder="CI Date" style="display:none;" readonly />
 				<input type="button" id="createCI" name="createCI" value="Create Commercial Invoice" class="btn btn-success mt-2 mr-2" onclick="CreateCI()" />
+				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
 			</div>
 		</div>
 	</div>

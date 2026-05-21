@@ -104,6 +104,7 @@ class SalesOrderController extends Controller
             'tax' => $request->taxAmount,
             'shipping' => $request->shippingAmount,
             'other' => $request->otherAmount,
+            'total' => $request->totalAmount,
             'remarks' => $request->remarks,
             'created_by' => auth()->user()->username,
         ]);
@@ -123,5 +124,13 @@ class SalesOrderController extends Controller
     public function detailSalesOrderSubmit(Request $request)
     {
         //
+    }
+
+    public function printSalesOrder(Request $request)
+    {
+        $salesOrder = SalesOrderCNS::where('id', $request->task)->first();
+        $details = SalesOrderCNSDtl::where('so_no', $salesOrder->so_no)->get();
+
+        return view('cns.sales.print.input-order', compact('salesOrder', 'details'));
     }
 }

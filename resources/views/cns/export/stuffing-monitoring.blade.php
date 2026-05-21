@@ -41,6 +41,7 @@ $Saya =  Auth::user()->username;
 				<button class="btn btn-primary mr-3" onclick="addRowStuffingMonitoring()">Add Container</button>
 				<button class="btn btn-danger mr-3" onclick="deleteRowStuffingMonitoring()">Delete Container</button>
 				<button class="btn btn-success mr-3" id="SubmitCustDetail">Update Data</button>
+				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mr-3" value="Export Excel" onclick="StuffingMonitoring.toExcel('./export/generate.php');" />
 			</div>
 		</div>
 	</div>
