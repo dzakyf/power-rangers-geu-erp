@@ -335,7 +335,7 @@ $moneyFormat = new moneyFormat();
 					<tr>
 						<td height="120" valign="top" align="center">Prepared By,<div style="padding-top:30px;vertical-align:middle;text-align:center">
 								<?php
-								$nama1 = $salesOrder->created_by != '' ? $us->Name : 'Muhammad Nasikin';
+								$nama1 = $salesOrder->created_by != '' ? $us->Name : 'Mohammad Dwi Putra Laydia';
 								echo QrCode::size(60)->generate($nama1 . $salesOrder->so_no); ?></div>
 						</td>
 						<td height="120" valign="top" align="center">Approved By,<div style="padding-top:30px;vertical-align:middle;text-align:center">
