@@ -324,7 +324,7 @@ $moneyFormat = new moneyFormat();
 						<tr>
 							<!-- <td colspan="5" height="20" style="vertical-align:middle;text-align:left;border-top:1px solid #000;border-right:1px solid #000;padding-left:10px;font-weight:bold;font-size:12px;background-color:#B8E094;">VAT <?php echo ""; //$rowc->PPN == 0 ? "" : round(($rowc->PPN / ($rowc->Subtotal - $rowc->Discount)) * 100, 0) . "%" 
 																																																												?></td> -->
-							<td colspan="4" height="20" style="vertical-align:middle;text-align:left;border-top:1px solid #000;border-right:1px solid #000;padding-left:10px;font-weight:bold;font-size:12px;background-color:#B8E094;">VAT <?= $rowc->PPN == 0 ? "" : ($rowc->PPN / ($rowc->Subtotal - $rowc->Discount)) * 100  . "%" ?></td>
+							<td colspan="4" height="20" style="vertical-align:middle;text-align:left;border-top:1px solid #000;border-right:1px solid #000;padding-left:10px;font-weight:bold;font-size:12px;background-color:#B8E094;">VAT</td>
 							<td height="20" style="vertical-align:middle;text-align:right;padding-right:10px;border-top:1px solid #000;font-weight:bold;font-size:12px;"><?php echo $moneyFormat->rupiah($rowc->PPN) ?></td>
 						</tr>
 
