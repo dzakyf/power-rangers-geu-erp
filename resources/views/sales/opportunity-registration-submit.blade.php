@@ -1,10 +1,19 @@
 <?php
 
-use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 try {
+    $req = request();
+
+    $data = [];
+    $data['lead_id'] = request()->input('lead_id', null);
+    $data['register_as'] = request()->input('Register_As', request()->input('register_as'));
+
+    // Individual fields
+    $data['full_name'] = request()->input('Full_Name');
+
     $username = auth()->check() ? auth()->user()->username : str_replace(' ', '_', strtolower($data['full_name']));
     if (!auth()->check()) {
         $cekUser = DB::table('users')->get();
@@ -14,15 +23,6 @@ try {
             }
         }
     }
-
-    $req = request();
-
-    $data = [];
-    $data['lead_id'] = request()->input('lead_id', null);
-    $data['register_as'] = request()->input('Register_As', request()->input('register_as'));
-
-    // Individual fields
-    $data['full_name'] = request()->input('Full_Name');
     $data['contact'] = request()->input('Contact', '');
     $data['email'] = request()->input('Email');
 
@@ -145,33 +145,67 @@ try {
 
     $id = DB::table('opportunity_partner')->insertGetId($data);
 
+
     foreach (json_decode($data['supporting_documents']) as $key => $value) {
-        $ext = explode('.', request()->input($value . '_File'));
+        $filePath = request()->input('Doc_' . $value . '_File') ?? "";
+        $ext = explode('.', $filePath);
 
         DB::table('opportunity_partner_file')->insert([
-            'lead_id' => $data['lead_id'],
+            'lead_id'        => $data['lead_id'],
             'opportunity_id' => $id,
-            'type' => $value,
-            'file_type' => $ext[count($ext) - 1],
-            'file_path' => request()->input('Doc_' . $value . '_File') ?? "",
-            'created_at' => now(),
-            'created_by' => $username
+            'type'           => $value,
+            'file_type'      => $ext[count($ext) - 1],
+            'file_path'      => $filePath,
+            'created_at'     => now(),
+            'created_by'     => $username,
+        ]);
+
+        DB::table('meta_files')->insert([
+            'Filename'    => basename($filePath),
+            'Path'        => $filePath,
+            'Extension'   => $ext[count($ext) - 1],
+            'Description' => $value,
+            'Created_At'  => now(),
+            'Topic'       => 'ONBOARDING',
+            'Map_To'      => $id,
         ]);
     }
 
     foreach (json_decode($data['company_documents']) as $key => $value) {
-        $ext = explode('.', request()->input($value . '_File'));
+        $filePath = request()->input('C_Doc_' . $value . '_File') ?? "";
+        $ext = explode('.', $filePath);
+
         DB::table('opportunity_partner_file')->insert([
-            'lead_id' => $data['lead_id'],
+            'lead_id'        => $data['lead_id'],
             'opportunity_id' => $id,
-            'type' => $value,
-            'file_type' => $ext[count($ext) - 1],
-            'file_path' => request()->input('C_Doc_' . $value . '_File') ?? "",
-            'created_at' => now(),
-            'created_by' => $username
+            'type'           => $value,
+            'file_type'      => $ext[count($ext) - 1],
+            'file_path'      => $filePath,
+            'created_at'     => now(),
+            'created_by'     => $username,
+        ]);
+
+        DB::table('meta_files')->insert([
+            'Filename'    => basename($filePath),
+            'Path'        => $filePath,
+            'Extension'   => $ext[count($ext) - 1],
+            'Description' => $value,
+            'Created_At'  => now(),
+            'Topic'       => 'onboarding',
+            'Map_To'      => $id,
         ]);
     }
 
+    $approvalController = app(\App\Http\Controllers\ApprovalController::class);
+    $approvalController->createApprovalRequest(
+        'ONBOARDING',
+        null, // no requester id, because no user account created yet.
+        'NEED_APPROVAL',
+        ['Opportunity_Partner_Id' => $id, 'Map_To' => $id]
+    );
+
+    $LSP = '';
+    $Saya = '';
     if (!auth()->check()) {
         $pass = 'geupartner123';
         $contact = $data['register_as'] == 'individu' ? $data['contact'] : $data['pic_phone'];

@@ -25,6 +25,7 @@
 			<div>
 				<input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Log" class="btn btn-info mt-2 mr-2" onclick="doubleClickApproval()" />
 				<input type="button" id="showProgress" name="showProgress" value="Show Progress (Mitra)" class="btn btn-info mt-2 mr-2" onclick="redirectToOnboardingApprovalProgress()" />
+				<input type="button" id="btnDetailLeads" value="Detail Leads" class="btn btn-primary mt-2 mr-2" onclick="openRegisteredLeadsDetail()" />
 
 				<!-- <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" /> -->
 				<!-- <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" /> -->
@@ -45,6 +46,12 @@
 	</div>
 </div>
 
+
+<div id="divRegisteredLeadsDetail" class="row m-1" style="display:none">
+	<div class="col-12">
+		@include('partner.registered-leads-detail')
+	</div>
+</div>
 
 <div id="ApprovalLog" class="row m-1" style="display:none">
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LOG APPROVAL ONBOARDING</div>
@@ -184,6 +191,19 @@
 	function doubleClickApproval() {
 		initApprovalLogGrid()
 		$('#ApprovalLog').show()
+	}
+
+	function openRegisteredLeadsDetail() {
+		if (!opportunityId) {
+			alert('Pilih data terlebih dahulu.');
+			return;
+		}
+		$('#reg_lead_id').val(opportunityId);
+		getRegisteredLeads(opportunityId);
+		$('#divRegisteredLeadsDetail').show();
+		$('html, body').animate({
+			scrollTop: $('#divRegisteredLeadsDetail').offset().top
+		}, 400);
 	}
 </script>
 @endsection
