@@ -97,7 +97,7 @@ if ($Fetch->Capital_Estimation == 1) {
 					<option value="Modal Tidak Sesuai" {{ $Fetch->Reason == 'Modal Tidak Sesuai' ? 'selected' : '' }}>Modal Tidak Sesuai</option>
 					<option value="Prospek Di Masa Depan" {{ $Fetch->Reason == 'Prospek Di Masa Depan' ? 'selected' : '' }}>Prospek Di Masa Depan</option>
 					<option value="Lokasi Tidak Sesuai" {{ $Fetch->Reason == 'Lokasi Tidak Sesuai' ? 'selected' : '' }}>Lokasi Tidak Sesuai</option>
-					<option value="Skema Bisnis  Tidak Sesuai" {{ $Fetch->Reason == 'Skema Bisnis  Tidak Sesuai' ? 'selected' : '' }}>Skema Bisnis  Tidak Sesuai</option>
+					<option value="Skema Bisnis  Tidak Sesuai" {{ $Fetch->Reason == 'Skema Bisnis  Tidak Sesuai' ? 'selected' : '' }}>Skema Bisnis Tidak Sesuai</option>
 				</select>
 			</div>
 		</div>

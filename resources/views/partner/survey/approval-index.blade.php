@@ -24,6 +24,7 @@
 			<div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
 			<div>
 				<input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Log" class="btn btn-info mt-2 mr-2" onclick="doubleClickApproval()" />
+				<input type="button" value="Detail Survey" class="btn btn-primary mt-2 mr-2" onclick="openSurveyDetail()" />
 				<!-- <input type="button" id="showProgress" name="showProgress" value="Show Progress (Mitra)" class="btn btn-info mt-2 mr-2" onclick="redirectToOnboardingApprovalProgress()" /> -->
 
 				<!-- <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" /> -->
@@ -43,8 +44,12 @@
 			</div>
 		</div>
 	</div>
+
 </div>
 
+<div id="divSurveyEdit" style="display:none;">
+	@include('partner.survey.edit')
+</div>
 
 <div id="ApprovalLog" class="row m-1" style="display:none">
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LOG APPROVAL SURVEY</div>
@@ -84,9 +89,6 @@
 		initApprovalGrid()
 	})
 
-	function redirectToOnboardingApprovalProgress() {
-		window.location.href = `partner-approval-progress?id=${opportunityId}`
-	}
 
 	function approveClick(action) {
 
@@ -184,6 +186,22 @@
 	function doubleClickApproval() {
 		initApprovalLogGrid()
 		$('#ApprovalLog').show()
+	}
+
+	function openSurveyDetail() {
+		var selectedId = PartnerGrid.getSelectedId();
+		if (!selectedId) {
+			alert('Pilih data terlebih dahulu.');
+			return;
+		}
+		var mapperId = PartnerGrid.getRowAttribute(selectedId, 'Mapper_Id');
+		if (!mapperId) {
+			alert('Data survey tidak ditemukan.');
+			return;
+		}
+		$('#divSurveyEdit').show();
+		$('html, body').animate({ scrollTop: $('#divSurveyEdit').offset().top }, 400);
+		getSurveyData(mapperId);
 	}
 </script>
 @endsection

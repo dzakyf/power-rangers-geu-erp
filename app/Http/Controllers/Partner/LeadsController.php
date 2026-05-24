@@ -10,13 +10,43 @@ class LeadsController extends Controller
 {
     public function getLeads(Request $r)
     {
+        if ($r->query('type') === 'registered') {
+            return $this->getRegisteredLeads($r);
+        }
+
         $id = $r->query('id');
 
-        $query = DB::table('opportunity');
+        $query = DB::table('opportunity as o')->select('o.*');
 
         if ($id) {
-            $query->where('ID', $id);
+            $query->where('o.ID', $id);
         }
+
+        return response()->json(['data' => $query->get()]);
+    }
+
+    public function getRegisteredLeads(Request $r)
+    {
+        $leadId = $r->query('lead_id');
+        $rowId = $r->query('id'); //row id 
+
+        $query = DB::table('opportunity_partner as op')
+            ->select(
+                'op.*'
+            );
+
+        if ($leadId) {
+            $query->where('op.lead_id', $leadId);
+        }
+
+        if ($rowId) {
+            $query->where('op.id',  $rowId);
+        }
+
+        if ($rowId && $leadId) {
+            $query->where('op.id',  $rowId)->where('op.lead_id', $leadId);
+        }
+
 
         return response()->json(['data' => $query->get()]);
     }

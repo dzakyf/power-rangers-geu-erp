@@ -33,9 +33,12 @@ $Saya =  Auth::user()->username;
 <div class="row">
 	<div id="OpportunityLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
-        <input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
+		<input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
 		<input type="button" id="detailBP" name="detailBP" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailBP()" />
 	</div>
+</div>
+<div id="divRegisteredLeadsDetail" style="display:none;">
+	@include('partner.registered-leads-detail')
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>
@@ -76,11 +79,12 @@ $Saya =  Auth::user()->username;
 		if (cInd == 13) {
 			if (OpportunityLists.cells(rId, cInd).getValue() == 'Blast') {
 				$.ajax({
-					url:"partner-business-lists-whatsapp",
-					method:"GET",
-					data:{rId},
-					success:function(res)
-					{
+					url: "partner-business-lists-whatsapp",
+					method: "GET",
+					data: {
+						rId
+					},
+					success: function(res) {
 						window.open(res, '_blank');
 					}
 				})
@@ -105,17 +109,18 @@ $Saya =  Auth::user()->username;
 
 
 	function detailBP() {
-		OpportunityListsKlik();
-		// dhtmlx.confirm('Submit this Opportunity FU?', 'Opportunity', function(r) {
-
-		// 	if (r == true) {
-		// 		POpportunityLists.sendData();
-		// 		alert('Data Successfully Submitted!');
-		// 		setTimeout(function() {
-		// 			refreshdata();
-		// 		}, 1000);
-		// 	}
-		// })
+		var selectedId = OpportunityLists.getSelectedId();
+		if (!selectedId) {
+			alert('Pilih data terlebih dahulu.');
+			return;
+		}
+		$('#reg_id').val(selectedId);
+		$('#reg_lead_id').val('');
+		getRegisteredLeads(selectedId);
+		$('#divRegisteredLeadsDetail').show();
+		$('html, body').animate({
+			scrollTop: $('#divRegisteredLeadsDetail').offset().top
+		}, 400);
 	}
 
 
@@ -147,13 +152,13 @@ $Saya =  Auth::user()->username;
 
 	function listDoc() {
 
-		DocumentListsDetailID = OpportunityLists.cells(OpportunityLists.getSelectedId(),12).getValue();
-		
-			$("#divlistProjectList").show();
+		DocumentListsDetailID = OpportunityLists.cells(OpportunityLists.getSelectedId(), 12).getValue();
 
-		if (DocumentListsDetailID !=''){
+		$("#divlistProjectList").show();
+
+		if (DocumentListsDetailID != '') {
 			$("#divlistOpportunity").hide();
-			LoadM('divlistProjectList','project-documents-detail?Task_ID=' + DocumentListsDetailID);
+			LoadM('divlistProjectList', 'project-documents-detail?Task_ID=' + DocumentListsDetailID);
 		}
 		return true;
 	}
