@@ -4475,6 +4475,11 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$masterData-facility-create-submit", [MasterDataController::class, 'submitWarehouseFacility']);
     Route::get("$masterData-facility-data", [MasterDataController::class, 'getWarehouseFacility']);
     Route::delete("$masterData-facility-delete", [MasterDataController::class, 'deleteWarehouseFacility']);
+    Route::get("$masterData-fleet", [MasterDataController::class, 'indexMasterFleet']);
+    Route::get("$masterData-fleet-data", [MasterDataController::class, 'getMasterFleet']);
+    Route::get("$masterData-fleet-create", [MasterDataController::class, 'createMasterFleet']);
+    Route::get("$masterData-fleet-submit", [MasterDataController::class, 'submitCreateMasterFleet']);
+
 
     /** POO (Point of Origin UCO) */
     Route::get("$masterData-poo", [MasterDataController::class, 'POOPageIndex']);
@@ -4497,8 +4502,18 @@ Route::group(['middleware' => 'auth'], function () {
     /** Pickup */
     $pickupPref = "partner-pickup";
     Route::get("$pickupPref", [UCOLogisticController::class, 'indexPickupRequest']);
+    Route::get("$pickupPref-data", [UCOLogisticController::class, 'getPickupRequest']);
     Route::get("$pickupPref-create", [UCOLogisticController::class, 'createPickupRequest']);
-    Route::get("$pickupPref-create-submit", [UCOLogisticController::class, 'createPickupRequest']);
+    Route::post("$pickupPref-create-submit", [UCOLogisticController::class, 'submitCreatePickupRequest']);
+    Route::post("$pickupPref-assign-fleet", [UCOLogisticController::class, 'assignFleetToPickupRequest']);
+
+    $deliveryOrderPref = "partner-delivery-order";
+    Route::get("$deliveryOrderPref", [UCOLogisticController::class, 'indexDeliveryOrder']);
+    Route::get("$deliveryOrderPref-data", [UCOLogisticController::class, 'getDeliveryOrderData']);
+    Route::get("$deliveryOrderPref-create", [UCOLogisticController::class, 'createDeliveryOrder']);
+    Route::post("$deliveryOrderPref-create-submit", [UCOLogisticController::class, 'submitCreateDeliveryOrder']);
+    Route::post("$deliveryOrderPref-update-receipt", [UCOLogisticController::class, 'updateDeliveryOrderReceipt']);
+    Route::post("$deliveryOrderPref-update-note", [UCOLogisticController::class, 'updateDeliveryOrderNote']);
 
 
     /** Ticket */
@@ -5271,7 +5286,9 @@ Route::group(['middleware' => 'auth'], function () {
 
     $exportAnnexPref = "cns-export-annex";
     Route::get("$exportAnnexPref-index", [CNSAnnexVIIController::class, 'indexAnnex']);
+    Route::get("$exportAnnexPref-new", [CNSAnnexVIIController::class, 'newAnnex']);
     Route::get("$exportAnnexPref-data", [CNSAnnexVIIController::class, 'getAnnexData']);
+    Route::post("$exportAnnexPref-get-si", [CNSAnnexVIIController::class, 'getSI']);
     Route::get("$exportAnnexPref-print", [CNSAnnexVIIController::class, 'printAnnex']);
     Route::get("$exportAnnexPref-print-sample", [CNSAnnexVIIController::class, 'printAnnexSample']);
 });

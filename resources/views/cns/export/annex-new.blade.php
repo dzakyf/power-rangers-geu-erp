@@ -18,19 +18,24 @@ $Saya =  Auth::user()->username;
 						<!-- Visible mapping inputs to match ShipmentInstructionController::newShipmentInstructionSubmit -->
 						<div class="col-md-3 form-group">
 							<label for="SI_No">SI No</label>
-							<input type="text" id="SI_No" name="SI_No" class="form-control" value="{{ old('SI_No', $shipment->SI_No ?? '') }}" />
+							<select name="SI_No" id="SI_No" class="form-control">
+								<option value="">-- Select SI No --</option>
+								@foreach($shipments as $shipment)
+									<option value="{{ $shipment->SI_No }}">{{ $shipment->SI_No }}</option>
+								@endforeach
+							</select>
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="Order_No">Order No</label>
-							<input type="text" id="Order_No" name="Order_No" class="form-control" value="{{ old('Order_No', $shipment->Order_No ?? '') }}" />
+							<input type="text" id="Order_No" name="Order_No" class="form-control" value="{{ old('Order_No', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="Qty1">Qty 1</label>
-							<input type="text" id="Qty1" name="Qty1" class="form-control" value="{{ old('Qty1', $shipment->Qty1 ?? '') }}" />
+							<input type="text" id="Qty1" name="Qty1" class="form-control" value="{{ old('Qty1', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="Qty2">Qty 2</label>
-							<input type="text" id="Qty2" name="Qty2" class="form-control" value="{{ old('Qty2', $shipment->Qty2 ?? '') }}" />
+							<input type="text" id="Qty2" name="Qty2" class="form-control" value="{{ old('Qty2', '') }}" />
 						</div>
 						<!-- Annex VII form inputs (numbered and labeled to match annex-print) -->
 						<div class="col-12">
@@ -38,23 +43,28 @@ $Saya =  Auth::user()->username;
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="Shipper">Name</label>
-							<input type="text" id="Shipper" name="Shipper" class="form-control" value="{{ old('Shipper', $shipment->Shipper ?? $shipment->arranger_name ?? '') }}" />
+							<select name="Shipper" id="Shipper" class="form-control">
+								<option value="">-- Select Shipper --</option>
+								@foreach($comps as $comp)
+									<option value="{{ $comp->Supplier_ID }}">{{ $comp->Company_Name }}</option>
+								@endforeach
+							</select>
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="arranger_address">Address</label>
-							<input type="text" id="arranger_address" name="arranger_address" class="form-control" value="{{ old('arranger_address', $shipment->arranger_address ?? '') }}" />
+							<input type="text" id="arranger_address" name="arranger_address" class="form-control" value="{{ old('arranger_address', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="arranger_contact">Contact person</label>
-							<input type="text" id="arranger_contact" name="arranger_contact" class="form-control" value="{{ old('arranger_contact', $shipment->arranger_contact ?? '') }}" />
+							<input type="text" id="arranger_contact" name="arranger_contact" class="form-control" value="{{ old('arranger_contact', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="arranger_tel">Tel.</label>
-							<input type="text" id="arranger_tel" name="arranger_tel" class="form-control" value="{{ old('arranger_tel', $shipment->arranger_tel ?? '') }}" />
+							<input type="text" id="arranger_tel" name="arranger_tel" class="form-control" value="{{ old('arranger_tel', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="arranger_email">E-mail</label>
-							<input type="email" id="arranger_email" name="arranger_email" class="form-control" value="{{ old('arranger_email', $shipment->arranger_email ?? '') }}" />
+							<input type="email" id="arranger_email" name="arranger_email" class="form-control" value="{{ old('arranger_email', '') }}" />
 						</div>
 
 						<div class="col-12 mt-3">
@@ -62,15 +72,20 @@ $Saya =  Auth::user()->username;
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="Consignee">Name</label>
-							<input type="text" id="Consignee" name="Consignee" class="form-control" value="{{ old('Consignee', $shipment->Consignee ?? $shipment->consignee_name ?? '') }}" />
+							<select name="Consignee" id="Consignee" class="form-control">
+								<option value="">-- Select Consignee --</option>
+								@foreach($comps as $comp)
+									<option value="{{ $comp->Supplier_ID }}">{{ $comp->Company_Name }}</option>
+								@endforeach
+							</select>
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="consignee_email">E-mail</label>
-							<input type="email" id="consignee_email" name="consignee_email" class="form-control" value="{{ old('consignee_email', $shipment->consignee_email ?? '') }}" />
+							<input type="email" id="consignee_email" name="consignee_email" class="form-control" value="{{ old('consignee_email', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="consignee_telp">Tel.</label>
-							<input type="text" id="consignee_telp" name="consignee_telp" class="form-control" value="{{ old('consignee_telp', $shipment->consignee_telp ?? '') }}" />
+							<input type="text" id="consignee_telp" name="consignee_telp" class="form-control" value="{{ old('consignee_telp', '') }}" />
 						</div>
 
 						<div class="col-12 mt-3">
@@ -78,71 +93,80 @@ $Saya =  Auth::user()->username;
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="SI_Date">Actual date of shipment</label>
-							<input type="date" id="SI_Date" name="SI_Date" class="form-control" value="{{ old('SI_Date', isset($shipment->SI_Date) ? 
-								(is_string($shipment->SI_Date) ? $shipment->SI_Date : ($shipment->SI_Date->format('Y-m-d') ?? '')) : '') }}" />
+							<input type="date" id="SI_Date" name="SI_Date" class="form-control" value="{{ old('SI_Date') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="actual_quantity">Actual quantity (kg)</label>
-							<input type="text" id="actual_quantity" name="actual_quantity" class="form-control" value="{{ old('actual_quantity', $shipment->actual_quantity ?? $shipment->actual_qty ?? '') }}" />
+							<input type="text" id="actual_quantity" name="actual_quantity" class="form-control" value="{{ old('actual_quantity', '') }}" />
 						</div>
 
 						<!-- SI technical fields mapped to controller columns -->
 						<div class="col-12 mt-2"><h6>SI Details</h6></div>
 						<div class="col-md-3 form-group">
 							<label for="ETD">ETD</label>
-							<input type="date" id="ETD" name="ETD" class="form-control" value="{{ old('ETD', isset($shipment->ETD) ? (is_string($shipment->ETD) ? $shipment->ETD : ($shipment->ETD->format('Y-m-d') ?? '')) : '') }}" />
+							<input type="date" id="ETD" name="ETD" class="form-control" value="{{ old('ETD', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="ETA">ETA</label>
-							<input type="date" id="ETA" name="ETA" class="form-control" value="{{ old('ETA', isset($shipment->ETA) ? (is_string($shipment->ETA) ? $shipment->ETA : ($shipment->ETA->format('Y-m-d') ?? '')) : '') }}" />
+							<input type="date" id="ETA" name="ETA" class="form-control" value="{{ old('ETA', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="Stuffing">Stuffing</label>
-							<input type="text" id="Stuffing" name="Stuffing" class="form-control" value="{{ old('Stuffing', $shipment->Stuffing ?? '') }}" />
+							<input type="text" id="Stuffing" name="Stuffing" class="form-control" value="{{ old('Stuffing', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="POL">POL</label>
-							<input type="text" id="POL" name="POL" class="form-control" value="{{ old('POL', $shipment->POL ?? '') }}" />
+							<input type="text" id="POL" name="POL" class="form-control" value="{{ old('POL', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="POD">POD</label>
-							<input type="text" id="POD" name="POD" class="form-control" value="{{ old('POD', $shipment->POD ?? '') }}" />
+							<input type="text" id="POD" name="POD" class="form-control" value="{{ old('POD', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="PEB_Date">PEB Date</label>
-							<input type="date" id="PEB_Date" name="PEB_Date" class="form-control" value="{{ old('PEB_Date', isset($shipment->PEB_Date) ? (is_string($shipment->PEB_Date) ? $shipment->PEB_Date : ($shipment->PEB_Date->format('Y-m-d') ?? '')) : '') }}" />
+							<input type="date" id="PEB_Date" name="PEB_Date" class="form-control" value="{{ old('PEB_Date', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="PEB_No">PEB No</label>
-							<input type="text" id="PEB_No" name="PEB_No" class="form-control" value="{{ old('PEB_No', $shipment->PEB_No ?? '') }}" />
+							<input type="text" id="PEB_No" name="PEB_No" class="form-control" value="{{ old('PEB_No', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="BL_No">BL No</label>
-							<input type="text" id="BL_No" name="BL_No" class="form-control" value="{{ old('BL_No', $shipment->BL_No ?? '') }}" />
+							<input type="text" id="BL_No" name="BL_No" class="form-control" value="{{ old('BL_No', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="HS_Code">HS Code</label>
-							<input type="text" id="HS_Code" name="HS_Code" class="form-control" value="{{ old('HS_Code', $shipment->HS_Code ?? '') }}" />
+							<input type="text" id="HS_Code" name="HS_Code" class="form-control" value="{{ old('HS_Code', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="Contract_No">Contract No</label>
-							<input type="text" id="Contract_No" name="Contract_No" class="form-control" value="{{ old('Contract_No', $shipment->Contract_No ?? '') }}" />
+							<input type="text" id="Contract_No" name="Contract_No" class="form-control" value="{{ old('Contract_No', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="Delivery_Terms">Delivery Terms</label>
-							<input type="text" id="Delivery_Terms" name="Delivery_Terms" class="form-control" value="{{ old('Delivery_Terms', $shipment->Delivery_Terms ?? '') }}" />
+							<input type="text" id="Delivery_Terms" name="Delivery_Terms" class="form-control" value="{{ old('Delivery_Terms', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="Voyage">Voyage</label>
-							<input type="text" id="Voyage" name="Voyage" class="form-control" value="{{ old('Voyage', $shipment->Voyage ?? '') }}" />
+							<input type="text" id="Voyage" name="Voyage" class="form-control" value="{{ old('Voyage', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="Destination_Letter">Destination Letter</label>
-							<input type="text" id="Destination_Letter" name="Destination_Letter" class="form-control" value="{{ old('Destination_Letter', $shipment->Destination_Letter ?? '') }}" />
+							<select name="Destination_Letter" id="Destination_Letter" class="form-control">
+								<option value="">-- Select Destination Letter --</option>
+								@foreach($comps as $comp)
+									<option value="{{ $comp->Supplier_ID }}">{{ $comp->Company_Name }}</option>
+								@endforeach
+							</select>
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="Notify">Notify</label>
-							<input type="text" id="Notify" name="Notify" class="form-control" value="{{ old('Notify', $shipment->Notify ?? '') }}" />
+							<select name="Notify" id="Notify" class="form-control">
+								<option value="">-- Select Notify --</option>
+								@foreach($comps as $comp)
+									<option value="{{ $comp->Supplier_ID }}">{{ $comp->Company_Name }}</option>
+								@endforeach
+							</select>
 						</div>
 
 						<div class="col-12 mt-3">
@@ -152,192 +176,192 @@ $Saya =  Auth::user()->username;
 						<div class="col-12"><strong>5 a) 1st Carrier</strong></div>
 						<div class="col-md-6 form-group">
 							<label for="carrier1_name">Name</label>
-							<input type="text" id="carrier1_name" name="carrier1_name" class="form-control" value="{{ old('carrier1_name', $shipment->carrier1_name ?? '') }}" />
+							<input type="text" id="carrier1_name" name="carrier1_name" class="form-control" value="{{ old('carrier1_name', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="carrier1_address">Address</label>
-							<input type="text" id="carrier1_address" name="carrier1_address" class="form-control" value="{{ old('carrier1_address', $shipment->carrier1_address ?? '') }}" />
+							<input type="text" id="carrier1_address" name="carrier1_address" class="form-control" value="{{ old('carrier1_address', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="carrier1_phone">Phone</label>
-							<input type="text" id="carrier1_phone" name="carrier1_phone" class="form-control" value="{{ old('carrier1_phone', $shipment->carrier1_phone ?? '') }}" />
+							<input type="text" id="carrier1_phone" name="carrier1_phone" class="form-control" value="{{ old('carrier1_phone', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="carrier1_email">E-mail</label>
-							<input type="email" id="carrier1_email" name="carrier1_email" class="form-control" value="{{ old('carrier1_email', $shipment->carrier1_email ?? '') }}" />
+							<input type="email" id="carrier1_email" name="carrier1_email" class="form-control" value="{{ old('carrier1_email', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="carrier1_date">Date of transfer</label>
-							<input type="date" id="carrier1_date" name="carrier1_date" class="form-control" value="{{ old('carrier1_date', $shipment->carrier1_date ?? '') }}" />
+							<input type="date" id="carrier1_date" name="carrier1_date" class="form-control" value="{{ old('carrier1_date', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="carrier1_licence">Carrier's licence</label>
-							<input type="text" id="carrier1_licence" name="carrier1_licence" class="form-control" value="{{ old('carrier1_licence', $shipment->carrier1_licence ?? '') }}" />
+							<input type="text" id="carrier1_licence" name="carrier1_licence" class="form-control" value="{{ old('carrier1_licence', '') }}" />
 						</div>
 
 						<!-- Carrier 2 -->
 						<div class="col-12 mt-2"><strong>5 b) 2nd Carrier</strong></div>
 						<div class="col-md-6 form-group">
 							<label for="carrier2_name">Name</label>
-							<input type="text" id="carrier2_name" name="carrier2_name" class="form-control" value="{{ old('carrier2_name', $shipment->carrier2_name ?? '') }}" />
+							<input type="text" id="carrier2_name" name="carrier2_name" class="form-control" value="{{ old('carrier2_name', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="carrier2_address">Address</label>
-							<input type="text" id="carrier2_address" name="carrier2_address" class="form-control" value="{{ old('carrier2_address', $shipment->carrier2_address ?? '') }}" />
+							<input type="text" id="carrier2_address" name="carrier2_address" class="form-control" value="{{ old('carrier2_address', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="carrier2_contact">Contact person</label>
-							<input type="text" id="carrier2_contact" name="carrier2_contact" class="form-control" value="{{ old('carrier2_contact', $shipment->carrier2_contact ?? '') }}" />
+							<input type="text" id="carrier2_contact" name="carrier2_contact" class="form-control" value="{{ old('carrier2_contact', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="carrier2_tel">Tel</label>
-							<input type="text" id="carrier2_tel" name="carrier2_tel" class="form-control" value="{{ old('carrier2_tel', $shipment->carrier2_tel ?? '') }}" />
+							<input type="text" id="carrier2_tel" name="carrier2_tel" class="form-control" value="{{ old('carrier2_tel', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="carrier2_fax">Fax</label>
-							<input type="text" id="carrier2_fax" name="carrier2_fax" class="form-control" value="{{ old('carrier2_fax', $shipment->carrier2_fax ?? '') }}" />
+							<input type="text" id="carrier2_fax" name="carrier2_fax" class="form-control" value="{{ old('carrier2_fax', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="carrier2_email">E-mail</label>
-							<input type="email" id="carrier2_email" name="carrier2_email" class="form-control" value="{{ old('carrier2_email', $shipment->carrier2_email ?? '') }}" />
+							<input type="email" id="carrier2_email" name="carrier2_email" class="form-control" value="{{ old('carrier2_email', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="carrier2_date">Date of transfer</label>
-							<input type="date" id="carrier2_date" name="carrier2_date" class="form-control" value="{{ old('carrier2_date', $shipment->carrier2_date ?? '') }}" />
+							<input type="date" id="carrier2_date" name="carrier2_date" class="form-control" value="{{ old('carrier2_date', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="carrier2_licence">Carrier's licence</label>
-							<input type="text" id="carrier2_licence" name="carrier2_licence" class="form-control" value="{{ old('carrier2_licence', $shipment->carrier2_licence ?? '') }}" />
+							<input type="text" id="carrier2_licence" name="carrier2_licence" class="form-control" value="{{ old('carrier2_licence', '') }}" />
 						</div>
 
 						<!-- Carrier 3 -->
 						<div class="col-12 mt-2"><strong>5 c) 3rd Carrier</strong></div>
 						<div class="col-md-6 form-group">
 							<label for="carrier3_name">Name</label>
-							<input type="text" id="carrier3_name" name="carrier3_name" class="form-control" value="{{ old('carrier3_name', $shipment->carrier3_name ?? '') }}" />
+							<input type="text" id="carrier3_name" name="carrier3_name" class="form-control" value="{{ old('carrier3_name', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="carrier3_address">Address</label>
-							<input type="text" id="carrier3_address" name="carrier3_address" class="form-control" value="{{ old('carrier3_address', $shipment->carrier3_address ?? '') }}" />
+							<input type="text" id="carrier3_address" name="carrier3_address" class="form-control" value="{{ old('carrier3_address', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="carrier3_contact">Contact person</label>
-							<input type="text" id="carrier3_contact" name="carrier3_contact" class="form-control" value="{{ old('carrier3_contact', $shipment->carrier3_contact ?? '') }}" />
+							<input type="text" id="carrier3_contact" name="carrier3_contact" class="form-control" value="{{ old('carrier3_contact', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="carrier3_tel">Tel</label>
-							<input type="text" id="carrier3_tel" name="carrier3_tel" class="form-control" value="{{ old('carrier3_tel', $shipment->carrier3_tel ?? '') }}" />
+							<input type="text" id="carrier3_tel" name="carrier3_tel" class="form-control" value="{{ old('carrier3_tel', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="carrier3_fax">Fax</label>
-							<input type="text" id="carrier3_fax" name="carrier3_fax" class="form-control" value="{{ old('carrier3_fax', $shipment->carrier3_fax ?? '') }}" />
+							<input type="text" id="carrier3_fax" name="carrier3_fax" class="form-control" value="{{ old('carrier3_fax', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="carrier3_email">E-mail</label>
-							<input type="email" id="carrier3_email" name="carrier3_email" class="form-control" value="{{ old('carrier3_email', $shipment->carrier3_email ?? '') }}" />
+							<input type="email" id="carrier3_email" name="carrier3_email" class="form-control" value="{{ old('carrier3_email', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="carrier3_transport">Means of transport</label>
-							<input type="text" id="carrier3_transport" name="carrier3_transport" class="form-control" value="{{ old('carrier3_transport', $shipment->carrier3_transport ?? '') }}" />
+							<input type="text" id="carrier3_transport" name="carrier3_transport" class="form-control" value="{{ old('carrier3_transport', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="carrier3_date">Date of transfer</label>
-							<input type="date" id="carrier3_date" name="carrier3_date" class="form-control" value="{{ old('carrier3_date', $shipment->carrier3_date ?? '') }}" />
+							<input type="date" id="carrier3_date" name="carrier3_date" class="form-control" value="{{ old('carrier3_date', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="carrier3_licence">Carrier's licence</label>
-							<input type="text" id="carrier3_licence" name="carrier3_licence" class="form-control" value="{{ old('carrier3_licence', $shipment->carrier3_licence ?? '') }}" />
+							<input type="text" id="carrier3_licence" name="carrier3_licence" class="form-control" value="{{ old('carrier3_licence', '') }}" />
 						</div>
 
 						<!-- Containers (map to Container1..Container5) -->
 						<div class="col-12 mt-2"><h6>Containers</h6></div>
 						<div class="col-md-4 form-group">
 							<label for="Container1">Container 1 (ID)</label>
-							<input type="text" id="Container1" name="Container1" class="form-control" value="{{ old('Container1', $shipment->Container1 ?? '') }}" />
+							<input type="text" id="Container1" name="Container1" class="form-control" value="{{ old('Container1', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="Container2">Container 2 (ID)</label>
-							<input type="text" id="Container2" name="Container2" class="form-control" value="{{ old('Container2', $shipment->Container2 ?? '') }}" />
+							<input type="text" id="Container2" name="Container2" class="form-control" value="{{ old('Container2', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="Container3">Container 3 (ID)</label>
-							<input type="text" id="Container3" name="Container3" class="form-control" value="{{ old('Container3', $shipment->Container3 ?? '') }}" />
+							<input type="text" id="Container3" name="Container3" class="form-control" value="{{ old('Container3', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="Container4">Container 4 (ID)</label>
-							<input type="text" id="Container4" name="Container4" class="form-control" value="{{ old('Container4', $shipment->Container4 ?? '') }}" />
+							<input type="text" id="Container4" name="Container4" class="form-control" value="{{ old('Container4', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="Container5">Container 5 (ID)</label>
-							<input type="text" id="Container5" name="Container5" class="form-control" value="{{ old('Container5', $shipment->Container5 ?? '') }}" />
+							<input type="text" id="Container5" name="Container5" class="form-control" value="{{ old('Container5', '') }}" />
 						</div>
 
 						<div class="col-12 mt-3"><h5>6. Waste generator / 7. Recovery facility</h5></div>
 						<div class="col-md-6 form-group">
 							<label for="waste_generator_name">Waste generator - Name</label>
-							<input type="text" id="waste_generator_name" name="waste_generator_name" class="form-control" value="{{ old('waste_generator_name', $shipment->waste_generator_name ?? $shipment->waste_generator ?? '') }}" />
+							<input type="text" id="waste_generator_name" name="waste_generator_name" class="form-control" value="{{ old('waste_generator_name', '') }}" />
 							<label for="waste_generator_address" class="mt-2">Address</label>
-							<input type="text" id="waste_generator_address" name="waste_generator_address" class="form-control" value="{{ old('waste_generator_address', $shipment->waste_generator_address ?? '') }}" />
+							<input type="text" id="waste_generator_address" name="waste_generator_address" class="form-control" value="{{ old('waste_generator_address', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="recovery_address">Recovery facility - Address</label>
-							<input type="text" id="recovery_address" name="recovery_address" class="form-control" value="{{ old('recovery_address', $shipment->recovery_address ?? '') }}" />
+							<input type="text" id="recovery_address" name="recovery_address" class="form-control" value="{{ old('recovery_address', '') }}" />
 							<label for="recovery_contact" class="mt-2">Contact person</label>
-							<input type="text" id="recovery_contact" name="recovery_contact" class="form-control" value="{{ old('recovery_contact', $shipment->recovery_contact ?? '') }}" />
+							<input type="text" id="recovery_contact" name="recovery_contact" class="form-control" value="{{ old('recovery_contact', '') }}" />
 							<label for="recovery_tel" class="mt-2">Tel.</label>
-							<input type="text" id="recovery_tel" name="recovery_tel" class="form-control" value="{{ old('recovery_tel', $shipment->recovery_tel ?? '') }}" />
+							<input type="text" id="recovery_tel" name="recovery_tel" class="form-control" value="{{ old('recovery_tel', '') }}" />
 							<label for="recovery_email" class="mt-2">E-mail</label>
-							<input type="email" id="recovery_email" name="recovery_email" class="form-control" value="{{ old('recovery_email', $shipment->recovery_email ?? '') }}" />
+							<input type="email" id="recovery_email" name="recovery_email" class="form-control" value="{{ old('recovery_email', '') }}" />
 						</div>
 
 						<div class="col-12 mt-3"><h5>8, 9, 10. Recovery operation / Description / Waste identification</h5></div>
 						<div class="col-md-12 form-group">
 							<label for="recovery_operation">8. Recovery operation (R-/D-code)</label>
-							<input type="text" id="recovery_operation" name="recovery_operation" class="form-control" value="{{ old('recovery_operation', $shipment->recovery_operation ?? $shipment->recovery_operation_code ?? '') }}" />
+							<input type="text" id="recovery_operation" name="recovery_operation" class="form-control" value="{{ old('recovery_operation', '') }}" />
 						</div>
 						<div class="col-md-12 form-group">
 							<label for="Product_Name">9. Usual description of the waste / Product Name</label>
-							<textarea id="Product_Name" name="Product_Name" class="form-control" rows="2">{{ old('Product_Name', $shipment->Product_Name ?? $shipment->product_description ?? $shipment->usual_description ?? '') }}</textarea>
+							<textarea id="Product_Name" name="Product_Name" class="form-control" rows="2">{{ old('Product_Name', '') }}</textarea>
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="basel_annex">10 i) Basel annex IX</label>
-							<input type="text" id="basel_annex" name="basel_annex" class="form-control" value="{{ old('basel_annex', $shipment->basel_annex ?? '') }}" />
+							<input type="text" id="basel_annex" name="basel_annex" class="form-control" value="{{ old('basel_annex', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="oecd_code">10 ii) OECD-Code</label>
-							<input type="text" id="oecd_code" name="oecd_code" class="form-control" value="{{ old('oecd_code', $shipment->oecd_code ?? '') }}" />
+							<input type="text" id="oecd_code" name="oecd_code" class="form-control" value="{{ old('oecd_code', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="ec_list">10 iii) EC list of wastes</label>
-							<input type="text" id="ec_list" name="ec_list" class="form-control" value="{{ old('ec_list', $shipment->ec_list ?? '') }}" />
+							<input type="text" id="ec_list" name="ec_list" class="form-control" value="{{ old('ec_list', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="national_code">10 iv) National Code</label>
-							<input type="text" id="national_code" name="national_code" class="form-control" value="{{ old('national_code', $shipment->national_code ?? '') }}" />
+							<input type="text" id="national_code" name="national_code" class="form-control" value="{{ old('national_code', '') }}" />
 						</div>
 
 						<div class="col-12 mt-3"><h5>11. Countries / state concerned</h5></div>
 						<div class="col-md-4 form-group">
 							<label for="export_country">Export / dispatch</label>
-							<input type="text" id="export_country" name="export_country" class="form-control" value="{{ old('export_country', $shipment->export_country ?? '') }}" />
+							<input type="text" id="export_country" name="export_country" class="form-control" value="{{ old('export_country', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="transit_country">Transit</label>
-							<input type="text" id="transit_country" name="transit_country" class="form-control" value="{{ old('transit_country', $shipment->transit_country ?? '') }}" />
+							<input type="text" id="transit_country" name="transit_country" class="form-control" value="{{ old('transit_country', '') }}" />
 						</div>
 						<div class="col-md-4 form-group">
 							<label for="import_destination">Import / destination</label>
-							<input type="text" id="import_destination" name="import_destination" class="form-control" value="{{ old('import_destination', $shipment->import_destination ?? '') }}" />
+							<input type="text" id="import_destination" name="import_destination" class="form-control" value="{{ old('import_destination', '') }}" />
 						</div>
 
 						<div class="col-12 mt-3"><h5>12. Declaration</h5></div>
 						<div class="col-md-6 form-group">
 							<label for="declarant_name">Name</label>
-							<input type="text" id="declarant_name" name="declarant_name" class="form-control" value="{{ old('declarant_name', $shipment->declarant_name ?? $shipment->declarant ?? '') }}" />
+							<input type="text" id="declarant_name" name="declarant_name" class="form-control" value="{{ old('declarant_name', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label for="declarant_date">Date</label>
-							<input type="date" id="declarant_date" name="declarant_date" class="form-control" value="{{ old('declarant_date', isset($shipment->declarant_date) ? (is_string($shipment->declarant_date) ? $shipment->declarant_date : ($shipment->declarant_date->format('Y-m-d') ?? '')) : '') }}" />
+							<input type="date" id="declarant_date" name="declarant_date" class="form-control" value="{{ old('declarant_date', '') }}" />
 						</div>
 						<div class="col-md-3 form-group">
 							<label>Signature (on print)</label>
@@ -402,23 +426,31 @@ $Saya =  Auth::user()->username;
 
 	// }
 
-    $('#Final_SI_No').on('change', function() {
+    $('#SI_No').on('change', function() {
+		let val = $('#SI_No').find('option:selected').val();
+		if (val == '') {
+			return;
+		}
         // refreshdata();  
         $.blockUI();
         $.ajax({
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-            url: "cns-export-commercial-invoice-get-si",
+            url: "cns-export-annex-get-si",
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
-                Final_SI_No: $('#Final_SI_No').find('option:selected').val()
+                SI_No: val
             },
             success: function(response) {
-                $('#Qty').val(response.Netto_MT ?? 0);
-                $('#Description').val(response.Product_Name ?? "");
-                $('#Consignee').find('option[value="'+response.Consignee+'"]').attr('selected', true);
+                Object.keys(response).forEach(function(key) {
+                    if (key != 'orderDetails' && key != 'Final_SI_No') {
+						if ($('#' + key).length) {
+							$('#' + key).val(response[key]);
+						}
+                    }
+                });
                 $.unblockUI();
             },
             error:function() {

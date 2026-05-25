@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Partner;
 
 use App\Http\Controllers\Controller;
+use App\Services\GeneratorService;
 use App\Services\UserService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Safe\Exceptions\SimplexmlException;
 use SimpleXMLElement;
 
@@ -14,9 +16,11 @@ class UCOController extends Controller
 {
 
     private $userService;
-    public function __construct(UserService $u)
+    private $generatorService;
+    public function __construct(UserService $u, GeneratorService $g)
     {
         $this->userService = $u;
+        $this->generatorService = $g;
     }
 
     public function indexInboundSource()
@@ -399,6 +403,7 @@ class UCOController extends Controller
     {
         $id     = $r->query('id');
         $format = $r->query('format', 'json');
+        $status = $r->query('status');
 
         $query = DB::table('work_order as wo')
             ->leftJoin('master_poo as mp', 'mp.ID', '=', 'wo.POO_Id')
@@ -407,6 +412,7 @@ class UCOController extends Controller
                 'wo.POO_Id',
                 'mp.Name as POO_Name',
                 'wo.Status',
+                'wo.Code',
                 DB::raw("DATE_FORMAT(wo.Work_Order_Date, '%Y-%m-%d') as Work_Order_Date"),
                 'wo.Created_At',
                 'wo.Updated_At'
@@ -415,6 +421,11 @@ class UCOController extends Controller
         if ($id) {
             $query->where('wo.ID', $id);
         }
+
+        if ($status) {
+            $query->where('wo.Status', $status);
+        }
+
 
         $rows = $query->get();
 
@@ -451,11 +462,15 @@ class UCOController extends Controller
 
     public function submitWorkOrder(Request $r)
     {
-        DB::beginTransaction();
+
+        $count = DB::table('work_order')->count();
 
         try {
+            DB::beginTransaction();
+
             DB::table('work_order')->insert([
                 'POO_Id'          => $r->input('POO_Id'),
+                'Code'            => $this->generatorService->generateApplicationCode($count, 'WO'),
                 'Status'          => $r->input('Status'),
                 'Work_Order_Date' => $r->input('Work_Order_Date'),
             ]);
@@ -475,12 +490,278 @@ class UCOController extends Controller
         return view('partner.pickup.index');
     }
 
-    public function getPickupRequest(Request $r) {}
+    public function getPickupRequest(Request $r)
+    {
+
+        $id = $r->query('id');
+        $rows = $this->fetchPickupOrders($id);
+
+        if ($r->query('format') === 'xml') {
+            return $this->pickupOrdersAsXml($rows);
+        }
+
+        return $this->pickupOrdersAsJson($rows);
+    }
+
+    private function fetchPickupOrders(?string $id)
+    {
+        $query = DB::table('pickup_order')->select('*');
+
+        if ($id) {
+            $query->where('id', $id);
+        }
+
+        return $query->get();
+    }
+
+    private function pickupOrdersAsJson($rows)
+    {
+        return response()->json(['data' => $rows]);
+    }
+
+    private function pickupOrdersAsXml($rows)
+    {
+        $xml     = new SimpleXMLElement('<rows/>');
+        $counter = 1;
+
+        foreach ($rows as $row) {
+            $item = $xml->addChild('row');
+            $item->addAttribute('ID', $row->ID);
+
+            $item->addChild('cell', $counter);
+            $item->addChild('cell', htmlspecialchars((string) $row->Code));
+            $item->addChild('cell', htmlspecialchars((string) $row->Type_Pickup));
+            $item->addChild('cell', htmlspecialchars((string) $row->Coverage));
+            $item->addChild('cell', htmlspecialchars((string) $row->Site));
+            $item->addChild('cell', htmlspecialchars((string) $row->Package));
+            $item->addChild('cell', htmlspecialchars((string) $row->Qty));
+            $item->addChild('cell', htmlspecialchars((string) $row->Price));
+            $item->addChild('cell', htmlspecialchars((string) $row->Description));
+            $item->addChild('cell', htmlspecialchars((string) $row->Created_At));
+
+            $counter++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
 
     public function createPickupRequest(Request $r)
     {
         return view('partner.pickup.create');
     }
+
+    public function submitCreatePickupRequest(Request $r)
+    {
+        $count = DB::table('pickup_order')->count();
+
+        try {
+            DB::transaction(function () use ($r, $count) {
+                DB::table('pickup_order')->insert([
+                    'Code'        => $this->generatorService->generateApplicationCode($count, 'PO'),
+                    'Type_Pickup' => $r->input('Type_Pickup'),
+                    'Coverage'    => $r->input('Coverage'),
+                    'Site'        => $r->input('Site'),
+                    'Package'     => $r->input('Package'),
+                    'Qty'         => $r->input('Qty'),
+                    'Price'       => $r->input('Price'),
+                    'Description' => $r->input('Description'),
+                    'WO_Id'        => $r->input('WO_Id'),
+                    'Created_At'  => now(),
+                ]);
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'Pickup request berhasil dibuat.']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function assignFleetToPickupRequest(Request $r)
+    {
+        $id = $r->input('id');
+
+        if (!$id) {
+            return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
+        }
+
+        try {
+            DB::transaction(function () use ($r, $id) {
+                DB::table('pickup_order')->where('id', $id)->update([
+                    'Pickup_At' => $r->input('Pickup_At'),
+                    'Fleet_Id'  => $r->input('Fleet_Id'),
+                ]);
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'Fleet berhasil di-assign.']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function submitCreateDeliveryOrder(Request $r)
+    {
+        try {
+            DB::transaction(function () use ($r) {
+                DB::table('delivery_order')->insert([
+                    'PO_Id'   => $r->input('PO_Id'),
+                    'Status'  => $r->input('Status'),
+                    'DO_Date' => $r->input('DO_Date'),
+                    'Start_Time' => $r->input('Start_Time'),
+                    'Finish_Time' => $r->input('Finish_Time'),
+                    'Created_At' => now(),
+                ]);
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'Delivery order berhasil dibuat.']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // add signature, uco photo receipt, real entry qty
+    public function updateDeliveryOrderReceipt(Request $r)
+    {
+        $id = $r->input('id');
+
+        if (!$id) {
+            return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
+        }
+
+        try {
+            DB::transaction(function () use ($r, $id) {
+                $year  = Carbon::now()->year;
+                $month = Carbon::now()->format('m');
+
+                // Signature (base64 image)
+                if ($r->filled('Signature')) {
+                    $b64        = preg_replace('/^data:image\/\w+;base64,/', '', $r->input('Signature'));
+                    $binary     = base64_decode($b64);
+                    $sigName    = "signature_{$id}_" . time() . ".png";
+                    $sigPath    = "$year/$month/$sigName";
+                    Storage::disk('public')->put($sigPath, $binary);
+
+                    DB::table('meta_files')->insert([
+                        'Filename'    => $sigName,
+                        'Path'        => $sigPath,
+                        'Extension'   => 'png',
+                        'Description' => 'Signature',
+                        'Topic'       => 'DELIVERY_ORDER',
+                        'Map_To'      => $id,
+                        'Created_At'  => now(),
+                    ]);
+                }
+
+                // UCO receipt photo (binary file upload)
+                if ($r->hasFile('Receipt_Photo') && $r->file('Receipt_Photo')->isValid()) {
+                    $file = $r->file('Receipt_Photo');
+                    $path = $file->store("$year/$month", 'public');
+                    $ext  = $file->getClientOriginalExtension();
+
+                    DB::table('meta_files')->insert([
+                        'Filename'    => basename($path),
+                        'Path'        => $path,
+                        'Extension'   => $ext,
+                        'Description' => 'Receipt_Photo',
+                        'Topic'       => 'DELIVERY_ORDER',
+                        'Map_To'      => $id,
+                        'Created_At'  => now(),
+                    ]);
+                }
+
+                DB::table('delivery_order')->where('id', $id)->update([
+                    'Actual_Qty' => $r->input('Qty'),
+                    'DO_Status'  => 'DONE',
+                ]);
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'Delivery order berhasil diupdate.']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+
+    // update nota penjemputan
+    public function updateDeliveryOrderNote(Request $r)
+    {
+        $id = $r->input('id');
+
+        if (!$id) {
+            return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
+        }
+
+        try {
+            DB::transaction(function () use ($r, $id) {
+                $year  = Carbon::now()->year;
+                $month = Carbon::now()->format('m');
+
+                if ($r->hasFile('Delivery_Note') && $r->file('Delivery_Note')->isValid()) {
+                    $file = $r->file('Delivery_Note');
+                    $path = $file->store("$year/$month", 'public');
+                    $ext  = $file->getClientOriginalExtension();
+
+                    DB::table('meta_files')->insert([
+                        'Filename'    => basename($path),
+                        'Path'        => $path,
+                        'Extension'   => $ext,
+                        'Description' => 'Delivery_Note',
+                        'Topic'       => 'DELIVERY_ORDER',
+                        'Map_To'      => $id,
+                        'Created_At'  => now(),
+                    ]);
+                }
+
+                DB::table('delivery_order')->where('id', $id)->update([
+                    'Actual_Pickup_Cost' => $r->input('Actual_Pickup_Cost'),
+                ]);
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'Delivery note berhasil diupdate.']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function indexDeliveryOrder()
+    {
+        return view('partner.delivery.index');
+    }
+
+    public function createDeliveryOrder()
+    {
+        return view('partner.delivery.create');
+    }
+
+    public function getDeliveryOrderData(Request $r)
+    {
+        $id   = $r->query('id');
+        $rows = DB::table('delivery_order as do')
+            ->join('pickup_order as po', 'po.ID', '=', 'do.PO_Id')
+            ->select('do.*', 'po.Code as PO_Code', 'po.Type_Pickup', 'po.Coverage', 'po.Site', 'po.Package', 'po.Qty', 'po.Price', 'po.Description as PO_Description')
+            ->when($id, fn($q) => $q->where('do.id', $id))
+            ->get();
+
+        if ($r->query('format') === 'xml') {
+            $xml     = new SimpleXMLElement('<rows/>');
+            $counter = 1;
+
+            foreach ($rows as $row) {
+                $item = $xml->addChild('row');
+                $item->addAttribute('ID', $row->id);
+
+                foreach ((array) $row as $value) {
+                    $item->addChild('cell', htmlspecialchars((string) $value));
+                }
+
+                $counter++;
+            }
+
+            return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+        }
+
+        return response()->json(['data' => $rows]);
+    }
+
 
     public function createTicket(Request $r) {}
 

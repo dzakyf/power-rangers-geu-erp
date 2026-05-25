@@ -398,4 +398,81 @@ class MasterDataController extends Controller
 
         return response()->json(['status' => 'success']);
     }
+
+
+    public function getMasterFleet(Request $r)
+    {
+        $rows = $this->fetchMasterFleet($r->query('id'));
+
+        if ($r->query('format') === 'xml') {
+            return $this->masterFleetAsXml($rows);
+        }
+
+        return $this->masterFleetAsJson($rows);
+    }
+
+    private function fetchMasterFleet(?string $id)
+    {
+        $query = DB::table('master_fleet')->select('*');
+
+        if ($id) {
+            $query->where('id', $id);
+        }
+
+        return $query->get();
+    }
+
+    private function masterFleetAsJson(\Illuminate\Support\Collection $rows)
+    {
+        return response()->json(['data' => $rows]);
+    }
+
+    private function masterFleetAsXml(\Illuminate\Support\Collection $rows)
+    {
+        $xml     = new \SimpleXMLElement('<rows/>');
+        $counter = 1;
+
+        foreach ($rows as $row) {
+            $item = $xml->addChild('row');
+            $item->addAttribute('ID', $row->id);
+
+            foreach ((array) $row as $value) {
+                $item->addChild('cell', htmlspecialchars((string) $value));
+            }
+
+            $counter++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    public function inputMasterFleet(Request $r)
+    {
+        try {
+            DB::transaction(function () use ($r) {
+                DB::table('master_fleet')->insert([
+                    'Police_Number' => $r->input('Police_Number'),
+                    'Warehouse_Id'  => $r->input('Warehouse_Id'),
+                    'Fleet_Brand'   => $r->input('Fleet_Brand'),
+                    'Description'   => $r->input('Description'),
+                    'Status'        => $r->input('Status'),
+                    'Created_At'    => now(),
+                ]);
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'Fleet berhasil ditambahkan.']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function indexMasterFleet()
+    {
+        return view('partner.fleet.index');
+    }
+
+    public function createMasterFleet()
+    {
+        return view('partner.fleet.create');
+    }
 }
