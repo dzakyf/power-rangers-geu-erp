@@ -10,13 +10,13 @@
             <a href="#">Partner</a>
         </li>
         <li class="breadcrumb-item active">
-            <span class="active">Branding</span>
+            <span class="active">Pickup</span>
         </li>
     </ol>
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">POO</div>
+    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PICKUP</div>
     <div class="card">
         <div class="card-body">
             <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
@@ -25,7 +25,7 @@
 
                 <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
                 <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
-                <input type="button" id="detailGrid1" name="detailGrid1" value="Detail Data" class="btn btn-info mt-2 mr-2" />
+                <!-- <input type="button" id="detailGrid1" name="detailGrid1" value="Detail Data" class="btn btn-info mt-2 mr-2" /> -->
 
             </div>
         </div>
@@ -45,14 +45,14 @@
     })
 
     function redirectToCreateApplication() {
-        window.location.href = `master-poo-create`
+        window.location.href = `partner-pickup-create`
     }
 
     function initTableGrid1() {
-        let tHeader = ['No', null, 'Type', 'Name', 'PIC', 'Code', 'Employee', 'Phone', 'Position', 'Category', 'UCO Type', 'Price', 'Price Unit', 'Province', 'City', 'Subdistrict', 'Village', 'Cycle', 'Full Address', 'Location Coordinate', 'Nearest Warehouse', 'Bank Account Number', 'Bank Account Name', 'Bank Name', 'Point', 'Created At', 'Updated At']
+        let tHeader = ['No', null, 'Type', 'Coverage', 'Site', 'Package', 'Qty', 'Price', 'Description', 'Dibuat Pada']
         let tWidth = tHeader.map((e, i) => i == 1 ? 0 : '150')
         let headerAttachment = tHeader.map((e, i) => i <= 1 ? '#rspan' : '#text_filter')
-        let colId = ['No', 'ID', 'Type', 'Name', 'PIC', 'Code', 'Employee', 'Phone', 'Position', 'Category', 'UCO_Type', 'Price', 'Price_Unit', 'Province', 'City', 'Subdistrict', 'Village', 'Cycle', 'Full_Address', 'Location_Coordinate', 'Nearest_Warehouse', 'Bank_Account_Number', 'Bank_Account_Name', 'Bank_Name', 'Point', 'Created_At', 'Updated_At'].join(',')
+        let colId = ['No', null, 'Type', 'Coverage', 'Site', 'Package', 'Qty', 'Price', 'Description', 'Dibuat Pada'].join(',')
 
 
         Grid1 = new dhtmlXGridObject('MembershipGrid');
@@ -71,16 +71,16 @@
 
         Grid1.init();
 
-        Grid1.clearAndLoad('master-poo-data?format=xml');
+        Grid1.clearAndLoad('partner-pickup-data?format=xml');
     }
 
     function initDetailTableGrid1() {
         $('#Grid1Detail').show();
-        getPOOData()
+        getPickupData()
     }
 
 
-    function getPOOData() {
+    function getPickupData() {
         var id = marketingId;
         if (!id) {
             alert('Pilih data terlebih dulu');
@@ -144,7 +144,7 @@
                 setSelect2Val('#Village', data.Village);
             },
             error: function() {
-                alert('Gagal memuat data POO.');
+                alert('Gagal memuat data Pickup.');
             }
         });
     }
@@ -156,7 +156,7 @@
         }
         $('#ID').val(marketingId);
         $('#Grid1Detail').show();
-        getPOOData();
+        getPickupData();
     });
 
     function selectMitra(id, cellIdx) {
@@ -170,11 +170,11 @@
         initDetailTableGrid1()
     }
 
-    $('#updatePOODetailForm').on('submit', function(e) {
+    $('#updatePickupDetailForm').on('submit', function(e) {
         e.preventDefault();
 
         let formData = new FormData(this);
-        formData.append('POO_Id', marketingId)
+        formData.append('Pickup_Id', marketingId)
 
         $('#submitBtn').prop('disabled', true).text('Submitting...');
 
