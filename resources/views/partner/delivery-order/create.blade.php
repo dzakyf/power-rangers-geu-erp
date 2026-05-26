@@ -1,0 +1,138 @@
+@extends('layout.mainlayout-mitra')
+
+@section('content-wrapper')
+@csrf
+<div class="main-content-header">
+    <h1>Partner</h1>
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Partner</a></li>
+        <li class="breadcrumb-item active"><span class="active">Create Delivery Order</span></li>
+    </ol>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="m-3">Create Delivery Order</h5>
+                </div>
+                <div class="card-body">
+                    <form id="DeliveryOrderForm">
+                        @csrf
+
+                        <div class="form-group">
+                            <label for="PO_Id">PO Number</label>
+                            <select class="form-control select2" id="PO_Id" name="PO_Id" style="width:100%"></select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="DO_Date">Delivery Order Date</label>
+                                <input type="date" class="form-control" id="DO_Date" name="DO_Date" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="DO_Status">Delivery Order Status</label>
+                                <select class="form-control" id="DO_Status" name="DO_Status">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="PROGRESS">PROGRESS</option>
+                                    <option value="PICKUP">PICKUP</option>
+                                    <option value="DONE">DONE</option>
+                                    <option value="CANCEL">CANCEL</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="Start_Time">Start Time</label>
+                                <input type="time" class="form-control" id="Start_Time" name="Start_Time">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="Finish_Time">Finish Time</label>
+                                <input type="time" class="form-control" id="Finish_Time" name="Finish_Time">
+                            </div>
+                        </div>
+
+                        <!-- <div class="form-group">
+                            <label for="Logistic_Status">Logistic Status</label>
+                            <input type="text" class="form-control" id="Logistic_Status" name="Logistic_Status">
+                        </div> -->
+
+                        <button type="button" class="btn btn-primary mt-3" id="SubmitDO">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        $('#PO_Id').select2({
+            placeholder: '-- Pilih PO Number --',
+            allowClear: true,
+            ajax: {
+                url: 'partner-pickup-data',
+                dataType: 'json',
+                delay: 250,
+                data: function(p) {
+                    return {
+                        format: 'json',
+                        q: p.term || ''
+                    };
+                },
+                processResults: function(res) {
+                    return {
+                        results: res.data.map(function(row) {
+                            return {
+                                id: row.ID,
+                                text: row.Code
+                            };
+                        })
+                    };
+                },
+                cache: true
+            }
+        });
+
+
+        $('#SubmitDO').on('click', function() {
+            var form = document.getElementById('DeliveryOrderForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            var payload = new FormData(form);
+
+            $.ajax({
+                url: 'partner-delivery-order-create-submit',
+                type: 'POST',
+                data: payload,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                success: function(res) {
+                    if (res.status === 'success') {
+                        alert('Data berhasil disimpan!');
+                        form.reset();
+                        $('#PO_Id').val(null).trigger('change');
+                    } else {
+                        alert('Gagal: ' + (res.message || 'Unknown error'));
+                    }
+                },
+                error: function(xhr) {
+                    alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+                }
+            });
+        });
+    });
+</script>
+
+@endsection

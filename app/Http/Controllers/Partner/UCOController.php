@@ -604,7 +604,7 @@ class UCOController extends Controller
             DB::transaction(function () use ($r) {
                 DB::table('delivery_order')->insert([
                     'PO_Id'   => $r->input('PO_Id'),
-                    'Status'  => $r->input('Status'),
+                    'DO_Status'  => $r->input('DO_Status'),
                     'DO_Date' => $r->input('DO_Date'),
                     'Start_Time' => $r->input('Start_Time'),
                     'Finish_Time' => $r->input('Finish_Time'),
@@ -621,7 +621,7 @@ class UCOController extends Controller
     // add signature, uco photo receipt, real entry qty
     public function updateDeliveryOrderReceipt(Request $r)
     {
-        $id = $r->input('id');
+        $id = $r->input('DO_Id');
 
         if (!$id) {
             return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
@@ -645,7 +645,7 @@ class UCOController extends Controller
                         'Path'        => $sigPath,
                         'Extension'   => 'png',
                         'Description' => 'Signature',
-                        'Topic'       => 'DELIVERY_ORDER',
+                        'Topic'       => 'delivery-order',
                         'Map_To'      => $id,
                         'Created_At'  => now(),
                     ]);
@@ -724,20 +724,22 @@ class UCOController extends Controller
 
     public function indexDeliveryOrder()
     {
-        return view('partner.delivery.index');
+        return view('partner.delivery-order.index');
     }
 
     public function createDeliveryOrder()
     {
-        return view('partner.delivery.create');
+        return view('partner.delivery-order.create');
     }
 
     public function getDeliveryOrderData(Request $r)
     {
         $id   = $r->query('id');
         $rows = DB::table('delivery_order as do')
-            ->join('pickup_order as po', 'po.ID', '=', 'do.PO_Id')
-            ->select('do.*', 'po.Code as PO_Code', 'po.Type_Pickup', 'po.Coverage', 'po.Site', 'po.Package', 'po.Qty', 'po.Price', 'po.Description as PO_Description')
+            ->leftJoin('pickup_order as po', 'po.ID', '=', 'do.PO_Id')
+            ->leftJoin('work_order as wo', 'wo.ID', '=', 'po.WO_Id')
+            ->leftJoin('master_poo as mp', 'mp.ID', '=', 'wo.POO_Id')
+            ->select('do.id', 'do.Code', 'do.DO_Date', 'do.DO_Status', 'po.Site', 'mp.Name as POO_Name')
             ->when($id, fn($q) => $q->where('do.id', $id))
             ->get();
 
@@ -749,9 +751,13 @@ class UCOController extends Controller
                 $item = $xml->addChild('row');
                 $item->addAttribute('ID', $row->id);
 
-                foreach ((array) $row as $value) {
-                    $item->addChild('cell', htmlspecialchars((string) $value));
-                }
+                $item->addChild('cell', $counter);
+                $item->addChild('cell', htmlspecialchars((string) $row->id));
+                $item->addChild('cell', htmlspecialchars((string) $row->Code));
+                $item->addChild('cell', htmlspecialchars((string) $row->DO_Date));
+                $item->addChild('cell', htmlspecialchars((string) $row->Site));
+                $item->addChild('cell', htmlspecialchars((string) $row->POO_Name));
+                $item->addChild('cell', htmlspecialchars((string) $row->DO_Status));
 
                 $counter++;
             }

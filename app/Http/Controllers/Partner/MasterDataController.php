@@ -434,11 +434,16 @@ class MasterDataController extends Controller
 
         foreach ($rows as $row) {
             $item = $xml->addChild('row');
-            $item->addAttribute('ID', $row->id);
+            $item->addAttribute('ID', $row->ID);
 
-            foreach ((array) $row as $value) {
-                $item->addChild('cell', htmlspecialchars((string) $value));
-            }
+            $item->addChild('cell', $counter);
+            $item->addChild('cell', htmlspecialchars((string) $row->ID));
+            $item->addChild('cell', htmlspecialchars((string) $row->Police_Number));
+            $item->addChild('cell', htmlspecialchars((string) $row->Warehouse_Id));
+            $item->addChild('cell', htmlspecialchars((string) $row->Fleet_Brand));
+            $item->addChild('cell', htmlspecialchars((string) $row->Description));
+            $item->addChild('cell', htmlspecialchars((string) $row->Status));
+            $item->addChild('cell', htmlspecialchars((string) $row->Created_At));
 
             $counter++;
         }
@@ -446,7 +451,7 @@ class MasterDataController extends Controller
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
     }
 
-    public function inputMasterFleet(Request $r)
+    public function submitCreateMasterFleet(Request $r)
     {
         try {
             DB::transaction(function () use ($r) {
