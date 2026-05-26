@@ -4478,7 +4478,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$masterData-fleet", [MasterDataController::class, 'indexMasterFleet']);
     Route::get("$masterData-fleet-data", [MasterDataController::class, 'getMasterFleet']);
     Route::get("$masterData-fleet-create", [MasterDataController::class, 'createMasterFleet']);
-    Route::get("$masterData-fleet-submit", [MasterDataController::class, 'submitCreateMasterFleet']);
+    Route::post("$masterData-fleet-create-submit", [MasterDataController::class, 'submitCreateMasterFleet']);
 
 
     /** POO (Point of Origin UCO) */
@@ -4488,8 +4488,6 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$masterData-poo-create-submit", [MasterDataController::class, 'createPOO']);
     Route::get("$masterData-poo-update", [MasterDataController::class, 'updatePOOPage']);
     Route::post("$masterData-poo-update-submit", [MasterDataController::class, 'updatePOO']);
-
-
 
 
     /** Work Order */

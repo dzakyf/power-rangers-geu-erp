@@ -30,7 +30,7 @@
                                 <input type="text" class="form-control" id="Type_Pickup" name="Type_Pickup">
                             </div>
                             <div class="form-group col-md-6">
-                                <label for="Coverage">Coverage</label>
+                                <label for="Coverage">Route / Coverage</label>
                                 <input type="text" class="form-control" id="Coverage" name="Coverage">
                             </div>
                         </div>
