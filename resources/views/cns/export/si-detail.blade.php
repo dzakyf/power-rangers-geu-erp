@@ -205,9 +205,9 @@ $Saya =  Auth::user()->username;
                             </div>
                         </div>
                         <div class="col-md-12 col-12">
-                            <div class="row no-gutters" id="containerList">
+                            <div class="row" id="containerList">
                                 @foreach ($dtls as $kunci => $item)
-                                    <div class="col-12">
+                                    <div class="col-md-6 col-12">
                                         <div class="form-group">
                                             <label for="Container{{ $loop->iteration }}">Container {{ $loop->iteration }}</label>
                                             <select name="Container{{ $loop->iteration }}" id="Container{{ $loop->iteration }}" class="form-control shadow-sm">
@@ -228,7 +228,7 @@ $Saya =  Auth::user()->username;
 				</div>
 			</div>
 			<div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit Final SI" class="btn btn-success mt-2 mr-2" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Update SI" class="btn btn-success mt-2 mr-2" />
 			</div>
 		</div>
 	</div>

@@ -182,12 +182,19 @@ class FinalShipmentInstructionController extends Controller
         // $shipment->save();
 
         $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
+        $vsd = VesselScheduleDtl::where('Task_ID', $vs->Task_ID)
+            ->get()
+            ->map(function ($item) {
+                return $item->Container . ' (' . $item->Seal . ')';
+            })
+            ->implode(', ');
 
         $vs = $vs->toArray();
         $vs['Last_ID'] = $vs['id'];
         $vs['Action_By'] = auth()->user()->username;
         $vs['Action_Date'] = now();
         $vs['Action_Status'] = "CREATE PL";
+        $vs['Container'] = $vsd;
         unset($vs['id']);
         VesselScheduleLog::create($vs);
 
@@ -216,12 +223,19 @@ class FinalShipmentInstructionController extends Controller
         }
 
         $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
+        $vsd = VesselScheduleDtl::where('Task_ID', $vs->Task_ID)
+            ->get()
+            ->map(function ($item) {
+                return $item->Container . ' (' . $item->Seal . ')';
+            })
+            ->implode(', ');
 
         $vs = $vs->toArray();
         $vs['Last_ID'] = $vs['id'];
         $vs['Action_By'] = auth()->user()->username;
         $vs['Action_Date'] = now();
         $vs['Action_Status'] = "CREATE CI";
+        $vs['Container'] = $vsd;
         unset($vs['id']);
         VesselScheduleLog::create($vs);
 

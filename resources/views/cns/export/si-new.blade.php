@@ -269,7 +269,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 				</div>
 			</div>
 			<div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit Final SI" class="btn btn-success mt-2 mr-2" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit SI" class="btn btn-success mt-2 mr-2" />
 			</div>
 		</div>
 	</div>
@@ -362,7 +362,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                 });
                 while (counter <= response.Qty1) {
                     $('#containerList').append(`
-                    <div class="col-12">
+                    <div class="col-6">
                         <div class="form-group">
                             <label for="Container${counter}">Container ${counter}</label>
                             <select name="Container${counter}" id="Container${counter}" class="form-control shadow-sm">
@@ -398,8 +398,8 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {
-				var dataPos = data.indexOf("success");
-				if (dataPos != '-1') {
+				// var dataPos = data.indexOf("success");
+                if (data.status == 'success') {
 					var cariAWB = data.split(":");
 					alert('Data Announcement Submitted!');
 

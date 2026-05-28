@@ -111,7 +111,7 @@ $Saya =  Auth::user()->username;
 	// StuffingDetail.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	StuffingDetail.setInitWidths("60,100,100,100,200,150,150,100,100,100,100,100,auto");
 	StuffingDetail.setColAlign("center,center,center,center,center,center,center,right,right,right,right,right,left");
-	StuffingDetail.setDateFormat("%Y-%m-%d");
+	StuffingDetail.setDateFormat("%d %F %Y");
 	StuffingDetail.setColSorting("int,str,str,str,str,str,str,int,int,int,int,int,int,str");
 	StuffingDetail.setColTypes("ro,ed,ed,dhxCalendar,combo,ed,ed,edn,edn,ron,ron,ron,ed");
 	StuffingDetail.enableSmartRendering(true, 150);
@@ -142,6 +142,7 @@ $Saya =  Auth::user()->username;
         alert("Data Successfully Submitted!");
         setTimeout(function() {
             refreshdataDetail();
+			refreshdataDataLog();
         }, 500);
     });
 	StuffingDetail.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {

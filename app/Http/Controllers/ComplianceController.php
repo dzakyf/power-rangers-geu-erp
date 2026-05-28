@@ -76,8 +76,6 @@ class ComplianceController extends Controller
             $row->addChild('cell', $d->In_Charge);
             $row->addChild('cell', $d->Description);
             $row->addChild('cell', $d->Hub_Type);
-            $row->addChild('cell', $d->Min_Percentile);
-            $row->addChild('cell', $d->Max_Percentile);
             $count++;
         }
 
