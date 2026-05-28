@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
+use App\VesselScheduleLog;
 use Illuminate\Http\Request;
 
 class StuffingController extends Controller
@@ -26,6 +27,7 @@ class StuffingController extends Controller
         echo "<rows>";
 
         $dtl = VesselScheduleDtl::get();
+        $vsd = [];
         foreach ($dtl as $key => $value) {
             $vsd[$value->Order_No][] = $value->Container . " (" . $value->Seal . ")";
         }
@@ -129,6 +131,8 @@ class StuffingController extends Controller
         $request_body = urldecode(file_get_contents('php://input'));
 
         $ids = explode("&", $request_body);
+        $param = [];
+        $action = "";
         foreach ($ids as $datax) {
 
             $idenya = explode("=", $datax);
@@ -155,10 +159,27 @@ class StuffingController extends Controller
 
             echo "<action type='" . $action . "' sid='" . $rowId . "' tid='" . $newId . "'/>";
         }
+        $cekOrder = VesselSchedule::where('Order_No', $_GET["task"])->first();
+        if ($cekOrder) {
+            $vsd = VesselScheduleDtl::where('Task_ID', $cekOrder->Task_ID)
+                ->get()
+                ->map(function ($item) {
+                    return $item->Container . ' (' . $item->Seal . ')';
+                })
+                ->implode(', ');
+            $cekOrder = json_decode(json_encode($cekOrder), true);
+            $cekOrder['Container'] = $vsd;
+            $cekOrder['Last_ID'] = $cekOrder['id'];
+            $cekOrder['Action_By'] = auth()->user()->username;
+            $cekOrder['Action_Date'] = now();
+            $cekOrder['Action_Status'] = "UPDATING CONTAINER STUFF";
+            unset($cekOrder['id']);
+            VesselScheduleLog::create($cekOrder);
+        }
         echo "</data>";
     }
 
-    public function updateDetailStuffingUpdate($rowId, $param)
+    public function updateDetailStuffingUpdate(string $rowId, array $param)
     {
         $a = $param[$rowId . "_c1"]; // Time From
         $b = $param[$rowId . "_c2"]; // Time To
@@ -171,7 +192,7 @@ class StuffingController extends Controller
         $ix = $param[$rowId . "_c9"]; // Netto MT
         $j = $param[$rowId . "_c10"]; // Gross KG
         $k = $param[$rowId . "_c11"]; // Gross MT
-        $l = $param[$rowId . "_c12"]; // Gross MT
+        $l = $param[$rowId . "_c12"]; // Note
 
         $vsd = VesselScheduleDtl::where('id', $rowId)->first();
         if ($vsd) {
@@ -199,7 +220,7 @@ class StuffingController extends Controller
         }
     }
 
-    public function updateDetailStuffingInsert($rowId, $param)
+    public function updateDetailStuffingInsert(string $rowId, array $param)
     {
         $a = $param[$rowId . "_c1"]; // Time From
         $b = $param[$rowId . "_c2"]; // Time To
@@ -212,7 +233,7 @@ class StuffingController extends Controller
         $ix = $param[$rowId . "_c9"]; // Netto MT
         $j = $param[$rowId . "_c10"]; // Gross KG
         $k = $param[$rowId . "_c11"]; // Gross MT
-        $l = $param[$rowId . "_c12"]; // Gross MT
+        $l = $param[$rowId . "_c12"]; // Note
 
         $cekOrder = VesselSchedule::where('Order_No', $_GET["task"])->first();
         if ($cekOrder) {
@@ -245,7 +266,7 @@ class StuffingController extends Controller
         }
     }
 
-    public function updateDetailStuffingDelete($rowId)
+    public function updateDetailStuffingDelete(string $rowId)
     {
         $vsd = VesselScheduleDtl::where('id', $rowId)->first();
         if ($vsd) {

@@ -9,6 +9,7 @@
 <link href="{{ asset('assets/css/LineIcons.css') }}" rel="stylesheet">
 <link href="{{ asset('assets/css/viewer.min.css') }}" rel="stylesheet">
 <link href="{{ asset('assets/css/icofont.min.css') }}" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
 <link href="{{ asset('assets/css/calendar.css') }}" rel="stylesheet">
 <!-- Custom CSS -->
 <link href="{{ asset('assets/css/styles.css') }}" rel="stylesheet">

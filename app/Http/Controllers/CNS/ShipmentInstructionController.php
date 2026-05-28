@@ -92,6 +92,12 @@ class ShipmentInstructionController extends Controller
     public function newShipmentInstruction()
     {
         $vss = VesselSchedule::get();
+        foreach ($vss as $key => $value) {
+            $container_count = VesselScheduleDtl::where("Order_No", $value->Order_No)->count();
+            if ($value->Qty1 != $container_count) {
+                unset($vss[$key]);
+            }
+        }
         $masProducts = DB::table('master_product_cns')->get();
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         $companiesConsignee = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
@@ -118,7 +124,7 @@ class ShipmentInstructionController extends Controller
                 'orderDetails' => $orderDetails
             ]);
         } else {
-            return response()->json(['error' => 'Order not found'], 404);
+            return response()->json(['error' => 'Order not found'], 500);
         }
     }
     
@@ -139,16 +145,12 @@ class ShipmentInstructionController extends Controller
         $request->validate([
             'Order_No' => 'required|exists:vessel_schedules,Order_No',
             'Container1' => 'required',
-            'Container2' => 'nullable',
-            'Container3' => 'nullable',
-            'Container4' => 'nullable',
-            'Container5' => 'nullable',
         ]);
 
         // Process the form submission
         $orderNo = $request->input('Order_No');
         $containers = [];
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= $request->input('Qty1'); $i++) {
             $container = $request->input("Container$i");
             if ($container) {
                 $containers[] = $container;
@@ -156,12 +158,19 @@ class ShipmentInstructionController extends Controller
         }
 
         $vs = VesselSchedule::where("Order_No", $orderNo)->first();
+        $vsd = VesselScheduleDtl::where('Task_ID', $vs->Task_ID)
+            ->get()
+            ->map(function ($item) {
+                return $item->Container . ' (' . $item->Seal . ')';
+            })
+            ->implode(', ');
 
         $vs = $vs->toArray();
         $vs['Last_ID'] = $vs['id'];
         $vs['Action_By'] = auth()->user()->username;
         $vs['Action_Date'] = now();
         $vs['Action_Status'] = "CREATE SI";
+        $vs['Container'] = $vsd;
         unset($vs['id']);
         VesselScheduleLog::create($vs);
 
@@ -208,7 +217,7 @@ class ShipmentInstructionController extends Controller
             // VesselScheduleDtlLog::create($values);
         }
 
-        return response()->json(['success' => true, 'message' => 'Shipment Instruction submitted successfully']);
+        return response()->json(['status' => 'success', 'message' => 'Shipment Instruction submitted successfully']);
     }
     
     public function generateFinalShipmentInstruction(Request $request)
@@ -286,12 +295,19 @@ class ShipmentInstructionController extends Controller
         $si = ShipmentInstruction::where('id', $request->input('id'))->first();
 
         $vs = VesselSchedule::where("Order_No", $si->Order_No)->first();
+        $vsd = VesselScheduleDtl::where('Task_ID', $vs->Task_ID)
+            ->get()
+            ->map(function ($item) {
+                return $item->Container . ' (' . $item->Seal . ')';
+            })
+            ->implode(', ');
 
         $vs = $vs->toArray();
         $vs['Last_ID'] = $vs['id'];
         $vs['Action_By'] = auth()->user()->username;
         $vs['Action_Date'] = now();
         $vs['Action_Status'] = "UPDATE SI";
+        $vs['Container'] = $vsd;
         unset($vs['id']);
         VesselScheduleLog::create($vs);
 

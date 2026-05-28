@@ -85,15 +85,15 @@ class VesselScheduleController extends Controller
         $vs->Qty = $request->input('Qty1') . " x " . $request->input('Qty2');
         $vs->Qty1 = $request->input('Qty1');
         $vs->Qty2 = $request->input('Qty2');
-        $vs->Vessel = $request->input('Vessel');
-        $vs->POL = $request->input('POL');
-        $vs->POD = $request->input('POD');
+        $vs->Vessel = $request->input('Vessel') ?? '';
+        $vs->POL = $request->input('POL') ?? '';
+        $vs->POD = $request->input('POD') ?? '';
         $vs->Stuffing = $request->input('Stuffing');
         $vs->Checking_BC = $request->input('Checking_BC');
         $vs->Closing_CY = $request->input('Closing_CY');
         $vs->ETD = $request->input('ETD');
         $vs->ETA = $request->input('ETA');
-        $vs->Note = $request->input('Note');
+        $vs->Note = $request->input('Note') ?? '';
         $vs->Created_By = auth()->user()->username;
         $vs->save();
 
@@ -103,15 +103,15 @@ class VesselScheduleController extends Controller
         $vsl->Qty = $request->input('Qty1') . " x " . $request->input('Qty2');
         $vsl->Qty1 = $request->input('Qty1');
         $vsl->Qty2 = $request->input('Qty2');
-        $vsl->Vessel = $request->input('Vessel');
-        $vsl->POL = $request->input('POL');
-        $vsl->POD = $request->input('POD');
+        $vsl->Vessel = $request->input('Vessel') ?? '';
+        $vsl->POL = $request->input('POL') ?? '';
+        $vsl->POD = $request->input('POD') ?? '';
         $vsl->Stuffing = $request->input('Stuffing');
         $vsl->Checking_BC = $request->input('Checking_BC');
         $vsl->Closing_CY = $request->input('Closing_CY');
         $vsl->ETD = $request->input('ETD');
         $vsl->ETA = $request->input('ETA');
-        $vsl->Note = $request->input('Note');
+        $vsl->Note = $request->input('Note') ?? '';
         $vsl->Created_By = auth()->user()->username;
         $vsl->Created_Date = now();
         $vsl->Action_By = auth()->user()->username;
@@ -205,7 +205,6 @@ class VesselScheduleController extends Controller
 
         echo "<rows>";
 
-        // Sample data, replace with actual database query
         $vessels = VesselScheduleLog::where('Last_ID', $request->task)->get();
         foreach ($vessels as $key => $vessel) {
             echo "<row id=\"$vessel->id\" >";
@@ -242,6 +241,7 @@ class VesselScheduleController extends Controller
                 echo "<cell></cell>";
             }
             echo "<cell>" . htmlspecialchars($vessel->Note) . "</cell>";
+            echo "<cell>" . htmlspecialchars($vessel->Container) . "</cell>";
             echo "</row>";
         }
 

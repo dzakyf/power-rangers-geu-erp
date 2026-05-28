@@ -189,9 +189,17 @@ class PackingListController extends Controller
         $pl->save();
 
         $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
+        $vsd = VesselScheduleDtl::where('Task_ID', $vs->Task_ID)
+            ->get()
+            ->map(function ($item) {
+                return $item->Container . ' (' . $item->Seal . ')';
+            })
+            ->implode(', ');
+            
         $vs = json_decode(json_encode($vs), true);
         $vs['Last_ID'] = $vs['id'];
         unset($vs['id']);
+        $vs['Container'] = $vsd;
 
         $vs['Action_By'] = auth()->user()->username;
         $vs['Action_Date'] = now();

@@ -21,9 +21,9 @@
         <div class="card-body">
             <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <div>
-                <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
-
-                <input type="button" id="editTax" name="editTax" value="Ubah Data" class="btn btn-success mt-2 mr-2" />
+                <!-- <button type="button" id="btnView" class="btn btn-sm btn-info mt-2 mr-1"><i class="fas fa-eye"></i> Lihat</button> -->
+                <button type="button" id="editTax" class="btn btn-sm btn-primary mt-2 mr-1"><i class="fas fa-edit"></i> Edit</button>
+                <input type="button" id="editTax" name="editTax" value="Ubah Data" class="btn btn-success mt-2 mr-2" style="display:none" />
                 <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
             </div>
         </div>
