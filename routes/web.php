@@ -89,10 +89,10 @@ Route::get('partner-registration', function () {
 });
 
 Route::get('partner-prints-invoice', [App\Http\Controllers\Finance\PartnerController::class, 'printInvoice']);
-// Route::post('province', [App\Http\Controllers\HelperController::class, 'provinceSearch']);
-// Route::post('city/{province}', [App\Http\Controllers\HelperController::class, 'citySearch']);
-// Route::post('district', [HelperController::class, 'districtSearch']);
-// Route::get('subdistrict', [HelperController::class, 'subdistrictSearch']);
+Route::post('province', [App\Http\Controllers\HelperController::class, 'provinceSearch']);
+Route::post('city/{province}', [App\Http\Controllers\HelperController::class, 'citySearch']);
+Route::post('district', [HelperController::class, 'districtSearch']);
+Route::get('subdistrict', [HelperController::class, 'subdistrictSearch']);
 // Route::get('postal-code', [HelperController::class, 'postalCodeSearch']);
 
 
@@ -401,7 +401,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post('/master-location-submit', function () {
         return view('accounting.master-location-submit');
     });
-    Route::get('/accounting-master-vendor', function () {
+    Route::get('/accounting-naster-vendor', function () {
         return view('accounting.master-vendor');
     });
     Route::post('/accounting-master-vendor-update', function () {

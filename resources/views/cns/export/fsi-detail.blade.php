@@ -227,9 +227,9 @@ $Saya =  Auth::user()->username;
 					</div>
 				</div>
 			</div>
-			<div id="divtom">
+			<!-- div id="divtom">
 				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit Final SI" class="btn btn-success mt-2 mr-2" />
-			</div>
+			</div -->
 		</div>
 	</div>
 	<div id="DivProcess"></div>

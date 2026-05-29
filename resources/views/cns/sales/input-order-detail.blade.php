@@ -546,7 +546,6 @@ $Saya =  Auth::user()->username;
             <button class="btn-submit" onclick="saveSO()">
               <i class="fas fa-save mr-2"></i>Simpan Sales Order
             </button>
-            </button>
           </div>
         </div>
       </div>
@@ -555,13 +554,13 @@ $Saya =  Auth::user()->username;
 
   </div>
   <script>
-    ── Default items ──
+    // ── Default items ──
     const defaultItems = @json(
-      collect($details) - > map(function($item) {
+      collect($details) -> map(function($item) {
         return [
-          'desc' => $item - > description,
-          'qty' => $item - > qty,
-          'price' => $item - > unit_price
+          'desc' => $item -> description,
+          'qty' => $item -> qty,
+          'price' => $item -> unit_price
         ];
       })
     );

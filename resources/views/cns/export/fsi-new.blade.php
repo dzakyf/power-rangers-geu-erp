@@ -74,14 +74,14 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 						</div>
 						<div class="col-md-4 col-12">
 							<div class="form-group">
-								<label for="Order_No">Order No</label>
-                                <input type="text" name="Order_No" id="Order_No" value="" class="form-control" required readonly />
+								<label for="SI_Date">Final SI Date</label>
+                                <input name="SI_Date" id="SI_Date" class="form-control" value="{{ date('Y-m-d') }}" required />
 							</div>
 						</div>
 						<div class="col-md-4 col-12">
 							<div class="form-group">
-								<label for="SI_Date">Final SI Date</label>
-                                <input name="SI_Date" id="SI_Date" class="form-control" value="{{ date('Y-m-d') }}" required />
+								<label for="Order_No">Order No</label>
+                                <input type="text" name="Order_No" id="Order_No" value="" class="form-control" required readonly />
 							</div>
 						</div>
 						<div class="col-12">
@@ -269,7 +269,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 				</div>
 			</div>
 			<div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit SI" class="btn btn-success mt-2 mr-2" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit Final SI" class="btn btn-success mt-2 mr-2" />
 			</div>
 		</div>
 	</div>
@@ -323,8 +323,13 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
             },
             success: function(response) {
                 Object.keys(response).forEach(function(key) {
-                    if (key != 'orderDetails' && key != 'Final_SI_No') {
+                    if (key != 'orderDetails' && key != 'Final_SI_No' && key != 'SI_No') {
                         $('#' + key).val(response[key]);
+                        if ($('#' + key).is('select')) {
+                            $('#' + key).attr('disabled', true).addClass('bg-white');
+                        }else {
+                            $('#' + key).attr('readonly', true).addClass('bg-white');
+                        }
                     }
                 });
                 $('#containerList').html('');
@@ -359,9 +364,9 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
         });
     });
 
-	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "ETD", "ETA", "SI_Date"]);
-	myCalendar.setDateFormat("%Y-%m-%d");
+	// var myCalendar;
+	// myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "ETD", "ETA", "SI_Date"]);
+	// myCalendar.setDateFormat("%Y-%m-%d");
 
 	$('#SubmitCustDetail').click(function() {
 

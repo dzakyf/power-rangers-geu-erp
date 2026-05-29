@@ -58,7 +58,7 @@
         <div class="row">
             <div class="col-md-2">
                 <div class="form-group">
-                    <label for="Subdistrict">Kecamatan</label>
+                    <label for="Subdistrict">Kelurahan</label>
                 </div>
             </div>
             <div class="col-md-6">
