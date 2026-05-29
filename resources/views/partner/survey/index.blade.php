@@ -55,7 +55,9 @@ $Saya =  Auth::user()->username;
         SurveyID = Survey.getSelectedId();
         if (SurveyID != null) {
             $('#divSurveyEdit').show();
-            $('html, body').animate({ scrollTop: $('#divSurveyEdit').offset().top }, 400);
+            $('html, body').animate({
+                scrollTop: $('#divSurveyEdit').offset().top
+            }, 400);
             getSurveyData(SurveyID);
         } else {
             alert("Pilih baris data");
@@ -63,15 +65,80 @@ $Saya =  Auth::user()->username;
         return true;
     }
     Survey = new dhtmlXGridObject('Survey');
-    Survey.setImagePath("./dhtmlx/imgs/");
-    Survey.setHeader("No, Nama Lokasi, Rekomendasi, Status, Tanggal Survey, Total Skor, Rekomendasi");
-    Survey.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-    // Survey.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-    Survey.setInitWidths("60,100,150,200,100, 100,100");
-    Survey.setColAlign("center,left,left,left,left, left,left");
-    Survey.setColSorting("int,str,str,str,str,str,str");
-    Survey.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro");
     Survey.enableSmartRendering(true, 150);
+    Survey.setImagePath("./dhtmlx/imgs/");
+
+    const columns = [{
+            header: "No",
+            width: 60,
+            align: "center",
+            sorting: "int",
+            type: "ron"
+        },
+        {
+            header: "Nama Lokasi",
+            width: 100,
+            align: "left",
+            sorting: "str",
+            type: "ro"
+        },
+        {
+            header: "Leads ID",
+            width: 100,
+            align: "left",
+            sorting: "str",
+            type: "ro"
+        },
+        {
+            header: "Survey ID",
+            width: 200,
+            align: "left",
+            sorting: "str",
+            type: "ro"
+        },
+        {
+            header: "Rekomendasi",
+            width: 150,
+            align: "left",
+            sorting: "str",
+            type: "ro"
+        },
+        {
+            header: "Status",
+            width: 200,
+            align: "left",
+            sorting: "str",
+            type: "ro"
+        },
+        {
+            header: "Tanggal Survey",
+            width: 100,
+            align: "left",
+            sorting: "str",
+            type: "ro"
+        },
+        {
+            header: "Total Skor",
+            width: 100,
+            align: "left",
+            sorting: "str",
+            type: "ro"
+        },
+        {
+            header: "Rekomendasi",
+            width: 100,
+            align: "left",
+            sorting: "str",
+            type: "ro"
+        },
+    ];
+
+    Survey.setHeader(columns.map(c => c.header).join(","));
+    Survey.attachHeader(columns.map((c, i) => i === 0 ? "#rspan" : "#text_filter").join(","));
+    Survey.setInitWidths(columns.map(c => c.width).join(","));
+    Survey.setColAlign(columns.map(c => c.align).join(","));
+    Survey.setColSorting(columns.map(c => c.sorting).join(","));
+    Survey.setColTypes(columns.map(c => c.type).join(","));
     // Survey.setNumberFormat("0,000", 7, ".", ",");
     Survey.attachEvent("onRowDblClicked", SurveyKlik);
     Survey.setSkin("dhx_skyblue");

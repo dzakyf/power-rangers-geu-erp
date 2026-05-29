@@ -33,24 +33,27 @@ $Saya =  Auth::user()->username;
         <div class="row">
             <div class="col-md-2">
                 <div class="form-group">
-                    <label for="Survey_Id">ID Survey</label>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <input type="text" name="Survey_Id" id="Survey_Id" class="form-control" required />
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-2">
-                <div class="form-group">
                     <label for="Survey_At">Tanggal Survey</label>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="form-group">
-                    <input type="text" name="Survey_At" id="Survey_At" class="form-control" required />
+                    <input type="date" name="Survey_At" id="Survey_At" class="form-control" required />
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label for="Province">Provinsi</label>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <select name="Province" id="Province" class="form-control" required>
+                        <option value="">-- Pilih --</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -63,7 +66,9 @@ $Saya =  Auth::user()->username;
             </div>
             <div class="col-md-6">
                 <div class="form-group">
-                    <input type="text" name="City" id="City" class="form-control" required />
+                    <select name="City" id="City" class="form-control" required disabled>
+                        <option value="">-- Pilih --</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -75,20 +80,23 @@ $Saya =  Auth::user()->username;
             </div>
             <div class="col-md-6">
                 <div class="form-group">
-                    <input type="text" name="District" id="District" class="form-control" required />
+                    <select name="District" id="District" class="form-control" required disabled>
+                        <option value="">-- Pilih --</option>
+                    </select>
                 </div>
             </div>
         </div>
-
         <div class="row">
             <div class="col-md-2">
                 <div class="form-group">
-                    <label for="Subdistrict">Kecamatan</label>
+                    <label for="Subdistrict">Kelurahan</label>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="form-group">
-                    <input type="text" name="Subdistrict" id="Subdistrict" class="form-control" required />
+                    <select name="Subdistrict" id="Subdistrict" class="form-control" required disabled>
+                        <option value="">-- Pilih --</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -288,7 +296,6 @@ $Saya =  Auth::user()->username;
     </form>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     const photoData = [{
             no: 1,
@@ -795,6 +802,45 @@ $Saya =  Auth::user()->username;
         $('#AnalysisResult').html('<h6>H. Hasil Analisis</h6><h6>' + data.Analysis_Result + '</h6>');
     }
 
+    function makeSelect2(selector, url, params, valueField, labelField) {
+        $(selector).select2({
+            placeholder: '-- Pilih --',
+            allowClear: true,
+            ajax: {
+                url: url,
+                dataType: 'json',
+                delay: 250,
+                data: function(p) {
+                    var extra = typeof params === 'function' ? params() : params;
+                    return Object.assign({
+                        q: p.term || ''
+                    }, extra);
+                },
+                processResults: function(res) {
+                    console.log(res)
+                    return {
+                        results: res.data.map(function(row) {
+                            return {
+                                id: row[valueField],
+                                text: row[labelField]
+                            };
+                        })
+                    };
+                },
+                cache: true
+            }
+        });
+    }
+
+    function setSelect2Val(selector, value) {
+        var option = new Option(value, value, true, true);
+        $(selector).append(option).trigger('change');
+    }
+
+    function resetSelect2(selector) {
+        $(selector).val(null).trigger('change').prop('disabled', true);
+        $(selector).empty().trigger('change');
+    }
 
     $(document).ready(function() {
         renderTableLocationDocumentation()
@@ -803,6 +849,57 @@ $Saya =  Auth::user()->username;
         renderTableUCOEstimation()
 
         renderTableSurveyorRecommendation()
+
+
+        makeSelect2('#Province', 'master-province', {}, 'Province', 'Province');
+
+        $('#Province').on('change', function() {
+            resetSelect2('#City');
+            resetSelect2('#District');
+            resetSelect2('#Subdistrict');
+
+            var province = $(this).val();
+            if (!province) return;
+
+            $('#City').prop('disabled', false);
+            makeSelect2('#City', 'master-city', function() {
+                return {
+                    province: $('#Province').val()
+                };
+            }, 'City', 'City');
+        });
+
+        $('#City').on('change', function() {
+            resetSelect2('#District');
+            resetSelect2('#Subdistrict');
+
+            var city = $(this).val();
+            if (!city) return;
+
+            $('#District').prop('disabled', false);
+            makeSelect2('#District', 'master-district', function() {
+                return {
+                    province: $('#Province').val(),
+                    city: $('#City').val()
+                };
+            }, 'District', 'District');
+        });
+
+        $('#District').on('change', function() {
+            resetSelect2('#Subdistrict');
+
+            var district = $(this).val();
+            if (!district) return;
+
+            $('#Subdistrict').prop('disabled', false);
+            makeSelect2('#Subdistrict', 'master-subdistrict', function() {
+                return {
+                    province: $('#Province').val(),
+                    city: $('#City').val(),
+                    district: $('#District').val()
+                };
+            }, 'Sub_District', 'Sub_District');
+        });
 
         $('#surveyForm').on('submit', function(e) {
             e.preventDefault();
@@ -816,6 +913,7 @@ $Saya =  Auth::user()->username;
             //         console.log(`${key}: ${value}`);
             //     }
             // }
+
             $.each(locationAssessmentData, function(index, item) {
 
                 const fileInput = document.getElementById(`C_c${index+1}_File`);
@@ -839,7 +937,7 @@ $Saya =  Auth::user()->username;
                 contentType: false,
                 cache: false,
                 success: function(response) {
-                    alert("Berhasil membuat broadcast");
+                    alert("Berhasil membuat data survey!");
                     let data = response.data
                     let analysisRes = "Unknown"
 

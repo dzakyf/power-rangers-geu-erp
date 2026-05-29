@@ -101,10 +101,10 @@ class SurveyController extends Controller
 
     private function getMasterDataSurveyXml(Request $r)
     {
-        $query = DB::table('survey_location')->select('*');
+        $query = DB::table('survey_location as sl')->leftJoin('opportunity_partner as opp', 'sl.Opportunity_Partner_Id', '=', 'opp.id')->select('sl.*', 'opp.lead_id as Opportunity_Code', 'opp.full_name as Partner_Name')->orderBy('sl.ID', 'DESC');
 
         if ($id = $r->query('id')) {
-            $query->where('ID', $id);
+            $query->where('sl.ID', $id);
         }
 
         $d = $query->get();
@@ -117,6 +117,8 @@ class SurveyController extends Controller
             $row->addAttribute('ID', $p->ID);
             $row->addChild('cell', $no);
             $row->addChild('cell', $p->Location_Name);
+            $row->addChild('cell', $p->Opportunity_Code);
+            $row->addChild('cell', $p->Code);
             $row->addChild('cell', $p->Recommendation_Type);
             $row->addChild('cell', $p->Status);
             $row->addChild('cell', $p->Surveyed_At);
@@ -132,10 +134,10 @@ class SurveyController extends Controller
 
     private function getMasterDataSurveyJson(Request $r)
     {
-        $query = DB::table('survey_location')->select('*');
+        $query = DB::table('survey_location as sl')->leftJoin('opportunity_partner as opp', 'sl.Opportunity_Partner_Id', '=', 'opp.id')->select('sl.*', 'opp.lead_id as Opportunity_Code', 'opp.full_name as Partner_Name');
 
         if ($id = $r->query('id')) {
-            $query->where('ID', $id);
+            $query->where('sl.ID', $id);
         }
 
         $d = $query->get()->map(function ($p) {
