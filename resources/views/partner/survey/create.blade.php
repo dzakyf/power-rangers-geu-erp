@@ -817,7 +817,6 @@ $Saya =  Auth::user()->username;
                     }, extra);
                 },
                 processResults: function(res) {
-                    console.log(res)
                     return {
                         results: res.data.map(function(row) {
                             return {
@@ -830,6 +829,7 @@ $Saya =  Auth::user()->username;
                 cache: true
             }
         });
+        $(selector).next('.select2-container').css('width', '100%');
     }
 
     function setSelect2Val(selector, value) {
