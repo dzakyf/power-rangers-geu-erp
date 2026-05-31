@@ -480,4 +480,17 @@ class MasterDataController extends Controller
     {
         return view('partner.fleet.create');
     }
+
+    public function getAllUsers(Request $r)
+    {
+        $search = $r->query('q', '');
+
+        $query = DB::table('users')->select('ID', 'Name')->orderBy('id', 'asc');
+
+        if ($search !== '') {
+            $query->where('Name', 'like', '%' . $search . '%');
+        }
+
+        return response()->json(['data' => $query->get()]);
+    }
 }

@@ -16,9 +16,9 @@
             </div>
 
             <div class="modal-footer" id="appModalFooter">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <!-- <button type="button" class="btn btn-secondary" data-dismiss="modal">
                     Close
-                </button>
+                </button> -->
                 {{-- Dynamic action buttons injected here --}}
             </div>
 

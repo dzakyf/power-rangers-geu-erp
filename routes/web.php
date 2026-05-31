@@ -4469,6 +4469,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$masterData-city", [MasterDataController::class, 'citySearch']);
     Route::get("$masterData-district", [MasterDataController::class, 'districtSearch']);
     Route::get("$masterData-subdistrict", [MasterDataController::class, 'subdistrictSearch']);
+    Route::get("$masterData-users", [MasterDataController::class, "getAllUsers"]);
     Route::get("$masterData-postal-code", [MasterDataController::class, 'postalCodeSearch']);
     Route::get("$masterData-facility", [MasterDataController::class, 'indexWarehouseFacility']);
     Route::get("$masterData-facility-create", [MasterDataController::class, 'createWarehouseFacility']);
@@ -4504,6 +4505,13 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$pickupPref-create", [UCOLogisticController::class, 'createPickupRequest']);
     Route::post("$pickupPref-create-submit", [UCOLogisticController::class, 'submitCreatePickupRequest']);
     Route::post("$pickupPref-assign-fleet", [UCOLogisticController::class, 'assignFleetToPickupRequest']);
+
+    Route::get("$pickupPref-route", [UCOLogisticController::class, 'indexPickupRouting']);
+    Route::get("$pickupPref-route-data", [UCOLogisticController::class, 'getRouteListData']);
+    Route::post("$pickupPref-route-submit", [UCOLogisticController::class, "submitRoute"]);
+
+    Route::get("fleet-data", [UCOLogisticController::class, "getFleetData"]);
+
 
     $deliveryOrderPref = "partner-delivery-order";
     Route::get("$deliveryOrderPref", [UCOLogisticController::class, 'indexDeliveryOrder']);
