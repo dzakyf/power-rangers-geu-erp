@@ -505,10 +505,13 @@ class UCOController extends Controller
 
     private function fetchPickupOrders(?string $id)
     {
-        $query = DB::table('pickup_order')->select('*');
+        $query = DB::table('pickup_order as po')
+            ->leftJoin('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
+            ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
+            ->select('po.*', 'po.Code as PO_Code', 'wo.Code as WO_Code', 'mp.Name as POO_Name', 'mp.Full_Address as POO_Full_Address', 'mp.Lat', 'mp.Lng', 'mp.Location_Coordinate');
 
         if ($id) {
-            $query->where('id', $id);
+            $query->where('po.ID', $id);
         }
 
         return $query->get();
@@ -772,4 +775,116 @@ class UCOController extends Controller
     public function createTicket(Request $r) {}
 
     public function getTicket(Request $r) {}
+
+    public function indexPickupRouting()
+    {
+        return view('partner.pickup.routing.index');
+    }
+
+    public function getFleetData(Request $r)
+    {
+        $data = DB::table("master_fleet")->select("*")->get();
+        return response()->json(["status" => "success", "data" => $data]);
+    }
+
+    public function getRouteListData(Request $r)
+    {
+        $rows = $this->fetchPickupOrders($r->query('id'));
+
+        if ($r->query('format') === 'json') {
+            return response()->json(['data' => $rows]);
+        }
+
+        $xml = new SimpleXMLElement('<rows></rows>');
+        $no  = 1;
+
+        foreach ($rows as $row) {
+            $item = $xml->addChild('row');
+            $item->addAttribute('ID', $row->ID);
+            $item->addChild('cell', $no);
+            $item->addChild('cell', $row->POO_Name);
+            $item->addChild('cell', $row->POO_Full_Address);
+            $item->addChild('cell', $row->PO_Code);
+            $item->addChild('cell', $row->Qty);
+            $no++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    public function submitRoute(Request $r)
+    {
+        $ids = $r->input('pickup_order_ids', []);
+        if (empty($ids)) {
+            return response()->json(['status' => 'error', 'message' => 'No orders selected'], 400);
+        }
+
+
+        $orders = $this->fetchPickupOrders(null)->whereIn('ID', $ids);
+
+        $waypoints = [];
+        foreach ($orders as $order) {
+            if (!$order->Lat || !$order->Lng) continue;
+            $waypoints[] = [(float)$order->Lng, (float)$order->Lat];
+        }
+
+
+        if (count($waypoints) < 2) {
+            return response()->json(['status' => 'error', 'message' => 'Need at least 2 valid coordinates'], 400);
+        }
+
+
+
+        try {
+            $osrm = new \App\Services\OSRMService();
+            $routeData = $osrm->getRoute($waypoints);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Routing failed: ' . $e->getMessage()], 500);
+        }
+
+        // $highest = DB::table('pickup_routes')->max('ID');
+        // $routeCode = $this->generatorService->generateApplicationCode($highest, 'RTE');
+
+        // DB::beginTransaction();
+        // try {
+        //     $routeId = DB::table('pickup_routes')->insertGetId([
+        //         'route_code'        => $routeCode,
+        //         'PO_Id'             => $ids[0],
+        //         'distance_km'       => $routeData['distance_km'],
+        //         'duration_min'      => $routeData['duration_min'],
+        //         'encoded_polyline'  => $routeData['encoded_polyline'],
+        //         'created_at'        => now(),
+        //     ]);
+
+        //     $seq = 1;
+        //     foreach ($orders as $order) {
+        //         DB::table('pickup_route_waypoints')->insert([
+        //             'route_id'         => $routeId,
+        //             'sequence'         => $seq,
+        //             'pickup_order_id'  => $order->ID,
+        //             'poo_name'         => $order->POO_Name,
+        //             'latitude'         => $order->Lat,
+        //             'longitude'        => $order->Lng,
+        //         ]);
+        //         $seq++;
+        //     }
+
+        //     DB::commit();
+        // } catch (\Exception $e) {
+        //     DB::rollBack();
+        //     return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        // }
+
+        return response()->json([
+            'status'           => 'success',
+            'data'             => [
+                // 'route_id'         => $routeId,
+                'PO_Id'            => $ids[0],
+                'distance_km'      => $routeData['distance_km'],
+                'duration_min'     => $routeData['duration_min'],
+                'encoded_polyline' => $routeData['encoded_polyline'],
+                'waypoints'        => $waypoints,
+            ]
+        ]);
+    }
 }
