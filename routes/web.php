@@ -4508,7 +4508,7 @@ Route::group(['middleware' => 'auth'], function () {
 
     Route::get("$pickupPref-route", [UCOLogisticController::class, 'indexPickupRouting']);
     Route::get("$pickupPref-route-data", [UCOLogisticController::class, 'getRouteListData']);
-    Route::post("$pickupPref-route-submit", [UCOLogisticController::class, "submitRoute"]);
+    Route::post("$pickupPref-route-submit", [UCOLogisticController::class, "submitRoute"])->middleware('throttle:60,1');
 
     Route::get("fleet-data", [UCOLogisticController::class, "getFleetData"]);
 

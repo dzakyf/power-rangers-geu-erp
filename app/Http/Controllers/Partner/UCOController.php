@@ -503,7 +503,7 @@ class UCOController extends Controller
         return $this->pickupOrdersAsJson($rows);
     }
 
-    private function fetchPickupOrders(?string $id)
+    private function fetchPickupOrders(?string $id, ?string $whid = null, ?string $date_start = null, ?string $date_end = null)
     {
         $query = DB::table('pickup_order as po')
             ->leftJoin('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
@@ -512,6 +512,18 @@ class UCOController extends Controller
 
         if ($id) {
             $query->where('po.ID', $id);
+        }
+
+        if ($whid) {
+            $query->where('mp.Nearest_Warehouse', $whid);
+        }
+
+        if ($date_start) {
+            $query->where('po.Created_At', '>=', $date_start);
+        }
+
+        if ($date_end) {
+            $query->where('po.Created_At', '<=', $date_end);
         }
 
         return $query->get();
@@ -789,7 +801,7 @@ class UCOController extends Controller
 
     public function getRouteListData(Request $r)
     {
-        $rows = $this->fetchPickupOrders($r->query('id'));
+        $rows = $this->fetchPickupOrders($r->query('id'), $r->query('whid'), $r->query('date_start'), $r->query('date_end'));
 
         if ($r->query('format') === 'json') {
             return response()->json(['data' => $rows]);
@@ -833,8 +845,6 @@ class UCOController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Need at least 2 valid coordinates'], 400);
         }
 
-
-
         try {
             $osrm = new \App\Services\OSRMService();
             $routeData = $osrm->getRoute($waypoints);
@@ -842,43 +852,42 @@ class UCOController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Routing failed: ' . $e->getMessage()], 500);
         }
 
-        // $highest = DB::table('pickup_routes')->max('ID');
-        // $routeCode = $this->generatorService->generateApplicationCode($highest, 'RTE');
+        $highest = DB::table('pickup_routes')->max('ID');
+        $routeCode = $this->generatorService->generateApplicationCode($highest, 'RTE');
 
-        // DB::beginTransaction();
-        // try {
-        //     $routeId = DB::table('pickup_routes')->insertGetId([
-        //         'route_code'        => $routeCode,
-        //         'PO_Id'             => $ids[0],
-        //         'distance_km'       => $routeData['distance_km'],
-        //         'duration_min'      => $routeData['duration_min'],
-        //         'encoded_polyline'  => $routeData['encoded_polyline'],
-        //         'created_at'        => now(),
-        //     ]);
+        DB::beginTransaction();
+        try {
+            $routeId = DB::table('pickup_routes')->insertGetId([
+                'Code'        => $routeCode,
+                // 'PO_Id'             => $ids[0],
+                'Distance_Km'       => $routeData['distance_km'],
+                'Duration_Min'      => $routeData['duration_min'],
+                'Encoded_Polyline'  => $routeData['encoded_polyline'],
+            ]);
 
-        //     $seq = 1;
-        //     foreach ($orders as $order) {
-        //         DB::table('pickup_route_waypoints')->insert([
-        //             'route_id'         => $routeId,
-        //             'sequence'         => $seq,
-        //             'pickup_order_id'  => $order->ID,
-        //             'poo_name'         => $order->POO_Name,
-        //             'latitude'         => $order->Lat,
-        //             'longitude'        => $order->Lng,
-        //         ]);
-        //         $seq++;
-        //     }
+            $seq = 1;
+            foreach ($orders as $order) {
+                DB::table('pickup_route_waypoints')->insert([
+                    'Route_Id'         => $routeId,
+                    'Sequence'         => $seq,
+                    'PO_Id'  => $order->ID,
+                    'POO_Name'         => $order->POO_Name,
+                    'Lat'         => $order->Lat,
+                    'Lng'        => $order->Lng,
+                ]);
+                $seq++;
+            }
 
-        //     DB::commit();
-        // } catch (\Exception $e) {
-        //     DB::rollBack();
-        //     return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-        // }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
 
         return response()->json([
             'status'           => 'success',
             'data'             => [
-                // 'route_id'         => $routeId,
+                'route_id'         => $routeId,
                 'PO_Id'            => $ids[0],
                 'distance_km'      => $routeData['distance_km'],
                 'duration_min'     => $routeData['duration_min'],

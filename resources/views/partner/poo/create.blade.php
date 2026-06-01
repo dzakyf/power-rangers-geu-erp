@@ -11,144 +11,148 @@
     </ol>
 </div>
 
-<div class="d-flex py-4 container-fluid justify-content-start">
-    <div class="card">
-        <div class="card-header">
-            <h5 class="m-3">Create Point of Origin</h5>
-        </div>
-        <div class="card-body">
-            <form id="POOForm">
-                @csrf
+<div class="container-fluid py-4">
+    <div class="row justify-content-start">
+        <div class="col-lg-6 col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="m-3">Create Point of Origin</h5>
+                </div>
+                <div class="card-body">
+                    <form id="POOForm">
+                        @csrf
 
-                <h6 class="text-muted font-weight-bold mb-3">General Information</h6>
-                <div class="form-row">
+                        <h6 class="text-muted font-weight-bold mb-3">General Information</h6>
+                        <div class="form-row">
 
-                    <div class="form-group col-md-6">
-                        <label for="Name">Name</label>
-                        <input type="text" class="form-control" id="Name" name="Name">
-                    </div>
-                    <div class="form-group col-md-6">
-                        <label for="Type">Type</label>
-                        <input type="text" class="form-control" id="Type" name="Type" value="SUPPLIER" placeholder="e.g. SUPPLIER">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label for="Code">Code</label>
-                        <input type="text" class="form-control" id="Code" name="Code">
-                    </div>
-                    <div class="form-group col-md-6">
-                        <label for="Category">Category</label>
-                        <input type="text" class="form-control" id="Category" name="Category">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label for="UCO_Type">UCO Type</label>
-                        <input type="text" class="form-control" id="UCO_Type" name="UCO_Type">
-                    </div>
-                    <div class="form-group col-md-3">
-                        <label for="Price">Price</label>
-                        <input type="number" class="form-control" id="Price" name="Price">
-                    </div>
-                    <div class="form-group col-md-3">
-                        <label for="Price_Unit">Price Unit</label>
-                        <input type="text" class="form-control" id="Price_Unit" name="Price_Unit">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label for="Cycle">Cycle</label>
-                        <input type="text" class="form-control" id="Cycle" name="Cycle">
-                    </div>
-                    <div class="form-group col-md-6">
-                        <label for="Point">Point</label>
-                        <input type="number" class="form-control" id="Point" name="Point">
-                    </div>
-                </div>
+                            <div class="form-group col-md-6">
+                                <label for="Name">Name</label>
+                                <input type="text" class="form-control" id="Name" name="Name">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="Type">Type</label>
+                                <input type="text" class="form-control" id="Type" name="Type" value="SUPPLIER" placeholder="e.g. SUPPLIER">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="Code">Code</label>
+                                <input type="text" class="form-control" id="Code" name="Code">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="Category">Category</label>
+                                <input type="text" class="form-control" id="Category" name="Category">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="UCO_Type">UCO Type</label>
+                                <input type="text" class="form-control" id="UCO_Type" name="UCO_Type">
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="Price">Price</label>
+                                <input type="number" class="form-control" id="Price" name="Price">
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="Price_Unit">Price Unit</label>
+                                <input type="text" class="form-control" id="Price_Unit" name="Price_Unit">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="Cycle">Cycle</label>
+                                <input type="text" class="form-control" id="Cycle" name="Cycle">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="Point">Point</label>
+                                <input type="number" class="form-control" id="Point" name="Point">
+                            </div>
+                        </div>
 
-                <hr>
-                <h6 class="text-muted font-weight-bold mb-3">PIC Information</h6>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label for="PIC">PIC</label>
-                        <input type="text" class="form-control" id="PIC" name="PIC">
-                    </div>
-                    <div class="form-group col-md-6">
-                        <label for="Employee">Employee</label>
-                        <input type="text" class="form-control" id="Employee" name="Employee">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label for="Phone">Phone</label>
-                        <input type="text" class="form-control" id="Phone" name="Phone">
-                    </div>
-                    <div class="form-group col-md-6">
-                        <label for="Position">Position</label>
-                        <input type="text" class="form-control" id="Position" name="Position">
-                    </div>
-                </div>
+                        <hr>
+                        <h6 class="text-muted font-weight-bold mb-3">PIC Information</h6>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="PIC">PIC</label>
+                                <input type="text" class="form-control" id="PIC" name="PIC">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="Employee">Employee</label>
+                                <input type="text" class="form-control" id="Employee" name="Employee">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="Phone">Phone</label>
+                                <input type="text" class="form-control" id="Phone" name="Phone">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="Position">Position</label>
+                                <input type="text" class="form-control" id="Position" name="Position">
+                            </div>
+                        </div>
 
-                <hr>
-                <h6 class="text-muted font-weight-bold mb-3">Location</h6>
+                        <hr>
+                        <h6 class="text-muted font-weight-bold mb-3">Location</h6>
 
-                <div class="form-row">
-                    <div class="form-group col-md-3">
-                        <label for="Province">Province</label>
-                        <select class="form-control select2" id="Province" name="Province" style="width:100%"></select>
-                    </div>
-                    <div class="form-group col-md-3">
-                        <label for="City">City</label>
-                        <select class="form-control select2" id="City" name="City" style="width:100%" disabled></select>
-                    </div>
-                    <div class="form-group col-md-3">
-                        <label for="Subdistrict">Subdistrict</label>
-                        <select class="form-control select2" id="Subdistrict" name="Subdistrict" style="width:100%" disabled></select>
-                    </div>
-                    <div class="form-group col-md-3">
-                        <label for="Village">Village</label>
-                        <select class="form-control select2" id="Village" name="Village" style="width:100%" disabled></select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-12">
-                        <label for="Full_Address">Full Address</label>
-                        <input type="text" class="form-control" id="Full_Address" name="Full_Address">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label for="Location_Coordinate">Location Coordinate</label>
-                        <input type="text" class="form-control" id="Location_Coordinate" name="Location_Coordinate" placeholder="lat,lng">
-                    </div>
-                    <div class="form-group col-md-6">
-                        <label for="Nearest_Warehouse">Nearest Warehouse</label>
-                        <input type="text" class="form-control" id="Nearest_Warehouse" name="Nearest_Warehouse">
-                    </div>
-                </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-3">
+                                <label for="Province">Province</label>
+                                <select class="form-control select2" id="Province" name="Province" style="width:100%"></select>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="City">City</label>
+                                <select class="form-control select2" id="City" name="City" style="width:100%" disabled></select>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="Subdistrict">Subdistrict</label>
+                                <select class="form-control select2" id="Subdistrict" name="Subdistrict" style="width:100%" disabled></select>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="Village">Village</label>
+                                <select class="form-control select2" id="Village" name="Village" style="width:100%" disabled></select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
+                                <label for="Full_Address">Full Address</label>
+                                <input type="text" class="form-control" id="Full_Address" name="Full_Address">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="Location_Coordinate">Location Coordinate</label>
+                                <input type="text" class="form-control" id="Location_Coordinate" name="Location_Coordinate" placeholder="lat,lng">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="Nearest_Warehouse">Nearest Warehouse</label>
+                                <select class="form-control select2" id="Nearest_Warehouse" name="Nearest_Warehouse" style="width:100%" required></select>
+                            </div>
+                        </div>
 
-                <hr>
-                <h6 class="text-muted font-weight-bold mb-3">Bank Information</h6>
-                <div class="form-row">
-                    <div class="form-group col-md-4">
-                        <label for="Bank_Name">Bank Name</label>
-                        <input type="text" class="form-control" id="Bank_Name" name="Bank_Name">
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label for="Bank_Account_Number">Account Number</label>
-                        <input type="text" class="form-control" id="Bank_Account_Number" name="Bank_Account_Number">
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label for="Bank_Account_Name">Account Name</label>
-                        <input type="text" class="form-control" id="Bank_Account_Name" name="Bank_Account_Name">
-                    </div>
-                </div>
+                        <hr>
+                        <h6 class="text-muted font-weight-bold mb-3">Bank Information</h6>
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label for="Bank_Name">Bank Name</label>
+                                <input type="text" class="form-control" id="Bank_Name" name="Bank_Name">
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="Bank_Account_Number">Account Number</label>
+                                <input type="text" class="form-control" id="Bank_Account_Number" name="Bank_Account_Number">
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="Bank_Account_Name">Account Name</label>
+                                <input type="text" class="form-control" id="Bank_Account_Name" name="Bank_Account_Name">
+                            </div>
+                        </div>
 
-                <hr>
-                <button type="button" class="btn btn-primary" id="SubmitPOO">Submit</button>
-                <button type="reset" class="btn btn-secondary ml-2">Reset</button>
-            </form>
+                        <hr>
+                        <button type="button" class="btn btn-primary" id="SubmitPOO">Submit</button>
+                        <button type="reset" class="btn btn-secondary ml-2">Reset</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -172,11 +176,14 @@
                     }, extra);
                 },
                 processResults: function(res) {
+
                     return {
                         results: res.data.map(function(row) {
+                            let data = row
+                            let text = `${data.warehouse_location} - ${data.warehouse_task_id}`
                             return {
                                 id: row[valueField],
-                                text: row[labelField]
+                                text: text
                             };
                         })
                     };
@@ -249,6 +256,8 @@
         });
 
 
+
+        makeSelect2('#Nearest_Warehouse', 'partner-warehouse-data', {}, 'id', 'warehouse_location');
         $('#SubmitPOO').on('click', function() {
             var payload = new FormData(document.getElementById('POOForm'));
 
