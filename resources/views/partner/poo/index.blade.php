@@ -49,10 +49,10 @@
     }
 
     function initTableGrid1() {
-        let tHeader = ['No', null, 'Type', 'Name', 'PIC', 'Code', 'Employee', 'Phone', 'Position', 'Category', 'UCO Type', 'Price', 'Price Unit', 'Province', 'City', 'Subdistrict', 'Village', 'Cycle', 'Full Address', 'Location Coordinate', 'Nearest Warehouse', 'Bank Account Number', 'Bank Account Name', 'Bank Name', 'Point', 'Created At', 'Updated At']
+        let tHeader = ['No', 'Type', 'Name', 'PIC', 'Code', 'Employee', 'Phone', 'Position', 'Category', 'UCO Type', 'Price', 'Price Unit', 'Province', 'City', 'Subdistrict', 'Village', 'Cycle', 'Full Address', 'Location Coordinate', 'Nearest Warehouse', 'Bank Account Number', 'Bank Account Name', 'Bank Name', 'Point', 'Created At', 'Updated At', 'Latitude', 'Longitude']
         let tWidth = tHeader.map((e, i) => i == 1 ? 0 : '150')
         let headerAttachment = tHeader.map((e, i) => i <= 1 ? '#rspan' : '#text_filter')
-        let colId = ['No', 'ID', 'Type', 'Name', 'PIC', 'Code', 'Employee', 'Phone', 'Position', 'Category', 'UCO_Type', 'Price', 'Price_Unit', 'Province', 'City', 'Subdistrict', 'Village', 'Cycle', 'Full_Address', 'Location_Coordinate', 'Nearest_Warehouse', 'Bank_Account_Number', 'Bank_Account_Name', 'Bank_Name', 'Point', 'Created_At', 'Updated_At'].join(',')
+        let colId = ['No', 'Type', 'Name', 'PIC', 'Code', 'Employee', 'Phone', 'Position', 'Category', 'UCO_Type', 'Price', 'Price_Unit', 'Province', 'City', 'Subdistrict', 'Village', 'Cycle', 'Full_Address', 'Location_Coordinate', 'Nearest_Warehouse', 'Bank_Account_Number', 'Bank_Account_Name', 'Bank_Name', 'Point', 'Created_At', 'Updated_At', 'Latitude', 'Longitude'].join(',')
 
 
         Grid1 = new dhtmlXGridObject('MembershipGrid');
@@ -107,7 +107,7 @@
                 $('#Price_Unit').val(data.Price_Unit);
                 $('#Cycle').val(data.Cycle);
                 $('#Full_Address').val(data.Full_Address);
-                $('#Location_Coordinate').val(data.Location_Coordinate);
+                $('#Location_Coordinate').val(`${data.Lat},${data.Lng}`);
                 $('#Nearest_Warehouse').val(data.Nearest_Warehouse);
                 $('#Bank_Account_Number').val(data.Bank_Account_Number);
                 $('#Bank_Account_Name').val(data.Bank_Account_Name);

@@ -32,8 +32,14 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label for="dateFilter">Tanggal</label>
-                <input type="date" id="dateFilter" class="form-control" />
+                <label for="dateFilterStart">Tanggal</label>
+                <div class="input-group">
+                    <input type="date" id="dateFilterStart" class="form-control" />
+                    <div class="input-group-append input-group-prepend">
+                        <span class="input-group-text">s/d</span>
+                    </div>
+                    <input type="date" id="dateFilterEnd" class="form-control" />
+                </div>
             </div>
             <div class="col-md-2">
                 <label for="fleetFilter">Driver</label>
@@ -43,8 +49,26 @@
             </div>
             <div class="col-md-2">
                 <button id="filterBtn" class="btn btn-primary">Filter</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card mb-3">
+    <div class="card-header m-3">
+        <div class="row align-items-end">
+            <div class="col-md-1">
+                <h5>Daftar Pickup</h5>
+            </div>
+            <div class="col-md-auto ml-auto p-2">
                 <button id="routeBtn" class="btn btn-primary">Route</button>
             </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div style="width:100%;overflow-x:auto;">
+            <div id="routingGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
         </div>
     </div>
 </div>
@@ -59,17 +83,7 @@
     </div>
 </div>
 
-<!-- Table Card -->
-<div class="card mb-3">
-    <div class="card-header m-3">
-        <h5>Routing List</h5>
-    </div>
-    <div class="card-body p-0">
-        <div style="width:100%;overflow-x:auto;">
-            <div id="routingGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-        </div>
-    </div>
-</div>
+
 
 <!-- Manajemen Biaya & Rute Card -->
 <div class="card mb-3">
@@ -145,8 +159,8 @@
                 $select.empty();
                 $select.append('<option value="">-- Pilih Gudang --</option>');
                 $.each(data, function(i, item) {
-                    $select.append('<option value="' + item.warehouse_task_id + '">' +
-                        item.warehouse_location + '</option>');
+                    $select.append('<option value="' + item.id + '">' +
+                        item.warehouse_location + ' - ' + item.warehouse_task_id + '</option>');
                 });
             },
             error: function() {
@@ -186,25 +200,16 @@
 
     function loadRoutingData() {
         var warehouse = $('#warehouseFilter').val();
-        var date = $('#dateFilter').val();
+        var dateStart = $('#dateFilterStart').val();
+        var dateEnd = $('#dateFilterEnd').val();
 
-        var params = {};
-        if (warehouse) params.wh_id = warehouse;
-        if (date) params.date = date;
+        var url = 'partner-pickup-route-data?format=xml';
+        if (warehouse) url += '&whid=' + encodeURIComponent(warehouse);
+        if (dateStart) url += '&date_start=' + encodeURIComponent(dateStart);
+        if (dateEnd) url += '&date_end=' + encodeURIComponent(dateEnd);
 
-        $.ajax({
-            url: 'partner-pickup-routing-data',
-            type: 'GET',
-            data: params,
-            success: function(res) {
-                // TODO: update grid and map markers with actual data endpoint
-                routingGrid.clearAll();
-                routingGrid.loadXMLString(res.data || '<rows></rows>');
-            },
-            error: function() {
-                console.log('Failed to load routing data');
-            }
-        });
+        routingGrid.clearAll();
+        routingGrid.load(url);
     }
 
 
@@ -292,9 +297,9 @@
                         </div>';
                     });
 
-                    if (filteredOrders.length === 0) {
-                        cardsHtml += '<p class="text-center text-muted">No pickup orders found</p>';
-                    }
+                    // if (filteredOrders.length === 0) {
+                    //     cardsHtml += '<p class="text-center text-muted">No pickup orders found</p>';
+                    // }
                     cardsHtml += '</div>';
 
                     AppModal.open({
