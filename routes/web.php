@@ -4509,6 +4509,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$pickupPref-route", [UCOLogisticController::class, 'indexPickupRouting']);
     Route::get("$pickupPref-route-data", [UCOLogisticController::class, 'getRouteListData']);
     Route::post("$pickupPref-route-submit", [UCOLogisticController::class, "submitRoute"])->middleware('throttle:60,1');
+    Route::post("$pickupPref-route-calculate", [UCOLogisticController::class, "calculateRoute"]);
 
     Route::get("fleet-data", [UCOLogisticController::class, "getFleetData"]);
 
@@ -5171,6 +5172,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$fsiPref-new", [FinalShipmentInstructionController::class, 'newFinalShipmentInstruction']);
     Route::post("$fsiPref-new-get-si", [FinalShipmentInstructionController::class, 'getSI']);
     Route::post("$fsiPref-new-submit", [FinalShipmentInstructionController::class, 'newFinalShipmentInstructionSubmit']);
+    Route::get("$fsiPref-detail", [FinalShipmentInstructionController::class, 'detailFinalShipmentInstruction']);
     Route::get("$fsiPref-create-pl", [FinalShipmentInstructionController::class, 'generatePackingList']);
     Route::get("$fsiPref-create-ci", [FinalShipmentInstructionController::class, 'generateCommercialInvoice']);
 

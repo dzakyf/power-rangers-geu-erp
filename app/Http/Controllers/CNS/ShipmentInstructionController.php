@@ -156,10 +156,11 @@ class ShipmentInstructionController extends Controller
         $mpdf->WriteHTML($html);
  
         // ── Output ────────────────────────────────────────────────────────
-        $filename = 'SI_' . ($shipment->Final_SI_No ?? $shipment->SI_No) . '.pdf';
+        $filename = 'SI_' . ($shipment->Final_SI_No ?? $shipment->SI_No);
+        $mpdf->SetTitle($filename);
  
         // 'I' = tampil di browser, 'D' = download, 'F' = simpan ke file
-        return response($mpdf->Output($filename, 'S'), 200, [
+        return response($mpdf->Output($filename . '.pdf', 'S'), 200, [
             'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'inline; filename="' . $filename . '"',
         ]);

@@ -50,7 +50,7 @@
 			</div>
 			<div class="line"></div>
 
-			<div class="step" data-target="#step3">
+			<div class="step" data-target="#step5">
 				<button type="button" class="step-trigger" role="tab">
 					<span class="bs-stepper-circle">5</span>
 					<span class="bs-stepper-label">Survey Lokasi</span>
@@ -58,7 +58,7 @@
 			</div>
 			<div class="line"></div>
 
-			<div class="step" data-target="#step3">
+			<div class="step" data-target="#step6">
 				<button type="button" class="step-trigger" role="tab">
 					<span class="bs-stepper-circle">6</span>
 					<span class="bs-stepper-label">Installment</span>
@@ -67,22 +67,17 @@
 
 			<div class="line"></div>
 
-			<div class="step" data-target="#step3">
+			<div class="step" data-target="#step7">
 				<button type="button" class="step-trigger" role="tab">
-					<span class="bs-stepper-circle">6</span>
+					<span class="bs-stepper-circle">7</span>
 					<span class="bs-stepper-label">Aktif</span>
 				</button>
 			</div>
-
-
-
 		</div>
 
 		<div class="bs-stepper-content">
 			<div id="step1" class="content" role="tabpanel">
-
 				@include('approval.stepper.detail')
-
 			</div>
 
 			<div id="step2" class="content" role="tabpanel">
@@ -96,17 +91,23 @@
 			<div id="step4" class="content" role="tabpanel">
 				@include('approval.stepper.pks')
 			</div>
+
+			<div id="step5" class="content" role="tabpanel">
+				@include('approval.stepper.survey')
+			</div>
+
+			<div id="step6" class="content" role="tabpanel">
+			</div>
+
+			<div id="step7" class="content" role="tabpanel">
+			</div>
 		</div>
 	</div>
 </div>
-
-<!-- Current Step Display -->
 <!-- <div class="mt-2" id="stepDisplay"></div> -->
 </div>
 
 <div id="divlistOpportunity"></div>
-<div></div>
-<div id="divlistProjectList"></div>
 <script src="https://cdn.jsdelivr.net/npm/bs-stepper/dist/js/bs-stepper.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bs-stepper/dist/css/bs-stepper.min.css">
 </script>
@@ -119,6 +120,7 @@
 		$('#divlistOpportunity').show()
 
 		var stepperElement = $('.bs-stepper')[0];
+		console.log(stepperElement)
 		window.stepper = new Stepper(stepperElement, {
 			linear: false,
 			animation: true,
@@ -131,6 +133,9 @@
 
 		function updateStepDisplay() {
 			var currentIndex = window.stepper._currentIndex + 1; // 1-based for display
+			console.log(currentIndex)
+
+
 			$('#stepDisplay').html(`
 				<div class="alert alert-info">
 					Current Step: ${currentIndex} of 3
@@ -147,8 +152,6 @@
 			updateStepDisplay();
 		});
 
-
-
 		$('.btn-next').on('click', function() {
 			window.stepper.next();
 		});
@@ -160,6 +163,7 @@
 		$('#goToStep2').on('click', function() {
 			window.stepper.to(2); // Goes to step 2 (1-based index)
 		});
+
 
 		$('#resetStepper').on('click', function() {
 			window.stepper.reset();

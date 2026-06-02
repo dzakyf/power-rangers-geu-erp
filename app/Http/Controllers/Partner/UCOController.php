@@ -824,6 +824,38 @@ class UCOController extends Controller
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
     }
 
+
+    public function calculateRoute(Request $r)
+    {
+        $ids = $r->input('pickup_order_ids', []);
+        if (empty($ids)) {
+            return response()->json(['status' => 'error', 'message' => 'No orders selected'], 400);
+        }
+
+        $orders = $this->fetchPickupOrders(null)->whereIn('ID', $ids);
+
+        $waypoints = [];
+        foreach ($orders as $order) {
+            if (!$order->Lat || !$order->Lng) continue;
+            $waypoints[] = [(float)$order->Lng, (float)$order->Lat];
+        }
+
+        if (count($waypoints) < 2) {
+            return response()->json(['status' => 'error', 'message' => 'Need at least 2 valid coordinates'], 400);
+        }
+
+        try {
+            $osrm = new \App\Services\OSRMService();
+            $routeData = $osrm->getRoute($waypoints);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Routing failed: ' . $e->getMessage()], 500);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data'    => $routeData,
+        ]);
+    }
     public function submitRoute(Request $r)
     {
         $ids = $r->input('pickup_order_ids', []);

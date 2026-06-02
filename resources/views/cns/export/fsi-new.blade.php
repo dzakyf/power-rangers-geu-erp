@@ -55,7 +55,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">NEW FINAL SHIPMENT INSTRUCTION</div>
 	<div class="card">
 		<div class="card-body">
 			<div id="ContentPages">
@@ -340,7 +340,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
                 });
                 while (counter <= response.Qty1) {
                     $('#containerList').append(`
-                    <div class="col-12">
+                    <div class="col-md-6 col-12">
                         <div class="form-group">
                             <label for="Container${counter}">Container ${counter}</label>
                             <select name="Container${counter}" id="Container${counter}" class="form-control">

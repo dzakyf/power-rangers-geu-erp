@@ -10,6 +10,7 @@ use App\VesselScheduleDtl;
 use App\VesselScheduleLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Mpdf\Mpdf;
 
 class PackingListController extends Controller
 {
@@ -29,6 +30,7 @@ class PackingListController extends Controller
 
         echo "<rows>";
 
+        $vsdData = [];
         $vsds = VesselScheduleDtl::whereNotNull('SI_No')->get();
         foreach ($vsds as $key => $vsd) {
             if (!isset($vsdData[$vsd->SI_No])) {
@@ -79,13 +81,84 @@ class PackingListController extends Controller
 
     public function printPackingList(Request $request)
     {
+        // $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        // foreach ($company as $key => $value) {
+        //     $companies[$value->Supplier_ID] = $value;
+        // }
+        // $shipment = PackingList::where('Packing_List_No', $request->Task)->first();
+        // $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
+        // return view('cns.export.print.pl', compact('shipment', 'vsds','companies'));
+        // ── Ambil data (sesuaikan dengan model Anda) ──────────────────────
+        $companies = [];
         $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         foreach ($company as $key => $value) {
             $companies[$value->Supplier_ID] = $value;
         }
         $shipment = PackingList::where('Packing_List_No', $request->Task)->first();
         $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
-        return view('cns.export.print.pl', compact('shipment', 'vsds','companies'));
+ 
+        // ── Hitung total ──────────────────────────────────────────────────
+        $gross = $vsds->sum('Gross_KG');
+        $netto = $vsds->sum('Netto_KG');
+        $mt    = round($netto / 1000, 2);
+ 
+        // ── Render HTML dari Blade view ───────────────────────────────────
+        $html = view('cns.export.print.pl', compact(
+            'shipment', 'vsds', 'companies', 'gross', 'netto', 'mt'
+        ))->render();
+ 
+        // ── Header & Footer HTML ──────────────────────────────────────────
+        $letterhead = public_path($companies[$shipment->Shipper]->Letterhead);
+        $footerImg  = public_path($companies[$shipment->Shipper]->Footer);
+ 
+        // Konversi ke base64 agar mPDF bisa render gambar
+        $headerB64 = base64_encode(file_get_contents($letterhead));
+        $footerB64 = base64_encode(file_get_contents($footerImg));
+        $headerExt = strtolower(pathinfo($letterhead, PATHINFO_EXTENSION));
+        $footerExt = strtolower(pathinfo($footerImg,  PATHINFO_EXTENSION));
+ 
+        $headerHtml = '
+            <div style="margin:0;padding:0;line-height:0;">
+                <img src="data:image/' . $headerExt . ';base64,' . $headerB64 . '"
+                     style="width:100%;display:block;">
+            </div>';
+ 
+        $footerHtml = '
+            <div style="margin:0;padding:0;line-height:0;">
+                <img src="data:image/' . $footerExt . ';base64,' . $footerB64 . '"
+                     style="width:100%;display:block;">
+            </div>';
+ 
+        // ── Inisialisasi mPDF ─────────────────────────────────────────────
+        $mpdf = new Mpdf([
+            'format'        => 'A4',
+            'tempDir'       => storage_path('app/mpdf'),
+            'margin_top'    => 0,   // ← sesuaikan dengan tinggi header image (mm)
+            'margin_bottom' => 0,   // ← sesuaikan dengan tinggi footer image (mm)
+            'margin_left'   => 0,
+            'margin_right'  => 0,
+            // penting
+            'margin_header' => 0,
+            'margin_footer' => 0,
+            // penting
+            'setAutoTopMargin'    => 'stretch',
+            'setAutoBottomMargin' => 'stretch',
+        ]);
+ 
+        $mpdf->SetHTMLHeader($headerHtml);
+        $mpdf->SetHTMLFooter($footerHtml);
+ 
+        $mpdf->WriteHTML($html);
+ 
+        // ── Output ────────────────────────────────────────────────────────
+        $filename = 'PL_' . $shipment->Packing_List_No;
+        $mpdf->SetTitle($filename);
+ 
+        // 'I' = tampil di browser, 'D' = download, 'F' = simpan ke file
+        return response($mpdf->Output($filename . '.pdf', 'S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
     }
     
     function getRomawi($bln)

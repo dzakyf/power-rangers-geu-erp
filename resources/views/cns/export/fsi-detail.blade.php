@@ -10,47 +10,49 @@ $Saya =  Auth::user()->username;
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">NEW FINAL SHIPMENT INSTRUCTION</div>
 	<div class="card">
 		<div class="card-body">
 			<div id="ContentPages">
 				<div class="FormInput_Form_Content">
 					<div class="row">
-						<div class="col-12">
-							<div class="form-group">
-								<label for="Order_No">Order No</label>
-                                <input type="text" name="Order_No" id="Order_No" value="{{ $si->Order_No }}" class="form-control" required readonly />
-							</div>
-						</div>
-						<div class="col-12">
+						<div class="col-md-4 col-12">
 							<div class="form-group">
 								<label for="SI_No">SI No</label>
-                                <input type="text" name="SI_No" id="SI_No" value="{{ $si->SI_No }}" class="form-control" required readonly />
+                                <select name="SI_No" id="SI_No" class="form-control bg-white" readonly>
+                                    <option value="{{ $shipment->SI_No }}">{{ $shipment->SI_No }}</option>
+                                </select>
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-4 col-12">
 							<div class="form-group">
-								<label for="SI_Date">SI Date</label>
-                                <input name="SI_Date" id="SI_Date" class="form-control" value="{{ $si->SI_Date }}" required />
+								<label for="SI_Date">Final SI Date</label>
+                                <input name="SI_Date" id="SI_Date" class="form-control bg-white" value="{{ $shipment->Final_SI_Date ?? date('Y-m-d') }}" readonly />
+							</div>
+						</div>
+						<div class="col-md-4 col-12">
+							<div class="form-group">
+								<label for="Order_No">Order No</label>
+                                <input type="text" name="Order_No" id="Order_No" value="{{ $shipment->Order_No ?? '' }}" class="form-control bg-white" readonly />
 							</div>
 						</div>
 						<div class="col-12">
 							<div class="form-group">
 								<label for="Qty1">Qty</label>
 								<div class="row">
-									<div class="col">
-										<select name="Qty1" id="Qty1" class="form-control" required>
+									<div class="col-6">
+										<select name="Qty1" id="Qty1" class="form-control bg-white" readonly>
 											<option value="">-- Pilih Qty --</option>
 											@foreach (range(1,1000) as $item)
-											<option value="{{$item}}" {{ $item == $si->Qty1 ? 'selected' : '' }}>{{$item}}</option>
+											<option value="{{$item}}" {{ $shipment->Qty1 == $item ? 'selected' : '' }}>{{$item}}</option>
 											@endforeach
 										</select>
 									</div>
-									<div class="col">
-										<select name="Qty2" id="Qty2" class="form-control" required>
+									<div class="col-6">
+										<select name="Qty2" id="Qty2" class="form-control bg-white" readonly>
 											<option value="">-- Pilih Qty --</option>
-											<option value="20 FT" {{ $si->Qty2 == '20 FT' ? 'selected' : '' }}>20 FT</option>
-											<option value="20 ISOTANK" {{ $si->Qty2 == '20 ISOTANK' ? 'selected' : '' }}>20 ISOTANK</option>
+											<option value="20 FT" {{ $shipment->Qty2 == '20 FT' ? 'selected' : '' }}>20 FT</option>
+											<option value="20 ISOTANK" {{ $shipment->Qty2 == '20 ISOTANK' ? 'selected' : '' }}>20 ISOTANK</option>
 										</select>
 									</div>
 								</div>
@@ -61,175 +63,168 @@ $Saya =  Auth::user()->username;
                                 <label for="Jam">Jam</label>
                                 <div class="row">
                                     <div class="col-6">
-                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="form-control" required readonly />
+                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="form-control bg-white" readonly />
                                     </div>
                                     <div class="col-6">
-                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="form-control" required readonly />
+                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="form-control bg-white" readonly />
                                     </div>
                                 </div>
                             </div>
                         </div> --}}
-                        <div class="col-12">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Shipper">Shipper</label>
-                                <select name="Shipper" id="Shipper" class="form-control" required>
+                                <select name="Shipper" id="Shipper" class="form-control bg-white" disabled>
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
-                                        <option value="{{ $shipper->Supplier_ID }}" {{ $si->Shipper == $shipper->Supplier_ID ? '' : '' }}>{{ $shipper->Company_Name }}</option>
+                                        <option value="{{ $shipper->Supplier_ID }}" {{ $shipment->Shipper == $shipper->Supplier_ID ? 'selected' : '' }}>{{ $shipper->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control" required>
+                                <select name="Consignee" id="Consignee" class="form-control bg-white" disabled>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
-                                        <option value="{{ $consignee->Supplier_ID }}" {{ $si->Consignee == $consignee->Supplier_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
+                                        <option value="{{ $consignee->Supplier_ID }}" {{ $shipment->Consignee == $consignee->Supplier_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Notify">Notify Party</label>
-                                <select name="Notify" id="Notify" class="form-control" required>
+                                <select name="Notify" id="Notify" class="form-control bg-white" disabled>
                                     <option value="">-- Pilih Notify --</option>
                                     @foreach ($companies as $notify)
-                                        <option value="{{ $notify->Supplier_ID }}" {{ $si->Notify == $notify->Supplier_ID ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
+                                        <option value="{{ $notify->Supplier_ID }}" {{ $shipment->Notify == $notify->Supplier_ID ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Destination_Letter">Destination Letter</label>
-                                <select name="Destination_Letter" id="Destination_Letter" class="form-control" required>
+                                <select name="Destination_Letter" id="Destination_Letter" class="form-control bg-white" disabled>
                                     <option value="">-- Pilih Destination Letter --</option>
                                     @foreach ($companies as $destination_Letter)
-                                        <option value="{{ $destination_Letter->Supplier_ID }}" {{ $si->Destination_Letter == $destination_Letter->Supplier_ID ? 'selected' : '' }}>{{ $destination_Letter->Company_Name }}</option>
+                                        <option value="{{ $destination_Letter->Supplier_ID }}" {{ $shipment->Destination_Letter == $destination_Letter->Supplier_ID ? 'selected' : '' }}>{{ $destination_Letter->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Delivery_Terms">Delivery Terms</label>
-                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="{{ $si->Delivery_Terms }}" class="form-control" required />
+                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="{{ $shipment->Delivery_Terms }}" class="form-control bg-white" readonly />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Contract_No">Contract No</label>
-                                <input type="text" name="Contract_No" id="Contract_No" value="{{ $si->Contract_No }}" class="form-control" required />
+                                <input type="text" name="Contract_No" id="Contract_No" value="{{ $shipment->Contract_No }}" class="form-control bg-white" readonly />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Voyage">Voyage</label>
-                                <input type="text" name="Voyage" id="Voyage" value="{{ $si->Voyage }}" class="form-control" required />
+                                <input type="text" name="Voyage" id="Voyage" value="{{ $shipment->Voyage }}" class="form-control bg-white" readonly />
                             </div>
                         </div>
                         <div class="col-12">
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4 col-12">
                                     <div class="form-group">
                                         <label for="ETD">ETD</label>
-                                        <input type="text" name="ETD" id="ETD" value="{{ $si->ETD }}" class="form-control bg-white" required readonly />
+                                        <input type="text" name="ETD" id="ETD" value="{{ $shipment->ETD }}" class="form-control bg-white" readonly />
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4 col-12">
                                     <div class="form-group">
                                         <label for="ETA">ETA</label>
-                                        <input type="text" name="ETA" id="ETA" value="{{ $si->ETA }}" class="form-control bg-white" required readonly />
+                                        <input type="text" name="ETA" id="ETA" value="{{ $shipment->ETA }}" class="form-control bg-white" readonly />
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4 col-12">
                                     <div class="form-group">
                                         <label for="Stuffing">Stuffing</label>
-                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ $si->Stuffing }}" class="form-control bg-white" required readonly />
+                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ $shipment->Stuffing }}" class="form-control bg-white" readonly />
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="PEB_No">PEB No</label>
-                                <input type="text" name="PEB_No" id="PEB_No" value="{{ $si->PEB_No }}" class="form-control" />
+                                <input type="text" name="PEB_No" id="PEB_No" value="{{ $shipment->PEB_No }}" class="form-control bg-white" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="PEB_Date">PEB Date</label>
-                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ $si->PEB_Date }}" class="form-control" />
+                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ $shipment->PEB_Date }}" class="form-control bg-white" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="BL_No">B/L No</label>
-                                <input type="text" name="BL_No" id="BL_No" value="{{ $si->BL_No }}" class="form-control" />
+                                <input type="text" name="BL_No" id="BL_No" value="{{ $shipment->BL_No }}" class="form-control bg-white" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="POL">Port of Loading</label>
-                                <input type="text" name="POL" id="POL" value="{{ $si->POL }}" class="form-control" />
+                                <input type="text" name="POL" id="POL" value="{{ $shipment->POL }}" class="form-control bg-white" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="POD">Port of Discharge</label>
-                                <input type="text" name="POD" id="POD" value="{{ $si->POD }}" class="form-control" />
+                                <input type="text" name="POD" id="POD" value="{{ $shipment->POD }}" class="form-control bg-white" />
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="Product_Name">Product Name</label>
-                                <select name="Product_Name" id="Product_Name" class="form-control">
+                                <select name="Product_Name" id="Product_Name" class="form-control bg-white" disabled>
                                     <option value="">-- Pilih Product --</option>
                                     @foreach ($masProducts as $item)
-                                    <option value="{{ $item->description }}" {{ $item->description == $si->Product_Name ? 'selected' : '' }}>{{ $item->description }}</option>
+                                    <option value="{{ $item->description }}" {{ $item->description == $shipment->Product_Name ? 'selected' : '' }}>{{ $item->description }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="HS_Code">HS Code</label>
-                                <select name="HS_Code" id="HS_Code" class="form-control">
+                                <select name="HS_Code" id="HS_Code" class="form-control bg-white" disabled>
                                     <option value="">-- Pilih HS Code --</option>
-                                    <option value="15180090" {{ $si->HS_Code == '15180090' ? 'selected' : '' }}>15180090</option>
-                                    <option value="15119020" {{ $si->HS_Code == '15119020' ? 'selected' : '' }}>15119020</option>
+                                    <option value="15180090" {{ $shipment->HS_Code == '15180090' ? 'selected' : '' }}>15180090</option>
+                                    <option value="15119020" {{ $shipment->HS_Code == '15119020' ? 'selected' : '' }}>15119020</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
-                            <div class="row no-gutters" id="containerList">
-                                @foreach ($dtls as $kunci => $item)
-                                    <div class="col-12">
-                                        <div class="form-group">
-                                            <label for="Container{{ $loop->iteration }}">Container {{ $loop->iteration }}</label>
-                                            <select name="Container{{ $loop->iteration }}" id="Container{{ $loop->iteration }}" class="form-control">
-                                                <option value="">-- Pilih Container --</option>
-                                                @foreach ($containers as $key => $container)
-                                                    <option value="{{ $container->ID }}" {{ $kunci == $key ? 'selected' : '' }}>{{ $container->Container }} ({{ $container->Seal }})</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                @endforeach
+                        @foreach ($shipment->orderDetails as $item)
+                        <div class="col-md-6 col-12">
+                            <div class="form-group">
+                                <label for="Container{{$loop->iteration}}">Container {{$loop->iteration}}</label>
+                                <select name="Container{{$loop->iteration}}" id="Container{{$loop->iteration}}" class="form-control bg-white" disabled>
+                                        <option value="{{ $item->ID }}">{{ $item->Container }} ({{ $item->Seal }})</option>
+                                </select>
                             </div>
                         </div>
+                        @endforeach
                         <div class="col-12">
 			                {{-- <div id="ShipmentInstructionNew" style="width:auto;height:320px; background-color:white;overflow:hidden"></div> --}}
                         </div>
 					</div>
 				</div>
 			</div>
-			<!-- div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit Final SI" class="btn btn-success mt-2 mr-2" />
-			</div -->
+			<div id="divtom">
+				{{-- <input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit Final SI" class="btn btn-success mt-2 mr-2" /> --}}
+			</div>
 		</div>
 	</div>
 	<div id="DivProcess"></div>
@@ -237,11 +232,6 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-    
-	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "SI_Date", "ETD", "ETA"]);
-	myCalendar.setDateFormat("%Y-%m-%d");
-
 	// ShipmentInstructionNew = new dhtmlXGridObject('ShipmentInstructionNew');
 	// ShipmentInstructionNew.setImagePath("./dhtmlx/imgs/");
 	// ShipmentInstructionNew.setHeader("No, Dari Jam, Hingga Jam, Nopol, Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross (Kg), Gross (MT), Qty (Kgs) Note");
@@ -300,7 +290,7 @@ $Saya =  Auth::user()->username;
                     <div class="col-12">
                         <div class="form-group">
                             <label for="Container${counter}">Container ${counter}</label>
-                            <select name="Container${counter}" id="Container${counter}" class="form-control">
+                            <select name="Container${counter}" id="Container${counter}" class="form-control bg-white">
                                 <option value="">-- Pilih Container --</option>
                         `+ string + `
                                     </select>
@@ -317,10 +307,6 @@ $Saya =  Auth::user()->username;
             }
         });
     });
-
-	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "ETD", "ETA", "SI_Date"]);
-	myCalendar.setDateFormat("%Y-%m-%d");
 
 	$('#SubmitCustDetail').click(function() {
 
