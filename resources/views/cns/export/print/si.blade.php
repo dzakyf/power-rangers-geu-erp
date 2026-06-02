@@ -2,10 +2,13 @@
     View ini di-render oleh ShippingInstructionController dan di-pass ke mPDF.
     TIDAK perlu <html>, <head>, <body> — mPDF handle sendiri.
     Header & footer gambar di-set via SetHTMLHeader/SetHTMLFooter di controller.
+
+    PENTING: mPDF tidak support CSS border pada <div> dengan baik.
+    Semua box/border HARUS menggunakan <table> agar tampil konsisten.
 --}}
 
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin: 0; padding: 0; }
 
   body {
     font-family: Arial, sans-serif;
@@ -16,26 +19,6 @@
   /* =============================================
      TITLE BLOCK
      ============================================= */
-  .title-block {
-    width: 100%;
-    border: 1px solid #000;
-    margin-bottom: 5px;
-    border-collapse: collapse;
-  }
-  .logo-cell {
-    width: 28mm;
-    border-right: 1px solid #000;
-    padding: 4px;
-    text-align: center;
-    vertical-align: middle;
-  }
-  .logo-cell img {
-    width: 18mm;
-    height: 18mm;
-  }
-  .title-right {
-    vertical-align: top;
-  }
   .title-heading {
     background-color: #FFD700;
     text-align: center;
@@ -44,173 +27,108 @@
     padding: 5px;
     letter-spacing: 1px;
   }
-  .meta-row td {
-    border-top: 1px solid #000;
-    border-right: 1px solid #000;
-    padding: 3px 5px;
-    font-size: 7pt;
-    font-weight: bold;
-    width: 25%;
-  }
-  .meta-row td:last-child { border-right: none; }
 
   /* =============================================
-     INFO SECTION (2 kolom pakai tabel)
+     PARTY LABEL (header hitam dalam kotak)
      ============================================= */
-  .info-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 5px;
-  }
-  .info-table > tbody > tr > td {
-    width: 50%;
-    vertical-align: top;
-    padding-right: 3px;
-  }
-  .info-table > tbody > tr > td:last-child {
-    padding-right: 0;
-    padding-left: 3px;
-  }
-
-  /* Party boxes */
-  .party-box {
-    border: 1px solid #000;
-    margin-bottom: 4px;
-  }
   .party-label {
     background-color: #000;
     color: #fff;
     font-weight: bold;
     font-size: 7.5pt;
-    padding: 2px 5px;
-    width: 100%;
-  }
-  .party-value {
-    padding: 4px 5px;
-    font-size: 8pt;
-    line-height: 1.5;
-    min-height: 14mm;
+    padding: 3px 6px;
   }
 
-  /* BL box */
-  .bl-box {
-    border: 1px solid #000;
-  }
-  .bl-table { width: 100%; border-collapse: collapse; }
-  .bl-table td { padding: 2px 5px; font-size: 7.5pt; }
-  .bl-table .lbl { font-weight: bold; white-space: nowrap; width: 35mm; }
-
-  /* Field table kanan */
-  .field-table {
-    width: 100%;
-    border-collapse: collapse;
-    border: 1px solid #000;
-    margin-bottom: 4px;
-  }
-  .field-table td {
-    border: 1px solid #000;
-    padding: 2px 5px;
+  /* =============================================
+     FIELD LABEL (kanan)
+     ============================================= */
+  .flbl {
+    font-weight: bold;
+    background: #f5f5f5;
+    white-space: nowrap;
+    width: 32mm;
     font-size: 7.5pt;
+    padding: 3px 5px;
     vertical-align: middle;
   }
-  .field-table .flbl {
-    font-weight: bold;
-    white-space: nowrap;
-    width: 28mm;
-    background: #f5f5f5;
-  }
-
-  /* =============================================
-     GOODS CONDITION
-     ============================================= */
-  .goods-note {
+  .fval {
     font-size: 7.5pt;
-    margin-bottom: 4px;
+    padding: 3px 5px;
+    vertical-align: middle;
   }
 
   /* =============================================
-     MAIN CARGO TABLE
+     MAIN TABLE
      ============================================= */
-  .main-table {
-    width: 100%;
-    border-collapse: collapse;
-    border: 1px solid #000;
-    margin-bottom: 6px;
-  }
-  .main-table th {
+  .th-gray {
     background-color: #e0e0e0;
-    border: 1px solid #000;
-    padding: 3px 4px;
     font-size: 7.5pt;
+    font-weight: bold;
     text-align: center;
     vertical-align: middle;
-  }
-  .main-table td {
+    padding: 3px 4px;
     border: 1px solid #000;
-    padding: 2px 4px;
-    font-size: 7.5pt;
-    vertical-align: top;
   }
-  .main-table .center { text-align: center; }
-  .main-table .right  { text-align: right; }
-  .main-table .total-row td {
+  .td-data {
+    font-size: 7.5pt;
+    padding: 2px 4px;
+    vertical-align: top;
+    border: 1px solid #000;
+  }
+  .total-td {
     font-weight: bold;
     background: #f0f0f0;
+    font-size: 7.5pt;
+    padding: 3px 4px;
+    border: 1px solid #000;
   }
 
-  /* Shipping mark */
+  /* =============================================
+     SHIPPING MARK & DESC
+     ============================================= */
   .shipping-mark {
     font-size: 6.5pt;
-    line-height: 1.5;
+    line-height: 1.6;
     text-align: center;
   }
-  .shipping-mark .red { color: #cc0000; font-weight: bold; }
-  .desc-cell { font-size: 6.5pt; line-height: 1.5; }
-  .desc-cell .bold-red { color: #cc0000; font-weight: bold; }
+  .red       { color: #cc0000; font-weight: bold; }
+  .desc-cell { font-size: 6.5pt; line-height: 1.6; }
+  .bold-red  { color: #cc0000; font-weight: bold; }
 
   /* =============================================
      SIGNATURE
      ============================================= */
-  .signature-table {
-    width: 65%;
-    margin-left: 35%;
-    border-collapse: collapse;
-    margin-top: 6px;
-  }
-  .signature-table td {
-    width: 50%;
-    padding: 4px 6px;
-    font-size: 8pt;
-    text-align: center;
-    vertical-align: top;
-  }
-  .sig-spacer { height: 18mm; }
-  .sig-name { text-decoration: underline; font-weight: 500; }
+  .sig-name  { text-decoration: underline; font-weight: bold; font-size: 8pt; }
   .sig-title { font-size: 7.5pt; }
 </style>
-<div style="padding: 0 35px;">
+
+{{-- =====================================================
+     WRAPPER — padding kiri kanan mengikuti margin mPDF
+     ===================================================== --}}
+<div style="margin:0 35px;">
   {{-- =====================================================
-       TITLE BLOCK
+       1. TITLE BLOCK
        ===================================================== --}}
-  <table class="title-block" cellspacing="0" cellpadding="0">
+  <table width="100%" cellspacing="0" cellpadding="0"
+         style="border:1px solid #000;border-collapse:collapse;margin-bottom:5px;">
     <tr>
-      <td class="logo-cell">
-        <img src="{{ $companies[$shipment->Shipper]->Logo }}" alt="Logo" width="100px">
+      {{-- Logo --}}
+      <td width="28mm" style="padding:6px;text-align:center;vertical-align:middle;">
+        <img src="{{ $companies[$shipment->Shipper]->Logo }}" alt="Logo" width="65px" height="65px">
       </td>
-      <td class="title-right">
+      {{-- Heading + Meta --}}
+      <td style="vertical-align:top;">
         <table width="100%" cellspacing="0" cellpadding="0">
           <tr>
-            <td class="title-heading" colspan="4">
-              <div>
-                {{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? 'FINAL ' : '' }}SHIPMENT INSTRUCTION
-              </div>
+            <td colspan="4" class="title-heading">
+              {{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? 'FINAL ' : '' }}SHIPPING INSTRUCTION
             </td>
           </tr>
-          <tr class="meta-row">
-            <td>Process Owner :</td>
-            <td>Revision: #00</td>
-            <td>Effective Date:</td>
-            <td style="border-right:none;">Doc ID:</td>
+          <tr>
+            <td width="25%" style="border-left:1px solid #000;border-top:1px solid #000;border-right:1px solid #000;padding:3px 5px;font-size:7pt;font-weight:bold;">Process Owner :</td>
+            <td width="25%" style="border-top:1px solid #000;border-right:1px solid #000;padding:3px 5px;font-size:7pt;font-weight:bold;">Revision: #00</td>
+            <td width="25%" style="border-top:1px solid #000;border-right:1px solid #000;padding:3px 5px;font-size:7pt;font-weight:bold;">Effective Date:</td>
+            <td width="25%" style="border-top:1px solid #000;border-right:1px solid #000;padding:3px 5px;font-size:7pt;font-weight:bold;">Doc ID:</td>
           </tr>
         </table>
       </td>
@@ -218,124 +136,190 @@
   </table>
   
   {{-- =====================================================
-       INFO SECTION — 2 kolom (pakai tabel agar mPDF support)
+       2. INFO SECTION — 2 kolom
        ===================================================== --}}
-  <table class="info-table" cellspacing="0" cellpadding="0">
+  <table width="100%" cellspacing="0" cellpadding="0"
+         style="border-collapse:collapse;margin-bottom:5px;">
     <tr>
   
-      {{-- Kolom Kiri: Shipper, Consignee, Notify, B/L --}}
-      <td>
+      {{-- ── KOLOM KIRI ── --}}
+      <td width="50%" style="vertical-align:top;padding-right:3px;">
   
-        <div class="party-box">
-          <div class="party-label">SHIPPER</div>
-          <div class="party-value">
-            {{ $companies[$shipment->Shipper]->Company_Name }}<br>
-            {{ $companies[$shipment->Shipper]->Address }}<br>
-            {{ $companies[$shipment->Shipper]->City }}
-          </div>
-        </div>
+        {{-- SHIPPER --}}
+        <table width="100%" cellspacing="0" cellpadding="0"
+               style="border:1px solid #000;border-collapse:collapse;margin-bottom:4px;">
+          <tr>
+            <td class="party-label">SHIPPER</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 6px;font-size:8pt;line-height:1.6;height:20mm;vertical-align:top;">
+              {{ $companies[$shipment->Shipper]->Company_Name }}<br>
+              {{ $companies[$shipment->Shipper]->Address }}<br>
+              {{ $companies[$shipment->Shipper]->City }}
+            </td>
+          </tr>
+        </table>
   
-        <div class="party-box">
-          <div class="party-label">CONSIGNEE</div>
-          <div class="party-value">
-            {{ $companies[$shipment->Consignee]->Company_Name }}<br>
-            {{ $companies[$shipment->Consignee]->Address }}<br>
-            {{ $companies[$shipment->Consignee]->City }}
-          </div>
-        </div>
+        {{-- CONSIGNEE --}}
+        <table width="100%" cellspacing="0" cellpadding="0"
+               style="border:1px solid #000;border-collapse:collapse;margin-bottom:4px;">
+          <tr>
+            <td class="party-label">CONSIGNEE</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 6px;font-size:8pt;line-height:1.6;height:20mm;vertical-align:top;">
+              {{ $companies[$shipment->Consignee]->Company_Name }}<br>
+              {{ $companies[$shipment->Consignee]->Address }}<br>
+              {{ $companies[$shipment->Consignee]->City }}
+            </td>
+          </tr>
+        </table>
   
-        <div class="party-box">
-          <div class="party-label">NOTIFY PARTY</div>
-          <div class="party-value">
-            {{ $companies[$shipment->Notify]->Company_Name }}<br>
-            {{ $companies[$shipment->Notify]->Address }}<br>
-            {{ $companies[$shipment->Notify]->City }}
-          </div>
-        </div>
+        {{-- NOTIFY PARTY --}}
+        <table width="100%" cellspacing="0" cellpadding="0"
+               style="border:1px solid #000;border-collapse:collapse;margin-bottom:4px;">
+          <tr>
+            <td class="party-label">NOTIFY PARTY</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 6px;font-size:8pt;line-height:1.6;height:20mm;vertical-align:top;">
+              {{ $companies[$shipment->Notify]->Company_Name }}<br>
+              {{ $companies[$shipment->Notify]->Address }}<br>
+              {{ $companies[$shipment->Notify]->City }}
+            </td>
+          </tr>
+        </table>
   
-        <div class="bl-box">
-          <table class="bl-table">
-            <tr><td class="lbl">B/L No</td><td>{{ $shipment->BL_No }}</td></tr>
-            <tr><td class="lbl">Port of Loading</td><td>{{ $shipment->POL }}</td></tr>
-            <tr><td class="lbl">Port of Discharge</td><td>{{ $shipment->POD }}</td></tr>
-          </table>
-        </div>
+        {{-- B/L, Port of Loading, Port of Discharge --}}
+        <table width="100%" cellspacing="0" cellpadding="0"
+               style="border:1px solid #000;border-collapse:collapse;">
+          <tr>
+            <td style="font-weight:bold;font-size:7.5pt;padding:3px 6px;width:38mm;white-space:nowrap;">B/L No</td>
+            <td style="font-size:7.5pt;padding:3px 6px;">{{ $shipment->BL_No }}</td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold;font-size:7.5pt;padding:3px 6px;white-space:nowrap;">Port of Loading</td>
+            <td style="font-size:7.5pt;padding:3px 6px;">{{ $shipment->POL }}</td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold;font-size:7.5pt;padding:3px 6px;white-space:nowrap;">Port of Discharge</td>
+            <td style="font-size:7.5pt;padding:3px 6px;">{{ $shipment->POD }}</td>
+          </tr>
+        </table>
   
       </td>
   
-      {{-- Kolom Kanan: SI fields + Shipment fields --}}
-      <td>
+      {{-- ── KOLOM KANAN ── --}}
+      <td width="50%" style="vertical-align:top;padding-left:3px;">
   
-        <table class="field-table">
+        {{-- SI / Date / To / Terms / Contract --}}
+        <table width="100%" cellspacing="0" cellpadding="0"
+               style="border:1px solid #000;border-collapse:collapse;margin-bottom:4px;">
           <tr>
-            <td class="flbl">{{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? 'Final ' : '' }}SI No.</td>
-            <td>{{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? $shipment->Final_SI_No : $shipment->SI_No }}</td>
+            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">
+              {{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? 'Final ' : '' }}SI No.
+            </td>
+            <td class="fval" style="border-bottom:1px solid #000;">
+              {{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? $shipment->Final_SI_No : $shipment->SI_No }}
+            </td>
           </tr>
           <tr>
-            <td class="flbl">Date</td>
-            <td>{{ date('F, d Y', strtotime($shipment->SI_Date)) }}</td>
+            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Date</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ date('F, d Y', strtotime($shipment->SI_Date)) }}</td>
           </tr>
           <tr>
-            <td class="flbl" style="vertical-align:top;padding-top:5px;">To</td>
-            <td style="min-height:12mm;vertical-align:top;padding-top:5px;">
+            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;vertical-align:top;padding-top:5px;">To</td>
+            <td class="fval" style="border-bottom:1px solid #000;vertical-align:top;padding-top:5px;height:14mm;">
               {{ $companies[$shipment->Destination_Letter]->Company_Name }}<br>
               {{ $companies[$shipment->Destination_Letter]->Address }}
             </td>
           </tr>
           <tr>
-            <td class="flbl">Terms of Delivery</td>
-            <td>{{ $shipment->Delivery_Terms }}</td>
+            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Terms of Delivery</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $shipment->Delivery_Terms }}</td>
           </tr>
           <tr>
-            <td class="flbl">Contract No</td>
-            <td>{{ $shipment->Contract_No }}</td>
+            <td class="flbl" style="border-right:1px solid #000;">Contract No</td>
+            <td class="fval">{{ $shipment->Contract_No }}</td>
           </tr>
         </table>
   
-        <table class="field-table" style="margin-top:4px;">
-          <tr><td class="flbl">Shipped by</td><td>{{ $shipment->Shipped_By }}</td></tr>
-          <tr><td class="flbl">Voyage</td><td>{{ $shipment->Voyage }}</td></tr>
-          <tr><td class="flbl">ETD</td><td>{{ date('F, d Y', strtotime($shipment->ETD)) }}</td></tr>
-          <tr><td class="flbl">ETA</td><td>{{ date('F, d Y', strtotime($shipment->ETA)) }}</td></tr>
-          <tr><td class="flbl">Stuffing date</td><td>{{ date('F, d Y', strtotime($shipment->Stuffing)) }}</td></tr>
-          <tr><td class="flbl">PEB</td><td>{{ $shipment->PEB }}</td></tr>
-          <tr><td class="flbl">Date PEB</td><td>{{ date('F, d Y', strtotime($shipment->PEB_Date)) }}</td></tr>
-          <tr><td class="flbl">Quantity</td><td>{{ $shipment->Qty }}</td></tr>
+        {{-- Shipped by / Voyage / ETD / ETA / Stuffing / PEB --}}
+        <table width="100%" cellspacing="0" cellpadding="0"
+               style="border:1px solid #000;border-collapse:collapse;margin-bottom:4px;">
+          <tr>
+            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Shipped by</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $shipment->Shipped_By }}</td>
+          </tr>
+          <tr>
+            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Voyage</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $shipment->Voyage }}</td>
+          </tr>
+          <tr>
+            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">ETD</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ date('F, d Y', strtotime($shipment->ETD)) }}</td>
+          </tr>
+          <tr>
+            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">ETA</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ date('F, d Y', strtotime($shipment->ETA)) }}</td>
+          </tr>
+          <tr>
+            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Stuffing date</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ date('F, d Y', strtotime($shipment->Stuffing)) }}</td>
+          </tr>
+          <tr>
+            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">PEB</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $shipment->PEB }}</td>
+          </tr>
+          <tr>
+            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Date PEB</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ date('F, d Y', strtotime($shipment->PEB_Date)) }}</td>
+          </tr>
+          <tr>
+            <td class="flbl" style="border-right:1px solid #000;">Quantity</td>
+            <td class="fval">{{ $shipment->Qty }}</td>
+          </tr>
         </table>
   
-        <div class="goods-note" style="margin-top:4px;">
-          A.&nbsp;&nbsp;&nbsp;{{ Str::contains($shipment->Qty2, 'FT') ? 'Good, Clean and Suitable for Flexibag' : 'Good and Clean' }}
-        </div>
+        {{-- Goods condition --}}
+        <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+          <tr>
+            <td style="font-size:7.5pt;padding:2px 0;">
+              A.&nbsp;&nbsp;&nbsp;{{ Str::contains($shipment->Qty2, 'FT') ? 'Good, Clean and Suitable for Flexibag' : 'Good and Clean' }}
+            </td>
+          </tr>
+        </table>
   
       </td>
     </tr>
   </table>
   
   {{-- =====================================================
-       MAIN CARGO TABLE
+       3. MAIN CARGO TABLE
        ===================================================== --}}
-  <table class="main-table" cellspacing="0" cellpadding="0">
+  <table width="100%" cellspacing="0" cellpadding="0"
+         style="border:1px solid #000;border-collapse:collapse;margin-bottom:6px;">
     <thead>
       <tr>
-        <th rowspan="2" style="width:35mm;">SEQ</th>
-        <th rowspan="2">DESCRIPTION</th>
-        <th style="width:22mm;">NET WEIGHT</th>
-        <th style="width:22mm;">GROSS WEIGHT</th>
-        <th style="width:20mm;">QTY</th>
-        <th style="width:20mm;">QTY</th>
+        <td rowspan="2" class="th-gray" style="width:35mm;border-right:1px solid #000;border-bottom:1px solid #000;">SEQ</td>
+        <td rowspan="2" class="th-gray" style="border-right:1px solid #000;border-bottom:1px solid #000;">DESCRIPTION</td>
+        <td class="th-gray" style="width:22mm;border-right:1px solid #000;border-bottom:1px solid #000;">NET WEIGHT</td>
+        <td class="th-gray" style="width:22mm;border-right:1px solid #000;border-bottom:1px solid #000;">GROSS WEIGHT</td>
+        <td class="th-gray" style="width:20mm;border-right:1px solid #000;border-bottom:1px solid #000;">QTY</td>
+        <td class="th-gray" style="width:20mm;border-bottom:1px solid #000;">QTY</td>
       </tr>
       <tr>
-        <th>(KG)</th>
-        <th>(KG)</th>
-        <th>(KGS)</th>
-        <th>(TON)</th>
+        <td class="th-gray" style="border-right:1px solid #000;border-bottom:1px solid #000;">(KG)</td>
+        <td class="th-gray" style="border-right:1px solid #000;border-bottom:1px solid #000;">(KG)</td>
+        <td class="th-gray" style="border-right:1px solid #000;border-bottom:1px solid #000;">(KGS)</td>
+        <td class="th-gray" style="border-bottom:1px solid #000;">(TON)</td>
       </tr>
     </thead>
     <tbody>
   
       {{-- Summary row --}}
       <tr>
-        <td style="border-bottom:none;">
+        <td class="td-data" style="border-right:1px solid #000;border-bottom:none;text-align:center;">
           <div class="shipping-mark">
             SHIPPING MARK: FREIGHT PREPAID<br>
             SHIPPED ON BOARD<br>
@@ -349,7 +333,7 @@
             COUNTRY OF ORIGIN: INDONESIA
           </div>
         </td>
-        <td style="border-bottom:none;vertical-align:middle;">
+        <td class="td-data" style="border-right:1px solid #000;border-bottom:none;vertical-align:middle;">
           <div class="desc-cell">
             <span class="bold-red">
               {{ number_format($mt, 2, ',', '.') }} MT {{ strtoupper($shipment->Product_Name) }}
@@ -361,54 +345,55 @@
             COUNTRY OF ORIGIN: INDONESIA
           </div>
         </td>
-        <td style="border-bottom:none;" class="center">&nbsp;</td>
-        <td style="border-bottom:none;" class="center">&nbsp;</td>
-        <td style="border-bottom:none;" class="center">&nbsp;</td>
-        <td style="border-bottom:none;" class="center">&nbsp;</td>
+        <td class="td-data" style="border-right:1px solid #000;border-bottom:none;text-align:center;">&nbsp;</td>
+        <td class="td-data" style="border-right:1px solid #000;border-bottom:none;text-align:center;">&nbsp;</td>
+        <td class="td-data" style="border-right:1px solid #000;border-bottom:none;text-align:center;">&nbsp;</td>
+        <td class="td-data" style="border-bottom:none;text-align:center;">&nbsp;</td>
       </tr>
   
       {{-- Container rows --}}
       @foreach ($vsds as $item)
       <tr>
-        <td style="text-align:center;border-top:none;border-bottom:none;">{{ $loop->iteration }}</td>
-        <td style="border-top:none;border-bottom:none;">Container No. {{ $item->Container }} / {{ $item->Seal }}</td>
-        <td style="border-top:none;border-bottom:none;" class="center">{{ number_format($item->Netto_KG, 0, ',', '.') }}</td>
-        <td style="border-top:none;border-bottom:none;" class="center">{{ number_format($item->Gross_KG, 0, ',', '.') }}</td>
-        <td style="border-top:none;border-bottom:none;" class="center">{{ number_format($item->Netto_KG, 0, ',', '.') }}</td>
-        <td style="border-top:none;border-bottom:none;" class="center">{{ number_format(round($item->Netto_KG / 1000, 2), 2, ',', '.') }}</td>
+        <td class="td-data" style="text-align:center;border-right:1px solid #000;border-top:none;border-bottom:none;">{{ $loop->iteration }}</td>
+        <td class="td-data" style="border-right:1px solid #000;border-top:none;border-bottom:none;">Container No. {{ $item->Container }} / {{ $item->Seal }}</td>
+        <td class="td-data" style="text-align:center;border-right:1px solid #000;border-top:none;border-bottom:none;">{{ number_format($item->Netto_KG, 0, ',', '.') }}</td>
+        <td class="td-data" style="text-align:center;border-right:1px solid #000;border-top:none;border-bottom:none;">{{ number_format($item->Gross_KG, 0, ',', '.') }}</td>
+        <td class="td-data" style="text-align:center;border-right:1px solid #000;border-top:none;border-bottom:none;">{{ number_format($item->Netto_KG, 0, ',', '.') }}</td>
+        <td class="td-data" style="text-align:center;border-top:none;border-bottom:none;">{{ number_format(round($item->Netto_KG / 1000, 2), 2, ',', '.') }}</td>
       </tr>
       @endforeach
   
-      {{-- Total --}}
-      <tr class="total-row">
-        <td colspan="2" class="right" style="padding-right:8px;">Total</td>
-        <td class="center">{{ number_format($netto, 0, ',', '.') }}</td>
-        <td class="center">{{ number_format($gross, 0, ',', '.') }}</td>
-        <td class="center">{{ number_format($netto, 0, ',', '.') }}</td>
-        <td class="center">{{ number_format(round($netto / 1000, 2), 2, ',', '.') }}</td>
+      {{-- Total row --}}
+      <tr>
+        <td colspan="2" class="total-td" style="text-align:right;padding-right:8px;border-right:1px solid #000;">Total</td>
+        <td class="total-td" style="text-align:center;border-right:1px solid #000;">{{ number_format($netto, 0, ',', '.') }}</td>
+        <td class="total-td" style="text-align:center;border-right:1px solid #000;">{{ number_format($gross, 0, ',', '.') }}</td>
+        <td class="total-td" style="text-align:center;border-right:1px solid #000;">{{ number_format($netto, 0, ',', '.') }}</td>
+        <td class="total-td" style="text-align:center;">{{ number_format(round($netto / 1000, 2), 2, ',', '.') }}</td>
       </tr>
   
     </tbody>
   </table>
   
   {{-- =====================================================
-       SIGNATURES
+       4. SIGNATURES
        ===================================================== --}}
-  <table class="signature-table" cellspacing="0" cellpadding="0">
+  <table width="65%" cellspacing="0" cellpadding="0"
+         style="margin-left:35%;border-collapse:collapse;margin-top:6px;">
     <tr>
-      <td>Best Regards,</td>
-      <td>&nbsp;</td>
+      <td width="50%" style="padding:4px 6px;font-size:8pt;text-align:center;">Best Regards,</td>
+      <td width="50%" style="padding:4px 6px;font-size:8pt;text-align:center;">&nbsp;</td>
     </tr>
     <tr>
-      <td class="sig-spacer">&nbsp;</td>
-      <td class="sig-spacer">&nbsp;</td>
+      <td style="height:20mm;padding:4px 6px;">&nbsp;</td>
+      <td style="height:20mm;padding:4px 6px;">&nbsp;</td>
     </tr>
     <tr>
-      <td>
+      <td style="padding:4px 6px;font-size:8pt;text-align:center;">
         <span class="sig-name">Muhammad Abdul Jabar</span><br>
         <span class="sig-title">Commercial and Sustainability Specialist</span>
       </td>
-      <td>
+      <td style="padding:4px 6px;font-size:8pt;text-align:center;">
         <span class="sig-name">Hani Septyana</span><br>
         <span class="sig-title">Commercial and Sustainability Manager</span>
       </td>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\CNS;
 
+use App\CommercialInvoice;
 use App\Http\Controllers\Controller;
 use App\PackingList;
 use App\ShipmentInstruction;
@@ -10,6 +11,7 @@ use App\VesselScheduleDtl;
 use App\VesselScheduleLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Mpdf\Mpdf;
 
 class FinalShipmentInstructionController extends Controller
 {
@@ -29,6 +31,7 @@ class FinalShipmentInstructionController extends Controller
 
         echo "<rows>";
 
+        $vsdData = [];
         $vsds = VesselScheduleDtl::whereNotNull('SI_No')->get();
         foreach ($vsds as $key => $vsd) {
             if (!isset($vsdData[$vsd->SI_No])) {
@@ -79,13 +82,85 @@ class FinalShipmentInstructionController extends Controller
 
     public function printFinalShipmentInstruction(Request $request)
     {
+        // $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        // foreach ($company as $key => $value) {
+        //     $companies[$value->Supplier_ID] = $value;
+        // }
+        // $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
+        // $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
+        // return view('cns.export.print.fsi', compact('shipment', 'vsds','companies'));
+        
+        // ── Ambil data (sesuaikan dengan model Anda) ──────────────────────
+        $companies = [];
         $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         foreach ($company as $key => $value) {
             $companies[$value->Supplier_ID] = $value;
         }
         $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
         $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
-        return view('cns.export.print.fsi', compact('shipment', 'vsds','companies'));
+ 
+        // ── Hitung total ──────────────────────────────────────────────────
+        $gross = $vsds->sum('Gross_KG');
+        $netto = $vsds->sum('Netto_KG');
+        $mt    = round($netto / 1000, 2);
+ 
+        // ── Render HTML dari Blade view ───────────────────────────────────
+        $html = view('cns.export.print.fsi', compact(
+            'shipment', 'vsds', 'companies', 'gross', 'netto', 'mt'
+        ))->render();
+ 
+        // ── Header & Footer HTML ──────────────────────────────────────────
+        $letterhead = public_path($companies[$shipment->Shipper]->Letterhead);
+        $footerImg  = public_path($companies[$shipment->Shipper]->Footer);
+ 
+        // Konversi ke base64 agar mPDF bisa render gambar
+        $headerB64 = base64_encode(file_get_contents($letterhead));
+        $footerB64 = base64_encode(file_get_contents($footerImg));
+        $headerExt = strtolower(pathinfo($letterhead, PATHINFO_EXTENSION));
+        $footerExt = strtolower(pathinfo($footerImg,  PATHINFO_EXTENSION));
+ 
+        $headerHtml = '
+            <div style="margin:0;padding:0;line-height:0;">
+                <img src="data:image/' . $headerExt . ';base64,' . $headerB64 . '"
+                     style="width:100%;display:block;">
+            </div>';
+ 
+        $footerHtml = '
+            <div style="margin:0;padding:0;line-height:0;">
+                <img src="data:image/' . $footerExt . ';base64,' . $footerB64 . '"
+                     style="width:100%;display:block;">
+            </div>';
+ 
+        // ── Inisialisasi mPDF ─────────────────────────────────────────────
+        $mpdf = new Mpdf([
+            'format'        => 'A4',
+            'tempDir'       => storage_path('app/mpdf'),
+            'margin_top'    => 0,   // ← sesuaikan dengan tinggi header image (mm)
+            'margin_bottom' => 0,   // ← sesuaikan dengan tinggi footer image (mm)
+            'margin_left'   => 0,
+            'margin_right'  => 0,
+            // penting
+            'margin_header' => 0,
+            'margin_footer' => 0,
+            // penting
+            'setAutoTopMargin'    => 'stretch',
+            'setAutoBottomMargin' => 'stretch',
+        ]);
+ 
+        $mpdf->SetHTMLHeader($headerHtml);
+        $mpdf->SetHTMLFooter($footerHtml);
+ 
+        $mpdf->WriteHTML($html);
+ 
+        // ── Output ────────────────────────────────────────────────────────
+        $filename = 'FSI_' . ($shipment->Final_SI_No ?? $shipment->SI_No);
+        $mpdf->SetTitle($filename);
+ 
+        // 'I' = tampil di browser, 'D' = download, 'F' = simpan ke file
+        return response($mpdf->Output($filename . '.pdf', 'S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
     }
 
     public function newFinalShipmentInstruction()
@@ -171,6 +246,20 @@ class FinalShipmentInstructionController extends Controller
         }
     }
 
+    public function detailFinalShipmentInstruction()
+    {
+        $vss = VesselSchedule::get();
+        $sis = ShipmentInstruction::where('Status', "CREATED")->get();
+        $masProducts = DB::table('master_product_cns')->get();
+        $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        $shipment = ShipmentInstruction::where('ID', request()->query('Task'))->first();
+        if ($shipment) {
+            $vsd = VesselScheduleDtl::where("SI_No", $shipment->SI_No)->get();
+            $shipment->orderDetails = $vsd;
+        }
+        return view('cns.export.fsi-detail', compact('vss', 'sis', 'companies', 'masProducts', 'shipment'));
+    }
+
     public function generatePackingList(Request $request)
     {
         $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
@@ -239,26 +328,30 @@ class FinalShipmentInstructionController extends Controller
         unset($vs['id']);
         VesselScheduleLog::create($vs);
 
-        $getVSD = VesselScheduleDtl::where("Order_No", $vs->Order_No)->where("SI_No", $shipment->SI_No)->sum('Netto_MT');
+        $getVSD = VesselScheduleDtl::where("Order_No", $vs['Order_No'])->where("SI_No", $shipment->SI_No)->sum('Netto_MT');
     
-        $counter = DB::table('commercial_invoice')->where('Inv_Date', "LIKE", date("Y-m") . "%")->count();
+        $counter = CommercialInvoice::where('Inv_Date', "LIKE", date("Y-m") . "%")->count();
         
-        $shipment = json_decode(json_encode($shipment), true);
-        $shipment["Inv_No"] = sprintf('%03d',$counter + 1) . "/INV-GEU/" . $this->getRomawi(date("n")) . "/" . date("Y");
-        $shipment['Inv_Date'] = date("Y-m-d");
-        $shipment['Shipper'] = $shipment['Shipper'] ?? '';
-        $shipment['Consignee'] = $shipment['Consignee'] ?? '';
-        $shipment['Description'] = "";
-        $shipment['Qty'] = $getVSD;
-        $shipment['Amount'] = 0;
-        $shipment['Advance_Payment'] = 0;
-        $shipment['Other'] = 0;
-        $shipment['Total'] = 0;
-        $shipment["Status"] = "CREATED";
-        $shipment['Created_By'] = auth()->user()->username;
-        $shipment['Created_Date'] = now();
-        DB::table('commercial_invoice')->insert($shipment);
+        // $ci = json_decode(json_encode($shipment), true);
+        $ci = [];
+        $ci['SI_No'] = $shipment->Final_SI_No;
+        $ci["Inv_No"] = sprintf('%03d',$counter + 1) . "/INV-GEU/" . $this->getRomawi(date("n")) . "/" . date("Y");
+        $ci['Inv_Date'] = date("Y-m-d");
+        $ci['Shipper'] = $shipment->Shipper ?? '';
+        $ci['Consignee'] = $shipment->Consignee ?? '';
+        $ci['Description'] = "";
+        $ci['Qty'] = $getVSD;
+        $ci['Amount'] = 0;
+        $ci['Advance_Payment'] = 0;
+        $ci['Other'] = 0;
+        $ci['Total'] = 0;
+        $ci["Status"] = "CREATED";
+        $ci['Created_By'] = auth()->user()->username;
+        $ci['Created_Date'] = now();
+        CommercialInvoice::insert($ci);
 
-        return response()->json(['message' => 'Commercial Invoice generated successfully']);
+        echo "<script>alert('Commercial Invoice generated successfully');</script>";
+
+        // return response()->json(['message' => 'Commercial Invoice generated successfully']);
     }
 }

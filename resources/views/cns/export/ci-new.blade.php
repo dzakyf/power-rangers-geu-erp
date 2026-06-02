@@ -116,7 +116,7 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Amount">Amount</label>
-                                <input type="text" name="Amount" id="Amount" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required />
+                                <input type="text" name="Amount" id="Amount" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required readonly />
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -134,7 +134,7 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Total">Total</label>
-                                <input type="text" name="Total" id="Total" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required />
+                                <input type="text" name="Total" id="Total" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required readonly />
                             </div>
                         </div>
 					</div>
@@ -157,7 +157,8 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
         let unitPrice = parseFloat($('#Unit_Price').val());
         let advance = parseFloat($('#Advance_Payment').val());
         let other = parseFloat($('#Other').val());
-        let subs = qty * unitPrice;
+		let factor = Math.pow(10, 2);
+        let subs = Math.round((qty * unitPrice + Number.EPSILON) * factor) / factor;
 
         $('#Amount').val(subs)
         $('#Subtotal').val(subs)
@@ -217,10 +218,6 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
             }
         });
     });
-
-	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "ETD", "ETA", "SI_Date"]);
-	myCalendar.setDateFormat("%Y-%m-%d");
 
 	$('#SubmitCustDetail').click(function() {
 

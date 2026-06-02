@@ -288,6 +288,7 @@ class SurveyController extends Controller
         try {
             $surveyId = DB::transaction(function () use ($b, $applicatonCode, $photo, $checklist, $environtment, $ucoEstimation, $totalScore, $r) {
                 $surveyId = DB::table('survey_location')->insertGetId([
+                    "Opportunity_Partner_Id" => $b['Opportunity_Partner_Id'],
                     "Code"                => $applicatonCode,
                     "Province"            => $b['Province'] ?? "",
                     "City"                => $b['City'],

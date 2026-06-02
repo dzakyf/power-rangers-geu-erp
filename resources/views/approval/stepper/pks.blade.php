@@ -28,7 +28,6 @@
 <button class="btn btn-secondary btn-prev">Previous</button>
 <button class="btn btn-primary btn-next">Next</button>
 
-</div>
 
 @push('pks-script')
 <script>

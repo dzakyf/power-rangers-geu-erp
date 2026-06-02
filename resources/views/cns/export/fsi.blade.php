@@ -41,9 +41,13 @@ $Saya =  Auth::user()->username;
 				<input type="button" id="newSchedule" name="newSchedule" value="New Final SI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail Final SI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
 				<input type="button" id="printSI" name="printSI" value="Print Final SI" class="btn btn-secondary mt-2 mr-2" onclick="PrintSI()" />
-				<input type="text" name="PL_Date" id="PL_Date" value="{{ date("Y-m-d") }}" class="form-control w-25 mt-2 mr-2" placeholder="PL Date" style="display:none;" readonly />
+				<div id="divCreatePL" style="display:none;">
+					<input type="text" name="PL_Date" id="PL_Date" value="{{ date("Y-m-d") }}" class="form-control mt-2 mr-2" placeholder="PL Date" style="display:inline-block;" readonly />
+				</div>
 				<input type="button" id="createPL" name="createPL" value="Create Packing List" class="btn btn-success mt-2 mr-2" onclick="CreatePL()" />
-				<input type="text" name="CI_Date" id="CI_Date" value="{{ date("Y-m-d") }}" class="form-control w-25 mt-2 mr-2" placeholder="CI Date" style="display:none;" readonly />
+				<div id="divCreateCI" style="display:none;">
+					<input type="text" name="CI_Date" id="CI_Date" value="{{ date("Y-m-d") }}" class="form-control mt-2 mr-2" placeholder="CI Date" style="display:inline-block;" readonly />
+				</div>
 				<input type="button" id="createCI" name="createCI" value="Create Commercial Invoice" class="btn btn-success mt-2 mr-2" onclick="CreateCI()" />
 				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
 			</div>
@@ -61,11 +65,11 @@ $Saya =  Auth::user()->username;
 	function CreatePL() {
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			let display = $('#PL_Date').css('display');
+			let display = $('#divCreatePL').css('display');
 			if (display == 'none') {
-				$('#PL_Date').css('display', 'inline-block');
+				$('#divCreatePL').css('display', 'inline-block');
 			} else {
-				$('#PL_Date').css('display', 'none');
+				$('#divCreatePL').css('display', 'none');
 				LoadM('DivProcess', 'cns-export-final-shipment-instruction-create-pl?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue() + '&PL_Date=' + $('#PL_Date').val());
 
 				setTimeout(() => {
@@ -80,7 +84,17 @@ $Saya =  Auth::user()->username;
 	function CreateCI() {
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			LoadM('DivProcess', 'cns-export-final-shipment-instruction-create-ci?Task=' + ShipmentInstructionID);
+			let display = $('#divCreateCI').css('display');
+			if (display == 'none') {
+				$('#divCreateCI').css('display', 'inline-block');
+			} else {
+				$('#divCreateCI').css('display', 'none');
+				LoadM('DivProcess', 'cns-export-final-shipment-instruction-create-ci?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue() + "&CI_Date=" + $('#CI_Date').val());
+
+				setTimeout(() => {
+					refreshdata();
+				}, 500);
+			}
 		}else {
 			alert("Pilih baris data");
 		}

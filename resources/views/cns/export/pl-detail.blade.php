@@ -7,19 +7,19 @@ use Illuminate\Database\Eloquent\Builder;
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">DETAIL PACKING LIST</div>
 	<div class="card">
 		<div class="card-body">
 			<div id="ContentPages">
 				<div class="FormInput_Form_Content">
 					<div class="row">
-						<div class="col-12">
+						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="Packing_List_No">Packing List No</label>
                                 <input type="text" name="Packing_List_No" id="Packing_List_No" value="{{ $pl->Packing_List_No }}" class="form-control shadow-sm" required readonly />
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="Final_SI_No">SI No</label>
                                 <select name="Final_SI_No" id="Final_SI_No" class="form-control shadow-sm" required>
@@ -30,13 +30,13 @@ use Illuminate\Database\Eloquent\Builder;
                                 </select>
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="Order_No">Order No</label>
                                 <input type="text" name="Order_No" id="Order_No" value="{{ $pl->Order_No }}" class="form-control shadow-sm" required readonly />
 							</div>
 						</div>
-						<div class="col-12">
+						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="PL_Date">PL Date</label>
                                 <input name="PL_Date" id="PL_Date" class="form-control shadow-sm" value="{{ date('Y-m-d', strtotime($pl->PL_Date)) }}" required />

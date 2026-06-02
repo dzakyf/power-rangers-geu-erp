@@ -1,14 +1,3 @@
-<?php
-
-use Illuminate\Support\Facades\Auth;
-
-$LSP = Auth::user()->Location;
-$Saya =  Auth::user()->username;
-// $LSP = "GEU-HO";
-// $Saya = "admin";
-
-?>
-
 @extends('layout.mainlayout-mitra')
 
 @section('content-wrapper')

@@ -29,12 +29,12 @@
             'saveDocumentUrl' => "/geu/hcga/public/partner-onboarding-submit-mou?id={$id}"]);
         </div>
     </div>
+
+
+    <button class="btn btn-secondary btn-prev">Previous</button>
+    <button class="btn btn-primary btn-next">Next</button>
 </div>
 
-<button class="btn btn-secondary btn-prev">Previous</button>
-<button class="btn btn-primary btn-next">Next</button>
-
-</div>
 
 @push('mou-script')
 <script>
