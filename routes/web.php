@@ -34,6 +34,7 @@ use App\Http\Controllers\CNS\PurchaseRequestController as CNSPurchaseRequestCont
 use App\Http\Controllers\CNS\PurchaseOrderController as CNSPurchaseOrderController;
 use App\Http\Controllers\CNS\QualityController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
+use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOController as UCOLogisticController;
 use App\Http\Controllers\Partner\TrainingController as PartnerTrainingController;
@@ -103,7 +104,7 @@ Route::group(['middleware' => 'usersession'], function () {
         // Uses User Session Middleware
     });
 });
-Route::group(['middleware' => 'auth'], function () {
+Route::group(['middleware' => 'log.access'], function () {
     Route::get('/dashboard-history-proforma', function () {
         return view('dashboard.history-proforma');
     });
@@ -4482,6 +4483,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$masterData-fleet-create-submit", [MasterDataController::class, 'submitCreateMasterFleet']);
 
 
+
+
     /** POO (Point of Origin UCO) */
     Route::get("$masterData-poo", [MasterDataController::class, 'POOPageIndex']);
     Route::get("$masterData-poo-data", [MasterDataController::class, 'getPOO']);
@@ -4489,6 +4492,11 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post("$masterData-poo-create-submit", [MasterDataController::class, 'createPOO']);
     Route::get("$masterData-poo-update", [MasterDataController::class, 'updatePOOPage']);
     Route::post("$masterData-poo-update-submit", [MasterDataController::class, 'updatePOO']);
+
+    /** finance */
+    $finance = "finance";
+    Route::get("$finance-pickup-cost", [CostManagementController::class, 'pickupCostIndex']);
+    Route::post("$finance-cost-approve-route", [CostManagementController::class, "approvePickupCost"]);
 
 
     /** Work Order */
@@ -4505,11 +4513,17 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$pickupPref-create", [UCOLogisticController::class, 'createPickupRequest']);
     Route::post("$pickupPref-create-submit", [UCOLogisticController::class, 'submitCreatePickupRequest']);
     Route::post("$pickupPref-assign-fleet", [UCOLogisticController::class, 'assignFleetToPickupRequest']);
+    Route::post("$pickupPref-finish-settlement", [UCOLogisticController::class, 'finishSettlement']);
+
+
 
     Route::get("$pickupPref-route", [UCOLogisticController::class, 'indexPickupRouting']);
-    Route::get("$pickupPref-route-data", [UCOLogisticController::class, 'getRouteListData']);
+    Route::get("$pickupPref-route-data", [UCOLogisticController::class, "getSavedRouteList"]);
+    Route::get("$pickupPref-route-waypoints-data", [UCOLogisticController::class, "getSavedRouteWaypointsList"]);
+    Route::get("$pickupPref-data", [UCOLogisticController::class, 'getPickupListData']);
     Route::post("$pickupPref-route-submit", [UCOLogisticController::class, "submitRoute"])->middleware('throttle:60,1');
     Route::post("$pickupPref-route-calculate", [UCOLogisticController::class, "calculateRoute"]);
+    Route::get("$pickupPref-order-data", [UCOLogisticController::class, "getPickupOrderData"]);
 
     Route::get("fleet-data", [UCOLogisticController::class, "getFleetData"]);
 
@@ -4519,6 +4533,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$deliveryOrderPref-data", [UCOLogisticController::class, 'getDeliveryOrderData']);
     Route::get("$deliveryOrderPref-create", [UCOLogisticController::class, 'createDeliveryOrder']);
     Route::post("$deliveryOrderPref-create-submit", [UCOLogisticController::class, 'submitCreateDeliveryOrder']);
+    Route::get("$deliveryOrderPref-update", [UCOLogisticController::class, 'updateDeliveryOrderPage']);
+    Route::post("$deliveryOrderPref-update-submit", [UCOLogisticController::class, 'submitUpdateDeliveryOrder']);
     Route::post("$deliveryOrderPref-update-receipt", [UCOLogisticController::class, 'updateDeliveryOrderReceipt']);
     Route::post("$deliveryOrderPref-update-note", [UCOLogisticController::class, 'updateDeliveryOrderNote']);
 
@@ -5046,7 +5062,7 @@ Route::group(['middleware' => 'auth'], function () {
 
 
     $partnerUCO = "partner-uco";
-    Route::get("$partnerUCO-inbound-timbang", [UCOLogisticController::class, 'indexInboundUCO']);
+    Route::get("$partnerUCO-instock", [UCOLogisticController::class, 'indexInboundUCO']);
     Route::get("$partnerUCO-inbound-timbang-create", [UCOLogisticController::class, 'createInboundUCO']);
     Route::post("$partnerUCO-inbound-timbang-submit", [UCOLogisticController::class, 'submitInboundUCO']);
     Route::get("$partnerUCO-inbound-timbang-data", [UCOLogisticController::class, 'getUCOInboundXml']);
@@ -5192,6 +5208,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get("$commercialInvoicePref", [CNSCommercialInvoiceController::class, 'indexCommercialInvoice']);
     Route::get("xml-$commercialInvoicePref", [CNSCommercialInvoiceController::class, 'indexCommercialInvoiceXml']);
     Route::get("$commercialInvoicePref-print", [CNSCommercialInvoiceController::class, 'printCommercialInvoice']);
+    Route::get("$commercialInvoicePref-print-buyer", [CNSCommercialInvoiceController::class, 'printBuyerCommercialInvoice']);
     Route::get("$commercialInvoicePref-new", [CNSCommercialInvoiceController::class, 'newCommercialInvoice']);
     Route::post("$commercialInvoicePref-get-si", [CNSCommercialInvoiceController::class, 'getSIDetail']);
     Route::post("$commercialInvoicePref-new-submit", [CNSCommercialInvoiceController::class, 'newCommercialInvoiceSubmit']);

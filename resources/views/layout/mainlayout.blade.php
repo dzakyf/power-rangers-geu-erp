@@ -16,6 +16,9 @@
     @include('layout.partials.sidemenu')
     @include('layout.plugins')
 
+    <!-- Modal -->
+    @include('ui-components.modal')
+
     <!-- Main Content Wrapper -->
     <div class="main-content d-flex flex-column hide-sidemenu" id="PagesContent">
         <!-- Main Content Layout -->
@@ -41,3 +44,8 @@
 <link rel="stylesheet" type="text/css" href="{{ asset('blockui.css') }}" />
 <link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolautosuggest.css') }}" />
 <link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolfieldset.css') }}" />
+
+
+@stack('rightmenu-script')
+@stack('modals-script')
+@stack('scripts')

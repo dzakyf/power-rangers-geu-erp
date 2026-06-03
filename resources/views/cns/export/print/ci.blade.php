@@ -162,14 +162,13 @@
         <table>
             <tr style="border-top:none;">
                 <td width="70%" style="vertical-align: top;">
-                    <h3 style="margin:0;margin-bottom:10px;color:red;">PT GREEN ENERGI UTAMA</h3>
+                    <h3 style="margin:0;margin-bottom:10px;color:red;">{{$buyer ? ($companies[$invoice->Shipper]->Company_Name ?? 'PT GREEN ENERGI UTAMA') : ''}}</h3>
                     <div>
-                        GRAHA AKTIVA - 4TH FLOOR, SUITE 403 A, <br />
-                        JALAN HR. RASUNA SAID BLOK X-1 KAV. 03 000/000
+                        {!! $buyer ? $companies[$invoice->Shipper]->Address ?? 'GRAHA AKTIVA - 4TH FLOOR, SUITE 403 A, <br /> JALAN HR. RASUNA SAID BLOK X-1 KAV. 03 000/000' : '' !!}
                     </div>
                 </td>
                 <td style="text-align:right;margin-top:0">
-                    <img src="{{ asset('/assets/images/large-logo.png') }}" alt="Logo" class="large-logo" height="70" align="center">
+                    <img src="{{ $buyer ? $companies[$invoice->Shipper]->Logo ?? asset('/assets/images/large-logo.png') : '' }}" alt="Logo" class="large-logo" height="70" align="center">
                 </td>
             </tr>
         </table>

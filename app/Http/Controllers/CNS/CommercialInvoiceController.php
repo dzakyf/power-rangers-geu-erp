@@ -67,7 +67,8 @@ class CommercialInvoiceController extends Controller
             $companies[$value->Supplier_ID] = $value;
         }
         $invoice = CommercialInvoice::where('Inv_No', $request->Task)->first();
-        return view('cns.export.print.ci', compact('invoice', 'companies'));
+        $buyer = $request->Buyer;
+        return view('cns.export.print.ci', compact('invoice', 'companies','buyer'));
     }
 
     public function newCommercialInvoice()
@@ -124,6 +125,55 @@ class CommercialInvoiceController extends Controller
         $sis = ShipmentInstruction::where("Status", "FINAL")->get();
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         $ci = CommercialInvoice::where("Inv_No", $request->Task)->first();
-        return view('cns.export.ci-detail', compact('sis','companies', 'ci'));
+        $ro = $ci->Status == 'CREATED' ? ['input' => '', 'select' => ''] : ['input' => 'readonly', 'select' => 'disabled'];
+        return view('cns.export.ci-detail', compact('sis','companies', 'ci', 'ro'));
+    }
+
+    public function detailCommercialInvoiceSubmit(Request $request)
+    {
+        $r = $request->all();
+        $id = $r['id'];
+        unset($r['_token']);
+        unset($r['id']);
+        $cekCI = CommercialInvoice::where('ID', $id)->first();
+        if (!$cekCI) {
+            echo "error";
+            return;
+        }
+        $notes = "";
+        $status = "";
+        if ($r['save'] == 1) {
+            $notes = "SAVE AS DRAFT COMMERCIAL INVOICE";
+            $status = "CREATED";
+        }elseif($r['save'] == 2){
+            $notes = "SUBMIT TO FINAL COMMERCIAL INVOICE";
+            $status = "FINAL";
+        }
+        unset($r['save']);
+        $r['Created_By'] = auth()->user()->username;
+        $r['Created_Date'] = now();
+        $r['SI_No'] = $r['Final_SI_No'];
+        $r['status'] = $status;
+        unset($r['Final_SI_No']);
+
+        $getSI = ShipmentInstruction::where("Final_SI_No", $request->Final_SI_No)->first();
+        if ($getSI) {
+            $getVS = VesselSchedule::where("Order_No", $getSI->Order_No)->first();
+            if ($getVS) {
+                $getVS = json_decode(json_encode($getVS), true);
+                $getVS['Last_ID'] = $getVS['id'];
+                unset($getVS['id']);
+    
+                $getVS["Action_By"] = auth()->user()->username;
+                $getVS['Action_Date'] = now();
+                $getVS['Action_Status'] = $notes;
+    
+                VesselScheduleLog::create($getVS);
+            }
+
+        }
+
+        CommercialInvoice::where('ID',$id)->update($r);
+        echo "success";
     }
 }

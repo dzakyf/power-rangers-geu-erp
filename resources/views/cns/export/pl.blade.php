@@ -41,6 +41,7 @@ $Saya =  Auth::user()->username;
 				<input type="button" id="newSchedule" name="newSchedule" value="New PL" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail PL" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
 				<input type="button" id="printPL" name="printPL" value="Print PL" class="btn btn-secondary mt-2 mr-2" onclick="PrintPL()" />
+				<input type="button" id="printPLByer" name="printPLByer" value="Print PL Buyer" class="btn btn-secondary mt-2 mr-2" onclick="PrintPLByer()" />
 				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
 			</div>
 		</div>
@@ -55,7 +56,18 @@ $Saya =  Auth::user()->username;
 	 {
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			window.open('cns-export-packing-list-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
+			window.open('cns-export-packing-list-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue() + '&Buyer=0', '_blank');
+			// window.open('assets/export_pl.docx', '_blank');
+		}else {
+			alert("Pilih baris data");
+		}
+		return true;
+	 }
+	function PrintPLByer()
+	 {
+		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
+		if (ShipmentInstructionID != null) {
+			window.open('cns-export-packing-list-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue() + '&Buyer=1', '_blank');
 			// window.open('assets/export_pl.docx', '_blank');
 		}else {
 			alert("Pilih baris data");

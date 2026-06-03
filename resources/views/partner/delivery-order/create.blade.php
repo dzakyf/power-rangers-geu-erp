@@ -23,7 +23,7 @@
 
                         <div class="form-group">
                             <label for="PO_Id">PO Number</label>
-                            <select class="form-control select2" id="PO_Id" name="PO_Id" style="width:100%"></select>
+                            <select class="form-control select2" id="PO_Id" name="PO_Id[]" style="width:100%" multiple></select>
                         </div>
 
                         <div class="form-row">
@@ -74,6 +74,8 @@
     $(document).ready(function() {
         $('#PO_Id').select2({
             placeholder: '-- Pilih PO Number --',
+            multiple: true,
+            closeOnSelect: false,
             allowClear: true,
             ajax: {
                 url: 'partner-pickup-data',
