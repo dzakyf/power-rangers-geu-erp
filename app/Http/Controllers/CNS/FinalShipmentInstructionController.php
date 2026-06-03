@@ -264,7 +264,16 @@ class FinalShipmentInstructionController extends Controller
     {
         $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
         if (!$shipment) {
-            return response()->json(['error' => 'Shipment Instruction not found'], 404);
+            // return response()->json(['error' => 'Shipment Instruction not found'], 404);
+            echo "<script>alert('Shipment Instruction not found');</script>";
+            return;
+        }
+
+        $ci = PackingList::where('Final_SI_No', $request->Task)->first();
+        if ($ci) {
+            // return response()->json(['error' => 'Commercial Invoice already generated for this Shipment Instruction'], 400);
+            echo "<script>alert('Commercial Invoice already generated for this Shipment Instruction');</script>";
+            return;
         }
 
         // $shipment->Status = "PACKING_LIST";
@@ -308,7 +317,16 @@ class FinalShipmentInstructionController extends Controller
     {
         $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
         if (!$shipment) {
-            return response()->json(['error' => 'Shipment Instruction not found'], 404);
+            // return response()->json(['error' => 'Shipment Instruction not found'], 404);
+            echo "<script>alert('Shipment Instruction not found');</script>";
+            return;
+        }
+
+        $ci = CommercialInvoice::where('SI_No', $request->Task)->first();
+        if ($ci) {
+            // return response()->json(['error' => 'Commercial Invoice already generated for this Shipment Instruction'], 400);
+            echo "<script>alert('Commercial Invoice already generated for this Shipment Instruction');</script>";
+            return;
         }
 
         $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();

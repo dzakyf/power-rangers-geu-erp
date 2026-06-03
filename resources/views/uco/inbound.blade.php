@@ -182,7 +182,7 @@ $sigCanvas = view('ui-components.signature-canvas-field', [
     reloadgroup();
 
     function reloadgroup() {
-        InboundTimbang.clearAndLoad("partner-uco-inbound-timbang-data");
+        InboundTimbang.clearAndLoad("partner-pickup-order-data?status=DONE");
     }
 
     function getTotalWeight() {

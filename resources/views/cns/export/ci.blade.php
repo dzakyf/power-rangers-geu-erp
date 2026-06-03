@@ -41,7 +41,7 @@ $Saya =  Auth::user()->username;
 				<input type="button" id="newSchedule" name="newSchedule" value="New CI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail CI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
 				<input type="button" id="printCI" name="printCI" value="Print CI for BC" class="btn btn-secondary mt-2 mr-2" onclick="PrintCI()" />
-				<input type="button" id="printCI" name="printCI" value="Print CI for Buyer" class="btn btn-secondary mt-2 mr-2" onclick="PrintCI()" />
+				<input type="button" id="printCIBuyer" name="printCIBuyer" value="Print CI for Buyer" class="btn btn-secondary mt-2 mr-2" onclick="PrintCIBuyer()" />
 				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
 			</div>
 		</div>
@@ -56,7 +56,17 @@ $Saya =  Auth::user()->username;
 	 {
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			window.open('cns-export-commercial-invoice-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue(), '_blank');
+			window.open('cns-export-commercial-invoice-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue() + "&Buyer=0", '_blank');
+		}else {
+			alert("Pilih baris data");
+		}
+		return true;
+	 }
+	function PrintCIBuyer()
+	 {
+		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
+		if (ShipmentInstructionID != null) {
+			window.open('cns-export-commercial-invoice-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue() + "&Buyer=1", '_blank');
 		}else {
 			alert("Pilih baris data");
 		}

@@ -48,6 +48,96 @@ class UCOController extends Controller
         return view('uco.create-inbound');
     }
 
+    public function updateDeliveryOrderPage()
+    {
+        return view('partner.delivery-order.update');
+    }
+
+    public function submitUpdateDeliveryOrder(Request $r)
+    {
+        $poId = $r->input('PO_Id');
+
+        if (!$poId) {
+            return response()->json(['status' => 'error', 'message' => 'PO_Id is required'], 400);
+        }
+
+        try {
+            DB::transaction(function () use ($r, $poId) {
+                $year  = Carbon::now()->year;
+                $month = Carbon::now()->format('m');
+
+                $updateData = [];
+
+                if ($r->filled('Actual_Qty')) {
+                    $updateData['Actual_Qty'] = $r->input('Actual_Qty');
+                }
+
+                if ($r->filled('Lat')) {
+                    $updateData['Lat'] = $r->input('Lat');
+                }
+
+                if ($r->filled('Lng')) {
+                    $updateData['Lng'] = $r->input('Lng');
+                }
+
+                if (!empty($updateData)) {
+                    DB::table('pickup_order')->where('ID', $poId)->update($updateData);
+                }
+
+                // Signature (base64 image)
+                if ($r->filled('Signature')) {
+                    $b64    = preg_replace('/^data:image\/\w+;base64,/', '', $r->input('Signature'));
+                    $binary = base64_decode($b64);
+                    $sigDir = public_path("filevendor/{$year}/{$month}");
+                    if (!is_dir($sigDir)) {
+                        mkdir($sigDir, 0777, true);
+                    }
+                    $sigName = "signature_{$poId}_" . time() . ".png";
+                    $sigPath = "{$year}/{$month}/{$sigName}";
+                    file_put_contents(public_path("filevendor/{$sigPath}"), $binary);
+
+                    DB::table('meta_files')->insert([
+                        'Filename'    => $sigName,
+                        'Path'        => $sigPath,
+                        'Extension'   => 'png',
+                        'Description' => 'Signature',
+                        'Topic'       => 'delivery-order',
+                        'Map_To'      => $poId,
+                        'Created_At'  => now(),
+                    ]);
+                }
+
+                // Receipt photo (binary file upload)
+                if ($r->hasFile('Receipt_Photo') && $r->file('Receipt_Photo')->isValid()) {
+                    $file    = $r->file('Receipt_Photo');
+                    $ext     = $file->getClientOriginalExtension();
+                    $imgDir  = public_path("filevendor/{$year}/{$month}");
+                    if (!is_dir($imgDir)) {
+                        mkdir($imgDir, 0777, true);
+                    }
+                    $imgName = "receipt_{$poId}_" . time() . "." . $ext;
+                    $imgPath = "{$year}/{$month}/{$imgName}";
+                    $file->move(public_path("filevendor/{$year}/{$month}"), $imgName);
+
+                    DB::table('meta_files')->insert([
+                        'Filename'    => $imgName,
+                        'Path'        => $imgPath,
+                        'Extension'   => $ext,
+                        'Description' => 'Receipt_Photo',
+                        'Topic'       => 'delivery-order',
+                        'Map_To'      => $poId,
+                        'Created_At'  => now(),
+                    ]);
+                }
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'Delivery order berhasil diupdate.']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+
     public function getUCOOutboundXml()
     {
         try {
@@ -494,7 +584,7 @@ class UCOController extends Controller
     {
 
         $id = $r->query('id');
-        $rows = $this->fetchPickupOrders($id);
+        $rows = $this->fetchPickupOrders($id, null, null, null, $r->query('delivery_order_id'));
 
         if ($r->query('format') === 'xml') {
             return $this->pickupOrdersAsXml($rows);
@@ -503,10 +593,11 @@ class UCOController extends Controller
         return $this->pickupOrdersAsJson($rows);
     }
 
-    private function fetchPickupOrders(?string $id, ?string $whid = null, ?string $date_start = null, ?string $date_end = null)
+    private function fetchPickupOrders(?string $id, ?string $whid = null, ?string $date_start = null, ?string $date_end = null, ?string $delivery_order_id = null)
     {
+
         $query = DB::table('pickup_order as po')
-            ->leftJoin('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
+            ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
             ->select('po.*', 'po.Code as PO_Code', 'wo.Code as WO_Code', 'mp.Name as POO_Name', 'mp.Full_Address as POO_Full_Address', 'mp.Lat', 'mp.Lng', 'mp.Location_Coordinate');
 
@@ -526,8 +617,14 @@ class UCOController extends Controller
             $query->where('po.Created_At', '<=', $date_end);
         }
 
+        if ($delivery_order_id) {
+            $query->where('po.DO_Id', $delivery_order_id);
+        }
+
         return $query->get();
     }
+
+    function getWorkOrderData(Request $r) {}
 
     private function pickupOrdersAsJson($rows)
     {
@@ -615,16 +712,31 @@ class UCOController extends Controller
 
     public function submitCreateDeliveryOrder(Request $r)
     {
+        $poIds = $r->input('PO_Id', []);
+        if (empty($poIds)) {
+            return response()->json(['status' => 'error', 'message' => 'PO Number is required'], 400);
+        }
+
+        if (!is_array($poIds)) {
+            $poIds = [$poIds];
+        }
+
+        $highest = DB::table('delivery_order')->count();
         try {
-            DB::transaction(function () use ($r) {
-                DB::table('delivery_order')->insert([
-                    'PO_Id'   => $r->input('PO_Id'),
-                    'DO_Status'  => $r->input('DO_Status'),
-                    'DO_Date' => $r->input('DO_Date'),
-                    'Start_Time' => $r->input('Start_Time'),
+            DB::transaction(function () use ($r, $poIds, $highest) {
+                $doId = DB::table('delivery_order')->insertGetId([
+                    'Code'        => $this->generatorService->generateApplicationCode($highest, 'DO'),
+                    'DO_Status'   => $r->input('DO_Status'),
+                    'DO_Date'     => $r->input('DO_Date'),
+                    'Start_Time'  => $r->input('Start_Time'),
                     'Finish_Time' => $r->input('Finish_Time'),
-                    'Created_At' => now(),
+                    'Created_At'  => now(),
+
                 ]);
+
+                DB::table('pickup_order')
+                    ->whereIn('ID', $poIds)
+                    ->update(['DO_Id' => $doId]);
             });
 
             return response()->json(['status' => 'success', 'message' => 'Delivery order berhasil dibuat.']);
@@ -751,11 +863,8 @@ class UCOController extends Controller
     {
         $id   = $r->query('id');
         $rows = DB::table('delivery_order as do')
-            ->leftJoin('pickup_order as po', 'po.ID', '=', 'do.PO_Id')
-            ->leftJoin('work_order as wo', 'wo.ID', '=', 'po.WO_Id')
-            ->leftJoin('master_poo as mp', 'mp.ID', '=', 'wo.POO_Id')
-            ->select('do.id', 'do.Code', 'do.DO_Date', 'do.DO_Status', 'po.Site', 'mp.Name as POO_Name')
-            ->when($id, fn($q) => $q->where('do.id', $id))
+            ->select('do.ID', 'do.Code as DO_Code', 'do.DO_Date')
+            ->when($id, fn($q) => $q->where('do.ID', $id))
             ->get();
 
         if ($r->query('format') === 'xml') {
@@ -764,15 +873,11 @@ class UCOController extends Controller
 
             foreach ($rows as $row) {
                 $item = $xml->addChild('row');
-                $item->addAttribute('ID', $row->id);
+                $item->addAttribute('ID', $row->ID);
 
                 $item->addChild('cell', $counter);
-                $item->addChild('cell', htmlspecialchars((string) $row->id));
-                $item->addChild('cell', htmlspecialchars((string) $row->Code));
+                $item->addChild('cell', htmlspecialchars((string) $row->DO_Code));
                 $item->addChild('cell', htmlspecialchars((string) $row->DO_Date));
-                $item->addChild('cell', htmlspecialchars((string) $row->Site));
-                $item->addChild('cell', htmlspecialchars((string) $row->POO_Name));
-                $item->addChild('cell', htmlspecialchars((string) $row->DO_Status));
 
                 $counter++;
             }
@@ -799,9 +904,9 @@ class UCOController extends Controller
         return response()->json(["status" => "success", "data" => $data]);
     }
 
-    public function getRouteListData(Request $r)
+    public function getPickupListData(Request $r)
     {
-        $rows = $this->fetchPickupOrders($r->query('id'), $r->query('whid'), $r->query('date_start'), $r->query('date_end'));
+        $rows = $this->fetchPickupOrders($r->query('id'), $r->query('whid'), $r->query('date_start'), $r->query('date_end'), $r->query('delivery_order_id'));
 
         if ($r->query('format') === 'json') {
             return response()->json(['data' => $rows]);
@@ -822,6 +927,49 @@ class UCOController extends Controller
         }
 
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    public function getPickupOrderData(Request $r)
+    {
+        try {
+            $status = $r->query('status', 'DONE');
+
+            $data = DB::table('pickup_order as po')
+                ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
+                ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
+                ->join('delivery_order as do', 'po.DO_Id', '=', 'do.ID')
+                ->select(
+                    'po.*',
+                    'po.Code as PO_Code',
+                    'wo.Code as WO_Code',
+                    'mp.Name as POO_Name',
+                    'do.DO_Date',
+                )
+                ->where('po.Status', $status)
+                ->orderBy('po.Created_At', 'desc')
+                ->get();
+
+            $xml     = new SimpleXMLElement('<rows/>');
+            $counter = 1;
+
+            foreach ($data as $d) {
+                $row = $xml->addChild('row');
+
+                $row->addChild('cell', $counter);
+                $row->addChild('cell', htmlspecialchars((string) $d->PO_Code));
+                $row->addChild('cell', htmlspecialchars((string) $d->POO_Name));
+                $row->addChild('cell', $d->Actual_Qty ?? $d->Qty ?? 0);
+                $row->addChild('cell', 'kg');
+                $row->addChild('cell', $d->Created_At);
+                $row->addChild('cell', $d->Pickup_At ?? $d->DO_Date);
+
+                $counter++;
+            }
+
+            return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
     }
 
 
@@ -890,11 +1038,23 @@ class UCOController extends Controller
         DB::beginTransaction();
         try {
             $routeId = DB::table('pickup_routes')->insertGetId([
-                'Code'        => $routeCode,
-                // 'PO_Id'             => $ids[0],
-                'Distance_Km'       => $routeData['distance_km'],
-                'Duration_Min'      => $routeData['duration_min'],
-                'Encoded_Polyline'  => $routeData['encoded_polyline'],
+                'Code'                     => $routeCode,
+                'Distance_Km'              => $routeData['distance_km'],
+                'Duration_Min'             => $routeData['duration_min'],
+                'Encoded_Polyline'         => $routeData['encoded_polyline'],
+                'BBM_Ratio'                => $r->input('bbm_ratio'),
+                'BBM_Consumption'          => $r->input('bbm_consumption'),
+                'BBM_Price'               => $r->input('bbm_price'),
+                'Total_Distance'           => $r->input('total_distance'),
+                'Pickup_Waypoints'         => $r->input('pickup_count'),
+                'Total_Weight'             => $r->input('total_weight'),
+                'Toll_Estimation'          => $r->input('toll_estimation'),
+                'Parking_Cost'             => $r->input('parking_cost'),
+                'BBM_Alkon_Price'          => $r->input('alkon_bbm_cost'),
+                'Driver_Operational_Price' => $r->input('driver_operational'),
+                'Field_Operational_Price'  => $r->input('field_operational', 7000),
+                'Total_Cost'               => $r->input('total_cost'),
+                'APC'                      => $r->input('apc', 0),
             ]);
 
             $seq = 1;
@@ -927,5 +1087,140 @@ class UCOController extends Controller
                 'waypoints'        => $waypoints,
             ]
         ]);
+    }
+
+
+    public function getSavedRouteList(Request $r)
+    {
+        $query = DB::table('pickup_routes as pr')
+            ->selectRaw("pr.*, (SELECT GROUP_CONCAT(po.Code ORDER BY prw.Sequence SEPARATOR ', ') FROM pickup_route_waypoints prw JOIN pickup_order po ON po.ID = prw.PO_Id WHERE prw.Route_Id = pr.ID) as Waypoint_Codes")
+            ->orderBy('pr.ID', 'desc');
+
+        if ($start = $r->query('date_start')) {
+            $query->where('pr.Created_At', '>=', $start);
+        }
+
+        if ($end = $r->query('date_end')) {
+            $query->where('pr.Created_At', '<=', $end);
+        }
+
+        if ($status = $r->query('status')) {
+            $query->where('pr.Status', $status);
+        }
+
+
+        if ($id = $r->query('id')) {
+            $ids = explode(',', $id);
+            $query->whereIn('pr.ID', $ids);
+        }
+        $rows = $query->get();
+
+        if ($r->query('format') === 'json') {
+            return response()->json(['data' => $rows]);
+        }
+
+        $xml = new SimpleXMLElement('<rows></rows>');
+        $no  = 1;
+
+        foreach ($rows as $row) {
+            $item = $xml->addChild('row');
+            $item->addAttribute('ID', $row->ID);
+            $item->addChild('cell', $no);
+            $item->addChild('cell', $row->Code);
+            $item->addChild('cell', $row->Waypoint_Codes ?? '-');
+            $item->addChild('cell', $row->Total_Cost);
+            $item->addChild('cell', $row->Status ?? '-');
+            $item->addChild('cell', $row->Created_At);
+            $item->addChild('cell', $row->Distance_Km);
+            $no++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+
+    public function finishSettlement(Request $r)
+    {
+        $routeIds = $r->input('route_ids', '');
+        if (empty($routeIds)) {
+            return response()->json(['status' => 'error', 'message' => 'route_ids is required'], 400);
+        }
+
+        $sections = [
+            ['key' => 'bbm',         'label' => 'BBM'],
+            ['key' => 'tol',         'label' => 'TOL'],
+            ['key' => 'parkir',      'label' => 'Parkir'],
+            ['key' => 'op_driver',   'label' => 'Operasional Driver'],
+            ['key' => 'op_lapangan', 'label' => 'Operasional Lapangan'],
+            ['key' => 'non_receipt', 'label' => 'Biaya non receipt'],
+        ];
+
+        try {
+            DB::transaction(function () use ($r, $routeIds, $sections) {
+                $year  = Carbon::now()->year;
+                $month = Carbon::now()->format('m');
+
+                foreach ($sections as $sec) {
+                    $nominal = $r->input("{$sec['key']}_nominal");
+                    $notes   = $r->input("{$sec['key']}_keterangan");
+
+
+                    if (empty($nominal) && empty($notes)) {
+                        continue;
+                    }
+
+                    $settlementId = DB::table('settlement')->insertGetId([
+                        'Route_Id'       => $routeIds,
+                        'Description' => $sec['label'],
+                        'Nominal'     => $nominal,
+                        'Notes'       => $notes,
+                        'Created_At'  => now(),
+                    ]);
+
+                    $fileField = "{$sec['key']}_file";
+                    $files = $r->file($fileField, []);
+
+                    if (!is_array($files)) {
+                        $files = $files ? [$files] : [];
+                    }
+
+                    foreach ($files as $file) {
+                        if (!$file instanceof \Illuminate\Http\UploadedFile || !$file->isValid()) {
+                            continue;
+                        }
+
+                        $ext      = $file->getClientOriginalExtension();
+                        $uuid     = \Illuminate\Support\Str::uuid()->toString();
+                        $destDir  = public_path("filevendor/{$year}/{$month}");
+                        if (!is_dir($destDir)) {
+                            mkdir($destDir, 0777, true);
+                        }
+                        $fileName = "{$uuid}.{$ext}";
+                        $file->move($destDir, $fileName);
+
+                        DB::table('meta_files')->insert([
+                            'Filename'    => $fileName,
+                            'Path'        => "{$year}/{$month}/{$fileName}",
+                            'Extension'   => $ext,
+                            'Description' => $sec['label'],
+                            'Topic'       => 'settlement',
+                            'Map_To'      => $settlementId,
+                            'Created_At'  => now(),
+                        ]);
+                    }
+                }
+
+                $routeIdArray = array_filter(explode(',', $routeIds));
+                if (!empty($routeIdArray)) {
+                    DB::table('pickup_routes')
+                        ->whereIn('ID', $routeIdArray)
+                        ->update(['Status' => 'SETTLED']);
+                }
+            });
+
+            return response()->json(['status' => 'success', 'message' => 'Settlement berhasil disimpan.']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
     }
 }

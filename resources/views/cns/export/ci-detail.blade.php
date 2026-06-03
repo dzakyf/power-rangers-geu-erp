@@ -15,8 +15,9 @@ use Illuminate\Database\Eloquent\Builder;
 					<div class="row">
 						<div class="col-md-4">
 							<div class="form-group">
+								<input type="hidden" name="id" id="id" value="{{ $ci->ID }}" />
 								<label for="Final_SI_No">Final SI No</label>
-                                <select name="Final_SI_No" id="Final_SI_No" class="form-control shadow-sm" required>
+                                <select name="Final_SI_No" id="Final_SI_No" class="form-control bg-white shadow-sm" required {{ $ro['select'] }}>
                                     <option value="">-- Pilih Final SI --</option>
                                     @foreach ($sis as $si)
                                         <option value="{{ $si->Final_SI_No }}" {{ $ci->SI_No == $si->Final_SI_No ? 'selected' : '' }}>{{ $si->Final_SI_No }}</option>
@@ -27,19 +28,19 @@ use Illuminate\Database\Eloquent\Builder;
 						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Inv_No">Inv No</label>
-                                <input type="text" name="Inv_No" id="Inv_No" value="{{ $ci->Inv_No }}" class="form-control shadow-sm" required readonly />
+                                <input type="text" name="Inv_No" id="Inv_No" value="{{ $ci->Inv_No }}" class="form-control bg-white shadow-sm" required readonly />
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Inv_Date">Inv Date</label>
-                                <input name="Inv_Date" id="Inv_Date" class="form-control shadow-sm bg-white" value="{{ date('Y-m-d', strtotime($ci->Inv_Date)) }}" required readonly />
+                                <input name="Inv_Date" id="Inv_Date" class="form-control bg-white shadow-sm bg-white" value="{{ date('Y-m-d', strtotime($ci->Inv_Date)) }}" required readonly />
 							</div>
 						</div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
+                                <select name="Consignee" id="Consignee" class="form-control bg-white shadow-sm" required {{ $ro['select'] }}>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
                                         <option value="{{ $consignee->Supplier_ID }}" {{ $ci->Consignee == $consignee->Supplier_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
@@ -50,43 +51,43 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Description">Description of Cargo</label>
-                                <input type="text" name="Description" id="Description" value="{{ $ci->Description }}" class="form-control shadow-sm" required />
+                                <input type="text" name="Description" id="Description" value="{{ $ci->Description }}" class="form-control bg-white shadow-sm" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Qty">Qty (MT)</label>
-                                <input type="text" name="Qty" id="Qty" value="{{ $ci->Qty }}" onchange="calculateTotal()" class="form-control shadow-sm" required />
+                                <input type="text" name="Qty" id="Qty" value="{{ $ci->Qty }}" onchange="calculateTotal()" class="form-control bg-white shadow-sm" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Unit_Price">Unit Price (MT)</label>
-                                <input type="text" name="Unit_Price" id="Unit_Price" value="{{ $ci->Amount/$ci->Qty }}" class="form-control shadow-sm" onchange="calculateTotal()" required />
+                                <input type="text" name="Unit_Price" id="Unit_Price" value="{{ $ci->Amount/$ci->Qty }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Amount">Amount</label>
-                                <input type="text" name="Amount" id="Amount" value="{{ $ci->Amount }}" class="form-control shadow-sm" onchange="calculateTotal()" required />
+                                <input type="text" name="Amount" id="Amount" value="{{ $ci->Amount }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required readonly />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Advance_Payment">Advance Payment</label>
-                                <input type="text" name="Advance_Payment" id="Advance_Payment" value="{{ $ci->Advance_Payment }}" class="form-control shadow-sm" onchange="calculateTotal()" required />
+                                <input type="text" name="Advance_Payment" id="Advance_Payment" value="{{ $ci->Advance_Payment }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Other">Other</label>
-                                <input type="text" name="Other" id="Other" value="{{ $ci->Other }}" class="form-control shadow-sm" onchange="calculateTotal()" required />
+                                <input type="text" name="Other" id="Other" value="{{ $ci->Other }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Total">Total</label>
-                                <input type="text" name="Total" id="Total" value="{{ $ci->Total }}" class="form-control shadow-sm" onchange="calculateTotal()" required />
+                                <input type="text" name="Total" id="Total" value="{{ $ci->Total }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required readonly/>
                             </div>
                         </div>
 					</div>
@@ -94,7 +95,8 @@ use Illuminate\Database\Eloquent\Builder;
 				{{-- STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION --}}
 			</div>
 			<div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit" class="btn btn-success mt-2 mr-2" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Save as Draft" class="btn btn-primary mt-2 mr-2" onclick="submitData(1)" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit Final" class="btn btn-success mt-2 mr-2" onclick="submitData(2)" />
 			</div>
 		</div>
 	</div>
@@ -116,8 +118,10 @@ use Illuminate\Database\Eloquent\Builder;
         $('#Total').val((subs - advance) + other);
     }
 	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["Inv_Date"]);
-	myCalendar.setDateFormat("%Y-%m-%d");
+	if ("{{$ro['input']}}" == '') {
+		myCalendar = new dhtmlXCalendarObject(["Inv_Date"]);
+		myCalendar.setDateFormat("%Y-%m-%d");
+	}
 
 	// ShipmentInstructionNew = new dhtmlXGridObject('ShipmentInstructionNew');
 	// ShipmentInstructionNew.setImagePath("./dhtmlx/imgs/");
@@ -173,15 +177,16 @@ use Illuminate\Database\Eloquent\Builder;
 	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "ETD", "ETA", "SI_Date"]);
 	myCalendar.setDateFormat("%Y-%m-%d");
 
-	$('#SubmitCustDetail').click(function() {
+	function submitData(save) {
 
 		gettingVars = getAllValues();
+		gettingVars += '&save=' + save;
 
 		$.ajax({
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "cns-export-commercial-invoice-new-submit?_token={{ csrf_token() }}",
+			url: "cns-export-commercial-invoice-detail-submit?_token={{ csrf_token() }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {
@@ -202,7 +207,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 			}
 		});
-	})
+	}
 
 	function getAllValues() {
 		var inputValues = [];
