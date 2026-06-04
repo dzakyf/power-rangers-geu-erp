@@ -149,6 +149,8 @@ class ShipmentInstructionController extends Controller
             'setAutoTopMargin'    => 'stretch',
             'setAutoBottomMargin' => 'stretch',
         ]);
+        
+        $mpdf->splitTableBorderWidth = 1;
  
         $mpdf->SetHTMLHeader($headerHtml);
         $mpdf->SetHTMLFooter($footerHtml);
@@ -294,7 +296,7 @@ class ShipmentInstructionController extends Controller
             // VesselScheduleDtlLog::create($values);
         }
 
-        return response()->json(['status' => 'success', 'message' => 'Shipment Instruction submitted successfully']);
+        return response()->json(['status' => 'success', 'message' => 'Shipping Instruction submitted successfully']);
     }
     
     public function generateFinalShipmentInstruction(Request $request)
@@ -310,7 +312,7 @@ class ShipmentInstructionController extends Controller
             'Updated_By' => auth()->user()->username
         ]);
 
-        // return response()->json(['success' => true, 'message' => 'Shipment Instruction finalized successfully']);
+        // return response()->json(['success' => true, 'message' => 'Shipping Instruction finalized successfully']);
         echo "<script>alert('Done Generate to Final SI')</script>";
     }
 
@@ -408,6 +410,6 @@ class ShipmentInstructionController extends Controller
         $si->Product_Name = $request->input('Product_Name');
         $si->save();
 
-        return response()->json(['success' => true, 'message' => 'Shipment Instruction updated successfully']);
+        return response()->json(['success' => true, 'message' => 'Shipping Instruction updated successfully']);
     }
 }

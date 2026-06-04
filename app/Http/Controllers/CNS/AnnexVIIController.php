@@ -52,7 +52,7 @@ class AnnexVIIController extends Controller
         $shipment = $query->first();
 
         if (!$shipment) {
-            return response()->json(['error' => 'Shipment Instruction not found'], 404);
+            return response()->json(['error' => 'Shipping Instruction not found'], 404);
         }
 
         return response()->json($shipment);

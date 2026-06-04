@@ -128,7 +128,7 @@
                          </div>
                          <div class="form-check">
                              <input class="form-check-input" type="radio" name="Last_Education" id="Last_Education_5" value="5" />
-                             <label class="form-check-label" for="Last_Education_5">S1</label>
+                             <label class="form-check-label" for="Last_Education_5">S2</label>
                          </div>
                      </div>
                  </div>

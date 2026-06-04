@@ -19,16 +19,16 @@ $Saya =  Auth::user()->username;
 	<h1>Partner</h1>
 	<ol class="breadcrumb">
 		<li class="breadcrumb-item">
-			<a href="/">Shipment Instruction</a>
+			<a href="/">Shipping Instruction</a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">Shipment Instruction List</span>
+			<span class="active">Shipping Instruction List</span>
 		</li>
 	</ol>
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION LIST</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPPING INSTRUCTION LIST</div>
 	<div class="card">
 		<div class="card-body">
 			<div class="mb-2">

@@ -22,7 +22,7 @@ $sigCanvas = view('ui-components.signature-canvas-field', [
             <a href="./">Unused Crude Oil (UCO)</a>
         </li>
         <li class="breadcrumb-item active">
-            <span class="active">INBOUND TIMBANG</span>
+            <span class="active">INSTOCK</span>
         </li>
     </ol>
 </div>
@@ -32,8 +32,8 @@ $sigCanvas = view('ui-components.signature-canvas-field', [
 <div class="row">
     <div id="InboundTimbang" style="width:auto;height:500px; background-color:white;overflow:hidden"></div>
     <input type="button" id="ekselPODListDet" name="ekselPODListDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="InboundTimbang.toExcel('./export/generate.php');" />
-    <input type="button" id="RedirectToCreateInboundData" NAME="RefreshBM" value="Buat Data" class="btn btn-info mt-2 mr-2" />
-    <input type="button" id="RequestPickup" NAME="RefreshBM" value="Request Penjemputan" class="btn btn-info mt-2 mr-2" />
+    {{-- <input type="button" id="RedirectToCreateInboundData" NAME="RefreshBM" value="Buat Data" class="btn btn-info mt-2 mr-2" /> --}}
+    {{-- <input type="button" id="RequestPickup" NAME="RefreshBM" value="Request Penjemputan" class="btn btn-info mt-2 mr-2" /> --}}
 </div>
 
 
@@ -162,12 +162,12 @@ $sigCanvas = view('ui-components.signature-canvas-field', [
 
     InboundTimbang = new dhtmlXGridObject('InboundTimbang');
     InboundTimbang.setImagePath("./dhtmlx/imgs/");
-    InboundTimbang.setHeader("No,Code,Point of Origin (POO),Weight-in,Unit,Picker,Dibuat Pada,Inbound Pickup");
-    InboundTimbang.attachFooter("Total,#cspan,#cspan,#stat_total,#cspan,#cspan,#cspan,#cspan");
-    InboundTimbang.setInitWidths("80,150,150,100,100,150,150,150");
-    InboundTimbang.setColAlign("center,center,left,center,left,center,left,center");
-    InboundTimbang.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
-    InboundTimbang.setColSorting("int,str,str,str,str,str,str,str");
+    InboundTimbang.setHeader("No,Code,Point of Origin (POO),Weight-in,Unit,Picker,Dibuat Pada");
+    InboundTimbang.attachFooter("Total,#cspan,#cspan,#stat_total,#cspan,#cspan,#cspan");
+    InboundTimbang.setInitWidths("80,150,150,100,100,150,150");
+    InboundTimbang.setColAlign("center,center,left,center,left,center,left");
+    InboundTimbang.setColTypes("ro,ro,ro,ro,ro,ro,ro");
+    InboundTimbang.setColSorting("int,str,str,str,str,str,str");
     InboundTimbang.setEditable(false);
     InboundTimbang.setSkin("dhx_skyblue");
 
