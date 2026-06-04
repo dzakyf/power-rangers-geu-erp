@@ -145,12 +145,12 @@
     function initCostRouteGrid() {
         costRouteGrid = new dhtmlXGridObject('costRouteGrid');
         costRouteGrid.setImagePath("./dhtmlx/imgs/");
-        costRouteGrid.setHeader("#master_checkbox,No, Route Code, Jarak (km), Total Biaya, Status, Dibuat");
-        costRouteGrid.attachHeader("#rspan,#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-        costRouteGrid.setInitWidths("40,60,120,100,130,120,120");
-        costRouteGrid.setColAlign("center,center,left,right,right,left,left");
-        costRouteGrid.setColSorting("na,int,str,int,int,str,str");
-        costRouteGrid.setColTypes("ch,ron,ro,ro,ro,ro,ro");
+        costRouteGrid.setHeader("#master_checkbox,Route Code, No. PO, Total Biaya,  Status, Dibuat, Jarak (km)");
+        costRouteGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+        costRouteGrid.setInitWidths("40,*,120,100,130,120,120");
+        costRouteGrid.setColAlign("center,left,left,right,right,left,left");
+        costRouteGrid.setColSorting("na,str,str,int,int,str,str");
+        costRouteGrid.setColTypes("ch,ro,ro,ro,ro,ro,ro");
         costRouteGrid.setSkin("dhx_skyblue");
         costRouteGrid.enableMultiselect(true);
         costRouteGrid.init();

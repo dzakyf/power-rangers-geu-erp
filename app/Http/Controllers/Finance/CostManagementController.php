@@ -22,7 +22,7 @@ class CostManagementController extends Controller
 
         DB::transaction(function () use ($r, $id) {
             DB::table('pickup_routes')->where('ID', $id)->update([
-                'Status'                 => 'APPROVED',
+                'Status'                 => 'PENDING_SETTLEMENT',
                 'Transfer_Bank_Account'   => $r->input('rekening'),
                 'Transfer_Nominal'        => $r->input('nominal'),
             ]);

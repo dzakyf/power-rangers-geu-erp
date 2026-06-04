@@ -4,8 +4,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
 $Saya = Auth::user()->username;
-$LSP = Auth::user()->Location;
-$Priv = Auth::user()->Priv_ID;
+$LSP = Auth::user()->Location ;
+$Priv = Auth::user()->Priv_ID ;
 $DOP = Auth::user()->DOP_Class;
 $dsess =  Auth::user()->Sub_Menu;
 

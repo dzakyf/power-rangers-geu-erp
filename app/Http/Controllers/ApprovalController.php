@@ -490,8 +490,9 @@ class ApprovalController extends Controller
         $d = $d->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')
             ->leftJoin('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID');
 
-        $d = $d->get();
+        $d = $d->orderBy('ID', 'DESC')->get();
         // dd($d);
+
 
         $xml = new SimpleXMLElement('<rows></rows>');
 

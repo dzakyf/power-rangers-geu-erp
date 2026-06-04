@@ -67,19 +67,20 @@
     text-align: center;
     vertical-align: middle;
     padding: 3px 4px;
-    border: 1px solid #000;
+    /* border diset inline per-cell */
   }
   .td-data {
     font-size: 7.5pt;
     padding: 2px 4px;
     vertical-align: top;
+    /* TIDAK ada border — hanya border-right diset inline */
   }
   .total-td {
     font-weight: bold;
     background: #f0f0f0;
     font-size: 7.5pt;
     padding: 3px 4px;
-    border: 1px solid #000;
+    /* border-top & border-right diset inline */
   }
  
   /* =============================================
@@ -297,15 +298,14 @@
       3. MAIN CARGO TABLE
       ===================================================== --}}
   {{--
-    KUNCI anti-terpotong di mPDF:
-    1. Atribut "border" pada <table> → mPDF menggambar ulang border luar
-      di setiap potongan halaman (atas & bawah).
-    2. <thead> dengan repeat="1" → header kolom diulang di halaman berikutnya.
-    3. Semua <td> pakai border 4 sisi → tidak ada garis yang hilang.
+    CARGO TABLE
+    Kunci: $mpdf->splitTableBorderWidth = 1; di Controller
+    <td> HANYA border-right, tanpa border top/bottom sama sekali.
+    mPDF akan gambar garis bawah di akhir halaman dan garis atas
+    di awal halaman berikutnya via splitTableBorderWidth.
   --}}
   <table width="100%" cellspacing="0" cellpadding="0"
-        border="1"
-        style="border:1px solid #000;border-collapse:collapse;margin-bottom:6px;">
+        style="border-collapse:collapse;border:1px solid #000;margin-bottom:6px;">
     <thead>
       <tr>
         <td class="th-gray" style="width:35mm;border-right:1px solid #000;border-bottom:1px solid #000;" rowspan="2">SEQ</td>
@@ -325,10 +325,15 @@
     <tbody>
   
       {{--
-        Summary row — border LENGKAP di semua sisi.
-        Baris ini dan container rows pakai border penuh agar
-        tidak ada garis yang hilang saat terpotong halaman.
+        KUNCI: Tidak ada border-top / border-bottom pada <td>.
+        Hanya border-right sebagai pemisah kolom.
+        Border luar tabel (atas, bawah, kiri, kanan) dihandle
+        oleh atribut border="1" pada <table> — mPDF akan
+        menggambar ulang border luar di setiap potongan halaman
+        secara otomatis, termasuk garis bawah sebelum pindah halaman.
       --}}
+  
+      {{-- Summary row --}}
       <tr>
         <td class="td-data" style="border-right:1px solid #000;">
           <div class="shipping-mark">
@@ -362,7 +367,7 @@
         <td class="td-data" style="text-align:center;">&nbsp;</td>
       </tr>
   
-      {{-- Container rows — border LENGKAP semua sisi --}}
+      {{-- Container rows — hanya border-right, tanpa border atas/bawah --}}
       @foreach ($vsds as $item)
       <tr>
         <td class="td-data" style="text-align:center;border-right:1px solid #000;">{{ $loop->iteration }}</td>
@@ -374,13 +379,13 @@
       </tr>
       @endforeach
   
-      {{-- Total row --}}
+      {{-- Total row — border-top untuk pemisah dari baris container --}}
       <tr>
-        <td colspan="2" class="total-td" style="text-align:right;padding-right:8px;border-top:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000;">Total</td>
-        <td class="total-td" style="text-align:center;border-top:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000;">{{ number_format($netto, 0, ',', '.') }}</td>
-        <td class="total-td" style="text-align:center;border-top:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000;">{{ number_format($gross, 0, ',', '.') }}</td>
-        <td class="total-td" style="text-align:center;border-top:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000;">{{ number_format($netto, 0, ',', '.') }}</td>
-        <td class="total-td" style="text-align:center;border-top:1px solid #000;border-bottom:1px solid #000;">{{ number_format(round($netto / 1000, 2), 2, ',', '.') }}</td>
+        <td colspan="2" class="total-td" style="text-align:right;padding-right:8px;border-top:1px solid #000;border-right:1px solid #000;">Total</td>
+        <td class="total-td" style="text-align:center;border-top:1px solid #000;border-right:1px solid #000;">{{ number_format($netto, 0, ',', '.') }}</td>
+        <td class="total-td" style="text-align:center;border-top:1px solid #000;border-right:1px solid #000;">{{ number_format($gross, 0, ',', '.') }}</td>
+        <td class="total-td" style="text-align:center;border-top:1px solid #000;border-right:1px solid #000;">{{ number_format($netto, 0, ',', '.') }}</td>
+        <td class="total-td" style="text-align:center;border-top:1px solid #000;">{{ number_format(round($netto / 1000, 2), 2, ',', '.') }}</td>
       </tr>
   
     </tbody>

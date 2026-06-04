@@ -291,7 +291,7 @@ class PackingListController extends Controller
             $shipment->orderDetails = VesselScheduleDtl::where("SI_No", $shipment->SI_No)->get();
             return response()->json($shipment);
         } else {
-            return response()->json(['error' => 'Shipment Instruction not found'], 404);
+            return response()->json(['error' => 'Shipping Instruction not found'], 404);
         }
     }
 

@@ -4483,8 +4483,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$masterData-fleet-create-submit", [MasterDataController::class, 'submitCreateMasterFleet']);
 
 
-
-
     /** POO (Point of Origin UCO) */
     Route::get("$masterData-poo", [MasterDataController::class, 'POOPageIndex']);
     Route::get("$masterData-poo-data", [MasterDataController::class, 'getPOO']);
@@ -5044,7 +5042,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$marketingPrefs-approval-index", [ApprovalController::class, 'indexMarketingApproval']);
     Route::get("$marketingPrefs-approval-index", [ApprovalController::class, 'indexMarketingApproval']);
     Route::post("$marketingPrefs-approval-submit", [ApprovalController::class, 'processPromotionApproval']);
-    Route::get("partner-approval-data", [ApprovalController::class, 'getApprovalData']);
     Route::get("$marketingPrefs-evaluation-index", [MarketingController::class, 'indexEvaluation']);
     Route::get("$marketingPrefs-evaluation-data", [MarketingController::class, 'getEvaluationData']);
     Route::post("$marketingPrefs-evaluation-submit", [MarketingController::class, 'submitPromotionEvaluation']);
