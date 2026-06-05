@@ -22,6 +22,10 @@ class LogUserAccess
         // Execute the request first so we track it as it happens
         $response = $next($request);
 
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
         // Capture user information if they are authenticated
         $userId = Auth::check() ? Auth::id() : 'Guest';
         $userEmail = Auth::check() ? Auth::user()->email : 'N/A';
