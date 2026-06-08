@@ -72,7 +72,7 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
 
     <script type="text/javascript" src="jquery.mask.min.js"></script>
 
-    <script src="{{ asset('/assets/js/custom.js') }}"></script>
+    <script src="{{ asset('/assets/js/custom.js?v=2') }}"></script>
     <script src="{{ asset('/assets/js/apex-charts/apexcharts.min.js') }}"></script>
 
     <script src="{{ asset('jquery.ajaxloader.1.5.1.js') }}"></script>
@@ -475,6 +475,7 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
             return inputValues.join('&');
         }
     </script>
+    @stack('registration-script')
 </body>
 
 </html>

@@ -552,18 +552,46 @@ class UCOController extends Controller
 
     public function submitWorkOrder(Request $r)
     {
-
-        $count = DB::table('work_order')->count();
+        $bypass = $r->boolean('bypass');
 
         try {
             DB::beginTransaction();
 
-            DB::table('work_order')->insert([
+            $woCount = DB::table('work_order')->count();
+            $woId = DB::table('work_order')->insertGetId([
                 'POO_Id'          => $r->input('POO_Id'),
-                'Code'            => $this->generatorService->generateApplicationCode($count, 'WO'),
+                'Code'            => $this->generatorService->generateApplicationCode($woCount, 'WO'),
                 'Status'          => $r->input('Status'),
                 'Work_Order_Date' => $r->input('Work_Order_Date'),
             ]);
+
+            if ($bypass) {
+                $doId = $r->input('DO_Id');
+                if (!$doId) {
+                    throw new \Exception('Delivery Order harus dipilih untuk mode bypass.');
+                }
+
+                $poo = DB::table('master_poo')->where('ID', $r->input('POO_Id'))->first();
+                if (!$poo) {
+                    throw new \Exception('Point of Origin tidak ditemukan.');
+                }
+
+                $poCount = DB::table('pickup_order')->count();
+
+                DB::table('pickup_order')->insert([
+                    'Code'        => $this->generatorService->generateApplicationCode($poCount, 'PO'),
+                    'Type_Pickup' => $r->input('Type_Pickup'),
+                    'Coverage'    => $r->input('Coverage'),
+                    'Site'        => $poo->City,
+                    'Package'     => $r->input('Package'),
+                    'Qty'         => $r->input('Qty'),
+                    'Price'       => $poo->Price,
+                    'Description' => $r->input('Description'),
+                    'WO_Id'       => $woId,
+                    'DO_Id'       => $doId,
+                    'Created_At'  => now(),
+                ]);
+            }
 
             DB::commit();
 
@@ -861,10 +889,12 @@ class UCOController extends Controller
 
     public function getDeliveryOrderData(Request $r)
     {
-        $id   = $r->query('id');
+        $id     = $r->query('id');
+        $status = $r->query('status');
         $rows = DB::table('delivery_order as do')
             ->select('do.ID', 'do.Code as DO_Code', 'do.DO_Date')
             ->when($id, fn($q) => $q->where('do.ID', $id))
+            ->when($status, fn($q) => $q->where('do.DO_Status', $status))
             ->get();
 
         if ($r->query('format') === 'xml') {

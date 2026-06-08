@@ -34,6 +34,8 @@ $Saya =  Auth::user()->username;
             <div id="Survey" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
             <div>
                 <input type="button" id="detailSurvey" name="detailSurvey" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" />
+                <input type="button" value="Lengkapi Data" class="btn btn-primary mt-2 mr-2" onclick="redirectToEditSurvey()" />
+                <input type="button" value="Reply" class="btn btn-success mt-2 mr-2" onclick="redirectToReplySurvey()" />
                 <input type="button" id="ekselSurveyDet" name="ekselSurveyDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="Survey.toExcel('./export/generate.php');" />
                 <input type="button" id="detailSurvey" name="detailSurvey" value="Detail" class="btn btn-info mt-2 mr-2" onclick="SurveyKlik()" />
             </div>
@@ -51,8 +53,8 @@ $Saya =  Auth::user()->username;
         window.location.href = 'partner-survey-create'
     }
 
-    function SurveyKlik() {
-        SurveyID = Survey.getSelectedId();
+    function SurveyKlik(id) {
+        SurveyID = window._selectedSurveyId;
         if (SurveyID != null) {
             $('#divSurveyEdit').show();
             $('html, body').animate({
@@ -92,6 +94,13 @@ $Saya =  Auth::user()->username;
         {
             header: "Survey ID",
             width: 200,
+            align: "left",
+            sorting: "str",
+            type: "ro"
+        },
+        {
+            header: "Tipe",
+            width: 100,
             align: "left",
             sorting: "str",
             type: "ro"
@@ -141,9 +150,31 @@ $Saya =  Auth::user()->username;
     Survey.setColTypes(columns.map(c => c.type).join(","));
     // Survey.setNumberFormat("0,000", 7, ".", ",");
     Survey.attachEvent("onRowDblClicked", SurveyKlik);
+    Survey.attachEvent("onRowSelect", function(id) {
+        window._selectedSurveyId = Survey.getRowAttribute(id, "ID");
+        console.log(_selectedSurveyId)
+    });
     Survey.setSkin("dhx_skyblue");
     Survey.init();
     refreshdata();
+
+    function redirectToEditSurvey() {
+        var id = window._selectedSurveyId;
+        if (!id) {
+            alert("Pilih baris data");
+            return;
+        }
+        window.location.href = "partner-survey-create?id=" + id;
+    }
+
+    function redirectToReplySurvey() {
+        var id = window._selectedSurveyId;
+        if (!id) {
+            alert("Pilih baris data");
+            return;
+        }
+        window.location.href = "partner-survey-create-reply?parent_id=" + id;
+    }
 
     function refreshdata() {
         Survey.clearAndLoad('partner-survey-data');

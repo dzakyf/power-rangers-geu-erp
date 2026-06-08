@@ -301,6 +301,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/approvalpo_approve', function () {
         return view('scheduler.approvepo_approve');
     });
+
     Route::get('/approvalpo_reject', function () {
         return view('scheduler.approvepo_reject');
     });
@@ -4931,8 +4932,11 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$surveyPrefs-dashboard", [SurveyController::class, 'dashboardSurvey']);
     Route::get("$surveyPrefs-index", [SurveyController::class, 'indexSurvey']);
     Route::get("$surveyPrefs-create", [SurveyController::class, 'createMasterDataSurvey']);
+    Route::get("$surveyPrefs-create-reply", [SurveyController::class, 'createReplyMasterDataSurvey']);
+    Route::get("$surveyPrefs-data-history", [SurveyController::class, "getSurveyHistoryData"]);
     Route::get("$surveyPrefs-data", [SurveyController::class, 'getMasterDataSurvey']);
     Route::post("$surveyPrefs-submit", [SurveyController::class, 'submitMasterDataSurvey']);
+    Route::post("$surveyPrefs-update", [SurveyController::class, "updateMasterDataSurvey"]);
     Route::get("$surveyPrefs-approval-index", [SurveyController::class, 'indexApprovalSurvey']);
     Route::get("$surveyPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);
     Route::get("$surveyPrefs-approval-data-log", [ApprovalController::class, 'getApprovalDataLog']);

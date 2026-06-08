@@ -82,6 +82,10 @@ try {
     $data['city'] = request()->input('City');
     $data['location_status'] = request()->input('Location_Status');
 
+    // GPS coordinates
+    $data["latitude"] = request()->input("Latitude") ? request()->input("Latitude") : request()->input("Company_Latitude");
+    $data["longitude"] = request()->input("Longitude") ?  request()->input("Longitude") : request()->input("Company_Longitude");
+
     // Questions
     for ($i = 1; $i <= 6; $i++) {
         $data['q' . $i] = request()->input('Q' . $i);
