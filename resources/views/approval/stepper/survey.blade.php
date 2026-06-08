@@ -1,4 +1,6 @@
 <div class="mb-5 p-4 bg-white shadow-sm">
+
+    <div id="surveyHistoryGrid" style="width:auto;height:200px;background-color:white;overflow:hidden;margin-bottom:15px;"></div>
     <h5>Form Survey Lokasi HUB GEU EXPRESS</h5>
     <form id="surveyForm" enctype="multipart/form-data">
         @csrf
@@ -118,27 +120,25 @@
         <div class="row">
             <div class="col-md-2">
                 <div class="form-group">
-                    <label for="Latitude">Latitude</label>
+                    <label for="Latitude">Latitude / Longitude</label>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="form-group">
-                    <input type="text" name="Latitude" id="Latitude" class="form-control" required />
+                    <input type="text" name="Latitude" id="Latitude" class="form-control" placeholder="Latitude" required />
                 </div>
             </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-2">
+            <div class="col-md-4">
                 <div class="form-group">
-                    <label for="Longitude">Longitude</label>
+                    <input type="text" name="Longitude" id="Longitude" class="form-control" placeholder="Longitude" required />
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <input type="text" name="Longitude" id="Longitude" class="form-control" required />
-                </div>
-            </div>
+            <!-- <div class="col-md-2">
+                <button type="button" class="btn btn-outline-secondary btn-block" id="btnGetGps" title="Get current GPS position">
+                    Get GPS
+                </button>
+                <small id="gpsStatus" class="text-muted"></small>
+            </div> -->
         </div>
 
         <div class="row">
@@ -255,7 +255,7 @@
             </tbody>
         </table> -->
 
-        {{-- <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button> --}}
+        <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
     </form>
 </div>
 
@@ -305,6 +305,8 @@
         var oppId = urlParams.get('id');
         if (oppId) {
             $('#Opportunity_Partner_Id').val(oppId);
+            prefillFromRegisteredLead(oppId);
+            initSurveyHistoryGrid(oppId);
         }
 
         makeSelect2('#Province', 'master-province', {}, 'Province', 'Province');
@@ -357,6 +359,100 @@
             }, 'Sub_District', 'Sub_District');
         });
 
+
+        function initSurveyHistoryGrid(oppId) {
+            var grid = new dhtmlXGridObject("surveyHistoryGrid");
+            grid.setImagePath("./dhtmlx/imgs/");
+            grid.setHeader("No,Leads ID,Tipe,Tipe Rekom,Tgl Survey");
+            grid.setInitWidths("40,100,80,100,120");
+            grid.setColAlign("center,left,center,left,left");
+            grid.setColTypes("ro,ro,ro,ro,ro");
+            grid.setSkin("dhx_skyblue");
+            grid.init();
+            grid.clearAndLoad("partner-survey-data-history?opportunity_partner_id=" + oppId);
+        }
+
+        function prefillFromRegisteredLead(oppId) {
+            $.ajax({
+                url: 'partner-leads',
+                type: 'GET',
+                data: {
+                    type: 'registered',
+                    id: oppId
+                },
+                success: function(res) {
+                    var data = res.data || [];
+
+                    console.log(data)
+                    $('#Location_Type').val(data[0].location_status)
+                    $('#Location_Owner_Name').val(data[0].full_name ?? data[0].pic_name)
+                    $('#Latitude').val(data[0].latitude)
+                    $('#Longitude').val(data[0].longitude)
+                    if (!data || data.length === 0) return;
+
+                    var lead = Array.isArray(data) ? data[0] : data;
+                    if (!lead) return;
+
+                    // Map form field names to lead data keys (case-insensitive match)
+                    var textFields = [
+                        'Location_Owner_Name', 'Address',
+                    ];
+
+                    textFields.forEach(function(field) {
+                        var val = getValFromLead(lead, field);
+                        if (val !== undefined && val !== null) {
+                            $('#' + field).val(val);
+                        }
+                    });
+
+                    // Prefill cascading selects (Province → City → District → Subdistrict)
+                    var province = getValFromLead(lead, 'Province');
+                    if (province) {
+                        setSelect2Val('#Province', province);
+                        $('#Province').trigger('change');
+
+                        var city = getValFromLead(lead, 'City');
+                        if (city) {
+                            setTimeout(function() {
+                                setSelect2Val('#City', city);
+                                $('#City').trigger('change');
+
+                                var district = getValFromLead(lead, 'District');
+                                if (district) {
+                                    setTimeout(function() {
+                                        setSelect2Val('#District', district);
+                                        $('#District').trigger('change');
+
+                                        var subdistrict = getValFromLead(lead, 'Subdistrict');
+                                        if (subdistrict) {
+                                            setTimeout(function() {
+                                                setSelect2Val('#Subdistrict', subdistrict);
+                                            }, 600);
+                                        }
+                                    }, 600);
+                                }
+                            }, 600);
+                        }
+                    }
+                },
+                error: function() {
+                    console.log('Failed to fetch registered lead data');
+                }
+            });
+        }
+
+        function getValFromLead(lead, field) {
+            // Try exact match first, then case-insensitive
+            if (lead[field] !== undefined) return lead[field];
+            var keys = Object.keys(lead);
+            for (var i = 0; i < keys.length; i++) {
+                if (keys[i].toLowerCase() === field.toLowerCase()) {
+                    return lead[keys[i]];
+                }
+            }
+            return undefined;
+        }
+
         $('#surveyForm').on('submit', function(e) {
             e.preventDefault();
 
@@ -370,17 +466,7 @@
             //     }
             // }
 
-            $.each(locationAssessmentData, function(index, item) {
 
-                const fileInput = document.getElementById(`C_c${index+1}_File`);
-
-                if (fileInput && fileInput.files.length > 0) {
-                    formData.append(`C_c${index+1}_File`, fileInput.files[0]);
-
-                    // formData.append('file_' + index + '_name', fileInput.files[0].name);
-                    // formData.append('file_' + index + '_size', fileInput.files[0].size);
-                }
-            });
 
 
             $('#submitBtn').prop('disabled', true).text('Submitting...');

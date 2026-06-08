@@ -83,5 +83,33 @@
     //         cache: true
     //     }
     // }
+
+    function bindGpsButton(btnId, latId, lngId, statusId) {
+        $(btnId).on("click", function() {
+            if (!navigator.geolocation) {
+                $(statusId).text("Geolocation not supported").css("color", "red");
+                return;
+            }
+            var btn = this;
+            $(btn).prop("disabled", true).text("Locating...");
+            $(statusId).text("Getting location...").css("color", "blue");
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    $(latId).val(pos.coords.latitude);
+                    $(lngId).val(pos.coords.longitude);
+                    $(statusId).text("Location acquired").css("color", "green");
+                    $(btn).prop("disabled", false).text("Get GPS");
+                },
+                function(err) {
+                    $(statusId).text("Error: " + err.message).css("color", "red");
+                    $(btn).prop("disabled", false).text("Get GPS");
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        });
+    }
+
+    bindGpsButton("#btnGetGps", "#Latitude", "#Longitude", "#gpsStatus");
+    bindGpsButton("#btnGetGpsCompany", "#Company_Latitude", "#Company_Longitude", "#gpsStatusCompany");
 </script>
 @endpush

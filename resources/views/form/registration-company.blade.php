@@ -342,6 +342,28 @@
          </div>
      </div>
 
+
+     <div class="row mt-2">
+         <div class="col-md-4">
+             <div class="form-group">
+                 <label for="Company_Latitude">Latitude</label>
+                 <input type="text" name="Company_Latitude" id="Company_Latitude" class="form-control" placeholder="Latitude" />
+             </div>
+         </div>
+         <div class="col-md-4">
+             <div class="form-group">
+                 <label for="Company_Longitude">Longitude</label>
+                 <input type="text" name="Company_Longitude" id="Company_Longitude" class="form-control" placeholder="Longitude" />
+             </div>
+         </div>
+         <div class="col-md-1">
+             <div class="form-group">
+                 <label>&nbsp;</label>
+                 <button type="button" class="btn btn-outline-secondary btn-block" id="btnGetGpsCompany" title="Get current GPS position">Get GPS</button>
+                 <small id="gpsStatusCompany" class="text-muted"></small>
+             </div>
+         </div>
+     </div>
      <div class="badge badge-info w-100 my-3 py-3">6. Informasi data F&B</div>
      <div class="row">
          <div class="col-md-6">

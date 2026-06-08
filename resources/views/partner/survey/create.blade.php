@@ -18,6 +18,9 @@
     <h5>Form Survey Lokasi HUB GEU EXPRESS</h5>
     <form id="surveyForm" enctype="multipart/form-data">
         @csrf
+        <input type="hidden" name="ID" id="ID">
+        <input type="hidden" name="Parent_Id" id="Parent_Id">
+        <input type="hidden" name="Suggestion_Type" id="Suggestion_Type" value="ORIGINAL">
         <h6>A. Informasi Survey</h6>
         <div class="row">
             <div class="col-md-2">
@@ -839,6 +842,19 @@
 
         renderTableSurveyorRecommendation()
 
+        var urlParams = new URLSearchParams(window.location.search);
+        var editId = urlParams.get('id');
+        var parentId = urlParams.get('parent_id');
+
+        if (editId) {
+            $('#ID').val(editId);
+            getSurveyData(editId);
+        } else if (parentId) {
+            $('#Parent_Id').val(parentId);
+            $('#Suggestion_Type').val('REPLY');
+            getSurveyData(parentId);
+        }
+
 
         makeSelect2('#Province', 'master-province', {}, 'Province', 'Province');
 
@@ -890,6 +906,68 @@
             }, 'Sub_District', 'Sub_District');
         });
 
+
+    function getSurveyData(id) {
+        if (!id) id = new URLSearchParams(window.location.search).get("id");
+        if (!id) return;
+
+        $.ajax({
+            url: 'partner-survey-data?format=json&id=' + id,
+            type: 'GET',
+            success: function(res) {
+                var d = res.data[0];
+                if (!d) return;
+
+                $('#Survey_At').val(d.Surveyed_At);
+                setSelect2Val('#Province', d.Province);
+                $('#Province').trigger('change');
+
+                setTimeout(function() {
+                    setSelect2Val('#City', d.City);
+                    $('#City').trigger('change');
+
+                    setTimeout(function() {
+                        setSelect2Val('#District', d.District);
+                        $('#District').trigger('change');
+
+                        setTimeout(function() {
+                            setSelect2Val('#Subdistrict', d.Subdistrict);
+                        }, 600);
+                    }, 600);
+                }, 600);
+
+                $('#Surveyor_Name').val(d.Surveyor_Name);
+                $('#Location_Owner_Name').val(d.Location_Owner_Name);
+                $('#Location_Type').val(d.Location_Type);
+                $('#Address').val(d.Address);
+                $('#Latitude').val(d.Latitude);
+                $('#Longitude').val(d.Longitude);
+                $('#Area').val(d.Area);
+
+                for (var i = 1; i <= 4; i++) {
+                    var val = d['C_c' + i];
+                    $('input[name="C_c' + i + '"][value="' + val + '"]').prop('checked', true);
+                }
+
+                for (var j = 1; j <= 9; j++) {
+                    var val = d['D_c' + j];
+                    $('input[name="D_c' + j + '"][value="' + val + '"]').prop('checked', true);
+                    $('#D_c' + j + '_Notes').val(d['D_c' + j + '_Notes'] || '');
+                }
+
+                for (var k = 1; k <= 4; k++) {
+                    $('select[name="E_p' + k + '"]').val(d['E_p' + k]);
+                }
+
+                for (var f = 1; f <= 4; f++) {
+                    $('#F_p' + f + '_col1').val(d['F_p' + f + '_col1']);
+                    $('#F_p' + f + '_col2').val(d['F_p' + f + '_col2']);
+                }
+                initializeUCOCalculations();
+            }
+        });
+    }
+
         $('#surveyForm').on('submit', function(e) {
             e.preventDefault();
 
@@ -918,8 +996,10 @@
 
             $('#submitBtn').prop('disabled', true).text('Submitting...');
 
+            var submitUrl = $('#ID').val() ? 'partner-survey-update' : 'partner-survey-submit';
+
             $.ajax({
-                url: "partner-survey-submit",
+                url: submitUrl,
                 type: "POST",
                 data: formData,
                 processData: false,

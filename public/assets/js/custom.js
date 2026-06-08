@@ -165,21 +165,20 @@
         });
  
         // Left Sidemenu BG Color Switcher
-        document.getElementById('BGPrimary').onclick = switchPrimary;
-        document.getElementById('BGSuccess').onclick = switchSuccess;
-        document.getElementById('BGSecondary').onclick = switchSecondary;
-        document.getElementById('BGPurple').onclick = switchPurple;
-        document.getElementById('BGDanger').onclick = switchDanger;
-        document.getElementById('BGWarning').onclick = switchWarning;
-        document.getElementById('BGWarning').onclick = switchWarning;
-        document.getElementById('BGPurpleIndigo').onclick = switchPurpleIndigo;
-        document.getElementById('BGPink').onclick = switchPink;
-        document.getElementById('BGIndigo').onclick = switchIndigo;
-        document.getElementById('BGnNightBlue').onclick = switchNightBlue;
-        document.getElementById('BGGray').onclick = switchGray;
-        document.getElementById('BGGrayBlue').onclick = switchGrayBlue;
-        document.getElementById('BGGreen').onclick = switchGreen;
-        document.getElementById('BGDeepPurple').onclick = switchDeepPurple;
+        var el;
+        el = document.getElementById('BGPrimary'); if (el) el.onclick = switchPrimary;
+        el = document.getElementById('BGSuccess'); if (el) el.onclick = switchSuccess;
+        el = document.getElementById('BGSecondary'); if (el) el.onclick = switchSecondary;
+        el = document.getElementById('BGPurple'); if (el) el.onclick = switchPurple;
+        el = document.getElementById('BGDanger'); if (el) el.onclick = switchDanger;
+        el = document.getElementById('BGWarning'); if (el) el.onclick = switchWarning;
+        el = document.getElementById('BGPurpleIndigo'); if (el) el.onclick = switchPurpleIndigo;
+        el = document.getElementById('BGPink'); if (el) el.onclick = switchPink;
+        el = document.getElementById('BGIndigo'); if (el) el.onclick = switchIndigo;
+        el = document.getElementById('BGnNightBlue'); if (el) el.onclick = switchNightBlue;
+        el = document.getElementById('BGGray'); if (el) el.onclick = switchGray;
+        el = document.getElementById('BGGreen'); if (el) el.onclick = switchGreen;
+        el = document.getElementById('BGDeepPurple'); if (el) el.onclick = switchDeepPurple;
         
         function switchPrimary() {
             document.getElementsByTagName('body')[0].className = 'sidemenu-bg-primary'; 
