@@ -176,11 +176,11 @@
                     }, extra);
                 },
                 processResults: function(res) {
-
+                    console.log(res)
                     return {
                         results: res.data.map(function(row) {
                             let data = row
-                            let text = `${data.warehouse_location} - ${data.warehouse_task_id}`
+                            let text = row[labelField]
                             return {
                                 id: row[valueField],
                                 text: text
