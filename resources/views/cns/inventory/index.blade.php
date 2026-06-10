@@ -21,12 +21,12 @@
                     <label class="d-block mb-1"><small>Bulan</small></label>
                     <input type="month" id="filterMonth" class="form-control form-control-sm" style="width:160px;" />
                 </div>
-                <div class="m-1" style="width:280px;">
+                <!-- <div class="m-1" style="width:280px;">
                     <label class="d-block mb-1"><small>No. Polisi</small></label>
                     <select id="filterPoliceNo" style="width:100%;">
                         <option value="">-- Semua --</option>
                     </select>
-                </div>
+                </div> -->
                 <div>
                     <button class="btn btn-sm btn-primary" onclick="applyFilters()">Filter</button>
                     <button class="btn btn-sm btn-secondary ml-1" onclick="resetFilters()">Reset</button>
@@ -46,6 +46,8 @@
 <script>
     var mitraId = null;
     $(document).ready(function() {
+        var now = new Date();
+        $('#filterMonth').val(now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'));
         initProjectionGrid()
         loadPoliceNoOptions()
     })
@@ -151,8 +153,8 @@
 
         let tHeader = [
             'No', 'Bulan', 'Tanggal',
-            'Asal Warehouse', 'No. Polisi / Kontainer', 'QTY SJ', 'In (Kg)',
-            'Out (Kg)', 'Jumlah Stok Pelindo (Kg)', 'Remarks', 'Attachment'
+            'Asal Warehouse', 'Qty Outbound PTU', 'Qty Inbound Pelindo (Kg)',
+            'Qty Outbound Pelindo (Kg)', 'Jumlah Stok Pelindo (Kg)', 'Qty Sounding', 'Remarks', 'Attachment Nota Timbang'
         ]
 
 
@@ -161,7 +163,7 @@
             '#text_filter', '#text_filter', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan'
         ]
 
-        let tWidth = tHeader.map(() => '110')
+        let tWidth = tHeader.map(() => '*')
         let tColType = tHeader.map((e, i) => {
 
             // if (i === 1) {
@@ -187,8 +189,8 @@
             '#cspan',
             '#cspan',
             '#cspan',
-            '#cspan',
-            '#cspan',
+            '#stat_total',
+            '#stat_total',
             '#stat_total',
             '#stat_total',
             '#stat_total',
@@ -199,8 +201,8 @@
             '',
             '',
             '',
-            '',
-            '',
+            'text-align:right;font-weight:bold;',
+            'text-align:right;font-weight:bold;',
             'text-align:right;font-weight:bold;',
             'text-align:right;font-weight:bold;',
             'text-align:right;font-weight:bold;',
@@ -209,7 +211,15 @@
         ProjectionGrid.attachFooter(tFooter.join(','), tFooterStyle);
         // ProjectionGrid.enableAutoWidth(true);
         ProjectionGrid.init();
-        ProjectionGrid.clearAndLoad(`cns-inventory-tracking-data`);
+        ProjectionGrid.attachEvent("onXLE", function() {
+            var rowId = ProjectionGrid.getRowId(0);
+            if (rowId) {
+                ProjectionGrid.setRowTextStyle(rowId, "font-weight:bold;");
+                ProjectionGrid.setRowColor(rowId, "#E8F4FD");
+                ProjectionGrid.cells(rowId, 0).setValue('');
+            }
+        });
+        ProjectionGrid.clearAndLoad(`cns-inventory-tracking-data?month=${$('#filterMonth').val()}`);
     }
 
 

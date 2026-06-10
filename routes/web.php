@@ -5257,9 +5257,9 @@ Route::group(['middleware' => 'log.access'], function () {
     $cnsInventoryPref = "cns-inventory-tracking";
     Route::get("$cnsInventoryPref-index", [UCOLogisticController::class, 'trackExportedStockIndex'])->name($cnsInventoryPref . '.index');
     Route::get("$cnsInventoryPref-create", [UCOLogisticController::class, 'trackExportedStockCreatePage'])->name($cnsInventoryPref . '.create');
-    Route::get("$cnsInventoryPref-data", [UCOLogisticController::class, 'trackExportedStockData'])->name($cnsInventoryPref . '.data');
+    Route::get("$cnsInventoryPref-data", [UCOLogisticController::class, 'trackStoragePelindoData'])->name($cnsInventoryPref . '.data');
     Route::get("$cnsInventoryPref-data-json", [UCOLogisticController::class, 'trackExportedStockDataJSON'])->name($cnsInventoryPref . '.data-json');
-    Route::post("$cnsInventoryPref-submit", [UCOLogisticController::class, 'submitExportedStock'])->name($cnsInventoryPref . '.submit');
+    Route::post("$cnsInventoryPref-submit", [UCOLogisticController::class, 'submitStoragePelindo'])->name($cnsInventoryPref . '.submit');
     Route::post("$cnsInventoryPref-submit-edit", [UCOLogisticController::class, 'updateExportedStock'])->name($cnsInventoryPref . '.submit-edit');
     Route::delete("$cnsInventoryPref-delete", [UCOLogisticController::class, 'deleteExportedStock'])->name($cnsInventoryPref . '.delete');
 
