@@ -282,16 +282,12 @@ class UCOController extends Controller
             fn($q) =>
             $q->whereRaw("DATE_FORMAT(Transaction_Date, '%Y-%m') = ?", [$month])
         )
-            ->selectRaw("
-                Transaction_Date,
-                SUM(CASE WHEN Type = 'inbound' THEN Quantity ELSE 0 END) AS Inbound,
-                SUM(CASE WHEN Type = 'outbound' THEN Quantity ELSE 0 END) AS Outbound,
-                MAX(Quantity_PTU) AS Quantity_PTU,
-                MAX(Quantity_Sounding) AS Quantity_Sounding
-            ")
-            ->groupBy('Transaction_Date')
-            ->orderBy('Transaction_Date')
-            ->get();
+            ->leftJoin('meta_files as mf', function ($join) {
+                $join->on('uco_storage_pelindo.ID', '=', 'mf.Map_To')
+                    ->where('mf.Topic', '=', 'uco-storage-pelindo');
+            })
+            ->select('uco_storage_pelindo.*', 'uco_storage_pelindo.ID as Storage_Pelindo_Id', 'mf.Path as Attachment_Path')
+            ->orderBy('Transaction_Date')->get();
 
         $opening = 0;
         if ($month) {
@@ -306,36 +302,43 @@ class UCOController extends Controller
         // First row: opening balance (accumulation from months before)
         $r = $xml->addChild('row');
         $r->addChild('cell', '');
-        $r->addChild('cell', 'Opening');
+        $r->addChild('cell', 'Opening Stock');
         $r->addChild('cell', '');
-        $r->addChild('cell', 'Saldo Awal');
-        $r->addChild('cell', '0');
-        $r->addChild('cell', '0');
-        $r->addChild('cell', '0');
+        $r->addChild('cell', '');
+        $r->addChild('cell', '');
+        $r->addChild('cell', '');
+        $r->addChild('cell', '');
         $r->addChild('cell', $opening);
-        $r->addChild('cell', '0');
-        $r->addChild('cell', 'Akumulasi bulan sebelumnya');
+        $r->addChild('cell', '');
+        $r->addChild('cell', '');
         $r->addChild('cell', '');
 
         // Data rows — running balance starts from $opening
         $counter = 1;
         $running = $opening;
 
+
         foreach ($rows as $row) {
-            $running = $running + $row->Inbound - $row->Outbound;
+            $inbound  = $row->Type === 'inbound'  ? $row->Quantity : 0;
+            $outbound = $row->Type === 'outbound' ? $row->Quantity : 0;
+            $running  = $running + $inbound - $outbound;
 
             $r = $xml->addChild('row');
+            $r->addAttribute('ID', $row->Storage_Pelindo_Id);
             $r->addChild('cell', $counter++);
             $r->addChild('cell', Carbon::parse($row->Transaction_Date)->format('F'));
             $r->addChild('cell', Carbon::parse($row->Transaction_Date)->format('d-M-Y'));
             $r->addChild('cell', 'Pelindo');
             $r->addChild('cell', $row->Quantity_PTU);
-            $r->addChild('cell', $row->Inbound);
-            $r->addChild('cell', $row->Outbound);
+            $r->addChild('cell', $inbound);
+            $r->addChild('cell', $outbound);
             $r->addChild('cell', $running);
             $r->addChild('cell', $row->Quantity_Sounding);
             $r->addChild('cell', $row->Notes);
-            $r->addChild('cell', "Belum ada attachment");
+            $r->addChild('cell', $row->Created_At);
+            $r->addChild('cell', $row->Attachment_Path
+                ? 'Link^ ' . asset("filevendor/{$row->Attachment_Path}")
+                : 'Belum ada attachment');
         }
 
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
@@ -391,22 +394,15 @@ class UCOController extends Controller
 
     public function trackExportedStockDataJSON(Request $r)
     {
-        $vs = DB::table('vessel_schedules as vs')
-            ->join('vessel_schedule_dtls as vsdtl', 'vsdtl.Task_ID', '=', 'vs.Task_ID')
-            ->select(
-                'vs.id',
-                'vs.Created_Date as Date',
-                'vsdtl.Police_No',
-                'vsdtl.Note',
-                'vsdtl.Status',
-                'vsdtl.Qty_SJ',
-                'vsdtl.Stock_In',
-                'vsdtl.Stock_Out'
-            )
-            ->where('vsdtl.ID', '=', $r->query('ID'))
-            ->get();
+        $row = UCOStoragePelindo::leftJoin('meta_files as mf', function ($join) {
+            $join->on('uco_storage_pelindo.ID', '=', 'mf.Map_To')
+                ->where('mf.Topic', '=', 'uco-storage-pelindo');
+        })
+            ->select('uco_storage_pelindo.*', 'mf.Path as Attachment_Path')
+            ->where('uco_storage_pelindo.ID', '=', $r->query('ID'))
+            ->first();
 
-        return response()->json($vs);
+        return response()->json($row ? [$row] : []);
     }
 
     public function submitStoragePelindo(Request $r)
@@ -460,16 +456,16 @@ class UCOController extends Controller
 
     public function updateExportedStock(Request $r)
     {
-        DB::table('vessel_schedule_dtls')
-            ->where('id', $r->id)
+        UCOStoragePelindo::where('ID', $r->id)
             ->update($r->only([
-                "Date",
-                "Police_No",
-                "Note",
-                "Status",
-                "Qty_SJ",
-                "Stock_In",
-                "Stock_Out",
+                'Type',
+                'Quantity',
+                'Quantity_PTU',
+                'Quantity_Sounding',
+                'Created_By',
+                'Transaction_Date',
+                'Reference_Number',
+                'Notes',
             ]));
 
         return response()->json(['success' => true, 'message' => 'Record updated successfully']);

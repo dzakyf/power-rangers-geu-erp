@@ -8,48 +8,65 @@
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="edit_Date">Tanggal <span style="color:red;">*</span></label>
-                            <input type="date" name="Date" id="edit_Date" class="form-control" required />
+                            <label for="edit_Type">Type <span style="color:red;">*</span></label>
+                            <select name="Type" id="edit_Type" disabled class="form-control" required>
+                                <option value="inbound">Inbound</option>
+                                <option value="outbound">Outbound</option>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="edit_Police_No">No. Polisi / Kontainer <span style="color:red;">*</span></label>
-                            <input type="text" name="Police_No" id="edit_Police_No" class="form-control" required />
+                            <label for="edit_Quantity">Quantity (Kg) <span style="color:red;">*</span></label>
+                            <input type="number" step="0.01" name="Quantity" id="edit_Quantity" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="edit_Transaction_Date">Transaction Date <span style="color:red;">*</span></label>
+                            <input type="date" name="Transaction_Date" id="edit_Transaction_Date" class="form-control" required />
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="edit_Quantity_PTU">Qty PTU</label>
+                            <input type="number" step="0.01" name="Quantity_PTU" id="edit_Quantity_PTU" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="edit_Quantity_Sounding">Qty Sounding</label>
+                            <input type="number" step="0.01" name="Quantity_Sounding" id="edit_Quantity_Sounding" class="form-control" />
                         </div>
                     </div>
                     <!-- <div class="col-md-4">
                         <div class="form-group">
-                            <label for="edit_Status">Status</label>
-                            <input type="text" name="Status" id="edit_Status" class="form-control" />
+                            <label for="edit_Created_By">Created By <span style="color:red;">*</span></label>
+                            <input type="text" name="Created_By" id="edit_Created_By" class="form-control" required />
                         </div>
                     </div> -->
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="edit_Qty_SJ">QTY SJ</label>
-                            <input type="number" step="0.01" name="Qty_SJ" id="edit_Qty_SJ" class="form-control" />
+                            <label for="edit_Reference_Number">Reference Number</label>
+                            <input type="text" name="Reference_Number" id="edit_Reference_Number" class="form-control" />
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <!-- <div class="col-md-4">
                         <div class="form-group">
-                            <label for="edit_Stock_In">Stock In (Kg)</label>
-                            <input type="number" step="0.01" name="Stock_In" id="edit_Stock_In" class="form-control" />
+                            <label for="edit_Attachment">Attachment</label>
+                            <input type="file" name="Attachment" id="edit_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="edit_Stock_Out">Stock Out (Kg)</label>
-                            <input type="number" step="0.01" name="Stock_Out" id="edit_Stock_Out" class="form-control" />
-                        </div>
-                    </div>
+                    </div> -->
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-12">
                         <div class="form-group">
-                            <label for="edit_Note">Remarks</label>
-                            <textarea name="Note" id="edit_Note" class="form-control" rows="2"></textarea>
+                            <label for="edit_Notes">Notes</label>
+                            <textarea name="Notes" id="edit_Notes" class="form-control" rows="2"></textarea>
                         </div>
                     </div>
                 </div>
@@ -73,13 +90,14 @@
             }
 
             document.getElementById('edit_id').value = rowId;
-            document.getElementById('edit_Date').value = row.Date ? row.Date.substring(0, 10) : '';
-            document.getElementById('edit_Police_No').value = row.Police_No ?? '';
-            // document.getElementById('edit_Status').value = row.Status ?? '';
-            document.getElementById('edit_Qty_SJ').value = row.Qty_SJ ?? '';
-            document.getElementById('edit_Stock_In').value = row.Stock_In ?? '';
-            document.getElementById('edit_Stock_Out').value = row.Stock_Out ?? '';
-            document.getElementById('edit_Note').value = row.Note ?? '';
+            document.getElementById('edit_Type').value = row.Type ?? 'inbound';
+            document.getElementById('edit_Quantity').value = row.Quantity ?? '';
+            document.getElementById('edit_Transaction_Date').value = row.Transaction_Date ? row.Transaction_Date.substring(0, 10) : '';
+            document.getElementById('edit_Quantity_PTU').value = row.Quantity_PTU ?? '';
+            document.getElementById('edit_Quantity_Sounding').value = row.Quantity_Sounding ?? '';
+            // document.getElementById('edit_Created_By').value = row.Created_By ?? '';
+            document.getElementById('edit_Reference_Number').value = row.Reference_Number ?? '';
+            document.getElementById('edit_Notes').value = row.Notes ?? '';
 
             $('#FormEditStock').show();
         }).fail(function() {
@@ -90,8 +108,8 @@
     function submitEditStock() {
         var form = document.getElementById('StockEditForm');
 
-        if (!form.Date.value) {
-            alert('Tanggal wajib diisi');
+        if (!form.Transaction_Date.value) {
+            alert('Transaction Date wajib diisi');
             return;
         }
 
@@ -108,7 +126,7 @@
                     alert('Data berhasil diupdate');
                     form.reset();
                     $('#FormEditStock').hide();
-                    applyFilters();
+                    ProjectionGrid.clearAndLoad(`cns-inventory-tracking-data?month=${$('#filterMonth').val()}`);
                 } else {
                     alert('Gagal mengupdate data');
                 }
