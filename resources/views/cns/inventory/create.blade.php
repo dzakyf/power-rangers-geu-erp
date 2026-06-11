@@ -1,14 +1,53 @@
 <div id="FormQualityControl" class="row m-1" style="display:none;">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">CREATE QUALITY CONTROL</div>
+    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">CREATE UCO STORAGE PELINDO</div>
     <div class="card w-100">
         <div class="card-body">
-            <form id="QualityControlForm" enctype="multipart/form-data">
+            <form id="UCOStorageForm" enctype="multipart/form-data">
                 @csrf
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="Created_At">Tanggal <span style="color:red;">*</span></label>
-                            <input type="date" name="Created_At" id="Created_At" class="form-control" required />
+                            <label for="Type">Type <span style="color:red;">*</span></label>
+                            <select name="Type" id="Type" class="form-control" required>
+                                <option value="">-- Pilih --</option>
+                                <option value="inbound">Inbound</option>
+                                <option value="outbound">Outbound</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="Quantity">Quantity (Kg) <span style="color:red;">*</span></label>
+                            <input type="number" step="0.01" name="Quantity" id="Quantity" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="Transaction_Date">Transaction Date <span style="color:red;">*</span></label>
+                            <input type="date" name="Transaction_Date" id="Transaction_Date" class="form-control" required />
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="Quantity_PTU">Qty PTU</label>
+                            <input type="number" step="0.01" name="Quantity_PTU" id="Quantity_PTU" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="Quantity_Sounding">Qty Sounding</label>
+                            <input type="number" step="0.01" name="Quantity_Sounding" id="Quantity_Sounding" class="form-control" />
+                        </div>
+                    </div>
+
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="Reference_Number">Reference Number</label>
+                            <input type="text" name="Reference_Number" id="Reference_Number" class="form-control" />
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -18,92 +57,60 @@
                         </div>
                     </div>
                 </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label for="Notes">Notes</label>
+                            <textarea name="Notes" id="Notes" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
 
-                <table class="table table-bordered text-center">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>Type</th>
-                            <th>FFA As Palmitic</th>
-                            <th>FFA As Oleic</th>
-                            <th>MC</th>
-                            <th>IMP</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="align-middle font-weight-bold">Top</td>
-                            <td><input type="number" step="0.01" name="top_FFA_As_Palmitic" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="top_FFA_As_Oleic"    class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="top_MC"              class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="top_IMP"             class="form-control" /></td>
-                        </tr>
-                        <tr>
-                            <td class="align-middle font-weight-bold">Middle</td>
-                            <td><input type="number" step="0.01" name="middle_FFA_As_Palmitic" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="middle_FFA_As_Oleic"    class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="middle_MC"              class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="middle_IMP"             class="form-control" /></td>
-                        </tr>
-                        <tr>
-                            <td class="align-middle font-weight-bold">Bottom</td>
-                            <td><input type="number" step="0.01" name="bottom_FFA_As_Palmitic" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="bottom_FFA_As_Oleic"    class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="bottom_MC"              class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="bottom_IMP"             class="form-control" /></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <button type="button" class="btn btn-primary" onclick="submitQC()">Submit</button>
-                <button type="button" class="btn btn-secondary ml-2" onclick="$('#FormQualityControl').hide(); $('#QualityControlForm')[0].reset();">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitUCOStorage()">Submit</button>
+                <button type="button" class="btn btn-secondary ml-2" onclick="$('#FormQualityControl').hide(); $('#UCOStorageForm')[0].reset();">Cancel</button>
             </form>
         </div>
     </div>
 </div>
 
 <script>
-    function submitQC() {
-        var form = document.getElementById('QualityControlForm');
-        var createdAt = form.Created_At.value;
+    function submitUCOStorage() {
+        var form = document.getElementById('UCOStorageForm');
 
-        if (!createdAt) {
-            alert('Tanggal wajib diisi');
+        if (!form.Type.value) {
+            alert('Type wajib diisi');
+            return;
+        }
+        if (!form.Quantity.value) {
+            alert('Quantity wajib diisi');
+            return;
+        }
+        if (!form.Transaction_Date.value) {
+            alert('Transaction Date wajib diisi');
             return;
         }
 
-        var types = ['top', 'middle', 'bottom'];
-        var attachmentFile = form.Attachment.files[0];
+        var formData = new FormData(form);
 
-        var requests = types.map(function(type) {
-            var formData = new FormData();
-            formData.append('_token', form._token.value);
-            formData.append('Created_At',      createdAt);
-            formData.append('Type',            type.charAt(0).toUpperCase() + type.slice(1));
-            formData.append('FFA_As_Palmitic', form[type + '_FFA_As_Palmitic'].value);
-            formData.append('FFA_As_Oleic',    form[type + '_FFA_As_Oleic'].value);
-            formData.append('MC',              form[type + '_MC'].value);
-            formData.append('IMP',             form[type + '_IMP'].value);
-
-            if (attachmentFile) {
-                formData.append('Attachment', attachmentFile);
+        $.ajax({
+            url: 'cns-inventory-tracking-submit',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(res) {
+                if (res.success) {
+                    alert('Data berhasil disimpan');
+                    form.reset();
+                    $('#FormQualityControl').hide();
+                    ProjectionGrid.clearAndLoad(`cns-inventory-tracking-data?month=${$('#filterMonth').val()}`);
+                } else {
+                    alert('Gagal menyimpan data: ' + (res.message || 'Unknown error'));
+                }
+            },
+            error: function(xhr) {
+                alert('Gagal menyimpan data');
             }
-
-            return $.ajax({
-                url: 'cns-quality-submit',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-            });
-        });
-
-        $.when.apply($, requests).then(function() {
-            alert('Data berhasil disimpan');
-            form.reset();
-            $('#FormQualityControl').hide();
-            ProjectionGrid.clearAndLoad('cns-quality-data');
-        }).fail(function() {
-            alert('Gagal menyimpan data');
         });
     }
 </script>

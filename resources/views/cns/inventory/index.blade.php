@@ -34,17 +34,18 @@
             </div>
             <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
             <div>
-                <!-- <input type="button" id="CreateQC" name="CreateQC" value="Create" class="btn btn-info mt-2 mr-2" onclick="createQC()" /> -->
-                <input type="button" id="DetailQC" name="DetailQC" value="Detail" class="btn btn-info mt-2 mr-2" onclick="detailQC()" />
+                <input type="button" id="CreateUCO" name="CreateUCO" value="Create" class="btn btn-info mt-2 mr-2" onclick="createUCO()" />
+                <input type="button" id="DetailQC" name="DetailQC" value="Detail/Update" class="btn btn-info mt-2 mr-2" onclick="detailQC()" />
+                <input type="button" id="DetailQC" name="DetailQC" value="Log" class="btn btn-info mt-2 mr-2" onclick="alert('under development');" />
                 <!-- <input type="button" id="DeleteQC" name="DeleteQC" value="Delete" class="btn btn-info mt-2 mr-2" onclick="deleteQC()" /> -->
             </div>
         </div>
     </div>
 </div>
-
+@include('cns.inventory.create')
 @include('cns.inventory.edit')
 <script>
-    var mitraId = null;
+    var inventoryId = null;
     $(document).ready(function() {
         var now = new Date();
         $('#filterMonth').val(now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'));
@@ -72,19 +73,17 @@
         })
     }
 
-    function createQC() {
+    function createUCO() {
         $('#FormQualityControl').show();
-        $('#FormEditQualityControl').hide();
     }
 
     function detailQC() {
         $('#FormQualityControl').hide();
-        var rowId = ProjectionGrid.getSelectedRowId();
-        if (!rowId) {
+        if (!inventoryId) {
             alert('Pilih data terlebih dahulu');
             return;
         }
-        prefillEditQC(rowId);
+        prefillEditQC(inventoryId);
     }
 
     function resetFilters() {
@@ -100,7 +99,9 @@
         if (month) params.push('month=' + month)
         if (policeNo) params.push('police_no=' + encodeURIComponent(policeNo))
         var url = 'cns-inventory-tracking-data' + (params.length ? '?' + params.join('&') : '')
-        ProjectionGrid.clearAndLoad(url)
+        ProjectionGrid.clearAndLoad(url, function() {
+            ProjectionGrid.groupBy(2)
+        })
     }
 
     function deleteQC() {
@@ -138,14 +139,6 @@
         });
     }
 
-    function redirectToCreateProjection() {
-        if (!mitraId) {
-            alert("Pilh mitra terlebih dahulu")
-            return
-        }
-        window.location.href = `projection-create?id=${mitraId}`
-    }
-
 
 
     function initProjectionGrid() {
@@ -154,21 +147,21 @@
         let tHeader = [
             'No', 'Bulan', 'Tanggal',
             'Asal Warehouse', 'Qty Outbound PTU', 'Qty Inbound Pelindo (Kg)',
-            'Qty Outbound Pelindo (Kg)', 'Jumlah Stok Pelindo (Kg)', 'Qty Sounding', 'Remarks', 'Attachment Nota Timbang'
+            'Qty Outbound Pelindo (Kg)', 'Jumlah Stok Pelindo (Kg)', 'Qty Sounding', 'Remarks', 'Dibuat Pada', 'Attachment Nota Timbang'
         ]
 
 
         let tTopHeader = [
             '#rspan', '#text_filter', '#text_filter',
-            '#text_filter', '#text_filter', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan'
+            '#text_filter', '#text_filter', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan'
         ]
 
         let tWidth = tHeader.map(() => '*')
         let tColType = tHeader.map((e, i) => {
 
-            // if (i === 1) {
-            //     return 'dhxCalendar';
-            // }
+            if (i === 11) {
+                return 'link';
+            }
 
             return 'ro'
         })
@@ -192,7 +185,8 @@
             '#stat_total',
             '#stat_total',
             '#stat_total',
-            '#stat_total',
+            // '#stat_total',
+            '',
             '#stat_total',
 
         ]
@@ -211,6 +205,10 @@
         ProjectionGrid.attachFooter(tFooter.join(','), tFooterStyle);
         // ProjectionGrid.enableAutoWidth(true);
         ProjectionGrid.init();
+        ProjectionGrid.attachEvent('onRowSelect', function(id) {
+            inventoryId = ProjectionGrid.getRowAttribute(id, 'ID')
+            console.log(inventoryId)
+        })
         ProjectionGrid.attachEvent("onXLE", function() {
             var rowId = ProjectionGrid.getRowId(0);
             if (rowId) {
@@ -219,7 +217,11 @@
                 ProjectionGrid.cells(rowId, 0).setValue('');
             }
         });
-        ProjectionGrid.clearAndLoad(`cns-inventory-tracking-data?month=${$('#filterMonth').val()}`);
+        ProjectionGrid.clearAndLoad(`cns-inventory-tracking-data?month=${$('#filterMonth').val()}`, function() {
+
+            ProjectionGrid.groupBy(2);
+        });
+
     }
 
 
