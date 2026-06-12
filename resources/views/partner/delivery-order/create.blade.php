@@ -92,7 +92,7 @@
                         results: res.data.map(function(row) {
                             return {
                                 id: row.ID,
-                                text: row.Code
+                                text: row.Code + ' — ' + (row.POO_Name || '')
                             };
                         })
                     };

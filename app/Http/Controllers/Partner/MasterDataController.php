@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Partner;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\MasterPackaging;
+use App\MasterCategory;
+use SimpleXMLElement;
 
 class MasterDataController extends Controller
 {
@@ -492,5 +495,82 @@ class MasterDataController extends Controller
         }
 
         return response()->json(['data' => $query->get()]);
+    }
+    // === Master Packaging ===
+    public function packagingData(Request $r)
+    {
+        $data = MasterPackaging::all();
+
+        if ($r->query('format') === 'xml') {
+            $xml = new SimpleXMLElement('<rows/>');
+            foreach ($data as $i => $d) {
+                $row = $xml->addChild('row');
+                $row->addChild('cell', $i + 1);
+                $row->addChild('cell', $d->Name);
+                $row->addChild('cell', $d->Capacity ?? '');
+                $row->addChild('cell', $d->Unit);
+                $row->addChild('cell', $d->Description ?? '');
+                $row->addChild('cell', $d->Status);
+            }
+            return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function packagingSubmit(Request $r)
+    {
+        $model = MasterPackaging::create($r->only(['Name', 'Capacity', 'Unit', 'Description', 'Status']));
+        return response()->json(['success' => true, 'id' => $model->ID]);
+    }
+
+    public function packagingEdit(Request $r)
+    {
+        MasterPackaging::where('ID', $r->id)->update($r->only(['Name', 'Capacity', 'Unit', 'Description', 'Status']));
+        return response()->json(['success' => true]);
+    }
+
+    public function packagingDelete(Request $r)
+    {
+        MasterPackaging::where('ID', $r->id)->delete();
+        return response()->json(['success' => true]);
+    }
+
+    // === Master Category ===
+    public function categoryData(Request $r)
+    {
+        $data = MasterCategory::all();
+
+        if ($r->query('format') === 'xml') {
+            $xml = new SimpleXMLElement('<rows/>');
+            foreach ($data as $i => $d) {
+                $row = $xml->addChild('row');
+                $row->addChild('cell', $i + 1);
+                $row->addChild('cell', $d->Name);
+                $row->addChild('cell', $d->Description ?? '');
+                $row->addChild('cell', $d->Status);
+            }
+            return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function categorySubmit(Request $r)
+    {
+        $model = MasterCategory::create($r->only(['Name', 'Description', 'Status']));
+        return response()->json(['success' => true, 'id' => $model->ID]);
+    }
+
+    public function categoryEdit(Request $r)
+    {
+        MasterCategory::where('ID', $r->id)->update($r->only(['Name', 'Description', 'Status']));
+        return response()->json(['success' => true]);
+    }
+
+    public function categoryDelete(Request $r)
+    {
+        MasterCategory::where('ID', $r->id)->delete();
+        return response()->json(['success' => true]);
     }
 }

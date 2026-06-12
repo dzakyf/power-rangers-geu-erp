@@ -55,10 +55,10 @@
     }
 
     function initTableGrid1() {
-        let tHeader = ['No', null, 'Nama POO', 'Status', 'Tanggal Work Order', 'Dibuat Pada']
-        let tWidth = tHeader.map((e, i) => i == 1 ? 0 : '150')
-        let headerAttachment = tHeader.map((e, i) => i <= 1 ? '#rspan' : '#text_filter')
-        let colId = ['No', 'ID', 'Nama POO', 'Status', 'Tanggal Work Order', 'Dibuat Pada'].join(',')
+        let tHeader = ['No', 'WO No', null, 'Nama POO', 'Status', 'Tanggal Work Order', 'Dibuat Pada']
+        let tWidth = tHeader.map((e, i) => i == 2 ? 0 : '150')
+        let headerAttachment = tHeader.map((e, i) => i <= 2 ? '#rspan' : '#text_filter')
+        let colId = ['No', 'WO No', 'ID', 'Nama POO', 'Status', 'Tanggal Work Order', 'Dibuat Pada'].join(',')
 
         Grid1 = new dhtmlXGridObject('MembershipGrid');
         Grid1.setImagePath("./dhtmlx/imgs/");

@@ -537,6 +537,7 @@ class UCOController extends Controller
                 $item->addAttribute('ID', $row->ID);
 
                 $item->addChild('cell', $counter);
+                $item->addChild('cell', htmlspecialchars((string) $row->Code));
                 $item->addChild('cell', htmlspecialchars((string) $row->ID));
                 $item->addChild('cell', htmlspecialchars((string) $row->POO_Name));
                 $item->addChild('cell', htmlspecialchars((string) $row->Status));

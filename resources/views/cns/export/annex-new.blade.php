@@ -17,11 +17,11 @@ $Saya =  Auth::user()->username;
 					<div class="row">
 						<!-- Visible mapping inputs to match ShipmentInstructionController::newShipmentInstructionSubmit -->
 						<div class="col-md-3 form-group">
-							<label for="SI_No">SI No</label>
+							<label for="SI_No">Final SI No</label>
 							<select name="SI_No" id="SI_No" class="form-control">
 								<option value="">-- Select SI No --</option>
 								@foreach($shipments as $shipment)
-									<option value="{{ $shipment->SI_No }}">{{ $shipment->SI_No }}</option>
+									<option value="{{ $shipment->Final_SI_No }}">{{ $shipment->Final_SI_No }}</option>
 								@endforeach
 							</select>
 						</div>
@@ -441,11 +441,11 @@ $Saya =  Auth::user()->username;
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
-                SI_No: val
+                Final_SI_No: val
             },
             success: function(response) {
                 Object.keys(response).forEach(function(key) {
-                    if (key != 'orderDetails' && key != 'Final_SI_No') {
+                    if (key != 'orderDetails' && key != 'SI_No') {
 						if ($('#' + key).length) {
 							$('#' + key).val(response[key]);
 						}
@@ -472,14 +472,14 @@ $Saya =  Auth::user()->username;
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "cns-export-commercial-invoice-new-submit?_token={{ csrf_token() }}",
+			url: "cns-export-annex-new-submit?_token={{ csrf_token() }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
 					var cariAWB = data.split(":");
-					alert('Data Commercial Invoice Submitted!');
+					alert('Data Annex Submitted!');
 
 					// location.href = "partner-announcement";
                     refreshdata();
