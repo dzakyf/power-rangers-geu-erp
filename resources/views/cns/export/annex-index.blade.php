@@ -83,13 +83,29 @@ $Saya =  Auth::user()->username;
 	}
 	AnnexVii = new dhtmlXGridObject('AnnexVii');
 	AnnexVii.setImagePath("./dhtmlx/imgs/");
-	AnnexVii.setHeader("No,SI No, Invoice No, Invoice Date, Consignee, Description of Cargo, Qty (MT), Unit Price (MT), Amount, Subtotal, Advance Payment, Other, Total, Note");
-	AnnexVii.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	// AnnexVii.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	AnnexVii.setInitWidths("60,150,150,150,150,250,100,150,150,150,150,150,150,200");
-	AnnexVii.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left");
-	AnnexVii.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	AnnexVii.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	AnnexVii.setHeader(
+		"No,Annex No,SI No,Order No,Shipper,Consignee,Shipment Date,Qty (Kg),POL,POD,BL No,HS Code,Status"
+	);
+
+	AnnexVii.attachHeader(
+		"#rspan,#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#select_filter"
+	);
+
+	AnnexVii.setInitWidths(
+		"80,150,150,120,200,200,120,120,120,120,150,120,*"
+	);
+
+	AnnexVii.setColAlign(
+		"center,left,left,left,left,left,center,right,left,left,left,left,center"
+	);
+
+	AnnexVii.setColSorting(
+		"str,str,str,str,str,str,date,int,str,str,str,str,str"
+	);
+
+	AnnexVii.setColTypes(
+		"ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro"
+	);
 	AnnexVii.enableSmartRendering(true, 150);
 	// AnnexVii.setNumberFormat("0,000", 7, ".", ",");
 	AnnexVii.attachEvent("onRowDblClicked", AnnexViiKlik);

@@ -4483,6 +4483,17 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$masterData-fleet-create", [MasterDataController::class, 'createMasterFleet']);
     Route::post("$masterData-fleet-create-submit", [MasterDataController::class, 'submitCreateMasterFleet']);
 
+    // --- Master Packaging ---
+    Route::get("$masterData-packaging-data",     [MasterDataController::class, 'packagingData']);
+    Route::post("$masterData-packaging-submit",  [MasterDataController::class, 'packagingSubmit']);
+    Route::post("$masterData-packaging-edit",    [MasterDataController::class, 'packagingEdit']);
+    Route::delete("$masterData-packaging-delete", [MasterDataController::class, 'packagingDelete']);
+
+    // --- Master Category ---
+    Route::get("$masterData-category-data",      [MasterDataController::class, 'categoryData']);
+    Route::post("$masterData-category-submit",   [MasterDataController::class, 'categorySubmit']);
+    Route::post("$masterData-category-edit",     [MasterDataController::class, 'categoryEdit']);
+    Route::delete("$masterData-category-delete", [MasterDataController::class, 'categoryDelete']);
 
     /** POO (Point of Origin UCO) */
     Route::get("$masterData-poo", [MasterDataController::class, 'POOPageIndex']);
@@ -4491,6 +4502,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$masterData-poo-create-submit", [MasterDataController::class, 'createPOO']);
     Route::get("$masterData-poo-update", [MasterDataController::class, 'updatePOOPage']);
     Route::post("$masterData-poo-update-submit", [MasterDataController::class, 'updatePOO']);
+
+
 
     /** finance */
     $finance = "finance";
@@ -5312,7 +5325,9 @@ Route::group(['middleware' => 'log.access'], function () {
 
     $exportAnnexPref = "cns-export-annex";
     Route::get("$exportAnnexPref-index", [CNSAnnexVIIController::class, 'indexAnnex']);
+    Route::get("xml-$exportAnnexPref", [CNSAnnexVIIController::class, 'indexAnnexXml']);
     Route::get("$exportAnnexPref-new", [CNSAnnexVIIController::class, 'newAnnex']);
+    Route::post("$exportAnnexPref-new-submit", [CNSAnnexVIIController::class, 'store']);
     Route::get("$exportAnnexPref-data", [CNSAnnexVIIController::class, 'getAnnexData']);
     Route::post("$exportAnnexPref-get-si", [CNSAnnexVIIController::class, 'getSI']);
     Route::get("$exportAnnexPref-print", [CNSAnnexVIIController::class, 'printAnnex']);

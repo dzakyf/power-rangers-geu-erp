@@ -22,12 +22,16 @@
                         @csrf
                         <div class="form-group">
                             <label for="WO_Number">WO Number</label>
-                            <select class="form-control select2" id="WO_Number" name="WO_Number" style="width:100%"></select>
+                            <select class="form-control select2" id="WO_Number" name="WO_Id" style="width:100%"></select>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="Type_Pickup">Type Pickup</label>
-                                <input type="text" class="form-control" id="Type_Pickup" name="Type_Pickup">
+                                <select class="form-control" id="Type_Pickup" name="Type_Pickup">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="mandiri">Mandiri</option>
+                                    <option value="pickup">Pickup</option>
+                                </select>
                             </div>
                             <div class="form-group col-md-6">
                                 <label for="Coverage">Route / Coverage</label>
@@ -37,11 +41,15 @@
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="Site">Site</label>
-                                <input type="text" class="form-control" id="Site" name="Site">
+                                <select class="form-control select2" id="Site" name="Site" style="width:100%">
+                                    <option value="">-- Pilih --</option>
+                                </select>
                             </div>
                             <div class="form-group col-md-6">
-                                <label for="Package">Package</label>
-                                <input type="text" class="form-control" id="Package" name="Package" required>
+                                <label for="Package">Kemasan</label>
+                                <select class="form-control select2" id="Package" name="Package" style="width:100%" required>
+                                    <option value="">-- Pilih --</option>
+                                </select>
                             </div>
                         </div>
                         <div class="form-row">
@@ -92,13 +100,30 @@
                         results: res.data.map(function(row) {
                             return {
                                 id: row.ID,
-                                text: row.Code
+                                text: row.Code + ' — ' + row.POO_Name
                             };
                         })
                     };
                 },
                 cache: true
             }
+        });
+
+        // Load sites from warehouse API
+        $.get('partner-warehouse-data', function(res) {
+            var $site = $('#Site');
+            $.each(res.data, function(_, item) {
+                var label = item.warehouse_task_id + ' -- ' + item.warehouse_location;
+                $site.append($('<option>', { value: label, text: label }));
+            });
+        });
+
+        // Load packaging from master-packaging API
+        $.get('master-packaging-data', function(res) {
+            var $pkg = $('#Package');
+            $.each(res.data, function(_, item) {
+                $pkg.append($('<option>', { value: item.Name, text: item.Name }));
+            });
         });
 
         $('#SubmitPickup').on('click', function() {

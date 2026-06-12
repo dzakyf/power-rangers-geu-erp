@@ -41,7 +41,9 @@
                             </div>
                             <div class="form-group col-md-6">
                                 <label for="Category">Category</label>
-                                <input type="text" class="form-control" id="Category" name="Category">
+                                <select class="form-control select2" id="Category" name="Category" style="width:100%">
+                                    <option value="">-- Pilih --</option>
+                                </select>
                             </div>
                         </div>
                         <div class="form-row">
@@ -61,7 +63,13 @@
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="Cycle">Cycle</label>
-                                <input type="text" class="form-control" id="Cycle" name="Cycle">
+                                <select class="form-control" id="Cycle" name="Cycle">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="1_week">1 Minggu</option>
+                                    <option value="2_week">2 Minggu</option>
+                                    <option value="3_week">3 Minggu</option>
+                                    <option value="4_week">4 Minggu</option>
+                                </select>
                             </div>
                             <div class="form-group col-md-6">
                                 <label for="Point">Point</label>
@@ -206,6 +214,14 @@
     $(document).ready(function() {
 
         makeSelect2('#Province', 'master-province', {}, 'Province', 'Province');
+
+        // Load categories
+        $.get('master-category-data', function(res) {
+            var cat = $('#Category');
+            $.each(res.data, function(_, item) {
+                cat.append($('<option>', { value: item.Name, text: item.Name }));
+            });
+        });
 
         $('#Province').on('change', function() {
             resetSelect2('#City');
