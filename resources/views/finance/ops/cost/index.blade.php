@@ -12,35 +12,17 @@
 </div>
 
 <div class="mt-3">
-    <ul class="nav nav-tabs" id="costTabs" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" id="acquisition-tab" data-toggle="tab" href="#acquisition" role="tab">Acquisition Cost</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="pickup-tab" data-toggle="tab" href="#pickup" role="tab">Pickup Cost</a>
-        </li>
-    </ul>
 
     <div class="tab-content mt-3">
-        <!-- Acquisition Cost Tab -->
-        <div class="tab-pane fade show active" id="acquisition" role="tabpanel">
-            <div class="card">
-                <div class="card-body">
-                    <p class="text-muted">Acquisition Cost content</p>
-                </div>
-            </div>
-        </div>
-
         <!-- Pickup Cost Tab -->
-        <div class="tab-pane fade" id="pickup" role="tabpanel">
-            <div class="card">
-                <div class="card-body">
-                    <div id="pickupCostGrid" style="width:100%;height:320px;background-color:white;overflow:hidden"></div>
-                    <div class="mt-3">
-                        <button type="button" class="btn btn-success" id="btnTopup">
-                            <i class="fas fa-plus mr-1"></i>Topup
-                        </button>
-                    </div>
+        <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">COST</div>
+        <div class="card">
+            <div class="card-body">
+                <div id="pickupCostGrid" style="width:100%;height:320px;background-color:white;overflow-x:auto"></div>
+                <div class="mt-3">
+                    <button type="button" class="btn btn-success" id="btnTopup">
+                        <i class="fas fa-plus mr-1"></i>Topup
+                    </button>
                 </div>
             </div>
         </div>
@@ -61,7 +43,6 @@
         pickupCostGrid.setColSorting("int,str,str,str,str,str");
         pickupCostGrid.setColTypes("ron,ro,ro,ro,ro,ro");
         pickupCostGrid.setSkin("dhx_skyblue");
-        pickupCostGrid.enableAutoWidth(true);
 
         pickupCostGrid.attachEvent("onRowSelect", function(id) {
             selectedRouteId = pickupCostGrid.getRowAttribute(id, "ID");

@@ -497,14 +497,25 @@ class MasterDataController extends Controller
         return response()->json(['data' => $query->get()]);
     }
     // === Master Packaging ===
+    public function packagingIndex()
+    {
+        return view('partner.packaging.index');
+    }
     public function packagingData(Request $r)
     {
-        $data = MasterPackaging::all();
+        $query = MasterPackaging::query();
+
+        if ($r->query('id')) {
+            $query->where('ID', $r->query('id'));
+        }
+
+        $data = $query->get();
 
         if ($r->query('format') === 'xml') {
             $xml = new SimpleXMLElement('<rows/>');
             foreach ($data as $i => $d) {
                 $row = $xml->addChild('row');
+                $row->addAttribute('ID', $d->ID);
                 $row->addChild('cell', $i + 1);
                 $row->addChild('cell', $d->Name);
                 $row->addChild('cell', $d->Capacity ?? '');
@@ -537,14 +548,26 @@ class MasterDataController extends Controller
     }
 
     // === Master Category ===
+    public function categoryIndex()
+    {
+        return view('partner.category.index');
+    }
+
     public function categoryData(Request $r)
     {
-        $data = MasterCategory::all();
+        $query = MasterCategory::query();
+
+        if ($r->query('id')) {
+            $query->where('ID', $r->query('id'));
+        }
+
+        $data = $query->get();
 
         if ($r->query('format') === 'xml') {
             $xml = new SimpleXMLElement('<rows/>');
             foreach ($data as $i => $d) {
                 $row = $xml->addChild('row');
+                $row->addAttribute('ID', $d->ID);
                 $row->addChild('cell', $i + 1);
                 $row->addChild('cell', $d->Name);
                 $row->addChild('cell', $d->Description ?? '');
@@ -572,5 +595,14 @@ class MasterDataController extends Controller
     {
         MasterCategory::where('ID', $r->id)->delete();
         return response()->json(['success' => true]);
+    }
+    public function packagingCreate()
+    {
+        return view('partner.packaging.create');
+    }
+
+    public function categoryCreate()
+    {
+        return view('partner.category.create');
     }
 }

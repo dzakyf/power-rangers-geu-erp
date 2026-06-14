@@ -4484,16 +4484,20 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$masterData-fleet-create-submit", [MasterDataController::class, 'submitCreateMasterFleet']);
 
     // --- Master Packaging ---
+    Route::get("$masterData-packaging", [MasterDataController::class, 'packagingIndex']);
     Route::get("$masterData-packaging-data",     [MasterDataController::class, 'packagingData']);
     Route::post("$masterData-packaging-submit",  [MasterDataController::class, 'packagingSubmit']);
     Route::post("$masterData-packaging-edit",    [MasterDataController::class, 'packagingEdit']);
     Route::delete("$masterData-packaging-delete", [MasterDataController::class, 'packagingDelete']);
+    Route::get("$masterData-packaging-create", [MasterDataController::class, 'packagingCreate']);
 
     // --- Master Category ---
+    Route::get("$masterData-category", [MasterDataController::class, 'categoryIndex']);
     Route::get("$masterData-category-data",      [MasterDataController::class, 'categoryData']);
     Route::post("$masterData-category-submit",   [MasterDataController::class, 'categorySubmit']);
     Route::post("$masterData-category-edit",     [MasterDataController::class, 'categoryEdit']);
     Route::delete("$masterData-category-delete", [MasterDataController::class, 'categoryDelete']);
+    Route::get("$masterData-category-create", [MasterDataController::class, 'categoryCreate']);
 
     /** POO (Point of Origin UCO) */
     Route::get("$masterData-poo", [MasterDataController::class, 'POOPageIndex']);
@@ -4509,6 +4513,9 @@ Route::group(['middleware' => 'log.access'], function () {
     $finance = "finance";
     Route::get("$finance-pickup-cost", [CostManagementController::class, 'pickupCostIndex']);
     Route::post("$finance-cost-approve-route", [CostManagementController::class, "approvePickupCost"]);
+
+    Route::get("finance-settlement-cost", [UCOLogisticController::class, 'indexSettlement']);
+    Route::get("finance-acquisition-cost", [UCOLogisticController::class, 'indexAcquisition']);
 
 
     /** Work Order */
