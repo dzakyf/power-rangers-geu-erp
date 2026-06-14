@@ -1263,4 +1263,13 @@ class UCOController extends Controller
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
+    public function indexSettlement()
+    {
+        return view('finance.ops.settlement.index');
+    }
+
+    public function indexAcquisition()
+    {
+        return view('finance.ops.acquisition.index');
+    }
 }
