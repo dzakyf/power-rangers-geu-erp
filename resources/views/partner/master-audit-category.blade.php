@@ -30,20 +30,20 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 </div>
 
 <div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div id="MasterAuditCategory" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-                <div>
-                    <input type="button" id="ekselMasterAuditCategoryDet" name="ekselMasterAuditCategoryDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="MasterAuditCategory.toExcel('./export/generate.php');" />
-                    <input type="button" id="newMasterAuditCategory" name="new" value="New Category" class="btn btn-primary mt-2 mr-2" onclick="MasterAuditCategoryNew()" />
-                    <input type="button" id="detailMasterAuditCategory" name="detailMasterAuditCategory" value="Detail Category" class="btn btn-info mt-2 mr-2" onclick="MasterAuditCategoryKlik()" />
-            
-                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
-                </div>
-            </div>
-        </div>
-    </div>
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<div id="MasterAuditCategory" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+				<div>
+					<input type="button" id="ekselMasterAuditCategoryDet" name="ekselMasterAuditCategoryDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="MasterAuditCategory.toExcel('./export/generate.php');" />
+					<input type="button" id="newMasterAuditCategory" name="new" value="New Category" class="btn btn-primary mt-2 mr-2" onclick="MasterAuditCategoryNew()" />
+					<input type="button" id="detailMasterAuditCategory" name="detailMasterAuditCategory" value="Detail Category" class="btn btn-info mt-2 mr-2" onclick="MasterAuditCategoryKlik()" />
+
+					<input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>
@@ -70,18 +70,21 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 			})
 			return
 		}
-		
+
 		$('#divParameter' + data).remove();
 
 		count--;
 	})
+
 	function MasterAuditCategoryNew() {
 		LoadM('divlistOpportunity', 'partner-master-audit-category-new');
 		return true;
 	}
-	function MasterAuditCategoryKlik() {
+
+	function MasterAuditCategoryKlik(id) {
 
 		MasterAuditCategoryID = MasterAuditCategory.getSelectedId();
+		console.log(MasterAuditCategoryID)
 		$("#divlistOpportunity").show();
 		if (MasterAuditCategoryID != '') {
 			$("#divlistProjectList").hide();
@@ -99,9 +102,9 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	MasterAuditCategory.setColSorting("int,str,str,str,str,str");
 	MasterAuditCategory.setColTypes("ron,ro,ro,ro,ro,ro");
 	MasterAuditCategory.enableSmartRendering(true, 150);
-    MasterAuditCategory.setDateFormat("%Y-%m-%d");
+	MasterAuditCategory.setDateFormat("%Y-%m-%d");
 	MasterAuditCategory.attachEvent('onRowDblClicked', function(rId, cInd) {
-		MasterAuditCategoryKlik();
+		MasterAuditCategoryKlik(rId);
 	});
 	MasterAuditCategory.setSkin("dhx_skyblue");
 	MasterAuditCategory.init();
@@ -125,18 +128,16 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 		})
 	}
 
-    function addRow()
-    {
-        let uid = MasterAuditCategory.uid();
-        let num = MasterAuditCategory.getRowsNum() + 1;
-        MasterAuditCategory.addRow(uid, [num,"{{ date('Y-m-d') }}",'0','','']);
-        MasterAuditCategory.selectRow(uid);
-    }
+	function addRow() {
+		let uid = MasterAuditCategory.uid();
+		let num = MasterAuditCategory.getRowsNum() + 1;
+		MasterAuditCategory.addRow(uid, [num, "{{ date('Y-m-d') }}", '0', '', '']);
+		MasterAuditCategory.selectRow(uid);
+	}
 
 	function savePrice() {
 		PMasterAuditCategory.sendData();
 		refreshdata();
 	}
-
 </script>
 @endsection

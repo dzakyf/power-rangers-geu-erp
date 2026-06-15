@@ -54,14 +54,18 @@
         <div class="form-group row align-items-center">
             <label class="col-md-3">Kode Hub GEU Express</label>
             <div class="col-md-6">
-                <input type="text" class="form-control" name="warehouse_task_id" id="warehouse_task_id">
+                <select class="form-control select2" name="warehouse_task_id" id="warehouse_task_id" style="width:100%">
+                    <option value="">-- Pilih Kode Hub --</option>
+                </select>
             </div>
         </div>
 
         <div class="form-group row align-items-center">
             <label class="col-md-3">Lokasi Warehouse</label>
             <div class="col-md-6">
-                <input type="text" class="form-control" name="warehouse_location" id="warehouse_location">
+                <select class="form-control select2" name="warehouse_location" id="warehouse_location" style="width:100%">
+                    <option value="">-- Pilih Lokasi --</option>
+                </select>
             </div>
         </div>
 
@@ -227,6 +231,8 @@
     </div>
 </div>
 
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ asset('jquery.coolautosuggest.js') }}"></script>
 <script src="{{ asset('jquery.coolfieldset.js') }}"></script>
 <script>
@@ -336,20 +342,6 @@
 		}
 	});
 
-	$("#warehouse_task_id").coolautosuggest({
-		url:"partner-warehouse-audit-get-warehouse?chars=",
-		showThumbnail:false,
-		showDescription:true,
-		idField:$("#warehouse_task_id"),
-		width:700,
-		minChars:1,
-		onSelected:function(result){
-		  if(result!=null){
-			$("#warehouse_task_id").val(result.id);
-			$("#warehouse_location").val(result.location);
-		  }
-		}
-	});
 
     $('input[name="kategori_temuan"]').on('change', function() {
         let nilai = $(this).val()
@@ -435,4 +427,38 @@
 		})
 		return inputValues.join('&');
 	}
+
+	// Initialize select2 on the warehouse selects
+	$('.select2').select2({ width: '100%' });
+
+	// Load warehouse data and populate both selects
+	var warehouseData = [];
+	$.get('partner-warehouse-data', function(res) {
+		warehouseData = res.data || [];
+		var $hub = $('#warehouse_task_id');
+		var $loc = $('#warehouse_location');
+
+		$.each(warehouseData, function(_, item) {
+			$hub.append($('<option>', { value: item.warehouse_task_id, text: item.warehouse_task_id }));
+			$loc.append($('<option>', { value: item.warehouse_location, text: item.warehouse_location }));
+		});
+	});
+
+	// Sync: when Kode Hub changes, auto-select matching Lokasi
+	$('#warehouse_task_id').on('change', function() {
+		var selected = $(this).val();
+		var match = warehouseData.find(function(w) { return w.warehouse_task_id === selected; });
+		if (match) {
+			$('#warehouse_location').val(match.warehouse_location).trigger('change');
+		}
+	});
+
+	// Sync: when Lokasi changes, auto-select matching Kode Hub
+	$('#warehouse_location').on('change', function() {
+		var selected = $(this).val();
+		var match = warehouseData.find(function(w) { return w.warehouse_location === selected; });
+		if (match) {
+			$('#warehouse_task_id').val(match.warehouse_task_id).trigger('change');
+		}
+	});
 </script>

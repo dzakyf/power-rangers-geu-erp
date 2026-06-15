@@ -117,7 +117,7 @@ class SurveyController extends Controller
                 $query->where("sl.Opportunity_Partner_Id", $oppId);
             }
 
-            $d = $query->get();
+            $d = $query->orderBy('ID', "DESC")->get();
 
             $xml = new SimpleXMLElement("<rows></rows>");
             $no = 1;
@@ -164,6 +164,7 @@ class SurveyController extends Controller
         foreach ($d as $p) {
             $row = $xml->addChild('row');
             $row->addAttribute('ID', $p->ID);
+            $row->addChild('cell', '');
             $row->addChild('cell', $no);
             $row->addChild('cell', $p->Location_Name);
             $row->addChild('cell', $p->Opportunity_Code);
@@ -226,6 +227,17 @@ class SurveyController extends Controller
 
         $highest       = DB::table('survey_location as sl')->max('ID');
         $applicatonCode = $this->generatorService->generateApplicationCode($highest, 'SVY');
+
+        $count = DB::table('survey_location')
+            ->where('Opportunity_Partner_Id', $b['Opportunity_Partner_Id'] ?? 0)
+            ->count();
+
+        if ($count >= 3) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Maksimal 3 kali input survey untuk partner yang sama'
+            ], 400);
+        }
 
         try {
             $surveyId = DB::transaction(function () use ($b, $applicatonCode) {
@@ -472,5 +484,17 @@ class SurveyController extends Controller
     public function getSurvey(Request $r)
     {
         return;
+    }
+
+    public function deleteMasterDataSurvey(Request $r)
+    {
+        $ids = $r->input('ids');
+        if (!$ids || !is_array($ids) || empty($ids)) {
+            return response()->json(['status' => 'error', 'message' => 'IDs are required'], 400);
+        }
+
+        DB::table('survey_location')->whereIn('ID', $ids)->delete();
+
+        return response()->json(['status' => 'success', 'message' => count($ids) . ' survey(s) deleted successfully']);
     }
 };

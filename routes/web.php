@@ -4517,6 +4517,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("finance-settlement-cost", [UCOLogisticController::class, 'indexSettlement']);
     Route::get("finance-acquisition-cost", [UCOLogisticController::class, 'indexAcquisition']);
 
+    Route::get("finance-acquisition-cost-data",   [UCOLogisticController::class, 'getAcquisitionCostData']);
+    Route::post("finance-acquisition-cost-submit", [UCOLogisticController::class, 'submitAcquisitionCost']);
+    Route::post("finance-acquisition-cost-action", [UCOLogisticController::class, 'actionAcquisitionCost']);
 
     /** Work Order */
     $workOrderPref = "partner-work-order";
@@ -4715,7 +4718,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$correctivePref-detail", [PartnerWarehouseCorrectiveController::class, 'detailCorrective']);
     Route::get("xml-$correctivePref-detail", [PartnerWarehouseCorrectiveController::class, 'detailCorrectiveXml']);
     Route::get("$correctivePref-detail-corrective", [PartnerWarehouseCorrectiveController::class, 'detailCorrectiveDetail']);
-    Route::post("$correctivePref-detail-corrective-submit", [PartnerWarehouseCorrectiveController::class, 'detailCorrectiveDetailSubmit']);
+    Route::post("$correctivePref-detail-submit", [PartnerWarehouseCorrectiveController::class, 'detailCorrectiveDetailSubmit']);
     /** */
 
     /** audit category route */
@@ -4724,6 +4727,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$masterAuditPref-category-new", [PartnerMasterAuditController::class, 'newMasterAuditCategory']);
     Route::post("$masterAuditPref-category-new-submit", [PartnerMasterAuditController::class, 'newMasterAuditCategorySubmit']);
     Route::get("$masterAuditPref-category-detail", [PartnerMasterAuditController::class, 'detailMasterAuditCategory']);
+    Route::post("$masterAuditPref-category-detail-submit", [PartnerMasterAuditController::class, 'detailMasterAuditCategorySubmit']);
     Route::get("xml-$masterAuditPref-category", [PartnerMasterAuditController::class, 'indexMasterAuditCategoryXml']);
     Route::get("$masterAuditPref-parameter", [PartnerMasterAuditController::class, 'indexMasterAuditParameter']);
     Route::get("xml-$masterAuditPref-parameter", [PartnerMasterAuditController::class, 'indexMasterAuditParameterXml']);
@@ -4957,6 +4961,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$surveyPrefs-data", [SurveyController::class, 'getMasterDataSurvey']);
     Route::post("$surveyPrefs-submit", [SurveyController::class, 'submitMasterDataSurvey']);
     Route::post("$surveyPrefs-update", [SurveyController::class, "updateMasterDataSurvey"]);
+    Route::post("$surveyPrefs-delete", [SurveyController::class, "deleteMasterDataSurvey"]);
     Route::get("$surveyPrefs-approval-index", [SurveyController::class, 'indexApprovalSurvey']);
     Route::get("$surveyPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);
     Route::get("$surveyPrefs-approval-data-log", [ApprovalController::class, 'getApprovalDataLog']);
@@ -5084,6 +5089,7 @@ Route::group(['middleware' => 'log.access'], function () {
 
     $partnerUCO = "partner-uco";
     Route::get("$partnerUCO-instock", [UCOLogisticController::class, 'indexInboundUCO']);
+    Route::post("$partnerUCO-instock-update", [UCOLogisticController::class, 'updateInstockPhoto']);
     Route::get("$partnerUCO-inbound-timbang-create", [UCOLogisticController::class, 'createInboundUCO']);
     Route::post("$partnerUCO-inbound-timbang-submit", [UCOLogisticController::class, 'submitInboundUCO']);
     Route::get("$partnerUCO-inbound-timbang-data", [UCOLogisticController::class, 'getUCOInboundXml']);

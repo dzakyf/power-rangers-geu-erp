@@ -318,7 +318,7 @@ class WarehouseController extends Controller
         $data = DB::table('warehouse_partner as wp')
             ->leftJoin('opportunity_partner as op', 'wp.partner_task_id', '=', 'op.lead_id')
             ->leftJoin('users as u', 'u.id', '=', 'op.user_row_id')
-            ->select('wp.id',  'wp.warehouse_task_id', 'wp.warehouse_location', 'wp.warehouse_status', 'wp.Created_Date')
+            ->select('wp.id',  'wp.warehouse_task_id', 'wp.warehouse_location', 'wp.warehouse_status', 'wp.Created_Date', 'wp.lat', 'wp.lng')
             ->when($r->partner_id,        fn($q) => $q->where('op.lead_id',            $r->partner_id))
             ->when($r->wh_loc,            fn($q) => $q->where('wp.warehouse_location', $r->wh_loc))
             ->when($r->wh_type,           fn($q) => $q->where('wp.warehouse_type',     $r->wh_type))
