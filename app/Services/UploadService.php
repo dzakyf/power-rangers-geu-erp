@@ -66,4 +66,38 @@ class UploadService
 
         return $fileId;
     }
+
+    public function storeFile($file, string $type, string $topic, $mapTo, string $description = 'Attachment'): int
+    {
+        $year = now()->format('Y');
+        $month = now()->format('m');
+        $uuid = \Ramsey\Uuid\Uuid::uuid4()->toString();
+        $dir = public_path("filevendor/{$year}/{$month}");
+
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
+        if ($type === 'base64') {
+            $filename = "{$uuid}.png";
+            $path = "{$year}/{$month}/{$filename}";
+            file_put_contents(public_path("filevendor/{$path}"), base64_decode($file));
+            $ext = 'png';
+        } else {
+            $ext = $file->getClientOriginalExtension();
+            $filename = $uuid . '.' . $ext;
+            $path = "{$year}/{$month}/{$filename}";
+            $file->move($dir, $filename);
+        }
+
+        return DB::table('meta_files')->insertGetId([
+            'Filename'    => $filename,
+            'Path'        => $path,
+            'Extension'   => $ext,
+            'Description' => $description,
+            'Topic'       => $topic,
+            'Map_To'      => $mapTo,
+            'Created_At'  => now(),
+        ]);
+    }
 }

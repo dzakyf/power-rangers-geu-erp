@@ -36,7 +36,7 @@ class MasterAuditController extends Controller
         $nomor = 1;
 
         $get = MasterAuditCategory::orderBy('created_date', 'desc')->get();
-        
+
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
@@ -63,17 +63,15 @@ class MasterAuditController extends Controller
             DB::beginTransaction();
             $r = $request->all();
 
-            for ($i=1; $i < $r['count']; $i++) { 
-                $parameter[] = $r['parameter' . $i];
-                $score[] = $r['score' . $i];
-            }
+            $parameters = $request->input('parameter', []);
+            $scores = $request->input('score', []);
 
             $data = new MasterAuditCategory();
             $data->category = $request->category;
             $data->category_description = $request->category_description;
-            $data->parameter_list = implode(",", $parameter);
-            $data->parameter_score = implode(",", $score);
-            $data->status = $request->status;
+            $data->parameter_list = implode(",", $parameters);
+            $data->parameter_score = implode(",", $scores);
+            $data->status = $request->status ?? "NORMAL";
             $data->urutan = MasterAuditCategory::max('urutan') + 1;
             $data->created_by = auth()->user()->username;
             $data->created_date = date('Y-m-d H:i:s');
@@ -98,16 +96,50 @@ class MasterAuditController extends Controller
 
     public function detailMasterAuditCategory(Request $request)
     {
+
         $data = MasterAuditCategory::find($request->ID);
         $parameter = explode(",", $data->parameter_list);
         $score = explode(",", $data->parameter_score);
-        $count = count($parameter);
+        $count = min(count($parameter), count($score));
         return view('partner.master-audit-category-detail', compact('data', 'parameter', 'score', 'count'));
     }
 
     public function detailMasterAuditCategorySubmit(Request $request)
     {
-        //
+        DB::beginTransaction();
+        try {
+            $id = $request->input('ID');
+            if (!$id) {
+                throw new \Exception('ID is required');
+            }
+
+            $data = MasterAuditCategory::findOrFail($id);
+            $data->category = $request->category;
+            $data->category_description = $request->category_description;
+
+            $parameters = $request->input('parameter', []);
+            $scores = $request->input('score', []);
+            $data->parameter_list = implode(",", $parameters);
+            $data->parameter_score = implode(",", $scores);
+
+            $data->status = $request->status ?? $data->status;
+            $data->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Master Audit Category updated successfully'
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollback();
+            \Log::error($th);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $th->getMessage()
+            ]);
+        }
     }
 
     public function indexMasterAuditParameter()
@@ -136,7 +168,7 @@ class MasterAuditController extends Controller
         $cat = MasterAuditCategory::orderBy('urutan', 'ASC')->get();
         foreach ($cat as $value) {
             $get = MasterAuditParameter::where('category', $value->category)->orderBy('category', 'ASC')->get();
-            
+
             foreach ($get as $key => $Fetch) {
                 echo "<row id=\"$Fetch->id\">";
                 echo "<cell>$nomor</cell>";
@@ -147,7 +179,7 @@ class MasterAuditController extends Controller
                 echo "<cell>" . htmlspecialchars($Fetch->parameter_critical) . "</cell>";
                 echo "<cell>" . htmlspecialchars($Fetch->parameter_status) . "</cell>";
                 echo "</row>";
-    
+
                 $nomor++;
             }
         }
@@ -157,7 +189,7 @@ class MasterAuditController extends Controller
 
     public function newMasterAuditParameter()
     {
-        $category = MasterAuditCategory::where('status','NORMAL')->orderBy('category', 'asc')->get();
+        $category = MasterAuditCategory::where('status', 'NORMAL')->orderBy('category', 'asc')->get();
         return view('partner.master-audit-parameter-new', compact('category'));
     }
 
@@ -180,7 +212,7 @@ class MasterAuditController extends Controller
             $data = new MasterAuditParameter();
             $data->category = $request->category;
             $data->parameter = $request->parameter;
-            $data->parameter_id = $request->category.$counter;
+            $data->parameter_id = $request->category . $counter;
             $data->parameter_list = $cat->parameter_list;
             $data->parameter_score = $cat->parameter_score;
             $data->parameter_minor = $request->parameter_minor;
@@ -210,7 +242,7 @@ class MasterAuditController extends Controller
 
     public function detailMasterAuditParameter(Request $request)
     {
-        $category = MasterAuditCategory::where('status','NORMAL')->orderBy('category', 'asc')->get();
+        $category = MasterAuditCategory::where('status', 'NORMAL')->orderBy('category', 'asc')->get();
         $data = MasterAuditParameter::find($request->ID);
         return view('partner.master-audit-parameter-detail', compact('data', 'category'));
     }

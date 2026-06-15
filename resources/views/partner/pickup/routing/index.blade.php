@@ -135,7 +135,7 @@
                 $select.empty();
                 $select.append('<option value="">-- Pilih Gudang --</option>');
                 $.each(data, function(i, item) {
-                    $select.append('<option value="' + item.id + '">' +
+                    $select.append('<option value="' + item.id + '" data-lat="' + (item.lat || '') + '" data-lng="' + (item.lng || '') + '">' +
                         item.warehouse_location + ' - ' + item.warehouse_task_id + '</option>');
                 });
             },
@@ -267,6 +267,7 @@
             type: 'POST',
             data: {
                 pickup_order_ids: orderIds,
+                warehouse_id: $('#warehouseFilter').val(),
                 _token: $('meta[name="csrf-token"]').attr('content')
             },
             success: function(res) {
@@ -291,6 +292,7 @@
     function submitRouteWithDetails(orderIds) {
         var payload = {
             pickup_order_ids: orderIds,
+            warehouse_id: $('#warehouseFilter').val(),
             bbm_ratio: $('#routeBbmRatio').val(),
             bbm_consumption: $('#routeBbmConsumption').val(),
             bbm_price: $('#routeBbmPrice').val(),
@@ -342,6 +344,23 @@
                         weight: 5
                     }).addTo(map);
                     map.fitBounds(latlngs);
+
+                    // Add warehouse start/end markers
+                    var whId = $('#warehouseFilter').val();
+                    var whOption = $('#warehouseFilter option[value="' + whId + '"]');
+                    var whLat = parseFloat(whOption.data('lat'));
+                    var whLng = parseFloat(whOption.data('lng'));
+                    if (whLat && whLng) {
+                        var whIcon = L.divIcon({
+                            className: 'warehouse-marker',
+                            html: '<div style="background:#2c3e50;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);">W</div>',
+                            iconSize: [28, 28],
+                            iconAnchor: [14, 14]
+                        });
+                        L.marker([whLat, whLng], { icon: whIcon }).addTo(map)
+                            .bindPopup('<b>Warehouse</b><br>' + whOption.text());
+                    }
+
                     AppModal.close();
                     alert('Route berhasil disimpan! Distance: ' + data.distance_km + ' km');
                 } else {

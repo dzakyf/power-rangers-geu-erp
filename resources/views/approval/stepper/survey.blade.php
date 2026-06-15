@@ -1,13 +1,21 @@
 <div class="mb-5 p-4 bg-white shadow-sm">
-
-    <div id="surveyHistoryGrid" style="width:auto;height:200px;background-color:white;overflow:hidden;margin-bottom:15px;"></div>
-    <h5>Form Survey Lokasi HUB GEU EXPRESS</h5>
-    <form id="surveyForm" enctype="multipart/form-data">
-        @csrf
-        <input type="hidden" name="Opportunity_Partner_Id" id="Opportunity_Partner_Id" value="" />
-        <input type="hidden" name="Recommendation_Type" id="Opportunity_Partner_Id" value="MITRA" />
-        <h6>A. Informasi Survey</h6>
-        <!-- <div class="row">
+    <div id="surveyHistoryGridSection">
+        <div>
+            <div id="surveyHistoryGrid" style="width:auto;height:200px;background-color:white;overflow:hidden;margin-bottom:15px;"></div>
+        </div>
+        <div>
+            <button id="btnAddHistory" class="btn btn-primary">Tambah</button>
+            <button id="btnDeleteHistory" class="btn btn-danger">Hapus</button>
+        </div>
+    </div>
+    <div id="surveFormSection" style="display:none;" class="m-8">
+        <h5>Form Survey Lokasi HUB GEU EXPRESS</h5>
+        <form id="surveyForm" enctype="multipart/form-data">
+            @csrf
+            <input type="hidden" name="Opportunity_Partner_Id" id="Opportunity_Partner_Id" value="" />
+            <input type="hidden" name="Recommendation_Type" id="Opportunity_Partner_Id" value="MITRA" />
+            <h6>A. Informasi Survey</h6>
+            <!-- <div class="row">
             <div class="col-md-2">
                 <div class="form-group">
                     <label for="Survey_At">Tanggal Survey</label>
@@ -20,140 +28,140 @@
             </div>
         </div> -->
 
-        <div class="row">
-            <div class="col-md-2">
-                <div class="form-group">
-                    <label for="Province">Provinsi</label>
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="Province">Provinsi</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <select name="Province" id="Province" class="form-control" required>
+                            <option value="">-- Pilih --</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <select name="Province" id="Province" class="form-control" required>
-                        <option value="">-- Pilih --</option>
-                    </select>
-                </div>
-            </div>
-        </div>
 
-        <div class="row">
-            <div class="col-md-2">
-                <div class="form-group">
-                    <label for="City">Kota / Kabupaten</label>
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="City">Kota / Kabupaten</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <select name="City" id="City" class="form-control" required disabled>
+                            <option value="">-- Pilih --</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <select name="City" id="City" class="form-control" required disabled>
-                        <option value="">-- Pilih --</option>
-                    </select>
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="District">Kecamatan</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <select name="District" id="District" class="form-control" required disabled>
+                            <option value="">-- Pilih --</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-md-2">
-                <div class="form-group">
-                    <label for="District">Kecamatan</label>
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="Subdistrict">Kelurahan</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <select name="Subdistrict" id="Subdistrict" class="form-control" required disabled>
+                            <option value="">-- Pilih --</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <select name="District" id="District" class="form-control" required disabled>
-                        <option value="">-- Pilih --</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-2">
-                <div class="form-group">
-                    <label for="Subdistrict">Kelurahan</label>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <select name="Subdistrict" id="Subdistrict" class="form-control" required disabled>
-                        <option value="">-- Pilih --</option>
-                    </select>
-                </div>
-            </div>
-        </div>
 
 
-        <h6>B. Informasi Lokasi</h6>
-        <div class="row">
-            <div class="col-md-2">
-                <div class="form-group">
-                    <label for="Location_Owner_Name">Nama Pemilik Lokasi</label>
+            <h6>B. Informasi Lokasi</h6>
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="Location_Owner_Name">Nama Pemilik Lokasi</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <input type="text" name="Location_Owner_Name" id="Location_Owner_Name" class="form-control" required />
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <input type="text" name="Location_Owner_Name" id="Location_Owner_Name" class="form-control" required />
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="Location_Type">Tipe Lokasi</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <input type="text" name="Location_Type" id="Location_Type" class="form-control" required />
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-md-2">
-                <div class="form-group">
-                    <label for="Location_Type">Tipe Lokasi</label>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <input type="text" name="Location_Type" id="Location_Type" class="form-control" required />
-                </div>
-            </div>
-        </div>
 
-        <div class="row">
-            <div class="col-md-2">
-                <div class="form-group">
-                    <label for="Address">Alamat Lengkap</label>
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="Address">Alamat Lengkap</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <input type="text" name="Address" id="Address" class="form-control" required />
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <input type="text" name="Address" id="Address" class="form-control" required />
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="Latitude">Latitude / Longitude</label>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-2">
-                <div class="form-group">
-                    <label for="Latitude">Latitude / Longitude</label>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <input type="text" name="Latitude" id="Latitude" class="form-control" placeholder="Latitude" required />
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="form-group">
-                    <input type="text" name="Latitude" id="Latitude" class="form-control" placeholder="Latitude" required />
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <input type="text" name="Longitude" id="Longitude" class="form-control" placeholder="Longitude" required />
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="form-group">
-                    <input type="text" name="Longitude" id="Longitude" class="form-control" placeholder="Longitude" required />
-                </div>
-            </div>
-            <!-- <div class="col-md-2">
+                <!-- <div class="col-md-2">
                 <button type="button" class="btn btn-outline-secondary btn-block" id="btnGetGps" title="Get current GPS position">
                     Get GPS
                 </button>
                 <small id="gpsStatus" class="text-muted"></small>
             </div> -->
-        </div>
+            </div>
 
-        <div class="row">
-            <div class="col-md-2">
-                <div class="form-group">
-                    <label for="Area">Luas Area</label>
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="Area">Luas Area</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <input type="text" name="Area" id="Area" class="form-control" required />
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <input type="text" name="Area" id="Area" class="form-control" required />
-                </div>
-            </div>
-        </div>
-        <!-- 
+            <!-- 
         <h6>C. Dokumentasi Foto Lokasi</h6>
         <table class="table table-bordered">
             <thead>
@@ -240,7 +248,7 @@
             <h6>Hasil Analisis</h6>
         </div> -->
 
-        <!-- <h6>I. Persetujuan</h6>
+            <!-- <h6>I. Persetujuan</h6>
         <table class="table table-bordered">
             <thead>
                 <tr>
@@ -255,8 +263,9 @@
             </tbody>
         </table> -->
 
-        <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
-    </form>
+            <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
+        </form>
+    </div>
 </div>
 
 <script>
@@ -300,6 +309,8 @@
         $(selector).empty().trigger('change');
     }
 
+    var selectedSurveyId = null;
+
     $(document).ready(function() {
         var urlParams = new URLSearchParams(window.location.search);
         var oppId = urlParams.get('id');
@@ -308,6 +319,30 @@
             prefillFromRegisteredLead(oppId);
             initSurveyHistoryGrid(oppId);
         }
+
+        $('#btnAddHistory').on('click', function() {
+            $('#surveFormSection').show();
+            $(this).hide();
+        });
+
+        $('#btnDeleteHistory').on('click', function() {
+            if (!selectedSurveyId) {
+                alert('Pilih data terlebih dulu');
+                return;
+            }
+            if (!confirm('Yakin ingin menghapus data survey ini?')) return;
+            $.post('partner-survey-delete', {
+                id: selectedSurveyId,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            }, function(res) {
+                if (res.status === 'success') {
+                    alert('Data berhasil dihapus');
+                    initSurveyHistoryGrid(oppId);
+                } else {
+                    alert('Gagal: ' + (res.message || 'Unknown error'));
+                }
+            });
+        });
 
         makeSelect2('#Province', 'master-province', {}, 'Province', 'Province');
 
@@ -364,10 +399,13 @@
             var grid = new dhtmlXGridObject("surveyHistoryGrid");
             grid.setImagePath("./dhtmlx/imgs/");
             grid.setHeader("No,Leads ID,Tipe,Tipe Rekom,Tgl Survey");
-            grid.setInitWidths("40,100,80,100,120");
+            grid.setInitWidths("40");
             grid.setColAlign("center,left,center,left,left");
             grid.setColTypes("ro,ro,ro,ro,ro");
             grid.setSkin("dhx_skyblue");
+            grid.attachEvent("onRowSelect", function(id) {
+                selectedSurveyId = grid.getRowAttribute(id, 'ID');
+            });
             grid.init();
             grid.clearAndLoad("partner-survey-data-history?opportunity_partner_id=" + oppId);
         }
@@ -482,10 +520,11 @@
                     alert("Berhasil membuat data survey!");
 
                     //$('#surveyForm')[0].reset();
-
+                    initSurveyHistoryGrid(oppId)
                 },
                 error: function(xhr, status, error) {
-                    console.log('Error details:', xhr.responseText);
+                    alert(xhr.responseJSON.message)
+
 
                     // Handle validation errors
                     // if (xhr.status === 422) {

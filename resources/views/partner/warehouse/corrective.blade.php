@@ -49,7 +49,7 @@ $Saya =  Auth::user()->username;
 		WarehouseCorrectiveID = WarehouseCorrective.getSelectedId();
 		if (WarehouseCorrectiveID != null) {
 			LoadM('divlistOpportunity', 'partner-warehouse-corrective-action-detail?Task=' + WarehouseCorrective.cells(WarehouseCorrectiveID, 1).getValue());
-		}else {
+		} else {
 			alert("Pilih baris data");
 		}
 		return true;
@@ -59,7 +59,7 @@ $Saya =  Auth::user()->username;
 	WarehouseCorrective.setHeader("No,Nomor Audit, Tanggal Audit, Due Date Corrective, No Gudang, Lokasi Gudang, Auditor, Jenis Audit, Ringkasan Temuan, Catatan Audit, Corrective Score, Created By, Corrective Action");
 	WarehouseCorrective.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// WarehouseCorrective.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	WarehouseCorrective.setInitWidths("60,150,100,100,150,200,100,100,100,100,100,100,auto");
+	WarehouseCorrective.setInitWidths("60,*");
 	WarehouseCorrective.setColAlign("center,left,left,left,left,left,left,left,left,left");
 	WarehouseCorrective.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str");
 	WarehouseCorrective.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");

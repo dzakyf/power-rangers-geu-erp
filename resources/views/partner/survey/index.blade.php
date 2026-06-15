@@ -33,11 +33,12 @@ $Saya =  Auth::user()->username;
         <div class="card-body">
             <div id="Survey" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
             <div>
-                <input type="button" id="detailSurvey" name="detailSurvey" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" />
+                <!-- <input type="button" id="detailSurvey" name="detailSurvey" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
                 <input type="button" value="Lengkapi Data" class="btn btn-primary mt-2 mr-2" onclick="redirectToEditSurvey()" />
-                <input type="button" value="Reply" class="btn btn-success mt-2 mr-2" onclick="redirectToReplySurvey()" />
-                <input type="button" id="ekselSurveyDet" name="ekselSurveyDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="Survey.toExcel('./export/generate.php');" />
+                <!-- <input type="button" value="Reply" class="btn btn-success mt-2 mr-2" onclick="redirectToReplySurvey()" /> -->
                 <input type="button" id="detailSurvey" name="detailSurvey" value="Detail" class="btn btn-info mt-2 mr-2" onclick="SurveyKlik()" />
+                <input type="button" id="deleteSurvey" value="Hapus" class="btn btn-danger mt-2 mr-2" onclick="deleteSelectedSurveys()" />
+                <input type="button" id="ekselSurveyDet" name="ekselSurveyDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="Survey.toExcel('./export/generate.php');" />
             </div>
         </div>
     </div>
@@ -70,7 +71,9 @@ $Saya =  Auth::user()->username;
     Survey.enableSmartRendering(true, 150);
     Survey.setImagePath("./dhtmlx/imgs/");
 
-    const columns = [{
+    const columns = [
+        { header: "", width: 35, align: "center", sorting: "na", type: "ch" },
+        {
             header: "No",
             width: 60,
             align: "center",
@@ -143,8 +146,8 @@ $Saya =  Auth::user()->username;
     ];
 
     Survey.setHeader(columns.map(c => c.header).join(","));
-    Survey.attachHeader(columns.map((c, i) => i === 0 ? "#rspan" : "#text_filter").join(","));
-    Survey.setInitWidths(columns.map(c => c.width).join(","));
+    Survey.attachHeader(columns.map((c, i) => i <= 1 ? "#rspan" : "#text_filter").join(","));
+    Survey.setInitWidths(columns.map(c => String(c.width)).join(','));
     Survey.setColAlign(columns.map(c => c.align).join(","));
     Survey.setColSorting(columns.map(c => c.sorting).join(","));
     Survey.setColTypes(columns.map(c => c.type).join(","));
@@ -174,6 +177,39 @@ $Saya =  Auth::user()->username;
             return;
         }
         window.location.href = "partner-survey-create-reply?parent_id=" + id;
+    }
+
+    function deleteSelectedSurveys() {
+        var checkedRows = Survey.getCheckedRows(0);
+        if (!checkedRows || checkedRows.length === 0) {
+            alert('Pilih data yang akan dihapus');
+            return;
+        }
+        if (!confirm('Yakin ingin menghapus ' + checkedRows.split(',').length + ' data survey?')) return;
+
+        var ids = checkedRows.split(',').map(function(id) {
+            return Survey.getRowAttribute(id, 'ID');
+        });
+
+        $.ajax({
+            url: 'partner-survey-delete',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                ids: ids
+            },
+            success: function(res) {
+                if (res.status === 'success') {
+                    alert(res.message);
+                    refreshdata();
+                } else {
+                    alert('Gagal: ' + (res.message || ''));
+                }
+            },
+            error: function(xhr) {
+                alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+            }
+        });
     }
 
     function refreshdata() {

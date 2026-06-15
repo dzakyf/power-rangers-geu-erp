@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Partner;
 
 use App\Http\Controllers\Controller;
 use App\Services\GeneratorService;
+use App\Services\UploadService;
 use App\Services\UserService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -18,10 +19,12 @@ class UCOController extends Controller
 
     private $userService;
     private $generatorService;
-    public function __construct(UserService $u, GeneratorService $g)
+    private $uploadService;
+    public function __construct(UserService $u, GeneratorService $g, UploadService $up)
     {
         $this->userService = $u;
         $this->generatorService = $g;
+        $this->uploadService = $up;
     }
 
     public function indexInboundSource()
@@ -157,6 +160,7 @@ class UCOController extends Controller
 
             foreach ($data as $d) {
                 $row = $xml->addChild('row');
+                $row->addAttribute('ID', $d->ID);
 
                 $row->addChild('cell', $counter);
                 $row->addChild('cell', htmlspecialchars($d->WO_No));
@@ -198,6 +202,7 @@ class UCOController extends Controller
 
             foreach ($data as $d) {
                 $row = $xml->addChild('row');
+                $row->addAttribute('ID', $d->ID);
 
                 $row->addChild('cell', $counter);
                 $row->addChild('cell', htmlspecialchars($d->WO_No));
@@ -986,6 +991,7 @@ class UCOController extends Controller
                     'do.DO_Date',
                 )
                 ->where('po.Status', $status)
+                ->when($r->query('delivery_order_id'), fn($q) => $q->where('po.DO_Id', $r->query('delivery_order_id')))
                 ->orderBy('po.Created_At', 'desc')
                 ->get();
 
@@ -994,6 +1000,7 @@ class UCOController extends Controller
 
             foreach ($data as $d) {
                 $row = $xml->addChild('row');
+                $row->addAttribute('ID', $d->ID);
 
                 $row->addChild('cell', $counter);
                 $row->addChild('cell', htmlspecialchars((string) $d->PO_Code));
@@ -1023,9 +1030,25 @@ class UCOController extends Controller
         $orders = $this->fetchPickupOrders(null)->whereIn('ID', $ids);
 
         $waypoints = [];
+
+        // Add warehouse as starting point if selected
+        $whId = $r->input('warehouse_id');
+        $warehouse = null;
+        if ($whId) {
+            $warehouse = DB::table('warehouse_partner')->where('id', $whId)->first(['lat', 'lng']);
+            if ($warehouse && $warehouse->lat && $warehouse->lng) {
+                $waypoints[] = [(float)$warehouse->lng, (float)$warehouse->lat];
+            }
+        }
+
         foreach ($orders as $order) {
             if (!$order->Lat || !$order->Lng) continue;
             $waypoints[] = [(float)$order->Lng, (float)$order->Lat];
+        }
+
+        // End back at warehouse
+        if ($warehouse && $warehouse->lat && $warehouse->lng) {
+            $waypoints[] = [(float)$warehouse->lng, (float)$warehouse->lat];
         }
 
         if (count($waypoints) < 2) {
@@ -1055,11 +1078,26 @@ class UCOController extends Controller
         $orders = $this->fetchPickupOrders(null)->whereIn('ID', $ids);
 
         $waypoints = [];
+
+        // Add warehouse as starting point if selected
+        $whId = $r->input('warehouse_id');
+        $warehouse = null;
+        if ($whId) {
+            $warehouse = DB::table('warehouse_partner')->where('id', $whId)->first(['lat', 'lng']);
+            if ($warehouse && $warehouse->lat && $warehouse->lng) {
+                $waypoints[] = [(float)$warehouse->lng, (float)$warehouse->lat];
+            }
+        }
+
         foreach ($orders as $order) {
             if (!$order->Lat || !$order->Lng) continue;
             $waypoints[] = [(float)$order->Lng, (float)$order->Lat];
         }
 
+        // End back at warehouse
+        if ($warehouse && $warehouse->lat && $warehouse->lng) {
+            $waypoints[] = [(float)$warehouse->lng, (float)$warehouse->lat];
+        }
 
         if (count($waypoints) < 2) {
             return response()->json(['status' => 'error', 'message' => 'Need at least 2 valid coordinates'], 400);
@@ -1271,5 +1309,175 @@ class UCOController extends Controller
     public function indexAcquisition()
     {
         return view('finance.ops.acquisition.index');
+    }
+    public function getAcquisitionCostData(Request $r)
+    {
+        $month = $r->query('month');
+        $status = $r->query('status'); // NOT_SUBMITTED, PENDING, APPROVED, REJECTED
+
+        $query = DB::table('pickup_order as po')
+            ->leftJoin('delivery_order as d', 'po.DO_Id', '=', 'd.ID')
+            ->leftJoin('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
+            ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
+            ->select(
+                'po.ID',
+                'po.Code as PO_Code',
+                'd.Code as DO_Code',
+                'mp.Name as POO_Name',
+                'po.Qty',
+                'po.Total_Cost',
+                'po.Actual_Nominal_Transfer',
+                'po.Actual_Qty',
+                'po.Acquisition_Status',
+                'po.Acquisition_Submitted_At',
+                'po.Acquisition_Approved_At',
+                'po.Acquisition_Approved_By',
+                'po.Acquisition_Notes'
+            )
+            ->where('d.DO_Status', 'DONE');
+
+        if ($status) {
+            $query->where('po.Acquisition_Status', $status);
+        }
+
+        if ($month) {
+            $query->whereRaw("DATE_FORMAT(po.Created_At, '%Y-%m') = ?", [$month]);
+        }
+
+        $data = $query->get();
+
+        if ($r->query('format') === 'xml') {
+            $xml = new SimpleXMLElement('<rows/>');
+            foreach ($data as $i => $d) {
+                $row = $xml->addChild('row');
+                $row->addAttribute('ID', $d->ID);
+                $row->addChild('cell', $i + 1);
+                $row->addChild('cell', htmlspecialchars((string) $d->DO_Code));
+                $row->addChild('cell', htmlspecialchars((string) $d->PO_Code));
+                $row->addChild('cell', htmlspecialchars((string) $d->POO_Name));
+                $row->addChild('cell', (string) $d->Qty);
+                $row->addChild('cell', (string) $d->Total_Cost);
+                $row->addChild('cell', (string) $d->Actual_Nominal_Transfer);
+                $row->addChild('cell', htmlspecialchars((string) $d->Acquisition_Status));
+                $row->addChild('cell', $d->Acquisition_Submitted_At ?? '');
+            }
+            return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function submitAcquisitionCost(Request $r)
+    {
+        DB::beginTransaction();
+        try {
+            $po = DB::table('pickup_order')->where('ID', $r->po_id)->first();
+            if (!$po) {
+                return response()->json(['success' => false, 'message' => 'Pickup order not found'], 404);
+            }
+
+            DB::table('pickup_order')->where('ID', $r->po_id)->update([
+                'Actual_Nominal_Transfer' => $r->actual_nominal_transfer,
+                'Actual_Qty'              => $r->actual_qty,
+                'Acquisition_Status'      => 'PENDING',
+                'Acquisition_Submitted_At' => now(),
+            ]);
+
+            if ($r->hasFile('receipt_file') && $r->file('receipt_file')->isValid()) {
+                $file = $r->file('receipt_file');
+                $ext = $file->getClientOriginalExtension();
+                $year = now()->format('Y');
+                $month = now()->format('m');
+                $uuid = \Ramsey\Uuid\Uuid::uuid4()->toString();
+                $filename = $uuid . '.' . $ext;
+                $path = "{$year}/{$month}/{$filename}";
+
+                $dir = public_path("filevendor/{$year}/{$month}");
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0777, true);
+                }
+                $file->move($dir, $filename);
+
+                DB::table('meta_files')->insert([
+                    'Filename'    => $filename,
+                    'Path'        => $path,
+                    'Extension'   => $ext,
+                    'Description' => 'Acquisition Cost Receipt',
+                    'Topic'       => 'acquisition_cost',
+                    'Map_To'      => $r->po_id,
+                    'Created_At'  => now(),
+                ]);
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Acquisition cost submitted successfully']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function actionAcquisitionCost(Request $r)
+    {
+        $po = DB::table('pickup_order')->where('ID', $r->po_id)->first();
+        if (!$po) {
+            return response()->json(['success' => false, 'message' => 'Pickup order not found'], 404);
+        }
+
+        if ($r->action === 'approve') {
+            DB::table('pickup_order')->where('ID', $r->po_id)->update([
+                'Acquisition_Status'     => 'APPROVED',
+                'Acquisition_Approved_At' => now(),
+                'Acquisition_Approved_By' => auth()->user()->name ?? 'Finance',
+            ]);
+            return response()->json(['success' => true, 'message' => 'Acquisition cost approved']);
+        } elseif ($r->action === 'reject') {
+            if (!$r->filled('notes')) {
+                return response()->json(['success' => false, 'message' => 'Rejection note is required'], 400);
+            }
+            DB::table('pickup_order')->where('ID', $r->po_id)->update([
+                'Acquisition_Status' => 'REJECTED',
+                'Acquisition_Notes'  => $r->notes,
+            ]);
+            return response()->json(['success' => true, 'message' => 'Acquisition cost rejected']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Invalid action'], 400);
+    }
+    public function updateInstockPhoto(Request $r)
+    {
+        DB::beginTransaction();
+        try {
+            if ($r->filled('notes')) {
+                DB::table('pickup_order')->where('ID', $r->po_id)
+                    ->update(['Description' => $r->notes]);
+            }
+
+            if ($r->filled('webcam_photo')) {
+                $this->uploadService->storeFile(
+                    $r->webcam_photo,
+                    'base64',
+                    'instock_photo',
+                    $r->po_id,
+                    'Instock Webcam Photo'
+                );
+            }
+
+            if ($r->hasFile('upload_photo')) {
+                $this->uploadService->storeFile(
+                    $r->file('upload_photo'),
+                    'upload',
+                    'instock_photo',
+                    $r->po_id,
+                    'Instock Upload Photo'
+                );
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Data updated successfully']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 }
