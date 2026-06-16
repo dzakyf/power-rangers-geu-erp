@@ -58,6 +58,7 @@ use App\Http\Controllers\Partner\WarehouseMonitoringController as PartnerWarehou
 use App\Http\Controllers\Partner\MasterStockPriceController as PartnerMasterStockPriceController;
 use App\Http\Controllers\Partner\WarehouseStockRequestController as PartnerWarehouseStockRequestController;
 use App\Http\Controllers\Partner\WarehouseJournalController as PartnerWarehouseJournalController;
+use App\Http\Controllers\Partner\WarehouseStockOpnameController as PartnerWarehouseStockOpnameController;
 use App\Http\Controllers\Partner\WarehouseJournalSummaryController as PartnerWarehouseJournalSummaryController;
 use App\Http\Controllers\Partner\WarehouseAuditController as PartnerWarehouseAuditController;
 use App\Http\Controllers\Partner\ProfitSharingController as PartnerProfitSharingController;
@@ -4708,6 +4709,15 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$warehousePref-audit-new-submit", [PartnerWarehouseAuditController::class, 'newWarehouseAuditSubmit']);
     Route::get("$warehousePref-audit-detail", [PartnerWarehouseAuditController::class, 'detailWarehouseAudit']);
     Route::get("$warehousePref-audit-get-warehouse", [PartnerWarehouseAuditController::class, 'getGudangWarehouseAudit']);
+
+    // --- Stock Opname ---
+    Route::get("$warehousePref-stock-opname",              [PartnerWarehouseStockOpnameController::class, 'indexStockOpname']);
+    Route::get("$warehousePref-stock-opname-data",         [PartnerWarehouseStockOpnameController::class, 'getStockOpnameData']);
+    Route::get("$warehousePref-stock-opname-new",          [PartnerWarehouseStockOpnameController::class, 'createStockOpname']);
+    Route::post("$warehousePref-stock-opname-submit",      [PartnerWarehouseStockOpnameController::class, 'submitStockOpname']);
+    Route::get("$warehousePref-stock-opname-detail",       [PartnerWarehouseStockOpnameController::class, 'detailStockOpname']);
+    Route::post("$warehousePref-stock-opname-update",      [PartnerWarehouseStockOpnameController::class, 'updateStockOpname']);
+    Route::post("$warehousePref-stock-opname-finalize",    [PartnerWarehouseStockOpnameController::class, 'finalizeStockOpname']);
     Route::post("$warehousePref-audit-get-nomor", [PartnerWarehouseAuditController::class, 'getNomorWarehouseAudit']);
 
     Route::post("$warehousePref-audit-get-temuan", [PartnerWarehouseAuditController::class, 'getTemuan']);
