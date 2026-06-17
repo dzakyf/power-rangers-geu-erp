@@ -65,7 +65,7 @@ $Saya =  Auth::user()->username;
     ProjectSPJ.attachHeader(
         "#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"
     );
-    ProjectSPJ.setInitWidths("60,150,250,100,250,120,100,100,120,120,100,100,100,100");
+    ProjectSPJ.setInitWidths("60,150,250,100,250,120,100,100,120,120,100,100,100");
     ProjectSPJ.setColAlign("center,left,left,left,left,center,left,left,left,center,right,right,right");
     ProjectSPJ.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str");
     ProjectSPJ.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ron,ron,ron");
