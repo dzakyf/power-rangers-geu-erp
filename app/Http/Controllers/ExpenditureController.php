@@ -45,7 +45,8 @@ class ExpenditureController extends Controller
                 'op.full_name',
                 DB::raw("CASE WHEN op.package_option = 'mobil' THEN 'Mobile Unit' ELSE 'Store (Booth)' END as description"),
                 DB::raw('SUM(opfd.Total) as Total'),
-                DB::raw('NULL as Facility_ID')
+                DB::raw('NULL as Facility_ID'),
+                DB::raw('NULL as ID')
             )
             ->join('opportunity_partner_facility_dtl as opfd', 'opfd.Partner_ID', '=', 'op.id')
             ->join('master_facility as mf', 'mf.id', '=', 'opfd.Facility_ID')
@@ -58,7 +59,8 @@ class ExpenditureController extends Controller
                 'op.full_name',
                 DB::raw('COALESCE(mf.Description, opfd.Description) as Description'),
                 'opfd.Total',
-                'opfd.Facility_ID'
+                'opfd.Facility_ID',
+                'opfd.ID'
             )
             ->join('opportunity_partner_facility_dtl as opfd', 'opfd.Partner_ID', '=', 'op.id')
             ->leftJoin('master_facility as mf', 'mf.id', '=', 'opfd.Facility_ID')
@@ -76,11 +78,10 @@ class ExpenditureController extends Controller
         $counter = 1;
         foreach ($d as $p) {
             $row = $xml->addChild('row');
-            // $row->addAttribute('ID', $p->ID);
+            $row->addAttribute('id', $counter);
+            $row->addAttribute('db_id', $p->ID ?? '');
             $row->addChild('cell', $counter);
-            // $row->addChild('cell', $p->full_name);
             $row->addChild('cell', htmlspecialchars($p->description));
-            // $row->addChild('cell', $p->Qty);
             $row->addChild('cell', $p->Total);
             $counter++;
         }
@@ -123,11 +124,24 @@ class ExpenditureController extends Controller
         return view('partner.capex.create');
     }
 
+
+    public function getCapexDetail(Request $r)
+    {
+        $data = DB::table('opportunity_partner_facility_dtl')->where('ID', $r->id)->first();
+        return response()->json(['data' => $data]);
+    }
+
     public function editCapitalExpenditure(Request $r)
     {
+        $b = $r->all();
+        DB::table('opportunity_partner_facility_dtl')->where('ID', $b['id'])->update([
+            'Description' => $b['Description'] ?? '',
+            'Total'       => $b['Total'] ?? 0,
+            'Qty'         => $b['Qty'] ?? 0,
+            'Price'       => $b['Price'] ?? 0,
+        ]);
 
-        // dd($r);
-        return response()->json(['message' => 'success']);
+        return response()->json(['status' => 'success', 'message' => 'Updated']);
     }
 
     public function submitCapitalExpenditure(Request $r)
@@ -156,5 +170,17 @@ class ExpenditureController extends Controller
         ]);
 
         return response()->json(['message' => 'success']);
+    }
+
+    public function deleteCapitalExpenditure(Request $r)
+    {
+        $id = $r->input('id');
+        if (!$id) {
+            return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
+        }
+
+        DB::table('opportunity_partner_facility_dtl')->where('ID', $id)->delete();
+
+        return response()->json(['status' => 'success', 'message' => 'Deleted successfully']);
     }
 }

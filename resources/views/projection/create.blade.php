@@ -1,22 +1,16 @@
 @extends('layout.mainlayout-mitra')
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
 <div class="main-content-header">
     <h1>Partner</h1>
     <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a href="#">Partner</a>
-        </li>
-        <li class="breadcrumb-item active">
-            <span class="active">Proyeksi</span>
-        </li>
+        <li class="breadcrumb-item"><a href="#">Partner</a></li>
+        <li class="breadcrumb-item active"><span class="active">Proyeksi</span></li>
     </ol>
 </div>
 
 <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
     <h5>Buat proyeksi</h5>
-    <!-- <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div> -->
 
     <div class="col-md-6">
         <div class="form-group">
@@ -45,9 +39,10 @@
 
         <div class="form-group">
             <label for="File_Documents">Upload Proyeksi</label>
-            <div id="File_Documents" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-            <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="File_Document" />
+            <input type="file" class="form-control" id="fileInput" accept=".xlsx,.xls" required />
         </div>
+
+        <button type="button" class="btn btn-primary" id="submitBtn">Submit</button>
     </div>
 </div>
 
@@ -67,22 +62,17 @@
                 },
                 processResults: function(xmlData) {
                     var results = [];
-
                     $(xmlData).find('row').each(function() {
                         var cells = $(this).find('cell');
-
                         results.push({
                             id: cells.eq(0).text(),
                             text: cells.eq(1).text(),
                             cell2: cells.eq(2).text(),
                         });
                     });
-
                     return {
                         results: results,
-                        pagination: {
-                            more: results.length === 20
-                        }
+                        pagination: { more: results.length === 20 }
                     };
                 }
             },
@@ -92,91 +82,56 @@
         });
 
         $('#Mitra').on('select2:select', function(e) {
-            var data = e.params.data;
-
-            mitraId = data.id
-            console.log('Selected:', mitraId);
+            mitraId = e.params.data.id;
         });
 
         $('#Mitra').on('select2:unselect', function(e) {
-            console.log('Unselected');
+            mitraId = null;
         });
 
+        $('#submitBtn').on('click', function() {
+            var mitra = mitraId;
+            var bepAt = $('#BEP_At').val();
+            var bepProjection = $('#BEP_Projection').val();
 
-        // $('#Warehouse').select2({
-        //     ajax: {
-        //         url: 'partner-data-active-mitra',
-        //         dataType: 'xml',
-        //         delay: 300,
-        //         data: function(params) {
-        //             return {
-        //                 search: params.term,
-        //                 page: params.page || 1
-        //             };
-        //         },
-        //         processResults: function(xmlData) {
-        //             var results = [];
+            if (!mitra) { alert('Pilih Mitra terlebih dulu'); return; }
+            if (!bepAt || bepAt < 1 || bepAt > 12) { alert('Bulan BEP harus diisi (1-12)'); return; }
+            if (!bepProjection) { alert('Besaran BEP harus diisi'); return; }
 
-        //             $(xmlData).find('row').each(function() {
-        //                 var cells = $(this).find('cell');
-
-        //                 results.push({
-        //                     id: cells.eq(0).text(),
-        //                     text: cells.eq(1).text(),
-        //                     cell2: cells.eq(2).text(),
-        //                 });
-        //             });
-
-        //             return {
-        //                 results: results,
-        //                 pagination: {
-        //                     more: results.length === 20
-        //                 }
-        //             };
-        //         }
-        //     },
-        //     minimumInputLength: 0,
-        //     placeholder: 'Cari Gudang...',
-        //     allowClear: true
-        // });
-
-        // $('#Warehouse').on('select2:select', function(e) {
-        //     var data = e.params.data;
-
-
-        //     opportunityId = data.opportunityId
-        //     console.log('Selected:', opportunityId);
-        // });
-
-        // $('#Warehouse').on('select2:unselect', function(e) {
-        //     console.log('Unselected');
-        // });
-    })
-    let type = null;
-    let year = null;
-    let userId = null;
-
-    $("#Type, #Year").on('change', function() {
-        $("#File_Documents").data('type', $("#Type").val());
-        $("#File_Documents").data('year', $("#Year").val());
-    });
-
-    var vault = new dhx.Vault("File_Documents", {
-        uploader: {
-            target: "projection-upload",
-            params: {
-                '_token': '{{ csrf_token() }}',
+            var fileInput = document.getElementById('fileInput');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Upload file proyeksi terlebih dulu');
+                return;
             }
-        },
-        filesLimit: 1
+
+            var formData = new FormData();
+            formData.append('_token', '{{ csrf_token() }}');
+            formData.append('mitra_id', mitra);
+            formData.append('bep_at', bepAt);
+            formData.append('bep_projection', bepProjection);
+            formData.append('user_id', mitra);
+            formData.append('file', fileInput.files[0]);
+
+            $.ajax({
+                url: 'projection-upload',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(res) {
+                    if (res.success) {
+                        alert('Data berhasil disimpan');
+                    } else {
+                        alert('Gagal: ' + (res.message || ''));
+                    }
+                },
+                error: function(xhr) {
+                    alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+                }
+            });
+        });
     });
 
-    vault.events.on("BeforeUploadFile", function(file) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('id');
-        if (vault && vault.uploader && vault.uploader.config) {
-            vault.uploader.config.params.user_id = mitraId || userId;
-        }
-    });
+
 </script>
 @endsection

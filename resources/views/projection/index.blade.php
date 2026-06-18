@@ -28,6 +28,7 @@
             </div> -->
             <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <input type="button" id="detailBP" name="detailBP" value="Buat Proyeksi" class="btn btn-success mb-2" onclick="redirectToCreateProjection()" />
+            <input type="button" id="lihatProyeksi" name="lihatProyeksi" value="Lihat Proyeksi" class="btn btn-info mb-2 ml-2" onclick="lihatProyeksi()" />
             <!-- <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
             <div> -->
         </div>
@@ -47,7 +48,8 @@
 
             </div> -->
             <!-- <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
-            <input type="button" id="detailBP" name="detailBP" value="Buat Proyeksi" class="btn btn-success mb-2" onclick="redirectToCreateProjection()" /> -->
+            <input type="button" id="detailBP" name="detailBP" value="Buat Proyeksi" class="btn btn-success mb-2" onclick="redirectToCreateProjection()" />
+            <input type="button" id="lihatProyeksi" name="lihatProyeksi" value="Lihat Proyeksi" class="btn btn-info mb-2 ml-2" onclick="lihatProyeksi()" /> -->
             <div id="ExpenditureGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <!-- <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div> -->
             <div>
@@ -68,7 +70,8 @@
 
             </div> -->
             <!-- <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
-            <input type="button" id="detailBP" name="detailBP" value="Buat Proyeksi" class="btn btn-success mb-2" onclick="redirectToCreateProjection()" /> -->
+            <input type="button" id="detailBP" name="detailBP" value="Buat Proyeksi" class="btn btn-success mb-2" onclick="redirectToCreateProjection()" />
+            <input type="button" id="lihatProyeksi" name="lihatProyeksi" value="Lihat Proyeksi" class="btn btn-info mb-2 ml-2" onclick="lihatProyeksi()" /> -->
 
             <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
             <div>
@@ -302,6 +305,18 @@
         }
 
         initProjectionGrid()
+    }
+
+    function lihatProyeksi() {
+        if (!mitraId) {
+            alert("Pilih mitra terlebih dahulu");
+            return;
+        }
+        const position = "{{ $session->Position }}";
+        if (position !== "MITRA") {
+            initExpenditureGrid();
+        }
+        initProjectionGrid();
     }
 </script>
 @endsection

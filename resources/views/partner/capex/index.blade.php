@@ -39,6 +39,8 @@ $Saya =  Auth::user()->username;
             <div id="TableGrid1" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
             <div>
                 <input type="button" id="createCapex" name="createCapex" value="Buat Capex" class="btn btn-info mt-2 mr-2" onclick="redirectToCapexForm()" />
+                <input type="button" id="editCapex" value="Ubah" class="btn btn-primary mt-2 mr-2" onclick="editCapex()" />
+                <input type="button" id="deleteCapex" value="Hapus" class="btn btn-danger mt-2 mr-2" onclick="deleteCapex()" />
                 <input type="button" id="ekselTableGrid1Det" name="ekselTableGrid1Det" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="TableGrid1.toExcel('./export/generate.php');" />
                 <!-- <input type="button" id="detailTableGrid1" name="detailTableGrid1" value="Detail" class="btn btn-info mt-2 mr-2" onclick="TableGrid1Klik()" /> -->
             </div>
@@ -114,13 +116,108 @@ $Saya =  Auth::user()->username;
         window.location.href = `partner-capex-create?id=${opportunityId}`
     }
 
+    function editCapex() {
+        if (!selectedCapexDbId) {
+            alert('Pilih data yang memiliki ID (data tidak teragregasi)');
+            return;
+        }
+
+        $.get('partner-capex-detail', { id: selectedCapexDbId }, function(res) {
+            var data = res.data;
+            if (!data) { alert('Data tidak ditemukan'); return; }
+
+            var bodyHtml = '<form id="editCapexForm">' +
+                '<input type="hidden" name="id" value="' + data.ID + '">' +
+                '<div class="form-group"><label>Qty</label>' +
+                '<input type="number" name="Qty" id="edit_Qty" class="form-control" value="' + data.Qty + '" required></div>' +
+                '<div class="form-group"><label>Price</label>' +
+                '<input type="number" name="Price" id="edit_Price" class="form-control" value="' + data.Price + '" required></div>' +
+                '<div class="form-group"><label>Total</label>' +
+                '<input type="number" name="Total" id="edit_Total" class="form-control" value="' + data.Total + '" required readonly></div>' +
+                '<div class="form-group"><label>Asset / Description</label>' +
+                '<input type="text" name="Description" id="edit_Description" class="form-control" value="' + (data.Description || '') + '" required></div>' +
+                '</form>';
+
+            AppModal.open({
+                title: 'Edit Capex',
+                size: 'md',
+                body: bodyHtml,
+                actions: [
+                    { label: 'Submit', class: 'btn-primary', id: 'btnEditSubmit',
+                        onClick: function() {
+                            var fd = new FormData(document.getElementById('editCapexForm'));
+                            fd.append('_token', '{{ csrf_token() }}');
+                            $.ajax({
+                                url: 'partner-capex-submit-edit',
+                                type: 'POST',
+                                data: fd,
+                                processData: false,
+                                contentType: false,
+                                success: function(res) {
+                                    if (res.status === 'success') {
+                                        alert('Data berhasil diubah');
+                                        AppModal.close();
+                                        initTableGrid1(opportunityId);
+                                    } else {
+                                        alert('Gagal: ' + (res.message || ''));
+                                    }
+                                },
+                                error: function(xhr) {
+                                    alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+                                }
+                            });
+                            return false;
+                        }
+                    }
+                ]
+            });
+
+            // Auto-calculate Total on Qty/Price change
+            $('#edit_Qty, #edit_Price').on('input', function() {
+                var qty = parseFloat($('#edit_Qty').val()) || 0;
+                var price = parseFloat($('#edit_Price').val()) || 0;
+                $('#edit_Total').val(qty * price);
+            });
+        });
+    }
+
+    function deleteCapex() {
+        if (!selectedCapexDbId) {
+            alert('Pilih data yang memiliki ID (data tidak teragregasi)');
+            return;
+        }
+        if (!confirm('Yakin ingin menghapus data ini?')) return;
+
+        $.ajax({
+            url: 'partner-capex-delete',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                id: selectedCapexDbId
+            },
+            success: function(res) {
+                if (res.status === 'success') {
+                    alert('Data berhasil dihapus');
+                    initTableGrid1(opportunityId);
+                } else {
+                    alert('Gagal: ' + (res.message || ''));
+                }
+            },
+            error: function(xhr) {
+                alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+            }
+        });
+    }
+
+    var selectedCapexId = null;
+    var selectedCapexDbId = null;
+
     function initTableGrid1(opportunityId) {
         TableGrid1 = new dhtmlXGridObject('TableGrid1');
         TableGrid1.setImagePath("./dhtmlx/imgs/");
         TableGrid1.setHeader("No,  Deskripsi,  Total");
-        TableGrid1.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
-        // TableGrid1.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-        TableGrid1.setInitWidths("60,100,150,200,100");
+        TableGrid1.attachHeader("#rspan,#text_filter,#text_filter");
+        TableGrid1.setInitWidths("60,*");
         TableGrid1.setColAlign("center,left,left,left,left");
         TableGrid1.setColSorting("int,str,str,str,str")
         TableGrid1.setColTypes("ron,ro,ro,ro,ed,ro");
@@ -134,6 +231,10 @@ $Saya =  Auth::user()->username;
             }
             return true
         })
+        TableGrid1.attachEvent("onRowSelect", function(id) {
+            selectedCapexId = id;
+            selectedCapexDbId = TableGrid1.getRowAttribute(id, 'db_id');
+        });
         TableGrid1.setSkin("dhx_skyblue");
         TableGrid1.init();
 
