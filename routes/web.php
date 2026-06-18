@@ -4822,8 +4822,10 @@ Route::group(['middleware' => 'log.access'], function () {
     $capexPrefs = "partner-capex";
     Route::get("$capexPrefs-index", [ExpenditureController::class, 'indexCapitalExpenditure']);
     Route::get("$capexPrefs-create", [ExpenditureController::class, 'createCapitalExpenditure']);
+    Route::get("$capexPrefs-detail", [ExpenditureController::class, 'getCapexDetail']);
     Route::post("$capexPrefs-submit", [ExpenditureController::class, 'submitCapitalExpenditure']);
     Route::post("$capexPrefs-submit-edit", [ExpenditureController::class, 'editCapitalExpenditure']);
+    Route::post("$capexPrefs-delete", [ExpenditureController::class, 'deleteCapitalExpenditure']);
     Route::get("$capexPrefs-data", [ExpenditureController::class, 'getCapitalExpenditureData']);
     /** */
 

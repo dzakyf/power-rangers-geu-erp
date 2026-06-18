@@ -8,14 +8,10 @@ use Illuminate\Database\Eloquent\Builder;
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
 
-$get = App\WarehousePartner::get()->pluck('partner_task_id');
-
-$partner = DB::table('approval_request')->where('Status', 'APPROVED')->where('Request_Type', 'ONBOARDING')->get()->pluck('Requester_Id');
-$partner = DB::table('users')->whereIn("id", $partner)->get()->pluck('Emp_ID');
-$partner = DB::table('opportunity_partner')
-->whereIn('id', $partner)
-->whereNotIn('lead_id', $get)
-->where('status', 'ACTIVE')->get();
+$partner = DB::table('users')
+    ->where('Position', 'MITRA')
+    ->where('Status', 'ACTIVE')
+    ->get();
  
 $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
 
@@ -38,7 +34,7 @@ $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
                 <select name="Partner_Name" id="Partner_Name" class="form-control">
                     <option value="">-- Pilih Mitra --</option>
                     @foreach ($partner as $item)
-                        <option value="{{ $item->lead_id }}">{{$item->full_name}}</option>
+                        <option value="{{ $item->Emp_ID }}">{{ $item->Name }}</option>
                     @endforeach
                 </select>
 			</div>

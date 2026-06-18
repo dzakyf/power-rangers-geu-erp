@@ -1721,6 +1721,21 @@ class ProfitSharingController extends Controller
 
     public function createMitraProjection(Request $r)
     {
+        // Save BEP form data
+        if ($r->filled('mitra_id')) {
+            $warehouse = DB::table('warehouse_partner')
+                ->where('partner_task_id', $r->mitra_id)->first();
+
+            if ($warehouse) {
+                DB::table('warehouse_partner')->where('id', $warehouse->id)->update([
+                    'bep_projection' => $r->bep_projection,
+                    'bep_projected_at' => $r->filled('bep_at')
+                        ? date('Y-m-d', strtotime(date('Y') . '-' . $r->bep_at . '-01'))
+                        : null,
+                ]);
+            }
+        }
+
         $b = $r->all();
         $userId = $b['user_id'] ?? "2345";
 
@@ -1984,7 +1999,7 @@ class ProfitSharingController extends Controller
 
             DB::commit();
 
-            return response()->json(["message" => "success"]);
+            return response()->json(["success" => true, "message" => "success"]);
         } catch (\Exception $e) {
             DB::rollBack();
 
