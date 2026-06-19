@@ -42,7 +42,7 @@ try {
     $data['pi_subdistrict'] = $addr_subdistrict;
     $data['pi_city'] = $addr_city;
     $data['pi_province'] = $addr_province;
-    $data['pi_postal'] = $addr_postal;
+    $data['pi_postal_code'] = $addr_postal;
 
 
     $data['gender'] = request()->input('Gender');
@@ -217,7 +217,7 @@ try {
             $opportunity = DB::table('opportunity')->where("Task_ID", $data['lead_id'])->first();
             $contact = $opportunity->Phone_Number;
         }
-        DB::table('users')->insert([
+        $id = DB::table('users')->insertGetId([
             'username' => $username,
             'password' => bcrypt($pass),
             'Emp_ID' => $data['lead_id'] ?? 'BP/' . $LSP . '/' . date('Ymdhis') . '/' . substr(md5($Saya), 0, 3),

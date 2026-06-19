@@ -852,8 +852,18 @@ class ProfitSharingController extends Controller
         $nominal = 0;
         $location = $partner->City;
         $date = Carbon::now()->day;
-        $month = Carbon::now()->translatedFormat('F');
-        $year = Carbon::now()->year;
+
+        // Parse month and year from submitted Periode (format: "YYYY-MM")
+        $periode = $b['Periode'] ?? '';
+        if ($periode) {
+            $parts = explode('-', $periode);
+            $year = $parts[0];
+            $monthNum = $parts[1];
+        } else {
+            $year = Carbon::now()->year;
+            $monthNum = Carbon::now()->format('m');
+        }
+        $month = Carbon::createFromFormat('m', $monthNum)->translatedFormat('F');
         $bankName = $partner->Bank_Name;
         $accountName = $partner->Bank_Account_Name;
         $accountNo = $partner->Bank_Account_No;
@@ -892,7 +902,7 @@ class ProfitSharingController extends Controller
     /** TODO: 
      *  Ambil revenue dari finance
      * */
-    public function makeProfitSharingApplication($b, $templatePath)
+    public function makeProfitSharingApplication($b, $templatePath, Request $r = null)
     {
         $doc = new TemplateProcessor($templatePath);
 
@@ -923,8 +933,18 @@ class ProfitSharingController extends Controller
 
         $location = $partner->City;
         $date = Carbon::now()->day;
-        $month = Carbon::now()->translatedFormat('F');
-        $year = Carbon::now()->year;
+
+        // Parse month and year from submitted Periode (format: "YYYY-MM")
+        $periode = $b['Periode'] ?? '';
+        if ($periode) {
+            $parts = explode('-', $periode);
+            $year = $parts[0];
+            $monthNum = $parts[1];
+        } else {
+            $year = Carbon::now()->year;
+            $monthNum = Carbon::now()->format('m');
+        }
+        $month = Carbon::createFromFormat('m', $monthNum)->translatedFormat('F');
         $bankName = $partner->Bank_Name;
         $accountName = $partner->Bank_Account_Name;
         $accountNo = $partner->Bank_Account_No;
@@ -943,22 +963,24 @@ class ProfitSharingController extends Controller
             'bank_name' => $bankName,
             'account_name' => $accountName,
             'account_no' => $accountNo,
-            'mitra_fullname' => $mitraFullname
+            'mitra_fullname' => $mitraFullname,
+            'periode' => $b['Periode'] ?? '',
         ]);
 
-        $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $b['signature']);
-        $imageData = base64_decode($base64Image);
+        if ($r && $r->hasFile('signature')) {
+            $imageData = file_get_contents($r->file('signature')->getRealPath());
 
-        $tempImage = tempnam(sys_get_temp_dir(), 'img') . '.png';
-        file_put_contents($tempImage, $imageData);
+            $tempImage = tempnam(sys_get_temp_dir(), 'img') . '.png';
+            file_put_contents($tempImage, $imageData);
 
-        $doc->setImageValue('mitra_signature', [
-            'path' => $tempImage,
-            'height' => 100,
-            'ratio' => false
-        ]);
+            $doc->setImageValue('mitra_signature', [
+                'path' => $tempImage,
+                'height' => 100,
+                'ratio' => false
+            ]);
 
-        unlink($tempImage);
+            unlink($tempImage);
+        }
 
         return ['doc' => $doc, 'contract_no' => $referenceNo, 'royalti' => $nominalRoyalty];
     }
@@ -974,7 +996,7 @@ class ProfitSharingController extends Controller
         }
 
         $now = Carbon::now()->format('YmdHisv');
-        $doc = $this->makeProfitSharingApplication($b, $path);
+        $doc = $this->makeProfitSharingApplication($b, $path, $r);
 
 
         $outputPath = storage_path("app/public/royalti-application-_$now.docx");
@@ -996,13 +1018,14 @@ class ProfitSharingController extends Controller
             return response()->json(['error' => 'File not found'], 404);
         }
 
-        $doc = $this->makeProfitSharingApplication($body, $path);
+        $doc = $this->makeProfitSharingApplication($body, $path, $r);
 
         $path = $this->generatorService->generateUUID();
         $ext = "png";
         $user = $this->userService->getCurrentSessionUserInfo();
 
         $filename = "$path.$ext";
+
         $desc = "Upload pengajuan royalti";
         $topic = "profit-sharing";
         $mapTo = $user->id;
@@ -1026,7 +1049,7 @@ class ProfitSharingController extends Controller
                 ->where('op.user_row_id', '=', $session->id)
                 ->get();
 
-            // dd($partner);
+            // dd($partner, $session);
 
             $royalti = $doc['royalti'];
             $total = ($royalti * 0.11) + $royalti;
@@ -1101,10 +1124,7 @@ class ProfitSharingController extends Controller
 
             // return view('approval.profit-sharing-create', compact('partner'));
 
-            return response()->json([
-                'status'  => 'success',
-                'message' => 'Data berhasil disimpan'
-            ], 200);
+            return response()->download(public_path($path))->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -1147,9 +1167,6 @@ class ProfitSharingController extends Controller
                 }
             }
         }
-
-
-
 
         return response()->json(['message' => 'success'], 200);
     }

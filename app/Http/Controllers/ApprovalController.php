@@ -338,7 +338,7 @@ class ApprovalController extends Controller
      * @param  array   $extra         extra columns merged into approval_request (e.g. Map_To, Opportunity_Partner_Id)
      * @return int     the new approval_request ID
      */
-    public function createApprovalRequest(string $requestType, int $requesterId, string $action, array $extra = []): int
+    public function createApprovalRequest(string $requestType, ?string $requesterId, string $action, array $extra = []): int
     {
         return DB::transaction(function () use ($requestType, $requesterId, $action, $extra) {
             $id = DB::table('approval_request')->insertGetId(array_merge([
@@ -443,7 +443,7 @@ class ApprovalController extends Controller
 
         // Join untuk informasi tambahan  
         if ($type == "ONBOARDING") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'opp.is_recommended_to_be_approved as Is_Recommended_To_Be_Approved', 'opp.lead_id as Code')
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'opp.is_recommended_to_be_approved as Is_Recommended_To_Be_Approved', 'opp.lead_id as Code', 'opp.full_name as Partner_Name')
                 ->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id');
         }
 
@@ -453,7 +453,7 @@ class ApprovalController extends Controller
         }
 
         if ($type == "PROFIT_SHARING") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position')
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'opp.full_name as Partner_Name')
                 ->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id');
         }
 
@@ -473,6 +473,7 @@ class ApprovalController extends Controller
         }
 
         // Filtering jabatan
+
         if (in_array($session->Position, ["SALES", "MANAGER", "DIRECTOR", "HEAD", "CFO"])) {
             $d->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Status', '=', 'NEED_APPROVAL')->where('lv.Approver_Position', '=', $session->Position);
             // MITRA
@@ -487,7 +488,7 @@ class ApprovalController extends Controller
         }
 
 
-        $d = $d->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')
+        $d = $d->leftJoin('users as usr', 'appr.Requester_Id', '=', 'usr.id')
             ->leftJoin('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID');
 
         $d = $d->orderBy('ID', 'DESC')->get();
@@ -510,7 +511,7 @@ class ApprovalController extends Controller
             $row->addAttribute('Oppt_Id', $p->Opportunity_Partner_Id);
             $row->addAttribute('Mapper_Id', $p->Map_To);
             $row->addChild('cell', $counter);
-            $row->addChild('cell', $p->Name);
+            $row->addChild('cell', $p->Partner_Name ?? $p->Name);
             $row->addChild('cell', $p->Code ?? "");
             $row->addChild('cell', $p->Request_Type);
             $row->addChild('cell', $p->Status);
@@ -575,5 +576,30 @@ class ApprovalController extends Controller
     {
         $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
         return response()->json($result, $result['success'] ? 200 : 500);
+    }
+    public function getProfitSharingApprovalDetail(Request $r)
+    {
+        $apprId = $r->query('appr_id');
+        $approval = DB::table('approval_request')->where('ID', $apprId)->first();
+
+        if (!$approval) {
+            return response()->json(['data' => null], 404);
+        }
+
+        $partner = DB::table('opportunity_partner')->where('id', $approval->Opportunity_Partner_Id)->first();
+        $ap = DB::table('account_payable')->where('Opportunity_Id', $approval->Opportunity_Partner_Id)->first();
+        $files = DB::table('meta_files')
+            ->where('Topic', 'profit-sharing')
+            ->where('Map_To', $approval->Requester_Id)
+            ->get();
+        $log = DB::table('approval_log')->where('Request_Id', $apprId)->get();
+
+        return response()->json(['data' => [
+            'approval'        => $approval,
+            'partner'         => $partner,
+            'account_payable' => $ap,
+            'files'           => $files,
+            'log'             => $log,
+        ]]);
     }
 }

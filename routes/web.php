@@ -4745,6 +4745,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$masterAuditPref-parameter-new-submit", [PartnerMasterAuditController::class, 'newMasterAuditParameterSubmit']);
     Route::get("$masterAuditPref-parameter-detail", [PartnerMasterAuditController::class, 'detailMasterAuditParameter']);
     Route::post("$masterAuditPref-parameter-detail-submit", [PartnerMasterAuditController::class, 'newMasterAuditParameterSubmit']);
+    Route::post("$masterAuditPref-parameter-change-status", [PartnerMasterAuditController::class, 'changeStatusMasterAuditParamater']);
+    Route::post("$masterAuditPref-parameter-delete", [PartnerMasterAuditController::class, 'deleteMasterAuditParameter']);
 
     /** sop compliance route */
     $sopPref = "partner-master-sop";
@@ -4866,6 +4868,7 @@ Route::group(['middleware' => 'log.access'], function () {
     // Route::post("$profitSharingPref-proceed", [ApprovalController::class, 'processProfitSharingToNextProgress']);
     Route::get("$profitSharingPref-approval-index", [ApprovalController::class, 'indexProfitSharing']);
     Route::get("$profitSharingPref-approval-create", [ApprovalController::class, 'createProfitSharingApplication']);
+    Route::get("$profitSharingPref-approval-detail", [ApprovalController::class, 'getProfitSharingApprovalDetail']);
     Route::post("$profitSharingPref-approve", [ApprovalController::class, 'processProfitSharingToNextProgress']);
     Route::post("$profitSharingPref-preview-application", [PartnerProfitSharingController::class, 'previewProfitSharingApplication']);
     Route::post("$profitSharingPref-submit-application", [PartnerProfitSharingController::class, 'finalizeProfitSharingApplication']);

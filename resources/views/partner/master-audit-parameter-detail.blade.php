@@ -71,7 +71,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 				var dataPos = data.status;
 				if (dataPos == 'success') {
 					// var cariAWB = data.split(":");
-					alert('Training Application Submitted!');
+					alert('Master Audit Updated!');
                     refreshdata();
                     $('#divlistOpportunity').html('');
                     window.reload();

@@ -47,15 +47,16 @@ $Saya =  Auth::user()->username;
 <script>
 	function WarehouseAuditNew() {
 
-        LoadM('divlistOpportunity', 'partner-warehouse-audit-new');
+		LoadM('divlistOpportunity', 'partner-warehouse-audit-new');
 		return true;
 	}
+
 	function WarehouseAuditKlik() {
 
 		WarehouseAuditID = WarehouseAudit.getSelectedId();
 		if (WarehouseAuditID != null) {
 			LoadM('divlistOpportunity', 'partner-warehouse-audit-detail?Task=' + WarehouseAuditID);
-		}else {
+		} else {
 			alert("Pilih baris data");
 		}
 		return true;
@@ -65,10 +66,10 @@ $Saya =  Auth::user()->username;
 	WarehouseAudit.setHeader("No,Nomor Audit, Tanggal Audit, No Gudang, Lokasi Gudang, Auditor, Jenis Audit, Kategori Temuan, Ringkasan Temuan, Total Score, Deskripsi Score");
 	WarehouseAudit.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// WarehouseAudit.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	WarehouseAudit.setInitWidths("60,100,150,200,100,100,100,100,100,100,auto");
-	WarehouseAudit.setColAlign("center,left,left,left,left,left,left,left,left,left");
+	WarehouseAudit.setInitWidths("60,100,150,200,100,100,100,100,100,100,100");
+	WarehouseAudit.setColAlign("center,left,left,left,left,left,left,left,left,left,left");
 	WarehouseAudit.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
-	WarehouseAudit.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	WarehouseAudit.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	WarehouseAudit.enableSmartRendering(true, 150);
 	// WarehouseAudit.setNumberFormat("0,000", 7, ".", ",");
 	WarehouseAudit.attachEvent("onRowDblClicked", WarehouseAuditKlik);

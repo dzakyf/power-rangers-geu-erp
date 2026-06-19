@@ -133,7 +133,47 @@ class MasterAuditController extends Controller
             ]);
         } catch (\Throwable $th) {
             DB::rollback();
-            \Log::error($th);
+            Log::error($th);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $th->getMessage()
+            ]);
+        }
+    }
+
+    public function changeStatusMasterAuditCategory(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $data = MasterAuditCategory::find($request->param);
+            if (!$data) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Master Audit Category not found'
+                ]);
+            }
+
+            // $cekParamter = MasterAuditParameter::where("category", $data->category)->get();
+            // if (count($cekParamter)) {
+                
+            // }
+
+            $status = $data->status == "NORMAL" ? "INACTIVE" : 'NORMAL';
+
+            $data->status = $status;
+            $data->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Master Audit Category updated successfully'
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollback();
+            Log::error($th);
 
             return response()->json([
                 'status' => 'error',
@@ -165,7 +205,7 @@ class MasterAuditController extends Controller
         }
         $nomor = 1;
 
-        $cat = MasterAuditCategory::orderBy('urutan', 'ASC')->get();
+        $cat = MasterAuditCategory::where('status', "NORMAL")->orderBy('urutan', 'ASC')->get();
         foreach ($cat as $value) {
             $get = MasterAuditParameter::where('category', $value->category)->orderBy('category', 'ASC')->get();
 
@@ -286,5 +326,55 @@ class MasterAuditController extends Controller
                 'message' => $th->getMessage()
             ]);
         }
+    }
+
+    public function changeStatusMasterAuditParamter(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $data = MasterAuditParameter::find($request->param);
+            if (!$data) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Master Audit Parameter not found'
+                ]);
+            }
+
+            $status = $data->parameter_status == "NORMAL" ? "INACTIVE" : 'NORMAL';
+
+            $data->parameter_status = $status;
+            $data->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Master Audit Parameter updated successfully'
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollback();
+            Log::error($th);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $th->getMessage()
+            ]);
+        }
+    }
+    public function deleteMasterAuditParameter(Request $request)
+    {
+        $id = $request->input('id');
+        if (!$id) {
+            return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
+        }
+
+        $param = MasterAuditParameter::find($id);
+        if (!$param) {
+            return response()->json(['status' => 'error', 'message' => 'Data not found'], 404);
+        }
+
+        $param->delete();
+        return response()->json(['status' => 'success', 'message' => 'Parameter deleted successfully']);
     }
 }
