@@ -33,7 +33,7 @@ $Saya =  Auth::user()->username;
 <div class="row">
 	<div id="OpportunityLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
-        <input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
+		<input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
 		<input type="button" id="detailLeads" name="detailLeads" value="Register Business Partner" class="btn btn-success mt-2 mr-2" onclick="detailLeads()" />
 		<!-- <input type="button" id="delets" name="delets" value="Cancel Opportunity" class="btn btn-danger mt-2 mr-2" onclick="delsOpportunity()" /> -->
 	</div>
@@ -48,8 +48,8 @@ $Saya =  Auth::user()->username;
 		$("#divlistOpportunity").show();
 		if (OpportunityListsID != null) {
 			$("#divlistProjectList").hide();
-			LoadM('divlistOpportunity', 'partner-business-registration-detail?ID=' + OpportunityLists.cells(OpportunityListsID,1).getValue());
-		}else {
+			LoadM('divlistOpportunity', 'partner-business-registration-detail?ID=' + OpportunityLists.cells(OpportunityListsID, 1).getValue());
+		} else {
 			dhtmlx.alert("Pilih leads yang akan menjadi business partner")
 		}
 		return true;
@@ -104,7 +104,6 @@ $Saya =  Auth::user()->username;
 		// })
 	}
 
-
 	function UpdateGrid_Opportunity() {
 		var out = 0;
 		for (var i = 0; i < OpportunityLists.getRowsNum(); i++) {
@@ -133,13 +132,13 @@ $Saya =  Auth::user()->username;
 
 	function listDoc() {
 
-		DocumentListsDetailID = OpportunityLists.cells(OpportunityLists.getSelectedId(),12).getValue();
-		
-			$("#divlistProjectList").show();
+		DocumentListsDetailID = OpportunityLists.cells(OpportunityLists.getSelectedId(), 12).getValue();
 
-		if (DocumentListsDetailID !=''){
+		$("#divlistProjectList").show();
+
+		if (DocumentListsDetailID != '') {
 			$("#divlistOpportunity").hide();
-			LoadM('divlistProjectList','project-documents-detail?Task_ID=' + DocumentListsDetailID);
+			LoadM('divlistProjectList', 'project-documents-detail?Task_ID=' + DocumentListsDetailID);
 		}
 		return true;
 	}

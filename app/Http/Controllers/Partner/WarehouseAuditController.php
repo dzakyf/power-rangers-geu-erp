@@ -162,7 +162,7 @@ class WarehouseAuditController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->ringkasan_temuan) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->total_score) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->score_description) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->created_by]) . "</cell>";
+            // echo "<cell>" . htmlspecialchars($usname[$Fetch->created_by]) . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -178,7 +178,7 @@ class WarehouseAuditController extends Controller
         $nomor = 'AUDIT/GEU/' . $year . '/' . sprintf('%04d', $count);
         $temuan = MasterAuditTemuan::all();
         $users = User::where("Priv_ID", '!=', 'MITRA')->where('username', '!=', 'admin')->get();
-        $category = MasterAuditCategory::where('status', 'normal')->orderBy('urutan', 'asc')->get();
+        $category = MasterAuditCategory::where('status', 'NORMAL')->orderBy('urutan', 'asc')->get();
         $param = [];
         foreach ($category as $key => $value) {
             $param[$value->category] = MasterAuditParameter::where("parameter_status", "NORMAL")->where('category', $value->category)->orderBy('parameter_id')->get();

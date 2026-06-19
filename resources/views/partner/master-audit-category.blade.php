@@ -38,6 +38,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 					<input type="button" id="ekselMasterAuditCategoryDet" name="ekselMasterAuditCategoryDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="MasterAuditCategory.toExcel('./export/generate.php');" />
 					<input type="button" id="newMasterAuditCategory" name="new" value="New Category" class="btn btn-primary mt-2 mr-2" onclick="MasterAuditCategoryNew()" />
 					<input type="button" id="detailMasterAuditCategory" name="detailMasterAuditCategory" value="Detail Category" class="btn btn-info mt-2 mr-2" onclick="MasterAuditCategoryKlik()" />
+					<input type="button" id="changeStatuslMasterAuditCategory" name="changeStatuslMasterAuditCategory" value="Change Status" class="btn btn-danger mt-2 mr-2" onclick="MasterAuditCategoryStatus()" />
 
 					<input type="file" id="csvFileInput" accept=".csv" style="display: none;">
 				</div>
@@ -89,6 +90,35 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 		if (MasterAuditCategoryID != '') {
 			$("#divlistProjectList").hide();
 			LoadM('divlistOpportunity', 'partner-master-audit-category-detail?ID=' + MasterAuditCategoryID);
+		}
+		return true;
+	}
+	function MasterAuditCategoryStatus() {
+
+		MasterAuditCategoryID = MasterAuditCategory.getSelectedId();
+		if (MasterAuditCategoryID != '') {
+			$.ajax({
+				url:"partner-master-audit-category-change-status",
+				headers: {
+					'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+				},
+				type:"POST",
+				data:{param:MasterAuditParameterID},
+				success: function(data, textStatus, jqXHR) {
+					var dataPos = data.status;
+					if (dataPos == 'success') {
+						// var cariAWB = data.split(":");
+						alert('Training Application Submitted!');
+						refreshdata();
+					} else {
+						alert('Application Failed to Submit!');
+					}
+				},
+				error: function(jqXHR, textStatus, errorThrown) {
+					alert("Error Internal! Please Try again!");
+
+				}
+			})
 		}
 		return true;
 	}

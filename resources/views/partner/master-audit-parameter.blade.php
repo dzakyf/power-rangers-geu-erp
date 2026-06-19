@@ -30,20 +30,22 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 </div>
 
 <div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div id="MasterAuditParameter" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-                <div>
-                    <input type="button" id="ekselMasterAuditParameterDet" name="ekselMasterAuditParameterDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="MasterAuditParameter.toExcel('./export/generate.php');" />
-                    <input type="button" id="newMasterAuditParameter" name="new" value="New Parameter" class="btn btn-primary mt-2 mr-2" onclick="MasterAuditParameterNew()" />
-                    <input type="button" id="detailMasterAuditParameter" name="detailMasterAuditParameter" value="Detail Parameter" class="btn btn-info mt-2 mr-2" onclick="MasterAuditParameterKlik()" />
-            
-                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
-                </div>
-            </div>
-        </div>
-    </div>
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<div id="MasterAuditParameter" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+				<div>
+					<input type="button" id="ekselMasterAuditParameterDet" name="ekselMasterAuditParameterDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="MasterAuditParameter.toExcel('./export/generate.php');" />
+					<input type="button" id="newMasterAuditParameter" name="new" value="New Parameter" class="btn btn-primary mt-2 mr-2" onclick="MasterAuditParameterNew()" />
+					<input type="button" id="detailMasterAuditParameter" name="detailMasterAuditParameter" value="Detail Parameter" class="btn btn-info mt-2 mr-2" onclick="MasterAuditParameterKlik()" />
+					<!-- <input type="button" id="changeStatusMasterAuditParameter" name="changeStatusMasterAuditParameter" value="Change Status" class="btn btn-danger mt-2 mr-2" onclick="MasterAuditParameterStatus()" /> -->
+					<input type="button" id="deleteMasterAuditParameter" value="Hapus" class="btn btn-danger mt-2 mr-2" onclick="deleteMasterAuditParameter()" />
+
+					<input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>
@@ -52,6 +54,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 		LoadM('divlistOpportunity', 'partner-master-audit-parameter-new');
 		return true;
 	}
+
 	function MasterAuditParameterKlik() {
 
 		MasterAuditParameterID = MasterAuditParameter.getSelectedId();
@@ -59,6 +62,38 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 		if (MasterAuditParameterID != '') {
 			$("#divlistProjectList").hide();
 			LoadM('divlistOpportunity', 'partner-master-audit-parameter-detail?ID=' + MasterAuditParameterID);
+		}
+		return true;
+	}
+
+	function MasterAuditParameterStatus() {
+
+		MasterAuditParameterID = MasterAuditParameter.getSelectedId();
+		if (MasterAuditParameterID != '') {
+			$.ajax({
+				url: "partner-master-audit-parameter-change-status",
+				headers: {
+					'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+				},
+				type: "POST",
+				data: {
+					param: MasterAuditParameterID
+				},
+				success: function(data, textStatus, jqXHR) {
+					var dataPos = data.status;
+					if (dataPos == 'success') {
+						// var cariAWB = data.split(":");
+						alert('Training Application Submitted!');
+						refreshdata();
+					} else {
+						alert('Application Failed to Submit!');
+					}
+				},
+				error: function(jqXHR, textStatus, errorThrown) {
+					alert("Error Internal! Please Try again!");
+
+				}
+			})
 		}
 		return true;
 	}
@@ -72,7 +107,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	MasterAuditParameter.setColSorting("int,str,str,str,str,str,str");
 	MasterAuditParameter.setColTypes("ron,ro,ro,ro,ro,ro,ro");
 	MasterAuditParameter.enableSmartRendering(true, 150);
-    MasterAuditParameter.setDateFormat("%Y-%m-%d");
+	MasterAuditParameter.setDateFormat("%Y-%m-%d");
 	MasterAuditParameter.attachEvent('onRowDblClicked', function(rId, cInd) {
 		MasterAuditParameterKlik();
 	});
@@ -98,17 +133,47 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 		})
 	}
 
-    function addRow()
-    {
-        let uid = MasterAuditParameter.uid();
-        let num = MasterAuditParameter.getRowsNum() + 1;
-        MasterAuditParameter.addRow(uid, [num,"{{ date('Y-m-d') }}",'0','','']);
-        MasterAuditParameter.selectRow(uid);
-    }
+	function addRow() {
+		let uid = MasterAuditParameter.uid();
+		let num = MasterAuditParameter.getRowsNum() + 1;
+		MasterAuditParameter.addRow(uid, [num, "{{ date('Y-m-d') }}", '0', '', '']);
+		MasterAuditParameter.selectRow(uid);
+	}
 
 	function savePrice() {
 		PMasterAuditParameter.sendData();
 		refreshdata();
+	}
+
+	function deleteMasterAuditParameter() {
+		var id = MasterAuditParameter.getSelectedId();
+		if (!id) {
+			alert('Pilih data terlebih dulu');
+			return;
+		}
+		if (!confirm('Yakin ingin menghapus parameter ini?')) return;
+
+		$.ajax({
+			url: "partner-master-audit-parameter-delete",
+			headers: {
+				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+			},
+			type: "POST",
+			data: {
+				id: id
+			},
+			success: function(data) {
+				if (data.status == 'success') {
+					alert('Data berhasil dihapus');
+					refreshdata();
+				} else {
+					alert('Gagal menghapus data');
+				}
+			},
+			error: function() {
+				alert("Error Internal!");
+			}
+		});
 	}
 </script>
 @endsection
