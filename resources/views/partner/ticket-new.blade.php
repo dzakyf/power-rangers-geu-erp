@@ -75,7 +75,9 @@ $masterCategory = DB::table('master_ticket_category')->get();
 						<div class="col-12">
 							<div class="form-group">
 								<label for="GEU_Express_ID">HUB GEU Express</label>
-								<input type="text" name="GEU_Express_ID" id="GEU_Express_ID" value="" class="form-control" />
+								<select name="GEU_Express_ID" id="GEU_Express_ID" class="form-control select2" style="width:100%">
+                                    <option value="">-- Pilih HUB GEU Express --</option>
+                                </select>
 							</div>
 						</div>
 						<div class="col-12">
@@ -103,23 +105,12 @@ $masterCategory = DB::table('master_ticket_category')->get();
 
 </div>
 
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ asset('jquery.coolautosuggest.js') }}"></script>
 <script src="{{ asset('jquery.coolfieldset.js') }}"></script>
 <script>
-	$("#GEU_Express_ID").coolautosuggest({
-		url:"partner-warehouse-audit-get-warehouse?chars=",
-		showThumbnail:false,
-		showDescription:true,
-		idField:$("#GEU_Express_ID"),
-		width:500,
-		minChars:1,
-		onSelected:function(result){
-		if(result!=null){
-			$("#GEU_Express_ID").val(result.id); 
 
-		}
-		}
-	});
 	var vault = new dhx.Vault("File_Documents", {
 		uploader: {
 			target: "upload-receiveinvoice.php"
@@ -144,13 +135,38 @@ $masterCategory = DB::table('master_ticket_category')->get();
 
 
 	vault.events.on("beforeAdd", function(item) {
-		var extension = item.file.name.split(".").pop();
-
-		var predicate = extension === "pdf";
+		var extension = item.file.name.split(".").pop().toLowerCase();
+		var allowed = ['pdf', 'jpg', 'jpeg', 'png'];
+		var predicate = allowed.includes(extension);
 		if (!predicate) {
-			dhtmlx.alert("Hanya Boleh mengupload tipe file PDF");
+			dhtmlx.alert("Hanya boleh mengupload file dengan tipe PDF, JPG, JPEG, atau PNG");
 		}
 		return predicate;
+	});
+
+	$('#GEU_Express_ID').select2({
+		placeholder: '-- Pilih HUB GEU Express --',
+		allowClear: true,
+		width: '100%',
+		ajax: {
+			url: 'partner-warehouse-data',
+			dataType: 'json',
+			delay: 250,
+			data: function(p) {
+				return { q: p.term || '' };
+			},
+			processResults: function(res) {
+				return {
+					results: (res.data || []).map(function(item) {
+						return {
+							id: item.warehouse_task_id,
+							text: item.warehouse_task_id + ' — ' + item.warehouse_location
+						};
+					})
+				};
+			},
+			cache: true
+		}
 	});
 
 	var myCalendar;

@@ -40,7 +40,7 @@ class BroadcastController extends Controller
 
         $partners = DB::table('broadcast')->get();
         foreach ($partners as $key => $partner) {
-            echo "<row id=\"$partner->ID\" >";
+            echo "<row id=\"$partner->ID\" br_id=\"$partner->ID\">";
             echo "<cell>" . ($key + 1) . "</cell>";
             echo "<cell>" . htmlspecialchars($partner->Title) . "</cell>";
             echo "<cell>" . htmlspecialchars($partner->Type) . "</cell>";
@@ -74,6 +74,39 @@ class BroadcastController extends Controller
         $broadcast[0]->Files = $files;
 
         return view('broadcast.detail', ['data' => $broadcast]);
+    }
+
+
+    public function detailData(Request $r)
+    {
+        $id = $r->query('ID');
+        if (!$id) {
+            return response()->json(['data' => null], 400);
+        }
+
+        $broadcast = DB::table('broadcast')->where('ID', $id)->first();
+        if (!$broadcast) {
+            return response()->json(['data' => null], 404);
+        }
+
+        $files = DB::table('meta_files')
+            ->where('Topic', 'broadcast')
+            ->where('Map_To', $id)
+            ->get()
+            ->map(function($f) {
+                $f->Url = asset("broadcast/" . $f->Path);
+                return $f;
+            });
+
+        return response()->json(['data' => [
+            'Title'          => $broadcast->Title,
+            'Type'           => $broadcast->Type,
+            'Short_Desc'     => $broadcast->Short_Desc,
+            'Long_Desc'      => $broadcast->Long_Desc,
+            'Effective_Date' => $broadcast->Effective_Date,
+            'Status'         => $broadcast->Status,
+            'Files'          => $files,
+        ]]);
     }
 
     public function submit(Request $r)
