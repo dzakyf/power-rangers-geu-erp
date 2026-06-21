@@ -4792,6 +4792,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$broadcastPref-create", [BroadcastController::class, 'create']);
     Route::post("$broadcastPref-submit", [BroadcastController::class, 'submit']);
     Route::get("$broadcastPref-load-data", [BroadcastController::class, 'indexXML']);
+    Route::get("$broadcastPref-detail-data", [BroadcastController::class, 'detailData']);
     /** */
 
     /** panduan operasional route */

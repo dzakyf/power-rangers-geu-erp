@@ -71,7 +71,7 @@ $masterCategory = DB::table('master_ticket_category')->get();
 	TicketHistory.setInitWidths("60,150,100,100,200,100,120,120,200,300,100");
 	TicketHistory.setColAlign("center,left,left,left,left,left,left,left,left,left,left");
 	TicketHistory.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
-	TicketHistory.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	TicketHistory.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,link");
 	TicketHistory.enableSmartRendering(true, 150);
 	// TicketHistory.setNumberFormat("0,000", 7, ".", ",");
 	TicketHistory.attachEvent("onRowDblClicked", TicketHistoryKlik);

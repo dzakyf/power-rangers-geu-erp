@@ -63,7 +63,15 @@ $masterCategory = DB::table('master_ticket_category')->get();
 			<div class="col-12">
 				<div class="form-group">
 					<label for="File_Documents">Lampiran Pendukung (Jika Ada)</label>
-					<input class='form-control' type="text" size="40" readonly="readonly" id="File_Document" value="{{ $Fetch->File_Document }}" />
+					<div>
+					    @if ($Fetch->File_Document)
+					        <a href="{{ asset('filevendor/' . $Fetch->File_Document) }}" target="_blank" class="btn btn-info btn-sm">
+					            <i class="fas fa-file-download"></i> Lihat File
+					        </a>
+					    @else
+					        <span class="text-muted">Tidak ada lampiran</span>
+					    @endif
+					</div>
 				</div>
 			</div>
 		</div>

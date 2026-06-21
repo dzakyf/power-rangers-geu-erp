@@ -92,7 +92,12 @@ class TicketController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->Ticket_Category) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Ticket_Subject) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Description) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->File_Document) . "</cell>";
+            $filePath = $Fetch->File_Document;
+if ($filePath) {
+    echo "<cell>Link^Lihat File^" . asset("filevendor/" . $filePath) . "</cell>";
+} else {
+    echo "<cell>-</cell>";
+}
             echo "</row>";
 
             $nomor++;
@@ -209,7 +214,12 @@ class TicketController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->Ticket_Category) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Ticket_Subject) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Description) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->File_Document) . "</cell>";
+            $filePath = $Fetch->File_Document;
+if ($filePath) {
+    echo "<cell>Link^" . asset("filevendor/" . $filePath) . "</cell>";
+} else {
+    echo "<cell>-</cell>";
+}
             echo "</row>";
 
             $nomor++;
