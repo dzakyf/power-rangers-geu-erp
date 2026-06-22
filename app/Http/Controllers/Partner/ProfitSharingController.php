@@ -728,11 +728,11 @@ class ProfitSharingController extends Controller
 
         if (in_array($session->Position, ["SALES", "MANAGER", "BOD", "HEAD"])) {
             $d = DB::table('approval_request as appr')->select('appr.*', 'usr.Name', 'lv.Approver_Position')->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')
-                ->join('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID')->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Status', '=', 'NEED_APPROVAL')->where('lv.Approver_Position', '=', $session->Position)->get();
+                ->join('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID')->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Status', '=', 'NEED_APPROVAL')->where('lv.Approver_Position', '=', $session->Position)->orderBy('ID', 'DESC')->get();
 
             // MITRA, SUPERADMIN
         } else {
-            $d = DB::table('approval_request as appr')->select('appr.*', 'usr.Name')->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')->where('appr.Request_Type', 'LIKE',  $type)->where('appr.ID', 'LIKE', $apprId)->orWhere('appr.Requester_Id', 'LIKE', $user_id)->get();
+            $d = DB::table('approval_request as appr')->select('appr.*', 'usr.Name')->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')->where('appr.Request_Type', 'LIKE',  $type)->where('appr.ID', 'LIKE', $apprId)->orWhere('appr.Requester_Id', 'LIKE', $user_id)->orderBy('ID', 'DESC')->get();
         }
 
         $xml = new SimpleXMLElement('<rows></rows>');
@@ -744,7 +744,7 @@ class ProfitSharingController extends Controller
             $row->addChild('cell', $p->Request_Type);
             $row->addChild('cell', $p->Status);
             $row->addChild('cell', htmlspecialchars($p->Description));
-            $row->addChild('cell', $p->Name);
+            $row->addChild('cell', $p->Created_At);
         }
 
         return response()->make($xml->asXML(), 200, [

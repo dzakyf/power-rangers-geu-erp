@@ -16,7 +16,7 @@ class CreateWarehouseStockOpnamesTable extends Migration
             $table->decimal('System_Qty', 15, 2);
             $table->decimal('Physical_Qty', 15, 2)->default(0);
             $table->decimal('Difference', 15, 2)->default(0);
-            $table->enum('Status', ['DRAFT', 'COUNTED', 'ADJUSTED', 'CLOSED'])->default('DRAFT');
+            $table->enum('Status', ['DRAFT', 'COUNTED', 'ADJUSTED', 'CLOSED', 'CLOSED_PENDING'])->default('DRAFT');
             $table->text('Notes')->nullable();
             $table->string('Counted_By')->nullable();
             $table->string('Approved_By')->nullable();

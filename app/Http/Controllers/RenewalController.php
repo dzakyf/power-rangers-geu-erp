@@ -277,13 +277,23 @@ class RenewalController extends Controller
         $ext = $r->file('file')->getClientOriginalExtension();
         $user = $this->userService->getCurrentSessionUserInfo();
 
+        $oppId = $r->opportunity_partner_id;
+
         $id = DB::table('approval_request')->insertGetId([
             'Status' => 'NEED_APPROVAL',
             'Requester_Id' => $user->id,
             'Description' => "Initial Review",
             'Request_Type' => "RENEWAL",
-            'Opportunity_Partner_Id' => ""
+            'Opportunity_Partner_Id' => $oppId ?? "",
         ]);
+
+        if ($oppId) {
+            DB::table('partner_renewal')->insert([
+                'Opportunity_Id' => $oppId,
+                'Created_At'     => now(),
+                'Status'         => 'PENDING',
+            ]);
+        }
 
         $currentLevel = 1;
         $logId = DB::table('approval_log')->insertGetId([
@@ -385,18 +395,27 @@ class RenewalController extends Controller
 
     public function getRenewalData(Request $r)
     {
-        $d = DB::table('opportunity_partner')->select('*')->get();
+        $d = DB::table('partner_renewal as pr')
+            ->join('opportunity_partner as op', 'pr.Opportunity_Id', '=', 'op.id')
+            ->select('pr.*', 'op.lead_id', 'op.full_name', 'op.register_as')
+            ->orderBy('pr.id', 'desc')
+            ->get();
+
         $xml = new SimpleXMLElement('<rows></rows>');
 
         $no = 1;
         foreach ($d as $p) {
             $row = $xml->addChild('row');
-            $row->addAttribute('ID', $p->id);
+            $row->addAttribute('ID', $p->ID);
             $row->addChild('cell', $no);
             $row->addChild('cell', $p->lead_id);
             $row->addChild('cell', $p->full_name);
             $row->addChild('cell', $p->register_as);
-            $row->addChild('cell', $p->contract_end_at);
+            $row->addChild('cell', $p->Contract_End_At);
+            $row->addChild('cell', $p->Status ?? '-');
+            $row->addChild('cell', $p->Renewal_Fee ?? '0');
+            $row->addChild('cell', $p->Renewed_Length ?? '-');
+            $row->addChild('cell', $p->Created_At);
 
             $no++;
         }
@@ -406,28 +425,138 @@ class RenewalController extends Controller
         ]);
     }
 
-    public function getTerminationDAta()
+    // public function getTerminationDAta()
+    // {
+    //     $d = DB::table('opportunity_partner')->select('*')->orderBy('id', 'desc')->get();
+
+    //     $xml = new SimpleXMLElement('<rows></rows>');
+
+    //     $no = 1;
+    //     foreach ($d as $p) {
+    //         $row = $xml->addChild('row');
+    //         $row->addAttribute('ID', $p->id);
+    //         $row->addChild('cell', $no);
+    //         $row->addChild('cell', $p->lead_id);
+    //         $row->addChild('cell', $p->full_name);
+    //         $row->addChild('cell', $p->register_as);
+    //         $row->addChild('cell', $p->contract_end_at);
+    //         $row->addChild('cell', $p->id);
+
+    //         $no++;
+    //     }
+
+    //     return response()->make($xml->asXML(), 200, [
+    //         'Content-Type' => 'application/xml'
+    //     ]);
+    // }
+
+    public function getRenewalDetail(Request $r)
     {
-        $d = DB::table('opportunity_partner')->select('*')->get();
+        $apprId = $r->query('appr_id');
+        if (!$apprId) {
+            return response()->json(['data' => null], 400);
+        }
+
+        $data = DB::table('approval_request as appr')
+            ->join('partner_renewal as pr', 'appr.Opportunity_Partner_Id', '=', 'pr.Opportunity_Id')
+            ->join('opportunity_partner as op', 'pr.Opportunity_Id', '=', 'op.id')
+            ->select('appr.*', 'pr.*', 'op.full_name', 'op.lead_id', 'op.address')
+            ->where('appr.ID', $apprId)
+            ->first();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function uploadTerminationApplication(Request $r)
+    {
+        DB::beginTransaction();
+        try {
+            $oppId = $r->opportunity_partner_id;
+            $doc = $r->file('file');
+            $path = $this->generatorService->generateUUID();
+            $ext = $r->file('file')->getClientOriginalExtension();
+            $user = $this->userService->getCurrentSessionUserInfo();
+
+            $terminationId = null;
+            if ($oppId) {
+                $terminationId = DB::table('partner_termination')->insertGetId([
+                    'Opportunity_Id' => $oppId,
+                    'Created_At'     => now(),
+                    'Status'         => 'PENDING',
+                ]);
+            }
+
+            $id = DB::table('approval_request')->insertGetId([
+                'Status' => 'NEED_APPROVAL',
+                'Requester_Id' => $user->id,
+                'Description' => "Termination request",
+                'Request_Type' => "TERMINATION",
+                'Opportunity_Partner_Id' => $oppId ?? "",
+                'Map_To' => $terminationId,
+            ]);
+
+            DB::table('approval_log')->insertGetId([
+                'Approver_Id' => $user->id,
+                'Notes' => "",
+                'Action' => 'IN_PROGRESS',
+                'Request_Id' => $id,
+                'Level_Number' => 1,
+                'Next_Level' => 2,
+            ]);
+
+            $filename = "$path.$ext";
+            $doc->move(public_path('filevendor/' . date('Y/m')), $filename);
+            $this->uploaderService->uploadMetaFile($path, $filename, "Upload request termination", $ext, "termination", $user->id);
+
+            DB::commit();
+            return response()->json(['message' => 'success']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'error', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getTerminationData(Request $r)
+    {
+        $d = DB::table('partner_termination as pt')
+            ->join('opportunity_partner as op', 'pt.Opportunity_Id', '=', 'op.id')
+            ->leftJoin('meta_files as mf', function ($join) {
+                $join->on('pt.Opportunity_Id', '=', 'mf.Map_To')
+                    ->where('mf.Topic', '=', 'termination');
+            })
+            ->select('pt.*', 'op.full_name', 'op.lead_id', 'mf.Path as File_Path')
+            ->orderBy('pt.ID', 'desc')
+            ->get();
 
         $xml = new SimpleXMLElement('<rows></rows>');
-
         $no = 1;
         foreach ($d as $p) {
             $row = $xml->addChild('row');
-            $row->addAttribute('ID', $p->id);
+            $row->addAttribute('ID', $p->ID);
             $row->addChild('cell', $no);
             $row->addChild('cell', $p->lead_id);
             $row->addChild('cell', $p->full_name);
-            $row->addChild('cell', $p->register_as);
-            $row->addChild('cell', $p->contract_end_at);
-            $row->addChild('cell', $p->id);
-
+            $row->addChild('cell', $p->Status ?? '-');
+            $row->addChild('cell', $p->Created_At);
             $no++;
         }
 
-        return response()->make($xml->asXML(), 200, [
-            'Content-Type' => 'application/xml'
-        ]);
+        return response()->make($xml->asXML(), 200, ['Content-Type' => 'application/xml']);
+    }
+
+    public function getTerminationApprovalDetail(Request $r)
+    {
+        $opptId = $r->query('oppt_id');
+        if (!$opptId) {
+            return response()->json(['data' => null], 400);
+        }
+
+        $data = DB::table('partner_termination as pt')
+            ->join('opportunity_partner as op', 'pt.Opportunity_Id', '=', 'op.id')
+            ->select('pt.*', 'op.full_name', 'op.lead_id', 'op.address')
+            ->where('pt.Opportunity_Id', $opptId)
+            ->first();
+
+        return response()->json(['data' => $data]);
     }
 }

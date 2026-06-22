@@ -16,11 +16,23 @@
 </div>
 
 <div class="row m-1">
-    <input type="button" id="pengajuan" name="pengajuan" value="Buat Pengajuan" class="btn btn-success mb-2" onclick="redirectToCreateApplication()" />
-    <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
 
-    <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
+</div>
 
+<div class="row m-1">
+    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">MITRA</div>
+    <div class="card">
+        <div class="card-body">
+
+            <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
+            <input type="button" id="pengajuan" name="pengajuan" value="Buat Pengajuan" class="btn btn-success mb-2" onclick="redirectToCreateApplication()" />
+            <input type="button" value="Export Excel" class="btn btn-warning mb-2 ml-2" onclick="PartnerGrid.toExcel('./export/generate.php');" />
+
+
+            <!-- <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mt-2"></div>
+            <div> -->
+        </div>
+    </div>
 </div>
 
 <script>
@@ -66,7 +78,7 @@
     }
 
     function initApprovalGrid() {
-        let tHeader = ['No', 'Task Id', 'Nama Lengkap', 'Tipe Keanggotaan', 'Berakhir Pada']
+        let tHeader = ['No', 'Lead ID', 'Nama', 'Tipe', 'Kontrak Berakhir', 'Status', 'Biaya', 'Durasi (bln)', 'Dibuat Pada']
 
         let tWidth = tHeader.map((e) => '110')
         let headerAttachment = [

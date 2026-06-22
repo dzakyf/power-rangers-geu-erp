@@ -19,6 +19,10 @@ class WarehouseStockAdjustment extends Model
         'Qty_After',
         'Difference',
         'Reason',
+        'Approval_Status',
+        'Approved_By',
+        'Approved_At',
+        'Approval_Note',
     ];
 
     protected $casts = [

@@ -36,10 +36,6 @@
                             <input type="number" step="0.01" class="form-control" id="system_qty" name="system_qty" value="0">
                         </div>
                         <div class="form-group">
-                            <label for="counted_by">Counted By</label>
-                            <input type="text" class="form-control" id="counted_by" name="counted_by">
-                        </div>
-                        <div class="form-group">
                             <label for="notes">Notes</label>
                             <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
                         </div>
