@@ -458,13 +458,15 @@ class ApprovalController extends Controller
         }
 
         if ($type == "RENEWAL") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position')
-                ->join('partner_renewal as opp', 'appr.Map_To', '=', 'opp.ID');
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'pr.Created_At as Renewal_Created_At', 'pr.Status as Renewal_Status', 'op.full_name as Partner_Name', 'op.lead_id as Lead_ID')
+                ->join('partner_renewal as pr', 'appr.Opportunity_Partner_Id', '=', 'pr.Opportunity_Id')
+                ->join('opportunity_partner as op', 'pr.Opportunity_Id', '=', 'op.id');
         }
 
         if ($type == "TERMINATION") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position')
-                ->join('partner_termination as opp', 'appr.Map_To', '=', 'opp.ID');
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'op.lead_id as Code', 'op.full_name as Partner_Name')
+                ->join('partner_termination as opp', 'appr.Map_To', '=', 'opp.ID')
+                ->join('opportunity_partner as op', 'opp.Opportunity_Id', '=', 'op.id');
         }
 
         if ($type == "SURVEY") {

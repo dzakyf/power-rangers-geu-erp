@@ -12,6 +12,8 @@ use SimpleXMLElement;
 
 class WarehouseStockOpnameController extends Controller
 {
+    const ADJUSTMENT_THRESHOLD = 0.03;
+
     public function indexStockOpname()
     {
         return view('partner.warehouse.stock-opname');
@@ -77,7 +79,7 @@ class WarehouseStockOpnameController extends Controller
                 'Difference'    => 0,
                 'Status'        => 'DRAFT',
                 'Notes'         => $r->notes,
-                'Counted_By'    => $r->counted_by ?? auth()->user()->username ?? '',
+                'Counted_By'    => auth()->user()->Name ?? auth()->user()->username ?? '',
             ]);
 
             DB::commit();
@@ -131,9 +133,15 @@ class WarehouseStockOpnameController extends Controller
             $difference = $opname->Difference;
             $adjustmentType = $difference >= 0 ? 'SURPLUS' : 'SHORTAGE';
 
+            // Calculate threshold
+            $ratio = $opname->System_Qty > 0
+                ? abs($difference) / $opname->System_Qty
+                : 1;
+            $approvalStatus = $ratio < self::ADJUSTMENT_THRESHOLD ? 'AUTO' : 'PENDING';
+
             // Create adjustment record if there's a difference
             if ((float) $difference !== 0.0) {
-                WarehouseStockAdjustment::create([
+                $adjustment = WarehouseStockAdjustment::create([
                     'Opname_ID'      => $opname->ID,
                     'Warehouse_ID'   => $opname->Warehouse_ID,
                     'Adjustment_Type' => $adjustmentType,
@@ -141,11 +149,19 @@ class WarehouseStockOpnameController extends Controller
                     'Qty_After'      => $opname->Physical_Qty,
                     'Difference'     => abs($difference),
                     'Reason'         => $r->reason ?? 'Stock opname adjustment',
+                    'Approval_Status' => $approvalStatus,
                 ]);
+
+                if ($approvalStatus === 'AUTO') {
+                    $adjustment->update([
+                        'Approved_By' => 'system',
+                        'Approved_At' => now(),
+                    ]);
+                }
             }
 
             $opname->update([
-                'Status'      => 'CLOSED',
+                'Status'      => $approvalStatus === 'AUTO' ? 'CLOSED' : 'CLOSED_PENDING',
                 'Approved_By' => $r->approved_by ?? auth()->user()->username ?? '',
             ]);
 
@@ -155,5 +171,95 @@ class WarehouseStockOpnameController extends Controller
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function actionAdjustment(Request $r)
+    {
+        $adjustment = WarehouseStockAdjustment::findOrFail($r->id);
+
+        if ($adjustment->Approval_Status !== 'PENDING') {
+            return response()->json(['success' => false, 'message' => 'Adjustment is not in PENDING status'], 400);
+        }
+
+        if ($r->action === 'approve') {
+            DB::beginTransaction();
+            try {
+                $adjustment->update([
+                    'Approval_Status' => 'APPROVED',
+                    'Approved_By'     => auth()->user()->Name ?? auth()->user()->username ?? 'ops',
+                    'Approved_At'     => now(),
+                    'Approval_Note'   => $r->note,
+                ]);
+
+                $opname = WarehouseStockOpname::find($adjustment->Opname_ID);
+                if ($opname && $opname->Status === 'CLOSED_PENDING') {
+                    $newPhysical = $adjustment->Qty_After;
+                    $newDifference = $newPhysical - $opname->System_Qty;
+                    $opname->update([
+                        'Physical_Qty' => $newPhysical,
+                        'Difference'   => $newDifference,
+                        'Status'       => 'CLOSED',
+                    ]);
+                }
+
+                DB::commit();
+                return response()->json(['success' => true, 'message' => 'Adjustment approved']);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
+        } elseif ($r->action === 'reject') {
+            $adjustment->update([
+                'Approval_Status' => 'REJECTED',
+                'Approved_By'     => auth()->user()->Name ?? auth()->user()->username ?? 'ops',
+                'Approved_At'     => now(),
+                'Approval_Note'   => $r->note,
+            ]);
+            return response()->json(['success' => true, 'message' => 'Adjustment rejected']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Invalid action'], 400);
+    }
+
+
+
+    public function addAdjustment(Request $r)
+    {
+        DB::beginTransaction();
+        try {
+            $opname = WarehouseStockOpname::findOrFail($r->opname_id);
+
+            $newPhysical = $r->physical_qty;
+            $difference = $newPhysical - $opname->System_Qty;
+            $adjustmentType = $difference >= 0 ? 'SURPLUS' : 'SHORTAGE';
+
+            WarehouseStockAdjustment::create([
+                'Opname_ID'       => $opname->ID,
+                'Warehouse_ID'    => $opname->Warehouse_ID,
+                'Adjustment_Type' => $adjustmentType,
+                'Qty_Before'      => $opname->Physical_Qty,
+                'Qty_After'       => $newPhysical,
+                'Difference'      => abs($difference),
+                'Reason'          => $r->reason ?? 'Additional adjustment',
+                'Approval_Status' => 'PENDING',
+            ]);
+
+            $opname->update(['Status' => 'CLOSED_PENDING']);
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Adjustment submitted for approval']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getOpnameAdjustments(Request $r)
+    {
+        $adjustments = WarehouseStockAdjustment::where('Opname_ID', $r->opname_id)
+            ->orderBy('Created_At', 'desc')
+            ->get();
+
+        return response()->json(['data' => $adjustments]);
     }
 }

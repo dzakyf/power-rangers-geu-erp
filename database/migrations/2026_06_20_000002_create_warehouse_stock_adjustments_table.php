@@ -17,6 +17,10 @@ class CreateWarehouseStockAdjustmentsTable extends Migration
             $table->decimal('Qty_After', 15, 2);
             $table->decimal('Difference', 15, 2);
             $table->text('Reason')->nullable();
+            $table->enum('Approval_Status', ['AUTO', 'PENDING', 'APPROVED', 'REJECTED'])->default('AUTO');
+            $table->string('Approved_By')->nullable();
+            $table->timestamp('Approved_At')->nullable();
+            $table->text('Approval_Note')->nullable();
             $table->timestamp('Created_At')->useCurrent();
         });
     }

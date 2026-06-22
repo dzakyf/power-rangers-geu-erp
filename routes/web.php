@@ -4718,7 +4718,10 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$warehousePref-stock-opname-detail",       [PartnerWarehouseStockOpnameController::class, 'detailStockOpname']);
     Route::post("$warehousePref-stock-opname-update",      [PartnerWarehouseStockOpnameController::class, 'updateStockOpname']);
     Route::post("$warehousePref-stock-opname-finalize",    [PartnerWarehouseStockOpnameController::class, 'finalizeStockOpname']);
+    Route::post("$warehousePref-stock-opname-action",     [PartnerWarehouseStockOpnameController::class, 'actionAdjustment']);
     Route::post("$warehousePref-audit-get-nomor", [PartnerWarehouseAuditController::class, 'getNomorWarehouseAudit']);
+    Route::post("$warehousePref-stock-opname-add-adjustment", [PartnerWarehouseStockOpnameController::class, 'addAdjustment']);
+    Route::get("$warehousePref-stock-opname-adjustment-data",  [PartnerWarehouseStockOpnameController::class, 'getOpnameAdjustments']);
 
     Route::post("$warehousePref-audit-get-temuan", [PartnerWarehouseAuditController::class, 'getTemuan']);
 
@@ -4902,6 +4905,7 @@ Route::group(['middleware' => 'log.access'], function () {
     // Route::get("$partnerRenewalPrefs-termination-index", [RenewalController::class, 'indexTermination']);
     Route::get("$partnerRenewalPrefs-transfer-index", [RenewalController::class, 'indexTransferMitra']);
     Route::get("$partnerRenewalPrefs-approval-index", [RenewalController::class, 'indexApproval']);
+    Route::get("$partnerRenewalPrefs-approval-detail", [RenewalController::class, 'getRenewalDetail']);
     Route::get("$partnerRenewalPrefs-approval-create", [RenewalController::class, 'createApproval']);
     Route::post("$partnerRenewalPrefs-approval-approve", [ApprovalController::class, 'processRenewalToNextProgress']);
     Route::get("$partnerRenewalPrefs-download", [RenewalController::class, 'downloadRenewalApplication']);
@@ -4912,13 +4916,14 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$partnerTerminationPrefs-index", [RenewalController::class, 'indexTermination']);
     Route::get("$partnerTerminationPrefs-data", [RenewalController::class, 'getTerminationData']);
     Route::get("$partnerTerminationPrefs-download", [RenewalController::class, 'downloadTerminationApplication']);
-    Route::get("$partnerTerminationPrefs-submit-application", [RenewalController::class, 'uploadTerminationApplication']);
+    Route::post("$partnerTerminationPrefs-submit-application", [RenewalController::class, 'uploadTerminationApplication']);
     Route::get("$partnerTerminationPrefs-approval-index", [RenewalController::class, 'indexTerminationApproval']);
     Route::get("$partnerTerminationPrefs-approval-create", [RenewalController::class, 'createTerminationApproval']);
     Route::get("$partnerTerminationPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);
     Route::get("$partnerTerminationPrefs-approval-data-log", [ApprovalController::class, 'getApprovalDataLog']);
     Route::post("$partnerTerminationPrefs-approval-approve", [ApprovalController::class, 'processTerminationToNextProgress']);
 
+    Route::get("$partnerTerminationPrefs-approval-detail", [RenewalController::class, 'getTerminationApprovalDetail']);
     /** transfer kepemilikan kemitraan */
     $partnerTransferPrefs = "partner-transfer-membership";
     Route::get("$partnerTransferPrefs-index", [RenewalController::class, 'indexTransferMembership']);

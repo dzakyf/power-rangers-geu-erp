@@ -22,6 +22,7 @@
                     <option value="DRAFT">Draft</option>
                     <option value="COUNTED">Counted</option>
                     <option value="ADJUSTED">Adjusted</option>
+                    <option value="CLOSED_PENDING">Pending Approval</option>
                     <option value="CLOSED">Closed</option>
                 </select>
             </div>
@@ -35,6 +36,7 @@
     <div class="m-3">
         <input type="button" value="Buat Opname" class="btn btn-success" onclick="redirectToCreate()" />
         <input type="button" id="detailBtn" value="Detail" class="btn btn-info" onclick="openDetail()" />
+        <input type="button" id="logBtn" value="Log" class="btn btn-secondary" onclick="openLog()" />
         <input type="button" value="Export Excel" class="btn btn-warning" onclick="opnameGrid.toExcel('./export/generate.php');" />
     </div>
 </div>
@@ -93,6 +95,57 @@
             return;
         }
         window.location.href = 'partner-warehouse-stock-opname-detail?ID=' + selectedOpnameId;
+    }
+
+    function openLog() {
+        if (!selectedOpnameId) {
+            alert('Pilih data terlebih dulu');
+            return;
+        }
+
+        var bodyHtml = '<div id="logContent">Loading...</div>';
+
+        AppModal.open({
+            title: 'Approval History',
+            size: 'lg',
+            body: bodyHtml,
+            actions: [{ label: 'Close', class: 'btn-secondary' }]
+        });
+
+        $.get('partner-warehouse-stock-opname-adjustment-data', { opname_id: selectedOpnameId }, function(res) {
+            var data = res.data || [];
+            var html = '';
+
+            if (data.length === 0) {
+                html = '<p class="text-muted">Tidak ada adjustment</p>';
+            } else {
+                html = '<table class="table table-bordered table-sm">' +
+                    '<thead><tr><th>Status</th><th>Qty Before</th><th>Qty After</th><th>Difference</th>' +
+                    '<th>Type</th><th>Reason</th><th>Approved By</th><th>Approved At</th></tr></thead><tbody>';
+
+                data.forEach(function(a) {
+                    var badgeClass = a.Approval_Status === 'APPROVED' ? 'success' :
+                        a.Approval_Status === 'REJECTED' ? 'danger' :
+                        a.Approval_Status === 'PENDING' ? 'warning' : 'secondary';
+                    html += '<tr>' +
+                        '<td><span class="badge badge-' + badgeClass + '">' + (a.Approval_Status || '-') + '</span></td>' +
+                        '<td>' + a.Qty_Before + '</td>' +
+                        '<td>' + a.Qty_After + '</td>' +
+                        '<td>' + (a.Difference || 0) + '</td>' +
+                        '<td>' + (a.Adjustment_Type || '-') + '</td>' +
+                        '<td>' + (a.Reason || '-') + '</td>' +
+                        '<td>' + (a.Approved_By || '-') + '</td>' +
+                        '<td>' + (a.Approved_At || '-') + '</td>' +
+                        '</tr>';
+                });
+
+                html += '</tbody></table>';
+            }
+
+            $('#logContent').html(html);
+        }).fail(function() {
+            $('#logContent').html('<p class="text-danger">Failed to load data</p>');
+        });
     }
 </script>
 @endsection
