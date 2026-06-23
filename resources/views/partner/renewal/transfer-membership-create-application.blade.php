@@ -43,6 +43,16 @@
             </div>
             <div class="row">
                 <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="mitra_select">Mitra <span style="color:red;">*</span></label>
+                        <select class="form-control select2" id="mitra_select" name="mitra_id" style="width:100%" required>
+                            <option value="">-- Pilih Mitra --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
                     <label for="type">Jenis <span style="color: red;">*</span></label>
                     <!-- <input type="text" name="Type" id="Type" class="form-control" required /> -->
                     <select name="type" id="type" class="form-control" required>
@@ -74,8 +84,34 @@
 
 </div>
 
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function() {
+        $('#mitra_select').select2({
+            placeholder: '-- Pilih Mitra --',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: 'partner-data-active-mitra',
+                dataType: 'xml',
+                delay: 300,
+                data: function(params) {
+                    return { search: params.term, page: params.page || 1 };
+                },
+                processResults: function(xmlData) {
+                    var results = [];
+                    $(xmlData).find('row').each(function() {
+                        results.push({
+                            id: $(this).attr('Opportunity_Id'),
+                            text: $(this).find('cell').eq(1).text()
+                        });
+                    });
+                    return { results: results };
+                },
+                cache: true
+            }
+        });
         let type = null;
         let year = null;
         let userId = null;
@@ -94,11 +130,8 @@
 
         $('#transferMembershipForm').on('submit', function(e) {
             e.preventDefault();
-            const urlParams = new URLSearchParams(window.location.search);
-            const id = urlParams.get('id');
-
             let formData = new FormData(this);
-            formData.append('opportunity_id', id)
+            formData.append('opportunity_id', $('#mitra_select').val())
 
             // $('#submitBtn').prop('disabled', true).text('Submitting...');
 

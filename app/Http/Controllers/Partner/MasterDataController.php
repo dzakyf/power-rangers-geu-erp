@@ -91,6 +91,7 @@ class MasterDataController extends Controller
                 'Bank_Account_Name'   => $r->input('Bank_Account_Name'),
                 'Bank_Name'           => $r->input('Bank_Name'),
                 'Point'               => $r->input('Point'),
+                'Created_By'          => auth()->id(),
             ]);
 
             DB::commit();
@@ -138,6 +139,7 @@ class MasterDataController extends Controller
                 'Bank_Account_Name'   => $r->input('Bank_Account_Name'),
                 'Bank_Name'           => $r->input('Bank_Name'),
                 'Point'               => $r->input('Point'),
+                'Created_By'          => auth()->id(),
             ]);
 
             if (!$affected) {
@@ -159,7 +161,9 @@ class MasterDataController extends Controller
     {
         $id = $r->query('id');
 
-        $query = DB::table('master_poo');
+        $query = DB::table('master_poo')
+            ->leftJoin('users as u', 'master_poo.Created_By', '=', 'u.id')
+            ->select('master_poo.*', 'u.Name as Created_By_Name');
 
         if ($id) {
             $query->where('ID', $id);

@@ -48,59 +48,84 @@ $Tgl2 = $_GET["Tgl2"];
 $nomor = 1;
 echo "<rows>";
 
-$fa = DB::table("project_mgt")->where("Status","=",'CREATED')->get();
- foreach($fa as $fx){
+// $fa = DB::table("project_mgt")->where('Location', $LSP)->where("Status","=",'CREATED')->get();
+//  foreach($fa as $fx){
 
 
-	$fetch11 = DB::table("project_detail_requisition")->where("Task_ID","=",$fx->Task_ID)->get();
+// 	$fetch11 = DB::table("project_detail_requisition")->where('Location', $LSP)->where("Task_ID","=",$fx->Task_ID)->get();
 	
-	foreach($fetch11 as $fxy){
-		if ($fxy->Req_ID != ''){
+// 	foreach($fetch11 as $fxy){
+// 		if ($fxy->Req_ID != ''){
 		
-			$fetch = DB::table("requisition")->where("Task_ID","=",$fxy->Req_ID)->get();
+// 			$fetch = DB::table("requisition")->where('Location', $LSP)->where("Task_ID","=",$fxy->Req_ID)->get();
 			
-			foreach($fetch as $ambil){
+// 			foreach($fetch as $ambil){
 			
-				$fdata = DB::table("recruitment")->where("Requisition_ID","LIKE","'%$ambil->Task_ID%'")->get();
-				$jumlahregister = count($fdata);
+// 				$fdata = DB::table("recruitment")->where("Requisition_ID","LIKE","'%$ambil->Task_ID%'")->where('Location', $LSP)->get();
+// 				$jumlahregister = count($fdata);
 				
-				$fdata = DB::table("recruitment")->where("Requisition_ID","LIKE","'%$ambil->Task_ID%'")->where("Status","=","CLOSED")->get();
-				$jumlahfulfil = count($fdata);
+// 				$fdata = DB::table("recruitment")->where("Requisition_ID","LIKE","'%$ambil->Task_ID%'")->where('Location', $LSP)->where("Status","=","CLOSED")->get();
+// 				$jumlahfulfil = count($fdata);
 
-					echo "<row id=\"$nomor\">";
-							echo "<cell>$nomor</cell>";#a
-							echo "<cell>".htmlspecialchars($ambil->PO_No)."</cell>";#c
-							echo "<cell>".htmlspecialchars($ambil->Requisition_Type)."</cell>";#d
-							echo "<cell>".htmlspecialchars($ambil->Task_ID)."</cell>";#d
-							echo "<cell>".htmlspecialchars($ambil->Job_Position)."</cell>";#d
-							echo "<cell>".htmlspecialchars($ambil->Qty)."</cell>";#i
-							echo "<cell>".htmlspecialchars($jumlahregister)."</cell>";#i
-							echo "<cell>".htmlspecialchars($jumlahfulfil)."</cell>";#i
+// 					echo "<row id=\"$nomor\">";
+// 							echo "<cell>$nomor</cell>";#a
+// 							echo "<cell>".htmlspecialchars($ambil->PO_No)."</cell>";#c
+// 							echo "<cell>".htmlspecialchars($ambil->Requisition_Type)."</cell>";#d
+// 							echo "<cell>".htmlspecialchars($ambil->Task_ID)."</cell>";#d
+// 							echo "<cell>".htmlspecialchars($ambil->Job_Position)."</cell>";#d
+// 							echo "<cell>".htmlspecialchars($ambil->Qty)."</cell>";#i
+// 							echo "<cell>".htmlspecialchars($jumlahregister)."</cell>";#i
+// 							echo "<cell>".htmlspecialchars($jumlahfulfil)."</cell>";#i
 						
-						echo "</row>";
+// 						echo "</row>";
 						
-						$nomor++;
-			}
-		}else{
-				echo "<row id=\"$nomor\">";
-							echo "<cell>$nomor</cell>";#a
-							echo "<cell>".htmlspecialchars($fx->Reference)."</cell>";#c
-							echo "<cell>".htmlspecialchars($fx->Department)."</cell>";#d
-							echo "<cell></cell>";#d
-							echo "<cell>".htmlspecialchars($fxy->Position)."</cell>";#d
-							echo "<cell>".htmlspecialchars($fxy->Qty)."</cell>";#i
-							echo "<cell>".htmlspecialchars(0)."</cell>";#i
-							echo "<cell>".htmlspecialchars(0)."</cell>";#i
+// 						$nomor++;
+// 			}
+// 		}else{
+// 				echo "<row id=\"$nomor\">";
+// 							echo "<cell>$nomor</cell>";#a
+// 							echo "<cell>".htmlspecialchars($fx->Reference)."</cell>";#c
+// 							echo "<cell>".htmlspecialchars($fx->Department)."</cell>";#d
+// 							echo "<cell></cell>";#d
+// 							echo "<cell>".htmlspecialchars($fxy->Position)."</cell>";#d
+// 							echo "<cell>".htmlspecialchars($fxy->Qty)."</cell>";#i
+// 							echo "<cell>".htmlspecialchars(0)."</cell>";#i
+// 							echo "<cell>".htmlspecialchars(0)."</cell>";#i
 						
-						echo "</row>";
+// 						echo "</row>";
 						
-						$nomor++;
-		}
+// 						$nomor++;
+// 		}
 	
+// 	}
+	
+//  }
+
+		
+	$fetch = DB::table("requisition")->where('Location', $LSP)->get();
+	
+	foreach($fetch as $ambil){
+	
+		$fdata = DB::table("recruitment")->where("Requisition_ID","LIKE","'%$ambil->Task_ID%'")->where('Location', $LSP)->get();
+		$jumlahregister = count($fdata);
+		
+		$fdata = DB::table("recruitment")->where("Requisition_ID","LIKE","'%$ambil->Task_ID%'")->where('Location', $LSP)->where("Status","=","CLOSED")->get();
+		$jumlahfulfil = count($fdata);
+
+			echo "<row id=\"$nomor\">";
+					echo "<cell>$nomor</cell>";#a
+					echo "<cell>".htmlspecialchars($ambil->PO_No)."</cell>";#c
+					echo "<cell>".htmlspecialchars($ambil->Requisition_Type)."</cell>";#d
+					echo "<cell>".htmlspecialchars($ambil->Task_ID)."</cell>";#d
+					echo "<cell>".htmlspecialchars($ambil->Job_Position)."</cell>";#d
+					echo "<cell>".htmlspecialchars($ambil->Qty)."</cell>";#i
+					echo "<cell>".htmlspecialchars($jumlahregister)."</cell>";#i
+					echo "<cell>".htmlspecialchars($jumlahfulfil)."</cell>";#i
+				
+				echo "</row>";
+				
+				$nomor++;
 	}
-	
- }
-
 
 echo "</rows>";
 

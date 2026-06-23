@@ -31,7 +31,7 @@ class ApprovalController extends Controller
 
     public function indexTransferMembershipApproval()
     {
-        return view('approval.transfer-membership-index');
+        return view('transfer-membership.index');
     }
 
     public function createTransferMembershipApproval()
@@ -239,7 +239,8 @@ class ApprovalController extends Controller
 
     public function processTransferMembershipToNextProgress(Request $r)
     {
-        return;
+        $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
+        return response()->json($result, $result['success'] ? 200 : 500);
     }
 
     public function processOnboardingToNextProgress(Request $r)
@@ -469,6 +470,12 @@ class ApprovalController extends Controller
                 ->join('opportunity_partner as op', 'opp.Opportunity_Id', '=', 'op.id');
         }
 
+        if ($type == "TRANSFER_MEMBERSHIP") {
+            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'op.lead_id as Code', 'op.full_name as Partner_Name')
+                ->join('partner_transfer_membership as opp', 'appr.Map_To', '=', 'opp.ID')
+                ->join('opportunity_partner as op', 'opp.Opportunity_Id', '=', 'op.id');
+        }
+
         if ($type == "SURVEY") {
             $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'sl.Code as Code')
                 ->join('survey_location as sl', 'appr.Map_To', '=', 'sl.ID');
@@ -603,5 +610,22 @@ class ApprovalController extends Controller
             'files'           => $files,
             'log'             => $log,
         ]]);
+    }
+
+    public function getTransferMembershipApprovalDetail(Request $r)
+    {
+        $apprId = $r->query('appr_id');
+        if (!$apprId) {
+            return response()->json(['data' => null], 400);
+        }
+
+        $data = DB::table('approval_request as appr')
+            ->join('partner_transfer_membership as ptm', 'appr.Map_To', '=', 'ptm.ID')
+            ->join('opportunity_partner as op', 'ptm.Opportunity_Id', '=', 'op.id')
+            ->select('appr.*', 'ptm.*', 'op.full_name', 'op.lead_id')
+            ->where('appr.ID', $apprId)
+            ->first();
+
+        return response()->json(['data' => $data]);
     }
 }

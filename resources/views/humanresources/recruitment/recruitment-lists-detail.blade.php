@@ -92,9 +92,9 @@ setTimeout(function(){
 setTimeout(function(){
 	myTabbar.tabs("a6").attachURL("recruitment-lists-detail-insurance?ID=<?php echo $_GET['ID']?>");
 },5000);
-setTimeout(function(){
-	myTabbar.tabs("a7").attachURL("recruitment-lists-detail-kjk?ID=<?php echo $_GET['ID']?>");
-},6000);
+// setTimeout(function(){
+// 	myTabbar.tabs("a7").attachURL("recruitment-lists-detail-kjk?ID=<?php echo $_GET['ID']?>");
+// },6000);
 setTimeout(function(){
 	myTabbar.tabs("a8").attachURL("recruitment-lists-detail-document?ID=<?php echo $_GET['ID']?>");
 },7000);

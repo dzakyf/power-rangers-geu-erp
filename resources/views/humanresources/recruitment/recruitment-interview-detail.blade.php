@@ -9,14 +9,14 @@ use Illuminate\Database\Eloquent\Builder;
 	$priv =  Auth::user()->Priv_ID;
 	$datahasil = DB::table("recruitment")->where("ID",$_GET['ID'])->first();
 	$datahasil2 = DB::table("recruitment_detail")->where("ID",$_GET['ID'])->first();
-	$result = DB::select("SELECT column_name FROM information_schema.columns where table_name = 'recruitment'");
+	$result = DB::select("SELECT COLUMN_NAME FROM information_schema.columns where TABLE_NAME = 'recruitment' AND TABLE_SCHEMA = 'erp_ksps'");
 	$jumlah = count($result);
 	if ($jumlah > 0) {
 		echo "<script>";
 		
 		foreach ($result as $row) {
 			
-			$kolom = $row->column_name;
+			$kolom = $row->COLUMN_NAME;
 			
 				
 				if ($datahasil->$kolom == '0000-00-00')

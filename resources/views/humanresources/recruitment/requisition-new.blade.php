@@ -5,100 +5,141 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 	
 	$LSP = Auth::user()->Location;
-	
+	$positions = DB::table('master_position')->orderBy('Position', 'asc')->get();
 
 ?>
 
 
-<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">NEW REQUISITION </div>
-<form id="NewRec">
-<div id="ContentPages">
-    <div class="FormInput_Form_Content" >
-		
-		<div class="FormInput_left">
-        		
-              Job Position
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="hidden" value="internal"/>
-				<input type="text" id="Job_Position" size="50"/>        	
-         
-         </div>
-
-   		<div class="FormInput_left" style="height:80px;">
-        		
-               Description
-        
-        </div>
-		<div class="FormInput_right" style="height:80px;">
-        
-				<textarea cols="100" rows="4" id="Description"></textarea>        	
-         
-         </div>
-   		<div class="FormInput_left"  style="height:80px;">
-        		
-               Detail Requirement
-        
-        </div>
-		<div class="FormInput_right" style="height:80px;" >
-        
-				<textarea cols="100" rows="4" id="Requirement"></textarea>        	
-         
-         </div>
-   		
-   		<div class="FormInput_left">
-        		
-               Priority
-        
-        </div>
-		<div class="FormInput_right">
-        
-        
-				<select id="Priority">
-                    <option>NORMAL</option>
-                    <option>URGENT</option>
-                </select>
-         
-         </div>
-   		<div class="FormInput_left" >
-        		
-               Qty
-        
-        </div>
-		<div class="FormInput_right" >
-        
-				<input type="text" id="Qty" size="10" value="1"/>        	
-         
-         </div>
-   		<div class="FormInput_left">
-        		
-               Open Date
-        
-        </div>
-		<div class="FormInput_right">
-        
-				<input type="text" id="Start_Date" size="15" value="<?php echo date('Y-m-d');?>"/>        	
-         
-         </div>
-   		<div class="FormInput_left">
-        		
-               Close Date
-        
-        </div>
-		<div class="FormInput_right">
-        
-				<input type="text" id="End_Date" size="15" value="<?php echo date('Y-m-d');?>"/>        	
-         
-         </div>
-  </div>
+{{-- <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">NEW REQUISITION </div> --}}
+<div class="card shadow-sm border-0 mt-3">
+    <div class="card-header bg-primary text-white p-3">
+        New Requisition
+    </div>
+    <div class="card-body">
+        <form id="NewRec">
+            <div id="ContentPages">
+                <div class="FormInput_Form_Content" class="form-row" >
+                    <div class="form-group col-md-6">
+                        <label>
+                            Job Position
+                        </label>
+                        
+                        <select id="Job_Position" class="form-control">
+                            <option value="">-- Pilih Posisi Pekerjaan  -- </option>
+                            @foreach($positions as $position)
+                                <option value="{{ $position->ID }}">
+                                    Dir : {{ $position->Directorat }} &nbsp;&nbsp;&nbsp;&nbsp;
+                                    Dep : {{ $position->Department }} &nbsp;&nbsp;&nbsp;&nbsp;
+                                    Sub : {{ $position->Subsection }} &nbsp;&nbsp;&nbsp;&nbsp;
+                                    Pos : {{ $position->Position }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>
+                            Subject
+                        </label>
+                        
+                        <input type="text" class="form-control" id="Subject" />
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>
+                            Description
+                        </label>
+                        
+                        <textarea cols="100" rows="4" id="Description" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>
+                            Detail Requirement
+                        </label>
+                        
+                        <textarea cols="100" rows="4" id="Requirement" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>
+                            Priority
+                        </label>
+                        
+                        <select id="Priority" class="form-control">
+                            <option>NORMAL</option>
+                            <option>HIGH</option>
+                            <option>URGENT</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>
+                            Allocation
+                        </label>
+                        
+                        <select id="Allocation" class="form-control">
+                            <option>NEW</option>
+                            <option>REPLACEMENT</option>
+                            <option>BOTH</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>
+                            Qty
+                        </label>
+                        <input type="text" id="Qty" class="form-control" size="10" value="1"/>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>
+                            Open Date
+                        </label>
+                        <input type="text" id="Start_Date" class="form-control bg-white" size="15" value="<?php echo date('d M Y');?>" readonly/>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>
+                            Close Date
+                        </label>
+                        <input type="text" id="End_Date" class="form-control bg-white" size="15" value="<?php echo date('d M Y');?>" readonly/>
+                    </div>
+                    <div class="form-group col-md-12">
+                        <button class="btn btn-danger" type="reset">Cancel</button>
+                        <button class="btn btn-success" type="button" id="SubmitBtn">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
-</form>
 
 <script> 
 var myCalendar;
-    myCalendar = new dhtmlXCalendarObject(["PO_Date"]);
-	myCalendar.setDateFormat("%Y-%m-%d");
+    myCalendar = new dhtmlXCalendarObject(["Start_Date","End_Date"]);
+	myCalendar.setDateFormat("%d %M %Y");
 
- 	
+ 	$('#SubmitBtn').on('click', function(e) {
+        e.preventDefault();
+        var formData = {
+            Job_Position: $('#Job_Position').val(),
+            Description: $('#Description').val(),
+            Requirement: $('#Requirement').val(),
+            Priority: $('#Priority').val(),
+            Allocation: $('#Allocation').val(),
+            Qty: $('#Qty').val(),
+            Start_Date: $('#Start_Date').val(),
+            End_Date: $('#End_Date').val()
+        };
+
+        $.ajax({
+            type: 'POST',
+            url: 'recruitment-requisition-new-submit',
+            data: formData,
+            headers: {
+                'X-CSRF-TOKEN': "{{ csrf_token() }}"
+            },
+            success: function(response) {
+                alert('Requisition submitted successfully!');
+                // Optionally, you can reset the form or redirect the user
+                $('#NewRec')[0].reset();
+            },
+            error: function(xhr, status, error) {
+                alert('Error submitting requisition: ' + xhr.responseText);
+            }
+        });
+    });
 </script>
