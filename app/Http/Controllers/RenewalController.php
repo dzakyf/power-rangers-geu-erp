@@ -55,7 +55,7 @@ class RenewalController extends Controller
             $row->addChild('cell', $no);
             $row->addChild('cell', $p->lead_id);
             $row->addChild('cell', $p->full_name);
-            $row->addChild('cell', $p->register_as);
+            $row->addChild('cell', $p->register_as ?? '-');
             $row->addChild('cell', $p->contract_end_at);
             $row->addChild('cell', $p->full_name);
             $row->addChild('cell', $p->New_Mitra_Name);
@@ -243,27 +243,49 @@ class RenewalController extends Controller
         $outputPath = public_path("$path");
         $doc['doc']->saveAs($outputPath);
 
-        $ext = "png";
         $user = $this->userService->getCurrentSessionUserInfo();
 
+        DB::beginTransaction();
+        try {
+            $id = DB::table('partner_transfer_membership')->insertGetId([
+                "Opportunity_Id" => $b['opportunity_id'],
+                "Contract_No" => $doc['reference_no'],
+                "New_Mitra_Name" => $b['new_mitra_name'],
+                "Type" => $b['type'],
+                "Reason" => $b['reason'],
+            ]);
 
-        // update data 
-        $id = DB::table('partner_transfer_membership')->insertGetId([
-            "Opportunity_Id" => $b['opportunity_id'],
-            "Contract_No" => $doc['reference_no'],
-            "New_Mitra_Name" => $b['new_mitra_name'],
-            "Type" => $b['type'],
-            "Reason" => $b['reason'],
-        ]);
+            $filename = basename($path);
+            $desc = "Upload dokumen transfer kemitraan";
+            $topic = "transfer-membership";
+            $mapTo = $id;
 
-        $filename = "$path.$ext";
-        $desc = "Upload dokumen transfer kemitraan";
-        $topic = "transfer-membership";
-        $mapTo = $id; //transfer application id
+            $this->uploaderService->uploadMetaFile($path, $filename, $desc, 'docx', $topic, $mapTo);
 
-        $fileId = $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
+            $approvalId = DB::table('approval_request')->insertGetId([
+                'Status' => 'NEED_APPROVAL',
+                'Requester_Id' => $user->id,
+                'Description' => 'Transfer membership request',
+                'Request_Type' => 'TRANSFER_MEMBERSHIP',
+                'Opportunity_Partner_Id' => $b['opportunity_id'] ?? '',
+                'Map_To' => $id,
+            ]);
 
-        return response()->json(['message' => 'success']);
+            DB::table('approval_log')->insertGetId([
+                'Approver_Id' => $user->id,
+                'Notes' => '',
+                'Action' => 'IN_PROGRESS',
+                'Request_Id' => $approvalId,
+                'Level_Number' => 1,
+                'Next_Level' => 2,
+            ]);
+
+            DB::commit();
+            return response()->download($outputPath)->deleteFileAfterSend(true);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'error', 'error' => $e->getMessage()], 500);
+        }
     }
 
 
@@ -410,7 +432,7 @@ class RenewalController extends Controller
             $row->addChild('cell', $no);
             $row->addChild('cell', $p->lead_id);
             $row->addChild('cell', $p->full_name);
-            $row->addChild('cell', $p->register_as);
+            $row->addChild('cell', $p->register_as ?? '-');
             $row->addChild('cell', $p->Contract_End_At);
             $row->addChild('cell', $p->Status ?? '-');
             $row->addChild('cell', $p->Renewal_Fee ?? '0');
@@ -438,7 +460,7 @@ class RenewalController extends Controller
     //         $row->addChild('cell', $no);
     //         $row->addChild('cell', $p->lead_id);
     //         $row->addChild('cell', $p->full_name);
-    //         $row->addChild('cell', $p->register_as);
+    //         $row->addChild('cell', $p->register_as ?? '-');
     //         $row->addChild('cell', $p->contract_end_at);
     //         $row->addChild('cell', $p->id);
 

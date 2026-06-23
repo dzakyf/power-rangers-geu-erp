@@ -92,7 +92,7 @@
                         results: res.data.map(function(row) {
                             return {
                                 id: row.ID,
-                                text: row.Code + ' — ' + (row.POO_Name || '')
+                                text: row.Code + ' — ' + (row.POO_Name || '') + ' | Dibuat oleh: ' + (row.POO_Created_By_Name || '-')
                             };
                         })
                     };

@@ -1740,21 +1740,25 @@ class ProfitSharingController extends Controller
     {
         // Save BEP form data
         if ($r->filled('mitra_id')) {
-            $warehouse = DB::table('warehouse_partner')
-                ->where('partner_task_id', $r->mitra_id)->first();
+            $partner = DB::table('opportunity_partner')
+                ->select('lead_id')->where('id', $r->mitra_id)->first();
+            $warehouse = $partner
+                ? DB::table('warehouse_partner')->where('partner_task_id', $partner->lead_id)->first()
+                : null;
 
             if ($warehouse) {
                 DB::table('warehouse_partner')->where('id', $warehouse->id)->update([
                     'bep_projection' => $r->bep_projection,
                     'bep_projected_at' => $r->filled('bep_at')
-                        ? date('Y-m-d', strtotime(date('Y') . '-' . $r->bep_at . '-01'))
+                        ? now()->addMonths((int) $r->bep_at)->format('Y-m-d')
                         : null,
                 ]);
             }
         }
 
         $b = $r->all();
-        $userId = $b['user_id'] ?? "2345";
+        $oppPartner = DB::table('opportunity_partner')->where('id', $r->mitra_id)->first();
+        $userId = $oppPartner ? $oppPartner->user_row_id : "2345";
 
         $file = $r->file('file');
         $path = $file->storeAs('temp', 'upload_' . time() . '.' . $file->getClientOriginalExtension());

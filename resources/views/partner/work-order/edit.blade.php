@@ -61,7 +61,7 @@
                         results: res.data.map(function(row) {
                             return {
                                 id: row.ID,
-                                text: row.Name
+                                text: row.Name + ' | Dibuat oleh: ' + (row.Created_By_Name || '-')
                             };
                         })
                     };

@@ -29,7 +29,7 @@
         <div class="form-row">
             <div class="form-group col-md-6">
                 <label for="BEP_At">Bulan BEP <span style="color: red;">*</span></label>
-                <input type="number" class="form-control" min="1" max="12" id="BEP_At" name="BEP_At" required>
+                <input type="number" class="form-control" min="1" max="48" id="BEP_At" name="BEP_At" required>
             </div>
             <div class="form-group col-md-6">
                 <label for="BEP_Projection">Besaran BEP <span style="color: red;">*</span></label>
@@ -65,14 +65,16 @@
                     $(xmlData).find('row').each(function() {
                         var cells = $(this).find('cell');
                         results.push({
-                            id: cells.eq(0).text(),
+                            id: $(this).attr('Opportunity_Id'),
                             text: cells.eq(1).text(),
                             cell2: cells.eq(2).text(),
                         });
                     });
                     return {
                         results: results,
-                        pagination: { more: results.length === 20 }
+                        pagination: {
+                            more: results.length === 20
+                        }
                     };
                 }
             },
@@ -94,9 +96,18 @@
             var bepAt = $('#BEP_At').val();
             var bepProjection = $('#BEP_Projection').val();
 
-            if (!mitra) { alert('Pilih Mitra terlebih dulu'); return; }
-            if (!bepAt || bepAt < 1 || bepAt > 12) { alert('Bulan BEP harus diisi (1-12)'); return; }
-            if (!bepProjection) { alert('Besaran BEP harus diisi'); return; }
+            if (!mitra) {
+                alert('Pilih Mitra terlebih dulu');
+                return;
+            }
+            if (!bepAt || bepAt < 1 || bepAt > 48) {
+                alert('Bulan BEP harus diisi (1-48)');
+                return;
+            }
+            if (!bepProjection) {
+                alert('Besaran BEP harus diisi');
+                return;
+            }
 
             var fileInput = document.getElementById('fileInput');
             if (!fileInput.files || fileInput.files.length === 0) {
@@ -109,8 +120,9 @@
             formData.append('mitra_id', mitra);
             formData.append('bep_at', bepAt);
             formData.append('bep_projection', bepProjection);
-            formData.append('user_id', mitra);
             formData.append('file', fileInput.files[0]);
+
+            $.blockUI();
 
             $.ajax({
                 url: 'projection-upload',
@@ -119,19 +131,20 @@
                 processData: false,
                 contentType: false,
                 success: function(res) {
+                    $.unblockUI();
                     if (res.success) {
                         alert('Data berhasil disimpan');
+                        window.location.href = 'projection-index'
                     } else {
                         alert('Gagal: ' + (res.message || ''));
                     }
                 },
                 error: function(xhr) {
+                    $.unblockUI();
                     alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
                 }
             });
         });
     });
-
-
 </script>
 @endsection

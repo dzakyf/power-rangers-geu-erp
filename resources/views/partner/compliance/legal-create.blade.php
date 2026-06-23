@@ -52,7 +52,7 @@ $Saya =  Auth::user()->username;
                     <select name="Media_Type" id="Media_Type" class="form-control" required>
                         <option value="">-- Pilih Jenis--</option>
                         <option value="URL">Url</option>
-                        <option value="UPLOAD">Upload Dokumen</option>
+                        <!-- <option value="UPLOAD">Upload Dokumen</option> -->
                     </select>
                 </div>
             </div>

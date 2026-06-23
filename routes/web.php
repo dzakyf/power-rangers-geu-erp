@@ -2593,6 +2593,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/requisition-new', function () {
         return view('humanresources.recruitment.requisition-new');
     });
+    Route::post('/recruitment-requisition-new-submit', function () {
+        return view('humanresources.recruitment.requisition-new-submit');
+    });
     Route::get('/requisition-new-po', function () {
         return view('humanresources.recruitment.requisition-new-po');
     });
@@ -4937,6 +4940,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$partnerTransferPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);
     Route::get("$partnerTransferPrefs-approval-data-log", [ApprovalController::class, 'getApprovalDataLog']);
     Route::get("$partnerTransferPrefs-approval-approve", [ApprovalController::class, 'processTransferMembershipToNextProgress']);
+    Route::get("$partnerTransferPrefs-approval-detail", [ApprovalController::class, 'getTransferMembershipApprovalDetail']);
 
 
     /** OnboardingController */

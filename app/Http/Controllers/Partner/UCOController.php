@@ -511,6 +511,7 @@ class UCOController extends Controller
 
         $query = DB::table('work_order as wo')
             ->leftJoin('master_poo as mp', 'mp.ID', '=', 'wo.POO_Id')
+            ->leftJoin('users as u', 'mp.Created_By', '=', 'u.id')
             ->select(
                 'wo.ID',
                 'wo.POO_Id',
@@ -519,7 +520,9 @@ class UCOController extends Controller
                 'wo.Code',
                 DB::raw("DATE_FORMAT(wo.Work_Order_Date, '%Y-%m-%d') as Work_Order_Date"),
                 'wo.Created_At',
-                'wo.Updated_At'
+                'wo.Updated_At',
+                'mp.Created_By as POO_Created_By',
+                'u.Name as POO_Created_By_Name'
             );
 
         if ($id) {
@@ -642,7 +645,8 @@ class UCOController extends Controller
         $query = DB::table('pickup_order as po')
             ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
-            ->select('po.*', 'po.Code as PO_Code', 'wo.Code as WO_Code', 'mp.Name as POO_Name', 'mp.Full_Address as POO_Full_Address', 'mp.Lat', 'mp.Lng', 'mp.Location_Coordinate');
+            ->leftJoin('users as u', 'mp.Created_By', '=', 'u.id')
+            ->select('po.*', 'po.Code as PO_Code', 'wo.Code as WO_Code', 'mp.Name as POO_Name', 'mp.Full_Address as POO_Full_Address', 'mp.Lat', 'mp.Lng', 'mp.Location_Coordinate', 'mp.Created_By as POO_Created_By', 'u.Name as POO_Created_By_Name');
 
         if ($id) {
             $query->where('po.ID', $id);
