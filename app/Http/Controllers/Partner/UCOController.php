@@ -632,6 +632,7 @@ class UCOController extends Controller
         $id = $r->query('id');
         $rows = $this->fetchPickupOrders($id, null, null, null, $r->query('delivery_order_id'));
 
+
         if ($r->query('format') === 'xml') {
             return $this->pickupOrdersAsXml($rows);
         }
@@ -668,7 +669,7 @@ class UCOController extends Controller
             $query->where('po.DO_Id', $delivery_order_id);
         }
 
-        return $query->get();
+        return $query->orderBy('ID', 'DESC')->get();
     }
 
     function getWorkOrderData(Request $r) {}
@@ -911,7 +912,11 @@ class UCOController extends Controller
         $id     = $r->query('id');
         $status = $r->query('status');
         $rows = DB::table('delivery_order as do')
-            ->select('do.ID', 'do.Code as DO_Code', 'do.DO_Date')
+            ->join('pickup_order as po', 'po.DO_Id', '=', 'do.ID')
+            ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
+            ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
+            ->select('do.ID', 'do.Code as DO_Code', 'do.DO_Date', 'mp.Name as POO_Name', 'po.Code as PO_Code')
+            ->distinct()
             ->when($id, fn($q) => $q->where('do.ID', $id))
             ->when($status, fn($q) => $q->where('do.DO_Status', $status))
             ->get();
@@ -926,6 +931,8 @@ class UCOController extends Controller
 
                 $item->addChild('cell', $counter);
                 $item->addChild('cell', htmlspecialchars((string) $row->DO_Code));
+                $item->addChild('cell', htmlspecialchars((string) ($row->POO_Name ?? '')));
+                $item->addChild('cell', htmlspecialchars((string) $row->PO_Code));
                 $item->addChild('cell', htmlspecialchars((string) $row->DO_Date));
 
                 $counter++;
@@ -1137,6 +1144,7 @@ class UCOController extends Controller
                 'Field_Operational_Price'  => $r->input('field_operational', 7000),
                 'Total_Cost'               => $r->input('total_cost'),
                 'APC'                      => $r->input('apc', 0),
+                'Warehouse_ID'             => $whId,
             ]);
 
             $seq = 1;
@@ -1483,5 +1491,36 @@ class UCOController extends Controller
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function getRouteMapData(Request $r)
+    {
+        $routeId = $r->query('route_id');
+        if (!$routeId) {
+            return response()->json(['data' => null], 400);
+        }
+
+        $route = DB::table('pickup_routes')->where('ID', $routeId)->first();
+        if (!$route) {
+            return response()->json(['data' => null], 404);
+        }
+
+        $waypoints = DB::table('pickup_route_waypoints')
+            ->where('Route_Id', $routeId)
+            ->orderBy('Sequence')
+            ->get();
+
+        $warehouse = null;
+        if ($route->Warehouse_Id) {
+            $warehouse = DB::table('warehouse_partner')
+                ->where('id', $route->Warehouse_Id)
+                ->first(['warehouse_task_id', 'warehouse_location', 'lat', 'lng']);
+        }
+
+        return response()->json(['data' => [
+            'route'     => $route,
+            'waypoints' => $waypoints,
+            'warehouse' => $warehouse,
+        ]]);
     }
 }

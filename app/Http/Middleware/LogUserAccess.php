@@ -28,7 +28,7 @@ class LogUserAccess
 
         // Capture user information if they are authenticated
         // $userId = Auth::check() ? Auth::id() : 'Guest';
-        $userEmail = Auth::check() ? Auth::user()->email : 'N/A';
+        $userEmail = Auth::check() ? (Auth::user()->email != '' ? Auth::user()->email : 'N/A') : 'N/A';
         if (!Str::contains($request->fullUrl(), ['notification-getall','xml'])) {
             // Structure the log payload
             UserLog::create([

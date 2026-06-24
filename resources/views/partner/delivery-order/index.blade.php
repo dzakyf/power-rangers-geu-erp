@@ -6,12 +6,12 @@
     <h1>Partner</h1>
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="#">Partner</a></li>
-        <li class="breadcrumb-item active"><span class="active">Delivery Order</span></li>
+        <li class="breadcrumb-item active"><span class="active">Surat Jalan</span></li>
     </ol>
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">DELIVERY ORDER</div>
+    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SURAT JALAN</div>
     <div class="card">
         <div class="card-body">
             <div id="DeliveryOrderGrid" style="width:auto;height:320px;background-color:white;overflow:hidden" class="mb-2"></div>
@@ -86,9 +86,10 @@
     });
 
     function initGrid() {
+
         DeliveryOrderGrid = new dhtmlXGridObject('DeliveryOrderGrid');
         DeliveryOrderGrid.setImagePath('./dhtmlx/imgs/');
-        DeliveryOrderGrid.setHeader("No, DO Code, POO Name, PO Code, DO Date");
+        DeliveryOrderGrid.setHeader("No, Code Surat Jalan, POO Name, Code PO, Surat Jalan Date");
         DeliveryOrderGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
         DeliveryOrderGrid.setInitWidths("60,120,150,120,100");
         DeliveryOrderGrid.setColAlign("center,left,left,center,left");
@@ -105,14 +106,22 @@
 
     function initPickupOrderGrid(woId) {
         $('#pickupOrderCard').show();
+
+        let tHeader = ['No', null, 'Type', 'Coverage', 'Site', 'Package', 'Qty', 'Price', 'Description', 'Dibuat Pada']
+        let tWidth = tHeader.map((e, i) => i == 1 ? 0 : '150')
+        let headerAttachment = tHeader.map((e, i) => i <= 1 ? '#rspan' : '#text_filter')
+        let colId = ['No', null, 'Type', 'Coverage', 'Site', 'Package', 'Qty', 'Price', 'Description', 'Dibuat Pada'].join(',')
+        let colAlign = tHeader.map((e, i) => i == 0 ? 'center' : (i == 6 || i == 7) ? 'right' : 'left')
+        let colSorting = tHeader.map((e, i) => i == 0 ? 'int' : 'str')
+        let colType = tHeader.map((e, i) => i == 0 ? 'ron' : 'ro')
         PickupOrderGrid = new dhtmlXGridObject('PickupOrderGrid');
         PickupOrderGrid.setImagePath('./dhtmlx/imgs/');
-        PickupOrderGrid.setHeader("No, PO Code, POO Name, Qty, Address");
-        PickupOrderGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
-        PickupOrderGrid.setInitWidths("60,120,*,80,200");
-        PickupOrderGrid.setColAlign("center,left,left,center,left");
-        PickupOrderGrid.setColSorting("int,str,str,int,str");
-        PickupOrderGrid.setColTypes("ron,ro,ro,ro,ro");
+        PickupOrderGrid.setHeader(tHeader.join(','));
+        PickupOrderGrid.attachHeader(headerAttachment.join(','));
+        PickupOrderGrid.setInitWidths(tWidth.join(','));
+        PickupOrderGrid.setColAlign(colAlign.join(','));
+        PickupOrderGrid.setColSorting(colSorting.join(','));
+        PickupOrderGrid.setColTypes(colType.join(','));
         PickupOrderGrid.setSkin('dhx_skyblue');
         PickupOrderGrid.attachEvent('onRowSelect', function(id) {
             selectedPOId = PickupOrderGrid.getRowAttribute(id, 'ID')

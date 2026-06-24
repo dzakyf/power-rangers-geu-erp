@@ -6,7 +6,7 @@
     <h1>Partner</h1>
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="#">Partner</a></li>
-        <li class="breadcrumb-item active"><span class="active">Create Delivery Order</span></li>
+        <li class="breadcrumb-item active"><span class="active">Create Surat Jalan</span></li>
     </ol>
 </div>
 
@@ -15,7 +15,7 @@
         <div class="col-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="m-3">Create Delivery Order</h5>
+                    <h5 class="m-3">Create Surat Jalan</h5>
                 </div>
                 <div class="card-body">
                     <form id="DeliveryOrderForm">
@@ -28,11 +28,11 @@
 
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label for="DO_Date">Delivery Order Date</label>
+                                <label for="DO_Date">Surat Jalan Date</label>
                                 <input type="date" class="form-control" id="DO_Date" name="DO_Date" required>
                             </div>
                             <div class="form-group col-md-6">
-                                <label for="DO_Status">Delivery Order Status</label>
+                                <label for="DO_Status">Surat Jalan Status</label>
                                 <select class="form-control" id="DO_Status" name="DO_Status">
                                     <option value="">-- Pilih --</option>
                                     <option value="PROGRESS">PROGRESS</option>

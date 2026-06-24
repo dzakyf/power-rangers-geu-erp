@@ -23,9 +23,12 @@ $saya = Auth::user()->username;
 $nomor = 1;
 
 echo "<rows>";
-$Query = DB::table("employment")->get();
+$grup = [];
+$qx = DB::table("employment")->get();
 foreach($qx as $dx){
-	
+	if (!isset($grup[$dx->Salary_Group])) {
+		$grup[$dx->Salary_Group] = 0;
+	}
 	$grup[$dx->Salary_Group]++;
 }
 $Query = DB::table("payrol_main_group")->orderBy("Main_ID","ASC")->get();

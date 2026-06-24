@@ -359,73 +359,7 @@ $rekusisi = substr($rekusisi,0,-1);
         <td class="badan_kiri">
             <?php echo $datahasil->Employment_Grade;?>
         </td>
-    </tr>
-	<tr height="30">
-        <td colspan="6" style="color:#699;background-image:url(hdr_back.gif);">EXTERNAL DATA DETAIL</td>
-       
-        </td>
-    </tr>
-	
-	<tr height="30">
-			<td class="badan">PO No</td>
-			<td class="badan">:</td>
-			<td class="badan_kiri">
-				<?php echo $datapo->PO_No;?>
-			</td>
-			<td class="badan">PO Date</td>
-			<td class="badan">:</td>
-			<td class="badan_kiri">
-				<?php echo date("d M Y",strtotime($datapo->PO_Date));?>
-			</td>
-		</tr>
-		<tr height="30">
-			<td class="badan">PO Start Date</td>
-			<td class="badan">:</td>
-			<td class="badan_kiri">
-				<?php echo date("d M Y",strtotime($datapo->Start_Date));?>
-			</td>
-			<td class="badan">PO End Date</td>
-			<td class="badan">:</td>
-			<td class="badan_kiri">
-				<?php echo date("d M Y",strtotime($datapo->End_Date));?>
-			</td>
-		</tr>
-		<tr height="30">
-			<td class="badan">PO Subject</td>
-			<td class="badan">:</td>
-			<td class="badan_kiri">
-				<?php echo $datapo->Subject;?>
-			</td>
-			<td class="badan">PO User</td>
-			<td class="badan">:</td>
-			<td class="badan_kiri">
-				<?php echo $datapo->Department;?>
-			</td>
-		</tr>
-		<tr height="30">
-			<td class="badan">PO Initial</td>
-			<td class="badan">:</td>
-			<td class="badan_kiri">
-				<?php echo $datapo->PO_Initial;?>
-			</td>
-			<td class="badan">PO Alocation</td>
-			<td class="badan">:</td>
-			<td class="badan_kiri">
-				<?php echo $datahasil->Alocation;?>
-			</td>
-		</tr>
-		<tr height="30">
-			<td class="badan">Reference No</td>
-			<td class="badan">:</td>
-			<td class="badan_kiri">
-				<?php echo $datapo->Reference_No;?>
-			</td>
-			<td class="badan">PO Contract No</td>
-			<td class="badan">:</td>
-			<td class="badan_kiri">
-				<?php echo $datahasil->Contract_No;?>
-			</td>
-		</tr>				
+    </tr>			
 </table>
 </td>
 </tr>

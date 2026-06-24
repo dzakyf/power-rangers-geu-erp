@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 {{-- <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">NEW REQUISITION </div> --}}
 <div class="card shadow-sm border-0 mt-3">
     <div class="card-header bg-primary text-white p-3">
-        New Requisition
+        New PTK
     </div>
     <div class="card-body">
         <form id="NewRec">
@@ -42,6 +42,13 @@ use Illuminate\Database\Eloquent\Builder;
                         </label>
                         
                         <input type="text" class="form-control" id="Subject" />
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>
+                            Placement
+                        </label>
+                        
+                        <input type="text" class="form-control" id="Placement" />
                     </div>
                     <div class="form-group col-md-6">
                         <label>
@@ -76,7 +83,6 @@ use Illuminate\Database\Eloquent\Builder;
                         <select id="Allocation" class="form-control">
                             <option>NEW</option>
                             <option>REPLACEMENT</option>
-                            <option>BOTH</option>
                         </select>
                     </div>
                     <div class="form-group col-md-3">
@@ -98,7 +104,7 @@ use Illuminate\Database\Eloquent\Builder;
                         <input type="text" id="End_Date" class="form-control bg-white" size="15" value="<?php echo date('d M Y');?>" readonly/>
                     </div>
                     <div class="form-group col-md-12">
-                        <button class="btn btn-danger" type="reset">Cancel</button>
+                        <button class="btn btn-danger" type="reset">Reset</button>
                         <button class="btn btn-success" type="button" id="SubmitBtn">Submit</button>
                     </div>
                 </div>
@@ -136,6 +142,8 @@ var myCalendar;
                 alert('Requisition submitted successfully!');
                 // Optionally, you can reset the form or redirect the user
                 $('#NewRec')[0].reset();
+                refreshdata();
+                $('#divlistRequisition').html('');
             },
             error: function(xhr, status, error) {
                 alert('Error submitting requisition: ' + xhr.responseText);
