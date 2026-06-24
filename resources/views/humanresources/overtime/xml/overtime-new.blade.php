@@ -23,7 +23,7 @@ $Saya = Auth::user()->username;
 $nomor = 1;
 
 echo "<rows>";
-$Query = DB::table("overtime_lists")->where("Submit_Approval",1)->where("Created_By",$Saya)->orderBy("NIK","ASC")->orderBy("Start_Date","ASC")->get();
+$Query = DB::table("overtime_lists")->where("Submit_Approval",1)->where("Created_By",$Saya)->orderBy("NIK","ASC")->orderBy("Start_Date","ASC")->limit(100)->get();
 
 foreach($Query as $Fetch){
 	

@@ -67,7 +67,7 @@ foreach ($Query1 as $Fetch1) {
 						</td>
 					</tr>
 					<tr height=" 30">
-						<td class="badan" width="150">NIK KSPS</td>
+						<td class="badan" width="150">NIK GEU</td>
 						<td class="badan" width="30">:</td>
 						<td class="badan_kiri" width="250">
 							<input type="text" size="20" id="NIK" class="form-control-lg" value="<?php echo $datahasil->NIK_KSPS; ?>" style="border:none;outline:none;border-bottom:1px solid gray" />

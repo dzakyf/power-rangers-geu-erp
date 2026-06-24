@@ -8,11 +8,11 @@ use Illuminate\Database\Eloquent\Builder;
 	
 $datahasil = DB::table("recruitment_master_template")->where("ID",$_GET['ID'])->first();
 		echo "<script>";
-		$result = DB::select("SELECT column_name FROM information_schema.columns where table_name = 'recruitment_master_template'");
+		$result = DB::select("SELECT COLUMN_NAME FROM information_schema.columns where TABLE_NAME = 'recruitment_master_template' AND TABLE_SCHEMA='erp_ksps'");
 	$jumlah = count($result);
 		foreach ($result as $row) {
 			
-			$kolom = $row->column_name;
+			$kolom = $row->COLUMN_NAME;
 			
 				
 				if ($datahasil->$kolom == '0000-00-00')

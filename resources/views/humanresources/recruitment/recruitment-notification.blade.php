@@ -84,6 +84,7 @@ RecruitmentLists.getCombo(9).put('SMS','SMS');
 RecruitmentLists.getCombo(9).put('EMAIL','EMAIL');
 RecruitmentLists.getCombo(9).put('WHATSAPP','WHATSAPP');
 RecruitmentLists.getCombo(9).put('ALL','ALL');
+RecruitmentLists.getCombo(10).put('IDN','IDN');
 combocurrx = RecruitmentLists.getColumnCombo(11);
 		combocurrx.enableFilteringMode(true);
 		combocurrx.load("xml-recruitment-template");

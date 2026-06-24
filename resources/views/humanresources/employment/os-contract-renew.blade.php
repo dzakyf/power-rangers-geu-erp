@@ -50,7 +50,7 @@ use Illuminate\Database\Eloquent\Builder;
 				 </div>
 				  <div class="FormInput_left">
 						
-						NIK KSPS    
+						NIK GEU    
 				</div>
 				<div class="FormInput_right">
 				

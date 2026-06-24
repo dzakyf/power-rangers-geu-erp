@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Builder;
                 <a href="#">Recruitment</a>
             </li>
             <li class="breadcrumb-item active">
-                <span class="active">Requisitions</span>
+                <span class="active">PTX</span>
             </li>
         </ol>
     </div> 
@@ -33,9 +33,9 @@ use Illuminate\Database\Eloquent\Builder;
 		<div id="RequisitionLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 		<div>
 			<input type="button" id="ekselRequisitionListsDet" name="ekselRequisitionListsDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="RequisitionLists.toExcel('./export/generate.php');"  />
-			<input type="button" id="delets" name="delets" value="Cancel Requisition" onclick="delsRequisition()"  class="btn btn-info mt-2 mr-2" onclick="delsRequisition()"  /> 
-			<input type="button" id="CancelReq" name="CancelReq"  class="btn btn-danger mt-2 mr-2" onclick="closereq()" value="Close Requisition"/>
-			<input type="button" id="NewReq" name="NewReq" onclick="newreq()"class="btn btn-success mt-2 mr-2"  value="New Requisition"/>
+			<input type="button" id="delets" name="delets" value="Cancel PTK" onclick="delsRequisition()"  class="btn btn-info mt-2 mr-2" onclick="delsRequisition()"  /> 
+			<input type="button" id="CancelReq" name="CancelReq"  class="btn btn-danger mt-2 mr-2" onclick="closereq()" value="Close PTK"/>
+			<input type="button" id="NewReq" name="NewReq" onclick="newreq()"class="btn btn-success mt-2 mr-2"  value="New PTK"/>
 		</div>
 
 	</div>	

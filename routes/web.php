@@ -4535,7 +4535,7 @@ Route::group(['middleware' => 'log.access'], function () {
     /** Pickup */
     $pickupPref = "partner-pickup";
     Route::get("$pickupPref", [UCOLogisticController::class, 'indexPickupRequest']);
-    Route::get("$pickupPref-data", [UCOLogisticController::class, 'getPickupRequest']);
+    Route::get("$pickupPref-data", [UCOLogisticController::class, 'getPickupListData']);
     Route::get("$pickupPref-create", [UCOLogisticController::class, 'createPickupRequest']);
     Route::post("$pickupPref-create-submit", [UCOLogisticController::class, 'submitCreatePickupRequest']);
     Route::post("$pickupPref-assign-fleet", [UCOLogisticController::class, 'assignFleetToPickupRequest']);
@@ -4546,7 +4546,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$pickupPref-route", [UCOLogisticController::class, 'indexPickupRouting']);
     Route::get("$pickupPref-route-data", [UCOLogisticController::class, "getSavedRouteList"]);
     Route::get("$pickupPref-route-waypoints-data", [UCOLogisticController::class, "getSavedRouteWaypointsList"]);
-    Route::get("$pickupPref-data", [UCOLogisticController::class, 'getPickupListData']);
+    Route::get("$pickupPref-route-map-data",     [UCOLogisticController::class, 'getRouteMapData']);
+    Route::get("$pickupPref-list-data", [UCOLogisticController::class, 'getPickupListData']);
     Route::post("$pickupPref-route-submit", [UCOLogisticController::class, "submitRoute"])->middleware('throttle:60,1');
     Route::post("$pickupPref-route-calculate", [UCOLogisticController::class, "calculateRoute"]);
     Route::get("$pickupPref-order-data", [UCOLogisticController::class, "getPickupOrderData"]);

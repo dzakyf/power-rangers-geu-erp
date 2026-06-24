@@ -45,7 +45,7 @@ foreach($Query as $Fetch){
 		echo "<cell>$notif</cell>";
 		echo "<cell>$Fetch->Incoming_Date</cell>";
 		echo "<cell>$Fetch->Notification_By</cell>";
-		echo "<cell>$Fetch->Notification_Language</cell>";
+		echo "<cell>".($Fetch->Notification_Language ?? 'IDN')."</cell>";
 		echo "<cell>$Fetch->Notification_Template</cell>";
 		echo "<cell>$Fetch->Notification_Date</cell>";
 		echo "</row>";
