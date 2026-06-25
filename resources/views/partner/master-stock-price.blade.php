@@ -21,10 +21,10 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	<h1>Partner</h1>
 	<ol class="breadcrumb">
 		<li class="breadcrumb-item">
-			<a href="#">Opportunity</a>
+			<a href="#">Inventory</a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">Fresh Leads</span>
+			<span class="active">Master Stock Price</span>
 		</li>
 	</ol>
 </div>
@@ -32,7 +32,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 <div class="row">
 	<div id="MasterPriceProduct" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
-        <input type="button" id="ekselMasterPriceProductDet" name="ekselMasterPriceProductDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="MasterPriceProduct.toExcel('./export/generate.php');" />
+		<input type="button" id="ekselMasterPriceProductDet" name="ekselMasterPriceProductDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="MasterPriceProduct.toExcel('./export/generate.php');" />
 		<input type="button" id="addRow" name="addRow" value="Add Row" class="btn btn-info mt-2 mr-2" onclick="addRow()" />
 		<input type="button" id="deleteRow" name="deleteRow" value="Delete Row" class="btn btn-danger mt-2 mr-2" onclick="deleteRow()" />
 		<input type="button" id="savePrice" name="savePrice" value="Save Price" class="btn btn-success mt-2 mr-2" onclick="savePrice()" />
@@ -43,7 +43,6 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>
 <script>
-
 	function MasterPriceProductKlik() {
 
 		MasterPriceProductID = MasterPriceProduct.getSelectedId();
@@ -65,7 +64,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	MasterPriceProduct.setColTypes("ron,dhxCalendar,edn,ro,ro");
 	MasterPriceProduct.enableSmartRendering(true, 150);
 	MasterPriceProduct.setNumberFormat("0,000", 2, ".", ",");
-    MasterPriceProduct.setDateFormat("%Y-%m-%d");
+	MasterPriceProduct.setDateFormat("%Y-%m-%d");
 	PMasterPriceProduct = new dataProcessor("partner-master-stock-price-update");
 	PMasterPriceProduct.setTransactionMode({
 		mode: "POST",
@@ -79,17 +78,17 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	PMasterPriceProduct.setTransactionMode("POST", true);
 	PMasterPriceProduct.setUpdateMode("Off");
 	PMasterPriceProduct.init(MasterPriceProduct);
-    PMasterPriceProduct.attachEvent("onBeforeDataSending", function (id,state, data) {
-        // Modify or add payload data here
-        // console.log(id)
-        return true; // Return true to continue processing
-    });
-    PMasterPriceProduct.attachEvent("onAfterUpdateFinish", function (id,state, data) {
-        alert("Data Successfully Submitted!");
-        setTimeout(function() {
-            refreshdata();
-        }, 500);
-    });
+	PMasterPriceProduct.attachEvent("onBeforeDataSending", function(id, state, data) {
+		// Modify or add payload data here
+		// console.log(id)
+		return true; // Return true to continue processing
+	});
+	PMasterPriceProduct.attachEvent("onAfterUpdateFinish", function(id, state, data) {
+		alert("Data Successfully Submitted!");
+		setTimeout(function() {
+			refreshdata();
+		}, 500);
+	});
 	MasterPriceProduct.setSkin("dhx_skyblue");
 	MasterPriceProduct.init();
 	refreshdata();
@@ -112,18 +111,16 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 		})
 	}
 
-    function addRow()
-    {
-        let uid = MasterPriceProduct.uid();
-        let num = MasterPriceProduct.getRowsNum() + 1;
-        MasterPriceProduct.addRow(uid, [num,"{{ date('Y-m-d') }}",'0','','']);
-        MasterPriceProduct.selectRow(uid);
-    }
+	function addRow() {
+		let uid = MasterPriceProduct.uid();
+		let num = MasterPriceProduct.getRowsNum() + 1;
+		MasterPriceProduct.addRow(uid, [num, "{{ date('Y-m-d') }}", '0', '', '']);
+		MasterPriceProduct.selectRow(uid);
+	}
 
 	function savePrice() {
 		PMasterPriceProduct.sendData();
 		refreshdata();
 	}
-
 </script>
 @endsection

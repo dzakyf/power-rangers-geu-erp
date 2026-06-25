@@ -66,7 +66,7 @@
                 var fd = new FormData();
                 fd.append('_token', '{{ csrf_token() }}');
                 fd.append('signature', blob, 'signature.png');
-                fd.append('Periode', $('#Periode').val());
+                fd.append('periode', $('#Periode').val());
 
                 var xhr = new XMLHttpRequest();
                 xhr.open('POST', 'partner-profit-sharing-preview-application');
@@ -93,7 +93,7 @@
                 var fd = new FormData();
                 fd.append('_token', '{{ csrf_token() }}');
                 fd.append('signature', blob, 'signature.png');
-                fd.append('Periode', $('#Periode').val());
+                fd.append('periode', $('#Periode').val());
                 fd.append('opportunity_id', '{{ $partner->id }}');
 
                 var xhr = new XMLHttpRequest();

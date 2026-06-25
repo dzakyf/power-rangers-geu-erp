@@ -4524,6 +4524,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("finance-acquisition-cost-data",   [UCOLogisticController::class, 'getAcquisitionCostData']);
     Route::post("finance-acquisition-cost-submit", [UCOLogisticController::class, 'submitAcquisitionCost']);
     Route::post("finance-acquisition-cost-action", [UCOLogisticController::class, 'actionAcquisitionCost']);
+    Route::post("finance-acquisition-cost-upload-receipt", [UCOLogisticController::class, 'uploadAcquisitionReceipt']);
+    Route::get("finance-acquisition-cost-detail", [UCOLogisticController::class, 'getAcquisitionDetail']);
 
     /** Work Order */
     $workOrderPref = "partner-work-order";

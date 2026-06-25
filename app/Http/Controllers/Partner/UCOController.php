@@ -1322,6 +1322,7 @@ class UCOController extends Controller
     {
         return view('finance.ops.acquisition.index');
     }
+
     public function getAcquisitionCostData(Request $r)
     {
         $month = $r->query('month');
@@ -1456,6 +1457,58 @@ class UCOController extends Controller
 
         return response()->json(['success' => false, 'message' => 'Invalid action'], 400);
     }
+
+    public function getAcquisitionDetail(Request $r)
+    {
+        $id = $r->query('id');
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'Parameter id diperlukan']);
+        }
+
+        $data = DB::table('pickup_order as po')
+            ->leftJoin('delivery_order as d', 'po.DO_Id', '=', 'd.ID')
+            ->leftJoin('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
+            ->leftJoin('master_fleet as mf', 'po.Fleet_Id', '=', 'mf.ID')
+            ->leftJoin('users as driver', 'po.Fleet_Id', '=', 'driver.id')
+            ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
+            ->leftJoin('warehouse_partner as wp', 'mp.Nearest_Warehouse', '=', 'wp.id')
+            ->select(
+                'po.ID',
+                'po.Code as PO_Code',
+                'po.Qty',
+                'po.Total_Cost',
+                'po.Actual_Nominal_Transfer',
+                'po.Actual_Qty',
+                'po.Acquisition_Status',
+                'po.Acquisition_Submitted_At',
+                'po.Acquisition_Approved_At',
+                'po.Description',
+                'd.Code as DO_Code',
+                'wo.Code as WO_Code',
+                'mf.Police_Number',
+                'driver.Name as Driver_Name',
+                'mp.Name as Customer_Name',
+                'mp.PIC',
+                'mp.Phone',
+                'mp.Full_Address',
+                'mp.Province',
+                'mp.City',
+                'mp.Bank_Name',
+                'mp.Bank_Account_Number',
+                'mp.Bank_Account_Name',
+                'wp.warehouse_location'
+            )
+            ->where('po.ID', $id)
+            ->first();
+
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    public function uploadAcquisitionReceipt(Request $r)
+    {
+        return response()->json(['success' => true, 'message' => 'Upload berhasil']);
+    }
+
     public function updateInstockPhoto(Request $r)
     {
         DB::beginTransaction();

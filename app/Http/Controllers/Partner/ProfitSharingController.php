@@ -10,6 +10,7 @@ use App\Services\GeneratorService;
 use App\Services\NotificationService;
 use App\Services\UploadService;
 use App\Services\UserService;
+use App\Services\WarehouseService;
 use App\User;
 use App\WarehousePartner;
 use App\WarehousePartnerJournal;
@@ -40,10 +41,12 @@ class ProfitSharingController extends Controller
     protected $year;
     protected $month;
     protected $notificationService;
+    protected $warehouseService;
 
-    public function __construct(UserService $u, GeneratorService $g, UploadService $up, NotificationService $n)
+    public function __construct(UserService $u, GeneratorService $g, UploadService $up, NotificationService $n, WarehouseService $wh)
     {
 
+        $this->warehouseService = $wh;
         $this->generatorService = $g;
         $this->uploaderService = $up;
         $this->userService = $u;
@@ -909,33 +912,27 @@ class ProfitSharingController extends Controller
         $session = $this->userService->getCurrentSessionUserInfo();
         $userId = $b['user_id'] ?? $session->id;
         $partner = $this->userService->getMitraById($userId);
+        $wh = DB::table('warehouse_partner as wp')
+            ->join('opportunity_partner as op', 'op.lead_id', '=', 'wp.partner_task_id')
+            ->where('op.user_row_id', '=', $userId)
+            ->select('wp.warehouse_task_id')
+            ->first();
+        $whId = $wh->warehouse_task_id ?? '';
+        $periodeStart = $b['periode_start'] ?? Carbon::now()->startOfMonth()->format('Y-m-d');
+        $periodeEnd = $b['periode_end'] ?? Carbon::now()->endOfMonth()->format('Y-m-d');
 
-        $wh = [
-            0 => (object) [
-                "transfer_price"     => 9000,
-                "total_qty"          => 8000,
-                "bensin"             => 1000,
-                "parkir"             => 5000,
-                "raw_material_price" => 900000
-            ]
-        ];
 
-        $getTotalOverHeadCost = 1233412;
 
-        $revenue     = $wh[0]->transfer_price * $wh[0]->total_qty;
-        $directPrice = $wh[0]->bensin + $wh[0]->parkir;
-        $cogs        = $wh[0]->raw_material_price + $directPrice;
+        $wh = $this->warehouseService->calculateMonthlyFinancialStatement($whId, $periodeStart, $periodeEnd);
 
-        $totalOverheadCost = $getTotalOverHeadCost;
-        $capitalAllocation = 0.025 * $revenue;
-        $netMargin = $revenue - $cogs - $totalOverheadCost - $capitalAllocation;
-        $nominalRoyalty = 0.6 * $netMargin;
+
+        $nominalRoyalty = $wh['nominal_royalty'];
 
         $location = $partner->City;
         $date = Carbon::now()->day;
 
         // Parse month and year from submitted Periode (format: "YYYY-MM")
-        $periode = $b['Periode'] ?? '';
+        $periode = $b['periode'] ?? '';
         if ($periode) {
             $parts = explode('-', $periode);
             $year = $parts[0];
@@ -1683,6 +1680,8 @@ class ProfitSharingController extends Controller
             echo "<cell>" . htmlspecialchars($month) . "</cell>";
             echo "<cell>" . htmlspecialchars($calculate[801]['NULL']) . "</cell>";
             echo "</row>";
+
+            $nomor++;
         }
 
         echo "</rows>";
