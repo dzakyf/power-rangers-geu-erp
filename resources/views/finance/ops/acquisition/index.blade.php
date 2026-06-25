@@ -28,12 +28,22 @@
             </div>
         </div>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body p-0 ml-3 mr-3">
         <div style="width:100%;overflow-x:auto;">
             <div id="acquisitionGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
         </div>
     </div>
+    <div class="text-left ml-3 mt-3 mb-3 mr-3">
+        <button class="btn btn-primary" onclick="openUploadBuktiTransferModal()">
+            <i class="fa fa-upload"></i> Upload Bukti Transfer
+        </button>
+        <button class="btn btn-info" onclick="openDetailModal()">
+            <i class="fa fa-info-circle"></i> Detail
+        </button>
+    </div>
+
 </div>
+
 
 <script>
     var acquisitionGrid;
@@ -53,6 +63,9 @@
             selectedPoId = acquisitionGrid.getRowAttribute(id, 'ID');
             openAcquisitionModal(id);
         });
+        acquisitionGrid.attachEvent("onRowSelect", function(id) {
+            selectedPoId = acquisitionGrid.getRowAttribute(id, 'ID');
+        });
         acquisitionGrid.init();
         loadAcquisitionData();
     }
@@ -71,7 +84,9 @@
     function openAcquisitionModal(rowId) {
         if (!selectedPoId) return;
 
-        $.get('finance-acquisition-cost-data', { id: selectedPoId }, function(res) {
+        $.get('finance-acquisition-cost-data', {
+            id: selectedPoId
+        }, function(res) {
             var data = res.data && res.data[0];
             if (!data) return;
 
@@ -126,7 +141,10 @@
             var actions = [];
 
             if (status === 'NOT_SUBMITTED') {
-                actions.push({ label: 'Close', class: 'btn-secondary' });
+                actions.push({
+                    label: 'Close',
+                    class: 'btn-secondary'
+                });
                 actions.push({
                     label: 'Submit',
                     class: 'btn-primary',
@@ -162,7 +180,10 @@
                     }
                 });
             } else if (status === 'PENDING') {
-                actions.push({ label: 'Close', class: 'btn-secondary' });
+                actions.push({
+                    label: 'Close',
+                    class: 'btn-secondary'
+                });
                 actions.push({
                     label: 'Approve',
                     class: 'btn-success',
@@ -229,7 +250,10 @@
                     }
                 });
             } else {
-                actions.push({ label: 'Close', class: 'btn-secondary' });
+                actions.push({
+                    label: 'Close',
+                    class: 'btn-secondary'
+                });
             }
 
             AppModal.open({
@@ -238,6 +262,163 @@
                 body: bodyHtml,
                 actions: actions
             });
+        });
+    }
+
+
+    function openUploadBuktiTransferModal() {
+        if (!selectedPoId) {
+            alert('Silakan pilih baris terlebih dahulu');
+            return;
+        }
+
+        $.get('finance-acquisition-cost-detail', {
+            id: selectedPoId
+        }, function(res) {
+            if (!res.success || !res.data) {
+                alert('Data tidak ditemukan');
+                return;
+            }
+
+            var d = res.data;
+
+            var bodyHtml = '';
+
+            // Customer & Account Details section
+            bodyHtml += '<h6 class="mb-3 font-weight-bold border-bottom pb-2">Customer & Account Details</h6>';
+            bodyHtml += '<div class="row mb-3">';
+            bodyHtml += '<div class="col-md-6">';
+            bodyHtml += '<table class="table table-sm table-borderless">';
+            bodyHtml += '<tr><td class="text-muted" style="width:140px;">PO Code</td><td>' + (d.PO_Code || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Customer</td><td>' + (d.Customer_Name || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">PIC</td><td>' + (d.PIC || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Phone</td><td>' + (d.Phone || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Address</td><td>' + (d.Full_Address || '-') + '</td></tr>';
+            bodyHtml += '</table>';
+            bodyHtml += '</div>';
+            bodyHtml += '<div class="col-md-6">';
+            bodyHtml += '<table class="table table-sm table-borderless">';
+            // bodyHtml += '<tr><td class="text-muted" style="width:140px;">Qty</td><td>' + (d.Qty || '0') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Total Pembayaran</td><td>Rp ' + (d.Total_Cost || '0') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Total Pembayaran (Aktual)</td><td>Rp ' + (d.Actual_Nominal_Transfer || '0') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Status</td><td><span class="badge ' +
+                (d.Acquisition_Status === 'APPROVED' ? 'badge-success' : d.Acquisition_Status === 'REJECTED' ? 'badge-danger' : d.Acquisition_Status === 'PENDING' ? 'badge-warning' : 'badge-secondary') +
+                '">' + (d.Acquisition_Status || '-') + '</span></td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Bank</td><td>' + (d.Bank_Name || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Account Number</td><td>' + (d.Bank_Account_Number || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Account Name</td><td>' + (d.Bank_Account_Name || '-') + '</td></tr>';
+            bodyHtml += '</table>';
+            bodyHtml += '</div>';
+            bodyHtml += '</div>';
+            bodyHtml += '<hr>';
+
+            // Upload form
+            bodyHtml += '<form id="uploadBuktiTransferForm">';
+            bodyHtml += '<div class="form-group">';
+            bodyHtml += '<label>Upload Bukti Transfer</label>';
+            bodyHtml += '<input type="file" class="form-control" name="receipt_file" accept="image/*,.pdf" required>';
+            bodyHtml += '</div>';
+            bodyHtml += '<div class="form-group">';
+            bodyHtml += '<label>Nominal Transfer Aktual</label>';
+            bodyHtml += '<input type="text" class="form-control" name="actual_nominal" placeholder="Masukkan nominal..."/>';
+            bodyHtml += '</div>';
+            bodyHtml += '<div class="form-group">';
+            bodyHtml += '<label>Keterangan</label>';
+            bodyHtml += '<textarea class="form-control" name="notes" rows="3" placeholder="Masukkan catatan..."></textarea>';
+            bodyHtml += '</div>';
+            bodyHtml += '</form>';
+
+            AppModal.open({
+                title: 'Upload Bukti Transfer - ' + (d.PO_Code || ''),
+                size: 'lg',
+                body: bodyHtml,
+                actions: [{
+                        label: 'Close',
+                        class: 'btn-secondary'
+                    },
+                    {
+                        label: 'Upload',
+                        class: 'btn-primary',
+                        id: 'btnUploadBuktiTransfer',
+                        onClick: function() {
+                            var form = document.getElementById('uploadBuktiTransferForm');
+                            if (!form.receipt_file.files.length) {
+                                alert('File wajib dipilih');
+                                return false;
+                            }
+                            var fd = new FormData(form);
+                            fd.append('_token', '{{ csrf_token() }}');
+                            fd.append('po_id', selectedPoId);
+                            $.ajax({
+                                url: 'finance-acquisition-cost-upload-receipt',
+                                type: 'POST',
+                                data: fd,
+                                processData: false,
+                                contentType: false,
+                                success: function(res) {
+                                    if (res.success) {
+                                        alert('Upload berhasil');
+                                        AppModal.close();
+                                        loadAcquisitionData();
+                                    } else {
+                                        alert('Gagal: ' + (res.message || 'Unknown error'));
+                                    }
+                                },
+                                error: function(xhr) {
+                                    alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+                                }
+                            });
+                            return false;
+                        }
+                    }
+                ]
+            });
+        }).fail(function() {
+            alert('Gagal memuat data');
+        });
+    }
+
+
+
+
+    function openDetailModal() {
+        if (!selectedPoId) {
+            alert('Silakan pilih baris terlebih dahulu');
+            return;
+        }
+
+        $.get('finance-acquisition-cost-detail', { id: selectedPoId }, function(res) {
+            if (!res.success || !res.data) {
+                alert('Data tidak ditemukan');
+                return;
+            }
+
+            var d = res.data;
+
+            var bodyHtml = '';
+            bodyHtml += '<div class="row">';
+            bodyHtml += '<div class="col-md-12">';
+            bodyHtml += '<table class="table table-sm table-borderless">';
+            bodyHtml += '<tr><td class="text-muted" style="width:160px;">Pickup Code</td><td>' + (d.PO_Code || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Warehouse</td><td>' + (d.warehouse_location || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Driver</td><td>' + (d.Driver_Name || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Fleet</td><td>' + (d.Police_Number || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Work Order Code</td><td>' + (d.WO_Code || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Total Cost</td><td>Rp ' + (d.Total_Cost || '0') + '</td></tr>';
+            bodyHtml += '</table>';
+            bodyHtml += '</div>';
+            bodyHtml += '</div>';
+
+            AppModal.open({
+                title: 'Detail - ' + (d.PO_Code || ''),
+                size: 'md',
+                body: bodyHtml,
+                actions: [
+                    { label: 'Close', class: 'btn-secondary' }
+                ]
+            });
+        }).fail(function() {
+            alert('Gagal memuat data');
         });
     }
 

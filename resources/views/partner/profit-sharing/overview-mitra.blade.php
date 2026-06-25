@@ -48,9 +48,9 @@ $Saya =  Auth::user()->username;
 
 		ProfitSharingID = ProfitSharing.getSelectedId();
 		if (ProfitSharingID != null) {
-            let date = ProfitSharing.cells(ProfitSharingID, 2).getValue() + ' ' + ProfitSharing.cells(ProfitSharingID, 1).getValue();
-			LoadM('divlistOpportunity', 'partner-profit-sharing-overview-mitra-detail?date=' + date);
-		}else {
+			let date = ProfitSharing.cells(ProfitSharingID, 2).getValue() + ' ' + ProfitSharing.cells(ProfitSharingID, 1).getValue();
+			LoadM('divlistOpportunity', 'partner-profit-sharing-overview-detail?date=' + date);
+		} else {
 			alert("Pilih baris data");
 		}
 		return true;
