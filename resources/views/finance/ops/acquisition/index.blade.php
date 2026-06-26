@@ -333,45 +333,40 @@
                 size: 'lg',
                 body: bodyHtml,
                 actions: [{
-                        label: 'Close',
-                        class: 'btn-secondary'
-                    },
-                    {
-                        label: 'Upload',
-                        class: 'btn-primary',
-                        id: 'btnUploadBuktiTransfer',
-                        onClick: function() {
-                            var form = document.getElementById('uploadBuktiTransferForm');
-                            if (!form.receipt_file.files.length) {
-                                alert('File wajib dipilih');
-                                return false;
-                            }
-                            var fd = new FormData(form);
-                            fd.append('_token', '{{ csrf_token() }}');
-                            fd.append('po_id', selectedPoId);
-                            $.ajax({
-                                url: 'finance-acquisition-cost-upload-receipt',
-                                type: 'POST',
-                                data: fd,
-                                processData: false,
-                                contentType: false,
-                                success: function(res) {
-                                    if (res.success) {
-                                        alert('Upload berhasil');
-                                        AppModal.close();
-                                        loadAcquisitionData();
-                                    } else {
-                                        alert('Gagal: ' + (res.message || 'Unknown error'));
-                                    }
-                                },
-                                error: function(xhr) {
-                                    alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
-                                }
-                            });
+                    label: 'Upload',
+                    class: 'btn-primary',
+                    id: 'btnUploadBuktiTransfer',
+                    onClick: function() {
+                        var form = document.getElementById('uploadBuktiTransferForm');
+                        if (!form.receipt_file.files.length) {
+                            alert('File wajib dipilih');
                             return false;
                         }
+                        var fd = new FormData(form);
+                        fd.append('_token', '{{ csrf_token() }}');
+                        fd.append('po_id', selectedPoId);
+                        $.ajax({
+                            url: 'finance-acquisition-cost-upload-receipt',
+                            type: 'POST',
+                            data: fd,
+                            processData: false,
+                            contentType: false,
+                            success: function(res) {
+                                if (res.success) {
+                                    alert('Upload berhasil');
+                                    AppModal.close();
+                                    loadAcquisitionData();
+                                } else {
+                                    alert('Gagal: ' + (res.message || 'Unknown error'));
+                                }
+                            },
+                            error: function(xhr) {
+                                alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+                            }
+                        });
+                        return false;
                     }
-                ]
+                }]
             });
         }).fail(function() {
             alert('Gagal memuat data');
@@ -387,7 +382,9 @@
             return;
         }
 
-        $.get('finance-acquisition-cost-detail', { id: selectedPoId }, function(res) {
+        $.get('finance-acquisition-cost-detail', {
+            id: selectedPoId
+        }, function(res) {
             if (!res.success || !res.data) {
                 alert('Data tidak ditemukan');
                 return;
@@ -409,13 +406,19 @@
             bodyHtml += '</div>';
             bodyHtml += '</div>';
 
+            if (d.Receipt_Url) {
+                bodyHtml += '<hr>';
+                bodyHtml += '<h6 class="mb-2 font-weight-bold">Bukti Transfer</h6>';
+                bodyHtml += '<a href="' + d.Receipt_Url + '" target="_blank" class="btn btn-sm btn-outline-primary">';
+                bodyHtml += '<i class="fa fa-external-link"></i> Lihat Bukti Transfer';
+                bodyHtml += '</a>';
+            }
+
             AppModal.open({
                 title: 'Detail - ' + (d.PO_Code || ''),
                 size: 'md',
                 body: bodyHtml,
-                actions: [
-                    { label: 'Close', class: 'btn-secondary' }
-                ]
+                actions: []
             });
         }).fail(function() {
             alert('Gagal memuat data');
