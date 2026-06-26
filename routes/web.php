@@ -5129,6 +5129,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("partner-uco-unit-category", [UCOLogisticController::class, 'indexUnitCategory']);
 
     Route::get("$partnerUCO-outbound", [UCOLogisticController::class, 'indexOutboundUCO']);
+    Route::get("$partnerUCO-outstock", [UCOLogisticController::class, 'indexOutstockUCO']);
     Route::get("$partnerUCO-outbound-data", [UCOLogisticController::class, 'getUCOOutboundXml']);
 
 

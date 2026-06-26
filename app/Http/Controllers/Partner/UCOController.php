@@ -41,6 +41,11 @@ class UCOController extends Controller
     {
         return view('uco.outbound');
     }
+    public function indexOutstockUCO()
+    {
+        return view('uco.outstock');
+    }
+
 
     public function indexUnitCategory()
     {
@@ -1472,6 +1477,10 @@ class UCOController extends Controller
             ->leftJoin('users as driver', 'po.Fleet_Id', '=', 'driver.id')
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
             ->leftJoin('warehouse_partner as wp', 'mp.Nearest_Warehouse', '=', 'wp.id')
+            ->leftJoin('meta_files as mf2', function ($join) {
+                $join->on('po.ID', '=', 'mf2.Map_To')
+                    ->where('mf2.Topic', '=', 'acquisition-cost-receipt');
+            })
             ->select(
                 'po.ID',
                 'po.Code as PO_Code',
@@ -1496,17 +1505,73 @@ class UCOController extends Controller
                 'mp.Bank_Name',
                 'mp.Bank_Account_Number',
                 'mp.Bank_Account_Name',
-                'wp.warehouse_location'
+                'wp.warehouse_location',
+                'mf2.Path as Receipt_Path'
             )
             ->where('po.ID', $id)
             ->first();
+
+        if ($data && $data->Receipt_Path) {
+            $data->Receipt_Url = url('filevendor/' . $data->Receipt_Path);
+        } else {
+            $data->Receipt_Url = null;
+        }
 
         return response()->json(['success' => true, 'data' => $data]);
     }
 
     public function uploadAcquisitionReceipt(Request $r)
     {
-        return response()->json(['success' => true, 'message' => 'Upload berhasil']);
+        DB::beginTransaction();
+        try {
+            $user = $this->userService->getCurrentSessionUserInfo();
+            $poId = $r->po_id;
+
+            $po = DB::table('pickup_order')->where('ID', $poId)->first();
+            if (!$po) {
+                return response()->json(['success' => false, 'message' => 'Pickup order not found'], 404);
+            }
+
+            DB::table('pickup_order')->where('ID', $poId)->update([
+                'Actual_Nominal_Transfer' => $r->actual_nominal,
+                'Acquisition_Notes'       => $r->notes,
+                'Acquisition_Approved_By' => $user->id,
+                'Acquisition_Approved_At' => now(),
+                'Acquisition_Status'      => 'APPROVED',
+            ]);
+
+            if ($r->hasFile('receipt_file') && $r->file('receipt_file')->isValid()) {
+                $file     = $r->file('receipt_file');
+                $ext      = $file->getClientOriginalExtension();
+                $year     = now()->format('Y');
+                $month    = now()->format('m');
+                $uuid     = $this->generatorService->generateUUID();
+                $filename = $uuid . '.' . $ext;
+                $path     = "{$year}/{$month}/{$filename}";
+
+                $dir = public_path("filevendor/{$year}/{$month}");
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0777, true);
+                }
+                $file->move($dir, $filename);
+
+                DB::table('meta_files')->insert([
+                    'Filename'    => $filename,
+                    'Path'        => $path,
+                    'Extension'   => $ext,
+                    'Description' => 'Upload Bukti Transfer',
+                    'Topic'       => 'acquisition-cost-receipt',
+                    'Map_To'      => $poId,
+                    'Created_At'  => now(),
+                ]);
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Upload berhasil']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function updateInstockPhoto(Request $r)

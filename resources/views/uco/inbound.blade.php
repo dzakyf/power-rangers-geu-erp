@@ -13,7 +13,7 @@
 <!-- Delivery Order Grid -->
 <div class="card mb-3">
     <div class="card-header m-3">
-        <h5>Delivery Order</h5>
+        <h5>Surat Jalan</h5>
     </div>
     <div class="card-body p-3">
         <div style="width:100%;overflow-x:auto;">
@@ -84,7 +84,7 @@
     function initDeliveryOrderGrid() {
         DeliveryOrderGrid = new dhtmlXGridObject('DeliveryOrderGrid');
         DeliveryOrderGrid.setImagePath("./dhtmlx/imgs/");
-        DeliveryOrderGrid.setHeader("No,DO Code,DO Date");
+        DeliveryOrderGrid.setHeader("No,Code Surat Jalan,Tanggal Surat Jalan");
         DeliveryOrderGrid.attachHeader("#rspan,#text_filter,#text_filter");
         DeliveryOrderGrid.setInitWidths("60,*,*");
         DeliveryOrderGrid.setColAlign("center,left,left");
@@ -92,7 +92,6 @@
         DeliveryOrderGrid.setSkin("dhx_skyblue");
         DeliveryOrderGrid.attachEvent("onRowSelect", function(id) {
             selectedDOId = DeliveryOrderGrid.getRowAttribute(id, 'ID');
-            console.log(selectedDOId)
         });
         DeliveryOrderGrid.init();
         DeliveryOrderGrid.load('partner-delivery-order-data?status=DONE&format=xml');
