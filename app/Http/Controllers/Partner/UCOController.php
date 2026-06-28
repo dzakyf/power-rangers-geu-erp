@@ -1148,7 +1148,10 @@ class UCOController extends Controller
                 'Driver_Operational_Price' => $r->input('driver_operational'),
                 'Field_Operational_Price'  => $r->input('field_operational', 7000),
                 'Total_Cost'               => $r->input('total_cost'),
+                'Fleet_Id'                 => $r->input('fleet_id'),
                 'APC'                      => $r->input('apc', 0),
+                'Ops_Method'               => $r->input('ops_method', 'variable'),
+                'Lump_Sum_Operational'     => $r->input('ops_lump_sum', 0),
                 'Warehouse_ID'             => $whId,
             ]);
 
