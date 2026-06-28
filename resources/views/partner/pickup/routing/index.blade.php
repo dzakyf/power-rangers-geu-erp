@@ -201,6 +201,7 @@
         $('#routeStep1').hide();
         $('#routeStep2').show();
         initFleetSelectInModal();
+        recalcRouteCosts();
     }
 
     // --- Fleet select2 inside modal ---
@@ -240,21 +241,43 @@
         var konsumsi = parseFloat($('#routeBbmConsumption').val()) || 10;
         var harga = parseFloat($('#routeBbmPrice').val()) || 13000;
         var tol = parseFloat($('#routeTollEstimation').val()) || 0;
-        var parkir = parseFloat($('#routeParkingCost').val()) || 0;
-        var alkon = parseFloat($('#routeAlkonBbmCost').val()) || 0;
-        var opDriver = parseFloat($('#routeDriverOperational').val()) || 0;
-        var opLapangan = parseFloat($('#routeFieldOperational').val()) || 0;
 
+        // BBM (always variable)
         var bbm = (jarak / konsumsi) * harga;
-        var operasional = parkir + alkon + opDriver + opLapangan;
+
+        // Operasional (variable or lump sum)
+        var operasional;
+        if ($('#routeOpsMethod').val() === 'lumpsum') {
+            operasional = parseFloat($('#routeOpsLumpSum').val()) || 0;
+        } else {
+            var parkir = parseFloat($('#routeParkingCost').val()) || 0;
+            var alkon = parseFloat($('#routeAlkonBbmCost').val()) || 0;
+            var opDriver = parseFloat($('#routeDriverOperational').val()) || 0;
+            var opLapangan = parseFloat($('#routeFieldOperational').val()) || 0;
+            operasional = parkir + alkon + opDriver + opLapangan;
+        }
+
+        var apc = parseFloat($('#routeApc').val()) || 0;
         var total = bbm + tol + operasional;
+        var grandTotal = total + apc;
 
-        $('#cardBbm').text(bbm);
-        $('#cardTol').text(tol);
-        $('#cardOperasional').text(operasional);
-        $('#cardTotal').text(total);
+        // Existing cards
+        $('#cardBbm').text('Rp ' + bbm.toLocaleString());
+        $('#cardTol').text('Rp ' + tol.toLocaleString());
+        $('#cardOperasional').text('Rp ' + operasional.toLocaleString());
+        $('#cardTotal').text('Rp ' + total.toLocaleString());
 
+        // New cards
+        $('#cardDistance').text(jarak.toLocaleString() + ' km');
+        $('#cardApc').text('Rp ' + apc.toLocaleString());
+        $('#cardGrandTotal').text('Rp ' + grandTotal.toLocaleString());
+    }
 
+    function toggleOpsMethod() {
+        var v = $('#routeOpsMethod').val();
+        $('#opsVariableFields').toggle(v === 'variable');
+        $('#opsLumpSumFields').toggle(v === 'lumpsum');
+        recalcRouteCosts();
     }
 
     // --- Fetch OSRM route from selected orders ---
@@ -306,11 +329,9 @@
             alkon_bbm_cost: $('#routeAlkonBbmCost').val(),
             driver_operational: $('#routeDriverOperational').val(),
             field_operational: $('#routeFieldOperational').val(),
-            subtotal_bbm: '0',
-            subtotal_toll: '0',
-            subtotal_operational: '0',
-            total_cost: '0',
-            apc: 0,
+            ops_method: $('#routeOpsMethod').val(),
+            ops_lump_sum: $('#routeOpsLumpSum').val(),
+            apc: $('#routeApc').val(),
             _token: $('meta[name="csrf-token"]').attr('content')
         };
 
@@ -318,15 +339,29 @@
         var konsumsi = parseFloat(payload.bbm_consumption) || 10;
         var harga = parseFloat(payload.bbm_price) || 13000;
         var tol = parseFloat(payload.toll_estimation) || 0;
-        var parkir = parseFloat(payload.parking_cost) || 0;
-        var alkon = parseFloat(payload.alkon_bbm_cost) || 0;
-        var opDriver = parseFloat(payload.driver_operational) || 0;
-        var opLapangan = parseFloat(payload.field_operational) || 0;
 
-        payload.subtotal_bbm = (jarak / konsumsi) * harga;
+        // BBM (always variable)
+        var bbm = (jarak / konsumsi) * harga;
+
+        // Operasional (variable or lump sum)
+        var operasional;
+        if (payload.ops_method === 'lumpsum') {
+            operasional = parseFloat(payload.ops_lump_sum) || 0;
+        } else {
+            var parkir = parseFloat(payload.parking_cost) || 0;
+            var alkon = parseFloat(payload.alkon_bbm_cost) || 0;
+            var opDriver = parseFloat(payload.driver_operational) || 0;
+            var opLapangan = parseFloat(payload.field_operational) || 0;
+            operasional = parkir + alkon + opDriver + opLapangan;
+        }
+
+        var apc = parseFloat(payload.apc) || 0;
+        var total = bbm + tol + operasional;
+
+        payload.subtotal_bbm = bbm;
         payload.subtotal_toll = tol;
-        payload.subtotal_operational = parkir + alkon + opDriver + opLapangan;
-        payload.total_cost = payload.subtotal_bbm + payload.subtotal_toll + payload.subtotal_operational;
+        payload.subtotal_operational = operasional;
+        payload.total_cost = total;
 
         $.ajax({
             url: 'partner-pickup-route-submit',
@@ -357,7 +392,9 @@
                             iconSize: [28, 28],
                             iconAnchor: [14, 14]
                         });
-                        L.marker([whLat, whLng], { icon: whIcon }).addTo(map)
+                        L.marker([whLat, whLng], {
+                                icon: whIcon
+                            }).addTo(map)
                             .bindPopup('<b>Warehouse</b><br>' + whOption.text());
                     }
 
@@ -451,11 +488,11 @@
                         '</div>' +
                         '<div class="col-md-4 form-group mb-0">' +
                         '<label class="small">Konsumsi BBM</label>' +
-                        '<input type="number" id="routeBbmConsumption" class="form-control form-control-sm" value="10" readonly />' +
+                        '<div class="input-group input-group-sm"><input type="number" id="routeBbmConsumption" class="form-control form-control-sm" value="10" readonly /><div class="input-group-append"><span class="input-group-text">L</span></div></div>' +
                         '</div>' +
                         '<div class="col-md-4 form-group mb-0">' +
                         '<label class="small">Harga BBM</label>' +
-                        '<input type="number" id="routeBbmPrice" class="form-control form-control-sm" value="13000" readonly />' +
+                        '<div class="input-group input-group-sm"><div class="input-group-prepend"><span class="input-group-text">Rp</span></div><input type="number" id="routeBbmPrice" class="form-control form-control-sm" value="13000" readonly /></div>' +
                         '</div>' +
                         '</div>' +
                         '</div>' +
@@ -468,7 +505,7 @@
                         '<div class="row">' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">Total Jarak (km)</label>' +
-                        '<input type="number" id="routeTotalDistance" class="form-control form-control-sm" oninput="recalcRouteCosts()" />' +
+                        '<div class="input-group input-group-sm"><input type="number" id="routeTotalDistance" class="form-control form-control-sm" oninput="recalcRouteCosts()" /><div class="input-group-append"><span class="input-group-text">Km</span></div></div>' +
                         '</div>' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">Jumlah Pickup</label>' +
@@ -476,20 +513,26 @@
                         '</div>' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">Total Berat (kg)</label>' +
-                        '<input type="number" id="routeTotalWeight" class="form-control form-control-sm" value="1000" readonly />' +
+                        '<div class="input-group input-group-sm"><input type="number" id="routeTotalWeight" class="form-control form-control-sm" value="1000" readonly /><div class="input-group-append"><span class="input-group-text">Kg</span></div></div>' +
                         '</div>' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">Estimasi Tol</label>' +
-                        '<input type="number" id="routeTollEstimation" class="form-control form-control-sm" value="300000" oninput="recalcRouteCosts()" />' +
+                        '<div class="input-group input-group-sm"><div class="input-group-prepend"><span class="input-group-text">Rp</span></div><input type="number" id="routeTollEstimation" class="form-control form-control-sm" value="300000" oninput="recalcRouteCosts()" /></div>' +
                         '</div>' +
                         '</div>' +
                         '</div>' +
                         '</div>' +
 
                         '<div class="card mb-3 border-left-info">' +
-                        '<div class="card-header py-2"><strong>Biaya Operasional</strong></div>' +
+                        '<div class="card-header py-2 d-flex justify-content-between align-items-center">' +
+                        '<strong>Biaya Operasional</strong>' +
+                        '<select id="routeOpsMethod" class="form-control form-control-sm" style="width:auto;" onchange="toggleOpsMethod()">' +
+                        '<option value="variable">Hitung Manual</option>' +
+                        '<option value="lumpsum">Lump Sum</option>' +
+                        '</select>' +
+                        '</div>' +
                         '<div class="card-body py-2">' +
-                        '<div class="row">' +
+                        '<div class="row" id="opsVariableFields">' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">Biaya Parkir</label>' +
                         '<input type="number" id="routeParkingCost" class="form-control form-control-sm" oninput="recalcRouteCosts()" />' +
@@ -507,12 +550,34 @@
                         '<input type="number" id="routeFieldOperational" class="form-control form-control-sm" oninput="recalcRouteCosts()" />' +
                         '</div>' +
                         '</div>' +
+                        '<div class="row" id="opsLumpSumFields" style="display:none;">' +
+                        '<div class="col-md-12 form-group mb-0">' +
+                        '<label class="small">Operasional Lump Sum (Rp)</label>' +
+                        '<div class="input-group input-group-sm">' +
+                        '<div class="input-group-prepend"><span class="input-group-text">Rp</span></div>' +
+                        '<input type="number" id="routeOpsLumpSum" class="form-control form-control-sm" value="0" oninput="recalcRouteCosts()" />' +
+                        '</div>' +
+                        '<small class="text-muted">Mencakup: Parkir, BBM Alkon, Driver, Lapangan</small>' +
+                        '</div>' +
+                        '</div>' +
                         '</div>' +
                         '</div>' +
 
-                        // Summary Cards
+                        '<div class="form-group row">' +
+                        '<div class="col-md-3 ml-4">' +
+                        '<label class="small">APC (Administrative Processing Cost)</label>' +
+                        '<div class="input-group input-group-sm">' +
+                        '<div class="input-group-prepend"><span class="input-group-text">Rp</span></div>' +
+                        '<input type="number" id="routeApc" class="form-control form-control-sm" value="0" oninput="recalcRouteCosts()" />' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>' +
+
+                        '<div class="card mb-3">' +
+                        '<div class="card-header py-2"><strong>Summary</strong></div>' +
+                        '<div class="card-body">' +
                         '<div class="row">' +
-                        '<div class="col-md-3">' +
+                        '<div class="col-md-4">' +
                         '<div class="card border-left-primary shadow-sm mb-2">' +
                         '<div class="card-body py-2 text-center">' +
                         '<small class="text-muted">BBM</small>' +
@@ -520,7 +585,7 @@
                         '</div>' +
                         '</div>' +
                         '</div>' +
-                        '<div class="col-md-3">' +
+                        '<div class="col-md-4">' +
                         '<div class="card border-left-success shadow-sm mb-2">' +
                         '<div class="card-body py-2 text-center">' +
                         '<small class="text-muted">Tol</small>' +
@@ -528,7 +593,7 @@
                         '</div>' +
                         '</div>' +
                         '</div>' +
-                        '<div class="col-md-3">' +
+                        '<div class="col-md-4">' +
                         '<div class="card border-left-warning shadow-sm mb-2">' +
                         '<div class="card-body py-2 text-center">' +
                         '<small class="text-muted">Operasional</small>' +
@@ -536,11 +601,32 @@
                         '</div>' +
                         '</div>' +
                         '</div>' +
-                        '<div class="col-md-3">' +
+                        '</div>' +
+
+                        '<div class="row mt-2">' +
+                        '<div class="col-md-4">' +
+                        '<div class="card border-left-secondary shadow-sm mb-2">' +
+                        '<div class="card-body py-2 text-center">' +
+                        '<small class="text-muted">Total Jarak</small>' +
+                        '<h6 class="mb-0" id="cardDistance">0 km</h6>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="col-md-4">' +
+                        '<div class="card border-left-info shadow-sm mb-2">' +
+                        '<div class="card-body py-2 text-center">' +
+                        '<small class="text-muted">APC</small>' +
+                        '<h6 class="mb-0" id="cardApc">Rp 0</h6>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="col-md-4">' +
                         '<div class="card border-left-danger shadow-sm mb-2">' +
                         '<div class="card-body py-2 text-center">' +
-                        '<small class="text-muted">Total Biaya</small>' +
-                        '<h6 class="mb-0" id="cardTotal">Rp 0</h6>' +
+                        '<small class="text-muted">Total Biaya Keseluruhan</small>' +
+                        '<h6 class="mb-0" id="cardGrandTotal">Rp 0</h6>' +
+                        '</div>' +
+                        '</div>' +
                         '</div>' +
                         '</div>' +
                         '</div>' +
