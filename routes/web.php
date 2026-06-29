@@ -2602,6 +2602,12 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post('/requisition-new-po-submit', function () {
         return view('humanresources.recruitment.requisition-new-po-submit');
     });
+    Route::get('/recruitment-requisition-approval', function () {
+        return view('humanresources.recruitment.requisition-approval');
+    });
+    Route::get('/xml-recruitment-requisition-approval', function () {
+        return view('humanresources.recruitment.xml.requisition-approval');
+    });
     Route::get('/xml-sales-po-lists-detail', function () {
         return view('humanresources.recruitment.xml.sales-po-lists-detail');
     });
@@ -4942,19 +4948,20 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$partnerTransferPrefs-approval-create", [ApprovalController::class, 'createTransferMembershipApproval']);
     Route::get("$partnerTransferPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);
     Route::get("$partnerTransferPrefs-approval-data-log", [ApprovalController::class, 'getApprovalDataLog']);
-    Route::get("$partnerTransferPrefs-approval-approve", [ApprovalController::class, 'processTransferMembershipToNextProgress']);
+    Route::post("$partnerTransferPrefs-approval-approve", [ApprovalController::class, 'processTransferMembershipToNextProgress']);
     Route::get("$partnerTransferPrefs-approval-detail", [ApprovalController::class, 'getTransferMembershipApprovalDetail']);
 
 
     /** OnboardingController */
     $onboardingPrefs = "partner-onboarding";
     Route::get("$onboardingPrefs-approval-data", [OnboardingController::class, 'getOnboardingApprovalData']);
-    Route::get("$onboardingPrefs-approval-submit", [OnboardingController::class, 'processOnboardingApproval']);
+    Route::post("$onboardingPrefs-approval-submit", [OnboardingController::class, 'processOnboardingApproval']);
     Route::get("$onboardingPrefs-approval-data-log", [OnboardingController::class, 'getOnboardingApprovalDataLog']);
     Route::post("$onboardingPrefs-preview-mou", [OnboardingController::class, 'previewMou']);
     Route::post("$onboardingPrefs-submit-mou", [OnboardingController::class, 'uploadMou']);
     Route::post("$onboardingPrefs-preview-pks", [OnboardingController::class, 'previewPks']);
     Route::post("$onboardingPrefs-submit-pks", [OnboardingController::class, 'uploadPks']);
+    Route::post("$onboardingPrefs-force-approve", [OnboardingController::class, 'forceApprove']);
 
     /** Partner Sales */
     $salesPrefs = "partner-sales";

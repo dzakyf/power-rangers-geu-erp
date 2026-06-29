@@ -280,7 +280,7 @@ class OnboardingController extends Controller
             )
             ->join('approval_log as log', 'request.ID', '=', 'log.Request_Id')
             ->join('approval_level as level', 'log.Level_Id', '=', 'level.ID')
-            ->join('users as requester', 'requester.id', '=', 'request.Requester_Id')
+            ->leftJoin('users as requester', 'requester.id', '=', 'request.Requester_Id')
             ->leftJoin('users as approver', 'approver.id', '=', 'log.Approver_Id')
             ->where('log.Request_Id', 'LIKE', $apprId)
             ->orderBy('log.ID', 'DESC')
@@ -309,52 +309,134 @@ class OnboardingController extends Controller
 
     public function processOnboardingApproval(Request $r)
     {
-        try {
-            $b = $r->all();
-            $req = DB::table('approval_request')->select('*')->where('ID', '=', $b['id'])->first();
+        $b = $r->all();
 
-            $level = DB::table('approval_level')->select('*')->where('ID', $req->Level_Id)->where('Request_Type', '=', 'ONBOARDING')->first();
+        $req = DB::table('approval_request')->where('ID', $b['id'])->first();
+        if ($req && !$req->Level_Id) {
+            $firstLevel = DB::table('approval_level')
+                ->where('Request_Type', 'ONBOARDING')
+                ->where('Level_Number', 1)
+                ->first();
 
-            $nextLevel = null;
-
-            if ($level->Next_Level_Id) {
-                $nextLevel = DB::table('approval_level')->select('*')->where('ID', $level->Next_Level_Id)->where('Request_Type', '=', 'ONBOARDING')->first();
+            if ($firstLevel) {
+                DB::table('approval_request')->where('ID', $req->ID)->update([
+                    'Level_Id' => $firstLevel->ID,
+                ]);
             }
+        }
 
-            $session = $this->userService->getCurrentSessionUserInfo();
+        $approvalController = app(\App\Http\Controllers\ApprovalController::class);
+        $result = $approvalController->processToNextLevel(
+            (int) $b['id'],
+            $b['action'],
+            $b['notes'] ?? ''
+        );
 
-            $result = DB::transaction(function () use ($b, $req, $session, $level, $nextLevel) {
-                $logId = DB::table('approval_log')->insertGetId([
-                    'Approver_Id' => $session->id,
-                    'Notes' => "",
-                    'Action' =>  $b['action'],
-                    'Level_Number' => $level->Level_Number,
-                    'Next_Level' => $b['action'] == "APPROVED" ? $level->Level_Number + 1 : $level->Level_Number,
-                    'Level_Id' => $level->ID,
-                    'Next_Level_Id' => $nextLevel->ID ?? null,
-                    'Request_Id' => $req->ID,
+        if (!$result['success']) {
+            return response()->json($result, 500);
+        }
+
+        $req = DB::table('approval_request')->where('ID', $b['id'])->first();
+        if ($req->Status === 'APPROVED') {
+            $this->createMitraAccount($req->Opportunity_Partner_Id);
+        }
+
+        return response()->json(['success' => true, 'message' => 'success'], 200);
+    }
+
+
+    private function createMitraAccount($opportunityPartnerId)
+    {
+        $partner = DB::table('opportunity_partner')
+            ->where('id', $opportunityPartnerId)
+            ->first();
+
+        if (!$partner || !$partner->lead_id) return;
+
+        $existingUser = DB::table('users')
+            ->where('Emp_ID', $partner->lead_id)
+            ->first();
+
+        if ($existingUser) return;
+
+        $username = str_replace(' ', '_', strtolower($partner->full_name));
+        $existingUsernames = DB::table('users')->pluck('username')->toArray();
+        if (in_array($username, $existingUsernames)) {
+            $username .= rand(100, 999);
+        }
+
+        $contact = $partner->register_as == 'individual'
+            ? $partner->contact
+            : $partner->pic_phone;
+
+        if ($partner->lead_id && !$contact) {
+            $opportunity = DB::table('opportunity')
+                ->where("Task_ID", $partner->lead_id)
+                ->first();
+            $contact = $opportunity->Phone_Number ?? '';
+        }
+
+        DB::transaction(function () use ($partner, $username, $contact) {
+            $userRowId = DB::table('users')->insertGetId([
+                'username'   => $username,
+                'password'   => bcrypt('geupartner123'),
+                'Emp_ID'     => $partner->lead_id,
+                'Position'   => "MITRA",
+                'Priv_ID'    => "MITRA",
+                'Location'   => 'GEU-HO',
+                'Name'       => $partner->full_name,
+                'Contact'    => $contact,
+                'created_at' => now(),
+                'Area'       => $partner->city ?? 'JABODETABEK',
+                'Status'     => 'ACTIVE',
+                'Department' => 'MITRA',
+                'Company_ID' => 'GEU',
+                'Sub_Menu'   => "MS00010,SM00047,SS00065,SI00231,SI00233,SM00048,SS00066,SI00237,SI00236",
+            ]);
+
+            DB::table('opportunity_partner')
+                ->where('id', $partner->id)
+                ->update([
+                    'status'      => 'ACTIVE',
+                    'user_row_id' => $userRowId,
+                ]);
+        });
+    }
+
+    public function forceApprove(Request $r)
+    {
+        $session = $this->userService->getCurrentSessionUserInfo();
+        if (!in_array($session->Position, ['Administrator', 'BOD'])) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $requestId = $r->input('id');
+        $req = DB::table('approval_request')->where('ID', $requestId)->first();
+        if (!$req) {
+            return response()->json(['success' => false, 'message' => 'Approval request not found'], 404);
+        }
+
+        try {
+            DB::transaction(function () use ($req, $session) {
+                DB::table('approval_request')->where('ID', $req->ID)->update([
+                    'Status' => 'APPROVED',
                 ]);
 
-                $updated = DB::table('approval_request')
-                    ->where('ID', '=', $req->ID)
-                    ->update([
-                        'Status' => $session->Position === "BOD" ? "APPROVED" : "NEED_APPROVAL",
-                        'Description' => "Berhasil menuju tahap selanjutnya",
-                        'Current_Level' => $req->Current_Level + 1,
-                        'Level_Id' => $nextLevel->ID ?? null,
-                        'Request_Type' => $req->Request_Type,
-                    ]);
+                DB::table('approval_log')->insert([
+                    'Approver_Id'   => $session->id,
+                    'Notes'         => 'Force approved (bypass)',
+                    'Action'        => 'APPROVED',
+                    'Request_Id'    => $req->ID,
+                    'Level_Number'  => $req->Current_Level,
+                    'Next_Level'    => $req->Current_Level + 1,
+                ]);
             });
 
-            return response()->json([
-                'success' => true,
-                'message' => 'success',
-            ], 200);
+            $this->createMitraAccount($req->Opportunity_Partner_Id);
+
+            return response()->json(['success' => true, 'message' => 'Force approve success']);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Transaction failed: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 }
