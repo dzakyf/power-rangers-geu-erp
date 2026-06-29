@@ -162,77 +162,32 @@ class ApprovalController extends Controller
         $user = 0;
 
         try {
-            // $getUser = DB::table('users')->where('id', $id)->first();
             $partner = DB::table('opportunity_partner')->where('id', $body['id'])->first();
-            if ($partner && $partner->lead_id != null) {
-                $cekUser = DB::table('users')->where("Emp_ID", $partner->lead_id)->first();
-                if (!$cekUser) {
-                    $pass = 'geupartner123';
-                    $username = str_replace(' ', '_', strtolower($partner->full_name));
-                    if (!auth()->check()) {
-                        $cekUser = DB::table('users')->get();
-                        foreach ($cekUser as $key => $value) {
-                            if ($value->username == $username) {
-                                $username = $username . rand(100, 999);
-                            }
-                        }
-                    }
-                    $contact = $partner->register_as == 'individu' ? $partner->contact : $partner->pic_phone;
-
-                    if ($partner->lead_id != null && $contact == '') {
-                        $opportunity = DB::table('opportunity')->where("Task_ID", $partner->lead_id)->first();
-                        $contact = $opportunity->Phone_Number;
-                    }
-
-                    $userRowId = DB::table('users')->insertGetId([
-                        'username' => $username,
-                        'password' => bcrypt($pass),
-                        'Emp_ID' => $partner->lead_id,
-                        'Position' => "MITRA",
-                        'Priv_ID' => "MITRA",
-                        'Location' => 'GEU-HO',
-                        'Name' => $partner->full_name,
-                        'Contact' => $contact,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'Area' => $partner->city,
-                        'Status' => 'ACTIVE',
-                        'Department' => 'MITRA',
-                        'Company_ID' => 'GEU',
-                        'Sub_Menu' => "MS00010,SM00047,SS00065,SI00231,SI00233,SM00048,SS00066,SI00237,SI00236",
-                    ]);
-                    $cekUser = DB::table('users')->where("Emp_ID", $partner->lead_id)->first();
-                    if ($cekUser) {
-                        $user = $cekUser->id;
-                    }
-                }
-                DB::table('opportunity_partner')->where('id', $partner->id)->update([
-                    'status' => 'ACTIVE',
-                    'user_row_id' => $userRowId
-                ]);
-            }
+            // User creation deferred to BOD approval (processOnboardingApproval)
         } catch (\Throwable $th) {
-            //throw $th;
             Log::error($th);
         }
 
-        $id = DB::table('approval_request')->insertGetId([
-            'Status' => $body['type'],
-            'Requester_Id' => $user,
-            'Description' => "Initial Review",
-            'Request_Type' => "ONBOARDING",
-            'Opportunity_Partner_Id' => $body['id']
-        ]);
+        DB::transaction(function () use ($body, $user) {
+            $id = DB::table('approval_request')->insertGetId([
+                'Status' => $body['type'],
+                'Requester_Id' => $user,
+                'Description' => "Initial Review",
+                'Request_Type' => "ONBOARDING",
+                'Opportunity_Partner_Id' => $body['id']
+            ]);
 
-        $lastRow = DB::table('approval_request')->select('*')->where('ID', '=', $id)->first();
+            $lastRow = DB::table('approval_request')->select('*')->where('ID', '=', $id)->first();
 
-        DB::table('approval_log')->insert([
-            'Approver_Id' => $this->userService->getCurrentSessionUserInfo()->id,
-            'Notes' => "",
-            'Action' => $body['type'],
-            'Request_Id' => $id,
-            'Level_Number' => $lastRow->Current_Level,
-            'Next_Level' => (int)$lastRow->Current_Level + 1
-        ]);
+            DB::table('approval_log')->insert([
+                'Approver_Id' => $this->userService->getCurrentSessionUserInfo()->id,
+                'Notes' => "",
+                'Action' => $body['type'],
+                'Request_Id' => $id,
+                'Level_Number' => $lastRow->Current_Level,
+                'Next_Level' => (int)$lastRow->Current_Level + 1
+            ]);
+        });
 
         return "submitted";
     }
@@ -412,7 +367,7 @@ class ApprovalController extends Controller
                 ]);
 
                 DB::table('approval_request')->where('ID', $req->ID)->update([
-                    'Status'        => $session->Position === 'BOD' ? 'APPROVED' : 'NEED_APPROVAL',
+                    'Status'        => $session->Position === 'DIRECTOR' ? 'APPROVED' : 'NEED_APPROVAL',
                     'Description'   => 'Berhasil menuju tahap selanjutnya',
                     'Current_Level' => $req->Current_Level + 1,
                     'Level_Id'      => $nextLevel->ID ?? null,
@@ -439,7 +394,6 @@ class ApprovalController extends Controller
         // Head Table 
         $d = DB::table('approval_request as appr');
 
-        // dd($d->get());
 
 
         // Join untuk informasi tambahan  
@@ -482,9 +436,21 @@ class ApprovalController extends Controller
         }
 
         // Filtering jabatan
+        $firstLevelPosition = DB::table('approval_level')
+            ->where('Request_Type', $type)
+            ->where('Level_Number', 1)
+            ->value('Approver_Position');
 
-        if (in_array($session->Position, ["SALES", "MANAGER", "DIRECTOR", "HEAD", "CFO"])) {
-            $d->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Status', '=', 'NEED_APPROVAL')->where('lv.Approver_Position', '=', $session->Position);
+        if (in_array($session->Position, ["STAFF", "SALES", "MANAGER", "DIRECTOR", "HEAD", "CFO"])) {
+            $d->where('appr.Status', '=', 'NEED_APPROVAL')
+                ->where(function ($q) use ($session, $type, $firstLevelPosition) {
+                    $q->where('lv.Approver_Position', '=', $session->Position)
+                        ->orWhere(function ($q2) use ($session, $firstLevelPosition) {
+                            $q2->whereNull('appr.Level_Id')
+                                ->where(DB::raw("'$firstLevelPosition'"), '=', $session->Position);
+                        });
+                });
+
             // MITRA
         } else if (in_array($session->Position, ["MITRA"])) {
             $d->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Requester_Id', 'LIKE', $user_id);
@@ -501,7 +467,7 @@ class ApprovalController extends Controller
             ->leftJoin('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID');
 
         $d = $d->orderBy('ID', 'DESC')->get();
-        // dd($d);
+
 
 
         $xml = new SimpleXMLElement('<rows></rows>');
@@ -555,7 +521,7 @@ class ApprovalController extends Controller
             )
             ->join('approval_log as log', 'request.ID', '=', 'log.Request_Id')
             ->leftJoin('approval_level as level', 'log.Level_Id', '=', 'level.ID')
-            ->join('users as requester', 'requester.id', '=', 'request.Requester_Id')
+            ->leftJoin('users as requester', 'requester.id', '=', 'request.Requester_Id')
             ->leftJoin('users as approver', 'approver.id', '=', 'log.Approver_Id')
             ->where('log.Request_Id', 'LIKE', $apprId)
             ->orderBy('log.ID', 'DESC')

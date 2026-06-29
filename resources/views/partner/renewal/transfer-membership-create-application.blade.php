@@ -74,7 +74,7 @@
             </div>
 
             <button type="button" class="btn btn-primary" id="previewBtn">Preview Document</button>
-            <button type="button" class="btn btn-primary" id="submitBtn" style="display:none;">Finalisasi Document</button>
+            <button type="button" class="btn btn-primary" id="submitBtn">Finalisasi Document</button>
         </form>
 
         @include('partner.valuation.list-detail', [
@@ -97,7 +97,10 @@
                 dataType: 'xml',
                 delay: 300,
                 data: function(params) {
-                    return { search: params.term, page: params.page || 1 };
+                    return {
+                        search: params.term,
+                        page: params.page || 1
+                    };
                 },
                 processResults: function(xmlData) {
                     var results = [];
@@ -107,7 +110,9 @@
                             text: $(this).find('cell').eq(1).text()
                         });
                     });
-                    return { results: results };
+                    return {
+                        results: results
+                    };
                 },
                 cache: true
             }

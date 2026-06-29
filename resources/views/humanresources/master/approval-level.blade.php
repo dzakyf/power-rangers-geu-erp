@@ -1,0 +1,83 @@
+	<!-- Stats Card -->
+	<div class="mt-3">
+		<div class="card card-body no-gutters">
+			<div class="row">
+				 <div id="MasterSection" style="width:auto;height:500px; background-color:white;overflow:hidden"></div>
+					<input type="button" id="ekselPODListDet" name="ekselPODListDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="MasterSection.toExcel('./export/generate.php');"  />
+						<input type="button" id="RefreshBM" NAME="RefreshBM" value="Refresh Data"class="btn btn-info mt-2 mr-2" />
+					<input type="button" id="DeleteBM" NAME="DeleteBM" value="Delete " class="btn btn-danger mt-2 mr-2"  />                
+					<input type="button" id="AddBM" NAME="AddBM" value="Add " class="btn btn-info mt-2 mr-2"/>
+					<input type="button" id="SaveBM" NAME="SaveBM" value="Save " class="btn btn-success mt-2 mr-2"/>
+				</div>
+		
+				<div id="MasterSectionDiv"></div>
+			</div>
+		</div>
+	</div>
+<script>
+
+MasterSection = new dhtmlXGridObject('MasterSection');
+MasterSection.setImagePath("./dhtmlx/imgs/");
+MasterSection.setHeader("No,Directorat,Department, Name, Level");
+MasterSection.setInitWidths("80,200,250,200,100");
+MasterSection.setColAlign("center,left,left,center,left,center,left,center,center");
+MasterSection.setColTypes("ro,ro,ro,ro,ro");
+MasterSection.setColSorting("int,str,str,str,str");
+MasterSection.setEditable(true);
+MasterSection.setSkin("dhx_skyblue");
+PMasterSection = new dataProcessor("master-section-update");
+	PMasterSection.setTransactionMode({
+     mode: "POST",
+	  total:true,
+      headers:{
+        'X-CSRF-TOKEN': "{{ csrf_token() }}"
+      }	,
+	  
+    })
+PMasterSection.setUpdateMode("Off");
+PMasterSection.init(MasterSection);
+MasterSection.init();
+combocurr = MasterSection.getColumnCombo(1);
+combocurr.enableFilteringMode(true);
+combocurr.load("xml-combo-directorat");
+combocurr2 = MasterSection.getColumnCombo(2);
+combocurr2.enableFilteringMode(true);
+combocurr2.load("xml-combo-department");
+		reloadgroup();
+
+
+function reloadgroup(){
+	MasterSection.clearAndLoad("xml-hrd-master-section");	
+
+}
+
+$("#SaveBM").click(function(){
+		PMasterSection.sendData();
+		alert("Data was Saved!");
+		
+});
+$("#DeleteBM").click(function(){
+		MasterSection.deleteSelectedRows();
+		PMasterSection.sendData();
+		alert("Data were deleted!");
+		reloadgroup();
+
+		
+});
+$("#AddBM").click(function(){
+	var idbi =MasterSection.uid();
+		MasterSection.addRow(idbi,[MasterSection.getRowsNum()+1,''],0);
+		MasterSection.selectRow(0);
+		
+});
+
+
+$("#RefreshBM").click(function(){
+	reloadgroup();		
+});
+
+
+
+</script>
+
+@endsection

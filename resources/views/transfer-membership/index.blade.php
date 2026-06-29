@@ -115,7 +115,7 @@
     }
 
     function selectMitra(id, cellIdx) {
-        mitraId = PartnerGrid.cells(id, 0).getValue();
+        mitraId = id;
     }
 
     function doubleClickMitra() {

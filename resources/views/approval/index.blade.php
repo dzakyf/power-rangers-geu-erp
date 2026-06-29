@@ -38,6 +38,7 @@
 						<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
 							<a class="dropdown-item" href="#" onclick="approveClick('APPROVED')">Approve</a>
 							<a class="dropdown-item" href="#" onclick="approveClick('REJECTED')">Reject</a>
+					<a class="dropdown-item" href="#" onclick="forceApproveClick()">Force Approve</a>
 						</div>
 					</div>
 				</div>
@@ -93,6 +94,35 @@
 
 	function redirectToOnboardingApprovalProgress() {
 		window.location.href = `partner-approval-progress?id=${opportunityId}`
+	}
+
+	function forceApproveClick() {
+		if (!apprId) {
+			alert('Pilih data terlebih dahulu.');
+			return;
+		}
+		if (!confirm('Force Approve akan menyetujui pengajuan ini tanpa melalui approval chain. Lanjutkan?')) {
+			return;
+		}
+		$.ajax({
+			url: 'partner-onboarding-force-approve',
+			type: 'POST',
+			data: {
+				id: apprId,
+				_token: '{{ csrf_token() }}'
+			},
+			success: function(res) {
+				if (res.success) {
+					alert('Force Approve berhasil');
+					PartnerGrid.clearAndLoad(`partner-approval-data?user_id=${apprId}&type=ONBOARDING`);
+				} else {
+					alert('Gagal: ' + (res.message || 'Unknown error'));
+				}
+			},
+			error: function(xhr) {
+				alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+			}
+		});
 	}
 
 	function approveClick(action) {

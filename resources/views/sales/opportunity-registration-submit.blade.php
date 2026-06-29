@@ -208,32 +208,6 @@ try {
         ['Opportunity_Partner_Id' => $id, 'Map_To' => $id]
     );
 
-    $LSP = '';
-    $Saya = '';
-    if (!auth()->check()) {
-        $pass = 'geupartner123';
-        $contact = $data['register_as'] == 'individu' ? $data['contact'] : $data['pic_phone'];
-        if ($data['lead_id'] != null && $contact == '') {
-            $opportunity = DB::table('opportunity')->where("Task_ID", $data['lead_id'])->first();
-            $contact = $opportunity->Phone_Number;
-        }
-        $id = DB::table('users')->insertGetId([
-            'username' => $username,
-            'password' => bcrypt($pass),
-            'Emp_ID' => $data['lead_id'] ?? 'BP/' . $LSP . '/' . date('Ymdhis') . '/' . substr(md5($Saya), 0, 3),
-            'Position' => "MITRA",
-            'Priv_ID' => "MITRA",
-            'Location' => 'GEU-HO',
-            'Name' => $data['full_name'],
-            'Contact' => $contact,
-            'created_at' => date('Y-m-d H:i:s'),
-            'Area' => 'JABODETABEK',
-            'Status' => 'ACTIVE',
-            'Department' => 'MITRA',
-            'Company_ID' => 'GEU',
-            'Sub_Menu' => "MS00010,SM00047,SS00065,SI00231,SI00233,SM00048,SS00066,SI00237,SI00236"
-        ]);
-    }
 
     echo "success";
 } catch (\Exception $e) {
