@@ -34,11 +34,11 @@
 
 MasterSection = new dhtmlXGridObject('MasterSection');
 MasterSection.setImagePath("./dhtmlx/imgs/");
-MasterSection.setHeader("No,Directorat,Department, Name, Level");
-MasterSection.setInitWidths("80,200,250,200,100");
-MasterSection.setColAlign("center,left,left,center,left,center,left,center,center");
-MasterSection.setColTypes("ro,ro,ro,ro,ro");
-MasterSection.setColSorting("int,str,str,str,str");
+MasterSection.setHeader("No,Directorat,Department, Name, Level,Status");
+MasterSection.setInitWidths("80,200,250,200,100,100");
+MasterSection.setColAlign("center,left,left,center,left,center,left");
+MasterSection.setColTypes("ro,ro,ro,ro,ro,ro");
+MasterSection.setColSorting("int,str,str,str,str,str");
 MasterSection.setEditable(true);
 MasterSection.setSkin("dhx_skyblue");
 PMasterSection = new dataProcessor("master-section-update");
@@ -53,17 +53,11 @@ PMasterSection = new dataProcessor("master-section-update");
 PMasterSection.setUpdateMode("Off");
 PMasterSection.init(MasterSection);
 MasterSection.init();
-combocurr = MasterSection.getColumnCombo(1);
-combocurr.enableFilteringMode(true);
-combocurr.load("xml-combo-directorat");
-combocurr2 = MasterSection.getColumnCombo(2);
-combocurr2.enableFilteringMode(true);
-combocurr2.load("xml-combo-department");
-		reloadgroup();
+reloadgroup();
 
 
 function reloadgroup(){
-	MasterSection.clearAndLoad("xml-hrd-master-section");	
+	MasterSection.clearAndLoad("xml-hrd-master-approval");	
 
 }
 
@@ -81,9 +75,7 @@ $("#DeleteBM").click(function(){
 		
 });
 $("#AddBM").click(function(){
-	var idbi =MasterSection.uid();
-		MasterSection.addRow(idbi,[MasterSection.getRowsNum()+1,''],0);
-		MasterSection.selectRow(0);
+	LoadM("MasterSectionDiv", "hrd-master-approval-new");
 		
 });
 
