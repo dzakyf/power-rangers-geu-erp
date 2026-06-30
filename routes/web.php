@@ -34,6 +34,7 @@ use App\Http\Controllers\CNS\PurchaseRequestController as CNSPurchaseRequestCont
 use App\Http\Controllers\CNS\PurchaseOrderController as CNSPurchaseOrderController;
 use App\Http\Controllers\CNS\QualityController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
+use App\Http\Controllers\HCGA\MasterApprovalController as HCGAMasterApprovalController;
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOController as UCOLogisticController;
@@ -5381,4 +5382,13 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$exportAnnexPref-get-si", [CNSAnnexVIIController::class, 'getSI']);
     Route::get("$exportAnnexPref-print", [CNSAnnexVIIController::class, 'printAnnex']);
     Route::get("$exportAnnexPref-print-sample", [CNSAnnexVIIController::class, 'printAnnexSample']);
+
+    $hcPref = "hrd";
+    Route::get("$hcPref-master-approval", [HCGAMasterApprovalController::class, 'index']);
+    Route::get("xml-$hcPref-master-approval", [HCGAMasterApprovalController::class, 'indexXml']);
+    Route::get("$hcPref-master-approval-detail", [HCGAMasterApprovalController::class, 'detail']);
+    Route::get("$hcPref-master-approval-new", [HCGAMasterApprovalController::class, 'new']);
+    Route::post("$hcPref-get-departments", [HCGAMasterApprovalController::class, 'getDepartmentsFromDirectorat']);
+    Route::post("$hcPref-get-employee", [HCGAMasterApprovalController::class, 'getEmployeeFromDepartment']);
+    Route::post("$hcPref-master-approval-new-submit", [HCGAMasterApprovalController::class, 'newSubmit']);
 });

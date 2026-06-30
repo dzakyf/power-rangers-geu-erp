@@ -339,20 +339,18 @@ class ApprovalController extends Controller
             }
 
             $level = DB::table('approval_level')
-                ->where('ID', $req->Level_Id)
                 ->where('Request_Type', $req->Request_Type)
+                ->where('Level_Number', $req->Current_Level + 1)
                 ->first();
 
             if (!$level) {
                 return ['success' => false, 'message' => 'Approval level not found'];
             }
 
-            $nextLevel = $level->Next_Level_Id
-                ? DB::table('approval_level')
-                ->where('ID', $level->Next_Level_Id)
+            $nextLevel = DB::table('approval_level')
                 ->where('Request_Type', $req->Request_Type)
-                ->first()
-                : null;
+                ->where('Level_Number', $req->Current_Level + 2)
+                ->first();
 
             DB::transaction(function () use ($req, $level, $nextLevel, $session, $action, $notes) {
                 DB::table('approval_log')->insert([
@@ -367,7 +365,7 @@ class ApprovalController extends Controller
                 ]);
 
                 DB::table('approval_request')->where('ID', $req->ID)->update([
-                    'Status'        => $session->Position === 'DIRECTOR' ? 'APPROVED' : 'NEED_APPROVAL',
+                    'Status'        => $nextLevel === null ? 'APPROVED' : 'NEED_APPROVAL',
                     'Description'   => 'Berhasil menuju tahap selanjutnya',
                     'Current_Level' => $req->Current_Level + 1,
                     'Level_Id'      => $nextLevel->ID ?? null,
@@ -398,64 +396,57 @@ class ApprovalController extends Controller
 
         // Join untuk informasi tambahan  
         if ($type == "ONBOARDING") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'opp.is_recommended_to_be_approved as Is_Recommended_To_Be_Approved', 'opp.lead_id as Code', 'opp.full_name as Partner_Name')
+            $d = $d->select('appr.*',  'usr.Name', 'opp.is_recommended_to_be_approved as Is_Recommended_To_Be_Approved', 'opp.lead_id as Code', 'opp.full_name as Partner_Name')
                 ->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id');
         }
 
         if ($type == "BRANDING_PROMOTION") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'bp.Code')
+            $d = $d->select('appr.*',  'usr.Name', 'bp.Code')
                 ->join('branding_promotion as bp', 'appr.Map_To', '=', 'bp.ID');
         }
 
         if ($type == "PROFIT_SHARING") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'opp.full_name as Partner_Name')
+            $d = $d->select('appr.*',  'usr.Name', 'opp.full_name as Partner_Name')
                 ->join('opportunity_partner as opp', 'appr.Opportunity_Partner_Id', '=', 'opp.id');
         }
 
         if ($type == "RENEWAL") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'pr.Created_At as Renewal_Created_At', 'pr.Status as Renewal_Status', 'op.full_name as Partner_Name', 'op.lead_id as Lead_ID')
+            $d = $d->select('appr.*',  'usr.Name', 'pr.Created_At as Renewal_Created_At', 'pr.Status as Renewal_Status', 'op.full_name as Partner_Name', 'op.lead_id as Lead_ID')
                 ->join('partner_renewal as pr', 'appr.Opportunity_Partner_Id', '=', 'pr.Opportunity_Id')
                 ->join('opportunity_partner as op', 'pr.Opportunity_Id', '=', 'op.id');
         }
 
         if ($type == "TERMINATION") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'op.lead_id as Code', 'op.full_name as Partner_Name')
+            $d = $d->select('appr.*',  'usr.Name', 'op.lead_id as Code', 'op.full_name as Partner_Name')
                 ->join('partner_termination as opp', 'appr.Map_To', '=', 'opp.ID')
                 ->join('opportunity_partner as op', 'opp.Opportunity_Id', '=', 'op.id');
         }
 
         if ($type == "TRANSFER_MEMBERSHIP") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'op.lead_id as Code', 'op.full_name as Partner_Name')
+            $d = $d->select('appr.*',  'usr.Name', 'op.lead_id as Code', 'op.full_name as Partner_Name')
                 ->join('partner_transfer_membership as opp', 'appr.Map_To', '=', 'opp.ID')
                 ->join('opportunity_partner as op', 'opp.Opportunity_Id', '=', 'op.id');
         }
 
         if ($type == "SURVEY") {
-            $d = $d->select('appr.*',  'usr.Name', 'lv.Approver_Position', 'sl.Code as Code')
+            $d = $d->select('appr.*',  'usr.Name', 'sl.Code as Code')
                 ->join('survey_location as sl', 'appr.Map_To', '=', 'sl.ID');
         }
 
         // Filtering jabatan
-        $firstLevelPosition = DB::table('approval_level')
+        $userLevel = DB::table('approval_level')
             ->where('Request_Type', $type)
-            ->where('Level_Number', 1)
-            ->value('Approver_Position');
+            ->where('Approver_Position', $session->Position)
+            ->value('Level_Number');
 
-        if (in_array($session->Position, ["STAFF", "SALES", "MANAGER", "DIRECTOR", "HEAD", "CFO"])) {
-            $d->where('appr.Status', '=', 'NEED_APPROVAL')
-                ->where(function ($q) use ($session, $type, $firstLevelPosition) {
-                    $q->where('lv.Approver_Position', '=', $session->Position)
-                        ->orWhere(function ($q2) use ($session, $firstLevelPosition) {
-                            $q2->whereNull('appr.Level_Id')
-                                ->where(DB::raw("'$firstLevelPosition'"), '=', $session->Position);
-                        });
-                });
-
-            // MITRA
+        if ($userLevel) {
+            $d->where('appr.Current_Level', '=', $userLevel - 1)
+              ->where('appr.Status', '=', 'NEED_APPROVAL')
+              ->where('appr.Request_Type', 'LIKE', $type);
         } else if (in_array($session->Position, ["MITRA"])) {
-            $d->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Requester_Id', 'LIKE', $user_id);
+            $d->where('appr.Request_Type', 'LIKE', $type)->where('appr.Requester_Id', 'LIKE', $user_id);
         } else {
-            $d->where('appr.Request_Type', 'LIKE',  $type)
+            $d->where('appr.Request_Type', 'LIKE', $type)
                 ->where(function ($query) use ($user_id, $apprId) {
                     $query->where('appr.Requester_Id', 'LIKE', $user_id)
                         ->orWhere('appr.Opportunity_Partner_Id', 'LIKE', $apprId);
@@ -463,8 +454,8 @@ class ApprovalController extends Controller
         }
 
 
-        $d = $d->leftJoin('users as usr', 'appr.Requester_Id', '=', 'usr.id')
-            ->leftJoin('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID');
+        $d = $d->leftJoin('users as usr', 'appr.Requester_Id', '=', 'usr.id');
+
 
         $d = $d->orderBy('ID', 'DESC')->get();
 

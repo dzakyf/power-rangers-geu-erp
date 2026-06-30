@@ -271,13 +271,14 @@ class RenewalController extends Controller
                 'Map_To' => $id,
             ]);
 
+            $reqLevel = DB::table('approval_request')->where('ID', $approvalId)->value('Current_Level');
             DB::table('approval_log')->insertGetId([
                 'Approver_Id' => $user->id,
                 'Notes' => '',
                 'Action' => 'IN_PROGRESS',
                 'Request_Id' => $approvalId,
-                'Level_Number' => 1,
-                'Next_Level' => 2,
+                'Level_Number' => $reqLevel,
+                'Next_Level' => $reqLevel + 1,
             ]);
 
             DB::commit();
@@ -317,7 +318,7 @@ class RenewalController extends Controller
             ]);
         }
 
-        $currentLevel = 1;
+        $currentLevel = DB::table('approval_request')->where('ID', $id)->value('Current_Level');
         $logId = DB::table('approval_log')->insertGetId([
             'Approver_Id' => $this->userService->getCurrentSessionUserInfo()->id,
             'Notes' => "",
@@ -517,13 +518,14 @@ class RenewalController extends Controller
                 'Map_To' => $terminationId,
             ]);
 
+            $reqLevel = DB::table('approval_request')->where('ID', $id)->value('Current_Level');
             DB::table('approval_log')->insertGetId([
                 'Approver_Id' => $user->id,
                 'Notes' => "",
                 'Action' => 'IN_PROGRESS',
                 'Request_Id' => $id,
-                'Level_Number' => 1,
-                'Next_Level' => 2,
+                'Level_Number' => $reqLevel,
+                'Next_Level' => $reqLevel + 1,
             ]);
 
             $filename = "$path.$ext";
