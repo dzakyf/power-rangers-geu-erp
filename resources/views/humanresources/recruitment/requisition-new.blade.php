@@ -77,13 +77,20 @@ use Illuminate\Database\Eloquent\Builder;
                     </div>
                     <div class="form-group col-md-3">
                         <label>
-                            Allocation
+                            Type of Allocation
                         </label>
                         
                         <select id="Allocation" class="form-control">
                             <option>NEW</option>
                             <option>REPLACEMENT</option>
                         </select>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>
+                            Work Area
+                        </label>
+                        
+                        <input type="text" id="Work_Area" class="form-control" size="15" value="" />
                     </div>
                     <div class="form-group col-md-3">
                         <label>
@@ -129,6 +136,7 @@ var myCalendar;
             Qty: $('#Qty').val(),
             Start_Date: $('#Start_Date').val(),
             End_Date: $('#End_Date').val()
+            Work_Area: $('#Work_Area').val()
         };
 
         $.ajax({

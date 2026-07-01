@@ -12,7 +12,7 @@ header("Content-type: text/xml");
 echo('<?xml version="1.0" encoding="iso-8859-1"?>'); 
 
 
-function updatekan(string $rowId,array $param = []) {
+function updatekan(string $rowId,array $param = [], $master, $dir = 0) {
 	$ax = $param[$rowId."_c0"];
 	$notes = htmlspecialchars($param["customPayload_notes"]); // additional
 
@@ -22,25 +22,56 @@ function updatekan(string $rowId,array $param = []) {
 		$approval = DB::table('requisition_approval')->where("Task_ID", $get->Task_ID)->where("Approved_By", $Saya)->first();
 		if ($approval){
 			DB::table('requisition_approval')
-				->where("Task_ID", $get->Task_ID)
-				->where("Approved_By", $Saya)->update([
+				->where('ID', $approval->ID)
+				->update([
 					"Approved_Status" => 1,
 					"Approved_Date" => date("Y-m-d H:i:s"),
 					"Approved_Note" => $notes
 				]);
 		}
+		
+		$approval = DB::table('requisition_approval')->where("Task_ID", $get->Task_ID)->where("Level", 4)->first();
+
+		if ($dir) {
+			$master = DB::table('master_hr_approval')
+				->whereIn("Level", [4])
+				->where("Location", $LSP)
+				->first();
+
+			if ($master) {
+				DB::table('requisition_approval')->insert([
+					"Task_ID" => $get->Task_ID,
+					"Approved_By" => $master->username,
+					"Approved_Status" => 0,
+					"Approved_Date" => null,
+					"Approved_Note" => null
+				]);
+			}
+		}
+		
 		$get = json_decode(json_encode($get), true);
 		$get['Last_ID'] = $get['ID'];
 		$get['ID'] = null;
 		$get['Action_By'] = $Saya;
 		$get['Action_Date'] = date("Y-m-d H:i:s");
-		$get['Action_Status'] = "APPROVED";
+		$get['Action_Status'] = "APPROVED by " . $Saya;
 
 		DB::table('requisition_log')->insert($get);
+		
+		$cek = DB::table('requisition_approval')
+			->where("Task_ID", $get['Task_ID'])
+			->where('Approved_Status', 0)
+			->count();
+		
+		if ($cek == 0) {
+			DB::table('requisition')->where("ID", $rowId)->update([
+				"Status" => "APPROVED"
+			]);
+		}
 	}
 	return "update";
 }
-function deletekan(string $rowId,array $param = []){
+function deletekan(string $rowId,array $param = [], $master){
 	$ax = $param[$rowId."_c0"];
 	$notes = htmlspecialchars($param["customPayload_notes"]); // additional
 
@@ -73,6 +104,7 @@ function deletekan(string $rowId,array $param = []){
 
 }
 
+$masterApproval = DB::table('master_hr_approval')->where('username', Auth::user()->username)->first();
 
 echo "<data>";
 
@@ -101,10 +133,13 @@ for ($i=0; $i < sizeof($checkids); $i++) {
 
 		switch($mode){
 			case "updated":
-				$action = updatekan($rowId,$param);
+				$action = updatekan($rowId,$param, $masterApproval,0);
+				break;
+			case "updated-dir":
+				$action = updatekan($rowId,$param, $masterApproval,1);
 				break;
 			case "deleted":
-				$action = deletekan($rowId,$param);
+				$action = deletekan($rowId,$param, $masterApproval);
 				break;
 			default:
 				$action = "error";

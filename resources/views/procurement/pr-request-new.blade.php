@@ -62,6 +62,17 @@ $PR_No = strtoupper("PR/" . $LSP . "/$dateR-$NoR-" . substr(round(1) . md5(date(
 			</div>
 			<div class="FormInput_left">
 
+				Vendor
+
+			</div>
+			<div class="FormInput_right">
+
+				<input class='form-control-sm' type="text" style="background-color:#fff" id="Supplier_ID" size="15" value="" /> &nbsp;&nbsp;
+				<input class='form-control-sm' type="text" style="background-color:#fff" id="Supplier_Name" size="40" readonly="readonly" />
+
+			</div>
+			<div class="FormInput_left">
+
 				User Request
 
 			</div>
@@ -213,6 +224,23 @@ $PR_No = strtoupper("PR/" . $LSP . "/$dateR-$NoR-" . substr(round(1) . md5(date(
 
 
 	<script>
+		$("#Supplier_ID").coolautosuggest({
+
+			url: "search-supplier?Procode=1&chars=",
+			showThumbnail: false,
+			showDescription: true,
+			idField: $("#Supplier_ID"),
+			width: 700,
+			minChars: 1,
+			onSelected: function(result) {
+				if (result != null) {
+					$("#Supplier_ID").val(result.id);
+					$("#Supplier_Name").val(result.data);
+
+
+				}
+			}
+		});
 		var WinPR;
 		var WPR;
 
