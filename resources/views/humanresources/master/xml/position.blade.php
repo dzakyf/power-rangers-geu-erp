@@ -35,6 +35,7 @@ foreach($Query as $Fetch){
 		echo "<cell>".htmlspecialchars($Fetch->Position)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Initial_Code)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Initial)."</cell>";
+		echo "<cell>".htmlspecialchars($Fetch->Level)."</cell>";
 		echo "</row>";
 
 $nomor++;

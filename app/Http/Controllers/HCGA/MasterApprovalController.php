@@ -100,6 +100,7 @@ class MasterApprovalController extends Controller
         }
 
         DB::table('master_hr_approval')->insert([
+            'Location' => Auth::user()->Location,
             'Directorat' => $validatedData['directorat'],
             'Department' => $validatedData['department'],
             'Name' => $getus->Name,
@@ -113,6 +114,41 @@ class MasterApprovalController extends Controller
 
     public function detail(Request $request)
     {
-        //
+        $detail = DB::table('master_hr_approval')->where("ID", $request->task)->first();
+        $getUser = DB::table('users')->where("username", $detail->username)->first();
+        if (!$detail) {
+            return redirect()->back()->with('error', 'Approval entry not found.');
+        }
+        $directorats = DB::table('master_directorat')->orderBy('Directorat', 'ASC')->get();
+        $departments = DB::table('master_department')->where("Directorat", $detail->Directorat)->orderBy('Department', 'ASC')->get();
+        $employee = DB::table('employment')->where("Department", $detail->Department)->get();
+        return view('humanresources.master.approval-detail', compact('detail', 'directorats', 'departments', 'employee', 'getUser'));
+    }
+
+    public function detailSubmit(Request $request)
+    {
+        $validatedData = $request->validate([
+            'directorat' => 'required|string',
+            'department' => 'required|string',
+            'name' => 'required|string',
+            'level' => 'required|integer',
+        ]);
+
+        $getus = DB::table('users')->where("Emp_ID", $validatedData['name'])->first();
+        if (!$getus) {
+            return response()->json(['message' => 'User not found in the system.', 'status' => 'error'], 404);
+        }
+
+        DB::table('master_hr_approval')->where('ID', $request->ID)->update([
+            'Location' => Auth::user()->Location,
+            'Directorat' => $validatedData['directorat'],
+            'Department' => $validatedData['department'],
+            'Name' => $getus->Name,
+            'username' => $getus->username,
+            'Level' => $validatedData['level'],
+            'Status' => 'ACTIVE', // Assuming new entries are active by default
+        ]);
+
+        return response()->json(['message' => 'Approval entry created successfully.', 'status' => 'success']);
     }
 }

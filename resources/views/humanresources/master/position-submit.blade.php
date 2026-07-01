@@ -34,7 +34,7 @@ function updatekan($rowId,$param) {
 $Saya = Auth::user()->username;
 $LSP = Auth::user()->Location;
 
-	DB::update(DB::raw("UPDATE master_position set Directorat ='$a',Department='$b',Subsection='$c',Position='$d',Initial_Code='$e',Initial='$f' where ID=$rowId"));
+	DB::update(DB::raw("UPDATE master_position set Directorat ='$a',Department='$b',Subsection='$c',Position='$d',Initial_Code='$e',Initial='$f',Level=1 where ID=$rowId"));
 			
 
 
@@ -66,7 +66,7 @@ function insertkan($rowId,$param){
 	$Saya = Auth::user()->username;
 	$LSP = Auth::user()->Location;
 
-	DB::insert(DB::raw("INSERT INTO master_position(Directorat,Department,Subsection,Position,Initial_Code,Initial,Created_By,Created_Date) VALUES('$a','$b','$c','$d','$e','$f','$Saya',NOW())"));
+	DB::insert(DB::raw("INSERT INTO master_position(Directorat,Department,Subsection,Position,Initial_Code,Initial,Created_By,Created_Date,Level) VALUES('$a','$b','$c','$d','$e','$f','$Saya',NOW(),'$g')"));
 
 
 	

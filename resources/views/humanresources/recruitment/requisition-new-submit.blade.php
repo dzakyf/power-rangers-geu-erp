@@ -53,6 +53,42 @@ $arr['Last_ID'] = $reqId;
 
 DB::table('requisition_log')->insert($arr);
 
+$master = DB::table('master_hr_approval')
+	->where("Level", 1)
+	->where("Location", $LSP)
+	->where('Department', Auth::user()->Department)
+	->first();
+
+if ($master) {
+	DB::table('requisition_approval')->insert([
+		"Location" => $LSP,
+		"Task_ID" => $Taskid,
+		'Level' => 1,
+		"Approved_By" => $master->username,
+		"Approved_Status" => 0,
+		"Approved_Date" => null,
+		"Approved_Note" => null
+	]);
+}
+
+$master = DB::table('master_hr_approval')
+	->whereIn("Level", [2])
+	->where("Location", $LSP)
+	->first();
+
+if ($master) {
+	DB::table('requisition_approval')->insert([
+		"Location" => $LSP,
+		"Task_ID" => $Taskid,
+		'Level' => 2,
+		"Approved_By" => $master->username,
+		"Approved_Status" => 0,
+		"Approved_Date" => null,
+		"Approved_Note" => null
+	]);
+}
+
+
 // $kueri = "INSERT INTO recruitment($ars,Created_By,Location,Task_ID,Created_Date) values ($vals,'$Saya','$LSP','$Taskid',NOW())";
 // DB::insert(DB::raw($kueri));
 // DB::insert(DB::raw("INSERT INTO recruitment_detail(Task_ID) VALUES ('$subs')"));

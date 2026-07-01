@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Builder;
 	$LSP = Auth::user()->Location;
 	$Saya =  Auth::user()->username;
 	
+    $cekLevel = DB::table('master_hr_approval')->where("Location", $LSP)->whereIn("Level", [2,3])
+    ->where('username', $Saya)->first();
 	
 	
 	?>
@@ -41,6 +43,9 @@ use Illuminate\Database\Eloquent\Builder;
                 <div class="d-inline-block">
                     <input type="button" id="delets" name="delets" value="Cancel PTK" onclick="delsRequisition()"  class="btn btn-danger mr-2" onclick="delsRequisition()"  /> 
                     <input type="button" id="approvePTK" name="approvePTK"  class="btn btn-success mr-2" onclick="closereq()" value="Approve PTK"/>
+                    @if ($cekLevel)
+                    <input type="button" id="approveDirPTK" name="approveDirPTK"  class="btn btn-success mr-2" onclick="closereqdir()" value="Approve PTK and Request Approve Director"/>
+                    @endif
                 </div>
             </div>
 		</div>
@@ -111,6 +116,28 @@ function closereq(){
                 alert('Please enter notes before approving.');
                 return false; // Prevent data from being sent
             }
+            PRequisitionLists.sendData();
+        }
+	})
+}
+
+function closereqdir(){
+    let checkedRows = RequisitionLists.getCheckedRows(0);
+    if (!checkedRows) {
+        alert('Please select at least one requisition to cancel.');
+        return;
+    }
+	dhtmlx.confirm('Cancel this Requisition?', 'Requisition', function(r) {
+        if (r==true){
+            // Modify or add payload data here
+            let notes = $('#txtRequisitionListsDet').val();
+            if (!notes && notes.length <= 3) {
+                alert('Please enter notes before approving.');
+                return false; // Prevent data from being sent
+            }
+            checkedRows.split(',').forEach(function(rowId) {
+                PRequisitionLists.setUpdated(rowId,true,"updated-dir");
+            });
             PRequisitionLists.sendData();
         }
 	})

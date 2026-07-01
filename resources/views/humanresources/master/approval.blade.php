@@ -19,10 +19,9 @@
 	<div class="row">
 		 <div id="MasterSection" style="width:auto;height:500px; background-color:white;overflow:hidden"></div>
 			<input type="button" id="ekselPODListDet" name="ekselPODListDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="MasterSection.toExcel('./export/generate.php');"  />
-				<input type="button" id="RefreshBM" NAME="RefreshBM" value="Refresh Data"class="btn btn-info mt-2 mr-2" />
-			<input type="button" id="DeleteBM" NAME="DeleteBM" value="Delete " class="btn btn-danger mt-2 mr-2"  />                
-			<input type="button" id="AddBM" NAME="AddBM" value="Add " class="btn btn-info mt-2 mr-2"/>
-			<input type="button" id="SaveBM" NAME="SaveBM" value="Save " class="btn btn-success mt-2 mr-2"/>
+				{{-- <input type="button" id="RefreshBM" NAME="RefreshBM" value="Refresh Data"class="btn btn-info mt-2 mr-2" /> --}}
+				<input type="button" id="AddBM" NAME="AddBM" value="Add " class="btn btn-primary mt-2 mr-2"/>
+			<input type="button" id="DetailBM" NAME="DetailBM" value="Detail" class="btn btn-info mt-2 mr-2" onclick="MasterApprovalKlik()" />                
 		</div>
 
 		<div id="MasterSectionDiv"></div>
@@ -31,6 +30,16 @@
 	
 	</div>
 <script>
+
+function MasterApprovalKlik() {
+
+MasterSectionID = MasterSection.getSelectedId();
+
+if (MasterSectionID !=''){
+	LoadM('MasterSectionDiv','hrd-master-approval-detail?task=' + MasterSectionID);
+}
+return true;
+}
 
 MasterSection = new dhtmlXGridObject('MasterSection');
 MasterSection.setImagePath("./dhtmlx/imgs/");
@@ -52,6 +61,7 @@ PMasterSection = new dataProcessor("master-section-update");
     })
 PMasterSection.setUpdateMode("Off");
 PMasterSection.init(MasterSection);
+MasterSection.attachEvent("onRowDblClicked", MasterApprovalKlik);
 MasterSection.init();
 reloadgroup();
 

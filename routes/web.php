@@ -5388,6 +5388,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("xml-$hcPref-master-approval", [HCGAMasterApprovalController::class, 'indexXml']);
     Route::get("$hcPref-master-approval-detail", [HCGAMasterApprovalController::class, 'detail']);
     Route::get("$hcPref-master-approval-new", [HCGAMasterApprovalController::class, 'new']);
+    Route::post("$hcPref-master-approval-detail-submit", [HCGAMasterApprovalController::class, 'detailSubmit']);
     Route::post("$hcPref-get-departments", [HCGAMasterApprovalController::class, 'getDepartmentsFromDirectorat']);
     Route::post("$hcPref-get-employee", [HCGAMasterApprovalController::class, 'getEmployeeFromDepartment']);
     Route::post("$hcPref-master-approval-new-submit", [HCGAMasterApprovalController::class, 'newSubmit']);

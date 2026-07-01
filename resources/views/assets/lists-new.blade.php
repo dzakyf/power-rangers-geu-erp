@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 		<div class="FormInput_right">
 			<select id="Asset_Category" onchange="loadSubcategory();">
 						<?php
-							$qx = DB::select(DB::raw("SELECT * FROM mam_asset.master_product_group WHERE Initial='FA'"));
+							$qx = DB::select(DB::raw("SELECT * FROM mam_asset.master_product_group WHERE Initial IN ('FA','IA')"));
 							foreach ($qx as $fa){
 								
 								echo "<option value='$fa->Product_Group'>$fa->Product_Group - $fa->Initial</option>";

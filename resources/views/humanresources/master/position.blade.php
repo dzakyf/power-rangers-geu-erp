@@ -38,11 +38,11 @@
 
 MaterPosition = new dhtmlXGridObject('MaterPosition');
 MaterPosition.setImagePath("./dhtmlx/imgs/");
-MaterPosition.setHeader("No,Directorat,Department,Subposition,Position,Initial Code,Initial");
-MaterPosition.setInitWidths("80,200,250,200,200,100,100");
-MaterPosition.setColAlign("center,left,left,center,center,center,left,center,center,center");
-MaterPosition.setColTypes("ro,combo,combo,combo,ed,ed,ed");
-MaterPosition.setColSorting("int,str,str,str,str");
+MaterPosition.setHeader("No,Directorat,Department,Subposition,Position,Initial Code,Initial, Level");
+MaterPosition.setInitWidths("80,200,250,200,200,100,100,100");
+MaterPosition.setColAlign("center,left,left,center,center,center,left,center,center,center,center");
+MaterPosition.setColTypes("ro,combo,combo,combo,ed,ed,ed,ed");
+MaterPosition.setColSorting("int,str,str,str,str,str,str,str");
 MaterPosition.setEditable(true);
 MaterPosition.setSkin("dhx_skyblue");
 PMaterPosition = new dataProcessor("master-position-update");
