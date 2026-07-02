@@ -48,6 +48,10 @@
     var selectedPOId = null;
 
     function redirectToUpdateDeliveryOrder() {
+        if (!selectedPOId) {
+            alert('Pilih data Pickup Order terlebih dahulu.');
+            return;
+        }
         window.location.href = `partner-delivery-order-update?po_id=${selectedPOId}`
     }
 

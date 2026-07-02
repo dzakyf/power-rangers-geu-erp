@@ -1,4 +1,4 @@
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
 @csrf
@@ -90,7 +90,8 @@
                 body: formHtml,
                 actions: [{
                         label: 'Close',
-                        class: 'btn-secondary'
+                        class: 'btn-secondary',
+                        onClick: function() { AppModal.close(); }
                     },
                     {
                         label: 'Submit',
@@ -144,7 +145,7 @@
                         title: 'Route Map',
                         size: 'xl',
                         body: bodyHtml,
-                        actions: [{ label: 'Close', class: 'btn-secondary' }]
+                        actions: [{ label: 'Close', class: 'btn-secondary', onClick: function() { AppModal.close(); } }]
                     });
 
                     setTimeout(function() {

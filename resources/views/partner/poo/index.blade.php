@@ -26,6 +26,7 @@
                 <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
                 <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
                 <input type="button" id="detailGrid1" name="detailGrid1" value="Detail Data" class="btn btn-info mt-2 mr-2" />
+                <input type="button" id="deletePOO" name="deletePOO" value="Hapus" class="btn btn-danger mt-2 mr-2" onclick="deleteSelectedPOO()" />
 
             </div>
         </div>
@@ -82,6 +83,13 @@
 
     function getPOOData() {
         var id = marketingId;
+        $.get('master-category-data', function(res) {
+            var cat = $('#Category');
+            cat.empty().append($('<option>', { value: '', text: '-- Pilih --' }));
+            $.each(res.data, function(_, item) {
+                cat.append($('<option>', { value: item.Name, text: item.Name }));
+            });
+        });
         if (!id) {
             alert('Pilih data terlebih dulu');
             return;
@@ -101,7 +109,7 @@
                 $('#Employee').val(data.Employee);
                 $('#Phone').val(data.Phone);
                 $('#Position').val(data.Position);
-                $('#Category').val(data.Category);
+                $('#Category').val(data.Category).trigger('change');
                 $('#UCO_Type').val(data.UCO_Type);
                 $('#Price').val(data.Price);
                 $('#Price_Unit').val(data.Price_Unit);
@@ -200,5 +208,29 @@
         });
 
     })
+function deleteSelectedPOO() {
+        if (!marketingId) {
+            alert('Pilih data terlebih dulu');
+            return;
+        }
+        if (!confirm('Hapus data POO ini?')) return;
+        $.ajax({
+            url: 'master-poo-delete',
+            type: 'POST',
+            data: { id: marketingId, _token: '{{ csrf_token() }}' },
+            success: function(res) {
+                if (res.success) {
+                    alert('Data berhasil dinonaktifkan');
+                    Grid1.clearAndLoad('master-poo-data?format=xml');
+                } else {
+                    alert('Gagal: ' + (res.message || 'Unknown error'));
+                }
+            },
+            error: function(xhr) {
+                alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+            }
+        });
+    }
+
 </script>
 @endsection

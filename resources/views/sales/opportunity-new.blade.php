@@ -13,7 +13,7 @@ $Saya = "admin";
 
 // $leadID = "L/BP/".date('Y')."/".sprintf('%02d',date('m'))."/".strtoupper(substr(uniqid(), 0, 4));
 
-$leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
+$leadID = 'BP/' . $LSP . '/' . date('Ymdhis') . '/' . substr(md5($Saya), 0, 3);
 ?>
 
 @extends('layout.mainlayout-mitra')
@@ -45,7 +45,7 @@ $leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
 
 			</div>
 			<div class="FormInput_right">
-                <input type="text" name="Task_ID" id="Task_ID" value="{{ $leadID }}" readonly />
+				<input type="text" name="Task_ID" id="Task_ID" value="{{ $leadID }}" readonly />
 
 			</div>
 			<div class="FormInput_left">
@@ -54,7 +54,7 @@ $leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
 
 			</div>
 			<div class="FormInput_right">
-                <input type="text" name="Date" id="Date" value="{{ date('Y-m-d') }}" readonly />
+				<input type="text" name="Date" id="Date" value="{{ date('Y-m-d') }}" readonly />
 
 			</div>
 			<div class="FormInput_left">
@@ -63,7 +63,7 @@ $leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
 
 			</div>
 			<div class="FormInput_right">
-                <input type="text" name="Full_Name" id="Full_Name" />
+				<input type="text" name="Full_Name" id="Full_Name" />
 
 			</div>
 			<div class="FormInput_left">
@@ -72,7 +72,7 @@ $leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
 
 			</div>
 			<div class="FormInput_right">
-                <input type="text" name="Phone_Number" id="Phone_Number" />
+				<input type="text" name="Phone_Number" id="Phone_Number" />
 
 			</div>
 			<div class="FormInput_left">
@@ -81,8 +81,8 @@ $leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
 
 			</div>
 			<div class="FormInput_right">
-                <input type="radio" name="Partnership_Interest" id="Partnership_Interest_1" value="1" /> Opsi 1
-                <input type="radio" name="Partnership_Interest" id="Partnership_Interest_2" value="2" /> Opsi 2
+				<input type="radio" name="Partnership_Interest" id="Partnership_Interest_1" value="booth" /> Booth
+				<input type="radio" name="Partnership_Interest" id="Partnership_Interest_2" value="mobil" /> Mobil Listrik
 
 			</div>
 			<div class="FormInput_left">
@@ -91,10 +91,11 @@ $leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
 
 			</div>
 			<div class="FormInput_right">
-                <input type="radio" name="Capital_Estimation" id="Capital_Estimation_1" value="1" /> <50 Million
-                <input type="radio" name="Capital_Estimation" id="Capital_Estimation_2" value="2" /> 100 - 200 Million
-                <input type="radio" name="Capital_Estimation" id="Capital_Estimation_3" value="3" /> 200 - 300 Million
-                <input type="radio" name="Capital_Estimation" id="Capital_Estimation_4" value="4" /> >300 Million
+				<input type="radio" name="Capital_Estimation" id="Capital_Estimation_1" value="1" />
+				<50 Million
+					<input type="radio" name="Capital_Estimation" id="Capital_Estimation_2" value="2" /> 100 - 200 Million
+				<input type="radio" name="Capital_Estimation" id="Capital_Estimation_3" value="3" /> 200 - 300 Million
+				<input type="radio" name="Capital_Estimation" id="Capital_Estimation_4" value="4" /> >300 Million
 
 			</div>
 		</div>

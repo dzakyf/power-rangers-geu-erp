@@ -1,4 +1,4 @@
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
 @csrf
@@ -159,7 +159,7 @@
                         body: formHtml,
                         actions: [{
                                 label: 'Close',
-                                class: 'btn-secondary'
+                                class: 'btn-secondary',
                             },
                             {
                                 label: 'Selesaikan Settlement',

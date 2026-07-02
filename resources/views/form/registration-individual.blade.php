@@ -336,7 +336,7 @@
              </div>
 
              <div class="form-group">
-                 <label for="Motivation">2. Motivasi untuk Bergabung dalam Kemitraan <span style="color: red;">*</span></label>
+                 <label for="Motivation">2. Motivasi untuk Bergabung dalam Kemitraan </label>
                  <textarea name="Motivation" id="Motivation" rows="2" class="form-control"></textarea>
              </div>
 

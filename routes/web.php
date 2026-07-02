@@ -4517,8 +4517,25 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$masterData-poo-create-submit", [MasterDataController::class, 'createPOO']);
     Route::get("$masterData-poo-update", [MasterDataController::class, 'updatePOOPage']);
     Route::post("$masterData-poo-update-submit", [MasterDataController::class, 'updatePOO']);
+    Route::post("$masterData-poo-delete", [MasterDataController::class, 'deletePOO']);
 
 
+    // --- Master Work Order Status ---
+    Route::get("$masterData-work-order-status", [MasterDataController::class, 'workOrderStatusIndex']);
+    Route::get("$masterData-work-order-status-data", [MasterDataController::class, 'workOrderStatusData']);
+    Route::get("$masterData-work-order-status-create", [MasterDataController::class, 'workOrderStatusCreate']);
+    Route::post("$masterData-work-order-status-submit", [MasterDataController::class, 'workOrderStatusSubmit']);
+    Route::post("$masterData-work-order-status-edit", [MasterDataController::class, 'workOrderStatusEdit']);
+    Route::delete("$masterData-work-order-status-delete", [MasterDataController::class, 'workOrderStatusDelete']);
+
+    // --- Master Container ---
+    Route::get("$masterData-container", [MasterDataController::class, 'containerIndex']);
+    Route::get("$masterData-container-data",     [MasterDataController::class, 'containerData']);
+    Route::get("$masterData-container-get",     [MasterDataController::class, 'getContainer']);
+    Route::post("$masterData-container-submit",  [MasterDataController::class, 'containerSubmit']);
+    Route::post("$masterData-container-edit",    [MasterDataController::class, 'containerEdit']);
+    Route::delete("$masterData-container-delete", [MasterDataController::class, 'containerDelete']);
+    Route::get("$masterData-container-create", [MasterDataController::class, 'containerCreate']);
 
     /** finance */
     $finance = "finance";
@@ -5126,6 +5143,9 @@ Route::group(['middleware' => 'log.access'], function () {
     $partnerUCO = "partner-uco";
     Route::get("$partnerUCO-instock", [UCOLogisticController::class, 'indexInboundUCO']);
     Route::post("$partnerUCO-instock-update", [UCOLogisticController::class, 'updateInstockPhoto']);
+    Route::get("$partnerUCO-instock-po-data", [UCOLogisticController::class, 'getInstockPOData']);
+    Route::get("$partnerUCO-instock-dregs-data", [UCOLogisticController::class, 'getInstockDregsData']);
+    Route::post("$partnerUCO-instock-dregs-submit", [UCOLogisticController::class, 'submitInstockDregs']);
     Route::get("$partnerUCO-inbound-timbang-create", [UCOLogisticController::class, 'createInboundUCO']);
     Route::post("$partnerUCO-inbound-timbang-submit", [UCOLogisticController::class, 'submitInboundUCO']);
     Route::get("$partnerUCO-inbound-timbang-data", [UCOLogisticController::class, 'getUCOInboundXml']);

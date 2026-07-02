@@ -973,17 +973,22 @@ class UCOController extends Controller
             return response()->json(['data' => $rows]);
         }
 
-        $xml = new SimpleXMLElement('<rows></rows>');
+        $xml = new SimpleXMLElement('<rows/>');
         $no  = 1;
 
         foreach ($rows as $row) {
             $item = $xml->addChild('row');
             $item->addAttribute('ID', $row->ID);
             $item->addChild('cell', $no);
-            $item->addChild('cell', $row->POO_Name);
-            $item->addChild('cell', $row->POO_Full_Address);
-            $item->addChild('cell', $row->PO_Code);
-            $item->addChild('cell', $row->Qty);
+            $item->addChild('cell', '');
+            $item->addChild('cell', htmlspecialchars((string) ($row->Type_Pickup ?? '')));
+            $item->addChild('cell', htmlspecialchars((string) ($row->Coverage ?? '')));
+            $item->addChild('cell', htmlspecialchars((string) ($row->Site ?? '')));
+            $item->addChild('cell', htmlspecialchars((string) ($row->Package ?? '')));
+            $item->addChild('cell', htmlspecialchars((string) ($row->Qty ?? '')));
+            $item->addChild('cell', htmlspecialchars((string) ($row->Price ?? '')));
+            $item->addChild('cell', htmlspecialchars((string) ($row->Description ?? '')));
+            $item->addChild('cell', htmlspecialchars((string) ($row->Created_At ?? '')));
             $no++;
         }
 
@@ -1148,10 +1153,6 @@ class UCOController extends Controller
                 'Driver_Operational_Price' => $r->input('driver_operational'),
                 'Field_Operational_Price'  => $r->input('field_operational', 7000),
                 'Total_Cost'               => $r->input('total_cost'),
-                'Fleet_Id'                 => $r->input('fleet_id'),
-                'APC'                      => $r->input('apc', 0),
-                'Ops_Method'               => $r->input('ops_method', 'variable'),
-                'Lump_Sum_Operational'     => $r->input('ops_lump_sum', 0),
                 'Warehouse_ID'             => $whId,
             ]);
 
@@ -1166,6 +1167,14 @@ class UCOController extends Controller
                     'Lng'        => $order->Lng,
                 ]);
                 $seq++;
+            }
+
+            foreach ($orders as $order) {
+                DB::table('pickup_order')->where('ID', $order->ID)->update([
+                    'Fleet_Id'   => $r->input('fleet_id'),
+                    'Total_Cost' => $r->input('total_cost'),
+                    'APC'        => $r->input('apc', 0),
+                ]);
             }
 
             DB::commit();
@@ -1355,7 +1364,8 @@ class UCOController extends Controller
                 'po.Acquisition_Approved_By',
                 'po.Acquisition_Notes'
             )
-            ->where('d.DO_Status', 'DONE');
+            ->where('d.DO_Status', 'DONE')
+            ->where('po.Acquisition_Status', '!=', "");
 
         if ($status) {
             $query->where('po.Acquisition_Status', $status);
@@ -1586,14 +1596,24 @@ class UCOController extends Controller
                     ->update(['Description' => $r->notes]);
             }
 
+            $mapTo = $r->do_id ?? $r->po_id;
+
             if ($r->filled('webcam_photo')) {
                 $this->uploadService->storeFile(
                     $r->webcam_photo,
                     'base64',
                     'instock_photo',
-                    $r->po_id,
+                    $mapTo,
                     'Instock Webcam Photo'
                 );
+            }
+
+            if ($r->has('webcam_photos') && is_array($r->input('webcam_photos'))) {
+                foreach ($r->input('webcam_photos') as $b64) {
+                    if ($b64) {
+                        $this->uploadService->storeFile($b64, 'base64', 'instock_photo', $mapTo, 'Instock Webcam Photo');
+                    }
+                }
             }
 
             if ($r->hasFile('upload_photo')) {
@@ -1601,7 +1621,7 @@ class UCOController extends Controller
                     $r->file('upload_photo'),
                     'upload',
                     'instock_photo',
-                    $r->po_id,
+                    $mapTo,
                     'Instock Upload Photo'
                 );
             }
@@ -1643,5 +1663,93 @@ class UCOController extends Controller
             'waypoints' => $waypoints,
             'warehouse' => $warehouse,
         ]]);
+    }
+
+    // === Instock PO Data (per SJ) ===
+    public function getInstockPOData(Request $r)
+    {
+        $doId = $r->query('delivery_order_id');
+        if (!$doId) {
+            return response()->json(['success' => false, 'message' => 'delivery_order_id required'], 400);
+        }
+
+        $data = DB::table('pickup_order as po')
+            ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
+            ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
+            ->select('po.ID', 'po.Code as PO_Code', 'mp.Name as POO_Name', 'po.Qty', 'po.Actual_Qty')
+            ->where('po.DO_Id', $doId)
+            ->get();
+
+        $totalQty = $data->sum('Qty');
+
+        $xml = new SimpleXMLElement('<rows/>');
+        $no  = 1;
+
+        foreach ($data as $d) {
+            $displayQty = $d->Actual_Qty ?? $d->Qty ?? 0;
+            $pct = $totalQty > 0 ? round(($d->Qty / $totalQty) * 100, 2) : 0;
+
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $d->ID);
+            $row->addChild('cell', $no);
+            $row->addChild('cell', htmlspecialchars((string) $d->PO_Code));
+            $row->addChild('cell', htmlspecialchars((string) $d->POO_Name));
+            $row->addChild('cell', (string) $displayQty);
+            $row->addChild('cell', 'L');
+            $row->addChild('cell', (string) $pct);
+            $row->addChild('cell', '0');
+            $no++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    // === Instock Dregs ===
+    public function getInstockDregsData(Request $r)
+    {
+        $data = DB::table('instock_dregs')->orderBy('Created_At', 'desc')->get();
+
+        $xml = new SimpleXMLElement('<rows/>');
+        $no  = 1;
+
+        foreach ($data as $d) {
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $d->ID);
+            $row->addChild('cell', $no);
+            $row->addChild('cell', htmlspecialchars((string) $d->Instock_Date));
+            $row->addChild('cell', (string) $d->Quantity);
+            $row->addChild('cell', htmlspecialchars((string) ($d->Notes ?? '')));
+            $row->addChild('cell', htmlspecialchars((string) $d->Created_At));
+            $no++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    public function submitInstockDregs(Request $r)
+    {
+        DB::beginTransaction();
+        try {
+            $id = DB::table('instock_dregs')->insertGetId([
+                'Instock_Date' => $r->input('Instock_Date'),
+                'Quantity'    => $r->input('Quantity'),
+                'Notes'       => $r->input('Notes'),
+                'Created_At'  => now(),
+            ]);
+
+            if ($r->has('webcam_photos') && is_array($r->input('webcam_photos'))) {
+                foreach ($r->input('webcam_photos') as $b64) {
+                    if ($b64) {
+                        $this->uploadService->storeFile($b64, 'base64', 'instock_dregs_photo', $id, 'Dregs Webcam Photo');
+                    }
+                }
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Dregs saved.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 }

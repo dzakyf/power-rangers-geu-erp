@@ -14,7 +14,8 @@
 <div class="container-fluid py-4">
     <div class="card mb-3">
         <div class="card-header">
-            <h5 class="m-3">Stock Opname: {{ $data->Opname_Number }}</h5>
+            <h5 class="m-3 d-inline-block">Stock Opname: {{ $data->Opname_Number }}</h5>
+            <button class="btn btn-warning float-right m-3 px-3 py-2" onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Back</button>
         </div>
         <div class="card-body">
             <div class="row mb-3">
@@ -71,7 +72,7 @@
             <button class="btn btn-success" id="btnFinalize">Finalize & Adjust</button>
             @endif
 
-@if ($data->Status == 'CLOSED')
+            @if ($data->Status == 'CLOSED')
             <hr>
             <h6>Adjustment History</h6>
             @forelse ($data->adjustments as $adj)

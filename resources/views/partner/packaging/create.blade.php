@@ -16,7 +16,8 @@
         <div class="col-lg-6 col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="m-3">Create Kemasan</h5>
+                    <h5 class="m-3 d-inline-block">Create Kemasan</h5>
+                    <button class="btn btn-warning float-right m-3 px-3 py-2" onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Back</button>
                 </div>
                 <div class="card-body">
                     <form id="PackagingForm">

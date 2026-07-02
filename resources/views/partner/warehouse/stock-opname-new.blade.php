@@ -16,7 +16,8 @@
         <div class="col-lg-6 col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="m-3">Buat Stock Opname</h5>
+                    <h5 class="m-3 d-inline-block">Buat Stock Opname</h5>
+                    <button class="btn btn-warning float-right m-3 px-3 py-2" onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Back</button>
                 </div>
                 <div class="card-body">
                     <form id="opnameForm">
@@ -25,6 +26,12 @@
                             <label for="warehouse_id">Warehouse <span style="color:red;">*</span></label>
                             <select class="form-control select2" id="warehouse_id" name="warehouse_id" style="width:100%" required>
                                 <option value="">-- Pilih Warehouse --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="container_id">Container (IBC) <span style="color:red;">*</span></label>
+                            <select class="form-control select2" id="container_id" name="container_id" style="width:100%" required>
+                                <option value="">-- Pilih Container --</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -64,10 +71,24 @@
             });
         });
 
+        // Load containers
+        $.get('master-container-get', function(res) {
+            var $container = $('#container_id');
+            $.each(res.data || [], function(_, item) {
+                var label = item.Name + ' — ' + (Number(item.Volume || '0').toLocaleString()) + ' KG';
+                $container.append($('<option>', { value: item.id, text: label }));
+            });
+        });
+
         $('#submitBtn').on('click', function() {
             var form = document.getElementById('opnameForm');
             if (!form.warehouse_id.value) {
                 alert('Warehouse wajib diisi');
+                return;
+            }
+
+            if (!form.container_id.value) {
+                alert('Container wajib diisi');
                 return;
             }
 

@@ -31,7 +31,7 @@
     });
 
     function initGrid() {
-        let tHeader = ['No', null, 'Police Number', 'Warehouse ID', 'Fleet Brand', 'Description', 'Status', 'Dibuat Pada'];
+        let tHeader = ['No', null, 'Police Number', 'Warehouse', 'Fleet Brand', 'Description', 'Status', 'Dibuat Pada'];
         let tWidth = tHeader.map((e, i) => i === 1 ? 0 : '150');
         let tFilter = tHeader.map((e, i) => i <= 1 ? '#rspan' : '#text_filter');
 
