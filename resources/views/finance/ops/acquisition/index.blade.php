@@ -1,4 +1,4 @@
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
 @csrf
@@ -74,7 +74,7 @@
         var url = 'finance-acquisition-cost-data?format=xml';
         var status = $('#statusFilter').val();
         if (status) url += '&status=' + status;
-        acquisitionGrid.load(url);
+        acquisitionGrid.clearAndLoad(url);
     }
 
     function applyFilter() {
@@ -401,7 +401,7 @@
             bodyHtml += '<tr><td class="text-muted">Driver</td><td>' + (d.Driver_Name || '-') + '</td></tr>';
             bodyHtml += '<tr><td class="text-muted">Fleet</td><td>' + (d.Police_Number || '-') + '</td></tr>';
             bodyHtml += '<tr><td class="text-muted">Work Order Code</td><td>' + (d.WO_Code || '-') + '</td></tr>';
-            bodyHtml += '<tr><td class="text-muted">Total Cost</td><td>Rp ' + (d.Total_Cost || '0') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Total Cost</td><td>Rp ' + ((Number(d.Actual_Nominal_Transfer || 0)).toLocaleString()) + '</td></tr>';
             bodyHtml += '</table>';
             bodyHtml += '</div>';
             bodyHtml += '</div>';

@@ -80,8 +80,17 @@ var Signature = (function ($) {
     // -------------------------
     function clear(id) {
         var inst = instances[id];
-        if (!inst) return;
-        inst.ctx.clearRect(0, 0, inst.canvas.width, inst.canvas.height);
+
+        if (!inst) {
+            var canvas = document.getElementById('sig_canvas_' + id);
+            if (!canvas) return;
+            canvas.width = canvas.width;
+            $('#sig_input_' + id).val('');
+            $('#sig_error_' + id).text('');
+            return;
+        }
+
+        inst.canvas.width = inst.canvas.width;
         $('#sig_input_' + id).val('');
         $('#sig_error_' + id).text('');
     }
@@ -129,4 +138,9 @@ var Signature = (function ($) {
 // Auto-init on DOM ready
 $(function () {
     Signature.initAll();
+});
+
+// Clear button delegation — avoids inline onclick scoping issues
+$(document).on('click', '.sig-clear-btn', function() {
+    Signature.clear($(this).data('sig-id'));
 });

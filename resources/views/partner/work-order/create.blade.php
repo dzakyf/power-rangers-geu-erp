@@ -15,7 +15,8 @@
         <div class="col-lg-8 col-md-10 col-12">
             <div class="card shadow-sm">
                 <div class="card-header p-2">
-                    <h5 class="m-0">Create Work Order</h5>
+                    <h5 class="m-0 d-inline-block">Create Work Order</h5>
+                    <button class="btn btn-warning float-right px-3 py-2" onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Back</button>
                 </div>
                 <div class="card-body">
                     <form id="WorkOrderForm">
@@ -30,8 +31,7 @@
                             <div class="form-group col-md-6">
                                 <label for="Status">Status</label>
                                 <select class="form-control" id="Status" name="Status">
-                                    <option value="A1" selected>A1 | Atur Jadwal Penjemputan</option>
-
+                                    <option value="">-- Pilih Status --</option>
                                 </select>
                             </div>
                             <div class="form-group col-md-6">
@@ -141,6 +141,21 @@
             var data = e.params.data;
             $('#Site').val(data.city || '');
             $('#Price').val(data.price || '');
+        });
+        $.get('master-work-order-status-data', function(res) {
+            var $sel = $('#Status');
+            $sel.empty().append($('<option>', {
+                value: '',
+                text: '-- Pilih Status --'
+            }));
+            $.each(res.data, function(_, item) {
+                if (item.Is_Active === 'Yes') {
+                    $sel.append($('<option>', {
+                        value: item.ID,
+                        text: item.Name + ' | ' + item.Description
+                    }));
+                }
+            });
         });
 
         var doSelect2Initialized = false;

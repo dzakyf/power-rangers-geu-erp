@@ -23,8 +23,8 @@ $required = isset($required) ? true : false;
 
     <div class="mt-1">
         <button type="button"
-            class="btn btn-sm btn-outline-secondary"
-            onclick="Signature.clear('{{ $id }}')">
+            class="btn btn-sm btn-outline-secondary sig-clear-btn"
+            data-sig-id="{{ $id }}">
             Clear
         </button>
     </div>

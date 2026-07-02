@@ -23,6 +23,7 @@ class WarehouseStockOpname extends Model
         'Notes',
         'Counted_By',
         'Approved_By',
+        'Container_ID',
     ];
 
     protected $casts = [

@@ -16,7 +16,8 @@
         <div class="col-lg-6 col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="m-3">Create Point of Origin</h5>
+                    <h5 class="m-3 d-inline-block">Create Point of Origin</h5>
+                    <button class="btn btn-warning float-right m-3 px-3 py-2" onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Back</button>
                 </div>
                 <div class="card-body">
                     <form id="POOForm">
@@ -35,10 +36,6 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-6">
-                                <label for="Code">Code</label>
-                                <input type="text" class="form-control" id="Code" name="Code">
-                            </div>
                             <div class="form-group col-md-6">
                                 <label for="Category">Category</label>
                                 <select class="form-control select2" id="Category" name="Category" style="width:100%">
@@ -219,7 +216,10 @@
         $.get('master-category-data', function(res) {
             var cat = $('#Category');
             $.each(res.data, function(_, item) {
-                cat.append($('<option>', { value: item.Name, text: item.Name }));
+                cat.append($('<option>', {
+                    value: item.Name,
+                    text: item.Name
+                }));
             });
         });
 

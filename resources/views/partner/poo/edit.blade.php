@@ -19,12 +19,10 @@
                             <input type="text" class="form-control" id="Type" name="Type" value="SUPPLIER" placeholder="e.g. SUPPLIER">
                         </div>
                         <div class="form-group col-3">
-                            <label for="Code">Code</label>
-                            <input type="text" class="form-control" id="Code" name="Code">
-                        </div>
-                        <div class="form-group col-3">
                             <label for="Category">Category</label>
-                            <input type="text" class="form-control" id="Category" name="Category">
+                            <select class="form-control select2" id="Category" name="Category" style="width:100%">
+                                <option value="">-- Pilih --</option>
+                            </select>
                         </div>
                         <div class="form-group col-3">
                             <label for="UCO_Type">UCO Type</label>
@@ -223,6 +221,20 @@
             }, 'Sub_District', 'Sub_District');
         });
 
+        $.get('master-category-data', function(res) {
+            var cat = $('#Category');
+            cat.empty().append($('<option>', {
+                value: '',
+                text: '-- Pilih --'
+            }));
+            $.each(res.data, function(_, item) {
+                cat.append($('<option>', {
+                    value: item.Name,
+                    text: item.Name
+                }));
+            });
+        });
+
         $('#SubmitPOO').on('click', function() {
             var payload = new FormData(document.getElementById('POOForm'));
 
@@ -272,7 +284,7 @@
                 $('#Employee').val(data.Employee);
                 $('#Phone').val(data.Phone);
                 $('#Position').val(data.Position);
-                $('#Category').val(data.Category);
+                $('#Category').val(data.Category).trigger('change');
                 $('#UCO_Type').val(data.UCO_Type);
                 $('#Price').val(data.Price);
                 $('#Price_Unit').val(data.Price_Unit);

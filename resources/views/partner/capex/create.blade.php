@@ -26,7 +26,8 @@ $Saya =  Auth::user()->username;
     </ol>
 </div>
 <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
-    <h5>Form CAPEX</h5>
+    <h5 class="d-inline-block">Form CAPEX</h5>
+    <button class="btn btn-warning float-right m-3 px-3 py-2" onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Back</button>
     <form id="capexForm" enctype="multipart/form-data">
         @csrf
         <div class="row">

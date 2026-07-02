@@ -15,6 +15,7 @@ use App\WarehousePartnerAuditCorretive;
 use App\WarehousePartnerAuditDtl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class WarehouseAuditController extends Controller
@@ -254,7 +255,7 @@ class WarehouseAuditController extends Controller
                     'section' => $detail->parameter_id,
                     'parameter' => $r[$detail->parameter_id],
                     'value' => $scoring,
-                    'catatan' => $r[$detail->parameter_id . '_note'] ?? null,
+                    'catatan' => $r[$detail->parameter_id . '_note'] ?? '',
                     'kategori_temuan' => $r[$detail->parameter_id . '_category'] ?? '',
                     'created_by' => auth()->user()->username,
                 ]);
@@ -270,6 +271,12 @@ class WarehouseAuditController extends Controller
                     $correctiveScore = 5;
                 }
 
+                // if($correctiveScore == 1 && $scoring != 0) {
+                //     $statsCorrective = "CLOSED";
+                // }else {
+                //     }
+                    $statsCorrective = 'CREATED';
+
                 WarehousePartnerAuditCorrectiveDtl::create([
                     'nomor_corrective' => $task,
                     'nomor_audit' => $request->nomor_audit,
@@ -281,12 +288,32 @@ class WarehouseAuditController extends Controller
                     'parameter_note' => $r[$detail->parameter_id . '_category'] ?? null,
                     'parameter_temuan' => $detail->parameter,
                     'corrective_score' => $correctiveScore,
-                    'status' => 'CREATED',
+                    'status' => $statsCorrective,
                     'created_by' => auth()->user()->username,
                     'created_date' => now(),
                 ]);
 
                 $totalCorrectiveScore += $correctiveScore;
+            }
+
+            try {
+                $getAuditScore = MasterAuditScore::all();
+                foreach ($getAuditScore as $scoreAudit) {
+                    if (strpos($scoreAudit->score_range, '-') !== false) {
+                        [$min, $max] = array_map('trim', explode('-', $scoreAudit->score_range));
+                    } elseif (preg_match('/<\s*(\d+)/', $scoreAudit->score_range, $matches)) {
+                        $min = null;
+                        $max = $matches[1];
+                    }
+    
+                    if(($totalScoring >= $min && $totalScoring <= $max) || ($min === null && $totalScoring < $max)) {
+                        WarehousePartnerAudit::where('id', $audit->id)->update([
+                            'score_description' => $scoreAudit->status,
+                        ]);
+                    }
+                }
+            } catch (\Throwable $th) {
+                Log::error($th);
             }
 
             WarehousePartnerAudit::where('id', $audit->id)->update([
@@ -304,6 +331,7 @@ class WarehouseAuditController extends Controller
                 'message' => 'Audit berhasil disimpan'
             ]);
         } catch (\Exception $e) {
+            Log::error($e);
 
             DB::rollBack();
 

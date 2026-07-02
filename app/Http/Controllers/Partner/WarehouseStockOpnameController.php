@@ -25,7 +25,8 @@ class WarehouseStockOpnameController extends Controller
 
         $query = WarehouseStockOpname::query()
             ->leftJoin('warehouse_partner as wp', 'warehouse_stock_opnames.Warehouse_ID', '=', 'wp.id')
-            ->select('warehouse_stock_opnames.*', 'wp.warehouse_task_id', 'wp.warehouse_location')
+            ->leftJoin('master_container as mc', 'warehouse_stock_opnames.Container_ID', '=', 'mc.id')
+            ->select('warehouse_stock_opnames.*', 'wp.warehouse_task_id', 'wp.warehouse_location', 'mc.Name as Container_Name', 'mc.Volume as Container_Volume')
             ->orderBy('warehouse_stock_opnames.Created_At', 'desc');
 
         if ($status) {
@@ -43,6 +44,7 @@ class WarehouseStockOpnameController extends Controller
                 $row->addChild('cell', htmlspecialchars((string) $d->Opname_Number));
                 $row->addChild('cell', htmlspecialchars((string) $d->warehouse_task_id));
                 $row->addChild('cell', htmlspecialchars((string) $d->warehouse_location));
+                $row->addChild('cell', htmlspecialchars((string) $d->Container_Name != null ?($d->Container_Name . ' — ' . (number_format($d->Container_Volume ?? '0', 0, ',', '.') . ' KG')) : ''));
                 $row->addChild('cell', (string) $d->System_Qty);
                 $row->addChild('cell', (string) $d->Physical_Qty);
                 $row->addChild('cell', (string) $d->Difference);
@@ -80,6 +82,7 @@ class WarehouseStockOpnameController extends Controller
                 'Status'        => 'DRAFT',
                 'Notes'         => $r->notes,
                 'Counted_By'    => auth()->user()->Name ?? auth()->user()->username ?? '',
+                'Container_ID'  => $r->container_id,
             ]);
 
             DB::commit();

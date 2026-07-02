@@ -200,83 +200,63 @@
     function goToStep2() {
         $('#routeStep1').hide();
         $('#routeStep2').show();
-        initFleetSelectInModal();
         recalcRouteCosts();
     }
 
-    // --- Fleet select2 inside modal ---
-    function initFleetSelectInModal() {
-        $('#routeFleet').select2({
-            placeholder: '-- Pilih Driver --',
-            allowClear: true,
-            width: '100%',
-            dropdownParent: $('#appModal'),
-            ajax: {
-                url: 'master-users',
-                dataType: 'json',
-                delay: 250,
-                data: function(p) {
-                    return {
-                        q: p.term || ''
-                    };
-                },
-                processResults: function(res) {
-                    return {
-                        results: res.data.map(function(row) {
-                            return {
-                                id: row.ID,
-                                text: row.Name
-                            };
-                        })
-                    };
-                },
-                cache: true
-            }
-        });
+    function formatRupiah(el) {
+        var val = el.value.replace(/[^0-9]/g, '');
+        el.value = val ? parseInt(val).toLocaleString('id-ID') : '';
+    }
+
+    function parseRupiah(val) {
+        return parseInt((val || '0').replace(/\./g, '')) || 0;
     }
 
     // --- Recalculate cost cards ---
     function recalcRouteCosts() {
         var jarak = parseFloat($('#routeTotalDistance').val()) || 0;
         var konsumsi = parseFloat($('#routeBbmConsumption').val()) || 10;
-        var harga = parseFloat($('#routeBbmPrice').val()) || 13000;
-        var tol = parseFloat($('#routeTollEstimation').val()) || 0;
+        var harga = parseRupiah($('#routeBbmPrice').val()) || 13000;
+        var tol = parseRupiah($('#routeTollEstimation').val()) || 0;
 
-        // BBM (always variable)
-        var bbm = (jarak / konsumsi) * harga;
+        if ($('#routeCostMethod').val() === 'lumpsum') {
+            var lumpSum = parseRupiah($('#routeTotalLumpSum').val()) || 0;
+            var apc = parseRupiah($('#routeApc').val()) || 0;
+            var grandTotal = lumpSum + apc;
 
-        // Operasional (variable or lump sum)
-        var operasional;
-        if ($('#routeOpsMethod').val() === 'lumpsum') {
-            operasional = parseFloat($('#routeOpsLumpSum').val()) || 0;
-        } else {
-            var parkir = parseFloat($('#routeParkingCost').val()) || 0;
-            var alkon = parseFloat($('#routeAlkonBbmCost').val()) || 0;
-            var opDriver = parseFloat($('#routeDriverOperational').val()) || 0;
-            var opLapangan = parseFloat($('#routeFieldOperational').val()) || 0;
-            operasional = parkir + alkon + opDriver + opLapangan;
+            $('#cardBbm').text('Rp 0');
+            $('#cardTol').text('Rp 0');
+            $('#cardOperasional').text('Rp 0');
+            $('#cardTotal').text('Rp 0');
+            $('#cardDistance').text(jarak.toLocaleString('id-ID') + ' km');
+            $('#cardApc').text('Rp ' + apc.toLocaleString('id-ID'));
+            $('#cardGrandTotal').text('Rp ' + grandTotal.toLocaleString('id-ID'));
+            return;
         }
 
-        var apc = parseFloat($('#routeApc').val()) || 0;
+        var bbm = (jarak / konsumsi) * harga;
+        var parkir = parseRupiah($('#routeParkingCost').val()) || 0;
+        var alkon = parseRupiah($('#routeAlkonBbmCost').val()) || 0;
+        var opDriver = parseRupiah($('#routeDriverOperational').val()) || 0;
+        var opLapangan = parseRupiah($('#routeFieldOperational').val()) || 0;
+        var operasional = parkir + alkon + opDriver + opLapangan;
+        var apc = parseRupiah($('#routeApc').val()) || 0;
         var total = bbm + tol + operasional;
         var grandTotal = total + apc;
 
-        // Existing cards
-        $('#cardBbm').text('Rp ' + bbm.toLocaleString());
-        $('#cardTol').text('Rp ' + tol.toLocaleString());
-        $('#cardOperasional').text('Rp ' + operasional.toLocaleString());
-        $('#cardTotal').text('Rp ' + total.toLocaleString());
-
-        // New cards
-        $('#cardDistance').text(jarak.toLocaleString() + ' km');
-        $('#cardApc').text('Rp ' + apc.toLocaleString());
-        $('#cardGrandTotal').text('Rp ' + grandTotal.toLocaleString());
+        $('#cardBbm').text('Rp ' + bbm.toLocaleString('id-ID'));
+        $('#cardTol').text('Rp ' + tol.toLocaleString('id-ID'));
+        $('#cardOperasional').text('Rp ' + operasional.toLocaleString('id-ID'));
+        $('#cardTotal').text('Rp ' + total.toLocaleString('id-ID'));
+        $('#cardDistance').text(jarak.toLocaleString('id-ID') + ' km');
+        $('#cardApc').text('Rp ' + apc.toLocaleString('id-ID'));
+        $('#cardGrandTotal').text('Rp ' + grandTotal.toLocaleString('id-ID'));
     }
 
-    function toggleOpsMethod() {
-        var v = $('#routeOpsMethod').val();
-        $('#opsVariableFields').toggle(v === 'variable');
-        $('#opsLumpSumFields').toggle(v === 'lumpsum');
+    function toggleCostMethod() {
+        var v = $('#routeCostMethod').val();
+        $('#costVariableFields').toggle(v === 'variable');
+        $('#costLumpSumFields').toggle(v === 'lumpsum');
         recalcRouteCosts();
     }
 
@@ -320,7 +300,6 @@
             bbm_consumption: $('#routeBbmConsumption').val(),
             bbm_price: $('#routeBbmPrice').val(),
             fleet_id: $('#routeFleet').val(),
-            pickup_date: $('#routePickupDate').val(),
             total_distance: $('#routeTotalDistance').val(),
             pickup_count: $('#routePickupCount').val(),
             total_weight: $('#routeTotalWeight').val(),
@@ -329,39 +308,37 @@
             alkon_bbm_cost: $('#routeAlkonBbmCost').val(),
             driver_operational: $('#routeDriverOperational').val(),
             field_operational: $('#routeFieldOperational').val(),
-            ops_method: $('#routeOpsMethod').val(),
-            ops_lump_sum: $('#routeOpsLumpSum').val(),
+            cost_method: $('#routeCostMethod').val(),
+            total_lump_sum: $('#routeTotalLumpSum').val(),
             apc: $('#routeApc').val(),
             _token: $('meta[name="csrf-token"]').attr('content')
         };
 
         var jarak = parseFloat(payload.total_distance) || 0;
         var konsumsi = parseFloat(payload.bbm_consumption) || 10;
-        var harga = parseFloat(payload.bbm_price) || 13000;
-        var tol = parseFloat(payload.toll_estimation) || 0;
+        var harga = parseRupiah(payload.bbm_price) || 13000;
+        var tol = parseRupiah(payload.toll_estimation) || 0;
 
-        // BBM (always variable)
-        var bbm = (jarak / konsumsi) * harga;
-
-        // Operasional (variable or lump sum)
-        var operasional;
-        if (payload.ops_method === 'lumpsum') {
-            operasional = parseFloat(payload.ops_lump_sum) || 0;
+        if (payload.cost_method === 'lumpsum') {
+            var lumpSum = parseRupiah(payload.total_lump_sum) || 0;
+            var apc = parseRupiah(payload.apc) || 0;
+            payload.subtotal_bbm = 0;
+            payload.subtotal_toll = 0;
+            payload.subtotal_operational = lumpSum;
+            payload.total_cost = lumpSum + apc;
         } else {
-            var parkir = parseFloat(payload.parking_cost) || 0;
-            var alkon = parseFloat(payload.alkon_bbm_cost) || 0;
-            var opDriver = parseFloat(payload.driver_operational) || 0;
-            var opLapangan = parseFloat(payload.field_operational) || 0;
-            operasional = parkir + alkon + opDriver + opLapangan;
+            var bbm = (jarak / konsumsi) * harga;
+            var parkir = parseRupiah(payload.parking_cost) || 0;
+            var alkon = parseRupiah(payload.alkon_bbm_cost) || 0;
+            var opDriver = parseRupiah(payload.driver_operational) || 0;
+            var opLapangan = parseRupiah(payload.field_operational) || 0;
+            var operasional = parkir + alkon + opDriver + opLapangan;
+            var apc = parseRupiah(payload.apc) || 0;
+            payload.subtotal_bbm = bbm;
+            payload.subtotal_toll = tol;
+            payload.subtotal_operational = operasional;
+            payload.total_cost = bbm + tol + operasional;
         }
-
-        var apc = parseFloat(payload.apc) || 0;
-        var total = bbm + tol + operasional;
-
-        payload.subtotal_bbm = bbm;
-        payload.subtotal_toll = tol;
-        payload.subtotal_operational = operasional;
-        payload.total_cost = total;
 
         $.ajax({
             url: 'partner-pickup-route-submit',
@@ -475,7 +452,15 @@
                     // Step 2 body
                     var step2Html = '<div id="routeStep2" style="display:none;">' +
                         '<h6 class="text-muted mb-3">Step 2: Route Details</h6>' +
+                        '<div class="mb-3">' +
+                        '<label class="small font-weight-bold">Metode Biaya</label>' +
+                        '<select id="routeCostMethod" class="form-control form-control-sm" style="width:200px;" onchange="toggleCostMethod()">' +
+                        '<option value="variable">Hitung Manual</option>' +
+                        '<option value="lumpsum">Lump Sum</option>' +
+                        '</select>' +
+                        '</div>' +
 
+                        '<div id="costVariableFields">' +
                         '<div class="card mb-3 border-left-info">' +
                         '<div class="card-header py-2"><strong>Kendaraan &amp; BBM</strong></div>' +
                         '<div class="card-body py-2">' +
@@ -488,11 +473,11 @@
                         '</div>' +
                         '<div class="col-md-4 form-group mb-0">' +
                         '<label class="small">Konsumsi BBM</label>' +
-                        '<div class="input-group input-group-sm"><input type="number" id="routeBbmConsumption" class="form-control form-control-sm" value="10" readonly /><div class="input-group-append"><span class="input-group-text">L</span></div></div>' +
+                        '<div class="input-group input-group-sm"><input type="number" id="routeBbmConsumption" class="form-control form-control-sm" value="10" disabled /><div class="input-group-append"><span class="input-group-text">L</span></div></div>' +
                         '</div>' +
                         '<div class="col-md-4 form-group mb-0">' +
                         '<label class="small">Harga BBM</label>' +
-                        '<div class="input-group input-group-sm"><div class="input-group-prepend"><span class="input-group-text">Rp</span></div><input type="number" id="routeBbmPrice" class="form-control form-control-sm" value="13000" readonly /></div>' +
+                        '<div class="input-group input-group-sm"><div class="input-group-prepend"><span class="input-group-text">Rp</span></div><input type="text" id="routeBbmPrice" class="form-control form-control-sm" value="13.000" disabled /></div>' +
                         '</div>' +
                         '</div>' +
                         '</div>' +
@@ -509,45 +494,39 @@
                         '</div>' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">Jumlah Pickup</label>' +
-                        '<input type="number" id="routePickupCount" class="form-control form-control-sm" value="15" readonly />' +
+                        '<input type="number" id="routePickupCount" class="form-control form-control-sm" value="15" disabled />' +
                         '</div>' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">Total Berat (kg)</label>' +
-                        '<div class="input-group input-group-sm"><input type="number" id="routeTotalWeight" class="form-control form-control-sm" value="1000" readonly /><div class="input-group-append"><span class="input-group-text">Kg</span></div></div>' +
+                        '<div class="input-group input-group-sm"><input type="number" id="routeTotalWeight" class="form-control form-control-sm" value="1000" disabled /><div class="input-group-append"><span class="input-group-text">Kg</span></div></div>' +
                         '</div>' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">Estimasi Tol</label>' +
-                        '<div class="input-group input-group-sm"><div class="input-group-prepend"><span class="input-group-text">Rp</span></div><input type="number" id="routeTollEstimation" class="form-control form-control-sm" value="300000" oninput="recalcRouteCosts()" /></div>' +
+                        '<div class="input-group input-group-sm"><div class="input-group-prepend"><span class="input-group-text">Rp</span></div><input type="text" id="routeTollEstimation" class="form-control form-control-sm" value="300.000" oninput="formatRupiah(this); recalcRouteCosts()" /></div>' +
                         '</div>' +
                         '</div>' +
                         '</div>' +
                         '</div>' +
 
                         '<div class="card mb-3 border-left-info">' +
-                        '<div class="card-header py-2 d-flex justify-content-between align-items-center">' +
-                        '<strong>Biaya Operasional</strong>' +
-                        '<select id="routeOpsMethod" class="form-control form-control-sm" style="width:auto;" onchange="toggleOpsMethod()">' +
-                        '<option value="variable">Hitung Manual</option>' +
-                        '<option value="lumpsum">Lump Sum</option>' +
-                        '</select>' +
-                        '</div>' +
+                        '<div class="card-header py-2"><strong>Biaya Operasional</strong></div>' +
                         '<div class="card-body py-2">' +
                         '<div class="row" id="opsVariableFields">' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">Biaya Parkir</label>' +
-                        '<input type="number" id="routeParkingCost" class="form-control form-control-sm" oninput="recalcRouteCosts()" />' +
+                        '<input type="text" id="routeParkingCost" class="form-control form-control-sm" oninput="formatRupiah(this); recalcRouteCosts()" />' +
                         '</div>' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">BBM Alkon</label>' +
-                        '<input type="number" id="routeAlkonBbmCost" class="form-control form-control-sm" oninput="recalcRouteCosts()" />' +
+                        '<input type="text" id="routeAlkonBbmCost" class="form-control form-control-sm" oninput="formatRupiah(this); recalcRouteCosts()" />' +
                         '</div>' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">Operasional Driver</label>' +
-                        '<input type="number" id="routeDriverOperational" class="form-control form-control-sm" oninput="recalcRouteCosts()" />' +
+                        '<input type="text" id="routeDriverOperational" class="form-control form-control-sm" oninput="formatRupiah(this); recalcRouteCosts()" />' +
                         '</div>' +
                         '<div class="col-md-3 form-group mb-0">' +
                         '<label class="small">Operasional Lapangan</label>' +
-                        '<input type="number" id="routeFieldOperational" class="form-control form-control-sm" oninput="recalcRouteCosts()" />' +
+                        '<input type="text" id="routeFieldOperational" class="form-control form-control-sm" oninput="formatRupiah(this); recalcRouteCosts()" />' +
                         '</div>' +
                         '</div>' +
                         '<div class="row" id="opsLumpSumFields" style="display:none;">' +
@@ -555,9 +534,28 @@
                         '<label class="small">Operasional Lump Sum (Rp)</label>' +
                         '<div class="input-group input-group-sm">' +
                         '<div class="input-group-prepend"><span class="input-group-text">Rp</span></div>' +
-                        '<input type="number" id="routeOpsLumpSum" class="form-control form-control-sm" value="0" oninput="recalcRouteCosts()" />' +
+                        '<input type="text" id="routeOpsLumpSum" class="form-control form-control-sm" value="0" oninput="formatRupiah(this); recalcRouteCosts()" />' +
                         '</div>' +
                         '<small class="text-muted">Mencakup: Parkir, BBM Alkon, Driver, Lapangan</small>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>' +
+
+                        '<div id="costLumpSumFields" style="display:none;">' +
+                        '<div class="card mb-3 border-left-warning">' +
+                        '<div class="card-header py-2"><strong>Biaya Total (Lump Sum)</strong></div>' +
+                        '<div class="card-body py-2">' +
+                        '<div class="row">' +
+                        '<div class="col-md-6 form-group mb-0">' +
+                        '<label class="small">Total Lump Sum</label>' +
+                        '<div class="input-group input-group-sm">' +
+                        '<div class="input-group-prepend"><span class="input-group-text">Rp</span></div>' +
+                        '<input type="text" id="routeTotalLumpSum" class="form-control form-control-sm" value="0" oninput="formatRupiah(this); recalcRouteCosts()" />' +
+                        '</div>' +
+                        '<small class="text-muted">Mencakup: BBM + Tol + Operasional + APC</small>' +
+                        '</div>' +
                         '</div>' +
                         '</div>' +
                         '</div>' +
@@ -568,7 +566,7 @@
                         '<label class="small">APC (Administrative Processing Cost)</label>' +
                         '<div class="input-group input-group-sm">' +
                         '<div class="input-group-prepend"><span class="input-group-text">Rp</span></div>' +
-                        '<input type="number" id="routeApc" class="form-control form-control-sm" value="0" oninput="recalcRouteCosts()" />' +
+                        '<input type="text" id="routeApc" class="form-control form-control-sm" value="0" oninput="formatRupiah(this); recalcRouteCosts()" />' +
                         '</div>' +
                         '</div>' +
                         '</div>' +

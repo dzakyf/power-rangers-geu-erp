@@ -20,7 +20,8 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="m-3">Update Surat Jalan</h5>
+                        <h5 class="m-3 d-inline-block">Update Surat Jalan</h5>
+                        <button type="button" class="btn btn-warning float-right m-3 px-3 py-2" onclick="goingBack()"><i class="fas fa-arrow-left"></i> Back</button>
                     </div>
                     <div class="card-body">
                         {{-- Section 1: Take Photo --}}
@@ -69,8 +70,7 @@
                                 <input type="number" class="form-control" id="Actual_Qty" name="Actual_Qty" min="0" step="any">
                                 <div class="input-group-append">
                                     <select class="form-control" id="BeratUnit" name="BeratUnit">
-                                        <option value="Kg">Kg (Kilogram)</option>
-                                        <option value="L">L (Liter)</option>
+                                        <option value="L" selected>L (Liter)</option>
                                     </select>
                                 </div>
                             </div>
@@ -171,6 +171,9 @@
 </style>
 
 <script>
+    function goingBack() {
+        window.location.href = 'partner-delivery-order';
+    }
     var capturedPhotos = [];
     var webcamStream = null;
     var isDragging = false;
@@ -254,6 +257,17 @@
                         $('#Lng').val('');
                         $('#gpsStatus').text('');
                         resetSlide();
+                        $('.sig-wrap').each(function() {
+                            var sid = $(this).data('sig-id');
+                            if (sid) {
+                                var c = document.getElementById('sig_canvas_' + sid);
+                                if (c) {
+                                    var ctx = c.getContext('2d');
+                                    ctx.clearRect(0, 0, c.width, c.height);
+                                }
+                                $('#sig_input_' + sid).val('');
+                            }
+                        });
                     }, 500);
                 } else {
                     alert('Gagal: ' + (res.message || 'Unknown error'));

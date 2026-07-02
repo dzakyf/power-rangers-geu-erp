@@ -453,12 +453,12 @@
 		}
 	});
 
-	// Sync: when Lokasi changes, auto-select matching Kode Hub
-	$('#warehouse_location').on('change', function() {
-		var selected = $(this).val();
-		var match = warehouseData.find(function(w) { return w.warehouse_location === selected; });
-		if (match) {
-			$('#warehouse_task_id').val(match.warehouse_task_id).trigger('change');
-		}
-	});
+	// // Sync: when Lokasi changes, auto-select matching Kode Hub
+	// $('#warehouse_location').on('change', function() {
+	// 	var selected = $(this).val();
+	// 	var match = warehouseData.find(function(w) { return w.warehouse_location === selected; });
+	// 	if (match) {
+	// 		$('#warehouse_task_id').val(match.warehouse_task_id).trigger('change');
+	// 	}
+	// });
 </script>

@@ -57,11 +57,11 @@
     function initGrid() {
         opnameGrid = new dhtmlXGridObject('opnameGrid');
         opnameGrid.setImagePath("./dhtmlx/imgs/");
-        opnameGrid.setHeader("No,Opname Number,Kode Hub,Lokasi,System Qty,Physical Qty,Difference,Status,Dibuat Pada");
-        opnameGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#rspan,#rspan,#rspan,#rspan");
-        opnameGrid.setInitWidths("50,120,100,*,100,100,100,100,120");
-        opnameGrid.setColAlign("center,left,left,left,right,right,right,center,left");
-        opnameGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");
+        opnameGrid.setHeader("No,Opname Number,Kode Hub,Lokasi,Container,System Qty,Physical Qty,Difference,Status,Dibuat Pada");
+        opnameGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#rspan,#rspan,#rspan,#rspan,#rspan");
+        opnameGrid.setInitWidths("50,120,100,*,200,100,100,100,100,120");
+        opnameGrid.setColAlign("center,left,left,left,left,right,right,right,center,left");
+        opnameGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
         opnameGrid.setSkin("dhx_skyblue");
         opnameGrid.attachEvent("onRowSelect", function(id) {
             selectedOpnameId = opnameGrid.getRowAttribute(id, 'ID');
@@ -109,7 +109,7 @@
             title: 'Approval History',
             size: 'lg',
             body: bodyHtml,
-            actions: [{ label: 'Close', class: 'btn-secondary' }]
+            actions: [{ label: 'Close', class: 'btn-secondary',  id: 'closeModalButton' }]
         });
 
         $.get('partner-warehouse-stock-opname-adjustment-data', { opname_id: selectedOpnameId }, function(res) {
@@ -119,7 +119,7 @@
             if (data.length === 0) {
                 html = '<p class="text-muted">Tidak ada adjustment</p>';
             } else {
-                html = '<table class="table table-bordered table-sm">' +
+                html = '<div class="table-responsive"><table class="table table-bordered table-sm">' +
                     '<thead><tr><th>Status</th><th>Qty Before</th><th>Qty After</th><th>Difference</th>' +
                     '<th>Type</th><th>Reason</th><th>Approved By</th><th>Approved At</th></tr></thead><tbody>';
 
@@ -139,7 +139,7 @@
                         '</tr>';
                 });
 
-                html += '</tbody></table>';
+                html += '</tbody></table></div>';
             }
 
             $('#logContent').html(html);
@@ -147,5 +147,8 @@
             $('#logContent').html('<p class="text-danger">Failed to load data</p>');
         });
     }
+    $(document).on('click', '#closeModalButton', function() {
+        AppModal.close();
+    });
 </script>
 @endsection
