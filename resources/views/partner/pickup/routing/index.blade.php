@@ -120,7 +120,7 @@
 
         // Load zero data: empty XML response
         // routingGrid.loadXMLString('<rows></rows>');
-        routingGrid.load(`partner-pickup-data?format=xml`);
+        // routingGrid.load(`partner-pickup-data?format=xml`);
 
     }
 
@@ -224,12 +224,15 @@
             var apc = parseRupiah($('#routeApc').val()) || 0;
             var grandTotal = lumpSum + apc;
 
+            $('#cardBbm, #cardTol, #cardOperasional, #cardApc').closest('.col-md-4').hide();
+            $('#cardDistance, #cardGrandTotal').closest('.col-md-4').show();
+
             $('#cardBbm').text('Rp 0');
             $('#cardTol').text('Rp 0');
             $('#cardOperasional').text('Rp 0');
             $('#cardTotal').text('Rp 0');
             $('#cardDistance').text(jarak.toLocaleString('id-ID') + ' km');
-            $('#cardApc').text('Rp ' + apc.toLocaleString('id-ID'));
+            $('#cardApc').text('Rp 0');
             $('#cardGrandTotal').text('Rp ' + grandTotal.toLocaleString('id-ID'));
             return;
         }
@@ -244,6 +247,7 @@
         var total = bbm + tol + operasional;
         var grandTotal = total + apc;
 
+        $('#cardBbm, #cardTol, #cardOperasional, #cardApc, #cardDistance, #cardGrandTotal').closest('.col-md-4').show();
         $('#cardBbm').text('Rp ' + bbm.toLocaleString('id-ID'));
         $('#cardTol').text('Rp ' + tol.toLocaleString('id-ID'));
         $('#cardOperasional').text('Rp ' + operasional.toLocaleString('id-ID'));
@@ -257,6 +261,7 @@
         var v = $('#routeCostMethod').val();
         $('#costVariableFields').toggle(v === 'variable');
         $('#costLumpSumFields').toggle(v === 'lumpsum');
+        $('#routeApc').closest('.form-group').toggle(v !== 'lumpsum');
         recalcRouteCosts();
     }
 

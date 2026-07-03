@@ -162,7 +162,7 @@
          <div class="col-md-6">
              <div class="form-group">
                  <label for="PIC_Email">Email PIC <span style="color: red;">*</span></label>
-                 <input type="text" name="PIC_Email" id="PIC_Email" class="form-control" />
+                 <input type="email" name="PIC_Email" id="PIC_Email" class="form-control" required />
              </div>
          </div>
      </div>
@@ -388,7 +388,7 @@
          <div class="col-md-6">
              <div class="form-group">
                  <label><strong>2. Bergerak di bidang apa? <span style="color: red;">*</span></strong></label>
-                 <select name="Business_Type" id="Business_Type" class="form-control">
+                 <select name="P6Q2" id="P6Q2" class="form-control">
                      <option value="">-- Pilih --</option>
                      <option value="">Restoran</option>
                      <option value="">Cafe</option>
@@ -420,11 +420,11 @@
              <div class="form-group">
                  <label><strong>4. Sebagai bentuk dukungan terhadap praktik keberlanjutan, saya bersedia minyak jelantah dari usaha F&B atau jaringan F&B tersebut agar disetorkan secara rutin ke Hub GEU Anda <span style="color: red;">*</span></strong></label>
                  <div class="form-check">
-                     <input class="form-check-input" type="radio" name="Q2" id="Q2_Yes" value="Yes" />
+                     <input class="form-check-input" type="radio" name="P6Q4" id="P6Q4_Yes" value="Yes" />
                      <label class="form-check-label" for="Q2_Yes">Ya</label>
                  </div>
                  <div class="form-check">
-                     <input class="form-check-input" type="radio" name="Q2" id="Q2_No" value="No" />
+                     <input class="form-check-input" type="radio" name="P6Q4" id="P6Q4_No" value="No" />
                      <label class="form-check-label" for="Q2_No">Tidak</label>
                  </div>
              </div>

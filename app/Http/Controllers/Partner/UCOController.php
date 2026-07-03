@@ -920,7 +920,7 @@ class UCOController extends Controller
             ->join('pickup_order as po', 'po.DO_Id', '=', 'do.ID')
             ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
-            ->select('do.ID', 'do.Code as DO_Code', 'do.DO_Date', 'mp.Name as POO_Name', 'po.Code as PO_Code')
+            ->select('do.ID', 'do.Code as DO_Code', 'do.DO_Date', 'do.Created_At', 'po.Code as PO_Code')
             ->distinct()
             ->when($id, fn($q) => $q->where('do.ID', $id))
             ->when($status, fn($q) => $q->where('do.DO_Status', $status))
@@ -936,7 +936,7 @@ class UCOController extends Controller
 
                 $item->addChild('cell', $counter);
                 $item->addChild('cell', htmlspecialchars((string) $row->DO_Code));
-                $item->addChild('cell', htmlspecialchars((string) ($row->POO_Name ?? '')));
+                $item->addChild('cell', htmlspecialchars((string) ($row->Created_At ?? '')));
                 $item->addChild('cell', htmlspecialchars((string) $row->PO_Code));
                 $item->addChild('cell', htmlspecialchars((string) $row->DO_Date));
 
@@ -1062,6 +1062,7 @@ class UCOController extends Controller
             }
         }
 
+            $allocationType = $r->input('cost_method') === 'lumpsum' ? 'LUMPSUM' : 'MANUAL';
         foreach ($orders as $order) {
             if (!$order->Lat || !$order->Lng) continue;
             $waypoints[] = [(float)$order->Lng, (float)$order->Lat];
@@ -1110,6 +1111,7 @@ class UCOController extends Controller
             }
         }
 
+            $allocationType = $r->input('cost_method') === 'lumpsum' ? 'LUMPSUM' : 'MANUAL';
         foreach ($orders as $order) {
             if (!$order->Lat || !$order->Lng) continue;
             $waypoints[] = [(float)$order->Lng, (float)$order->Lat];
@@ -1157,6 +1159,7 @@ class UCOController extends Controller
             ]);
 
             $seq = 1;
+            $allocationType = $r->input('cost_method') === 'lumpsum' ? 'LUMPSUM' : 'MANUAL';
             foreach ($orders as $order) {
                 DB::table('pickup_route_waypoints')->insert([
                     'Route_Id'         => $routeId,
@@ -1169,11 +1172,13 @@ class UCOController extends Controller
                 $seq++;
             }
 
+            $allocationType = $r->input('cost_method') === 'lumpsum' ? 'LUMPSUM' : 'MANUAL';
             foreach ($orders as $order) {
                 DB::table('pickup_order')->where('ID', $order->ID)->update([
                     'Fleet_Id'   => $r->input('fleet_id'),
                     'Total_Cost' => $r->input('total_cost'),
                     'APC'        => $r->input('apc', 0),
+                    'Allocation_Type' => $allocationType,
                 ]);
             }
 
@@ -1243,6 +1248,72 @@ class UCOController extends Controller
         }
 
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    public function getRouteDetail(Request $r)
+    {
+        $routeId = $r->query("route_id");
+        if (!$routeId) {
+            return response()->json(["status" => "error", "message" => "route_id is required"], 400);
+        }
+
+        $route = DB::table("pickup_routes")->where("ID", $routeId)->first();
+        if (!$route) {
+            return response()->json(["status" => "error", "message" => "Route not found"], 404);
+        }
+
+        $pos = DB::table("pickup_route_waypoints as prw")
+            ->join("pickup_order as po", "po.ID", "=", "prw.PO_Id")
+            ->leftJoin("delivery_order as do", "po.DO_Id", "=", "do.ID")
+            ->leftJoin("work_order as wo", "po.WO_Id", "=", "wo.ID")
+            ->leftJoin("master_poo as mp", "wo.POO_Id", "=", "mp.ID")
+            ->select(
+                "do.ID as do_id", "do.Code as do_code",
+                "po.ID as po_id", "po.Code as po_code",
+                "mp.Name as poo_name",
+                "po.Qty",
+                "po.Allocation_Type",
+                "prw.Sequence"
+            )
+            ->where("prw.Route_Id", $routeId)
+            ->orderBy("do.ID")
+            ->orderBy("prw.Sequence")
+            ->get();
+
+        $deliveryOrders = [];
+        foreach ($pos as $po) {
+            $doKey = $po->do_id ?: "no_do";
+            if (!isset($deliveryOrders[$doKey])) {
+                $deliveryOrders[$doKey] = [
+                    "do_id"   => $po->do_id,
+                    "do_code" => $po->do_code ?? "No DO Assigned",
+                    "pickup_orders" => [],
+                ];
+            }
+            $deliveryOrders[$doKey]["pickup_orders"][] = [
+                "po_id"           => $po->po_id,
+                "po_code"         => $po->po_code,
+                "poo_name"        => $po->poo_name,
+                "qty"             => $po->Qty,
+                "allocation_type" => $po->Allocation_Type,
+            ];
+        }
+
+        return response()->json([
+            "status" => "success",
+            "data"   => [
+                "route" => [
+                    "id"          => $route->ID,
+                    "code"        => $route->Code,
+                    "status"      => $route->Status,
+                    "total_cost"  => $route->Total_Cost,
+                    "transfer_nominal" => $route->Transfer_Nominal,
+                    "distance_km" => $route->Distance_Km,
+                    "created_at"  => $route->Created_At,
+                ],
+                "delivery_orders" => array_values($deliveryOrders),
+            ],
+        ]);
     }
 
 
@@ -1676,28 +1747,35 @@ class UCOController extends Controller
         $data = DB::table('pickup_order as po')
             ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
-            ->select('po.ID', 'po.Code as PO_Code', 'mp.Name as POO_Name', 'po.Qty', 'po.Actual_Qty')
+            ->select('po.ID', 'po.Code as PO_Code', 'mp.Name as POO_Name', 'po.Qty', 'po.Actual_Qty', 'po.Instock_Recommendation')
             ->where('po.DO_Id', $doId)
             ->get();
 
         $totalQty = $data->sum('Qty');
+        $totalActual = $data->sum('Actual_Qty');
+
+        if ($r->query('format') === 'json') {
+            return response()->json(['data' => $data]);
+        }
 
         $xml = new SimpleXMLElement('<rows/>');
         $no  = 1;
 
         foreach ($data as $d) {
-            $displayQty = $d->Actual_Qty ?? $d->Qty ?? 0;
             $pct = $totalQty > 0 ? round(($d->Qty / $totalQty) * 100, 2) : 0;
+            $calculatedRec = ($totalQty > 0 && $totalActual > 0) ? round(($d->Qty / $totalQty) * $totalActual, 2) : 0;
+            $rec = $d->Instock_Recommendation ?? $calculatedRec;
 
             $row = $xml->addChild('row');
             $row->addAttribute('ID', $d->ID);
             $row->addChild('cell', $no);
             $row->addChild('cell', htmlspecialchars((string) $d->PO_Code));
             $row->addChild('cell', htmlspecialchars((string) $d->POO_Name));
-            $row->addChild('cell', (string) $displayQty);
+            $row->addChild('cell', (string) ($d->Qty ?? 0));
             $row->addChild('cell', 'L');
             $row->addChild('cell', (string) $pct);
-            $row->addChild('cell', '0');
+            $row->addChild('cell', (string) ($d->Actual_Qty ?? ''));
+            $row->addChild('cell', (string) $rec);
             $no++;
         }
 
@@ -1724,6 +1802,17 @@ class UCOController extends Controller
         }
 
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    public function updateRecommendation(Request $r)
+    {
+        $updates = $r->input('recommendations', []);
+        foreach ($updates as $u) {
+            if (isset($u['po_id'], $u['recommendation'])) {
+                DB::table('pickup_order')->where('ID', $u['po_id'])->update(['Instock_Recommendation' => $u['recommendation']]);
+            }
+        }
+        return response()->json(['success' => true, 'message' => 'Rekomendasi updated.']);
     }
 
     public function submitInstockDregs(Request $r)

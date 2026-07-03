@@ -4541,6 +4541,7 @@ Route::group(['middleware' => 'log.access'], function () {
     $finance = "finance";
     Route::get("$finance-pickup-cost", [CostManagementController::class, 'pickupCostIndex']);
     Route::post("$finance-cost-approve-route", [CostManagementController::class, "approvePickupCost"]);
+    Route::get("$finance-pickup-route-detail", [UCOLogisticController::class, "getRouteDetail"]);
 
     Route::get("finance-settlement-cost", [UCOLogisticController::class, 'indexSettlement']);
     Route::get("finance-acquisition-cost", [UCOLogisticController::class, 'indexAcquisition']);
@@ -5146,6 +5147,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$partnerUCO-instock-po-data", [UCOLogisticController::class, 'getInstockPOData']);
     Route::get("$partnerUCO-instock-dregs-data", [UCOLogisticController::class, 'getInstockDregsData']);
     Route::post("$partnerUCO-instock-dregs-submit", [UCOLogisticController::class, 'submitInstockDregs']);
+    Route::post("$partnerUCO-instock-recommendation", [UCOLogisticController::class, 'updateRecommendation']);
     Route::get("$partnerUCO-inbound-timbang-create", [UCOLogisticController::class, 'createInboundUCO']);
     Route::post("$partnerUCO-inbound-timbang-submit", [UCOLogisticController::class, 'submitInboundUCO']);
     Route::get("$partnerUCO-inbound-timbang-data", [UCOLogisticController::class, 'getUCOInboundXml']);
