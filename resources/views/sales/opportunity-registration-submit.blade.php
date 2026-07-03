@@ -118,6 +118,9 @@ try {
     $data['pic_position'] = request()->input('PIC_Position');
     $data['pic_phone'] = request()->input('PIC_Phone', '');
     $data['pic_email'] = request()->input('PIC_Email');
+    if (empty($data['email']) && !empty($data['pic_email'])) {
+        $data['email'] = request()->input('PIC_Email');
+    }
 
     // Company financials
     $data['company_scale'] = request()->input('Company_Scale');

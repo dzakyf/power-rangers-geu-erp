@@ -35,6 +35,7 @@
             </div>
             <div class="col-md-auto ml-auto">
                 <input type="button" value="Export Excel" class="btn btn-warning ml-2" onclick="PickupOrderGrid.toExcel('./export/generate.php');" />
+                <input type="button" value="Update Rekom" class="btn btn-info ml-2" id="btnUpdateRekom" />
             </div>
         </div>
     </div>
@@ -98,6 +99,14 @@
             openAddDregsModal();
         });
 
+        $('#btnUpdateRekom').on('click', function() {
+            if (!selectedDOId) {
+                alert('Pilih data delivery order terlebih dulu');
+                return;
+            }
+            openUpdateRekomModal();
+        });
+
         $(window).on('resize', function() {
             if (DeliveryOrderGrid) DeliveryOrderGrid.setSizes();
             if (PickupOrderGrid) PickupOrderGrid.setSizes();
@@ -126,11 +135,11 @@
     function initPickupOrderGrid() {
         PickupOrderGrid = new dhtmlXGridObject('PickupOrderGrid');
         PickupOrderGrid.setImagePath("./dhtmlx/imgs/");
-        PickupOrderGrid.setHeader("No,PO Code,POO Name,Qty,Unit (L),Percentage (%),Recommendation");
-        PickupOrderGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#rspan,#rspan");
-        PickupOrderGrid.setInitWidths("50,120,*,80,60,100,120");
-        PickupOrderGrid.setColAlign("center,left,left,right,center,right,left");
-        PickupOrderGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro");
+        PickupOrderGrid.setHeader("No,PO Code,POO Name,Qty,Unit (L),Percentage (%),Actual Qty,Recommendation");
+        PickupOrderGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#rspan,#rspan,#rspan");
+        PickupOrderGrid.setInitWidths("50,120,*,80,60,100,80,120");
+        PickupOrderGrid.setColAlign("center,left,left,right,center,right,right,right");
+        PickupOrderGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
         PickupOrderGrid.setSkin("dhx_skyblue");
         PickupOrderGrid.attachEvent("onRowSelect", function(id) {
             selectedPOId = PickupOrderGrid.getRowAttribute(id, 'ID');
@@ -282,6 +291,76 @@
 
             $('#appModal').one('shown.bs.modal', function() {
                 startWebcam();
+            });
+        });
+    }
+
+    // === Update Rekom Modal ===
+    function openUpdateRekomModal() {
+        $.get('partner-uco-instock-po-data', {
+            delivery_order_id: selectedDOId,
+            format: 'json'
+        }, function(res) {
+            var items = res.data || [];
+            if (!items.length) {
+                alert('Tidak ada data PO');
+                return;
+            }
+
+            var bodyHtml = '<form id="rekomForm">';
+            bodyHtml += '<table class="table table-sm table-bordered">';
+            bodyHtml += '<thead><tr><th>PO Code</th><th>POO Name</th><th>Qty</th><th>Rekomendasi (Kg)</th></tr></thead>';
+            bodyHtml += '<tbody>';
+            items.forEach(function(item, idx) {
+                var rec = item.Instock_Recommendation || item.Recommendation || 0;
+                bodyHtml += '<tr>';
+                bodyHtml += '<td>' + (item.PO_Code || '') + '</td>';
+                bodyHtml += '<td>' + (item.POO_Name || '') + '</td>';
+                bodyHtml += '<td>' + (item.Qty || 0) + '</td>';
+                bodyHtml += '<td><input type="number" step="0.01" class="form-control form-control-sm rekom-input" name="recommendations[' + idx + '][recommendation]" value="' + rec + '">';
+                bodyHtml += '<input type="hidden" name="recommendations[' + idx + '][po_id]" value="' + item.ID + '"></td>';
+                bodyHtml += '</tr>';
+            });
+            bodyHtml += '</tbody></table>';
+            bodyHtml += '</form>';
+
+            AppModal.open({
+                title: 'Update Rekomendasi',
+                size: 'lg',
+                body: bodyHtml,
+                actions: [{
+                    label: 'Close',
+                    class: 'btn-secondary'
+                }, {
+                    label: 'Save',
+                    class: 'btn-primary',
+                    id: 'btnSaveRekom',
+                    onClick: function() {
+                        var fd = new FormData(document.getElementById('rekomForm'));
+                        fd.append('_token', '{{ csrf_token() }}');
+
+                        $.ajax({
+                            url: 'partner-uco-instock-recommendation',
+                            type: 'POST',
+                            data: fd,
+                            processData: false,
+                            contentType: false,
+                            success: function(res) {
+                                if (res.success) {
+                                    alert('Rekomendasi berhasil disimpan');
+                                    AppModal.close();
+                                    loadPickupOrders(selectedDOId);
+                                } else {
+                                    alert('Gagal: ' + (res.message || 'Unknown error'));
+                                }
+                            },
+                            error: function(xhr) {
+                                alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+                            }
+                        });
+                        return false;
+                    }
+                }]
             });
         });
     }

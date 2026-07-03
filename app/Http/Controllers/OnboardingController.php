@@ -359,10 +359,9 @@ class OnboardingController extends Controller
 
         if ($existingUser) return;
 
-        $username = str_replace(' ', '_', strtolower($partner->full_name));
-        $existingUsernames = DB::table('users')->pluck('username')->toArray();
-        if (in_array($username, $existingUsernames)) {
-            $username .= rand(100, 999);
+        $username = $partner->email;
+        if (!$username) {
+            $username = str_replace(' ', '_', strtolower($partner->full_name)) . rand(100, 999);
         }
 
         $contact = $partner->register_as == 'individual'
@@ -379,6 +378,7 @@ class OnboardingController extends Controller
         DB::transaction(function () use ($partner, $username, $contact) {
             $userRowId = DB::table('users')->insertGetId([
                 'username'   => $username,
+                'email'      => $partner->email,
                 'password'   => bcrypt('geupartner123'),
                 'Emp_ID'     => $partner->lead_id,
                 'Position'   => "MITRA",
