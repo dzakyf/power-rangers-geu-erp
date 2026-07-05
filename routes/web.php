@@ -4518,6 +4518,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$masterData-poo-update", [MasterDataController::class, 'updatePOOPage']);
     Route::post("$masterData-poo-update-submit", [MasterDataController::class, 'updatePOO']);
     Route::post("$masterData-poo-delete", [MasterDataController::class, 'deletePOO']);
+    Route::get("$masterData-delivery-order-status-list", [UCOLogisticController::class, 'getDeliveryOrderStatusList']);
 
 
     // --- Master Work Order Status ---
@@ -4572,6 +4573,7 @@ Route::group(['middleware' => 'log.access'], function () {
 
     Route::get("$pickupPref-route", [UCOLogisticController::class, 'indexPickupRouting']);
     Route::get("$pickupPref-route-data", [UCOLogisticController::class, "getSavedRouteList"]);
+    Route::get("$pickupPref-do-route-data", [UCOLogisticController::class, "getDeliveryOrderRouteList"]);
     Route::get("$pickupPref-route-waypoints-data", [UCOLogisticController::class, "getSavedRouteWaypointsList"]);
     Route::get("$pickupPref-route-map-data",     [UCOLogisticController::class, 'getRouteMapData']);
     Route::get("$pickupPref-list-data", [UCOLogisticController::class, 'getPickupListData']);
@@ -5148,6 +5150,11 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$partnerUCO-instock-dregs-data", [UCOLogisticController::class, 'getInstockDregsData']);
     Route::post("$partnerUCO-instock-dregs-submit", [UCOLogisticController::class, 'submitInstockDregs']);
     Route::post("$partnerUCO-instock-recommendation", [UCOLogisticController::class, 'updateRecommendation']);
+    Route::get("$partnerUCO-instock-supplies-data", [UCOLogisticController::class, 'getInstockSuppliesData']);
+    Route::post("$partnerUCO-instock-supplies-submit", [UCOLogisticController::class, 'submitInstockSupply']);
+    Route::post("$partnerUCO-instock-supplies-delete", [UCOLogisticController::class, 'deleteInstockSupply']);
+    Route::post("$partnerUCO-instock-preview", [UCOLogisticController::class, 'previewInstockAggregation']);
+    Route::post("$partnerUCO-instock-submit-batch", [UCOLogisticController::class, 'submitInstockBatch']);
     Route::get("$partnerUCO-inbound-timbang-create", [UCOLogisticController::class, 'createInboundUCO']);
     Route::post("$partnerUCO-inbound-timbang-submit", [UCOLogisticController::class, 'submitInboundUCO']);
     Route::get("$partnerUCO-inbound-timbang-data", [UCOLogisticController::class, 'getUCOInboundXml']);

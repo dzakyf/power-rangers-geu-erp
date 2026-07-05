@@ -23,6 +23,13 @@
                         @csrf
 
                         <div class="form-group">
+                            <label for="WarehouseFilter">Gudang</label>
+                            <select class="form-control" id="WarehouseFilter" style="width:100%">
+                                <option value="">-- Pilih Gudang --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
                             <label for="PO_Id">PO Number</label>
                             <select class="form-control select2" id="PO_Id" name="PO_Id[]" style="width:100%" multiple></select>
                         </div>
@@ -55,11 +62,6 @@
                             </div>
                         </div>
 
-                        <!-- <div class="form-group">
-                            <label for="Logistic_Status">Logistic Status</label>
-                            <input type="text" class="form-control" id="Logistic_Status" name="Logistic_Status">
-                        </div> -->
-
                         <button type="button" class="btn btn-primary mt-3" id="SubmitDO">Submit</button>
                     </form>
                 </div>
@@ -72,7 +74,25 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
+    function loadWarehouseOptions() {
+        $.ajax({
+            url: 'partner-warehouse-data',
+            type: 'GET',
+            success: function(res) {
+                var data = res.data || [];
+                var $select = $('#WarehouseFilter');
+                $select.empty();
+                $select.append('<option value="">-- Pilih Gudang --</option>');
+                $.each(data, function(i, item) {
+                    $select.append('<option value="' + item.id + '">' + item.warehouse_task_id + ' - ' + item.warehouse_location + '</option>');
+                });
+            }
+        });
+    }
+
     $(document).ready(function() {
+        loadWarehouseOptions();
+
         $('#PO_Id').select2({
             placeholder: '-- Pilih PO Number --',
             multiple: true,
@@ -85,7 +105,8 @@
                 data: function(p) {
                     return {
                         format: 'json',
-                        q: p.term || ''
+                        q: p.term || '',
+                        whid: $('#WarehouseFilter').val() || ''
                     };
                 },
                 processResults: function(res) {
@@ -93,7 +114,7 @@
                         results: res.data.map(function(row) {
                             return {
                                 id: row.ID,
-                                text: row.Code + ' — ' + (row.POO_Name || '') + ' | Dibuat oleh: ' + (row.POO_Created_By_Name || '-')
+                                text: row.Code + ' \u2014 ' + (row.POO_Name || '') + ' | Dibuat oleh: ' + (row.POO_Created_By_Name || '-')
                             };
                         })
                     };
@@ -102,6 +123,9 @@
             }
         });
 
+        $('#WarehouseFilter').on('change', function() {
+            $('#PO_Id').val(null).trigger('change');
+        });
 
         $('#SubmitDO').on('click', function() {
             var form = document.getElementById('DeliveryOrderForm');
