@@ -10,57 +10,103 @@
     </ol>
 </div>
 
-<!-- Delivery Order Grid -->
-<div class="card mb-3">
-    <div class="card-header m-3">
-        <h5>Surat Jalan</h5>
-    </div>
-    <div class="card-body p-3">
-        <div style="width:100%;overflow-x:auto;">
-            <div id="DeliveryOrderGrid" style="width:auto;height:250px; background-color:white;overflow:hidden"></div>
-        </div>
-        <div class="mt-3">
-            <button class="btn btn-success" id="btnShowPO">Lihat PO</button>
-            <button class="btn btn-info" id="btnUpdateInstock">Update Instock</button>
-        </div>
-    </div>
-</div>
+<ul class="nav nav-tabs mb-3" id="instockTabs" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" id="instock-tab" data-toggle="tab" href="#instockTabContent" role="tab">Instock</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="ampas-tab" data-toggle="tab" href="#ampasTabContent" role="tab">Ampas</a>
+    </li>
+</ul>
 
-<!-- Pickup Order Grid -->
-<div class="card mb-3" id="poCard" style="display:none;">
-    <div class="card-header m-3">
-        <div class="row align-items-end">
-            <div class="col-md-6">
-                <h5>Pickup Order</h5>
+<div class="tab-content" id="instockTabsContent">
+    <div class="tab-pane fade show active" id="instockTabContent" role="tabpanel">
+        <!-- Instock Supplies Grid -->
+        <div class="card mb-3">
+            <div class="card-header m-3">
+                <div class="row align-items-end">
+                    <div class="col-md-6">
+                        <h5>Instock Supplies</h5>
+                    </div>
+                    <div class="col-md-auto ml-auto">
+                        <button class="btn btn-success btn-sm" id="btnShowCreateForm">+ Tambah Data</button>
+                        <button class="btn btn-danger btn-sm" id="btnDeleteSupply">Hapus</button>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-auto ml-auto">
-                <input type="button" value="Export Excel" class="btn btn-warning ml-2" onclick="PickupOrderGrid.toExcel('./export/generate.php');" />
-                <input type="button" value="Update Rekom" class="btn btn-info ml-2" id="btnUpdateRekom" />
+            <div class="card-body p-3">
+                <div style="width:100%;overflow-x:auto;">
+                    <div id="SupplyGrid" style="width:auto;height:250px; background-color:white;overflow:hidden"></div>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="card-body p-3">
-        <div style="width:100%;overflow-x:auto;">
-            <div id="PickupOrderGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-        </div>
-    </div>
-</div>
 
-<!-- Dregs Grid -->
-<div class="card mb-3">
-    <div class="card-header m-3">
-        <div class="row align-items-end">
-            <div class="col-md-6">
-                <h5>Ampas</h5>
+        @include('uco.instock.create')
+
+        <!-- Delivery Order Grid -->
+        <div class="card mb-3" style="display:none;">
+            <div class="card-header m-3">
+                <div class="row align-items-end">
+                    <div class="col-md-6">
+                        <h5>Surat Jalan</h5>
+                    </div>
+                    <div class="col-md-auto ml-auto">
+                        <select id="doStatusFilter" class="form-control form-control-sm" style="width:150px;">
+                            <option value="">-- Semua Status --</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-auto ml-auto">
-                <button class="btn btn-success" id="btnAddDregs">+ Add Ampas</button>
+            <div class="card-body p-3">
+                <div style="width:100%;overflow-x:auto;">
+                    <div id="DeliveryOrderGrid" style="width:auto;height:250px; background-color:white;overflow:hidden"></div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-success" id="btnShowPO">Lihat PO</button>
+                    <!-- <button class="btn btn-info" id="btnUpdateInstock">Update Instock</button> -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Pickup Order Grid -->
+        <div class="card mb-3" id="poCard" style="display:none;">
+            <div class="card-header m-3">
+                <div class="row align-items-end">
+                    <div class="col-md-6">
+                        <h5>Pickup Order</h5>
+                    </div>
+                    <div class="col-md-auto ml-auto">
+                        <input type="button" value="Export Excel" class="btn btn-warning ml-2" onclick="PickupOrderGrid.toExcel('./export/generate.php');" />
+                        <input type="button" value="Update Rekom" class="btn btn-info ml-2" id="btnUpdateRekom" />
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <div style="width:100%;overflow-x:auto;">
+                    <div id="PickupOrderGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="card-body p-3">
-        <div style="width:100%;overflow-x:auto;">
-            <div id="DregsGrid" style="width:auto;height:250px; background-color:white;overflow:hidden"></div>
+
+    <div class="tab-pane fade" id="ampasTabContent" role="tabpanel">
+        <!-- Dregs Grid -->
+        <div class="card mb-3">
+            <div class="card-header m-3">
+                <div class="row align-items-end">
+                    <div class="col-md-6">
+                        <h5>Ampas</h5>
+                    </div>
+                    <div class="col-md-auto ml-auto">
+                        <button class="btn btn-success" id="btnAddDregs">+ Add Ampas</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <div style="width:100%;overflow-x:auto;">
+                    <div id="DregsGrid" style="width:auto;height:250px; background-color:white;overflow:hidden"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -70,13 +116,20 @@
     var DeliveryOrderGrid;
     var PickupOrderGrid;
     var DregsGrid;
+    var SupplyGrid;
+    var selectedSupplyId = null;
     var selectedDOId = null;
     var selectedPOId = null;
 
     $(document).ready(function() {
+        initSupplyGrid();
         initDeliveryOrderGrid();
         initPickupOrderGrid();
         initDregsGrid();
+
+        $('#btnShowCreateForm').on('click', function() {
+            $('#createInstockCard').slideToggle();
+        });
 
         $('#btnShowPO').on('click', function() {
             if (!selectedDOId) {
@@ -99,6 +152,30 @@
             openAddDregsModal();
         });
 
+        $('#btnDeleteSupply').on('click', function() {
+            if (!selectedSupplyId) {
+                alert('Pilih data instock terlebih dulu');
+                return;
+            }
+            if (!confirm('Yakin ingin menghapus data ini?')) return;
+            $.ajax({
+                url: 'partner-uco-instock-supplies-delete',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    id: selectedSupplyId
+                },
+                success: function(res) {
+                    if (res.success) {
+                        alert('Data berhasil dihapus');
+                        loadInstockSuppliesData();
+                    } else {
+                        alert('Gagal: ' + (res.message || 'Unknown error'));
+                    }
+                }
+            });
+        });
+
         $('#btnUpdateRekom').on('click', function() {
             if (!selectedDOId) {
                 alert('Pilih data delivery order terlebih dulu');
@@ -107,12 +184,50 @@
             openUpdateRekomModal();
         });
 
+        $('#doStatusFilter').on('change', function() {
+            var url = 'partner-delivery-order-data?format=xml';
+            var status = $(this).val();
+            if (status) url += '&status=' + status;
+            DeliveryOrderGrid.clearAll();
+            DeliveryOrderGrid.load(url);
+        });
+
+        $.get('master-delivery-order-status-list', function(res) {
+            var $sel = $('#doStatusFilter');
+            (res.data || []).forEach(function(s) {
+                $sel.append('<option value="' + s + '">' + s + '</option>');
+            });
+        });
+
         $(window).on('resize', function() {
+            if (SupplyGrid) SupplyGrid.setSizes();
             if (DeliveryOrderGrid) DeliveryOrderGrid.setSizes();
             if (PickupOrderGrid) PickupOrderGrid.setSizes();
             if (DregsGrid) DregsGrid.setSizes();
         });
     });
+
+    // === Instock Supplies Grid ===
+    function initSupplyGrid() {
+        SupplyGrid = new dhtmlXGridObject('SupplyGrid');
+        SupplyGrid.setImagePath("./dhtmlx/imgs/");
+        SupplyGrid.setHeader("No,Tanggal,Source,Warehouse,Vol Diterima,Harga,Total,Reject");
+        SupplyGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+        SupplyGrid.setInitWidths("50,100,100,*,100,100,100,80");
+        SupplyGrid.setColAlign("center,left,left,left,right,right,right,right");
+        SupplyGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
+        SupplyGrid.setSkin("dhx_skyblue");
+        SupplyGrid.attachEvent("onRowSelect", function(id) {
+            selectedSupplyId = SupplyGrid.getRowAttribute(id, 'ID');
+        });
+        SupplyGrid.init();
+        loadInstockSuppliesData();
+    }
+
+    function loadInstockSuppliesData() {
+        SupplyGrid.clearAll();
+        SupplyGrid.load('partner-uco-instock-supplies-data');
+    }
 
     // === Delivery Order Grid ===
     function initDeliveryOrderGrid() {
@@ -128,7 +243,7 @@
             selectedDOId = DeliveryOrderGrid.getRowAttribute(id, 'ID');
         });
         DeliveryOrderGrid.init();
-        DeliveryOrderGrid.load('partner-delivery-order-data?status=DONE&format=xml');
+        DeliveryOrderGrid.load('partner-delivery-order-data?format=xml');
     }
 
     // === Pickup Order Grid ===
@@ -385,6 +500,11 @@
             '<div class="form-group">' +
             '<label>Notes</label>' +
             '<textarea class="form-control" name="Notes" rows="3"></textarea>' +
+            '<hr>' +
+            '<div class="form-group">' +
+            '<label>Surat Jalan</label>' +
+            '<select class="form-control" id="dregsDO" style="width:100%;"></select>' +
+            '</div>' +
             '</div>' +
             '<hr>' +
             '<div class="text-center mb-3">' +
@@ -448,6 +568,26 @@
 
         $('#appModal').one('shown.bs.modal', function() {
             startWebcam();
+            if (!$('#dregsDO').hasClass('select2-hidden-accessible')) {
+                $('#dregsDO').select2({
+                    placeholder: '-- Pilih Surat Jalan --',
+                    allowClear: true,
+                    width: '100%',
+                    ajax: {
+                        url: 'partner-delivery-order-data',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(p) {
+                            return { format: 'json', status: 'DONE', q: p.term || '' };
+                        },
+                        processResults: function(res) {
+                            return { results: res.data.map(function(r) {
+                                return { id: r.ID, text: r.DO_Code };
+                            })};
+                        }
+                    }
+                });
+            }
         });
     }
 

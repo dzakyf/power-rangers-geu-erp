@@ -920,7 +920,7 @@ class UCOController extends Controller
             ->join('pickup_order as po', 'po.DO_Id', '=', 'do.ID')
             ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
-            ->select('do.ID', 'do.Code as DO_Code', 'do.DO_Date', 'do.Created_At', 'po.Code as PO_Code')
+            ->select('do.ID', 'do.Code as DO_Code', 'do.DO_Date', 'do.Created_At', 'po.Code as PO_Code', 'do.DO_Status')
             ->distinct()
             ->when($id, fn($q) => $q->where('do.ID', $id))
             ->when($status, fn($q) => $q->where('do.DO_Status', $status))
@@ -938,6 +938,7 @@ class UCOController extends Controller
                 $item->addChild('cell', htmlspecialchars((string) $row->DO_Code));
                 $item->addChild('cell', htmlspecialchars((string) ($row->Created_At ?? '')));
                 $item->addChild('cell', htmlspecialchars((string) $row->PO_Code));
+                $item->addChild('cell', htmlspecialchars((string) ($row->DO_Status ?? '')));
                 $item->addChild('cell', htmlspecialchars((string) $row->DO_Date));
 
                 $counter++;
@@ -947,6 +948,62 @@ class UCOController extends Controller
         }
 
         return response()->json(['data' => $rows]);
+    }
+
+    public function getDeliveryOrderRouteList(Request $r)
+    {
+        $query = DB::table("delivery_order as do")
+            ->select("do.ID", "do.Code as DO_Code", "do.DO_Date", "do.DO_Status", "do.Created_At",
+                DB::raw("(SELECT COUNT(*) FROM pickup_order po WHERE po.DO_Id = do.ID) as PO_Count"),
+                DB::raw("(SELECT mp.Nearest_Warehouse FROM pickup_order po2 JOIN work_order wo2 ON po2.WO_Id = wo2.ID JOIN master_poo mp ON wo2.POO_Id = mp.ID WHERE po2.DO_Id = do.ID LIMIT 1) as Warehouse_ID"))
+            ->whereExists(function($q) {
+                $q->select(DB::raw(1))
+                  ->from("pickup_order")
+                  ->whereColumn("DO_Id", "do.ID");
+            })
+            ->orderBy("do.ID", "desc");
+
+        if ($whId = $r->query("whid")) {
+            $query->whereExists(function($q) use ($whId) {
+                $q->select(DB::raw(1))
+                  ->from("pickup_order as po")
+                  ->join("work_order as wo", "po.WO_Id", "=", "wo.ID")
+                  ->join("master_poo as mp", "wo.POO_Id", "=", "mp.ID")
+                  ->whereColumn("po.DO_Id", "do.ID")
+                  ->where("mp.Nearest_Warehouse", $whId);
+            });
+        }
+
+        if ($start = $r->query("date_start")) {
+            $query->where("do.DO_Date", ">=", $start);
+        }
+
+        if ($end = $r->query("date_end")) {
+            $query->where("do.DO_Date", "<=", $end);
+        }
+
+        $rows = $query->get();
+
+        if ($r->query("format") === "json") {
+            return response()->json(["data" => $rows]);
+        }
+
+        $xml = new SimpleXMLElement("<rows></rows>");
+        $no  = 1;
+
+        foreach ($rows as $row) {
+            $item = $xml->addChild("row");
+            $item->addAttribute("ID", $row->ID);
+            $item->addChild("cell", $no);
+            $item->addChild("cell", $row->DO_Code);
+            $item->addChild("cell", $row->DO_Date);
+            $item->addChild("cell", $row->DO_Status ?? "-");
+            $item->addChild("cell", $row->PO_Count ?? "0");
+            $item->addChild("cell", $row->Warehouse_ID ?? "-");
+            $no++;
+        }
+
+        return response($xml->asXML(), 200)->header("Content-Type", "application/xml");
     }
 
 
@@ -1705,6 +1762,24 @@ class UCOController extends Controller
         }
     }
 
+    public function getSavedRouteWaypointsList(Request $r)
+    {
+        $poIds = $r->query("po_ids");
+        if (!$poIds) {
+            return response()->json(["routed" => false, "data" => []]);
+        }
+
+        $ids = explode(",", $poIds);
+        $routed = DB::table("pickup_route_waypoints")
+            ->join("pickup_routes as pr", "pr.ID", "=", "pickup_route_waypoints.Route_Id")
+            ->whereIn("PO_Id", $ids)
+            ->select("pickup_route_waypoints.PO_Id", "pr.Code as Route_Code")
+            ->get();
+
+        return response()->json(["routed" => $routed->isNotEmpty(), "data" => $routed]);
+    }
+
+
     public function getRouteMapData(Request $r)
     {
         $routeId = $r->query('route_id');
@@ -1747,7 +1822,7 @@ class UCOController extends Controller
         $data = DB::table('pickup_order as po')
             ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
-            ->select('po.ID', 'po.Code as PO_Code', 'mp.Name as POO_Name', 'po.Qty', 'po.Actual_Qty', 'po.Instock_Recommendation')
+            ->select('po.ID', 'po.Code as PO_Code', 'mp.Name as POO_Name', 'po.Qty', 'po.Actual_Qty', 'po.Instock_Recommendation', 'mp.Price as POO_Price', 'mp.Nearest_Warehouse')
             ->where('po.DO_Id', $doId)
             ->get();
 
@@ -1841,4 +1916,189 @@ class UCOController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+
+    // === Instock Supplies (from warehouse_partner_supplies) ===
+    public function getInstockSuppliesData(Request $r)
+    {
+        $data = DB::table('warehouse_partner_supplies as wps')
+            ->leftJoin('warehouse_partner as wp', 'wps.warehouse_task_id', '=', 'wp.warehouse_task_id')
+            ->select('wps.*', 'wp.warehouse_location')
+            ->orderBy('wps.created_date', 'desc')
+            ->get();
+
+        $xml = new SimpleXMLElement('<rows/>');
+        $no  = 1;
+
+        foreach ($data as $d) {
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $d->id);
+            $row->addChild('cell', $no);
+            $row->addChild('cell', htmlspecialchars((string) $d->received_date));
+            $row->addChild('cell', htmlspecialchars((string) ($d->source ?? '')));
+            $row->addChild('cell', htmlspecialchars((string) ($d->warehouse_location ?? '')));
+            $row->addChild('cell', (string) ($d->received_qty ?? 0));
+            $row->addChild('cell', (string) ($d->price ?? 0));
+            $row->addChild('cell', (string) ($d->total ?? 0));
+            $row->addChild('cell', (string) ($d->rejected_qty ?? 0));
+            $no++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    public function submitInstockSupply(Request $r)
+    {
+        try {
+            $data = [
+                'received_date' => $r->input('received_date'),
+                'pickup_type'  => 'PICKUP',
+                'source'       => $r->input('source'),
+                'received_qty' => $r->input('received_qty'),
+                'price'        => $r->input('price'),
+                'total'        => $r->input('received_qty') * $r->input('price'),
+                'rejected_qty' => $r->input('rejected_qty') ?? 0,
+                'created_date' => now(),
+                'created_by'   => auth()->user()->username ?? 'instock',
+            ];
+
+            if ($r->filled('notes')) {
+                $data['notes'] = $r->input('notes');
+            }
+
+            if ($r->filled('warehouse_task_id')) {
+                $data['warehouse_task_id'] = $r->input('warehouse_task_id');
+            }
+
+            DB::table('warehouse_partner_supplies')->insert($data);
+
+            if ($r->has('webcam_photos') && is_array($r->input('webcam_photos'))) {
+                $mapTo = $r->input('warehouse_task_id') ?? $r->input('received_date');
+                foreach ($r->input('webcam_photos') as $b64) {
+                    if ($b64) {
+                        $this->uploadService->storeFile($b64, 'base64', 'instock_photo_batch', $mapTo, 'Instock Batch Photo');
+                    }
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'Instock supply added.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function previewInstockAggregation(Request $r)
+    {
+        $doIds = $r->input('do_ids', []);
+        if (empty($doIds)) {
+            return response()->json(['success' => false, 'message' => 'No Surat Jalan selected'], 400);
+        }
+
+        $data = DB::table('pickup_order as po')
+            ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
+            ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
+            ->leftJoin('delivery_order as d', 'po.DO_Id', '=', 'd.ID')
+            ->select('po.DO_Id', 'd.Code as DO_Code', 'po.Actual_Qty', 'po.Qty', 'mp.Price as POO_Price', 'mp.Nearest_Warehouse')
+            ->whereIn('po.DO_Id', $doIds)
+            ->where('d.DO_Status', 'DONE')
+            ->get();
+
+        $groups = [];
+        foreach ($data as $row) {
+            $wh = $row->Nearest_Warehouse ?? 'Unknown';
+            $qty = $row->Actual_Qty ?? $row->Qty ?? 0;
+            $price = $row->POO_Price ?? 0;
+            if (!isset($groups[$wh])) {
+                $groups[$wh] = ['warehouse' => $wh, 'do_codes' => [], 'received_qty' => 0, 'total' => 0];
+            }
+            $groups[$wh]['do_codes'][] = $row->DO_Code;
+            $groups[$wh]['received_qty'] += $qty;
+            $groups[$wh]['total'] += $qty * $price;
+        }
+        foreach ($groups as &$g) {
+            $g['do_codes'] = array_unique(array_filter($g['do_codes']));
+            $g['avg_price'] = $g['received_qty'] > 0 ? round($g['total'] / $g['received_qty'], 2) : 0;
+        }
+
+        return response()->json(['success' => true, 'data' => array_values($groups)]);
+    }
+
+    public function submitInstockBatch(Request $r)
+    {
+        $groups = $r->input('groups', []);
+        if (is_string($groups)) {
+            $groups = json_decode($groups, true) ?? [];
+        }
+        if (empty($groups)) {
+            return response()->json(['success' => false, 'message' => 'No data to submit'], 400);
+        }
+
+        $notes = $r->input('notes');
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($groups as $g) {
+                $qty = $g['received_qty'] ?? 0;
+                $price = $g['avg_price'] ?? 0;
+                $total = $g['total'] ?? ($qty * $price);
+
+                $whId = $g['warehouse'] ?? null;
+                $warehouse_task_id = '';
+                if ($whId && is_numeric($whId)) {
+                    $wp = DB::table('warehouse_partner')->where('id', $whId)->first(['warehouse_task_id']);
+                    $warehouse_task_id = $wp->warehouse_task_id ?? '';
+                }
+
+                $id = DB::table('warehouse_partner_supplies')->insertGetId([
+                    'received_date'    => $r->input('received_date'),
+                    'pickup_type'      => 'PICKUP',
+                    'warehouse_task_id' => $warehouse_task_id,
+                    'source'           => $r->input('source') ?? 'MITRA',
+                    'received_qty'     => $qty,
+                    'price'            => $price,
+                    'total'            => $total,
+                    'rejected_qty'     => $g['rejected_qty'] ?? 0,
+                    'notes'            => $notes,
+                    'created_date'     => now(),
+                    'created_by'       => auth()->user()->username ?? 'instock',
+                ]);
+            }
+
+            if ($r->has('webcam_photos') && is_array($r->input('webcam_photos'))) {
+                foreach ($r->input('webcam_photos') as $b64) {
+                    if ($b64) {
+                        $this->uploadService->storeFile($b64, 'base64', 'instock_photo_batch', date('Y-m-d'), 'Instock Batch Photo');
+                    }
+                }
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => count($groups) . ' instock records created.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function deleteInstockSupply(Request $r)
+    {
+        try {
+            DB::table('warehouse_partner_supplies')->where('id', $r->input('id'))->delete();
+            return response()->json(['success' => true, 'message' => 'Instock supply deleted.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+
+    public function getDeliveryOrderStatusList()
+    {
+        $statuses = DB::table('delivery_order')
+            ->select('DO_Status')
+            ->distinct()
+            ->orderBy('DO_Status')
+            ->pluck('DO_Status');
+        return response()->json(['data' => $statuses]);
+    }
+
 }

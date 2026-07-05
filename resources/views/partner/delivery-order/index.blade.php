@@ -14,6 +14,12 @@
     <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SURAT JALAN</div>
     <div class="card">
         <div class="card-body">
+            <div class="mb-2 d-flex align-items-center">
+                <select id="doStatusFilter" class="form-control form-control-sm" style="width:200px;margin-right:8px;">
+                    <option value="">-- Semua Status --</option>
+                </select>
+                <button type="button" class="btn btn-primary btn-sm" id="btnFilterDO">Filter</button>
+            </div>
             <div id="DeliveryOrderGrid" style="width:auto;height:320px;background-color:white;overflow:hidden" class="mb-2"></div>
             <div>
                 <input type="button" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="window.location.href='partner-delivery-order-create'" />
@@ -87,18 +93,33 @@
 
     $(document).ready(function() {
         initGrid();
+
+        $('#btnFilterDO').on('click', function() {
+            var url = 'partner-delivery-order-data?format=xml';
+            var status = $('#doStatusFilter').val();
+            if (status) url += '&status=' + status;
+            DeliveryOrderGrid.clearAll();
+            DeliveryOrderGrid.load(url);
+        });
+
+        $.get('master-delivery-order-status-list', function(res) {
+            var $sel = $('#doStatusFilter');
+            (res.data || []).forEach(function(s) {
+                $sel.append('<option value="' + s + '">' + s + '</option>');
+            });
+        });
     });
 
     function initGrid() {
 
         DeliveryOrderGrid = new dhtmlXGridObject('DeliveryOrderGrid');
         DeliveryOrderGrid.setImagePath('./dhtmlx/imgs/');
-        DeliveryOrderGrid.setHeader("No, Code Surat Jalan, POO Name, Code PO, Surat Jalan Date");
-        DeliveryOrderGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
-        DeliveryOrderGrid.setInitWidths("60,120,150,120,100");
-        DeliveryOrderGrid.setColAlign("center,left,left,center,left");
-        DeliveryOrderGrid.setColSorting("int,str,str,str,str");
-        DeliveryOrderGrid.setColTypes("ron,ro,ro,ro,ro");
+        DeliveryOrderGrid.setHeader("No, Code Surat Jalan, POO Name, Code PO, Status, Surat Jalan Date");
+        DeliveryOrderGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+        DeliveryOrderGrid.setInitWidths("60,120,150,120,100,100");
+        DeliveryOrderGrid.setColAlign("center,left,left,center,center,left");
+        DeliveryOrderGrid.setColSorting("int,str,str,str,str,str");
+        DeliveryOrderGrid.setColTypes("ron,ro,ro,ro,ro,ro");
         DeliveryOrderGrid.enableSmartRendering(true, 150);
         DeliveryOrderGrid.attachEvent('onRowSelect', function(id) {
             selectedId = DeliveryOrderGrid.getRowAttribute(id, 'ID');
