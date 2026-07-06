@@ -715,10 +715,12 @@ class MasterDataController extends Controller
 
     public function containerData(Request $r)
     {
-        $query = DB::table('master_container');
+        $query = DB::table('master_container as mc')
+            ->leftJoin('warehouse_partner as wp', 'mc.Warehouse_ID', '=', 'wp.id')
+            ->select('mc.*', 'wp.warehouse_location as Warehouse_Name');
 
         if ($r->query('id')) {
-            $query->where('ID', $r->query('id'));
+            $query->where('mc.ID', $r->query('id'));
         }
 
         $data = $query->get();
@@ -732,6 +734,7 @@ class MasterDataController extends Controller
                 $row->addChild('cell', htmlspecialchars($d->Name));
                 $row->addChild('cell', htmlspecialchars(number_format($d->Volume ?? 0, 2, ',', '.')));
                 $row->addChild('cell', htmlspecialchars($d->Note ?? ''));
+                $row->addChild('cell', htmlspecialchars($d->Warehouse_Name ?? ''));
                 $row->addChild('cell', htmlspecialchars($d->Status));
             }
             return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
@@ -742,7 +745,7 @@ class MasterDataController extends Controller
 
     public function containerSubmit(Request $r)
     {
-        $array = $r->only(['Name', 'Volume', 'Note', 'Status']);
+        $array = $r->only(['Name', 'Volume', 'Note', 'Status', 'Warehouse_ID']);
         $array['Created_By'] = auth()->user()->username ?? 'system';
         $array['Created_At'] = now();
         $model = DB::table('master_container')->insertGetId($array);
@@ -751,7 +754,7 @@ class MasterDataController extends Controller
 
     public function containerEdit(Request $r)
     {
-        DB::table('master_container')->where('ID', $r->id)->update($r->only(['Name', 'Volume', 'Note', 'Status']));
+        DB::table('master_container')->where('ID', $r->id)->update($r->only(['Name', 'Volume', 'Note', 'Status', 'Warehouse_ID']));
         return response()->json(['success' => true]);
     }
 
@@ -764,7 +767,7 @@ class MasterDataController extends Controller
     public function getContainer(Request $r)
     {
         $data = DB::table('master_container')
-            ->select('ID as id', 'Name', 'Volume', 'Note', 'Status', 'Created_By', 'Created_At')
+            ->select('ID as id', 'Name', 'Volume', 'Warehouse_ID', 'Note', 'Status', 'Created_By', 'Created_At')
             ->where('Status', "active")
             ->when($r->id, fn($q) => $q->where('ID', $r->id))
             ->get();

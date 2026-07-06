@@ -28,6 +28,12 @@
                         <textarea class="form-control" id="edit_Note" name="Note" rows="3"></textarea>
                     </div>
                     <div class="form-group">
+                        <label for="edit_Warehouse_ID">Warehouse</label>
+                        <select class="form-control" id="edit_Warehouse_ID" name="Warehouse_ID" style="width:100%;">
+                            <option value="">-- Pilih Warehouse --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="edit_Status">Status</label>
                         <select class="form-control" id="edit_Status" name="Status">
                             <option value="active">Active</option>
@@ -43,7 +49,26 @@
 </div>
 
 <script>
-    $('#SubmitEdit').on('click', function() {
+    $(document).ready(function() {
+        $('#edit_Warehouse_ID').select2({
+        placeholder: '-- Pilih Warehouse --',
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: 'partner-warehouse-data',
+            dataType: 'json',
+            delay: 250,
+            data: function(p) { return { q: p.term || '' }; },
+            processResults: function(res) {
+                return { results: (res.data || []).map(function(r) {
+                    return { id: r.id, text: r.warehouse_location + ' - ' + (r.warehouse_task_id || '') };
+                })};
+            },
+            cache: true
+        }
+    });
+
+        $('#SubmitEdit').on('click', function() {
         var form = document.getElementById('ContainerEditForm');
         if (!form.checkValidity()) { form.reportValidity(); return; }
 
@@ -67,5 +92,6 @@
                 alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
             }
         });
+    });
     });
 </script>

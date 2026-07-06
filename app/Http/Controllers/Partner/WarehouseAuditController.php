@@ -271,11 +271,11 @@ class WarehouseAuditController extends Controller
                     $correctiveScore = 5;
                 }
 
-                // if($correctiveScore == 1 && $scoring != 0) {
-                //     $statsCorrective = "CLOSED";
-                // }else {
-                //     }
+                if($correctiveScore == 1 && $scoring != 0) {
+                    $statsCorrective = "CLOSED";
+                }else {
                     $statsCorrective = 'CREATED';
+                }
 
                 WarehousePartnerAuditCorrectiveDtl::create([
                     'nomor_corrective' => $task,

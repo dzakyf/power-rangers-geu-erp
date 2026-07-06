@@ -208,6 +208,12 @@
             success: function(res) {
                 if (res.status === 'success') {
                     alert('Data berhasil disimpan!');
+                    $('#divLeadsDetail').hide();
+                    if(typeof refreshdataDetail === 'function') {
+                        refreshdataDetail();
+                    }else if(typeof refreshdata === 'function') {
+                        refreshdata();
+                    }
                 } else {
                     alert('Gagal menyimpan: ' + (res.message || 'Unknown error'));
                 }

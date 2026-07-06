@@ -2101,4 +2101,266 @@ class UCOController extends Controller
         return response()->json(['data' => $statuses]);
     }
 
+
+    // === Outstock ===
+    public function indexOutstock()
+    {
+        return view('partner.outstock.index');
+    }
+
+    public function getOutstockData(Request $r)
+    {
+        $data = DB::table('outstock')
+            ->leftJoin('outstock_warehouses as ow', 'outstock.ID', '=', 'ow.Outstock_ID')
+            ->leftJoin('warehouse_partner as wp', 'ow.Warehouse_ID', '=', 'wp.id')
+            ->leftJoin('master_fleet as mf', 'outstock.Fleet_ID', '=', 'mf.ID')
+            ->select('outstock.*', DB::raw('GROUP_CONCAT(DISTINCT wp.warehouse_location SEPARATOR ", ") as Warehouse_Names'), 'mf.Police_Number as Fleet_Number')
+            ->groupBy('outstock.ID')
+            ->orderBy('outstock.Created_At', 'desc')
+            ->get();
+
+        $xml = new SimpleXMLElement('<rows/>');
+        $no = 1;
+        foreach ($data as $d) {
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $d->ID);
+            $row->addChild('cell', $no);
+            $row->addChild('cell', htmlspecialchars((string) $d->Code));
+            $row->addChild('cell', htmlspecialchars((string) $d->Date));
+            $row->addChild('cell', htmlspecialchars((string) ($d->Warehouse_Names ?? '')));
+            $row->addChild('cell', htmlspecialchars((string) ($d->Fleet_Number ?? '')));
+            $row->addChild('cell', htmlspecialchars((string) $d->Status));
+            $no++;
+        }
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
+    public function createOutstock()
+    {
+        return view('partner.outstock.create');
+    }
+
+    public function submitCreateOutstock(Request $r)
+    {
+        $count = DB::table('outstock')->count();
+        $code = $this->generatorService->generateApplicationCode($count, 'OST');
+
+        try {
+            $outstockId = DB::table('outstock')->insertGetId([
+                'Code'               => $code,
+                'Date'               => $r->input('Date'),
+                'Vehicle_Category'   => $r->input('Vehicle_Category'),
+                'Fleet_ID'           => $r->input('Fleet_ID'),
+                'Warehouse_Origin'   => $r->input('Warehouse_IDs')[0] ?? null,
+                'Status'             => 'DRAFT',
+                'Notes'              => $r->input('Notes'),
+                'Created_At'         => now(),
+            ]);
+
+            $whIds = $r->input('Warehouse_IDs', []);
+            foreach ($whIds as $whId) {
+                DB::table('outstock_warehouses')->insert([
+                    'Outstock_ID' => $outstockId,
+                    'Warehouse_ID' => $whId,
+                ]);
+            }
+
+            return response()->json(['status' => 'success', 'message' => 'Outstock draft created.']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function detailOutstock(Request $r)
+    {
+        $id = $r->query('id');
+        if (!$id) {
+            return redirect('partner-outstock');
+        }
+
+        $outstock = DB::table('outstock')
+            ->leftJoin('warehouse_partner as wp', 'outstock.Warehouse_Origin', '=', 'wp.id')
+            ->leftJoin('master_fleet as mf', 'outstock.Fleet_ID', '=', 'mf.ID')
+            ->select('outstock.*', 'wp.warehouse_location as Warehouse_Name', 'mf.Police_Number as Fleet_Number')
+            ->where('outstock.ID', $id)
+            ->first();
+
+        if (!$outstock) {
+            return redirect('partner-outstock');
+        }
+
+        $whIds = DB::table('outstock_warehouses')
+            ->where('Outstock_ID', $id)
+            ->pluck('Warehouse_ID');
+
+        $warehouses = DB::table('warehouse_partner')
+            ->whereIn('id', $whIds)
+            ->select('id', 'warehouse_location', 'warehouse_task_id')
+            ->get();
+
+        $loading = DB::table('outstock_loading')
+            ->leftJoin('master_container as mc', 'outstock_loading.Container_ID', '=', 'mc.ID')
+            ->select('outstock_loading.*', 'mc.Name as Container_Name', 'mc.Warehouse_ID')
+            ->where('Outstock_ID', $id)
+            ->get();
+
+        $handover = DB::table('outstock_handover')
+            ->where('Outstock_ID', $id)
+            ->first();
+
+        $containers = DB::table('master_container')
+            ->where('Status', 'active')
+            ->whereIn('Warehouse_ID', $whIds)
+            ->select('ID', 'Name', 'Warehouse_ID')
+            ->get();
+
+        return view('partner.outstock.edit', compact('outstock', 'warehouses', 'whIds', 'loading', 'handover', 'containers'));
+    }
+
+    public function submitOutstockLoading(Request $r)
+    {
+        $outstockId = $r->input('outstock_id');
+        $rows = $r->input('rows', []);
+
+        try {
+            DB::beginTransaction();
+            DB::table('outstock_loading')->where('Outstock_ID', $outstockId)->delete();
+
+            foreach ($rows as $row) {
+                DB::table('outstock_loading')->insert([
+                    'Outstock_ID'  => $outstockId,
+                    'Container_ID' => $row['container_id'],
+                    'Date'         => $row['date'],
+                    'System_Qty'   => 0,
+                    'Actual_Qty'   => $row['actual_qty'] ?? 0,
+                    'Notes'        => $row['notes'] ?? '',
+                    'Created_At'   => now(),
+                ]);
+            }
+
+            DB::table('outstock')->where('ID', $outstockId)->update(['Status' => 'LOADING']);
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Loading data saved. Status: LOADING.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function uploadOutstockLoadingPhoto(Request $r)
+    {
+        $id = $r->input('id');
+        if ($r->hasFile('photo') && $r->file('photo')->isValid()) {
+            $file = $r->file('photo');
+            $ext = $file->getClientOriginalExtension();
+            $name = 'loading_' . $id . '_' . time() . '.' . $ext;
+            $dir = public_path('filevendor/outstock');
+            if (!is_dir($dir)) { mkdir($dir, 0777, true); }
+            $file->move($dir, $name);
+
+            DB::table('outstock_loading')->where('ID', $id)->update(['Photo_Path' => 'outstock/' . $name]);
+            return response()->json(['success' => true, 'path' => 'outstock/' . $name]);
+        }
+        return response()->json(['success' => false, 'message' => 'No file uploaded'], 400);
+    }
+
+    public function submitOutstockHandover(Request $r)
+    {
+        $outstockId = $r->input('outstock_id');
+
+        try {
+            DB::beginTransaction();
+            DB::table('outstock_handover')->where('Outstock_ID', $outstockId)->delete();
+
+            DB::table('outstock_handover')->insert([
+                'Outstock_ID'  => $outstockId,
+                'Date'         => $r->input('Date'),
+                'Actual_Qty'   => $r->input('Actual_Qty') ?? 0,
+                'Destination'  => $r->input('Destination'),
+                'Notes'        => $r->input('Notes'),
+                'Created_At'   => now(),
+            ]);
+
+            DB::table('outstock')->where('ID', $outstockId)->update(['Status' => 'COMPLETED']);
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Handover saved. Outstock completed.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function uploadOutstockHandoverPhoto(Request $r)
+    {
+        $id = $r->input('id');
+        if ($r->hasFile('photo') && $r->file('photo')->isValid()) {
+            $file = $r->file('photo');
+            $ext = $file->getClientOriginalExtension();
+            $name = 'handover_' . $id . '_' . time() . '.' . $ext;
+            $dir = public_path('filevendor/outstock');
+            if (!is_dir($dir)) { mkdir($dir, 0777, true); }
+            $file->move($dir, $name);
+
+            DB::table('outstock_handover')->where('ID', $id)->update(['Photo_Path' => 'outstock/' . $name]);
+            return response()->json(['success' => true, 'path' => 'outstock/' . $name]);
+        }
+        return response()->json(['success' => false, 'message' => 'No file uploaded'], 400);
+    }
+
+
+    public function generateDeliveryNote(Request $r)
+    {
+        $id = $r->query('id');
+        $warehouseId = $r->query('warehouse_id');
+
+        if (!$id || !$warehouseId) {
+            return response()->json(['success' => false, 'message' => 'id and warehouse_id required'], 400);
+        }
+
+        $outstock = DB::table('outstock')
+            ->leftJoin('master_fleet as mf', 'outstock.Fleet_ID', '=', 'mf.ID')
+            ->select('outstock.*', 'mf.Police_Number as Fleet_Number')
+            ->where('outstock.ID', $id)
+            ->first();
+
+        $warehouse = DB::table('warehouse_partner')->where('id', $warehouseId)->first();
+
+        $actualWeight = DB::table('outstock_loading')
+            ->join('master_container as mc', 'outstock_loading.Container_ID', '=', 'mc.ID')
+            ->where('outstock_loading.Outstock_ID', $id)
+            ->where('mc.Warehouse_ID', $warehouseId)
+            ->sum('outstock_loading.Actual_Qty');
+
+        $templatePath = public_path('template-outstock-surat-jalan.docx');
+        if (!file_exists($templatePath)) {
+            return response()->json(['success' => false, 'message' => 'Template not found'], 500);
+        }
+
+        $template = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+        $template->setValues([
+            'effective_date'         => now()->format('d-m-Y'),
+            'doc_id'                 => 'OPR/FORM/0001',
+            'dn_code'                => $outstock->Code,
+            'issued_date'            => $outstock->Date,
+            'warehouse_destination'  => '-',
+            'vehicle_type'           => '-',
+            'vehicle_police_number'  => $outstock->Fleet_Number ?? '-',
+            'driver_name'            => '-',
+            'driver_phone'           => '-',
+            'actual_weight'          => (string) $actualWeight,
+            'warehouse_origin'       => $warehouse->warehouse_location ?? '-',
+        ]);
+
+        $safeCode = str_replace('/', '-', $outstock->Code);
+        $filename = 'Surat_Jalan_' . $safeCode . '_' . $warehouse->warehouse_location . '.docx';
+        $dir = public_path('filevendor/outstock');
+        if (!is_dir($dir)) { mkdir($dir, 0775, true); }
+        $filePath = $dir . '/' . $filename;
+        $template->saveAs($filePath);
+
+        return response()->download($filePath)->deleteFileAfterSend(true);
+    }
+
 }

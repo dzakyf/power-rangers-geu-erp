@@ -45,7 +45,7 @@
     }
 
     function initGrid() {
-        let tHeader = ['No', 'Name', 'Volume', 'Note', 'Status']
+        let tHeader = ['No', 'Name', 'Volume', 'Note', 'Warehouse', 'Status']
         let tWidth = tHeader.map(() => '150')
         let headerAttachment = tHeader.map(() => '#text_filter')
 
@@ -78,6 +78,12 @@
             if (!data) return;
             $('#edit_Name').val(data.Name);
             $('#edit_Volume').val(data.Volume);
+            if (data.Warehouse_ID) {
+                var whText = data.Warehouse_Name || data.Warehouse_ID;
+                var $sel = $('#edit_Warehouse_ID');
+                $sel.append('<option value="' + data.Warehouse_ID + '" selected>' + whText + '</option>');
+                $sel.trigger('change');
+            }
             $('#edit_Note').val(data.Note);
             $('#edit_Status').val(data.Status);
         });

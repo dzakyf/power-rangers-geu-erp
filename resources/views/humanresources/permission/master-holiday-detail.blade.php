@@ -9,19 +9,6 @@ use Illuminate\Database\Eloquent\Builder;
 	$Saya =  Auth::user()->username;
 	
 	$priv =  Auth::user()->Priv_ID;
-	$fetch = DB::table("supplier")->where("ID",$_GET['ID'])->first();
-	$sobjf = DB::select(DB::raw("SHOW FIELDS FROM supplier"));
-
-	echo "<script>";
-
-		foreach($sobjf as $objf){
-		$idobj = $objf->Field;
-		$isinya = $fetch->$idobj;
-			
-				echo "$('#$idobj').val('$isinya'); \n";
-		}
-	
-	echo "</script>";
 
 ?>
 <style>
@@ -115,6 +102,8 @@ html, body{
 <script>
 
 function init() {
+
+	scheduler = new dhtmlXCalendarObject("JadwalLibur");
 
 		scheduler.config.multi_day = false;
 		scheduler.config.xml_date="%Y-%m-%d";
