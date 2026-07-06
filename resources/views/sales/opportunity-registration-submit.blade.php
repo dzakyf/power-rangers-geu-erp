@@ -26,14 +26,18 @@ try {
     $data['contact'] = request()->input('Contact', '');
     $data['email'] = request()->input('Email');
 
-    $addr_detail = $req->input('Address_Detail');
-    $addr_rt = $req->input('Address_RT');
-    $addr_rw = $req->input('Address_RW');
-    $addr_ward = $req->input('Address_Ward');
-    $addr_subdistrict = $req->input('Address_Subdistrict');
-    $addr_city = $req->input('Address_City');
-    $addr_province = $req->input('Address_Province');
-    $addr_postal = $req->input('Address_Postal');
+    $prefix = "I_";
+    if ($data['register_as'] === 'company') {
+        $prefix = "C_";
+    }
+    $addr_detail = $req->input($prefix . 'Address_Detail');
+    $addr_rt = $req->input($prefix . 'Address_RT');
+    $addr_rw = $req->input($prefix . 'Address_RW');
+    $addr_ward = $req->input($prefix . 'Address_Ward');
+    $addr_subdistrict = $req->input($prefix . 'Address_Subdistrict');
+    $addr_city = $req->input($prefix . 'Address_City');
+    $addr_province = $req->input($prefix . 'Address_Province');
+    $addr_postal = $req->input($prefix . 'Address_Postal');
 
     $data['address'] = $addr_detail;
     $data['pi_rt'] = $addr_rt;

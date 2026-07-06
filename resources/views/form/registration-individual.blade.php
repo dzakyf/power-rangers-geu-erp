@@ -44,48 +44,48 @@
                          <div class="row">
                              <div class="col">
                                  <label for="Address">Alamat Rumah <span style="color: red;">*</span></label>
-                                 <input type="text" name="Address_Detail" id="Address_Detail" class="form-control" required />
+                                 <input type="text" name="I_Address_Detail" id="I_Address_Detail" class="form-control" required />
                              </div>
                          </div>
 
                          <div class="row">
                              <div class="col">
                                  <label for="Address">RT <span style="color: red;">*</span></label>
-                                 <input type="text" name="Address_RT" id="Address_RT" class="form-control" required />
+                                 <input type="text" name="I_Address_RT" id="I_Address_RT" class="form-control" required />
                              </div>
                              <div class="col">
                                  <label for="Address">RW <span style="color: red;">*</span></label>
-                                 <input type="text" name="Address_RW" id="Address_RW" class="form-control" required />
+                                 <input type="text" name="I_Address_RW" id="I_Address_RW" class="form-control" required />
                              </div>
                          </div>
                          <div class="row">
                              <div class="col">
                                  <label for="Address">Kelurahan <span style="color: red;">*</span></label>
-                                 <input type="text" name="Address_Ward" id="Address_Ward" class="form-control" required />
+                                 <input type="text" name="I_Address_Ward" id="I_Address_Ward" class="form-control" required />
                              </div>
                              <div class="col">
                                  <label for="Address">Kecamatan <span style="color: red;">*</span></label>
-                                 <input type="text" name="Address_Subdistrict" id="Address_Subdistrict" class="form-control" required />
+                                 <input type="text" name="I_Address_Subdistrict" id="I_Address_Subdistrict" class="form-control" required />
                              </div>
                          </div>
                          <div class="row">
                              <div class="col">
                                  <label for="Address">Kota / Kabupaten <span style="color: red;">*</span></label>
-                                 <input type="text" name="Address_City" id="Address_City" class="form-control" required />
-                                 <!-- <select name="Address_City" id="Address_City" class="form-control">
+                                 <input type="text" name="I_Address_City" id="I_Address_City" class="form-control" required />
+                                 <!-- <select name="I_Address_City" id="I_Address_City" class="form-control">
                                                     <option value="">-- Pilih --</option>
                                                 </select> -->
                              </div>
                              <div class="col">
                                  <label for="Address">Provinsi <span style="color: red;">*</span></label>
-                                 <input type="text" name="Address_Province" id="Address_Province" class="form-control" required />
-                                 {{-- <select name="Address_Province" id="Address_Province" class="form-control">
+                                 <input type="text" name="I_Address_Province" id="I_Address_Province" class="form-control" required />
+                                 {{-- <select name="I_Address_Province" id="I_Address_Province" class="form-control">
                                      <option value="">-- Pilih --</option>
                                  </select> --}}
                              </div>
                              <div class="col">
                                  <label for="Address">Kode Pos <span style="color: red;">*</span></label>
-                                 <input type="text" name="Address_Postal" id="Address_Postal" class="form-control" required />
+                                 <input type="text" name="I_Address_Postal" id="I_Address_Postal" class="form-control" required />
                              </div>
                          </div>
                      </div>
@@ -587,8 +587,8 @@
                  <div class="row">
                      <div class="col-md-4">
                          <div class="form-check">
-                             <input class="form-check-input" type="checkbox" name="Doc_KTP" id="Doc_KTP" value="Akta" />
-                             <label class="form-check-label" for="C_Doc_Akta">KTP</label>
+                             <input class="form-check-input" type="checkbox" name="Doc_KTP" id="Doc_KTP" value="KTP" />
+                             <label class="form-check-label" for="C_Doc_KTP">KTP</label>
                          </div>
                          <div style="display:none;" id="Doc_KTP_Files_Div" class="mt-2 text-center">
                              <div id="Doc_KTP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
@@ -597,24 +597,24 @@
                      </div>
                      <div class="col-md-4">
                          <div class="form-check">
-                             <input class="form-check-input" type="checkbox" name="Doc_NPWP" id="Doc_NPWP" value="Akta" />
-                             <label class="form-check-label" for="C_Doc_Akta">NPWP</label>
+                             <input class="form-check-input" type="checkbox" name="Doc_NPWP" id="Doc_NPWP" value="NPWP" />
+                             <label class="form-check-label" for="C_Doc_NPWP">NPWP</label>
                          </div>
                          <div style="display:none;" id="Doc_NPWP_Files_Div" class="mt-2">
                              <span class="badge badge-info py-2 mb-3 w-100">Upload NPWP</span>
                              <div id="Doc_NPWP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_NPWP_File" />
+                             {{-- <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_NPWP_File" /> --}}
                          </div>
                      </div>
                      <div class="col-md-4">
                          <div class="form-check">
-                             <input class="form-check-input" type="checkbox" name="Doc_Others" id="Doc_Others" value="Akta" />
-                             <label class="form-check-label" for="C_Doc_Akta">Dokumen Lainnya</label>
+                             <input class="form-check-input" type="checkbox" name="Doc_Others" id="Doc_Others" value="Other" />
+                             <label class="form-check-label" for="C_Doc_Other">Dokumen Lainnya</label>
                          </div>
                          <div style="display:none;" id="Doc_Others_Files_Div" class="mt-2">
                              <span class="badge badge-info py-2 mb-3 w-100">Upload Dokumen Lainnya</span>
                              <div id="Doc_Others_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_Others_File" />
+                             {{-- <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_Others_File" /> --}}
                          </div>
                      </div>
                  </div>

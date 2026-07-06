@@ -35,6 +35,7 @@ use App\Http\Controllers\CNS\PurchaseOrderController as CNSPurchaseOrderControll
 use App\Http\Controllers\CNS\QualityController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\HCGA\MasterApprovalController as HCGAMasterApprovalController;
+use App\Http\Controllers\HCGA\MasterWorkCalendarController as HCGAMasterWorkCalendarController;
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOController as UCOLogisticController;
@@ -83,7 +84,7 @@ use App\Http\Controllers\UserController;
 |
 */
 
-Route::get('partner-leads', function () {
+Route::get('partner-early-registration', function () {
     return view('partner.leads');
 });
 
@@ -5168,6 +5169,16 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$partnerUCO-outbound", [UCOLogisticController::class, 'indexOutboundUCO']);
     Route::get("$partnerUCO-outstock", [UCOLogisticController::class, 'indexOutstockUCO']);
     Route::get("$partnerUCO-outbound-data", [UCOLogisticController::class, 'getUCOOutboundXml']);
+    Route::get("partner-outstock", [UCOLogisticController::class, 'indexOutstock']);
+    Route::get("partner-outstock-data", [UCOLogisticController::class, 'getOutstockData']);
+    Route::get("partner-outstock-create", [UCOLogisticController::class, 'createOutstock']);
+    Route::post("partner-outstock-create-submit", [UCOLogisticController::class, 'submitCreateOutstock']);
+    Route::get("partner-outstock-detail", [UCOLogisticController::class, 'detailOutstock']);
+    Route::post("partner-outstock-loading-submit", [UCOLogisticController::class, 'submitOutstockLoading']);
+    Route::post("partner-outstock-loading-upload-photo", [UCOLogisticController::class, 'uploadOutstockLoadingPhoto']);
+    Route::post("partner-outstock-handover-submit", [UCOLogisticController::class, 'submitOutstockHandover']);
+    Route::post("partner-outstock-handover-upload-photo", [UCOLogisticController::class, 'uploadOutstockHandoverPhoto']);
+    Route::get("partner-outstock-delivery-note", [UCOLogisticController::class, 'generateDeliveryNote']);
 
 
     Route::get("partner-uco-outbound-pickup-request", function () {
@@ -5421,4 +5432,11 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcPref-get-departments", [HCGAMasterApprovalController::class, 'getDepartmentsFromDirectorat']);
     Route::post("$hcPref-get-employee", [HCGAMasterApprovalController::class, 'getEmployeeFromDepartment']);
     Route::post("$hcPref-master-approval-new-submit", [HCGAMasterApprovalController::class, 'newSubmit']);
+
+    Route::get("$hcPref-master-work-calendar", [HCGAMasterWorkCalendarController::class, 'index']);
+    Route::get("xml-$hcPref-master-work-calendar", [HCGAMasterWorkCalendarController::class, 'indexXml']);
+    Route::get("$hcPref-master-work-calendar-new", [HCGAMasterWorkCalendarController::class, 'create']);
+    Route::post("$hcPref-master-work-calendar-new-submit", [HCGAMasterWorkCalendarController::class, 'store']);
+    Route::get("$hcPref-master-work-calendar-edit", [HCGAMasterWorkCalendarController::class, 'edit']);
+    Route::post("$hcPref-master-work-calendar-edit-submit", [HCGAMasterWorkCalendarController::class, 'update']);
 });

@@ -50,7 +50,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>
-<div id="divDetailLeads" style="display:none;">
+<div id="divLeadsDetail" style="display:none;">
 	@include('partner.leads-detail')
 </div>
 <script>
@@ -222,7 +222,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 			return;
 		}
 		$('#ID').val(id);
-		$('#divDetailLeads').show();
+		$('#divLeadsDetail').show();
 		getLeads();
 	}
 

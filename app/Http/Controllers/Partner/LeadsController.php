@@ -64,12 +64,21 @@ class LeadsController extends Controller
         if (!$exists) {
             return response()->json(['status' => 'error', 'message' => 'Record not found'], 404);
         }
+        
+        $array = [
+            '<50 Juta' => 1,
+            '< 50 Juta' => 1,
+            '100 - 200 Juta' => 2,
+            '200 - 300 Juta' => 3,
+            '>300 Juta' => 4,
+            '> 300 Juta' => 4,
+        ];
 
         DB::table('opportunity')->where('ID', $id)->update([
             'Full_Name'          => $r->input('Full_Name'),
             'Phone_Number'       => $r->input('Phone_Number'),
             'Hub_Type'           => $r->input('Hub_Type'),
-            'Capital_Estimation' => $r->input('Capital_Estimation'),
+            'Capital_Estimation' => $array[$r->input('Capital_Estimation')] ?? 0,
             'Source_Channel'     => $r->input('Source_Channel'),
             'Response'           => $r->input('Response'),
             'Qualification'      => $r->input('Qualification'),

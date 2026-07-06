@@ -429,9 +429,14 @@
                     $('#reg_gross_monthly').val(data.gross_monthly);
                     $('#reg_gross_annual').val(data.gross_annual);
                     $('#reg_sources_of_funds').val(data.sources_of_funds);
-                    $('#reg_ktp').val(data.ktp);
-                    $('#reg_npwp').val(data.npwp);
-                    $('#reg_supporting_documents').val(data.supporting_documents);
+                    let arr = JSON.parse(data.supporting_documents);
+                    console.log(arr);
+                    for (let i = 0; i < arr.length; i++) {
+                        const ele = arr[i];
+                        $('#reg_ktp').val(data.ktp);
+                        $('#reg_npwp').val(data.npwp);
+                        $('#reg_supporting_documents').val(data.supporting_documents);
+                    }
 
                     $('#reg_q1').val(data.q1);
                     $('#reg_p6q1a1').val(data.c_p6q1a1);

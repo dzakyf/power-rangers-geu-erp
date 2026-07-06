@@ -84,48 +84,48 @@
          <div class="row">
              <div class="col">
                  <label for="Address">Alamat Detail <span style="color: red;">*</span></label>
-                 <input type="text" name="Address_Detail" id="Address_Detail" class="form-control" required />
+                 <input type="text" name="C_Address_Detail" id="C_Address_Detail" class="form-control" required />
              </div>
          </div>
 
          <div class="row">
              <div class="col">
                  <label for="Address">RT <span style="color: red;">*</span></label>
-                 <input type="text" name="Address_RT" id="Address_RT" class="form-control" required />
+                 <input type="text" name="C_Address_RT" id="C_Address_RT" class="form-control" required />
              </div>
              <div class="col">
                  <label for="Address">RW <span style="color: red;">*</span></label>
-                 <input type="text" name="Address_RW" id="Address_RW" class="form-control" required />
+                 <input type="text" name="C_Address_RW" id="C_Address_RW" class="form-control" required />
              </div>
          </div>
          <div class="row">
              <div class="col">
                  <label for="Address">Kelurahan <span style="color: red;">*</span></label>
-                 <input type="text" name="Address_Ward" id="Address_Ward" class="form-control" required />
+                 <input type="text" name="C_Address_Ward" id="C_Address_Ward" class="form-control" required />
              </div>
              <div class="col">
                  <label for="Address">Kecamatan <span style="color: red;">*</span></label>
-                 <input type="text" name="Address_Subdistrict" id="Address_Subdistrict" class="form-control" required />
+                 <input type="text" name="C_Address_Subdistrict" id="C_Address_Subdistrict" class="form-control" required />
              </div>
          </div>
          <div class="row">
              <div class="col">
                  <label for="Address">Kota / Kabupaten <span style="color: red;">*</span></label>
-                 <input type="text" name="Address_City" id="Address_City" class="form-control" required />
-                 <!-- <select name="Address_City" id="Address_City" class="form-control">
+                 <input type="text" name="C_Address_City" id="C_Address_City" class="form-control" required />
+                 <!-- <select name="C_Address_City" id="C_Address_City" class="form-control">
                                                     <option value="">-- Pilih --</option>
                                                 </select> -->
              </div>
              <div class="col">
                  <label for="Address">Provinsi <span style="color: red;">*</span></label>
-                 <input type="text" name="Address_Province" id="Address_Province" class="form-control" required />
-                 <!-- <select name="Address_Province" id="Address_Province" class="form-control">
+                 <input type="text" name="C_Address_Province" id="C_Address_Province" class="form-control" required />
+                 <!-- <select name="C_Address_Province" id="C_Address_Province" class="form-control">
                                                     <option value="">-- Pilih --</option>
                                                 </select> -->
              </div>
              <div class="col">
                  <label for="Address">Kode Pos <span style="color: red;">*</span></label>
-                 <input type="text" name="Address_Postal" id="Address_Postal" class="form-control" required />
+                 <input type="text" name="C_Address_Postal" id="C_Address_Postal" class="form-control" required />
              </div>
          </div>
      </div>

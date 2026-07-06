@@ -16,17 +16,12 @@
     <!-- End Main Content Header -->
 
 	<!-- Stats Card -->
-	<div class="row">
+	<div class="row no-gutters">
 		 <div id="Holiday" style="width:auto;height:500px; background-color:white;overflow:hidden"></div>
 			<input type="button" id="ekselPODListDet" name="ekselPODListDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="Holiday.toExcel('./export/generate.php');"  />
 				<input type="button" id="RefreshBM" NAME="RefreshBM" value="Refresh Data"class="btn btn-info mt-2 mr-2" />
 			<input type="button" id="Settings" NAME="Settings" value="Settings" onclick="settinglibur()" class="btn btn-info mt-2 mr-2"/>
 		</div>
-
-		
-
-
-	
 	</div>
 	<div id="HolidayDiv"></div>
 <script>
@@ -62,7 +57,6 @@ PHoliday.init(Holiday);
 Holiday.init();
 
 function settinglibur() {
-
 	LoadM('HolidayDiv','master-holiday-detail');
 }
 		
