@@ -1997,7 +1997,8 @@ class UCOController extends Controller
             ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
             ->leftJoin('delivery_order as d', 'po.DO_Id', '=', 'd.ID')
-            ->select('po.DO_Id', 'd.Code as DO_Code', 'po.Actual_Qty', 'po.Qty', 'mp.Price as POO_Price', 'mp.Nearest_Warehouse')
+            ->leftJoin('warehouse_partner as wp', 'mp.Nearest_Warehouse', '=', 'wp.id')
+            ->select('po.DO_Id', 'd.Code as DO_Code', 'po.Actual_Qty', 'po.Qty', 'mp.Price as POO_Price', 'mp.Nearest_Warehouse', 'wp.warehouse_task_id', 'wp.warehouse_location')
             ->whereIn('po.DO_Id', $doIds)
             ->where('d.DO_Status', 'DONE')
             ->get();
@@ -2005,18 +2006,25 @@ class UCOController extends Controller
         $groups = [];
         foreach ($data as $row) {
             $wh = $row->Nearest_Warehouse ?? 'Unknown';
-            $qty = $row->Actual_Qty ?? $row->Qty ?? 0;
+            $display = $row->warehouse_location ?? 'Unknown';
+            if ($row->warehouse_task_id) {
+                $display = $row->warehouse_task_id . ' - ' . $display;
+            }
+            $qtyPlan = $row->Qty ?? 0;
+            $qtyActual = $row->Actual_Qty ?? 0;
             $price = $row->POO_Price ?? 0;
             if (!isset($groups[$wh])) {
-                $groups[$wh] = ['warehouse' => $wh, 'do_codes' => [], 'received_qty' => 0, 'total' => 0];
+                $groups[$wh] = ['warehouse' => $wh, 'warehouse_display' => $display, 'do_codes' => [], 'qty_plan' => 0, 'qty_actual' => 0, 'total' => 0];
             }
             $groups[$wh]['do_codes'][] = $row->DO_Code;
-            $groups[$wh]['received_qty'] += $qty;
-            $groups[$wh]['total'] += $qty * $price;
+            $groups[$wh]['qty_plan'] += $qtyPlan;
+            $groups[$wh]['qty_actual'] += $qtyActual;
+            $groups[$wh]['total'] += $qtyActual * $price;
         }
         foreach ($groups as &$g) {
             $g['do_codes'] = array_unique(array_filter($g['do_codes']));
-            $g['avg_price'] = $g['received_qty'] > 0 ? round($g['total'] / $g['received_qty'], 2) : 0;
+            $g['received_qty'] = $g['qty_actual'];
+            $g['avg_price'] = $g['qty_actual'] > 0 ? round($g['total'] / $g['qty_actual'], 2) : 0;
         }
 
         return response()->json(['success' => true, 'data' => array_values($groups)]);

@@ -88,6 +88,26 @@ if ($master) {
 	]);
 }
 
+if (Str::contains($jobPosition->Level,[1,2,3,4,5,6])) {
+	$master = DB::table('master_hr_approval')
+		->whereIn("Level", [3,4])
+		->where("Location", $LSP)
+		->first();
+	
+	if ($master) {
+		DB::table('requisition_approval')->insert([
+			"Location" => $LSP,
+			"Task_ID" => $Taskid,
+			'Level' => 2,
+			"Approved_By" => $master->username,
+			"Approved_Status" => 0,
+			"Approved_Date" => null,
+			"Approved_Note" => null
+		]);
+	}
+
+}
+
 
 // $kueri = "INSERT INTO recruitment($ars,Created_By,Location,Task_ID,Created_Date) values ($vals,'$Saya','$LSP','$Taskid',NOW())";
 // DB::insert(DB::raw($kueri));

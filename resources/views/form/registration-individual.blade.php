@@ -413,24 +413,24 @@
                      <div class="form-group">
                          <label><strong>1. Apakah Anda memiliki usaha F&B? dan berapa outlet yang dimiliki? <span style="color: red;">*</span></strong></label>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="P6Q1" id="P6Q1_Yes" value="Yes" />
-                             <label class="form-check-label" for="P6Q1_Yes">Ya</label>
+                             <input class="form-check-input" type="radio" name="I_P6Q1" id="I_P6Q1_Yes" value="Yes" />
+                             <label class="form-check-label" for="I_P6Q1_Yes">Ya</label>
                          </div>
 
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="P6Q1" id="P6Q1_No" value="No" />
-                             <label class="form-check-label" for="P6Q1_No">Tidak</label>
+                             <input class="form-check-input" type="radio" name="I_P6Q1" id="I_P6Q1_No" value="No" />
+                             <label class="form-check-label" for="I_P6Q1_No">Tidak</label>
                          </div>
                          <div class="Amount_Outlet">
-                             <label for="P6Q1">Jumlah Outlet</label>
-                             <input type="text" name="P6Q1A1" id="P6Q1A1" class="form-control" />
+                             <label for="I_P6Q1">Jumlah Outlet</label>
+                             <input type="text" name="I_P6Q1A1" id="I_P6Q1A1" class="form-control" />
                          </div>
                      </div>
                  </div>
                  <div class="col-md-6">
                      <div class="form-group">
                          <label><strong>2. Bergerak di bidang apa? <span style="color: red;">*</span></strong></label>
-                         <select name="P6Q2" id="P6Q2" class="form-control">
+                         <select name="I_P6Q2" id="I_P6Q2" class="form-control">
                              <option value="">-- Pilih --</option>
                              <option value="RESTAURANT">Restoran</option>
                              <option value="CAFE">Cafe</option>
@@ -445,16 +445,16 @@
                      <div class="form-group">
                          <label><strong>3. Apakah Anda memiliki relasi langsung dengan pelaku usaha tersebut? Jika Ya, perkiraan jumlah relasi usaha F&B yang dimiliki: <span style="color: red;">*</span></strong></label>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="P6Q3" id="P6Q3_Yes" value="Yes" />
-                             <label class="form-check-label" for="P6Q3_Yes">Ya</label>
+                             <input class="form-check-input" type="radio" name="I_P6Q3" id="I_P6Q3_Yes" value="Yes" />
+                             <label class="form-check-label" for="I_P6Q3_Yes">Ya</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="P6Q3" id="P6Q3_No" value="No" />
-                             <label class="form-check-label" for="P6Q3_No">Tidak</label>
+                             <input class="form-check-input" type="radio" name="I_P6Q3" id="I_P6Q3_No" value="No" />
+                             <label class="form-check-label" for="I_P6Q3_No">Tidak</label>
                          </div>
                          <div class="Amount_Outlet">
-                             <label for="P6Q3A1">Jumlah Relasi</label>
-                             <input type="text" name="P6Q3A1" id="P6Q3A1" class="form-control" />
+                             <label for="I_P6Q3A1">Jumlah Relasi</label>
+                             <input type="text" name="I_P6Q3A1" id="I_P6Q3A1" class="form-control" />
                          </div>
                      </div>
                  </div>
@@ -462,12 +462,12 @@
                      <div class="form-group">
                          <label><strong>4. Sebagai bentuk dukungan terhadap praktik keberlanjutan, saya bersedia minyak jelantah dari usaha F&B atau jaringan F&B tersebut agar disetorkan secara rutin ke Hub GEU Anda <span style="color: red;">*</span></strong></label>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="P6Q4" id="P6Q4_Yes" value="Yes" />
-                             <label class="form-check-label" for="P6Q4_Yes">Ya</label>
+                             <input class="form-check-input" type="radio" name="I_P6Q4" id="I_P6Q4_Yes" value="Yes" />
+                             <label class="form-check-label" for="I_P6Q4_Yes">Ya</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="P6Q4" id="P6Q4_No" value="No" />
-                             <label class="form-check-label" for="P6Q4_No">Tidak</label>
+                             <input class="form-check-input" type="radio" name="I_P6Q4" id="I_P6Q4_No" value="No" />
+                             <label class="form-check-label" for="I_P6Q4_No">Tidak</label>
                          </div>
                      </div>
                  </div>
@@ -480,12 +480,12 @@
                      <div class="form-group">
                          <label><strong>1. Saya bersedia berkomitmen untuk mematuhi standarisasi bisnis GEU. <span style="color: red;">*</span></strong></label>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q1" id="C_Q1_Yes" value="Yes" />
-                             <label class="form-check-label" for="C_Q1_Yes">Ya</label>
+                             <input class="form-check-input" type="radio" name="Q1" id="Q1_Yes" value="Yes" />
+                             <label class="form-check-label" for="Q1_Yes">Ya</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q1" id="C_Q1_No" value="No" />
-                             <label class="form-check-label" for="C_Q1_No">Tidak</label>
+                             <input class="form-check-input" type="radio" name="Q1" id="Q1_No" value="No" />
+                             <label class="form-check-label" for="Q1_No">Tidak</label>
                          </div>
                      </div>
                  </div>
@@ -493,12 +493,12 @@
                      <div class="form-group">
                          <label><strong>2. Saya bersedia berkomitmen untuk ikut support pertumbuhan pencapaian target Hub GEU Express. <span style="color: red;">*</span></strong></label>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q2" id="C_Q2_Yes" value="Yes" />
-                             <label class="form-check-label" for="C_Q2_Yes">Ya</label>
+                             <input class="form-check-input" type="radio" name="Q2" id="Q2_Yes" value="Yes" />
+                             <label class="form-check-label" for="Q2_Yes">Ya</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q2" id="C_Q2_No" value="No" />
-                             <label class="form-check-label" for="C_Q2_No">Tidak</label>
+                             <input class="form-check-input" type="radio" name="Q2" id="Q2_No" value="No" />
+                             <label class="form-check-label" for="Q2_No">Tidak</label>
                          </div>
                      </div>
                  </div>
@@ -509,12 +509,12 @@
                      <div class="form-group">
                          <label><strong>3. Saya memahami bahwa bisnis ini juga mempunyai resiko kerugian. <span style="color: red;">*</span></strong></label>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q3" id="C_Q3_Yes" value="Yes" />
-                             <label class="form-check-label" for="C_Q3_Yes">Ya</label>
+                             <input class="form-check-input" type="radio" name="Q3" id="Q3_Yes" value="Yes" />
+                             <label class="form-check-label" for="Q3_Yes">Ya</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q3" id="C_Q3_No" value="No" />
-                             <label class="form-check-label" for="C_Q3_No">Tidak</label>
+                             <input class="form-check-input" type="radio" name="Q3" id="Q3_No" value="No" />
+                             <label class="form-check-label" for="Q3_No">Tidak</label>
                          </div>
                      </div>
                  </div>
@@ -522,12 +522,12 @@
                      <div class="form-group">
                          <label><strong>4. Saya bersedia untuk membayar investasi fee sesuai dengan ketentuan. <span style="color: red;">*</span></strong></label>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q4" id="C_Q4_Yes" value="Yes" />
-                             <label class="form-check-label" for="C_Q4_Yes">Ya</label>
+                             <input class="form-check-input" type="radio" name="Q4" id="Q4_Yes" value="Yes" />
+                             <label class="form-check-label" for="Q4_Yes">Ya</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q4" id="C_Q4_No" value="No" />
-                             <label class="form-check-label" for="C_Q4_No">Tidak</label>
+                             <input class="form-check-input" type="radio" name="Q4" id="Q4_No" value="No" />
+                             <label class="form-check-label" for="Q4_No">Tidak</label>
                          </div>
                      </div>
                  </div>
@@ -538,12 +538,12 @@
                      <div class="form-group">
                          <label><strong>5. Saya berkomitmen untuk tidak membuka bisnis sejenis, termasuk menggunakan nama lain, selama masa kemitraan berlangsung maupun setelah kerjasama berakhir sesuai ketentuan perjanjian. <span style="color: red;">*</span></strong></label>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q5" id="C_Q5_Yes" value="Yes" />
-                             <label class="form-check-label" for="C_Q5_Yes">Ya</label>
+                             <input class="form-check-input" type="radio" name="Q5" id="Q5_Yes" value="Yes" />
+                             <label class="form-check-label" for="Q5_Yes">Ya</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q5" id="C_Q5_No" value="No" />
-                             <label class="form-check-label" for="C_Q5_No">Tidak</label>
+                             <input class="form-check-input" type="radio" name="Q5" id="Q5_No" value="No" />
+                             <label class="form-check-label" for="Q5_No">Tidak</label>
                          </div>
                      </div>
                  </div>
@@ -552,12 +552,12 @@
                          <label><strong>6. Saya bersedia untuk menaati kontrak perjanjian
                                  bisnis kemitraan yang telah disepakati kedua belah pihak. <span style="color: red;">*</span></strong></label>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q6" id="C_Q6_Yes" value="Yes" />
-                             <label class="form-check-label" for="C_Q6_Yes">Ya</label>
+                             <input class="form-check-input" type="radio" name="Q6" id="Q6_Yes" value="Yes" />
+                             <label class="form-check-label" for="Q6_Yes">Ya</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="C_Q6" id="C_Q6_No" value="No" />
-                             <label class="form-check-label" for="C_Q6_No">Tidak</label>
+                             <input class="form-check-input" type="radio" name="Q6" id="Q6_No" value="No" />
+                             <label class="form-check-label" for="Q6_No">Tidak</label>
                          </div>
                      </div>
                  </div>
@@ -588,7 +588,7 @@
                      <div class="col-md-4">
                          <div class="form-check">
                              <input class="form-check-input" type="checkbox" name="Doc_KTP" id="Doc_KTP" value="KTP" />
-                             <label class="form-check-label" for="C_Doc_KTP">KTP</label>
+                             <label class="form-check-label" for="Doc_KTP">KTP</label>
                          </div>
                          <div style="display:none;" id="Doc_KTP_Files_Div" class="mt-2 text-center">
                              <div id="Doc_KTP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
@@ -598,23 +598,23 @@
                      <div class="col-md-4">
                          <div class="form-check">
                              <input class="form-check-input" type="checkbox" name="Doc_NPWP" id="Doc_NPWP" value="NPWP" />
-                             <label class="form-check-label" for="C_Doc_NPWP">NPWP</label>
+                             <label class="form-check-label" for="Doc_NPWP">NPWP</label>
                          </div>
                          <div style="display:none;" id="Doc_NPWP_Files_Div" class="mt-2">
                              <span class="badge badge-info py-2 mb-3 w-100">Upload NPWP</span>
                              <div id="Doc_NPWP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                             {{-- <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_NPWP_File" /> --}}
+                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_NPWP_File" />
                          </div>
                      </div>
                      <div class="col-md-4">
                          <div class="form-check">
-                             <input class="form-check-input" type="checkbox" name="Doc_Others" id="Doc_Others" value="Other" />
-                             <label class="form-check-label" for="C_Doc_Other">Dokumen Lainnya</label>
+                             <input class="form-check-input" type="checkbox" name="Doc_Others" id="Doc_Others" value="Others" />
+                             <label class="form-check-label" for="Doc_Others">Dokumen Lainnya</label>
                          </div>
                          <div style="display:none;" id="Doc_Others_Files_Div" class="mt-2">
                              <span class="badge badge-info py-2 mb-3 w-100">Upload Dokumen Lainnya</span>
                              <div id="Doc_Others_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                             {{-- <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_Others_File" /> --}}
+                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_Others_File" />
                          </div>
                      </div>
                  </div>

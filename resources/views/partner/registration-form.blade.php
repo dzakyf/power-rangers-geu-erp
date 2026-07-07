@@ -10,8 +10,8 @@
             @include('form.registration-company')
         </div>
 
-        <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_NPWP_File" />
-        <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_Others_File" />
+        {{-- <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_NPWP_File" />
+        <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_Others_File" /> --}}
 
         <div class="form-group mt-4">
             <button type="button" id="SubmitCustDetail" class="btn btn-success btn-lg">Kirim</button>

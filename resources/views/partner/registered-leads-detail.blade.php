@@ -433,9 +433,11 @@
                     console.log(arr);
                     for (let i = 0; i < arr.length; i++) {
                         const ele = arr[i];
-                        $('#reg_ktp').val(data.ktp);
-                        $('#reg_npwp').val(data.npwp);
-                        $('#reg_supporting_documents').val(data.supporting_documents);
+                        if (ele == 'Others') {
+                            $('#reg_supporting_documents').val(data.all_documents[ele]);
+                        }else {
+                            $('#reg_' + ele.toLowerCase()).val(data.all_documents[ele]);
+                        }
                     }
 
                     $('#reg_q1').val(data.q1);

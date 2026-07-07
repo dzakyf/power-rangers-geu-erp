@@ -16,6 +16,11 @@
 </div>
 
 <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
+	<div>
+		<button class="btn btn-warning" type="button" onclick="window.history.back();">
+			<i class="fas fa-arrow-left"></i> Back
+		</button>
+	</div>
 	<div class="bs-stepper" id="customStepper">
 		<div class="bs-stepper-header" role="tablist">
 			<div class="step" data-target="#step1">
