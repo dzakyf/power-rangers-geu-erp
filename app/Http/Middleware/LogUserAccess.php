@@ -21,7 +21,6 @@ class LogUserAccess
     {
         // Execute the request first so we track it as it happens
         $response = $next($request);
-
         if (!Auth::check()) {
             return redirect()->route('login');
         }

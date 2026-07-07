@@ -153,11 +153,11 @@
                         <div class="col-sm-10">
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="Partnership_Interest" id="Partnership_Interest_1" value="1">
-                                <label class="form-check-label" for="Partnership_Interest_1">Opsi 1</label>
+                                <label class="form-check-label" for="Partnership_Interest_1">Mobil Listrik</label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="Partnership_Interest" id="Partnership_Interest_2" value="2">
-                                <label class="form-check-label" for="Partnership_Interest_2">Opsi 2</label>
+                                <label class="form-check-label" for="Partnership_Interest_2">Booth</label>
                             </div>
                         </div>
                     </div>

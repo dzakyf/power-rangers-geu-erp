@@ -35,7 +35,7 @@
                 <h6 class="mb-2">Preview — Instock Records to be Created</h6>
                 <div style="max-height:250px;overflow-y:auto;">
                     <table class="table table-sm table-bordered" id="previewTable">
-                        <thead><tr><th>Warehouse</th><th>Surat Jalan</th><th>Qty (L)</th><th>Avg Price</th><th>Total</th><th>Reject</th></tr></thead>
+                        <thead><tr><th>Warehouse</th><th>Surat Jalan</th><th>Qty Plan (L)</th><th>Actual Qty</th><th>Avg Price</th><th>Total</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -142,12 +142,13 @@
                     tbody.empty();
                     res.data.forEach(function(g, i) {
                         tbody.append('<tr>' +
-                            '<td>' + g.warehouse + '</td>' +
+                            '<td>' + (g.warehouse_display || g.warehouse) + '</td>' +
                             '<td>' + (g.do_codes || []).join(', ') + '</td>' +
-                            '<td>' + g.received_qty + '</td>' +
+                            '<td>' + g.qty_plan + '</td>' +
+                            '<td>' + g.qty_actual + '</td>' +
                             '<td>' + new Intl.NumberFormat('id-ID').format(g.avg_price) + '</td>' +
                             '<td>' + new Intl.NumberFormat('id-ID').format(g.total) + '</td>' +
-                            '<td><input type="number" step="0.01" class="form-control form-control-sm reject-input" data-index="' + i + '" value="0" style="width:80px;"></td>' +
+
                             '</tr>');
                     });
                     $('#previewSection').show();
@@ -164,14 +165,12 @@
             }
 
             var groups = previewData.map(function(g, i) {
-                var rejectVal = parseFloat($('.reject-input[data-index="' + i + '"]').val()) || 0;
                 return {
                     warehouse: g.warehouse,
                     do_codes: g.do_codes,
                     received_qty: g.received_qty,
                     avg_price: g.avg_price,
-                    total: g.total,
-                    rejected_qty: rejectVal
+                    total: g.total
                 };
             });
 

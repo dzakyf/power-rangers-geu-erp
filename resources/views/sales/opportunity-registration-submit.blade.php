@@ -138,10 +138,10 @@ try {
 
     // Questioner Part 6 
     for ($i = 1; $i < 5; $i++) {
-        $data['c_p6q' . $i] = $req->input('P6Q' . $i);
+        $data['c_p6q' . $i] = $req->input($prefix . 'P6Q' . $i);
 
         if ($i == 1 || $i == 3) {
-            $data['c_p6q' . $i . 'a1'] = $req->input('P6Q' . $i . 'A1');
+            $data['c_p6q' . $i . 'a1'] = $req->input($prefix . 'P6Q' . $i . 'A1');
         }
     }
 

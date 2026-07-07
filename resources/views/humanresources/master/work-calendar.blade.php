@@ -21,6 +21,8 @@
 			<input type="button" id="ekselPODListDet" name="ekselPODListDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="WorkCalendar.toExcel('./export/generate.php');"  />
 			<input type="button" id="AddBM" NAME="AddBM" value="Add " class="btn btn-primary mt-2 mr-2"/>
 			<input type="button" id="EditBM" NAME="EditBM" value="Edit " class="btn btn-info mt-2 mr-2"/>
+
+			<input type="button" id="DetailBM" NAME="DetailBM" value="Detail Days" class="btn btn-secondary mt-2 mr-2"/>
 		</div>
 
 		<div id="WorkCalendarDiv"></div>
@@ -65,6 +67,20 @@ function reloadgroup(){
 
 $("#AddBM").click(function(){
     LoadM('WorkCalendarDiv','hrd-master-work-calendar-new');
+});
+
+$("#DetailBM").click(function(){
+    WorkCalendarID = WorkCalendar.getSelectedId();
+    if (WorkCalendarID == '' || WorkCalendarID == null) {
+        alert('Please select a row to see detail.');
+        return;
+    }
+    if (WorkCalendar.cells(WorkCalendarID, 2).getValue() != 'OFFICE') {
+        LoadM('WorkCalendarDiv','hrd-master-work-calendar-detail-shift?task=' + WorkCalendarID);
+    }else {
+        LoadM('WorkCalendarDiv','hrd-master-work-calendar-detail?task=' + WorkCalendarID);
+    }
+
 });
 
 $("#EditBM").click(function(){

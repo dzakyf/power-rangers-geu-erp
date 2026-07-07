@@ -13,6 +13,7 @@ class MasterWorkCalendaDetailController extends Controller
 
     public function __construct()
     {
+        if(!Auth::check()) return redirect('login');
         $this->Saya = Auth::user()->username;
     }
 

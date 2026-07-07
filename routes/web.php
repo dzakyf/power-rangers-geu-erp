@@ -5439,4 +5439,13 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcPref-master-work-calendar-new-submit", [HCGAMasterWorkCalendarController::class, 'store']);
     Route::get("$hcPref-master-work-calendar-edit", [HCGAMasterWorkCalendarController::class, 'edit']);
     Route::post("$hcPref-master-work-calendar-edit-submit", [HCGAMasterWorkCalendarController::class, 'update']);
+    Route::get("$hcPref-master-work-calendar-detail", [HCGAMasterWorkCalendarController::class, 'detail']);
+    Route::get("xml-$hcPref-master-work-calendar-detail", [HCGAMasterWorkCalendarController::class, 'detailXml']);
+
+    Route::get("$hcPref-recruitment-management", function() {
+        return view('humanresources.recruitment.recruitment-management');
+    });
+    Route::get("xml-$hcPref-recruitment-management", function() {
+        return view('humanresources.recruitment.xml.recruitment-management');
+    });
 });

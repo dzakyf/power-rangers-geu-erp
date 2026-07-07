@@ -47,8 +47,13 @@ class LeadsController extends Controller
             $query->where('op.id',  $rowId)->where('op.lead_id', $leadId);
         }
 
+        $query = $query->get();
+        foreach ($query as $key => $value) {
+            $query[$key]->all_documents = DB::table('opportunity_partner_file')->where("opportunity_id", $value->id)->get()->pluck('file_path', 'type')->toArray();
+        }
 
-        return response()->json(['data' => $query->get()]);
+
+        return response()->json(['data' => $query]);
     }
 
     public function updateLeads(Request $r)

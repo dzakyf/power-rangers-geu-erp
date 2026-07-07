@@ -3,6 +3,7 @@ error_reporting(0);
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Fungsi;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +39,9 @@ function updatekan($rowId,$param) {
 	return "update";
 }
 function deletekan($rowId,$param){
+	if (Str::contains($rowId, '|')) {
+		$rowId = explode('|', $rowId)[0];
+	}
 	DB::update(DB::raw("UPDATE recruitment SET Status='CANCELED' where ID=$rowId")); 
 		return "delete";
 
