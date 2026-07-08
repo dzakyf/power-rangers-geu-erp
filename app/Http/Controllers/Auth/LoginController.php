@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\User;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
@@ -25,13 +26,6 @@ class LoginController extends Controller
     use AuthenticatesUsers;
 
     /**
-     * Where to redirect users after login.
-     *
-     * @var string
-     */
-    protected $redirectTo = 'dashboard1';
-
-    /**
      * Create a new controller instance.
      *
      * @return void
@@ -41,6 +35,26 @@ class LoginController extends Controller
         $this->middleware('guest')->except('logout');
     }
 
+    public function redirectTo()
+    {
+        if (Auth::user()->Position === 'CANDIDATE') {
+            return '/candidate/dashboard';
+        }
+
+        return 'dashboard1';
+    }
+
+    protected function sendLoginResponse(Request $request)
+    {
+        $request->session()->regenerate();
+        $this->clearLoginAttempts($request);
+
+        if (Auth::user()->Position === 'CANDIDATE') {
+            return redirect('/candidate/dashboard');
+        }
+
+        return redirect()->intended($this->redirectPath());
+    }
 
     protected function validator(array $data)
     {

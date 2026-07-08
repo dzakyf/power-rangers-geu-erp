@@ -54,19 +54,32 @@ DB::insert(DB::raw("INSERT INTO employment (Task_ID, NIK, Name, Initial, Birth_P
 
 SELECT Task_ID, Task_ID,  Name, '', Birth_Place, Birth_Date, Gender, Marital_Status, PTKP_Status, kewarganegaraan, Last_Education, Last_Education_From, Education_Major, Religion, '', '', Status, Address, City, Address_Living, City_Living, Phone, Handphone, Email, Email, KTP, Foto, Position, Reason, Location, '', '', Department, Directorat, Priority, Created_Date, '$Saya', Registration_Status, Registration_Status_Date, Registration_Status_Note, Interview_Note, Interview_Date, Interview_Result, Interview_By, Employment_Status, NOW(), Employment_Class, '', Salary_Accepted, '', '', Start_Date, End_Date, NOW(), '', '', '', '', '', '', '', '', '', NPWP,ID,'FRESH' FROM recruitment WHERE ID=$_POST[ID]"));
 
-$recr = DB::table('recruitment')->where('ID', $_POST['ID'])->first();
-DB::table('users')->insert([
-	'Emp_ID' => $recr->Task_ID,
-	'username' => $recr->Task_ID,
-	'password' => bcrypt('12345678'),
-	'Name' => $recr->Name,
-	'email' => $recr->Email_Individual,
-	'Location' => $recr->Location,
-	'Department' => $recr->Department,
-	'Directorat' => $recr->Directorat,
-	'Position' => $recr->Position,
-	'Status' => 'ACTIVE',
-]);
+$recr = DB::table("recruitment")->where("ID", $_POST["ID"])->first();
+$existingUser = DB::table("users")->where("username", $recr->Task_ID)->first();
+if ($existingUser) {
+    DB::table("users")->where("username", $recr->Task_ID)->update([
+        "Name"     => $recr->Name,
+        "email"    => $recr->Email_Individual,
+        "Location" => $recr->Location,
+        "Department" => $recr->Department,
+        "Directorat" => $recr->Directorat,
+        "Position" => $recr->Position,
+        "Status"   => "ACTIVE",
+    ]);
+} else {
+    DB::table("users")->insert([
+        "Emp_ID"   => $recr->Task_ID,
+        "username" => $recr->Task_ID,
+        "password" => bcrypt("12345678"),
+        "Name"     => $recr->Name,
+        "email"    => $recr->Email_Individual,
+        "Location" => $recr->Location,
+        "Department" => $recr->Department,
+        "Directorat" => $recr->Directorat,
+        "Position" => $recr->Position,
+        "Status"   => "ACTIVE",
+    ]);
+}
 
 echo "success";
 ?>

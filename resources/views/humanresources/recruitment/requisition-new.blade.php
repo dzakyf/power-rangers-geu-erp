@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 	
 	$LSP = Auth::user()->Location;
 	$positions = DB::table('master_position')->orderBy('Position', 'asc')->get();
+    $workCalendar = DB::table('work_calendars')->get();
 
 ?>
 
@@ -94,6 +95,18 @@ use Illuminate\Database\Eloquent\Builder;
                     </div>
                     <div class="form-group col-md-3">
                         <label>
+                            Work Schedule
+                        </label>
+                        
+                        <select name="Work_Schedule" id="Work_Schedule" class="form-control">
+                            <option value="">-- Pilih Waktu Kerja --</option>
+                            @foreach ($workCalendar as $item)
+                            <option value="{{$item->ID}}">{{$item->Name}}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>
                             Qty
                         </label>
                         <input type="text" id="Qty" class="form-control" size="10" value="1"/>
@@ -137,6 +150,7 @@ var myCalendar;
             Start_Date: $('#Start_Date').val(),
             End_Date: $('#End_Date').val()
             Work_Area: $('#Work_Area').val()
+            Work_Schedule: $('#Work_Schedule').val()
         };
 
         $.ajax({
