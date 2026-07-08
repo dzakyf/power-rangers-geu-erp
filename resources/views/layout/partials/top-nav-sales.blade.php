@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 // $LSP = Auth::user()->Location;
 // $Priv = Auth::user()->Priv_ID;
 // $DOP = Auth::user()->DOP_Class;
-// $dsess =  Auth::user()->Sub_Menu;
+$dsess =  Auth::user()->Sub_Menu;
 
 ?>
 <nav class="navbar navbar-expand fixed-top top-menu">

@@ -88,6 +88,10 @@ Route::get('partner-early-registration', function () {
     return view('partner.leads');
 });
 
+Route::get('open-recruitment-employee', function () {
+    return view('humanresources.recruitment.recruitment-new-open');
+});
+
 Route::get('partner-registration', function () {
     return view('partner.registration-public');
 });
@@ -368,6 +372,22 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('xml-credential-structure', [App\Http\Controllers\Credential\StructureController::class, 'indexXml']);
     Route::get('credential-structure-detail', [App\Http\Controllers\Credential\StructureController::class, 'detail']);
     Route::post('credential-structure-detail-submit', [App\Http\Controllers\Credential\StructureController::class, 'store']);
+
+    Route::get("/candidate/dashboard", "CandidateController@dashboard");
+    Route::get("/candidate/profile", "CandidateController@profile");
+    Route::post("/candidate/profile-update", "CandidateController@profileUpdate");
+    Route::get("/candidate/documents", "CandidateController@documents");
+    Route::post("/candidate/document-upload", "CandidateController@documentUpload");
+    Route::get("/candidate/assessment", "CandidateController@assessment");
+    Route::get("/candidate/progress", "CandidateController@progress");
+
+    Route::get("/credential-user-management", "CredentialController@userManagement");
+    Route::get("/credential-create-user", "CredentialController@createUser");
+    Route::get("/xml-credential-user-list", "CredentialController@userListData");
+    Route::get("/xml-candidate-without-account", "CredentialController@candidatesWithoutAccount");
+    Route::post("/credential-create-candidate-account", "CredentialController@createCandidateAccount");
+    Route::post("/credential-create-user-submit", "CredentialController@createUserSubmit");
+
 
     Route::get('/accounting-project-posting', function () {
         return view('accounting.project-posting');

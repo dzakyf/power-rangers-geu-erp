@@ -43,7 +43,7 @@ $rekusisi = substr($rekusisi,0,-1);
 
 	echo "<row id=\"$Fetch->ID\">";
 		echo "<cell>$nomor</cell>";
-		echo "<cell>".htmlspecialchars($Fetch->Task_ID)."</cell>";
+		echo "<cell>".htmlspecialchars($Fetch->KTP)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Name)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Gender)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Birth_Date)."</cell>";

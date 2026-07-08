@@ -52,7 +52,7 @@ return true;
 }
 RecruitmentLists = new dhtmlXGridObject('RecruitmentLists');
 RecruitmentLists.setImagePath("./dhtmlx/imgs/");
-RecruitmentLists.setHeader("No.,Task ID,Name,Gender,Birth Date,Requisition,Last Education,Last Education Major,Institution,Reference,Reference Desc,Status,Remaining Time(days)");
+RecruitmentLists.setHeader("No.,KTP,Name,Gender,Birth Date,Requisition,Last Education,Last Education Major,Institution,Reference,Reference Desc,Status,Remaining Time(days)");
 RecruitmentLists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#combo_filter,#rspan");
 RecruitmentLists.setInitWidths("70,150,100,100,100,200,100,100,100,120,100,100,100");
 RecruitmentLists.setColAlign("center,left,center,center,center,center,center,center,center,center,center,center");
