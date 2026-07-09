@@ -226,6 +226,16 @@
         renderGallery();
     }
 
+    function dataURLToBlob(dataUrl) {
+        var parts = dataUrl.split(',');
+        var mime = parts[0].match(/:(.*?);/)[1];
+        var bytes = atob(parts[1]);
+        var ab = new ArrayBuffer(bytes.length);
+        var ia = new Uint8Array(ab);
+        for (var i = 0; i < bytes.length; i++) ia[i] = bytes.charCodeAt(i);
+        return new Blob([ab], { type: mime });
+    }
+
     function submitForm() {
         var form = document.getElementById('UpdateReceiptForm');
         if (!form.checkValidity()) {
@@ -235,6 +245,10 @@
         }
 
         var payload = new FormData(form);
+        capturedPhotos.forEach(function(dataUrl) {
+            var blob = dataURLToBlob(dataUrl);
+            payload.append('weighing_photos[]', blob, 'weighing_' + Date.now() + '.png');
+        });
 
         $.ajax({
             url: 'partner-delivery-order-update-submit',

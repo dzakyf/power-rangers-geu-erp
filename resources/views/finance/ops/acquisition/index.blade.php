@@ -52,12 +52,12 @@
     function initAcquisitionGrid() {
         acquisitionGrid = new dhtmlXGridObject('acquisitionGrid');
         acquisitionGrid.setImagePath("./dhtmlx/imgs/");
-        acquisitionGrid.setHeader("No,DO Code, PO Code, POO Name, Qty, Expected Cost, Actual Cost, Status, Submitted At");
-        acquisitionGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#rspan,#rspan,#rspan,#rspan");
-        acquisitionGrid.setInitWidths("50,100,120,*,80,120,120,100,150");
-        acquisitionGrid.setColAlign("center,left,left,left,right,right,right,center,left");
-        acquisitionGrid.setColSorting("int,str,str,str,int,str,str,str,str");
-        acquisitionGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");
+        acquisitionGrid.setHeader("No,DO Code, PO Code, POO Name, Qty Plan, Actual Qty, Price/L, Expected Cost, Actual Cost, Status, Submitted At");
+        acquisitionGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#rspan,#rspan,#rspan,#rspan");
+        acquisitionGrid.setInitWidths("50,100,120,*,80,80,80,120,120,100,150");
+        acquisitionGrid.setColAlign("center,left,left,left,right,right,right,right,right,center,left");
+        acquisitionGrid.setColSorting("int,str,str,str,int,int,int,str,str,str,str");
+        acquisitionGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
         acquisitionGrid.setSkin("dhx_skyblue");
         acquisitionGrid.attachEvent("onRowDblClick", function(id) {
             selectedPoId = acquisitionGrid.getRowAttribute(id, 'ID');
@@ -397,6 +397,9 @@
             bodyHtml += '<div class="col-md-12">';
             bodyHtml += '<table class="table table-sm table-borderless">';
             bodyHtml += '<tr><td class="text-muted" style="width:160px;">Pickup Code</td><td>' + (d.PO_Code || '-') + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Qty Plan</td><td>' + (d.Qty || 0) + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Actual Qty</td><td>' + (d.Actual_Qty || 0) + '</td></tr>';
+            bodyHtml += '<tr><td class="text-muted">Price / Liter</td><td>Rp ' + ((Number(d.POO_Price || 0)).toLocaleString()) + '</td></tr>';
             bodyHtml += '<tr><td class="text-muted">Warehouse</td><td>' + (d.warehouse_location || '-') + '</td></tr>';
             bodyHtml += '<tr><td class="text-muted">Driver</td><td>' + (d.Driver_Name || '-') + '</td></tr>';
             bodyHtml += '<tr><td class="text-muted">Fleet</td><td>' + (d.Police_Number || '-') + '</td></tr>';
@@ -405,6 +408,14 @@
             bodyHtml += '</table>';
             bodyHtml += '</div>';
             bodyHtml += '</div>';
+
+            if (d.DO_Photo_Url) {
+                bodyHtml += '<hr>';
+                bodyHtml += '<h6 class="mb-2 font-weight-bold">Foto Delivery Order</h6>';
+                bodyHtml += '<a href="' + d.DO_Photo_Url + '" target="_blank" class="btn btn-sm btn-outline-info">';
+                bodyHtml += '<i class="fa fa-camera"></i> Lihat Foto';
+                bodyHtml += '</a>';
+            }
 
             if (d.Receipt_Url) {
                 bodyHtml += '<hr>';
