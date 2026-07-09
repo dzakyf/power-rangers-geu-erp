@@ -4566,6 +4566,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$finance-pickup-route-detail", [UCOLogisticController::class, "getRouteDetail"]);
 
     Route::get("finance-settlement-cost", [UCOLogisticController::class, 'indexSettlement']);
+    Route::get("finance-settlement-approval", [UCOLogisticController::class, "indexSettlementApproval"]);
+    Route::get("finance-settlement-detail", [UCOLogisticController::class, "getSettlementDetail"]);
+    Route::post("finance-settlement-action", [UCOLogisticController::class, "actionSettlement"]);
     Route::get("finance-acquisition-cost", [UCOLogisticController::class, 'indexAcquisition']);
 
     Route::get("finance-acquisition-cost-data",   [UCOLogisticController::class, 'getAcquisitionCostData']);
@@ -4588,7 +4591,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$pickupPref-create", [UCOLogisticController::class, 'createPickupRequest']);
     Route::post("$pickupPref-create-submit", [UCOLogisticController::class, 'submitCreatePickupRequest']);
     Route::post("$pickupPref-assign-fleet", [UCOLogisticController::class, 'assignFleetToPickupRequest']);
-    Route::post("$pickupPref-finish-settlement", [UCOLogisticController::class, 'finishSettlement']);
+    Route::post("$pickupPref-finish-settlement", [UCOLogisticController::class, 'actionSettlement']);
 
 
 

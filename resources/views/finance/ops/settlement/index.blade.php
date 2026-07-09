@@ -18,7 +18,7 @@
                 <h5>Manajemen Biaya & Route</h5>
             </div>
             <div class="col-md-auto ml-auto p-2">
-                <button id="settleRouteBtn" class="btn btn-primary">Settlement</button>
+                <button id="settleRouteBtn" class="btn btn-primary">Submit Settlement</button>
             </div>
         </div>
     </div>
@@ -162,7 +162,7 @@
                                 class: 'btn-secondary',
                             },
                             {
-                                label: 'Selesaikan Settlement',
+                                label: 'Submit Settlement',
                                 class: 'btn-success',
                                 id: 'btnSelesaikanSettlement',
                                 onClick: function() {
@@ -207,7 +207,7 @@
                                         processData: false,
                                         contentType: false,
                                         success: function(res) {
-                                            alert('Settlement berhasil disimpan!');
+                                            alert('Settlement submitted, menunggu approval Finance');
                                             AppModal.close();
                                             costRouteGrid.load('partner-pickup-route-data?status=PENDING_SETTLEMENT&format=xml');
                                         },

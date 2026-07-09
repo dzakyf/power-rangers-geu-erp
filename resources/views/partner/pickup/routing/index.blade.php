@@ -142,8 +142,7 @@
         if (dateStart) url += '&date_start=' + encodeURIComponent(dateStart);
         if (dateEnd) url += '&date_end=' + encodeURIComponent(dateEnd);
 
-        routingGrid.clearAll();
-        routingGrid.load(url);
+        routingGrid.clearAndLoad(url);
     }
 
     // --- Step navigation (unchanged) ---
@@ -305,8 +304,13 @@
                 if (res.status === 'success') {
                     var data = res.data;
                     var decoded = polyline.decode(data.encoded_polyline);
-                    var latlngs = decoded.map(function(p) { return [p[0], p[1]]; });
-                    L.polyline(latlngs, { color: 'blue', weight: 5 }).addTo(map);
+                    var latlngs = decoded.map(function(p) {
+                        return [p[0], p[1]];
+                    });
+                    L.polyline(latlngs, {
+                        color: 'blue',
+                        weight: 5
+                    }).addTo(map);
                     map.fitBounds(latlngs);
 
                     var whId = $('#warehouseFilter').val();
@@ -320,7 +324,9 @@
                             iconSize: [28, 28],
                             iconAnchor: [14, 14]
                         });
-                        L.marker([whLat, whLng], { icon: whIcon }).addTo(map)
+                        L.marker([whLat, whLng], {
+                                icon: whIcon
+                            }).addTo(map)
                             .bindPopup('<b>Warehouse</b><br>' + whOption.text());
                     }
                     AppModal.close();
@@ -527,19 +533,28 @@
             var doIds = [selectedDoId];
 
             // Fetch all POs belonging to selected DOs
-            $.get('partner-pickup-data', { format: 'json', delivery_order_id: doIds.join(',') }, function(res) {
+            $.get('partner-pickup-data', {
+                format: 'json',
+                delivery_order_id: doIds.join(',')
+            }, function(res) {
                 var orders = res.data || [];
                 if (orders.length === 0) {
                     alert('Tidak ada Pickup Order pada Surat Jalan yang dipilih');
                     return;
                 }
 
-                var poIds = orders.map(function(o) { return o.ID; });
+                var poIds = orders.map(function(o) {
+                    return o.ID;
+                });
 
                 // --- Reroute check ---
-                $.get('partner-pickup-route-waypoints-data', { po_ids: poIds.join(',') }, function(res) {
+                $.get('partner-pickup-route-waypoints-data', {
+                    po_ids: poIds.join(',')
+                }, function(res) {
                     if (res.routed) {
-                        var codes = res.data.map(function(r) { return r.Route_Code; }).join(', ');
+                        var codes = res.data.map(function(r) {
+                            return r.Route_Code;
+                        }).join(', ');
                         alert('Beberapa PO sudah dirutekan: ' + codes + '. Silakan pilih Surat Jalan lain.');
                         return;
                     }
@@ -557,30 +572,46 @@
                 return;
             }
             var rowId = selectedDoId;
-            var rowData = routingGrid.cells(rowId, 1).getValue();
 
-            $.get('partner-pickup-data', { format: 'json', delivery_order_id: rowId }, function(res) {
-                var pos = res.data || [];
-                var bodyHtml = '';
-                bodyHtml += '<div class="mb-3 p-3 bg-light rounded">';
-                bodyHtml += '<h6 class="font-weight-bold">Surat Jalan: ' + rowData + '</h6>';
-                bodyHtml += '</div>';
-                bodyHtml += '<table class="table table-sm table-bordered">';
-                bodyHtml += '<thead class="thead-light"><tr><th>No</th><th>PO Code</th><th>POO Name</th><th>Qty</th></tr></thead>';
-                bodyHtml += '<tbody>';
-                pos.forEach(function(po, i) {
-                    bodyHtml += '<tr><td>' + (i + 1) + '</td><td>' + (po.Code || '-') + '</td><td>' + (po.POO_Name || '-') + '</td><td>' + (po.Qty || '0') + '</td></tr>';
-                });
-                bodyHtml += '</tbody></table>';
+            $.get('partner-delivery-order-data', {
+                id: rowId,
+                format: 'json'
+            }, function(doRes) {
+                var doData = doRes.data && doRes.data[0];
+                var rowData = doData ? doData.DO_Code : rowId;
 
-                AppModal.open({
-                    title: 'Detail Surat Jalan',
-                    size: 'lg',
-                    body: bodyHtml,
-                    actions: [{ label: 'Close', class: 'btn-secondary', onClick: function() { AppModal.close(); } }]
+                $.get('partner-pickup-data', {
+                    format: 'json',
+                    delivery_order_id: rowId
+                }, function(res) {
+                    var pos = res.data || [];
+                    var bodyHtml = '';
+                    bodyHtml += '<div class="mb-3 p-3 bg-light rounded">';
+                    bodyHtml += '<h6 class="font-weight-bold">Surat Jalan: ' + rowData + '</h6>';
+                    bodyHtml += '</div>';
+                    bodyHtml += '<table class="table table-sm table-bordered">';
+                    bodyHtml += '<thead class="thead-light"><tr><th>No</th><th>PO Code</th><th>POO Name</th><th>Qty</th></tr></thead>';
+                    bodyHtml += '<tbody>';
+                    pos.forEach(function(po, i) {
+                        bodyHtml += '<tr><td>' + (i + 1) + '</td><td>' + (po.Code || '-') + '</td><td>' + (po.POO_Name || '-') + '</td><td>' + (po.Qty || '0') + '</td></tr>';
+                    });
+                    bodyHtml += '</tbody></table>';
+
+                    AppModal.open({
+                        title: 'Detail Surat Jalan',
+                        size: 'lg',
+                        body: bodyHtml,
+                        actions: [{
+                            label: 'Close',
+                            class: 'btn-secondary',
+                            onClick: function() {
+                                AppModal.close();
+                            }
+                        }]
+                    });
                 });
             });
-        });
+        })
 
         $(window).on('resize', function() {
             if (routingGrid) routingGrid.setSizes();

@@ -138,6 +138,30 @@ class UCOController extends Controller
                         'Created_At'  => now(),
                     ]);
                 }
+
+                // Weighing photos (binary file upload from webcam)
+                if ($r->hasFile('weighing_photos')) {
+                    foreach ($r->file('weighing_photos') as $file) {
+                        if ($file->isValid()) {
+                            $ext = $file->getClientOriginalExtension();
+                            $wName = "weighing_{$poId}_" . time() . "_" . uniqid() . '.' . $ext;
+                            $wDir = public_path("filevendor/{$year}/{$month}");
+                            if (!is_dir($wDir)) { mkdir($wDir, 0777, true); }
+                            $file->move($wDir, $wName);
+                            $wPath = "{$year}/{$month}/{$wName}";
+
+                            DB::table('meta_files')->insert([
+                                'Filename'    => $wName,
+                                'Path'        => $wPath,
+                                'Extension'   => $ext,
+                                'Description' => 'Weighing_Photo',
+                                'Topic'       => 'delivery-order',
+                                'Map_To'      => $poId,
+                                'Created_At'  => now(),
+                            ]);
+                        }
+                    }
+                }
             });
 
             return response()->json(['status' => 'success', 'message' => 'Delivery order berhasil diupdate.']);
@@ -1374,93 +1398,161 @@ class UCOController extends Controller
     }
 
 
-    public function finishSettlement(Request $r)
+
+
+
+    public function actionSettlement(Request $r)
     {
-        $routeIds = $r->input('route_ids', '');
-        if (empty($routeIds)) {
-            return response()->json(['status' => 'error', 'message' => 'route_ids is required'], 400);
-        }
+        $action = $r->input('action'); // submit, approve, reject
 
-        $sections = [
-            ['key' => 'bbm',         'label' => 'BBM'],
-            ['key' => 'tol',         'label' => 'TOL'],
-            ['key' => 'parkir',      'label' => 'Parkir'],
-            ['key' => 'op_driver',   'label' => 'Operasional Driver'],
-            ['key' => 'op_lapangan', 'label' => 'Operasional Lapangan'],
-            ['key' => 'non_receipt', 'label' => 'Biaya non receipt'],
-        ];
+        if ($action === 'submit') {
+            $routeIds = $r->input('route_ids', '');
+            if (empty($routeIds)) {
+                return response()->json(['status' => 'error', 'message' => 'route_ids is required'], 400);
+            }
 
-        try {
-            DB::transaction(function () use ($r, $routeIds, $sections) {
-                $year  = Carbon::now()->year;
-                $month = Carbon::now()->format('m');
+            $sections = [
+                ['key' => 'bbm',         'label' => 'BBM'],
+                ['key' => 'tol',         'label' => 'TOL'],
+                ['key' => 'parkir',      'label' => 'Parkir'],
+                ['key' => 'op_driver',   'label' => 'Operasional Driver'],
+                ['key' => 'op_lapangan', 'label' => 'Operasional Lapangan'],
+                ['key' => 'non_receipt', 'label' => 'Biaya non receipt'],
+            ];
 
-                foreach ($sections as $sec) {
-                    $nominal = $r->input("{$sec['key']}_nominal");
-                    $notes   = $r->input("{$sec['key']}_keterangan");
+            try {
+                DB::transaction(function () use ($r, $routeIds, $sections) {
+                    $session = $this->userService->getCurrentSessionUserInfo();
+                    $year  = Carbon::now()->year;
+                    $month = Carbon::now()->format('m');
 
+                    foreach ($sections as $sec) {
+                        $nominal = $r->input("{$sec['key']}_nominal");
+                        $notes   = $r->input("{$sec['key']}_keterangan");
 
-                    if (empty($nominal) && empty($notes)) {
-                        continue;
-                    }
-
-                    $settlementId = DB::table('settlement')->insertGetId([
-                        'Route_Id'       => $routeIds,
-                        'Description' => $sec['label'],
-                        'Nominal'     => $nominal,
-                        'Notes'       => $notes,
-                        'Created_At'  => now(),
-                    ]);
-
-                    $fileField = "{$sec['key']}_file";
-                    $files = $r->file($fileField, []);
-
-                    if (!is_array($files)) {
-                        $files = $files ? [$files] : [];
-                    }
-
-                    foreach ($files as $file) {
-                        if (!$file instanceof \Illuminate\Http\UploadedFile || !$file->isValid()) {
+                        if (empty($nominal) && empty($notes)) {
                             continue;
                         }
 
-                        $ext      = $file->getClientOriginalExtension();
-                        $uuid     = \Illuminate\Support\Str::uuid()->toString();
-                        $destDir  = public_path("filevendor/{$year}/{$month}");
-                        if (!is_dir($destDir)) {
-                            mkdir($destDir, 0777, true);
-                        }
-                        $fileName = "{$uuid}.{$ext}";
-                        $file->move($destDir, $fileName);
-
-                        DB::table('meta_files')->insert([
-                            'Filename'    => $fileName,
-                            'Path'        => "{$year}/{$month}/{$fileName}",
-                            'Extension'   => $ext,
+                        $settlementId = DB::table('settlement')->insertGetId([
+                            'Route_Id'    => $routeIds,
                             'Description' => $sec['label'],
-                            'Topic'       => 'settlement',
-                            'Map_To'      => $settlementId,
+                            'Nominal'     => $nominal,
+                            'Notes'       => $notes,
+                            'Created_By'  => $session->username,
                             'Created_At'  => now(),
                         ]);
+
+                        $fileField = "{$sec['key']}_file";
+                        $files = $r->file($fileField, []);
+
+                        if (!is_array($files)) {
+                            $files = $files ? [$files] : [];
+                        }
+
+                        foreach ($files as $file) {
+                            if (!$file instanceof \Illuminate\Http\UploadedFile || !$file->isValid()) {
+                                continue;
+                            }
+
+                            $ext      = $file->getClientOriginalExtension();
+                            $uuid     = \Illuminate\Support\Str::uuid()->toString();
+                            $destDir  = public_path("filevendor/{$year}/{$month}");
+                            if (!is_dir($destDir)) {
+                                mkdir($destDir, 0777, true);
+                            }
+                            $fileName = "{$uuid}.{$ext}";
+                            $file->move($destDir, $fileName);
+
+                            DB::table('meta_files')->insert([
+                                'Filename'    => $fileName,
+                                'Path'        => "{$year}/{$month}/{$fileName}",
+                                'Extension'   => $ext,
+                                'Description' => $sec['label'],
+                                'Topic'       => 'settlement',
+                                'Map_To'      => $settlementId,
+                                'Created_At'  => now(),
+                            ]);
+                        }
                     }
-                }
 
-                $routeIdArray = array_filter(explode(',', $routeIds));
-                if (!empty($routeIdArray)) {
-                    DB::table('pickup_routes')
-                        ->whereIn('ID', $routeIdArray)
-                        ->update(['Status' => 'SETTLED']);
-                }
-            });
+                    $routeIdArray = array_filter(explode(',', $routeIds));
+                    if (!empty($routeIdArray)) {
+                        DB::table('pickup_routes')
+                            ->whereIn('ID', $routeIdArray)
+                            ->update(['Status' => 'SETTLEMENT_PENDING']);
+                    }
+                });
 
-            return response()->json(['status' => 'success', 'message' => 'Settlement berhasil disimpan.']);
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+                return response()->json(['status' => 'success', 'message' => 'Settlement submitted, menunggu approval Finance.']);
+            } catch (\Exception $e) {
+                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            }
         }
+
+        // approve / reject
+        $routeId = $r->input('route_id');
+        if (!$routeId) {
+            return response()->json(['status' => 'error', 'message' => 'route_id is required'], 400);
+        }
+
+        if ($action === 'approve') {
+            DB::table('pickup_routes')->where('ID', $routeId)->update(['Status' => 'SETTLED']);
+            return response()->json(['status' => 'success', 'message' => 'Settlement approved.']);
+        }
+
+        if ($action === 'reject') {
+            $notes = $r->input('notes', '');
+            DB::table('pickup_routes')->where('ID', $routeId)->update(['Status' => 'PENDING_SETTLEMENT']);
+            return response()->json(['status' => 'success', 'message' => 'Settlement rejected, kembali ke PENDING_SETTLEMENT.']);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'Invalid action'], 400);
     }
+
+    public function getSettlementDetail(Request $r)
+    {
+        $routeId = $r->query('route_id');
+        if (!$routeId) {
+            return response()->json(['status' => 'error', 'message' => 'route_id is required'], 400);
+        }
+
+        $route = DB::table('pickup_routes')->where('ID', $routeId)->first();
+        if (!$route) {
+            return response()->json(['status' => 'error', 'message' => 'Route not found'], 404);
+        }
+
+        $settlements = DB::table('settlement')
+            ->whereRaw("FIND_IN_SET(?, Route_Id)", [$routeId])
+            ->get();
+
+        foreach ($settlements as $s) {
+            $files = DB::table('meta_files')
+                ->where('Topic', 'settlement')
+                ->where('Map_To', $s->ID)
+                ->get(['Path']);
+            $s->files = $files->pluck('Path')->map(function($p) {
+                return asset($p);
+            });
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => [
+                'route'       => $route,
+                'settlements' => $settlements,
+            ],
+        ]);
+    }
+
     public function indexSettlement()
     {
         return view('finance.ops.settlement.index');
+    }
+
+    public function indexSettlementApproval()
+    {
+        return view('finance.ops.settlement-approval.index');
     }
 
     public function indexAcquisition()
@@ -1483,9 +1575,10 @@ class UCOController extends Controller
                 'd.Code as DO_Code',
                 'mp.Name as POO_Name',
                 'po.Qty',
+                'po.Actual_Qty',
+                'mp.Price as POO_Price',
                 'po.Total_Cost',
                 'po.Actual_Nominal_Transfer',
-                'po.Actual_Qty',
                 'po.Acquisition_Status',
                 'po.Acquisition_Submitted_At',
                 'po.Acquisition_Approved_At',
@@ -1515,6 +1608,8 @@ class UCOController extends Controller
                 $row->addChild('cell', htmlspecialchars((string) $d->PO_Code));
                 $row->addChild('cell', htmlspecialchars((string) $d->POO_Name));
                 $row->addChild('cell', (string) $d->Qty);
+                $row->addChild('cell', (string) ($d->Actual_Qty ?? ''));
+                $row->addChild('cell', (string) ($d->POO_Price ?? 0));
                 $row->addChild('cell', (string) $d->Total_Cost);
                 $row->addChild('cell', (string) $d->Actual_Nominal_Transfer);
                 $row->addChild('cell', htmlspecialchars((string) $d->Acquisition_Status));
@@ -1618,6 +1713,11 @@ class UCOController extends Controller
             ->leftJoin('users as driver', 'po.Fleet_Id', '=', 'driver.id')
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
             ->leftJoin('warehouse_partner as wp', 'mp.Nearest_Warehouse', '=', 'wp.id')
+            ->leftJoin('meta_files as mf3', function ($join) {
+                $join->on('po.ID', '=', 'mf3.Map_To')
+                    ->where('mf3.Topic', '=', 'delivery-order')
+                    ->where('mf3.Description', '=', 'Weighing_Photo');
+            })
             ->leftJoin('meta_files as mf2', function ($join) {
                 $join->on('po.ID', '=', 'mf2.Map_To')
                     ->where('mf2.Topic', '=', 'acquisition-cost-receipt');
@@ -1626,9 +1726,10 @@ class UCOController extends Controller
                 'po.ID',
                 'po.Code as PO_Code',
                 'po.Qty',
+                'po.Actual_Qty',
+                'mp.Price as POO_Price',
                 'po.Total_Cost',
                 'po.Actual_Nominal_Transfer',
-                'po.Actual_Qty',
                 'po.Acquisition_Status',
                 'po.Acquisition_Submitted_At',
                 'po.Acquisition_Approved_At',
@@ -1647,7 +1748,8 @@ class UCOController extends Controller
                 'mp.Bank_Account_Number',
                 'mp.Bank_Account_Name',
                 'wp.warehouse_location',
-                'mf2.Path as Receipt_Path'
+                'mf2.Path as Receipt_Path',
+                'mf3.Path as DO_Photo_Path'
             )
             ->where('po.ID', $id)
             ->first();
@@ -1656,6 +1758,12 @@ class UCOController extends Controller
             $data->Receipt_Url = url('filevendor/' . $data->Receipt_Path);
         } else {
             $data->Receipt_Url = null;
+        }
+
+        if ($data && $data->DO_Photo_Path) {
+            $data->DO_Photo_Url = url('filevendor/' . $data->DO_Photo_Path);
+        } else {
+            $data->DO_Photo_Url = null;
         }
 
         return response()->json(['success' => true, 'data' => $data]);
@@ -2279,6 +2387,12 @@ class UCOController extends Controller
 
         try {
             DB::beginTransaction();
+
+            $outstock = DB::table('outstock')->where('ID', $outstockId)->first();
+            if (!$outstock) {
+                throw new \Exception('Outstock not found');
+            }
+
             DB::table('outstock_handover')->where('Outstock_ID', $outstockId)->delete();
 
             DB::table('outstock_handover')->insert([
@@ -2291,6 +2405,51 @@ class UCOController extends Controller
             ]);
 
             DB::table('outstock')->where('ID', $outstockId)->update(['Status' => 'COMPLETED']);
+
+            // Insert into warehouse_partner_stock_request for each warehouse
+            $outstockWhs = DB::table('outstock_warehouses')
+                ->where('Outstock_ID', $outstockId)
+                ->pluck('Warehouse_ID');
+
+            foreach ($outstockWhs as $whId) {
+                $wp = DB::table('warehouse_partner')->where('id', $whId)->first(['warehouse_task_id', 'warehouse_location']);
+                if (!$wp || !$wp->warehouse_task_id) continue;
+
+                $loadingQty = DB::table('outstock_loading')
+                    ->join('master_container as mc', 'outstock_loading.Container_ID', '=', 'mc.ID')
+                    ->where('outstock_loading.Outstock_ID', $outstockId)
+                    ->where('mc.Warehouse_ID', $whId)
+                    ->sum('outstock_loading.Actual_Qty');
+
+                if ($loadingQty <= 0) continue;
+
+                $supplies = DB::table('warehouse_partner_supplies')
+                    ->where('warehouse_task_id', $wp->warehouse_task_id)
+                    ->where('created_date', '<=', ($r->input('Date') ?: now()) . ' 23:59:59')
+                    ->get(['received_qty', 'total']);
+
+                $avgPrice = 0;
+                $totalQty = 0;
+                foreach ($supplies as $s) {
+                    $avgPrice = $totalQty > 0
+                        ? ($avgPrice * $totalQty + $s->total) / ($totalQty + $s->received_qty)
+                        : ($s->received_qty > 0 ? $s->total / $s->received_qty : 0);
+                    $totalQty += $s->received_qty;
+                }
+
+                DB::table('warehouse_partner_stock_request')->insert([
+                    'warehouse_task_id' => $wp->warehouse_task_id,
+                    'proposed_qty'      => $loadingQty,
+                    'request_qty'       => $loadingQty,
+                    'request_date'      => $r->input('Date'),
+                    'price'             => round($avgPrice, 2),
+                    'total'             => round($loadingQty * $avgPrice, 2),
+                    'reference'         => 'OUTSTOCK: ' . $outstock->Code . ' - ' . ($wp->warehouse_location ?? 'WH#' . $whId),
+                    'remark'            => 'Auto-generated from outstock completion',
+                    'created_date'      => now(),
+                    'created_by'        => auth()->user()->username ?? 'outstock',
+                ]);
+            }
 
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Handover saved. Outstock completed.']);
