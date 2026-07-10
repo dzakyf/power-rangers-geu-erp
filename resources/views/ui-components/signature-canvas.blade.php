@@ -33,6 +33,7 @@ $saveDocumentUrl = $saveDocumentUrl ?? "/geu/hcga/public/partner-onboarding-subm
     <form id="{{ $formId }}" method="POST" action="{{ $saveUrl }}" style="display: none;">
         @csrf
         <input type="hidden" name="signature" id="signature_data_{{ $instanceId }}">
+        <input type="hidden" name="opportunity_id" value="{{ $opportunityId }}">
     </form>
 
     <form id="{{ $finalizeFormId }}" method="POST" action="{{ $saveDocumentUrl }}" style="display: none;">

@@ -2106,7 +2106,7 @@ class UCOController extends Controller
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
             ->leftJoin('delivery_order as d', 'po.DO_Id', '=', 'd.ID')
             ->leftJoin('warehouse_partner as wp', 'mp.Nearest_Warehouse', '=', 'wp.id')
-            ->select('po.DO_Id', 'd.Code as DO_Code', 'po.Actual_Qty', 'po.Qty', 'mp.Price as POO_Price', 'mp.Nearest_Warehouse', 'wp.warehouse_task_id', 'wp.warehouse_location')
+            ->select('po.ID', 'po.Code as PO_Code', 'po.DO_Id', 'd.Code as DO_Code', 'po.Actual_Qty', 'po.Qty', 'mp.Name as POO_Name', 'mp.Price as POO_Price', 'mp.Nearest_Warehouse', 'wp.warehouse_task_id', 'wp.warehouse_location')
             ->whereIn('po.DO_Id', $doIds)
             ->where('d.DO_Status', 'DONE')
             ->get();
@@ -2122,17 +2122,31 @@ class UCOController extends Controller
             $qtyActual = $row->Actual_Qty ?? 0;
             $price = $row->POO_Price ?? 0;
             if (!isset($groups[$wh])) {
-                $groups[$wh] = ['warehouse' => $wh, 'warehouse_display' => $display, 'do_codes' => [], 'qty_plan' => 0, 'qty_actual' => 0, 'total' => 0];
+                $groups[$wh] = ['warehouse' => $wh, 'warehouse_display' => $display, 'do_codes' => [], 'qty_plan' => 0, 'qty_actual' => 0, 'total' => 0, 'po_details' => []];
             }
             $groups[$wh]['do_codes'][] = $row->DO_Code;
             $groups[$wh]['qty_plan'] += $qtyPlan;
             $groups[$wh]['qty_actual'] += $qtyActual;
             $groups[$wh]['total'] += $qtyActual * $price;
+            $groups[$wh]['po_details'][] = [
+                'po_id'          => $row->ID,
+                'po_code'        => $row->PO_Code,
+                'poo_name'       => $row->POO_Name,
+                'do_code'        => $row->DO_Code,
+                'qty_plan'       => $qtyPlan,
+                'qty_actual'     => $qtyActual,
+                'percentage'     => 0,
+                'recommendation' => 0,
+            ];
         }
         foreach ($groups as &$g) {
             $g['do_codes'] = array_unique(array_filter($g['do_codes']));
             $g['received_qty'] = $g['qty_actual'];
             $g['avg_price'] = $g['qty_actual'] > 0 ? round($g['total'] / $g['qty_actual'], 2) : 0;
+            foreach ($g['po_details'] as &$po) {
+                $po['percentage'] = $g['qty_plan'] > 0 ? round(($po['qty_plan'] / $g['qty_plan']) * 100, 2) : 0;
+                $po['recommendation'] = ($g['qty_plan'] > 0 && $g['qty_actual'] > 0) ? round(($po['qty_plan'] / $g['qty_plan']) * $g['qty_actual'], 2) : 0;
+            }
         }
 
         return response()->json(['success' => true, 'data' => array_values($groups)]);
@@ -2185,6 +2199,16 @@ class UCOController extends Controller
                     if ($b64) {
                         $this->uploadService->storeFile($b64, 'base64', 'instock_photo_batch', date('Y-m-d'), 'Instock Batch Photo');
                     }
+                }
+            }
+
+            $recommendations = $r->input('recommendations');
+            if ($recommendations && is_string($recommendations)) {
+                $recommendations = json_decode($recommendations, true) ?? [];
+            }
+            if (!empty($recommendations)) {
+                foreach ($recommendations as $poId => $rec) {
+                    DB::table('pickup_order')->where('ID', $poId)->update(['Instock_Recommendation' => $rec]);
                 }
             }
 

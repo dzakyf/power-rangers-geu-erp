@@ -4,7 +4,7 @@
 		<div id="WarehouseListDetail" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 		<div>
 			<input type="button" id="ekselWarehouseListDetailDet" name="ekselWarehouseListDetailDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseListDetail.toExcel('./export/generate.php');" />
-			<input type="button" id="detailWarehouseListDetail" name="newWarehouseListDetail" value="New Warehouse Out" class="btn btn-success mt-2 mr-2" onclick="WarehouseListDetailNew()" />
+			<!-- <input type="button" id="detailWarehouseListDetail" name="newWarehouseListDetail" value="New Warehouse Out" class="btn btn-success mt-2 mr-2" onclick="WarehouseListDetailNew()" /> -->
 		</div>
 	</div>
 </div>
