@@ -62,6 +62,7 @@ $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
 	$('#Warehouse_Location').select2();
 	$('#Partner_Name').select2();
 	$('#SubmitCustDetail').click(function() {
+		$.blockUI({ message: '<h5>Processing...</h5>' });
 
 		gettingVars = getAllValues();
 
@@ -76,6 +77,7 @@ $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
 					var cariAWB = data.split(":");
+					$.unblockUI();
 					alert('Data Opportunity Submitted!');
 
 					location.href = "partner-warehouse-list";
@@ -84,6 +86,7 @@ $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
+				$.unblockUI();
 				alert("Error Internal! Please Try again!");
 
 			}

@@ -187,7 +187,7 @@ class OnboardingController extends Controller
         $body = $r->all();
         // $doc = $r->file('file');
         $path = public_path('pks.docx');
-        $doc = $this->makeMou($body, $body['opportunity_id'], $path);
+        $doc = $this->makePks($body, $body['opportunity_id'], $path);
 
         $path = $this->generatorService->generateUUID();
         $ext = "png";

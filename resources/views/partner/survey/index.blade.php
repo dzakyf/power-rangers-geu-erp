@@ -33,7 +33,7 @@ $Saya =  Auth::user()->username;
         <div class="card-body">
             <div id="Survey" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
             <div>
-                <!-- <input type="button" id="detailSurvey" name="detailSurvey" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
+                <input type="button" id="buatSurvey" name="buatSurvey" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" />
                 <input type="button" value="Lengkapi Data" class="btn btn-primary mt-2 mr-2" onclick="redirectToEditSurvey()" />
                 <!-- <input type="button" value="Reply" class="btn btn-success mt-2 mr-2" onclick="redirectToReplySurvey()" /> -->
                 <input type="button" id="detailSurvey" name="detailSurvey" value="Detail" class="btn btn-info mt-2 mr-2" onclick="SurveyKlik()" />

@@ -31,24 +31,24 @@
 
 @push('pks-script')
 <script>
-    var vault = new dhx.Vault("File_PKS", {
-        uploader: {
-            target: "/geu/hcga/public/partner-onboarding-submit-pks",
-            params: {
-                '_token': '{{ csrf_token() }}',
-            }
-        },
-        filesLimit: 1
-    });
-
-    vault.events.on("BeforeUploadFile", function(file) {
-        let opp_id = window.location.href.split('/').pop()
-
-
-        if (vault && vault.uploader && vault.uploader.config) {
-            vault.uploader.config.params.opportunity_id = opp_id;
-        }
-    });
+//     var vault = new dhx.Vault("File_PKS", {
+//         uploader: {
+//             target: "/geu/hcga/public/partner-onboarding-submit-pks",
+//             params: {
+//                 '_token': '{{ csrf_token() }}',
+//             }
+//         },
+//         filesLimit: 1
+//     });
+// 
+//     vault.events.on("BeforeUploadFile", function(file) {
+//         let opp_id = window.location.href.split('/').pop()
+// 
+// 
+//         if (vault && vault.uploader && vault.uploader.config) {
+//             vault.uploader.config.params.opportunity_id = opp_id;
+//         }
+//     });
 
 
     $('.downloadPKS').on('click', function() {

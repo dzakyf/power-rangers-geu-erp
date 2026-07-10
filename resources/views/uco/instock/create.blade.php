@@ -141,21 +141,36 @@
                     var tbody = $('#previewTable tbody');
                     tbody.empty();
                     res.data.forEach(function(g, i) {
-                        tbody.append('<tr>' +
+                        tbody.append('<tr class="group-row" data-group="' + i + '" style="cursor:pointer;">' +
                             '<td>' + (g.warehouse_display || g.warehouse) + '</td>' +
                             '<td>' + (g.do_codes || []).join(', ') + '</td>' +
                             '<td>' + g.qty_plan + '</td>' +
                             '<td>' + g.qty_actual + '</td>' +
                             '<td>' + new Intl.NumberFormat('id-ID').format(g.avg_price) + '</td>' +
                             '<td>' + new Intl.NumberFormat('id-ID').format(g.total) + '</td>' +
-
                             '</tr>');
+                        if (g.po_details && g.po_details.length) {
+                            g.po_details.forEach(function(po) {
+                                tbody.append('<tr class="po-detail-row" data-group="' + i + '" style="display:none;">' +
+                                    '<td colspan="2" style="padding-left:30px;font-size:0.9em;"><strong>' + po.po_code + '</strong> — ' + po.poo_name + '</td>' +
+                                    '<td>' + po.qty_plan + '</td>' +
+                                    '<td>' + (po.qty_actual || '-') + '</td>' +
+                                    '<td>' + po.percentage + '%</td>' +
+                                    '<td><input type="number" step="0.01" class="form-control form-control-sm rec-input" data-po-id="' + po.po_id + '" value="' + po.recommendation + '" style="width:100px;"></td>' +
+                                    '</tr>');
+                            });
+                        }
                     });
                     $('#previewSection').show();
                     setTimeout(startWebcam, 300);
                 },
                 error: function() { alert('Gagal memuat preview'); }
             });
+        });
+
+        $(document).on('click', '.group-row', function() {
+            var g = $(this).data('group');
+            $('.po-detail-row[data-group="' + g + '"]').toggle();
         });
 
         $('#btnSubmitBatch').on('click', function() {
@@ -174,12 +189,18 @@
                 };
             });
 
+            var recommendations = {};
+            $('.rec-input').each(function() {
+                recommendations[$(this).data('po-id')] = $(this).val();
+            });
+
             var fd = new FormData();
             fd.append('_token', $('meta[name="csrf-token"]').attr('content'));
             fd.append('received_date', $('#create_received_date').val());
             fd.append('source', $('#create_source').val());
             fd.append('notes', $('#create_notes').val());
             fd.append('groups', JSON.stringify(groups));
+            fd.append('recommendations', JSON.stringify(recommendations));
 
             capturedPhotos.forEach(function(photo) {
                 var b64 = photo.split(',')[1] || photo;
