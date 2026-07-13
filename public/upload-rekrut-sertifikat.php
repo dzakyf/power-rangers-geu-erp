@@ -9,6 +9,7 @@
         file_put_contents("doc_recruitment/sertifikat/".$filename, "");
     } else {
 
+        $nama_folder = date("Y/m");
         if (!is_dir("doc_recruitment/sertifikat/" . $nama_folder)) {
             mkdir("doc_recruitment/sertifikat/" . $nama_folder, 0755, true);
         }
@@ -16,7 +17,7 @@
         $filename = $_FILES["file"]["name"];
         $fileNamex = $_FILES["file"]["name"];
 		$split = explode(".",$fileNamex);
-		$ext =$split[1];
+		$ext =$split[count($split) - 1];
 		$fileNames  = "sertifikat-".md5(date('Ymdhis').$fileNamex).".".$ext;
         move_uploaded_file($_FILES["file"]["tmp_name"], "doc_recruitment/sertifikat/". $nama_folder . '/' .$fileNames);
     }

@@ -13,7 +13,7 @@
         $filename = $_FILES["file"]["name"];
         $fileNamex = $_FILES["file"]["name"];
 		$split = explode(".",$fileNamex);
-		$ext =$split[1];
+		$ext =$split[count($split) - 1];
 		$fileNames  = "filecpsd-".md5(date('Ymdh').$fileNamex).".".$ext;
         move_uploaded_file($_FILES["file"]["tmp_name"], "tmpdata/" . $nama_folder . '/' . $fileNames);
     }
