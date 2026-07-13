@@ -16,7 +16,7 @@ if (@$_REQUEST["zero_size"] == "1") {
     $filename = $_FILES["file"]["name"];
     $fileNamex = $_FILES["file"]["name"];
     $split = explode(".", $fileNamex);
-    $ext = $split[1];
+    $ext = $split[count($split) - 1];
     $fileNames  = "filecv-" . md5(date('Ymdhis') . $fileNamex) . "." . $ext;
     move_uploaded_file($_FILES["file"]["tmp_name"], "doc_recruitment/cv/" . $nama_folder . '/' . $fileNames);
 }

@@ -5471,4 +5471,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("xml-$hcPref-recruitment-management", function() {
         return view('humanresources.recruitment.xml.recruitment-management');
     });
+    
+        Route::get("$hcPref-recruitment-dashboard", function() {
+            return view('humanresources.recruitment.recruitment-dashboard');
+        });
 });

@@ -38,9 +38,8 @@ use Illuminate\Database\Eloquent\Builder;
 		</div>
 
 	</div>	
-		<div id="divlistRecruitment"></div>
+	<div id="divlistRecruitment"></div>
 <script>
-
 function RecruitmentListsKlik() {
 
 RecruitmentListsID = RecruitmentLists.getSelectedId();
