@@ -36,6 +36,7 @@ use App\Http\Controllers\CNS\QualityController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\HCGA\MasterApprovalController as HCGAMasterApprovalController;
 use App\Http\Controllers\HCGA\MasterWorkCalendarController as HCGAMasterWorkCalendarController;
+use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormController;
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOController as UCOLogisticController;
@@ -5472,7 +5473,12 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('humanresources.recruitment.xml.recruitment-management');
     });
     
-        Route::get("$hcPref-recruitment-dashboard", function() {
-            return view('humanresources.recruitment.recruitment-dashboard');
-        });
+    Route::get("$hcPref-recruitment-dashboard", function() {
+        return view('humanresources.recruitment.recruitment-dashboard');
+    });
+    
+    Route::get("$hcPref-employee-form", function(){
+        return view('humanresources.employment.employee-form');
+    });
+    Route::get("$hcPref-employee-form-print",[HCGAEmploymentFormController::class, 'printPerubahanStatus']);
 });

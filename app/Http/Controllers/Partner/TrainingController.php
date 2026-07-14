@@ -112,17 +112,25 @@ class TrainingController extends Controller
         if ($training->training_id) {
             $training->training = Training::where("id", $training->training_id)->first();
         }
-        $trainings = MasterTraining::where('status', 'OPEN')->where(function ($q) {
-            $q->where('target', strtolower(auth()->user()->Priv_ID))->orWhere('target', 'general');
-        })->get();
+        if (strtolower(auth()->user()->Position) === 'administrator') {
+            $trainings = MasterTraining::where('status', 'OPEN')->get();
+        } else {
+            $trainings = MasterTraining::where('status', 'OPEN')->where(function ($q) {
+                $q->where('target', strtolower(auth()->user()->Position))->orWhere('target', 'general');
+            })->get();
+        }
         return view('partner.training.training-detail', compact('training', 'trainings'));
     }
 
     public function applicationTraining()
     {
-        $trainings = MasterTraining::where('status', 'OPEN')->where(function ($q) {
-            $q->where('target', strtolower(auth()->user()->Priv_ID))->orWhere('target', 'general');
-        })->get();
+        if (strtolower(auth()->user()->Position) === 'administrator') {
+            $trainings = MasterTraining::where('status', 'OPEN')->get();
+        } else {
+            $trainings = MasterTraining::where('status', 'OPEN')->where(function ($q) {
+                $q->where('target', strtolower(auth()->user()->Position))->orWhere('target', 'general');
+            })->get();
+        }
 
         return view('partner.training.application', compact('trainings'));
     }
