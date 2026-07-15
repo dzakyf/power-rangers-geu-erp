@@ -45,7 +45,7 @@ use Illuminate\Database\Eloquent\Builder;
         		<select id='Requisition_ID'>
 					<option value=""></option>
 					<?php
-					$q = DB::table("requisition")->where("Status","CREATED")->where("Location", $LSP)->orderBy("ID","DESC")->get();
+					$q = DB::table("requisition")->where("Status","APPROVED")->where("Location", $LSP)->orderBy("ID","DESC")->get();
 					foreach ($q as $fa){
 							echo "<option value='$fa->Task_ID'>$fa->Task_ID - $fa->Job_Position ($fa->Department)</option>";	
 					}

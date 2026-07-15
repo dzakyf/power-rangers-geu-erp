@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 	
 	$LSP = Auth::user()->Location ?? 'GEU-HO';
-	$Saya =  Auth::user()->username; ?? 'guest';
+	$Saya =  Auth::user()->username ?? 'guest';
 	
 $ars = "";
 $ax = "";

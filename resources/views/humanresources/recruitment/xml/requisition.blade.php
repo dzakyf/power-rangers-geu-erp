@@ -24,14 +24,18 @@ $nomor = 1;
 
 echo "<rows>";
 
-$Query = DB::table("requisition")->where("Location",$LSP)->where("Status","!=","CLOSED")->where("Status","!=","CANCELED")->orderBy("ID","DESC")->get();
-
-foreach($Query as $Fetch){
+$Query = DB::table("requisition")->where("Location",$LSP)->where("Status","!=","CLOSED")->where("Status","!=","CANCELED")->orderBy("ID","DESC");
+if ($priv != 'HCGA' || $priv != 'ADM') {
+	$Query->where("Created_By", $saya);
+}
+foreach($Query->get() as $Fetch){
 	
 		$buat = strtotime($Fetch->End_Date);
 		$now = strtotime(date('Y-m-d'));
 		$kurang = ($now-$buat)/86400;
 		$hari = round($kurang,0);
+
+		$getLog = DB::table('requisition_approval')->where("Task_ID", $Fetch->Task_ID)->where("Approved_Status", '!=', 0)->orderBy('ID', "DESC")->first();
 
 	echo "<row id=\"$Fetch->ID\">";
 		echo "<cell>$nomor</cell>";
@@ -49,6 +53,7 @@ foreach($Query as $Fetch){
 		echo "<cell>".htmlspecialchars($Fetch->PO_No)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->PIC_Production)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Status)."</cell>";
+		echo "<cell>".htmlspecialchars($getLog->Approved_Note)."</cell>";
 		echo "</row>";
 
 $nomor++;

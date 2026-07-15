@@ -148,8 +148,8 @@ var myCalendar;
             Allocation: $('#Allocation').val(),
             Qty: $('#Qty').val(),
             Start_Date: $('#Start_Date').val(),
-            End_Date: $('#End_Date').val()
-            Work_Area: $('#Work_Area').val()
+            End_Date: $('#End_Date').val(),
+            Work_Area: $('#Work_Area').val(),
             Work_Schedule: $('#Work_Schedule').val()
         };
 

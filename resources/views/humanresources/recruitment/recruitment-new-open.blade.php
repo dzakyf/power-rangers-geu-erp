@@ -101,9 +101,9 @@
 									<select id='Position' class="form-control">
 										<option value="">-- Pilih Posisi yang dilamar --</option>
 										<?php
-										$q = DB::table("requisition")->where("Status","CREATED")->where("Location", 'GEU-HO')->orderBy("ID","DESC")->get();
+										$q = DB::table("requisition")->where("Status","APPROVED")->where("Location", 'GEU-HO')->orderBy("ID","DESC")->get();
 										foreach ($q as $fa){
-												echo "<option value='$fa->Task_ID'>$fa->Task_ID - $fa->Job_Position ($fa->Department)</option>";	
+												echo "<option value='$fa->Task_ID'>$fa->Job_Position ($fa->Department)</option>";	
 										}
 										?>
 									</select>

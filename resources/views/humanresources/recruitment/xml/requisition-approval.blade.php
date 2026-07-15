@@ -24,11 +24,20 @@ $nomor = 1;
 
 echo "<rows>";
 
-$Query = DB::table("requisition")->where("Location",$LSP)->where("Status","!=","CLOSED")->where("Status","!=","CANCELED")->whereIn("Task_ID", function($q) use ($saya) {
-	$q->select('Task_ID')
-		->from('requisition_approval')
-		->where('Approved_By', $saya)
-		->where("Approved_Status", 0);
+	$getLevel = DB::table('master_hr_approval')->where('username', $saya)->first();
+
+$Query = DB::table("requisition")->where("Location",$LSP)->where("Status","!=","CLOSED")->where("Status","!=","CANCELED")->whereIn('Task_ID', function ($q) use ($saya) {
+	$q->select('ra.Task_ID')
+		->from('requisition_approval as ra')
+		->where('ra.Approved_By', $saya)
+		->where('ra.Approved_Status', 0)
+		->whereNotExists(function ($sub) {
+			$sub->select(DB::raw(1))
+				->from('requisition_approval as prev')
+				->whereColumn('prev.Task_ID', 'ra.Task_ID')
+				->whereColumn('prev.Level', '<', 'ra.Level')
+				->where('prev.Approved_Status', 0);
+		});
 })->orderBy("ID","DESC")->get();
 
 foreach($Query as $Fetch){

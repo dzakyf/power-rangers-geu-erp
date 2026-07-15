@@ -47,7 +47,7 @@ $rekusisi = substr($rekusisi,0,-1);
 		echo "<cell>".htmlspecialchars($Fetch->Name)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Gender)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Birth_Date)."</cell>";
-		echo "<cell>".htmlspecialchars($rekusisi)."</cell>";
+		// echo "<cell>".htmlspecialchars($rekusisi)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Last_Education)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Education_Major)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Last_Education_From)."</cell>";

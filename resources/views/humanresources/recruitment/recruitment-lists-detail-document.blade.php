@@ -12,7 +12,7 @@
 
 function DokumenDownload() {
 
-	DokumenDownloadFile = DocumentListsDetail.cells(DocumentListsDetail.getSelectedId(),7).getValue();
+	DokumenDownloadFile = DocumentListsDetail.cells(DocumentListsDetail.getSelectedId(),2).getValue();
 	window.open('./doc_recruitment/'+ DokumenDownloadFile);
 	
 	return true;

@@ -55,7 +55,7 @@ foreach($Query as $Fetch){
 		if ($Fetch->Status=='CREATED'){ 
 			$status1 = 1;
 			$warna2= "style='backgorund-color:red'";
-		}elseif ($Fetch->Status=='CREATED' && $Fetch->Interview_Date !='0000-00-00'){
+		}elseif ($Fetch->Status=='UPLOADED'){
 			$status2 = 1;
 			$warna2 = "style='backgorund-color:red'";
 		}elseif ($Fetch->Status=='PENDING'){
