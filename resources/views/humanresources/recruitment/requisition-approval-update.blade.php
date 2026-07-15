@@ -31,23 +31,6 @@ function updatekan(string $rowId,array $param = [], $master, $dir = 0) {
 		}
 		
 		$approval = DB::table('requisition_approval')->where("Task_ID", $get->Task_ID)->where("Level", 4)->first();
-
-		if ($dir) {
-			$master = DB::table('master_hr_approval')
-				->whereIn("Level", [4])
-				->where("Location", $LSP)
-				->first();
-
-			if ($master) {
-				DB::table('requisition_approval')->insert([
-					"Task_ID" => $get->Task_ID,
-					"Approved_By" => $master->username,
-					"Approved_Status" => 0,
-					"Approved_Date" => null,
-					"Approved_Note" => null
-				]);
-			}
-		}
 		
 		$get = json_decode(json_encode($get), true);
 		$get['Last_ID'] = $get['ID'];
@@ -60,12 +43,16 @@ function updatekan(string $rowId,array $param = [], $master, $dir = 0) {
 		
 		$cek = DB::table('requisition_approval')
 			->where("Task_ID", $get['Task_ID'])
-			->where('Approved_Status', 0)
+			->whereIn('Approved_Status', [0,2])
 			->count();
 		
 		if ($cek == 0) {
 			DB::table('requisition')->where("ID", $rowId)->update([
 				"Status" => "APPROVED"
+			]);
+		}else {
+			DB::table('requisition')->where("ID", $rowId)->update([
+				"Status" => "ON_PROGRESS"
 			]);
 		}
 	}
@@ -99,6 +86,10 @@ function deletekan(string $rowId,array $param = [], $master){
 		$get['Action_Status'] = "REJECTED";
 
 		DB::table('requisition_log')->insert($get);
+
+		DB::table('requisition')->where('ID', $rowId)->update([
+			'Status' => 'REJECTED'
+		]);
 	}
 	return "delete";
 

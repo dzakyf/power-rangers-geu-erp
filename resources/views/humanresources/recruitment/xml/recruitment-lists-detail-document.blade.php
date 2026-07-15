@@ -22,8 +22,8 @@ $saya = Auth::user()->username;
 $nomor = 1;
 
 echo "<rows>";
-
-$Query = DB::table("recruitment_document")->where("Task_ID",$_GET['ID'])->get();
+$Query = DB::table('recruitment')->where("ID", $_GET['ID'])->first();
+$Query = DB::table("recruitment_document")->where("Task_ID",$Query->Task_ID)->get();
 
 foreach($Query as $Fetch){
 

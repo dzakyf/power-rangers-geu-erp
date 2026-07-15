@@ -53,7 +53,7 @@ if (RecruitmentListsID !='' && RecruitmentListsID !=null){
 	getFirst = RecruitmentLists.cells(RecruitmentListsID, 10).getValue();
 	console.log(getFirst);
 	if (getFirst == '1') {
-		LoadM('divlistRecruitment','recruitment-test-results-detail?ID=' + splitID[0]);
+		LoadM('divlistRecruitment','recruitment-test-result-detail?ID=' + splitID[0]);
 	}
 	getFirst = RecruitmentLists.cells(RecruitmentListsID, 11).getValue();
 	if (getFirst == '1') {

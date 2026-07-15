@@ -14,7 +14,8 @@
 function DokumenDownload() {
 
 	DokumenDownloadFile = DocumentListsDetail.cells(DocumentListsDetail.getSelectedId(),7).getValue();
-	window.open('./doc_recruitment/'+ DokumenDownloadFile);
+	console.log(DokumenDownloadFile)
+	window.open('doc_recruitment/'+ DokumenDownloadFile);
 	
 	return true;
 }

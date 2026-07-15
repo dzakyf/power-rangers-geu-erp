@@ -2631,6 +2631,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-recruitment-requisition-approval', function () {
         return view('humanresources.recruitment.xml.requisition-approval');
     });
+    Route::post('/requisition-approval-update', function () {
+        return view('humanresources.recruitment.requisition-approval-update');
+    });
     Route::get('/xml-sales-po-lists-detail', function () {
         return view('humanresources.recruitment.xml.sales-po-lists-detail');
     });
@@ -2735,6 +2738,9 @@ Route::group(['middleware' => 'log.access'], function () {
     });
     Route::get('/recruitment-document-detail', function () {
         return view('humanresources.recruitment.recruitment-document-detail');
+    });
+    Route::post('/recruitment-document-detail-submit', function () {
+        return view('humanresources.recruitment.recruitment-document-detail-submit');
     });
     Route::get('/recruitment-notification', function () {
         return view('humanresources.recruitment.recruitment-notification');
