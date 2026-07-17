@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\User;
 use App\WarehousePartner;
 use App\WarehousePartnerSupplies;
+use App\WarehouseStockRequest;
+use App\WarehouseStockOpname;
+use SimpleXMLElement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -139,38 +142,74 @@ class WarehouseController extends Controller
 
     public function detaiLWarehouseListXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-
-        echo "<rows>";
-
         $wh = WarehousePartner::where("id", $request->Task)->first();
-        $partnerSupplies = WarehousePartnerSupplies::where("warehouse_task_id", $wh->warehouse_task_id)->get();
+        $whTaskId = $wh->warehouse_task_id ?? '';
+        $whId = $wh->id ?? 0;
 
-        $nomor = 1;
+        $rows = [];
 
-        foreach ($partnerSupplies as $key => $Fetch) {
-            echo "<row id=\"$Fetch->id\">";
-            echo "<cell>$nomor</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->received_date) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->pickup_type) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->name_poo) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->source) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->coverage) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->received_qty) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->price) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->total) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->rejected_qty) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->attachment) . "</cell>";
-            echo "</row>";
-
-            $nomor++;
+        // 1. Instock
+        foreach (WarehousePartnerSupplies::where("warehouse_task_id", $whTaskId)->get() as $s) {
+            $rows[] = ['date' => $s->received_date, 'type' => 'INSTOCK', 'qty_in' => $s->received_qty, 'qty_out' => 0, 'reference' => (string) $s->id, 'details' => $s->source . ' - ' . ($s->name_poo ?? '')];
         }
-        echo "</rows>";
+
+        // 2. Stock Request (old outstock)
+        foreach (WarehouseStockRequest::where("warehouse_task_id", $whTaskId)->get() as $r) {
+            $rows[] = ['date' => $r->request_date, 'type' => 'STOCK OUT', 'qty_in' => 0, 'qty_out' => $r->request_qty, 'reference' => $r->reference, 'details' => $r->remark ?? ''];
+        }
+
+        // 3. Outstock Loading (new outstock)
+        $outstockData = DB::table('outstock_loading')
+            ->join('outstock', 'outstock_loading.Outstock_ID', '=', 'outstock.ID')
+            ->join('outstock_warehouses', 'outstock.ID', '=', 'outstock_warehouses.Outstock_ID')
+            ->where('outstock_warehouses.Warehouse_ID', $whId)
+            ->select('outstock_loading.Date', 'outstock.Code', 'outstock_loading.Actual_Qty', 'outstock_loading.Notes')
+            ->get();
+
+        foreach ($outstockData as $o) {
+            $rows[] = ['date' => $o->Date, 'type' => 'OUTSTOCK', 'qty_in' => 0, 'qty_out' => $o->Actual_Qty, 'reference' => $o->Code, 'details' => $o->Notes ?? ''];
+        }
+
+        // 4. Stock Opname
+        foreach (WarehouseStockOpname::where('Warehouse_ID', $whId)->get() as $op) {
+            $rows[] = ['date' => $op->Opname_Date, 'type' => 'OPNAME', 'qty_in' => $op->Physical_Qty, 'qty_out' => 0, 'reference' => $op->Opname_Number, 'details' => 'System: ' . $op->System_Qty . ' | Diff: ' . $op->Difference];
+        }
+
+        // Sort ascending for balance calculation
+        usort($rows, function($a, $b) { return strcmp($a['date'], $b['date']); });
+
+        // Calculate running balance, reset on OPNAME
+        $balance = 0;
+        for ($i = 0; $i < count($rows); $i++) {
+            if ($rows[$i]['type'] === 'OPNAME') {
+                $balance = $rows[$i]['qty_in'];          // Reset to Physical_Qty
+                $rows[$i]['qty_in'] = 0;                  // Don't add to In total
+            } elseif ($rows[$i]['type'] === 'INSTOCK') {
+                $balance += $rows[$i]['qty_in'];
+            } else {
+                $balance -= $rows[$i]['qty_out'];
+            }
+            $rows[$i]['balance'] = $balance;
+        }
+
+        // Sort descending for display
+        usort($rows, function($a, $b) { return strcmp($b['date'], $a['date']); });
+
+        $xml = new SimpleXMLElement('<rows/>');
+        $no = 1;
+        foreach ($rows as $r) {
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $no);
+            $row->addChild('cell', $no);
+            $row->addChild('cell', htmlspecialchars((string) $r['date']));
+            $row->addChild('cell', htmlspecialchars((string) $r['type']));
+            $row->addChild('cell', (string) $r['qty_in']);
+            $row->addChild('cell', (string) $r['qty_out']);
+            $row->addChild('cell', (string) $r['balance']);
+            $no++;
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
     }
 
     public function detailWarehouseListNew(Request $request)

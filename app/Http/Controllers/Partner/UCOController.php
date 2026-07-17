@@ -2344,6 +2344,24 @@ class UCOController extends Controller
             ->where('Outstock_ID', $id)
             ->get();
 
+        // Calculate System Qty per container from latest opname minus outstock since
+        foreach ($loading as $l) {
+            $latestOpname = DB::table('warehouse_stock_opnames')
+                ->where('Container_ID', $l->Container_ID)
+                ->orderBy('Created_At', 'desc')
+                ->first(['Physical_Qty', 'Created_At']);
+
+            $opnameQty = $latestOpname ? $latestOpname->Physical_Qty : 0;
+            $since = $latestOpname ? $latestOpname->Created_At : '1970-01-01';
+
+            $outstockSince = DB::table('outstock_loading')
+                ->where('Container_ID', $l->Container_ID)
+                ->where('Created_At', '>', $since)
+                ->sum('Actual_Qty');
+
+            $l->System_Qty = max(0, $opnameQty - $outstockSince);
+        }
+
         $handover = DB::table('outstock_handover')
             ->where('Outstock_ID', $id)
             ->first();

@@ -48,7 +48,7 @@
 
 <div class="card mt-3">
 	<div class="card-body">
-		<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">OPEN WAREHOUSE</div>
+		<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">UCO OPERATION LOG</div>
 		<div id="WarehouseListDetail" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 		<div>
 			<input type="button" id="ekselWarehouseListDetailDet" name="ekselWarehouseListDetailDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseListDetail.toExcel('./export/generate.php');" />
@@ -122,19 +122,15 @@
 	}
 	WarehouseListDetail = new dhtmlXGridObject('WarehouseListDetail');
 	WarehouseListDetail.setImagePath("./dhtmlx/imgs/");
-	WarehouseListDetail.setHeader("No,Tanggal Penerimaan, Tipe Penjemputan, Nama POO, Sumber, Coverage, Volume Diterima, Harga / Liter, Total Diterima, Volume Reject (Jika Ada), Bukti Timbangan / Barang");
-	WarehouseListDetail.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	// WarehouseListDetail.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	WarehouseListDetail.setInitWidths("60,100,150,200,100,120,100,150,100,100,100,100");
-	WarehouseListDetail.setColAlign("center,left,left,left,left,left,right,right,right,right,left");
-	WarehouseListDetail.setColSorting("int,str,str,str,str,str,int,int,int,int,str");
-	WarehouseListDetail.setColTypes("ro,ro,ro,ro,ro,ron,ron,ron,ron,ro,ro");
+	WarehouseListDetail.setHeader("No, Tanggal, Tipe, Qty In, Qty Out, Saldo");
+	WarehouseListDetail.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#rspan");
+	WarehouseListDetail.setInitWidths("50,120,100,100,100,120");
+	WarehouseListDetail.setColAlign("center,left,left,right,right,right");
+	WarehouseListDetail.setColSorting("int,str,str,int,int,str,str");
+	WarehouseListDetail.setColTypes("ro,ro,ro,ro,ro,ro");
+	WarehouseListDetail.attachFooter("Total,#cspan,#cspan,#stat_total,#stat_total,#cspan");
 	WarehouseListDetail.enableSmartRendering(true, 150);
-	WarehouseListDetail.setNumberFormat("0,000", 6, ".", ",");
-	WarehouseListDetail.setNumberFormat("0,000", 7, ".", ",");
-	WarehouseListDetail.setNumberFormat("0,000", 8, ".", ",");
-	WarehouseListDetail.setNumberFormat("0,000", 9, ".", ",");
-	WarehouseListDetail.attachEvent("onRowDblClicked", WarehouseListDetailKlik);
+		// WarehouseListDetail.attachEvent("onRowDblClicked", WarehouseListDetailKlik);
 	WarehouseListDetail.setSkin("dhx_skyblue");
 	WarehouseListDetail.init();
 	refreshdataDetail();
