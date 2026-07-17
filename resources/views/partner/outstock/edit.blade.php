@@ -77,7 +77,7 @@
                             <input type="text" class="form-control form-control-sm" value="{{ $l->Container_Name ?? '-' }}" readonly>
                         </td>
                         <td><input type="date" class="form-control form-control-sm loading-date" value="{{ $l->Date }}"></td>
-                        <td><input type="text" class="form-control form-control-sm" value="0" readonly></td>
+                        <td><input type="text" class="form-control form-control-sm" value="{{ $l->System_Qty ?? 0 }}" readonly></td>
                         <td><input type="number" step="0.01" class="form-control form-control-sm loading-actual" value="{{ $l->Actual_Qty }}"></td>
                         <td><input type="text" class="form-control form-control-sm loading-notes" value="{{ $l->Notes }}"></td>
                         <td>
@@ -181,7 +181,7 @@
             '<td><span class="new-row-wh">-</span></td>' +
             '<td><select class="form-control form-control-sm loading-container">' + opts + '</select></td>' +
             '<td><input type="date" class="form-control form-control-sm loading-date" value="{{ date('Y-m-d') }}"></td>' +
-            '<td><input type="text" class="form-control form-control-sm" value="0" readonly></td>' +
+            '<td><input type="text" class="form-control form-control-sm" value="{{ $l->System_Qty ?? 0 }}" readonly></td>' +
             '<td><input type="number" step="0.01" class="form-control form-control-sm loading-actual" value="0"></td>' +
             '<td><input type="text" class="form-control form-control-sm loading-notes"></td>' +
             '<td><input type="file" class="form-control-file loading-photo" accept="image/*" style="font-size:12px;"></td>' +
