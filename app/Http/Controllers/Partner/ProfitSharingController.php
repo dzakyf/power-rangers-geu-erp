@@ -303,6 +303,139 @@ class ProfitSharingController extends Controller
         echo "</rows>";
     }
 
+    public function lkProfitSharingXmlV2(Request $request)
+    {
+        $stmt = app(\App\Services\WarehouseService::class)->calculateMonthlyFinancialStatement(
+            $request->Task,
+            $request->date . '-01',
+            $request->date . '-31'
+        );
+
+        // --- Build $calculate array ---
+
+        // Revenue from service (uses master_stock_price via transfer_income)
+        $calculate[401][40001] = $stmt['transfer_income'];
+
+        // Transfer price from service
+        $calculate[402][40002] = $stmt['transfer_price'];
+
+        // Qty out (same as original)
+        $calculate[501][51001] = WarehouseStockRequest::where('warehouse_task_id', $request->Task)
+            ->where('request_date', 'LIKE', $request->date . '%')->sum('request_qty');
+
+        // Avg buy price (same as original weighted avg)
+        $whs = WarehousePartnerSupplies::where("warehouse_task_id", $request->Task)
+            ->where('received_date', 'LIKE', $request->date . '%')->get();
+        $avgBuy = 0;
+        $qty = 0;
+        foreach ($whs as $v) {
+            $avgBuy = ($avgBuy * $qty + $v->total) / ($qty + $v->received_qty);
+            $qty += $v->received_qty;
+        }
+        $calculate[501][51002] = $avgBuy;
+        $calculate[501]['NULL'] = $calculate[501][51001] * $calculate[501][51002];
+
+        // Journal overheads (same as original)
+        $getAccount = MasterWarehouseAccount::where('group_account', '>', 501)->get();
+        foreach ($getAccount as $value) {
+            $calculate[$value->group_account][$value->account_no] =
+                WarehousePartnerJournal::where('warehouse_task_id', $request->Task)
+                    ->where('posting_date', 'LIKE', $request->date . '%')
+                    ->where('account_no', $value->account_no)
+                    ->where('group_account', $value->group_account)
+                    ->sum('nominal');
+        }
+        $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502] ?? []);
+
+        // --- Formula processing (identical to original) ---
+        $get = MasterWarehouseProfitLoss::where('type', $request->type)->get();
+        foreach ($get as $value) {
+            if ($value->Level == 2 && $value->Rumus != '') {
+                $exp = explode(',', $value->Rumus);
+                if (count($exp) > 0) {
+                    if (!isset($calculate[$value->Judul])) {
+                        $calculate[$value->Judul] = [];
+                    }
+                    if (!isset($calculate[$value->Judul]['NULL'])) {
+                        $calculate[$value->Judul]['NULL'] = 0;
+                    }
+                    if ($value->Normal == 'CREDIT') {
+                        $calculate[$value->Judul]['NULL'] +=
+                            (array_sum($calculate[$exp[0]] ?? []) - array_sum($calculate[$exp[1]] ?? []))
+                            - (isset($exp[2]) ? array_sum($calculate[$exp[2]] ?? []) : 0);
+                        if ($value->Judul == '701') {
+                            $calculate[$value->Judul]['NULL'] -= ($calculate[401][40001] * 2.5) / 100;
+                        }
+                    } else {
+                        $calculate[$value->Judul]['NULL'] +=
+                            (array_sum($calculate[$exp[0]] ?? []) + array_sum($calculate[$exp[1]] ?? []))
+                            + (isset($exp[2]) ? array_sum($calculate[$exp[2]] ?? []) : 0);
+                    }
+                }
+            } elseif ($value->Level == 3 && $value->Rumus != '') {
+                $exp = explode(',', $value->Rumus);
+                if (!isset($calculate[$value->Judul])) {
+                    $calculate[$value->Judul] = [];
+                }
+                if (!isset($calculate[$value->Judul]['NULL'])) {
+                    $calculate[$value->Judul]['NULL'] = 0;
+                }
+                $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]] ?? []) * 60) / 100;
+            }
+        }
+
+        // --- XML output using SimpleXMLElement ---
+        $rev = $calculate[401][40001] ?: 1;
+        $xml = new SimpleXMLElement('<rows/>');
+
+        foreach ($get as $key => $Fetch) {
+            // Value lookup (same logic as original)
+            $val = '';
+            if ($Fetch->Judul != '' && $Fetch->Judul != null) {
+                if ($Fetch->Code != '' && $Fetch->Code != null) {
+                    $val = $calculate[$Fetch->Judul][$Fetch->Code] ?? '';
+                } else {
+                    if (isset($calculate[$Fetch->Judul]['NULL'])) {
+                        $val = $calculate[$Fetch->Judul]['NULL'];
+                    } else {
+                        $val = isset($calculate[$Fetch->Judul]) ? array_sum($calculate[$Fetch->Judul]) : '';
+                    }
+                }
+            } else {
+                if ($Fetch->Code != '' && $Fetch->Code != null && $Fetch->Rumus != '' && $Fetch->Rumus != null) {
+                    $val = $calculate[$Fetch->Rumus][$Fetch->Code] ?? '';
+                }
+            }
+
+            $row = $xml->addChild('row');
+            $row->addAttribute('ID', $key);
+
+            $indentStyle = 'padding-left:' . $Fetch->Indentation . 'px' . ($Fetch->Bold ? ';font-weight:bold;' : '');
+
+            $c1 = $row->addChild('cell');
+            $c1->addAttribute('style', $indentStyle);
+
+            $c2 = $row->addChild('cell', htmlspecialchars($Fetch->Description));
+            $c2->addAttribute('style', $indentStyle);
+
+            $c3 = $row->addChild('cell', (string) ($val !== '' ? $val : ''));
+            $c3->addAttribute('style', $indentStyle);
+
+            $c4 = $row->addChild('cell', htmlspecialchars($Fetch->Unit_Name));
+            if ($Fetch->Bold) $c4->addAttribute('style', 'font-weight:bold;');
+
+            if ($Fetch->Unit_Name !== 'Kg') {
+                $pct = $rev > 0 ? round(((float)($val ?: 0) / $rev) * 100, 2) : 0;
+                $c5 = $row->addChild('cell', $pct . '%');
+                if ($Fetch->Bold) $c5->addAttribute('style', 'font-weight:bold;');
+            } else {
+                $row->addChild('cell');
+            }
+        }
+
+        return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
+    }
+
     public function monthlyFinancialStatementCollection(Request $request)
     {
         // ============================================================

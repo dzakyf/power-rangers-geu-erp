@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use App\WarehousePartnerSupplies;
 use App\WarehouseStockRequest;
 use App\WarehousePartnerJournal;
+use App\MasterStockPrice;
 
 class WarehouseService
 {
@@ -37,6 +38,7 @@ class WarehouseService
 
         $totalInvestationConfig = $config["TOTAL_HUB_INVESTATION_$type"] ?? 0;
         $capitalAllocMultiplier = $config['CAPITAL_ALLOC_MULTIPLIER'] ?? 0.025;
+        $transferPrice = MasterStockPrice::whereBetween('date_for', [$startOfMonth, $endOfMonth])->avg('price');
 
         // Stock IN
         WarehousePartnerSupplies::where("warehouse_task_id", $warehouseTaskId)
@@ -84,7 +86,7 @@ class WarehouseService
 
         ksort($supplies);
 
-        $result = collect($supplies)->mapWithKeys(function ($data, $month) use ($totalInvestationConfig, $capitalAllocMultiplier) {
+        $result = collect($supplies)->mapWithKeys(function ($data, $month) use ($totalInvestationConfig, $capitalAllocMultiplier, $transferPrice) {
             $expenses = $data['expenses'] ?? [];
             $directCostItems = ['Bensin', 'Parkir'];
             $direct_cost = array_sum(array_column(
@@ -114,6 +116,7 @@ class WarehouseService
             $opex = $direct_cost + $overhead_cost + $employeeSalary + $rentalCost;
             $totalInvestation = $totalInvestationConfig;
             $income = $data['qty_out'] * $data['avg_out'];
+            $transfer_income = $data['qty_out'] * ($transferPrice ?? $data['avg_out']);
             $capitalAllocation = $income * $capitalAllocMultiplier;
             $netProfit = $income - $cogs - $overhead_cost - $capitalAllocation;
             $ebitda = $netProfit - $opex;
@@ -133,6 +136,7 @@ class WarehouseService
                 'net_profit'         => $netProfit,
                 'total_roi'          => $totalInvestation > 0 ? ($ebitda / $totalInvestation) * 100 : 0,
                 'qty_in'             => $data['qty'] ?? 0,
+                'transfer_income'    => $transfer_income,
             ]];
         });
 
@@ -151,6 +155,7 @@ class WarehouseService
             'ebitda' => 0,
             'net_profit' => 0,
             'total_roi' => 0,
+            'transfer_income' => 0,
         ];
 
         $row = $result[$currMonth];
@@ -204,6 +209,9 @@ class WarehouseService
             'total_investation'         => $row['total_investation'],
             'total_transaction'         => 0,
             'opex'                      => $row['opex'],
+            'transfer_income'           => $row['transfer_income'] ?? 0,
+            'transfer_price'            => $transferPrice ?? 0,
+            'transfer_variance'         => ($row['transfer_income'] ?? 0) - $income,
             'income'                    => $income,
             'net_profit'                => $row['net_profit'],  // net margin/profit
             'nominal_royalty'           => $nominalRoyalty, //bagi hasil mitra
