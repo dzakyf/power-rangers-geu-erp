@@ -4905,10 +4905,10 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$profitSharingPref", [PartnerProfitSharingController::class, 'indexProfitSharing']);
     Route::get("xml-$profitSharingPref", [PartnerProfitSharingController::class, 'indexProfitSharingXml']);
     Route::get("$profitSharingPref-lk-monthly", [PartnerProfitSharingController::class, 'lkMonthlyProfitSharing']);
-    Route::get("xml-$profitSharingPref-lk-monthly", [PartnerProfitSharingController::class, 'lkProfitSharingXml']);
+    Route::get("xml-$profitSharingPref-lk-monthly", [PartnerProfitSharingController::class, 'lkProfitSharingXmlV2']);
     Route::get("test-xml-$profitSharingPref-lk-monthly", [PartnerProfitSharingController::class, 'monthlyFinancialStatementCollection']);
     Route::get("$profitSharingPref-lk-annually", [PartnerProfitSharingController::class, 'lkAnnuallyProfitSharing']);
-    Route::get("xml-$profitSharingPref-lk-annually", [PartnerProfitSharingController::class, 'lkProfitSharingXml']);
+    Route::get("xml-$profitSharingPref-lk-annually", [PartnerProfitSharingController::class, 'lkProfitSharingXmlV2']);
     Route::get("$profitSharingPref-overview", [PartnerProfitSharingController::class, 'overviewProfitSharing']);
     Route::get("$profitSharingPref-overview-user", [PartnerProfitSharingController::class, 'overviewUserProfitSharing']);
     Route::get("xml-$profitSharingPref-overview", [PartnerProfitSharingController::class, 'overviewProfitSharingXml']);
@@ -5472,19 +5472,19 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcPref-master-work-calendar-detail", [HCGAMasterWorkCalendarController::class, 'detail']);
     Route::get("xml-$hcPref-master-work-calendar-detail", [HCGAMasterWorkCalendarController::class, 'detailXml']);
 
-    Route::get("$hcPref-recruitment-management", function() {
+    Route::get("$hcPref-recruitment-management", function () {
         return view('humanresources.recruitment.recruitment-management');
     });
-    Route::get("xml-$hcPref-recruitment-management", function() {
+    Route::get("xml-$hcPref-recruitment-management", function () {
         return view('humanresources.recruitment.xml.recruitment-management');
     });
-    
-    Route::get("$hcPref-recruitment-dashboard", function() {
+
+    Route::get("$hcPref-recruitment-dashboard", function () {
         return view('humanresources.recruitment.recruitment-dashboard');
     });
-    
-    Route::get("$hcPref-employee-form", function(){
+
+    Route::get("$hcPref-employee-form", function () {
         return view('humanresources.employment.employee-form');
     });
-    Route::get("$hcPref-employee-form-print",[HCGAEmploymentFormController::class, 'printPerubahanStatus']);
+    Route::get("$hcPref-employee-form-print", [HCGAEmploymentFormController::class, 'printPerubahanStatus']);
 });
