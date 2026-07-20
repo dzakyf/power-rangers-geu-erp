@@ -208,7 +208,7 @@ class SurveyController extends Controller
         return response()->json(['data' => $d]);
     }
 
-    private function resolveRecommendation(int $score): string
+    private function resolveRecommendation(int $score = 0): string
     {
         if ($score >= 80) return 'Layak';
         if ($score >= 70) return 'Layak Bersyarat';
@@ -240,10 +240,55 @@ class SurveyController extends Controller
         }
 
         try {
-            $surveyId = DB::transaction(function () use ($b, $applicatonCode) {
+                            $photo        = 0;
+        $checklist    = 0;
+        $environtment = 0;
+        $ucoEstimation = 0;
+
+        for ($i = 1; $i <= 4; $i++) {
+            $photo += $b["C_c$i"] * 2.5;
+        }
+
+        for ($j = 1; $j <= 9; $j++) {
+            $count = $b["D_c$j"];
+            if ($count == 1 && $j !== 9) {
+                $checklist += ($count * 6);
+            } else if ($count == 1) {
+                $checklist += ($count * 7);
+            }
+        }
+
+        for ($k = 1; $k <= 4; $k++) {
+            $input = $b["E_p$k"];
+            if ($input == 1) {
+                $environtment += 1;
+            } else if ($input == 2) {
+                $environtment += 3;
+            } else if ($input == 3) {
+                $environtment += 5;
+            }
+        }
+
+        $ton = $b["F_p5_col2"];
+        if ($ton > 15) {
+            $ucoEstimation += 15;
+        } else if ($ton >= 10) {
+            $ucoEstimation += 12;
+        } else if ($ton >= 6) {
+            $ucoEstimation += 8;
+        } else if ($ton >= 4) {
+            $ucoEstimation += 5;
+        } else {
+            $ucoEstimation += 2;
+        }
+
+        $totalScore = $photo + $checklist + $environtment + $ucoEstimation;
+
+        $surveyId = DB::transaction(function () use ($b, $applicatonCode, $photo, $checklist, $environtment, $ucoEstimation, $totalScore) {
                 return DB::table('survey_location')->insertGetId([
                     "Opportunity_Partner_Id" => $b['Opportunity_Partner_Id'] ?? "",
                     "Code"                => $applicatonCode,
+                    "Surveyed_At"         => $b["Survey_At"] ?? now(),
                     "Parent_Id"          => $b["Parent_Id"] ?? null,
                     "Suggestion_Type"    => $b["Suggestion_Type"] ?? "ORIGINAL",
                     "Province"            => $b['Province'] ?? "",
@@ -256,52 +301,71 @@ class SurveyController extends Controller
                     "Longitude"           => $b['Longitude'],
                     "Recommendation_Type" => $b['Recommendation_Type'] ?? "INTERNAL",
                     "Status"              => $b['Status'] ?? "NEED_APPROVAL",
-                    // "Surveyor_Name"       => $b['Surveyor_Name'],
+                    "Surveyor_Name"       => $b['Surveyor_Name'],
                     "Location_Owner_Name" => $b['Location_Owner_Name'],
                     "Area"                => $b['Area'],
                     "Location_Type"       => $b['Location_Type'],
-                    // "C_c1"                => $b["C_c1"],
-                    // "C_c2"                => $b["C_c2"],
-                    // "C_c3"                => $b["C_c3"],
-                    // "C_c4"                => $b["C_c4"],
-                    // "D_c1"                => $b["D_c1"],
-                    // "D_c2"                => $b["D_c2"],
-                    // "D_c3"                => $b["D_c3"],
-                    // "D_c4"                => $b["D_c4"],
-                    // "D_c5"                => $b["D_c5"],
-                    // "D_c6"                => $b["D_c6"],
-                    // "D_c7"                => $b["D_c7"],
-                    // "D_c8"                => $b["D_c8"],
-                    // "D_c9"                => $b["D_c9"],
-                    // "D_c1_Notes"          => $b['D_c1_Notes'],
-                    // "D_c2_Notes"          => $b['D_c2_Notes'],
-                    // "D_c3_Notes"          => $b['D_c3_Notes'],
-                    // "D_c4_Notes"          => $b['D_c4_Notes'],
-                    // "D_c5_Notes"          => $b['D_c5_Notes'],
-                    // "D_c6_Notes"          => $b['D_c6_Notes'],
-                    // "D_c7_Notes"          => $b['D_c7_Notes'],
-                    // "D_c8_Notes"          => $b['D_c8_Notes'],
-                    // "D_c9_Notes"          => $b['D_c9_Notes'],
-                    // "E_p1"                => $b["E_p1"],
-                    // "E_p2"                => $b["E_p2"],
-                    // "E_p3"                => $b["E_p3"],
-                    // "E_p4"                => $b["E_p4"],
-                    // "F_p1_col1"           => $b["F_p1_col1"],
-                    // "F_p1_col2"           => $b["F_p1_col2"],
-                    // "F_p2_col1"           => $b["F_p2_col1"],
-                    // "F_p2_col2"           => $b["F_p2_col2"],
-                    // "F_p3_col1"           => $b["F_p3_col1"],
-                    // "F_p3_col2"           => $b["F_p3_col2"],
-                    // "F_p4_col1"           => $b["F_p4_col1"],
-                    // "F_p4_col2"           => $b["F_p4_col2"],
-                    // "G_p1"                => $b["G_p1"] ?? "",
-                    // "G_p2"                => $b["G_p2"] ?? "",
-                    // "G_p3"                => $b["G_p3"] ?? "",
-                    // "Approval_Surveyor"   => $b["Approval_Surveyor"] ?? 1,
-                    // "Approval_Manager"    => $b["Approval_Manager"] ?? 0,
-                    // "Approval_COO"        => $b["Approval_COO"] ?? 0,
+                    "C_c1"                => $b["C_c1"],
+                    "C_c2"                => $b["C_c2"],
+                    "C_c3"                => $b["C_c3"],
+                    "C_c4"                => $b["C_c4"],
+                    "C_Total_Score"       => $photo,
+                    "D_c1"                => $b["D_c1"],
+                    "D_c2"                => $b["D_c2"],
+                    "D_c3"                => $b["D_c3"],
+                    "D_c4"                => $b["D_c4"],
+                    "D_c5"                => $b["D_c5"],
+                    "D_c6"                => $b["D_c6"],
+                    "D_c7"                => $b["D_c7"],
+                    "D_c8"                => $b["D_c8"],
+                    "D_c9"                => $b["D_c9"],
+                    "D_Total_Score"       => $checklist,
+                    "D_c1_Notes"          => $b['D_c1_Notes'],
+                    "D_c2_Notes"          => $b['D_c2_Notes'],
+                    "D_c3_Notes"          => $b['D_c3_Notes'],
+                    "D_c4_Notes"          => $b['D_c4_Notes'],
+                    "D_c5_Notes"          => $b['D_c5_Notes'],
+                    "D_c6_Notes"          => $b['D_c6_Notes'],
+                    "D_c7_Notes"          => $b['D_c7_Notes'],
+                    "D_c8_Notes"          => $b['D_c8_Notes'],
+                    "D_c9_Notes"          => $b['D_c9_Notes'],
+                    "E_p1"                => $b["E_p1"],
+                    "E_p2"                => $b["E_p2"],
+                    "E_p3"                => $b["E_p3"],
+                    "E_p4"                => $b["E_p4"],
+                    "E_Total_Score"       => $environtment,
+                    "F_p1_col1"           => $b["F_p1_col1"],
+                    "F_p1_col2"           => $b["F_p1_col2"],
+                    "F_p2_col1"           => $b["F_p2_col1"],
+                    "F_p2_col2"           => $b["F_p2_col2"],
+                    "F_p3_col1"           => $b["F_p3_col1"],
+                    "F_p3_col2"           => $b["F_p3_col2"],
+                    "F_p4_col1"           => $b["F_p4_col1"],
+                    "F_p4_col2"           => $b["F_p4_col2"],
+                    "F_Total_Score"       => $ucoEstimation,
+                    "G_p1"                => $b["G_p1"] ?? "",
+                    "G_p2"                => $b["G_p2"] ?? "",
+                    "G_p3"                => $b["G_p3"] ?? "",
+                    "Total_Score"         => $totalScore,
+                    "Approval_Surveyor"   => $b["Approval_Surveyor"] ?? 1,
+                    "Approval_Manager"    => $b["Approval_Manager"] ?? 0,
+                    "Approval_COO"        => $b["Approval_COO"] ?? 0,
                 ]);
             });
+
+            $fileInputs = ['C_c1_File', 'C_c2_File', 'C_c3_File', 'C_c4_File'];
+
+            foreach ($fileInputs as $inputName) {
+                if ($r->hasFile($inputName) && $r->file($inputName)->isValid()) {
+                    $file  = $r->file($inputName);
+                    $year  = Carbon::now()->year;
+                    $month = Carbon::now()->format('m');
+                    $path  = $file->store("$year/$month", 'public');
+                    $ext   = $file->getClientOriginalExtension();
+
+                    $this->uploadService->uploadMetaFile($path, basename($path), $inputName, $ext, 'survey', $surveyId);
+                }
+            }
 
             return response()->json(['message' => 'success', 'data' => ['survey_id' => $surveyId]]);
         } catch (\Exception $e) {
@@ -393,6 +457,7 @@ class SurveyController extends Controller
                     "C_c3"                => $b["C_c3"],
                     "C_c4"                => $b["C_c4"],
                     "C_Total_Score"       => $photo,
+                    "C_Total_Score"       => $photo,
                     "D_c1"                => $b["D_c1"],
                     "D_c2"                => $b["D_c2"],
                     "D_c3"                => $b["D_c3"],
@@ -402,6 +467,7 @@ class SurveyController extends Controller
                     "D_c7"                => $b["D_c7"],
                     "D_c8"                => $b["D_c8"],
                     "D_c9"                => $b["D_c9"],
+                    "D_Total_Score"       => $checklist,
                     "D_Total_Score"       => $checklist,
                     "D_c1_Notes"          => $b['D_c1_Notes'],
                     "D_c2_Notes"          => $b['D_c2_Notes'],
@@ -417,6 +483,7 @@ class SurveyController extends Controller
                     "E_p3"                => $b["E_p3"],
                     "E_p4"                => $b["E_p4"],
                     "E_Total_Score"       => $environtment,
+                    "E_Total_Score"       => $environtment,
                     "F_p1_col1"           => $b["F_p1_col1"],
                     "F_p1_col2"           => $b["F_p1_col2"],
                     "F_p2_col1"           => $b["F_p2_col1"],
@@ -426,9 +493,11 @@ class SurveyController extends Controller
                     "F_p4_col1"           => $b["F_p4_col1"],
                     "F_p4_col2"           => $b["F_p4_col2"],
                     "F_Total_Score"       => $ucoEstimation,
+                    "F_Total_Score"       => $ucoEstimation,
                     "G_p1"                => $b["G_p1"] ?? "",
                     "G_p2"                => $b["G_p2"] ?? "",
                     "G_p3"                => $b["G_p3"] ?? "",
+                    "Total_Score"         => $totalScore,
                     "Total_Score"         => $totalScore,
                     "Approval_Surveyor"   => $b["Approval_Surveyor"] ?? 1,
                     "Approval_Manager"    => $b["Approval_Manager"] ?? 0,

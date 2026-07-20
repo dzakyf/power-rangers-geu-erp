@@ -111,7 +111,7 @@ class AssetManagementController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'inventory')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'inventory')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
                 echo "<cell>".($key + 1)."</cell>";
@@ -174,7 +174,7 @@ class AssetManagementController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'access')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'access')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
                 echo "<cell>".($key + 1)."</cell>";
@@ -229,7 +229,7 @@ class AssetManagementController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'support')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'support')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
                 echo "<cell>".($key + 1)."</cell>";
@@ -296,7 +296,7 @@ class AssetManagementController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'inventory')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'inventory')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
                 echo "<cell>".($key + 1)."</cell>";
@@ -371,7 +371,7 @@ class AssetManagementController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'access')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'access')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
                 echo "<cell>".($key + 1)."</cell>";
@@ -426,7 +426,7 @@ class AssetManagementController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'support')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'support')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
                 echo "<cell>".($key + 1)."</cell>";

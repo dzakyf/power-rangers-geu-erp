@@ -96,6 +96,9 @@ Route::get('open-recruitment-employee', function () {
 Route::get('partner-registration', function () {
     return view('partner.registration-public');
 });
+Route::post('partner-registration-submit', function () {
+    return view('sales.opportunity-registration-submit-public');
+});
 
 Route::get('partner-prints-invoice', [App\Http\Controllers\Finance\PartnerController::class, 'printInvoice']);
 Route::post('province', [App\Http\Controllers\HelperController::class, 'provinceSearch']);
@@ -4906,7 +4909,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("xml-$profitSharingPref", [PartnerProfitSharingController::class, 'indexProfitSharingXml']);
     Route::get("$profitSharingPref-lk-monthly", [PartnerProfitSharingController::class, 'lkMonthlyProfitSharing']);
     Route::get("xml-$profitSharingPref-lk-monthly", [PartnerProfitSharingController::class, 'lkProfitSharingXmlV2']);
-    Route::get("test-xml-$profitSharingPref-lk-monthly", [PartnerProfitSharingController::class, 'monthlyFinancialStatementCollection']);
     Route::get("$profitSharingPref-lk-annually", [PartnerProfitSharingController::class, 'lkAnnuallyProfitSharing']);
     Route::get("xml-$profitSharingPref-lk-annually", [PartnerProfitSharingController::class, 'lkProfitSharingXmlV2']);
     Route::get("$profitSharingPref-overview", [PartnerProfitSharingController::class, 'overviewProfitSharing']);

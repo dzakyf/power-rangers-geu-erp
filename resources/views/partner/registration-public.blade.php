@@ -209,7 +209,6 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                 } else {
                     $('#Doc_KTP_Files_Div').hide('swing');
                     $('#Doc_KTP_File').val('');
-                    // vaultKTP.clearAll();
                 }
             });
 
@@ -219,7 +218,6 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                 } else {
                     $('#Doc_NPWP_Files_Div').hide('swing');
                     $('#Doc_NPWP_File').val('');
-                    // vaultNPWP.clearAll();
                 }
             });
 
@@ -229,7 +227,6 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                 } else {
                     $('#Doc_Others_Files_Div').hide('swing');
                     $('#Doc_Others_File').val('');
-                    // doc_Others.clearAll();
                 }
             });
 
@@ -327,7 +324,6 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                 } else {
                     $('#C_Doc_Akta_Files_Div').hide('swing');
                     $('#C_Doc_Akta_File').val('');
-                    // vaultKTP.clearAll();
                 }
             });
 
@@ -337,7 +333,6 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                 } else {
                     $('#C_Doc_NIB_Files_Div').hide('swing');
                     $('#C_Doc_NIB_File').val('');
-                    // vaultKTP.clearAll();
                 }
             });
 
@@ -347,7 +342,6 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                 } else {
                     $('#C_Doc_NPWP_Files_Div').hide('swing');
                     $('#C_Doc_NPWP_File').val('');
-                    // vaultKTP.clearAll();
                 }
             });
 
@@ -357,7 +351,6 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                 } else {
                     $('#C_Doc_Others_Files_Div').hide('swing');
                     $('#C_Doc_Others_File').val('');
-                    // vaultKTP.clearAll();
                 }
             });
 
@@ -375,7 +368,6 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     processResults: function(data) {
-                        // Tranforms the top-level key of the response object from 'items' to 'results'
                         return {
                             results: $.map(data, function(item) {
                                 return {
@@ -388,8 +380,8 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                     cache: true,
                 }
             }).on('change', function() {
-                $('#City').empty(); // clear previous options
-                $('#City').val(null).trigger('change'); // reset selection
+                $('#City').empty();
+                $('#City').val(null).trigger('change');
                 $('#City').select2({
                     placeholder: "Pilih Kota",
                     allowClear: true,
@@ -405,7 +397,6 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                         },
                         processResults: function(data) {
-                            // Tranforms the top-level key of the response object from 'items' to 'results'
                             return {
                                 results: $.map(data, function(item) {
                                     return {
@@ -430,22 +421,21 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
         myCalendar = new dhtmlXCalendarObject("Date");
         myCalendar.setDateFormat("%Y-%m-%d");
         $('#SubmitCustDetail').click(function() {
-
-            gettingVars = getAllValues();
+            var formData = new FormData(document.getElementById('registrationForm'));
 
             $.ajax({
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
-                url: "sales-opportunity-registration-submit?_token={{ csrf_token() }}",
+                url: "partner-registration-submit",
                 type: "POST",
-                data: gettingVars,
+                data: formData,
+                processData: false,
+                contentType: false,
                 success: function(data, textStatus, jqXHR) {
                     var dataPos = data.indexOf("success");
                     if (dataPos != '-1') {
-                        var cariAWB = data.split(":");
                         alert('Data Kemitraan Berhasil Dikirim!');
-
                         location.reload();
                     } else {
                         var cariAWB = data.split("||");
@@ -455,25 +445,9 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     alert("Kesalahan Internal! Silakan coba lagi!");
-
                 }
             });
         })
-
-        function getAllValues() {
-            var inputValues = [];
-            $('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
-                var type = $(this).attr("type");
-                if ((type == "checkbox" || type == "radio") && this.checked) {
-                    inputValues.push($(this).attr("name") + "=" + $(this).val());
-                } else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-                    inputValues.push($(this).attr("id") + "=" + $(this).val());
-                } else if ($(this).is("textarea")) {
-                    inputValues.push($(this).attr("id") + "=" + $(this).val());
-                }
-            })
-            return inputValues.join('&');
-        }
     </script>
     @stack('registration-script')
 </body>

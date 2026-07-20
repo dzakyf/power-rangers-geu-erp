@@ -73,6 +73,7 @@ class OrderEquipmentController extends Controller
         return view('partner.order-equipment-detail-booth', compact('wh','partner'));
     }
 
+
     public function indexDetailBoothInventoryXml(Request $request)
     {
         if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
@@ -82,7 +83,6 @@ class OrderEquipmentController extends Controller
         echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
-        $nomor = 1;
 
         $task = $request->Task;
         $wh = WarehousePartner::where("warehouse_task_id", $task)->first();
@@ -97,31 +97,32 @@ class OrderEquipmentController extends Controller
             ->where('warehouse_task_id', $task)
             ->where('Partner_ID', $partner->id)
             ->get();
-        $getCheckedBySales = [];
+        $getCheckedByPartner = [];
         foreach ($getChecked as $key => $value) {
-            $getCheckedBySales[$value->Facility_ID] = [
-                'Chckd' => $value->Checked_Sales,
-                'Date' => $value->Send_Date
-            ];
             $getCheckedByPartner[$value->Facility_ID] = [
                 'Chckd' => $value->Checked_Partner,
                 'Date' => $value->Received_Date
             ];
         }
 
-        // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'inventory')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'inventory')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
-            $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $partner->id)->first();
-            if ($cekDtl) {
-                echo "<row id=\"$facility->id\" >";
-                    echo "<cell>".($key + 1)."</cell>";
-                    echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                    echo "<cell>".htmlspecialchars($facility->asset_type)."</cell>";
+            echo "<row id=\"$facility->id\" >";
+                echo "<cell>".($key + 1)."</cell>";
+                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
+                echo "<cell>".htmlspecialchars($facility->asset_type)."</cell>";
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $partner->id)->first();
+                if ($cekDtl) {
                     echo "<cell>".htmlspecialchars($cekDtl->Qty)."</cell>";
                     echo "<cell>".htmlspecialchars($cekDtl->Price)."</cell>";
                     echo "<cell>".htmlspecialchars($cekDtl->Total)."</cell>";
                     echo "<cell>".htmlspecialchars($cekDtl->Order_Date)."</cell>";
+                }else {
+                    echo "<cell></cell>";
+                    echo "<cell></cell>";
+                    echo "<cell></cell>";
+                    echo "<cell></cell>";
+                }
                 if (isset($getCheckedByPartner[$facility->id])) {
                     if ($getCheckedByPartner[$facility->id]['Date'] == '0000-00-00') {
                         echo "<cell></cell>";
@@ -133,13 +134,11 @@ class OrderEquipmentController extends Controller
                     echo "<cell></cell>";
                     echo "<cell>0</cell>";
                 }
-                echo "</row>";
-            }
+            echo "</row>";
         }
 
         echo "</rows>";
     }
-
     public function indexDetailBoothAccessXml(Request $request)
     {
         if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
@@ -176,7 +175,7 @@ class OrderEquipmentController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'access')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'access')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
                 echo "<cell>".($key + 1)."</cell>";
@@ -231,7 +230,7 @@ class OrderEquipmentController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'support')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'support')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
                 echo "<cell>".($key + 1)."</cell>";
@@ -298,7 +297,7 @@ class OrderEquipmentController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'inventory')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'inventory')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
                 echo "<cell>".($key + 1)."</cell>";
@@ -373,7 +372,7 @@ class OrderEquipmentController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'access')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'access')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
                 echo "<cell>".($key + 1)."</cell>";
@@ -428,7 +427,7 @@ class OrderEquipmentController extends Controller
         }
 
         // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'support')->get();
+        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'support')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
                 echo "<cell>".($key + 1)."</cell>";
@@ -512,10 +511,13 @@ class OrderEquipmentController extends Controller
                 ->where('warehouse_task_id', $_GET['wh'])
                 ->first();
                 if ($cekDtl) {
-                    DB::table('opportunity_partner_facility_dtl')
-                        ->where('ID', $cekDtl->ID)
+                    DB::table("opportunity_partner_facility_dtl")
+                        ->where("ID", $cekDtl->ID)
                         ->update([
-                            'Order_Date' => $f
+                            "Qty" => $c,
+                            "Price" => $d,
+                            "Total" => $e,
+                            "Order_Date" => $f,
                         ]);
                 }else {
                     DB::table('opportunity_partner_facility_dtl')
@@ -524,6 +526,9 @@ class OrderEquipmentController extends Controller
                             'Partner_ID' => $_GET['Task'],
                             'warehouse_task_id' => $_GET['wh'],
                             'Order_Date' => $f,
+                            'Qty' => $c,
+                            'Price' => $d,
+                            'Total' => $e,
                             'Created_By' => $Saya,
                             'Created_Date' => now(),
                         ]);

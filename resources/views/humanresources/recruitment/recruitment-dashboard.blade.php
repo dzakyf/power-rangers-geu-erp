@@ -9,7 +9,7 @@ $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
 
 $getRecruit = DB::table('recruitment')
-	->select("requisition.Department", "requisition.Job_Position as Position", "recruitment.Status")
+	->select("requisition.Department", "requisition.Job_Position as Position", "recruitment.Status", "recruitment.Name")
 	->leftJoin("requisition", "recruitment.Requisition_ID", "requisition.Task_ID")
 	->where('recruitment.Status', '!=', "CLOSED")
 	->where('recruitment.Location', $LSP)

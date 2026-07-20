@@ -22,6 +22,15 @@
 	FacilityBenefitsBooth.setColAlign("center,left,center,right,right,right,center,center,center");
 	FacilityBenefitsBooth.setColSorting("int,str,str,int,int,int,str,str,int");
 	FacilityBenefitsBooth.setColTypes("ro,ro,ro,ron,ron,ron,dhxCalendar,dhxCalendar,ch");
+    FacilityBenefitsBooth.attachEvent("onEditCell", function (stage, rowId, cellIndex, newValue, oldValue) {
+        if (cellIndex == 3 || cellIndex == 4) {
+            let qty = FacilityBenefitsBooth.cells(rowId, 3).getValue();
+            let price = FacilityBenefitsBooth.cells(rowId, 4).getValue();
+            let total = parseFloat(qty) * parseFloat(price);
+            FacilityBenefitsBooth.cells(rowId, 5).setValue(total);
+        }
+        return true;
+    });
 	FacilityBenefitsBooth.enableSmartRendering(true, 150);
     FacilityBenefitsBooth.setDateFormat("%Y-%m-%d");
     FacilityBenefitsBooth.setNumberFormat("0,000", 3, ".", ",");
