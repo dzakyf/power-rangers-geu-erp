@@ -10,7 +10,13 @@ $Saya =  Auth::user()->username;
 
 $cekLeads = DB::table('opportunity')->where('ID', $_GET['rId'])->first();
 if ($cekLeads && $cekLeads->Status == "Deal") {
-	echo "https://wa.me/62" . $cekLeads->Phone_Number . "?text=Silahkan+akses+link+tersebut+untuk+registrasi%0D%0Ahttps%3A%2F%2Fdev.hexamatika.com%2Fgeu%2Fhcga%2Fpublic%2Fpartner-registration%3Fleads%3D".urlencode($cekLeads->Task_ID);
+    $token = md5($cekLeads->Task_ID . time() . config('app.key'));
+    DB::table('opportunity')->where('ID', $cekLeads->ID)->update([
+        'registration_token' => $token,
+        'token_expires_at'   => now()->addDays(3),
+    ]);
+    $link = "https://dev.hexamatika.com/geu/hcga/public/partner-registration?token=" . urlencode($token);
+    echo "https://wa.me/62" . $cekLeads->Phone_Number . "?text=Silahkan+akses+link+tersebut+untuk+registrasi%0D%0A" . urlencode($link);
 }else {
-	echo "";
+    echo "";
 }

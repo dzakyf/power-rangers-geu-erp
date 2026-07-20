@@ -119,15 +119,15 @@
                 <div class="row">
                     <div class="col-md-6 mt-3">
                         <label>KTP</label>
-                        <input type="text" id="reg_ktp" name="ktp" class="form-control" readonly />
+                        <div id="reg_ktp_container"></div>
                     </div>
                     <div class="col-md-6 mt-3">
                         <label>NPWP</label>
-                        <input type="text" id="reg_npwp" name="npwp" class="form-control" readonly />
+                        <div id="reg_npwp_container"></div>
                     </div>
                     <div class="col-md-12 mt-3">
                         <label>Dokumen Pendukung</label>
-                        <input type="text" id="reg_supporting_documents" name="supporting_documents" class="form-control" readonly />
+                        <div id="reg_supporting_documents_container"></div>
                     </div>
                 </div>
             </div>
@@ -198,7 +198,7 @@
                     </div>
                     <div class="col-md-12 mt-3">
                         <label>Dokumen Perusahaan</label>
-                        <input type="text" id="reg_company_documents" name="company_documents" class="form-control" readonly />
+                        <div id="reg_company_documents_container"></div>
                     </div>
                 </div>
 
@@ -370,6 +370,7 @@
 </div>
 
 <script>
+    var baseUrl = '{{ asset("filevendor") }}';
     $('#CancelRegisteredDetail').on('click', function() {
         $('#divRegisteredLeadsDetail').hide();
     });
@@ -429,16 +430,17 @@
                     $('#reg_gross_monthly').val(data.gross_monthly);
                     $('#reg_gross_annual').val(data.gross_annual);
                     $('#reg_sources_of_funds').val(data.sources_of_funds);
-                    let arr = JSON.parse(data.supporting_documents);
-                    console.log(arr);
-                    for (let i = 0; i < arr.length; i++) {
-                        const ele = arr[i];
-                        if (ele == 'Others') {
-                            $('#reg_supporting_documents').val(data.all_documents[ele]);
-                        }else {
-                            $('#reg_' + ele.toLowerCase()).val(data.all_documents[ele]);
+                    ['KTP', 'NPWP', 'Others'].forEach(function(ele) {
+                        var filePath = data.all_documents ? data.all_documents[ele] : null;
+                        var container = (ele == 'Others') ?
+                            '#reg_supporting_documents_container' :
+                            '#reg_' + ele.toLowerCase() + '_container';
+                        if (filePath) {
+                            $(container).html('<a href="' + baseUrl + '/' + filePath + '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-download"></i> Lihat Dokumen</a>');
+                        } else {
+                            $(container).html('<span class="text-muted">No document uploaded</span>');
                         }
-                    }
+                    });
 
                     $('#reg_q1').val(data.q1);
                     $('#reg_p6q1a1').val(data.c_p6q1a1);
@@ -475,17 +477,17 @@
                     $('#reg_pic_email').val(data.pic_email);
                     $('#reg_company_scale').val(data.company_scale);
                     $('#reg_estimated_revenue').val(data.estimated_revenue);
-                    $('#reg_company_funds').val(data.company_funds);
-                    $('#reg_company_warehouse_count').val(data.company_warehouse_count);
-                    $('#reg_company_experience').val(data.company_experience);
-                    $('#reg_company_has_location').val(data.company_has_location);
-                    $('#reg_location_types').val(data.location_types);
-                    $('#reg_company_documents').val(data.company_documents);
-
-                    $('#reg_c_p6q1').val(data.c_p6q1);
-                    $('#reg_c_p6q1a1').val(data.c_p6q1a1);
-                    $('#reg_c_p6q2').val(data.c_p6q2);
-                    $('#reg_c_p6q3').val(data.c_p6q3);
+                    var compHtml = '';
+                    ['akta', 'nib', 'npwp', 'others'].forEach(function(type) {
+                        var path = data.all_documents ? data.all_documents[type] : null;
+                        if (path) {
+                            compHtml += '<a href="' + baseUrl + '/' + path + '" target="_blank" class="btn btn-sm btn-outline-primary mr-2"><i class="fas fa-file-download"></i> Lihat Dokumen</a>';
+                        }
+                    });
+                    if (compHtml === '') {
+                        compHtml = '<span class="text-muted">No document uploaded</span>';
+                    }
+                    $('#reg_company_documents_container').html(compHtml);
                     $('#reg_c_p6q3a1').val(data.c_p6q3a1);
                     $('#reg_c_p6q4').val(data.c_p6q4);
 

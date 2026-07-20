@@ -183,7 +183,7 @@
                 $('#Qualification').val(data.Qualification);
                 $('#Classification').val(data.Classification);
                 $('#Status').val(data.Status);
-                $('#Reason').val(data.Note_Cancellation);
+                $('#Reason').val(data.Reason);
                 changeStatus();
             },
             error: function() {

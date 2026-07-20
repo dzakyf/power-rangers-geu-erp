@@ -305,46 +305,31 @@ class ProfitSharingController extends Controller
 
     public function lkProfitSharingXmlV2(Request $request)
     {
-        $stmt = app(\App\Services\WarehouseService::class)->calculateMonthlyFinancialStatement(
+        $date = $request->date;
+        $calculate = [];
+
+        $start = strlen($date) == 4 ? $date . '-01-01' : $date . '-01';
+        $end   = strlen($date) == 4 ? $date . '-12-31' : $date . '-31';
+
+        $stmt = app(WarehouseService::class)->calculateFinancialStatement(
             $request->Task,
-            $request->date . '-01',
-            $request->date . '-31'
+            $start,
+            $end
         );
 
-        // --- Build $calculate array ---
-
-        // Revenue from service (uses master_stock_price via transfer_income)
         $calculate[401][40001] = $stmt['transfer_income'];
-
-        // Transfer price from service
         $calculate[402][40002] = $stmt['transfer_price'];
+        $calculate[501][51001] = $stmt['qty_out'];
+        $calculate[501][51002] = $stmt['avg_out'];
+        $calculate[501]['NULL'] = $stmt['raw_material_price'];
 
-        // Qty out (same as original)
-        $calculate[501][51001] = WarehouseStockRequest::where('warehouse_task_id', $request->Task)
-            ->where('request_date', 'LIKE', $request->date . '%')->sum('request_qty');
-
-        // Avg buy price (same as original weighted avg)
-        $whs = WarehousePartnerSupplies::where("warehouse_task_id", $request->Task)
-            ->where('received_date', 'LIKE', $request->date . '%')->get();
-        $avgBuy = 0;
-        $qty = 0;
-        foreach ($whs as $v) {
-            $avgBuy = ($avgBuy * $qty + $v->total) / ($qty + $v->received_qty);
-            $qty += $v->received_qty;
+        foreach ($stmt['expense_details'] as $group => $accounts) {
+            foreach ($accounts as $code => $amount) {
+                $calculate[$group][$code] = $amount;
+            }
         }
-        $calculate[501][51002] = $avgBuy;
-        $calculate[501]['NULL'] = $calculate[501][51001] * $calculate[501][51002];
 
-        // Journal overheads (same as original)
-        $getAccount = MasterWarehouseAccount::where('group_account', '>', 501)->get();
-        foreach ($getAccount as $value) {
-            $calculate[$value->group_account][$value->account_no] =
-                WarehousePartnerJournal::where('warehouse_task_id', $request->Task)
-                    ->where('posting_date', 'LIKE', $request->date . '%')
-                    ->where('account_no', $value->account_no)
-                    ->where('group_account', $value->group_account)
-                    ->sum('nominal');
-        }
+
         $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502] ?? []);
 
         // --- Formula processing (identical to original) ---
@@ -434,130 +419,6 @@ class ProfitSharingController extends Controller
         }
 
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
-    }
-
-    public function monthlyFinancialStatementCollection(Request $request)
-    {
-        // ============================================================
-        // 1. Calculate Revenue
-        // ============================================================
-
-        // Average stock transfer price for the given date
-        $avgStockPrice = MasterStockPrice::where('date_for', 'LIKE', "$request->date%")->avg('price') ?? 0;
-
-        // Total quantity requested for the given warehouse
-        $qtyRequested  = WarehouseStockRequest::where('warehouse_task_id', $request->Task)
-            ->where('request_date', 'LIKE', $request->date . '%')
-            ->sum('request_qty');
-
-        // Weighted average purchase price from supplies
-        $supplies    = WarehousePartnerSupplies::where('warehouse_task_id', $request->Task)
-            ->where('received_date', 'LIKE', $request->date . '%')
-            ->get();
-
-        $avgBuyPrice = 0;
-        $totalQty    = 0;
-        foreach ($supplies as $supply) {
-            $avgBuyPrice = (($avgBuyPrice * $totalQty) + $supply->total) / ($totalQty + $supply->received_qty);
-            $totalQty   += $supply->received_qty;
-        }
-
-        $calculate = [];
-        $calculate[401][40001]  = $avgStockPrice * $qtyRequested; // Revenue
-        $calculate[402][40002]  = $avgStockPrice;                 // Transfer price
-        $calculate[501][51001]  = $qtyRequested;                  // Quantity
-        $calculate[501][51002]  = $avgBuyPrice;                   // Purchase price
-        $calculate[501]['NULL'] = $qtyRequested * $avgBuyPrice;   // COGS
-
-        // ============================================================
-        // 2. Calculate OPEX from journal entries per account
-        // ============================================================
-        $opexAccounts = MasterWarehouseAccount::where('group_account', '>', 501)->get();
-
-        foreach ($opexAccounts as $account) {
-            $calculate[$account->group_account][$account->account_no] = WarehousePartnerJournal::where('warehouse_task_id', $request->Task)
-                ->where('posting_date', 'LIKE', $request->date . '%')
-                ->where('account_no', $account->account_no)
-                ->where('group_account', $account->group_account)
-                ->sum('nominal');
-        }
-
-        $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502] ?? []);
-
-        // ============================================================
-        // 3. Apply profit/loss formulas from master
-        // Level 2 = calculated subtotals (credit/debit)
-        // Level 3 = profit share (60% of referenced account)
-        // ============================================================
-        $formulas = MasterWarehouseProfitLoss::where('type', $request->type)->get();
-
-        foreach ($formulas as $formula) {
-            if ($formula->Rumus == '') continue;
-
-            $exp = explode(',', $formula->Rumus);
-
-            if ($formula->Level == 2) {
-                $calculate[$formula->Judul]['NULL'] = $formula->Normal == 'CREDIT'
-                    ? (array_sum($calculate[$exp[0]] ?? []) - array_sum($calculate[$exp[1]] ?? [])) - (isset($exp[2]) ? array_sum($calculate[$exp[2]] ?? []) : 0)
-                    : (array_sum($calculate[$exp[0]] ?? []) + array_sum($calculate[$exp[1]] ?? [])) + (isset($exp[2]) ? array_sum($calculate[$exp[2]] ?? []) : 0);
-
-                // Deduct 2.5% management fee specifically for account 701
-                if ($formula->Judul == '701') {
-                    $calculate[$formula->Judul]['NULL'] -= ($calculate[401][40001] * 2.5) / 100;
-                }
-            }
-
-            if ($formula->Level == 3) {
-                $calculate[$formula->Judul]['NULL'] = (array_sum($calculate[$exp[0]] ?? []) * 60) / 100;
-            }
-        }
-
-
-        // ============================================================
-        // 4. Build result collection from formula definitions
-        // Each row contains the value, percentage of revenue,
-        // styling metadata, and unit info
-        // ============================================================
-        $revenue = $calculate[401][40001] ?: 1; // Avoid division by zero
-
-        $result = $formulas->map(function ($formula) use ($calculate, $revenue) {
-
-            // Resolve the calculated value based on Judul and Code
-            if ($formula->Judul != '' && $formula->Judul != null) {
-                if ($formula->Code != '' && $formula->Code != null) {
-                    $value = $calculate[$formula->Judul][$formula->Code] ?? 0;
-                } elseif (isset($calculate[$formula->Judul]['NULL'])) {
-                    $value = $calculate[$formula->Judul]['NULL'];
-                } else {
-                    $value = array_sum($calculate[$formula->Judul] ?? []);
-                }
-            } elseif ($formula->Code != '' && $formula->Code != null && $formula->Rumus != '') {
-                $value = $calculate[$formula->Rumus][$formula->Code] ?? 0;
-            } else {
-                $value = null;
-            }
-
-            $percentage = ($value !== null && $formula->Unit_Name != 'Kg')
-                ? round($value / $revenue * 100, 2)
-                : null;
-
-            return [
-                'account_group' => $formula->Code ? $formula->Code[0] : null,
-                'account'     => $formula->Code,
-                'description' => $formula->Description,
-                'value'       => $value,
-                'unit'        => $formula->Unit_Name,
-                'percentage'  => $percentage,
-                // 'bold'        => !is_null($formula->Bold),
-                // 'indentation' => $formula->Indentation,
-            ];
-        });
-
-        return [
-            'warehouse_task_id' => $request->Task,
-            'periode' => $request->date,
-            'statements' => $result,
-        ];
     }
 
     public function lkAnnuallyProfitSharing()

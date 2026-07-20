@@ -1,5 +1,5 @@
  <div id="ContentPages">
-     <form class="needs-validation">
+     
          <input type="hidden" name="lead_id" id="lead_id" value="{{ $leadID ?? ''}}" readonly />
          <div class="form-group">
              <label for="Register_As"><strong>Daftar Sebagai <span style="color: red;">*</span></strong></label>

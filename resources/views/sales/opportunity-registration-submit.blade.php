@@ -67,14 +67,22 @@ try {
     // Financial
     $data['gross_monthly'] = request()->input('Gross_Monthly');
     $data['gross_annual'] = request()->input('Gross_Annual');
-    $data['sources_of_funds'] = json_encode(array_filter([request()->input('Source_Personal_Savings'), request()->input('Source_Inheritance'), request()->input('Source_Business_Income'), request()->input('Source_Loan'), request()->input('Source_Pension')]));
+
+    $rawFunds = array_filter([
+        request()->input('Source_Personal_Savings'),
+        request()->input('Source_Inheritance'),
+        request()->input('Source_Business_Income'),
+        request()->input('Source_Loan'),
+        request()->input('Source_Pension')
+    ]);
+    $data['sources_of_funds'] = json_encode($rawFunds);
 
     // Recommendation to be approved
     $data['is_recommended_to_be_approved'] = '3'; // In Consideration
-    if (in_array($data['sources_of_funds'], ["savings", "business"])) {
-        $data['is_recommended_to_be_approved'] = '1'; // Yes
-    } else if (in_array($data['sources_of_funds'], ["loan", "pension"])) {
-        $data['is_recommended_to_be_approved'] = '2'; // No
+    if (in_array('loan', $rawFunds) || in_array('pension', $rawFunds)) {
+        $data['is_recommended_to_be_approved'] = '2'; // No (Not Recommended)
+    } elseif (in_array('savings', $rawFunds) || in_array('business', $rawFunds)) {
+        $data['is_recommended_to_be_approved'] = '1'; // Yes (Recommended)
     }
 
     // Partnership
@@ -122,14 +130,26 @@ try {
     $data['pic_position'] = request()->input('PIC_Position');
     $data['pic_phone'] = request()->input('PIC_Phone', '');
     $data['pic_email'] = request()->input('PIC_Email');
-    if (empty($data['email']) && !empty($data['pic_email'])) {
-        $data['email'] = request()->input('PIC_Email');
-    }
-
     // Company financials
     $data['company_scale'] = request()->input('Company_Scale');
     $data['estimated_revenue'] = request()->input('Estimated_Revenue');
-    $data['company_funds'] = json_encode(array_filter([request()->input('Company_Fund_Business'), request()->input('Company_Fund_Investor'), request()->input('Company_Fund_Loan'), request()->input('Company_Fund_CSR'), request()->input('Company_Fund_Private')]));
+
+    $rawCompanyFunds = array_filter([
+        request()->input('Company_Fund_Business'),
+        request()->input('Company_Fund_Investor'),
+        request()->input('Company_Fund_Loan'),
+        request()->input('Company_Fund_CSR'),
+        request()->input('Company_Fund_Private')
+    ]);
+    $data['company_funds'] = json_encode($rawCompanyFunds);
+
+    // Override recommendation if company uses loan
+    if (in_array('loan', $rawCompanyFunds)) {
+        $data['is_recommended_to_be_approved'] = '2'; // No (Not Recommended)
+    }
+    if (empty($data['email']) && !empty($data['pic_email'])) {
+        $data['email'] = request()->input('PIC_Email');
+    }
 
     $data['company_warehouse_count'] = request()->input('Company_Warehouse_Count');
     $data['company_experience'] = request()->input('Company_Experience');

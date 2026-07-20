@@ -89,6 +89,7 @@ class LeadsController extends Controller
             'Qualification'      => $r->input('Qualification'),
             'Classification'     => $r->input('Classification'),
             'Status'             => $r->input('Status'),
+            'Reason'             => $r->input('Reason'),
         ]);
 
         return response()->json(['status' => 'success']);
