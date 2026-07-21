@@ -369,6 +369,12 @@ class ProfitSharingController extends Controller
             }
         }
 
+        // Override template-derived lines with corrected service values
+        $calculate[456]['NULL'] = $stmt['gross_margin'];
+        $calculate[701]['NULL'] = $stmt['net_profit'];
+        $calculate[801]['NULL'] = $stmt['nominal_royalty'];
+        $calculate[899]['NULL'] = $stmt['ebitda'];
+
         // --- XML output using SimpleXMLElement ---
         $rev = $calculate[401][40001] ?: 1;
         $xml = new SimpleXMLElement('<rows/>');
