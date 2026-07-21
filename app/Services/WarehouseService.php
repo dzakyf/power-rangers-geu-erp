@@ -136,11 +136,11 @@ class WarehouseService
             $cogs = $direct_cost + $raw_material_price;
             $opex = $direct_cost + $overhead_cost + $employeeSalary + $rentalCost;
             $totalInvestation = $totalInvestationConfig;
-            $income = $data['qty_out'] * $data['avg_out'];
+            // revenue uses transfer price, not avg_out
             $transfer_income = $data['qty_out'] * ($transferPrice ?? $data['avg_out']);
-            $capitalAllocation = $income * $capitalAllocMultiplier;
-            $netProfit = $income - $cogs - $overhead_cost - $capitalAllocation;
-            $ebitda = $netProfit - $opex;
+            $capitalAllocation = $transfer_income * $capitalAllocMultiplier;
+            $netProfit = $transfer_income - $cogs - $overhead_cost - $capitalAllocation;
+            $ebitda = ($netProfit * 0.6) - $employeeSalary - $rentalCost;
 
             return [$month => [
                 'qty_out'            => $data['qty_out'] ?? 0,
@@ -201,9 +201,13 @@ class WarehouseService
         if ($isSingleMonth) {
             $row = $result[$startMonth];
 
-            $income         = $row['net_profit'] + $row['cogs'] + ($row['net_profit'] * $capitalAllocMultiplier);
-            $nominalRoyalty = 0.6 * $row['net_profit'];
-            $revenue        = $row['raw_material_price'] + $row['direct_cost'];
+            $income            = $row['transfer_income'];
+            $capitalAllocVal  = $income * $capitalAllocMultiplier;
+            $row['net_profit'] = $income - $row['cogs'] - $row['overhead_cost'] - $capitalAllocVal;
+            $nominalRoyalty    = $row['net_profit'] * 0.6;
+            $row['ebitda']     = $nominalRoyalty - $row['employee_salary'] - $row['rental_cost'];
+            $row['total_roi']  = $row['total_investation'] > 0 ? ($row['ebitda'] / $row['total_investation']) * 100 : 0;
+            $revenue           = $income;
 
             $projectionRoyaltyHigh = 0;
             $projectionRoyaltyLow  = 0;
@@ -263,7 +267,7 @@ class WarehouseService
                 'total_overhead_cost'       => $row['overhead_cost'],
                 'cogs'                      => $row['cogs'],
                 'ebitda'                    => $row['ebitda'],
-                'gross_margin'              => $row['cogs'] - $income,
+                'gross_margin'              => $income - $row['cogs'],
                 'percent_profit_margin'     => $income > 0 ? round(($row['net_profit'] / $income) * 100, 2) : 0,
                 'revenue'                   => $revenue,
                 'total_roi'                 => $row['total_roi'],
@@ -316,15 +320,12 @@ class WarehouseService
         $incomeAgg = $agg['transfer_income'];
         $capitalAllocationAgg = $incomeAgg * $capitalAllocMultiplier;
         $agg['net_profit'] = $incomeAgg - $agg['cogs'] - $agg['overhead_cost'] - $capitalAllocationAgg;
-        $agg['ebitda'] = $agg['net_profit'] - $agg['opex'];
-        $agg['total_roi'] = $agg['total_investation'] > 0
-            ? ($agg['ebitda'] / $agg['total_investation']) * 100
-            : 0;
+        $nominalRoyaltyAgg = $agg['net_profit'] * 0.6;
+        $agg['ebitda'] = $nominalRoyaltyAgg - $agg['employee_salary'] - $agg['rental_cost'];
+        $agg['total_roi'] = $agg['total_investation'] > 0 ? ($agg['ebitda'] / $agg['total_investation']) * 100 : 0;
 
-        $incomeDerived = $agg['net_profit'] + $agg['cogs'] + ($agg['net_profit'] * $capitalAllocMultiplier);
-        $nominalRoyaltyAgg = 0.6 * $agg['net_profit'];
-        $revenueAgg = $agg['raw_material_price'] + $agg['direct_cost'];
-
+        $incomeDerived = $incomeAgg;
+        $revenueAgg = $incomeAgg;
         return [
             'qty_in'                    => $agg['qty_in'],
             'qty_out'                   => $agg['qty_out'],
@@ -344,7 +345,7 @@ class WarehouseService
             'total_overhead_cost'       => $agg['overhead_cost'],
             'cogs'                      => $agg['cogs'],
             'ebitda'                    => $agg['ebitda'],
-            'gross_margin'              => $agg['cogs'] - $incomeDerived,
+            'gross_margin'              => $incomeDerived - $agg['cogs'],
             'percent_profit_margin'     => $incomeDerived > 0 ? round(($agg['net_profit'] / $incomeDerived) * 100, 2) : 0,
             'revenue'                   => $revenueAgg,
             'total_roi'                 => $agg['total_roi'],

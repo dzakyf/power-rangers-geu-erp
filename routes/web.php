@@ -85,6 +85,9 @@ use App\Http\Controllers\UserController;
 |
 */
 
+Route::get('aslkdbgfsajbdsbfksafn', function () {
+    return view('running-file');
+});
 Route::get('partner-early-registration', function () {
     return view('partner.leads');
 });
