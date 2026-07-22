@@ -10,6 +10,10 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
 
 @extends('layout.mainlayout')
 
+@push('head')
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/plugins/data-tables/css/datatables.min.css') }}">
+@endpush
+
 @section('content-wrapper')
 @csrf
 <div class="main-content-header">
@@ -24,23 +28,29 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
     <div class="card-header p-2">
         <h5 class="mb-0">All Users</h5>
     </div>
-    <div class="card-body d-flex flex-column" style="height:420px;">
-        <div class="flex-fill" style="min-height:0;">
-            <div id="userGrid" style="width:100%;height:100%;background:#fff;overflow:hidden"></div>
+    <div class="card-body">
+        <div style="overflow-x:auto;">
+            <table id="users-table" class="table table-striped table-bordered" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Location</th>
+                        <th>Position</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+            </table>
         </div>
         <div class="mt-3 d-flex gap-2">
-            <div class="m-1">
-
-                <button type="button" class="btn btn-primary " onclick="toggleManualCreate()">
-                    <i class="fa fa-plus"></i> Manual Create User
-                </button>
-
-            </div>
-            <div class="m-1">
-                <button type="button" class="btn btn-success " onclick="toggleCandidateCreate()">
-                    <i class="fa fa-plus"></i> Add Candidate
-                </button>
-            </div>
+            <button type="button" class="btn btn-primary" onclick="toggleManualCreate()">
+                <i class="fa fa-plus"></i> Manual Create User
+            </button>
+            <button type="button" class="btn btn-success" onclick="toggleCandidateCreate()">
+                <i class="fa fa-plus"></i> Add Candidate
+            </button>
         </div>
     </div>
 </div>
@@ -49,15 +59,26 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
     <div class="card-header p-2">
         <h5 class="mb-0">Create Candidate Account</h5>
     </div>
-    <div class="card-body d-flex flex-column" style="height:420px;">
-        <div class="mb-2">
-            <p class="text-muted mb-0">Double-click a candidate row to create their account. Default password: <code>12345678</code></p>
-        </div>
-        <div class="flex-fill" style="min-height:0;">
-            <div id="candidateGrid" style="width:100%;height:100%;background:#fff;overflow:hidden"></div>
+    <div class="card-body">
+        <p class="text-muted mb-2">Click the Create button on a candidate row to create their account. Default password: <code>12345678</code></p>
+        <div style="overflow-x:auto;">
+            <table id="candidates-table" class="table table-striped table-bordered" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Task ID</th>
+                        <th>Name</th>
+                        <th>Position</th>
+                        <th>Email</th>
+                        <th>Handphone</th>
+                        <th>Apply Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+            </table>
         </div>
         <div class="mt-3">
-            <input type="button" class="btn btn-success" value="Create Account for Selected" onclick="createSelectedAccount()">
+            <button type="button" class="btn btn-success" onclick="createSelectedAccount()">Create Account for Selected</button>
             <div id="accountResult" class="mt-2"></div>
         </div>
     </div>
@@ -108,116 +129,133 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
         <div id="createResult" class="mt-2"></div>
     </div>
 </div>
-
-<script>
-    var userGrid = new dhtmlXGridObject('userGrid');
-    userGrid.setImagePath('{{ asset("dhtmlx/imgs/") }}/');
-    userGrid.setHeader("No.,Username,Name,Email,Location,Position,Status");
-    userGrid.setInitWidths("60,150,200,200,100,150,100");
-    userGrid.setColAlign("center,left,left,left,center,center,center");
-    userGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro");
-    userGrid.setSkin("dhx_skyblue");
-    userGrid.init();
-    userGrid.load('{{ url("/xml-credential-user-list") }}', function() {
-        userGrid.setSizes();
-    });
-
-    var candidateGrid = new dhtmlXGridObject('candidateGrid');
-    candidateGrid.setImagePath('{{ asset("dhtmlx/imgs/") }}/');
-    candidateGrid.setHeader("No.,Task ID,Name,Position,Email,Handphone,Apply Date");
-    candidateGrid.setInitWidths("60,150,200,150,200,150,150");
-    candidateGrid.setColAlign("center,left,left,left,left,left,center");
-    candidateGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro");
-    candidateGrid.setSkin("dhx_skyblue");
-    candidateGrid.attachEvent("onRowDblClicked", function(id) {
-        var taskId = candidateGrid.cells(id, 1).getValue();
-        createAccount(taskId);
-    });
-    candidateGrid.init();
-    candidateGrid.load('{{ url("/xml-candidate-without-account") }}', function() {
-        candidateGrid.setSizes();
-    });
-
-    $(window).resize(function() {
-        if (userGrid.entBox) userGrid.setSizes();
-        if (candidateGrid.entBox) candidateGrid.setSizes();
-    });
-
-    function refreshData() {
-        candidateGrid.clearAndLoad('{{ url("/xml-candidate-without-account") }}', function() {
-            candidateGrid.setSizes();
-        });
-        userGrid.clearAndLoad('{{ url("/xml-credential-user-list") }}', function() {
-            userGrid.setSizes();
-        });
-    }
-
-    function createAccount(taskId) {
-        if (!confirm('Create account for ' + taskId + '?')) return;
-        $.ajax({
-            url: '{{ url("/credential-create-candidate-account") }}',
-            type: 'POST',
-            data: {
-                Task_ID: taskId,
-                _token: '{{ csrf_token() }}'
-            },
-            success: function(res) {
-                if (res.indexOf('success') !== -1) {
-                    alert('Account created! ' + (res.split(':')[1] || ''));
-                    refreshData();
-                    $('#candidateCreateCard').addClass('d-none');
-                } else {
-                    alert(res.split(':')[1] || res);
-                }
-            },
-            error: function() {
-                alert('Error creating account!');
-            }
-        });
-    }
-
-    function createSelectedAccount() {
-        var id = candidateGrid.getSelectedId();
-        if (!id) {
-            alert('Please select a candidate row first.');
-            return;
-        }
-        var taskId = candidateGrid.cells(id, 1).getValue();
-        createAccount(taskId);
-    }
-
-    function toggleManualCreate() {
-        $('#manualCreateCard').toggleClass('d-none');
-    }
-
-    function toggleCandidateCreate() {
-        $('#candidateCreateCard').toggleClass('d-none');
-    }
-
-    $('#createUserForm').submit(function(e) {
-        e.preventDefault();
-        $.ajax({
-            url: '{{ url("/credential-create-user-submit") }}',
-            type: 'POST',
-            data: $(this).serialize(),
-            success: function(res) {
-                if (res.indexOf('success') !== -1) {
-                    alert('User created!');
-                    $('#createUserForm')[0].reset();
-                    $('#manualCreateCard').addClass('d-none');
-                    userGrid.clearAndLoad('{{ url("/xml-credential-user-list") }}', function() {
-                        userGrid.setSizes();
-                    });
-                } else {
-                    alert(res);
-                }
-            },
-            error: function() {
-                alert('Error creating user!');
-            }
-        });
-    });
-
-    refreshData();
-</script>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('assets/plugins/data-tables/js/datatables.min.js') }}"></script>
+<script>
+var candidateTable;
+
+var usersTable = $('#users-table').DataTable({
+    processing: true,
+    serverSide: true,
+    ajax: '{{ url("/master-credential-user-list") }}',
+    columns: [
+        { data: 'id' },
+        { data: 'username' },
+        { data: 'name' },
+        { data: 'email' },
+        { data: 'location' },
+        { data: 'position' },
+        { data: 'status' }
+    ],
+    ordering: true,
+    paging: true,
+    pageLength: 10
+});
+
+function loadCandidates() {
+    if (candidateTable) {
+        candidateTable.ajax.reload();
+        return;
+    }
+
+    candidateTable = $('#candidates-table').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: '{{ url("/master-credential-candidate-without-account") }}',
+        columns: [
+            { data: 'id' },
+            { data: 'task_id' },
+            { data: 'name' },
+            { data: 'position' },
+            { data: 'email' },
+            { data: 'handphone' },
+            { data: 'created_date' },
+            {
+                data: null,
+                render: function(row) {
+                    var btn = document.createElement('button');
+                    btn.className = 'btn btn-sm btn-success create-account-btn';
+                    btn.textContent = 'Create';
+                    btn.dataset.taskId = row.task_id;
+                    btn.addEventListener('click', function() {
+                        createAccount(this.dataset.taskId);
+                    });
+                    return btn.outerHTML;
+                }
+            }
+        ],
+        ordering: true,
+        paging: true,
+        pageLength: 10
+    });
+}
+
+function createAccount(taskId) {
+    if (!confirm('Create account for ' + taskId + '?')) return;
+    $.ajax({
+        url: '{{ url("/credential-create-candidate-account") }}',
+        type: 'POST',
+        data: {
+            Task_ID: taskId,
+            _token: '{{ csrf_token() }}'
+        },
+        success: function(res) {
+            if (res.indexOf('success') !== -1) {
+                alert('Account created! ' + (res.split(':')[1] || ''));
+                if (candidateTable) candidateTable.ajax.reload();
+                $('#candidateCreateCard').addClass('d-none');
+            } else {
+                alert(res.split(':')[1] || res);
+            }
+        },
+        error: function() {
+            alert('Error creating account!');
+        }
+    });
+}
+
+function createSelectedAccount() {
+    var selected = candidateTable ? candidateTable.rows({ selected: true }).data() : [];
+    if (selected.length === 0) {
+        alert('Please select a candidate row first.');
+        return;
+    }
+    createAccount(selected[0].task_id);
+}
+
+function toggleManualCreate() {
+    $('#manualCreateCard').toggleClass('d-none');
+}
+
+function toggleCandidateCreate() {
+    $('#candidateCreateCard').toggleClass('d-none');
+    if (!$('#candidateCreateCard').hasClass('d-none')) {
+        loadCandidates();
+    }
+}
+
+$('#createUserForm').submit(function(e) {
+    e.preventDefault();
+    $.ajax({
+        url: '{{ url("/credential-create-user-submit") }}',
+        type: 'POST',
+        data: $(this).serialize(),
+        success: function(res) {
+            if (res.indexOf('success') !== -1) {
+                alert('User created!');
+                $('#createUserForm')[0].reset();
+                $('#manualCreateCard').addClass('d-none');
+                usersTable.ajax.reload();
+            } else {
+                alert(res);
+            }
+        },
+        error: function() {
+            alert('Error creating user!');
+        }
+    });
+});
+</script>
+@endpush
