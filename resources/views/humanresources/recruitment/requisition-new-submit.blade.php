@@ -19,8 +19,9 @@ foreach($_POST as $key=>$value)
 		$ars 	.="$key,";
 		$vals	.="'$_POST[$key]',";
 		$MX .="$key = '$_POST[$key]',";
-		if ($key == 'Start_Date' || $key == 'End_Date') {
+		if ($key == 'Start_Date') {
 			$arr[$key] = date('Y-m-d', strtotime($value));
+			$arr['End_Date'] = date('Y-m-d', strtotime($value) . ' +1 month');
 		} else {
 			$arr[$key] = $value;
 		}
@@ -41,9 +42,6 @@ $arr['Requisition_Type'] = "NON_PO";
 $arr['Job_Position'] = $jobPosition->Position;
 $arr['Department'] = $jobPosition->Department;
 
-
-$Taskid = 'REQ/'.$LSP.'/'.date('Ymdhis').md5($Saya,0,3);
-$arr['Task_ID'] = $Taskid;
 $reqId = DB::table('requisition')->insertGetId($arr);
 
 $arr["Action_By"] = $Saya;
