@@ -36,6 +36,7 @@ $getRecruit = DB::table('recruitment')
 
 <div class="card">
 	<div class="card-body">
+		<h4>Dashboard</h4>
 		<div class="row no-gutters">
 			<div class="col-12">
 				<div class="w-100" id="pivottrial"></div>
@@ -43,8 +44,8 @@ $getRecruit = DB::table('recruitment')
 		</div>
 	</div>
 </div>
-<div id="RecruitmentLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-<div id="divlistRecruitment"></div>
+<!-- <div id="RecruitmentLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div> -->
+<!-- <div id="divlistRecruitment"></div> -->
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.css">

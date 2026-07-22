@@ -5,8 +5,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 	
 	$LSP = Auth::user()->Location;
+	$Saya = Auth::user()->username;
 	$positions = DB::table('master_position')->orderBy('Position', 'asc')->get();
     $workCalendar = DB::table('work_calendars')->get();
+    $req = DB::table('requisition')->where("Created_Date", 'LIKE',date("Y"). '%')->count() + 1;
+    $Taskid = 'REQ/'.$LSP.'/'.date('Ymdhis').'-'.sprintf('%02d', $req);
 
 ?>
 
@@ -14,12 +17,19 @@ use Illuminate\Database\Eloquent\Builder;
 {{-- <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">NEW REQUISITION </div> --}}
 <div class="card shadow-sm border-0 mt-3">
     <div class="card-header bg-primary text-white p-3">
-        New PTK
+        Form PTK
     </div>
     <div class="card-body">
         <form id="NewRec">
             <div id="ContentPages">
                 <div class="FormInput_Form_Content" class="form-row" >
+                    <div class="form-group col-md-6">
+                        <label>
+                            PTK No
+                        </label>
+                        
+                        <input type="text" class="form-control" id="Task_ID" value="{{ $Taskid }}" readonly />
+                    </div>
                     <div class="form-group col-md-6">
                         <label>
                             Job Position
@@ -29,10 +39,7 @@ use Illuminate\Database\Eloquent\Builder;
                             <option value="">-- Pilih Posisi Pekerjaan  -- </option>
                             @foreach($positions as $position)
                                 <option value="{{ $position->ID }}">
-                                    Dir : {{ $position->Directorat }} &nbsp;&nbsp;&nbsp;&nbsp;
-                                    Dep : {{ $position->Department }} &nbsp;&nbsp;&nbsp;&nbsp;
-                                    Sub : {{ $position->Subsection }} &nbsp;&nbsp;&nbsp;&nbsp;
-                                    Pos : {{ $position->Position }}
+                                    {{ $position->Position }}
                                 </option>
                             @endforeach
                         </select>
@@ -86,13 +93,13 @@ use Illuminate\Database\Eloquent\Builder;
                             <option>REPLACEMENT</option>
                         </select>
                     </div>
-                    <div class="form-group col-md-3">
+                    {{-- <div class="form-group col-md-3">
                         <label>
                             Work Area
                         </label>
                         
                         <input type="text" id="Work_Area" class="form-control" size="15" value="" />
-                    </div>
+                    </div> --}}
                     <div class="form-group col-md-3">
                         <label>
                             Work Schedule
@@ -117,12 +124,6 @@ use Illuminate\Database\Eloquent\Builder;
                         </label>
                         <input type="text" id="Start_Date" class="form-control bg-white" size="15" value="<?php echo date('d M Y');?>" readonly/>
                     </div>
-                    <div class="form-group col-md-3">
-                        <label>
-                            Close Date
-                        </label>
-                        <input type="text" id="End_Date" class="form-control bg-white" size="15" value="<?php echo date('d M Y');?>" readonly/>
-                    </div>
                     <div class="form-group col-md-12">
                         <button class="btn btn-danger" type="reset">Reset</button>
                         <button class="btn btn-success" type="button" id="SubmitBtn">Submit</button>
@@ -135,7 +136,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 <script> 
 var myCalendar;
-    myCalendar = new dhtmlXCalendarObject(["Start_Date","End_Date"]);
+    myCalendar = new dhtmlXCalendarObject(["Start_Date"]);
 	myCalendar.setDateFormat("%d %M %Y");
 
  	$('#SubmitBtn').on('click', function(e) {

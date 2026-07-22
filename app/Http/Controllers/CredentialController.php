@@ -94,19 +94,23 @@ class CredentialController extends Controller
 
     public function createUserSubmit(Request $request)
     {
-        $username = $request->input('username');
-        $name = $request->input('Name');
         $email = $request->input('email');
+        $name = $request->input('Name');
         $password = $request->input('password', '12345678');
         $location = $request->input('Location', 'GEU-HO');
         $position = $request->input('Position', 'EMPLOYEE');
 
-        if (!$username || !$name) {
-            return 'error:Username and Name are required';
+        if (!$email || !$name) {
+            return 'error:Email/Username and Name are required';
+        }
+
+        $exists = DB::table('users')->where('username', $email)->first();
+        if ($exists) {
+            return 'error:Email/Username already exists';
         }
 
         DB::table('users')->insert([
-            'username' => $username,
+            'username' => $email,
             'Name'     => $name,
             'email'    => $email,
             'password' => bcrypt($password),

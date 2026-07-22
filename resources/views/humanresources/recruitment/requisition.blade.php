@@ -35,7 +35,7 @@ $Saya =  Auth::user()->username;
 		<input type="button" id="ekselRequisitionListsDet" name="ekselRequisitionListsDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="RequisitionLists.toExcel('./export/generate.php');" />
 		<input type="button" id="delets" name="delets" value="Cancel PTK" onclick="delsRequisition()" class="btn btn-info mt-2 mr-2" onclick="delsRequisition()" />
 		<input type="button" id="CancelReq" name="CancelReq" class="btn btn-danger mt-2 mr-2" onclick="closereq()" value="Close PTK" />
-		<input type="button" id="NewReq" name="NewReq" onclick="newreq()" class="btn btn-success mt-2 mr-2" value="New PTK" />
+		<input type="button" id="NewReq" name="NewReq" onclick="newreq()" class="btn btn-success mt-2 mr-2" value="Form PTK" />
 	</div>
 
 </div>
@@ -52,7 +52,7 @@ $Saya =  Auth::user()->username;
 	}
 	RequisitionLists = new dhtmlXGridObject('RequisitionLists');
 	RequisitionLists.setImagePath("./dhtmlx/imgs/");
-	RequisitionLists.setHeader("No.,KTP,Subject,Job Position,Description,Requirement,Department,Priority,Qty,Aging(days),Start date,End Date,Reference,PIC,Status,Note");
+	RequisitionLists.setHeader("No.,PTK No,Subject,Job Position,Description,Requirement,Department,Priority,Qty,Aging(days),Start date,End Date,Reference,PIC,Status,Note");
 	RequisitionLists.setInitWidths("70,100,250,120,120,120,100,100,50,100,100,100,100,100,100,100");
 	RequisitionLists.setColAlign("center,left,left,center,center,center,center,center,center,center,center,center,center,center,left");
 	RequisitionLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,coro,ro,ro,ro,ro,ro,combo,ro,ro");

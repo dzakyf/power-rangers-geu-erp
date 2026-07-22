@@ -37,6 +37,7 @@ use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\HCGA\MasterApprovalController as HCGAMasterApprovalController;
 use App\Http\Controllers\HCGA\MasterWorkCalendarController as HCGAMasterWorkCalendarController;
 use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormController;
+use App\Http\Controllers\HCGA\TrainingController as HCGATrainingController;
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOController as UCOLogisticController;
@@ -5492,4 +5493,13 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('humanresources.employment.employee-form');
     });
     Route::get("$hcPref-employee-form-print", [HCGAEmploymentFormController::class, 'printPerubahanStatus']);
+
+    $hcTrainingPref = "$hcPref-training";
+    Route::get("$hcTrainingPref-index", [HCGATrainingController::class, 'index']);
+    Route::get("xml-$hcTrainingPref-index", [HCGATrainingController::class, 'indexXml']);
+    Route::get("$hcTrainingPref-new", [HCGATrainingController::class, 'new']);
+    Route::post("$hcTrainingPref-new-submit", [HCGATrainingController::class, 'newSubmit']);
+    Route::post("$hcTrainingPref-new-update", [HCGATrainingController::class, 'newUpdate']);
+    Route::get("$hcTrainingPref-approval", [HCGATrainingController::class, 'approval']);
+    Route::get("xml-$hcTrainingPref-approval", [HCGATrainingController::class, 'approvalXml']);
 });
