@@ -25,6 +25,8 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        //
+        \Auth::provider('active_eloquent', function ($app, array $config) {
+            return new \App\Auth\ActiveUserProvider($app['hash'], $config['model']);
+        });
     }
 }

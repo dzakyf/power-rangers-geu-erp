@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Credential;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\User;
+use App\Role as SpatieRole;
+use App\Services\RbacService;
 
 class CredentialUserController extends Controller
 {
     public function index()
     {
-        return view('credential.user-management');
+        $roles = SpatieRole::all()->pluck('name');
+        return view('credential.user-management', compact('roles'));
     }
 
     public function createUser()
@@ -35,7 +39,7 @@ class CredentialUserController extends Controller
 
         $orderColumn = $request->input('order.0.column', 0);
         $orderDir = $request->input('order.0.dir', 'asc');
-        $columns = ['id', 'username', 'Name', 'email', 'Location', 'Position', 'Status'];
+        $columns = ['id', 'username', 'Name', 'email', 'Location', 'Priv_ID', 'Status'];
         $query->orderBy($columns[$orderColumn] ?? 'id', $orderDir);
 
         $start = (int) $request->input('start', 0);
@@ -43,17 +47,42 @@ class CredentialUserController extends Controller
 
         $filtered = $query->count();
 
-        $data = $query->offset($start)->limit($length)->get()->map(function ($u) {
-            return [
+        $userIds = [];
+        $dbUsers = $query->offset($start)->limit($length)->get();
+        $data = [];
+        $index = 0;
+
+        foreach ($dbUsers as $u) {
+            $userIds[] = $u->id;
+            $data[] = [
                 'id' => $u->id,
+                'no' => $start + $index + 1,
                 'username' => $u->username,
                 'name' => $u->Name,
                 'email' => $u->email,
                 'location' => $u->Location,
-                'position' => $u->Position,
+                'posisi' => $u->Priv_ID,
                 'status' => $u->Status,
+                'priv_id' => $u->Priv_ID,
             ];
-        });
+            $index++;
+        }
+
+        if (!empty($userIds)) {
+            $userRoles = DB::table('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->whereIn('model_has_roles.model_id', $userIds)
+                ->where('model_has_roles.model_type', 'App\User')
+                ->select('model_has_roles.model_id', 'roles.name as role_name')
+                ->get()
+                ->groupBy('model_id');
+
+            foreach ($data as &$row) {
+                $uid = $row['id'];
+                $rNames = isset($userRoles[$uid]) ? $userRoles[$uid]->pluck('role_name')->toArray() : [];
+                $row['roles'] = $rNames;
+            }
+        }
 
         return response()->json([
             'draw' => (int) $request->input('draw'),
@@ -170,5 +199,47 @@ class CredentialUserController extends Controller
         ]);
 
         return 'success';
+    }
+
+    public function updateUser(Request $request)
+    {
+        $userId = $request->input('user_id');
+        $user = User::findOrFail($userId);
+
+        $name = $request->input('name');
+        $email = $request->input('email');
+        $location = $request->input('location');
+        $status = $request->input('status');
+        $primaryRole = $request->input('primary_role');
+        $additionalRoles = $request->input('additional_roles', []);
+
+        DB::table('users')->where('id', $userId)->update([
+            'Name'     => $name,
+            'email'    => $email,
+            'Location' => $location,
+            'Status'   => $status,
+            'Priv_ID'  => $primaryRole,
+        ]);
+
+        $allRoles = array_unique(array_merge([$primaryRole], $additionalRoles));
+        $roleModels = SpatieRole::whereIn('name', $allRoles)->get();
+        $user->syncRoles($roleModels);
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        RbacService::rebuildSubMenu($user);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function deleteUser(Request $request)
+    {
+        $userId = $request->input('user_id');
+        $user = User::findOrFail($userId);
+
+        DB::table('users')->where('id', $userId)->update([
+            'Status' => 'INACTIVE',
+        ]);
+
+        return response()->json(['success' => true]);
     }
 }

@@ -366,7 +366,6 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('assets.xml.lists');
     });
 
-    Route::get("/credential-role", "App\\Http\\Controllers\\Credential\\CredentialRoleController@index");
     Route::get("/credential-role", [CredentialRoleController::class, "index"]);
     Route::get("/master-credential-role-list", [CredentialRoleController::class, "roleListData"])->name("master.credential.role.list");
     Route::get("/master-credential-role-permission", [CredentialRoleController::class, "rolePermissionsData"])->name("master.credential.role.permission");
@@ -378,8 +377,14 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("/master-credential-candidate-without-account", [CredentialUserController::class, "candidatesWithoutAccount"]);
     Route::post("/credential-create-candidate-account", [CredentialUserController::class, "createCandidateAccount"]);
     Route::post("/credential-create-user-submit", [CredentialUserController::class, "createUserSubmit"]);
+    Route::post("/master-credential-user-update", [CredentialUserController::class, "updateUser"]);
+    Route::post("/master-credential-user-delete", [CredentialUserController::class, "deleteUser"]);
+
+    Route::get('/accounting-project-posted', function () {
+
         return view('accounting.project-posted');
     });
+
     Route::get('/xml-accounting-project-posted', function () {
         return view('accounting.xml.project-posted');
     });
@@ -5463,3 +5468,4 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcTrainingPref-new-update", [HCGATrainingController::class, 'newUpdate']);
     Route::get("$hcTrainingPref-approval", [HCGATrainingController::class, 'approval']);
     Route::get("xml-$hcTrainingPref-approval", [HCGATrainingController::class, 'approvalXml']);
+});
