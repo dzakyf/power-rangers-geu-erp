@@ -33,7 +33,9 @@ $Saya =  Auth::user()->username;
 	<div>
 		<input type="button" id="ekselAssignSalesDet" name="ekselAssignSalesDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="AssignSales.toExcel('./export/generate.php');" />
 		<input type="button" id="detailassign" name="detailassign" value="Detail Assignment Leads" class="btn btn-info mt-2 mr-2" onclick="detailassign()" />
+		@if(can_menu('SI00226', 'approve'))
 		<button class="btn btn-success mr-2 mt-2" onclick="closeAssignment()">Close Assignment</button>
+		@endif
 	</div>
 	<div class="mt-3" id="divlistAssign"></div>
 </div>

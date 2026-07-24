@@ -319,8 +319,8 @@ class ProfitSharingController extends Controller
 
         $calculate[401][40001] = $stmt['transfer_income'];
         $calculate[402][40002] = $stmt['transfer_price'];
-        $calculate[501][51001] = $stmt['qty_out'];
-        $calculate[501][51002] = $stmt['avg_out'];
+        $calculate[501][51001] = $stmt['qty_in'];
+        $calculate[501][51002] = $stmt['raw_avg_in'];
         $calculate[501]['NULL'] = $stmt['raw_material_price'];
 
         foreach ($stmt['expense_details'] as $group => $accounts) {

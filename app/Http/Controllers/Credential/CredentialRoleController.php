@@ -126,4 +126,138 @@ class CredentialRoleController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function createRole(Request $request)
+    {
+        if (!auth()->user()->can('master.credential.role.edit')) {
+            abort(403);
+        }
+
+        $name = trim($request->input('name'));
+        if (!$name) {
+            return response()->json(['success' => false, 'message' => 'Role name is required.']);
+        }
+
+        if (Role::where('name', $name)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Role name already exists.']);
+        }
+
+        Role::create(['name' => $name, 'guard_name' => 'web']);
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function updateRole(Request $request, $id)
+    {
+        if (!auth()->user()->can('master.credential.role.edit')) {
+            abort(403);
+        }
+
+        $role = Role::findOrFail($id);
+
+        if ($role->name === 'ADM') {
+            return response()->json(['success' => false, 'message' => 'ADM role cannot be edited.']);
+        }
+
+        $name = trim($request->input('name'));
+        if (!$name) {
+            return response()->json(['success' => false, 'message' => 'Role name is required.']);
+        }
+
+        if (Role::where('name', $name)->where('id', '!=', $id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Role name already exists.']);
+        }
+
+        $role->update(['name' => $name]);
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function deleteRole(Request $request, $id)
+    {
+        if (!auth()->user()->can('master.credential.role.edit')) {
+            abort(403);
+        }
+
+        $role = Role::findOrFail($id);
+
+        if ($role->name === 'ADM') {
+            return response()->json(['success' => false, 'message' => 'ADM role cannot be deleted.']);
+        }
+
+        if ($role->users()->count() > 0) {
+            return response()->json(['success' => false, 'message' => 'Role has users assigned. Remove users first.']);
+        }
+
+        $role->permissions()->detach();
+        $role->delete();
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function grantAllPermissions(Request $request, $id)
+    {
+        if (!auth()->user()->can('master.credential.role.edit')) {
+            abort(403);
+        }
+
+        $role = Role::findOrFail($id);
+
+        if ($role->name === 'ADM') {
+            return response()->json(['success' => false, 'message' => 'ADM permissions are immutable.']);
+        }
+
+        $allowedModules = ['FINANCE', 'HRD', 'MITRA', 'CNS'];
+
+        $menuIds = DB::table('menu_lists')
+            ->whereIn('Modules', $allowedModules)
+            ->pluck('Menu_ID');
+
+        $permissionNames = [];
+        foreach ($menuIds as $menuId) {
+            foreach (['view', 'create', 'edit', 'delete', 'approve'] as $action) {
+                $permissionNames[] = "menu.{$menuId}.{$action}";
+            }
+        }
+
+        $permissions = Permission::whereIn('name', $permissionNames)->get();
+        $role->syncPermissions($permissions);
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        foreach ($role->users as $user) {
+            RbacService::rebuildSubMenu($user);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    public function revokeAllPermissions(Request $request, $id)
+    {
+        if (!auth()->user()->can('master.credential.role.edit')) {
+            abort(403);
+        }
+
+        $role = Role::findOrFail($id);
+
+        if ($role->name === 'ADM') {
+            return response()->json(['success' => false, 'message' => 'ADM permissions are immutable.']);
+        }
+
+        $role->syncPermissions([]);
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        foreach ($role->users as $user) {
+            DB::table('users')->where('id', $user->id)->update(['Sub_Menu' => '']);
+        }
+
+        return response()->json(['success' => true]);
+    }
 }

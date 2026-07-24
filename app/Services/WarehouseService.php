@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\DB;
 use App\WarehousePartnerSupplies;
 use App\WarehouseStockRequest;
 use App\WarehousePartnerJournal;
-use App\MasterStockPrice;
 use App\MasterWarehouseAccount;
 
 class WarehouseService
@@ -51,7 +50,6 @@ class WarehouseService
 
         $totalInvestationConfig = $config["TOTAL_HUB_INVESTATION_$type"] ?? 0;
         $capitalAllocMultiplier = $config['CAPITAL_ALLOC_MULTIPLIER'] ?? 0.025;
-        $transferPrice = MasterStockPrice::whereBetween('date_for', [$startDate, $endDate])->avg('price');
 
         // Stock IN
         WarehousePartnerSupplies::where("warehouse_task_id", $warehouseTaskId)
@@ -106,7 +104,7 @@ class WarehouseService
 
         ksort($supplies);
 
-        $result = collect($supplies)->mapWithKeys(function ($data, $month) use ($totalInvestationConfig, $capitalAllocMultiplier, $transferPrice) {
+        $result = collect($supplies)->mapWithKeys(function ($data, $month) use ($totalInvestationConfig, $capitalAllocMultiplier) {
             $expenses = $data['expenses'] ?? [];
             $direct_cost = 0;
             $overhead_cost = 0;
@@ -136,8 +134,7 @@ class WarehouseService
             $cogs = $direct_cost + $raw_material_price;
             $opex = $direct_cost + $overhead_cost + $employeeSalary + $rentalCost;
             $totalInvestation = $totalInvestationConfig;
-            // revenue uses transfer price, not avg_out
-            $transfer_income = $data['qty_out'] * ($transferPrice ?? $data['avg_out']);
+            $transfer_income = $data['qty_out'] * ($data['avg_out'] ?? 0);
             $capitalAllocation = $transfer_income * $capitalAllocMultiplier;
             $netProfit = $transfer_income - $cogs - $overhead_cost - $capitalAllocation;
             $ebitda = ($netProfit * 0.6) - $employeeSalary - $rentalCost;
@@ -145,6 +142,9 @@ class WarehouseService
             return [$month => [
                 'qty_out'            => $data['qty_out'] ?? 0,
                 'avg_out'            => round($data['avg_out'] ?? 0),
+                'raw_avg_out'        => $data['avg_out'] ?? 0,
+                'avg_in'             => round($data['avg'] ?? 0),
+                'raw_avg_in'         => $data['avg'] ?? 0,
                 'raw_material_price' => $raw_material_price,
                 'direct_cost'        => $direct_cost,
                 'overhead_cost'      => $overhead_cost,
@@ -171,6 +171,9 @@ class WarehouseService
                 'qty_in'             => 0,
                 'qty_out'            => 0,
                 'avg_out'            => 0,
+                'raw_avg_out'        => 0,
+                'avg_in'             => 0,
+                'raw_avg_in'         => 0,
                 'raw_material_price' => 0,
                 'direct_cost'        => 0,
                 'overhead_cost'      => 0,
@@ -252,11 +255,14 @@ class WarehouseService
                 'qty_in'                    => $row['qty_in'],
                 'qty_out'                   => $row['qty_out'],
                 'avg_out'                   => $row['avg_out'],
+                'raw_avg_out'               => $row['raw_avg_out'] ?? 0,
+                'avg_in'                    => $row['avg_in'],
+                'raw_avg_in'                => $row['raw_avg_in'],
                 'total_investation'         => $row['total_investation'],
                 'total_transaction'         => 0,
                 'opex'                      => $row['opex'],
                 'transfer_income'           => $row['transfer_income'] ?? 0,
-                'transfer_price'            => $transferPrice ?? 0,
+                'transfer_price'            => $row['raw_avg_out'] ?? 0,
                 'transfer_variance'         => ($row['transfer_income'] ?? 0) - $income,
                 'income'                    => $income,
                 'net_profit'                => $row['net_profit'],
@@ -310,10 +316,20 @@ class WarehouseService
         $totalWeightedAvg = 0;
         $totalQtyForAvg = 0;
         foreach ($result as $md) {
-            $totalWeightedAvg += $md['avg_out'] * $md['qty_out'];
+            $totalWeightedAvg += ($md['raw_avg_out'] ?? 0) * $md['qty_out'];
             $totalQtyForAvg += $md['qty_out'];
         }
         $agg['avg_out'] = $totalQtyForAvg > 0 ? round($totalWeightedAvg / $totalQtyForAvg) : 0;
+        $agg['raw_avg_out'] = $totalQtyForAvg > 0 ? ($totalWeightedAvg / $totalQtyForAvg) : 0;
+
+        $totalInboundValue = 0;
+        $totalInboundQty = 0;
+        foreach ($result as $md) {
+            $totalInboundValue += ($md['raw_avg_in'] ?? 0) * $md['qty_in'];
+            $totalInboundQty += $md['qty_in'];
+        }
+        $agg['avg_in'] = $totalInboundQty > 0 ? round($totalInboundValue / $totalInboundQty) : 0;
+        $agg['raw_avg_in'] = $totalInboundQty > 0 ? ($totalInboundValue / $totalInboundQty) : 0;
 
         $agg['cogs'] = $agg['direct_cost'] + $agg['raw_material_price'];
 
@@ -330,11 +346,14 @@ class WarehouseService
             'qty_in'                    => $agg['qty_in'],
             'qty_out'                   => $agg['qty_out'],
             'avg_out'                   => $agg['avg_out'],
+            'raw_avg_out'               => $agg['raw_avg_out'] ?? 0,
+            'avg_in'                    => $agg['avg_in'],
+            'raw_avg_in'                => $agg['raw_avg_in'],
             'total_investation'         => $agg['total_investation'],
             'total_transaction'         => 0,
             'opex'                      => $agg['opex'],
             'transfer_income'           => $agg['transfer_income'] ?? 0,
-            'transfer_price'            => $transferPrice ?? 0,
+            'transfer_price'            => $agg['raw_avg_out'] ?? 0,
             'transfer_variance'         => ($agg['transfer_income'] ?? 0) - $incomeDerived,
             'income'                    => $incomeDerived,
             'net_profit'                => $agg['net_profit'],
