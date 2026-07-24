@@ -370,6 +370,11 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("/master-credential-role-list", [CredentialRoleController::class, "roleListData"])->name("master.credential.role.list");
     Route::get("/master-credential-role-permission", [CredentialRoleController::class, "rolePermissionsData"])->name("master.credential.role.permission");
     Route::post("/master-credential-role-permission-save", [CredentialRoleController::class, "savePermissions"])->name("master.credential.role.permission.save");
+    Route::post("/master-credential-role-create", [CredentialRoleController::class, "createRole"]);
+    Route::post("/master-credential-role-update/{id}", [CredentialRoleController::class, "updateRole"]);
+    Route::post("/master-credential-role-delete/{id}", [CredentialRoleController::class, "deleteRole"]);
+    Route::post("/master-credential-role-grant-all/{id}", [CredentialRoleController::class, "grantAllPermissions"]);
+    Route::post("/master-credential-role-revoke-all/{id}", [CredentialRoleController::class, "revokeAllPermissions"]);
 
     Route::get("/credential-user-management", [CredentialUserController::class, "index"]);
     Route::get("/credential-create-user", [CredentialUserController::class, "createUser"]);

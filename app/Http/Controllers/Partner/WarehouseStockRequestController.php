@@ -130,6 +130,14 @@ class WarehouseStockRequestController extends Controller
             $r['remark'] = '';
         }
 
+        $masterPrice = MasterStockPrice::where('date_for', $r['request_date'])->first();
+
+        if (!$masterPrice) {
+            return response()->json([
+                'error' => 'Master price untuk tanggal ' . $r['request_date'] . ' belum di-set. Silakan hubungi admin.'
+            ], 422);
+        }
+
         WarehouseStockRequest::create($r);
 
         echo "success";

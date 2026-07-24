@@ -98,7 +98,11 @@
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
+				var msg = "Error Internal! Please Try again!";
+				if (jqXHR.responseJSON && jqXHR.responseJSON.error) {
+					msg = jqXHR.responseJSON.error;
+				}
+				alert(msg);
 
 			}
 		});
