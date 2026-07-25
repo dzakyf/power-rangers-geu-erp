@@ -111,6 +111,13 @@ Route::post('province', [App\Http\Controllers\HelperController::class, 'province
 Route::post('city/{province}', [App\Http\Controllers\HelperController::class, 'citySearch']);
 Route::post('district', [HelperController::class, 'districtSearch']);
 Route::get('subdistrict', [HelperController::class, 'subdistrictSearch']);
+
+// Public address master data endpoints
+Route::get('master-province', [MasterDataController::class, 'provinceSearch']);
+Route::get('master-city', [MasterDataController::class, 'citySearch']);
+Route::get('master-district', [MasterDataController::class, 'districtSearch']);
+Route::get('master-subdistrict', [MasterDataController::class, 'subdistrictSearch']);
+Route::get('master-postal-code', [MasterDataController::class, 'postalCodeSearch']);
 // Route::get('postal-code', [HelperController::class, 'postalCodeSearch']);
 
 
@@ -4484,12 +4491,7 @@ Route::group(['middleware' => 'log.access'], function () {
     route::get("$masterData-lead-status", [Masterdatacontroller::class, 'getLeadStatus']);
     route::get("$masterData-lead-response", [Masterdatacontroller::class, 'getLeadResponse']);
     route::get("$masterData-lead-cancel-reason", [Masterdatacontroller::class, 'getLeadCancelReason']);
-    Route::get("$masterData-province", [MasterDataController::class, 'provinceSearch']);
-    Route::get("$masterData-city", [MasterDataController::class, 'citySearch']);
-    Route::get("$masterData-district", [MasterDataController::class, 'districtSearch']);
-    Route::get("$masterData-subdistrict", [MasterDataController::class, 'subdistrictSearch']);
     Route::get("$masterData-users", [MasterDataController::class, "getAllUsers"]);
-    Route::get("$masterData-postal-code", [MasterDataController::class, 'postalCodeSearch']);
     Route::get("$masterData-facility", [MasterDataController::class, 'indexWarehouseFacility']);
     Route::get("$masterData-facility-create", [MasterDataController::class, 'createWarehouseFacility']);
     Route::post("$masterData-facility-create-submit", [MasterDataController::class, 'submitWarehouseFacility']);

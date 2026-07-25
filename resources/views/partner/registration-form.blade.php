@@ -73,5 +73,100 @@
 
     bindGpsButton("#btnGetGps", "#Latitude", "#Longitude", "#gpsStatus");
     bindGpsButton("#btnGetGpsCompany", "#Company_Latitude", "#Company_Longitude", "#gpsStatusCompany");
-</script>
+
+    // ========== Address chained select helpers ==========
+    function makeSelect2(selector, url, params, valueField, labelField) {
+        $(selector).select2({
+            placeholder: '-- Pilih --',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: url,
+                dataType: 'json',
+                delay: 250,
+                data: function(p) {
+                    var extra = typeof params === 'function' ? params() : params;
+                    return Object.assign({ q: p.term || '' }, extra);
+                },
+                processResults: function(res) {
+                    return {
+                        results: res.data.map(function(row) {
+                            return { id: row[valueField], text: row[labelField] };
+                        })
+                    };
+                },
+                cache: true
+            }
+        });
+    }
+
+    function resetSelect2(selector) {
+        $(selector).val(null).trigger('change').prop('disabled', true);
+        $(selector).empty().trigger('change');
+    }
+
+    function initAddressChained(prefix) {
+        var pSel = '#' + prefix + 'Address_Province';
+        var cSel = '#' + prefix + 'Address_City';
+        var dSel = '#' + prefix + 'Address_Subdistrict';
+        var sSel = '#' + prefix + 'Address_Ward';
+        var zSel = '#' + prefix + 'Address_Postal';
+
+        function resetChain() {
+            resetSelect2(cSel);
+            resetSelect2(dSel);
+            resetSelect2(sSel);
+            resetSelect2(zSel);
+        }
+
+        $(pSel).on('change', function() {
+            resetChain();
+            var province = $(this).val();
+            if (!province) return;
+            $(cSel).prop('disabled', false);
+            makeSelect2(cSel, 'master-city', function() { return { province: $(pSel).val() }; }, 'City', 'City');
+        });
+
+        $(cSel).on('change', function() {
+            resetSelect2(dSel);
+            resetSelect2(sSel);
+            resetSelect2(zSel);
+            var city = $(this).val();
+            if (!city) return;
+            $(dSel).prop('disabled', false);
+            makeSelect2(dSel, 'master-district', function() { return { province: $(pSel).val(), city: $(cSel).val() }; }, 'District', 'District');
+        });
+
+        $(dSel).on('change', function() {
+            resetSelect2(sSel);
+            resetSelect2(zSel);
+            var district = $(this).val();
+            if (!district) return;
+            $(sSel).prop('disabled', false);
+            makeSelect2(sSel, 'master-subdistrict', function() { return { province: $(pSel).val(), city: $(cSel).val(), district: $(dSel).val() }; }, 'Sub_District', 'Sub_District');
+        });
+
+        $(sSel).on('change', function() {
+            resetSelect2(zSel);
+            var sub = $(this).val();
+            if (!sub) return;
+            $(zSel).prop('disabled', false);
+            makeSelect2(zSel, 'master-postal-code', function() { return { province: $(pSel).val(), city: $(cSel).val(), district: $(dSel).val(), subdistrict: $(sSel).val() }; }, 'ZipCode', 'ZipCode');
+        });
+
+        // Initially disable all except province
+        resetChain();
+        // Init province
+        makeSelect2(pSel, 'master-province', {}, 'Province', 'Province');
+    }
+
+    function initAddressChainedWhenReady() {
+        if (typeof jQuery === 'undefined' || typeof jQuery.fn.select2 === 'undefined') {
+            setTimeout(initAddressChainedWhenReady, 50);
+            return;
+        }
+        initAddressChained('I_');
+        initAddressChained('C_');
+    }
+    initAddressChainedWhenReady();</script>
 @endpush

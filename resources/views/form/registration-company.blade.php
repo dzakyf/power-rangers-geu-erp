@@ -98,36 +98,40 @@
                  <input type="text" name="C_Address_RW" id="C_Address_RW" class="form-control" required />
              </div>
          </div>
-         <div class="row">
-             <div class="col">
-                 <label for="Address">Kelurahan <span style="color: red;">*</span></label>
-                 <input type="text" name="C_Address_Ward" id="C_Address_Ward" class="form-control" required />
-             </div>
-             <div class="col">
-                 <label for="Address">Kecamatan <span style="color: red;">*</span></label>
-                 <input type="text" name="C_Address_Subdistrict" id="C_Address_Subdistrict" class="form-control" required />
-             </div>
-         </div>
-         <div class="row">
-             <div class="col">
-                 <label for="Address">Kota / Kabupaten <span style="color: red;">*</span></label>
-                 <input type="text" name="C_Address_City" id="C_Address_City" class="form-control" required />
-                 <!-- <select name="C_Address_City" id="C_Address_City" class="form-control">
-                                                    <option value="">-- Pilih --</option>
-                                                </select> -->
-             </div>
-             <div class="col">
-                 <label for="Address">Provinsi <span style="color: red;">*</span></label>
-                 <input type="text" name="C_Address_Province" id="C_Address_Province" class="form-control" required />
-                 <!-- <select name="C_Address_Province" id="C_Address_Province" class="form-control">
-                                                    <option value="">-- Pilih --</option>
-                                                </select> -->
-             </div>
-             <div class="col">
-                 <label for="Address">Kode Pos <span style="color: red;">*</span></label>
-                 <input type="text" name="C_Address_Postal" id="C_Address_Postal" class="form-control" required />
-             </div>
-         </div>
+          <div class="row">
+              <div class="col">
+                  <label for="C_Address_Province">Provinsi <span style="color: red;">*</span></label>
+                  <select name="C_Address_Province" id="C_Address_Province" class="form-control" required>
+                      <option value="">-- Pilih --</option>
+                  </select>
+              </div>
+              <div class="col">
+                  <label for="C_Address_City">Kota / Kabupaten <span style="color: red;">*</span></label>
+                  <select name="C_Address_City" id="C_Address_City" class="form-control" required disabled>
+                      <option value="">-- Pilih --</option>
+                  </select>
+              </div>
+              <div class="col">
+                  <label for="C_Address_Subdistrict">Kecamatan <span style="color: red;">*</span></label>
+                  <select name="C_Address_Subdistrict" id="C_Address_Subdistrict" class="form-control" required disabled>
+                      <option value="">-- Pilih --</option>
+                  </select>
+              </div>
+          </div>
+          <div class="row">
+              <div class="col">
+                  <label for="C_Address_Ward">Kelurahan <span style="color: red;">*</span></label>
+                  <select name="C_Address_Ward" id="C_Address_Ward" class="form-control" required disabled>
+                      <option value="">-- Pilih --</option>
+                  </select>
+              </div>
+              <div class="col">
+                  <label for="C_Address_Postal">Kode Pos <span style="color: red;">*</span></label>
+                  <select name="C_Address_Postal" id="C_Address_Postal" class="form-control" required disabled>
+                      <option value="">-- Pilih --</option>
+                  </select>
+              </div>
+          </div>
      </div>
 
      <div class="form-group">
