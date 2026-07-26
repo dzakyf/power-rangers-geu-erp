@@ -22,7 +22,7 @@
             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="File_Document" /> -->
 
             @php
-            $id = request()->route('id') ?? null;
+            $id = request()->query('id') ?? null;
             @endphp
             @include('ui-components.signature-canvas', [
             'saveUrl' => "/geu/hcga/public/partner-onboarding-preview-mou?id={$id}",
@@ -59,5 +59,13 @@
 //             vault.uploader.config.params.opportunity_id = opp_id;
 //         }
 //     });
+
+    $(document).ajaxSuccess(function(event, xhr, settings) {
+    if (settings.url && settings.url.indexOf('partner-onboarding-submit-mou') !== -1) {
+        updateOnboardingLog('INVOICE', 'completed', 'MOU ditandatangani', function() {
+            location.reload();
+        });
+    }
+});
 </script>
 @endpush

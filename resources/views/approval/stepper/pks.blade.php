@@ -15,7 +15,7 @@
             <!-- <div id="File_PKS" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="File_PKS" /> -->
             @php
-            $id = request()->route('id') ?? null;
+            $id = request()->query('id') ?? null;
             @endphp
 
             @include('ui-components.signature-canvas', [
@@ -79,5 +79,13 @@
             }
         })
     }
+
+    $(document).ajaxSuccess(function(event, xhr, settings) {
+    if (settings.url && settings.url.indexOf('partner-onboarding-submit-pks') !== -1) {
+        updateOnboardingLog('SURVEY', 'completed', 'PKS ditandatangani', function() {
+            location.reload();
+        });
+    }
+});
 </script>
 @endpush

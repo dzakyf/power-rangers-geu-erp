@@ -4626,7 +4626,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$partnerApprovalPrefix-detail", [ApprovalController::class, 'detail']);
     Route::get("$partnerApprovalPrefix-data", [ApprovalController::class, 'getApprovalData']);
     Route::get("$partnerApprovalPrefix-data-log", [ApprovalController::class, 'getApprovalDataLog']);
-
+    Route::post('partner-onboarding-log/update', [ApprovalController::class, 'updateOnboardingLog']);
+    
 
     /** Benefit Facility */
     $facilityPref = 'partner-facility';

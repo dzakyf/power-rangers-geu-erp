@@ -2,7 +2,6 @@
 
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
 <div class="main-content-header">
 	<h1>Partner</h1>
 	<ol class="breadcrumb">
@@ -15,269 +14,279 @@
 	</ol>
 </div>
 
-<div class="mt-5 mb-5 p-4 bg-white shadow-sm">
-	<div>
-		<button class="btn btn-warning" type="button" onclick="window.history.back();">
-			<i class="fas fa-arrow-left"></i> Back
-		</button>
-	</div>
-	<div class="bs-stepper" id="customStepper">
-		<div class="bs-stepper-header" role="tablist">
-			<div class="step" data-target="#step1">
-				<button type="button" class="step-trigger" role="tab">
-					<span class="bs-stepper-circle">1</span>
-					<span class="bs-stepper-label">Cek Dokumen</span>
-				</button>
-			</div>
-			<div class="line"></div>
-			<div class="step" data-target="#step2">
-				<button type="button" class="step-trigger" role="tab">
-					<span class="bs-stepper-circle">2</span>
-					<span class="bs-stepper-label">MOU</span>
-				</button>
-			</div>
+@php
+$stageLabels = [
+    'DOCUMENT_CHECK' => 'Cek Dokumen',
+    'MOU' => 'Penandatanganan MOU',
+    'INVOICE' => 'Penerbitan Invoice DP',
+    'PKS' => 'Perjanjian Kerjasama',
+    'SURVEY' => 'Survey Lokasi',
+    'SETUP' => 'Installment',
+    'ACTIVE' => 'Aktif',
+];
+@endphp
 
-			<div class="line"></div>
+<div class="row">
+    <div class="col-md-9">
+        <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
+            <div>
+                <button class="btn btn-warning" type="button" onclick="window.history.back();">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+            </div>
+            <div class="bs-stepper" id="customStepper">
+                <div class="bs-stepper-header" role="tablist">
+                    @foreach ($stageOrder as $i => $s)
+                    @php
+                        $stepNum = $i + 1;
+                        $label = $stageLabels[$s] ?? $s;
+                        $completed = $i < $currentStageIndex;
+                        $active = $i == $currentStageIndex;
+                        $disabled = $i > $currentStageIndex;
+                    @endphp
+                    <div class="step @if($completed) completed @endif" data-target="#step{{ $stepNum }}">
+                        <button type="button" class="step-trigger" role="tab" @if($disabled) disabled @endif>
+                            <span class="bs-stepper-circle">@if($completed) &#10003; @else {{ $stepNum }} @endif</span>
+                            <span class="bs-stepper-label">{{ $label }}</span>
+                        </button>
+                    </div>
+                    @if (!$loop->last)
+                    <div class="line"></div>
+                    @endif
+                    @endforeach
+                </div>
 
-			<div class="step " data-target="#step3">
-				<button type="button" class="step-trigger" role="tab">
-					<span class="bs-stepper-circle">3</span>
-					<span class="bs-stepper-label">Penerbitan Invoice</span>
-				</button>
-			</div>
-			<div class="line"></div>
+                <div class="bs-stepper-content">
+                    <div id="step1" class="content" role="tabpanel">
+                        @include('approval.stepper.detail')
+                        @if ($currentStage === 'DOCUMENT_CHECK')
+                        <div class="mt-3">
+                            <button class="btn btn-success" id="approveDocumentsBtn">Setujui Dokumen</button>
+                        </div>
+                        @endif
+                    </div>
+                    <div id="step2" class="content" role="tabpanel">
+                        @include('approval.stepper.mou')
+                    </div>
+                    <div id="step3" class="content" role="tabpanel">
+                        @include('approval.stepper.invoice-dp')
+                        @if ($currentStage === 'INVOICE')
+                        <button class="btn btn-primary" id="invoiceNextBtn" disabled>Next</button>
+                        @endif
+                    </div>
+                    <div id="step4" class="content" role="tabpanel">
+                        @include('approval.stepper.pks')
+                    </div>
+                    <div id="step5" class="content" role="tabpanel">
+                        @include('approval.stepper.survey')
+                    </div>
+                    <div id="step6" class="content" role="tabpanel">
+                    </div>
+                    <div id="step7" class="content" role="tabpanel">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-			<div class="step" data-target="#step4">
-				<button type="button" class="step-trigger" role="tab">
-					<span class="bs-stepper-circle">4</span>
-					<span class="bs-stepper-label">Perjanjian Kerjasama</span>
-				</button>
-			</div>
-			<div class="line"></div>
-
-			<div class="step" data-target="#step5">
-				<button type="button" class="step-trigger" role="tab">
-					<span class="bs-stepper-circle">5</span>
-					<span class="bs-stepper-label">Survey Lokasi</span>
-				</button>
-			</div>
-			<div class="line"></div>
-
-			<div class="step" data-target="#step6">
-				<button type="button" class="step-trigger" role="tab">
-					<span class="bs-stepper-circle">6</span>
-					<span class="bs-stepper-label">Installment</span>
-				</button>
-			</div>
-
-			<div class="line"></div>
-
-			<div class="step" data-target="#step7">
-				<button type="button" class="step-trigger" role="tab">
-					<span class="bs-stepper-circle">7</span>
-					<span class="bs-stepper-label">Aktif</span>
-				</button>
-			</div>
-		</div>
-
-		<div class="bs-stepper-content">
-			<div id="step1" class="content" role="tabpanel">
-				@include('approval.stepper.detail')
-			</div>
-
-			<div id="step2" class="content" role="tabpanel">
-				@include('approval.stepper.mou')
-			</div>
-
-			<div id="step3" class="content" role="tabpanel">
-				@include('approval.stepper.invoice-dp')
-			</div>
-
-			<div id="step4" class="content" role="tabpanel">
-				@include('approval.stepper.pks')
-			</div>
-
-			<div id="step5" class="content" role="tabpanel">
-				@include('approval.stepper.survey')
-			</div>
-
-			<div id="step6" class="content" role="tabpanel">
-			</div>
-
-			<div id="step7" class="content" role="tabpanel">
-			</div>
-		</div>
-	</div>
-</div>
-<!-- <div class="mt-2" id="stepDisplay"></div> -->
+    <div class="col-md-3">
+        <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
+            <h6 class="mb-3">Riwayat Progress</h6>
+            @if ($onboardingLog->count() > 0)
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Tahap</th>
+                        <th>Status</th>
+                        <th>Selesai</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($onboardingLog as $log)
+                    <tr>
+                        <td>{{ $log->Stage_Label }}</td>
+                        <td>{{ ucfirst($log->Status) }}</td>
+                        <td>{{ $log->Completed_At ? \Carbon\Carbon::parse($log->Completed_At)->format('d/m/Y') : '-' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            @else
+            <p class="text-muted">Belum ada progress.</p>
+            @endif
+        </div>
+    </div>
 </div>
 
 <div id="divlistOpportunity"></div>
 <script src="https://cdn.jsdelivr.net/npm/bs-stepper/dist/js/bs-stepper.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bs-stepper/dist/css/bs-stepper.min.css">
-</script>
 @stack('mou-script')
 @stack('pks-script')
 
+<style>
+.bs-stepper .step.completed .bs-stepper-circle {
+    background-color: #28a745;
+    color: #fff;
+}
+.bs-stepper .step.completed .bs-stepper-label {
+    color: #28a745;
+    font-weight: 600;
+}
+.bs-stepper .step button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+</style>
+
 <script>
-	$(document).ready(function() {
+var oppId = new URLSearchParams(window.location.search).get('id');
+var currentStage = '{{ $currentStage }}';
+var currentStageIndex = {{ $currentStageIndex }};
+var stageOrder = {!! json_encode($stageOrder) !!};
 
-		$('#divlistOpportunity').show()
+function updateOnboardingLog(stage, status, notes, callback) {
+    $.ajax({
+        url: 'partner-onboarding-log/update',
+        type: 'POST',
+        data: {
+            Opportunity_Id: oppId,
+            Stage: stage,
+            Status: status,
+            Notes: notes || '',
+            _token: '{{ csrf_token() }}'
+        },
+        success: function(res) {
+            if (callback) callback(true);
+        },
+        error: function() {
+            alert('Gagal memperbarui progress.');
+            if (callback) callback(false);
+        }
+    });
+}
 
-		var stepperElement = $('.bs-stepper')[0];
-		console.log(stepperElement)
-		window.stepper = new Stepper(stepperElement, {
-			linear: false,
-			animation: true,
-			selectors: {
-				steps: '.step',
-				trigger: '.step-trigger',
-				stepper: '.bs-stepper'
-			}
-		});
+$(document).ready(function() {
+    $('#divlistOpportunity').show();
 
-		function updateStepDisplay() {
-			var currentIndex = window.stepper._currentIndex + 1; // 1-based for display
-			console.log(currentIndex)
+    var stepperElement = $('.bs-stepper')[0];
+    window.stepper = new Stepper(stepperElement, {
+        linear: true,
+        animation: true,
+        selectors: {
+            steps: '.step',
+            trigger: '.step-trigger',
+            stepper: '.bs-stepper'
+        }
+    });
 
+    // Jump to current stage (bs-stepper uses 1-based index)
+    window.stepper.to(currentStageIndex + 1);
 
-			$('#stepDisplay').html(`
-				<div class="alert alert-info">
-					Current Step: ${currentIndex} of 3
-				</div>
-			`);
-		}
+    // Approve Documents button (DOCUMENT_CHECK)
+    $('#approveDocumentsBtn').on('click', function() {
+        var btn = $(this).prop('disabled', true).text('Memproses...');
+        updateOnboardingLog('DOCUMENT_CHECK', 'completed', 'Dokumen disetujui', function(success) {
+            if (!success) {
+                btn.prop('disabled', false).text('Setujui Dokumen');
+                return;
+            }
+            updateOnboardingLog('MOU', 'in_progress', '', function(success) {
+                if (success) {
+                    location.reload();
+                } else {
+                    btn.prop('disabled', false).text('Setujui Dokumen');
+                    alert('Gagal melanjutkan ke tahap MOU.');
+                }
+            });
+        });
+    });
 
-		// Initial display
-		updateStepDisplay();
+    // Next/Previous step navigation
+    $(document).on('click', '.btn-next', function(e) {
+        e.preventDefault();
+        window.stepper.next();
+    });
+    $(document).on('click', '.btn-prev', function(e) {
+        e.preventDefault();
+        window.stepper.previous();
+    });
+});
 
-		// Event listener for step changes
-		stepperElement.addEventListener('shown.bs-stepper', function(event) {
-			console.log('Moved to step:', event.detail.indexStep);
-			updateStepDisplay();
-		});
+function generateInvoice() {
+    $.ajax({
+        url: `/geu/hcga/public/partner-prints-invoice?id=${oppId}&type=downpayment`,
+        type: "GET",
+        success: function(response, status) {
+            window.open(`https://dev.hexamatika.com/geu/hcga/public/partner-prints-invoice?id=${oppId}&type=downpayment`, '_blank');
+            $('#invoiceNextBtn').prop('disabled', false);
+        },
+        error: function(err) {
+            console.log(err);
+            alert('Gagal membuat invoice.');
+        }
+    });
+}
 
-		$('.btn-next').on('click', function() {
-			window.stepper.next();
-		});
+$('#invoiceNextBtn').on('click', function() {
+    var btn = $(this).prop('disabled', true).text('Memproses...');
+    updateOnboardingLog('INVOICE', 'completed', 'Invoice DP diterbitkan', function(success) {
+        if (!success) {
+            btn.prop('disabled', false).text('Next');
+            return;
+        }
+        updateOnboardingLog('PKS', 'in_progress', '', function(success) {
+            if (success) {
+                location.reload();
+            } else {
+                btn.prop('disabled', false).text('Next');
+                alert('Gagal melanjutkan ke tahap PKS.');
+            }
+        });
+    });
+});
 
-		$('.btn-prev').on('click', function() {
-			window.stepper.previous();
-		});
+$('.downloadMOU').on('click', function() {
+    generateMOU();
+});
 
-		$('#goToStep2').on('click', function() {
-			window.stepper.to(2); // Goes to step 2 (1-based index)
-		});
+function generateMOU() {
+    $.ajax({
+        url: `generate-mou?id=${oppId}`,
+        type: "GET",
+        xhrFields: { responseType: 'blob' },
+        success: function(response, status, xhr) {
+            var blob = new Blob([response]);
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = 'mou.docx';
+            link.click();
+            window.URL.revokeObjectURL(link.href);
+        },
+        error: function(err) {
+            alert("Telah terjadi kesalahan.");
+        }
+    });
+}
 
-
-		$('#resetStepper').on('click', function() {
-			window.stepper.reset();
-			showNotification('Stepper reset to step 1');
-		});
-
-		$('#destroyStepper').on('click', function() {
-			window.stepper.destroy();
-			$('#stepDisplay').html(`
-				<div class="alert alert-danger">
-					Stepper destroyed - methods disabled
-				</div>
-			`);
-			$(this).prop('disabled', true);
-		});
-
-		$('#getCurrentStep').on('click', function() {
-			var currentIndex = window.stepper._currentIndex + 1;
-			alert('Current step: ' + currentIndex);
-		});
-
-		// Helper function for notifications
-		function showNotification(message) {
-			var notification = $(`
-				<div class="alert alert-success alert-dismissible fade show" role="alert">
-					${message}
-					<button type="button" class="close" data-dismiss="alert">
-						<span>&times;</span>
-					</button>
-				</div>
-			`);
-
-			$('#stepDisplay').after(notification);
-			setTimeout(function() {
-				notification.alert('close');
-			}, 2000);
-		}
-	});
-
-	function submitApproval(type) {
-		let fd = new FormData()
-		let id = window.location.pathname.split('/')
-		// return
-		fd.append('id', id[5]);
-		fd.append('type', type)
-		fd.append('_token', '{{ csrf_token() }}')
-
-		$.ajax({
-			url: "/geu/hcga/public/partner-approval-progress/submit",
-			type: "POST",
-			processData: false,
-			contentType: false,
-			data: fd,
-			success: function(response, status, xhr) {
-				alert("Berhasil melakukan aksi");
-				// window.location.reload()
-			},
-			error: function(err) {
-				alert("Telah terjadi kesalahan.");
-			}
-		})
-	}
-
-	$('.downloadMOU').on('click', function() {
-		generateMOU()
-	})
-
-	$('.uploadMOU').on('click', function() {
-		console.log("uploading mou")
-	})
-
-	function generateInvoice() {
-		let id = window.location.pathname.split('/')[5]
-
-		$.ajax({
-			url: `/geu/hcga/public/partner-prints-invoice?id=${id}&type=downpayment`,
-			type: "GET",
-			success: function(response, status) {
-				window.open(`https://dev.hexamatika.com/geu/hcga/public/partner-prints-invoice?id=${id}&type=downpayment`, '_blank')
-			},
-			error: function(err) {
-				console.log(err)
-			}
-		})
-	}
-
-	function generateMOU() {
-		const pathSegments = window.location.pathname.split('/');
-		const id = pathSegments[pathSegments.length - 1];
-
-		$.ajax({
-			url: `generate-mou?id=${id}`,
-			type: "GET",
-			xhrFields: {
-				responseType: 'blob'
-			},
-			success: function(response, status, xhr) {
-				var blob = new Blob([response]);
-				var link = document.createElement('a');
-				link.href = window.URL.createObjectURL(blob);
-				link.download = 'mou.docx';
-				link.click();
-
-				window.URL.revokeObjectURL(link.href);
-			},
-			error: function(err) {
-				alert("Telah terjadi kesalahan.");
-			}
-		})
-	}
+function submitApproval(type) {
+    let fd = new FormData();
+    fd.append('id', oppId);
+    fd.append('type', type);
+    fd.append('_token', '{{ csrf_token() }}');
+    $.ajax({
+        url: "partner-approval-progress/submit",
+        type: "POST",
+        processData: false,
+        contentType: false,
+        data: fd,
+        success: function() {
+            alert("Berhasil melakukan aksi");
+        },
+        error: function() {
+            alert("Telah terjadi kesalahan.");
+        }
+    });
+}
 </script>
 @endsection

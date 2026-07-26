@@ -251,7 +251,18 @@ class ApprovalController extends Controller
             ->orderBy('al.Action_Date', 'Desc')
             ->first();
 
-        return view('approval.progress', compact('partner', 'pic', 'documents', 'status'));
+        $onboardingLog = DB::table('partner_onboarding_log')
+            ->where('Opportunity_Id', $q['id'])
+            ->orderBy('Created_At', 'asc')
+            ->get();
+
+        $stageOrder = ['DOCUMENT_CHECK', 'MOU', 'INVOICE', 'PKS', 'SURVEY', 'SETUP', 'ACTIVE'];
+        $currentStage = $partner->onboarding_stage ?? 'DOCUMENT_CHECK';
+        $currentStageIndex = array_search($currentStage, $stageOrder) ?: 0;
+
+        return view('approval.progress', compact(
+            'partner', 'pic', 'documents', 'status', 'onboardingLog', 'currentStage', 'currentStageIndex', 'stageOrder'
+        ));
     }
 
     public function getBenefitFacility(Request $r)
@@ -584,5 +595,69 @@ class ApprovalController extends Controller
             ->first();
 
         return response()->json(['data' => $data]);
+    }
+
+    public function updateOnboardingLog(Request $request)
+    {
+        $data = $request->validate([
+            'Opportunity_Id' => 'required|integer',
+            'Stage' => 'required|string|in:DOCUMENT_CHECK,MOU,INVOICE,PKS,SURVEY,SETUP,ACTIVE',
+            'Status' => 'required|string|in:in_progress,completed',
+            'Notes' => 'nullable|string',
+        ]);
+
+        $session = $this->userService->getCurrentSessionUserInfo();
+        $stageLabelMap = [
+            'DOCUMENT_CHECK' => 'Cek Dokumen',
+            'MOU' => 'Penandatanganan MOU',
+            'INVOICE' => 'Penerbitan Invoice DP',
+            'PKS' => 'Perjanjian Kerjasama',
+            'SURVEY' => 'Survey Lokasi',
+            'SETUP' => 'Installment',
+            'ACTIVE' => 'Aktif',
+        ];
+
+        DB::transaction(function () use ($data, $session, $stageLabelMap) {
+            DB::table('opportunity_partner')
+                ->where('id', $data['Opportunity_Id'])
+                ->update([
+                    'onboarding_stage' => $data['Stage'],
+                    'onboarding_stage_updated_at' => now(),
+                    'onboarding_stage_updated_by' => $session->id,
+                ]);
+
+            $existing = DB::table('partner_onboarding_log')
+                ->where('Opportunity_Id', $data['Opportunity_Id'])
+                ->where('Stage', $data['Stage'])
+                ->first();
+
+            $logData = [
+                'Stage' => $data['Stage'],
+                'Stage_Label' => $stageLabelMap[$data['Stage']] ?? $data['Stage'],
+                'Status' => $data['Status'],
+                'Updated_At' => now(),
+            ];
+
+            if ($data['Status'] === 'completed') {
+                $logData['Completed_At'] = now();
+                $logData['Completed_By'] = $session->id;
+            }
+
+            if (!empty($data['Notes'])) {
+                $logData['Notes'] = $data['Notes'];
+            }
+
+            if ($existing) {
+                DB::table('partner_onboarding_log')
+                    ->where('Id', $existing->Id)
+                    ->update($logData);
+            } else {
+                $logData['Opportunity_Id'] = $data['Opportunity_Id'];
+                $logData['Created_At'] = now();
+                DB::table('partner_onboarding_log')->insert($logData);
+            }
+        });
+
+        return response()->json(['success' => true]);
     }
 }
