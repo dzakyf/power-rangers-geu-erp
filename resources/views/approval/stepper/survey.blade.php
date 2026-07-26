@@ -518,9 +518,10 @@
                 cache: false,
                 success: function(response) {
                     alert("Berhasil membuat data survey!");
-
-                    //$('#surveyForm')[0].reset();
                     initSurveyHistoryGrid(oppId)
+                    updateOnboardingLog('SETUP', 'completed', 'Survey lokasi selesai', function() {
+                        // SETUP stage marked complete; will reload on next visit
+                    });
                 },
                 error: function(xhr, status, error) {
                     alert(xhr.responseJSON.message)
