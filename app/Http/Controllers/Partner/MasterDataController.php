@@ -65,6 +65,29 @@ class MasterDataController extends Controller
     // POO : Point of Origin
     public function createPOO(Request $r)
     {
+        $validated = $r->validate([
+            'Type'                => 'required|string|max:255',
+            'Name'                => 'required|string|max:255',
+            'PIC'                 => 'required|string|max:255',
+            'Employee'            => 'required|string|max:255',
+            'Phone'               => 'required|string|max:255',
+            'Position'            => 'required|string|max:255',
+            'Category'            => 'required|string|max:255',
+            'UCO_Type'            => 'required|string|max:255',
+            'Price'               => 'required|numeric|min:0',
+            'Price_Unit'          => 'required|string|max:255',
+            'Province'            => 'required|string|max:255',
+            'City'                => 'required|string|max:255',
+            'Subdistrict'         => 'required|string|max:255',
+            'Village'             => 'required|string|max:255',
+            'Full_Address'        => 'required|string|max:500',
+            'Location_Coordinate' => 'required|string|max:255',
+            'Nearest_Warehouse'   => 'required',
+            'Bank_Account_Number' => 'required|string|max:255',
+            'Bank_Account_Name'   => 'required|string|max:255',
+            'Bank_Name'           => 'required|string|max:255',
+        ]);
+
         DB::beginTransaction();
 
         try {
@@ -73,28 +96,28 @@ class MasterDataController extends Controller
                 ->generateApplicationCode($highest, 'POO');
 
             DB::table('master_poo')->insert([
-                'Type'                => $r->input('Type') ?? "SUPPLIER",
-                'Name'                => $r->input('Name'),
-                'PIC'                 => $r->input('PIC'),
+                'Type'                => $validated['Type'] ?? "SUPPLIER",
+                'Name'                => $validated['Name'],
+                'PIC'                 => $validated['PIC'],
                 'Code'                => $code,
-                'Employee'            => $r->input('Employee'),
-                'Phone'               => $r->input('Phone'),
-                'Position'            => $r->input('Position'),
-                'Category'            => $r->input('Category'),
-                'UCO_Type'            => $r->input('UCO_Type'),
-                'Price'               => $r->input('Price'),
-                'Price_Unit'          => $r->input('Price_Unit'),
-                'Province'            => $r->input('Province'),
-                'City'                => $r->input('City'),
-                'Subdistrict'         => $r->input('Subdistrict'),
-                'Village'             => $r->input('Village'),
+                'Employee'            => $validated['Employee'],
+                'Phone'               => $validated['Phone'],
+                'Position'            => $validated['Position'],
+                'Category'            => $validated['Category'],
+                'UCO_Type'            => $validated['UCO_Type'],
+                'Price'               => $validated['Price'],
+                'Price_Unit'          => $validated['Price_Unit'],
+                'Province'            => $validated['Province'],
+                'City'                => $validated['City'],
+                'Subdistrict'         => $validated['Subdistrict'],
+                'Village'             => $validated['Village'],
                 'Cycle'               => $r->input('Cycle'),
-                'Full_Address'        => $r->input('Full_Address'),
-                'Location_Coordinate' => $r->input('Location_Coordinate'),
-                'Nearest_Warehouse'   => $r->input('Nearest_Warehouse'),
-                'Bank_Account_Number' => $r->input('Bank_Account_Number'),
-                'Bank_Account_Name'   => $r->input('Bank_Account_Name'),
-                'Bank_Name'           => $r->input('Bank_Name'),
+                'Full_Address'        => $validated['Full_Address'],
+                'Location_Coordinate' => $validated['Location_Coordinate'],
+                'Nearest_Warehouse'   => $validated['Nearest_Warehouse'],
+                'Bank_Account_Number' => $validated['Bank_Account_Number'],
+                'Bank_Account_Name'   => $validated['Bank_Account_Name'],
+                'Bank_Name'           => $validated['Bank_Name'],
                 'Point'               => $r->input('Point'),
                 'Updated_At'          => now(),
             ]);
@@ -111,42 +134,60 @@ class MasterDataController extends Controller
 
     public function updatePOO(Request $r)
     {
-        $id = $r->ID;
-
-        if (!$id) {
-            return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
-        }
+        $validated = $r->validate([
+            'ID'                  => 'required|integer|exists:master_poo,ID',
+            'Type'                => 'required|string|max:255',
+            'Name'                => 'required|string|max:255',
+            'PIC'                 => 'required|string|max:255',
+            'Employee'            => 'required|string|max:255',
+            'Phone'               => 'required|string|max:255',
+            'Position'            => 'required|string|max:255',
+            'Category'            => 'required|string|max:255',
+            'UCO_Type'            => 'required|string|max:255',
+            'Price'               => 'required|numeric|min:0',
+            'Price_Unit'          => 'required|string|max:255',
+            'Province'            => 'required|string|max:255',
+            'City'                => 'required|string|max:255',
+            'Subdistrict'         => 'required|string|max:255',
+            'Village'             => 'required|string|max:255',
+            'Full_Address'        => 'required|string|max:500',
+            'Location_Coordinate' => 'required|string|max:255',
+            'Nearest_Warehouse'   => 'required',
+            'Bank_Account_Number' => 'required|string|max:255',
+            'Bank_Account_Name'   => 'required|string|max:255',
+            'Bank_Name'           => 'required|string|max:255',
+        ]);
 
         DB::beginTransaction();
 
         try {
-            $affected = DB::table('master_poo')->where('ID', $id)->update([
-                'Type'                => $r->input('Type'),
-                'Name'                => $r->input('Name'),
-                'PIC'                 => $r->input('PIC'),
+            $affected = DB::table('master_poo')->where('ID', $validated['ID'])->update([
+                'Type'                => $validated['Type'],
+                'Name'                => $validated['Name'],
+                'PIC'                 => $validated['PIC'],
                 'Code'                => $r->input('Code'),
-                'Employee'            => $r->input('Employee'),
-                'Phone'               => $r->input('Phone'),
-                'Position'            => $r->input('Position'),
-                'Category'            => $r->input('Category'),
-                'UCO_Type'            => $r->input('UCO_Type'),
-                'Price'               => $r->input('Price'),
-                'Price_Unit'          => $r->input('Price_Unit'),
-                'Province'            => $r->input('Province'),
-                'City'                => $r->input('City'),
-                'Subdistrict'         => $r->input('Subdistrict'),
-                'Village'             => $r->input('Village'),
+                'Employee'            => $validated['Employee'],
+                'Phone'               => $validated['Phone'],
+                'Position'            => $validated['Position'],
+                'Category'            => $validated['Category'],
+                'UCO_Type'            => $validated['UCO_Type'],
+                'Price'               => $validated['Price'],
+                'Price_Unit'          => $validated['Price_Unit'],
+                'Province'            => $validated['Province'],
+                'City'                => $validated['City'],
+                'Subdistrict'         => $validated['Subdistrict'],
+                'Village'             => $validated['Village'],
                 'Cycle'               => $r->input('Cycle'),
-                'Full_Address'        => $r->input('Full_Address'),
-                'Location_Coordinate' => $r->input('Location_Coordinate'),
-                'Nearest_Warehouse'   => $r->input('Nearest_Warehouse'),
-                'Bank_Account_Number' => $r->input('Bank_Account_Number'),
-                'Bank_Account_Name'   => $r->input('Bank_Account_Name'),
-                'Bank_Name'           => $r->input('Bank_Name'),
+                'Full_Address'        => $validated['Full_Address'],
+                'Location_Coordinate' => $validated['Location_Coordinate'],
+                'Nearest_Warehouse'   => $validated['Nearest_Warehouse'],
+                'Bank_Account_Number' => $validated['Bank_Account_Number'],
+                'Bank_Account_Name'   => $validated['Bank_Account_Name'],
+                'Bank_Name'           => $validated['Bank_Name'],
                 'Point'               => $r->input('Point'),
             ]);
 
-            $record = DB::table("master_poo")->where("ID", $id)->first();
+            $record = DB::table("master_poo")->where("ID", $validated['ID'])->first();
             if (!$record) {
                 DB::rollBack();
                 return response()->json(["status" => "error", "message" => "Record not found"], 404);

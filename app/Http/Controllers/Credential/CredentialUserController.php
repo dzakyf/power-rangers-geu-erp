@@ -19,7 +19,8 @@ class CredentialUserController extends Controller
 
     public function createUser()
     {
-        return view('credential.user-management');
+        $roles = SpatieRole::all()->pluck('name');
+        return view('credential.user-management', compact('roles'));
     }
 
     public function userListData(Request $request)
@@ -187,16 +188,27 @@ class CredentialUserController extends Controller
         if ($exists) {
             return 'error:Email/Username already exists';
         }
-
-        DB::table('users')->insert([
+        $userId = DB::table('users')->insertGetId([
             'username' => $email,
             'Name'     => $name,
             'email'    => $email,
             'password' => bcrypt($password),
             'Location' => $location,
             'Position' => $position,
+            'Priv_ID'  => $position,
             'Status'   => 'ACTIVE',
         ]);
+
+        $user = User::find($userId);
+        if ($user && $position) {
+            $roleModel = SpatieRole::where('name', $position)->first();
+            if ($roleModel) {
+                $user->assignRole($roleModel);
+                RbacService::rebuildSubMenu($user);
+            }
+        }
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         return 'success';
     }
@@ -219,6 +231,7 @@ class CredentialUserController extends Controller
             'Location' => $location,
             'Status'   => $status,
             'Priv_ID'  => $primaryRole,
+            'Position' => $primaryRole,
         ]);
 
         $allRoles = array_unique(array_merge([$primaryRole], $additionalRoles));

@@ -540,6 +540,11 @@ class SurveyController extends Controller
             $analysisResult = "Tidak Layak";
         }
 
+        $survey = DB::table('survey_location')->where('ID', $rowId)->first();
+        if ($survey && $survey->Opportunity_Partner_Id) {
+            $this->advanceOnboardingStageToSetup($survey->Opportunity_Partner_Id);
+        }
+
         return response()->json(['message' => 'success', 'data' => [
             'C_Total_Score'   => $photo,
             'D_Total_Score'   => $checklist,
@@ -565,5 +570,85 @@ class SurveyController extends Controller
         DB::table('survey_location')->whereIn('ID', $ids)->delete();
 
         return response()->json(['status' => 'success', 'message' => count($ids) . ' survey(s) deleted successfully']);
+    }
+
+    private function advanceOnboardingStageToSetup($opportunityId)
+    {
+        $session = $this->userService->getCurrentSessionUserInfo();
+        $stageLabelMap = [
+            'DOCUMENT_CHECK' => 'Cek Dokumen',
+            'MOU' => 'Penandatanganan MOU',
+            'INVOICE' => 'Penerbitan Invoice DP',
+            'PKS' => 'Perjanjian Kerjasama',
+            'SURVEY' => 'Survey Lokasi',
+            'SETUP' => 'Installment',
+            'ACTIVE' => 'Aktif',
+        ];
+
+        $partner = DB::table('opportunity_partner')->where('id', $opportunityId)->first();
+        if (!$partner || $partner->onboarding_stage !== 'SURVEY') {
+            return;
+        }
+
+        DB::transaction(function () use ($opportunityId, $session, $stageLabelMap) {
+            // Mark SURVEY as completed
+            $surveyLogData = [
+                'Stage' => 'SURVEY',
+                'Stage_Label' => $stageLabelMap['SURVEY'],
+                'Status' => 'completed',
+                'Completed_At' => now(),
+                'Completed_By' => $session->id,
+                'Notes' => 'Survey selesai dilengkapi',
+                'Updated_At' => now(),
+            ];
+
+            $existingSurvey = DB::table('partner_onboarding_log')
+                ->where('Opportunity_Id', $opportunityId)
+                ->where('Stage', 'SURVEY')
+                ->first();
+
+            if ($existingSurvey) {
+                DB::table('partner_onboarding_log')
+                    ->where('Id', $existingSurvey->Id)
+                    ->update($surveyLogData);
+            } else {
+                $surveyLogData['Opportunity_Id'] = $opportunityId;
+                $surveyLogData['Created_At'] = now();
+                DB::table('partner_onboarding_log')->insert($surveyLogData);
+            }
+
+            // Advance to SETUP
+            DB::table('opportunity_partner')
+                ->where('id', $opportunityId)
+                ->update([
+                    'onboarding_stage' => 'SETUP',
+                    'onboarding_stage_updated_at' => now(),
+                    'onboarding_stage_updated_by' => $session->id,
+                ]);
+
+            $setupLogData = [
+                'Opportunity_Id' => $opportunityId,
+                'Stage' => 'SETUP',
+                'Stage_Label' => $stageLabelMap['SETUP'],
+                'Status' => 'in_progress',
+                'Created_At' => now(),
+                'Updated_At' => now(),
+            ];
+
+            $existingSetup = DB::table('partner_onboarding_log')
+                ->where('Opportunity_Id', $opportunityId)
+                ->where('Stage', 'SETUP')
+                ->first();
+
+            if ($existingSetup) {
+                unset($setupLogData['Opportunity_Id']);
+                unset($setupLogData['Created_At']);
+                DB::table('partner_onboarding_log')
+                    ->where('Id', $existingSetup->Id)
+                    ->update($setupLogData);
+            } else {
+                DB::table('partner_onboarding_log')->insert($setupLogData);
+            }
+        });
     }
 };

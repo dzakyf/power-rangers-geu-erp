@@ -9,6 +9,7 @@ use App\Services\UserService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpWord\TemplateProcessor;
 use SimpleXMLElement;
 
@@ -89,35 +90,40 @@ class OnboardingController extends Controller
 
     public function uploadMou(Request $r)
     {
+        try {
+            $body = $r->all();
+            $path = public_path('mou.docx');
+            $doc = $this->makeMou($body, $body['opportunity_id'], $path);
 
-        $body = $r->all();
-        // $doc = $r->file('file');
-        $path = public_path('mou.docx');
-        $doc = $this->makeMou($body, $body['opportunity_id'], $path);
+            $path = $this->generatorService->generateUUID();
+            $ext = "png";
+            $user = $this->userService->getCurrentSessionUserInfo();
 
-        $path = $this->generatorService->generateUUID();
-        $ext = "png";
-        $user = $this->userService->getCurrentSessionUserInfo();
+            $filename = "$path.$ext";
+            $desc = "Upload mou";
+            $topic = "mou";
+            $mapTo = $user->id;
 
-        $filename = "$path.$ext";
-        $desc = "Upload mou";
-        $topic = "mou";
-        $mapTo = $user->id;
+            $year = Carbon::now()->year;
+            $month = Carbon::now()->format('m');
+            $now = Carbon::now()->format('YmdHisv');
+            $path = "filevendor/$year/$month/mou_$now.docx";
+            $doc->saveAs(public_path("$path"));
 
-        $year = Carbon::now()->year;
-        $month = Carbon::now()->format('m');
-        $now = Carbon::now()->format('YmdHisv');
-        $path = "filevendor/$year/$month/mou_$now.docx";
-        $doc->saveAs(public_path("$path"));
+            $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
-        $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
+            DB::table('opportunity_partner')->where('id', $body['opportunity_id'])->update([
+                'contract_start_at' => Carbon::now(),
+                'contract_end_at' => Carbon::now()->addYear(4)
+            ]);
 
-        DB::table('opportunity_partner')->where('id', $body['opportunity_id'])->update([
-            'contract_start_at' => Carbon::now(),
-            'contract_end_at' => Carbon::now()->addYear(4)
-        ]);
+            $this->advanceOnboardingStage($body['opportunity_id'], 'MOU', 'INVOICE', 'MOU ditandatangani');
 
-        return response()->json(['message' => 'success']);
+            return response()->json(['success' => true, 'message' => 'success']);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
 
@@ -184,29 +190,35 @@ class OnboardingController extends Controller
 
     public function uploadPks(Request $r)
     {
-        $body = $r->all();
-        // $doc = $r->file('file');
-        $path = public_path('pks.docx');
-        $doc = $this->makePks($body, $body['opportunity_id'], $path);
+        try {
+            $body = $r->all();
+            $path = public_path('pks.docx');
+            $doc = $this->makePks($body, $body['opportunity_id'], $path);
 
-        $path = $this->generatorService->generateUUID();
-        $ext = "png";
-        $user = $this->userService->getCurrentSessionUserInfo();
+            $path = $this->generatorService->generateUUID();
+            $ext = "png";
+            $user = $this->userService->getCurrentSessionUserInfo();
 
-        $filename = "$path.$ext";
-        $desc = "Upload pks";
-        $topic = "pks";
-        $mapTo = $user->id;
+            $filename = "$path.$ext";
+            $desc = "Upload pks";
+            $topic = "pks";
+            $mapTo = $user->id;
 
-        $year = Carbon::now()->year;
-        $month = Carbon::now()->format('m');
-        $now = Carbon::now()->format('YmdHisv');
-        $path = "filevendor/$year/$month/pks_$now.docx";
-        $doc->saveAs(public_path("$path"));
+            $year = Carbon::now()->year;
+            $month = Carbon::now()->format('m');
+            $now = Carbon::now()->format('YmdHisv');
+            $path = "filevendor/$year/$month/pks_$now.docx";
+            $doc->saveAs(public_path("$path"));
 
-        $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
+            $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
-        return response()->json(['message' => 'success']);
+            $this->advanceOnboardingStage($body['opportunity_id'], 'PKS', 'SURVEY', 'PKS ditandatangani');
+
+            return response()->json(['success' => true, 'message' => 'success']);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     //?user_id=&type=
@@ -345,6 +357,79 @@ class OnboardingController extends Controller
     }
 
 
+
+    private function advanceOnboardingStage($opportunityId, $currentStage, $nextStage, $notes = '')
+    {
+        $session = $this->userService->getCurrentSessionUserInfo();
+        $stageLabelMap = [
+            'DOCUMENT_CHECK' => 'Cek Dokumen',
+            'MOU' => 'Penandatanganan MOU',
+            'INVOICE' => 'Penerbitan Invoice DP',
+            'PKS' => 'Perjanjian Kerjasama',
+            'SURVEY' => 'Survey Lokasi',
+            'SETUP' => 'Installment',
+            'ACTIVE' => 'Aktif',
+        ];
+
+        DB::transaction(function () use ($opportunityId, $currentStage, $nextStage, $notes, $session, $stageLabelMap) {
+            $currentLogData = [
+                'Stage' => $currentStage,
+                'Stage_Label' => $stageLabelMap[$currentStage] ?? $currentStage,
+                'Status' => 'completed',
+                'Completed_At' => now(),
+                'Completed_By' => $session->id,
+                'Notes' => $notes,
+                'Updated_At' => now(),
+            ];
+
+            $existing = DB::table('partner_onboarding_log')
+                ->where('Opportunity_Id', $opportunityId)
+                ->where('Stage', $currentStage)
+                ->first();
+
+            if ($existing) {
+                DB::table('partner_onboarding_log')
+                    ->where('Id', $existing->Id)
+                    ->update($currentLogData);
+            } else {
+                $currentLogData['Opportunity_Id'] = $opportunityId;
+                $currentLogData['Created_At'] = now();
+                DB::table('partner_onboarding_log')->insert($currentLogData);
+            }
+
+            DB::table('opportunity_partner')
+                ->where('id', $opportunityId)
+                ->update([
+                    'onboarding_stage' => $nextStage,
+                    'onboarding_stage_updated_at' => now(),
+                    'onboarding_stage_updated_by' => $session->id,
+                ]);
+
+            $nextLogData = [
+                'Opportunity_Id' => $opportunityId,
+                'Stage' => $nextStage,
+                'Stage_Label' => $stageLabelMap[$nextStage] ?? $nextStage,
+                'Status' => 'in_progress',
+                'Created_At' => now(),
+                'Updated_At' => now(),
+            ];
+
+            $existingNext = DB::table('partner_onboarding_log')
+                ->where('Opportunity_Id', $opportunityId)
+                ->where('Stage', $nextStage)
+                ->first();
+
+            if ($existingNext) {
+                unset($nextLogData['Opportunity_Id']);
+                unset($nextLogData['Created_At']);
+                DB::table('partner_onboarding_log')
+                    ->where('Id', $existingNext->Id)
+                    ->update($nextLogData);
+            } else {
+                DB::table('partner_onboarding_log')->insert($nextLogData);
+            }
+        });
+    }
     private function createMitraAccount($opportunityPartnerId)
     {
         $partner = DB::table('opportunity_partner')

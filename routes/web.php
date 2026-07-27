@@ -382,6 +382,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("/master-credential-role-delete/{id}", [CredentialRoleController::class, "deleteRole"]);
     Route::post("/master-credential-role-grant-all/{id}", [CredentialRoleController::class, "grantAllPermissions"]);
     Route::post("/master-credential-role-revoke-all/{id}", [CredentialRoleController::class, "revokeAllPermissions"]);
+    Route::post("/master-credential-menu-name-update", [CredentialRoleController::class, "updateMenuName"]);
 
     Route::get("/credential-user-management", [CredentialUserController::class, "index"]);
     Route::get("/credential-create-user", [CredentialUserController::class, "createUser"]);

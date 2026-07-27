@@ -122,10 +122,11 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
             </div>
             <div class="row">
                 <div class="col-md-4 mb-3">
-                    <label for="Position">Position</label>
+                        <label for="Position">Position</label>
                     <select id="Position" name="Position" class="form-control">
-                        <option value="EMPLOYEE">Employee</option>
-                        <option value="CANDIDATE">Candidate</option>
+                        @foreach($roles as $roleName)
+                        <option value="{{ $roleName }}">{{ $roleName }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="col-md-4 mb-3">
