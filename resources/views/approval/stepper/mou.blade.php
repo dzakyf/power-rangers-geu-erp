@@ -31,7 +31,6 @@
     </div>
 
 
-    <button class="btn btn-secondary btn-prev">Previous</button>
     <button class="btn btn-primary btn-next">Next</button>
 </div>
 
@@ -60,12 +59,6 @@
 //         }
 //     });
 
-    $(document).ajaxSuccess(function(event, xhr, settings) {
-    if (settings.url && settings.url.indexOf('partner-onboarding-submit-mou') !== -1) {
-        updateOnboardingLog('INVOICE', 'completed', 'MOU ditandatangani', function() {
-            location.reload();
-        });
-    }
-});
+
 </script>
 @endpush

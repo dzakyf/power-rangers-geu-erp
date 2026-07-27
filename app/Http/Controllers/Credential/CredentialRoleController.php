@@ -260,4 +260,22 @@ class CredentialRoleController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function updateMenuName(Request $request)
+    {
+        if (!auth()->user()->can('master.credential.role.edit')) {
+            abort(403);
+        }
+
+        $menuId = $request->input('menu_id');
+        $name = trim($request->input('name'));
+
+        if (!$menuId || !$name) {
+            return response()->json(['success' => false, 'message' => 'Menu ID and name are required.']);
+        }
+
+        DB::table('menu_lists')->where('Menu_ID', $menuId)->update(['Name' => $name]);
+
+        return response()->json(['success' => true]);
+    }
 }

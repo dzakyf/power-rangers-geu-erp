@@ -162,8 +162,11 @@ $saveDocumentUrl = $saveDocumentUrl ?? "/geu/hcga/public/partner-onboarding-subm
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    showStatus('Document generated successfully!', 'success');
-                    // $().show()
+                    if (response && response.success) {
+                        showStatus('Document generated successfully!', 'success');
+                    } else {
+                        showStatus('Error: ' + (response ? response.message : 'Unknown error'), 'error');
+                    }
                 },
                 error: function(xhr) {
                     showStatus('Error generating document', 'error');
@@ -182,8 +185,11 @@ $saveDocumentUrl = $saveDocumentUrl ?? "/geu/hcga/public/partner-onboarding-subm
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    console.log(response)
-                    showStatus('Document finalized!', 'success');
+                    if (response && response.success) {
+                        location.reload();
+                    } else {
+                        showStatus('Error: ' + (response ? response.message : 'Unknown error'), 'error');
+                    }
                 },
                 error: function(xhr) {
                     showStatus('Error finalizing document', 'error');

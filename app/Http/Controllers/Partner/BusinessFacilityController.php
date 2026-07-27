@@ -63,11 +63,12 @@ class BusinessFacilityController extends Controller
 
     public function indexDetailBooth()
     {
-        $getOppt = DB::table('opportunity_partner')->where("Lead_ID", auth()->user()->Emp_ID)->first();
-        if (!$getOppt) {
-            abort(403, 'Unauthorized access');
-        }
-        $cekWarehouse = WarehousePartner::where('partner_task_Id', auth()->user()->Emp_ID)->where('warehouse_type', 'booth')->first();
+        $getOppt = DB::table('opportunity_partner')
+            ->where(function ($q) {
+                $q->where('user_row_id', auth()->user()->id)
+                  ->orWhere('lead_id', auth()->user()->Emp_ID);
+            })
+            ->first();
         if (!$getOppt) {
             abort(403, 'Unauthorized access');
         }
@@ -223,7 +224,12 @@ class BusinessFacilityController extends Controller
 
     public function indexDetailMobil()
     {
-        $getOppt = DB::table('opportunity_partner')->where("Lead_ID", auth()->user()->Emp_ID)->first();
+        $getOppt = DB::table('opportunity_partner')
+            ->where(function ($q) {
+                $q->where('user_row_id', auth()->user()->id)
+                  ->orWhere('lead_id', auth()->user()->Emp_ID);
+            })
+            ->first();
         if (!$getOppt) {
             abort(403, 'Unauthorized access');
         }

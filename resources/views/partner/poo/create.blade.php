@@ -1,5 +1,21 @@
 @extends('layout.mainlayout-mitra')
 
+
+<style>
+    .select2-container.is-invalid {
+        border: 1px solid #dc3545;
+        border-radius: 4px;
+    }
+
+    .select2-container,
+    .select2-container .selection,
+    .select2-container .select2-selection,
+    .select2-container .select2-selection--single {
+        width: 100% !important;
+        display: block !important;
+    }
+</style>
+
 @section('content-wrapper')
 @csrf
 <div class="main-content-header">
@@ -131,7 +147,7 @@
                             </div>
                             <div class="form-group col-md-6">
                                 <label for="Nearest_Warehouse">Nearest Warehouse</label>
-                                <select class="form-control select2" id="Nearest_Warehouse" name="Nearest_Warehouse" style="width:100%" required></select>
+                                <select class="form-control select2" id="Nearest_Warehouse" name="Nearest_Warehouse" style="width:100%"></select>
                             </div>
                         </div>
 
@@ -162,8 +178,6 @@
     </div>
 </div>
 
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
     function makeSelect2(selector, url, params, valueField, labelField) {
@@ -206,6 +220,32 @@
     function resetSelect2(selector) {
         $(selector).val(null).trigger('change').prop('disabled', true);
         $(selector).empty().trigger('change');
+    }
+
+
+    function clearFieldErrors() {
+        $('.is-invalid').removeClass('is-invalid');
+        $('.select2-container.is-invalid').removeClass('is-invalid');
+        $('.invalid-feedback.server').remove();
+    }
+
+    function showFieldErrors(errors) {
+        clearFieldErrors();
+        Object.keys(errors).forEach(function(field) {
+            var $input = $('[name="' + field + '"]');
+            var $group = $input.closest('.form-group');
+            var $select2 = $group.find('.select2-container');
+
+            if ($select2.length) {
+                $select2.addClass('is-invalid');
+            } else {
+                $input.addClass('is-invalid');
+            }
+
+            $group.append(
+                '<div class="invalid-feedback server d-block">' + errors[field][0] + '</div>'
+            );
+        });
     }
 
     $(document).ready(function() {
@@ -275,7 +315,9 @@
 
         makeSelect2('#Nearest_Warehouse', 'partner-warehouse-data', {}, 'id', 'warehouse_location');
         $('#SubmitPOO').on('click', function() {
-            var payload = new FormData(document.getElementById('POOForm'));
+            clearFieldErrors();
+            var form = document.getElementById('POOForm');
+            var payload = new FormData(form);
 
             $.ajax({
                 url: 'master-poo-create-submit',
@@ -295,7 +337,11 @@
                     }
                 },
                 error: function(xhr) {
-                    alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+                    if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                        showFieldErrors(xhr.responseJSON.errors);
+                    } else {
+                        alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+                    }
                 }
             });
         });

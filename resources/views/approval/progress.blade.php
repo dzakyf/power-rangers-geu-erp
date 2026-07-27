@@ -81,6 +81,7 @@ $stageLabels = [
                         @include('approval.stepper.survey')
                     </div>
                     <div id="step6" class="content" role="tabpanel">
+                        @include('approval.stepper.setup')
                     </div>
                     <div id="step7" class="content" role="tabpanel">
                     </div>
@@ -171,7 +172,7 @@ $(document).ready(function() {
 
     var stepperElement = $('.bs-stepper')[0];
     window.stepper = new Stepper(stepperElement, {
-        linear: true,
+        linear: false,
         animation: true,
         selectors: {
             steps: '.step',
@@ -202,14 +203,10 @@ $(document).ready(function() {
         });
     });
 
-    // Next/Previous step navigation
+    // Next button navigation
     $(document).on('click', '.btn-next', function(e) {
         e.preventDefault();
         window.stepper.next();
-    });
-    $(document).on('click', '.btn-prev', function(e) {
-        e.preventDefault();
-        window.stepper.previous();
     });
 });
 

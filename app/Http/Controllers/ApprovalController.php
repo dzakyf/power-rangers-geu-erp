@@ -260,8 +260,43 @@ class ApprovalController extends Controller
         $currentStage = $partner->onboarding_stage ?? 'DOCUMENT_CHECK';
         $currentStageIndex = array_search($currentStage, $stageOrder) ?: 0;
 
+        // Installment (SETUP) step data
+        $survey = DB::table('survey_location')
+            ->where('Opportunity_Partner_Id', $q['id'])
+            ->orderBy('Created_At', 'desc')
+            ->first();
+
+        $package = $partner->register_as === 'company'
+            ? $partner->company_package
+            : $partner->package_option;
+
+        if ($package === 'option1') {
+            $warehouseType = 'booth';
+        } elseif (in_array($package, ['option2', 'mobil'])) {
+            $warehouseType = 'mobil';
+        } else {
+            $warehouseType = null;
+        }
+
+        $facilityGroups = [];
+        if ($warehouseType) {
+            $facilities = DB::table('master_facility')
+                ->where('type', $warehouseType)
+                ->where('is_deleted', 0)
+                ->orderBy('category')
+                ->orderBy('description')
+                ->get();
+
+            foreach ($facilities as $f) {
+                $f->children = $f->children ? json_decode($f->children, true) : null;
+                $facilityGroups[$f->category][] = $f;
+            }
+        }
+
         return view('approval.progress', compact(
-            'partner', 'pic', 'documents', 'status', 'onboardingLog', 'currentStage', 'currentStageIndex', 'stageOrder'
+            'partner', 'pic', 'documents', 'status', 'onboardingLog',
+            'currentStage', 'currentStageIndex', 'stageOrder',
+            'survey', 'warehouseType', 'facilityGroups'
         ));
     }
 

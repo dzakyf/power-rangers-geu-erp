@@ -25,7 +25,6 @@
     </div>
 </div>
 
-<button class="btn btn-secondary btn-prev">Previous</button>
 <button class="btn btn-primary btn-next">Next</button>
 
 
@@ -80,12 +79,6 @@
         })
     }
 
-    $(document).ajaxSuccess(function(event, xhr, settings) {
-    if (settings.url && settings.url.indexOf('partner-onboarding-submit-pks') !== -1) {
-        updateOnboardingLog('SURVEY', 'completed', 'PKS ditandatangani', function() {
-            location.reload();
-        });
-    }
-});
+
 </script>
 @endpush
