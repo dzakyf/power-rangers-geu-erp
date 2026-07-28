@@ -2,6 +2,54 @@
     <h5>Installment</h5>
     <p>Persiapan warehouse</p>
 
+
+    <div class="card my-3">
+        <div class="card-body">
+            <h6>Kelengkapan Setup Warehouse</h6>
+            <table class="table table-sm table-bordered mb-0">
+                <tr>
+                    <th style="width:240px;">Persyaratan</th>
+                    <th>Status</th>
+                </tr>
+                <tr>
+                    <td>Proyeksi warehouse</td>
+                    <td>
+                        @if ($hasProjection)
+                            <span class="badge badge-success">Selesai</span>
+                        @else
+                            <span class="badge badge-warning">Menunggu</span>
+                        @endif
+                    </td>
+                </tr>
+                <tr>
+                    <td>Manfaat &amp; dukungan (benefits asset)</td>
+                    <td>
+                        @if ($hasBenefitsAsset)
+                            <span class="badge badge-success">Selesai</span>
+                        @else
+                            <span class="badge badge-warning">Menunggu</span>
+                        @endif
+                    </td>
+                </tr>
+                <tr>
+                    <td>Order peralatan (order equipment)</td>
+                    <td>
+                        @if ($hasOrderEquipment)
+                            <span class="badge badge-success">Selesai</span>
+                        @else
+                            <span class="badge badge-warning">Menunggu</span>
+                        @endif
+                    </td>
+                </tr>
+            </table>
+            @if ($hasProjection && $hasBenefitsAsset && $hasOrderEquipment)
+            <div class="alert alert-success mt-2 mb-0">
+                Semua persiapan warehouse selesai. Mitra berstatus Aktif.
+            </div>
+            @endif
+        </div>
+    </div>
+
     @if (!$warehouseType)
     <div class="alert alert-info">
         Tipe warehouse belum ditentukan. Pastikan paket sudah dipilih pada data pendaftaran.

@@ -58,7 +58,7 @@ foreach ($Query as $Fetch) {
 	echo "<cell>" . htmlspecialchars($Fetch->Status) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Reason) . "</cell>";
 	if ($Fetch->Status == 'Deal') {
-		echo "<cell>" . htmlspecialchars('Blast') . "</cell>";
+		echo "<cell style='border:1px solid black;margin:10px;background-color:aquamarine'>" . htmlspecialchars('Blast') . "</cell>";
 	} else {
 		echo "<cell>" . htmlspecialchars('') . "</cell>";
 	}

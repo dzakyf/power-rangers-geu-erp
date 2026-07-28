@@ -85,7 +85,7 @@ $Saya =  Auth::user()->username;
         return true;
     });
     FacilityBenefitsMobil.setDateFormat("%Y-%m-%d"); 
-	PFacilityBenefitsMobil = new dataProcessor("partner-business-facility-update?Task={{ $id }}");
+	PFacilityBenefitsMobil = new dataProcessor("partner-business-facility-update?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}");
 	PFacilityBenefitsMobil.setTransactionMode({
 		mode: "POST",
 		total: true,
@@ -123,7 +123,7 @@ $Saya =  Auth::user()->username;
 	FacilityBenefitsMobilAccess.setColTypes("ro,ro,ro,dhxCalendar,ch");
 	FacilityBenefitsMobilAccess.enableSmartRendering(true, 150);
     FacilityBenefitsMobilAccess.setDateFormat("%Y-%m-%d"); 
-	PFacilityBenefitsMobilAccess = new dataProcessor("partner-business-facility-update?Task={{ $id }}");
+	PFacilityBenefitsMobilAccess = new dataProcessor("partner-business-facility-update?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}");
 	PFacilityBenefitsMobilAccess.setTransactionMode({
 		mode: "POST",
 		total: true,
@@ -161,7 +161,7 @@ $Saya =  Auth::user()->username;
 	FacilityBenefitsMobilSupport.setColTypes("ro,ro,ro,dhxCalendar,ch");
 	FacilityBenefitsMobilSupport.enableSmartRendering(true, 150);
     FacilityBenefitsMobilSupport.setDateFormat("%Y-%m-%d"); 
-	PFacilityBenefitsMobilSupport = new dataProcessor("partner-business-facility-update?Task={{ $id }}");
+	PFacilityBenefitsMobilSupport = new dataProcessor("partner-business-facility-update?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}");
 	PFacilityBenefitsMobilSupport.setTransactionMode({
 		mode: "POST",
 		total: true,
@@ -190,15 +190,15 @@ $Saya =  Auth::user()->username;
 	refreshdatamobilsupport();
 
 	function refreshdatamobilinventory() {
-		FacilityBenefitsMobil.clearAndLoad('xml-partner-business-facility-mobil-inventory?Task={{ $id }}');
+		FacilityBenefitsMobil.clearAndLoad('xml-partner-business-facility-mobil-inventory?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}');
 	}
 
     function refreshdatamobilaccess() {
-		FacilityBenefitsMobilAccess.clearAndLoad('xml-partner-business-facility-mobil-access?Task={{ $id }}');
+		FacilityBenefitsMobilAccess.clearAndLoad('xml-partner-business-facility-mobil-access?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}');
     }
     
     function refreshdatamobilsupport() {
-		FacilityBenefitsMobilSupport.clearAndLoad('xml-partner-business-facility-mobil-support?Task={{ $id }}');
+		FacilityBenefitsMobilSupport.clearAndLoad('xml-partner-business-facility-mobil-support?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}');
     }
     
     function submitDataMobil()

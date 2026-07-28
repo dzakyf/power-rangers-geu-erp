@@ -71,7 +71,7 @@ $stageLabels = [
                     <div id="step3" class="content" role="tabpanel">
                         @include('approval.stepper.invoice-dp')
                         @if ($currentStage === 'INVOICE')
-                        <button class="btn btn-primary" id="invoiceNextBtn" disabled>Next</button>
+                        <button class="btn btn-primary" id="invoiceNextBtn">Next</button>
                         @endif
                     </div>
                     <div id="step4" class="content" role="tabpanel">

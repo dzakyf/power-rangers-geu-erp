@@ -13,7 +13,7 @@
         <form id="surveyForm" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="Opportunity_Partner_Id" id="Opportunity_Partner_Id" value="" />
-            <input type="hidden" name="Recommendation_Type" id="Opportunity_Partner_Id" value="MITRA" />
+            <input type="hidden" name="Recommendation_Type" id="Recommendation_Type" value="MITRA" />
             <h6>A. Informasi Survey</h6>
             <!-- <div class="row">
             <div class="col-md-2">

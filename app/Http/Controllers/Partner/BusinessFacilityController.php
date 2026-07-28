@@ -41,10 +41,10 @@ class BusinessFacilityController extends Controller
 
         if ($priv == 'MITRA') {
             $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
-        }else {
+        } else {
             $get = WarehousePartner::get();
         }
-        
+
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
@@ -61,33 +61,36 @@ class BusinessFacilityController extends Controller
         echo "</rows>";
     }
 
-    public function indexDetailBooth()
+    public function indexDetailBooth(Request $request)
     {
-        $getOppt = DB::table('opportunity_partner')
-            ->where(function ($q) {
-                $q->where('user_row_id', auth()->user()->id)
-                  ->orWhere('lead_id', auth()->user()->Emp_ID);
-            })
-            ->first();
-        if (!$getOppt) {
-            abort(403, 'Unauthorized access');
+        $wh = $this->resolveWarehouse($request);
+
+        $partner = DB::table('opportunity_partner')->where('lead_id', $wh->partner_task_id)->first();
+        if (!$partner) {
+            abort(404, 'Partner not found for this warehouse');
         }
-        // dd($getOppt);
-        $id = $getOppt->id;
-        return view('partner.business-facility-detail-booth', compact('id'));
+
+        $id = $partner->id;
+        return view('partner.business-facility-detail-booth', compact('id', 'wh', 'partner'));
     }
 
-    public function indexDetailBoothInventoryXml()
+    public function indexDetailBoothInventoryXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
             header("Content-type: text/xml");
         }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
 
-        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $_GET['Task'])->get();
+        $partnerId = $request->Task;
+        $whTaskId  = $request->wh;
+
+        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+            $q->where('warehouse_task_id', $whTaskId);
+        })->get();
         $getCheckedBySales = [];
         foreach ($getChecked as $key => $value) {
             $getCheckedBySales[$value->Facility_ID] = [
@@ -104,45 +107,53 @@ class BusinessFacilityController extends Controller
         $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'inventory')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                if (isset($getCheckedByPartner[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell></cell>";
-                    echo "<cell>0</cell>";
-                }
-                echo "<cell>".htmlspecialchars($facility->asset_type)."</cell>";
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $_GET['Task'])->first();
-                if ($cekDtl) {
-                    echo "<cell>".htmlspecialchars($cekDtl->Qty)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Price)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Total)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Order_Date)."</cell>";
-                }else {
-                    echo "<cell></cell>";
-                    echo "<cell></cell>";
-                    echo "<cell></cell>";
-                    echo "<cell></cell>";
-                }
+            echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars($facility->description) . "</cell>";
+            if (isset($getCheckedByPartner[$facility->id])) {
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Date']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+                echo "<cell>0</cell>";
+            }
+            echo "<cell>" . htmlspecialchars($facility->asset_type) . "</cell>";
+            $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+                $q->where('warehouse_task_id', $whTaskId);
+            })->first();
+            if ($cekDtl) {
+                echo "<cell>" . htmlspecialchars($cekDtl->Qty) . "</cell>";
+                echo "<cell>" . htmlspecialchars($cekDtl->Price) . "</cell>";
+                echo "<cell>" . htmlspecialchars($cekDtl->Total) . "</cell>";
+                echo "<cell>" . htmlspecialchars($cekDtl->Order_Date) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+            }
             echo "</row>";
         }
 
         echo "</rows>";
     }
 
-    public function indexDetailBoothAccessXml()
+    public function indexDetailBoothAccessXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
             header("Content-type: text/xml");
         }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
 
-        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $_GET['Task'])->get();
+        $partnerId = $request->Task;
+        $whTaskId  = $request->wh;
+
+        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+            $q->where('warehouse_task_id', $whTaskId);
+        })->get();
         $getCheckedBySales = [];
         foreach ($getChecked as $key => $value) {
             $getCheckedBySales[$value->Facility_ID] = [
@@ -159,35 +170,41 @@ class BusinessFacilityController extends Controller
         $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'access')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                $facility->children = json_decode($facility->children);
-                $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
-                echo "<cell>".htmlspecialchars($facility->children)."</cell>";
-                if (isset($getCheckedByPartner[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell></cell>";
-                    echo "<cell>0</cell>";
-                }
+            echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars($facility->description) . "</cell>";
+            $facility->children = json_decode($facility->children);
+            $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
+            echo "<cell>" . htmlspecialchars($facility->children) . "</cell>";
+            if (isset($getCheckedByPartner[$facility->id])) {
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Date']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+                echo "<cell>0</cell>";
+            }
             echo "</row>";
         }
 
         echo "</rows>";
     }
 
-    public function indexDetailBoothSupportXml()
+    public function indexDetailBoothSupportXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
             header("Content-type: text/xml");
         }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
 
-        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $_GET['Task'])->get();
+        $partnerId = $request->Task;
+        $whTaskId  = $request->wh;
+
+        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+            $q->where('warehouse_task_id', $whTaskId);
+        })->get();
         $getCheckedBySales = [];
         foreach ($getChecked as $key => $value) {
             $getCheckedBySales[$value->Facility_ID] = [
@@ -204,50 +221,54 @@ class BusinessFacilityController extends Controller
         $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'support')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                $facility->children = json_decode($facility->children);
-                $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
-                echo "<cell>".htmlspecialchars($facility->children)."</cell>";
-                if (isset($getCheckedByPartner[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell></cell>";
-                    echo "<cell>0</cell>";
-                }
+            echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars($facility->description) . "</cell>";
+            $facility->children = json_decode($facility->children);
+            $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
+            echo "<cell>" . htmlspecialchars($facility->children) . "</cell>";
+            if (isset($getCheckedByPartner[$facility->id])) {
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Date']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+                echo "<cell>0</cell>";
+            }
             echo "</row>";
         }
 
         echo "</rows>";
     }
 
-    public function indexDetailMobil()
+    public function indexDetailMobil(Request $request)
     {
-        $getOppt = DB::table('opportunity_partner')
-            ->where(function ($q) {
-                $q->where('user_row_id', auth()->user()->id)
-                  ->orWhere('lead_id', auth()->user()->Emp_ID);
-            })
-            ->first();
-        if (!$getOppt) {
-            abort(403, 'Unauthorized access');
+        $wh = $this->resolveWarehouse($request);
+
+        $partner = DB::table('opportunity_partner')->where('lead_id', $wh->partner_task_id)->first();
+        if (!$partner) {
+            abort(404, 'Partner not found for this warehouse');
         }
-        $id = $getOppt->id;
-        return view('partner.business-facility-detail-mobil', compact('id'));
+
+        $id = $partner->id;
+        return view('partner.business-facility-detail-mobil', compact('id', 'wh', 'partner'));
     }
 
-    public function indexDetailMobilInventoryXml()
+    public function indexDetailMobilInventoryXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
             header("Content-type: text/xml");
         }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
 
-        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $_GET['Task'])->get();
+        $partnerId = $request->Task;
+        $whTaskId  = $request->wh;
+
+        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+            $q->where('warehouse_task_id', $whTaskId);
+        })->get();
         $getCheckedBySales = [];
         foreach ($getChecked as $key => $value) {
             $getCheckedBySales[$value->Facility_ID] = [
@@ -264,57 +285,65 @@ class BusinessFacilityController extends Controller
         $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'inventory')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                $facility->children = json_decode($facility->children);
-                $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
-                if(is_object($facility->children)) {
-                    $child = "";
-                    foreach ($facility->children as $key => $value) {
-                        $child .= "$key : " .  (is_array($value) ? implode(", ", $value) : json_encode($value)) . ", ";
-                    }
-                    $child = substr($child, 0, -2);
-                    $facility->children = $child;
+            echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars($facility->description) . "</cell>";
+            $facility->children = json_decode($facility->children);
+            $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
+            if (is_object($facility->children)) {
+                $child = "";
+                foreach ($facility->children as $key => $value) {
+                    $child .= "$key : " .  (is_array($value) ? implode(", ", $value) : json_encode($value)) . ", ";
                 }
-                echo "<cell>".htmlspecialchars($facility->children)."</cell>";
-                if (isset($getCheckedByPartner[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell></cell>";
-                    echo "<cell>0</cell>";
-                }
-                echo "<cell>".htmlspecialchars($facility->asset_type)."</cell>";
-                
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $_GET['Task'])->first();
-                if ($cekDtl) {
-                    echo "<cell>".htmlspecialchars($cekDtl->Qty)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Price)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Total)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Order_Date)."</cell>";
-                }else {
-                    echo "<cell></cell>";
-                    echo "<cell></cell>";
-                    echo "<cell></cell>";
-                    echo "<cell></cell>";
-                }
+                $child = substr($child, 0, -2);
+                $facility->children = $child;
+            }
+            echo "<cell>" . htmlspecialchars($facility->children) . "</cell>";
+            if (isset($getCheckedByPartner[$facility->id])) {
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Date']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+                echo "<cell>0</cell>";
+            }
+            echo "<cell>" . htmlspecialchars($facility->asset_type) . "</cell>";
+
+            $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+                $q->where('warehouse_task_id', $whTaskId);
+            })->first();
+            if ($cekDtl) {
+                echo "<cell>" . htmlspecialchars($cekDtl->Qty) . "</cell>";
+                echo "<cell>" . htmlspecialchars($cekDtl->Price) . "</cell>";
+                echo "<cell>" . htmlspecialchars($cekDtl->Total) . "</cell>";
+                echo "<cell>" . htmlspecialchars($cekDtl->Order_Date) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+                echo "<cell></cell>";
+            }
             echo "</row>";
         }
 
         echo "</rows>";
     }
 
-    public function indexDetailMobilAccessXml()
+    public function indexDetailMobilAccessXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
             header("Content-type: text/xml");
         }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
 
-        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $_GET['Task'])->get();
+        $partnerId = $request->Task;
+        $whTaskId  = $request->wh;
+
+        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+            $q->where('warehouse_task_id', $whTaskId);
+        })->get();
         $getCheckedBySales = [];
         foreach ($getChecked as $key => $value) {
             $getCheckedBySales[$value->Facility_ID] = [
@@ -331,35 +360,41 @@ class BusinessFacilityController extends Controller
         $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'access')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                $facility->children = json_decode($facility->children);
-                $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
-                echo "<cell>".htmlspecialchars($facility->children)."</cell>";
-                if (isset($getCheckedByPartner[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell></cell>";
-                    echo "<cell>0</cell>";
-                }
+            echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars($facility->description) . "</cell>";
+            $facility->children = json_decode($facility->children);
+            $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
+            echo "<cell>" . htmlspecialchars($facility->children) . "</cell>";
+            if (isset($getCheckedByPartner[$facility->id])) {
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Date']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+                echo "<cell>0</cell>";
+            }
             echo "</row>";
         }
 
         echo "</rows>";
     }
 
-    public function indexDetailMobilSupportXml()
+    public function indexDetailMobilSupportXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
             header("Content-type: text/xml");
         }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
 
-        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $_GET['Task'])->get();
+        $partnerId = $request->Task;
+        $whTaskId  = $request->wh;
+
+        $getChecked = DB::table('opportunity_partner_facility')->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+            $q->where('warehouse_task_id', $whTaskId);
+        })->get();
         $getCheckedBySales = [];
         foreach ($getChecked as $key => $value) {
             $getCheckedBySales[$value->Facility_ID] = [
@@ -376,18 +411,18 @@ class BusinessFacilityController extends Controller
         $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'support')->where('is_deleted', 0)->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                $facility->children = json_decode($facility->children);
-                $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
-                echo "<cell>".htmlspecialchars($facility->children)."</cell>";
-                if (isset($getCheckedByPartner[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Date'])."</cell>";
-                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell></cell>";
-                    echo "<cell>0</cell>";
-                }
+            echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars($facility->description) . "</cell>";
+            $facility->children = json_decode($facility->children);
+            $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
+            echo "<cell>" . htmlspecialchars($facility->children) . "</cell>";
+            if (isset($getCheckedByPartner[$facility->id])) {
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Date']) . "</cell>";
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+                echo "<cell>0</cell>";
+            }
             echo "</row>";
         }
 
@@ -397,94 +432,94 @@ class BusinessFacilityController extends Controller
     public function detailFacilityUpdate()
     {
         header("Content-type: text/xml");
-        echo('<?xml version="1.0" encoding="iso-8859-1"?>'); 
+        echo ('<?xml version="1.0" encoding="iso-8859-1"?>');
         echo "<data>";
 
         $request_body = urldecode(file_get_contents('php://input'));
         $Saya = Auth::user()->username;
         $LSP = Auth::user()->Location;
 
-        $ids = explode("&",$request_body);
-        foreach($ids as $datax){
-            
-            $idenya = explode("=",$datax);
+        $ids = explode("&", $request_body);
+        foreach ($ids as $datax) {
+
+            $idenya = explode("=", $datax);
             if (isset($idenya[1])) {
                 $param[$idenya[0]] = $idenya[1];
             }
-            
         }
-        $checkids = explode(",",$param["ids"]);
+        $checkids = explode(",", $param["ids"]);
 
-        for ($i=0; $i < sizeof($checkids); $i++) { 
+        for ($i = 0; $i < sizeof($checkids); $i++) {
             $rowId = $checkids[$i]; //id or row which was updated 
             if ($rowId != 'customPayload') {
                 $newId = $rowId; //will be used for insert operation	
-                $mode = $param[$rowId."_!nativeeditor_status"]; 
-            
-                    switch($mode){
-                        case "updated":
-                            $action = $this->detailFacilityUpdatekan($rowId,$param);
-                            break;
+                $mode = $param[$rowId . "_!nativeeditor_status"];
+
+                switch ($mode) {
+                    case "updated":
+                        $action = $this->detailFacilityUpdatekan($rowId, $param);
+                        break;
                     case "deleted":
-                            $action = $this->detailFacilityDeletekan($rowId,$param);
-                            break;
+                        $action = $this->detailFacilityDeletekan($rowId, $param);
+                        break;
                     case "inserted":
-                            $action = $this->detailFacilityInsertkan($rowId,$param);
-                            break;
-                    }
-                    
-                echo "<action type='".$action."' sid='".$rowId."' tid='".$newId."'/>";	
+                        $action = $this->detailFacilityInsertkan($rowId, $param);
+                        break;
+                }
+
+                echo "<action type='" . $action . "' sid='" . $rowId . "' tid='" . $newId . "'/>";
             }
         }
         echo "</data>";
-
     }
 
     public function detailFacilityUpdatekan($rowId, $param)
     {
-        $a = $param[$rowId."_c1"]; // origin
-        $b = $param[$rowId."_c2"]; // destination
-        $c = $param[$rowId."_c3"]; // destination name
-        $d = $param[$rowId."_c4"] ?? ''; // transport
-        $e = $param[$rowId."_c5"] ?? ''; // transport
-        $f = $param[$rowId."_c6"] ?? ''; // transport
-        $g = $param[$rowId."_c7"] ?? ''; // transport
-        $h = $param[$rowId."_c8"] ?? ''; // transport
-        $ix = $param[$rowId."_c9"] ?? ''; // transport
+        $a = $param[$rowId . "_c1"]; // origin
+        $b = $param[$rowId . "_c2"]; // destination
+        $c = $param[$rowId . "_c3"]; // destination name
+        $d = $param[$rowId . "_c4"] ?? ''; // transport
+        $e = $param[$rowId . "_c5"] ?? ''; // transport
+        $f = $param[$rowId . "_c6"] ?? ''; // transport
+        $g = $param[$rowId . "_c7"] ?? ''; // transport
+        $h = $param[$rowId . "_c8"] ?? ''; // transport
+        $ix = $param[$rowId . "_c9"] ?? ''; // transport
         $Saya = auth()->user()->username;
 
-        if ((isset($param[$rowId."_c6"]) ? $d : $c) == 1) {
+        if ((isset($param[$rowId . "_c6"]) ? $d : $c) == 1) {
             $cekDB = DB::table('opportunity_partner_facility')
-                    ->where('Facility_ID', $rowId)
-                    ->where("Partner_ID", $_GET['Task'])
-                    ->first();
+                ->where('Facility_ID', $rowId)
+                ->where("Partner_ID", $_GET['Task'])
+                ->first();
             if ($cekDB) {
                 DB::table('opportunity_partner_facility')
                     ->where('ID', $cekDB->ID)
                     ->update([
-                        'Checked_Partner' => isset($param[$rowId."_c6"]) ? $d : $c,
+                        'Checked_Partner' => isset($param[$rowId . "_c6"]) ? $d : $c,
                         'Checked_Partner_By' => $Saya,
                         'Checked_Partner_Date' => now(),
-                        'Received_Date' => isset($param[$rowId."_c6"]) ? $c : $b,
+                        'Received_Date' => isset($param[$rowId . "_c6"]) ? $c : $b,
                     ]);
-            }else {
+            } else {
                 DB::table('opportunity_partner_facility')
                     ->insert([
                         'Facility_ID' => $rowId,
                         'Partner_ID' => $_GET['Task'],
-                        'Checked_Partner' => isset($param[$rowId."_c6"]) ? $d : $c,
+                        'Checked_Partner' => isset($param[$rowId . "_c6"]) ? $d : $c,
                         'Checked_Partner_By' => $Saya,
                         'Checked_Partner_Date' => now(),
-                        'Received_Date' => isset($param[$rowId."_c6"]) ? $c : $b,
+                        'Received_Date' => isset($param[$rowId . "_c6"]) ? $c : $b,
                         'Created_By' => $Saya,
                         'Created_Date' => now(),
                     ]);
             }
         }
 
-        if (isset($param[$rowId."_c9"])) {
+        if (isset($param[$rowId . "_c9"])) {
             if ($f != '' && $g != '' && $h != '') {
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $_GET['Task'])->first();
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+                    $q->where('warehouse_task_id', $whTaskId);
+                })->first();
                 if ($cekDtl) {
                     DB::table('opportunity_partner_facility_dtl')
                         ->where('ID', $cekDtl->ID)
@@ -494,7 +529,7 @@ class BusinessFacilityController extends Controller
                             'Total' => $h,
                             'Order_Date' => $ix,
                         ]);
-                }else {
+                } else {
                     DB::table('opportunity_partner_facility_dtl')
                         ->insert([
                             'Facility_ID' => $rowId,
@@ -508,16 +543,18 @@ class BusinessFacilityController extends Controller
                         ]);
                 }
             }
-    
+
             if ($ix != '') {
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $_GET['Task'])->first();
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+                    $q->where('warehouse_task_id', $whTaskId);
+                })->first();
                 if ($cekDtl) {
                     DB::table('opportunity_partner_facility_dtl')
                         ->where('ID', $cekDtl->ID)
                         ->update([
                             'Order_Date' => $ix
                         ]);
-                }else {
+                } else {
                     DB::table('opportunity_partner_facility_dtl')
                         ->insert([
                             'Facility_ID' => $rowId,
@@ -528,9 +565,11 @@ class BusinessFacilityController extends Controller
                         ]);
                 }
             }
-        }else {
+        } else {
             if ($e != '' && $f != '' && $g != '') {
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $_GET['Task'])->first();
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+                    $q->where('warehouse_task_id', $whTaskId);
+                })->first();
                 if ($cekDtl) {
                     DB::table('opportunity_partner_facility_dtl')
                         ->where('ID', $cekDtl->ID)
@@ -540,7 +579,7 @@ class BusinessFacilityController extends Controller
                             'Total' => $g,
                             'Order_Date' => $h
                         ]);
-                }else {
+                } else {
                     DB::table('opportunity_partner_facility_dtl')
                         ->insert([
                             'Facility_ID' => $rowId,
@@ -554,16 +593,18 @@ class BusinessFacilityController extends Controller
                         ]);
                 }
             }
-    
+
             if ($h != '') {
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $_GET['Task'])->first();
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
+                    $q->where('warehouse_task_id', $whTaskId);
+                })->first();
                 if ($cekDtl) {
                     DB::table('opportunity_partner_facility_dtl')
                         ->where('ID', $cekDtl->ID)
                         ->update([
                             'Order_Date' => $h
                         ]);
-                }else {
+                } else {
                     DB::table('opportunity_partner_facility_dtl')
                         ->insert([
                             'Facility_ID' => $rowId,
@@ -579,13 +620,47 @@ class BusinessFacilityController extends Controller
         return 'update';
     }
 
-    public function detailFacilityDeletekan($rowId, $param)
+    public function detailFacilityDeletekan($rowId, $param) {}
+
+    public function detailFacilityInsertkan($rowId, $param) {}
+
+    /**
+     * Resolve warehouse ID from request or current user.
+     * Accepts warehouse_partner.id or warehouse_task_id in ?ID=,
+     * or derives the first matching warehouse for the logged-in user.
+     */
+    private function resolveWarehouse(Request $request): WarehousePartner
     {
+        $task = $request->ID;
 
-    }
+        // If ID is provided, look it up directly (accepts id or warehouse_task_id)
+        if ($task) {
+            $wh = WarehousePartner::where('id', $task)->orWhere('warehouse_task_id', $task)->first();
+            if ($wh) {
+                return $wh;
+            }
+        }
 
-    public function detailFacilityInsertkan($rowId, $param)
-    {
+        // Derive from current user
+        $user = auth()->user();
+        if ($user->Priv_ID === 'MITRA') {
+            // MITRA: their Emp_ID = partner_task_id
+            $wh = WarehousePartner::where('partner_task_id', $user->Emp_ID)->first();
+        } else {
+            // Internal: find opportunity_partner by user_row_id, then warehouse by lead_id
+            $opp = DB::table('opportunity_partner')
+                ->where('user_row_id', $user->id)
+                ->orWhere('lead_id', $user->Emp_ID)
+                ->first();
+            if ($opp) {
+                $wh = WarehousePartner::where('partner_task_id', $opp->lead_id)->first();
+            }
+        }
 
+        if (!isset($wh) || !$wh) {
+            abort(404, 'Warehouse not found for this user. Please contact admin.');
+        }
+
+        return $wh;
     }
 }

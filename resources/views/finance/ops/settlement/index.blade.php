@@ -168,6 +168,7 @@
                                 onClick: function() {
                                     var fd = new FormData();
                                     fd.append('_token', '{{ csrf_token() }}');
+                                    fd.append('action', 'submit');
                                     fd.append('route_ids', routeIds.join(','));
 
                                     fd.append('bbm_nominal', $('#settleBbmNominal').val());

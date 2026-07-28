@@ -1132,6 +1132,7 @@ class UCOController extends Controller
         $orders = $this->fetchPickupOrders(null)->whereIn('ID', $ids);
 
         $waypoints = [];
+        $skipped = [];
 
         // Add warehouse as starting point if selected
         $whId = $r->input('warehouse_id');
@@ -1145,8 +1146,12 @@ class UCOController extends Controller
 
             $allocationType = $r->input('cost_method') === 'lumpsum' ? 'LUMPSUM' : 'MANUAL';
         foreach ($orders as $order) {
-            if (!$order->Lat || !$order->Lng) continue;
-            $waypoints[] = [(float)$order->Lng, (float)$order->Lat];
+            $coord = $this->getOrderCoordinate($order);
+            if ($coord) {
+                $waypoints[] = $coord;
+            } else {
+                $skipped[] = $order->POO_Name ?? $order->PO_Code ?? 'ID:' . $order->ID;
+            }
         }
 
         // End back at warehouse
@@ -1155,7 +1160,16 @@ class UCOController extends Controller
         }
 
         if (count($waypoints) < 2) {
-            return response()->json(['status' => 'error', 'message' => 'Need at least 2 valid coordinates'], 400);
+            $msg = 'Need at least 2 valid coordinates.';
+            if (!empty($skipped)) {
+                $msg .= ' Pickup orders without valid coordinates: ' . implode(', ', $skipped) . '.';
+                $msg .= ' Please update Location_Coordinate di master POO.';
+            }
+            return response()->json(['status' => 'error', 'message' => $msg], 400);
+        }
+
+        if (!empty($skipped)) {
+            \Log::warning('Route calculation skipped orders without coordinates: ' . implode(', ', $skipped));
         }
 
         try {
@@ -1181,6 +1195,7 @@ class UCOController extends Controller
         $orders = $this->fetchPickupOrders(null)->whereIn('ID', $ids);
 
         $waypoints = [];
+        $skipped = [];
 
         // Add warehouse as starting point if selected
         $whId = $r->input('warehouse_id');
@@ -1194,8 +1209,12 @@ class UCOController extends Controller
 
             $allocationType = $r->input('cost_method') === 'lumpsum' ? 'LUMPSUM' : 'MANUAL';
         foreach ($orders as $order) {
-            if (!$order->Lat || !$order->Lng) continue;
-            $waypoints[] = [(float)$order->Lng, (float)$order->Lat];
+            $coord = $this->getOrderCoordinate($order);
+            if ($coord) {
+                $waypoints[] = $coord;
+            } else {
+                $skipped[] = $order->POO_Name ?? $order->PO_Code ?? 'ID:' . $order->ID;
+            }
         }
 
         // End back at warehouse
@@ -1204,7 +1223,16 @@ class UCOController extends Controller
         }
 
         if (count($waypoints) < 2) {
-            return response()->json(['status' => 'error', 'message' => 'Need at least 2 valid coordinates'], 400);
+            $msg = 'Need at least 2 valid coordinates.';
+            if (!empty($skipped)) {
+                $msg .= ' Pickup orders without valid coordinates: ' . implode(', ', $skipped) . '.';
+                $msg .= ' Please update Location_Coordinate di master POO.';
+            }
+            return response()->json(['status' => 'error', 'message' => $msg], 400);
+        }
+
+        if (!empty($skipped)) {
+            \Log::warning('Route submission skipped orders without coordinates: ' . implode(', ', $skipped));
         }
 
         try {
@@ -2282,6 +2310,13 @@ class UCOController extends Controller
 
     public function submitCreateOutstock(Request $r)
     {
+        $r->validate([
+            'Date'               => 'required|date',
+            'Fleet_ID'           => 'required',
+            'Warehouse_IDs'      => 'required|array|min:1',
+            'Warehouse_Destination' => 'required',
+        ]);
+
         $count = DB::table('outstock')->count();
         $code = $this->generatorService->generateApplicationCode($count, 'OST');
 
@@ -2292,7 +2327,9 @@ class UCOController extends Controller
                 'Vehicle_Category'   => $r->input('Vehicle_Category'),
                 'Fleet_ID'           => $r->input('Fleet_ID'),
                 'Warehouse_Origin'   => $r->input('Warehouse_IDs')[0] ?? null,
+                'Warehouse_Destination'   => $r->input('Warehouse_Destination'),
                 'Status'             => 'DRAFT',
+                // Warehouse_Destination validated in submitCreateOutstock call
                 'Notes'              => $r->input('Notes'),
                 'Created_At'         => now(),
             ]);
@@ -2572,4 +2609,26 @@ class UCOController extends Controller
         return response()->download($filePath)->deleteFileAfterSend(true);
     }
 
+
+
+    private function getOrderCoordinate($order): ?array
+    {
+        $lat = $order->Lat ?? null;
+        $lng = $order->Lng ?? null;
+
+        // Fallback: parse Location_Coordinate if Lat/Lng are empty
+        if (!$lat || !$lng) {
+            $coord = $order->Location_Coordinate ?? "";
+            if (preg_match("/^\\-?\\d+(?:\\.\\d+)?,\\-?\\d+(?:\\.\\d+)?$/", $coord)) {
+                $parts = explode(",", $coord);
+                $lat = trim($parts[0]);
+                $lng = trim($parts[1]);
+            }
+        }
+
+        if (!$lat || !$lng) {
+            return null;
+        }
+        return [(float)$lng, (float)$lat];
+    }
 }

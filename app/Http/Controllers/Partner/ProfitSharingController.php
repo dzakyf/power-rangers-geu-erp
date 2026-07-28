@@ -2019,6 +2019,12 @@ class ProfitSharingController extends Controller
 
             DB::commit();
 
+
+            if ($r->mitra_id) {
+                app(\App\Http\Controllers\ApprovalController::class)
+                    ->completeSetupIfReady($r->mitra_id);
+            }
+
             return response()->json(["success" => true, "message" => "success"]);
         } catch (\Exception $e) {
             DB::rollBack();

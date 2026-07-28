@@ -85,7 +85,7 @@ $Saya =  Auth::user()->username;
         }
         return true;
     });
-	PFacilityBenefitsBooth = new dataProcessor("partner-business-facility-update?Task={{ $id }}");
+	PFacilityBenefitsBooth = new dataProcessor("partner-business-facility-update?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}");
 	PFacilityBenefitsBooth.setTransactionMode({
 		mode: "POST",
 		total: true,
@@ -123,7 +123,7 @@ $Saya =  Auth::user()->username;
 	FacilityBenefitsBoothAccess.setColTypes("ro,ro,ro,dhxCalendar,ch");
 	FacilityBenefitsBoothAccess.enableSmartRendering(true, 150);
     FacilityBenefitsBoothAccess.setDateFormat("%Y-%m-%d"); 
-	PFacilityBenefitsBoothAccess = new dataProcessor("partner-business-facility-update?Task={{ $id }}");
+	PFacilityBenefitsBoothAccess = new dataProcessor("partner-business-facility-update?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}");
 	PFacilityBenefitsBoothAccess.setTransactionMode({
 		mode: "POST",
 		total: true,
@@ -161,7 +161,7 @@ $Saya =  Auth::user()->username;
 	FacilityBenefitsBoothSupport.setColTypes("ro,ro,ro,dhxCalendar,ch");
 	FacilityBenefitsBoothSupport.enableSmartRendering(true, 150);
     FacilityBenefitsBoothSupport.setDateFormat("%Y-%m-%d"); 
-	PFacilityBenefitsBoothSupport = new dataProcessor("partner-business-facility-update?Task={{ $id }}");
+	PFacilityBenefitsBoothSupport = new dataProcessor("partner-business-facility-update?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}");
 	PFacilityBenefitsBoothSupport.setTransactionMode({
 		mode: "POST",
 		total: true,
@@ -190,15 +190,15 @@ $Saya =  Auth::user()->username;
 	refreshdataboothsupport();
 
 	function refreshdataboothinventory() {
-		FacilityBenefitsBooth.clearAndLoad('xml-partner-business-facility-booth-inventory?Task={{ $id }}');
+		FacilityBenefitsBooth.clearAndLoad('xml-partner-business-facility-booth-inventory?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}');
 	}
 
     function refreshdataboothaccess() {
-		FacilityBenefitsBoothAccess.clearAndLoad('xml-partner-business-facility-booth-access?Task={{ $id }}');
+		FacilityBenefitsBoothAccess.clearAndLoad('xml-partner-business-facility-booth-access?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}');
     }
     
     function refreshdataboothsupport() {
-		FacilityBenefitsBoothSupport.clearAndLoad('xml-partner-business-facility-booth-support?Task={{ $id }}');
+		FacilityBenefitsBoothSupport.clearAndLoad('xml-partner-business-facility-booth-support?Task={{ $id }}&wh={{ $wh->warehouse_task_id }}');
     }
     
     function submitDataBooth()
