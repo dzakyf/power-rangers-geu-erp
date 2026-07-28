@@ -40,6 +40,7 @@ use App\Http\Controllers\HCGA\MasterApprovalController as HCGAMasterApprovalCont
 use App\Http\Controllers\HCGA\MasterWorkCalendarController as HCGAMasterWorkCalendarController;
 use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormController;
 use App\Http\Controllers\HCGA\TrainingController as HCGATrainingController;
+use App\Http\Controllers\HCGA\RequisitionController as HCGARequisitionController;
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOController as UCOLogisticController;
@@ -4519,6 +4520,12 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::delete("$masterData-category-delete", [MasterDataController::class, 'categoryDelete']);
     Route::get("$masterData-category-create", [MasterDataController::class, 'categoryCreate']);
 
+    /** Master Bank */
+    Route::get("$masterData-bank-data", [MasterDataController::class, 'getBanks']);
+
+    /** Master Warehouse */
+    Route::get("$masterData-warehouse-data", [MasterDataController::class, 'getMasterWarehouses']);
+
     /** POO (Point of Origin UCO) */
     Route::get("$masterData-poo", [MasterDataController::class, 'POOPageIndex']);
     Route::get("$masterData-poo-data", [MasterDataController::class, 'getPOO']);
@@ -4628,7 +4635,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$partnerApprovalPrefix-data", [ApprovalController::class, 'getApprovalData']);
     Route::get("$partnerApprovalPrefix-data-log", [ApprovalController::class, 'getApprovalDataLog']);
     Route::post('partner-onboarding-log/update', [ApprovalController::class, 'updateOnboardingLog']);
-    
+
 
     /** Benefit Facility */
     $facilityPref = 'partner-facility';
@@ -4669,8 +4676,8 @@ Route::group(['middleware' => 'log.access'], function () {
 
     /** Benefit Facility Mitra */
     $facilityPref = 'partner-business-facility';
-    // Route::get("$facilityPref", [PartnerBusinessFacilityController::class, 'index']);
-    // Route::get("xml-$facilityPref", [PartnerBusinessFacilityController::class, 'indexXml']);
+    Route::get("$facilityPref", [PartnerBusinessFacilityController::class, 'index']);
+    Route::get("xml-$facilityPref", [PartnerBusinessFacilityController::class, 'indexXml']);
     Route::get("$facilityPref-booth", [PartnerBusinessFacilityController::class, 'indexDetailBooth']);
     Route::get("xml-$facilityPref-booth-inventory", [PartnerBusinessFacilityController::class, 'indexDetailBoothInventoryXml']);
     Route::get("xml-$facilityPref-booth-access", [PartnerBusinessFacilityController::class, 'indexDetailBoothAccessXml']);
@@ -5477,4 +5484,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcTrainingPref-new-update", [HCGATrainingController::class, 'newUpdate']);
     Route::get("$hcTrainingPref-approval", [HCGATrainingController::class, 'approval']);
     Route::get("xml-$hcTrainingPref-approval", [HCGATrainingController::class, 'approvalXml']);
+
+    $hcRequisitionPref = "$hcPref-requisition";
+    Route::get("$hcRequisitionPref-prints", [HCGARequisitionController::class, 'print']);
 });

@@ -115,7 +115,9 @@
                     <div class="form-row">
                         <div class="form-group col-4">
                             <label for="Bank_Name">Bank Name</label>
-                            <input type="text" class="form-control" id="Bank_Name" name="Bank_Name">
+                            <select class="form-control select2" id="Bank_Name" name="Bank_Name" style="width:100%">
+                                <option value="">-- Pilih Bank --</option>
+                            </select>
                         </div>
                         <div class="form-group col-4">
                             <label for="Bank_Account_Number">Account Number</label>
@@ -207,6 +209,16 @@
     $(document).ready(function() {
 
         makeSelect2('#Province', 'master-province', {}, 'Province', 'Province');
+
+        $.get('master-bank-data', function(res) {
+            if (res.status === 'success') {
+                var bankSel = $('#Bank_Name');
+                bankSel.empty().append('<option value="">-- Pilih Bank --</option>');
+                res.data.forEach(function(item) {
+                    bankSel.append($('<option>', { value: item.text, text: item.text }));
+                });
+            }
+        });
 
         $('#Province').on('change', function() {
             resetSelect2('#City');
@@ -335,7 +347,17 @@
                 $('#Nearest_Warehouse').val(data.Nearest_Warehouse);
                 $('#Bank_Account_Number').val(data.Bank_Account_Number);
                 $('#Bank_Account_Name').val(data.Bank_Account_Name);
-                $('#Bank_Name').val(data.Bank_Name);
+                // Load banks and set value when data is ready
+                $.get('master-bank-data', function(res) {
+                    if (res.status === 'success') {
+                        var bankSel = $('#Bank_Name');
+                        bankSel.empty().append('<option value="">-- Pilih Bank --</option>');
+                        res.data.forEach(function(item) {
+                            bankSel.append($('<option>', { value: item.text, text: item.text }));
+                        });
+                        bankSel.val(data.Bank_Name);
+                    }
+                });
                 $('#Point').val(data.Point);
 
                 // Prefill chained selects in order

@@ -25,9 +25,22 @@ $nomor = 1;
 
 echo "<rows>";
 
+$usname = [];
 $users = DB::table('users')->where("Status", "ACTIVE")->get();
 foreach ($users as $key => $value) {
 	$usname[$value->username] = $value->Name;
+}
+
+$oppt = [];
+$getOppt = DB::table('opportunity')->get();
+foreach ($getOppt as $key => $value) {
+	$oppt[$value->Task_ID] = $value->Full_Name;
+}
+
+$slsDtl = [];
+$getAllName = DB::table('opportunity_sales_dtl')->get();
+foreach ($getAllName as $key => $value) {
+	$slsDtl[$value->Sales_ID][] = $oppt[$value->Task_ID];
 }
 
 
@@ -40,12 +53,14 @@ if ($priv == 'SALES') {
 $Query = $Query->orderBy("ID", "DESC")->get();
 
 foreach ($Query as $Fetch) {
+	$dtl = implode(', ', $slsDtl[$Fetch->Sales_ID]);
 	echo "<row id=\"$Fetch->ID\">";
 	echo "<cell>$nomor</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Sales_ID) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Status) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Created_Date) . "</cell>";
 	echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
+	echo "<cell>" . htmlspecialchars($dtl) . "</cell>";
 	echo "</row>";
 
 	$nomor++;

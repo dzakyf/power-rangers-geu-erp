@@ -81,7 +81,19 @@ class MasterDataController extends Controller
             'Subdistrict'         => 'required|string|max:255',
             'Village'             => 'required|string|max:255',
             'Full_Address'        => 'required|string|max:500',
-            'Location_Coordinate' => 'required|string|max:255',
+            'Location_Coordinate' => ['required', 'string', 'max:255', function ($attr, $val, $fail) {
+            if (!preg_match('/^\-?\d+(?:\.\d+)?,\-?\d+(?:\.\d+)?$/', $val)) {
+                $fail('Format Location_Coordinate harus "lat,lng" (contoh: -6.2,106.8)');
+                return;
+            }
+            [$lat, $lng] = array_map('trim', explode(',', $val));
+            if ((float)$lat < -90 || (float)$lat > 90) {
+                $fail('Latitude harus antara -90 dan 90');
+            }
+            if ((float)$lng < -180 || (float)$lng > 180) {
+                $fail('Longitude harus antara -180 dan 180');
+            }
+        }],
             'Nearest_Warehouse'   => 'required',
             'Bank_Account_Number' => 'required|string|max:255',
             'Bank_Account_Name'   => 'required|string|max:255',
@@ -114,6 +126,8 @@ class MasterDataController extends Controller
                 'Cycle'               => $r->input('Cycle'),
                 'Full_Address'        => $validated['Full_Address'],
                 'Location_Coordinate' => $validated['Location_Coordinate'],
+                'Lat'               => $this->parseLat($validated['Location_Coordinate']),
+                'Lng'               => $this->parseLng($validated['Location_Coordinate']),
                 'Nearest_Warehouse'   => $validated['Nearest_Warehouse'],
                 'Bank_Account_Number' => $validated['Bank_Account_Number'],
                 'Bank_Account_Name'   => $validated['Bank_Account_Name'],
@@ -151,7 +165,19 @@ class MasterDataController extends Controller
             'Subdistrict'         => 'required|string|max:255',
             'Village'             => 'required|string|max:255',
             'Full_Address'        => 'required|string|max:500',
-            'Location_Coordinate' => 'required|string|max:255',
+            'Location_Coordinate' => ['required', 'string', 'max:255', function ($attr, $val, $fail) {
+            if (!preg_match('/^\-?\d+(?:\.\d+)?,\-?\d+(?:\.\d+)?$/', $val)) {
+                $fail('Format Location_Coordinate harus "lat,lng" (contoh: -6.2,106.8)');
+                return;
+            }
+            [$lat, $lng] = array_map('trim', explode(',', $val));
+            if ((float)$lat < -90 || (float)$lat > 90) {
+                $fail('Latitude harus antara -90 dan 90');
+            }
+            if ((float)$lng < -180 || (float)$lng > 180) {
+                $fail('Longitude harus antara -180 dan 180');
+            }
+        }],
             'Nearest_Warehouse'   => 'required',
             'Bank_Account_Number' => 'required|string|max:255',
             'Bank_Account_Name'   => 'required|string|max:255',
@@ -180,6 +206,8 @@ class MasterDataController extends Controller
                 'Cycle'               => $r->input('Cycle'),
                 'Full_Address'        => $validated['Full_Address'],
                 'Location_Coordinate' => $validated['Location_Coordinate'],
+                'Lat'               => $this->parseLat($validated['Location_Coordinate']),
+                'Lng'               => $this->parseLng($validated['Location_Coordinate']),
                 'Nearest_Warehouse'   => $validated['Nearest_Warehouse'],
                 'Bank_Account_Number' => $validated['Bank_Account_Number'],
                 'Bank_Account_Name'   => $validated['Bank_Account_Name'],
@@ -217,6 +245,28 @@ class MasterDataController extends Controller
 
         DB::table('master_poo')->where('ID', $id)->update(['Is_Active' => 0]);
         return response()->json(['success' => true, 'message' => 'Data berhasil dinonaktifkan']);
+    }
+
+
+    public function getBanks(Request $r)
+    {
+        $data = DB::table('master_bank')
+            ->where('Is_Active', true)
+            ->select('ID as id', 'Bank_Name as text')
+            ->orderBy('Bank_Name')
+            ->get();
+
+        return response()->json(['status' => 'success', 'data' => $data]);
+    }
+
+    public function getMasterWarehouses(Request $r)
+    {
+        $data = DB::table('master_warehouse')
+            ->select('ID as id', DB::raw("CONCAT(Name, ' (', Type, ')') as text"))
+            ->orderBy('Name')
+            ->get();
+
+        return response()->json(['status' => 'success', 'data' => $data]);
     }
     private function queryPOO(Request $r)
     {
@@ -814,5 +864,24 @@ class MasterDataController extends Controller
             ->get();
 
         return response()->json(['status' => 'success', 'data' => $data]);
+    }
+
+
+    private function parseLat(string $coordinate): ?string
+    {
+        if (!preg_match("/^\\-?\\d+(?:\\.\\d+)?,\\-?\\d+(?:\\.\\d+)?$/", $coordinate)) {
+            return null;
+        }
+        $parts = explode(",", $coordinate);
+        return trim($parts[0]);
+    }
+
+    private function parseLng(string $coordinate): ?string
+    {
+        if (!preg_match("/^\\-?\\d+(?:\\.\\d+)?,\\-?\\d+(?:\\.\\d+)?$/", $coordinate)) {
+            return null;
+        }
+        $parts = explode(",", $coordinate);
+        return trim($parts[1]);
     }
 }

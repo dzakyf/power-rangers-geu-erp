@@ -293,10 +293,29 @@ class ApprovalController extends Controller
             }
         }
 
+
+        $hasProjection = false;
+        if ($partner->user_row_id) {
+            $hasProjection = DB::table('projections')
+                ->where('User_Id', $partner->user_row_id)
+                ->exists();
+        }
+        $hasBenefitsAsset = DB::table('opportunity_partner_facility')
+            ->where('Partner_ID', $q['id'])
+            ->where('Checked_Sales', 1)
+            ->exists();
+        $hasOrderEquipment = DB::table('opportunity_partner_facility_dtl')
+            ->where('Partner_ID', $q['id'])
+            ->whereNotNull('Order_Date')
+            ->where('Order_Date', '!=', '')
+            ->where('Order_Date', '!=', '0000-00-00')
+            ->exists();
+
         return view('approval.progress', compact(
             'partner', 'pic', 'documents', 'status', 'onboardingLog',
             'currentStage', 'currentStageIndex', 'stageOrder',
-            'survey', 'warehouseType', 'facilityGroups'
+            'survey', 'warehouseType', 'facilityGroups',
+            'hasProjection', 'hasBenefitsAsset', 'hasOrderEquipment'
         ));
     }
 
@@ -695,4 +714,101 @@ class ApprovalController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+
+    public function completeSetupIfReady($opportunityId)
+    {
+        $partner = DB::table('opportunity_partner')->where('id', $opportunityId)->first();
+        if (!$partner || $partner->onboarding_stage !== 'SETUP') {
+            return;
+        }
+
+        $hasProjection = false;
+        if ($partner->user_row_id) {
+            $hasProjection = DB::table('projections')
+                ->where('User_Id', $partner->user_row_id)
+                ->exists();
+        }
+
+        $hasBenefitsAsset = DB::table('opportunity_partner_facility')
+            ->where('Partner_ID', $opportunityId)
+            ->where('Checked_Sales', 1)
+            ->exists();
+
+        $hasOrderEquipment = DB::table('opportunity_partner_facility_dtl')
+            ->where('Partner_ID', $opportunityId)
+            ->whereNotNull('Order_Date')
+            ->where('Order_Date', '!=', '')
+            ->where('Order_Date', '!=', '0000-00-00')
+            ->exists();
+
+        if (!$hasProjection || !$hasBenefitsAsset || !$hasOrderEquipment) {
+            return;
+        }
+
+        $session = $this->userService->getCurrentSessionUserInfo();
+        $stageLabelMap = [
+            'DOCUMENT_CHECK' => 'Cek Dokumen',
+            'MOU' => 'Penandatanganan MOU',
+            'INVOICE' => 'Penerbitan Invoice DP',
+            'PKS' => 'Perjanjian Kerjasama',
+            'SURVEY' => 'Survey Lokasi',
+            'SETUP' => 'Installment',
+            'ACTIVE' => 'Aktif',
+        ];
+
+        DB::transaction(function () use ($opportunityId, $session, $stageLabelMap) {
+            $setupLogData = [
+                'Stage' => 'SETUP',
+                'Stage_Label' => $stageLabelMap['SETUP'],
+                'Status' => 'completed',
+                'Completed_At' => now(),
+                'Completed_By' => $session->id,
+                'Notes' => 'Setup warehouse selesai',
+                'Updated_At' => now(),
+            ];
+
+            $existingSetup = DB::table('partner_onboarding_log')
+                ->where('Opportunity_Id', $opportunityId)
+                ->where('Stage', 'SETUP')
+                ->first();
+
+            if ($existingSetup) {
+                DB::table('partner_onboarding_log')
+                    ->where('Id', $existingSetup->Id)
+                    ->update($setupLogData);
+            } else {
+                $setupLogData['Opportunity_Id'] = $opportunityId;
+                $setupLogData['Created_At'] = now();
+                DB::table('partner_onboarding_log')->insert($setupLogData);
+            }
+
+            DB::table('opportunity_partner')
+                ->where('id', $opportunityId)
+                ->update([
+                    'onboarding_stage' => 'ACTIVE',
+                    'onboarding_stage_updated_at' => now(),
+                    'onboarding_stage_updated_by' => $session->id,
+                ]);
+
+            $activeLogData = [
+                'Opportunity_Id' => $opportunityId,
+                'Stage' => 'ACTIVE',
+                'Stage_Label' => $stageLabelMap['ACTIVE'],
+                'Status' => 'in_progress',
+                'Created_At' => now(),
+                'Updated_At' => now(),
+            ];
+
+            $existingActive = DB::table('partner_onboarding_log')
+                ->where('Opportunity_Id', $opportunityId)
+                ->where('Stage', 'ACTIVE')
+                ->first();
+
+            if (!$existingActive) {
+                DB::table('partner_onboarding_log')->insert($activeLogData);
+            }
+        });
+    }
+
 }

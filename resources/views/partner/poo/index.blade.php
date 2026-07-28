@@ -115,7 +115,7 @@
                 $('#Price_Unit').val(data.Price_Unit);
                 $('#Cycle').val(data.Cycle);
                 $('#Full_Address').val(data.Full_Address);
-                $('#Location_Coordinate').val(`${data.Lat},${data.Lng}`);
+                $('#Location_Coordinate').val(data.Location_Coordinate || `${data.Lat},${data.Lng}`);
                 $('#Nearest_Warehouse').val(data.Nearest_Warehouse);
                 $('#Bank_Account_Number').val(data.Bank_Account_Number);
                 $('#Bank_Account_Name').val(data.Bank_Account_Name);

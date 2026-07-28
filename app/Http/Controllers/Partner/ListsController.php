@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Partner;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -24,6 +25,13 @@ class ListsController extends Controller
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
+
+        $LSP = Auth::user()->Location;
+
+        // $Query = DB::table("opportunity")->where("Location", $LSP)->where('Status', '=', 'Deal')->orderBy("ID", "DESC")->get();
+        // foreach ($Query as $key => $value) {
+            
+        // }
 
         // Sample data, replace with actual database query
         $partners = DB::table('opportunity_partner')->get();

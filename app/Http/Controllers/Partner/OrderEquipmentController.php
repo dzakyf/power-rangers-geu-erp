@@ -488,6 +488,12 @@ class OrderEquipmentController extends Controller
         }
         echo "</data>";
 
+        $opportunityId = $_GET['Task'] ?? null;
+        if ($opportunityId) {
+            app(\App\Http\Controllers\ApprovalController::class)
+                ->completeSetupIfReady($opportunityId);
+        }
+
     }
 
     public function detailFacilityUpdatekan($rowId, $param)

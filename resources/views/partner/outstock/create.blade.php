@@ -47,7 +47,9 @@
 
                         <div class="form-group">
                             <label>Warehouse Tujuan</label>
-                            <input type="text" class="form-control" disabled value="(Kosong - akan diisi nanti)">
+                            <select class="form-control select2" id="Warehouse_Destination" name="Warehouse_Destination" style="width:100%" required>
+                                <option value="">-- Pilih Warehouse Tujuan --</option>
+                            </select>
                         </div>
 
                         <div class="form-group">
@@ -78,6 +80,24 @@
                 processResults: function(res) {
                     return { results: (res.data || []).map(function(r) {
                         return { id: r.ID, text: r.Police_Number + ' - ' + (r.Fleet_Brand || '') };
+                    })};
+                },
+                cache: true
+            }
+        });
+
+        $('#Warehouse_Destination').select2({
+            placeholder: '-- Pilih Warehouse Tujuan --',
+            allowClear: false,
+            width: '100%',
+            ajax: {
+                url: 'master-warehouse-data',
+                dataType: 'json',
+                delay: 250,
+                data: function(p) { return { q: p.term || '' }; },
+                processResults: function(res) {
+                    return { results: (res.data || []).map(function(r) {
+                        return { id: r.id, text: r.text };
                     })};
                 },
                 cache: true

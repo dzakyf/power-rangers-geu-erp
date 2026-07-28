@@ -156,7 +156,9 @@
                         <div class="form-row">
                             <div class="form-group col-md-4">
                                 <label for="Bank_Name">Bank Name</label>
-                                <input type="text" class="form-control" id="Bank_Name" name="Bank_Name">
+                                <select class="form-control select2" id="Bank_Name" name="Bank_Name" style="width:100%">
+                                    <option value="">-- Pilih Bank --</option>
+                                </select>
                             </div>
                             <div class="form-group col-md-4">
                                 <label for="Bank_Account_Number">Account Number</label>
@@ -314,6 +316,16 @@
 
 
         makeSelect2('#Nearest_Warehouse', 'partner-warehouse-data', {}, 'id', 'warehouse_location');
+
+        $.get('master-bank-data', function(res) {
+            if (res.status === 'success') {
+                var bankSel = $('#Bank_Name');
+                bankSel.empty().append('<option value="">-- Pilih Bank --</option>');
+                res.data.forEach(function(item) {
+                    bankSel.append($('<option>', { value: item.text, text: item.text }));
+                });
+            }
+        });
         $('#SubmitPOO').on('click', function() {
             clearFieldErrors();
             var form = document.getElementById('POOForm');

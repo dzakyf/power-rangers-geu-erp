@@ -7,6 +7,7 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call(RbacSeeder::class);
+        $this->call(MasterBankSeeder::class);
 
         DB::table('users')->insert([
             'username' => "nirone",
