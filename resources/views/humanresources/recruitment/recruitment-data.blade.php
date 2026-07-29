@@ -33,7 +33,9 @@ $Saya =  Auth::user()->username;
 	<div id="RecruitmentLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
 		<input type="button" id="ekselRecruitmentListsDet" name="ekselRecruitmentListsDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="RecruitmentLists.toExcel('./export/generate.php');" />
-		<input type="button" id="delets" name="delets" value="Cancel Selected Recruitment" onclick="delsRecruitment()" class="btn btn-info mt-2 mr-2" onclick="delsRecruitment()" />
+		<input type="button" id="tambahKandidat" name="tambahKandidat" value="Tambah Kandidat" onclick="newRecruitment()" class="btn btn-success mt-2 mr-2" />
+		<input type="button" id="updateKandidat" name="updateKandidat" value="Update Kandidat" onclick="updateRecruitment()" class="btn btn-primary mt-2 mr-2" />
+		<input type="button" id="delets" name="delets" value="Cancel Selected Recruitment" onclick="delsRecruitment()" class="btn btn-info mt-2 mr-2" />
 
 	</div>
 
@@ -50,6 +52,20 @@ $Saya =  Auth::user()->username;
 		}
 		return true;
 	}
+
+	function newRecruitment() {
+		LoadM('divlistRecruitment', 'recruitment-new-inline');
+	}
+
+	function updateRecruitment() {
+		RecruitmentListsID = RecruitmentLists.getSelectedId();
+		if (RecruitmentListsID == '' || RecruitmentListsID == null) {
+			alert('Pilih kandidat terlebih dahulu!');
+			return;
+		}
+		LoadM('divlistRecruitment', 'recruitment-lists-detail?ID=' + RecruitmentListsID);
+	}
+
 	RecruitmentLists = new dhtmlXGridObject('RecruitmentLists');
 	RecruitmentLists.setImagePath("./dhtmlx/imgs/");
 	RecruitmentLists.setHeader("No.,KTP,Name,Gender,Birth Date,Last Education,Last Education Major,Institution,Status,Remaining Time(days)");

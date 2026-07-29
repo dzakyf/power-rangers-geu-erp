@@ -58,11 +58,18 @@
     </tr>
  
 </table>
+<div style="padding:10px">
+    <input type="button" class="btn btn-primary" value="Save" onclick="saveFamilyData()">
+</div>
 
 <script>
-			
-			
-			MyFamily = new dhtmlXGridObject('MyFamily');
+function saveFamilyData() {
+    PMyFamily.sendData();
+    PCTPoints.sendData();
+    alert('Data saved.');
+}
+
+MyFamily = new dhtmlXGridObject('MyFamily');
 			MyFamily.setImagePath("./dhtmlx/imgs/");
 			MyFamily.setHeader("No.,Family Status,Name,Gender,Birth Date,Last Education,Occupation");
 			MyFamily.setInitWidths("60,120,220,100,100,100,auto");

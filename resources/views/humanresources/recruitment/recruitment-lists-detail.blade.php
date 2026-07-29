@@ -71,6 +71,14 @@ var myTabbar = new dhtmlXTabBar({
             active:  false,      // boolean, make tab active after adding, optional
             enabled: true,     // boolean, false to disable tab on init
             close:   false       // boolean, render close button on tab, optional
+        }, {
+            id:      "a9",      // tab id
+            text:    "Progress Recruitment",    // tab text
+            width:   "200",      // numeric for tab width or null for auto, optional
+            index:   9,      // numeric for tab index or null for last position,opt.
+            active:  false,      // boolean, make tab active after adding, optional
+            enabled: true,     // boolean, false to disable tab on init
+            close:   false       // boolean, render close button on tab, optional
         }
 		]
 		
@@ -98,6 +106,9 @@ setTimeout(function(){
 setTimeout(function(){
 	myTabbar.tabs("a8").attachURL("recruitment-lists-detail-document?ID=<?php echo $_GET['ID']?>");
 },7000);
+setTimeout(function(){
+	myTabbar.tabs("a9").attachURL("recruitment-lists-detail-progress?ID=<?php echo $_GET['ID']?>");
+},8000);
 
 
 </script>

@@ -14,6 +14,9 @@ error_reporting(0);
    
  
 </table>
+<div style="padding:10px">
+    <input type="button" class="btn btn-primary" value="Save" onclick="PInsuranceGrid.sendData();alert('Data saved.');">
+</div>
 
 <script>
 function tambahdatainsuransiS(){

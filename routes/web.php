@@ -41,6 +41,8 @@ use App\Http\Controllers\HCGA\MasterWorkCalendarController as HCGAMasterWorkCale
 use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormController;
 use App\Http\Controllers\HCGA\TrainingController as HCGATrainingController;
 use App\Http\Controllers\HCGA\RequisitionController as HCGARequisitionController;
+use App\Http\Controllers\HCGA\OnboardingController as HrgaOnboardingController;
+
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOController as UCOLogisticController;
@@ -2657,6 +2659,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post('/recruitment-new-submit', function () {
         return view('humanresources.recruitment.recruitment-new-submit');
     });
+    Route::get("/recruitment-new-inline", function () {
+        return view("humanresources.recruitment.recruitment-new-inline");
+    });
     Route::get('/recruitment-test-result', function () {
         return view('humanresources.recruitment.recruitment-test-result');
     });
@@ -3125,6 +3130,10 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/recruitment-lists-detail-document', function () {
         return view('humanresources.recruitment.recruitment-lists-detail-document');
     });
+
+    Route::get('/recruitment-lists-detail-progress', [App\Http\Controllers\HCGA\RecruitmentProgressController::class, 'detail']);
+    Route::post('/recruitment-lists-detail-progress-update', [App\Http\Controllers\HCGA\RecruitmentProgressController::class, 'update']);
+    Route::post('/recruitment-lists-detail-data-submit', [App\Http\Controllers\HCGA\RecruitmentDetailController::class, 'updateDetailData']);
     Route::get('/xml-recruitment-lists-detail-document', function () {
         return view('humanresources.recruitment.xml.recruitment-lists-detail-document');
     });
@@ -5484,6 +5493,14 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcTrainingPref-new-update", [HCGATrainingController::class, 'newUpdate']);
     Route::get("$hcTrainingPref-approval", [HCGATrainingController::class, 'approval']);
     Route::get("xml-$hcTrainingPref-approval", [HCGATrainingController::class, 'approvalXml']);
+    Route::get("$hcPref-onboarding-materials", [HrgaOnboardingController::class, 'index']);
+    Route::get("xml-$hcPref-onboarding-materials", [HrgaOnboardingController::class, 'onboardingData']);
+    Route::get("$hcPref-onboarding-materials-create", [HrgaOnboardingController::class, 'create']);
+    Route::get("$hcPref-onboarding-materials-edit", [HrgaOnboardingController::class, 'edit']);
+    Route::post("$hcPref-onboarding-materials-submit", [HrgaOnboardingController::class, 'store']);
+    Route::post("$hcPref-onboarding-materials-update", [HrgaOnboardingController::class, 'update']);
+    Route::post("$hcPref-onboarding-materials-delete", [HrgaOnboardingController::class, 'delete']);
+
 
     $hcRequisitionPref = "$hcPref-requisition";
     Route::get("$hcRequisitionPref-prints", [HCGARequisitionController::class, 'print']);
