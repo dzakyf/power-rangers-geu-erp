@@ -32,9 +32,19 @@
 	</tr>
  
 </table>
+<div style="padding:10px">
+    <input type="button" class="btn btn-primary" value="Save" onclick="saveEducationData()">
+</div>
 
 <script>
-			Akademic = new dhtmlXGridObject('Akademic');
+function saveEducationData() {
+    PAkademic.sendData();
+    POrganization.sendData();
+    PInformal.sendData();
+    alert('Data saved.');
+}
+
+Akademic = new dhtmlXGridObject('Akademic');
 			Akademic.setImagePath("./dhtmlx/imgs/");
 			Akademic.setHeader("No.,Education Level,College,Education Majors,Location,Certified Year,GPA");
 			Akademic.setInitWidths("60,150,220,200,100,100,100");

@@ -1,15 +1,16 @@
 <?php
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
-	
-	$LSP = Auth::user()->Location;
-	$Saya = Auth::user()->username;
-	$positions = DB::table('master_position')->orderBy('Position', 'asc')->get();
-    $workCalendar = DB::table('work_calendars')->get();
-    $req = DB::table('requisition')->where("Created_Date", 'LIKE',date("Y"). '%')->count() + 1;
-    $Taskid = 'REQ/'.$LSP.'/'.date('Ymdhis').'-'.sprintf('%02d', $req);
+
+$LSP = Auth::user()->Location;
+$Saya = Auth::user()->username;
+$positions = DB::table('master_position')->orderBy('Position', 'asc')->get();
+$workCalendar = DB::table('work_calendars')->get();
+$req = DB::table('requisition')->where("Created_Date", 'LIKE', date("Y") . '%')->count() + 1;
+$Taskid = 'REQ/' . $LSP . '/' . date('Ymdhis') . '-' . sprintf('%02d', $req);
 
 ?>
 
@@ -22,25 +23,25 @@ use Illuminate\Database\Eloquent\Builder;
     <div class="card-body">
         <form id="NewRec">
             <div id="ContentPages">
-                <div class="FormInput_Form_Content" class="form-row" >
+                <div class="FormInput_Form_Content" class="form-row">
                     <div class="form-group col-md-6">
                         <label>
                             PTK No
                         </label>
-                        
+
                         <input type="text" class="form-control" id="Task_ID" value="{{ $Taskid }}" readonly />
                     </div>
                     <div class="form-group col-md-6">
                         <label>
-                            Job Position
+                            Posisi
                         </label>
-                        
+
                         <select id="Job_Position" class="form-control">
-                            <option value="">-- Pilih Posisi Pekerjaan  -- </option>
+                            <option value="">-- Pilih Posisi Pekerjaan -- </option>
                             @foreach($positions as $position)
-                                <option value="{{ $position->ID }}">
-                                    {{ $position->Position }}
-                                </option>
+                            <option value="{{ $position->ID }}">
+                                {{ $position->Position }}
+                            </option>
                             @endforeach
                         </select>
                     </div>
@@ -48,35 +49,35 @@ use Illuminate\Database\Eloquent\Builder;
                         <label>
                             Subject
                         </label>
-                        
+
                         <input type="text" class="form-control" id="Subject" />
                     </div>
                     <div class="form-group col-md-6">
                         <label>
-                            Placement
+                            Site Penempatan
                         </label>
-                        
+
                         <input type="text" class="form-control" id="Placement" />
                     </div>
                     <div class="form-group col-md-6">
                         <label>
-                            Description
+                            Deskripsi
                         </label>
-                        
+
                         <textarea cols="100" rows="4" id="Description" class="form-control"></textarea>
                     </div>
                     <div class="form-group col-md-6">
                         <label>
                             Detail Requirement
                         </label>
-                        
+
                         <textarea cols="100" rows="4" id="Requirement" class="form-control"></textarea>
                     </div>
                     <div class="form-group col-md-3">
                         <label>
-                            Priority
+                            Prioritas
                         </label>
-                        
+
                         <select id="Priority" class="form-control">
                             <option>NORMAL</option>
                             <option>HIGH</option>
@@ -85,13 +86,27 @@ use Illuminate\Database\Eloquent\Builder;
                     </div>
                     <div class="form-group col-md-3">
                         <label>
-                            Type of Allocation
+                            Tipe
                         </label>
-                        
+
                         <select id="Allocation" class="form-control">
-                            <option>NEW</option>
-                            <option>REPLACEMENT</option>
+                            <option value="NEW">KARYAWAN BARU</option>
+                            <option value="REPLACEMENT">REPLACEMENT KARYAWAN </option>
                         </select>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>
+                            Permintaan kerja berkaitan dengan
+                        </label>
+
+                        <select id="Request_Type" class="form-control">
+                            <option value="1">Ada peningkatan volume kerja</option>
+                            <option value="2">Pengganti tenaga kerja keluar</option>
+                            <option value="OTHER">Lainnya</option>
+                        </select>
+                        <div class="mt-3" style="display:none;" id="Div_Request_Type">
+                            <input type="text" id="Request_Desc" value="" class="form-control" placeholder="Isi keterangan lainnya">
+                        </div>
                     </div>
                     {{-- <div class="form-group col-md-3">
                         <label>
@@ -104,7 +119,7 @@ use Illuminate\Database\Eloquent\Builder;
                         <label>
                             Work Schedule
                         </label>
-                        
+
                         <select name="Work_Schedule" id="Work_Schedule" class="form-control">
                             <option value="">-- Pilih Waktu Kerja --</option>
                             @foreach ($workCalendar as $item)
@@ -114,15 +129,15 @@ use Illuminate\Database\Eloquent\Builder;
                     </div>
                     <div class="form-group col-md-3">
                         <label>
-                            Qty
+                            Jumlah
                         </label>
-                        <input type="text" id="Qty" class="form-control" size="10" value="1"/>
+                        <input type="text" id="Qty" class="form-control" size="10" value="1" />
                     </div>
                     <div class="form-group col-md-3">
                         <label>
-                            Open Date
+                            Mulai Tanggal
                         </label>
-                        <input type="text" id="Start_Date" class="form-control bg-white" size="15" value="<?php echo date('d M Y');?>" readonly/>
+                        <input type="text" id="Start_Date" class="form-control bg-white" size="15" value="<?php echo date('d M Y'); ?>" readonly />
                     </div>
                     <div class="form-group col-md-12">
                         <button class="btn btn-danger" type="reset">Reset</button>
@@ -134,12 +149,27 @@ use Illuminate\Database\Eloquent\Builder;
     </div>
 </div>
 
-<script> 
-var myCalendar;
+<script>
+    var myCalendar;
     myCalendar = new dhtmlXCalendarObject(["Start_Date"]);
-	myCalendar.setDateFormat("%d %M %Y");
+    myCalendar.setDateFormat("%d %M %Y");
 
- 	$('#SubmitBtn').on('click', function(e) {
+    $('#Request_Type').on('change', function (e) {
+        let val = $(this).find('option:selected').val()
+        if (val == 'OTHER') {
+            $('#Div_Request_Type').show();
+            $('#Request_Desc').val('');
+        }else {
+            $('#Div_Request_Type').hide();
+            if (val == 1) {
+                $('#Request_Desc').val('Ada peningkatan volume kerja')
+            }else {
+                $('#Request_Desc').val('Pengganti tenaga kerja keluar')
+            }
+        }
+    })
+
+    $('#SubmitBtn').on('click', function(e) {
         e.preventDefault();
         var formData = {
             Job_Position: $('#Job_Position').val(),
@@ -153,6 +183,22 @@ var myCalendar;
             Work_Area: $('#Work_Area').val(),
             Work_Schedule: $('#Work_Schedule').val()
         };
+
+        let hasil = 1;
+
+        Object.entries(formData).forEach(([key, value]) => {
+            if (value == '') {
+                alert(key + " Tidak boleh kosong");
+                $('#' + key).focus();
+                hasil = 0;
+                return;
+            }
+        });
+
+        if (hasil == 0) {
+            return ;
+        }
+
 
         $.ajax({
             type: 'POST',

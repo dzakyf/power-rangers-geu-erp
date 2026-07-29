@@ -1,4 +1,6 @@
 @include('layout.plugins')
+<script src="{{ asset('blockui.js') }}"></script>
+<link rel="stylesheet" type="text/css" href="{{ asset('blockui.css') }}" />
 <?php
 error_reporting(0);
 use Illuminate\Http\Request;
@@ -359,11 +361,72 @@ $rekusisi = substr($rekusisi,0,-1);
         <td class="badan_kiri">
             <?php echo $datahasil->Employment_Grade;?>
         </td>
-    </tr>			
+    </tr>	
+	<tr height="30">
+        <td colspan="6" style="color:#699;background-image:url(hdr_back.gif);">Interview Result</td>
+       
+        </td>
+    </tr>
+	<tr height="30">
+        <td class="badan">Interview Note</td>
+        <td class="badan">:</td>
+        <td class="badan_kiri">
+            <?php echo $datahasil->Interview_Note;?>
+        </td>
+        <td class="badan">Interview Date</td>
+        <td class="badan">:</td>
+        <td class="badan_kiri">
+            <?php echo $datahasil->Interview_Date;?>
+        </td>
+    </tr>
+	<tr height="30">
+        <td class="badan">Interview Result</td>
+        <td class="badan">:</td>
+        <td class="badan_kiri">
+            <?php echo $datahasil->Interview_Result;?>
+        </td>
+        <td class="badan">Interview By</td>
+        <td class="badan">:</td>
+        <td class="badan_kiri">
+            <?php echo $datahasil->Interview_By;?>
+        </td>
+    </tr>
+	<tr height="30">
+        <td colspan="6" style="color:#699;background-image:url(hdr_back.gif);">User Interview Result</td>
+       
+        </td>
+    </tr>
+	<tr height="30">
+        <td class="badan">Interview Note</td>
+        <td class="badan">:</td>
+        <td class="badan_kiri">
+            <?php echo $datahasil->User_Interview_Note;?>
+        </td>
+        <td class="badan">Interview Date</td>
+        <td class="badan">:</td>
+        <td class="badan_kiri">
+            <?php echo $datahasil->User_Interview_Date;?>
+        </td>
+    </tr>
+	<tr height="30">
+        <td class="badan">Interview Result</td>
+        <td class="badan">:</td>
+        <td class="badan_kiri">
+            <?php echo $datahasil->User_Interview_Result;?>
+        </td>
+        <td class="badan">Interview By</td>
+        <td class="badan">:</td>
+        <td class="badan_kiri">
+            <?php echo $datahasil->User_Interview_By;?>
+        </td>
+    </tr>
 </table>
 </td>
 </tr>
 </table>
+</div>
+<div style="padding:10px">
+    <input type="button" id="buttonSimpan" class="btn btn-primary" value="Save">
 </div>
 <script>
 var myCalendar;
@@ -372,33 +435,30 @@ myCalendar.setDateFormat("%Y-%m-%d");
 
 
 $('#buttonSimpan').click(function(){
-
-	gettingVars = getAllValues();
-
-	$.ajax({
-		headers: {
-        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-		 },
-		url : "employee-lists-detail-data-submit?_token={{ csrf_token() }}",
-		type: "POST",
-		data : gettingVars,
-		success: function(data, textStatus, jqXHR)
-		{
-			var dataPos = data.indexOf("success");
-			if (dataPos != '-1'){
-				var cariAWB = data.split(":");
-					
-					
-			}else{
-				alert('Contract Failed to Submit!');
-			}
-		},
-		error: function (jqXHR, textStatus, errorThrown)
-		{
-		 alert( "Error Internal! Please Try again!" );
-	
-		}
-	});
+    $.blockUI();
+    gettingVars = getAllValues();
+    $.ajax({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        url : "recruitment-lists-detail-data-submit?_token={{ csrf_token() }}",
+        type: "POST",
+        data : gettingVars,
+        complete: function() { $.unblockUI(); },
+        success: function(data) {
+            var dataPos = data.indexOf("success");
+            if (dataPos != '-1'){
+                alert('Data updated successfully.');
+                if (window.parent.refreshdata) window.parent.refreshdata();
+                if (window.parent.$('#divlistRecruitment')) window.parent.$('#divlistRecruitment').empty();
+            } else {
+                alert('Failed to submit!');
+            }
+        },
+        error: function () {
+            alert( "Error Internal! Please Try again!" );
+        }
+    });
 })
 
 function getAllValues() {

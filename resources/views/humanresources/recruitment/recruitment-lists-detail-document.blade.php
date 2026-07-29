@@ -6,6 +6,7 @@
 <div>
 	<input type="button" id="ekselDocumentListsDetailDet" name="ekselDocumentListsDetailDet" value="Export Excel" class="btn btn-info mt-2 mr-2" onclick="DocumentListsDetail.toExcel('./export/generate.php');"  />
 	
+<input type="button" class="btn btn-primary mt-2 mr-2" value="Save Changes" onclick="PDocumentListsDetail.sendData();alert('Data saved.');">
 </div>
 <div id="DivDocumentListsDetail"></div>
 <script>

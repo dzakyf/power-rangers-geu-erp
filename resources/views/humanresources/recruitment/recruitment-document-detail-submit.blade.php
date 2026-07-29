@@ -36,7 +36,7 @@ $MX = substr($MX, 0, -1);
 
 $getRecr = DB::table('recruitment')->where("ID", $_POST['ID'])->first();
 
-DB::update(DB::raw("UPDATE recruitment set Status='UPLOADED' WHERE ID=$_POST[ID]"));
+DB::update(DB::raw("UPDATE recruitment set Status='UPLOADED',Document_Date=NOW(),Document_Status='ACCEPT' WHERE ID=$_POST[ID]"));
 DB::table('recruitment_document')->where("Task_ID", $getRecr->Task_ID)->update([
 	'CV' => $_POST['File_CV'],
 	'KTP' => $_POST['File_KTP'],

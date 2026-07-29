@@ -8,7 +8,37 @@ use Illuminate\Database\Eloquent\Builder;
 	$LSP = Auth::user()->Location;
 	$Saya =  Auth::user()->username;
 	
-	
+	$Query = DB::table('recruitment')->whereIn("Requisition_ID", function ($q) {
+		$q->select("Task_ID")->from("requisition");
+	})->get();
+	$stages = [
+		'ACC'            => ['status' => 'CREATED', 'statusField' => 'Registration_Status',   'dateField' => 'Registration_Status_Date'],
+		'Seleksi_Adm'    => ['status' => 'ACCEPT',  'statusField' => 'Document_Status',		  'dateField' => 'Document_Date'],
+		'Psikotes'       => ['status' => 'ACCEPT',  'statusField' => 'Psikotest_Status',	  'dateField' => 'Psikotest_Date'],
+		'Interview_HR'   => ['status' => 'ACCEPT',  'statusField' => 'Interview_Status',      'dateField' => 'Interview_Date'],
+		'Interview_User' => ['status' => 'ACCEPT',  'statusField' => 'User_Interview_Status', 'dateField' => 'User_Interview_Date'],
+	];
+
+	$result = $Query
+		->groupBy('Requisition_ID');
+		
+	$rows = collect();
+
+	foreach ($result as $ptk => $group) {
+		foreach ($stages as $stageName => $cfg) {
+			$matching = $group->filter(fn($c) => $c->{$cfg['statusField']} === $cfg['status']
+											&& !is_null($c->{$cfg['dateField']}));
+
+			foreach ($matching->groupBy(fn($c) => \Carbon\Carbon::parse($c->{$cfg['dateField']})->format('Y-m-d')) as $date => $items) {
+				$rows->push([
+					'no_ptk' => $ptk,
+					'Stage'  => $stageName,
+					'Date'   => \Carbon\Carbon::parse($date)->format('d M Y'),
+					'Count'  => $items->count(),
+				]);
+			}
+		}
+	}
 	
 	?>
 
@@ -30,6 +60,9 @@ use Illuminate\Database\Eloquent\Builder;
     </div> 
    
 	<div class="row">
+		<div class="col-12 mb-3">
+			<div class="w-100" id="pivottrial"></div>
+		</div>
 		<div id="RecruitmentLists" style="width:auto;height:520px; background-color:white;overflow:hidden"></div>
 		<div>
 			<input type="button" id="ekselRecruitmentListsDet" name="ekselRecruitmentListsDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="RecruitmentLists.toExcel('./export/generate.php');"  />
@@ -136,5 +169,22 @@ function refreshdata(){
 
 
 
+</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/tips_data.min.js"></script>
+<script>
+	var derivers = $.pivotUtilities.derivers;
+	let json = `<?= json_encode($rows->values()) ?>`;
+	$('#pivottrial').pivotUI(JSON.parse(json),{
+		rows: ["no_ptk", "Date"],   // Date nested under no_ptk gives you the multi-date-per-ACC behavior
+		cols: ["Stage"],            // <-- Stage now becomes actual table columns
+		aggregatorName: "Sum",
+		vals: ["Count"],
+		rendererName: "Table"
+	}
+  );
 </script>
 @endsection

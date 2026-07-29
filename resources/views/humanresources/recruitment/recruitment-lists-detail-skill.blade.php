@@ -42,10 +42,20 @@
 			  </td>
 	</tr>
 </table>
+<div style="padding:10px">
+    <input type="button" class="btn btn-primary" value="Save" onclick="saveSkillData()">
+</div>
 </div>
 <script>
-			
-			Experiences = new dhtmlXGridObject('Experiences');
+function saveSkillData() {
+    if (typeof PExperiences !== 'undefined') PExperiences.sendData();
+    if (typeof POtherSkill !== 'undefined') POtherSkill.sendData();
+    if (typeof PAwards !== 'undefined') PAwards.sendData();
+    if (typeof PLanguage !== 'undefined') PLanguage.sendData();
+    alert('Data saved.');
+}
+
+Experiences = new dhtmlXGridObject('Experiences');
 			Experiences.setImagePath("./dhtmlx/imgs/");
 			Experiences.setHeader("No.,Start Date,End Date,Position,Company Name,Last Salary,Reason of Resign");
 			Experiences.setInitWidths("60,100,100,100,100,100,auto");
