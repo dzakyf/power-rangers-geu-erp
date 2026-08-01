@@ -4,6 +4,7 @@
 /public/doc_recruitment
 /public/tmpdata
 /public/storage
+/public/filevendor
 /storage/*.key
 /vendor
 .env
@@ -13,4 +14,4 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
-/vendor
+/vendor*
