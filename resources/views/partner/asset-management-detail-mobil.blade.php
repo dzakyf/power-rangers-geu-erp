@@ -35,21 +35,21 @@
 	FacilityBenefitsMobil.setImagePath("./dhtmlx/imgs/");
 	FacilityBenefitsMobil.setHeader("No, Deskripsi, Detail, Tipe Asset, Jumlah, Harga Satuan, Total, Ceklis Ketersediaan");
 	FacilityBenefitsMobil.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#master_checkbox");
-	FacilityBenefitsMobil.setInitWidths("60,200,200,100,100,100,100,100,100");
+	FacilityBenefitsMobil.setInitWidths("60,200,200,100,100,100,100,100");
 	FacilityBenefitsMobil.setColAlign("center,left,left,center,right,right,right,center");
-	FacilityBenefitsMobil.setColSorting("int,str,str,int,int,int,str");
+	FacilityBenefitsMobil.setColSorting("int,str,str,str,int,int,int,str");
 	FacilityBenefitsMobil.setColTypes("ro,ro,ro,ro,edn,edn,edn,ch");
 	FacilityBenefitsMobil.enableSmartRendering(true, 150);
     FacilityBenefitsMobil.setDateFormat("%Y-%m-%d"); 
-    FacilityBenefitsMobil.setNumberFormat("0,000", 3, ".", ",");
     FacilityBenefitsMobil.setNumberFormat("0,000", 4, ".", ",");
     FacilityBenefitsMobil.setNumberFormat("0,000", 5, ".", ",");
+    FacilityBenefitsMobil.setNumberFormat("0,000", 6, ".", ",");
     FacilityBenefitsMobil.attachEvent("onEditCell", function (stage, rowId, cellIndex, newValue, oldValue) {
-        if (cellIndex == 3 || cellIndex == 4) {
-            let qty = FacilityBenefitsMobil.cells(rowId, 3).getValue();
-            let price = FacilityBenefitsMobil.cells(rowId, 4).getValue();
+        if (cellIndex == 4 || cellIndex == 5) {
+            let qty = FacilityBenefitsMobil.cells(rowId, 4).getValue();
+            let price = FacilityBenefitsMobil.cells(rowId, 5).getValue();
             let total = parseFloat(qty) * parseFloat(price);
-            FacilityBenefitsMobil.cells(rowId, 5).setValue(total);
+            FacilityBenefitsMobil.cells(rowId, 6).setValue(total);
         }
         return true;
     });

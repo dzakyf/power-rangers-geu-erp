@@ -284,7 +284,15 @@ class SurveyController extends Controller
 
         $totalScore = $photo + $checklist + $environtment + $ucoEstimation;
 
-        $surveyId = DB::transaction(function () use ($b, $applicatonCode, $photo, $checklist, $environtment, $ucoEstimation, $totalScore) {
+        $isPartner = optional(auth()->user())->Priv_ID === 'MITRA';
+        $parentId  = $b["Parent_Id"] ?? null;
+
+        $surveyStatus = "NEED_APPROVAL";
+        if (!$isPartner && $parentId) {
+            $surveyStatus = "APPROVED";
+        }
+
+        $surveyId = DB::transaction(function () use ($b, $applicatonCode, $photo, $checklist, $environtment, $ucoEstimation, $totalScore, $surveyStatus) {
                 return DB::table('survey_location')->insertGetId([
                     "Opportunity_Partner_Id" => $b['Opportunity_Partner_Id'] ?? "",
                     "Code"                => $applicatonCode,
@@ -300,7 +308,7 @@ class SurveyController extends Controller
                     "Latitude"            => $b['Latitude'] ?? '',
                     "Longitude"           => $b['Longitude'] ?? '',
                     "Recommendation_Type" => $b['Recommendation_Type'] ?? "INTERNAL",
-                    "Status"              => $b['Status'] ?? "NEED_APPROVAL",
+                    "Status"              => $surveyStatus,
                     "Surveyor_Name"       => $b['Surveyor_Name'] ?? '',
                     "Location_Owner_Name" => $b['Location_Owner_Name'] ?? '',
                     "Area"                => $b['Area'] ?? '',
@@ -365,6 +373,19 @@ class SurveyController extends Controller
 
                     $this->uploadService->uploadMetaFile($path, basename($path), $inputName, $ext, 'survey', $surveyId);
                 }
+            }
+
+            if (!$isPartner && !$parentId) {
+                $session = $this->userService->getCurrentSessionUserInfo();
+                $this->approvalController->createApprovalRequest(
+                    'SURVEY',
+                    (string) $session->id,
+                    'NEED_APPROVAL',
+                    [
+                        'Map_To'                 => $surveyId,
+                        'Opportunity_Partner_Id' => $b['Opportunity_Partner_Id'] ?? null,
+                    ]
+                );
             }
 
             return response()->json(['message' => 'success', 'data' => ['survey_id' => $surveyId]]);
@@ -541,8 +562,19 @@ class SurveyController extends Controller
         }
 
         $survey = DB::table('survey_location')->where('ID', $rowId)->first();
-        if ($survey && $survey->Opportunity_Partner_Id) {
-            $this->advanceOnboardingStageToSetup($survey->Opportunity_Partner_Id);
+
+        $isPartner = optional(auth()->user())->Priv_ID === 'MITRA';
+        $hasApprovalRequest = DB::table('approval_request')
+            ->where('Request_Type', 'SURVEY')
+            ->where('Map_To', $rowId)
+            ->exists();
+
+        if ($survey && !$isPartner && !$hasApprovalRequest) {
+            DB::table('survey_location')->where('ID', $rowId)->update(['Status' => 'APPROVED']);
+
+            if ($survey->Opportunity_Partner_Id) {
+                $this->advanceOnboardingStageToSetup($survey->Opportunity_Partner_Id);
+            }
         }
 
         return response()->json(['message' => 'success', 'data' => [

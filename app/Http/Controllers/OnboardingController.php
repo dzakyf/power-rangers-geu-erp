@@ -1,6 +1,6 @@
 <?php
 
-namespace app\Http\Controllers;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\GeneratorService;
@@ -358,7 +358,7 @@ class OnboardingController extends Controller
 
 
 
-    private function advanceOnboardingStage($opportunityId, $currentStage, $nextStage, $notes = '')
+    public function advanceOnboardingStage($opportunityId, $currentStage, $nextStage, $notes = '')
     {
         $session = $this->userService->getCurrentSessionUserInfo();
         $stageLabelMap = [

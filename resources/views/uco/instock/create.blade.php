@@ -16,7 +16,6 @@
                     <div class="form-group">
                         <label>Source</label>
                         <select class="form-control" name="source" id="create_source">
-                            <option value="HUB GEU">HUB GEU</option>
                             <option value="MITRA" selected>MITRA</option>
                         </select>
                     </div>
@@ -98,6 +97,129 @@
         });
     }
 
+    function initContainerSelect($sel, containers) {
+        $sel.empty();
+        (containers || []).forEach(function(c) {
+            var $opt = $('<option>')
+                .val(c.id)
+                .text(c.name + ' — ' + c.current_fill + ' / ' + c.volume + ' L')
+                .attr('data-volume', c.volume)
+                .attr('data-fill', c.current_fill)
+                .attr('data-remaining', c.remaining_capacity);
+            $sel.append($opt);
+        });
+        $sel.select2({
+            placeholder: '-- Pilih / Ketik container --',
+            allowClear: true,
+            width: '100%',
+            tags: true,
+            createTag: function(params) {
+                var term = $.trim(params.term);
+                if (term === '') return null;
+                return { id: term, text: term, isNew: true };
+            }
+        });
+    }
+
+    function addContainerItem(i, preset) {
+        var g = previewData[i];
+        if (!g) return;
+        var items = $('#previewTable .cont-items[data-group="' + i + '"]');
+        var $tr = $('<tr class="cont-item"></tr>');
+        $tr.append('<td><select class="form-control form-control-sm cont-select" data-group="' + i + '"></select></td>');
+        $tr.append('<td><input type="number" step="0.01" class="form-control form-control-sm cont-volume" style="display:none;" placeholder="Volume (L)"></td>');
+        $tr.append('<td><input type="number" step="0.01" class="form-control form-control-sm cont-qty" value="' + (preset ? preset.qty : '') + '"></td>');
+        $tr.append('<td><input type="number" step="0.01" class="form-control form-control-sm cont-price" value="' + (g.avg_price || 0) + '"></td>');
+        $tr.append('<td><button type="button" class="btn btn-sm btn-danger btn-remove-cont">&times;</button></td>');
+        items.append($tr);
+
+        var $sel = $tr.find('.cont-select');
+        initContainerSelect($sel, g.containers || []);
+        if (preset && preset.container) {
+            $sel.val(String(preset.container.id)).trigger('change');
+        }
+    }
+
+    function renderContainerBlock(tbody, g, i) {
+        tbody.append(
+            '<tr class="cont-row" data-group="' + i + '">' +
+                '<td colspan="6">' +
+                    '<table class="table table-sm table-bordered mb-1">' +
+                        '<thead><tr><th style="min-width:220px;">Kontainer</th><th style="width:120px;">Volume Baru (L)</th><th style="width:120px;">Qty (L)</th><th style="width:130px;">Harga</th><th style="width:36px;"></th></tr></thead>' +
+                        '<tbody class="cont-items" data-group="' + i + '"></tbody>' +
+                        '<tfoot><tr><td colspan="5">' +
+                            '<button type="button" class="btn btn-sm btn-outline-primary btn-add-cont" data-group="' + i + '">+ Tambah Kontainer</button>' +
+                        '</td></tr></tfoot>' +
+                    '</table>' +
+                '</td>' +
+            '</tr>'
+        );
+
+        var containers = g.containers || [];
+        if (!containers.length) {
+            addContainerItem(i, null);
+            return;
+        }
+        var qty = parseFloat(g.received_qty) || 0;
+        var first = containers[0];
+        var presetQty = Math.min(qty, parseFloat(first.remaining_capacity));
+        addContainerItem(i, { container: first, qty: presetQty });
+    }
+
+    function validateContainerAllocation() {
+        var errors = [];
+        previewData.forEach(function(g, i) {
+            var items = $('#previewTable .cont-items[data-group="' + i + '"] .cont-item');
+            if (!items.length) {
+                errors.push('Alokasi container wajib diisi untuk ' + g.warehouse_display);
+                return;
+            }
+            var total = 0;
+            items.each(function() {
+                var $row = $(this);
+                var val = String($row.find('.cont-select').val() || '');
+                var qty = parseFloat($row.find('.cont-qty').val()) || 0;
+                if (!val) {
+                    errors.push('Pilih atau ketik container untuk ' + g.warehouse_display);
+                    return;
+                }
+                if (qty <= 0) {
+                    errors.push('Qty container harus diisi untuk ' + g.warehouse_display);
+                    return;
+                }
+                var isNew = !/^\d+$/.test(val);
+                var volume, remaining, label;
+                if (isNew) {
+                    volume = parseFloat($row.find('.cont-volume').val()) || 0;
+                    if (volume <= 0) {
+                        errors.push('Volume container baru "' + val + '" wajib diisi');
+                        return;
+                    }
+                    remaining = volume;
+                    label = val;
+                } else {
+                    var $opt = $row.find('.cont-select option[value="' + val + '"]');
+                    volume = parseFloat($opt.data('volume'));
+                    remaining = parseFloat($opt.data('remaining'));
+                    label = $opt.text();
+                }
+                if (qty > volume) {
+                    errors.push('Qty melebihi volume container "' + label + '" (' + volume + ' L)');
+                    return;
+                }
+                if (qty > remaining) {
+                    errors.push('Kapasitas container "' + label + '" tidak cukup (sisa ' + remaining + ' L)');
+                    return;
+                }
+                total += qty;
+            });
+            if (Math.abs(total - (parseFloat(g.received_qty) || 0)) > 0.001) {
+                errors.push('Total alokasi container (' + total + ' L) tidak sama dengan qty diterima (' + g.received_qty + ' L) untuk ' + g.warehouse_display);
+            }
+        });
+        return errors;
+    }
+
     $(document).ready(function() {
         $('#createInstockDO').select2({
             placeholder: '-- Pilih Surat Jalan --',
@@ -160,6 +282,7 @@
                                     '</tr>');
                             });
                         }
+                        renderContainerBlock(tbody, g, i);
                     });
                     $('#previewSection').show();
                     setTimeout(startWebcam, 300);
@@ -173,19 +296,55 @@
             $('.po-detail-row[data-group="' + g + '"]').toggle();
         });
 
+        $(document).on('click', '.btn-add-cont', function() {
+            addContainerItem($(this).data('group'), null);
+        });
+
+        $(document).on('click', '.btn-remove-cont', function() {
+            $(this).closest('.cont-item').remove();
+        });
+
+        $(document).on('change', '.cont-select', function() {
+            var val = String($(this).val() || '');
+            var isNew = val !== '' && !/^\d+$/.test(val);
+            var $volume = $(this).closest('tr').find('.cont-volume');
+            $volume.toggle(isNew);
+            if (!isNew) $volume.val('');
+        });
+
         $('#btnSubmitBatch').on('click', function() {
             if (!previewData || !previewData.length) {
                 alert('Lakukan preview terlebih dahulu');
                 return;
             }
 
+            var errors = validateContainerAllocation();
+            if (errors.length) {
+                alert(errors.join('\n'));
+                return;
+            }
+
             var groups = previewData.map(function(g, i) {
+                var containers = [];
+                $('#previewTable .cont-items[data-group="' + i + '"] .cont-item').each(function() {
+                    var $row = $(this);
+                    var val = String($row.find('.cont-select').val() || '');
+                    var isNew = !/^\d+$/.test(val);
+                    containers.push({
+                        container_id: isNew ? '' : val,
+                        container_name: isNew ? val : '',
+                        container_volume: isNew ? $row.find('.cont-volume').val() : '',
+                        qty: $row.find('.cont-qty').val(),
+                        price: $row.find('.cont-price').val()
+                    });
+                });
                 return {
                     warehouse: g.warehouse,
-                    do_codes: g.do_codes,
+                    warehouse_display: g.warehouse_display,
                     received_qty: g.received_qty,
                     avg_price: g.avg_price,
-                    total: g.total
+                    total: g.total,
+                    containers: containers
                 };
             });
 
@@ -233,6 +392,7 @@
             $('#create_received_date').val(new Date().toISOString().slice(0, 10));
             $('#create_source').val('MITRA');
             $('#createInstockDO').val(null).trigger('change');
+            $('#previewTable tbody').empty();
             $('#previewSection').hide();
             previewData = null;
             capturedPhotos = [];

@@ -489,6 +489,12 @@ class AssetManagementController extends Controller
         }
         echo "</data>";
 
+        $opportunityId = $_GET['Task'] ?? null;
+        if ($opportunityId) {
+            app(\App\Http\Controllers\ApprovalController::class)
+                ->completeSetupIfReady($opportunityId);
+        }
+
     }
 
     public function detailFacilityUpdatekan($rowId, $param)
@@ -502,7 +508,20 @@ class AssetManagementController extends Controller
 
         $Saya = auth()->user()->username;
 
-        if (isset($param[$rowId."_c6"])) {
+        // The mobil inventory grid has an extra "Detail" column (c2), which shifts
+        // the numeric/checkbox columns one position to the right compared to booth:
+        //   booth: c3=Qty, c4=Price, c5=Total, c6=Checked_Sales
+        //   mobil: c4=Qty, c5=Price, c6=Total, c7=Checked_Sales
+        $isMobilInventory = isset($param[$rowId."_c7"]);
+
+        if ($isMobilInventory) {
+            $c = $param[$rowId."_c4"] ?? ''; // Qty
+            $d = $param[$rowId."_c5"] ?? ''; // Price
+            $e = $param[$rowId."_c6"] ?? ''; // Total
+            $f = $param[$rowId."_c7"] ?? ''; // Checked_Sales
+        }
+
+        if ($isMobilInventory || isset($param[$rowId."_c6"])) {
             if ($c != '' && $d != '' && $e != '') {
                 $cekDtl = DB::table('opportunity_partner_facility_dtl')
                 ->where("Facility_ID", $rowId)

@@ -2058,7 +2058,8 @@ class UCOController extends Controller
     {
         $data = DB::table('warehouse_partner_supplies as wps')
             ->leftJoin('warehouse_partner as wp', 'wps.warehouse_task_id', '=', 'wp.warehouse_task_id')
-            ->select('wps.*', 'wp.warehouse_location')
+            ->leftJoin('master_container as mc', 'wps.Container_ID', '=', 'mc.ID')
+            ->select('wps.*', 'wp.warehouse_location', 'mc.Name as container_name')
             ->orderBy('wps.created_date', 'desc')
             ->get();
 
@@ -2072,6 +2073,7 @@ class UCOController extends Controller
             $row->addChild('cell', htmlspecialchars((string) $d->received_date));
             $row->addChild('cell', htmlspecialchars((string) ($d->source ?? '')));
             $row->addChild('cell', htmlspecialchars((string) ($d->warehouse_location ?? '')));
+            $row->addChild('cell', htmlspecialchars((string) ($d->container_name ?? '')));
             $row->addChild('cell', (string) ($d->received_qty ?? 0));
             $row->addChild('cell', (string) ($d->price ?? 0));
             $row->addChild('cell', (string) ($d->total ?? 0));
@@ -2085,14 +2087,35 @@ class UCOController extends Controller
     public function submitInstockSupply(Request $r)
     {
         try {
+            if (!$r->filled('container_id') && !$r->filled('container_name')) {
+                return response()->json(['success' => false, 'message' => 'Container wajib diisi.'], 422);
+            }
+
+            $qty = (float) $r->input('received_qty');
+            $price = (float) $r->input('price');
+
+            $warehouseTaskId = $r->input('warehouse_task_id');
+            $whId = null;
+            if ($warehouseTaskId) {
+                $wp = DB::table('warehouse_partner')->where('warehouse_task_id', $warehouseTaskId)->first(['id']);
+                $whId = $wp->id ?? null;
+            }
+
+            $cid = $this->prepareContainer([
+                'container_id'     => $r->input('container_id'),
+                'container_name'   => $r->input('container_name'),
+                'container_volume' => $r->input('container_volume'),
+            ], $whId, $qty);
+
             $data = [
                 'received_date' => $r->input('received_date'),
                 'pickup_type'  => 'PICKUP',
                 'source'       => $r->input('source'),
-                'received_qty' => $r->input('received_qty'),
-                'price'        => $r->input('price'),
-                'total'        => $r->input('received_qty') * $r->input('price'),
+                'received_qty' => $qty,
+                'price'        => $price,
+                'total'        => $qty * $price,
                 'rejected_qty' => $r->input('rejected_qty') ?? 0,
+                'Container_ID' => $cid,
                 'created_date' => now(),
                 'created_by'   => auth()->user()->username ?? 'instock',
             ];
@@ -2171,6 +2194,7 @@ class UCOController extends Controller
             $g['do_codes'] = array_unique(array_filter($g['do_codes']));
             $g['received_qty'] = $g['qty_actual'];
             $g['avg_price'] = $g['qty_actual'] > 0 ? round($g['total'] / $g['qty_actual'], 2) : 0;
+            $g['containers'] = is_numeric($g['warehouse']) ? $this->getContainersForWarehouse($g['warehouse']) : [];
             foreach ($g['po_details'] as &$po) {
                 $po['percentage'] = $g['qty_plan'] > 0 ? round(($po['qty_plan'] / $g['qty_plan']) * 100, 2) : 0;
                 $po['recommendation'] = ($g['qty_plan'] > 0 && $g['qty_actual'] > 0) ? round(($po['qty_plan'] / $g['qty_plan']) * $g['qty_actual'], 2) : 0;
@@ -2196,30 +2220,48 @@ class UCOController extends Controller
             DB::beginTransaction();
 
             foreach ($groups as $g) {
-                $qty = $g['received_qty'] ?? 0;
-                $price = $g['avg_price'] ?? 0;
-                $total = $g['total'] ?? ($qty * $price);
-
+                $qty = (float) ($g['received_qty'] ?? 0);
                 $whId = $g['warehouse'] ?? null;
+                $warehouseDisplay = $g['warehouse_display'] ?? ($whId ?? 'Unknown');
                 $warehouse_task_id = '';
                 if ($whId && is_numeric($whId)) {
                     $wp = DB::table('warehouse_partner')->where('id', $whId)->first(['warehouse_task_id']);
                     $warehouse_task_id = $wp->warehouse_task_id ?? '';
                 }
 
-                $id = DB::table('warehouse_partner_supplies')->insertGetId([
-                    'received_date'    => $r->input('received_date'),
-                    'pickup_type'      => 'PICKUP',
-                    'warehouse_task_id' => $warehouse_task_id,
-                    'source'           => $r->input('source') ?? 'MITRA',
-                    'received_qty'     => $qty,
-                    'price'            => $price,
-                    'total'            => $total,
-                    'rejected_qty'     => $g['rejected_qty'] ?? 0,
-                    'notes'            => $notes,
-                    'created_date'     => now(),
-                    'created_by'       => auth()->user()->username ?? 'instock',
-                ]);
+                $containers = $g['containers'] ?? [];
+                if (empty($containers)) {
+                    throw new \Exception('Alokasi container wajib diisi untuk warehouse ' . $warehouseDisplay);
+                }
+
+                $totalQty = 0;
+                foreach ($containers as $cont) {
+                    $totalQty += (float) ($cont['qty'] ?? 0);
+                }
+                if (abs($totalQty - $qty) > 0.001) {
+                    throw new \Exception('Total alokasi container (' . $totalQty . ' L) tidak sama dengan qty diterima (' . $qty . ' L) untuk warehouse ' . $warehouseDisplay);
+                }
+
+                foreach ($containers as $cont) {
+                    $cQty = (float) ($cont['qty'] ?? 0);
+                    $cPrice = (float) ($cont['price'] ?? ($g['avg_price'] ?? 0));
+                    $cid = $this->prepareContainer($cont, is_numeric($whId) ? $whId : null, $cQty);
+
+                    DB::table('warehouse_partner_supplies')->insertGetId([
+                        'received_date'    => $r->input('received_date'),
+                        'pickup_type'      => 'PICKUP',
+                        'warehouse_task_id' => $warehouse_task_id,
+                        'Container_ID'     => $cid,
+                        'source'           => $r->input('source') ?? 'MITRA',
+                        'received_qty'     => $cQty,
+                        'price'            => $cPrice,
+                        'total'            => $cQty * $cPrice,
+                        'rejected_qty'     => $g['rejected_qty'] ?? 0,
+                        'notes'            => $notes,
+                        'created_date'     => now(),
+                        'created_by'       => auth()->user()->username ?? 'instock',
+                    ]);
+                }
             }
 
             if ($r->has('webcam_photos') && is_array($r->input('webcam_photos'))) {
@@ -2256,6 +2298,88 @@ class UCOController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+
+    // === Container helpers for instock ===
+    private function getContainerFill($containerId)
+    {
+        $in = DB::table('warehouse_partner_supplies')->where('Container_ID', $containerId)->sum('received_qty');
+        $out = DB::table('outstock_loading')->where('Container_ID', $containerId)->sum('Actual_Qty');
+        return max(0, $in - $out);
+    }
+
+    private function getContainersForWarehouse($warehouseId)
+    {
+        $containers = DB::table('master_container')
+            ->where('Status', 'active')
+            ->where('Warehouse_ID', $warehouseId)
+            ->orderBy('Name')
+            ->get(['ID', 'Name', 'Volume', 'Warehouse_ID']);
+
+        $data = [];
+        foreach ($containers as $c) {
+            $fill = $this->getContainerFill($c->ID);
+            $data[] = [
+                'id'                 => $c->ID,
+                'name'               => $c->Name,
+                'volume'             => (float) $c->Volume,
+                'current_fill'       => $fill,
+                'remaining_capacity' => max(0, (float) $c->Volume - $fill),
+            ];
+        }
+        return $data;
+    }
+
+    public function getInstockContainers(Request $r)
+    {
+        $warehouseId = $r->query('warehouse_id');
+        if (!$warehouseId || !is_numeric($warehouseId)) {
+            return response()->json(['success' => false, 'message' => 'warehouse_id required'], 400);
+        }
+        return response()->json(['success' => true, 'data' => $this->getContainersForWarehouse($warehouseId)]);
+    }
+
+    private function prepareContainer($container, $warehouseId, $qty)
+    {
+        $qty = (float) $qty;
+
+        if (!empty($container['container_id'])) {
+            $mc = DB::table('master_container')->where('ID', $container['container_id'])->where('Status', 'active')->first();
+            if (!$mc) {
+                throw new \Exception('Container tidak ditemukan.');
+            }
+            if ($warehouseId !== null && (int) $mc->Warehouse_ID !== (int) $warehouseId) {
+                throw new \Exception('Container \'' . $mc->Name . '\' bukan milik warehouse terpilih.');
+            }
+            $cid = $mc->ID;
+            $volume = (float) $mc->Volume;
+        } else {
+            $name = trim($container['container_name'] ?? '');
+            if ($name === '') {
+                throw new \Exception('Nama container baru wajib diisi.');
+            }
+            $volume = (float) ($container['container_volume'] ?? 0);
+            if ($volume <= 0) {
+                throw new \Exception('Volume container baru \'' . $name . '\' wajib diisi (dalam liter).');
+            }
+            $cid = DB::table('master_container')->insertGetId([
+                'Name'        => $name,
+                'Volume'      => $volume,
+                'Warehouse_ID'=> $warehouseId,
+                'Status'      => 'active',
+                'Created_By'  => auth()->user()->username ?? 'instock',
+                'Created_At'  => now(),
+            ]);
+        }
+
+        $fill = $this->getContainerFill($cid);
+        $remaining = $volume - $fill;
+        if ($qty > $remaining) {
+            throw new \Exception('Kapasitas container tidak cukup. Volume: ' . $volume . ' L, Terisi: ' . $fill . ' L, Sisa: ' . max(0, $remaining) . ' L, Qty: ' . $qty . ' L.');
+        }
+
+        return $cid;
     }
 
 

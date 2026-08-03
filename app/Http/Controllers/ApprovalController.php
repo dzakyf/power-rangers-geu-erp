@@ -218,8 +218,25 @@ class ApprovalController extends Controller
 
     public function processSurveyToNextProgress(Request $r)
     {
-        $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
-        return response()->json($result, $result['success'] ? 200 : 500);
+        $requestId = (int) $r->input('id');
+        $result = $this->processToNextLevel($requestId, $r->input('action'), $r->input('notes', ''));
+
+        if (!$result['success']) {
+            return response()->json($result, 500);
+        }
+
+        $req = DB::table('approval_request')->where('ID', $requestId)->first();
+        if ($req && $req->Status === 'APPROVED' && $req->Map_To) {
+            DB::table('survey_location')->where('ID', $req->Map_To)->update(['Status' => 'APPROVED']);
+
+            $survey = DB::table('survey_location')->where('ID', $req->Map_To)->first();
+            if ($survey && $survey->Opportunity_Partner_Id) {
+                app(\App\Http\Controllers\OnboardingController::class)
+                    ->advanceOnboardingStage($survey->Opportunity_Partner_Id, 'SURVEY', 'SETUP', 'Survey disetujui');
+            }
+        }
+
+        return response()->json($result, 200);
     }
 
 
