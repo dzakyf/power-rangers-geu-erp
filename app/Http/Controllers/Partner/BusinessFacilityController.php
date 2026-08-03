@@ -471,6 +471,12 @@ class BusinessFacilityController extends Controller
             }
         }
         echo "</data>";
+
+        $opportunityId = $_GET['Task'] ?? null;
+        if ($opportunityId) {
+            app(\App\Http\Controllers\ApprovalController::class)
+                ->completeSetupIfReady($opportunityId);
+        }
     }
 
     public function detailFacilityUpdatekan($rowId, $param)
@@ -486,29 +492,52 @@ class BusinessFacilityController extends Controller
         $ix = $param[$rowId . "_c9"] ?? ''; // transport
         $Saya = auth()->user()->username;
 
-        if ((isset($param[$rowId . "_c6"]) ? $d : $c) == 1) {
+        $partnerId = $_GET['Task'] ?? null;
+        $whTaskId  = $_GET['wh'] ?? null;
+
+        // The Checked_Partner checkbox and Received_Date column positions differ
+        // per grid layout:
+        //   mobil inventory (c9 present): checkbox=c4, date=c3
+        //   booth inventory  (c6 present, no c9): checkbox=c3, date=c2
+        //   access/support   (no c6): checkbox=c4, date=c3
+        if (isset($param[$rowId . "_c9"])) {
+            $checkPartner = $d;
+            $receivedDate = $c;
+        } elseif (isset($param[$rowId . "_c6"])) {
+            $checkPartner = $c;
+            $receivedDate = $b;
+        } else {
+            $checkPartner = $d;
+            $receivedDate = $c;
+        }
+
+        if ($checkPartner == 1) {
             $cekDB = DB::table('opportunity_partner_facility')
                 ->where('Facility_ID', $rowId)
-                ->where("Partner_ID", $_GET['Task'])
+                ->where("Partner_ID", $partnerId)
+                ->when($whTaskId, function ($q) use ($whTaskId) {
+                    $q->where('warehouse_task_id', $whTaskId);
+                })
                 ->first();
             if ($cekDB) {
                 DB::table('opportunity_partner_facility')
                     ->where('ID', $cekDB->ID)
                     ->update([
-                        'Checked_Partner' => isset($param[$rowId . "_c6"]) ? $d : $c,
+                        'Checked_Partner' => $checkPartner,
                         'Checked_Partner_By' => $Saya,
                         'Checked_Partner_Date' => now(),
-                        'Received_Date' => isset($param[$rowId . "_c6"]) ? $c : $b,
+                        'Received_Date' => $receivedDate,
                     ]);
             } else {
                 DB::table('opportunity_partner_facility')
                     ->insert([
                         'Facility_ID' => $rowId,
-                        'Partner_ID' => $_GET['Task'],
-                        'Checked_Partner' => isset($param[$rowId . "_c6"]) ? $d : $c,
+                        'Partner_ID' => $partnerId,
+                        'warehouse_task_id' => $whTaskId,
+                        'Checked_Partner' => $checkPartner,
                         'Checked_Partner_By' => $Saya,
                         'Checked_Partner_Date' => now(),
-                        'Received_Date' => isset($param[$rowId . "_c6"]) ? $c : $b,
+                        'Received_Date' => $receivedDate,
                         'Created_By' => $Saya,
                         'Created_Date' => now(),
                     ]);
@@ -533,7 +562,7 @@ class BusinessFacilityController extends Controller
                     DB::table('opportunity_partner_facility_dtl')
                         ->insert([
                             'Facility_ID' => $rowId,
-                            'Partner_ID' => $_GET['Task'],
+                            'Partner_ID' => $partnerId,
                             'Qty' => $f,
                             'Price' => $g,
                             'Total' => $h,
@@ -558,7 +587,7 @@ class BusinessFacilityController extends Controller
                     DB::table('opportunity_partner_facility_dtl')
                         ->insert([
                             'Facility_ID' => $rowId,
-                            'Partner_ID' => $_GET['Task'],
+                            'Partner_ID' => $partnerId,
                             'Order_Date' => $ix,
                             'Created_By' => $Saya,
                             'Created_Date' => now(),
@@ -583,7 +612,7 @@ class BusinessFacilityController extends Controller
                     DB::table('opportunity_partner_facility_dtl')
                         ->insert([
                             'Facility_ID' => $rowId,
-                            'Partner_ID' => $_GET['Task'],
+                            'Partner_ID' => $partnerId,
                             'Qty' => $e,
                             'Price' => $f,
                             'Total' => $g,
@@ -608,7 +637,7 @@ class BusinessFacilityController extends Controller
                     DB::table('opportunity_partner_facility_dtl')
                         ->insert([
                             'Facility_ID' => $rowId,
-                            'Partner_ID' => $_GET['Task'],
+                            'Partner_ID' => $partnerId,
                             'Order_Date' => $h,
                             'Created_By' => $Saya,
                             'Created_Date' => now(),

@@ -211,11 +211,11 @@
     function initSupplyGrid() {
         SupplyGrid = new dhtmlXGridObject('SupplyGrid');
         SupplyGrid.setImagePath("./dhtmlx/imgs/");
-        SupplyGrid.setHeader("No,Tanggal,Source,Warehouse,Vol Diterima,Harga,Total,Reject");
-        SupplyGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-        SupplyGrid.setInitWidths("50,100,100,*,100,100,100,80");
-        SupplyGrid.setColAlign("center,left,left,left,right,right,right,right");
-        SupplyGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
+        SupplyGrid.setHeader("No,Tanggal,Source,Warehouse,Kontainer,Vol Diterima,Harga,Total,Reject");
+        SupplyGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+        SupplyGrid.setInitWidths("50,100,100,*,150,100,100,100,80");
+        SupplyGrid.setColAlign("center,left,left,left,left,right,right,right,right");
+        SupplyGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");
         SupplyGrid.setSkin("dhx_skyblue");
         SupplyGrid.attachEvent("onRowSelect", function(id) {
             selectedSupplyId = SupplyGrid.getRowAttribute(id, 'ID');

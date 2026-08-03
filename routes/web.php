@@ -42,6 +42,7 @@ use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormCont
 use App\Http\Controllers\HCGA\TrainingController as HCGATrainingController;
 use App\Http\Controllers\HCGA\RequisitionController as HCGARequisitionController;
 use App\Http\Controllers\HCGA\OnboardingController as HrgaOnboardingController;
+use App\Http\Controllers\HCGA\ProcurementController as HCGAProcurementController;
 
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
@@ -5181,6 +5182,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$partnerUCO-instock-supplies-data", [UCOLogisticController::class, 'getInstockSuppliesData']);
     Route::post("$partnerUCO-instock-supplies-submit", [UCOLogisticController::class, 'submitInstockSupply']);
     Route::post("$partnerUCO-instock-supplies-delete", [UCOLogisticController::class, 'deleteInstockSupply']);
+    Route::get("$partnerUCO-instock-containers", [UCOLogisticController::class, 'getInstockContainers']);
     Route::post("$partnerUCO-instock-preview", [UCOLogisticController::class, 'previewInstockAggregation']);
     Route::post("$partnerUCO-instock-submit-batch", [UCOLogisticController::class, 'submitInstockBatch']);
     Route::get("$partnerUCO-inbound-timbang-create", [UCOLogisticController::class, 'createInboundUCO']);
@@ -5504,4 +5506,13 @@ Route::group(['middleware' => 'log.access'], function () {
 
     $hcRequisitionPref = "$hcPref-requisition";
     Route::get("$hcRequisitionPref-prints", [HCGARequisitionController::class, 'print']);
+
+    $hcProcurementPref = "$hcPref-procurement";
+    Route::get("$hcProcurementPref-index", [HCGAProcurementController::class, 'index']);
+    Route::get("xml-$hcProcurementPref-index", [HCGAProcurementController::class, 'indexXml']);
+    Route::get("$hcProcurementPref-new", [HCGAProcurementController::class, 'new']);
+    Route::post("$hcProcurementPref-new-submit", [HCGAProcurementController::class, 'newSubmit']);
+    Route::post("$hcProcurementPref-new-update", [HCGAProcurementController::class, 'newUpdate']);
+    Route::get("$hcProcurementPref-product", [HCGAProcurementController::class, 'product']);
+    Route::get("xml-$hcProcurementPref-product", [HCGAProcurementController::class, 'productXml']);
 });
