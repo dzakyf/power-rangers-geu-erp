@@ -377,6 +377,9 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('assets.xml.lists');
     });
 
+    Route::get("/credential-role-old", function() {
+        return view('credential.role');
+    });
     Route::get("/credential-role", [CredentialRoleController::class, "index"]);
     Route::get("/master-credential-role-list", [CredentialRoleController::class, "roleListData"])->name("master.credential.role.list");
     Route::get("/master-credential-role-permission", [CredentialRoleController::class, "rolePermissionsData"])->name("master.credential.role.permission");
@@ -5515,4 +5518,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcProcurementPref-new-update", [HCGAProcurementController::class, 'newUpdate']);
     Route::get("$hcProcurementPref-product", [HCGAProcurementController::class, 'product']);
     Route::get("xml-$hcProcurementPref-product", [HCGAProcurementController::class, 'productXml']);
+    Route::get("$hcProcurementPref-detail", [HCGAProcurementController::class, 'detail']);
+    Route::post("$hcProcurementPref-detail-submit", [HCGAProcurementController::class, 'detailSubmit']);
+    Route::get("xml-$hcProcurementPref-detail", [HCGAProcurementController::class, 'detailXml']);
 });

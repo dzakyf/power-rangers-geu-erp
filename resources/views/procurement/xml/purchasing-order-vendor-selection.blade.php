@@ -22,7 +22,7 @@ $Saya = Auth::user()->username;
 echo "<rows>";
 
 
-$kueri = DB::select(DB::raw("SELECT * FROM purchase_request WHERE Status='APPROVED' AND (PO_Task_No='' OR PO_Task_No IS NULL) AND Priority_Status!='UNDEFINED' ORDER BY ID ASC"));
+$kueri = DB::select(DB::raw("SELECT * FROM purchase_request WHERE Status='APPROVED' AND (PO_Task_No='' OR PO_Task_No IS NULL) AND Priority_Status!='UNDEFINED' AND Location = '$LSP' ORDER BY ID ASC"));
 $nomor = 1;
 
 	foreach($kueri as $Fetch){

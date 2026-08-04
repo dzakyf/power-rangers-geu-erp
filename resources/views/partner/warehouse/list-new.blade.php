@@ -39,6 +39,10 @@ $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
                 </select>
 			</div>
 			<div class="col-md-6">
+				<label for="warehouse_name">Warehouse Name</label>
+				<input type="text" name="warehouse_name" id="warehouse_name" class="form-control" placeholder="Nama Gudang">
+			</div>
+			<div class="col-md-6">
 				<label for="Capacity">Tipe Gudang</label>
 				<select name="Warehouse_Type" id="Warehouse_Type" class="form-control">
                     <option value="">-- Pilih Tipe Gudang --</option>

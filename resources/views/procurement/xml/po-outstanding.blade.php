@@ -23,7 +23,7 @@ $Saya = Auth::user()->username;
 echo "<rows>";
 
 
-$kueri = DB::select(DB::raw("SELECT * FROM purchase_request WHERE PO_No IS NULL ORDER BY ID DESC"));
+$kueri = DB::select(DB::raw("SELECT * FROM purchase_request WHERE PO_No IS NULL AND Location = '$LSP' ORDER BY ID DESC"));
 $nomor = 1;
 
 foreach ($kueri as $Fetch) {

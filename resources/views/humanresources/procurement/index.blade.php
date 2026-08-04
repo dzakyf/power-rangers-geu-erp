@@ -9,7 +9,7 @@
                 <a href="/dashboard1">PURCHASING REQUEST</a>
             </li>
             <li class="breadcrumb-item active">
-                <span class="active">OUTSTANDING LISTS</span>
+                <span class="active">PR LISTS</span>
             </li>
         </ol>
     </div> 
@@ -48,8 +48,6 @@
 		// PPurchaseManagement.setUpdateMode("Off");
 		// PPurchaseManagement.init(PurchaseManagement);
 		PurchaseManagement.setSkin("dhx_skyblue");
-		PurchaseManagement.getCombo(6).put('NORMAL','NORMAL');
-		PurchaseManagement.getCombo(6).put('URGENT','URGENT');
 		PurchaseManagement.init();
 		refreshData();
 
@@ -59,6 +57,16 @@
 
 		$('#FormRequestProcurement').on('click', function() {
 			LoadM('PurchaseManagementDiv','hrd-procurement-new');
+		})
+
+		$('#DetailRequestProcurement').on('click', function() {
+			let pmid = PurchaseManagement.getSelectedRowId();
+			if(pmid == null) {
+				alert('Mohon pilih baris');
+				return;
+			}
+			let PR_No = PurchaseManagement.cells(pmid,1).getValue()
+			LoadM('PurchaseManagementDiv','hrd-procurement-detail?PR_No=' + PR_No);
 		})
 		
 		</script>

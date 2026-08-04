@@ -23,7 +23,7 @@ echo "<rows>";
 
 
 //$kueri = DB::select(DB::raw("SELECT * FROM purchase_summary where Status!='FINAL APPROVED' AND Status!='PENDING'  AND Status!='CREATED' ORDER BY ID DESC"));
-$kueri = DB::select(DB::raw("SELECT * FROM purchase_summary where Status='CREATED' ORDER BY ID DESC"));
+$kueri = DB::select(DB::raw("SELECT * FROM purchase_summary where Status='CREATED' AND Location = '$LSP' ORDER BY ID DESC"));
 $nomor = 1;
 
 	foreach($kueri as $Fetch){

@@ -22,7 +22,7 @@ $Saya = Auth::user()->username;
 echo "<rows>";
 
 
-$kueri = DB::select(DB::raw("SELECT * FROM purchase_summary where Status='CLOSED'  ORDER BY ID DESC"));
+$kueri = DB::select(DB::raw("SELECT * FROM purchase_summary where Status='CLOSED'  AND Location = '$LSP' ORDER BY ID DESC"));
 $nomor = 1;
 
 	foreach($kueri as $Fetch){

@@ -55,6 +55,7 @@ class WarehouseController extends Controller
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->warehouse_name) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
             echo "<cell>" . htmlspecialchars($usaddress[$Fetch->partner_task_id] ?? '') . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->capacity) . "</cell>";
@@ -97,6 +98,7 @@ class WarehouseController extends Controller
         WarehousePartner::create([
             'warehouse_task_id' => $Task_ID,
             'partner_task_id' => $request->Partner_Name,
+            'warehouse_name' => $request->warehouse_name,
             'warehouse_type' => $request->Warehouse_Type,
             'warehouse_location' => $request->Warehouse_Location,
             'warehouse_status' => 'ACTIVE',
@@ -131,6 +133,7 @@ class WarehouseController extends Controller
         WarehousePartner::where('id', $request->id)->update([
             'warehouse_task_id' => $Task_ID,
             'partner_task_id' => $request->Partner_Name,
+            'warehouse_name' => $request->warehouse_name,
             'warehouse_type' => $request->Warehouse_Type,
             'capacity' => $request->Capacity,
             'warehouse_location' => $request->Warehouse_Location,
