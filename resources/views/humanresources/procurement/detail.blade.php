@@ -101,7 +101,7 @@
                             <select id="Department" class="" style="width:250px;">
                                 <?php
                                 foreach ($Department as $Data) {
-                                    $selected = $Data->Initial == $pr->Department ? 'selected' : "";
+                                    $selected = ($Data->Initial == $pr->Department) ? 'selected' : "";
                                     echo "<option value='$Data->Initial' $selected>$Data->Department - $Data->Initial_Code - $Data->Initial</option>";
                                 }
                                 ?>
@@ -131,7 +131,7 @@
                         </div>
                         <div class="FormInput_right">
             
-                            <input type="text" id="Reference" size="40" value="{{ $value->Reference }}" />
+                            <input type="text" id="Reference" size="40" value="{{ $pr->Reference }}" />
             
                         </div>
                         <div class="FormInput_left">
@@ -245,7 +245,7 @@
 				'X-CSRF-TOKEN': "{{ csrf_token() }}"
 			},
 			payload: {
-				"PR_No": "<?php echo $PR_No;  ?>"
+				"PR_No": "<?php echo $pr->PR_No;  ?>"
 			}
 
 
@@ -253,7 +253,7 @@
 		PPRDetail.setUpdateMode("Off");
 		PPRDetail.init(PRDetail);
 		PRDetail.init();
-        PRDetail.loadXml("xml-hrd-procurement-detail");
+        PRDetail.clearAndLoad("xml-hrd-procurement-detail?PR_No={{$pr->PR_No}}");
 
 		$("#AddPRDetail").click(function() {
             let ids = PRDetail.uid();
@@ -269,9 +269,7 @@
             return true;
         }
 		$("#DelPRDetail").click(function() {
-
 			PRDetail.deleteSelectedRows();
-
 		})
 
 
@@ -348,7 +346,7 @@
 						data: dapat,
 						success: function(data, textStatus, jqXHR) {
 							if (data == 'success') {
-								alert('Purchase Request Updated with no  <?php echo $PR_No ?>!');
+								alert('Purchase Request Updated with no  <?php echo $pr->PR_No ?>!');
 
 								setTimeout(function() {
 									$.unblockUI();

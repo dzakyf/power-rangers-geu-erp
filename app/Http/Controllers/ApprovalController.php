@@ -324,15 +324,26 @@ class ApprovalController extends Controller
         $hasOrderEquipment = DB::table('opportunity_partner_facility_dtl')
             ->where('Partner_ID', $q['id'])
             ->whereNotNull('Order_Date')
-            ->where('Order_Date', '!=', '')
-            ->where('Order_Date', '!=', '0000-00-00')
+            // ->where('Order_Date', '!=', '')
+            ->orWhere('Order_Date', '!=', '0000-00-00')
             ->exists();
 
+
         return view('approval.progress', compact(
-            'partner', 'pic', 'documents', 'status', 'onboardingLog',
-            'currentStage', 'currentStageIndex', 'stageOrder',
-            'survey', 'warehouseType', 'facilityGroups',
-            'hasProjection', 'hasBenefitsAsset', 'hasOrderEquipment'
+            'partner',
+            'pic',
+            'documents',
+            'status',
+            'onboardingLog',
+            'currentStage',
+            'currentStageIndex',
+            'stageOrder',
+            'survey',
+            'warehouseType',
+            'facilityGroups',
+            'hasProjection',
+            'hasBenefitsAsset',
+            'hasOrderEquipment'
         ));
     }
 
@@ -523,8 +534,8 @@ class ApprovalController extends Controller
 
         if ($userLevel) {
             $d->where('appr.Current_Level', '=', $userLevel - 1)
-              ->where('appr.Status', '=', 'NEED_APPROVAL')
-              ->where('appr.Request_Type', 'LIKE', $type);
+                ->where('appr.Status', '=', 'NEED_APPROVAL')
+                ->where('appr.Request_Type', 'LIKE', $type);
         } else if (in_array($session->Position, ["MITRA"])) {
             $d->where('appr.Request_Type', 'LIKE', $type)->where('appr.Requester_Id', 'LIKE', $user_id);
         } else {
@@ -827,5 +838,4 @@ class ApprovalController extends Controller
             }
         });
     }
-
 }

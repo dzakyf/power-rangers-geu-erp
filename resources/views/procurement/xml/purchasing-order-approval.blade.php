@@ -23,19 +23,19 @@ $Saya = Auth::user()->username;
 echo "<rows>";
 
 if ($PRApproval == 'ALL'){
-$kueri = DB::select(DB::raw("SELECT * FROM purchase_summary where Status!='CREATED' AND Status!='PENDING' AND Status!='CLOSED' ORDER BY ID DESC"));
+$kueri = DB::select(DB::raw("SELECT * FROM purchase_summary where Status!='CREATED' AND Location = '$LSP' AND Status!='PENDING' AND Status!='CLOSED' ORDER BY ID DESC"));
 }elseif($PRApproval != ''){
 $PRApproval = explode(",",Auth::user()->PR_Approval);
 if(count($PRApproval) == 1){
 	$px = Auth::user()->PR_Approval;
-	$pprovalwhere = "where Status='$px'";
+	$pprovalwhere = "where Status='$px' AND Location = '$LSP'";
 	
 }else{
 	foreach($PRApproval as $dx){
 		$app.="'$dx',";
 	}
 	$appx = substr($app,0,-1);
-	$pprovalwhere = "where Status IN($appx)";
+	$pprovalwhere = "where Status IN($appx) AND Location = '$LSP'";
 }
 
 $kueri = DB::select(DB::raw("SELECT * FROM purchase_summary $pprovalwhere ORDER BY ID DESC"));	

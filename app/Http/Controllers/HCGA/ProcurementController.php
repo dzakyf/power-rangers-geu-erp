@@ -375,8 +375,15 @@ class ProcurementController extends Controller
 
     public function detail(Request $request)
     {
+        $dpt = Auth::user()->Department;
         $pr = DB::table('purchase_request')->where("PR_No", $request->PR_No)->first();
-        return view('humanresources.procurement.detail', compact('pr'));
+        $Query = DB::table("master_department");
+        if ($dpt != 'ICT' && $dpt != 'BOD' && $dpt != 'HCGA') {
+            $Query->where("Initial", $dpt);
+        }
+        
+        $Department = $Query->get();
+        return view('humanresources.procurement.detail', compact('pr','Department'));
     }
 
     public function detailXml(Request $request)
@@ -398,25 +405,21 @@ class ProcurementController extends Controller
         $nomor = 1;
 
             foreach($dtls as $Fetch){
-                $warna = "";
-                if ($Fetch->Status == 'APPROVED') {
-                    $warna = "style='background-color: #45bc45;'";
-                }
-                    echo "<row $warna id=\"$Fetch->ID\">";
-                            echo "<cell>$nomor</cell>";
-                            echo "<cell>".htmlspecialchars(($Fetch->Purchase_Type))."</cell>";
-                            echo "<cell>".htmlspecialchars(($Fetch->Product_Code))."</cell>";
-                            echo "<cell>".htmlspecialchars(($Fetch->Product_Desc))."</cell>";
-                            echo "<cell>".htmlspecialchars(($Fetch->Qty))."</cell>";
-                            echo "<cell>".htmlspecialchars(($Fetch->Specification))."</cell>";
-                            echo "<cell>".htmlspecialchars(($Fetch->Unit))."</cell>";
-                            echo "<cell>".htmlspecialchars(($Fetch->Remark))."</cell>";
-                            echo "<cell>".htmlspecialchars(($Fetch->Category))."</cell>";
-                            echo "<cell>".htmlspecialchars(($Fetch->Purchase_Category))."</cell>";
-                            echo "<cell>".htmlspecialchars(($Fetch->Prices))."</cell>";
-                        echo "</row>";	
+                echo "<row id=\"$Fetch->ID\">";
+                    echo "<cell>$nomor</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Purchase_Type))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Product_Code))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Product_Desc))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Qty))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Specification))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Unit))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Remark))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Category))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Purchase_Category))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Prices == 0 ? $Fetch->Default_Price : $Fetch->Prices))."</cell>";
+                echo "</row>";	
 
-                    $nomor++;
+                $nomor++;
             }
 
         echo "</rows>";
