@@ -15,6 +15,7 @@ use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Credential\CredentialRoleController;
 use App\Http\Controllers\Credential\CredentialUserController;
+use App\Http\Controllers\CandidateController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OperationalController;
 use App\Http\Controllers\CNS\VesselScheduleController;
@@ -41,6 +42,7 @@ use App\Http\Controllers\HCGA\MasterWorkCalendarController as HCGAMasterWorkCale
 use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormController;
 use App\Http\Controllers\HCGA\TrainingController as HCGATrainingController;
 use App\Http\Controllers\HCGA\RequisitionController as HCGARequisitionController;
+use App\Http\Controllers\HCGA\RecruitmentController as HCGARecruitmentController;
 use App\Http\Controllers\HCGA\OnboardingController as HrgaOnboardingController;
 use App\Http\Controllers\HCGA\ProcurementController as HCGAProcurementController;
 
@@ -397,6 +399,14 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("/master-credential-candidate-without-account", [CredentialUserController::class, "candidatesWithoutAccount"]);
     Route::post("/credential-create-candidate-account", [CredentialUserController::class, "createCandidateAccount"]);
     Route::post("/credential-create-user-submit", [CredentialUserController::class, "createUserSubmit"]);
+
+    Route::get("/candidate/dashboard", [CandidateController::class, "dashboard"]);
+    Route::get("/candidate/profile", [CandidateController::class, "profile"]);
+    Route::post("/candidate/profile-update", [CandidateController::class, "profileUpdate"]);
+    Route::get("/candidate/documents", [CandidateController::class, "documents"]);
+    Route::post("/candidate/document-upload", [CandidateController::class, "documentUpload"]);
+    Route::get("/candidate/assessment", [CandidateController::class, "assessment"]);
+    Route::get("/candidate/progress", [CandidateController::class, "progress"]);
     Route::post("/master-credential-user-update", [CredentialUserController::class, "updateUser"]);
     Route::post("/master-credential-user-delete", [CredentialUserController::class, "deleteUser"]);
 
@@ -2609,9 +2619,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/requisition-new', function () {
         return view('humanresources.recruitment.requisition-new');
     });
-    Route::post('/recruitment-requisition-new-submit', function () {
-        return view('humanresources.recruitment.requisition-new-submit');
-    });
+    Route::post('/recruitment-requisition-new-submit', [HCGARequisitionController::class, 'store']);
     Route::get('/requisition-new-po', function () {
         return view('humanresources.recruitment.requisition-new-po');
     });
@@ -5474,12 +5482,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcPref-master-work-calendar-detail", [HCGAMasterWorkCalendarController::class, 'detail']);
     Route::get("xml-$hcPref-master-work-calendar-detail", [HCGAMasterWorkCalendarController::class, 'detailXml']);
 
-    Route::get("$hcPref-recruitment-management", function () {
-        return view('humanresources.recruitment.recruitment-management');
-    });
-    Route::get("xml-$hcPref-recruitment-management", function () {
-        return view('humanresources.recruitment.xml.recruitment-management');
-    });
+    Route::get("$hcPref-recruitment-management", [HCGARecruitmentController::class, 'index']);
+    Route::get("xml-$hcPref-recruitment-management", [HCGARecruitmentController::class, 'indexXml']);
+    Route::get("xml-$hcPref-recruitment-pivot", [HCGARecruitmentController::class, 'pivotXml']);
 
     Route::get("$hcPref-recruitment-dashboard", function () {
         return view('humanresources.recruitment.recruitment-dashboard');

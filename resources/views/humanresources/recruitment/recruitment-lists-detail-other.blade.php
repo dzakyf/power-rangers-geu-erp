@@ -8,6 +8,8 @@
 	<tr height="30">
         <td class="badan" colspan="6">
 			<div id="Health" style="width:auto;height:130px; background-color:white;overflow:hidden"></div>
+			 <input type="button" id="Health_Add" value="Add" onclick="Health.addRow(Health.uid(),[Health.getRowsNum()+1],0)" size="20"/>    
+			 <input type="button" id="Health_Delete" value="Delete" onclick="Health.deleteSelectedRows()" size="20"/>    
 		</td>
 	</tr>
  
@@ -18,9 +20,9 @@
     <tr height="30">
         <td class="badan" colspan="6">
 			<div id="Driving_Licenses" style="width:auto;height:150px; background-color:white;overflow:hidden"></div>
-			             
+			         <input type="button" id="Driving_Licenses_Add" value="Add" onclick="Driving_Licenses.addRow(Driving_Licenses.uid(),[Driving_Licenses.getRowsNum()+1],0)" size="20"/>    
+					 <input type="button" id="Driving_Licenses_Delete" value="Delete" onclick="Driving_Licenses.deleteSelectedRows()" size="20"/>    
 					 
-
         </td>
 	</tr>
 	<tr height="30">
@@ -60,6 +62,9 @@
          </td>
     </tr>
  </table>
+<div style="padding:10px">
+    <input type="button" class="btn btn-primary" value="Save" onclick="PHealth.sendData();PDriving_Licenses.sendData();alert('Data saved.');">
+</div>
  
  <script>
 			

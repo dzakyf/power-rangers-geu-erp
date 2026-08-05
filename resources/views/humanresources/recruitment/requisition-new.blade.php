@@ -172,33 +172,20 @@ $Taskid = 'REQ/' . $LSP . '/' . date('Ymdhis') . '-' . sprintf('%02d', $req);
     $('#SubmitBtn').on('click', function(e) {
         e.preventDefault();
         var formData = {
+            Task_ID: $('#Task_ID').val(),
             Job_Position: $('#Job_Position').val(),
+            Subject: $('#Subject').val(),
+            Placement: $('#Placement').val(),
             Description: $('#Description').val(),
             Requirement: $('#Requirement').val(),
             Priority: $('#Priority').val(),
             Allocation: $('#Allocation').val(),
+            Request_Type: $('#Request_Type').val(),
+            Request_Desc: $('#Request_Desc').val(),
+            Work_Schedule: $('#Work_Schedule').val(),
             Qty: $('#Qty').val(),
-            Start_Date: $('#Start_Date').val(),
-            End_Date: $('#End_Date').val(),
-            Work_Area: $('#Work_Area').val(),
-            Work_Schedule: $('#Work_Schedule').val()
+            Start_Date: $('#Start_Date').val()
         };
-
-        let hasil = 1;
-
-        Object.entries(formData).forEach(([key, value]) => {
-            if (value == '') {
-                alert(key + " Tidak boleh kosong");
-                $('#' + key).focus();
-                hasil = 0;
-                return;
-            }
-        });
-
-        if (hasil == 0) {
-            return ;
-        }
-
 
         $.ajax({
             type: 'POST',
@@ -209,13 +196,25 @@ $Taskid = 'REQ/' . $LSP . '/' . date('Ymdhis') . '-' . sprintf('%02d', $req);
             },
             success: function(response) {
                 alert('Requisition submitted successfully!');
-                // Optionally, you can reset the form or redirect the user
                 $('#NewRec')[0].reset();
                 refreshdata();
                 $('#divlistRequisition').html('');
             },
-            error: function(xhr, status, error) {
-                alert('Error submitting requisition: ' + xhr.responseText);
+            error: function(xhr) {
+                if (xhr.status === 422) {
+                    var errors = xhr.responseJSON.errors;
+                    $('.field-error').remove();
+                    $('.is-invalid').removeClass('is-invalid');
+                    $.each(errors, function(field, messages) {
+                        var el = $('#' + field);
+                        if (el.length) {
+                            el.addClass('is-invalid');
+                            el.after('<div class="field-error text-danger small">' + messages[0] + '</div>');
+                        }
+                    });
+                } else {
+                    alert('Error submitting requisition: ' + xhr.responseText);
+                }
             }
         });
     });

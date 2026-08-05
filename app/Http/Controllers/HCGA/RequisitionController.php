@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Mpdf\Mpdf;
 
 class RequisitionController extends Controller
@@ -90,5 +91,121 @@ class RequisitionController extends Controller
             'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'inline; filename="' . $filename . '"',
         ]);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'Job_Position'  => 'required|integer|exists:master_position,ID',
+            'Subject'       => 'required|string|max:255',
+            'Placement'     => 'required|string|max:255',
+            'Description'   => 'required|string',
+            'Requirement'   => 'required|string',
+            'Priority'      => 'required|in:NORMAL,HIGH,URGENT',
+            'Allocation'    => 'required|in:NEW,REPLACEMENT',
+            'Request_Type'  => 'required|string',
+            'Request_Desc'  => 'required_if:Request_Type,OTHER|string|max:255',
+            'Work_Schedule' => 'required|integer|exists:work_calendars,ID',
+            'Qty'           => 'required|integer|min:1',
+            'Start_Date'    => 'required|date',
+            'Task_ID'       => 'required|string|max:255',
+        ]);
+
+        $LSP = Auth::user()->Location;
+        $Saya = Auth::user()->username;
+
+        $jobPosition = DB::table('master_position')->where('ID', $request->input('Job_Position'))->first();
+
+        $startDate = date('Y-m-d', strtotime($request->input('Start_Date')));
+        $endDate = date('Y-m-d', strtotime($startDate . ' +1 month'));
+
+        $arr = [
+            'Task_ID'          => $request->input('Task_ID'),
+            'Job_Position'     => $jobPosition->Position,
+            'Department'       => $jobPosition->Department,
+            'Subject'          => $request->input('Subject'),
+            'Placement'        => $request->input('Placement'),
+            'Description'      => $request->input('Description'),
+            'Requirement'      => $request->input('Requirement'),
+            'Priority'         => $request->input('Priority'),
+            'Allocation'       => $request->input('Allocation'),
+            'Request_Type'     => $request->input('Request_Type'),
+            'Request_Desc'     => $request->input('Request_Desc'),
+            'Work_Schedule'    => $request->input('Work_Schedule'),
+            'Qty'              => $request->input('Qty'),
+            'Start_Date'       => $startDate,
+            'End_Date'         => $endDate,
+            'Created_By'       => $Saya,
+            'Location'         => $LSP,
+            'Created_Date'     => now(),
+            'Status'           => 'CREATED',
+            'Requisition_Type' => 'NON_PO',
+        ];
+
+        $reqId = DB::table('requisition')->insertGetId($arr);
+
+        $logArr = $arr;
+        $logArr['Action_By'] = $Saya;
+        $logArr['Action_Date'] = now();
+        $logArr['Action_Status'] = 'CREATE FROM REQUISITION';
+        $logArr['Last_ID'] = $reqId;
+
+        DB::table('requisition_log')->insert($logArr);
+
+        $master = DB::table('master_hr_approval')
+            ->where('Level', 1)
+            ->where('Location', $LSP)
+            ->where('Department', Auth::user()->Department)
+            ->first();
+
+        if ($master) {
+            DB::table('requisition_approval')->insert([
+                'Location'        => $LSP,
+                'Task_ID'         => $request->input('Task_ID'),
+                'Level'           => 1,
+                'Approved_By'     => $master->username,
+                'Approved_Status' => 0,
+                'Approved_Date'   => null,
+                'Approved_Note'   => null,
+            ]);
+        }
+
+        $master = DB::table('master_hr_approval')
+            ->whereIn('Level', [2])
+            ->where('Location', $LSP)
+            ->first();
+
+        if ($master) {
+            DB::table('requisition_approval')->insert([
+                'Location'        => $LSP,
+                'Task_ID'         => $request->input('Task_ID'),
+                'Level'           => 2,
+                'Approved_By'     => $master->username,
+                'Approved_Status' => 0,
+                'Approved_Date'   => null,
+                'Approved_Note'   => null,
+            ]);
+        }
+
+        if (Str::contains($jobPosition->Level, [1, 2, 3, 4, 5, 6])) {
+            $master = DB::table('master_hr_approval')
+                ->whereIn('Level', [3, 4])
+                ->where('Location', $LSP)
+                ->first();
+
+            if ($master) {
+                DB::table('requisition_approval')->insert([
+                    'Location'        => $LSP,
+                    'Task_ID'         => $request->input('Task_ID'),
+                    'Level'           => 2,
+                    'Approved_By'     => $master->username,
+                    'Approved_Status' => 0,
+                    'Approved_Date'   => null,
+                    'Approved_Note'   => null,
+                ]);
+            }
+        }
+
+        return response()->json(['status' => 'success', 'message' => 'Requisition created.']);
     }
 }

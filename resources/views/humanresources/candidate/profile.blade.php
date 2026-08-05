@@ -16,12 +16,6 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>Task ID</label>
-                        <input type="text" class="form-control" value="{{ $rec->Task_ID ?? '' }}" readonly>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
                         <label>Name</label>
                         <input type="text" class="form-control" value="{{ $rec->Name ?? '' }}" readonly>
                     </div>
@@ -35,49 +29,75 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>Gender</label>
-                        <input type="text" class="form-control" value="{{ $rec->Gender ?? '' }}" readonly>
+                        <select id="Gender" class="form-control">
+                            <option value="L" {{ ($rec->Gender ?? '') == 'L' ? 'selected' : '' }}>MALE</option>
+                            <option value="P" {{ ($rec->Gender ?? '') == 'P' ? 'selected' : '' }}>FEMALE</option>
+                        </select>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>Birth Date</label>
-                        <input type="text" class="form-control" value="{{ $rec->Birth_Date ?? '' }}" readonly>
+                        <input type="date" id="Birth_Date" class="form-control" value="{{ $rec->Birth_Date ?? '' }}">
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>Birth Place</label>
-                        <input type="text" class="form-control" value="{{ $rec->Birth_Place ?? '' }}" readonly>
+                        <input type="text" id="Birth_Place" class="form-control" value="{{ $rec->Birth_Place ?? '' }}">
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>KTP</label>
-                        <input type="text" class="form-control" value="{{ $rec->KTP ?? '' }}" readonly>
+                        <input type="text" id="KTP" class="form-control" value="{{ $rec->KTP ?? '' }}">
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>Last Education</label>
-                        <input type="text" class="form-control" value="{{ $rec->Last_Education ?? '' }} - {{ $rec->Last_Education_From ?? '' }}" readonly>
+                        <select id="Last_Education" class="form-control">
+                            <option value="">-- Pilih --</option>
+                            @foreach(['SMA/SMK','D1','D2','D3','D4','S1','S2','S3'] as $edu)
+                            <option value="{{ $edu }}" {{ ($rec->Last_Education ?? '') == $edu ? 'selected' : '' }}>{{ $edu }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Last Education Institution</label>
+                        <input type="text" id="Last_Education_From" class="form-control" value="{{ $rec->Last_Education_From ?? '' }}">
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>Religion</label>
-                        <input type="text" class="form-control" value="{{ $rec->Religion ?? '' }}" readonly>
+                        <select id="Religion" class="form-control">
+                            <option value="">-- Pilih --</option>
+                            @foreach(['ISLAM','PROTESTAN','KATHOLIK','BUDHA','HINDU'] as $rel)
+                            <option value="{{ $rel }}" {{ ($rec->Religion ?? '') == $rel ? 'selected' : '' }}>{{ $rel }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>Marital Status</label>
-                        <input type="text" class="form-control" value="{{ $rec->Marital_Status ?? '' }}" readonly>
+                        <select id="Marital_Status" class="form-control">
+                            <option value="">-- Pilih --</option>
+                            @foreach(['SINGLE','MARRIED','WIDOWER','WIDOW'] as $ms)
+                            <option value="{{ $ms }}" {{ ($rec->Marital_Status ?? '') == $ms ? 'selected' : '' }}>{{ $ms }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
-            </div>
-            <hr>
-            <h5>Editable Information</h5>
-            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Citizenship</label>
+                        <input type="text" id="kewarganegaraan" class="form-control" value="{{ $rec->kewarganegaraan ?? '' }}">
+                    </div>
+                </div>
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>Address</label>
@@ -113,12 +133,22 @@
                 <button type="button" id="saveProfile" class="btn btn-primary">Save Changes</button>
             </div>
         </form>
+        <div id="profileResult" class="mt-2"></div>
     </div>
 </div>
 
 <script>
 $('#saveProfile').click(function() {
     var data = {
+        Gender: $('#Gender').val(),
+        Birth_Date: $('#Birth_Date').val(),
+        Birth_Place: $('#Birth_Place').val(),
+        KTP: $('#KTP').val(),
+        Last_Education: $('#Last_Education').val(),
+        Last_Education_From: $('#Last_Education_From').val(),
+        Religion: $('#Religion').val(),
+        Marital_Status: $('#Marital_Status').val(),
+        kewarganegaraan: $('#kewarganegaraan').val(),
         Address: $('#Address').val(),
         City: $('#City').val(),
         Phone: $('#Phone').val(),
