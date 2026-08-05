@@ -71,10 +71,33 @@ class CandidateController extends Controller
 
     public function profileUpdate(Request $request)
     {
+        $request->validate([
+            'Gender' => 'nullable|in:L,P',
+            'Birth_Date' => 'nullable|date',
+            'KTP' => 'nullable|digits:16',
+            'Last_Education' => 'nullable|string|max:50',
+            'Last_Education_From' => 'nullable|string|max:255',
+            'Religion' => 'nullable|string|max:50',
+            'Marital_Status' => 'nullable|string|max:50',
+            'kewarganegaraan' => 'nullable|string|max:100',
+            'Address' => 'nullable|string',
+            'City' => 'nullable|string|max:255',
+            'Phone' => 'nullable|numeric',
+            'Handphone' => 'nullable|numeric',
+            'Email' => 'nullable|email',
+        ]);
+
         $taskId = Auth::user()->username;
-        $allowed = ['Address', 'City', 'Phone', 'Handphone', 'Email'];
+        $allowed = [
+            'Gender', 'Birth_Date', 'Birth_Place', 'KTP',
+            'Last_Education', 'Last_Education_From', 'Religion', 'Marital_Status',
+            'kewarganegaraan', 'Address', 'City', 'Phone', 'Handphone', 'Email'
+        ];
         $data = $request->only($allowed);
-        DB::table('recruitment')->where('Task_ID', $taskId)->update($data);
+        DB::table('recruitment')->updateOrInsert(
+            ['Task_ID' => $taskId],
+            $data
+        );
         return 'success';
     }
 

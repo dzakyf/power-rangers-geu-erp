@@ -59,7 +59,7 @@ class CredentialRoleController extends Controller
         $role = Role::findOrFail($roleId);
         $rolePermissionNames = $role->permissions->pluck('name')->toArray();
 
-        $allowedModules = ['FINANCE', 'HRD', 'MITRA', 'CNS'];
+        $allowedModules = ['FINANCE', 'HRD', 'MITRA', 'CNS', 'CANDIDATE'];
 
         $menus = DB::table('menu_lists')
             ->whereIn('Modules', $allowedModules)
@@ -213,7 +213,7 @@ class CredentialRoleController extends Controller
             return response()->json(['success' => false, 'message' => 'ADM permissions are immutable.']);
         }
 
-        $allowedModules = ['FINANCE', 'HRD', 'MITRA', 'CNS'];
+        $allowedModules = ['FINANCE', 'HRD', 'MITRA', 'CNS', 'CANDIDATE'];
 
         $menuIds = DB::table('menu_lists')
             ->whereIn('Modules', $allowedModules)

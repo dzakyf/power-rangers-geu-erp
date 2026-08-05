@@ -50,7 +50,7 @@ class RecruitmentDetailController extends Controller
             'Phone' => $request->input('Phone'),
             'Handphone' => $request->input('Handphone'),
             'Address_Living' => $request->input('Address_Living'),
-            'Address_Living_City' => $request->input('Address_Living_City'),
+            'City_Living' => $request->input('Address_Living_City'),
             'Email_Individual' => $request->input('Email_Individual'),
             'NPWP' => $request->input('NPWP'),
         ]);

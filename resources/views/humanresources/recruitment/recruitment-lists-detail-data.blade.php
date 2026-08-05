@@ -446,8 +446,7 @@ $('#buttonSimpan').click(function(){
         data : gettingVars,
         complete: function() { $.unblockUI(); },
         success: function(data) {
-            var dataPos = data.indexOf("success");
-            if (dataPos != '-1'){
+            if (data && data.status === 'success') {
                 alert('Data updated successfully.');
                 if (window.parent.refreshdata) window.parent.refreshdata();
                 if (window.parent.$('#divlistRecruitment')) window.parent.$('#divlistRecruitment').empty();
