@@ -120,7 +120,8 @@ class QualityController extends Controller
                 'mf.Extension'
             );
 
-        $query->where('uqc.Is_Deleted', '!=', 1);
+        $query->where('uqc.Is_Deleted', '!=', 1)
+            ->whereNull('uqc.Source_ID');
 
         if ($r->Date) {
             $query->whereDate('uqc.Created_At', Carbon::parse($r->Date)->toDateString());

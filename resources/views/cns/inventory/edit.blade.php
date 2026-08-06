@@ -55,12 +55,12 @@
                             <input type="text" name="Reference_Number" id="edit_Reference_Number" class="form-control" />
                         </div>
                     </div>
-                    <!-- <div class="col-md-4">
+                    <div class="col-md-4">
                         <div class="form-group">
-                            <label for="edit_Attachment">Attachment</label>
+                            <label for="edit_Attachment">Attachment Nota Timbang</label>
                             <input type="file" name="Attachment" id="edit_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
                         </div>
-                    </div> -->
+                    </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-12">
@@ -70,6 +70,57 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label>Quality Control</label>
+
+                            <table class="table table-bordered text-center">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>FFA As Palmitic</th>
+                                        <th>FFA As Oleic</th>
+                                        <th>MC</th>
+                                        <th>IMP</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="align-middle font-weight-bold">Top</td>
+                                        <td><input type="number" step="0.01" name="top_FFA_As_Palmitic" id="edit_top_FFA_As_Palmitic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="top_FFA_As_Oleic" id="edit_top_FFA_As_Oleic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="top_MC" id="edit_top_MC" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="top_IMP" id="edit_top_IMP" class="form-control" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="align-middle font-weight-bold">Middle</td>
+                                        <td><input type="number" step="0.01" name="middle_FFA_As_Palmitic" id="edit_middle_FFA_As_Palmitic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="middle_FFA_As_Oleic" id="edit_middle_FFA_As_Oleic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="middle_MC" id="edit_middle_MC" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="middle_IMP" id="edit_middle_IMP" class="form-control" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="align-middle font-weight-bold">Bottom</td>
+                                        <td><input type="number" step="0.01" name="bottom_FFA_As_Palmitic" id="edit_bottom_FFA_As_Palmitic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="bottom_FFA_As_Oleic" id="edit_bottom_FFA_As_Oleic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="bottom_MC" id="edit_bottom_MC" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="bottom_IMP" id="edit_bottom_IMP" class="form-control" /></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-2">
+                            <label for="edit_QC_Attachment">QC Attachment</label>
+                            <input type="file" name="QC_Attachment" id="edit_QC_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
+                        </div>
+                    </div>
+
+                </div>
+
 
                 <button type="button" class="btn btn-primary" onclick="submitEditStock()">Update</button>
                 <button type="button" class="btn btn-secondary ml-2" onclick="$('#FormEditStock').hide(); $('#StockEditForm')[0].reset();">Cancel</button>
@@ -98,6 +149,15 @@
             // document.getElementById('edit_Created_By').value = row.Created_By ?? '';
             document.getElementById('edit_Reference_Number').value = row.Reference_Number ?? '';
             document.getElementById('edit_Notes').value = row.Notes ?? '';
+
+            var qc = row.qc || {};
+            ['top', 'middle', 'bottom'].forEach(function(type) {
+                var item = qc[type] || {};
+                document.getElementById('edit_' + type + '_FFA_As_Palmitic').value = item.FFA_As_Palmitic ?? '';
+                document.getElementById('edit_' + type + '_FFA_As_Oleic').value = item.FFA_As_Oleic ?? '';
+                document.getElementById('edit_' + type + '_MC').value = item.MC ?? '';
+                document.getElementById('edit_' + type + '_IMP').value = item.IMP ?? '';
+            });
 
             $('#FormEditStock').show();
         }).fail(function() {
