@@ -52,7 +52,7 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="Attachment">Attachment</label>
+                            <label for="Attachment">Attachment Nota Timbang</label>
                             <input type="file" name="Attachment" id="Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
                         </div>
                     </div>
@@ -62,6 +62,56 @@
                         <div class="form-group">
                             <label for="Notes">Notes</label>
                             <textarea name="Notes" id="Notes" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label>Quality Control <span style="color:red;">*</span></label>
+
+                            <table class="table table-bordered text-center">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>FFA As Palmitic</th>
+                                        <th>FFA As Oleic</th>
+                                        <th>MC</th>
+                                        <th>IMP</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="align-middle font-weight-bold">Top</td>
+                                        <td><input type="number" step="0.01" name="top_FFA_As_Palmitic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="top_FFA_As_Oleic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="top_MC" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="top_IMP" class="form-control" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="align-middle font-weight-bold">Middle</td>
+                                        <td><input type="number" step="0.01" name="middle_FFA_As_Palmitic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="middle_FFA_As_Oleic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="middle_MC" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="middle_IMP" class="form-control" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="align-middle font-weight-bold">Bottom</td>
+                                        <td><input type="number" step="0.01" name="bottom_FFA_As_Palmitic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="bottom_FFA_As_Oleic" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="bottom_MC" class="form-control" /></td>
+                                        <td><input type="number" step="0.01" name="bottom_IMP" class="form-control" /></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-2">
+                            <label for="QC_Attachment">Attachment QC</label>
+                            <input type="file" name="QC_Attachment" id="QC_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
                         </div>
                     </div>
                 </div>

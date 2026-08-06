@@ -436,6 +436,15 @@ class UCOController extends Controller
             ->where('uco_storage_pelindo.ID', '=', $r->query('ID'))
             ->first();
 
+        if ($row) {
+            $qc = DB::table('uco_quality_control')
+                ->where('Source_ID', $r->query('ID'))
+                ->where('Is_Deleted', '!=', 1)
+                ->get()
+                ->keyBy(fn($q) => strtolower($q->Type));
+            $row->qc = $qc;
+        }
+
         return response()->json($row ? [$row] : []);
     }
 
@@ -480,6 +489,8 @@ class UCOController extends Controller
                 ]);
             }
 
+            $this->upsertInventoryQC($r, $model->ID);
+
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Record created successfully']);
         } catch (\Exception $e) {
@@ -488,21 +499,110 @@ class UCOController extends Controller
         }
     }
 
+    private function upsertInventoryQC(Request $r, $sourceId)
+    {
+        $date = Carbon::parse($r->input('Transaction_Date'))->toDateString();
+        $types = ['TOP' => 'top_', 'MIDDLE' => 'middle_', 'BOTTOM' => 'bottom_'];
+
+        $attachmentPath = null;
+        $filename = null;
+        $extension = null;
+        if ($r->hasFile('QC_Attachment') && $r->file('QC_Attachment')->isValid()) {
+            $file = $r->file('QC_Attachment');
+            $ext = $file->getClientOriginalExtension();
+            $year = now()->format('Y');
+            $month = now()->format('m');
+            $filename = \Ramsey\Uuid\Uuid::uuid4()->toString() . '.' . $ext;
+            $attachmentPath = "{$year}/{$month}/{$filename}";
+
+            $dir = public_path("filevendor/{$year}/{$month}");
+            if (!is_dir($dir)) {
+                mkdir($dir, 0777, true);
+            }
+            $file->move($dir, $filename);
+            $extension = $ext;
+        }
+
+        foreach ($types as $type => $prefix) {
+            $values = [
+                'FFA_As_Palmitic' => $r->input($prefix . 'FFA_As_Palmitic'),
+                'FFA_As_Oleic'    => $r->input($prefix . 'FFA_As_Oleic'),
+                'MC'              => $r->input($prefix . 'MC'),
+                'IMP'             => $r->input($prefix . 'IMP'),
+            ];
+
+            $values = array_map(fn($v) => ($v === '' ? null : $v), $values);
+
+            $hasValue = array_filter($values, fn($v) => $v !== null);
+
+            $existing = DB::table('uco_quality_control')
+                ->where('Source_ID', $sourceId)
+                ->where('Type', $type)
+                ->first();
+
+            if (empty($hasValue)) {
+                if ($existing) {
+                    DB::table('uco_quality_control')->where('ID', $existing->ID)->update($values);
+                }
+                continue;
+            }
+
+            $payload = $values + ['Is_Deleted' => 0];
+
+            if ($existing) {
+                DB::table('uco_quality_control')->where('ID', $existing->ID)->update($payload);
+                $qcId = $existing->ID;
+            } else {
+                $qcId = DB::table('uco_quality_control')->insertGetId($payload + [
+                    'Created_At' => $date,
+                    'Type'       => $type,
+                    'Source_ID'  => $sourceId,
+                ]);
+            }
+
+            if ($attachmentPath) {
+                DB::table('meta_files')
+                    ->where('Map_To', $qcId)
+                    ->where('Topic', 'uco-quality-control')
+                    ->delete();
+
+                DB::table('meta_files')->insert([
+                    'Filename'    => $filename,
+                    'Path'        => $attachmentPath,
+                    'Extension'   => $extension,
+                    'Description' => 'QC Attachment',
+                    'Created_At'  => now(),
+                    'Topic'       => 'uco-quality-control',
+                    'Map_To'      => $qcId,
+                ]);
+            }
+        }
+    }
+
     public function updateExportedStock(Request $r)
     {
-        UCOStoragePelindo::where('ID', $r->id)
-            ->update($r->only([
-                'Type',
-                'Quantity',
-                'Quantity_PTU',
-                'Quantity_Sounding',
-                'Created_By',
-                'Transaction_Date',
-                'Reference_Number',
-                'Notes',
-            ]));
+        DB::beginTransaction();
+        try {
+            UCOStoragePelindo::where('ID', $r->id)
+                ->update($r->only([
+                    'Type',
+                    'Quantity',
+                    'Quantity_PTU',
+                    'Quantity_Sounding',
+                    'Created_By',
+                    'Transaction_Date',
+                    'Reference_Number',
+                    'Notes',
+                ]));
 
-        return response()->json(['success' => true, 'message' => 'Record updated successfully']);
+            $this->upsertInventoryQC($r, $r->id);
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Record updated successfully']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function deleteExportedStock(Request $r)
