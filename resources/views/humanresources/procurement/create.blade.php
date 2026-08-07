@@ -145,7 +145,7 @@
                         </div>
                         <div class="FormInput_left">
             
-                            Note
+                            Specification
             
                         </div>
                         <div class="FormInput_right" style="height:80px;">
