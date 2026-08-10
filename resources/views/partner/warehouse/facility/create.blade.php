@@ -59,6 +59,25 @@
                             <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="addDetail">+ Add Detail</button>
                         </div>
 
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label for="asset_type">Asset Type</label>
+                                <select class="form-control" id="asset_type" name="asset_type">
+                                    <option value="">-- Select Asset Type --</option>
+                                    <option value="Asset">Asset</option>
+                                    <option value="Bukan Asset">Bukan Asset</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="depreciation_year">Depreciation Year</label>
+                                <input type="number" min="1" class="form-control" id="depreciation_year" name="depreciation_year" placeholder="e.g. 10">
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="shelf_life">Shelf Life</label>
+                                <input type="number" min="1" class="form-control" id="shelf_life" name="shelf_life" placeholder="e.g. 60">
+                            </div>
+                        </div>
+
                         <hr>
                         <button type="button" class="btn btn-primary" id="SubmitFacility">Submit</button>
                         <button type="reset" class="btn btn-secondary ml-2">Reset</button>

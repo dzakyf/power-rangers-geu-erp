@@ -31,6 +31,19 @@ $Saya =  Auth::user()->username;
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LAPORAN KEUANGAN</div>
 	<div class="card">
 		<div class="card-body">
+			<div class="d-flex align-items-end mb-2">
+				<div class="m-1">
+					<label class="d-block mb-1"><small>Dari Bulan</small></label>
+					<input type="month" id="filterStart" class="form-control form-control-sm" style="width:160px;" />
+				</div>
+				<div class="m-1">
+					<label class="d-block mb-1"><small>Sampai Bulan</small></label>
+					<input type="month" id="filterEnd" class="form-control form-control-sm" style="width:160px;" />
+				</div>
+				<div class="m-1">
+					<button class="btn btn-sm btn-primary" onclick="refreshdata()">Filter</button>
+				</div>
+			</div>
 			<div id="ProfitSharing" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselProfitSharingDet" name="ekselProfitSharingDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ProfitSharing.toExcel('./export/generate.php');" />
@@ -62,7 +75,13 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		ProfitSharing.clearAndLoad('xml-partner-profit-sharing-management-fee');
+		var params = [];
+		var start = $('#filterStart').val();
+		var end = $('#filterEnd').val();
+		if (start) params.push('start=' + start);
+		if (end) params.push('end=' + end);
+		var url = 'xml-partner-profit-sharing-management-fee' + (params.length ? '?' + params.join('&') : '');
+		ProfitSharing.clearAndLoad(url);
 	}
 </script>
 @endsection

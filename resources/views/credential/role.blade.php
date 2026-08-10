@@ -152,7 +152,7 @@ $Saya = Auth::user()->username; ?>
                         <option value="HRD">Human Resources</option>
                         <option value="MITRA">Business Partner</option>
                         <option value="CNS">CNS</option>
-                        <option value="__CREDENTIAL__">Credential</option>
+                        <option value="CREDENTIAL">Credential</option>
                     </select>
                     <button id="toggle-all-btn" class="btn btn-sm btn-outline-primary" style="display:none;">Pilih semua role</button>
                 </div>
@@ -174,8 +174,14 @@ $Saya = Auth::user()->username; ?>
                     <button type="button" class="btn btn-success" id="save-permissions-btn" onclick="triggerSavePermissions()" disabled>
                         <i class="fa fa-save"></i> Save Permissions
                     </button>
-                                        <button id="edit-menu-name-btn" class="btn btn-primary" disabled onclick="openEditMenuNameModal()">
-                        <i class="fa fa-pencil"></i> Edit Menu Name
+                                        <button id="add-menu-btn" class="btn btn-success" disabled onclick="openCreateMenuModal()">
+                        <i class="fa fa-plus"></i> Add Menu Item
+                    </button>
+                    <button id="edit-menu-name-btn" class="btn btn-primary" disabled onclick="openEditMenuModal()">
+                        <i class="fa fa-pencil"></i> Edit Menu
+                    </button>
+                    <button id="delete-menu-btn" class="btn btn-danger" disabled onclick="deleteSelectedMenu()">
+                        <i class="fa fa-trash"></i> Delete Menu
                     </button>
                     <span id="save-status" style="margin-left:10px;color:green;display:none;"></span>
                 </div>
@@ -250,12 +256,12 @@ $Saya = Auth::user()->username; ?>
                     selectedRoleName = data.name;
 
                     var isAdm = (data.name === 'ADM');
-                    if (isAdm || !canEdit) {
-                        $('#editRoleBtn').prop('disabled', true);
+                    if (isAdm) {
+                        $('#editRoleBtn').prop('disabled', !canEdit);
                         $('#deleteRoleBtn').prop('disabled', true);
                     } else {
-                        $('#editRoleBtn').prop('disabled', false);
-                        $('#deleteRoleBtn').prop('disabled', false);
+                        $('#editRoleBtn').prop('disabled', !canEdit);
+                        $('#deleteRoleBtn').prop('disabled', !canEdit);
                     }
 
                     loadPermissions(data.id, data.name);
@@ -269,21 +275,16 @@ $Saya = Auth::user()->username; ?>
             selectedMenuId = null;
             selectedMenuName = null;
             $('#edit-menu-name-btn').prop('disabled', true);
-            var isAdm = (roleName === 'ADM');
+            $('#delete-menu-btn').prop('disabled', true);
             $('#selected-role-name').text('(' + roleName + ')');
             $('#no-role-message').hide();
             $('#permission-table-container').show();
             $('#perm-loading').show();
-            if (isAdm) {
-                $('#role-badge').show();
-                $('#save-permissions-btn').hide();
+            $('#role-badge').hide();
+            if (canEdit) {
+                $('#save-permissions-btn').prop('disabled', false).show();
             } else {
-                $('#role-badge').hide();
-                if (canEdit) {
-                    $('#save-permissions-btn').prop('disabled', false).show();
-                } else {
-                    $('#save-permissions-btn').hide();
-                }
+                $('#save-permissions-btn').hide();
             }
 
             if (permDt) {
@@ -313,7 +314,7 @@ $Saya = Auth::user()->username; ?>
                             });
                             currentPermState[row.menu_id] = state;
                         });
-                        if (allGranted && selectedRoleName !== 'ADM' && canEdit) {
+                        if (allGranted && canEdit) {
                             $('#toggle-all-btn').show().text('Hapus semua role');
                         } else {
                             $('#toggle-all-btn').show().text('Pilih semua role');
@@ -329,7 +330,13 @@ $Saya = Auth::user()->username; ?>
                         },
                     },
                     {
-                        data: 'menu_name'
+                        data: 'menu_name',
+                        render: function(val, type, row) {
+                            var pos = parseInt(row.position) || 1;
+                            var pad = (pos - 1) * 20;
+                            var bold = pos === 1 ? 'font-weight:bold;' : '';
+                            return '<span style="padding-left:' + pad + 'px;' + bold + '">' + $('<div>').text(val || '').html() + '</span>';
+                        }
                     },
                     {
                         data: 'module'
@@ -337,31 +344,31 @@ $Saya = Auth::user()->username; ?>
                     {
                         data: 'view',
                         render: function(val, type, row) {
-                            return renderCheckbox('view', row, isAdm);
+                            return renderCheckbox('view', row);
                         }
                     },
                     {
                         data: 'create',
                         render: function(val, type, row) {
-                            return renderCheckbox('create', row, isAdm);
+                            return renderCheckbox('create', row);
                         }
                     },
                     {
                         data: 'edit',
                         render: function(val, type, row) {
-                            return renderCheckbox('edit', row, isAdm);
+                            return renderCheckbox('edit', row);
                         }
                     },
                     {
                         data: 'delete',
                         render: function(val, type, row) {
-                            return renderCheckbox('delete', row, isAdm);
+                            return renderCheckbox('delete', row);
                         }
                     },
                     {
                         data: 'approve',
                         render: function(val, type, row) {
-                            return renderCheckbox('approve', row, isAdm);
+                            return renderCheckbox('approve', row);
                         }
                     }
                 ],
@@ -373,16 +380,20 @@ $Saya = Auth::user()->username; ?>
                     visible: false
                 }],
                 drawCallback: function() {
-                    bindCheckboxEvents(isAdm);
+                    bindCheckboxEvents();
                 },
                 rowCallback: function(row, data) {
                     $(row).addClass('perm-row');
                     $(row).on('click', function() {
                         $('#permission-table tr').removeClass('selected');
                         $(this).addClass('selected');
-                        selectedMenuId = data.menu_id;
+                        selectedMenuId = data.id;
                         selectedMenuName = data.menu_name;
-                        $('#edit-menu-name-btn').prop('disabled', false);
+                        if (canEdit) {
+                            $('#edit-menu-name-btn').prop('disabled', false);
+                            $('#add-menu-btn').prop('disabled', false);
+                            $('#delete-menu-btn').prop('disabled', false);
+                        }
                     });
                 },
                 initComplete: function() {
@@ -391,17 +402,17 @@ $Saya = Auth::user()->username; ?>
             });
         }
 
-        function renderCheckbox(action, row, isAdm) {
+        function renderCheckbox(action, row) {
             var menuId = row.menu_id;
             var checked = currentPermState[menuId] && currentPermState[menuId][action] !== undefined ?
                 currentPermState[menuId][action] :
                 !!row[action];
-            var disabled = (isAdm || !canEdit) ? 'disabled' : '';
+            var disabled = !canEdit ? 'disabled' : '';
             return '<input type="checkbox" class="perm-checkbox" data-menu-id="' + menuId + '" data-action="' + action + '" ' + (checked ? 'checked' : '') + ' ' + disabled + '>';
         }
 
-        function bindCheckboxEvents(isAdm) {
-            if (isAdm || !canEdit) return;
+        function bindCheckboxEvents() {
+            if (!canEdit) return;
             $('.perm-checkbox').off('change').on('change', function() {
                 var menuId = $(this).data('menu-id');
                 var action = $(this).data('action');
@@ -413,11 +424,6 @@ $Saya = Auth::user()->username; ?>
         $('#module-filter').on('change', function() {
             var val = this.value;
             if (!permDt) return;
-
-            if (val === '__CREDENTIAL__') {
-                permDt.column(2).search('__NONE__').draw();
-                return;
-            }
             permDt.column(2).search(val).draw();
         });
 
@@ -554,12 +560,6 @@ $Saya = Auth::user()->username; ?>
     function triggerSavePermissions() {
         if (!selectedRoleId) return;
 
-        if (selectedRoleName === 'ADM') {
-        $('#save-status').text('ADM permissions are immutable.').css('color', 'red').show();
-        setTimeout(function() { $('#save-status').fadeOut(); }, 3000);
-        return;
-        }
-
         var permissions = {};
         Object.keys(currentPermState).forEach(function(menuId) {
         permissions[menuId] = currentPermState[menuId];
@@ -598,57 +598,172 @@ $Saya = Auth::user()->username; ?>
         });
     }
 
-    function openEditMenuNameModal() {
-        if (!selectedMenuId) return;
+    function buildParentOptions(module, selected) {
+        var opts = '<option value="">-- Root (no parent) --</option>';
+        var rows = permDataCache[selectedRoleId] || [];
+        rows.forEach(function(r) {
+            if (r.module === module) {
+                var sel = (r.menu_id === selected) ? ' selected' : '';
+                opts += '<option value="' + r.menu_id + '"' + sel + '>' + r.menu_name + '</option>';
+            }
+        });
+        return opts;
+    }
+
+    function openMenuModal(mode) {
+        var isCreate = (mode === 'create');
+        var row = null;
+        if (!isCreate) {
+            var rows = permDataCache[selectedRoleId] || [];
+            rows.forEach(function(r) { if (String(r.id) === String(selectedMenuId)) row = r; });
+        }
+
+        var module = isCreate ? (permDataCache[selectedRoleId] && permDataCache[selectedRoleId][0] ? permDataCache[selectedRoleId][0].module : 'MITRA') : (row ? row.module : 'MITRA');
+        var parent = isCreate ? '' : (row ? row.parent_menu : '');
+        var position = isCreate ? 4 : (row ? row.position : 4);
+        var name = isCreate ? '' : (row ? row.menu_name : '');
+        var path = isCreate ? '' : (row ? (row.path_loc || '') : '');
+        var urutan = isCreate ? 1 : (row ? (row.urutan || 1) : 1);
+
+        var body = '<form id="menuForm">' +
+            '<input type="hidden" id="menuFormMode" value="' + mode + '">' +
+            '<input type="hidden" id="menuFormRowId" value="' + (isCreate ? '' : selectedMenuId) + '">' +
+            '<input type="hidden" id="menuFormMenuId" value="' + (isCreate ? '' : (row ? row.menu_id : '')) + '">' +
+            '<div class="form-group"><label>Menu Name</label><input type="text" id="menuFormName" class="form-control" value="' + $('<div>').text(name).html() + '"></div>' +
+            '<div class="form-group"><label>Module</label><select id="menuFormModule" class="form-control">' +
+            '<option value="MITRA"' + (module === 'MITRA' ? ' selected' : '') + '>Business Partner</option>' +
+            '<option value="FINANCE"' + (module === 'FINANCE' ? ' selected' : '') + '>Finances</option>' +
+            '<option value="HRD"' + (module === 'HRD' ? ' selected' : '') + '>Human Resources</option>' +
+            '<option value="CNS"' + (module === 'CNS' ? ' selected' : '') + '>CNS</option>' +
+            '<option value="CANDIDATE"' + (module === 'CANDIDATE' ? ' selected' : '') + '>Candidate</option>' +
+            '<option value="CREDENTIAL"' + (module === 'CREDENTIAL' ? ' selected' : '') + '>Credential</option>' +
+            '</select></div>' +
+            '<div class="form-group"><label>Parent Menu</label><select id="menuFormParent" class="form-control">' +
+            buildParentOptions(module, parent) +
+            '</select></div>' +
+            '<div class="form-group"><label>Position (Level)</label><select id="menuFormPosition" class="form-control">' +
+            '<option value="1"' + (position == 1 ? ' selected' : '') + '>1 - Top Module</option>' +
+            '<option value="2"' + (position == 2 ? ' selected' : '') + '>2 - Menu Group</option>' +
+            '<option value="3"' + (position == 3 ? ' selected' : '') + '>3 - Sub Menu</option>' +
+            '<option value="4"' + (position == 4 ? ' selected' : '') + '>4 - Leaf Item</option>' +
+            '</select></div>' +
+            '<div class="form-group"><label>Path / Route</label><input type="text" id="menuFormPath" class="form-control" value="' + $('<div>').text(path).html() + '"></div>' +
+            '<div class="form-group"><label>Urutan</label><input type="number" min="1" id="menuFormUrutan" class="form-control" value="' + urutan + '"></div>' +
+            '</form>';
 
         AppModal.open({
-        title: 'Edit Menu Name',
-        body: '<form id="editMenuNameForm"><input type="hidden" id="modalMenuId" value="' + selectedMenuId + '"><div class="form-group"><label>Menu Name</label><input type="text" id="modalMenuName" class="form-control" value="' + $('<div>').text(selectedMenuName).html() + '"></div></form>',
-        size: 'sm',
-        actions: [
-        {
-        label: 'Cancel',
-        class: 'btn-secondary',
-        onClick: function() { return true; }
-        },
-        {
-        label: 'Save',
-        class: 'btn-primary',
-        onClick: function() {
-        var menuId = $('#modalMenuId').val();
-        var name = $('#modalMenuName').val().trim();
+            title: isCreate ? 'Add Menu Item' : 'Edit Menu',
+            size: 'md',
+            body: body,
+            actions: [{
+                label: 'Cancel',
+                class: 'btn-secondary',
+                onClick: function() { return true; }
+            }, {
+                label: isCreate ? 'Create' : 'Save',
+                class: 'btn-primary',
+                onClick: function() {
+                    var name = $('#menuFormName').val().trim();
+                    var module = $('#menuFormModule').val();
+                    if (!name) {
+                        alert('Menu name is required.');
+                        return false;
+                    }
+                    var fd = new FormData();
+                    fd.append('_token', '{{ csrf_token() }}');
+                    fd.append('id', $('#menuFormRowId').val());
+                    fd.append('menu_id', $('#menuFormMenuId').val());
+                    fd.append('name', name);
+                    fd.append('module', module);
+                    fd.append('parent_menu', $('#menuFormParent').val());
+                    fd.append('position', $('#menuFormPosition').val());
+                    fd.append('path_loc', $('#menuFormPath').val());
+                    fd.append('urutan', $('#menuFormUrutan').val());
 
-        if (!name) {
-        alert('Menu name is required.');
-        return false;
-        }
+                    var url = isCreate ? '{{ url("/master-credential-role-menu-create") }}' : '{{ url("/master-credential-role-menu-update") }}';
+
+                    $.ajax({
+                        url: url,
+                        method: 'POST',
+                        data: fd,
+                        processData: false,
+                        contentType: false,
+                        success: function(res) {
+                            if (res.success) {
+                                AppModal.close();
+                                if (permDt) permDt.ajax.reload();
+                            } else {
+                                alert(res.message || 'Error');
+                            }
+                        },
+                        error: function() {
+                            alert('Request failed');
+                        }
+                    });
+                    return false;
+                }
+            }]
+        });
+
+        $('#appModal').on('shown.bs.modal', function() {
+            if ($('#menuFormModule').hasClass('select2-hidden-accessible')) {
+                $('#menuFormModule').select2('destroy');
+            }
+            if ($('#menuFormParent').hasClass('select2-hidden-accessible')) {
+                $('#menuFormParent').select2('destroy');
+            }
+            $('#menuFormModule').select2({
+                width: '100%',
+                dropdownParent: $('#appModal')
+            });
+            $('#menuFormParent').select2({
+                width: '100%',
+                dropdownParent: $('#appModal')
+            });
+            $('#menuFormModule').off('change').on('change', function() {
+                $('#menuFormParent').html(buildParentOptions(this.value, ''));
+                $('#menuFormParent').trigger('change');
+            });
+        });
+    }
+
+    function openCreateMenuModal() {
+        if (!canEdit || !selectedRoleId) return;
+        openMenuModal('create');
+    }
+
+    function openEditMenuModal() {
+        if (!canEdit || !selectedMenuId) return;
+        openMenuModal('edit');
+    }
+
+    function deleteSelectedMenu() {
+        if (!canEdit || !selectedMenuId) return;
+        if (!confirm('Yakin ingin menghapus menu "' + selectedMenuName + '"?')) return;
 
         $.ajax({
-        url: '{{ url("/master-credential-menu-name-update") }}',
-        method: 'POST',
-        data: {
-        _token: '{{ csrf_token() }}',
-        menu_id: menuId,
-        name: name
-        },
-        success: function(response) {
-        if (response.success) {
-        location.reload();
-        } else {
-        alert(response.message || 'Error');
-        }
-        },
-        error: function() {
-        alert('Request failed');
-        }
+            url: '{{ url("/master-credential-role-menu-delete") }}',
+            method: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                id: selectedMenuId
+            },
+            success: function(res) {
+                if (res.success) {
+                    selectedMenuId = null;
+                    selectedMenuName = null;
+                    $('#edit-menu-name-btn').prop('disabled', true);
+                    $('#delete-menu-btn').prop('disabled', true);
+                    if (permDt) permDt.ajax.reload();
+                } else {
+                    alert(res.message || 'Error deleting menu');
+                }
+            },
+            error: function() {
+                alert('Request failed');
+            }
         });
-
-        return false;
-        }
-        }
-        ]
-        });
-        }
+    }
 
 </script>
     @endpush

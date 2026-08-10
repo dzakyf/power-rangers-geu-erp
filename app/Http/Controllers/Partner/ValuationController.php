@@ -9,6 +9,7 @@ use App\OpportunityPartnerFacilityDtl;
 use App\Services\UserService;
 use App\User;
 use App\WarehousePartner;
+use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -75,7 +76,11 @@ class ValuationController extends Controller
     public function detailValuation(Request $request)
     {
         $warehouse = WarehousePartner::where("warehouse_task_id", $request->Task)->first();
+        if (!$warehouse) {
+            abort(404, 'Warehouse tidak ditemukan');
+        }
         $partner = DB::table('opportunity_partner')->where('lead_id', $warehouse->partner_task_id)->first();
+
 
         return view('partner.valuation.list-detail', compact('warehouse', 'partner'));
     }
@@ -93,7 +98,7 @@ class ValuationController extends Controller
         echo "<rows>";
         $nomor = 1;
 
-        $getAsset = DB::table('master_facility')->where('asset_type', 'Asset')->where('is_deleted', 0)->get();
+        $getAsset = DB::table('master_facility')->where('is_deleted', 0)->get();
         $asId = $getAsset->pluck('id');
         $asset = $getAsset->keyBy('id');
         $startDate = DB::table('opportunity_partner')->where("id", $request->partner)->select('contract_start_at')->first();
@@ -105,29 +110,29 @@ class ValuationController extends Controller
 
         $cat = "";
         foreach ($facilityDtl as $key => $Fetch) {
-            $startDate = new DateTime($Fetch->Order_Date);
-            $endDate = new DateTime();
+            $orderDate = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00') ? $Fetch->Order_Date : now()->format('Y-m-d');
+            $month = $asset[$Fetch->Facility_ID]->shelf_life ?: 0;
 
-            $interval = $startDate->diff($endDate);
-            $month = floor($interval->days / 12);
+            $depreciationYear = $asset[$Fetch->Facility_ID]->depreciation_year ?: 1;
 
-            $prosen = round(1 / $asset[$Fetch->Facility_ID]->depreciation_year);
-            $depr = $Fetch->Total * $prosen;
+            $prosen = 1 / $depreciationYear;
+            $deprPerBulan = $Fetch->Total * $prosen / 12;
+            $sisaWaktu = ($depreciationYear * 12) - $month;
             echo "<row id=\"$Fetch->ID\">";
             echo "<cell>$nomor</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->Order_Date) . "</cell>";
+            echo "<cell>" . htmlspecialchars($orderDate) . "</cell>";
             echo "<cell>" . htmlspecialchars($asset[$Fetch->Facility_ID]->description) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Qty) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Price) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Total) . "</cell>";
-            echo "<cell>" . htmlspecialchars($asset[$Fetch->Facility_ID]->depreciation_year) . "</cell>";
-            echo "<cell>" . htmlspecialchars($prosen) . "</cell>";
-            echo "<cell>" . htmlspecialchars($depr) . "</cell>";
-            echo "<cell>" . htmlspecialchars($asset[$Fetch->Facility_ID]->asset_type) . "</cell>";
+            echo "<cell>" . htmlspecialchars($depreciationYear) . "</cell>";
+            echo "<cell>" . htmlspecialchars(round($prosen * 100, 2) . '%') . "</cell>";
+            echo "<cell>" . htmlspecialchars($deprPerBulan) . "</cell>";
+            echo "<cell>" . htmlspecialchars($asset[$Fetch->Facility_ID]->asset_type ?: '-') . "</cell>";
             echo "<cell>" . htmlspecialchars($month) . "</cell>";
-            echo "<cell>" . htmlspecialchars($depr * $month) . "</cell>";
-            echo "<cell>" . htmlspecialchars(($asset[$Fetch->Facility_ID]->depreciation_year * 12) - $month) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->Total - ($depr * $month)) . "</cell>";
+            echo "<cell>" . htmlspecialchars($deprPerBulan * $month) . "</cell>";
+            echo "<cell>" . htmlspecialchars($sisaWaktu) . "</cell>";
+            echo "<cell>" . htmlspecialchars($deprPerBulan * $sisaWaktu) . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -167,7 +172,7 @@ class ValuationController extends Controller
         ]);
 
 
-        $getAsset = DB::table('master_facility')->where('asset_type', 'Asset')->where('is_deleted', 0)->get();
+        $getAsset = DB::table('master_facility')->where('is_deleted', 0)->get();
         $asId = $getAsset->pluck('id');
         $asset = $getAsset->keyBy('id');
         $startDate = DB::table('opportunity_partner')->where("id", $r->partner)->select('contract_start_at')->first();
@@ -181,31 +186,31 @@ class ValuationController extends Controller
 
         $nomor = 1;
         foreach ($facilityDtl as $key => $Fetch) {
-            $startDate = new DateTime($Fetch->Order_Date);
-            $endDate = new DateTime();
+            $orderDate = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00') ? $Fetch->Order_Date : now()->format('Y-m-d');
+            $month = $asset[$Fetch->Facility_ID]->shelf_life ?: 0;
 
-            $interval = $startDate->diff($endDate);
-            $month = floor($interval->days / 12);
+            $depreciationYear = $asset[$Fetch->Facility_ID]->depreciation_year ?: 1;
 
-            $prosen = round(1 / $asset[$Fetch->Facility_ID]->depreciation_year);
-            $depr = $Fetch->Total * $prosen;
+            $prosen = 1 / $depreciationYear;
+            $deprPerBulan = $Fetch->Total * $prosen / 12;
+            $sisaWaktu = ($depreciationYear * 12) - $month;
 
             $row = $xml->addChild('row');
             $row->addAttribute("ID", $Fetch->ID);
             $row->addChild('cell', $nomor);
-            $row->addChild('cell', $Fetch->Order_Data);
+            $row->addChild('cell', $orderDate);
             $row->addChild('cell', htmlspecialchars($asset[$Fetch->Facility_ID]->description));
             $row->addChild('cell', $Fetch->Qty);
             $row->addChild('cell', $Fetch->Price);
             $row->addChild('cell', $Fetch->Total);
-            $row->addChild('cell', $Fetch->$asset[$Fetch->Facility_ID]->depreciation_year ?? 0);
-            $row->addChild('cell', $Fetch->$prosen);
-            $row->addChild('cell', $Fetch->$depr);
-            $row->addChild('cell', $Fetch->$asset[$Fetch->Facility_ID]->asset_type ?? "");
+            $row->addChild('cell', $depreciationYear);
+            $row->addChild('cell', round($prosen * 100, 2) . '%');
+            $row->addChild('cell', $deprPerBulan);
+            $row->addChild('cell', $asset[$Fetch->Facility_ID]->asset_type ?? '-');
             $row->addChild('cell', $month);
-            $row->addChild('cell', $depr * $month);
-            $row->addChild('cell', ($asset[$Fetch->Facility_ID]->depreciation_year * 12) - $month);
-            $row->addChild('cell', $Fetch->Total - ($depr * $month));
+            $row->addChild('cell', $deprPerBulan * $month);
+            $row->addChild('cell', $sisaWaktu);
+            $row->addChild('cell', $deprPerBulan * $sisaWaktu);
 
             $nomor++;
         }
@@ -239,7 +244,7 @@ class ValuationController extends Controller
             $usname[$value->Emp_ID] = $value->Name;
         }
 
-        $getAsset = DB::table('master_facility')->where('asset_type', 'Asset')->where('is_deleted', 0)->get();
+        $getAsset = DB::table('master_facility')->where('is_deleted', 0)->get();
         $asId = $getAsset->pluck('id');
         $asset = $getAsset->keyBy('id');
 
@@ -248,12 +253,13 @@ class ValuationController extends Controller
 
         $get = WarehousePartner::get();
         foreach ($get as $key => $value) {
-            $optp = DB::table('opportunity_partner')->where("lead_id", $value->partner_task_id)->select(['contract_start_at','id'])->first();
+            $optp = DB::table('opportunity_partner')->where("lead_id", $value->partner_task_id)->select(['contract_start_at', 'id'])->first();
 
-            $sumInvest = OpportunityPartnerFacilityDtl::where('Partner_ID', $optp->id ?? 0)->where('warehouse_task_id', $value->warehouse_task_id)->sum('Total');
+            $constraintName = strtoupper($value->warehouse_type) === 'MOBIL' ? 'TOTAL_HUB_INVESTATION_CAR' : 'TOTAL_HUB_INVESTATION_BOOTH';
+            $sumInvest = DB::table('config_system')->where('Constraint', $constraintName)->value('Value') ?? 0;
 
             $facilityDtl = OpportunityPartnerFacilityDtl::whereIn("Facility_ID", $asId)->where('Partner_ID', $optp->id ?? 0)->where('warehouse_task_id', $value->warehouse_task_id)->get();
-    
+
             $cat = "";
             $sumTotal = 0;
             $sumDepr = 0;
@@ -265,21 +271,22 @@ class ValuationController extends Controller
                 //     ->select('ce.Asset_Name', 'ce.Cost')
                 //     ->where('op.lead_id', $warehouse->partner_task_id)
                 //     ->get();
-                
-                $startDate = new DateTime($Fetch->Order_Date);
-                $endDate = new DateTime();
-    
-                $interval = $startDate->diff($endDate);
-                $month = floor($interval->days / 12);
-    
-                $prosen = round(1 / $asset[$Fetch->Facility_ID]->depreciation_year);
-                $depr = $Fetch->Total * $prosen;
+
+                $orderDate = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00') ? $Fetch->Order_Date : now()->format('Y-m-d');
+
+                $month = $asset[$Fetch->Facility_ID]->shelf_life ?: 0;
+
+                $depreciationYear = $asset[$Fetch->Facility_ID]->depreciation_year ?: 1;
+
+                $prosen = 1 / $depreciationYear;
+                $deprPerBulan = $Fetch->Total * $prosen / 12;
+                $sisaWaktu = ($depreciationYear * 12) - $month;
 
                 $sumTotal += $Fetch->Total;
-                $sumDepr += $depr * $month;
-                $sumSisa += $Fetch->Total - ($depr * $month);
+                $sumDepr += $deprPerBulan * $month;
+                $sumSisa += $deprPerBulan * $sisaWaktu;
             }
-            
+
 
             echo "<row id=\"$value->warehouse_task_id\">";
             echo "<cell>$nomor</cell>";

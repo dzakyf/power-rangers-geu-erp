@@ -36,7 +36,7 @@
             <div>
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
 
-                <!-- <input type="button" id="detailGrid1" name="detailGrid1" value="Detail Data" class="btn btn-info mt-2 mr-2" /> -->
+                <input type="button" id="detailGrid1" name="detailGrid1" value="Edit Data" class="btn btn-info mt-2 mr-2" />
                 <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
                 <input type="button" id="deleteGrid1" value="Hapus Data" class="btn btn-danger mt-2 mr-2" />
                 <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
@@ -46,7 +46,54 @@
     </div>
 
     <div id="Grid1Detail" class="row ml-3 m-1" style="display:none;">
-        @include('partner.poo.edit')
+        <div class="card w-100">
+            <div class="card-header">Edit Facility</div>
+            <div class="card-body">
+                <form id="FacilityEditForm">
+                    @csrf
+                    <input type="hidden" name="id" id="edit_id">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Hub Type</label>
+                            <input type="text" class="form-control" id="edit_type" readonly>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Category</label>
+                            <input type="text" class="form-control" id="edit_category" readonly>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_description">Description</label>
+                        <input type="text" class="form-control" name="description" id="edit_description">
+                    </div>
+                    <div class="form-group">
+                        <label>Detail</label>
+                        <div id="editDetailList"></div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="addEditDetail">+ Add Detail</button>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label for="edit_asset_type">Asset Type</label>
+                            <select class="form-control" name="asset_type" id="edit_asset_type">
+                                <option value="">-- Pilih --</option>
+                                <option value="Asset">Asset</option>
+                                <option value="Bukan Asset">Bukan Asset</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="edit_depreciation_year">Depreciation Year</label>
+                            <input type="number" min="1" class="form-control" name="depreciation_year" id="edit_depreciation_year">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="edit_shelf_life">Shelf Life</label>
+                            <input type="number" min="1" class="form-control" name="shelf_life" id="edit_shelf_life">
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="SubmitFacilityEdit">Update</button>
+                    <button type="button" class="btn btn-secondary ml-2" onclick="$('#Grid1Detail').hide()">Cancel</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -71,10 +118,10 @@
     }
 
     function initTableGrid1() {
-        let tHeader = ['No.', 'Description', 'Detail']
-        let tWidth = ['50', '300', '300']
-        let headerAttachment = ['#rspan', '#text_filter', '#text_filter']
-        let colId = ['no', 'description', 'children'].join(',')
+        let tHeader = ['No.', 'Description', 'Detail', 'Ekonomis (Tahun)', 'Shelf Life']
+        let tWidth = ['50', '300', '300', '120', '100']
+        let headerAttachment = ['#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter']
+        let colId = ['no', 'description', 'children', 'depreciation_year', 'shelf_life'].join(',')
 
         Grid1 = new dhtmlXGridObject('MembershipGrid');
         Grid1.setImagePath("./dhtmlx/imgs/");
@@ -96,83 +143,88 @@
     }
 
 
-    function getFaciltyData() {
-        var id = marketingId;
-        if (!id) {
-            alert('Pilih data terlebih dulu');
-            return;
-        }
-
-        $.ajax({
-            url: 'master-poo-data?format=json&id=' + id,
-            type: 'GET',
-            success: function(res) {
-                var data = res.data[0];
-                if (!data) return;
-
-                $('#Type').val(data.Type);
-                $('#Name').val(data.Name);
-                $('#PIC').val(data.PIC);
-                $('#Code').val(data.Code);
-                $('#Employee').val(data.Employee);
-                $('#Phone').val(data.Phone);
-                $('#Position').val(data.Position);
-                $('#Category').val(data.Category);
-                $('#UCO_Type').val(data.UCO_Type);
-                $('#Price').val(data.Price);
-                $('#Price_Unit').val(data.Price_Unit);
-                $('#Cycle').val(data.Cycle);
-                $('#Full_Address').val(data.Full_Address);
-                $('#Location_Coordinate').val(data.Location_Coordinate);
-                $('#Nearest_Warehouse').val(data.Nearest_Warehouse);
-                $('#Bank_Account_Number').val(data.Bank_Account_Number);
-                $('#Bank_Account_Name').val(data.Bank_Account_Name);
-                $('#Bank_Name').val(data.Bank_Name);
-                $('#Point').val(data.Point);
-
-                // Prefill chained selects in order
-                setSelect2Val('#Province', data.Province);
-                $('#City').prop('disabled', false);
-                makeSelect2('#City', 'master-city', function() {
-                    return {
-                        province: $('#Province').val()
-                    };
-                }, 'City', 'City');
-                setSelect2Val('#City', data.City);
-
-                $('#Subdistrict').prop('disabled', false);
-                makeSelect2('#Subdistrict', 'master-district', function() {
-                    return {
-                        province: $('#Province').val(),
-                        city: $('#City').val()
-                    };
-                }, 'District', 'District');
-                setSelect2Val('#Subdistrict', data.Subdistrict);
-
-                $('#Village').prop('disabled', false);
-                makeSelect2('#Village', 'master-subdistrict', function() {
-                    return {
-                        province: $('#Province').val(),
-                        city: $('#City').val(),
-                        district: $('#Subdistrict').val()
-                    };
-                }, 'Sub_District', 'Sub_District');
-                setSelect2Val('#Village', data.Village);
-            },
-            error: function() {
-                alert('Gagal memuat data Facilty.');
-            }
-        });
+    function addEditDetailItem(value) {
+        $('#editDetailList').append(`
+            <div class="detail-item input-group mb-1">
+                <input type="text" class="form-control" name="children[]" placeholder="Enter detail" value="` + (value || '') + `">
+                <div class="input-group-append">
+                    <button type="button" class="btn btn-danger remove-detail">−</button>
+                </div>
+            </div>
+        `);
     }
 
+    $(document).on('click', '.remove-detail', function() {
+        if ($('.detail-item').length > 1) {
+            $(this).closest('.detail-item').remove();
+        }
+    });
+
+    $('#addEditDetail').on('click', function() {
+        addEditDetailItem('');
+    });
+
     $('#detailGrid1').on('click', function() {
-        if (!marketingId) {
+        if (!selectedFacilityId) {
             alert('Pilih data terlebih dulu');
             return;
         }
-        $('#ID').val(marketingId);
-        $('#Grid1Detail').show();
-        getFaciltyData();
+        $.get('master-facility-data', { format: 'json', id: selectedFacilityId }, function(res) {
+            var row = res.data && res.data[0];
+            if (!row) {
+                alert('Data tidak ditemukan');
+                return;
+            }
+            $('#edit_id').val(row.id);
+            $('#edit_type').val(row.type);
+            $('#edit_category').val(row.category);
+            $('#edit_description').val(row.description);
+            $('#edit_asset_type').val(row.asset_type || '');
+            $('#edit_depreciation_year').val(row.depreciation_year ?? '');
+            $('#edit_shelf_life').val(row.shelf_life ?? '');
+
+            var children = [];
+            if (row.children) {
+                try {
+                    var parsed = JSON.parse(row.children);
+                    children = Array.isArray(parsed) ? parsed : [String(parsed)];
+                } catch (e) {
+                    children = String(row.children).split(',').map(function(s) { return s.trim(); });
+                }
+            }
+            if (!children.length) children = [''];
+            $('#editDetailList').empty();
+            children.forEach(function(c) { addEditDetailItem(c); });
+            $('#Grid1Detail').show();
+        }).fail(function() {
+            alert('Gagal memuat data');
+        });
+    });
+
+    $('#SubmitFacilityEdit').on('click', function() {
+        var form = document.getElementById('FacilityEditForm');
+        var fd = new FormData(form);
+        fd.append('_token', '{{ csrf_token() }}');
+
+        $.ajax({
+            url: 'master-facility-edit',
+            type: 'POST',
+            data: fd,
+            processData: false,
+            contentType: false,
+            success: function(res) {
+                if (res.status === 'success') {
+                    alert('Facility berhasil diupdate!');
+                    $('#Grid1Detail').hide();
+                    Grid1.clearAndLoad(`master-facility-data?format=xml&hub_type=${hubType || 'booth'}&type=${facilityType || 'inventory'}`);
+                } else {
+                    alert('Gagal: ' + (res.message || 'Unknown error'));
+                }
+            },
+            error: function(xhr) {
+                alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+            }
+        });
     });
 
     function selectMitra(rowId, cellIdx) {
@@ -213,36 +265,5 @@
     function doubleClickTableGrid1() {
         initDetailTableGrid1()
     }
-
-    $('#updateFaciltyDetailForm').on('submit', function(e) {
-        e.preventDefault();
-
-        let formData = new FormData(this);
-        formData.append('Facilty_Id', marketingId)
-
-        $('#submitBtn').prop('disabled', true).text('Submitting...');
-
-        $.ajax({
-            url: $(this).attr('action'),
-            type: $(this).attr('method'),
-            data: formData,
-            processData: false,
-            contentType: false,
-            cache: false,
-            success: function(response, status, xhr) {
-                alert("Berhasil mengupdate info pengajuan")
-                // $('#updateMarketinDetailForm')[0].reset()
-            },
-            error: function(xhr, status, error) {
-                console.log('Error details:', xhr.responseText);
-
-            },
-            complete: function() {
-                $('#submitBtn').prop('disabled', false).text('Submit');
-                $('#marketingId').val(marketingId)
-            }
-        });
-
-    })
 </script>
 @endsection

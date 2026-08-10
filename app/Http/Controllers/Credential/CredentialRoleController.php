@@ -59,7 +59,7 @@ class CredentialRoleController extends Controller
         $role = Role::findOrFail($roleId);
         $rolePermissionNames = $role->permissions->pluck('name')->toArray();
 
-        $allowedModules = ['FINANCE', 'HRD', 'MITRA', 'CNS', 'CANDIDATE'];
+        $allowedModules = ['FINANCE', 'HRD', 'MITRA', 'CNS', 'CANDIDATE', 'CREDENTIAL'];
 
         $menus = DB::table('menu_lists')
             ->whereIn('Modules', $allowedModules)
@@ -71,11 +71,14 @@ class CredentialRoleController extends Controller
         $data = $menus->map(function ($menu) use ($rolePermissionNames) {
             $actions = ['view', 'create', 'edit', 'delete', 'approve'];
             $row = [
+                'id' => $menu->ID,
                 'menu_id' => $menu->Menu_ID,
                 'menu_name' => $menu->Name,
                 'parent_menu' => $menu->Parent_Menu,
                 'module' => $menu->Modules,
                 'position' => $menu->Position,
+                'path_loc' => $menu->Path_Loc,
+                'urutan' => $menu->Urutan,
             ];
             foreach ($actions as $action) {
                 $permName = "menu.{$menu->Menu_ID}.{$action}";
@@ -100,10 +103,6 @@ class CredentialRoleController extends Controller
 
         $role = Role::findOrFail($request->input('role_id'));
 
-        if ($role->name === 'ADM') {
-            return response()->json(['success' => false, 'message' => 'ADM permissions are immutable.']);
-        }
-
         $permissionInput = $request->input('permissions', []);
 
         $permissionNames = [];
@@ -114,6 +113,14 @@ class CredentialRoleController extends Controller
                 }
             }
         }
+
+        // Preserve standalone permissions (not menu.*) so role/system-level capabilities survive the sync
+        $standalone = $role->permissions()
+            ->where('name', 'not like', 'menu.%')
+            ->pluck('name')
+            ->toArray();
+
+        $permissionNames = array_merge($permissionNames, $standalone);
 
         $permissions = Permission::whereIn('name', $permissionNames)->get();
         $role->syncPermissions($permissions);
@@ -156,10 +163,6 @@ class CredentialRoleController extends Controller
         }
 
         $role = Role::findOrFail($id);
-
-        if ($role->name === 'ADM') {
-            return response()->json(['success' => false, 'message' => 'ADM role cannot be edited.']);
-        }
 
         $name = trim($request->input('name'));
         if (!$name) {
@@ -209,11 +212,7 @@ class CredentialRoleController extends Controller
 
         $role = Role::findOrFail($id);
 
-        if ($role->name === 'ADM') {
-            return response()->json(['success' => false, 'message' => 'ADM permissions are immutable.']);
-        }
-
-        $allowedModules = ['FINANCE', 'HRD', 'MITRA', 'CNS', 'CANDIDATE'];
+        $allowedModules = ['FINANCE', 'HRD', 'MITRA', 'CNS', 'CANDIDATE', 'CREDENTIAL'];
 
         $menuIds = DB::table('menu_lists')
             ->whereIn('Modules', $allowedModules)
@@ -246,10 +245,6 @@ class CredentialRoleController extends Controller
 
         $role = Role::findOrFail($id);
 
-        if ($role->name === 'ADM') {
-            return response()->json(['success' => false, 'message' => 'ADM permissions are immutable.']);
-        }
-
         $role->syncPermissions([]);
 
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
@@ -261,20 +256,135 @@ class CredentialRoleController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function updateMenuName(Request $request)
+    private function generateMenuId($module)
+    {
+        $prefix = strtoupper(substr($module, 0, 2));
+        $maxId = DB::table('menu_lists')
+            ->where('Menu_ID', 'LIKE', $prefix . '%')
+            ->max('Menu_ID');
+        $next = 1;
+        if ($maxId && preg_match('/(\d+)$/', $maxId, $m)) {
+            $next = (int) $m[1] + 1;
+        }
+        return $prefix . str_pad($next, 5, '0', STR_PAD_LEFT);
+    }
+
+    public function createMenuItem(Request $request)
+    {
+        if (!auth()->user()->can('master.credential.role.edit')) {
+            abort(403);
+        }
+
+        $name = trim($request->input('name'));
+        $module = trim($request->input('module'));
+        $parentMenu = trim($request->input('parent_menu'));
+        $position = (int) $request->input('position', 4);
+        $pathLoc = trim($request->input('path_loc'));
+        $urutan = (int) $request->input('urutan', 1);
+
+        if (!$name || !$module) {
+            return response()->json(['success' => false, 'message' => 'Name and Module are required.']);
+        }
+        if ($position < 1 || $position > 4) {
+            $position = 4;
+        }
+
+        $menuId = $this->generateMenuId($module);
+
+        DB::table('menu_lists')->insert([
+            'Menu_ID'     => $menuId,
+            'Name'        => $name,
+            'Path_Loc'    => $pathLoc,
+            'Modules'     => $module,
+            'Position'    => $position,
+            'Parent_Menu' => $parentMenu ?: '',
+            'Urutan'      => $urutan,
+        ]);
+
+        foreach (['view', 'create', 'edit', 'delete', 'approve'] as $action) {
+            Permission::firstOrCreate(
+                ['name' => "menu.{$menuId}.{$action}", 'guard_name' => 'web'],
+                ['menu_id' => $menuId, 'action' => $action]
+            );
+        }
+
+        return response()->json(['success' => true, 'menu_id' => $menuId]);
+    }
+
+    public function updateMenuItem(Request $request)
     {
         if (!auth()->user()->can('master.credential.role.edit')) {
             abort(403);
         }
 
         $menuId = $request->input('menu_id');
+        $rowId = $request->input('id');
         $name = trim($request->input('name'));
+        $module = trim($request->input('module'));
+        $parentMenu = trim($request->input('parent_menu'));
+        $position = (int) $request->input('position', 4);
+        $pathLoc = trim($request->input('path_loc'));
+        $urutan = (int) $request->input('urutan', 1);
 
-        if (!$menuId || !$name) {
-            return response()->json(['success' => false, 'message' => 'Menu ID and name are required.']);
+        if ((!$rowId && !$menuId) || !$name || !$module) {
+            return response()->json(['success' => false, 'message' => 'Menu ID, Name and Module are required.']);
+        }
+        if ($position < 1 || $position > 4) {
+            $position = 4;
         }
 
-        DB::table('menu_lists')->where('Menu_ID', $menuId)->update(['Name' => $name]);
+        $query = DB::table('menu_lists');
+        if ($rowId) {
+            $query->where('ID', $rowId);
+        } else {
+            $query->where('Menu_ID', $menuId);
+        }
+        $query->update([
+            'Name'        => $name,
+            'Path_Loc'    => $pathLoc,
+            'Modules'     => $module,
+            'Position'    => $position,
+            'Parent_Menu' => $parentMenu ?: '',
+            'Urutan'      => $urutan,
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function deleteMenuItem(Request $request)
+    {
+        if (!auth()->user()->can('master.credential.role.edit')) {
+            abort(403);
+        }
+
+        $menuId = $request->input('menu_id');
+        $rowId = $request->input('id');
+        if (!$rowId && !$menuId) {
+            return response()->json(['success' => false, 'message' => 'Menu ID is required.']);
+        }
+
+        $query = DB::table('menu_lists');
+        if ($rowId) {
+            $query->where('ID', $rowId);
+        } else {
+            $query->where('Menu_ID', $menuId);
+        }
+        $target = $query->first();
+
+        if (!$target) {
+            return response()->json(['success' => false, 'message' => 'Menu not found.']);
+        }
+
+        $children = DB::table('menu_lists')
+            ->where('Parent_Menu', $target->Menu_ID)
+            ->count();
+        if ($children > 0) {
+            return response()->json(['success' => false, 'message' => 'Menu has child items. Remove children first.']);
+        }
+
+        DB::table('menu_lists')->where('ID', $target->ID)->delete();
+
+        Permission::where('name', 'like', "menu.{$target->Menu_ID}.%")->delete();
 
         return response()->json(['success' => true]);
     }

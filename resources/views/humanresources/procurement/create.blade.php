@@ -135,6 +135,18 @@
                         </div>
                         <div class="FormInput_left">
             
+                            Priority
+            
+                        </div>
+                        <div class="FormInput_right">
+            
+							<select name="Priority_Status" id="Priority_Status" required>
+								<option>NORMAL</option>
+								<option>URGENT</option>
+							</select>
+                        </div>
+                        <div class="FormInput_left">
+            
                             Estimated Budget
             
                         </div>
@@ -159,8 +171,6 @@
                             <input type="submit" id="SubmitPRDetail" class="btn btn-success mt-2 mr-2" NAME="SubmitPRDetail" value="Submit" />
                         </div>
                         <div id="WinCOA"></div>
-            
-            
                     </div>
                 </div>
             </div>
@@ -314,11 +324,11 @@
 					$("#Estimated_Budget").focus();
 					return false;
 				} else if (Remark == '') {
-					alert("Kolom catatan (Note) Harus Diisi!");
+					alert("Kolom catatan (Specification) Harus Diisi!");
 					$("#Remark").focus();
 					return false;
 				} else if (Remark.length < 5) {
-					alert("Kolom catatan (Note) minimal 5 karakter!");
+					alert("Kolom catatan (Specification) minimal 5 karakter!");
 					$("#Remark").focus();
 					return false;
 				} else {

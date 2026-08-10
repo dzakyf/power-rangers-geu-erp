@@ -7,6 +7,18 @@ $Saya = Auth::user()->username;
 $LSP = Auth::user()->Location;
 $Priv = Auth::user()->Priv_ID;
 $DOP = Auth::user()->DOP_Class;
+
+$dsess = Auth::user()->Sub_Menu ?? '';
+$credMenus = DB::table('menu_lists')
+    ->where('Modules', 'CREDENTIAL')
+    ->where('Position', '>=', 2)
+    ->orderBy('Urutan', 'ASC')
+    ->get();
+$credGroups = [];
+foreach ($credMenus as $m) {
+    if (strpos($dsess, $m->Menu_ID) === false) continue;
+    $credGroups[$m->Parent_Menu][] = $m;
+}
 ?>
 <nav class="navbar navbar-expand fixed-top top-menu">
     <a class="navbar-brand" href="/geu/hcga/public/">
@@ -39,17 +51,38 @@ $DOP = Auth::user()->DOP_Class;
                     <div class="container">
                         <div class="row">
 						
-						 <div class="col-lg-3 col-md-6">
+						@php
+                            $groups = $credGroups['CR00001'] ?? [];
+                        @endphp
+                        @forelse($groups as $group)
+                            @php
+                                $children = $credGroups[$group->Menu_ID] ?? [];
+                            @endphp
+                            @if(count($children) > 0)
+                            <div class="col-lg-3 col-md-6">
+                                <h5 class="title">{{ $group->Name }}</h5>
+                                @foreach($children as $child)
+                                    <a class="dropdown-item" href="{{ $child->Path_Loc ?: '#' }}">{{ $child->Name }}</a>
+                                @endforeach
+                            </div>
+                            @else
+                            <div class="col-lg-3 col-md-6">
+                                <a class="dropdown-item" href="{{ $group->Path_Loc ?: '#' }}"><strong>{{ $group->Name }}</strong></a>
+                            </div>
+                            @endif
+                        @empty
+                            <div class="col-lg-3 col-md-6">
                                 <h5 class="title">User Management</h5>
                                 <a class="dropdown-item" href="credential-create-user">Create User</a>
                                 <a class="dropdown-item" href="credential-user-management">User Management</a>
                                 <a class="dropdown-item" href="credential-organization">Organization Management</a>
-                          </div>
-                           <div class="col-lg-3 col-md-6">
+                            </div>
+                            <div class="col-lg-3 col-md-6">
                                 <h5 class="title">Role Management</h5>
                                 <a class="dropdown-item" href="credential-role">Role Management</a>
                                 <a class="dropdown-item" href="credential-structure">Approval Management Structures</a>
-                          </div> 
+                            </div>
+                        @endforelse
   
 							  
                         </div>

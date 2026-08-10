@@ -1,4 +1,6 @@
 @php
+$partner = $partner ?? null;
+$warehouse = $warehouse ?? null;
 $queryParams = [
 'partner' => $partner->id ?? "",
 'warehouse' => $warehouse->warehouse_task_id ?? ""
@@ -29,8 +31,8 @@ $encodedUrl = rawurlencode($dataUrl);
 	// ValuationListDetail.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	ValuationListDetail.setInitWidths("60,100,150,200,100,100,200,100,100,100,100,100,100,100");
 	ValuationListDetail.setColAlign("center,left,left,left,right,right,center,right,right,center,right,right,right,right");
-	ValuationListDetail.setColSorting("int,str,str,str,int,str,str,int,int,int,int,int,int,int");
-	ValuationListDetail.setColTypes("ron,ro,ro,ro,ron,ron,ron,ron,ron,ro,ron,ron,ron,ron,ron");
+	ValuationListDetail.setColSorting("int,str,str,str,int,str,str,str,int,int,int,int,int,int");
+	ValuationListDetail.setColTypes("ron,ro,ro,ro,ron,ron,ro,ro,ron,ro,ron,ron,ron,ron,ron");
 	ValuationListDetail.enableSmartRendering(true, 150);
 	ValuationListDetail.setNumberFormat("0,000", 4, ".", ",");
 	ValuationListDetail.setNumberFormat("0,000", 5, ".", ",");

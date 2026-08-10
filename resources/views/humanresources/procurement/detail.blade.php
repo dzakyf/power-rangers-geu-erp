@@ -146,7 +146,20 @@
                         </div>
                         <div class="FormInput_left">
             
-                            Note
+                            Priority
+            
+                        </div>
+                        <div class="FormInput_right">
+            
+							<select name="Priority_Status" id="Priority_Status">
+								<option>NORMAL</option>
+								<option>URGENT</option>
+							</select>
+            
+                        </div>
+                        <div class="FormInput_left">
+            
+                            Specification
             
                         </div>
                         <div class="FormInput_right" style="height:80px;">

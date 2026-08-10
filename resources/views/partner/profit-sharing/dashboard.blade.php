@@ -36,6 +36,19 @@ $Saya =  Auth::user()->username;
     </div>
 	<div class="card">
 		<div class="card-body">
+			<div class="d-flex align-items-end mb-2">
+				<div class="m-1">
+					<label class="d-block mb-1"><small>Tahun</small></label>
+					<select id="filterYear" class="form-control form-control-sm" style="width:120px;">
+						@for($y = 2024; $y <= 2032; $y++)
+							<option value="{{ $y }}"{{ $y == ($year ?? date('Y')) ? ' selected' : '' }}>{{ $y }}</option>
+						@endfor
+					</select>
+				</div>
+				<div class="m-1">
+					<button class="btn btn-sm btn-primary" onclick="applyYear()">Filter</button>
+				</div>
+			</div>
 			<div id="ProfitSharing" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselProfitSharingDet" name="ekselProfitSharingDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ProfitSharing.toExcel('./export/generate.php');" />
@@ -50,7 +63,7 @@ $Saya =  Auth::user()->username;
 <script>
 	ProfitSharing = new dhtmlXGridObject('ProfitSharing');
 	ProfitSharing.setImagePath("./dhtmlx/imgs/");
-	ProfitSharing.setHeader("No,Gudang ID, Lokasi Gudang, Nama Mitra, Jenis Booth, Status Gudang<?php for($i=1;$i<=12;$i++) {echo ',' . date('F', mktime(0, 0, 0, $i, 1, date('Y'))).',#cspan';} ?>");
+	ProfitSharing.setHeader("No,Gudang ID, Lokasi Gudang, Nama Mitra, Jenis Booth, Status Gudang<?php for($i=1;$i<=12;$i++) {echo ',' . date('F', mktime(0, 0, 0, $i, 1, ($year ?? date('Y')))).',#cspan';} ?>");
 	ProfitSharing.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter<?php for($i=1;$i<=12;$i++) {echo ',Projection,Achievement';} ?>");
 	// ProfitSharing.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	ProfitSharing.setInitWidths("60,100,150,200,100,100<?php for($i=1;$i<=12;$i++) {echo ',100,100';} ?>");
@@ -67,7 +80,15 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		ProfitSharing.clearAndLoad('xml-partner-profit-sharing-dashboard', LoadData);
+		var year = $('#filterYear').val() || '{{ $year ?? date('Y') }}';
+		ProfitSharing.clearAndLoad('xml-partner-profit-sharing-dashboard?year=' + year, LoadData);
+	}
+
+	function applyYear() {
+		var year = $('#filterYear').val();
+		if (year) {
+			window.location.href = 'partner-profit-sharing-dashboard?year=' + year;
+		}
 	}
 
     

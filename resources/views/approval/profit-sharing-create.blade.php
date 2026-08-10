@@ -16,6 +16,18 @@
 
         <div class="col-3">
             <div class="form-group">
+                <label for="Warehouse">Warehouse <span style="color:red;">*</span></label>
+                <select name="Warehouse" id="Warehouse" class="form-control" required>
+                    <option value="">-- Pilih Warehouse --</option>
+                    @foreach ($warehouses as $wh)
+                        <option value="{{ $wh->warehouse_task_id }}">{{ $wh->warehouse_task_id }} - {{ $wh->warehouse_location }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        <div class="col-3">
+            <div class="form-group">
                 <label for="Periode">Periode Bagi Hasil <span style="color:red;">*</span></label>
                 <input type="month" name="Periode" id="Periode" class="form-control" required />
             </div>
@@ -61,12 +73,26 @@
             });
         }
 
+        function validateSelection() {
+            if (!$('#Warehouse').val()) {
+                alert('Pilih warehouse terlebih dahulu');
+                return false;
+            }
+            if (!$('#Periode').val()) {
+                alert('Pilih periode terlebih dahulu');
+                return false;
+            }
+            return true;
+        }
+
         $('#previewBtn').on('click', function() {
+            if (!validateSelection()) return;
             getSignatureBlob(function(blob) {
                 var fd = new FormData();
                 fd.append('_token', '{{ csrf_token() }}');
                 fd.append('signature', blob, 'signature.png');
                 fd.append('periode', $('#Periode').val());
+                fd.append('warehouse_id', $('#Warehouse').val());
 
                 var xhr = new XMLHttpRequest();
                 xhr.open('POST', 'partner-profit-sharing-preview-application');
@@ -89,11 +115,13 @@
         });
 
         $('#finalizeBtn').on('click', function() {
+            if (!validateSelection()) return;
             getSignatureBlob(function(blob) {
                 var fd = new FormData();
                 fd.append('_token', '{{ csrf_token() }}');
                 fd.append('signature', blob, 'signature.png');
                 fd.append('periode', $('#Periode').val());
+                fd.append('warehouse_id', $('#Warehouse').val());
                 fd.append('opportunity_id', '{{ $partner->id }}');
 
                 var xhr = new XMLHttpRequest();

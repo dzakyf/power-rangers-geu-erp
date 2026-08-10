@@ -44,7 +44,7 @@ class RbacSeeder extends Seeder
         $this->command->info('Assigning permissions to ADM role (modules: FINANCE, HRD, MITRA, CNS)...');
         $admRole = Role::where('name', 'ADM')->first();
         if ($admRole) {
-            $admModules = ['FINANCE', 'HRD', 'MITRA', 'CNS', 'CANDIDATE'];
+            $admModules = ['FINANCE', 'HRD', 'MITRA', 'CNS', 'CANDIDATE', 'CREDENTIAL'];
             $admMenuIds = DB::table('menu_lists')
                 ->whereIn('Modules', $admModules)
                 ->pluck('Menu_ID');
