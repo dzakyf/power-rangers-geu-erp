@@ -53,7 +53,13 @@ class ApprovalController extends Controller
     {
         $partner = $this->userService->getCurrentSessionUserInfo();
 
-        return view('approval.profit-sharing-create', compact('partner'));
+        $query = DB::table('warehouse_partner')->select('id', 'warehouse_task_id', 'warehouse_location');
+        if (($partner->Priv_ID ?? '') === 'MITRA') {
+            $query->where('partner_task_id', $partner->Emp_ID);
+        }
+        $warehouses = $query->orderBy('warehouse_location')->get();
+
+        return view('approval.profit-sharing-create', compact('partner', 'warehouses'));
     }
 
     public function detail(Request $request)
@@ -440,6 +446,10 @@ class ApprovalController extends Controller
                 return ['success' => false, 'message' => 'Approval level not found'];
             }
 
+            if ($session->Position !== $level->Approver_Position && $session->Position !== 'SUPERADMIN') {
+                return ['success' => false, 'message' => 'Anda tidak memiliki wewenang untuk level ini (' . $level->Level_Name . ')'];
+            }
+
             $nextLevel = DB::table('approval_level')
                 ->where('Request_Type', $req->Request_Type)
                 ->where('Level_Number', $req->Current_Level + 2)
@@ -457,13 +467,21 @@ class ApprovalController extends Controller
                     'Request_Id'    => $req->ID,
                 ]);
 
-                DB::table('approval_request')->where('ID', $req->ID)->update([
-                    'Status'        => $nextLevel === null ? 'APPROVED' : 'NEED_APPROVAL',
-                    'Description'   => 'Berhasil menuju tahap selanjutnya',
-                    'Current_Level' => $req->Current_Level + 1,
-                    'Level_Id'      => $nextLevel->ID ?? null,
-                    'Request_Type'  => $req->Request_Type,
-                ]);
+                if ($action === 'REJECTED') {
+                    DB::table('approval_request')->where('ID', $req->ID)->update([
+                        'Status'        => 'REJECTED',
+                        'Description'   => 'Pengajuan ditolak',
+                        'Request_Type'  => $req->Request_Type,
+                    ]);
+                } else {
+                    DB::table('approval_request')->where('ID', $req->ID)->update([
+                        'Status'        => $nextLevel === null ? 'APPROVED' : 'NEED_APPROVAL',
+                        'Description'   => 'Berhasil menuju tahap selanjutnya',
+                        'Current_Level' => $req->Current_Level + 1,
+                        'Level_Id'      => $nextLevel->ID ?? null,
+                        'Request_Type'  => $req->Request_Type,
+                    ]);
+                }
             });
 
             return ['success' => true, 'message' => 'success'];

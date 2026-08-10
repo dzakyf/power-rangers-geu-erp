@@ -106,7 +106,7 @@
         formData.append('action', action)
 
         $.ajax({
-            url: " partner-branding-approval-submit",
+            url: "partner-profit-sharing-approve",
             type: "POST",
             data: formData,
             processData: false,

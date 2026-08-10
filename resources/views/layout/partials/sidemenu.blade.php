@@ -151,7 +151,7 @@ $dsess2 =  Auth::user()->Main_Menu ?? '';
 
                     </div>	
                 <?php } 
-                    if(strpos($dsess, "MS00010") !== false ) {
+                    if(strpos($dsess, "MS00011") !== false ) {
                 ?>
                     <div class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="home-cns" role="button" aria-haspopup="true" aria-expanded="false" onclick="document.cookie='topnav=mymenu;expires=<?php echo $expired?>'">
@@ -167,7 +167,7 @@ $dsess2 =  Auth::user()->Main_Menu ?? '';
                 <?php
                     }
 				
-						if (strpos($dsess2,"CREDENTIAL")!== false) { 
+						if (strpos($dsess,"CR00001")!== false) { 
 				?>
                     <div class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="home-credential" role="button" aria-haspopup="true" aria-expanded="false" onclick="document.cookie='topnav=credential;expires=<?php echo $expired?>'">

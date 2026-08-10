@@ -214,7 +214,7 @@ class ProfitSharingController extends Controller
 
         $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502]);
 
-        $get = MasterWarehouseProfitLoss::where('type', $request->type)->get();
+        $get = MasterWarehouseProfitLoss::where('type', $request->type)->orderBy('Urut')->get();
         $normal = [];
         foreach ($get as $key => $value) {
             if ($value->Normal != '' && $value->Normal != null) {
@@ -256,29 +256,28 @@ class ProfitSharingController extends Controller
         }
         foreach ($get as $key => $Fetch) {
             $bold = "";
-            $style = "style='padding-left:" . $Fetch->Indentation . "px !important;'";
+            $indentPrefix = str_repeat("\xA0", (int) round($Fetch->Indentation / 10));
             if ($Fetch->Bold != null) {
-                $style = "style='padding-left:" . $Fetch->Indentation . "px !important;font-weight:bold;'";
                 $bold = "style='font-weight:bold;'";
             }
 
             echo "<row id=\"$key\">";
-            echo "<cell $style></cell>";
-            echo "<cell $style>" . htmlspecialchars($Fetch->Description) . "</cell>";
+            echo "<cell></cell>";
+            echo "<cell $bold>" . htmlspecialchars($indentPrefix . $Fetch->Description) . "</cell>";
             if ($Fetch->Judul != '' && $Fetch->Judul != null) {
                 if ($Fetch->Code != '' && $Fetch->Code != null) {
-                    echo "<cell $style>" . htmlspecialchars($calculate[$Fetch->Judul][$Fetch->Code]) . "</cell>";
+                    echo "<cell $bold>" . htmlspecialchars($calculate[$Fetch->Judul][$Fetch->Code]) . "</cell>";
                     echo "<cell $bold>" . htmlspecialchars($Fetch->Unit_Name) . "</cell>";
                     if ($Fetch->Unit_Name != 'Kg')
                         echo "<cell $bold>" . htmlspecialchars(round($calculate[$Fetch->Judul][$Fetch->Code] / $rev * 100, 2)) . "%</cell>";
                 } else {
                     if (isset($calculate[$Fetch->Judul]['NULL'])) {
-                        echo "<cell $style>" . htmlspecialchars($calculate[$Fetch->Judul]['NULL']) . "</cell>";
+                        echo "<cell $bold>" . htmlspecialchars($calculate[$Fetch->Judul]['NULL']) . "</cell>";
                         echo "<cell $bold>" . htmlspecialchars($Fetch->Unit_Name) . "</cell>";
                         if ($Fetch->Unit_Name != 'Kg')
                             echo "<cell $bold>" . htmlspecialchars(round($calculate[$Fetch->Judul]['NULL'] / $rev * 100, 2)) . "%</cell>";
                     } else {
-                        echo "<cell $style>" . htmlspecialchars(array_sum($calculate[$Fetch->Judul])) . "</cell>";
+                        echo "<cell $bold>" . htmlspecialchars(array_sum($calculate[$Fetch->Judul])) . "</cell>";
                         echo "<cell $bold>" . htmlspecialchars($Fetch->Unit_Name) . "</cell>";
                         if ($Fetch->Unit_Name != 'Kg')
                             echo "<cell $bold>" . htmlspecialchars(round(array_sum($calculate[$Fetch->Judul]) / $rev * 100, 2)) . "%</cell>";
@@ -286,12 +285,12 @@ class ProfitSharingController extends Controller
                 }
             } else {
                 if ($Fetch->Code != '' && $Fetch->Code != null && $Fetch->Rumus != '' && $Fetch->Rumus != null) {
-                    echo "<cell $style>" . $calculate[$Fetch->Rumus][$Fetch->Code] . "</cell>";
+                    echo "<cell $bold>" . $calculate[$Fetch->Rumus][$Fetch->Code] . "</cell>";
                     echo "<cell $bold>" . htmlspecialchars($Fetch->Unit_Name) . "</cell>";
                     if ($Fetch->Unit_Name != 'Kg')
                         echo "<cell $bold>" . round($calculate[$Fetch->Rumus][$Fetch->Code] / $rev * 100, 2) . "%</cell>";
                 } else {
-                    echo "<cell $style></cell>";
+                    echo "<cell></cell>";
                     echo "<cell $bold>" . htmlspecialchars($Fetch->Unit_Name) . "</cell>";
                     echo "<cell $bold></cell>";
                 }
@@ -322,6 +321,7 @@ class ProfitSharingController extends Controller
         $calculate[501][51001] = $stmt['qty_in'];
         $calculate[501][51002] = $stmt['raw_avg_in'];
         $calculate[501]['NULL'] = $stmt['raw_material_price'];
+        $calculate[402][51003] = $stmt['qty_out'];
 
         foreach ($stmt['expense_details'] as $group => $accounts) {
             foreach ($accounts as $code => $amount) {
@@ -333,7 +333,7 @@ class ProfitSharingController extends Controller
         $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502] ?? []);
 
         // --- Formula processing (identical to original) ---
-        $get = MasterWarehouseProfitLoss::where('type', $request->type)->get();
+        $get = MasterWarehouseProfitLoss::where('type', $request->type)->orderBy('Urut')->get();
         foreach ($get as $value) {
             if ($value->Level == 2 && $value->Rumus != '') {
                 $exp = explode(',', $value->Rumus);
@@ -401,12 +401,12 @@ class ProfitSharingController extends Controller
             $row = $xml->addChild('row');
             $row->addAttribute('ID', $key);
 
-            $indentStyle = 'padding-left:' . $Fetch->Indentation . 'px' . ($Fetch->Bold ? ';font-weight:bold;' : '');
+            $indentPrefix = str_repeat("\xC2\xA0", (int) round($Fetch->Indentation / 10));
+            $indentStyle = $Fetch->Bold ? 'font-weight:bold;' : '';
 
             $c1 = $row->addChild('cell');
-            $c1->addAttribute('style', $indentStyle);
 
-            $c2 = $row->addChild('cell', htmlspecialchars($Fetch->Description));
+            $c2 = $row->addChild('cell', htmlspecialchars($indentPrefix . $Fetch->Description));
             $c2->addAttribute('style', $indentStyle);
 
             $c3 = $row->addChild('cell', (string) ($val !== '' ? $val : ''));
@@ -484,7 +484,7 @@ class ProfitSharingController extends Controller
 
         // Hitung Opex
         $getAccount = MasterWarehouseAccount::where('group_account', '>', 501)->get();
-        $get = MasterWarehouseProfitLoss::where('type', $request->type)->get();
+        $get = MasterWarehouseProfitLoss::where('type', $request->type)->orderBy('Urut')->get();
 
         $calculate = [];
         for ($i = 1; $i <= 12; $i++) {
@@ -912,23 +912,45 @@ class ProfitSharingController extends Controller
         $session = $this->userService->getCurrentSessionUserInfo();
         $userId = $b['user_id'] ?? $session->id;
         $partner = $this->userService->getMitraById($userId);
-        $wh = DB::table('warehouse_partner as wp')
-            ->join('opportunity_partner as op', 'op.lead_id', '=', 'wp.partner_task_id')
-            ->where('op.user_row_id', '=', $userId)
-            ->select('wp.warehouse_task_id')
-            ->first();
-        $whId = $wh->warehouse_task_id ?? '';
-        $periodeStart = $b['periode_start'] ?? Carbon::now()->startOfMonth()->format('Y-m-d');
-        $periodeEnd = $b['periode_end'] ?? Carbon::now()->endOfMonth()->format('Y-m-d');
+
+        $whId = $b['warehouse_id'] ?? '';
+        $whRow = null;
+        if ($whId) {
+            $whQuery = DB::table('warehouse_partner')->where('warehouse_task_id', $whId);
+            if (($session->Priv_ID ?? '') === 'MITRA') {
+                $whQuery->where('partner_task_id', $session->Emp_ID);
+            }
+            $whRow = $whQuery->first();
+            if (!$whRow) {
+                abort(403, 'Warehouse tidak valid untuk pengguna ini.');
+            }
+        } else {
+            $wh = DB::table('warehouse_partner as wp')
+                ->join('opportunity_partner as op', 'op.lead_id', '=', 'wp.partner_task_id')
+                ->where('op.user_row_id', '=', $userId)
+                ->select('wp.warehouse_task_id', 'wp.warehouse_location')
+                ->first();
+            $whId = $wh->warehouse_task_id ?? '';
+            $whRow = $wh;
+        }
+
+        $location = $whRow->warehouse_location ?? $partner->City ?? '';
 
 
+        $periode = $b['periode'] ?? '';
+        if ($periode) {
+            $periodeStart = Carbon::createFromFormat('Y-m', $periode)->startOfMonth()->format('Y-m-d');
+            $periodeEnd = Carbon::createFromFormat('Y-m', $periode)->endOfMonth()->format('Y-m-d');
+        } else {
+            $periodeStart = $b['periode_start'] ?? Carbon::now()->startOfMonth()->format('Y-m-d');
+            $periodeEnd = $b['periode_end'] ?? Carbon::now()->endOfMonth()->format('Y-m-d');
+        }
 
         $wh = $this->warehouseService->calculateMonthlyFinancialStatement($whId, $periodeStart, $periodeEnd);
 
 
         $nominalRoyalty = $wh['nominal_royalty'];
 
-        $location = $partner->City;
         $date = Carbon::now()->day;
 
         // Parse month and year from submitted Periode (format: "YYYY-MM")
@@ -1117,6 +1139,23 @@ class ProfitSharingController extends Controller
                 'Opportunity_Id' => $partner[0]->id,
             ]);
 
+            $firstLevel = DB::table('approval_level')
+                ->where('Request_Type', 'PROFIT_SHARING')
+                ->where('Level_Number', 1)
+                ->first();
+
+            DB::table('approval_request')->insert([
+                'Status'                 => 'NEED_APPROVAL',
+                'Requester_Id'           => $session->id,
+                'Description'            => "Pengajuan royalti $month $year",
+                'Current_Level'          => 0,
+                'Request_Type'           => 'PROFIT_SHARING',
+                'Level_Id'               => $firstLevel->ID ?? null,
+                'Opportunity_Partner_Id' => $partner[0]->id,
+                'Map_To'                 => $ap,
+                'Submitted_At'           => now(),
+            ]);
+
             DB::commit();
 
             // return view('approval.profit-sharing-create', compact('partner'));
@@ -1191,17 +1230,8 @@ class ProfitSharingController extends Controller
         return view('partner.profit-sharing.overview2');
     }
 
-    public function indexProfitSharingOverview2Xml()
+    public function indexProfitSharingOverview2Xml(Request $request)
     {
-        /*
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-        */
-
         echo "<rows>";
         $priv = auth()->user()->Priv_ID;
         $getUsers = User::get();
@@ -1216,126 +1246,41 @@ class ProfitSharingController extends Controller
         }
         $nomor = 1;
 
+        $start = $request->query('start');
+        $end = $request->query('end');
+
         if ($priv == 'MITRA') {
             $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
         } else {
             $get = WarehousePartner::get();
         }
-        $percentage[401] = 100;
-        $bep = 24;
 
         foreach ($get as $key => $Fetch) {
-            $calculate = [];
-            //Hitung Pendaptan
-            $calculate[401][40001] = 0;
-
-            // harga transfer
-            $calculate[402][40002] = MasterStockPrice::whereBetween('date_for', [$Fetch->Created_Date, Carbon::now()])->avg('price');
-
-            // quantity
-            $calculate[501][51001] = WarehouseStockRequest::where('warehouse_task_id', $Fetch->warehouse_task_id)->whereBetween('request_date', [$Fetch->Created_Date, Carbon::now()])->sum('request_qty');
-
-            // harga beli
-            // $calculate[501][50002] = WarehousePartnerSupplies::where('received_date', 'LIKE', $request->date . '%')->avg('price');
-
-            $whs = WarehousePartnerSupplies::where("warehouse_task_id", $Fetch->warehouse_task_id)->whereBetween('received_date', [$Fetch->Created_Date, Carbon::now()])->get();
-            $supplies = [];
-            $supplies['avg'] = 0;
-            foreach ($whs as $key => $value) {
-                $month = date('Y-m', strtotime($value->received_date));
-                if (!isset($supplies['qty'])) {
-                    $supplies['qty'] = 0;
-                }
-                if (!isset($supplies['avg'])) {
-                    $supplies['avg'] = $value->price;
-                }
-                $supplies['avg'] = (($supplies['avg'] * $supplies['qty']) + $value->total) / ($supplies['qty'] + $value->received_qty);
-            }
-
-            // harga beli
-            $calculate[501][51002] = $supplies['avg'];
-
-            // pendapatan
-            $calculate[401][40001] = $calculate[402][40002] * $calculate[501][51001];
-
-            $calculate[501]['NULL'] = $calculate[501][51001] * $calculate[501][51002];
-            // $percentage[501] = $calculate[501]['NULL'] / $calculate[401][40001];
-
-
-            // Hitung Opex
-            $getAccount = MasterWarehouseAccount::where('group_account', '>', 501)->get();
-            foreach ($getAccount as $key => $value) {
-                if (!isset($calculate[$value->group_account])) {
-                    $calculate[$value->group_account] = [];
-                }
-                if (!isset($calculate[$value->group_account][$value->account_no])) {
-                    $calculate[$value->group_account][$value->account_no] = 0;
-                }
-
-                $getOpex = WarehousePartnerJournal::where('warehouse_task_id', $Fetch->warehouse_task_id)
-                    ->whereBetween('posting_date', [$Fetch->Created_Date, Carbon::now()])
-                    ->where('account_no', $value->account_no)
-                    ->where('group_account', $value->group_account)
-                    ->sum('nominal');
-
-                $calculate[$value->group_account][$value->account_no] += $getOpex;
-            }
-
-            $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502]);
-
-            $get = MasterWarehouseProfitLoss::where('type', $Fetch->warehouse_type)->get();
-            $normal = [];
-            foreach ($get as $key => $value) {
-                if ($value->Normal != '' && $value->Normal != null) {
-                    $normal[$value->Judul] = $value->Normal;
-                }
-            }
-
-            foreach ($get as $key => $value) {
-                if ($value->Level == 2) {
-                    if ($value->Rumus != '') {
-                        $exp = explode(',', $value->Rumus);
-                        if (count($exp) > 0) {
-                            if (!isset($calculate[$value->Judul])) {
-                                $calculate[$value->Judul]['NULL'] = 0;
-                            }
-                            if ($value->Normal == 'CREDIT') {
-                                $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) - array_sum($calculate[$exp[1]])) - (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
-                                if ($value->Judul == '701') {
-                                    $calculate[$value->Judul]['NULL'] -= ($calculate[401][40001] * 2.5) / 100;
-                                }
-                            } else {
-                                $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) + array_sum($calculate[$exp[1]])) + (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
-                            }
-                            // $percentage[$value->Judul] = $calculate[$value->Judul]['NULL']/$calculate[401][40001] * 100;
-                        }
-                    }
-                } else if ($value->Level == 3) {
-                    $exp = explode(',', $value->Rumus);
-                    if (!isset($calculate[$value->Judul])) {
-                        $calculate[$value->Judul]['NULL'] = 0;
-                    }
-                    $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) * 60) / 100;
-                }
-            }
-
-            $rev = $calculate[401][40001];
-            if ($rev == 0) {
-                $rev = 1;
-            }
-
             $type = ucwords($Fetch->warehouse_type);
             if ($type == '') {
                 $type = 'Booth';
             }
 
-            $d = DB::table('opportunity_partner as op')->select('op.full_name', 'opfd.*', 'mf.description')
-                ->join('opportunity_partner_facility_dtl as opfd', 'opfd.Partner_ID', '=', 'op.id')
-                ->where('op.lead_id', '=', $Fetch->partner_task_id)->sum('opfd.Total');
+            $dateStart = $start ? Carbon::parse($start)->startOfMonth()->format('Y-m-d') : $Fetch->Created_Date;
+            $dateEnd = $end ? Carbon::parse($end)->endOfMonth()->format('Y-m-d') : now();
 
-            $netprofit = isset($calculate[701]) ? $calculate[701]['NULL'] : 0;
-            $ebitda = isset($calculate[899]) ? $calculate[899]['NULL'] : 0;
-            $opex = $ebitda - $netprofit;
+            $stmt = $this->warehouseService->calculateFinancialStatement(
+                $Fetch->warehouse_task_id,
+                $dateStart,
+                $dateEnd
+            );
+
+            $investasi = $stmt['total_investation'] ?? 0;
+            $netprofit = $stmt['net_profit'] ?? 0;
+            $opex = $stmt['opex'] ?? 0;
+            $ebitda = $stmt['ebitda'] ?? 0;
+            $roi = $stmt['total_roi'] ?? 0;
+
+            $bep = 0;
+            if ($Fetch->bep_projected_at) {
+                $bep = Carbon::parse($Fetch->bep_projected_at)->diffInMonths(Carbon::parse($Fetch->Created_Date));
+            }
+
             echo "<row id=\"$Fetch->warehouse_task_id\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
@@ -1343,12 +1288,12 @@ class ProfitSharingController extends Controller
             echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
             echo "<cell>" . htmlspecialchars($type) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
-            echo "<cell>" . htmlspecialchars($d) . "</cell>";
+            echo "<cell>" . htmlspecialchars($investasi) . "</cell>";
             echo "<cell>" . htmlspecialchars($netprofit) . "</cell>";
             echo "<cell>" . htmlspecialchars($opex) . "</cell>";
             echo "<cell>" . htmlspecialchars($ebitda) . "</cell>";
             echo "<cell>" . htmlspecialchars($bep) . "</cell>";
-            echo "<cell>" . htmlspecialchars(round((isset($calculate[899]) ? $calculate[899]['NULL'] : 0) / ($d ?: 1) * 100, 2)) . "</cell>";
+            echo "<cell>" . htmlspecialchars(round($roi, 3)) . "</cell>";
             echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
             echo "</row>";
 
@@ -1362,17 +1307,8 @@ class ProfitSharingController extends Controller
         return view('partner.profit-sharing.management-fee');
     }
 
-    public function indexProfitSharingManagementFeeXml()
+    public function indexProfitSharingManagementFeeXml(Request $request)
     {
-        /*
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-        */
-
         echo "<rows>";
         $priv = auth()->user()->Priv_ID;
         $getUsers = User::get();
@@ -1387,153 +1323,33 @@ class ProfitSharingController extends Controller
         }
         $nomor = 1;
 
+        $start = $request->query('start');
+        $end = $request->query('end');
+
         if ($priv == 'MITRA') {
             $get = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->get();
         } else {
             $get = WarehousePartner::get();
         }
-        $percentage[401] = 100;
 
         foreach ($get as $key => $Fetch) {
-            $us = User::where('Emp_ID', $Fetch->partner_task_id)->first();
-            $getStartProjection = DB::table('projections')->where("User_ID", $us->id)->select('Created_At')->first();
-            if ($getStartProjection) {
-                $tahunPembuatan = [
-                    date('Y', strtotime($getStartProjection->Created_At)) => 1,
-                    date('Y', strtotime($getStartProjection->Created_At . ' +1 year')) => 2,
-                    date('Y', strtotime($getStartProjection->Created_At . ' +2 years')) => 3,
-                    date('Y', strtotime($getStartProjection->Created_At . ' +3 years')) => 4,
-                    date('Y', strtotime($getStartProjection->Created_At . ' +4 years')) => 5,
-                ];
-            } else {
-                $tahunPembuatan = [
-                    date('Y') => 1,
-                    date('Y', strtotime('+1 year')) => 2,
-                    date('Y', strtotime('+2 years')) => 3,
-                    date('Y', strtotime('+3 years')) => 4,
-                    date('Y', strtotime('+4 years')) => 5,
-                ];
-            }
-
-            // $ambilProjection = DB::table('projections')->where("User_ID", $us->id)->whereYear('Created_At', $tahunPembuatan[date('Y')])->first()->toArray();
-
-
-            $tahun = DB::table('projections')->where("User_ID", $us->id)->select('Created_At')->orderBy('Created_At', 'desc')->first();
-            $tahun = date('Y', strtotime($tahun->Created_At ?? date('Y-m-d')));
-
-            $calculate = [];
-            //Hitung Pendaptan
-            $calculate[401][40001] = 0;
-
-            // harga transfer
-            $calculate[402][40002] = MasterStockPrice::whereBetween('date_for', [$Fetch->Created_Date, Carbon::now()])->avg('price');
-
-            // quantity
-            $calculate[501][51001] = WarehouseStockRequest::where('warehouse_task_id', $Fetch->warehouse_task_id)->whereBetween('request_date', [$Fetch->Created_Date, Carbon::now()])->sum('request_qty');
-
-            // harga beli
-            // $calculate[501][50002] = WarehousePartnerSupplies::where('received_date', 'LIKE', $request->date . '%')->avg('price');
-
-            $whs = WarehousePartnerSupplies::where("warehouse_task_id", $Fetch->warehouse_task_id)->whereBetween('received_date', [$Fetch->Created_Date, Carbon::now()])->get();
-            $supplies = [];
-            $supplies['avg'] = 0;
-            foreach ($whs as $key => $value) {
-                $month = date('Y-m', strtotime($value->received_date));
-                if (!isset($supplies['qty'])) {
-                    $supplies['qty'] = 0;
-                }
-                if (!isset($supplies['avg'])) {
-                    $supplies['avg'] = $value->price;
-                }
-                $supplies['avg'] = (($supplies['avg'] * $supplies['qty']) + $value->total) / ($supplies['qty'] + $value->received_qty);
-            }
-
-            // harga beli
-            $calculate[501][51002] = $supplies['avg'];
-
-            // pendapatan
-            $calculate[401][40001] = $calculate[402][40002] * $calculate[501][51001];
-
-            $calculate[501]['NULL'] = $calculate[501][51001] * $calculate[501][51002];
-            // $percentage[501] = $calculate[501]['NULL'] / $calculate[401][40001];
-
-
-            // Hitung Opex
-            $getAccount = MasterWarehouseAccount::where('group_account', '>', 501)->get();
-            foreach ($getAccount as $key => $value) {
-                if (!isset($calculate[$value->group_account])) {
-                    $calculate[$value->group_account] = [];
-                }
-                if (!isset($calculate[$value->group_account][$value->account_no])) {
-                    $calculate[$value->group_account][$value->account_no] = 0;
-                }
-
-                $getOpex = WarehousePartnerJournal::where('warehouse_task_id', $Fetch->warehouse_task_id)
-                    ->whereBetween('posting_date', [$Fetch->Created_Date, Carbon::now()])
-                    ->where('account_no', $value->account_no)
-                    ->where('group_account', $value->group_account)
-                    ->sum('nominal');
-
-                $calculate[$value->group_account][$value->account_no] += $getOpex;
-            }
-
-            $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502]);
-
-            $get = MasterWarehouseProfitLoss::where('type', $Fetch->warehouse_type)->get();
-            $normal = [];
-            foreach ($get as $key => $value) {
-                if ($value->Normal != '' && $value->Normal != null) {
-                    $normal[$value->Judul] = $value->Normal;
-                }
-            }
-
-            foreach ($get as $key => $value) {
-                if ($value->Level == 2) {
-                    if ($value->Rumus != '') {
-                        $exp = explode(',', $value->Rumus);
-                        if (count($exp) > 0) {
-                            if (!isset($calculate[$value->Judul])) {
-                                $calculate[$value->Judul]['NULL'] = 0;
-                            }
-                            if ($value->Normal == 'CREDIT') {
-                                $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) - array_sum($calculate[$exp[1]])) - (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
-                                if ($value->Judul == '701') {
-                                    $calculate[$value->Judul]['NULL'] -= ($calculate[401][40001] * 2.5) / 100;
-                                }
-                            } else {
-                                $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) + array_sum($calculate[$exp[1]])) + (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
-                            }
-                            // $percentage[$value->Judul] = $calculate[$value->Judul]['NULL']/$calculate[401][40001] * 100;
-                        }
-                    }
-                } else if ($value->Level == 3) {
-                    $exp = explode(',', $value->Rumus);
-                    if (!isset($calculate[$value->Judul])) {
-                        $calculate[$value->Judul]['NULL'] = 0;
-                    }
-                    $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) * 60) / 100;
-                }
-            }
-
-            $rev = $calculate[401][40001];
-            if ($rev == 0) {
-                $rev = 1;
-            }
-
             $type = ucwords($Fetch->warehouse_type);
             if ($type == '') {
                 $type = 'Booth';
             }
 
-            // $d = DB::table('opportunity_partner as op')->select('op.full_name', 'opfd.*', 'mf.description')
-            //     ->join('opportunity_partner_facility_dtl as opfd', 'opfd.Partner_ID', '=', 'op.id')
-            //     ->join('master_facility as mf', 'mf.id', '=', 'opfd.Facility_ID')
-            //     ->where('op.lead_id', '=', $Fetch->partner_task_id)->sum('Total');
+            $dateStart = $start ? Carbon::parse($start)->startOfMonth()->format('Y-m-d') : $Fetch->Created_Date;
+            $dateEnd = $end ? Carbon::parse($end)->endOfMonth()->format('Y-m-d') : now();
 
-            $netprofit = isset($calculate[701]) ? $calculate[701]['NULL'] : 0;
-            $managementfee = isset($calculate[601][61007]) ? $calculate[601][61007] : 0;
-            $bagiHasilMitra = isset($calculate[801]['NULL']) ? $calculate[801]['NULL'] : 0;
-            $bagiHasil = $netprofit - $bagiHasilMitra;
+            $stmt = $this->warehouseService->calculateFinancialStatement(
+                $Fetch->warehouse_task_id,
+                $dateStart,
+                $dateEnd
+            );
+
+            $managementfee = isset($stmt['expense_details'][601][61007]) ? $stmt['expense_details'][601][61007] : 0;
+            $bagiHasil = isset($stmt['nominal_royalty']) ? $stmt['nominal_royalty'] : 0;
+
             echo "<row id=\"$Fetch->warehouse_task_id\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
@@ -1543,7 +1359,7 @@ class ProfitSharingController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
             echo "<cell>" . htmlspecialchars($managementfee) . "</cell>";
             echo "<cell>" . htmlspecialchars($bagiHasil) . "</cell>";
-            echo "<cell>" . htmlspecialchars($managementfee - $bagiHasil) . "</cell>";
+            echo "<cell>" . htmlspecialchars($managementfee + $bagiHasil) . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -1558,127 +1374,33 @@ class ProfitSharingController extends Controller
 
     public function indexOverviewMitraProfitSharingXml(Request $request)
     {
-        /*
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-        */
-
         echo "<rows>";
         $nomor = 1;
 
         $Fetch = WarehousePartner::where('partner_task_id', auth()->user()->Emp_ID)->first();
+        if (!$Fetch) {
+            echo "</rows>";
+            return;
+        }
 
-        $startDate = new DateTime($Fetch->Created_Date);
-        $endDate = new DateTime(Carbon::now());
-        $interval = DateInterval::createFromDateString('1 month');
-        $period = new DatePeriod($startDate, $interval, $endDate);
-        foreach ($period as $date) {
-            $ym = $date->format("Y-m");
-            $month = $date->format("F");
-            $year = $date->format("Y");
-            $calculate = [];
-            //Hitung Pendaptan
-            $calculate[401][40001] = 0;
+        $year = Carbon::now()->year;
+        for ($monthNum = 1; $monthNum <= 12; $monthNum++) {
+            $ym = $year . '-' . str_pad($monthNum, 2, '0', STR_PAD_LEFT);
+            $startDate = Carbon::createFromFormat('Y-m-d', $ym . '-01')->format('Y-m-d');
+            $endDate = Carbon::createFromFormat('Y-m-d', $ym . '-01')->endOfMonth()->format('Y-m-d');
 
-            // harga transfer
-            $calculate[402][40002] = MasterStockPrice::where('date_for', 'LIKE', $ym . '%')->avg('price');
-
-            // quantity
-            $calculate[501][51001] = WarehouseStockRequest::where('warehouse_task_id', $Fetch->warehouse_task_id)->where('request_date', 'LIKE', $ym . '%')->sum('request_qty');
-
-            // harga beli
-            // $calculate[501][50002] = WarehousePartnerSupplies::where('received_date', 'LIKE', $request->date . '%')->avg('price');
-
-            $whs = WarehousePartnerSupplies::where("warehouse_task_id", $Fetch->warehouse_task_id)->where('received_date', 'LIKE', $ym . '%')->get();
-            $supplies = [];
-            $supplies['avg'] = 0;
-            foreach ($whs as $key => $value) {
-                $month = date('Y-m', strtotime($value->received_date));
-                if (!isset($supplies['qty'])) {
-                    $supplies['qty'] = 0;
-                }
-                if (!isset($supplies['avg'])) {
-                    $supplies['avg'] = $value->price;
-                }
-                $supplies['avg'] = (($supplies['avg'] * $supplies['qty']) + $value->total) / ($supplies['qty'] + $value->received_qty);
-            }
-
-            // harga beli
-            $calculate[501][51002] = $supplies['avg'];
-
-            // pendapatan
-            $calculate[401][40001] = $calculate[402][40002] * $calculate[501][51001];
-
-            $calculate[501]['NULL'] = $calculate[501][51001] * $calculate[501][51002];
-            // $percentage[501] = $calculate[501]['NULL'] / $calculate[401][40001];
-
-
-            // Hitung Opex
-            $getAccount = MasterWarehouseAccount::where('group_account', '>', 501)->get();
-            foreach ($getAccount as $key => $value) {
-                if (!isset($calculate[$value->group_account])) {
-                    $calculate[$value->group_account] = [];
-                }
-                if (!isset($calculate[$value->group_account][$value->account_no])) {
-                    $calculate[$value->group_account][$value->account_no] = 0;
-                }
-
-                $getOpex = WarehousePartnerJournal::where('warehouse_task_id', $Fetch->warehouse_task_id)
-                    ->where('posting_date', 'LIKE', $ym . '%')
-                    ->where('account_no', $value->account_no)
-                    ->where('group_account', $value->group_account)
-                    ->sum('nominal');
-
-                $calculate[$value->group_account][$value->account_no] += $getOpex;
-            }
-
-            $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502]);
-
-            $get = MasterWarehouseProfitLoss::where('type', $Fetch->warehouse_type)->get();
-            $normal = [];
-            foreach ($get as $key => $value) {
-                if ($value->Normal != '' && $value->Normal != null) {
-                    $normal[$value->Judul] = $value->Normal;
-                }
-            }
-
-            foreach ($get as $key => $value) {
-                if ($value->Level == 2) {
-                    if ($value->Rumus != '') {
-                        $exp = explode(',', $value->Rumus);
-                        if (count($exp) > 0) {
-                            if (!isset($calculate[$value->Judul])) {
-                                $calculate[$value->Judul]['NULL'] = 0;
-                            }
-                            if ($value->Normal == 'CREDIT') {
-                                $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) - array_sum($calculate[$exp[1]])) - (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
-                                if ($value->Judul == '701') {
-                                    $calculate[$value->Judul]['NULL'] -= ($calculate[401][40001] * 2.5) / 100;
-                                }
-                            } else {
-                                $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) + array_sum($calculate[$exp[1]])) + (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
-                            }
-                            // $percentage[$value->Judul] = $calculate[$value->Judul]['NULL']/$calculate[401][40001] * 100;
-                        }
-                    }
-                } else if ($value->Level == 3) {
-                    $exp = explode(',', $value->Rumus);
-                    if (!isset($calculate[$value->Judul])) {
-                        $calculate[$value->Judul]['NULL'] = 0;
-                    }
-                    $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) * 60) / 100;
-                }
-            }
+            $stmt = $this->warehouseService->calculateFinancialStatement(
+                $Fetch->warehouse_task_id,
+                $startDate,
+                $endDate
+            );
+            $nominalRoyalty = $stmt['nominal_royalty'] ?? 0;
 
             echo "<row id=\"$Fetch->warehouse_task_id-$ym\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($year) . "</cell>";
-            echo "<cell>" . htmlspecialchars($month) . "</cell>";
-            echo "<cell>" . htmlspecialchars($calculate[801]['NULL']) . "</cell>";
+            echo "<cell>" . htmlspecialchars(Carbon::createFromFormat('m', $monthNum)->format('F')) . "</cell>";
+            echo "<cell>" . htmlspecialchars($nominalRoyalty) . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -2038,20 +1760,12 @@ class ProfitSharingController extends Controller
 
     public function dashboardProfitSharing()
     {
-        return view('partner.profit-sharing.dashboard');
+        $year = request()->query('year', date('Y'));
+        return view('partner.profit-sharing.dashboard', compact('year'));
     }
 
     public function dashboardProfitSharingXml(Request $request)
     {
-        /*
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-        */
-
         echo "<rows>";
         $getUsers = User::get();
         $usname = [];
@@ -2061,6 +1775,8 @@ class ProfitSharingController extends Controller
         }
         $nomor = 1;
 
+        $year = $request->query('year', date('Y'));
+
         $warehouse = WarehousePartner::select(['warehouse_task_id', 'warehouse_type', 'partner_task_id', 'Created_Date', 'Created_By', 'warehouse_location', 'warehouse_status', 'capacity']);
         if (auth()->user()->Priv_ID == "MITRA") {
             $warehouse->where('partner_task_id', auth()->user()->Emp_ID);
@@ -2069,155 +1785,32 @@ class ProfitSharingController extends Controller
         foreach ($warehouse as $key => $Fetch) {
             $bulanList = [];
             for ($i = 1; $i <= 12; $i++) {
-                $bulan = date('Y-m', mktime(0, 0, 0, $i, 1));
+                $bulan = $year . '-' . str_pad($i, 2, '0', STR_PAD_LEFT);
                 $bulanList[$bulan] = [
                     'proyeksi' => 0,
                     'bagi_hasil' => 0
                 ];
             }
-            $us = User::where('Emp_ID', $Fetch->partner_task_id)->first();
-            $getStartProjection = DB::table('projections')->where("User_ID", $us->id)->select('Created_At')->first();
-            if ($getStartProjection) {
-                $tahunPembuatan = [
-                    date('Y', strtotime($getStartProjection->Created_At)) => 1,
-                    date('Y', strtotime($getStartProjection->Created_At . ' +1 year')) => 2,
-                    date('Y', strtotime($getStartProjection->Created_At . ' +2 years')) => 3,
-                    date('Y', strtotime($getStartProjection->Created_At . ' +3 years')) => 4,
-                    date('Y', strtotime($getStartProjection->Created_At . ' +4 years')) => 5,
-                ];
-            } else {
-                $tahunPembuatan = [
-                    date('Y') => 1,
-                    date('Y', strtotime('+1 year')) => 2,
-                    date('Y', strtotime('+2 years')) => 3,
-                    date('Y', strtotime('+3 years')) => 4,
-                    date('Y', strtotime('+4 years')) => 5,
-                ];
-            }
-
-            // $tahun = DB::table('projections')->where("User_ID", $us->id)->select('Created_At')->orderBy('Created_At', 'desc')->first();
-            // $tahun = date('Y', strtotime($tahun->Created_At ?? date('Y-m-d')));
-
             foreach ($bulanList as $kunci => $value) {
-                $start = $kunci . '-01';
-                $end = date('Y-m-t', strtotime($start));
-                $calculate = [];
-                //Hitung Pendaptan
-                $calculate[401][40001] = 0;
+                $startDate = Carbon::parse($kunci . '-01')->format('Y-m-d');
+                $endDate = Carbon::parse($kunci . '-01')->endOfMonth()->format('Y-m-d');
 
-                // harga transfer
-                $calculate[402][40002] = MasterStockPrice::whereBetween('date_for', [$start, $end])->avg('price');
+                $stmt = $this->warehouseService->calculateFinancialStatement(
+                    $Fetch->warehouse_task_id,
+                    $startDate,
+                    $endDate
+                );
 
-                // quantity
-                $calculate[501][51001] = WarehouseStockRequest::where('warehouse_task_id', $Fetch->warehouse_task_id)->whereBetween('request_date', [$start, $end])->sum('request_qty');
+                $bagiHasilMitra = isset($stmt['nominal_royalty']) ? $stmt['nominal_royalty'] : 0;
 
-                $whs = WarehousePartnerSupplies::where("warehouse_task_id", $Fetch->warehouse_task_id)->whereBetween('received_date', [$start, $end])->get();
-                $supplies = [];
-                $supplies['avg'] = 0;
-                foreach ($whs as $key => $value) {
-                    $month = date('Y-m', strtotime($value->received_date));
-                    if (!isset($supplies['qty'])) {
-                        $supplies['qty'] = 0;
-                    }
-                    if (!isset($supplies['avg'])) {
-                        $supplies['avg'] = $value->price;
-                    }
-                    $supplies['avg'] = (($supplies['avg'] * $supplies['qty']) + $value->total) / ($supplies['qty'] + $value->received_qty);
-                }
-
-                // harga beli
-                $calculate[501][51002] = $supplies['avg'];
-
-                // pendapatan
-                $calculate[401][40001] = $calculate[402][40002] * $calculate[501][51001];
-
-                $calculate[501]['NULL'] = $calculate[501][51001] * $calculate[501][51002];
-
-
-                // Hitung Opex
-                $getAccount = MasterWarehouseAccount::where('group_account', '>', 501)->get();
-                foreach ($getAccount as $key => $value) {
-                    if (!isset($calculate[$value->group_account])) {
-                        $calculate[$value->group_account] = [];
-                    }
-                    if (!isset($calculate[$value->group_account][$value->account_no])) {
-                        $calculate[$value->group_account][$value->account_no] = 0;
-                    }
-
-                    $getOpex = WarehousePartnerJournal::where('warehouse_task_id', $Fetch->warehouse_task_id)
-                        ->whereBetween('posting_date', [$start, $end])
-                        ->where('account_no', $value->account_no)
-                        ->where('group_account', $value->group_account)
-                        ->sum('nominal');
-
-                    $calculate[$value->group_account][$value->account_no] += $getOpex;
-                }
-
-                $calculate[599]['NULL'] = $calculate[501]['NULL'] + array_sum($calculate[502]);
-
-                $get = MasterWarehouseProfitLoss::where('type', $Fetch->warehouse_type)->get();
-                $normal = [];
-                foreach ($get as $key => $value) {
-                    if ($value->Normal != '' && $value->Normal != null) {
-                        $normal[$value->Judul] = $value->Normal;
-                    }
-                }
-
-                foreach ($get as $key => $value) {
-                    if ($value->Level == 2) {
-                        if ($value->Rumus != '') {
-                            $exp = explode(',', $value->Rumus);
-                            if (count($exp) > 0) {
-                                if (!isset($calculate[$value->Judul])) {
-                                    $calculate[$value->Judul]['NULL'] = 0;
-                                }
-                                if ($value->Normal == 'CREDIT') {
-                                    $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) - array_sum($calculate[$exp[1]])) - (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
-                                    if ($value->Judul == '701') {
-                                        $calculate[$value->Judul]['NULL'] -= ($calculate[401][40001] * 2.5) / 100;
-                                    }
-                                } else {
-                                    $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) + array_sum($calculate[$exp[1]])) + (isset($exp[2]) ? array_sum($calculate[$exp[2]]) : 0);
-                                }
-                            }
-                        }
-                    } else if ($value->Level == 3) {
-                        $exp = explode(',', $value->Rumus);
-                        if (!isset($calculate[$value->Judul])) {
-                            $calculate[$value->Judul]['NULL'] = 0;
-                        }
-                        $calculate[$value->Judul]['NULL'] += (array_sum($calculate[$exp[0]]) * 60) / 100;
-                    }
-                }
-
-                $rev = $calculate[401][40001];
-                if ($rev == 0) {
-                    $rev = 1;
-                }
-
-                $type = ucwords($Fetch->warehouse_type);
-                if ($type == '') {
-                    $type = 'Booth';
-                }
-
-                // $netprofit = isset($calculate[701]) ? $calculate[701]['NULL'] : 0;
-                // $managementfee = isset($calculate[601][61007]) ? $calculate[601][61007] : 0;
-                $bagiHasilMitra = isset($calculate[801]['NULL']) ? $calculate[801]['NULL'] : 0;
-                // $bagiHasil = $netprofit - $bagiHasilMitra;
-
-                $bulanList[$kunci]['proyeksi'] += DB::table('projections')
-                    ->where(function ($q) use ($Fetch, $us) {
-                        $q->where('warehouse_task_id', $Fetch->warehouse_task_id)
-                            ->orWhere("User_Id", $us->id);
-                    })
-                    ->where('Projection_Type', 'high')
-                    ->where("Hub_Type", $Fetch->warehouse_type)
-                    ->where('Year', $tahunPembuatan[date('Y', strtotime($start))] ?? 1)
-                    ->where('Description', 'Profit Mitra')
-                    ->sum('Month_' . date('n', strtotime($start)) . '_Total');
+                $bulanList[$kunci]['proyeksi'] += $stmt['projection_royalty_high'] ?? 0;
                 $bulanList[$kunci]['bagi_hasil'] += $bagiHasilMitra;
             }
 
+            $type = ucwords($Fetch->warehouse_type);
+            if ($type == '') {
+                $type = 'Booth';
+            }
 
             echo "<row id=\"$Fetch->warehouse_task_id\">";
             echo "<cell>$nomor</cell>";

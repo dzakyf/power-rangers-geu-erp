@@ -418,6 +418,14 @@ class MasterDataController extends Controller
         $category     = $request->input('type');          // inventory | access | support
         $format       = $request->input('format');        // json | (default xml)
 
+        if ($request->input('id')) {
+            $facility = DB::table('master_facility')
+                ->where('id', $request->input('id'))
+                ->where('is_deleted', 0)
+                ->first();
+            return response()->json(['data' => $facility ? [$facility] : []]);
+        }
+
         $allowedFacilityTypes = ['mobil', 'booth'];
         if (!in_array($facilityType, $allowedFacilityTypes)) {
             return response()->json(['error' => 'Invalid facility_type. Must be one of: ' . implode(', ', $allowedFacilityTypes)], 422);
@@ -450,14 +458,13 @@ class MasterDataController extends Controller
             }
 
             $entry = [
-                'no'          => $index + 1,
-                'description' => $facility->description,
-                'children'    => (string) $children,
+                'no'               => $index + 1,
+                'description'      => $facility->description,
+                'children'         => (string) $children,
+                'depreciation_year'=> $facility->depreciation_year,
+                'shelf_life'       => $facility->shelf_life,
+                'asset_type'       => $facility->asset_type,
             ];
-
-            if ($category === 'inventory') {
-                $entry['asset_type'] = $facility->asset_type;
-            }
 
             $rows[] = array_merge(['id' => $facility->id], $entry);
         }
@@ -492,8 +499,33 @@ class MasterDataController extends Controller
                 'children'          => json_encode($request->input('children', [])),
                 'asset_type'        => $request->input('asset_type') ?? '',
                 'depreciation_year' => $request->input('depreciation_year'),
+                'shelf_life'        => $request->input('shelf_life'),
             ]);
         });
+
+        return response()->json(['status' => 'success']);
+    }
+
+    public function editWarehouseFacility(Request $request)
+    {
+        $id = $request->input('id');
+        if (!$id) {
+            return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
+        }
+
+        $updated = DB::transaction(function () use ($request, $id) {
+            return DB::table('master_facility')->where('id', $id)->where('is_deleted', 0)->update([
+                'description'       => $request->input('description'),
+                'children'          => json_encode($request->input('children', [])),
+                'asset_type'        => $request->input('asset_type') ?? '',
+                'depreciation_year' => $request->input('depreciation_year'),
+                'shelf_life'        => $request->input('shelf_life'),
+            ]);
+        });
+
+        if (!$updated) {
+            return response()->json(['status' => 'error', 'message' => 'Record not found'], 404);
+        }
 
         return response()->json(['status' => 'success']);
     }

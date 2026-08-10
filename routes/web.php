@@ -379,7 +379,7 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('assets.xml.lists');
     });
 
-    Route::get("/credential-role-old", function() {
+    Route::get("/credential-role-old", function () {
         return view('credential.role');
     });
     Route::get("/credential-role", [CredentialRoleController::class, "index"]);
@@ -391,7 +391,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("/master-credential-role-delete/{id}", [CredentialRoleController::class, "deleteRole"]);
     Route::post("/master-credential-role-grant-all/{id}", [CredentialRoleController::class, "grantAllPermissions"]);
     Route::post("/master-credential-role-revoke-all/{id}", [CredentialRoleController::class, "revokeAllPermissions"]);
-    Route::post("/master-credential-menu-name-update", [CredentialRoleController::class, "updateMenuName"]);
+    Route::post("/master-credential-role-menu-create", [CredentialRoleController::class, "createMenuItem"]);
+    Route::post("/master-credential-role-menu-update", [CredentialRoleController::class, "updateMenuItem"]);
+    Route::post("/master-credential-role-menu-delete", [CredentialRoleController::class, "deleteMenuItem"]);
 
     Route::get("/credential-user-management", [CredentialUserController::class, "index"]);
     Route::get("/credential-create-user", [CredentialUserController::class, "createUser"]);
@@ -4519,6 +4521,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$masterData-facility-create", [MasterDataController::class, 'createWarehouseFacility']);
     Route::post("$masterData-facility-create-submit", [MasterDataController::class, 'submitWarehouseFacility']);
     Route::get("$masterData-facility-data", [MasterDataController::class, 'getWarehouseFacility']);
+    Route::post("$masterData-facility-edit", [MasterDataController::class, 'editWarehouseFacility']);
     Route::delete("$masterData-facility-delete", [MasterDataController::class, 'deleteWarehouseFacility']);
     Route::get("$masterData-fleet", [MasterDataController::class, 'indexMasterFleet']);
     Route::get("$masterData-fleet-data", [MasterDataController::class, 'getMasterFleet']);
