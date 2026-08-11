@@ -57,7 +57,8 @@ class MasterApprovalController extends Controller
     public function new()
     {
         $directorats = DB::table('master_directorat')->orderBy('Directorat', 'ASC')->get();
-        return view("humanresources.master.approval-new", compact('directorats'));
+        $approvalMenu = DB::table('master_hr_approval_menu')->orderBy('Menu_Name', 'ASC')->get();
+        return view("humanresources.master.approval-new", compact('directorats','approvalMenu'));
     }
 
     public function getDepartmentsFromDirectorat(Request $request)
@@ -91,7 +92,6 @@ class MasterApprovalController extends Controller
             'directorat' => 'required|string',
             'department' => 'required|string',
             'name' => 'required|string',
-            'level' => 'required|integer',
         ]);
 
         $getus = DB::table('users')->where("Emp_ID", $validatedData['name'])->first();
@@ -99,15 +99,33 @@ class MasterApprovalController extends Controller
             return response()->json(['message' => 'User not found in the system.', 'status' => 'error'], 404);
         }
 
+        $getPosition = DB::table('master_position')->where("Initial", $getus->Position)->first();
+
         DB::table('master_hr_approval')->insert([
             'Location' => Auth::user()->Location,
             'Directorat' => $validatedData['directorat'],
             'Department' => $validatedData['department'],
             'Name' => $getus->Name,
             'username' => $getus->username,
-            'Level' => $validatedData['level'],
+            'Level' => $getPosition->Level,
+            'Menu_List' => implode(',', $request->menu),
             'Status' => 'ACTIVE', // Assuming new entries are active by default
         ]);
+        if (in_array($getPosition->Level, [1,2,3,4,5,6,7,8])) {
+            $getDept = DB::table('master_department')->where("Initial", $getPosition->Department)->first();
+            $getSect = DB::table('master_section')->where("Initial", $getPosition->Subsection)->first();
+            DB::table('organization_structure')->insert([
+                'Name' => $getus->Name,
+                'NIK' => $getus->Emp_ID,
+                'Level' . $getPosition->Level => 1,
+                'Department' => $getDept->Initial ?? '',
+                'Dept_Code' => $getDept->Initial_Code ?? '',
+                'Email' => $getus->Email ?? '',
+                'Alerted' => 0,
+                'divisi' => $getSect->Initial ?? '',
+            ]);
+        }
+
 
         return response()->json(['message' => 'Approval entry created successfully.', 'status' => 'success']);
     }
@@ -115,6 +133,8 @@ class MasterApprovalController extends Controller
     public function detail(Request $request)
     {
         $detail = DB::table('master_hr_approval')->where("ID", $request->task)->first();
+        $detail->Menu_List = explode(',', $detail->Menu_List) ?? [];
+        $approvalMenu = DB::table('master_hr_approval_menu')->orderBy('Menu_Name', 'ASC')->get();
         $getUser = DB::table('users')->where("username", $detail->username)->first();
         if (!$detail) {
             return redirect()->back()->with('error', 'Approval entry not found.');
@@ -122,7 +142,7 @@ class MasterApprovalController extends Controller
         $directorats = DB::table('master_directorat')->orderBy('Directorat', 'ASC')->get();
         $departments = DB::table('master_department')->where("Directorat", $detail->Directorat)->orderBy('Department', 'ASC')->get();
         $employee = DB::table('employment')->where("Department", $detail->Department)->get();
-        return view('humanresources.master.approval-detail', compact('detail', 'directorats', 'departments', 'employee', 'getUser'));
+        return view('humanresources.master.approval-detail', compact('detail', 'directorats', 'departments', 'employee', 'getUser', 'approvalMenu'));
     }
 
     public function detailSubmit(Request $request)
@@ -131,7 +151,6 @@ class MasterApprovalController extends Controller
             'directorat' => 'required|string',
             'department' => 'required|string',
             'name' => 'required|string',
-            'level' => 'required|integer',
         ]);
 
         $getus = DB::table('users')->where("Emp_ID", $validatedData['name'])->first();
@@ -139,15 +158,59 @@ class MasterApprovalController extends Controller
             return response()->json(['message' => 'User not found in the system.', 'status' => 'error'], 404);
         }
 
+        $getPosition = DB::table('master_position')->where("Initial", $getus->Position)->first();
+
         DB::table('master_hr_approval')->where('ID', $request->ID)->update([
             'Location' => Auth::user()->Location,
             'Directorat' => $validatedData['directorat'],
             'Department' => $validatedData['department'],
             'Name' => $getus->Name,
             'username' => $getus->username,
-            'Level' => $validatedData['level'],
+            'Level' => $getPosition->Level,
+            'Menu_List' => implode(',', $request->menu),
             'Status' => 'ACTIVE', // Assuming new entries are active by default
         ]);
+
+        $org = DB::table('organization_structure')->where("NIK", $getus->Emp_ID)->first();
+        
+        if (in_array($getPosition->Level, [1,2,3,4,5,6,7,8]) || $org) {
+            $getDept = DB::table('master_department')->where("Initial", $getPosition->Department)->first();
+            $getSect = DB::table('master_section')->where("Initial", $getPosition->Subsection)->first();
+
+            if (!$org) {
+                DB::table('organization_structure')->insert([
+                    'Name' => $getus->Name,
+                    'NIK' => $getus->Emp_ID,
+                    'Level' . $getPosition->Level => 1,
+                    'Department' => $getDept->Initial ?? '',
+                    'Dept_Code' => $getDept->Initial_Code ?? '',
+                    'Email' => $getus->Email ?? '',
+                    'Alerted' => 0,
+                    'divisi' => $getSect->Initial ?? '',
+                ]);
+            }else {
+                $arr = [
+                    'Name' => $getus->Name,
+                    'NIK' => $getus->Emp_ID,
+                    'Department' => $getDept->Initial ?? '',
+                    'Dept_Code' => $getDept->Initial_Code ?? '',
+                    'Email' => $getus->Email ?? '',
+                    'Alerted' => 0,
+                    'divisi' => $getSect->Initial ?? '',
+                ];
+    
+                for ($i=1; $i <= 8; $i++) { 
+                    $lev = "Level".$i;
+                    $hasil = 0;
+                    if ($i == $getPosition->Level) {
+                        $hasil = 1;
+                    }
+                    $arr[$lev] = $hasil;
+                }
+    
+                DB::table('organization_structure')->where('ID', $org->ID)->update($arr);
+            }
+        }
 
         return response()->json(['message' => 'Approval entry created successfully.', 'status' => 'success']);
     }

@@ -17,10 +17,12 @@ use Illuminate\Database\Eloquent\Builder;
 	echo "<script>";
 
 		foreach($sobjf as $objf){
-		$idobj = $objf->Field;
-		$isinya = $fetch->$idobj;
-			
+			if ($objf->Field != 'Note') {
+				$idobj = $objf->Field;
+				$isinya = $fetch->$idobj;
+					
 				echo "$('#$idobj').val('$isinya'); \n";
+			}
 		}
 	
 	echo "</script>";
@@ -115,7 +117,7 @@ use Illuminate\Database\Eloquent\Builder;
 					 <?php
 						$Query = DB::table("master_department")->get();
 						foreach ($Query as $Data){
-							echo "<option value='$Data->Department'>$Data->Department - $Data->Directorat</option>";	
+							echo "<option value='$Data->Initial'>$Data->Department - $Data->Directorat</option>";	
 							
 							}
 					?>
@@ -132,45 +134,12 @@ use Illuminate\Database\Eloquent\Builder;
 				<div class="FormInput_right">
 				
 						<select id="Category" onchange="loadSubCat(this.value);">
-							<option>CONSUMABLE</option>
 							<option>ASSET</option>
-							<option>SERVICES</option>
+							<option>NON ASSET</option>
 						</select>
 				 
 				 </div>
 				<div class="FormInput_left">
-						
-						Group Category
-				
-				</div>
-				<div class="FormInput_right">
-					<div id="SubCat">
-						 <input type="text" readonly="readonly" id="Sub_Category" size="30" />     
-					 
-					 </div>
-				 
-				</div>
-				<div class="FormInput_left">
-						
-					   Sub Category
-				
-				</div>
-				<div class="FormInput_right">
-					<div id="SubCat2">
-						<input type="text" readonly="readonly" id="Supplies_Type" size="30" />           
-			
-					 </div>
-				 
-				</div>
-				
-				
-			<div id="gridPRNewDetail" style="width:auto;height:200px; background-color:white;overflow:hidden"></div>
-			<div id="divtom">
-				<input type="button" id="AddPRNewDetail" NAME="AddPRNewDetail" class="btn btn-info mt-2 mr-2" value="Add New" />
-				<input type="button" id="DelPRNewDetail" NAME="DelPRNewDetail"  class="btn btn-danger mt-2 mr-2" value="Delete" />
-				              
-			</div>
-			<div class="FormInput_left">
 						
 						References/FPB (Manual)
 				
@@ -182,7 +151,24 @@ use Illuminate\Database\Eloquent\Builder;
 				 </div>
 			<div class="FormInput_left" style="height:80px;">
 						
-						Note
+						Specification
+				
+				</div>	
+				<div class="FormInput_right" style="height:80px;">
+						<textarea id="Remark" cols="100" rows="2"></textarea>
+
+				 </div>
+				
+				
+			<div id="gridPRDetail" style="width:auto;height:200px; background-color:white;overflow:hidden"></div>
+			<div id="divtom">
+				<input type="button" id="AddPRDetail" NAME="AddPRDetail" class="btn btn-info mt-2 mr-2" value="Add New" />
+				<input type="button" id="DelPRDetail" NAME="DelPRDetail"  class="btn btn-danger mt-2 mr-2" value="Delete" />
+				              
+			</div>
+			<div class="FormInput_left" style="height:80px;">
+						
+						Approval Note
 				
 				</div>	
 				<div class="FormInput_right" style="height:80px;">
@@ -191,7 +177,7 @@ use Illuminate\Database\Eloquent\Builder;
 				 </div>
 			<div id="divtom2">
 				<input type="button" id="Rejects" NAME="Rejects" class="btn btn-danger mt-2 mr-2" value="REJECT" />                
-				<input type="button" id="SubmitPRNewDetail" NAME="SubmitPRNewDetail" class="btn btn-success mt-2 mr-2" value="Approve &amp; Submit" />                
+				<input type="button" id="SubmitPRDetail" NAME="SubmitPRDetail" class="btn btn-success mt-2 mr-2" value="Approve &amp; Submit" />                
 			</div>
 			<div id="WinCOA"></div>
 			
@@ -221,8 +207,10 @@ function getAllValues() {
     var inputValues = [];
     $('#ContentPages input,select,textarea').each(function() {
         var type = $(this).attr("type");
-        if ((type == "checkbox" || type == "radio") && this.checked) {
-            inputValues.push($(this).attr("id") + "=" + $(this).val());
+        if ((type == "checkbox" || type == "radio")) {
+			if (this.checked) {
+				inputValues.push($(this).attr("id") + "=" + $(this).val());
+			}
         }
         else if (type != "button" || type != "submit") {
             inputValues.push($(this).attr("id") + "=" + $(this).val());
@@ -235,47 +223,77 @@ function getAllValues() {
 }
 
 
-PRNewDetail = new dhtmlXGridObject('gridPRNewDetail');
-PRNewDetail.setImagePath("dhtmlx/imgs/");
-PRNewDetail.setHeader("No,Purchase Type,Product Code,Product Desc,Qty,Specification,Measurement,Note,Category,SubCat,Prices");
-PRNewDetail.setInitWidths("50,100,100,250,50,200,100,0,0,0,0");
-PRNewDetail.setColTypes("ro,ro,ro,ro,edn,ed,ed,ed,ro,ro,ro");
-PRNewDetail.setColAlign("center,left,center,left,right,left,center,center,center,center");
-PRNewDetail.setColSorting("int,str,str,str,str,str,str,str");
-PRNewDetail.setEditable(true);
-PRNewDetail.setNumberFormat("0,000",4,".",",");
-PRNewDetail.enableKeyboardSupport(true);
-PRNewDetail.setSkin("dhx_skyblue");
-PRNewDetail.enableMultiline(true);
-PPRNewDetail = new dataProcessor("purchasing-request-approval-detail-update");
-	PPRNewDetail.setTransactionMode({
-	 mode: "POST",
-	  total:true,
-	  headers:{
-		'X-CSRF-TOKEN': "{{ csrf_token() }}"
-	  }	,
-	  payload: {"PR_No":"<?php echo $fetch->PR_No;  ?>"}
+
+		PRDetail = new dhtmlXGridObject('gridPRDetail');
+		PRDetail.setImagePath("dhtmlx/imgs/");
+		PRDetail.setHeader("No,Purchase Type,Product Code,Product Desc,Qty,Specification,Measurement,Note,Category,SubCat,Prices,Total");
+		PRDetail.setInitWidths("50,100,100,100,200,200,100,200,100,100,100,100");
+		PRDetail.setColTypes("ro,ro,ro,ro,edn,ed,ed,ed,ro,ro,edn,ron");
+		PRDetail.setColAlign("center,left,center,left,right,left,center,center,center,center,right,right");
+		PRDetail.setColSorting("int,str,str,str,str,str,str,str,str,str");
+		PRDetail.setEditable(true);
+		PRDetail.setNumberFormat("0,000.00", 4, ".", ",");
+		PRDetail.setNumberFormat("0,000.00", 10, ".", ",");
+		PRDetail.setNumberFormat("0,000.00", 11, ".", ",");
+		PRDetail.enableKeyboardSupport(true);
+		PRDetail.setSkin("dhx_skyblue");
+		PRDetail.attachEvent("onRowDblClicked", loadPrProduct);
+		PRDetail.enableMultiline(true);
+		PPRDetail = new dataProcessor("hrd-procurement-detail-update");
+		PPRDetail.setTransactionMode({
+			mode: "POST",
+			total: true,
+			headers: {
+				'X-CSRF-TOKEN': "{{ csrf_token() }}"
+			},
+			payload: {
+				"PR_No": "<?php echo $fetch->PR_No;  ?>"
+			}
 
 
-	})
-PPRNewDetail.setUpdateMode("Off");
-PPRNewDetail.init(PRNewDetail);
-PRNewDetail.init();
-PRNewDetail.loadXML("xml-purchasing-request-approval-detail?ID=<?php echo $fetch->PR_No;  ?>");
+		})
+		PPRDetail.setUpdateMode("Off");
+		PPRDetail.init(PRDetail);
+		PRDetail.init();
+		PRDetail.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
+			if(stage == 2){
 
-$("#AddPRNewDetail").click(function(){
-	loadPR_Product('Product Lists','purchasing-product-list',1024,450);
-	
-})
-$("#DelPRNewDetail").click(function(){
-		
-	PRNewDetail.deleteSelectedRows();
-	
-})
+				if(cInd == 4 || cInd == 10){
+					let qty = Number(PRDetail.cells(rId,4).getValue());
+					let price = Number(PRDetail.cells(rId,10).getValue());
+					if (qty == '' || price == '') {
+						PRDetail.cells(rId, 11).setValue('');
+						return true;
+					}
+
+					PRDetail.cells(rId, 11).setValue(qty * price);
+				}
+			}
+
+			return true;
+		});
+        PRDetail.clearAndLoad("xml-hrd-procurement-detail?PR_No={{$fetch->PR_No}}");
+
+		$("#AddPRDetail").click(function() {
+            let ids = PRDetail.uid();
+            PRDetail.addRow(ids, [PRDetail.getRowsNum() + 1, '','','','','','','','','','']);
+            PRDetail.selectRowById(ids);
+            loadPR_Product('Product Lists', 'hrd-procurement-product', 1024, 450);
+
+		})
+
+        function loadPrProduct(rId, cInd, event) {
+            if(cInd == 2 || cInd == 3)
+                loadPR_Product('Product Lists', 'hrd-procurement-product', 1024, 450);
+            return true;
+        }
+		$("#DelPRDetail").click(function() {
+			PRDetail.deleteSelectedRows();
+		})
 
 
-$("#SubmitPRNewDetail").click(function() {
-var count=PRNewDetail.getRowsNum();
+$("#SubmitPRDetail").click(function() {
+var count=PRDetail.getRowsNum();
 if(count == 0){
 	alert('Masukkan Item Request Terlebih Dahulu! ');
 	return false;
@@ -305,11 +323,11 @@ if(count == 0){
 	}else if (Note.length < 5) {
 		alert("Kolom catatan (Note) minimal 5 karakter!");$("#Note").focus();return false;
 	}else{
-		PPRNewDetail.sendData();
+		PPRDetail.sendData();
 
 		var sip = 1;
-		for (var i = 0; i < PRNewDetail.getRowsNum(); i++) {
-			PurchaseType = PRNewDetail.cells2(i,1).getValue();
+		for (var i = 0; i < PRDetail.getRowsNum(); i++) {
+			PurchaseType = PRDetail.cells2(i,1).getValue();
 			if(PurchaseType==Sub_Category2){
 				sip *= 1;
 			}else{
