@@ -19,11 +19,13 @@ class LogUserAccess
      */
     public function handle($request, Closure $next)
     {
-        // Execute the request first so we track it as it happens
-        $response = $next($request);
+        // Block unauthenticated requests before any route/view code executes
         if (!Auth::check()) {
             return redirect()->route('login');
         }
+
+        // Execute the request only for authenticated users, then track it
+        $response = $next($request);
 
         // Capture user information if they are authenticated
         // $userId = Auth::check() ? Auth::id() : 'Guest';

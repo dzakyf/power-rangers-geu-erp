@@ -32,6 +32,13 @@ class UserController extends Controller
         $session = $this->users->getCurrentSessionUserInfo();
         $id = !empty($b['User_Id']) ? $b['User_Id'] : $session->id;
 
+        if ($session->id != $id && !Auth::user()->hasRole('super-admin')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Forbidden'
+            ], 403);
+        }
+
         $d = DB::table('users as us')->where('us.ID', '=', $id)->first();
 
         if (!$d) {
@@ -50,6 +57,12 @@ class UserController extends Controller
     public function updateMitraData(Request $r)
     {
         $b = $r->all();
+        $session = $this->users->getCurrentSessionUserInfo();
+
+        if ($session->id != $b['User_Id'] && !Auth::user()->hasRole('super-admin')) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
         $upd = DB::table('users')->where('ID', '=', $b['User_Id'])
             ->update([
                 'username'         => $b['username'],
