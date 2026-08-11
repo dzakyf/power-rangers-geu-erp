@@ -1448,14 +1448,15 @@ class SalesController extends Controller
         $dateStart = $r->date_start ? Carbon::parse($r->date_start)->startOfMonth() : null;
         $dateEnd   = $r->date_end   ? Carbon::parse($r->date_end)->endOfMonth()     : null;
 
-        // est dp
+        // est dp (partners that reached MOU stage)
         $dp          = DB::table('config_system')->where('Constraint', 'ONBOARDING_DOWNPAYMENT')->first();
-        $activeCount = DB::table('opportunity_partner')->where('Status', 'ACTIVE')
+        $mouCount = DB::table('opportunity_partner')
+            ->where('onboarding_stage', 'MOU')
             ->when($dateStart, fn($q) => $q->whereDate('created_at', '>=', $dateStart))
             ->when($dateEnd,   fn($q) => $q->whereDate('created_at', '<=', $dateEnd))
             ->count();
 
-        $est_dp      = $activeCount * ($dp->Value ?? 0);
+        $est_dp      = $mouCount * ($dp->Value ?? 0);
 
         // leads source - count by Source_Channel
         $leadsSource = DB::table('opportunity')
@@ -1511,8 +1512,26 @@ class SalesController extends Controller
             ]);
         });
 
-        $estRevenue = 87000000;
-        $brandLicense = 16000000;
+        $estRevenue = 0;
+        $yearNow = (int) date('Y');
+        $projectionWarehouses = DB::table('warehouse_partner')->get();
+        foreach ($projectionWarehouses as $pwh) {
+            $baseYear = (int) DB::table('projections')
+                ->where('warehouse_task_id', $pwh->warehouse_task_id)
+                ->min(DB::raw('YEAR(Created_At)'));
+            $yearIdx = $baseYear > 0 ? ($yearNow - $baseYear) + 1 : 1;
+            if ($yearIdx < 1) {
+                $yearIdx = 1;
+            }
+            $estRevenue += (float) DB::table('projections')
+                ->where('warehouse_task_id', $pwh->warehouse_task_id)
+                ->where('Description', 'Pendapatan')
+                ->where('Projection_Type', 'high')
+                ->where('Year', $yearIdx)
+                ->sum(DB::raw('COALESCE(Month_1_Total,0) + COALESCE(Month_2_Total,0) + COALESCE(Month_3_Total,0) + COALESCE(Month_4_Total,0) + COALESCE(Month_5_Total,0) + COALESCE(Month_6_Total,0) + COALESCE(Month_7_Total,0) + COALESCE(Month_8_Total,0) + COALESCE(Month_9_Total,0) + COALESCE(Month_10_Total,0) + COALESCE(Month_11_Total,0) + COALESCE(Month_12_Total,0)'));
+        }
+
+        $brandLicense = 0;
 
         $hubTypeCounts = DB::table('opportunity')
             ->when($dateStart, fn($q) => $q->whereDate('Created_Date', '>=', $dateStart))
@@ -1719,18 +1738,13 @@ class SalesController extends Controller
                     'amount' => $calculatedWh['net_profit']
                 ]
             ],
-            'projection' => [
-                [
-                    'warehouse' => $whid,
-                    'amount' => 0
-                ]
-            ],
+
             'complaints_list' => [],
             'total_income' => $calculatedWh['income'],
             'total_net_profit' => $calculatedWh['net_profit'],
-            'uco_volume' => 0,
-            'uco_volume_sold' => 0,
-            'management_fee' => 0, //hidden cost 
+            'uco_volume' => $calculatedWh['qty_in'] ?? 0,
+            'uco_volume_sold' => $calculatedWh['qty_out'] ?? 0,
+            'management_fee' => $calculatedWh['expense_details'][601][61007] ?? 0,
             'company_royalty' => $calculatedWh['nominal_royalty'],
             'company_total_profit' => $calculatedWh['gross_margin']
         ];
@@ -1756,6 +1770,7 @@ class SalesController extends Controller
         // Accumulated totals across all months
         $res = [
             'qty_in'              => 0,
+            'qty_out'             => 0,
             'total_investation'   => 0,
             'total_transaction'   => 0,
             'opex'                => 0,
@@ -1820,9 +1835,9 @@ class SalesController extends Controller
             'total_operational_cost' => $res['opex'],
             'total_qty'              => $res['qty_in'],
             'total_investation'      => $res['total_investation'],
-            'total_roi'              => $res['total_roi'],
-            'margin_profit'          => 0,
-            'uco_transaction'        => 0,
+            'total_roi'              => $res['total_investation'] > 0 ? round(($res['ebitda'] / $res['total_investation']) * 100, 2) : 0,
+            'margin_profit'          => $res['revenue'] > 0 ? round(($res['net_profit'] / $res['revenue']) * 100, 2) : 0,
+            'uco_transaction'        => $res['qty_out'] ?? 0,
             'projection_against_bep' => $projectionVsBEP,
             'projection_against_profit_sharing' =>  $projectionVsRoyalty,
         ];

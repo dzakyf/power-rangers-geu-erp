@@ -235,13 +235,15 @@
 
 		PRDetail = new dhtmlXGridObject('gridPRDetail');
 		PRDetail.setImagePath("dhtmlx/imgs/");
-		PRDetail.setHeader("No,Purchase Type,Product Code,Product Desc,Qty,Specification,Measurement,Note,Category,SubCat,Prices");
-		PRDetail.setInitWidths("50,100,100,100,200,200,100,200,100,100,100");
-		PRDetail.setColTypes("ro,ro,ro,ro,edn,ed,ed,ed,ro,ro,edn");
-		PRDetail.setColAlign("center,left,center,left,right,left,center,center,center,center");
+		PRDetail.setHeader("No,Purchase Type,Product Code,Product Desc,Qty,Specification,Measurement,Note,Category,SubCat,Price@unit, Total Price");
+		PRDetail.setInitWidths("50,100,100,100,200,200,100,200,100,100,100,100");
+		PRDetail.setColTypes("ro,ro,ro,ro,edn,ed,ed,ed,ro,ro,edn,ron");
+		PRDetail.setColAlign("center,left,center,left,right,left,center,center,center,center,right,right");
 		PRDetail.setColSorting("int,str,str,str,str,str,str,str");
 		PRDetail.setEditable(true);
 		PRDetail.setNumberFormat("0,000.00", 4, ".", ",");
+		PRDetail.setNumberFormat("0,000.00", 10, ".", ",");
+		PRDetail.setNumberFormat("0,000.00", 11, ".", ",");
 		PRDetail.enableKeyboardSupport(true);
 		PRDetail.setSkin("dhx_skyblue");
 		PRDetail.attachEvent("onRowDblClicked", loadPrProduct);
@@ -262,6 +264,23 @@
 		PPRDetail.setUpdateMode("Off");
 		PPRDetail.init(PRDetail);
 		PRDetail.init();
+		PRDetail.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
+			if(stage == 2){
+
+				if(cInd == 4 || cInd == 10){
+					let qty = Number(PRDetail.cells(rId,4).getValue());
+					let price = Number(PRDetail.cells(rId,10).getValue());
+					if (qty == '' || price == '') {
+						PRDetail.cells(rId, 11).setValue('');
+						return true;
+					}
+
+					PRDetail.cells(rId, 11).setValue(qty * price);
+				}
+			}
+
+			return true;
+		});
 
 		$("#AddPRDetail").click(function() {
             let ids = PRDetail.uid();

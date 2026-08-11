@@ -34,7 +34,7 @@
 					</div>
 				</div>
 				<div class="col-md-6 col-12">
-					<div class="form-group">
+					<!-- div class="form-group">
 						<label for="Level">Level</label>
 						<select name="Level" id="Level" class="form-control">
 							<option value="">Pilih Level</option>
@@ -44,6 +44,25 @@
 							<option value="3">3 - Approval Atasasn HR</option>
 							<option value="4">4 - Approval Director</option>
 						</select>
+					</div -->
+					<div class="form-group">
+						<label for="Menu">Menu</label>
+						<div class="row">
+							@foreach ($approvalMenu as $item)
+							<div class="col-md-6 mt-auto">
+								<input type="checkbox" name="Menu[]" id="Menu{{$loop->iteration}}" value="{{ $item->Menu_ID }}">
+								<label for="Menu{{$loop->iteration}}">
+									{{ $item->Menu_Name }} - {{ $item->Menu_Modules }}
+								</label>
+							</div>
+							@endforeach
+						</div>
+						{{-- <select name="Menu" id="Menu" class="form-control">
+							@foreach ($approvalMenu as $item)
+								<option value="{{ $item->Menu_ID }}">{{ $item->Menu_Name }} - {{ $item->Menu_Modules }}</option>
+							@endforeach
+						</select> --}}
+
 					</div>
 				</div>
 				<div class="col-12">
@@ -55,7 +74,9 @@
 
 </div>
 <script>
-
+	// $(document).ready(function() {
+	// 	$('#Menu').select2();
+	// });
 $('#Directorat').change(function() {
 	var directorat = $(this).val();
 	$.ajax({
@@ -99,6 +120,9 @@ $('#Department').change(function() {
 });
 
 $('#submitBtn').click(function() {
+	var valuesByName = $("input[name='Menu[]']:checked").map(function() {
+		return this.value;
+	}).get();
 	$.ajax({
 		url: 'hrd-master-approval-new-submit',
 		type: 'POST',
@@ -109,7 +133,7 @@ $('#submitBtn').click(function() {
 			directorat: $('#Directorat').val(),
 			department: $('#Department').val(),
 			name: $('#Name').val(),
-			level: $('#Level').val()
+			menu: valuesByName
 		},
 		success: function(data) {
 			console.log(data);

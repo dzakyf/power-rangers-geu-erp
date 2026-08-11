@@ -74,6 +74,9 @@ function reloadgroup(){
 $("#SaveBM").click(function(){
 		PMasterSection.sendData();
 		alert("Data was Saved!");
+		setTimeout(() => {
+			reloadgroup();
+		}, 500);
 		
 });
 $("#DeleteBM").click(function(){

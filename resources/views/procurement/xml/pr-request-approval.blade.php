@@ -37,17 +37,19 @@ else if ($getlevelsx->Level8 == 1) $lepel = 8;
 echo "<rows>";
 if ($lepel == 3){
 	if ($dept == 'FIN'){
-		$kueri = DB::table("purchase_request")->where("Status",'APPROVAL_FINANCE')->orderBy("ID","DESC")->get();
+		$kueri = DB::table("purchase_request")->where("Location", $LSP)->where("Status",'APPROVAL_FINANCE')->orderBy("ID","DESC")->get();
+	}elseif($dept == 'HCGA'){
+		$kueri = DB::table("purchase_request")->where("Location", $LSP)->where("Status","APPROVAL_GA")->orderBy("ID","DESC")->get();
 	}else{
-		$kueri = DB::table("purchase_request")->where("Approval_Department",$dept)->where("Status","APPROVAL_UPPER")->orderBy("ID","DESC")->get();
+		$kueri = DB::table("purchase_request")->where("Approval_Department",$dept)->where("Location", $LSP)->where("Status","APPROVAL_UPPER")->orderBy("ID","DESC")->get();
 
 	}
 }elseif($lepel == 2){
-	$kueri = DB::table("purchase_request")->where("Status",'APPROVAL_VP')->orderBy("ID","DESC")->get();
+	$kueri = DB::table("purchase_request")->where("Location", $LSP)->where("Status",'APPROVAL_VP')->orderBy("ID","DESC")->get();
 
 }elseif($lepel == 4){
 	if ($dept == 'GEA'){
-		$kueri = DB::table("purchase_request")->where("Status",'APPROVAL_GA')->orderBy("ID","DESC")->get();
+		$kueri = DB::table("purchase_request")->where("Location", $LSP)->where("Status",'APPROVAL_GA')->orderBy("ID","DESC")->get();
 
 	}
 }
@@ -63,6 +65,7 @@ foreach($kueri as $Fetch){
 				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Sub_Category))."</cell>"; 
 				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Supplies_Type))."</cell>";
 				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Status))."</cell>";
+				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Priority_Status))."</cell>";
 				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Note))."</cell>";
 				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Created_Date))."</cell>";
 				echo "<cell $warnanya>".htmlspecialchars(($Fetch->Created_By))."</cell>";

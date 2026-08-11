@@ -204,7 +204,7 @@
     <div class="col-sm">
         <div class="card">
             <div class="card-body">
-                <h6 class="card-subtitle text-muted mb-1">Management Fee</h6>
+                <h6 class="card-subtitle text-muted mb-1">Logistik Penjemputan</h6>
                 <h4 id="ManagementFee" class="mb-0">-</h4>
             </div>
         </div>

@@ -34,12 +34,12 @@
 
 		PurchaseManagement = new dhtmlXGridObject('PurchaseManagement');
 		PurchaseManagement.setImagePath("dhtmlx/imgs/");
-		PurchaseManagement.setHeader("No.,PR No,PR Date,Category,Sub Category,Purchase Type,Status,Remark,Date Trx,Created By");
-		PurchaseManagement.setInitWidths("70,170,100,100,100,100,100,100,120,100");
-		PurchaseManagement.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-		PurchaseManagement.setColAlign("center,center,center,center,center,center,center,left,center,center");
-		PurchaseManagement.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-		PurchaseManagement.setColSorting("int,str,str,str,str,str,str,str");
+		PurchaseManagement.setHeader("No.,PR No,PR Date,Category,Sub Category,Purchase Type,Status,Priority,Remark,Date Trx,Created By");
+		PurchaseManagement.setInitWidths("70,170,100,100,100,100,100,100,100,120,100");
+		PurchaseManagement.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+		PurchaseManagement.setColAlign("center,center,center,center,center,center,center,center,left,center,center");
+		PurchaseManagement.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+		PurchaseManagement.setColSorting("int,str,str,str,str,str,str,str,str");
 		PurchaseManagement.setEditable(false);
 		PurchaseManagement.attachEvent("onRowDblClicked", PurchaseManagementDoubleClick);
 		PurchaseManagement.setSkin("dhx_skyblue");

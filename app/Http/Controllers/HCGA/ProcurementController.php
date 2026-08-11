@@ -128,7 +128,7 @@ class ProcurementController extends Controller
         // $position = DB::table('master_position')->where("");
 
 
-        DB::insert(DB::raw("INSERT INTO purchase_request($ax,Status,Created_By,Location,Approval_Date,Creator_Level,Note) VALUES($isi,'$status','$Saya','$LSP',NOW(),1,'')"));
+        DB::insert(DB::raw("INSERT INTO purchase_request($ax,Status,Created_By,Location,Approval_Date,Creator_Level,Note,Approval_Department) VALUES($isi,'$status','$Saya','$LSP',NOW(),1,'','$dept')"));
         
         DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$_POST[PR_No]', '$_POST[Category]', '', '', 'PURCHASE-REQUEST', 'status', '$_POST[Remark]', NOW(), '$Saya')"));
 
@@ -417,6 +417,7 @@ class ProcurementController extends Controller
                     echo "<cell>".htmlspecialchars(($Fetch->Category))."</cell>";
                     echo "<cell>".htmlspecialchars(($Fetch->Purchase_Category))."</cell>";
                     echo "<cell>".htmlspecialchars(($Fetch->Prices == 0 ? $Fetch->Default_Price : $Fetch->Prices))."</cell>";
+                    echo "<cell>".htmlspecialchars(($Fetch->Prices == 0 ? $Fetch->Default_Price : $Fetch->Prices) * $Fetch->Qty)."</cell>";
                 echo "</row>";	
 
                 $nomor++;

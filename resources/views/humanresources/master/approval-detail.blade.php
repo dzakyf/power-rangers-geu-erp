@@ -42,7 +42,18 @@
 				</div>
 				<div class="col-md-6 col-12">
 					<div class="form-group">
-						<label for="Level">Level</label>
+						<label for="Menu">Menu</label>
+						<div class="row">
+							@foreach ($approvalMenu as $item)
+							<div class="col-md-6 mt-auto">
+								<input type="checkbox" name="Menu[]" id="Menu{{$loop->iteration}}" value="{{ $item->Menu_ID }}" {{ in_array($item->Menu_ID, $detail->Menu_List) ? 'checked' : '' }}>
+								<label for="Menu{{$loop->iteration}}">
+									{{ $item->Menu_Name }} - {{ $item->Menu_Modules }}
+								</label>
+							</div>
+							@endforeach
+						</div>
+						{{-- <label for="Level">Level</label>
 						<select name="Level" id="Level" class="form-control">
 							<option value="" {{ $detail->Level == '' ? 'selected' : '' }}>Pilih Level</option>
 							<option value="0" {{ $detail->Level == 0 ? 'selected' : '' }}>0 - Requestor</option>
@@ -50,7 +61,7 @@
 							<option value="2" {{ $detail->Level == 2 ? 'selected' : '' }}>2 - Approval dan Requestor HR</option>
 							<option value="3" {{ $detail->Level == 3 ? 'selected' : '' }}>3 - Approval Atasasn HR</option>
 							<option value="4" {{ $detail->Level == 4 ? 'selected' : '' }}>4 - Approval Director</option>
-						</select>
+						</select> --}}
 					</div>
 				</div>
 				<div class="col-md-6 col-12">
@@ -115,6 +126,9 @@ $('#Department').change(function() {
 });
 
 $('#submitBtn').click(function() {
+	var valuesByName = $("input[name='Menu[]']:checked").map(function() {
+		return this.value;
+	}).get();
 	$.ajax({
 		url: 'hrd-master-approval-detail-submit',
 		type: 'POST',
@@ -122,10 +136,11 @@ $('#submitBtn').click(function() {
 			'X-CSRF-TOKEN': "{{ csrf_token() }}"
 		},
 		data: {
+			ID: $('#ID').val(),
 			directorat: $('#Directorat').val(),
 			department: $('#Department').val(),
 			name: $('#Name').val(),
-			level: $('#Level').val()
+			menu: valuesByName
 		},
 		success: function(data) {
 			console.log(data);

@@ -77,6 +77,9 @@ function reloadgroup(){
 $("#SaveBM").click(function(){
 		PMaterPosition.sendData();
 		alert("Data was Saved!");
+		setTimeout(() => {
+			reloadgroup();
+		}, 500);
 		
 });
 $("#DeleteBM").click(function(){
