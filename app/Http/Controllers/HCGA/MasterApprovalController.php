@@ -109,7 +109,9 @@ class MasterApprovalController extends Controller
             'username' => $getus->username,
             'Level' => $getPosition->Level,
             'Menu_List' => implode(',', $request->menu),
-            'Status' => 'ACTIVE', // Assuming new entries are active by default
+            'Status' => 'ACTIVE', // Assuming new entries are active by default,
+            'Created_By' => Auth::user()->username,
+            'Created_At' => now()
         ]);
         if (in_array($getPosition->Level, [1,2,3,4,5,6,7,8])) {
             $getDept = DB::table('master_department')->where("Initial", $getPosition->Department)->first();
@@ -169,6 +171,8 @@ class MasterApprovalController extends Controller
             'Level' => $getPosition->Level,
             'Menu_List' => implode(',', $request->menu),
             'Status' => 'ACTIVE', // Assuming new entries are active by default
+            'Updated_By' => Auth::user()->username,
+            'Updated_At' => now()
         ]);
 
         $org = DB::table('organization_structure')->where("NIK", $getus->Emp_ID)->first();
