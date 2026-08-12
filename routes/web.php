@@ -37,6 +37,7 @@ use App\Http\Controllers\CNS\PurchaseRequestController as CNSPurchaseRequestCont
 use App\Http\Controllers\CNS\PurchaseOrderController as CNSPurchaseOrderController;
 use App\Http\Controllers\CNS\QualityController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
+use App\Http\Controllers\CNS\ISCCTraceabilityController;
 use App\Http\Controllers\HCGA\MasterApprovalController as HCGAMasterApprovalController;
 use App\Http\Controllers\HCGA\MasterWorkCalendarController as HCGAMasterWorkCalendarController;
 use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormController;
@@ -5463,6 +5464,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$exportAnnexPref-print", [CNSAnnexVIIController::class, 'printAnnex']);
     Route::get("$exportAnnexPref-print-sample", [CNSAnnexVIIController::class, 'printAnnexSample']);
 
+    $sustainabilityPref = "cns-sustainability";
+
     $hcPref = "hrd";
     Route::get("$hcPref-master-approval", [HCGAMasterApprovalController::class, 'index']);
     Route::get("xml-$hcPref-master-approval", [HCGAMasterApprovalController::class, 'indexXml']);
@@ -5526,4 +5529,13 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcProcurementPref-detail", [HCGAProcurementController::class, 'detail']);
     Route::post("$hcProcurementPref-detail-submit", [HCGAProcurementController::class, 'detailSubmit']);
     Route::get("xml-$hcProcurementPref-detail", [HCGAProcurementController::class, 'detailXml']);
+
+    $isccTraceabilityPref = "cns-iscc-traceability";
+    Route::get("$isccTraceabilityPref-index", [ISCCTraceabilityController::class, 'index'])->name($isccTraceabilityPref . '.index');
+    Route::get("$isccTraceabilityPref-data", [ISCCTraceabilityController::class, 'data'])->name($isccTraceabilityPref . '.data');
+    Route::get("$isccTraceabilityPref-edit/{fragmentId}", [ISCCTraceabilityController::class, 'edit'])->name($isccTraceabilityPref . '.edit');
+    Route::post("$isccTraceabilityPref-update", [ISCCTraceabilityController::class, 'update'])->name($isccTraceabilityPref . '.update');
+    Route::post("$isccTraceabilityPref-photo-upload", [ISCCTraceabilityController::class, 'uploadPhoto'])->name($isccTraceabilityPref . '.photo-upload');
+    Route::post("$isccTraceabilityPref-photo-delete", [ISCCTraceabilityController::class, 'deletePhoto'])->name($isccTraceabilityPref . '.photo-delete');
+    Route::post("$isccTraceabilityPref-mark-audited", [ISCCTraceabilityController::class, 'markAudited'])->name($isccTraceabilityPref . '.mark-audited');
 });
