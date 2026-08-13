@@ -46,6 +46,8 @@ use App\Http\Controllers\HCGA\RequisitionController as HCGARequisitionController
 use App\Http\Controllers\HCGA\RecruitmentController as HCGARecruitmentController;
 use App\Http\Controllers\HCGA\OnboardingController as HrgaOnboardingController;
 use App\Http\Controllers\HCGA\ProcurementController as HCGAProcurementController;
+use App\Http\Controllers\HCGA\AssetMovingController as HCGAAssetMovingController;
+use App\Http\Controllers\HCGA\AssetMovingApprovalController as HCGAAssetMovingApprovalController;
 
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
@@ -378,7 +380,18 @@ Route::group(['middleware' => 'log.access'], function () {
     });
 
     Route::get("/credential-role-old", function () {
-        return view('credential.role');
+        return view('credential.role-old');
+    });
+
+    Route::get("/credential-role-detail", function () {
+        return view('credential.role-detail');
+    });
+    Route::get("/xml-credential-role-old", function () {
+        return view('credential.xml.role');
+    });
+    
+    Route::post("/credential-role-detail-submit", function () {
+        return view('credential.role-detail-submit');
     });
     Route::get("/credential-role", [CredentialRoleController::class, "index"]);
     Route::get("/master-credential-role-list", [CredentialRoleController::class, "roleListData"])->name("master.credential.role.list");
@@ -2745,6 +2758,9 @@ Route::group(['middleware' => 'log.access'], function () {
     });
     Route::post('/recruitment-document-detail-submit', function () {
         return view('humanresources.recruitment.recruitment-document-detail-submit');
+    });
+    Route::get('/recruitment-document-approval-detail', function () {
+        return view('humanresources.recruitment.recruitment-document-approval-detail');
     });
     Route::get('/recruitment-notification', function () {
         return view('humanresources.recruitment.recruitment-notification');
@@ -5514,6 +5530,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcPref-onboarding-materials-update", [HrgaOnboardingController::class, 'update']);
     Route::post("$hcPref-onboarding-materials-delete", [HrgaOnboardingController::class, 'delete']);
 
+    Route::post("$hcPref-recruitment-document-approval-detail-submit", [HCGARecruitmentController::class, 'recruitmentDocumentApproval']);
+
 
     $hcRequisitionPref = "$hcPref-requisition";
     Route::get("$hcRequisitionPref-prints", [HCGARequisitionController::class, 'print']);
@@ -5532,10 +5550,20 @@ Route::group(['middleware' => 'log.access'], function () {
 
     $isccTraceabilityPref = "cns-iscc-traceability";
     Route::get("$isccTraceabilityPref-index", [ISCCTraceabilityController::class, 'index'])->name($isccTraceabilityPref . '.index');
+    Route::get("$isccTraceabilityPref-utama", [ISCCTraceabilityController::class, 'utama'])->name($isccTraceabilityPref . '.utama');
+    Route::get("$isccTraceabilityPref-utama-data", [ISCCTraceabilityController::class, 'utamaData'])->name($isccTraceabilityPref . '.utama-data');
+    Route::get("$isccTraceabilityPref-utama-detail", [ISCCTraceabilityController::class, 'utamaDetail'])->name($isccTraceabilityPref . '.utama-detail');
+    Route::get("$isccTraceabilityPref-utama-detail-data", [ISCCTraceabilityController::class, 'utamaDetailData'])->name($isccTraceabilityPref . '.utama-detail-data');
     Route::get("$isccTraceabilityPref-data", [ISCCTraceabilityController::class, 'data'])->name($isccTraceabilityPref . '.data');
     Route::get("$isccTraceabilityPref-edit/{fragmentId}", [ISCCTraceabilityController::class, 'edit'])->name($isccTraceabilityPref . '.edit');
     Route::post("$isccTraceabilityPref-update", [ISCCTraceabilityController::class, 'update'])->name($isccTraceabilityPref . '.update');
     Route::post("$isccTraceabilityPref-photo-upload", [ISCCTraceabilityController::class, 'uploadPhoto'])->name($isccTraceabilityPref . '.photo-upload');
     Route::post("$isccTraceabilityPref-photo-delete", [ISCCTraceabilityController::class, 'deletePhoto'])->name($isccTraceabilityPref . '.photo-delete');
     Route::post("$isccTraceabilityPref-mark-audited", [ISCCTraceabilityController::class, 'markAudited'])->name($isccTraceabilityPref . '.mark-audited');
+
+    $hcAssetMovingPref = "$hcPref-asset-moving";
+    Route::get("$hcAssetMovingPref-index", [HCGAAssetMovingController::class, 'index']);
+    Route::get("$hcAssetMovingPref-create", [HCGAAssetMovingController::class, 'create']);
+    Route::post("$hcAssetMovingPref-submit", [HCGAAssetMovingController::class, 'store']);
+    Route::get("$hcAssetMovingPref-detail", [HCGAAssetMovingController::class, 'detail']);
 });

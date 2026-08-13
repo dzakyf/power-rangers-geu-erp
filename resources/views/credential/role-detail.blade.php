@@ -64,7 +64,7 @@ use Illuminate\Database\Eloquent\Builder;
 											  <div style="padding-left:70px">
 											   <?php	if (strpos($mainmenu,$keempat->Menu_ID)!== false) $check4= "checked='checked'" ; else $check4 = ""; ?>
 
-												<input type='checkbox' id='<?php echo $keempat->Menu_ID?>' name='<?php echo $keempat->Menu_ID?>' <?php echo $check3?> >
+												<input type='checkbox' id='<?php echo $keempat->Menu_ID?>' name='<?php echo $keempat->Menu_ID?>' <?php echo $check4?> >
 												<?php echo $keempat->Name?>								 
 											 </div>
 							

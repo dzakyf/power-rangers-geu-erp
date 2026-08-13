@@ -51,7 +51,7 @@ $rekusisi = substr($rekusisi,0,-1);
 		echo "<cell>".htmlspecialchars($Fetch->Last_Education)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Education_Major)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Last_Education_From)."</cell>";
-		echo "<cell>".htmlspecialchars($Requisition->PO_No)."</cell>";
+		echo "<cell>".htmlspecialchars($Fetch->Status)."</cell>";
 		echo "<cell>".htmlspecialchars($Requisition->PO_Desc)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Status)."</cell>";
 		echo "<cell>".htmlspecialchars($hari)."</cell>";

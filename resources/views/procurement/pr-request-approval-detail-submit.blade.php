@@ -28,18 +28,16 @@
 	$ars = substr($ars, 0, -1);
 	$ax = substr($ax, 0, -1);
 	$isi = substr($isi, 0, -1);
+	$nik = "";
 	switch ($_POST['Status']) {
 		case "CREATED":
 			$nstatus = "PROPOSED";
 			break;
 		case "APPROVAL_UPPER":
-			// if ($dept == 'HCGA') {
-			// 	$nstatus = "APPROVAL_FINANCE";
-			// }else {
-			// }
 			$nstatus = 'APPROVAL_GA';
 
-			$getupper = DB::table("organization_structure")->where("Level3", 1)->where("Department", "HCGA")->first();
+			$getupper = DB::table("organization_structure")->where("Level3", 1)->where("Department", 'HCGA')->first();
+			$nik = $getupper->NIK;
 
 			break;
 		case "APPROVAL_FINANCE":
@@ -50,7 +48,9 @@
 		case "APPROVAL_GA":
 
 			$nstatus = "APPROVAL_FINANCE";
-			$getupper = DB::table("organization_structure")->where("Level3", 1)->where("Department", "FIN")->first();
+
+			$getupper = DB::table("organization_structure")->where("Level3", 1)->where("Department", 'FIN')->first();
+			$nik = $getupper->NIK;
 
 			break;
 		default:
@@ -71,6 +71,11 @@
 	}
 	
 	DB::table('purchase_request')->where("ID", $_POST['ID'])->update($data);
+	
+	if ($nik != '') {
+		$us = DB::table('users')->where("Emp_ID", $getupper->NIK)->select("id")->first();
+		(new NotificationService)->makeNotification("PR APPROVAL", "PR {$_POST['PR_No']} Need to be Approved", 'approval', Auth::user()->id, $us->id);
+	}
 
 	DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$_POST[PR_No]', '$_POST[Category]', '$_POST[Sub_Category]', '$_POST[Supplies_Type]', 'PURCHASE-REQUEST', '$nstatus', '$_POST[Note]', NOW(), '$Saya')"));
 

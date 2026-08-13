@@ -31,7 +31,7 @@
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="Quantity_PTU">Qty PTU</label>
+                            <label for="Quantity_PTU">Qty Pelindo</label>
                             <input type="number" step="0.01" name="Quantity_PTU" id="Quantity_PTU" class="form-control" />
                         </div>
                     </div>

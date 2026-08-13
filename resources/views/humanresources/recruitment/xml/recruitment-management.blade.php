@@ -21,10 +21,11 @@
             $status7 = 0;
             $status8 = 0;
             $status9 = 0;
-            if ($Fetch->Status == 'CREATED') {
+            
+            if ($Fetch->Status == 'CREATED' || $Fetch->Status == 'UPLOADED') {
                 $status1 = 1;
                 $warna2 = "style='backgorund-color:red'";
-            } elseif ($Fetch->Status == 'UPLOADED') {
+            } elseif ($Fetch->Status == 'PSIKOTEST') {
                 $status2 = 1;
                 $warna2 = "style='backgorund-color:red'";
             } elseif ($Fetch->Status == 'PENDING') {
