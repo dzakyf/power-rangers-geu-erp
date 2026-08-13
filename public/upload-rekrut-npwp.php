@@ -11,8 +11,8 @@
         // get file name
 
         $nama_folder = date("Y/m");
-        if (!is_dir("doc_recruitment/ktp/" . $nama_folder)) {
-            mkdir("doc_recruitment/ktp/" . $nama_folder, 0755, true);
+        if (!is_dir("doc_recruitment/npwp/" . $nama_folder)) {
+            mkdir("doc_recruitment/npwp/" . $nama_folder, 0755, true);
         }
         $filename = $_FILES["file"]["name"];
         $fileNamex = $_FILES["file"]["name"];

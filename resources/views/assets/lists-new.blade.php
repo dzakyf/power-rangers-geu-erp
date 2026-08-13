@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 		<div class="FormInput_right">
 			<select id="Asset_Category" onchange="loadSubcategory();">
 						<?php
-							$qx = DB::select(DB::raw("SELECT * FROM mam_asset.master_product_group WHERE Initial IN ('FA','IA')"));
+							$qx = DB::select(DB::raw("SELECT * FROM master_product_group WHERE Initial IN ('FA')"));
 							foreach ($qx as $fa){
 								
 								echo "<option value='$fa->Product_Group'>$fa->Product_Group - $fa->Initial</option>";
@@ -253,7 +253,7 @@ use Illuminate\Database\Eloquent\Builder;
         </div>
 		<div class="FormInput_right">
 				<?php
-				$qr = DB::select(DB::raw("SELECT Supplier_ID, Company_Name FROM mam_asset.supplier ORDER BY Company_Name ASC"));
+				$qr = DB::select(DB::raw("SELECT Supplier_ID, Company_Name FROM supplier ORDER BY Company_Name ASC"));
 				echo "<select id='Supplier' class='cs-corner-all'  style='width:350px;'>";
 				foreach($qr as $fa){
 				echo "<option value='".$fa->Supplier_ID."'>".$fa->Company_Name."-".$fa->Supplier_ID."</option>";	
@@ -354,7 +354,7 @@ use Illuminate\Database\Eloquent\Builder;
         </div>
 		<div class="FormInput_right">
 				<?php
-				$qr = DB::select(DB::raw("SELECT * FROM mam_asset.supplier ORDER BY Company_Name ASC"));
+				$qr = DB::select(DB::raw("SELECT * FROM supplier ORDER BY Company_Name ASC"));
 				echo "<select id='Leasing_Vendor' class='cs-corner-all'  style='width:350px;'>";
 				foreach($qr as $fa){
 				echo "<option value='".$fa->Supplier_ID."'>".$fa->Company_Name."-".$fa->Supplier_ID."</option>";	
@@ -472,9 +472,12 @@ use Illuminate\Database\Eloquent\Builder;
 var myCalendar;
 myCalendar = new dhtmlXCalendarObject(["Buy_Date","Exp_Date",'Manufacture_Date','Registration_Date']);
 myCalendar.setDateFormat("%Y-%m-%d");
-
+loadSubcategory();
 function loadSubcategory(){
 	LoadM('subcat','asset-lists-sub-category?Category=' + encodeURI($("#Asset_Category").val()));
+	setTimeout(() => {
+		loadassettype();
+	}, 500);
 }
 function loadassettype(){
 	LoadM('subcat2','asset-lists-sub-sub-category?Category=' + encodeURI($("#Asset_Category").val()) + '&Sub_Category=' + encodeURI($("#Asset_Sub_Category").val()));

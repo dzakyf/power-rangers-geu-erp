@@ -179,6 +179,7 @@ class ISCCTraceabilityController extends Controller
         }
 
         $request->validate([
+            'quantity_kg' => 'nullable|numeric|min:0',
             'oil_documentation' => 'nullable|string',
             'lat' => 'nullable|string|max:50',
             'lng' => 'nullable|string|max:50',
@@ -188,6 +189,8 @@ class ISCCTraceabilityController extends Controller
         DB::table('traceability_external_poo_fragments')
             ->where('id', $fragmentId)
             ->update([
+                'quantity_kg' => $request->input('quantity_kg'),
+                'po_qty' => $request->input('quantity_kg'),
                 'oil_documentation' => $request->input('oil_documentation'),
                 'lat' => $request->input('lat'),
                 'lng' => $request->input('lng'),
@@ -317,4 +320,129 @@ class ISCCTraceabilityController extends Controller
 
         return $xml;
     }
+
+    public function utama()
+    {
+        return view('cns.iscc-traceability.utama');
+    }
+
+    public function utamaData(Request $request)
+    {
+        $rows = collect();
+
+        $external = DB::table('traceability_external_deliveries')
+            ->whereIn("Status", ["LOCKED","AUDITED"])
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'data' => $row->id,
+                    'source' => 'EXTERNAL',
+                    'supplier_name' => $row->supplier_name,
+                    'city' => $row->city,
+                    'province' => $row->province,
+                    'delivery_date' => $row->delivery_date,
+                    'total_quantity_kg' => $row->total_quantity_kg,
+                    'status' => $row->status,
+                    'reference' => $row->api_reference,
+                ];
+            });
+
+        $rows = $rows->merge($external);
+
+        $rows = $rows->sortBy(function ($row) {
+            return $row['city'];
+        })->values();
+
+        return response($this->buildXmlUtama($rows))->header('Content-Type', 'text/xml');
+    }
+
+    public function utamaDetail(Request $request)
+    {
+        $id = $request->get('id');
+        return view('cns.iscc-traceability.utama-detail', compact('id'));
+    }
+
+    public function utamaDetailData(Request $request)
+     {
+        $rows = collect();
+        
+        $external = DB::table('traceability_external_poo_fragments as tep')
+            ->join('traceability_external_deliveries as ted', 'ted.id', '=', 'tep.traceability_external_delivery_id')
+            ->whereIn('ted.status', ['LOCKED', 'AUDITED'])
+            ->where("ted.id", $request->get('id'))
+            ->select(
+                'tep.id as fragment_id',
+                'tep.poo_name',
+                'tep.quantity_kg',
+                'tep.city',
+                'tep.province',
+                'tep.wo_code',
+                'tep.wo_date',
+                'tep.wo_status',
+                'tep.po_code',
+                'tep.po_date',
+                'tep.po_qty',
+                'tep.po_status',
+                'tep.do_code',
+                'tep.do_date',
+                'tep.do_status'
+            )
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'source' => 'EXTERNAL',
+                    'fragment_id' => $row->fragment_id,
+                    'poo_name' => $row->poo_name,
+                    'poo_type' => 'SUPPLIER',
+                    'city' => $row->city,
+                    'province' => $row->province,
+                    'quantity_kg' => $row->quantity_kg,
+                    'wo_code' => $row->wo_code,
+                    'wo_date' => $row->wo_date,
+                    'wo_status' => $row->wo_status,
+                    'po_code' => $row->po_code,
+                    'po_date' => $row->po_date,
+                    'po_qty' => $row->po_qty,
+                    'po_status' => $row->po_status,
+                    'do_code' => $row->do_code,
+                    'do_date' => $row->do_date,
+                    'do_status' => $row->do_status,
+                ];
+            });
+
+        $rows = $rows->merge($external);
+
+        $rows = $rows->sortBy(function ($row) {
+            return $row['city'] . '|' . $row['poo_name'];
+        })->values();
+
+        return response($this->buildXml($rows))->header('Content-Type', 'text/xml');
+     }
+
+    protected function buildXmlUtama($rows)
+    {
+        $xml = '<?xml version="1.0" encoding="utf-8"?><rows>';
+
+        $i = 1;
+        foreach ($rows as $row) {
+            $xml .= '<row id="' . $row['data'] . '">';
+            $xml .= '<cell>' . $i . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row['source']) . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row['supplier_name']) . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row['city']) . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row['province']) . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row['delivery_date']) . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row['total_quantity_kg']) . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row['status']) . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row['reference']) . '</cell>';
+            $xml .= '</row>';
+            $i++;
+        }
+
+        $xml .= '</rows>';
+
+        return $xml;
+    }
+
+
 }

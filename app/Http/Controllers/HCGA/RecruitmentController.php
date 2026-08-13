@@ -106,10 +106,10 @@ class RecruitmentController extends Controller
                 $style9 = false;
                 $stylePending = false;
 
-                if ($Fetch->Status == 'CREATED') {
+                if ($Fetch->Status == 'CREATED' || $Fetch->Status == 'UPLOADED') {
                     $status1 = 1;
-                    $style2 = true;
-                } elseif ($Fetch->Status == 'UPLOADED') {
+                    $style1 = true;
+                } elseif ($Fetch->Status == 'PSIKOTEST') {
                     $status2 = 1;
                     $style2 = true;
                 } elseif ($Fetch->Status == 'PENDING') {
@@ -260,5 +260,31 @@ class RecruitmentController extends Controller
         }
 
         return response($xml->asXML())->header('Content-Type', 'text/xml');
+    }
+
+    public function recruitmentDocumentApproval(Request $request)
+    {
+        $status = $request->stat;
+        if ($status) {
+            $status = "PSIKOTEST";
+        }else {
+            $status = "REJECT";
+        }
+
+        DB::table('recruitment')->where("ID", $request->id)->update([
+            'Status' => $status,
+            'Registration_Status' =>  $status,
+        ]);
+
+        if ($status == 'PSIKOTEST') {
+            $message = "di setujui dan lanjut ke tahap Psikotest";
+        }else {
+            $message = "di tolak";
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $message,
+        ]);
     }
 }

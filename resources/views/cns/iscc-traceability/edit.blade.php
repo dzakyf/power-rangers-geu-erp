@@ -14,6 +14,10 @@
 			@csrf
 			<input type="hidden" name="fragment_id" value="{{ $fragment->id }}" />
 			<div class="form-group">
+				<label for="quantity_kg">Quantity (Kg)</label>
+				<input type="number" step="0.01" min="0" name="quantity_kg" id="quantity_kg" class="form-control" value="{{ $fragment->quantity_kg }}" />
+			</div>
+			<div class="form-group">
 				<label for="full_address">Full Address</label>
 				<textarea name="full_address" id="full_address" class="form-control" rows="2">{{ $fragment->full_address }}</textarea>
 			</div>

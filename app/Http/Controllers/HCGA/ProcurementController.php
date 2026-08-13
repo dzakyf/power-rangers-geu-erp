@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\NotificationService;
 
 class ProcurementController extends Controller
 {
@@ -104,24 +105,13 @@ class ProcurementController extends Controller
         $dept = Auth::user()->Department;
 
         $linkkey = Auth::user()->TokenAuth;
-        // $getlevelsx = DB::table("organization_structure")->where("NIK", $getnik)->first();
-        // if ($getlevelsx->Level1 == 1) $lepel = 1;
-        // else if ($getlevelsx->Level2 == 1) $lepel = 2;
-        // else if ($getlevelsx->Level3 == 1) $lepel = 3;
-        // else if ($getlevelsx->Level4 == 1) $lepel = 4;
-        // else if ($getlevelsx->Level5 == 1) $lepel = 5;
-        // else if ($getlevelsx->Level6 == 1) $lepel = 6;
-        // else if ($getlevelsx->Level7 == 1) $lepel = 7;
-        // else if ($getlevelsx->Level8 == 1) $lepel = 8;
-        // $upper = $lepel - 1;
-        // if ($upper == 3) {
-        //     $getupper = DB::table("organization_structure")->where("Level3", 1)->where("Department", $_POST['Department'])->where("Alerted", 1)->first();
-        //     $status = "APPROVAL_UPPER";
-        //     $link = 'approvalpr';
-        // } else {
-        //     $getupper = DB::table("organization_structure")->where("Level2", 1)->where("Department", $getlevelsx->divisi)->where("Alerted", 1)->first();
-        // }
-        $status = "APPROVAL_UPPER";
+        $getlevelsx = DB::table("organization_structure")->where("Department", $dept)->first();
+        if ($dept != 'HCGA') {
+            $status = "APPROVAL_UPPER";
+        }else {
+            $status = "APPROVAL_GA";
+        }
+        $us = DB::table('users')->where("Emp_ID", $getlevelsx->NIK)->select("id")->first();
         $link = 'approvalpr';
 
 
@@ -133,6 +123,8 @@ class ProcurementController extends Controller
         DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$_POST[PR_No]', '$_POST[Category]', '', '', 'PURCHASE-REQUEST', 'status', '$_POST[Remark]', NOW(), '$Saya')"));
 
         echo "success";
+
+        (new NotificationService)->makeNotification('PR APPROVAL', "PR {$_POST['PR_No']} Need to be Approved", 'approval', Auth::user()->id, $us->id);
 
         $subjek = "PURCHASE REQUEST APPROVAL REQUEST PR NO $_POST[PR_No] , Request By : $Name";
         $badan = "<div style=\"font-family:arial;font-size:12px;\">Kepada Yth.<br><b>".($getupper->Name ?? '') ." </b><Br><br>

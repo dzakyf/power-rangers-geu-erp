@@ -52,7 +52,7 @@
 			let splitID = RecruitmentListsID.split("|");
 			let getFirst = RecruitmentLists.cells(RecruitmentListsID, 9).getValue();
 			if (getFirst == '1') {
-				LoadM('divlistRecruitment', 'recruitment-document-detail?ID=' + splitID[0]);
+				LoadM('divlistRecruitment', 'recruitment-document-approval-detail?ID=' + splitID[0]);
 			}
 			getFirst = RecruitmentLists.cells(RecruitmentListsID, 10).getValue();
 			console.log(getFirst);
@@ -108,7 +108,7 @@
 	RecruitmentLists = new dhtmlXGridObject('RecruitmentLists');
 	RecruitmentLists.setImagePath("./dhtmlx/imgs/");
 	RecruitmentLists.setHeader("No.,Recruitment Type,Name,Gender,PO No,Requisition,Last Education,Last Education Major,Recruiter,Seleksi Administrasi,Psikotest,Decline Invitation,Interview HR,Pending,Rejected,Interview User,Candidate Analysis,Decline Offered,Hired");
-	RecruitmentLists.setInitWidths("70,100,100,100,100,200,100,100,100,120,60,60,60,60,60,60,0,60,60");
+	RecruitmentLists.setInitWidths("70,100,100,100,100,200,100,100,100,120,60,60,60,60,60,60,60,60");
 	RecruitmentLists.setColAlign("center,left,center,center,center,center,center,center,center,center,center,center");
 	RecruitmentLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ra_str,ra_str,ra_str,ra_str,ra_str,ra_str,ra_str,ra_str,ra_str,ra_str,ra_str");
 	RecruitmentLists.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str");
