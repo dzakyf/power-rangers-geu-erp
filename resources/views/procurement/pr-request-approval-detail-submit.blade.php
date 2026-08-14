@@ -6,6 +6,7 @@
 	use Illuminate\Support\Facades\DB;
 	use Illuminate\Database\Eloquent\Builder;
 	use Illuminate\Support\Facades\Auth;
+	use App\Services\NotificationService;
 
 	$ars = "";
 	$ax = "";
@@ -74,7 +75,7 @@
 	
 	if ($nik != '') {
 		$us = DB::table('users')->where("Emp_ID", $getupper->NIK)->select("id")->first();
-		(new NotificationService)->makeNotification("PR APPROVAL", "PR {$_POST['PR_No']} Need to be Approved", 'approval', Auth::user()->id, $us->id);
+		(new NotificationService)->makeNotification("PR APPROVAL", "PR {$_POST['PR_No']} Need to be Approved", 'approval', Auth::user()->id ?? null, $us->id ?? null);
 	}
 
 	DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$_POST[PR_No]', '$_POST[Category]', '$_POST[Sub_Category]', '$_POST[Supplies_Type]', 'PURCHASE-REQUEST', '$nstatus', '$_POST[Note]', NOW(), '$Saya')"));
@@ -115,7 +116,7 @@
 
 		DB::table('purcahse_summary')->insert([
 			'Location' => $LSP ?? '',
-			'PR_No' => $pr->PR_No ?? ;,
+			'PR_No' => $pr->PR_No ?? '',
 			'Task_ID' => $PO_No ?? '',
 			'Purchase_Category' => $pr->Category ?? '',
 			'Purchase_Sub_Category' => $pr->Sub_Category ?? '',

@@ -9,9 +9,13 @@ use Illuminate\Database\Eloquent\Builder;
 	$Saya =  Auth::user()->username;
 	
 if (strlen(trim($_GET['chars'])) < 3) exit;
+$type = "";
+if (isset($_GET['type'])) {
+	$type = " AND Purchase_Category = 'ASSET'";
+}
 
 $arr=array();
-$result = DB::select(DB::raw("SELECT * from purchase_order WHERE (PO_No_KSPS LIKE '%$_GET[chars]%' OR  PO_NO LIKE '%$_GET[chars]%' OR PR_No LIKE '%$_GET[chars]%') AND Status_Receive='WAITING' LIMIT 20"));
+$result = DB::select(DB::raw("SELECT * from purchase_order WHERE (PO_No_KSPS LIKE '%$_GET[chars]%' OR  PO_NO LIKE '%$_GET[chars]%' OR PR_No LIKE '%$_GET[chars]%') AND Status_Receive='WAITING' $type LIMIT 20"));
 
 if(count($result)>0){
     foreach($result as $data){

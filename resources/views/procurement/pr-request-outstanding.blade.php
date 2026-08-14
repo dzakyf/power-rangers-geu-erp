@@ -26,7 +26,7 @@
 
 		PurchaseManagement = new dhtmlXGridObject('PurchaseManagement');
 		PurchaseManagement.setImagePath("dhtmlx/imgs/");
-		PurchaseManagement.setHeader("No.,PR No,PR Date,Category,Sub Category,Purchase Type,PRIORITY,REMARK,Date Trx,Created By");
+		PurchaseManagement.setHeader("No.,PR No,PR Date,Category,Sub Category,Purchase Type,Status,Remark,Date Trx,Created By");
 		PurchaseManagement.setInitWidths("70,170,100,100,100,100,100,100,120,100");
 		PurchaseManagement.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 		PurchaseManagement.setColAlign("center,center,center,center,center,center,center,left,center,center");
@@ -45,8 +45,6 @@
 		PPurchaseManagement.setUpdateMode("Off");
 		PPurchaseManagement.init(PurchaseManagement);
 		PurchaseManagement.setSkin("dhx_skyblue");
-		PurchaseManagement.getCombo(6).put('NORMAL','NORMAL');
-		PurchaseManagement.getCombo(6).put('URGENT','URGENT');
 		PurchaseManagement.init();
 		PurchaseManagement.loadXML("xml-pr-request-outstanding");
 		

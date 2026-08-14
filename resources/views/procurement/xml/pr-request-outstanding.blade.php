@@ -22,7 +22,7 @@ $Saya = Auth::user()->username;
 echo "<rows>";
 
 
-$kueri = DB::select(DB::raw("SELECT * FROM purchase_request WHERE Status='APPROVED' AND Priority_Status='UNDEFINED' ORDER BY ID ASC"));
+$kueri = DB::select(DB::raw("SELECT * FROM purchase_request WHERE Status!='APPROVED' AND Department = '$dept' ORDER BY ID ASC"));
 $nomor = 1;
 
 	foreach($kueri as $Fetch){
@@ -34,7 +34,7 @@ $nomor = 1;
 					echo "<cell $warnanya>".htmlspecialchars(($Fetch->Category))."</cell>"; 
 					echo "<cell $warnanya>".htmlspecialchars(($Fetch->Sub_Category))."</cell>"; 
 					echo "<cell $warnanya>".htmlspecialchars(($Fetch->Supplies_Type))."</cell>";
-					echo "<cell $warnanya></cell>";
+					echo "<cell $warnanya>".htmlspecialchars(($Fetch->Status))."</cell>";
 					echo "<cell $warnanya></cell>";
 					echo "<cell $warnanya>".htmlspecialchars(($Fetch->Created_Date))."</cell>";
 					echo "<cell $warnanya>".htmlspecialchars(($Fetch->Created_By))."</cell>";

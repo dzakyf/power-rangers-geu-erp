@@ -27,17 +27,17 @@ use Illuminate\Database\Eloquent\Builder;
     </div> 
     <div id="AssetMoving" style="width:auto;height:350px; background-color:white;overflow:hidden"></div>
     <div>
-        <input type="button" id="ekselDATAASSETSDet" value="Export Excel" onclick="DATAASSETS.toExcel('./export/generate.php');"  />
-        <input type="button" id="DATAASSETS_Refresh" value="Refresh Data" onclick="AssetMovingRefresh();"  />
-        <input type="button" id="dxdata" value="Form Asset Moving" onclick="AssetMovingNew();"  />
-        <input type="button" id="DATAASSETS_Refresh" value="Asset Lists" onclick="AssetMovingAssetList();"  />
+        <input type="button" id="ekselDATAASSETSDet" class="btn btn-warning mr-2 mt-2" value="Export Excel" onclick="DATAASSETS.toExcel('./export/generate.php');"  />
+        <input type="button" id="DATAASSETS_Refresh" class="btn btn-info mr-2 mt-2" value="Refresh Data" onclick="AssetMovingRefresh();"  />
+        <input type="button" id="dxdata" class="btn btn-primary mr-2 mt-2" value="Form Asset Moving" onclick="AssetMovingNew();"  />
+        <input type="button" id="DATAASSETS_Refresh" class="btn btn-secondary mr-2 mt-2" value="Asset Lists" onclick="AssetMovingAssetList();"  />
     </div>
    <div id="assetList" class="mt-3" style="display:none;width:100%">
        <div id="DATAASSETS" style="width:auto;height:350px; background-color:white;overflow:hidden"></div>
         <div>
-           <input type="button" id="ekselDATAASSETSDet" value="Export Excel" onclick="DATAASSETS.toExcel('./export/generate.php');"  />
-           <input type="button" id="DATAASSETS_Refresh" value="Refresh Data" onclick="DATAASSETSRefresh();"  />
-           <input type="button" id="DATAASSETS_Refresh" value="Detail Data" onclick="DATAASSETSDBL();"  />
+           <input type="button" id="ekselDATAASSETSDet" class="btn btn-warning" value="Export Excel" onclick="DATAASSETS.toExcel('./export/generate.php');"  />
+           <input type="button" id="DATAASSETS_Refresh" class="btn btn-info" value="Refresh Data" onclick="DATAASSETSRefresh();"  />
+           <input type="button" id="DATAASSETS_Refresh" class="btn btn-primary" value="Detail Data" onclick="DATAASSETSDBL();"  />
         </div>
    </div>
     <div id="DATAASSETSDTL"></div>
@@ -76,6 +76,7 @@ AssetMoving.setEditable(true);
 		
 AssetMoving.setSkin("dhx_skyblue");
 AssetMoving.init();
+AssetMoving.clearAndLoad('hrd-asset-moving-data');
 
 DATAASSETS = new dhtmlXGridObject('DATAASSETS');
 DATAASSETS.setImagePath("./dhtmlx/imgs/");

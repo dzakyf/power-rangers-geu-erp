@@ -48,6 +48,8 @@ use App\Http\Controllers\HCGA\OnboardingController as HrgaOnboardingController;
 use App\Http\Controllers\HCGA\ProcurementController as HCGAProcurementController;
 use App\Http\Controllers\HCGA\AssetMovingController as HCGAAssetMovingController;
 use App\Http\Controllers\HCGA\AssetMovingApprovalController as HCGAAssetMovingApprovalController;
+use App\Http\Controllers\HCGA\AssetIncomingController as HCGAAssetIncomingController;
+use App\Http\Controllers\HCGA\AssetIncomingApprovalController as HCGAAssetIncomingApprovalController;
 
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
@@ -5563,7 +5565,21 @@ Route::group(['middleware' => 'log.access'], function () {
 
     $hcAssetMovingPref = "$hcPref-asset-moving";
     Route::get("$hcAssetMovingPref-index", [HCGAAssetMovingController::class, 'index']);
+    Route::get("$hcAssetMovingPref-data", [HCGAAssetMovingController::class, 'data']);
     Route::get("$hcAssetMovingPref-create", [HCGAAssetMovingController::class, 'create']);
     Route::post("$hcAssetMovingPref-submit", [HCGAAssetMovingController::class, 'store']);
     Route::get("$hcAssetMovingPref-detail", [HCGAAssetMovingController::class, 'detail']);
+    
+    $hcAssetMovingApprovalPref = "$hcAssetMovingPref-approval";
+    Route::get("$hcAssetMovingApprovalPref-index", [HCGAAssetMovingApprovalController::class, 'index']);
+    Route::get("$hcAssetMovingApprovalPref-data", [HCGAAssetMovingApprovalController::class, 'data']);
+    Route::get("$hcAssetMovingApprovalPref-detail", [HCGAAssetMovingApprovalController::class, 'detail']);
+    Route::post("$hcAssetMovingApprovalPref-approval", [HCGAAssetMovingApprovalController::class, 'approval']);
+
+    $hcAssetIncomingPref = "$hcPref-asset-incoming";
+    Route::get("$hcAssetIncomingPref-index", [HCGAAssetIncomingController::class, 'index']);
+    Route::get("$hcAssetIncomingPref-data", [HCGAAssetIncomingController::class, 'data']);
+    Route::get("$hcAssetIncomingPref-create", [HCGAAssetIncomingController::class, 'create']);
+    Route::post("$hcAssetIncomingPref-submit", [HCGAAssetIncomingController::class, 'store']);
+    Route::get("$hcAssetIncomingPref-detail", [HCGAAssetIncomingController::class, 'detail']);
 });
