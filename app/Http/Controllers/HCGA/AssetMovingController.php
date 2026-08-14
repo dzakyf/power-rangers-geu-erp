@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AssetMovingController extends Controller
 {
@@ -70,6 +71,7 @@ class AssetMovingController extends Controller
     public function store(Request $request)
     {
         $Saya = Auth::user()->username;
+        $status = "APPROVAL_UPPER";
         $data = [
             'No_Trx' => $request->No_Trx,
             'Position' => $request->Position,
@@ -90,8 +92,11 @@ class AssetMovingController extends Controller
             'Receipent_NIK' => $request->Receipent_NIK,
             'Receipent_Department' => $request->Receipent_Department,
             'Receipent_Position' => $request->Receipent_Position,
-            'Status' => $request->Status,
+            'Status' => $status,
+            'Department' => Auth::user()->Department,
         ];
+
+        Log::error($th);
 
         DB::table('asset_moving')->insert($data);
 

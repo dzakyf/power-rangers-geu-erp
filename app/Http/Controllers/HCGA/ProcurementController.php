@@ -124,7 +124,7 @@ class ProcurementController extends Controller
 
         echo "success";
 
-        (new NotificationService)->makeNotification('PR APPROVAL', "PR {$_POST['PR_No']} Need to be Approved", 'approval', Auth::user()->id, $us->id);
+        (new NotificationService)->makeNotification('PR APPROVAL', "PR {$_POST['PR_No']} Need to be Approved", 'approval', Auth::user()->id ?? null, $us->id ?? null);
 
         $subjek = "PURCHASE REQUEST APPROVAL REQUEST PR NO $_POST[PR_No] , Request By : $Name";
         $badan = "<div style=\"font-family:arial;font-size:12px;\">Kepada Yth.<br><b>".($getupper->Name ?? '') ." </b><Br><br>
