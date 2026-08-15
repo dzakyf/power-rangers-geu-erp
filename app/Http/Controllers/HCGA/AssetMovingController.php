@@ -96,7 +96,7 @@ class AssetMovingController extends Controller
             'Department' => Auth::user()->Department,
         ];
 
-        Log::error($th);
+        Log::error($data);
 
         DB::table('asset_moving')->insert($data);
 
