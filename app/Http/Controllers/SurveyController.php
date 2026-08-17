@@ -129,6 +129,9 @@ class SurveyController extends Controller
                 $row->addChild("cell", $p->Opportunity_Code);
                 $row->addChild("cell", $p->Suggestion_Type ?? "ORIGINAL");
                 $row->addChild("cell", $p->Recommendation_Type ?? "-");
+                $row->addChild("cell", $p->City ?? "-");
+                $row->addChild("cell", $p->District ?? "-");
+                $row->addChild("cell", $this->resolveRecommendation((int) $p->Total_Score));
                 $row->addChild("cell", $p->Created_At ?? $p->Surveyed_At);
                 $no++;
             }

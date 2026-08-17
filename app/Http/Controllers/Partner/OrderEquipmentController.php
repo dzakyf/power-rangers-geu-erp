@@ -119,7 +119,7 @@ class OrderEquipmentController extends Controller
                     echo "<cell>".htmlspecialchars($cekDtl->Order_Date)."</cell>";
                 }else {
                     echo "<cell></cell>";
-                    echo "<cell></cell>";
+                    echo "<cell>".htmlspecialchars($facility->price ?? '')."</cell>";
                     echo "<cell></cell>";
                     echo "<cell></cell>";
                 }
@@ -322,7 +322,7 @@ class OrderEquipmentController extends Controller
                     echo "<cell>".htmlspecialchars($cekDtl->Total)."</cell>";
                 }else {
                     echo "<cell></cell>";
-                    echo "<cell></cell>";
+                    echo "<cell>".htmlspecialchars($facility->price ?? '')."</cell>";
                     echo "<cell></cell>";
                 }
                 if (isset($getCheckedBySales[$facility->id])) {

@@ -839,7 +839,7 @@ class SalesController extends Controller
                             $q->where('warehouse_task_id', $warehouse->warehouse_task_id)
                                 ->orWhere('User_Id', $mitraUser->id);
                         })
-                        ->where('Projection_Type', 'high')
+                        ->where('Projection_Type', 'low')
                         ->where('Hub_Type', $warehouse->warehouse_type)
                         ->where('Year', $projectionYears[date('Y', strtotime($start))] ?? 1)
                         ->where('Description', 'Profit Mitra')
@@ -998,7 +998,7 @@ class SalesController extends Controller
                         $q->where('warehouse_task_id', $warehouse->warehouse_task_id)
                             ->orWhere('User_Id', $mitraUser->id);
                     })
-                    ->where('Projection_Type', 'high')
+                    ->where('Projection_Type', 'low')
                     ->where('Hub_Type', $warehouse->warehouse_type)
                     ->where('Year', $projectionYears[date('Y', strtotime($start))] ?? 1)
                     ->where('Description', 'Profit Mitra')
@@ -1205,7 +1205,7 @@ class SalesController extends Controller
                         $q->where('warehouse_task_id', $Fetch->warehouse_task_id)
                             ->orWhere("User_Id", $us->id);
                     })
-                    ->where('Projection_Type', 'high')
+                    ->where('Projection_Type', 'low')
                     ->where("Hub_Type", $Fetch->warehouse_type)
                     ->where('Year', $tahunPembuatan[date('Y', strtotime($start))] ?? 1)
                     ->where('Description', 'Profit Mitra')
@@ -1526,7 +1526,7 @@ class SalesController extends Controller
             $estRevenue += (float) DB::table('projections')
                 ->where('warehouse_task_id', $pwh->warehouse_task_id)
                 ->where('Description', 'Pendapatan')
-                ->where('Projection_Type', 'high')
+                ->where('Projection_Type', 'low')
                 ->where('Year', $yearIdx)
                 ->sum(DB::raw('COALESCE(Month_1_Total,0) + COALESCE(Month_2_Total,0) + COALESCE(Month_3_Total,0) + COALESCE(Month_4_Total,0) + COALESCE(Month_5_Total,0) + COALESCE(Month_6_Total,0) + COALESCE(Month_7_Total,0) + COALESCE(Month_8_Total,0) + COALESCE(Month_9_Total,0) + COALESCE(Month_10_Total,0) + COALESCE(Month_11_Total,0) + COALESCE(Month_12_Total,0)'));
         }
@@ -1744,8 +1744,9 @@ class SalesController extends Controller
             'total_net_profit' => $calculatedWh['net_profit'],
             'uco_volume' => $calculatedWh['qty_in'] ?? 0,
             'uco_volume_sold' => $calculatedWh['qty_out'] ?? 0,
-            'management_fee' => $calculatedWh['expense_details'][601][61007] ?? 0,
-            'company_royalty' => $calculatedWh['nominal_royalty'],
+            'management_fee' => ($calculatedWh['expense_details'][601][61007] ?? 0) + ($calculatedWh['expense_details'][601][61008] ?? 0),
+            'company_royalty' => $calculatedWh['company_profit_share'] ?? ($calculatedWh['net_profit'] * 0.4),
+            'mitra_royalty' => $calculatedWh['nominal_royalty'],
             'company_total_profit' => $calculatedWh['gross_margin']
         ];
 

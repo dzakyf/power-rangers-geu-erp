@@ -18,6 +18,8 @@ class CreateApprovalRequestTable extends Migration
             $table->string('Status', 50)->index();
             $table->unsignedBigInteger('Requester_Id')->index();
             $table->text('Description');
+            $table->string('Warehouse_Task_Id', 150)->nullable();
+            $table->string('Periode', 7)->nullable();
             $table->string('Request_Type', 100)->index();
             $table->unsignedBigInteger('Opportunity_Partner_Id')->nullable()->index();
             $table->unsignedBigInteger('Map_To')->nullable()->index();

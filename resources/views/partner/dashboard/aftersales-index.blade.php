@@ -188,6 +188,14 @@
     <div class="col-sm">
         <div class="card">
             <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-1">Mitra Royalty</h6>
+                <h4 id="MitraRoyalty" class="mb-0">-</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm">
+        <div class="card">
+            <div class="card-body">
                 <h6 class="card-subtitle text-muted mb-1">Company Royalty</h6>
                 <h4 id="CompanyRoyalty" class="mb-0">-</h4>
             </div>
@@ -325,6 +333,7 @@
                 // Financial
                 $('#TotalIncome').text(formatRp(d.total_income));
                 $('#TotalNetProfit').text(formatRp(d.total_net_profit)).toggleClass('text-danger', d.total_net_profit < 0).toggleClass('text-success', d.total_net_profit >= 0);
+                $('#MitraRoyalty').text(formatRp(d.mitra_royalty)).toggleClass('text-danger', d.mitra_royalty < 0).toggleClass('text-success', d.mitra_royalty >= 0);
                 $('#CompanyRoyalty').text(formatRp(d.company_royalty)).toggleClass('text-danger', d.company_royalty < 0).toggleClass('text-success', d.company_royalty >= 0);
                 $('#CompanyTotalProfit').text(formatRp(d.company_total_profit));
                 $('#ManagementFee').text(formatRp(d.management_fee));

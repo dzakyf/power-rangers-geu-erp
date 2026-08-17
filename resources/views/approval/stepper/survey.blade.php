@@ -398,10 +398,10 @@
         function initSurveyHistoryGrid(oppId) {
             var grid = new dhtmlXGridObject("surveyHistoryGrid");
             grid.setImagePath("./dhtmlx/imgs/");
-            grid.setHeader("No,Leads ID,Tipe,Tipe Rekom,Tgl Survey");
+            grid.setHeader("No,Leads ID,Tipe,Tipe Rekom,Kota/Kabupaten,Kecamatan,Status Kelayakan,Tgl Survey");
             grid.setInitWidths("40");
-            grid.setColAlign("center,left,center,left,left");
-            grid.setColTypes("ro,ro,ro,ro,ro");
+            grid.setColAlign("center,left,center,left,left,left,left,left");
+            grid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
             grid.setSkin("dhx_skyblue");
             grid.attachEvent("onRowSelect", function(id) {
                 selectedSurveyId = grid.getRowAttribute(id, 'ID');

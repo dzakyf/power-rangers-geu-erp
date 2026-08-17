@@ -99,7 +99,7 @@
 		formData.append('action', action)
 
 		$.ajax({
-			url: " partner-survey-approval-submit",
+			url: "partner-survey-approval-submit",
 			type: "POST",
 			data: formData,
 			processData: false,
