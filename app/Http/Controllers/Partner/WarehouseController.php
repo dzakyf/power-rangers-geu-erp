@@ -104,6 +104,8 @@ class WarehouseController extends Controller
             'warehouse_status' => 'ACTIVE',
             'capacity' => $request->Capacity,
             'Location' => auth()->user()->Location,
+            'lat' => $request->lat ?? null,
+            'lng' => $request->lng ?? null,
             'Created_By' => auth()->user()->username,
             'Created_Date' => now(),
         ]);
@@ -138,6 +140,8 @@ class WarehouseController extends Controller
             'capacity' => $request->Capacity,
             'warehouse_location' => $request->Warehouse_Location,
             'Location' => auth()->user()->Location,
+            'lat' => $request->lat ?? null,
+            'lng' => $request->lng ?? null,
         ]);
 
         echo "success";
@@ -158,7 +162,7 @@ class WarehouseController extends Controller
 
         // 2. Stock Request (old outstock)
         foreach (WarehouseStockRequest::where("warehouse_task_id", $whTaskId)->get() as $r) {
-            $rows[] = ['date' => $r->request_date, 'type' => 'STOCK OUT', 'qty_in' => 0, 'qty_out' => $r->request_qty, 'reference' => $r->reference, 'details' => $r->remark ?? ''];
+            $rows[] = ['date' => $r->request_date, 'type' => 'Outstock', 'qty_in' => 0, 'qty_out' => $r->request_qty, 'reference' => $r->reference, 'details' => $r->remark ?? ''];
         }
 
         // 3. Outstock Loading (new outstock)

@@ -54,6 +54,14 @@ $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
 				<label for="Capacity">Kapasitas</label>
 				<input type="text" name="Capacity" id="Capacity" class="form-control">
 			</div>
+			<div class="col-md-6">
+				<label for="lat">Latitude</label>
+				<input type="text" name="lat" id="lat" class="form-control" placeholder="e.g. -6.200000">
+			</div>
+			<div class="col-md-6">
+				<label for="lng">Longitude</label>
+				<input type="text" name="lng" id="lng" class="form-control" placeholder="e.g. 106.816666">
+			</div>
 			<div class="col-12 mt-3">
 				<button class="btn btn-success" id="SubmitCustDetail">Submit</button>
 			</div>

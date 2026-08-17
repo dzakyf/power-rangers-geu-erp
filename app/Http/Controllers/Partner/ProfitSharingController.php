@@ -730,12 +730,12 @@ class ProfitSharingController extends Controller
         $session = $this->userService->getCurrentSessionUserInfo();
 
         if (in_array($session->Position, ["SALES", "MANAGER", "BOD", "HEAD"])) {
-            $d = DB::table('approval_request as appr')->select('appr.*', 'usr.Name', 'lv.Approver_Position')->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')
-                ->join('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID')->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Status', '=', 'NEED_APPROVAL')->where('lv.Approver_Position', '=', $session->Position)->orderBy('ID', 'DESC')->get();
+            $d = DB::table('approval_request as appr')->select('appr.*', 'usr.Name', 'lv.Approver_Position', 'wp.warehouse_location as Warehouse_Location')->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')
+                ->join('approval_level as lv', 'appr.Level_Id', '=', 'lv.ID')->leftJoin('warehouse_partner as wp', 'wp.warehouse_task_id', '=', 'appr.Warehouse_Task_Id')->where('appr.Request_Type', 'LIKE',  $type)->where('appr.Status', '=', 'NEED_APPROVAL')->where('lv.Approver_Position', '=', $session->Position)->orderBy('ID', 'DESC')->get();
 
             // MITRA, SUPERADMIN
         } else {
-            $d = DB::table('approval_request as appr')->select('appr.*', 'usr.Name')->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')->where('appr.Request_Type', 'LIKE',  $type)->where('appr.ID', 'LIKE', $apprId)->orWhere('appr.Requester_Id', 'LIKE', $user_id)->orderBy('ID', 'DESC')->get();
+            $d = DB::table('approval_request as appr')->select('appr.*', 'usr.Name', 'wp.warehouse_location as Warehouse_Location')->join('users as usr', 'appr.Requester_Id', '=', 'usr.id')->leftJoin('warehouse_partner as wp', 'wp.warehouse_task_id', '=', 'appr.Warehouse_Task_Id')->where('appr.Request_Type', 'LIKE',  $type)->where('appr.ID', 'LIKE', $apprId)->orWhere('appr.Requester_Id', 'LIKE', $user_id)->orderBy('ID', 'DESC')->get();
         }
 
         $xml = new SimpleXMLElement('<rows></rows>');
@@ -744,6 +744,8 @@ class ProfitSharingController extends Controller
             $row = $xml->addChild('row');
             $row->addChild('cell', $p->ID);
             $row->addChild('cell', $p->Name);
+            $row->addChild('cell', $p->Warehouse_Location ?? '');
+            $row->addChild('cell', $p->Periode ?? '');
             $row->addChild('cell', $p->Request_Type);
             $row->addChild('cell', $p->Status);
             $row->addChild('cell', htmlspecialchars($p->Description));
@@ -1148,6 +1150,8 @@ class ProfitSharingController extends Controller
                 'Status'                 => 'NEED_APPROVAL',
                 'Requester_Id'           => $session->id,
                 'Description'            => "Pengajuan royalti $month $year",
+                'Warehouse_Task_Id'      => $body['warehouse_id'] ?? null,
+                'Periode'                => $body['periode'] ?? null,
                 'Current_Level'          => 0,
                 'Request_Type'           => 'PROFIT_SHARING',
                 'Level_Id'               => $firstLevel->ID ?? null,
@@ -1347,8 +1351,9 @@ class ProfitSharingController extends Controller
                 $dateEnd
             );
 
-            $managementfee = isset($stmt['expense_details'][601][61007]) ? $stmt['expense_details'][601][61007] : 0;
-            $bagiHasil = isset($stmt['nominal_royalty']) ? $stmt['nominal_royalty'] : 0;
+            $managementfee = (isset($stmt['expense_details'][601][61007]) ? $stmt['expense_details'][601][61007] : 0) + (isset($stmt['expense_details'][601][61008]) ? $stmt['expense_details'][601][61008] : 0);
+            $bagiHasilMitra = isset($stmt['nominal_royalty']) ? $stmt['nominal_royalty'] : 0;
+            $bagiHasilPerusahaan = isset($stmt['company_profit_share']) ? $stmt['company_profit_share'] : ($stmt['net_profit'] * 0.4);
 
             echo "<row id=\"$Fetch->warehouse_task_id\">";
             echo "<cell>$nomor</cell>";
@@ -1358,8 +1363,9 @@ class ProfitSharingController extends Controller
             echo "<cell>" . htmlspecialchars($type) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
             echo "<cell>" . htmlspecialchars($managementfee) . "</cell>";
-            echo "<cell>" . htmlspecialchars($bagiHasil) . "</cell>";
-            echo "<cell>" . htmlspecialchars($managementfee + $bagiHasil) . "</cell>";
+            echo "<cell>" . htmlspecialchars($bagiHasilMitra) . "</cell>";
+            echo "<cell>" . htmlspecialchars($bagiHasilPerusahaan) . "</cell>";
+            echo "<cell>" . htmlspecialchars($managementfee + $bagiHasilMitra + $bagiHasilPerusahaan) . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -1803,7 +1809,7 @@ class ProfitSharingController extends Controller
 
                 $bagiHasilMitra = isset($stmt['nominal_royalty']) ? $stmt['nominal_royalty'] : 0;
 
-                $bulanList[$kunci]['proyeksi'] += $stmt['projection_royalty_high'] ?? 0;
+                $bulanList[$kunci]['proyeksi'] += $stmt['projection_royalty_low'] ?? 0;
                 $bulanList[$kunci]['bagi_hasil'] += $bagiHasilMitra;
             }
 

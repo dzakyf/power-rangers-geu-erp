@@ -464,6 +464,7 @@ class MasterDataController extends Controller
                 'depreciation_year'=> $facility->depreciation_year,
                 'shelf_life'       => $facility->shelf_life,
                 'asset_type'       => $facility->asset_type,
+                'price'            => $facility->price,
             ];
 
             $rows[] = array_merge(['id' => $facility->id], $entry);
@@ -500,6 +501,7 @@ class MasterDataController extends Controller
                 'asset_type'        => $request->input('asset_type') ?? '',
                 'depreciation_year' => $request->input('depreciation_year'),
                 'shelf_life'        => $request->input('shelf_life'),
+                'price'             => $request->input('price'),
             ]);
         });
 
@@ -520,6 +522,7 @@ class MasterDataController extends Controller
                 'asset_type'        => $request->input('asset_type') ?? '',
                 'depreciation_year' => $request->input('depreciation_year'),
                 'shelf_life'        => $request->input('shelf_life'),
+                'price'             => $request->input('price'),
             ]);
         });
 
@@ -844,6 +847,10 @@ class MasterDataController extends Controller
 
         if ($r->query('id')) {
             $query->where('mc.ID', $r->query('id'));
+        }
+
+        if ($r->query('warehouse_id')) {
+            $query->where('mc.Warehouse_ID', $r->query('warehouse_id'));
         }
 
         $data = $query->get();

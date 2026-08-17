@@ -98,7 +98,7 @@ class ValuationController extends Controller
         echo "<rows>";
         $nomor = 1;
 
-        $getAsset = DB::table('master_facility')->where('is_deleted', 0)->get();
+        $getAsset = DB::table('master_facility')->where('is_deleted', 0)->where('asset_type', 'Asset')->get();
         $asId = $getAsset->pluck('id');
         $asset = $getAsset->keyBy('id');
         $startDate = DB::table('opportunity_partner')->where("id", $request->partner)->select('contract_start_at')->first();
@@ -172,7 +172,7 @@ class ValuationController extends Controller
         ]);
 
 
-        $getAsset = DB::table('master_facility')->where('is_deleted', 0)->get();
+        $getAsset = DB::table('master_facility')->where('is_deleted', 0)->where('asset_type', 'Asset')->get();
         $asId = $getAsset->pluck('id');
         $asset = $getAsset->keyBy('id');
         $startDate = DB::table('opportunity_partner')->where("id", $r->partner)->select('contract_start_at')->first();
@@ -244,7 +244,7 @@ class ValuationController extends Controller
             $usname[$value->Emp_ID] = $value->Name;
         }
 
-        $getAsset = DB::table('master_facility')->where('is_deleted', 0)->get();
+        $getAsset = DB::table('master_facility')->where('is_deleted', 0)->where('asset_type', 'Asset')->get();
         $asId = $getAsset->pluck('id');
         $asset = $getAsset->keyBy('id');
 

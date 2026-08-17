@@ -88,6 +88,10 @@
                             <label for="edit_shelf_life">Shelf Life</label>
                             <input type="number" min="1" class="form-control" name="shelf_life" id="edit_shelf_life">
                         </div>
+                        <div class="form-group col-md-4">
+                            <label for="edit_price">Harga Satuan</label>
+                            <input type="number" min="0" step="0.01" class="form-control" name="price" id="edit_price">
+                        </div>
                     </div>
                     <button type="button" class="btn btn-primary" id="SubmitFacilityEdit">Update</button>
                     <button type="button" class="btn btn-secondary ml-2" onclick="$('#Grid1Detail').hide()">Cancel</button>
@@ -118,10 +122,10 @@
     }
 
     function initTableGrid1() {
-        let tHeader = ['No.', 'Description', 'Detail', 'Ekonomis (Tahun)', 'Shelf Life']
-        let tWidth = ['50', '300', '300', '120', '100']
-        let headerAttachment = ['#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter']
-        let colId = ['no', 'description', 'children', 'depreciation_year', 'shelf_life'].join(',')
+        let tHeader = ['No.', 'Description', 'Detail', 'Ekonomis (Tahun)', 'Shelf Life', 'Harga Satuan']
+        let tWidth = ['50', '300', '300', '120', '100', '120']
+        let headerAttachment = ['#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter']
+        let colId = ['no', 'description', 'children', 'depreciation_year', 'shelf_life', 'price'].join(',')
 
         Grid1 = new dhtmlXGridObject('MembershipGrid');
         Grid1.setImagePath("./dhtmlx/imgs/");
@@ -182,6 +186,7 @@
             $('#edit_asset_type').val(row.asset_type || '');
             $('#edit_depreciation_year').val(row.depreciation_year ?? '');
             $('#edit_shelf_life').val(row.shelf_life ?? '');
+            $('#edit_price').val(row.price ?? '');
 
             var children = [];
             if (row.children) {

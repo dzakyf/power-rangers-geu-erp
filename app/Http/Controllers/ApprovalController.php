@@ -540,7 +540,7 @@ class ApprovalController extends Controller
         }
 
         if ($type == "SURVEY") {
-            $d = $d->select('appr.*',  'usr.Name', 'sl.Code as Code')
+            $d = $d->select('appr.*',  'usr.Name', 'sl.Code as Code', 'sl.Status as Survey_Status')
                 ->join('survey_location as sl', 'appr.Map_To', '=', 'sl.ID');
         }
 
@@ -570,7 +570,16 @@ class ApprovalController extends Controller
 
         $d = $d->orderBy('ID', 'DESC')->get();
 
-
+        // Defensive auto-sync: if the linked survey is already APPROVED but the
+        // approval request is stale (still NEED_APPROVAL), heal the approval request.
+        if ($type == "SURVEY") {
+            foreach ($d as $p) {
+                if (($p->Survey_Status ?? '') === 'APPROVED' && $p->Status !== 'APPROVED') {
+                    DB::table('approval_request')->where('ID', $p->ID)->update(['Status' => 'APPROVED']);
+                    $p->Status = 'APPROVED';
+                }
+            }
+        }
 
         $xml = new SimpleXMLElement('<rows></rows>');
 

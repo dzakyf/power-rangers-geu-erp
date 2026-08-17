@@ -38,6 +38,14 @@
 				<label for="Capacity">Kapasitas</label>
 				<input type="text" name="Capacity" id="Capacity" class="form-control" value="{{ $wh->capacity }}">
 			</div>
+			<div class="col-md-6">
+				<label for="lat">Latitude</label>
+				<input type="text" name="lat" id="lat" class="form-control" value="{{ $wh->lat }}">
+			</div>
+			<div class="col-md-6">
+				<label for="lng">Longitude</label>
+				<input type="text" name="lng" id="lng" class="form-control" value="{{ $wh->lng }}">
+			</div>
 			<div class="col-12 mt-3">
 				<button class="btn btn-success" id="SubmitCustDetail">Submit</button>
 			</div>
@@ -59,6 +67,52 @@
 			<!-- <input type="button" id="newWarehouseListDetail" name="newWarehouseListDetail" value="Update Warehouse Detail" class="btn btn-info mt-2 mr-2" onclick="WarehouseListDetailKlik()" /> -->
 			<!-- <input type="button" id="detailWarehouseListDetail" name="newWarehouseListDetail" value="New Warehouse Detail" class="btn btn-success mt-2 mr-2" onclick="WarehouseListDetailNew()" /> -->
 		</div>
+	</div>
+</div>
+
+<div class="card mt-3">
+	<div class="card-body">
+		<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">CONTAINER</div>
+		<div id="ContainerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+		<div>
+			<input type="button" value="Add Container" class="btn btn-success mt-2 mr-2" onclick="showContainerForm()" />
+			<input type="button" value="Edit Container" class="btn btn-info mt-2 mr-2" onclick="editContainer()" />
+			<input type="button" value="Delete Container" class="btn btn-danger mt-2 mr-2" onclick="deleteContainer()" />
+		</div>
+	</div>
+</div>
+
+<div id="ContainerFormCard" class="card mt-3" style="display:none;">
+	<div class="card-body">
+		<h6 id="ContainerFormTitle">Add Container</h6>
+		<form id="ContainerForm">
+			@csrf
+			<input type="hidden" name="id" id="container_id">
+			<input type="hidden" name="Warehouse_ID" id="container_Warehouse_ID" value="{{ $wh->id }}">
+			<div class="form-row">
+				<div class="form-group col-md-4">
+					<label for="container_Name">Name</label>
+					<input type="text" class="form-control" id="container_Name" name="Name" required>
+				</div>
+				<div class="form-group col-md-4">
+					<label for="container_Volume">Volume (KG)</label>
+					<input type="number" step="0.01" class="form-control" id="container_Volume" name="Volume">
+				</div>
+				<div class="form-group col-md-4">
+					<label for="container_Status">Status</label>
+					<select class="form-control" id="container_Status" name="Status">
+						<option value="active">Active</option>
+						<option value="inactive">Inactive</option>
+					</select>
+				</div>
+			</div>
+			<div class="form-group">
+				<label for="container_Note">Note</label>
+				<textarea class="form-control" id="container_Note" name="Note" rows="2"></textarea>
+			</div>
+			<button type="button" class="btn btn-primary" id="SubmitContainer">Save</button>
+			<button type="button" class="btn btn-secondary ml-2" onclick="$('#ContainerFormCard').hide()">Cancel</button>
+		</form>
 	</div>
 </div>
 
@@ -143,4 +197,95 @@
 		WarehouseListDetail.clearAndLoad('xml-partner-warehouse-list-detail?Task={{$_GET["Task"]}}');
 
 	}
+
+<script>
+	var selectedContainerId = null;
+
+	function initContainerGrid() {
+		WarehouseContainer = new dhtmlXGridObject('ContainerGrid');
+		WarehouseContainer.setImagePath("./dhtmlx/imgs/");
+		WarehouseContainer.setHeader("No,Name,Volume,Note,Warehouse,Status");
+		WarehouseContainer.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+		WarehouseContainer.setInitWidths("60,150,100,200,150,100");
+		WarehouseContainer.setColAlign("center,left,right,left,left,center");
+		WarehouseContainer.setColTypes("ro,ro,ro,ro,ro,ro");
+		WarehouseContainer.setSkin("dhx_skyblue");
+		WarehouseContainer.attachEvent("onRowSelect", function(id) {
+			selectedContainerId = WarehouseContainer.getRowAttribute(id, 'ID');
+		});
+		WarehouseContainer.init();
+		WarehouseContainer.clearAndLoad('master-container-data?format=xml&warehouse_id={{ $wh->id }}');
+	}
+
+	function showContainerForm() {
+		$('#ContainerFormTitle').text('Add Container');
+		$('#container_id').val('');
+		$('#container_Name').val('');
+		$('#container_Volume').val('');
+		$('#container_Note').val('');
+		$('#container_Status').val('active');
+		$('#ContainerFormCard').show();
+	}
+
+	function editContainer() {
+		if (!selectedContainerId) { alert('Pilih data terlebih dahulu'); return; }
+		$.get('master-container-data', { format: 'json', id: selectedContainerId }, function(res) {
+			var d = res.data && res.data[0];
+			if (!d) { alert('Data tidak ditemukan'); return; }
+			$('#ContainerFormTitle').text('Edit Container');
+			$('#container_id').val(d.ID);
+			$('#container_Name').val(d.Name);
+			$('#container_Volume').val(d.Volume);
+			$('#container_Note').val(d.Note);
+			$('#container_Status').val(d.Status);
+			$('#ContainerFormCard').show();
+		});
+	}
+
+	function deleteContainer() {
+		if (!selectedContainerId) { alert('Pilih data terlebih dahulu'); return; }
+		if (!confirm('Yakin ingin menghapus container ini?')) return;
+		$.ajax({
+			url: 'master-container-delete',
+			type: 'DELETE',
+			data: { _token: '{{ csrf_token() }}', id: selectedContainerId },
+			success: function(res) {
+				if (res.success) {
+					alert('Data berhasil dihapus');
+					WarehouseContainer.clearAndLoad('master-container-data?format=xml&warehouse_id={{ $wh->id }}');
+					selectedContainerId = null;
+				}
+			}
+		});
+	}
+
+	$('#SubmitContainer').on('click', function() {
+		var form = document.getElementById('ContainerForm');
+		if (!form.checkValidity()) { form.reportValidity(); return; }
+		var id = $('#container_id').val();
+		var fd = new FormData(form);
+		fd.append('_token', '{{ csrf_token() }}');
+		var url = id ? 'master-container-edit' : 'master-container-submit';
+		$.ajax({
+			url: url,
+			type: 'POST',
+			data: fd,
+			processData: false,
+			contentType: false,
+			success: function(res) {
+				if (res.success) {
+					alert('Data berhasil disimpan!');
+					$('#ContainerFormCard').hide();
+					WarehouseContainer.clearAndLoad('master-container-data?format=xml&warehouse_id={{ $wh->id }}');
+				} else {
+					alert('Gagal: ' + (res.message || 'Unknown error'));
+				}
+			},
+			error: function(xhr) {
+				alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+			}
+		});
+	});
+
+	initContainerGrid();
 </script>

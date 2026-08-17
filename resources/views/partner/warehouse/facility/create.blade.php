@@ -76,6 +76,10 @@
                                 <label for="shelf_life">Shelf Life</label>
                                 <input type="number" min="1" class="form-control" id="shelf_life" name="shelf_life" placeholder="e.g. 60">
                             </div>
+                            <div class="form-group col-md-4">
+                                <label for="price">Harga Satuan</label>
+                                <input type="number" min="0" step="0.01" class="form-control" id="price" name="price" placeholder="e.g. 500000">
+                            </div>
                         </div>
 
                         <hr>

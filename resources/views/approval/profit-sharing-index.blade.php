@@ -127,11 +127,11 @@
     }
 
     function initApprovalGrid() {
-        let tHeader = ['No', 'Nama', 'Code', 'Tipe Approval', 'Status', 'Disubmit Pada']
+        let tHeader = ['No', 'Requester', 'Warehouse', 'Periode', 'Tipe Approval', 'Status', 'Deskripsi', 'Disubmit Pada']
 
-        let tWidth = tHeader.map((e) => '200')
+        let tWidth = tHeader.map((e) => '150')
         let headerAttachment = [
-            '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter'
+            '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter'
         ]
         PartnerGrid = new dhtmlXGridObject('PartnerGrid');
         PartnerGrid.setImagePath("./dhtmlx/imgs/");
