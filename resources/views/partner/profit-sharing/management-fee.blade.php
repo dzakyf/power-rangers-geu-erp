@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
+$priv = Auth::user()->Priv_ID;
 
 ?>
 
@@ -58,7 +59,7 @@ $Saya =  Auth::user()->username;
 <script>
 	ProfitSharing = new dhtmlXGridObject('ProfitSharing');
 	ProfitSharing.setImagePath("./dhtmlx/imgs/");
-	ProfitSharing.setHeader("No,Gudang ID, Lokasi Gudang, Nama Mitra, Jenis Booth, Status Gudang, Penjemputan Logistik, Bagi Hasil Mitra, Bagi Hasil Perusahaan, Total");
+	ProfitSharing.setHeader("No,Gudang ID, Lokasi Gudang, Nama Mitra, Jenis Booth, Status Gudang, {{ $priv == 'MITRA' ? 'Penjemputan Logistik' : 'Manajemen Fee' }} , Bagi Hasil Mitra, Bagi Hasil Perusahaan, Total");
 	ProfitSharing.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// ProfitSharing.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	ProfitSharing.setInitWidths("60,100,150,200,100,100,100,100,100,100");

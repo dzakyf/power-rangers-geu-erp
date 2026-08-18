@@ -40,7 +40,7 @@ $stageLabels = [
                     @php
                         $stepNum = $i + 1;
                         $label = $stageLabels[$s] ?? $s;
-                        $completed = $i < $currentStageIndex;
+                        $completed = $i < $currentStageIndex || $partner->onboarding_stage == 'ACTIVE';
                         $active = $i == $currentStageIndex;
                         $disabled = $i > $currentStageIndex;
                     @endphp

@@ -47,565 +47,569 @@ if ($result) {
 }
 
 </style>
-
-<div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">I. DATA ASSET</div>
-<div id="DivDetailAsset">
-    <div class="FormInput_Form_Content">
-		<div class="FormInput_left">
-        		
-               Asset ID
-        
-        </div>
-		<div class="FormInput_right">
-			<input type="text" id="ID" disabled="disabled" size="10"> ::  	
-         			<input type="text" id="Asset_No" disabled="disabled" size="30">	
-
-         </div>
-   		<div class="FormInput_left">
-        		
-               Asset Category
-        
-        </div>
-		<div class="FormInput_right">
-						<input type="text" id="Asset_Category" disabled="disabled" size="10">   	
-
-         </div>
-		 <div class="FormInput_left">
-        		
-               Asset Sub Category
-        
-        </div>
-		<div class="FormInput_right">
-			<div id="subcat">
-			<input type="text" id="Asset_Sub_Category" disabled="disabled" size="40">   	
-			</div>
-         
-         </div>
-		  <div class="FormInput_left">
-        		
-               Asset Type
-        
-        </div>
-		<div class="FormInput_right">
-			<div id="subcat2">
-			<input type="text" id="Asset_Type" disabled="disabled" size="40">   	
-			</select>     	
-			</div>
-         
-         </div>
-				 
-   		<div class="FormInput_left">
-        		
-               Asset Name/Description
-        
-        </div>
-		<div class="FormInput_right">
-        
-				<input type="text" id="Product_Description" size="55"/>        	
-         
-         </div>
-		 <div class="FormInput_left">
-        		
-			Spesification        
-        </div>
-		<div class="FormInput_right">
-        
-				<input type="text" id="Specification" size="50"/>        	
-         
-         </div>
-		  
-		<div class="FormInput_left">	
-                Brand
-        
-        </div>
-		<div class="FormInput_right">
-        
-        		<input type="text" size="35" id="Product_Brand"  />    ex : toyota 	
-
-         
-         </div>
-		<div class="FormInput_left">
-        		
-                Model
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Model" size="30"/>  ex : Kijang      	
-         </div>		 
-		 <div class="FormInput_left">
-        		
-               Type
-        
-        </div>
-		
-		<div class="FormInput_right">
-        
-				<input type="text" id="Product_Type" size="30"/>    ex : innova    	
-         
-         </div>
-		 <div class="FormInput_left">
-        		
-			Sub Product  Type       
-        </div>
-		<div class="FormInput_right">
-        
-				<input type="text" id="Sub_Product_Type" size="30"/>  ex : G      	
-         
-         </div>
-   		<div class="FormInput_left" style="height:80px;">
-        		
-               Function
-        
-        </div>
-		<div class="FormInput_right" style="height:80px;">
-        
-				<input type="text" id="Product_Function" size="50"/>   ex: MPV     	
-         
-         </div>
-   		
-   		<div class="FormInput_left">
-        		
-                Unit Measurement
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Unit_Name" size="10"/> ex : unit       	
-         </div>
-   		<div class="FormInput_left">
-        		
-                Manufacture Date
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Manufacture_Date" size="10" readonly="readonly"/>      	
-         </div>
-		 <div class="FormInput_left">
-        		
-                Source Production
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Source_Production" size="10"/> ex : BBM,Listrik       	
-         </div>
-		 <div class="FormInput_left">
-        		
-                Colour
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Colour" size="10"/>    	
-         </div>
-		  <div class="FormInput_left">
-        		
-                Size
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Size" size="20"/> ex : 40m x 20 m (land),CDD/Engkel (vehicle),etc   	
-         </div>
-		  <div class="FormInput_left">
-        		
-                Capacity
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Capacity" size="10"/>    	
-         </div>
-		 <div class="FormInput_left">
-        		
-                Group No
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Group_No" size="30"/> 
-         </div>
-		 <div class="FormInput_left">
-        		
-                Part No
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Part_No" size="30"/>    ex : nomor rangka,product code	
-         </div>
-		 <div class="FormInput_left">
-        		
-                Serial Number
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="SN" size="30"/>    	ex : nomor mesin,SN Product
-         </div>
-		 <div class="FormInput_left">
-        		
-                Registration No
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Registration_No" size="25"/>    	ex : nomor plat,no shm,dll
-         </div>
-		 <div class="FormInput_left">
-        		
-                Registration Date
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Registration_Date" size="10" readonly="readonly"/>   ex: tgl bpkb,tgl shm 	
-         </div>
-		 <div class="FormInput_left">
-        		
-                Expired Date
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Exp_Date" readonly="readonly" size="10"/>    	
-         </div>
-		 
-		 <div class="FormInput_left">
-        		
-                Owner
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Owner" size="30"/>    	ex : raddix,MAM,dll
-         </div>
-		 <div class="FormInput_left">
-        		
-                Buy Date
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Buy_Date" size="10" readonly="readonly"/>    	
-         </div>
-		 <div class="FormInput_left">
-        		
-                Buy Value
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Buy_Val" size="15"/>   ex: 000000000 	
-         </div>
-		 <div class="FormInput_left">
-        		
-                Supplier
-        
-        </div>
-		<div class="FormInput_right">
-				<?php
-				$qr = DB::table("supplier")->get();
-				echo "<select id='Supplier' class='cs-corner-all'  style='width:350px;'>";
-				
-				foreach ($qr as $fa){
-					echo "<option value='$fa->Supplier_ID'>$fa->Company_Name - $fa->Supplier_ID</option>";	
-				}
-				echo "</select>";
-				?>    	
-         </div>
-		  <div class="FormInput_left">
-        		
-                Depreciation Year Max
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Depr" size="5" value="5"/>
-         </div>
-		 <div class="FormInput_left">
-        		
-                Depreciation Method
-        
-        </div>
-		<div class="FormInput_right">
-				<select id="Depr_M">
-					<option>STRAIGHT_MONTH</option>
-					<option>STRAIGHT_YEAR</option>
-					<option>SUM_OF_YEAR</option>
-					<option>UNIT_OF_PRODUCTION</option>
-					<option>DOUBLE_DECLINING_BALANCE</option>
-				</select>	
-         </div>
-		   <div class="FormInput_left">
-        		
-                Current Book Value
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Book_Val" size="15" value="0"/>
-         </div>
-		   <div class="FormInput_left">
-        		
-                Additional Value
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Additional_Val" size="15"/>
-         </div>
-		<div class="FormInput_left">
-        		
-                Asset Location
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Asset_Location" size="35"/>
-         </div>
-		   <div class="FormInput_left">
-        		
-                Asset Location Address
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Asset_Location_Address" size="50" />
-         </div>
-		  <div class="FormInput_left">
-        		
-                Asset Location Street
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Asset_Location_Street" size="50" />
-         </div>
-		 <div class="FormInput_left">
-        		
-                Asset Location City
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Asset_Location_City" size="25"/>
-         </div>
-		 <div class="FormInput_left">
-        		
-                Asset Location Department
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Asset_Location_Department" size="35"/>
-         </div>
-		 <div class="FormInput_left">
-        		
-               User Responsible
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="User_Responsible" size="25"/>
-         </div>
-		 <div class="FormInput_left">
-        		
-                Leasing Vendor
-        
-        </div>
-		<div class="FormInput_right">
-				<?php
-				echo "<select id='Leasing_Vendor' class='cs-corner-all'  style='width:350px;'>";
-				
-				$qr = DB::table("supplier")->get();
-				
-				foreach ($qr as $fa){
-					echo "<option value='$fa->Supplier_ID'>$fa->Company_Name - $fa->Supplier_ID</option>";	
-				}
-				echo "</select>";
-				?>    	
-         </div>
-		 <div class="FormInput_left">
-        		
-               Leasing Total Value
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Leasing_Val" size="20" value="0"/> info : nilai total leasing
-         </div>
-		 <div class="FormInput_left">
-        		
-               Leasing Remain Value
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Leasing_Remain" size="20" value="0"/> info : nilai sisa pinjaman
-         </div>
-		<div class="FormInput_left">
-        		
-               Payment Method
-        
-        </div>
-		<div class="FormInput_right">
-					<select id="Leasing_Method">
-					<option>MONTHLY</option>
-					<option>YEARLY</option>
-					<option>WEEKLY</option>
-				</select>	
-         </div>
-		 <div class="FormInput_left">
-        		
-               Payment Times Number
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Leasing_Method_Value" size="5" value="0"/> info :misal jumlah bulan pembayaran
-
-         </div>
-		  <div class="FormInput_left">
-        		
-               Installment Amount per Method
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Installment" size="25" value="0"/> info : nilai setiap pembayaran
-
-         </div>
-		 <div class="FormInput_left">
-        		
-               Installment Method
-        
-        </div>
-		<div class="FormInput_right">
-					<select id="Installment_Method">
-					<option>FIX_COST</option>
-					<option>FLOATING_POINT</option>
-				</select>	
-
-         </div>
-		  <div class="FormInput_left">
-        		
-               Installment Basic
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Installment_Basic" size="12" value="0"/> info : nilai pinjaman pokok
-
-         </div>
-		  <div class="FormInput_left">
-        		
-               Installment Interest
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Installment_Interest" size="12" value="0"/> info : nilai bunga
-
-         </div>
-		 <div class="FormInput_left">
-        		
-               Installment Number
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Installment_No" size="5" value="0"/> info : pembayaran cicilan ke sekian
-
-         </div>
-		 <div class="FormInput_left">
-        		
-               Installment Due Days
-        
-        </div>
-		<div class="FormInput_right">
-				<input type="text" id="Installment_Due_Days" size="5" readonly="readonly"/>
-
-         </div>
-		<div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">II. Accounting</div>
-		<?php
-
-		$Query = DB::table("bank_acc")->where("Status",'ACTIVE')->orderBy('Bank_Acc',"asc")->get();
-				foreach ($Query as $Data){
-				if ($datahasil->Bank_Acc !=''){
-					if (strcmp($datahasil->Bank_Acc, $Data->Acc_No) == 0){
-					$opt .= "<option value='$Data->Acc_No' checked='checked' selected>$Data->Acc_No - $Data->Bank_Name </option>";	
-					}else{
-						goto lanjutbank;
-					}
-				}else{	
-					lanjutbank:
+<div class="mt-3">
+	<div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">I. DATA ASSET</div>
+	<div class="card">
+		<div class="card-body">
+			<div id="DivDetailAsset">
+				<div class="FormInput_Form_Content">
+					<div class="FormInput_left">
+							
+						   Asset ID
 					
-					$opt .= "<option value='$Data->Acc_No'>$Data->Acc_No - $Data->Bank_Name</option>";	
+					</div>
+					<div class="FormInput_right">
+						<input type="text" id="ID" disabled="disabled" size="10"> ::  	
+								 <input type="text" id="Asset_No" disabled="disabled" size="30">	
+			
+					 </div>
+					   <div class="FormInput_left">
+							
+						   Asset Category
 					
-				}
-				}
-		?>
-		<div class="FormInput_left" style="height:50px">
-        		
-               Bank Pengakuan
-        
-        </div>
-		<div class="FormInput_right" style="height:50px">
-				<select id="Bank_Acc" style="width:70%;border:solid;border-color:#cdcdcd;border-width:1px;"  onChange="TampilkanCOA(1,this.value)" >
-                <option value="23104">LEASING</option>
-                <?php
-					echo $opt;
-			?>
-                
-            </select><Br> <i>Bank yang digunakan untuk pengakuan</i>
-
-         </div>
-		  <div class="FormInput_left">
-        		
-              Akun No Pengakuan
-        
-        </div>
-
-
-		<div class="FormInput_right">
-				<input type="text" id="Acc_No" size="10"/> cth:00000
-
-         </div>
-		  <div class="FormInput_left">
-        		
-              Akun No Depr Cost
-        
-        </div>
-
-
-		<div class="FormInput_right">
-				<input type="text" id="Acc_Cost" size="10"/> cth:00000
-
-         </div>
-		  <div class="FormInput_left">
-        		
-              Akun No Depresiasi
-        
-        </div>
-
-
-		<div class="FormInput_right">
-				<input type="text" id="Acc_No_Depr" size="10"/> cth:00000
-
-         </div>
-		  <div class="FormInput_left">
-        		
-              Uang Muka
-        
-        </div>
-
-
-		<div class="FormInput_right">
-				<input type="text" id="Pengakuan_Uang_Muka" size="20" value="0"/> cth:00000
-
-         </div>
-		  <div class="FormInput_left">
-        		
-             Asuransi
-        
-        </div>
-
-
-		<div class="FormInput_right">
-				<input type="text" id="Pengakuan_Asuransi" size="20" value="0"/> cth:00000
-
-         </div>
-		  <div class="FormInput_left">
-        		
-              Tanggal Eksekusi Proses Pengakuan
-        
-        </div>
-
-
-		<div class="FormInput_right">
-				<input type="text" id="Pengakuan_Date" size="25" disabled="disabled" readonly="readonly"/>
-
-         </div>
-    </div>
-	
-		
+					</div>
+					<div class="FormInput_right">
+									<input type="text" id="Asset_Category" disabled="disabled" size="10">   	
+			
+					 </div>
+					 <div class="FormInput_left">
+							
+						   Asset Sub Category
+					
+					</div>
+					<div class="FormInput_right">
+						<div id="subcat">
+						<input type="text" id="Asset_Sub_Category" disabled="disabled" size="40">   	
+						</div>
+					 
+					 </div>
+					  <div class="FormInput_left">
+							
+						   Asset Type
+					
+					</div>
+					<div class="FormInput_right">
+						<div id="subcat2">
+						<input type="text" id="Asset_Type" disabled="disabled" size="40">   	
+						</select>     	
+						</div>
+					 
+					 </div>
+							 
+					   <div class="FormInput_left">
+							
+						   Asset Name/Description
+					
+					</div>
+					<div class="FormInput_right">
+					
+							<input type="text" id="Product_Description" size="55"/>        	
+					 
+					 </div>
+					 <div class="FormInput_left">
+							
+						Spesification        
+					</div>
+					<div class="FormInput_right">
+					
+							<input type="text" id="Specification" size="50"/>        	
+					 
+					 </div>
+					  
+					<div class="FormInput_left">	
+							Brand
+					
+					</div>
+					<div class="FormInput_right">
+					
+							<input type="text" size="35" id="Product_Brand"  />    ex : toyota 	
+			
+					 
+					 </div>
+					<div class="FormInput_left">
+							
+							Model
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Model" size="30"/>  ex : Kijang      	
+					 </div>		 
+					 <div class="FormInput_left">
+							
+						   Type
+					
+					</div>
+					
+					<div class="FormInput_right">
+					
+							<input type="text" id="Product_Type" size="30"/>    ex : innova    	
+					 
+					 </div>
+					 <div class="FormInput_left">
+							
+						Sub Product  Type       
+					</div>
+					<div class="FormInput_right">
+					
+							<input type="text" id="Sub_Product_Type" size="30"/>  ex : G      	
+					 
+					 </div>
+					   <div class="FormInput_left" style="height:80px;">
+							
+						   Function
+					
+					</div>
+					<div class="FormInput_right" style="height:80px;">
+					
+							<input type="text" id="Product_Function" size="50"/>   ex: MPV     	
+					 
+					 </div>
+					   
+					   <div class="FormInput_left">
+							
+							Unit Measurement
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Unit_Name" size="10"/> ex : unit       	
+					 </div>
+					   <div class="FormInput_left">
+							
+							Manufacture Date
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Manufacture_Date" size="10" readonly="readonly"/>      	
+					 </div>
+					 <div class="FormInput_left">
+							
+							Source Production
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Source_Production" size="10"/> ex : BBM,Listrik       	
+					 </div>
+					 <div class="FormInput_left">
+							
+							Colour
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Colour" size="10"/>    	
+					 </div>
+					  <div class="FormInput_left">
+							
+							Size
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Size" size="20"/> ex : 40m x 20 m (land),CDD/Engkel (vehicle),etc   	
+					 </div>
+					  <div class="FormInput_left">
+							
+							Capacity
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Capacity" size="10"/>    	
+					 </div>
+					 <div class="FormInput_left">
+							
+							Group No
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Group_No" size="30"/> 
+					 </div>
+					 <div class="FormInput_left">
+							
+							Part No
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Part_No" size="30"/>    ex : nomor rangka,product code	
+					 </div>
+					 <div class="FormInput_left">
+							
+							Serial Number
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="SN" size="30"/>    	ex : nomor mesin,SN Product
+					 </div>
+					 <div class="FormInput_left">
+							
+							Registration No
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Registration_No" size="25"/>    	ex : nomor plat,no shm,dll
+					 </div>
+					 <div class="FormInput_left">
+							
+							Registration Date
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Registration_Date" size="10" readonly="readonly"/>   ex: tgl bpkb,tgl shm 	
+					 </div>
+					 <div class="FormInput_left">
+							
+							Expired Date
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Exp_Date" readonly="readonly" size="10"/>    	
+					 </div>
+					 
+					 <div class="FormInput_left">
+							
+							Owner
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Owner" size="30"/>    	ex : raddix,MAM,dll
+					 </div>
+					 <div class="FormInput_left">
+							
+							Buy Date
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Buy_Date" size="10" readonly="readonly"/>    	
+					 </div>
+					 <div class="FormInput_left">
+							
+							Buy Value
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Buy_Val" size="15"/>   ex: 000000000 	
+					 </div>
+					 <div class="FormInput_left">
+							
+							Supplier
+					
+					</div>
+					<div class="FormInput_right">
+							<?php
+							$qr = DB::table("supplier")->get();
+							echo "<select id='Supplier' class='cs-corner-all'  style='width:350px;'>";
+							
+							foreach ($qr as $fa){
+								echo "<option value='$fa->Supplier_ID'>$fa->Company_Name - $fa->Supplier_ID</option>";	
+							}
+							echo "</select>";
+							?>    	
+					 </div>
+					  <div class="FormInput_left">
+							
+							Depreciation Year Max
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Depr" size="5" value="5"/>
+					 </div>
+					 <div class="FormInput_left">
+							
+							Depreciation Method
+					
+					</div>
+					<div class="FormInput_right">
+							<select id="Depr_M">
+								<option>STRAIGHT_MONTH</option>
+								<option>STRAIGHT_YEAR</option>
+								<option>SUM_OF_YEAR</option>
+								<option>UNIT_OF_PRODUCTION</option>
+								<option>DOUBLE_DECLINING_BALANCE</option>
+							</select>	
+					 </div>
+					   <div class="FormInput_left">
+							
+							Current Book Value
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Book_Val" size="15" value="0"/>
+					 </div>
+					   <div class="FormInput_left">
+							
+							Additional Value
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Additional_Val" size="15"/>
+					 </div>
+					<div class="FormInput_left">
+							
+							Asset Location
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Asset_Location" size="35"/>
+					 </div>
+					   <div class="FormInput_left">
+							
+							Asset Location Address
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Asset_Location_Address" size="50" />
+					 </div>
+					  <div class="FormInput_left">
+							
+							Asset Location Street
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Asset_Location_Street" size="50" />
+					 </div>
+					 <div class="FormInput_left">
+							
+							Asset Location City
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Asset_Location_City" size="25"/>
+					 </div>
+					 <div class="FormInput_left">
+							
+							Asset Location Department
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Asset_Location_Department" size="35"/>
+					 </div>
+					 <div class="FormInput_left">
+							
+						   User Responsible
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="User_Responsible" size="25"/>
+					 </div>
+					 <div class="FormInput_left">
+							
+							Leasing Vendor
+					
+					</div>
+					<div class="FormInput_right">
+							<?php
+							echo "<select id='Leasing_Vendor' class='cs-corner-all'  style='width:350px;'>";
+							
+							$qr = DB::table("supplier")->get();
+							
+							foreach ($qr as $fa){
+								echo "<option value='$fa->Supplier_ID'>$fa->Company_Name - $fa->Supplier_ID</option>";	
+							}
+							echo "</select>";
+							?>    	
+					 </div>
+					 <div class="FormInput_left">
+							
+						   Leasing Total Value
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Leasing_Val" size="20" value="0"/> info : nilai total leasing
+					 </div>
+					 <div class="FormInput_left">
+							
+						   Leasing Remain Value
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Leasing_Remain" size="20" value="0"/> info : nilai sisa pinjaman
+					 </div>
+					<div class="FormInput_left">
+							
+						   Payment Method
+					
+					</div>
+					<div class="FormInput_right">
+								<select id="Leasing_Method">
+								<option>MONTHLY</option>
+								<option>YEARLY</option>
+								<option>WEEKLY</option>
+							</select>	
+					 </div>
+					 <div class="FormInput_left">
+							
+						   Payment Times Number
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Leasing_Method_Value" size="5" value="0"/> info :misal jumlah bulan pembayaran
+			
+					 </div>
+					  <div class="FormInput_left">
+							
+						   Installment Amount per Method
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Installment" size="25" value="0"/> info : nilai setiap pembayaran
+			
+					 </div>
+					 <div class="FormInput_left">
+							
+						   Installment Method
+					
+					</div>
+					<div class="FormInput_right">
+								<select id="Installment_Method">
+								<option>FIX_COST</option>
+								<option>FLOATING_POINT</option>
+							</select>	
+			
+					 </div>
+					  <div class="FormInput_left">
+							
+						   Installment Basic
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Installment_Basic" size="12" value="0"/> info : nilai pinjaman pokok
+			
+					 </div>
+					  <div class="FormInput_left">
+							
+						   Installment Interest
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Installment_Interest" size="12" value="0"/> info : nilai bunga
+			
+					 </div>
+					 <div class="FormInput_left">
+							
+						   Installment Number
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Installment_No" size="5" value="0"/> info : pembayaran cicilan ke sekian
+			
+					 </div>
+					 <div class="FormInput_left">
+							
+						   Installment Due Days
+					
+					</div>
+					<div class="FormInput_right">
+							<input type="text" id="Installment_Due_Days" size="5" readonly="readonly"/>
+			
+					 </div>
+					<div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">II. Accounting</div>
+					<?php
+			
+					$Query = DB::table("bank_acc")->where("Status",'ACTIVE')->orderBy('Bank_Acc',"asc")->get();
+							foreach ($Query as $Data){
+							if ($datahasil->Bank_Acc !=''){
+								if (strcmp($datahasil->Bank_Acc, $Data->Acc_No) == 0){
+								$opt .= "<option value='$Data->Acc_No' checked='checked' selected>$Data->Acc_No - $Data->Bank_Name </option>";	
+								}else{
+									goto lanjutbank;
+								}
+							}else{	
+								lanjutbank:
+								
+								$opt .= "<option value='$Data->Acc_No'>$Data->Acc_No - $Data->Bank_Name</option>";	
+								
+							}
+							}
+					?>
+					<div class="FormInput_left" style="height:50px">
+							
+						   Bank Pengakuan
+					
+					</div>
+					<div class="FormInput_right" style="height:50px">
+							<select id="Bank_Acc" style="width:70%;border:solid;border-color:#cdcdcd;border-width:1px;"  onChange="TampilkanCOA(1,this.value)" >
+							<option value="23104">LEASING</option>
+							<?php
+								echo $opt;
+						?>
+							
+						</select><Br> <i>Bank yang digunakan untuk pengakuan</i>
+			
+					 </div>
+					  <div class="FormInput_left">
+							
+						  Akun No Pengakuan
+					
+					</div>
+			
+			
+					<div class="FormInput_right">
+							<input type="text" id="Acc_No" size="10"/> cth:00000
+			
+					 </div>
+					  <div class="FormInput_left">
+							
+						  Akun No Depr Cost
+					
+					</div>
+			
+			
+					<div class="FormInput_right">
+							<input type="text" id="Acc_Cost" size="10"/> cth:00000
+			
+					 </div>
+					  <div class="FormInput_left">
+							
+						  Akun No Depresiasi
+					
+					</div>
+			
+			
+					<div class="FormInput_right">
+							<input type="text" id="Acc_No_Depr" size="10"/> cth:00000
+			
+					 </div>
+					  <div class="FormInput_left">
+							
+						  Uang Muka
+					
+					</div>
+			
+			
+					<div class="FormInput_right">
+							<input type="text" id="Pengakuan_Uang_Muka" size="20" value="0"/> cth:00000
+			
+					 </div>
+					  <div class="FormInput_left">
+							
+						 Asuransi
+					
+					</div>
+			
+			
+					<div class="FormInput_right">
+							<input type="text" id="Pengakuan_Asuransi" size="20" value="0"/> cth:00000
+			
+					 </div>
+					  <div class="FormInput_left">
+							
+						  Tanggal Eksekusi Proses Pengakuan
+					
+					</div>
+			
+			
+					<div class="FormInput_right">
+							<input type="text" id="Pengakuan_Date" size="25" disabled="disabled" readonly="readonly"/>
+			
+					 </div>
+				</div>
+				
+					
+			</div>
+			<div id="divtom" class="mt-3">
+				<input type="button" id="SubmitEditAsset" class="btn btn-success" NAME="SubmitEditAsset" value="Save" />
+				
+			</div>
+		</div>
+	</div>
 </div>
-    <div id="divtom" style="height:200px">
-        <Br><br><br>
-        <input type="button" id="SubmitEditAsset" NAME="SubmitEditAsset" value="Save" />
-		
-    </div>
     
 <div id="DivProcess"></div>
 <script>

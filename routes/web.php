@@ -50,6 +50,7 @@ use App\Http\Controllers\HCGA\AssetMovingController as HCGAAssetMovingController
 use App\Http\Controllers\HCGA\AssetMovingApprovalController as HCGAAssetMovingApprovalController;
 use App\Http\Controllers\HCGA\AssetIncomingController as HCGAAssetIncomingController;
 use App\Http\Controllers\HCGA\AssetIncomingApprovalController as HCGAAssetIncomingApprovalController;
+use App\Http\Controllers\HCGA\AssetListController as HCGAAssetListController;
 
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
@@ -391,7 +392,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("/xml-credential-role-old", function () {
         return view('credential.xml.role');
     });
-    
+
     Route::post("/credential-role-detail-submit", function () {
         return view('credential.role-detail-submit');
     });
@@ -4594,11 +4595,17 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::delete("$masterData-container-delete", [MasterDataController::class, 'containerDelete']);
     Route::get("$masterData-container-create", [MasterDataController::class, 'containerCreate']);
 
+    // --- Master Config System ---
+    Route::get("$masterData-config-system", [MasterDataController::class, 'configSystemIndex']);
+    Route::get("$masterData-config-system-data", [MasterDataController::class, 'configSystemData']);
+    Route::post("$masterData-config-system-submit", [MasterDataController::class, 'configSystemSubmit']);
+
     /** finance */
     $finance = "finance";
     Route::get("$finance-pickup-cost", [CostManagementController::class, 'pickupCostIndex']);
     Route::post("$finance-cost-approve-route", [CostManagementController::class, "approvePickupCost"]);
     Route::get("$finance-pickup-route-detail", [UCOLogisticController::class, "getRouteDetail"]);
+
 
     Route::get("finance-settlement-cost", [UCOLogisticController::class, 'indexSettlement']);
     Route::get("finance-settlement-approval", [UCOLogisticController::class, "indexSettlementApproval"]);
@@ -5569,7 +5576,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcAssetMovingPref-create", [HCGAAssetMovingController::class, 'create']);
     Route::post("$hcAssetMovingPref-submit", [HCGAAssetMovingController::class, 'store']);
     Route::get("$hcAssetMovingPref-detail", [HCGAAssetMovingController::class, 'detail']);
-    
+
     $hcAssetMovingApprovalPref = "$hcAssetMovingPref-approval";
     Route::get("$hcAssetMovingApprovalPref-index", [HCGAAssetMovingApprovalController::class, 'index']);
     Route::get("$hcAssetMovingApprovalPref-data", [HCGAAssetMovingApprovalController::class, 'data']);
@@ -5582,4 +5589,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcAssetIncomingPref-create", [HCGAAssetIncomingController::class, 'create']);
     Route::post("$hcAssetIncomingPref-submit", [HCGAAssetIncomingController::class, 'store']);
     Route::get("$hcAssetIncomingPref-detail", [HCGAAssetIncomingController::class, 'detail']);
+
+    $hcAssetPref = "$hcPref-asset";
+    Route::post("$hcAssetPref-lists-new-from-po", [HCGAAssetListController::class, 'getDataFromPO']);
+    Route::post("$hcAssetPref-lists-new-get-wh", [HCGAAssetListController::class, 'getDataFromWH']);
 });

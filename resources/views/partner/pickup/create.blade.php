@@ -101,13 +101,20 @@
                         results: res.data.map(function(row) {
                             return {
                                 id: row.ID,
-                                text: row.Code + ' — ' + row.POO_Name + ' | Dibuat oleh: ' + (row.POO_Created_By_Name || '-')
+                                text: row.Code + ' — ' + row.POO_Name + ' | Dibuat oleh: ' + (row.POO_Created_By_Name || '-'),
+                                price: row.POO_Price
                             };
                         })
                     };
                 },
                 cache: true
             }
+        });
+
+        // Prefill Price based on the POO linked to the selected Work Order (Qty stays manual)
+        $('#WO_Number').on('select2:select', function(e) {
+            var data = e.params.data;
+            $('#Price').val(data.price != null && data.price !== '' ? data.price : '');
         });
 
         // Load sites from warehouse API

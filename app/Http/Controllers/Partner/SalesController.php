@@ -1747,7 +1747,7 @@ class SalesController extends Controller
             'management_fee' => ($calculatedWh['expense_details'][601][61007] ?? 0) + ($calculatedWh['expense_details'][601][61008] ?? 0),
             'company_royalty' => $calculatedWh['company_profit_share'] ?? ($calculatedWh['net_profit'] * 0.4),
             'mitra_royalty' => $calculatedWh['nominal_royalty'],
-            'company_total_profit' => $calculatedWh['gross_margin']
+            'company_total_profit' => $calculatedWh['company_profit_share'] ?? ($calculatedWh['net_profit'] * 0.4)
         ];
 
         return response()->json([

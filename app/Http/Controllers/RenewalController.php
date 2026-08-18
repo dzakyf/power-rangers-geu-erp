@@ -144,7 +144,7 @@ class RenewalController extends Controller
 
         $data = DB::table('opportunity_partner')->select('*')->where('ID', '=', $body['opportunity_id'])->first();
 
-        $partner_name = $data->register_as == "individual" ? $data->full_name : $data->company_full_name;
+        $partner_name = $data->register_as == "individual" ? $data->full_name : ($data->company_name ?? $data->company_official_name ?? $data->full_name);
 
         $ref_no = '43001/PTF/20262403';
 

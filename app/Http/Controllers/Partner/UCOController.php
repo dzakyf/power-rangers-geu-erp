@@ -645,6 +645,7 @@ class UCOController extends Controller
                 'wo.ID',
                 'wo.POO_Id',
                 'mp.Name as POO_Name',
+                'mp.Price as POO_Price',
                 'wo.Status',
                 'wo.Code',
                 DB::raw("DATE_FORMAT(wo.Work_Order_Date, '%Y-%m-%d') as Work_Order_Date"),

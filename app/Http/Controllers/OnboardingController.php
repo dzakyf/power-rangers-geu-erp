@@ -30,23 +30,38 @@ class OnboardingController extends Controller
         $doc = new TemplateProcessor($templatePath);
 
         $data = DB::table('opportunity_partner')->select('*')->where('ID', '=', $opportunityId)->first();
+        if (!$data) {
+            throw new \Exception('Partner not found');
+        }
 
-        $partner_name = $data->register_as == "individual" ? $data->full_name : $data->company_full_name;
+        $partner_name = $data->register_as == "individual" ? $data->full_name : ($data->company_name ?? $data->company_official_name ?? $data->full_name);
         $full_address = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
 
+        $hubType = in_array($data->package_option, ['option2', 'mobil'], true) ? 'Mobil' : ($data->package_option === 'option1' ? 'Booth' : '');
+
+        $highest   = DB::table('approval_request')->max('ID');
+        $mouNumber = $this->generatorService->generateApplicationCode($highest, 'MOU');
+
+        $config = function ($key) {
+            return (float) (DB::table('config_system')->where('Constraint', $key)->value('Value') ?? 0);
+        };
+        $money = function ($val) {
+            return number_format((float) $val, 0, ',', '.');
+        };
+
         $doc->setValues([
-            'mou_number' => '',
-            'hub_type' => '',
+            'mou_number'     => $mouNumber,
+            'hub_type'       => $hubType,
             'mitra_fullname' => $partner_name ?? '${contoh}',
             'partner_region' => $data->pi_city ?? '${contoh}',
-            'signed_at' => Carbon::now(),
-            'nama' => $data->pic ?? $partner_name,
-            'nik' => $data->ktp,
-            'NIK' => $data->ktp,
-            'full_address' => $full_address,
-            'downpayment' => 0,
-            'payment_phase2' => 0,
-            'repayment' => 0
+            'signed_at'      => Carbon::now()->locale('id')->translatedFormat('d F Y'),
+            'nama'           => $partner_name,
+            'nik'            => $data->ktp,
+            'NIK'            => $data->ktp,
+            'full_address'   => $full_address,
+            'downpayment'    => $money($config('ONBOARDING_DOWNPAYMENT')),
+            'payment_phase2' => $money($config('ONBOARDING_SECOND_PHASE_PAYMENT')),
+            'repayment'      => $money($config('ONBOARDING_THIRD_PHASE_PAYMENT')),
         ]);
 
         $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $body['signature']);
@@ -132,24 +147,35 @@ class OnboardingController extends Controller
         $doc = new TemplateProcessor($templatePath);
 
         $data = DB::table('opportunity_partner')->select('*')->where('ID', '=', $opportunityId)->first();
+        if (!$data) {
+            throw new \Exception('Partner not found');
+        }
 
-        $partner_name = $data->register_as == "individual" ? $data->full_name : $data->company_full_name;
+        $partner_name = $data->register_as == "individual" ? $data->full_name : ($data->company_name ?? $data->company_official_name ?? $data->full_name);
+        $signer_name  = $data->register_as === 'individual' ? $data->full_name : ($data->pic ?? $partner_name);
         $full_address = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
 
+        $config = function ($key) {
+            return (float) (DB::table('config_system')->where('Constraint', $key)->value('Value') ?? 0);
+        };
+        $money = function ($val) {
+            return number_format((float) $val, 0, ',', '.');
+        };
+
         $doc->setValues([
-            'partner_name' => $partner_name ?? '${contoh}',
-            'signed_at' => Carbon::Now(),
-            'partner_region' => $data->pi_city ?? '${contoh}',
-            'ktp' => $data->ktp,
-            'alamat' => $data->pic ?? $partner_name,
-            'pic_name' => $data->pic ?? $partner_name,
-            'npwp' => $data->npwp,
-            'membership_term' => 0,
-            'membership_fee' => 0,
-            'payment_phase2' => 0,
-            'warehouse_fee' => 0,
-            'inventory_fee' => 0,
-            'namapaket' => 0,
+            'partner_name'    => $partner_name ?? '${contoh}',
+            'signed_at'       => Carbon::now()->locale('id')->translatedFormat('d F Y'),
+            'partner_region'  => $data->pi_city ?? '${contoh}',
+            'ktp'             => $data->ktp,
+            'nama'            => $partner_name,
+            'alamat'          => $full_address,
+            'pic_name'        => $signer_name,
+            'npwp'            => $data->npwp,
+            'membership_term' => 4,
+            'membership_fee'  => $money($config('PKS_MEMBERSHIP_FEE')),
+            'warehouse_fee'   => $money($config('WAREHOUSE_FEE')),
+            'inventory_fee'   => $money($config('INVENTORY_FEE')),
+            'namapaket'       => $data->package_option ?? '',
         ]);
 
         $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $body['signature']);

@@ -44,6 +44,9 @@
 <link rel="stylesheet" type="text/css" href="{{ asset('blockui.css') }}" />
 <link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolautosuggest.css') }}" />
 <link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolfieldset.css') }}" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>.select2-container { width: 100% !important; display: inline-block !important; } .select2-container .selection, .select2-container .select2-selection, .select2-container .select2-selection--single { width: 100% !important; display: block !important; }</style>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
 
 
 @stack('rightmenu-script')

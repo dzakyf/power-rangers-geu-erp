@@ -122,10 +122,10 @@
     }
 
     function initTableGrid1() {
-        let tHeader = ['No.', 'Description', 'Detail', 'Ekonomis (Tahun)', 'Shelf Life', 'Harga Satuan']
-        let tWidth = ['50', '300', '300', '120', '100', '120']
-        let headerAttachment = ['#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter']
-        let colId = ['no', 'description', 'children', 'depreciation_year', 'shelf_life', 'price'].join(',')
+        let tHeader = ['No.', 'Description', 'Detail', 'Ekonomis (Tahun)', 'Waktu Pakai (Tahun)', 'Jenis Aset', 'Harga Satuan']
+        let tWidth = ['50', '300', '300', '120', '100', '120', '120']
+        let headerAttachment = ['#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter']
+        let colId = ['no', 'description', 'children', 'depreciation_year', 'shelf_life', 'asset_type', 'price'].join(',')
 
         Grid1 = new dhtmlXGridObject('MembershipGrid');
         Grid1.setImagePath("./dhtmlx/imgs/");
@@ -173,7 +173,10 @@
             alert('Pilih data terlebih dulu');
             return;
         }
-        $.get('master-facility-data', { format: 'json', id: selectedFacilityId }, function(res) {
+        $.get('master-facility-data', {
+            format: 'json',
+            id: selectedFacilityId
+        }, function(res) {
             var row = res.data && res.data[0];
             if (!row) {
                 alert('Data tidak ditemukan');
@@ -194,12 +197,16 @@
                     var parsed = JSON.parse(row.children);
                     children = Array.isArray(parsed) ? parsed : [String(parsed)];
                 } catch (e) {
-                    children = String(row.children).split(',').map(function(s) { return s.trim(); });
+                    children = String(row.children).split(',').map(function(s) {
+                        return s.trim();
+                    });
                 }
             }
             if (!children.length) children = [''];
             $('#editDetailList').empty();
-            children.forEach(function(c) { addEditDetailItem(c); });
+            children.forEach(function(c) {
+                addEditDetailItem(c);
+            });
             $('#Grid1Detail').show();
         }).fail(function() {
             alert('Gagal memuat data');
