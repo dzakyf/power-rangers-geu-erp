@@ -24,6 +24,15 @@ class ApprovalController extends Controller
         $this->userService = $s;
     }
 
+    private function partnerName($data)
+    {
+        if (($data->register_as ?? '') === 'individual') {
+            return $data->full_name;
+        }
+
+        return $data->company_name ?? $data->company_official_name ?? $data->full_name;
+    }
+
     public function index()
     {
         return view('approval.index');
@@ -89,24 +98,36 @@ class ApprovalController extends Controller
         $now = Carbon::now()->format('YmdHisv');
 
         $data = DB::table('opportunity_partner')->select('*')->where('ID', '=', $id)->first();
+        if (!$data) {
+            return response()->json(['error' => 'Partner not found'], 404);
+        }
 
-        $partner_name = $data->register_as == "individual" ? $data->full_name : $data->company_full_name;
-        $full_address = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
+        $partnerName = $this->partnerName($data);
+        $signerName  = $data->register_as === 'individual' ? $data->full_name : ($data->pic ?? $partnerName);
+        $fullAddress = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
+
+        $config = function ($key) {
+            return (float) (DB::table('config_system')->where('Constraint', $key)->value('Value') ?? 0);
+        };
+        $money = function ($val) {
+            return number_format((float) $val, 0, ',', '.');
+        };
 
         $doc->setValues([
-            'partner_name' => $partner_name ?? '${contoh}',
-            'signed_at' => Carbon::Now(),
-            'partner_region' => $data->pi_city ?? '${contoh}',
-            'ktp' => $data->ktp,
-            'alamat' => $data->pic ?? $partner_name,
-            'pic_name' => $data->pic ?? $partner_name,
-            'npwp' => $data->npwp,
-            'membership_term' => 0,
-            'membership_fee' => 0,
-            'payment_phase2' => 0,
-            'warehouse_fee' => 0,
-            'inventory_fee' => 0,
-            'namapaket' => 0,
+            'partner_name'    => $partnerName ?? '${contoh}',
+            'signed_at'       => Carbon::now()->locale('id')->translatedFormat('d F Y'),
+            'partner_region'  => $data->pi_city ?? '${contoh}',
+            'ktp'             => $data->ktp,
+            'nama'            => $partnerName,
+            'alamat'          => $fullAddress,
+            'pic_name'        => $signerName,
+            'npwp'            => $data->npwp,
+            'membership_term' => 4,
+            'membership_fee'  => $money($config('PKS_MEMBERSHIP_FEE')),
+            'warehouse_fee'   => $money($config('WAREHOUSE_FEE')),
+            'inventory_fee'   => $money($config('INVENTORY_FEE')),
+            'namapaket'       => $data->package_option ?? '',
+            'mitra_signature' => str_repeat('.', 40),
         ]);
 
         if (!file_exists($path)) {
@@ -120,9 +141,6 @@ class ApprovalController extends Controller
         return response()->download($outputPath)->deleteFileAfterSend(true);
     }
 
-    /** TODO :
-     * tamhain downpayment, payment thapa 2, pelunasan, generate mou number
-     */
     public function generateMOU(Request $req)
     {
         $id = $req->query('id');
@@ -131,25 +149,40 @@ class ApprovalController extends Controller
         $now = Carbon::now()->format('YmdHisv');
 
         $data = DB::table('opportunity_partner')->select('*')->where('ID', '=', $id)->first();
+        if (!$data) {
+            return response()->json(['error' => 'Partner not found'], 404);
+        }
 
-        $partner_name = $data->register_as == "individual" ? $data->full_name : $data->company_full_name;
-        $full_address = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
+        $partnerName = $this->partnerName($data);
+        $fullAddress = "$data->address, $data->pi_rt, $data->pi_rw, $data->pi_ward, $data->pi_subdistrict, $data->pi_city, $data->pi_province, $data->pi_postal_code";
+
+        $hubType = in_array($data->package_option, ['option2', 'mobil'], true) ? 'Mobil' : ($data->package_option === 'option1' ? 'Booth' : '');
+
+        $highest   = DB::table('approval_request')->max('ID');
+        $mouNumber = $this->generatorService->generateApplicationCode($highest, 'MOU');
+
+        $config = function ($key) {
+            return (float) (DB::table('config_system')->where('Constraint', $key)->value('Value') ?? 0);
+        };
+        $money = function ($val) {
+            return number_format((float) $val, 0, ',', '.');
+        };
 
         $doc->setValues([
-            'mou_number' => '',
-            'hub_type' => '',
-            'mitra_fullname' => $partner_name ?? '${contoh}',
-            'partner_region' => $data->pi_city ?? '${contoh}',
-            'signed_at' => Carbon::now(),
-            'nama' => $data->pic ?? $partner_name,
-            'nik' => $data->ktp,
-            'NIK' => $data->ktp,
-            'full_address' => $full_address,
-            'downpayment' => 0,
-            'payment_phase2' => 0,
-            'repayment' => 0
+            'mou_number'      => $mouNumber,
+            'hub_type'        => $hubType,
+            'mitra_fullname'  => $partnerName ?? '${contoh}',
+            'partner_region'  => $data->pi_city ?? '${contoh}',
+            'signed_at'       => Carbon::now()->locale('id')->translatedFormat('d F Y'),
+            'nama'            => $partnerName,
+            'nik'             => $data->ktp,
+            'NIK'             => $data->ktp,
+            'full_address'    => $fullAddress,
+            'downpayment'     => $money($config('ONBOARDING_DOWNPAYMENT')),
+            'payment_phase2'  => $money($config('ONBOARDING_SECOND_PHASE_PAYMENT')),
+            'repayment'       => $money($config('ONBOARDING_THIRD_PHASE_PAYMENT')),
+            'mitra_signature' => str_repeat('.', 40),
         ]);
-
 
         if (!file_exists($path)) {
             return response()->json(['error' => 'File not found'], 404);

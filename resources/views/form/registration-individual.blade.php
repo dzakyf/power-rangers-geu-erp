@@ -622,5 +622,15 @@
                          </div>
                      </div>
                  </div>
+                 <div class="row mt-3">
+                     <div class="col-md-6">
+                         <label for="NIK">Nomor Induk Kependudukan (NIK)</label>
+                         <input type="text" class="form-control" id="NIK" name="NIK" placeholder="Nomor KTP" maxlength="16" />
+                     </div>
+                     <div class="col-md-6">
+                         <label for="NPWP">NPWP</label>
+                         <input type="text" class="form-control" id="NPWP" name="NPWP" placeholder="Nomor NPWP" />
+                     </div>
+                 </div>
              </div>
          </div>

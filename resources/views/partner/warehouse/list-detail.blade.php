@@ -3,25 +3,25 @@
 	<div class="card-body">
 		<h5>Partner Warehouse</h5>
 		<div class="row" id="ContentPages">
-            <div class="col-md-6">
-                <label for="Warehouse_Location">Warehouse Location</label>
+			<div class="col-md-6">
+				<label for="Warehouse_Location">Warehouse Location</label>
 				<input type="hidden" value="{{ $wh->warehouse_task_id }}" name="warehouse_task_id" id="warehouse_task_id">
 				<input type="hidden" value="{{ $wh->id }}" name="id" id="id">
-                <select name="Warehouse_Location" id="Warehouse_Location" class="form-control">
-                    <option value="">-- Pilih Lokasi --</option>
-                    @foreach ($kotakab as $item)
-                        <option value="{{ $item->City }}"{{ $item->City == $wh->warehouse_location ? ' selected' : '' }}>{{ $item->City }}</option>
-                    @endforeach
-                </select>
-            </div>
+				<select name="Warehouse_Location" id="Warehouse_Location" class="form-control">
+					<option value="">-- Pilih Lokasi --</option>
+					@foreach ($kotakab as $item)
+					<option value="{{ $item->City }}" {{ $item->City == $wh->warehouse_location ? ' selected' : '' }}>{{ $item->City }}</option>
+					@endforeach
+				</select>
+			</div>
 			<div class="col-md-6">
 				<label for="Partner_Name">Mitra</label>
-                <select name="Partner_Name" id="Partner_Name" class="form-control">
-                    <option value="">-- Pilih Mitra --</option>
-                    @foreach ($partner as $item)
-                        <option value="{{ $item->lead_id }}"{{ $item->lead_id == $wh->partner_task_id ? ' selected' : '' }}>{{$item->full_name}}</option>
-                    @endforeach
-                </select>
+				<select name="Partner_Name" id="Partner_Name" class="form-control">
+					<option value="">-- Pilih Mitra --</option>
+					@foreach ($partner as $item)
+					<option value="{{ $item->lead_id }}" {{ $item->lead_id == $wh->partner_task_id ? ' selected' : '' }}>{{$item->full_name}}</option>
+					@endforeach
+				</select>
 			</div>
 			<div class="col-md-6">
 				<label for="warehouse_name">Warehouse Name</label>
@@ -168,12 +168,13 @@
 		LoadM('divlistOpportunityDetail', 'partner-warehouse-list-detail-new?Task={{ $_GET["Task"] }}');
 		return true;
 	}
+
 	function WarehouseListDetailKlik() {
 
 		WarehouseListDetailID = WarehouseListDetail.getSelectedId();
 		if (WarehouseListDetailID != null) {
 			LoadM('divlistOpportunityDetail', 'partner-warehouse-list-detail-detail?Task=' + WarehouseListDetailID);
-		}else {
+		} else {
 			alert("Pilih baris data");
 		}
 		return true;
@@ -188,7 +189,7 @@
 	WarehouseListDetail.setColTypes("ro,ro,ro,ro,ro,ro");
 	WarehouseListDetail.attachFooter("Total,#cspan,#cspan,#stat_total,#stat_total,#cspan");
 	WarehouseListDetail.enableSmartRendering(true, 150);
-		// WarehouseListDetail.attachEvent("onRowDblClicked", WarehouseListDetailKlik);
+	// WarehouseListDetail.attachEvent("onRowDblClicked", WarehouseListDetailKlik);
 	WarehouseListDetail.setSkin("dhx_skyblue");
 	WarehouseListDetail.init();
 	refreshdataDetail();
@@ -198,7 +199,6 @@
 
 	}
 
-<script>
 	var selectedContainerId = null;
 
 	function initContainerGrid() {
@@ -228,10 +228,19 @@
 	}
 
 	function editContainer() {
-		if (!selectedContainerId) { alert('Pilih data terlebih dahulu'); return; }
-		$.get('master-container-data', { format: 'json', id: selectedContainerId }, function(res) {
+		if (!selectedContainerId) {
+			alert('Pilih data terlebih dahulu');
+			return;
+		}
+		$.get('master-container-data', {
+			format: 'json',
+			id: selectedContainerId
+		}, function(res) {
 			var d = res.data && res.data[0];
-			if (!d) { alert('Data tidak ditemukan'); return; }
+			if (!d) {
+				alert('Data tidak ditemukan');
+				return;
+			}
 			$('#ContainerFormTitle').text('Edit Container');
 			$('#container_id').val(d.ID);
 			$('#container_Name').val(d.Name);
@@ -243,12 +252,18 @@
 	}
 
 	function deleteContainer() {
-		if (!selectedContainerId) { alert('Pilih data terlebih dahulu'); return; }
+		if (!selectedContainerId) {
+			alert('Pilih data terlebih dahulu');
+			return;
+		}
 		if (!confirm('Yakin ingin menghapus container ini?')) return;
 		$.ajax({
 			url: 'master-container-delete',
 			type: 'DELETE',
-			data: { _token: '{{ csrf_token() }}', id: selectedContainerId },
+			data: {
+				_token: '{{ csrf_token() }}',
+				id: selectedContainerId
+			},
 			success: function(res) {
 				if (res.success) {
 					alert('Data berhasil dihapus');
@@ -261,7 +276,10 @@
 
 	$('#SubmitContainer').on('click', function() {
 		var form = document.getElementById('ContainerForm');
-		if (!form.checkValidity()) { form.reportValidity(); return; }
+		if (!form.checkValidity()) {
+			form.reportValidity();
+			return;
+		}
 		var id = $('#container_id').val();
 		var fd = new FormData(form);
 		fd.append('_token', '{{ csrf_token() }}');

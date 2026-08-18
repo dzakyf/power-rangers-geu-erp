@@ -1351,7 +1351,12 @@ class ProfitSharingController extends Controller
                 $dateEnd
             );
 
-            $managementfee = (isset($stmt['expense_details'][601][61007]) ? $stmt['expense_details'][601][61007] : 0) + (isset($stmt['expense_details'][601][61008]) ? $stmt['expense_details'][601][61008] : 0);
+            if ($priv == "MITRA") {
+                $managementfee = (isset($stmt['expense_details'][601][61007]) ? $stmt['expense_details'][601][61007] : 0) + (isset($stmt['expense_details'][601][61008]) ? $stmt['expense_details'][601][61008] : 0);
+            }else {
+                $managementfee = (isset($stmt['expense_details'][601][61007]) ? $stmt['expense_details'][601][61007] : 0);
+            }
+
             $bagiHasilMitra = isset($stmt['nominal_royalty']) ? $stmt['nominal_royalty'] : 0;
             $bagiHasilPerusahaan = isset($stmt['company_profit_share']) ? $stmt['company_profit_share'] : ($stmt['net_profit'] * 0.4);
 

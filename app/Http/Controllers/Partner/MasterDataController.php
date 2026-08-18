@@ -906,6 +906,65 @@ class MasterDataController extends Controller
     }
 
 
+    public function configSystemIndex()
+    {
+        return view('credential.settings.index');
+    }
+
+    public function configSystemData(Request $r)
+    {
+        $data = DB::table('config_system')
+            ->select('ID', 'Constraint', 'Value')
+            ->orderBy('ID')
+            ->get();
+
+        return response()->json(['status' => 'success', 'data' => $data]);
+    }
+
+    public function configSystemSubmit(Request $r)
+    {
+        $configs = $r->input('configs', []);
+
+        $errors = [];
+        foreach ($configs as $cfg) {
+            $id    = $cfg['id'] ?? null;
+            $value = $cfg['value'] ?? null;
+
+            if (!$id) {
+                $errors[] = 'ID wajib diisi';
+                continue;
+            }
+            if ($value === '' || $value === null || !is_numeric($value)) {
+                $errors[] = "Value untuk ID $id harus berupa angka";
+                continue;
+            }
+        }
+
+        if ($errors) {
+            return response()->json(['status' => 'error', 'message' => implode('; ', $errors)], 422);
+        }
+
+        DB::transaction(function () use ($configs) {
+            foreach ($configs as $cfg) {
+                $id    = $cfg['id'] ?? null;
+                $value = $cfg['value'] ?? null;
+                if (!$id || $value === '' || $value === null || !is_numeric($value)) {
+                    continue;
+                }
+
+                $updated = DB::table('config_system')
+                    ->where('ID', $id)
+                    ->update(['Value' => $value]);
+
+                if ($updated === 0 && !DB::table('config_system')->where('ID', $id)->exists()) {
+                    throw new \Exception("Konfigurasi ID $id tidak ditemukan");
+                }
+            }
+        });
+
+        return response()->json(['status' => 'success', 'message' => 'Konfigurasi berhasil disimpan']);
+    }
+
     private function parseLat(string $coordinate): ?string
     {
         if (!preg_match("/^\\-?\\d+(?:\\.\\d+)?,\\-?\\d+(?:\\.\\d+)?$/", $coordinate)) {

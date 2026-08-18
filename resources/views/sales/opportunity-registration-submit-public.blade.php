@@ -74,6 +74,12 @@ try {
     $data['source_channels'] = request()->input('Source') ?? null;
     $data['pic'] = request()->input('PIC');
 
+    // Individual NIK / NPWP (individual only; company keeps Company_Tax_ID)
+    if ($data['register_as'] === 'individual') {
+        $data['ktp']  = request()->input('NIK');
+        $data['npwp'] = request()->input('NPWP');
+    }
+
     // Employment
     $data['employment_status'] = request()->input('Employment_Status');
     $data['company_name'] = request()->input('Company_Name');

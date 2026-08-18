@@ -54,13 +54,13 @@ class WarehouseController extends Controller
             echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id] ?? "") . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_name) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
             echo "<cell>" . htmlspecialchars($usaddress[$Fetch->partner_task_id] ?? '') . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->capacity) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By] ?? "") . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -165,19 +165,7 @@ class WarehouseController extends Controller
             $rows[] = ['date' => $r->request_date, 'type' => 'Outstock', 'qty_in' => 0, 'qty_out' => $r->request_qty, 'reference' => $r->reference, 'details' => $r->remark ?? ''];
         }
 
-        // 3. Outstock Loading (new outstock)
-        $outstockData = DB::table('outstock_loading')
-            ->join('outstock', 'outstock_loading.Outstock_ID', '=', 'outstock.ID')
-            ->join('outstock_warehouses', 'outstock.ID', '=', 'outstock_warehouses.Outstock_ID')
-            ->where('outstock_warehouses.Warehouse_ID', $whId)
-            ->select('outstock_loading.Date', 'outstock.Code', 'outstock_loading.Actual_Qty', 'outstock_loading.Notes')
-            ->get();
-
-        foreach ($outstockData as $o) {
-            $rows[] = ['date' => $o->Date, 'type' => 'OUTSTOCK', 'qty_in' => 0, 'qty_out' => $o->Actual_Qty, 'reference' => $o->Code, 'details' => $o->Notes ?? ''];
-        }
-
-        // 4. Stock Opname
+        // 3. Stock Opname
         foreach (WarehouseStockOpname::where('Warehouse_ID', $whId)->get() as $op) {
             $rows[] = ['date' => $op->Opname_Date, 'type' => 'OPNAME', 'qty_in' => $op->Physical_Qty, 'qty_out' => 0, 'reference' => $op->Opname_Number, 'details' => 'System: ' . $op->System_Qty . ' | Diff: ' . $op->Difference];
         }
@@ -296,7 +284,7 @@ class WarehouseController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->partner_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By] ?? "") . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -350,7 +338,7 @@ class WarehouseController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->total) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->rejected_qty) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->attachment) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By] ?? "") . "</cell>";
             echo "</row>";
 
             $nomor++;

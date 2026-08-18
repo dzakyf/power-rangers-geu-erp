@@ -9,6 +9,9 @@ class DatabaseSeeder extends Seeder
         $this->call(MenuListsSeeder::class);
         $this->call(RbacSeeder::class);
         $this->call(MasterBankSeeder::class);
+        $this->call(ApprovalLevelSeeder::class);
+        $this->call(ApprovalDemoDataSeeder::class);
+        $this->call(ConfigSystemSeeder::class);
 
         DB::table('users')->insert([
             'username' => "nirone",

@@ -25,15 +25,18 @@ use Illuminate\Database\Eloquent\Builder;
             </li>
         </ol>
     </div> 
-   
-	<div id="DATAASSETS" style="width:auto;height:350px; background-color:white;overflow:hidden"></div>
-		<div>
-		<input type="button" id="ekselDATAASSETSDet" value="Export Excel" onclick="DATAASSETS.toExcel('./export/generate.php');"  />
-		<input type="button" id="DATAASSETS_Refresh" value="Refresh Data" onclick="DATAASSETSRefresh();"  />
-		<input type="button" id="dxdata" value="New Data" onclick="NEWDATA();"  />
-		<input type="button" id="DATAASSETS_Refresh" value="Detail Data" onclick="DATAASSETSDBL();"  />
+	<div class="card">
+		<div class="card-body">
+			<div id="DATAASSETS" style="width:auto;height:350px; background-color:white;overflow:hidden"></div>
+			<div>
+				<input type="button" id="ekselDATAASSETSDet" class="btn btn-warning mr-2 mt-2" value="Export Excel" onclick="DATAASSETS.toExcel('./export/generate.php');"  />
+				<input type="button" id="DATAASSETS_Refresh" class="btn btn-info mr-2 mt-2" value="Refresh Data" onclick="DATAASSETSRefresh();"  />
+				<input type="button" id="dxdata" class="btn btn-primary mr-2 mt-2" value="New Data" onclick="NEWDATA();"  />
+				<input type="button" id="DATAASSETS_Refresh" class="btn btn-secondary mr-2 mt-2" value="Detail Data" onclick="DATAASSETSDBL();"  />
+			</div>
 		</div>
-		<div id="DATAASSETSDTL"></div>
+	</div>
+	<div id="DATAASSETSDTL"></div>
 	
 <script>
 
