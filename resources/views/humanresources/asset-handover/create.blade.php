@@ -1,7 +1,10 @@
 <div class="mt-3">
     <div class="card">
         <div class="card-header my-2 ml-2">
-            <h6>Form Procurement</h6>
+            <h6 class="d-inline-block">Form Handover</h6>
+			<span class="float-right">
+				<input type="button" id="CloseAssetHandoverDetail" class="btn btn-secondary mr-2 py-2 px-3 my-2" NAME="CloseAssetHandoverDetail" value="Close" onclick="$('#AssetHandoverDiv').html('')" />
+			</span>
         </div>
         <div class="card-body">
             <!-- Stats Card -->
@@ -30,12 +33,12 @@
                         </div>
                         <div class="FormInput_left">
             
-                            User
+                            User Create
             
                         </div>
                         <div class="FormInput_right">
             
-                            <input type="text" id="User" size="15" value="<?php echo $NIK ?>" readonly="readonly" /> &nbsp;&nbsp;
+                            <input type="text" id="User_NIK" size="15" value="<?php echo $NIK ?>" readonly="readonly" /> &nbsp;&nbsp;
                             <input type="text" id="User_Name" size="40" value="<?php echo $Saya ?>" readonly="readonly" />
             
                         </div>
@@ -49,19 +52,20 @@
                         </div>
                         <div class="FormInput_right">
             
-                            <input type="text" id="PIC" size="40" value="" required/> <i>(Penerima Barang)</i>
+                            <input type="text" id="PIC_Name" size="40" value="" required/> <input type="hidden" id="PIC_NIK" value=""/><i>(Penerima Barang)</i>
+                            
             
                         </div>
             
             
                         <div class="FormInput_left" style="height:60px;">
             
-                            PIC Address
+                            PIC Department
             
                         </div>
                         <div class="FormInput_right" style="height:60px;">
             
-                            <textarea id="PIC_Address" rows="2" cols="55" required></textarea>
+							<input type="text" id="PIC_Department" required size="25" value="" />
             
             
                         </div>
@@ -76,42 +80,6 @@
             
             
                         </div>
-            
-            
-            
-                        <div class="FormInput_left">
-            
-                            Dept. (Budgeting)
-            
-                        </div>
-                        <div class="FormInput_right">
-            
-            
-                            <select id="Department" class="" style="width:250px;">
-                                <?php
-                                foreach ($Department as $Data) {
-                                    echo "<option value='$Data->Initial'>$Data->Department - $Data->Initial_Code - $Data->Initial</option>";
-                                }
-                                ?>
-                            </select>
-            
-                        </div>
-            
-            
-                        <div class="FormInput_left">
-            
-                            Category
-            
-                        </div>
-                        <div class="FormInput_right">
-            
-                            <select id="Category">
-                                <option value="">Select</option>
-                                <option>ASSET</option>
-                                <option>NON ASSET</option>
-                            </select>
-            
-                        </div>
                         <div class="FormInput_left">
             
                             References/FPB (Manual)
@@ -124,40 +92,18 @@
                         </div>
                         <div class="FormInput_left">
             
-                            Priority
-            
-                        </div>
-                        <div class="FormInput_right">
-            
-							<select name="Priority_Status" id="Priority_Status" required>
-								<option>NORMAL</option>
-								<option>URGENT</option>
-							</select>
-                        </div>
-                        <div class="FormInput_left">
-            
-                            Estimated Budget
-            
-                        </div>
-                        <div class="FormInput_right">
-            
-                            <input type="text" id="Estimated_Budget" size="10" value="0" required/>
-            
-                        </div>
-                        <div class="FormInput_left">
-            
-                            Specification
+                            Remark
             
                         </div>
                         <div class="FormInput_right" style="height:80px;">
                             <textarea id="Remark" cols="100" rows="2" required></textarea>
             
                         </div>
-                        <div id="gridPRDetail" style="width:auto;height:200px; background-color:white;overflow:hidden"></div>
+                        <div id="gridAssetHandoverDetail" style="width:auto;height:200px; background-color:white;overflow:hidden"></div>
                         <div id="divtom">
-                            <input type="button" id="AddPRDetail" class="btn btn-info mt-2 mr-2" NAME="AddPRDetail" value="Add New" />
-                            <input type="button" id="DelPRDetail" class="btn btn-danger mt-2 mr-2" NAME="DelPRDetail" value="Delete" />
-                            <input type="submit" id="SubmitPRDetail" class="btn btn-success mt-2 mr-2" NAME="SubmitPRDetail" value="Submit" />
+                            <input type="button" id="AddAssetHandoverDetail" class="btn btn-info mt-2 mr-2" NAME="AddAssetHandoverDetail" value="Add New" />
+                            <input type="button" id="DelAssetHandoverDetail" class="btn btn-danger mt-2 mr-2" NAME="DelAssetHandoverDetail" value="Delete" />
+                            <input type="submit" id="SubmitAssetHandoverDetail" class="btn btn-success mt-2 mr-2" NAME="SubmitAssetHandoverDetail" value="Submit" />
                         </div>
                         <div id="WinCOA"></div>
                     </div>
@@ -171,19 +117,19 @@
 <script src="{{ asset('jquery.coolautosuggest.js') }}"></script>
 <script src="{{ asset('jquery.coolfieldset.js') }}"></script>
 	<script>
-		$("#Supplier_ID").coolautosuggest({
-
-			url: "search-supplier?Procode=1&chars=",
+		$("#PIC_Name").coolautosuggest({
+			url: "finance-ap-search-employee?chars=",
 			showThumbnail: false,
 			showDescription: true,
-			idField: $("#Supplier_ID"),
-			width: 700,
+			idField: $("#PIC_Name"),
+			width: 500,
 			minChars: 1,
 			onSelected: function(result) {
 				if (result != null) {
-					$("#Supplier_ID").val(result.id);
-					$("#Supplier_Name").val(result.data);
-
+					$("#PIC_Name").val(result.data);
+					$("#PIC_NIK").val(result.id);
+					$("#PIC_Department").val(result.thumbnail);
+					$("#PIC_Phone").val(result.phone);
 
 				}
 			}
@@ -222,116 +168,104 @@
 		}
 
 
-		PRDetail = new dhtmlXGridObject('gridPRDetail');
-		PRDetail.setImagePath("dhtmlx/imgs/");
-		PRDetail.setHeader("No,Purchase Type,Product Code,Product Desc,Qty,Specification,Measurement,Note,Category,SubCat,Price@unit, Total Price");
-		PRDetail.setInitWidths("50,100,100,100,200,200,100,200,100,100,100,100");
-		PRDetail.setColTypes("ro,ro,ro,ro,edn,ed,ed,ed,ro,ro,edn,ron");
-		PRDetail.setColAlign("center,left,center,left,right,left,center,center,center,center,right,right");
-		PRDetail.setColSorting("int,str,str,str,str,str,str,str");
-		PRDetail.setEditable(true);
-		PRDetail.setNumberFormat("0,000.00", 4, ".", ",");
-		PRDetail.setNumberFormat("0,000.00", 10, ".", ",");
-		PRDetail.setNumberFormat("0,000.00", 11, ".", ",");
-		PRDetail.enableKeyboardSupport(true);
-		PRDetail.setSkin("dhx_skyblue");
-		PRDetail.attachEvent("onRowDblClicked", loadPrProduct);
-		PRDetail.enableMultiline(true);
-		PPRDetail = new dataProcessor("hrd-procurement-new-update");
-		PPRDetail.setTransactionMode({
+		AssetHandoverDetail = new dhtmlXGridObject('gridAssetHandoverDetail');
+		AssetHandoverDetail.setImagePath("dhtmlx/imgs/");
+		AssetHandoverDetail.setHeader("No,Purchase Type,Product Code,Product Desc,Qty,Product Brand, Product Type,Specification,Condition,Measurement,Note,Category,SubCat,Price@unit, Total Price,Received Date");
+		AssetHandoverDetail.setInitWidths("50,100,100,100,200,200,200,200,200,100,200,100,100,0,0,100");
+		AssetHandoverDetail.setColTypes("ro,ro,ro,ro,edn,ed,ed,ed,ed,ed,ed,ro,ro,edn,ron,dhxCalendar");
+		AssetHandoverDetail.setColAlign("center,left,center,left,right,left,center,left,left,center,center,center,center,right,right,center");
+		AssetHandoverDetail.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str");
+		AssetHandoverDetail.setEditable(true);
+		AssetHandoverDetail.setNumberFormat("0,000.00", 4, ".", ",");
+		AssetHandoverDetail.setNumberFormat("0,000.00", 13, ".", ",");
+		AssetHandoverDetail.setNumberFormat("0,000.00", 14, ".", ",");
+		AssetHandoverDetail.setDateFormat("%Y-%m-%d");
+		AssetHandoverDetail.enableKeyboardSupport(true);
+		AssetHandoverDetail.setColumnHidden(13, true)
+		AssetHandoverDetail.setColumnHidden(14, true)
+		AssetHandoverDetail.setSkin("dhx_skyblue");
+		AssetHandoverDetail.attachEvent("onRowDblClicked", loadPrProduct);
+		AssetHandoverDetail.enableMultiline(true);
+		PAssetHandoverDetail = new dataProcessor("hrd-asset-handover-new-update");
+		PAssetHandoverDetail.setTransactionMode({
 			mode: "POST",
 			total: true,
 			headers: {
 				'X-CSRF-TOKEN': "{{ csrf_token() }}"
 			},
 			payload: {
-				"PR_No": "<?php echo $PR_No;  ?>"
+				"Handover_No": "<?php echo $Handover_No;  ?>"
 			}
 
 
 		})
-		PPRDetail.setUpdateMode("Off");
-		PPRDetail.init(PRDetail);
-		PRDetail.init();
-		PRDetail.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
+		PAssetHandoverDetail.setUpdateMode("Off");
+		PAssetHandoverDetail.init(AssetHandoverDetail);
+		AssetHandoverDetail.init();
+		AssetHandoverDetail.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
 			if(stage == 2){
 
-				if(cInd == 4 || cInd == 10){
-					let qty = Number(PRDetail.cells(rId,4).getValue());
-					let price = Number(PRDetail.cells(rId,10).getValue());
+				if(cInd == 4 || cInd == 13){
+					let qty = Number(AssetHandoverDetail.cells(rId,4).getValue());
+					let price = Number(AssetHandoverDetail.cells(rId,13).getValue());
 					if (qty == '' || price == '') {
-						PRDetail.cells(rId, 11).setValue('');
+						AssetHandoverDetail.cells(rId, 14).setValue('');
 						return true;
 					}
 
-					PRDetail.cells(rId, 11).setValue(qty * price);
+					AssetHandoverDetail.cells(rId, 14).setValue(qty * price);
 				}
 			}
 
 			return true;
 		});
+		var SHPREVDAY_Cal;
+		SHPREVDAY_Cal = new dhtmlXCalendarObject(["Handover_Date"]);
+		SHPREVDAY_Cal.setDateFormat("%Y-%m-%d");
 
-		$("#AddPRDetail").click(function() {
-            let ids = PRDetail.uid();
-            PRDetail.addRow(ids, [PRDetail.getRowsNum() + 1, '','','','','','','','','','']);
-            PRDetail.selectRowById(ids);
-            loadPR_Product('Product Lists', 'hrd-procurement-product', 1024, 450);
+		$("#AddAssetHandoverDetail").click(function() {
+            let ids = AssetHandoverDetail.uid();
+            AssetHandoverDetail.addRow(ids, [AssetHandoverDetail.getRowsNum() + 1, '','','','','','','','','','']);
+            AssetHandoverDetail.selectRowById(ids);
+            loadPR_Product('Product Lists', 'hrd-asset-handover-product', 1024, 450);
 
 		})
 
         function loadPrProduct(rId, cInd, event) {
             if(cInd == 2 || cInd == 3)
-                loadPR_Product('Product Lists', 'hrd-procurement-product', 1024, 450);
+                loadPR_Product('Product Lists', 'hrd-asset-handover-product', 1024, 450);
             return true;
         }
-		$("#DelPRDetail").click(function() {
+		$("#DelAssetHandoverDetail").click(function() {
 
-			PRDetail.deleteSelectedRows();
+			AssetHandoverDetail.deleteSelectedRows();
 
 		})
 
 
-		$("#SubmitPRDetail").click(function() {
-			var count = PRDetail.getRowsNum();
+		$("#SubmitAssetHandoverDetail").click(function() {
+			var count = AssetHandoverDetail.getRowsNum();
 			if (count == 0) {
 				alert('Masukkan Item Request Terlebih Dahulu! ');
 				return false;
 			} else {
 				Reference = $("#Reference").val();
 				Remark = $("#Remark").val();
-				Department = $("#Department").val();
-				User = $("#User").val();
-				Date_Request = $("#Date_Request").val();
-				PR_No = $("#PR_No").val();
-				Category = $("#Category").val();
-				Sub_Category = $("#Sub_Category").val();
-				Sub_Category2 = $("#Purchase_Type").val();
-				PIC = $("#PIC").val();
-				PIC_Phone = $("#PIC_Phone").val();
-				PIC_Address = $("#PIC_Address").val();
+				Handover_Date = $("#Handover_Date").val();
+				Handover_No = $("#Handover_No").val();
+				PIC_NIK = $("#PIC_NIK").val();
+				PIC_Department = $("#PIC_Department").val();
 				Estimated_Budget = $("#Estimated_Budget").val();
 				
-				if (PIC == '') {
-					alert("Kolom Penerima Barang (PIC to Receive) Harus Diisi!");
+				if (PIC_NIK == '') {
+					alert("Kolom Penerima Barang (PIC to Receive) Harus Diisi sesuai Dropdown yang muncul!");
 					$("#PIC").focus();
 					return false;
-				} else if (PIC_Address == '') {
-					alert("Kolom alamat PIC (PIC Address) Harus Diisi!");
-					$("#PIC_Address").focus();
-					return false;
-				} else if (PIC_Address.length < 3) {
-					alert("Kolom alamat PIC (PIC Address) Minimal 3 Karakter!");
-					$("#PIC_Address").focus();
-					return false;
-				} else if (PIC_Phone == '') {
-					alert("Kolom nomor telepon (PIC Phone) Harus Diisi!");
+				}else if (PIC_Department == '') {
+					alert("Kolom Department (PIC Department) Harus Diisi!");
 					$("#PIC_Phone").focus();
 					return false;
-				} else if (Estimated_Budget == '') {
-					alert("Kolom Estimated_Budget Harus Diisi!");
-					$("#Estimated_Budget").focus();
-					return false;
-				} else if (Remark == '') {
+				}else if (Remark == '') {
 					alert("Kolom catatan (Specification) Harus Diisi!");
 					$("#Remark").focus();
 					return false;
@@ -340,31 +274,22 @@
 					$("#Remark").focus();
 					return false;
 				} else {
-					PPRDetail.sendData();
-
-					var sip = 1;
-					for (var i = 0; i < PRDetail.getRowsNum(); i++) {
-						PurchaseType = PRDetail.cells2(i, 1).getValue();
-						if (PurchaseType == Sub_Category2) {
-							sip *= 1;
-						} else {
-							sip *= 0;
-						}
-					}
+					PAssetHandoverDetail.sendData();
 					$.blockUI();
 
 					dapat = getAllValues();
+					
 					$.ajax({
 						headers: {
 							'X-CSRF-TOKEN': "{{ csrf_token() }}"
 						},
 
-						url: "hrd-procurement-new-submit?_token={{ csrf_token() }}",
+						url: "hrd-asset-handover-new-submit?_token={{ csrf_token() }}",
 						type: "POST",
 						data: dapat,
 						success: function(data, textStatus, jqXHR) {
-							if (data == 'success') {
-								alert('Purchase Request Submitted with no  <?php echo $PR_No ?>!');
+							if (data.status == 'success') {
+								alert('Form Handover Submitted with no  <?php echo $Handover_No ?>!');
 
 								setTimeout(function() {
 									$.unblockUI();

@@ -51,6 +51,12 @@ use App\Http\Controllers\HCGA\AssetMovingApprovalController as HCGAAssetMovingAp
 use App\Http\Controllers\HCGA\AssetIncomingController as HCGAAssetIncomingController;
 use App\Http\Controllers\HCGA\AssetIncomingApprovalController as HCGAAssetIncomingApprovalController;
 use App\Http\Controllers\HCGA\AssetListController as HCGAAssetListController;
+use App\Http\Controllers\HCGA\AssetHandoverController as HCGAAssetHandoverController;
+use App\Http\Controllers\HCGA\AssetHandoverApprovalController as HCGAAssetHandoverApprovalController;
+use App\Http\Controllers\HCGA\AssetHandoverReturnedController as HCGAAssetHandoverReturnedController;
+use App\Http\Controllers\HCGA\AssetHandoverReturnedApprovalController as HCGAAssetHandoverReturnedApprovalController;
+use App\Http\Controllers\HCGA\AssetDispossalController as HCGAAssetDispossalController;
+use App\Http\Controllers\HCGA\AssetDispossalApprovalController as HCGAAssetDispossalApprovalController;
 
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
@@ -5589,6 +5595,60 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcAssetIncomingPref-create", [HCGAAssetIncomingController::class, 'create']);
     Route::post("$hcAssetIncomingPref-submit", [HCGAAssetIncomingController::class, 'store']);
     Route::get("$hcAssetIncomingPref-detail", [HCGAAssetIncomingController::class, 'detail']);
+
+    $hcAssetIncomingApprovalPref = "$hcAssetIncomingPref-approval";
+    Route::get("$hcAssetIncomingApprovalPref-index", [HCGAAssetIncomingApprovalController::class, 'index']);
+    Route::get("$hcAssetIncomingApprovalPref-data", [HCGAAssetIncomingApprovalController::class, 'data']);
+    Route::get("$hcAssetIncomingApprovalPref-detail", [HCGAAssetIncomingApprovalController::class, 'detail']);
+    Route::post("$hcAssetIncomingApprovalPref-submit", [HCGAAssetIncomingApprovalController::class, 'approval']);
+
+    $hcAssetHandoverPref = "$hcPref-asset-handover";
+    Route::get("$hcAssetHandoverPref-index", [HCGAAssetHandoverController::class, 'index']);
+    Route::get("$hcAssetHandoverPref-data", [HCGAAssetHandoverController::class, 'data']);
+    Route::get("$hcAssetHandoverPref-product", [HCGAAssetHandoverController::class, 'product']);
+    Route::get("$hcAssetHandoverPref-product-data", [HCGAAssetHandoverController::class, 'productData']);
+    Route::get("$hcAssetHandoverPref-new", [HCGAAssetHandoverController::class, 'new']);
+    Route::post("$hcAssetHandoverPref-new-submit", [HCGAAssetHandoverController::class, 'store']);
+    Route::post("$hcAssetHandoverPref-new-update", [HCGAAssetHandoverController::class, 'storeDetail']);
+    Route::get("$hcAssetHandoverPref-detail", [HCGAAssetHandoverController::class, 'detail']);
+    Route::get("$hcAssetHandoverPref-detail-data", [HCGAAssetHandoverController::class, 'detailData']);
+    Route::post("$hcAssetHandoverPref-detail-submit", [HCGAAssetHandoverController::class, 'update']);
+
+    $hcAssetHandoverConfirmPref = "$hcAssetHandoverPref-confirmation";
+    Route::get("$hcAssetHandoverConfirmPref-index", [HCGAAssetHandoverApprovalController::class, 'index']);
+    Route::get("$hcAssetHandoverConfirmPref-data", [HCGAAssetHandoverApprovalController::class, 'data']);
+    Route::get("$hcAssetHandoverConfirmPref-detail", [HCGAAssetHandoverApprovalController::class, 'detail']);
+    Route::get("$hcAssetHandoverConfirmPref-detail-data", [HCGAAssetHandoverApprovalController::class, 'detailData']);
+    Route::post("$hcAssetHandoverConfirmPref-submit", [HCGAAssetHandoverApprovalController::class, 'store']);
+
+    $hcAssetHandoverReturnPref = "$hcAssetHandoverPref-returned";
+    Route::get("$hcAssetHandoverReturnPref-index", [HCGAAssetHandoverReturnedController::class, 'index']);
+    Route::get("$hcAssetHandoverReturnPref-data", [HCGAAssetHandoverReturnedController::class, 'data']);
+    Route::get("$hcAssetHandoverReturnPref-detail", [HCGAAssetHandoverReturnedController::class, 'detail']);
+    Route::get("$hcAssetHandoverReturnPref-detail-data", [HCGAAssetHandoverReturnedController::class, 'detailData']);
+    Route::post("$hcAssetHandoverReturnPref-detail-submit", [HCGAAssetHandoverReturnedController::class, 'storeDetail']);
+
+    $hcAssetHandoverReturnApprovePref = "$hcAssetHandoverReturnPref-approval";
+    Route::get("$hcAssetHandoverReturnApprovePref-index", [HCGAAssetHandoverReturnedApprovalController::class, 'index']);
+    Route::get("$hcAssetHandoverReturnApprovePref-data", [HCGAAssetHandoverReturnedApprovalController::class, 'data']);
+    Route::get("$hcAssetHandoverReturnApprovePref-detail", [HCGAAssetHandoverReturnedApprovalController::class, 'detail']);
+    Route::get("$hcAssetHandoverReturnApprovePref-detail-data", [HCGAAssetHandoverReturnedApprovalController::class, 'detailData']);
+    Route::post("$hcAssetHandoverReturnApprovePref-submit", [HCGAAssetHandoverReturnedApprovalController::class, 'store']);
+
+    $hcAssetDispossalPref = "$hcPref-asset-dispossal";
+    Route::get("$hcAssetDispossalPref-index", [HCGAAssetDispossalController::class, 'index']);
+    Route::get("$hcAssetDispossalPref-data", [HCGAAssetDispossalController::class, 'data']);
+    Route::get("$hcAssetDispossalPref-new", [HCGAAssetDispossalController::class, 'new']);
+    Route::post("$hcAssetDispossalPref-new-submit", [HCGAAssetDispossalController::class, 'store']);
+    Route::get("$hcAssetDispossalPref-detail", [HCGAAssetDispossalController::class, 'detail']);
+    Route::post("$hcAssetDispossalPref-detail-submit", [HCGAAssetDispossalController::class, 'update']);
+
+    $hcAssetDispossalConfirmPref = "$hcAssetDispossalPref-confirmation";
+    Route::get("$hcAssetDispossalConfirmPref-index", [HCGAAssetDispossalApprovalController::class, 'index']);
+    Route::get("$hcAssetDispossalConfirmPref-data", [HCGAAssetDispossalApprovalController::class, 'data']);
+    Route::get("$hcAssetDispossalConfirmPref-detail", [HCGAAssetDispossalApprovalController::class, 'detail']);
+    Route::post("$hcAssetDispossalConfirmPref-submit", [HCGAAssetDispossalApprovalController::class, 'store']);
+
 
     $hcAssetPref = "$hcPref-asset";
     Route::post("$hcAssetPref-lists-new-from-po", [HCGAAssetListController::class, 'getDataFromPO']);

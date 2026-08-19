@@ -232,6 +232,10 @@
 			return inputValues.join('&');
 		}
 
+		var SHPREVDAY_Cal;
+		SHPREVDAY_Cal = new dhtmlXCalendarObject(["PR_Date"]);
+		SHPREVDAY_Cal.setDateFormat("%Y-%m-%d");
+
 
 		PRDetail = new dhtmlXGridObject('gridPRDetail');
 		PRDetail.setImagePath("dhtmlx/imgs/");

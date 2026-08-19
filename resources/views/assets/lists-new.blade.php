@@ -245,7 +245,7 @@ $gudang = DB::table('gudang_list')->get();
                             </div>
                         </div>
                     </div>
-
+{{--                     
                     <!-- Kelompok 5: Lokasi & Penanggung Jawab -->
                     <div class="card mb-3 border-light bg-light">
                         <div class="card-body">
@@ -253,7 +253,7 @@ $gudang = DB::table('gudang_list')->get();
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="Asset_Location">Asset Location</label>
-                                    <select name="Asset_Location" id="Asset_Location" class="form-control">
+                                    <select name="Asset_Location" id="Asset_Location" class="form-control" onchange="assetLocation(this,'')">
                                         <option value="">-- Pilih Gudang --</option>
                                         @foreach ($gudang as $item)
                                         <option value="{{ $item->Gudang_ID }}">{{ $item->Gudang_ID. ' - ' .$item->Description }}</option>
@@ -261,10 +261,6 @@ $gudang = DB::table('gudang_list')->get();
                                     </select>
                                 </div>
                                 <div class="form-group col-md-6">
-                                    <label for="User_Responsible">User Responsible</label>
-                                    <input type="text" id="User_Responsible" class="form-control" />
-                                </div>
-                                <div class="form-group col-md-4">
                                     <label for="Asset_Location_Address">Location Address</label>
                                     <input type="text" id="Asset_Location_Address" class="form-control" />
                                 </div>
@@ -276,18 +272,14 @@ $gudang = DB::table('gudang_list')->get();
                                     <label for="Asset_Location_City">Location City</label>
                                     <input type="text" id="Asset_Location_City" class="form-control" />
                                 </div>
-                                <div class="form-group col-md-12">
-                                    <label for="Asset_Location_Department">Location Department</label>
-                                    <input type="text" id="Asset_Location_Department" class="form-control" />
-                                </div>
                             </div>
                         </div>
-                    </div>
+                    </div> --}}
 
-                    <!-- Kelompok 6: Informasi Leasing / Cicilan -->
+                    <!-- Kelompok 5: Informasi Leasing / Cicilan -->
                     <div class="card mb-3 border-light bg-light">
                         <div class="card-body">
-                            <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">6. Informasi Leasing & Cicilan</h6>
+                            <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">5. Informasi Leasing & Cicilan</h6>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="Leasing_Vendor">Leasing Vendor</label>
@@ -378,6 +370,7 @@ $gudang = DB::table('gudang_list')->get();
 var myCalendar;
 myCalendar = new dhtmlXCalendarObject(["Buy_Date","Exp_Date",'Manufacture_Date','Registration_Date']);
 myCalendar.setDateFormat("%Y-%m-%d");
+loadSubcategory()
 function loadSubcategory(){
     LoadM('subcat','asset-lists-sub-category?Category=' + encodeURI($(`#Asset_Category`).val()));
     setTimeout(() => {
@@ -509,20 +502,19 @@ $('#Item_Qty_Select').on('change', function() {
 
     renderAssetForms(itemData, qty);
 })
-$('#Asset_Location').on('change', function (e) {
-    e.preventDefault();
-
-    let val = $(this).val();
+function assetLocation(e,index)
+{
+    let val = $(e).val();
+    console.log(val,index)
 	
     if (val == '') {
         return;
     }
 
-	$('#User_Responsible').val('');
-	$('#Asset_Location_Address').val('')
-	$('#Asset_Location_Street').val('')
-	$('#Asset_Location_City').val('')
-	$('#Asset_Location_Department').val('')
+	$('#Asset_Location_Address' + index).val('')
+	$('#Asset_Location_Street' + index).val('')
+	$('#Asset_Location_City' + index).val('')
+	$('#Asset_Location_Department' + index).val('')
 
     $.ajax({
         url:"hrd-asset-lists-new-get-wh",
@@ -534,17 +526,16 @@ $('#Asset_Location').on('change', function (e) {
         success:function(res){
             if (res.status == 'success') {
 				const DATA = res.data;
-                $('#User_Responsible').val(DATA.PIC);
-				$('#Asset_Location_Address').val(DATA.Address)
-				$('#Asset_Location_Street').val(DATA.Street)
-				$('#Asset_Location_City').val(DATA.City)
-				$('#Asset_Location_Department').val(DATA.Department)
+				$('#Asset_Location_Address' + index).val(DATA.Address)
+				$('#Asset_Location_Street' + index).val(DATA.Street)
+				$('#Asset_Location_City' + index).val(DATA.City)
+				$('#Asset_Location_Department' + index).val(DATA.Department)
             }else {
 				
 			}
         }
     });
-});
+}
 function renderAssetForms(itemData, qty) {
     let html = '';
     
@@ -697,48 +688,10 @@ function renderAssetForms(itemData, qty) {
             </div>
         </div>
 
-        <!-- Kelompok 5: Lokasi & Penanggung Jawab -->
+        <!-- Kelompok 5: Informasi Leasing / Cicilan -->
         <div class="card mb-3 border-light bg-light">
             <div class="card-body">
-                <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">5. Lokasi & Penanggung Jawab</h6>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label for="Asset_Location${i}">Asset Location</label>
-                        <select name="Asset_Location" id="Asset_Location${i}" data-index="${i}" class="form-control">
-                            <option value="">-- Pilih Gudang --</option>
-                            @foreach ($gudang as $item)
-                            <option value="{{ $item->Gudang_ID }}">{{ $item->Gudang_ID. ' - ' .$item->Description }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group col-md-6">
-                        <label for="User_Responsible${i}">User Responsible</label>
-                        <input type="text" id="User_Responsible${i}" data-index="${i}" class="form-control" />
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label for="Asset_Location_Address${i}">Location Address</label>
-                        <input type="text" id="Asset_Location_Address${i}" data-index="${i}" class="form-control" />
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label for="Asset_Location_Street${i}">Location Street</label>
-                        <input type="text" id="Asset_Location_Street${i}" data-index="${i}" class="form-control" />
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label for="Asset_Location_City${i}">Location City</label>
-                        <input type="text" id="Asset_Location_City${i}" data-index="${i}" class="form-control" />
-                    </div>
-                    <div class="form-group col-md-12">
-                        <label for="Asset_Location_Department${i}">Location Department</label>
-                        <input type="text" id="Asset_Location_Department${i}" data-index="${i}" class="form-control" />
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Kelompok 6: Informasi Leasing / Cicilan -->
-        <div class="card mb-3 border-light bg-light">
-            <div class="card-body">
-                <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">6. Informasi Leasing & Cicilan</h6>
+                <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">5. Informasi Leasing & Cicilan</h6>
                 <div class="form-row">
                     <div class="form-group col-md-6">
                         <label for="Leasing_Vendor${i}">Leasing Vendor</label>
