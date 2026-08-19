@@ -11,7 +11,7 @@ $arr = [];
 
 if (strlen(trim(app('request')->input('chars'))) > 2) {
 
-	$result = DB::table('employment')->where('Name','LIKE', '%'.app('request')->input('chars').'%')->where('Salary_Group', 'PGY000001')->get();
+	$result = DB::table('employment')->where('Name','LIKE', '%'.app('request')->input('chars').'%')->get();
 
 
 	if(count($result) > 0){
@@ -19,7 +19,8 @@ if (strlen(trim(app('request')->input('chars'))) > 2) {
 
 
 			$Description=  $hasil->Name."<br>Department : ".$hasil->Department."<br>Jenis Kelamin : ".$hasil->Gender."<br>NIK : ".$hasil->NIK."<br>Position : ".$hasil->Position;
-			$arr[]=array("id" => $hasil->NIK, "data" => $hasil->Name, "thumbnail" => $hasil->Department, "description" => $Description);
+
+			$arr[]=array("id" => $hasil->NIK, "data" => $hasil->Name, "thumbnail" => $hasil->Department, "description" => $Description, "phone" => $hasil->Handphone);
 		}
 
 		
