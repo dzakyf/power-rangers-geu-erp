@@ -56,9 +56,12 @@ class AssetMovingController extends Controller
     
     public function create()
     {
+        $LSP = Auth::user()->Location;
         $assets = DB::table('asset_list')->select(["Asset_No", "Product_Description"])->where('WH_ID', Auth::user()->WH_ID)->get();
         $gudangs = DB::table('gudang_list')->get();
-        return view('humanresources.asset-moving.create', compact('assets','gudangs'));
+        $counter = DB::table('moving_asset')->where("DateTrx", "LIKE", date("Y")."%")->count() + 1;
+        $NoTrx = "AM/GA/$LSP/".date("ymdhis")."-".$counter;
+        return view('humanresources.asset-moving.create', compact('assets','gudangs', 'NoTrx'));
     }
 
     public function getUserWarehouse(Request $request)
@@ -74,7 +77,6 @@ class AssetMovingController extends Controller
         $status = "APPROVAL_UPPER";
         $data = [
             'No_Trx' => $request->No_Trx,
-            'Position' => $request->Position,
             'DateTrx' => now(),
             'User_NIP' => $request->User_NIP,
             'UserTrx' => $Saya,
@@ -96,9 +98,43 @@ class AssetMovingController extends Controller
             'Department' => Auth::user()->Department,
         ];
 
-        Log::error($data);
+        Log::info(json_encode($data));
 
-        DB::table('asset_moving')->insert($data);
+        DB::table('moving_asset')->insert($data);
+
+        return response()->json([
+            'status' => 'success',
+        ], 200);
+    }
+
+    public function update(Request $request)
+    {
+        $Saya = Auth::user()->username;
+        $data = [
+            'No_Trx' => $request->No_Trx,
+            'DateTrx' => now(),
+            'User_NIP' => $request->User_NIP,
+            'UserTrx' => $Saya,
+            'Asset_No' => $request->Asset_No,
+            'Product_Description' => $request->Product_Description,
+            'SN' => $request->SN,
+            'Asset_Description' => $request->Asset_Description,
+            'Last_Stat' => $request->Last_Stat,
+            'Current_Location' => $request->Current_Location,
+            'Moving_Reason' => $request->Moving_Reason,
+            'Moving_Purpose' => $request->Moving_Purpose,
+            'New_Location' => $request->New_Location,
+            'Moving_Date' => $request->Moving_Date,
+            'Receipent_Name' => $request->Receipent_Name,
+            'Receipent_NIK' => $request->Receipent_NIK,
+            'Receipent_Department' => $request->Receipent_Department,
+            'Receipent_Position' => $request->Receipent_Position,
+            'Department' => Auth::user()->Department,
+        ];
+
+        Log::info(json_encode($data));
+
+        DB::table('moving_asset')->where('ID', $request->ID)->update($data);
 
         return response()->json([
             'status' => 'success',
@@ -107,7 +143,7 @@ class AssetMovingController extends Controller
 
     public function detail(Request $request)
     {
-        $assetMoving = DB::table('asset_moving')->where('ID', $request->ID)->first();
+        $assetMoving = DB::table('moving_asset')->where('ID', $request->ID)->first();
         return view('humanresources.asset-moving.detail', compact('assetMoving'));
     }
 }

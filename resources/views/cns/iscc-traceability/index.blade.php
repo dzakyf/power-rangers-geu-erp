@@ -47,22 +47,22 @@
 
 	TraceGrid = new dhtmlXGridObject('TraceGrid');
 	TraceGrid.setImagePath("./dhtmlx/imgs/");
-	TraceGrid.setHeader("No,Source,POO Name,Type,City,Province,Qty (Kg),WO Code,WO Date,WO Status,PO Code,PO Date,PO Qty,PO Status,DO Code,DO Date,DO Status,");
-	TraceGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#cspan");
-	TraceGrid.setInitWidths("40,70,200,80,120,100,80,140,90,80,140,90,80,80,140,90,80,0");
-	TraceGrid.setColAlign("center,center,left,center,left,left,right,left,center,center,left,center,right,center,left,center,center,center");
-	TraceGrid.setColSorting("int,str,str,str,str,str,num,str,str,str,str,str,num,str,str,str,str,str");
-	TraceGrid.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	TraceGrid.setHeader("No,Source,POO Name,Type,City,Province,Qty (Kg),PO Qty,WO Code,WO Date,WO Status,PO Code,PO Date,PO Status,Surat Jalan Code,Surat Jalan Date,Surat Jalan Status,Split,");
+	TraceGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#cspan");
+	TraceGrid.setInitWidths("40,70,200,80,120,100,80,80,140,90,80,140,90,80,140,90,80,60,0");
+	TraceGrid.setColAlign("center,center,left,center,left,left,right,right,left,center,center,left,center,right,left,center,center,center,center");
+	TraceGrid.setColSorting("int,str,str,str,str,str,num,num,str,str,str,str,str,str,str,str,str,str,str");
+	TraceGrid.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	TraceGrid.enableSmartRendering(true, 150);
 	TraceGrid.attachEvent("onRowSelect", function(id) {
 		var src = TraceGrid.cells(id, 1).getValue();
-		var fid = TraceGrid.cells(id, 17).getValue();
+		var fid = TraceGrid.cells(id, 18).getValue();
 		selectedFragmentId = (fid && fid !== '') ? fid : null;
 		document.getElementById('editBtn').style.display = (src === 'EXTERNAL') ? '' : 'none';
 	});
 	TraceGrid.setSkin("dhx_skyblue");
 	TraceGrid.init();
-	TraceGrid.setColumnHidden(17, true);
+	TraceGrid.setColumnHidden(18, true);
 	refreshdata();
 
 	function refreshdata() {
@@ -104,7 +104,7 @@
 			alert('Select row to print.');
 			return;
 		}
-		window.open('template_iscc.docx','_blank');
+		window.open('template_iscc.docx', '_blank');
 	}
 </script>
 @endsection

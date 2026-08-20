@@ -11,7 +11,8 @@ class SimulateExternalApiIngestion extends Command
 {
     protected $signature = 'traceability:simulate-api
         {--supplier= : Supplier name (default: PT Demo Supplier)}
-        {--qty= : Total quantity in Kg (min 2000)}
+        {--qty= : Total quantity in Kg}
+        {--type= : Supplier type (restaurant, hotel, irt, kafe, warung, lembaga, sppg, pabrik; default pabrik)}
         {--city= : City/Regency}
         {--province= : Province}
         {--date= : Delivery date (Y-m-d, default: today)}
@@ -23,13 +24,21 @@ class SimulateExternalApiIngestion extends Command
     {
         $supplier = $this->option('supplier') ?? 'PT Demo Supplier';
         $qty = (float) ($this->option('qty') ?? 5000);
+        $type = strtolower($this->option('type') ?? 'pabrik');
         $city = $this->option('city') ?? 'Jakarta Selatan';
         $province = $this->option('province') ?? 'DKI Jakarta';
         $date = $this->option('date') ?? now()->format('Y-m-d');
         $apiRef = $this->option('api-ref') ?? 'SIM-' . strtoupper(Str::random(8));
 
-        if ($qty < 2000) {
-            $this->error("Quantity {$qty} kg is below the 2000 kg minimum for fragmentation.");
+        $service = app(ISCCTraceabilityService::class);
+        $ranges = $service::SPLIT_RANGES;
+        if (!isset($ranges[$type])) {
+            $this->error("Unknown type '{$type}'. Allowed: " . implode(', ', array_keys($ranges)));
+            return 1;
+        }
+
+        if ($qty <= 0) {
+            $this->error('Quantity must be greater than 0.');
             return 1;
         }
 
@@ -44,6 +53,7 @@ class SimulateExternalApiIngestion extends Command
 
         $deliveryId = DB::table('traceability_external_deliveries')->insertGetId([
             'supplier_name' => $supplier,
+            'poo_type' => $type,
             'city' => $city,
             'province' => $province,
             'delivery_date' => $date,
@@ -54,11 +64,10 @@ class SimulateExternalApiIngestion extends Command
             'updated_at' => now(),
         ]);
 
-        $this->info("Delivery #{$deliveryId} ingested (ref: {$apiRef}, {$qty} kg, {$city}).");
+        $this->info("Delivery #{$deliveryId} ingested (ref: {$apiRef}, {$qty} kg, {$type}, {$city}).");
 
         try {
-            $fragments = app(ISCCTraceabilityService::class)
-                ->TraceabilityFragmentationService($deliveryId);
+            $fragments = $service->TraceabilityFragmentationService($deliveryId);
         } catch (\Throwable $e) {
             $this->error("Fragmentation failed: {$e->getMessage()}");
             return 1;

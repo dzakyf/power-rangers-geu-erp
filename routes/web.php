@@ -57,6 +57,7 @@ use App\Http\Controllers\HCGA\AssetHandoverReturnedController as HCGAAssetHandov
 use App\Http\Controllers\HCGA\AssetHandoverReturnedApprovalController as HCGAAssetHandoverReturnedApprovalController;
 use App\Http\Controllers\HCGA\AssetDispossalController as HCGAAssetDispossalController;
 use App\Http\Controllers\HCGA\AssetDispossalApprovalController as HCGAAssetDispossalApprovalController;
+use App\Http\Controllers\HCGA\CarRentController as HCGACarRentController;
 
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
@@ -5581,6 +5582,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcAssetMovingPref-data", [HCGAAssetMovingController::class, 'data']);
     Route::get("$hcAssetMovingPref-create", [HCGAAssetMovingController::class, 'create']);
     Route::post("$hcAssetMovingPref-submit", [HCGAAssetMovingController::class, 'store']);
+    Route::post("$hcAssetMovingPref-update", [HCGAAssetMovingController::class, 'update']);
     Route::get("$hcAssetMovingPref-detail", [HCGAAssetMovingController::class, 'detail']);
 
     $hcAssetMovingApprovalPref = "$hcAssetMovingPref-approval";
@@ -5642,6 +5644,15 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcAssetDispossalPref-new-submit", [HCGAAssetDispossalController::class, 'store']);
     Route::get("$hcAssetDispossalPref-detail", [HCGAAssetDispossalController::class, 'detail']);
     Route::post("$hcAssetDispossalPref-detail-submit", [HCGAAssetDispossalController::class, 'update']);
+
+    $hcCarRentPref = "$hcPref-car-rent";
+    Route::get("$hcCarRentPref-index", [HCGACarRentController::class, 'index']);
+    Route::post("$hcCarRentPref-data", [HCGACarRentController::class, 'data']);
+    Route::get("$hcCarRentPref-new", [HCGACarRentController::class, 'create']);
+    Route::post("$hcCarRentPref-new-submit", [HCGACarRentController::class, 'store']);
+    Route::get("$hcCarRentPref-detail", [HCGACarRentController::class, 'detail']);
+    Route::get("$hcCarRentPref-edit", [HCGACarRentController::class, 'edit']);
+    Route::post("$hcCarRentPref-edit-submit", [HCGACarRentController::class, 'update']);
 
     $hcAssetDispossalConfirmPref = "$hcAssetDispossalPref-confirmation";
     Route::get("$hcAssetDispossalConfirmPref-index", [HCGAAssetDispossalApprovalController::class, 'index']);

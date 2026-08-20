@@ -64,6 +64,7 @@ class ISCCTraceabilityController extends Controller
                     return [
                         'source' => 'NATURAL',
                         'fragment_id' => null,
+                        'split' => 'Tidak',
                         'poo_name' => $row->poo_name,
                         'poo_type' => $row->poo_type,
                         'city' => $row->city,
@@ -88,6 +89,10 @@ class ISCCTraceabilityController extends Controller
         if (!$source || $source === 'EXTERNAL') {
             $external = DB::table('traceability_external_poo_fragments as tep')
                 ->join('traceability_external_deliveries as ted', 'ted.id', '=', 'tep.traceability_external_delivery_id')
+                ->leftJoin(
+                    DB::raw('(SELECT traceability_external_delivery_id, COUNT(*) AS frag_count FROM traceability_external_poo_fragments GROUP BY traceability_external_delivery_id) AS fcnt'),
+                    'fcnt.traceability_external_delivery_id', '=', 'tep.traceability_external_delivery_id'
+                )
                 ->whereIn('ted.status', ['LOCKED', 'AUDITED'])
                 ->when($city, function ($q) use ($city) {
                     return $q->where('tep.city', $city);
@@ -101,6 +106,7 @@ class ISCCTraceabilityController extends Controller
                 ->select(
                     'tep.id as fragment_id',
                     'tep.poo_name',
+                    'tep.poo_type',
                     'tep.quantity_kg',
                     'tep.city',
                     'tep.province',
@@ -113,15 +119,17 @@ class ISCCTraceabilityController extends Controller
                     'tep.po_status',
                     'tep.do_code',
                     'tep.do_date',
-                    'tep.do_status'
+                    'tep.do_status',
+                    'fcnt.frag_count'
                 )
                 ->get()
                 ->map(function ($row) {
                     return [
                         'source' => 'EXTERNAL',
                         'fragment_id' => $row->fragment_id,
+                        'split' => ($row->frag_count ?? 0) > 1 ? 'Ya' : 'Tidak',
                         'poo_name' => $row->poo_name,
-                        'poo_type' => 'SUPPLIER',
+                        'poo_type' => $row->poo_type ?? 'SUPPLIER',
                         'city' => $row->city,
                         'province' => $row->province,
                         'quantity_kg' => $row->quantity_kg,
@@ -301,16 +309,17 @@ class ISCCTraceabilityController extends Controller
             $xml .= '<cell>' . htmlspecialchars($row['city'] ?? '') . '</cell>';
             $xml .= '<cell>' . htmlspecialchars($row['province'] ?? '') . '</cell>';
             $xml .= '<cell>' . htmlspecialchars((string) ($row['quantity_kg'] ?? '')) . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars((string) ($row['po_qty'] ?? '')) . '</cell>';
             $xml .= '<cell>' . htmlspecialchars($row['wo_code'] ?? '') . '</cell>';
             $xml .= '<cell>' . htmlspecialchars((string) ($row['wo_date'] ?? '')) . '</cell>';
             $xml .= '<cell>' . htmlspecialchars($row['wo_status'] ?? '') . '</cell>';
             $xml .= '<cell>' . htmlspecialchars($row['po_code'] ?? '') . '</cell>';
             $xml .= '<cell>' . htmlspecialchars((string) ($row['po_date'] ?? '')) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars((string) ($row['po_qty'] ?? '')) . '</cell>';
             $xml .= '<cell>' . htmlspecialchars($row['po_status'] ?? '') . '</cell>';
             $xml .= '<cell>' . htmlspecialchars($row['do_code'] ?? '') . '</cell>';
             $xml .= '<cell>' . htmlspecialchars((string) ($row['do_date'] ?? '')) . '</cell>';
             $xml .= '<cell>' . htmlspecialchars($row['do_status'] ?? '') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row['split'] ?? 'Tidak') . '</cell>';
             $xml .= '<cell>' . ($row['fragment_id'] ?? '') . '</cell>';
             $xml .= '</row>';
             $i++;
@@ -331,7 +340,7 @@ class ISCCTraceabilityController extends Controller
         $rows = collect();
 
         $external = DB::table('traceability_external_deliveries')
-            ->whereIn("Status", ["LOCKED","AUDITED"])
+            ->whereIn("Status", ["LOCKED", "AUDITED"])
             ->get()
             ->map(function ($row) {
                 return [
@@ -363,16 +372,21 @@ class ISCCTraceabilityController extends Controller
     }
 
     public function utamaDetailData(Request $request)
-     {
+    {
         $rows = collect();
-        
+
         $external = DB::table('traceability_external_poo_fragments as tep')
             ->join('traceability_external_deliveries as ted', 'ted.id', '=', 'tep.traceability_external_delivery_id')
+            ->leftJoin(
+                DB::raw('(SELECT traceability_external_delivery_id, COUNT(*) AS frag_count FROM traceability_external_poo_fragments GROUP BY traceability_external_delivery_id) AS fcnt'),
+                'fcnt.traceability_external_delivery_id', '=', 'tep.traceability_external_delivery_id'
+            )
             ->whereIn('ted.status', ['LOCKED', 'AUDITED'])
             ->where("ted.id", $request->get('id'))
             ->select(
                 'tep.id as fragment_id',
                 'tep.poo_name',
+                'tep.poo_type',
                 'tep.quantity_kg',
                 'tep.city',
                 'tep.province',
@@ -385,15 +399,17 @@ class ISCCTraceabilityController extends Controller
                 'tep.po_status',
                 'tep.do_code',
                 'tep.do_date',
-                'tep.do_status'
+                'tep.do_status',
+                'fcnt.frag_count'
             )
             ->get()
             ->map(function ($row) {
                 return [
                     'source' => 'EXTERNAL',
                     'fragment_id' => $row->fragment_id,
+                    'split' => ($row->frag_count ?? 0) > 1 ? 'Ya' : 'Tidak',
                     'poo_name' => $row->poo_name,
-                    'poo_type' => 'SUPPLIER',
+                    'poo_type' => $row->poo_type ?? 'SUPPLIER',
                     'city' => $row->city,
                     'province' => $row->province,
                     'quantity_kg' => $row->quantity_kg,
@@ -417,7 +433,7 @@ class ISCCTraceabilityController extends Controller
         })->values();
 
         return response($this->buildXml($rows))->header('Content-Type', 'text/xml');
-     }
+    }
 
     protected function buildXmlUtama($rows)
     {
@@ -443,6 +459,4 @@ class ISCCTraceabilityController extends Controller
 
         return $xml;
     }
-
-
 }

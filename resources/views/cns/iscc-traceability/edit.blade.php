@@ -5,7 +5,7 @@
 		<div class="mb-3">
 			<strong>POO Name:</strong> {{ $fragment->poo_name }}<br />
 			<strong>Supplier:</strong> {{ $fragment->supplier_name }}<br />
-			<strong>Delivery Date:</strong> {{ $fragment->delivery_date }}<br />
+			<strong>Surat Jalan Date:</strong> {{ $fragment->delivery_date }}<br />
 			<strong>Quantity:</strong> {{ number_format($fragment->quantity_kg, 2) }} Kg<br />
 			<strong>Status:</strong> {{ $fragment->delivery_status }}
 		</div>
