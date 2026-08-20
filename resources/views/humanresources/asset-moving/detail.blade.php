@@ -10,6 +10,7 @@
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="No_Trx">No Trx</label>
+                        <input type="hidden" id="ID" name="ID" value="{{ $assetMoving->ID }}" />
                         <input type="text" id="No_Trx" class="form-control" name="No_Trx" value="{{ $assetMoving->No_Trx ?? '' }}" />
                     </div>
                 </div>
@@ -166,7 +167,7 @@ $('#submitBtn').click(function(e) {
     e.preventDefault();
 
     $.ajax({
-        url: 'asset-movement-submit', // ganti dengan endpoint route Anda
+        url: 'hrd-asset-moving-update', // ganti dengan endpoint route Anda
         type: 'POST',
         headers: {
             'X-CSRF-TOKEN': "{{ csrf_token() }}"

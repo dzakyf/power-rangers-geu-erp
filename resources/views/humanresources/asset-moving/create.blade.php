@@ -10,14 +10,14 @@
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="No_Trx">No Trx</label>
-                        <input type="text" id="No_Trx" class="form-control shadow-sm" name="No_Trx" value="{{ $data['No_Trx'] ?? '' }}" />
+                        <input type="text" id="No_Trx" class="form-control shadow-sm" name="No_Trx" value="{{ $NoTrx }}" readonly />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="DateTrx">Date Trx</label>
-                        <input type="datetime-local" id="DateTrx" class="form-control shadow-sm" name="DateTrx" value="{{ isset($data['DateTrx']) ? \Carbon\Carbon::parse($data['DateTrx'])->format('Y-m-d\TH:i') : '' }}" />
+                        <input type="datetime-local" id="DateTrx" class="form-control shadow-sm" name="DateTrx" value="{{ date("Y-m-d") }}" />
                     </div>
                 </div>
 
@@ -25,21 +25,21 @@
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="User_NIP">User NIP</label>
-                        <input type="text" id="User_NIP" class="form-control shadow-sm" name="User_NIP" value="{{ $data['User_NIP'] ?? '' }}" />
+                        <input type="text" id="User_NIP" class="form-control shadow-sm" name="User_NIP" value="" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="UserTrx">User Trx</label>
-                        <input type="text" id="UserTrx" class="form-control shadow-sm" name="UserTrx" value="{{ $data['UserTrx'] ?? '' }}" />
+                        <input type="text" id="UserTrx" class="form-control shadow-sm" name="UserTrx" value="" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Position">Position</label>
-                        <input type="text" id="Position" class="form-control shadow-sm" name="Position" value="{{ $data['Position'] ?? '' }}" />
+                        <input type="text" id="Position" class="form-control shadow-sm" name="Position" value="" />
                     </div>
                 </div>
 
@@ -59,28 +59,28 @@
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="SN">Serial Number (SN)</label>
-                        <input type="text" id="SN" class="form-control shadow-sm bg-white" name="SN" value="{{ $data['SN'] ?? '' }}" readonly />
+                        <input type="text" id="SN" class="form-control shadow-sm bg-white" name="SN" value="" readonly />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Product_Description">Product Description</label>
-                        <input type="text" id="Product_Description" class="form-control shadow-sm bg-white" name="Product_Description" value="{{ $data['Product_Description'] ?? '' }}" readonly />
+                        <input type="text" id="Product_Description" class="form-control shadow-sm bg-white" name="Product_Description" value="" readonly />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Asset_Description">Asset Description</label>
-                        <input type="text" id="Asset_Description" class="form-control shadow-sm" name="Asset_Description" value="{{ $data['Asset_Description'] ?? '' }}" />
+                        <input type="text" id="Asset_Description" class="form-control shadow-sm" name="Asset_Description" value="" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Last_Stat">Last Stat</label>
-                        <input type="text" id="Last_Stat" class="form-control shadow-sm" name="Last_Stat" value="{{ $data['Last_Stat'] ?? '' }}" />
+                        <input type="text" id="Last_Stat" class="form-control shadow-sm" name="Last_Stat" value="" />
                     </div>
                 </div>
 
@@ -88,42 +88,42 @@
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Current_Location">Current Location</label>
-                        <input type="text" id="Current_Location" class="form-control shadow-sm" name="Current_Location" value="{{ $data['Current_Location'] ?? '' }}" />
+                        <input type="text" id="Current_Location" class="form-control shadow-sm" name="Current_Location" value="" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="New_Location">New Location</label>
-                        <input type="text" id="New_Location" class="form-control shadow-sm" name="New_Location" value="{{ $data['New_Location'] ?? '' }}" />
+                        <input type="text" id="New_Location" class="form-control shadow-sm" name="New_Location" value="" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Moving_Date">Moving Date</label>
-                        <input type="date" id="Moving_Date" class="form-control shadow-sm" name="Moving_Date" value="{{ $data['Moving_Date'] ?? '' }}" />
+                        <input type="date" id="Moving_Date" class="form-control shadow-sm" name="Moving_Date" value="" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Moving_Reason">Moving Reason</label>
-                        <input type="text" id="Moving_Reason" class="form-control shadow-sm" name="Moving_Reason" value="{{ $data['Moving_Reason'] ?? '' }}" />
+                        <input type="text" id="Moving_Reason" class="form-control shadow-sm" name="Moving_Reason" value="" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Moving_Purpose">Moving Purpose</label>
-                        <input type="text" id="Moving_Purpose" class="form-control shadow-sm" name="Moving_Purpose" value="{{ $data['Moving_Purpose'] ?? '' }}" />
+                        <input type="text" id="Moving_Purpose" class="form-control shadow-sm" name="Moving_Purpose" value="" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Status">Status</label>
-                        <input type="text" id="Status" class="form-control shadow-sm" name="Status" value="{{ $data['Status'] ?? '' }}" />
+                        <input type="text" id="Status" class="form-control shadow-sm" name="Status" value="" />
                     </div>
                 </div>
 
@@ -131,28 +131,28 @@
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Receipent_Name">Recipient Name</label>
-                        <input type="text" id="Receipent_Name" class="form-control shadow-sm" name="Receipent_Name" value="{{ $data['Receipent_Name'] ?? '' }}" />
+                        <input type="text" id="Receipent_Name" class="form-control shadow-sm" name="Receipent_Name" value="" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Receipent_NIK">Recipient NIK</label>
-                        <input type="text" id="Receipent_NIK" class="form-control shadow-sm" name="Receipent_NIK" value="{{ $data['Receipent_NIK'] ?? '' }}" />
+                        <input type="text" id="Receipent_NIK" class="form-control shadow-sm" name="Receipent_NIK" value="" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Receipent_Department">Recipient Department</label>
-                        <input type="text" id="Receipent_Department" class="form-control shadow-sm" name="Receipent_Department" value="{{ $data['Receipent_Department'] ?? '' }}" />
+                        <input type="text" id="Receipent_Department" class="form-control shadow-sm" name="Receipent_Department" value="" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Receipent_Position">Recipient Position</label>
-                        <input type="text" id="Receipent_Position" class="form-control shadow-sm" name="Receipent_Position" value="{{ $data['Receipent_Position'] ?? '' }}" />
+                        <input type="text" id="Receipent_Position" class="form-control shadow-sm" name="Receipent_Position" value="" />
                     </div>
                 </div>
 

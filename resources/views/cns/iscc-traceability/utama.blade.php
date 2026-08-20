@@ -31,7 +31,7 @@
 
 	TraceGrid = new dhtmlXGridObject('TraceGrid');
 	TraceGrid.setImagePath("./dhtmlx/imgs/");
-	TraceGrid.setHeader("No,Source,Supplier Name, Site, Provinsi, Deliver Date, Total Qty, Status, Reference");
+	TraceGrid.setHeader("No,Source,Supplier Name, Site, Provinsi, Surat Jalan Date, Total Qty, Status, Reference");
 	TraceGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	TraceGrid.setInitWidths("40,70,200,100,100,100,100,100,100,100,100");
 	TraceGrid.setColAlign("center,center,left,left,left,left,left,left,left");
