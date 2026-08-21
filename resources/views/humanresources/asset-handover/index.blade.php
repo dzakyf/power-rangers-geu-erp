@@ -21,6 +21,7 @@
 		 <div id="divtom2">
 			<input type="button" id="FormAssetHandover" NAME="FormAssetHandover" class="btn btn-primary mt-2 mr-2" value="Form Handover" />
 			<input type="button" id="DetailAssetHandover" NAME="DetailAssetHandover" class="btn btn-info mt-2 mr-2" value="Detail Handover" />
+			<input type="button" id="LogAssetHandover" NAME="LogAssetHandover" class="btn btn-success mt-2 mr-2" value="Log Handover" />
 			<input type="button" id="ekselAssetHandover" name="ekselAssetHandover" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="AssetHandover.toExcel('./export/generate.php');"  />
 			{{-- <input type="button" id="SubmitPRNewDetail" NAME="SubmitPRNewDetail" class="btn btn-success mt-2 mr-2" value="Update Priority &amp; Approve" />                 --}}
 		</div>
@@ -56,6 +57,16 @@
 			}
 			let Handover_No = AssetHandover.cells(pmid,1).getValue()
 			LoadM('AssetHandoverDiv','hrd-asset-handover-detail?Handover_No=' + Handover_No);
+		})
+
+		$('#LogAssetHandover').on('click', function() {
+			let pmid = AssetHandover.getSelectedRowId();
+			if(pmid == null) {
+				alert('Mohon pilih baris');
+				return;
+			}
+			let Handover_No = AssetHandover.cells(pmid,1).getValue()
+			LoadM('AssetHandoverDiv','hrd-asset-handover-log?Handover_No=' + Handover_No);
 		})
 		
 		</script>

@@ -198,4 +198,9 @@ class AssetFixingController extends Controller
         }
         return view('humanresources.asset-fixing.detail', compact('data'));
     }
+
+    public function log(Request $request)
+    {
+        return view('humanresources.asset-fixing.log');
+    }
 }

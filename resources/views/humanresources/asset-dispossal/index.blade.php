@@ -21,6 +21,7 @@
 		 <div id="divtom2">
 			<input type="button" id="FormAssetDisposal" NAME="FormAssetDisposal" class="btn btn-primary mt-2 mr-2" value="Form Pemusnahan Aset" />
 			<input type="button" id="DetailAssetDisposal" NAME="DetailAssetDisposal" class="btn btn-info mt-2 mr-2" value="Detail Pemusnahan" />
+			<input type="button" id="LogAssetDisposal" NAME="LogAssetDisposal" class="btn btn-success mt-2 mr-2" value="Log Pemusnahan" />
 			<input type="button" id="ekselAssetDisposal" name="ekselAssetDisposal" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="AssetDisposal.toExcel('./export/generate.php');"  />
 		</div>
 		<script>
@@ -44,6 +45,16 @@
 
 		$('#FormAssetDisposal').on('click', function() {
 			LoadM('AssetDisposalDiv','hrd-asset-dispossal-new');
+		})
+
+		$('#LogAssetDisposal').on('click', function() {
+			let pmid = AssetDisposal.getSelectedRowId();
+			if(pmid == null) {
+				alert('Mohon pilih baris');
+				return;
+			}
+			let Disposal_No = AssetDisposal.cells(pmid,1).getValue()
+			LoadM('AssetDisposalDiv','hrd-asset-dispossal-log?Disposal_No=' + Disposal_No);
 		})
 
 		$('#DetailAssetDisposal').on('click', function() {

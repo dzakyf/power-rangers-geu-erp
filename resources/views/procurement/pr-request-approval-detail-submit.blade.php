@@ -4,6 +4,7 @@
 	use Illuminate\Http\Request;
 	use Illuminate\Http\Custom_Function;
 	use Illuminate\Support\Facades\DB;
+	use Illuminate\Support\Facades\Log;
 	use Illuminate\Database\Eloquent\Builder;
 	use Illuminate\Support\Facades\Auth;
 	use App\Services\NotificationService;
@@ -65,11 +66,28 @@
 		'Status' => $nstatus,
 	];
 
-	$pr = DB::table("purchase_request")->where("ID",$_POST['ID'])->first();
 	if ($nstatus == 'APPROVAL_FINANCE') {
-		$PO_No = createPurchaseSummary($pr);
-		$PONO = createPurchaseOrder($pr, $PO_No);
+		$PO_No = createPurchaseSummary($cek);
+		$PONO = createPurchaseOrder($cek, $PO_No);
 	}
+
+	try {
+		$stat = $nstatus == 'APPROVED' ? $nstatus : "APPROVAL STATUS {$_POST['Status']} => $nstatus";
+		$prOld = json_decode(json_encode($cek), true);
+		$prOld['Action_By'] = $Saya;
+		$prOld['Action_Date'] = now();
+		$prOld['Action_Status'] = $stat;
+		$prOld["Last_ID"] = $prOld['ID'];
+		unset($prOld["ID"]);
+		DB::table('purchase_request_log')->insert($prOld);
+		if($nstatus != 'APPROVED') {
+			$prOld['Action_Status'] = "WAITING FOR $nstatus";
+			DB::table('purchase_request_log')->insert($prOld);
+		}
+	} catch (\Throwable $th) {
+		Log::error($th);
+	}
+
 	
 	DB::table('purchase_request')->where("ID", $_POST['ID'])->update($data);
 	

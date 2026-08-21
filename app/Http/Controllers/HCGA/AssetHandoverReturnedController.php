@@ -160,4 +160,9 @@ class AssetHandoverReturnedController extends Controller
 
         return "update";
     }
+
+    public function log(Request $request)
+    {
+        return view('humanresources.asset-handover.returned.log');
+    }
 }

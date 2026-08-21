@@ -30,6 +30,7 @@ use Illuminate\Database\Eloquent\Builder;
         <input type="button" id="ekselDATAASSETSDet" class="btn btn-warning mr-2 mt-2" value="Export Excel" onclick="DATAASSETS.toExcel('./export/generate.php');"  />
         <input type="button" id="DATAASSETS_Refresh" class="btn btn-info mr-2 mt-2" value="Refresh Data" onclick="AssetMovingRefresh();"  />
         <input type="button" id="dxdata" class="btn btn-primary mr-2 mt-2" value="Form Asset Moving" onclick="AssetMovingNew();"  />
+        <input type="button" id="DATAASSETS_Refresh" class="btn btn-success mr-2 mt-2" value="Log Asset Moving" onclick="AssetMovingLog();"  />
         <input type="button" id="DATAASSETS_Refresh" class="btn btn-secondary mr-2 mt-2" value="Asset Lists" onclick="AssetMovingAssetList();"  />
     </div>
    <div id="assetList" class="mt-3" style="display:none;width:100%">
@@ -50,6 +51,10 @@ function AssetMovingAssetList() {
 }
 function AssetMovingNew() {
     LoadM('DATAASSETSDTL1', 'hrd-asset-moving-create');
+}
+function AssetMovingLog() {
+	TarifID = DATAASSETS.cells(DATAASSETS.getSelectedId(),1).getValue();
+    LoadM('DATAASSETSDTL1', 'hrd-asset-moving-log?ID=' + TarifID);
 }
 function NEWDATA() {
 	LoadM('DATAASSETSDTL','asset-lists-new');
