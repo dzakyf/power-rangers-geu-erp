@@ -14,32 +14,30 @@
                     </div>
                 </div>
 
-                <div class="col-md-6 col-12">
-                    <div class="form-group">
-                        <label for="DateTrx">Date Trx</label>
-                        <input type="datetime-local" id="DateTrx" class="form-control shadow-sm" name="DateTrx" value="{{ date("Y-m-d") }}" />
-                    </div>
-                </div>
-
                 <!-- User Information -->
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="User_NIP">User NIP</label>
-                        <input type="text" id="User_NIP" class="form-control shadow-sm" name="User_NIP" value="" />
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-12">
-                    <div class="form-group">
-                        <label for="UserTrx">User Trx</label>
-                        <input type="text" id="UserTrx" class="form-control shadow-sm" name="UserTrx" value="" />
+                        <input type="text" id="User_NIP" class="form-control shadow-sm" name="User_NIP" value="{{ $NIK }}" />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Position">Position</label>
-                        <input type="text" id="Position" class="form-control shadow-sm" name="Position" value="" />
+                        <input type="text" id="Position" class="form-control shadow-sm" name="Position" value="{{ $Position }}" />
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-12">
+                    <div class="form-group">
+                        <label for="Vendor_Origin">Vendor Afiliasi Asal</label>
+                        <select name="Vendor_Origin" id="Vendor_Origin" class="form-control shadow-sm" >
+                            <option value="">-- Pilih Asset - </option>
+                            @foreach ($Supplier as $item)
+                                <option value="{{ $item->Supplier_ID }}">{{ $item->Supplier_ID . " - " . $item->Company_Name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
 
@@ -128,6 +126,19 @@
                 </div>
 
                 <!-- Recipient Information -->
+
+                <div class="col-md-6 col-12">
+                    <div class="form-group">
+                        <label for="Vendor_End">Vendor Afiliasi Tujuan</label>
+                        <select name="Vendor_End" id="Vendor_End" class="form-control shadow-sm" >
+                            <option value="">-- Pilih Asset - </option>
+                            @foreach ($Supplier as $item)
+                                <option value="{{ $item->Supplier_ID }}">{{ $item->Supplier_ID . " - " . $item->Company_Name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Receipent_Name">Recipient Name</label>

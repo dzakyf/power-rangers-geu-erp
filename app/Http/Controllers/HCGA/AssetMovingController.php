@@ -61,7 +61,10 @@ class AssetMovingController extends Controller
         $gudangs = DB::table('gudang_list')->get();
         $counter = DB::table('moving_asset')->where("DateTrx", "LIKE", date("Y")."%")->count() + 1;
         $NoTrx = "AM/GA/$LSP/".date("ymdhis")."-".$counter;
-        return view('humanresources.asset-moving.create', compact('assets','gudangs', 'NoTrx'));
+        $NIK = Auth::user()->Emp_ID;
+        $Position = Auth::user()->Position;
+        $Supplier = DB::table('supplier')->orderBy('Company_Name', "ASC")->get();
+        return view('humanresources.asset-moving.create', compact('assets','gudangs', 'NoTrx','NIK','Position','Supplier'));
     }
 
     public function getUserWarehouse(Request $request)
@@ -100,7 +103,18 @@ class AssetMovingController extends Controller
 
         Log::info(json_encode($data));
 
-        DB::table('moving_asset')->insert($data);
+        $id = DB::table('moving_asset')->insertGetId($data);
+
+        try {
+            $data['Action_By'] = $Saya;
+            $data['Action_Date'] = now();
+            $data['Action_Status'] = "CREATED MOVING ASSET WAITING FOR APPROVAL AUPPER";
+            $data["Last_ID"] = $id;
+
+            DB::table('moving_asset_log')->insert($data);
+        } catch (\Throwable $th) {
+            Log::error($th);
+        }
 
         return response()->json([
             'status' => 'success',

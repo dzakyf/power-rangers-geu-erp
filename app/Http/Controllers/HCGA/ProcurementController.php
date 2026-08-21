@@ -76,9 +76,11 @@ class ProcurementController extends Controller
         if ($dpt != 'ICT' && $dpt != 'BOD' && $dpt != 'HCGA') {
             $Query->where("Initial", $dpt);
         }
+
+        $company = DB::table('supplier')->where("Status", 'NORMAL')->get();
         
         $Department = $Query->get();
-        return view('humanresources.procurement.create', compact("PR_No", 'NIK', 'Saya', 'dpt', 'Department'));
+        return view('humanresources.procurement.create', compact("PR_No", 'NIK', 'Saya', 'dpt', 'Department', 'company'));
     }
 
     public function newSubmit(Request $reuqest)
@@ -86,12 +88,14 @@ class ProcurementController extends Controller
         $ars = "";
         $ax = "";
         $isi = "";
+        $arr = [];
         foreach ($_POST as $key => $value) {
 
             if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail') {
                 $ars .= "$key = '$value',";
                 $ax .= "$key,";
                 $isi .= "'$value',";
+                $arr[$key] = $value;
             }
         }
         $ars = substr($ars, 0, -1);
@@ -116,13 +120,31 @@ class ProcurementController extends Controller
 
 
         // $position = DB::table('master_position')->where("");
-
-
-        DB::insert(DB::raw("INSERT INTO purchase_request($ax,Status,Created_By,Location,Approval_Date,Creator_Level,Note,Approval_Department) VALUES($isi,'$status','$Saya','$LSP',NOW(),1,'','$dept')"));
+        $arr['Status'] = $status;
+        $arr['Created_By'] = $Saya;
+        $arr['Location'] = $LSP;
+        $arr['Approval_Date'] = now();
+        $arr['Creator_Level'] = 1;
+        $arr['Note'] = '';
+        $arr['Approval_Department'] = $dept;
+        $pr = DB::table('purchase_request')->insertGetId($arr);
+        try {
+            $arrLog = $arr;
+            $arrLog['Action_By'] = $Saya;
+            $arrLog['Action_Date'] = now();
+            $arrLog['Action_Status'] = "CREATED PR :: WAITING APPROVAL UPPER";
+            $arrLog['Last_ID'] = $pr;
+    
+            DB::table('purchase_request_log')->insert($arrLog);
         
-        DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$_POST[PR_No]', '$_POST[Category]', '', '', 'PURCHASE-REQUEST', 'status', '$_POST[Remark]', NOW(), '$Saya')"));
+            DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$_POST[PR_No]', '$_POST[Category]', '', '', 'PURCHASE-REQUEST', 'status', '$_POST[Remark]', NOW(), '$Saya')"));
 
-        echo "success";
+            echo "success";
+        } catch (\Throwable $th) {
+            Log::error($th);
+        }
+        
+        // DB::insert(DB::raw("INSERT INTO purchase_request($ax,Status,Created_By,Location,Approval_Date,Creator_Level,Note,Approval_Department) VALUES($isi,'$status','$Saya','$LSP',NOW(),1,'','$dept')"));
 
         (new NotificationService)->makeNotification('PR APPROVAL', "PR {$_POST['PR_No']} Need to be Approved", 'approval', Auth::user()->id ?? null, $us->id ?? null);
 
@@ -424,6 +446,9 @@ class ProcurementController extends Controller
         $ax = "";
         $isi = "";
         $arr = [];
+        $pr = DB::table('purchase_request')->where("PR_No", $request->PR_No)->first();
+        $pr = json_decode(json_encode($pr), true);
+        $prOld = $prNew = $pr;
         foreach ($_POST as $key => $value) {
 
             if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail') {
@@ -431,6 +456,7 @@ class ProcurementController extends Controller
                 $ax .= "$key,";
                 $isi .= "'$value',";
                 $arr[$key] = $value;
+                $prNew[$key] = $value;
             }
         }
         $ars = substr($ars, 0, -1);
@@ -452,6 +478,23 @@ class ProcurementController extends Controller
         // DB::insert(DB::raw("INSERT INTO purchase_request($ax) VALUES($isi)"));
 
         DB::table('purchase_request')->where("PR_No", $request->PR_No)->update($arr);
+        try {
+            $prOld['Action_By'] = $Saya;
+            $prOld['Action_Date'] = now();
+            $prOld["Action_Status"] = "PR_UPDATE_OLD";
+            $prOld["Last_ID"] = $prOld['ID'];
+            unset($prOld['ID']);
+            DB::table('purchase_request_log')->insert($prOld);
+
+            $prNew['Action_By'] = $Saya;
+            $prNew['Action_Date'] = now();
+            $prNew["Action_Status"] = "PR_UPDATE_OLD";
+            $prNew["Last_ID"] = $prNew['ID'];
+            unset($prNew['ID']);
+            DB::table('purchase_request_log')->insert($prNew);
+        } catch (\Throwable $th) {
+            Log::error($th);
+        }
         
         DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$request->PR_No', '$request->Category', '', '', 'PURCHASE-REQUEST-DETAIL-UPDATE', 'status', '$request->Remark', NOW(), '$Saya')"));
 
@@ -499,5 +542,55 @@ class ProcurementController extends Controller
             echo "<action type='".$action."' sid='".$rowId."' tid='".$newId."'/>";	
         }
         echo "</data>";
+    }
+
+    public function log(Request $request)
+    {
+        return view('humanresources.procurement.log');
+    }
+
+    public function logData(Request $request)
+    {
+        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+            header("Content-type: application/xhtml+xml");
+        } else {
+            header("Content-type: text/xml");
+        }
+        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+        $LSP  = Auth::user()->Location;
+        $Saya = Auth::user()->username;
+        $nomor = 1;
+
+        echo "<rows>";
+
+        // ID bisa berupa PR_No atau ID purchase_request — sesuaikan query
+        $ID = $request->ID ?? '';
+
+        // Kolom milestone yang diambil dari purchase_request_log
+        // Urutan mengikuti grid log.blade.php
+        $Query = DB::table("purchase_request_log")
+            ->where("PR_No", $ID)
+            ->orderBy("ID", "DESC")
+            ->get();
+
+        foreach ($Query as $Fetch) {
+            echo "<row id=\"{$Fetch->ID}\">";
+            echo "<cell>{$nomor}</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->Action_Date) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->Action_By) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->Action_Status) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->PR_No) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->Category) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->Sub_Category) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->Supplies_Type) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->Note) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->Reference) . "</cell>";
+            echo "</row>";
+
+            $nomor++;
+        }
+
+        echo "</rows>";
     }
 }

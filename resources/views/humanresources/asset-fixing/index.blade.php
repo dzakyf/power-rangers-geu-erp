@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Auth;
                 <input type="button" id="ekselASSETFIXING" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="AssetFixing.toExcel('./export/generate.php');" />
                 <input type="button" id="ASSETFIXING_Refresh" class="btn btn-info mt-2 mr-2" value="Refresh Data" onclick="AssetFixingRefresh();" />
                 <input type="button" id="dxdata" class="btn btn-primary mt-2 mr-2" value="Form Perbaikan Aset" onclick="AssetFixingNew();" />
+                <input type="button" id="dxdata" class="btn btn-success mt-2 mr-2" value="Log Perbaikan Aset" onclick="AssetFixingLog();" />
             </div>
         </div>
     </div>
@@ -47,6 +48,16 @@ function AssetFixingDetail() {
         return false;
     }
     var url = 'hrd-asset-fixing-detail?ID=' + AssetFixingID;
+    LoadM('ASSETFIXINGDTL', url);
+}
+
+function AssetFixingLog() {
+    let AssetFixingID = AssetFixing.getSelectedRowId();
+    if (AssetFixingID == null) {
+        alert("Pilih Baris terlebih dulu");
+        return false;
+    }
+    var url = 'hrd-asset-fixing-log?ID=' + AssetFixingID;
     LoadM('ASSETFIXINGDTL', url);
 }
 

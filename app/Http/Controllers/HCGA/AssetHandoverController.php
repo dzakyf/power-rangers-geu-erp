@@ -335,4 +335,9 @@ class AssetHandoverController extends Controller
             'message' => "Berhasil update data",
         ]);
     }
+
+    public function log(Request $request)
+    {
+        return view('humanresources.asset-handover.log');
+    }
 }

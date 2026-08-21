@@ -82,7 +82,7 @@
                         </div>
                         <div class="FormInput_left">
             
-                            References/FPB (Manual)
+                            References (Manual)
             
                         </div>
                         <div class="FormInput_right">
@@ -172,7 +172,7 @@
 		AssetHandoverDetail.setImagePath("dhtmlx/imgs/");
 		AssetHandoverDetail.setHeader("No,Purchase Type,Product Code,Product Desc,Qty,Product Brand, Product Type,Specification,Condition,Measurement,Note,Category,SubCat,Price@unit, Total Price,Received Date");
 		AssetHandoverDetail.setInitWidths("50,100,100,100,200,200,200,200,200,100,200,100,100,0,0,100");
-		AssetHandoverDetail.setColTypes("ro,ro,ro,ro,edn,ed,ed,ed,ed,ed,ed,ro,ro,edn,ron,dhxCalendar");
+		AssetHandoverDetail.setColTypes("ro,ed,ed,ed,edn,ed,ed,ed,ed,ed,ed,ed,ed,edn,edn,dhxCalendar");
 		AssetHandoverDetail.setColAlign("center,left,center,left,right,left,center,left,left,center,center,center,center,right,right,center");
 		AssetHandoverDetail.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str");
 		AssetHandoverDetail.setEditable(true);

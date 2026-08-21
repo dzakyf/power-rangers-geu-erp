@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AssetMovingApprovalController extends Controller
 {
@@ -197,6 +198,23 @@ class AssetMovingApprovalController extends Controller
         } else {
             // Approve
             $newNote = $existingNote . "$timestamp APPROVED by $username ($apprDept) :: $note";
+        }
+
+        try {
+            $data = json_decode(json_encode($asset), true);
+            $data['Action_By'] = Auth::user()->username;
+            $data['Action_Date'] = now();
+            $data['Action_Status'] = "APPROVAL $asset->Status => $newStatus";
+            $data["Last_ID"] = $data['ID'];
+            unset($data['ID']);
+
+            DB::table('moving_asset_log')->insert($data);
+
+            $data['Action_Status'] = "WAITING $newStatus";
+
+            DB::table('moving_asset_log')->insert($data);
+        } catch (\Throwable $th) {
+            Log::error($th);
         }
 
         DB::table('moving_asset')

@@ -46,6 +46,13 @@ use App\Http\Controllers\HCGA\RequisitionController as HCGARequisitionController
 use App\Http\Controllers\HCGA\RecruitmentController as HCGARecruitmentController;
 use App\Http\Controllers\HCGA\OnboardingController as HrgaOnboardingController;
 use App\Http\Controllers\HCGA\ProcurementController as HCGAProcurementController;
+use App\Http\Controllers\HCGA\AssetFixingController as HCGAAssetFixingController;
+use App\Http\Controllers\HCGA\AssetFixingApprovalController as HCGAAssetFixingApprovalController;
+use App\Http\Controllers\HCGA\SppdController as HCGASppdController;
+use App\Http\Controllers\HCGA\SppdApprovalController as HCGASppdApprovalController;
+use App\Http\Controllers\HCGA\SettlementController as HCGASettlementController;
+use App\Http\Controllers\HCGA\SettlementApprovalController as HCGASettlementApprovalController;
+
 use App\Http\Controllers\HCGA\AssetMovingController as HCGAAssetMovingController;
 use App\Http\Controllers\HCGA\AssetMovingApprovalController as HCGAAssetMovingApprovalController;
 use App\Http\Controllers\HCGA\AssetIncomingController as HCGAAssetIncomingController;
@@ -5563,6 +5570,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcProcurementPref-detail", [HCGAProcurementController::class, 'detail']);
     Route::post("$hcProcurementPref-detail-submit", [HCGAProcurementController::class, 'detailSubmit']);
     Route::get("xml-$hcProcurementPref-detail", [HCGAProcurementController::class, 'detailXml']);
+    Route::get("$hcProcurementPref-log", [HCGAProcurementController::class, 'log']);
+    Route::get("xml-$hcProcurementPref-log", [HCGAProcurementController::class, 'logData']);
 
     $isccTraceabilityPref = "cns-iscc-traceability";
     Route::get("$isccTraceabilityPref-index", [ISCCTraceabilityController::class, 'index'])->name($isccTraceabilityPref . '.index');
@@ -5584,6 +5593,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcAssetMovingPref-submit", [HCGAAssetMovingController::class, 'store']);
     Route::post("$hcAssetMovingPref-update", [HCGAAssetMovingController::class, 'update']);
     Route::get("$hcAssetMovingPref-detail", [HCGAAssetMovingController::class, 'detail']);
+    Route::get("$hcAssetMovingPref-log", [HCGAAssetMovingController::class, 'log']);
 
     $hcAssetMovingApprovalPref = "$hcAssetMovingPref-approval";
     Route::get("$hcAssetMovingApprovalPref-index", [HCGAAssetMovingApprovalController::class, 'index']);
@@ -5597,6 +5607,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcAssetIncomingPref-create", [HCGAAssetIncomingController::class, 'create']);
     Route::post("$hcAssetIncomingPref-submit", [HCGAAssetIncomingController::class, 'store']);
     Route::get("$hcAssetIncomingPref-detail", [HCGAAssetIncomingController::class, 'detail']);
+    Route::get("$hcAssetIncomingPref-log", [HCGAAssetIncomingController::class, 'log']);
 
     $hcAssetIncomingApprovalPref = "$hcAssetIncomingPref-approval";
     Route::get("$hcAssetIncomingApprovalPref-index", [HCGAAssetIncomingApprovalController::class, 'index']);
@@ -5615,6 +5626,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcAssetHandoverPref-detail", [HCGAAssetHandoverController::class, 'detail']);
     Route::get("$hcAssetHandoverPref-detail-data", [HCGAAssetHandoverController::class, 'detailData']);
     Route::post("$hcAssetHandoverPref-detail-submit", [HCGAAssetHandoverController::class, 'update']);
+    Route::get("$hcAssetHandoverPref-log", [HCGAAssetHandoverController::class, 'log']);
 
     $hcAssetHandoverConfirmPref = "$hcAssetHandoverPref-confirmation";
     Route::get("$hcAssetHandoverConfirmPref-index", [HCGAAssetHandoverApprovalController::class, 'index']);
@@ -5644,6 +5656,20 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcAssetDispossalPref-new-submit", [HCGAAssetDispossalController::class, 'store']);
     Route::get("$hcAssetDispossalPref-detail", [HCGAAssetDispossalController::class, 'detail']);
     Route::post("$hcAssetDispossalPref-detail-submit", [HCGAAssetDispossalController::class, 'update']);
+    Route::get("$hcAssetDispossalPref-log", [HCGAAssetDispossalController::class, 'log']);
+
+    $hcAssetFixingPref = "$hcPref-asset-fixing";
+    Route::get("$hcAssetFixingPref-index", [HCGAAssetFixingController::class, 'index']);
+    Route::get("$hcAssetFixingPref-data", [HCGAAssetFixingController::class, 'data']);
+    Route::get("$hcAssetFixingPref-create", [HCGAAssetFixingController::class, 'create']);
+    Route::post("$hcAssetFixingPref-submit", [HCGAAssetFixingController::class, 'store']);
+    Route::get("$hcAssetFixingPref-detail", [HCGAAssetFixingController::class, 'detail']);
+
+    $hcAssetFixingApprovalPref = "$hcAssetFixingPref-approval";
+    Route::get("$hcAssetFixingApprovalPref-index", [HCGAAssetFixingApprovalController::class, 'index']);
+    Route::get("$hcAssetFixingApprovalPref-data", [HCGAAssetFixingApprovalController::class, 'data']);
+    Route::get("$hcAssetFixingApprovalPref-detail", [HCGAAssetFixingApprovalController::class, 'detail']);
+    Route::post("$hcAssetFixingApprovalPref-approval", [HCGAAssetFixingApprovalController::class, 'approval']);
 
     $hcCarRentPref = "$hcPref-car-rent";
     Route::get("$hcCarRentPref-index", [HCGACarRentController::class, 'index']);
@@ -5659,6 +5685,40 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcAssetDispossalConfirmPref-data", [HCGAAssetDispossalApprovalController::class, 'data']);
     Route::get("$hcAssetDispossalConfirmPref-detail", [HCGAAssetDispossalApprovalController::class, 'detail']);
     Route::post("$hcAssetDispossalConfirmPref-submit", [HCGAAssetDispossalApprovalController::class, 'store']);
+
+
+    $hcSppdPref = "$hcPref-sppd";
+    Route::get("$hcSppdPref-index", [HCGASppdController::class, 'index']);
+    Route::get("$hcSppdPref-data", [HCGASppdController::class, 'data']);
+    Route::get("$hcSppdPref-new", [HCGASppdController::class, 'create']);
+    Route::post("$hcSppdPref-new-submit", [HCGASppdController::class, 'store']);
+    Route::get("$hcSppdPref-detail", [HCGASppdController::class, 'detail']);
+    Route::get("$hcSppdPref-print", [HCGASppdController::class, 'printPengajuan']);
+    Route::get("$hcSppdPref-print-approved", [HCGASppdController::class, 'printPersetujuan']);
+    Route::post("$hcSppdPref-close", [HCGASppdController::class, 'close']);
+
+    $hcSppdApprovalPref = "$hcSppdPref-approval";
+    Route::get("$hcSppdApprovalPref-index", [HCGASppdApprovalController::class, 'index']);
+    Route::get("$hcSppdApprovalPref-data", [HCGASppdApprovalController::class, 'data']);
+    Route::get("$hcSppdApprovalPref-detail", [HCGASppdApprovalController::class, 'detail']);
+    Route::post("$hcSppdApprovalPref-submit", [HCGASppdApprovalController::class, 'approval']);
+
+    $hcSettlementPref = "$hcPref-settlement";
+    Route::get("$hcSettlementPref-index", [HCGASettlementController::class, 'index']);
+    Route::get("$hcSettlementPref-data", [HCGASettlementController::class, 'data']);
+    Route::get("$hcSettlementPref-new", [HCGASettlementController::class, 'create']);
+    Route::post("$hcSettlementPref-new-submit", [HCGASettlementController::class, 'store']);
+    Route::get("$hcSettlementPref-detail", [HCGASettlementController::class, 'detail']);
+    Route::get("$hcSettlementPref-print", [HCGASettlementController::class, 'printSettlement']);
+    Route::get("$hcSettlementPref-invoice", [HCGASettlementController::class, 'getInvoice']);
+    Route::post("$hcSettlementPref-close", [HCGASettlementController::class, 'close']);
+
+    $hcSettlementApprovalPref = "$hcSettlementPref-approval";
+    Route::get("$hcSettlementApprovalPref-index", [HCGASettlementApprovalController::class, 'index']);
+    Route::get("$hcSettlementApprovalPref-data", [HCGASettlementApprovalController::class, 'data']);
+    Route::get("$hcSettlementApprovalPref-detail", [HCGASettlementApprovalController::class, 'detail']);
+    Route::post("$hcSettlementApprovalPref-submit", [HCGASettlementApprovalController::class, 'approval']);
+
 
 
     $hcAssetPref = "$hcPref-asset";
