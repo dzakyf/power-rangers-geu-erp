@@ -1608,12 +1608,11 @@ class SalesController extends Controller
         return 'ACTIVE';
     }
 
-    public function afterSalesDashboardData(Request $r)
+    public function aftersalesDashboardData(Request $r)
     {
-        $q = $r->query();
-        $whid = $q['warehouse'];
+        $whid = $r->query('warehouse');
 
-        $calculatedWh = $this->warehouseService->calculateMonthlyFinancialStatement($q['warehouse'], $r->date_start, $r->date_end);
+        $calculatedWh = $this->warehouseService->calculateMonthlyFinancialStatement((string) $whid, $r->date_start, $r->date_end);
 
         $hubStats = DB::table('opportunity_partner as wp')
             ->selectRaw("
