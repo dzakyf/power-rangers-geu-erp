@@ -46,6 +46,7 @@ use App\Http\Controllers\HCGA\RequisitionController as HCGARequisitionController
 use App\Http\Controllers\HCGA\RecruitmentController as HCGARecruitmentController;
 use App\Http\Controllers\HCGA\OnboardingController as HrgaOnboardingController;
 use App\Http\Controllers\HCGA\ProcurementController as HCGAProcurementController;
+use App\Http\Controllers\HCGA\ProcurementApprovalController as HCGAProcurementApprovalController;
 use App\Http\Controllers\HCGA\AssetFixingController as HCGAAssetFixingController;
 use App\Http\Controllers\HCGA\AssetFixingApprovalController as HCGAAssetFixingApprovalController;
 use App\Http\Controllers\HCGA\SppdController as HCGASppdController;
@@ -422,6 +423,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("/master-credential-role-menu-create", [CredentialRoleController::class, "createMenuItem"]);
     Route::post("/master-credential-role-menu-update", [CredentialRoleController::class, "updateMenuItem"]);
     Route::post("/master-credential-role-menu-delete", [CredentialRoleController::class, "deleteMenuItem"]);
+    Route::get("/master-credential-role-menu-tree", [CredentialRoleController::class, "menuTree"])->name("master.credential.role.menu.tree");
+    Route::post("/master-credential-role-menu-create-cascade", [CredentialRoleController::class, "createMenuItemCascade"])->name("master.credential.role.menu.create.cascade");
 
     Route::get("/credential-user-management", [CredentialUserController::class, "index"]);
     Route::get("/credential-create-user", [CredentialUserController::class, "createUser"]);
@@ -5718,8 +5721,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcSettlementApprovalPref-data", [HCGASettlementApprovalController::class, 'data']);
     Route::get("$hcSettlementApprovalPref-detail", [HCGASettlementApprovalController::class, 'detail']);
     Route::post("$hcSettlementApprovalPref-submit", [HCGASettlementApprovalController::class, 'approval']);
-
-
 
     $hcAssetPref = "$hcPref-asset";
     Route::post("$hcAssetPref-lists-new-from-po", [HCGAAssetListController::class, 'getDataFromPO']);

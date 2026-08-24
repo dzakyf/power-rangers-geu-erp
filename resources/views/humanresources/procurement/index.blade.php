@@ -48,6 +48,7 @@
 				return;
 			}
 			let PR_No = PurchaseManagement.cells(pmid,1).getValue()
+			$.blockUI();
 			LoadM('PurchaseManagementDiv','hrd-procurement-log?PR_No=' + PR_No);
 		});
 
@@ -56,6 +57,7 @@
 		}
 
 		$('#FormRequestProcurement').on('click', function() {
+			$.blockUI();
 			LoadM('PurchaseManagementDiv','hrd-procurement-new');
 		})
 
@@ -66,6 +68,7 @@
 				return;
 			}
 			let PR_No = PurchaseManagement.cells(pmid,1).getValue()
+			$.blockUI();
 			LoadM('PurchaseManagementDiv','hrd-procurement-detail?PR_No=' + PR_No);
 		})
 		

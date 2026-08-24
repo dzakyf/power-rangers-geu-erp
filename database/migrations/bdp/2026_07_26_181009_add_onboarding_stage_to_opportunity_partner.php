@@ -8,6 +8,10 @@ class AddOnboardingStageToOpportunityPartner extends Migration
 {
     public function up()
     {
+        if (!Schema::hasTable('opportunity_partner') || Schema::hasColumn('opportunity_partner', 'onboarding_stage')) {
+            return;
+        }
+
         Schema::table('opportunity_partner', function (Blueprint $table) {
             $table->string('onboarding_stage', 50)->nullable()->after('status');
             $table->timestamp('onboarding_stage_updated_at')->nullable()->after('onboarding_stage');

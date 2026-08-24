@@ -20,10 +20,12 @@ class CreatePartnerOnboardingLogTable extends Migration
             $table->timestamp('Created_At')->nullable();
             $table->timestamp('Updated_At')->nullable();
 
-            $table->foreign('Opportunity_Id')
-                  ->references('id')
-                  ->on('opportunity_partner')
-                  ->onDelete('cascade');
+            if (Schema::hasTable('opportunity_partner')) {
+                $table->foreign('Opportunity_Id')
+                      ->references('id')
+                      ->on('opportunity_partner')
+                      ->onDelete('cascade');
+            }
         });
     }
 
