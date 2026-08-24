@@ -36,9 +36,19 @@
 			$nstatus = "PROPOSED";
 			break;
 		case "APPROVAL_UPPER":
+			$nstatus = 'APPROVAL_DEPT';
+
+			$getlevel = DB::table('level_general')->where("Approval_Status", "LIKE", "%$nstatus%")->first();
+
+			$getupper = DB::table("organization_structure")->where("Level".$getlevel->Level, 1)->where("Department", $dept)->first();
+
+			break;
+		case "APPROVAL_DEPT":
 			$nstatus = 'APPROVAL_GA';
 
-			$getupper = DB::table("organization_structure")->where("Level3", 1)->where("Department", 'HCGA')->first();
+			$getlevel = DB::table('level_general')->where("Approval_Status", "LIKE", "%$nstatus%")->first();
+
+			$getupper = DB::table("organization_structure")->where("Level".$getlevel->Level, 1)->where("Department", 'HCGA')->first();
 			$nik = $getupper->NIK;
 
 			break;
@@ -51,8 +61,12 @@
 
 			$nstatus = "APPROVAL_FINANCE";
 
-			$getupper = DB::table("organization_structure")->where("Level3", 1)->where("Department", 'FIN')->first();
+			$getlevel = DB::table('level_general')->where("Approval_Status", "LIKE", "%$nstatus%")->first();
+
+			$getupper = DB::table("organization_structure")->where("Level".$getlevel, 1)->where("Department", 'FIN')->first();
 			$nik = $getupper->NIK;
+
+			$nstatus = "APPROVED";
 
 			break;
 		default:
@@ -66,9 +80,11 @@
 		'Status' => $nstatus,
 	];
 
-	if ($nstatus == 'APPROVAL_FINANCE') {
+	if ($nstatus == 'APPROVED') {
 		$PO_No = createPurchaseSummary($cek);
 		$PONO = createPurchaseOrder($cek, $PO_No);
+		$data['Processing_Status'] = "APPROVAL_FINANCE";
+		$data['Processing_Date'] = now();
 	}
 
 	try {
@@ -302,7 +318,7 @@
 				'Subtotal' => $subtotalx,
 				'PPN' => $ppn1,
 				'Total' => $totalx,
-				'Status' => 'CLOSED',
+				'Status' => 'APPROVAL_FINANCE',
 				'Remark' => $gg->V1_Note,
 				'Date_Trx' => now(),
 				'User_Trx' => $Saya,

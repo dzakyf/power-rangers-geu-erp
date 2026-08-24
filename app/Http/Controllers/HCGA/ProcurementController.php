@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Services\NotificationService;
+use App\Services\StructureService;
 
 class ProcurementController extends Controller
 {
@@ -83,96 +84,125 @@ class ProcurementController extends Controller
         return view('humanresources.procurement.create', compact("PR_No", 'NIK', 'Saya', 'dpt', 'Department', 'company'));
     }
 
-    public function newSubmit(Request $reuqest)
+    public function newSubmit(Request $request)
     {
-        $ars = "";
-        $ax = "";
-        $isi = "";
-        $arr = [];
-        foreach ($_POST as $key => $value) {
-
-            if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail') {
-                $ars .= "$key = '$value',";
-                $ax .= "$key,";
-                $isi .= "'$value',";
-                $arr[$key] = $value;
-            }
-        }
-        $ars = substr($ars, 0, -1);
-        $ax = substr($ax, 0, -1);
-        $isi = substr($isi, 0, -1);
-
-        $Saya = Auth::User()->username;
-        $Name = Auth::User()->Name;
-        $LSP = Auth::user()->Location;
-        $getnik = Auth::user()->Emp_ID;
-        $dept = Auth::user()->Department;
-
-        $linkkey = Auth::user()->TokenAuth;
-        $getlevelsx = DB::table("organization_structure")->where("Department", $dept)->first();
-        if ($dept != 'HCGA') {
-            $status = "APPROVAL_UPPER";
-        }else {
-            $status = "APPROVAL_GA";
-        }
-        $us = DB::table('users')->where("Emp_ID", $getlevelsx->NIK)->select("id")->first();
-        $link = 'approvalpr';
-
-
-        // $position = DB::table('master_position')->where("");
-        $arr['Status'] = $status;
-        $arr['Created_By'] = $Saya;
-        $arr['Location'] = $LSP;
-        $arr['Approval_Date'] = now();
-        $arr['Creator_Level'] = 1;
-        $arr['Note'] = '';
-        $arr['Approval_Department'] = $dept;
-        $pr = DB::table('purchase_request')->insertGetId($arr);
         try {
-            $arrLog = $arr;
-            $arrLog['Action_By'] = $Saya;
-            $arrLog['Action_Date'] = now();
-            $arrLog['Action_Status'] = "CREATED PR :: WAITING APPROVAL UPPER";
-            $arrLog['Last_ID'] = $pr;
+            DB::beginTransaction();
+            
+            $ars = "";
+            $ax = "";
+            $isi = "";
+            $arr = [];
+            foreach ($_POST as $key => $value) {
     
-            DB::table('purchase_request_log')->insert($arrLog);
+                if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail' && $key != 'Reference' && $key != 'Product_Desc' && $key != 'Specification' && $key != 'Qty' && $key != 'Unit' && $key != 'Description' && substr($key,0,2) != 't_') {
+                    $value = trim($value);
+                    $ars .= "$key = '$value',";
+                    $ax .= "$key,";
+                    $isi .= "'$value',";
+                    $arr[$key] = $value;
+                }
+            }
+            $ars = substr($ars, 0, -1);
+            $ax = substr($ax, 0, -1);
+            $isi = substr($isi, 0, -1);
+    
+            $Saya = Auth::User()->username;
+            $Name = Auth::User()->Name;
+            $LSP = Auth::user()->Location;
+            $getnik = Auth::user()->Emp_ID;
+            $dept = Auth::user()->Department;
+    
+            $sup = DB::table('supplier')->where("Supplier_ID", $arr['Supplier_ID'])->first();
+    
+            $linkkey = Auth::user()->TokenAuth;
+            $getUpper = (new StructureService)->getDirectUpper($getnik);
+            
+            if ($dept != 'HCGA') {
+                $status = "APPROVAL_UPPER";
+            }else {
+                $status = "APPROVAL_GA";
+            }
+            $us = DB::table('users')->where("Emp_ID", $getUpper->upper_nik)->select("id")->first();
+            $link = 'approvalpr';
+    
+    
+            // $position = DB::table('master_position')->where("");
+            $arr['Status'] = $status;
+            $arr['Created_By'] = $Saya;
+            $arr['Location'] = $LSP;
+            $arr['Supplier_Name'] = $sup->Company_Name;
+            $arr['Approval_Date'] = now();
+            $arr['Creator_Level'] = 1;
+            $arr['Reference'] = '';
+            $arr['Note'] = '';
+            $arr['Approval_Department'] = $dept;
+            $pr = DB::table('purchase_request')->insertGetId($arr);
+            $dtl = DB::table('purchase_request_dtl')->insert([
+                'PR_No' => $arr['PR_No'],
+                'Product_Desc' => $request->Product_Desc,
+                'Specification' => $request->Specification,
+                'Qty' => $request->Qty,
+                'Reference' => $request->Reference,
+                'Unit' => $request->Unit,
+                'Location' => $LSP,
+                'Purchase_Category' => $arr['Category'],
+                'Purchase_Type' => $arr['Category'],
+                'Category' => $arr['Category'],
+                'Product_Code' => "",
+            ]);
+            try {
+                $arrLog = $arr;
+                $arrLog['Action_By'] = $Saya;
+                $arrLog['Action_Date'] = now();
+                $arrLog['Action_Status'] = "CREATED PR :: WAITING APPROVAL UPPER";
+                $arrLog['Last_ID'] = $pr;
         
-            DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$_POST[PR_No]', '$_POST[Category]', '', '', 'PURCHASE-REQUEST', 'status', '$_POST[Remark]', NOW(), '$Saya')"));
+                DB::table('purchase_request_log')->insert($arrLog);
+            
+                DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$_POST[PR_No]', '$_POST[Category]', '', '', 'PURCHASE-REQUEST', 'status', '$_POST[Specification]', NOW(), '$Saya')"));
+    
+                echo "success";
+            } catch (\Throwable $th) {
+                Log::error($th);
+            }
+            
+            // DB::insert(DB::raw("INSERT INTO purchase_request($ax,Status,Created_By,Location,Approval_Date,Creator_Level,Note,Approval_Department) VALUES($isi,'$status','$Saya','$LSP',NOW(),1,'','$dept')"));
+    
+            (new NotificationService)->makeNotification('PR APPROVAL', "PR {$_POST['PR_No']} Need to be Approved", 'approval', Auth::user()->id ?? null, $us->id ?? null);
+    
+            $subjek = "PURCHASE REQUEST APPROVAL REQUEST PR NO $_POST[PR_No] , Request By : $Name";
+            $badan = "<div style=\"font-family:arial;font-size:12px;\">Kepada Yth.<br><b>".($getupper->Name ?? '') ." </b><Br><br>
+            
+                        Mohon dilakukan approval untuk Purchase Request tersebut. Berikut Detail PR yang telah dibuat<br>
+                        
+                        No PR : $_POST[PR_No]<br><br>
+                        Reference : $_POST[Reference]<br><br>
+                        Jenis Request : $_POST[Category]<br><br>
+                        Note : $_POST[Specification]<br>
+                        
+                        
+                        Mohon dilakukan approval untuk Permintaan Purchase Request.
+                        
+                        <br><br>
+                        Anda dapat melakukan approval melalui link berikut ini :<a href=\'https://dev.hexamatika.com/geu/hcga/public/$link?ID=$_POST[PR_No]&linkkey=$linkkey\' >KLIK DISINI</a><br><br>
+                        
+                        
+                        <br><br>
+                        
+                        Terima kasih
+                        GREEN ENERGI UTAMA
+                        
+            </div>";
+            $email = $getupper->Email ?? '';
+            DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$email','$subjek','$badan','UNSENT',NOW(),NOW())"));
 
-            echo "success";
+            DB::commit();
         } catch (\Throwable $th) {
+            DB::rollBack();
             Log::error($th);
+            return response()->json(['status' => 'error', 'message' => $th->getMessage()], 500);
         }
-        
-        // DB::insert(DB::raw("INSERT INTO purchase_request($ax,Status,Created_By,Location,Approval_Date,Creator_Level,Note,Approval_Department) VALUES($isi,'$status','$Saya','$LSP',NOW(),1,'','$dept')"));
-
-        (new NotificationService)->makeNotification('PR APPROVAL', "PR {$_POST['PR_No']} Need to be Approved", 'approval', Auth::user()->id ?? null, $us->id ?? null);
-
-        $subjek = "PURCHASE REQUEST APPROVAL REQUEST PR NO $_POST[PR_No] , Request By : $Name";
-        $badan = "<div style=\"font-family:arial;font-size:12px;\">Kepada Yth.<br><b>".($getupper->Name ?? '') ." </b><Br><br>
-        
-                    Mohon dilakukan approval untuk Purchase Request tersebut. Berikut Detail PR yang telah dibuat<br>
-                    
-                    No PR : $_POST[PR_No]<br><br>
-                    Reference : $_POST[Reference]<br><br>
-                    Jenis Request : $_POST[Category]<br><br>
-                    Note : $_POST[Remark]<br>
-                    
-                    
-                    Mohon dilakukan approval untuk Permintaan Purchase Request.
-                    
-                    <br><br>
-                    Anda dapat melakukan approval melalui link berikut ini :<a href=\'https://dev.hexamatika.com/geu/hcga/public/$link?ID=$_POST[PR_No]&linkkey=$linkkey\' >KLIK DISINI</a><br><br>
-                    
-                    
-                    <br><br>
-                    
-                    Terima kasih
-                    GREEN ENERGI UTAMA
-                    
-        </div>";
-        $email = $getupper->Email ?? '';
-        DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$email','$subjek','$badan','UNSENT',NOW(),NOW())"));
     }
 
     public function newUpdate(Request $request)
@@ -397,7 +427,10 @@ class ProcurementController extends Controller
         }
         
         $Department = $Query->get();
-        return view('humanresources.procurement.detail', compact('pr','Department'));
+        $company = DB::table('supplier')->where("Status", 'NORMAL')->get();
+
+        $pr->details = DB::table('purchase_request_dtl')->where("PR_No", $request->PR_No)->get();
+        return view('humanresources.procurement.detail', compact('pr','Department','company'));
     }
 
     public function detailXml(Request $request)
@@ -442,63 +475,74 @@ class ProcurementController extends Controller
 
     public function detailSubmit(Request $request)
     {
-        $ars = "";
-        $ax = "";
-        $isi = "";
-        $arr = [];
-        $pr = DB::table('purchase_request')->where("PR_No", $request->PR_No)->first();
-        $pr = json_decode(json_encode($pr), true);
-        $prOld = $prNew = $pr;
-        foreach ($_POST as $key => $value) {
-
-            if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail') {
-                $ars .= "$key = '$value',";
-                $ax .= "$key,";
-                $isi .= "'$value',";
-                $arr[$key] = $value;
-                $prNew[$key] = $value;
-            }
-        }
-        $ars = substr($ars, 0, -1);
-        $ax = substr($ax, 0, -1);
-        $isi = substr($isi, 0, -1);
-
-        $Saya = Auth::User()->username;
-        $Name = Auth::User()->Name;
-        $LSP = Auth::user()->Location;
-        $getnik = Auth::user()->Emp_ID;
-        $dept = Auth::user()->Department;
-
-        $linkkey = Auth::user()->TokenAuth;
-
-
-        // $position = DB::table('master_position')->where("");
-
-
-        // DB::insert(DB::raw("INSERT INTO purchase_request($ax) VALUES($isi)"));
-
-        DB::table('purchase_request')->where("PR_No", $request->PR_No)->update($arr);
         try {
-            $prOld['Action_By'] = $Saya;
-            $prOld['Action_Date'] = now();
-            $prOld["Action_Status"] = "PR_UPDATE_OLD";
-            $prOld["Last_ID"] = $prOld['ID'];
-            unset($prOld['ID']);
-            DB::table('purchase_request_log')->insert($prOld);
+            DB::beginTransaction();
 
-            $prNew['Action_By'] = $Saya;
-            $prNew['Action_Date'] = now();
-            $prNew["Action_Status"] = "PR_UPDATE_OLD";
-            $prNew["Last_ID"] = $prNew['ID'];
-            unset($prNew['ID']);
-            DB::table('purchase_request_log')->insert($prNew);
+            $ars = "";
+            $ax = "";
+            $isi = "";
+            $arr = [];
+            $pr = DB::table('purchase_request')->where("PR_No", $request->PR_No)->first();
+            $pr = json_decode(json_encode($pr), true);
+            $prOld = $prNew = $pr;
+            foreach ($_POST as $key => $value) {
+    
+                if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail' && $key != 'Reference' && $key != 'Product_Desc' && $key != 'Specification' && $key != 'Qty' && $key != 'Unit' && $key != 'Description' && substr($key,0,2) != 't_') {
+                    $ars .= "$key = '$value',";
+                    $ax .= "$key,";
+                    $isi .= "'$value',";
+                    $arr[$key] = $value;
+                    $prNew[$key] = $value;
+                }
+            }
+            $ars = substr($ars, 0, -1);
+            $ax = substr($ax, 0, -1);
+            $isi = substr($isi, 0, -1);
+    
+            $Saya = Auth::User()->username;
+            $LSP = Auth::user()->Location;
+    
+            DB::table('purchase_request')->where("PR_No", $request->PR_No)->update($arr);
+            DB::table('purchase_request_dtl')->where("PR_No", $request->PR_No)->update([
+                'Product_Desc' => $request->Product_Desc,
+                'Specification' => $request->Specification,
+                'Qty' => $request->Qty,
+                'Reference' => $request->Reference,
+                'Unit' => $request->Unit,
+                'Location' => $LSP,
+                'Purchase_Category' => $arr['Category'],
+                'Purchase_Type' => $arr['Category'],
+                'Category' => $arr['Category'],
+            ]);
+            try {
+                $prOld['Action_By'] = $Saya;
+                $prOld['Action_Date'] = now();
+                $prOld["Action_Status"] = "PR_UPDATE_OLD";
+                $prOld["Last_ID"] = $prOld['ID'];
+                unset($prOld['ID']);
+                DB::table('purchase_request_log')->insert($prOld);
+    
+                $prNew['Action_By'] = $Saya;
+                $prNew['Action_Date'] = now();
+                $prNew["Action_Status"] = "PR_UPDATE_OLD";
+                $prNew["Last_ID"] = $prNew['ID'];
+                unset($prNew['ID']);
+                DB::table('purchase_request_log')->insert($prNew);
+            } catch (\Throwable $th) {
+                Log::error($th);
+            }
+            
+            DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$request->PR_No', '$request->Category', '', '', 'PURCHASE-REQUEST-DETAIL-UPDATE', 'status', '$request->Remark', NOW(), '$Saya')"));
+    
+            echo "success";
+
+
+            DB::commit();
         } catch (\Throwable $th) {
             Log::error($th);
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'message' => $th->getMessage()],500);
         }
-        
-        DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$request->PR_No', '$request->Category', '', '', 'PURCHASE-REQUEST-DETAIL-UPDATE', 'status', '$request->Remark', NOW(), '$Saya')"));
-
-        echo "success";
     }
 
     public function detailUpdate(Request $request)

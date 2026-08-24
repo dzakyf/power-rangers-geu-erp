@@ -41,4 +41,5 @@ $nomor = 1;
     LogGrid.setSkin('dhx_skyblue');
     LogGrid.init();
     LogGrid.clearAndLoad('xml-hrd-procurement-log?ID=<?php echo urlencode($ID); ?>');
+    $.unblockUI();
 </script>

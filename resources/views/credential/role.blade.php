@@ -174,7 +174,7 @@ $Saya = Auth::user()->username; ?>
                     <button type="button" class="btn btn-success" id="save-permissions-btn" onclick="triggerSavePermissions()" disabled>
                         <i class="fa fa-save"></i> Save Permissions
                     </button>
-                                        <button id="add-menu-btn" class="btn btn-success" disabled onclick="openCreateMenuModal()">
+                                        <button id="add-menu-btn" class="btn btn-success" onclick="openCreateMenuModal()">
                         <i class="fa fa-plus"></i> Add Menu Item
                     </button>
                     <button id="edit-menu-name-btn" class="btn btn-primary" disabled onclick="openEditMenuModal()">
@@ -199,7 +199,7 @@ $Saya = Auth::user()->username; ?>
                 <div class="modal-body">
                     <form id="roleForm">
                         @csrf
-                        <input type="hidden" id="can-edit-flag" value="{{ Auth::user()->can('master.credential.role.edit') ? 'true' : 'false' }}">
+                        <input type="hidden" id="can-edit-flag" value="{{ (Auth::user()->hasRole('ADM') || Auth::user()->can('master.credential.role.edit')) ? 'true' : 'false' }}">
                         <input type="hidden" id="roleFormMode" value="create">
                         <input type="hidden" id="editRoleId" value="">
                         <div class="form-group">
@@ -391,7 +391,6 @@ $Saya = Auth::user()->username; ?>
                         selectedMenuName = data.menu_name;
                         if (canEdit) {
                             $('#edit-menu-name-btn').prop('disabled', false);
-                            $('#add-menu-btn').prop('disabled', false);
                             $('#delete-menu-btn').prop('disabled', false);
                         }
                     });
@@ -727,9 +726,240 @@ $Saya = Auth::user()->username; ?>
         });
     }
 
+    // ------------------------------------------------------------------
+    // Cascading "Add Menu Item" (Module > Submodule > Subheader > Leaf)
+    // ------------------------------------------------------------------
+
+    var menuTreeCache = null;
+
+    function casEsc(s) {
+        return $('<div>').text(s === null || s === undefined ? '' : String(s)).html();
+    }
+
+    function loadMenuTree(cb) {
+        $.get('{{ route("master.credential.role.menu.tree") }}', function(res) {
+            menuTreeCache = res.data || [];
+            cb();
+        }).fail(function() {
+            alert('Failed to load the menu tree.');
+        });
+    }
+
+    function casChildren(parentMenuId, position) {
+        return (menuTreeCache || []).filter(function(r) {
+            return String(r.Parent_Menu) === String(parentMenuId) && parseInt(r.Position) === position;
+        });
+    }
+
+    function openCascadeMenuModal() {
+        if (!canEdit) return;
+        loadMenuTree(function() { buildCascadeModal(); });
+    }
+
+    function buildCascadeModal() {
+        var roots = (menuTreeCache || []).filter(function(r) { return parseInt(r.Position) === 1; });
+
+        var rootOpts = roots.map(function(r) {
+            return '<option value="' + casEsc(r.Menu_ID) + '">' + casEsc(r.Name) + ' (' + casEsc(r.Modules) + ')</option>';
+        }).join('');
+
+        var moduleOpts = ['FINANCE|Finances', 'HRD|Human Resources', 'MITRA|Business Partner', 'CNS|CNS', 'CANDIDATE|Candidate', 'CREDENTIAL|Credential']
+            .map(function(p) { var kv = p.split('|'); return '<option value="' + kv[0] + '">' + kv[1] + '</option>'; })
+            .join('');
+
+        var body =
+            '<form id="cascadeForm">' +
+            '<h6 class="text-muted mb-2">Level 1 - Module</h6>' +
+            '<div class="form-group"><select id="cas-root" class="form-control">' + rootOpts +
+            '<option value="__new__">+ New Module Root...</option></select></div>' +
+            '<div class="form-group" id="cas-root-new-wrap" style="display:none">' +
+            '<label>Module Name</label><input type="text" id="cas-root-new" class="form-control">' +
+            '<label class="mt-2">Belongs to Module Set</label><select id="cas-root-module" class="form-control">' + moduleOpts + '</select>' +
+            '</div>' +
+
+            '<h6 class="text-muted mb-2 mt-3">Level 2 - Submodule (SM)</h6>' +
+            '<div class="form-group"><select id="cas-submodule" class="form-control"></select></div>' +
+            '<div class="form-group" id="cas-submodule-new-wrap" style="display:none">' +
+            '<label>Submodule Name</label><input type="text" id="cas-submodule-new" class="form-control"></div>' +
+
+            '<h6 class="text-muted mb-2 mt-3">Level 3 - Subheader (SS)</h6>' +
+            '<div class="form-group"><select id="cas-subheader" class="form-control"></select></div>' +
+            '<div class="form-group" id="cas-subheader-new-wrap" style="display:none">' +
+            '<label>Subheader Name</label><input type="text" id="cas-subheader-new" class="form-control"></div>' +
+
+            '<h6 class="text-muted mb-2 mt-3">Level 4 - Menu Item (SI)</h6>' +
+            '<div class="form-group"><label>Menu Name *</label><input type="text" id="cas-name" class="form-control"></div>' +
+            '<div class="form-row">' +
+            '<div class="form-group col-8"><label>Path / Route</label><input type="text" id="cas-path" class="form-control"></div>' +
+            '<div class="form-group col-4"><label>Urutan</label><input type="number" min="1" value="1" id="cas-urutan" class="form-control"></div>' +
+            '</div>' +
+            '<div id="cas-chain-preview" class="small text-muted"></div>' +
+            '</form>';
+
+        AppModal.open({
+            title: 'Add Menu Item',
+            size: 'md',
+            body: body,
+            actions: [
+                { label: 'Cancel', class: 'btn-secondary', onClick: function() { return true; } },
+                { label: 'Create', class: 'btn-primary', onClick: submitCascadeMenu }
+            ]
+        });
+
+        $('#appModal').off('shown.bs.modal.cascade').on('shown.bs.modal.cascade', function() {
+            ['#cas-root', '#cas-submodule', '#cas-subheader'].forEach(function(sel) {
+                if ($(sel).hasClass('select2-hidden-accessible')) $(sel).select2('destroy');
+                $(sel).select2({ width: '100%', dropdownParent: $('#appModal') });
+            });
+            refreshCasSubmodules();
+        });
+
+        function refreshCasSubheaders() {
+            var sv = $('#cas-submodule').val();
+            var heads = (!sv || sv === '__new__') ? [] : casChildren(sv, 3);
+            var opts = heads.map(function(r) {
+                return '<option value="' + casEsc(r.Menu_ID) + '">' + casEsc(r.Name) + '</option>';
+            }).join('');
+            $('#cas-subheader').html(opts +
+                '<option value="__new__">+ New Subheader...</option>' +
+                '<option value="__none__">(none - attach leaf to submodule)</option>');
+            $('#cas-subheader').trigger('change');
+        }
+
+        $('#cas-root').off('change').on('change', function() {
+            var isNew = $(this).val() === '__new__';
+            $('#cas-root-new-wrap').toggle(isNew);
+            if (!isNew) $('#cas-root-new').val('');
+            refreshCasSubmodules();
+        });
+
+        $('#cas-submodule').off('change').on('change', function() {
+            var isNew = $(this).val() === '__new__';
+            $('#cas-submodule-new-wrap').toggle(isNew);
+            if (!isNew) $('#cas-submodule-new').val('');
+            refreshCasSubheaders();
+        });
+
+        $('#cas-subheader').off('change').on('change', function() {
+            var isNew = $(this).val() === '__new__';
+            $('#cas-subheader-new-wrap').toggle(isNew);
+            if (!isNew) $('#cas-subheader-new').val('');
+            casUpdatePreview();
+        });
+
+        ['#cas-name', '#cas-root-new', '#cas-submodule-new', '#cas-subheader-new', '#cas-path'].forEach(function(sel) {
+            $(sel).off('input.cas').on('input.cas', casUpdatePreview);
+        });
+
+        // Pre-render immediately if modal markup is already in the DOM
+        refreshCasSubmodules();
+
+        function refreshCasSubmodules() {
+            var rootVal = $('#cas-root').val() || (roots[0] ? roots[0].Menu_ID : '');
+            var subs = rootVal === '__new__' ? [] : casChildren(rootVal, 2);
+            var opts = subs.map(function(r) {
+                return '<option value="' + casEsc(r.Menu_ID) + '">' + casEsc(r.Name) + '</option>';
+            }).join('');
+            $('#cas-submodule').html(opts + '<option value="__new__">+ New Submodule...</option>');
+            $('#cas-submodule').trigger('change');
+        }
+    }
+
+    function casUpdatePreview() {
+        var parts = [];
+        var rv = $('#cas-root').val();
+        if (rv === '__new__') {
+            parts.push('MS(new): ' + ($('#cas-root-new').val() || '?'));
+        } else {
+            var root = (menuTreeCache || []).find(function(r) { return r.Menu_ID === rv; });
+            parts.push(root ? root.Menu_ID + ': ' + root.Name : '');
+            var sv = $('#cas-submodule').val();
+            if (sv === '__new__') {
+                parts.push('SM(new): ' + ($('#cas-submodule-new').val() || '?'));
+            } else {
+                var sub = casChildren(rv, 2).find(function(r) { return r.Menu_ID === sv; });
+                if (sub) parts.push(sub.Menu_ID + ': ' + sub.Name);
+                var hv = $('#cas-subheader').val();
+                if (hv === '__new__') {
+                    parts.push('SS(new): ' + ($('#cas-subheader-new').val() || '?'));
+                } else if (hv && hv !== '__none__') {
+                    var head = casChildren(sv, 3).find(function(r) { return r.Menu_ID === hv; });
+                    if (head) parts.push(head.Menu_ID + ': ' + head.Name);
+                }
+            }
+        }
+        parts.push('SI(new): ' + ($('#cas-name').val() || '?'));
+        $('#cas-chain-preview').html('Chain &rarr; ' + parts.filter(Boolean).map(casEsc).join(' &rarr; '));
+    }
+
+    function submitCascadeMenu() {
+        var name = $('#cas-name').val().trim();
+        if (!name) { alert('Menu name is required.'); return false; }
+
+        var payload = {
+            _token: '{{ csrf_token() }}',
+            name: name,
+            path_loc: $('#cas-path').val().trim(),
+            urutan: $('#cas-urutan').val()
+        };
+
+        var rv = $('#cas-root').val();
+        if (rv === '__new__') {
+            if (!$('#cas-root-new').val().trim()) { alert('Module name is required.'); return false; }
+            payload.root_mode = 'new';
+            payload.root_new = $('#cas-root-new').val().trim();
+            payload.root_module = $('#cas-root-module').val();
+        } else {
+            payload.root_mode = 'existing';
+            payload.root_id = rv;
+        }
+
+        var sv = $('#cas-submodule').val();
+        if (sv === '__new__') {
+            if (!$('#cas-submodule-new').val().trim()) { alert('Submodule name is required.'); return false; }
+            payload.submodule_mode = 'new';
+            payload.submodule_new = $('#cas-submodule-new').val().trim();
+        } else {
+            payload.submodule_mode = 'existing';
+            payload.submodule_id = sv;
+        }
+
+        var hv = $('#cas-subheader').val();
+        if (hv === '__new__') {
+            if (!$('#cas-subheader-new').val().trim()) { alert('Subheader name is required.'); return false; }
+            payload.subheader_mode = 'new';
+            payload.subheader_new = $('#cas-subheader-new').val().trim();
+        } else if (hv === '__none__') {
+            payload.subheader_mode = 'none';
+        } else {
+            payload.subheader_mode = 'existing';
+            payload.subheader_id = hv;
+        }
+
+        $.ajax({
+            url: '{{ route("master.credential.role.menu.create.cascade") }}',
+            method: 'POST',
+            data: payload,
+            success: function(res) {
+                if (res.success) {
+                    AppModal.close();
+                    menuTreeCache = null;
+                    if (permDt) permDt.ajax.reload();
+                    $('#save-status').text('Created ' + res.chain.map(function(c) { return c.code + ' ' + c.name; }).join(' > ')).css('color', 'green').show();
+                    setTimeout(function() { $('#save-status').fadeOut(4000); }, 6000);
+                } else {
+                    alert(res.message || 'Error');
+                }
+            },
+            error: function(xhr) {
+                alert(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Request failed');
+            }
+        });
+        return false;
+    }
     function openCreateMenuModal() {
-        if (!canEdit || !selectedRoleId) return;
-        openMenuModal('create');
+        if (!canEdit) return;
+        openCascadeMenuModal();
     }
 
     function openEditMenuModal() {

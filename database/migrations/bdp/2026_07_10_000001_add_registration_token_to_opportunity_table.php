@@ -8,6 +8,10 @@ class AddRegistrationTokenToOpportunityTable extends Migration
 {
     public function up()
     {
+        if (!Schema::hasTable('opportunity') || Schema::hasColumn('opportunity', 'registration_token')) {
+            return;
+        }
+
         Schema::table('opportunity', function (Blueprint $table) {
             $table->string('registration_token', 64)->nullable()->unique()->after('Reason');
             $table->timestamp('token_expires_at')->nullable()->after('registration_token');
