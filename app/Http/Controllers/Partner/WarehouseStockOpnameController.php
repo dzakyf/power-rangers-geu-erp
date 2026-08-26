@@ -14,6 +14,16 @@ class WarehouseStockOpnameController extends Controller
 {
     const ADJUSTMENT_THRESHOLD = 0.03;
 
+    /**
+     * @var \App\Services\WarehouseService
+     */
+    private $warehouseService;
+
+    public function __construct(\App\Services\WarehouseService $warehouseService)
+    {
+        $this->warehouseService = $warehouseService;
+    }
+
     public function indexStockOpname()
     {
         return view('partner.warehouse.stock-opname');
@@ -69,8 +79,9 @@ class WarehouseStockOpnameController extends Controller
             $highest = WarehouseStockOpname::max('ID') ?? 0;
             $opnameNumber = 'WSO-' . date('Y') . '/' . str_pad(date('m'), 2, '0', STR_PAD_LEFT) . '-' . str_pad($highest + 1, 4, '0', STR_PAD_LEFT);
 
-            // Determine system quantity for this warehouse
-            $systemQty = $r->system_qty ?? 0;
+            // System quantity is always computed from the stock ledger
+            // (stock-in - stock-out); the client-supplied value is ignored.
+            $systemQty = $this->warehouseService->containerSystemQty($r->container_id);
 
             $opname = WarehouseStockOpname::create([
                 'Opname_Number' => $opnameNumber,
@@ -264,5 +275,22 @@ class WarehouseStockOpnameController extends Controller
             ->get();
 
         return response()->json(['data' => $adjustments]);
+    }
+
+    /**
+     * Computed (pure ledger) system quantity for a container, for the
+     * readonly auto-filled field on the opname creation form.
+     */
+    public function getSystemQuantity(Request $r)
+    {
+        $containerId = $r->query('container_id');
+        if (!$containerId || !is_numeric($containerId)) {
+            return response()->json(['success' => false, 'message' => 'container_id required'], 400);
+        }
+
+        return response()->json([
+            'success'   => true,
+            'system_qty' => $this->warehouseService->containerSystemQty((int) $containerId),
+        ]);
     }
 }

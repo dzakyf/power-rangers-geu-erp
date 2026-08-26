@@ -38,10 +38,8 @@
                             <label for="opname_date">Opname Date</label>
                             <input type="date" class="form-control" id="opname_date" name="opname_date" value="{{ date('Y-m-d') }}">
                         </div>
-                        <div class="form-group">
-                            <label for="system_qty">System Quantity (L)</label>
-                            <input type="number" step="0.01" class="form-control" id="system_qty" name="system_qty" value="0">
-                        </div>
+                            <label for="system_qty">System Quantity (L) <small class="text-muted">(auto from stock ledger)</small></label>
+                            <input type="number" step="0.01" class="form-control" id="system_qty" name="system_qty" value="0" readonly>
                         <div class="form-group">
                             <label for="notes">Notes</label>
                             <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
@@ -68,6 +66,16 @@
             $.each(res.data || [], function(_, item) {
                 var label = item.warehouse_task_id + ' — ' + item.warehouse_location;
                 $wh.append($('<option>', { value: item.id, text: label }));
+            });
+        });
+
+        // System quantity is computed server-side from the stock ledger;
+        // the input is readonly and auto-fills when a container is picked.
+        $('#container_id').on('change', function() {
+            var cid = $(this).val();
+            if (!cid) { $('#system_qty').val(0); return; }
+            $.get('partner-warehouse-stock-opname-systemqty', { container_id: cid }, function(res) {
+                $('#system_qty').val(res.success ? res.system_qty : 0);
             });
         });
 

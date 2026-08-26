@@ -82,6 +82,8 @@ class LeadsController extends Controller
         DB::table('opportunity')->where('ID', $id)->update([
             'Full_Name'          => $r->input('Full_Name'),
             'Phone_Number'       => $r->input('Phone_Number'),
+            'KTP'                => $r->input('KTP'),
+            'NPWP'               => $r->input('NPWP'),
             'Hub_Type'           => $r->input('Hub_Type'),
             'Capital_Estimation' => $array[$r->input('Capital_Estimation')] ?? 0,
             'Source_Channel'     => $r->input('Source_Channel'),

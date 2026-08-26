@@ -18,6 +18,15 @@
                 </div>
 
                 <div class="col-md-6 mt-3">
+                    <label for="KTP">KTP</label>
+                    <input type="text" id="KTP" name="KTP" class="form-control" maxlength="100" value="{{ old('KTP') }}" />
+                </div>
+                <div class="col-md-6 mt-3">
+                    <label for="NPWP">NPWP</label>
+                    <input type="text" id="NPWP" name="NPWP" class="form-control" maxlength="100" value="{{ old('NPWP') }}" />
+                </div>
+
+                <div class="col-md-6 mt-3">
                     <label for="Partnership_Interest">Tipe Hub</label>
                     <select class="form-control" name="Hub_Type" id="Hub_Type">
                         <option value="" selected disabled>-- Pilih Jenis Produk --</option>
@@ -172,6 +181,8 @@
                 $('#Task_ID').val(data.Task_ID);
                 $('#Full_Name').val(data.Full_Name);
                 $('#Phone_Number').val(data.Phone_Number);
+                $('#KTP').val(data.KTP);
+                $('#NPWP').val(data.NPWP);
                 // $('#Partnership_Interest').val('Opsi ' + data.Partnership_Interest);
                 $('#Hub_Type').val(data.Hub_Type);
                 $('#Capital_Estimation').val(capitalEstimationMap[data.Capital_Estimation] || data.Capital_Estimation);
