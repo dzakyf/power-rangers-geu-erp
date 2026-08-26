@@ -152,6 +152,9 @@ Route::group(['middleware' => 'usersession'], function () {
         // Uses User Session Middleware
     });
 });
+
+$chatPref = "partner-chat";
+Route::post("$chatPref-fetch-new", [PartnerChatListController::class, 'fetchNewMessages']);
 Route::group(['middleware' => 'log.access'], function () {
     Route::get('/dashboard-history-proforma', function () {
         return view('dashboard.history-proforma');
@@ -4839,6 +4842,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$warehousePref-audit-get-nomor", [PartnerWarehouseAuditController::class, 'getNomorWarehouseAudit']);
     Route::post("$warehousePref-stock-opname-add-adjustment", [PartnerWarehouseStockOpnameController::class, 'addAdjustment']);
     Route::get("$warehousePref-stock-opname-adjustment-data",  [PartnerWarehouseStockOpnameController::class, 'getOpnameAdjustments']);
+    Route::get("$warehousePref-stock-opname-systemqty",        [PartnerWarehouseStockOpnameController::class, 'getSystemQuantity']);
 
     Route::post("$warehousePref-audit-get-temuan", [PartnerWarehouseAuditController::class, 'getTemuan']);
 
@@ -4877,7 +4881,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$chatPref-list", [PartnerChatListController::class, 'chatList']);
     Route::get("$chatPref-messages-{conversation}", [PartnerChatListController::class, 'getMessages']);
     Route::post("$chatPref-send", [PartnerChatListController::class, 'sendMessage']);
-    Route::post("$chatPref-fetch-new", [PartnerChatListController::class, 'fetchNewMessages']);
     Route::post("$chatPref-load-older", [PartnerChatListController::class, 'loadOlder']);
     Route::post("$chatPref-mark-read", [PartnerChatListController::class, 'markRead']);
     Route::post("$chatPref-check-read", [PartnerChatListController::class, 'checkRead']);
@@ -5575,6 +5578,11 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("xml-$hcProcurementPref-detail", [HCGAProcurementController::class, 'detailXml']);
     Route::get("$hcProcurementPref-log", [HCGAProcurementController::class, 'log']);
     Route::get("xml-$hcProcurementPref-log", [HCGAProcurementController::class, 'logData']);
+    
+    $hcProcurementApprovalPref = "$hcProcurementPref-approval";
+    Route::get("$hcProcurementApprovalPref-index", [HCGAProcurementApprovalController::class, 'index']);
+    Route::get("$hcProcurementApprovalPref-data", [HCGAProcurementApprovalController::class, 'data']);
+    Route::get("$hcProcurementApprovalPref-detail", [HCGAProcurementApprovalController::class, 'detail']);
 
     $isccTraceabilityPref = "cns-iscc-traceability";
     Route::get("$isccTraceabilityPref-index", [ISCCTraceabilityController::class, 'index'])->name($isccTraceabilityPref . '.index');

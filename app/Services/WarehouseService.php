@@ -11,6 +11,24 @@ use App\MasterWarehouseAccount;
 
 class WarehouseService
 {
+    /**
+     * Pure-ledger system quantity for a container:
+     * SUM(stock-in received_qty) - SUM(outstock Actual_Qty), floored at 0.
+     * This is the single source of truth for "System Quantity" everywhere.
+     */
+    public function containerSystemQty($containerId): float
+    {
+        $in = DB::table('warehouse_partner_supplies')
+            ->where('Container_ID', $containerId)
+            ->sum('received_qty');
+
+        $out = DB::table('outstock_loading')
+            ->where('Container_ID', $containerId)
+            ->sum('Actual_Qty');
+
+        return max(0, (float) $in - (float) $out);
+    }
+
     public function calculateMonthlyFinancialStatement(
         string $warehouseTaskId,
         ?string $dateStart = null,

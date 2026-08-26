@@ -20,11 +20,12 @@ class UCOController extends Controller
     private $userService;
     private $generatorService;
     private $uploadService;
-    public function __construct(UserService $u, GeneratorService $g, UploadService $up)
+    public function __construct(UserService $u, GeneratorService $g, UploadService $up, \App\Services\WarehouseService $ws)
     {
         $this->userService = $u;
         $this->generatorService = $g;
         $this->uploadService = $up;
+        $this->warehouseService = $ws;
     }
 
     public function indexInboundSource()
@@ -2606,22 +2607,19 @@ class UCOController extends Controller
             ->where('Outstock_ID', $id)
             ->get();
 
-        // Calculate System Qty per container from latest opname minus outstock since
+        // System Qty per container = pure stock ledger (stock-in - stock-out),
+        // adjusted to the PRE-document state: rows belonging to THIS outstock
+        // are added back so the readonly field never counts this doc against
+        // itself, and missing opnames can no longer force it to zero.
+        $ownDocQtyByContainer = DB::table('outstock_loading')
+            ->where('Outstock_ID', $id)
+            ->selectRaw('Container_ID, SUM(Actual_Qty) AS qty')
+            ->groupBy('Container_ID')
+            ->pluck('qty', 'Container_ID');
+
         foreach ($loading as $l) {
-            $latestOpname = DB::table('warehouse_stock_opnames')
-                ->where('Container_ID', $l->Container_ID)
-                ->orderBy('Created_At', 'desc')
-                ->first(['Physical_Qty', 'Created_At']);
-
-            $opnameQty = $latestOpname ? $latestOpname->Physical_Qty : 0;
-            $since = $latestOpname ? $latestOpname->Created_At : '1970-01-01';
-
-            $outstockSince = DB::table('outstock_loading')
-                ->where('Container_ID', $l->Container_ID)
-                ->where('Created_At', '>', $since)
-                ->sum('Actual_Qty');
-
-            $l->System_Qty = max(0, $opnameQty - $outstockSince);
+            $own = (float) ($ownDocQtyByContainer[$l->Container_ID] ?? 0);
+            $l->System_Qty = $this->warehouseService->containerSystemQty($l->Container_ID) + $own;
         }
 
         $handover = DB::table('outstock_handover')
@@ -2644,6 +2642,26 @@ class UCOController extends Controller
 
         try {
             DB::beginTransaction();
+
+            // Snapshot the PRE-document system quantity: current ledger plus
+            // whatever this document itself previously loaded (rows that are
+            // about to be deleted). First submits and resubmits therefore
+            // store the same stable baseline.
+            $ownQtyByContainer = DB::table('outstock_loading')
+                ->where('Outstock_ID', $outstockId)
+                ->selectRaw('Container_ID, SUM(Actual_Qty) AS qty')
+                ->groupBy('Container_ID')
+                ->pluck('qty', 'Container_ID');
+
+            $systemQtyByContainer = [];
+            foreach ($rows as $row) {
+                $cid = $row['container_id'];
+                if (!array_key_exists($cid, $systemQtyByContainer)) {
+                    $own = (float) ($ownQtyByContainer[$cid] ?? 0);
+                    $systemQtyByContainer[$cid] = $this->warehouseService->containerSystemQty($cid) + $own;
+                }
+            }
+
             DB::table('outstock_loading')->where('Outstock_ID', $outstockId)->delete();
 
             foreach ($rows as $row) {
@@ -2651,7 +2669,7 @@ class UCOController extends Controller
                     'Outstock_ID'  => $outstockId,
                     'Container_ID' => $row['container_id'],
                     'Date'         => $row['date'],
-                    'System_Qty'   => 0,
+                    'System_Qty'   => $systemQtyByContainer[$row['container_id']],
                     'Actual_Qty'   => $row['actual_qty'] ?? 0,
                     'Notes'        => $row['notes'] ?? '',
                     'Created_At'   => now(),
