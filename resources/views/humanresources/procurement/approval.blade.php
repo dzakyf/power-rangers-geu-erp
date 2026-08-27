@@ -47,6 +47,10 @@
 		PurchaseManagement.attachEvent("onRowDblClicked", PurchaseManagementDoubleClick);
 		PurchaseManagement.setSkin("dhx_skyblue");
 		PurchaseManagement.init();
-		PurchaseManagement.loadXML("hrd-procurement-approval-data");
+		refreshData();
+		function refreshData()
+		{
+			PurchaseManagement.clearAndLoad("hrd-procurement-approval-data");
+		}
 		</script>
 @endsection
