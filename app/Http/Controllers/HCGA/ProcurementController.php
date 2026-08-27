@@ -224,30 +224,45 @@ class ProcurementController extends Controller
             $param[$idenya[0]] = $idenya[1];
             
         }
-        $checkids = explode(",",$param["ids"]);
+        $checkids = explode(",", $param["ids"]);
         $PR_No = $request->PR_No;
 
-        for ($i=0; $i < sizeof($checkids); $i++) {
+        // === PROTEKSI: Jangan izinkan perubahan grid setelah PR di-APPROVED ===
+        $prStatus = DB::table('purchase_request')->where("PR_No", $PR_No)->value('Status');
+        if ($prStatus == 'APPROVED') {
+            echo "<data>";
+            echo "<action type='error' sid='' tid=''/>";
+            echo "</data>";
+            return;
+        }
+
+        for ($i = 0; $i < sizeof($checkids); $i++) {
             $action = "";
-            $rowId = $checkids[$i]; //id or row which was updated 
-            $newId = $rowId; //will be used for insert operation	
-            $mode = $param[$rowId."_!nativeeditor_status"]; 
-            switch($mode){
+            $rowId = $checkids[$i]; //id or row which was updated
+            $newId = $rowId; //will be used for insert operation
+            $mode = $param[$rowId . "_!nativeeditor_status"];
+            switch ($mode) {
                 case "inserted":
-                    $action = $this->insertDetail($rowId,$param, $PR_No);
+                    $action = $this->insertDetail($rowId, $param, $PR_No);
                     break;
             }
-            echo "<action type='".$action."' sid='".$rowId."' tid='".$newId."'/>";	
+            echo "<action type='" . $action . "' sid='" . $rowId . "' tid='" . $newId . "'/>";
         }
         echo "</data>";
     }
 
     function insertDetail(string $rowId, array $param, string $PR_No) {
         $LSP = Auth::user()->Location;
-        $Saya =  Auth::user()->username;
-        $NIK =  Auth::user()->Emp_ID;
+        $Saya = Auth::user()->username;
+        $NIK = Auth::user()->Emp_ID;
 
-        $a = $param[$rowId."_c1"];
+        // === PROTEKSI: Jangan izinkan insert detail setelah PR di-APPROVED ===
+        $prStatus = DB::table('purchase_request')->where("PR_No", $PR_No)->value('Status');
+        if ($prStatus == 'APPROVED') {
+            return "error";
+        }
+
+        $a = $param[$rowId . "_c1"];
         $b = $param[$rowId."_c2"];
         $c = $param[$rowId."_c3"];
         $d = $param[$rowId."_c4"];
@@ -306,7 +321,14 @@ class ProcurementController extends Controller
         $LSP = Auth::user()->Location;
         $Saya = Auth::user()->username;
 
-        $a = $param[$rowId."_c1"];
+        // === PROTEKSI: Jangan izinkan update detail setelah PR di-APPROVED ===
+        $prd = DB::table('purchase_request_dtl')->where("ID", $rowId)->first();
+        $prStatus = DB::table('purchase_request')->where("PR_No", $prd->PR_No)->value('Status');
+        if ($prStatus == 'APPROVED') {
+            return "error";
+        }
+
+        $a = $param[$rowId . "_c1"];
         $b = $param[$rowId."_c2"];
         $c = $param[$rowId."_c3"];
         $d = $param[$rowId."_c4"];
@@ -501,7 +523,14 @@ class ProcurementController extends Controller
     
             $Saya = Auth::User()->username;
             $LSP = Auth::user()->Location;
-    
+
+            // === PROTEKSI: Jangan izinkan perubahan setelah PR di-APPROVED ===
+            $prStatus = DB::table('purchase_request')->where("PR_No", $request->PR_No)->value('Status');
+            if ($prStatus == 'APPROVED') {
+                DB::rollBack();
+                return response()->json(['status' => 'error', 'message' => 'PR sudah di-APPROVED. Tidak dapat melakukan perubahan data.'], 403);
+            }
+
             DB::table('purchase_request')->where("PR_No", $request->PR_No)->update($arr);
             DB::table('purchase_request_dtl')->where("PR_No", $request->PR_No)->update([
                 'Product_Desc' => $request->Product_Desc,
@@ -548,7 +577,7 @@ class ProcurementController extends Controller
     public function detailUpdate(Request $request)
     {
         header("Content-type: text/xml");
-        echo('<?xml version="1.0" encoding="iso-8859-1"?>'); 
+        echo('<?xml version="1.0" encoding="iso-8859-1"?>');
 
         error_reporting(E_ALL ^ E_NOTICE);
 
@@ -556,34 +585,43 @@ class ProcurementController extends Controller
 
         $request_body = urldecode(file_get_contents('php://input'));
 
-        $ids = explode("&",$request_body);
+        $ids = explode("&", $request_body);
         $param = [];
-        foreach($ids as $datax){
-            
-            $idenya = explode("=",$datax);
+        foreach ($ids as $datax) {
+
+            $idenya = explode("=", $datax);
             $param[$idenya[0]] = $idenya[1];
-            
+
         }
-        $checkids = explode(",",$param["ids"]);
+        $checkids = explode(",", $param["ids"]);
         $PR_No = $request->PR_No;
 
-        for ($i=0; $i < sizeof($checkids); $i++) {
+        // === PROTEKSI: Jangan izinkan perubahan grid setelah PR di-APPROVED ===
+        $prStatus = DB::table('purchase_request')->where("PR_No", $PR_No)->value('Status');
+        if ($prStatus == 'APPROVED') {
+            echo "<data>";
+            echo "<action type='error' sid='' tid=''/>";
+            echo "</data>";
+            return;
+        }
+
+        for ($i = 0; $i < sizeof($checkids); $i++) {
             $action = "";
-            $rowId = $checkids[$i]; //id or row which was updated 
-            $newId = $rowId; //will be used for insert operation	
-            $mode = $param[$rowId."_!nativeeditor_status"]; 
-            switch($mode){
+            $rowId = $checkids[$i];
+            $newId = $rowId;
+            $mode = $param[$rowId . "_!nativeeditor_status"];
+            switch ($mode) {
                 case "inserted":
-                    $action = $this->insertDetail($rowId,$param, $PR_No);
+                    $action = $this->insertDetail($rowId, $param, $PR_No);
                     break;
                 case "updated":
-                    $action = $this->updateDetail($rowId,$param, $PR_No);
+                    $action = $this->updateDetail($rowId, $param);
                     break;
                 case "deleted":
-                    $action = $this->deleteDetail($rowId,$param, $PR_No);
+                    $action = "delete";
                     break;
             }
-            echo "<action type='".$action."' sid='".$rowId."' tid='".$newId."'/>";	
+            echo "<action type='" . $action . "' sid='" . $rowId . "' tid='" . $newId . "'/>";
         }
         echo "</data>";
     }
@@ -637,4 +675,89 @@ class ProcurementController extends Controller
 
         echo "</rows>";
     }
+
+    /**
+     * Approve Changes - Creator menyetujui perubahan yang dilakukan approver
+	 * Flow: Approver ubah data → PR ke CHANGES_REVIEWED_BY_CREATOR → Creator approve → lanjut ke tahap berikutnya
+	 */
+	public function approveChanges(Request $request)
+	{
+		try {
+			DB::beginTransaction();
+
+			$PR_No = $request->PR_No;
+			$Saya = Auth::User()->username;
+			$LSP = Auth::user()->Location;
+
+			$pr = DB::table('purchase_request')->where('PR_No', $PR_No)->first();
+
+			if (!$pr) {
+				return response()->json(['status' => 'error', 'message' => 'PR tidak ditemukan'], 404);
+			}
+
+			// Verifikasi bahwa user adalah creator
+			if ($pr->Created_By != $Saya) {
+				return response()->json(['status' => 'error', 'message' => 'Hanya creator PR yang dapat menyetujui perubahan'], 403);
+			}
+
+			// Verifikasi status
+			if ($pr->Status != 'CHANGES_REVIEWED_BY_CREATOR') {
+				return response()->json(['status' => 'error', 'message' => 'PR tidak dalam status CHANGES_REVIEWED_BY_CREATOR'], 400);
+			}
+
+			// Update status: kembali ke tahap approval berikutnya
+			// Jika PR berasal dari HCGA → APPROVAL_GA, jika bukan → APPROVAL_UPPER
+			if ($pr->Approval_Department == 'HCGA') {
+				$nstatus = 'APPROVAL_GA';
+			} else {
+				$nstatus = 'APPROVAL_UPPER';
+			}
+
+			$data = [
+				'Status' => $nstatus,
+				'Note' => $pr->Note . date("Y-m-d H:i:s") . " => Creator menyetujui perubahan. PR kembali ke tahap approval.\n",
+			];
+
+			DB::table('purchase_request')->where('ID', $pr->ID)->update($data);
+
+			// Log perubahan
+			DB::table('purchase_request_log')->insert([
+				'PR_No' => $PR_No,
+				'Action_By' => $Saya,
+				'Action_Date' => now(),
+				'Action_Status' => "CREATOR_APPROVED_CHANGES: PR dikembalikan ke tahap approval $nstatus",
+				'Last_ID' => $pr->ID,
+				'Category' => $pr->Category,
+				'Sub_Category' => $pr->Sub_Category,
+				'Supplies_Type' => $pr->Supplies_Type,
+				'Note' => $pr->Note,
+				'Reference' => $pr->Reference,
+			]);
+
+			// Notifikasi ke approver selanjutnya
+			$getlevel = DB::table('level_general')->where("Status_Approval", "LIKE", "%$nstatus%")->first();
+			$getupper = DB::table("organization_structure")->where("Level" . $getlevel->Level, 1)
+				->where("Department", $pr->Approval_Department)
+				->first();
+
+			if ($getupper) {
+				$us = DB::table('users')->where("Emp_ID", $getupper->NIK)->select("id")->first();
+				(new NotificationService)->makeNotification(
+					"PR {$PR_No} Kembali ke Approval",
+					"PR {$PR_No} telah disetujui oleh creator. Silahkan lanjutkan approval.",
+					'approval',
+					Auth::user()->id,
+					$us->id
+				);
+			}
+
+			DB::commit();
+			echo "success";
+		} catch (\Throwable $th) {
+			DB::rollBack();
+			Log::error($th);
+			return response()->json(['status' => 'error', 'message' => $th->getMessage()], 500);
+		}
+	}
+
 }

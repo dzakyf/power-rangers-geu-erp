@@ -14,9 +14,8 @@ class ImportTraceabilityCsv extends Command
 
     protected $description = 'Import UCO pickup-app CSV exports into ISCC traceability (EXTERNAL) tables';
 
-    protected $supPoolByCity = [];
-    protected $supPoolByProvince = [];
-    protected $anyPoolByCity = [];
+    protected $nonSupPoolByCity = [];
+    protected $nonSupPoolByProvince = [];
     protected $supplierById = [];
 
     // BPS province codes present in the dataset
@@ -89,7 +88,7 @@ class ImportTraceabilityCsv extends Command
 
     const PICKUP_STATUS = ['4' => 'DONE', '3' => 'PROGRESS', '2' => 'PROGRESS', '1' => 'CANCELLED', '0' => 'CANCELLED'];
 
-    const DAILY_CAP_KG = 5000; // max kg attributed to a single date when day-spreading
+    const DAILY_CAP_KG = 1200; // max kg attributed to a single date when day-spreading
     const SUPPLIER_JENIS = 'SUPPLIER';
 
     public function handle()
@@ -134,15 +133,15 @@ class ImportTraceabilityCsv extends Command
 
         $this->supplierById = $suppliers;
 
-        // name pools for randomized POO identities
+        // name pools for randomized POO identities (only non-SUPPLIER jenis)
         foreach ($suppliers as $s) {
             $isSup = trim($s['jenis'] ?? '') === self::SUPPLIER_JENIS;
+            if ($isSup) { continue; }
             if ($s['kota_id'] ?? null) {
-                if ($isSup) { $this->supPoolByCity[$s['kota_id']][] = $s['id']; }
-                $this->anyPoolByCity[$s['kota_id']][] = $s['id'];
+                $this->nonSupPoolByCity[$s['kota_id']][] = $s['id'];
             }
-            if ($isSup && ($s['provinsi_id'] ?? null)) {
-                $this->supPoolByProvince[$s['provinsi_id']][] = $s['id'];
+            if ($s['provinsi_id'] ?? null) {
+                $this->nonSupPoolByProvince[$s['provinsi_id']][] = $s['id'];
             }
         }
 
@@ -410,7 +409,7 @@ class ImportTraceabilityCsv extends Command
     }
 
     /**
-     * Split a delivery total into daily chunks, each <= DAILY_CAP_KG (5,000 kg).
+     * Split a delivery total into daily chunks, each <= DAILY_CAP_KG (1,200 kg).
      * Sum of chunks always equals the input total (0.01 kg precision).
      * @return float[]
      */
@@ -440,9 +439,9 @@ class ImportTraceabilityCsv extends Command
     }
 
     /**
-     * Deterministically pick N real supplier ids (jenis=SUPPLIER preferred) to name
+     * Deterministically pick N real supplier ids (jenis != SUPPLIER) to name
      * split POO fragments, preferring suppliers in the same city as the collection.
-     * Falls back: same-province SUPPLIER -> same-city any-jenis -> repeats with suffix.
+     * Falls back: same-province non-SUPPLIER -> repeats with suffix.
      * @return int[] length = $n
      */
     protected function pickNames(array $sup, int $n): array
@@ -452,14 +451,11 @@ class ImportTraceabilityCsv extends Command
         $prov = $sup['provinsi_id'] ?? '';
 
         $pools = [];
-        if ($city && isset($this->supPoolByCity[$city])) {
-            $pools[] = array_values(array_diff($this->supPoolByCity[$city], [$self]));
+        if ($city && isset($this->nonSupPoolByCity[$city])) {
+            $pools[] = array_values(array_diff($this->nonSupPoolByCity[$city], [$self]));
         }
-        if ($prov && isset($this->supPoolByProvince[$prov])) {
-            $pools[] = array_values(array_diff($this->supPoolByProvince[$prov], [$self]));
-        }
-        if ($city && isset($this->anyPoolByCity[$city])) {
-            $pools[] = array_values(array_diff($this->anyPoolByCity[$city], [$self]));
+        if ($prov && isset($this->nonSupPoolByProvince[$prov])) {
+            $pools[] = array_values(array_diff($this->nonSupPoolByProvince[$prov], [$self]));
         }
 
         mt_srand(crc32($sup['id'] . '|' . $city));

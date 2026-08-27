@@ -10,6 +10,7 @@
 				<div class="row">
 					<div class="col-md-3 form-group">
 						<label for="PR_No" class="font-weight-bold">PR No</label>
+						<input type="hidden" id="ID" name="ID" readonly value="<?php echo $pr->ID; ?>" />
 						<input type="text" id="PR_No" class="form-control form-control-sm shadow-sm bg-light" readonly value="<?php echo $pr->PR_No; ?>" />
 					</div>
 					<div class="col-md-3 form-group">
@@ -32,7 +33,7 @@
 						<select id="Department" class="form-control form-control-sm shadow-sm">
 							<?php
 							foreach ($Department as $Data) {
-								echo "<option value='$Data->Initial' ". ($pr->Department == $Data->Initial ? 'selected' : '') .">$Data->Department - $Data->Initial_Code - $Data->Initial</option>";
+								echo "<option value='$Data->Initial' ". ($pr->Department == $Data->Initial ? 'selected' : '').">$Data->Department - $Data->Initial_Code - $Data->Initial</option>";
 							}
 							?>
 						</select>
@@ -117,6 +118,15 @@
 					</div>
 				</div>
 
+				<div class="row">
+					<div class="col-12">
+						<div class="form-group">
+							<label for="Remark">Approval Note</label>
+							<textarea name="Remark" id="Remark" rows="3" class="form-control form-control-sm shadow-sm"></textarea>
+						</div>
+					</div>
+				</div>
+
 				<!-- Grid DHTMLX Container -->
 				<div class="form-group d-none">
 					<label class="font-weight-bold">Item Details</label>
@@ -131,9 +141,21 @@
 					<button type="button" id="DelPRDetail" class="btn btn-danger btn-sm mr-2 d-none">
 						<i class="fa fa-trash"></i> Delete
 					</button>
-					<button type="button" id="SubmitPRDetail" class="btn btn-success btn-sm">
-						<i class="fa fa-check"></i> Update
-					</button>
+					@if($pr->Status == 'CHANGES_REVIEWED_BY_CREATOR')
+						<button type="button" id="SubmitPRDetailApproveChanges" onclick="approvalFunc(3)" class="btn btn-warning btn-sm mx-2">
+							<i class="fa fa-check-circle"></i> Approve Changes
+						</button>
+						<button type="button" id="SubmitPRDetailReject" onclick="approvalFunc(2)" class="btn btn-danger btn-sm mx-2">
+							<i class="fa fa-times"></i> Reject
+						</button>
+					@else
+						<button type="button" id="SubmitPRDetailReject" onclick="approvalFunc(2)" class="btn btn-danger btn-sm mx-2">
+							<i class="fa fa-times"></i> Reject
+						</button>
+						<button type="button" id="SubmitPRDetail" onclick="approvalFunc(1)" class="btn btn-success btn-sm mx-2">
+							<i class="fa fa-check"></i> Approve
+						</button>
+					@endif
 				</div>
 
 				<div id="WinCOA"></div>
@@ -145,18 +167,18 @@
 <script src="{{ asset('jquery.coolautosuggest.js') }}"></script>
 <script src="{{ asset('jquery.coolfieldset.js') }}"></script>
 	<script>
-		// $("#Supplier_ID").coolautosuggest({
+		// $(\"#Supplier_ID\").coolautosuggest({
 
-		// 	url: "search-supplier?Procode=1&chars=",
+		// 	url: \"search-supplier?Procode=1&chars=\",
 		// 	showThumbnail: false,
 		// 	showDescription: true,
-		// 	idField: $("#Supplier_ID"),
+		// 	idField: $(\"#Supplier_ID\"),
 		// 	width: 700,
 		// 	minChars: 1,
 		// 	onSelected: function(result) {
 		// 		if (result != null) {
-		// 			$("#Supplier_ID").val(result.id);
-		// 			$("#Supplier_Name").val(result.data);
+		// 			$(\"#Supplier_ID\").val(result.id);
+		// 			$(\"#Supplier_Name\").val(result.data);
 
 
 		// 		}
@@ -267,14 +289,14 @@
                 loadPR_Product('Product Lists', 'hrd-procurement-product', 1024, 450);
             return true;
         }
-		$("#DelPRDetail").click(function() {
+		$("#DelPRDetail").click(function(){
 
 			PRDetail.deleteSelectedRows();
 
 		})
 
 
-		$("#SubmitPRDetail").click(function() {
+		function approvalFunc(stat) {
 			Reference = $("#Reference").val();
 			Remark = $("#Remark").val();
 			Department = $("#Department").val();
@@ -305,15 +327,20 @@
 				alert("Kolom nomor telepon (PIC Phone) Harus Diisi!");
 				$("#PIC_Phone").focus();
 				return false;
-			} else if (Estimated_Budget == '') {
+			} else if (Estimated_Budget == '' || Estimated_Budget == 0) {
 				alert("Kolom Estimated_Budget Harus Diisi!");
 				$("#Estimated_Budget").focus();
 				return false;
+			}  else if (Remark == '' || Remark.length < 3) {
+				alert("Kolom Approval Note Harus Diisi!");
+				$("#Remark").focus();
+				return false;
 			} else {
-				// PPRDetail.sendData();
 				$.blockUI();
 
 				dapat = getAllValues();
+				dapat['stat'] = stat;
+				dapat['Action'] = stat == 3 ? 'APPROVE_CHANGES' : (stat == 2 ? 'REJECT' : 'APPROVE');
 				$.ajax({
 					headers: {
 						'X-CSRF-TOKEN': "{{ csrf_token() }}"
@@ -324,27 +351,31 @@
 					data: dapat,
 					success: function(data, textStatus, jqXHR) {
 						if (data == 'success') {
-							alert('Purchase Request Updated with no  <?php echo $pr->PR_No ?>!');
-
+							if (stat == 3) {
+								alert('Perubahan data PR No <?php echo $pr->PR_No ?> telah disetujui. PR akan kembali ke tahap approval berikutnya.');
+							} else if (stat == 2) {
+								alert('Purchase Request REJECTED! Silahkan perbaiki data dan submit kembali.');
+							} else {
+								alert('Purchase Request Approved! PR No <?php echo $pr->PR_No ?>');
+							}
 							setTimeout(function() {
 								$.unblockUI();
 								refreshData();
 								$('#PurchaseManagementDiv').html("");
 							}, 1000);
-
 						} else {
-
+							alert('Gagal: ' + data);
+							$.unblockUI();
 						}
 					},
 					error: function(jqXHR, textStatus, errorThrown) {
-						alert("error");
+						alert("error: " + errorThrown);
 						$.unblockUI();
 					}
 				});
-
-
 			}
-		});
+		}
+	};
 
 		function selesai() {
 			$.unblockUI();

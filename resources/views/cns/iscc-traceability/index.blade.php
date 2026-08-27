@@ -33,8 +33,9 @@
 			</form>
 			<div id="TraceGrid" style="width:auto;height:400px; background-color:white;overflow:hidden"></div>
 			<div>
-				<input type="button" id="editBtn" name="editBtn" value="Edit Data" class="btn btn-warning mt-2 mr-2" onclick="editSelected()" />
-				<input type="button" id="exportButton" name="exportButton" value="Print Doc" class="btn btn-info mt-2 mr-2" onclick="printOutData()" />
+				<input type="button" id="editBtn" name="editBtn" value="Edit Data" class="btn btn-primary mt-2 mr-2" onclick="editSelected()" />
+				<input type="button" id="printOutBtn" name="printOutBtn" value="Print Doc" class="btn btn-info mt-2 mr-2" onclick="printOutData()" />
+				<input type="button" id="exportBtn" name="exportBtn" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="TraceGrid.toExcel('./export/generate.php');" />
 			</div>
 		</div>
 	</div>
