@@ -87,10 +87,25 @@
 						<label for="Estimated_Budget" class="font-weight-bold">Estimated Budget</label>
 						<input type="text" id="Estimated_Budget" class="form-control form-control-sm shadow-sm" value="{{ $pr->Estimated_Budget }}" required />
 					</div>
-				</div>
+					</div>
 
-				<!-- Row 5: Specification -->
-				<div class="row">
+					<!-- Hidden fields for JS (Sub_Category, Purchase_Type, Date_Request) -->
+					<div class="row d-none">
+					<input type="hidden" id="Sub_Category" name="Sub_Category" value="{{ $pr->Sub_Category ?? '' }}" />
+					<input type="hidden" id="Purchase_Type" name="Supplies_Type" value="{{ $pr->Supplies_Type ?? '' }}" />
+					<input type="hidden" id="Date_Request" name="Date_Request" value="{{ date('Y-m-d', strtotime($pr->PR_Date)) }}" />
+					</div>
+
+					<!-- Row 4b: Approval Note (Remark) -->
+					<div class="row">
+						<div class="col-md-12 form-group">
+							<label for="Remark" class="font-weight-bold">Approval Note / Keterangan</label>
+							<textarea id="Remark" class="form-control form-control-sm shadow-sm" rows="3" placeholder="Catatan untuk approval...">{{ $pr->Note ?? '' }}</textarea>
+						</div>
+					</div>
+
+					<!-- Row 5: Specification -->
+					<div class="row">
 					<div class="col-md-12 form-group">
 						<div class="row">
 							<div class="col-md-3 col-12">

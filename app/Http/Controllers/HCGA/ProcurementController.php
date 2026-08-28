@@ -95,7 +95,7 @@ class ProcurementController extends Controller
             $arr = [];
             foreach ($_POST as $key => $value) {
     
-                if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail' && $key != 'Reference' && $key != 'Product_Desc' && $key != 'Specification' && $key != 'Qty' && $key != 'Unit' && $key != 'Description' && substr($key,0,2) != 't_') {
+                if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail' && $key != 'Reference' && $key != 'Product_Desc' && $key != 'Specification' && $key != 'Qty' && $key != 'Unit' && $key != 'Description' && substr($key,0,2) != 't_' && $key != 'undefined' && $key != 'GridData' && $key != 'RowCount') {
                     $value = trim($value);
                     $ars .= "$key = '$value',";
                     $ax .= "$key,";
@@ -138,19 +138,45 @@ class ProcurementController extends Controller
             $arr['Note'] = '';
             $arr['Approval_Department'] = $dept;
             $pr = DB::table('purchase_request')->insertGetId($arr);
-            $dtl = DB::table('purchase_request_dtl')->insert([
-                'PR_No' => $arr['PR_No'],
-                'Product_Desc' => $request->Product_Desc,
-                'Specification' => $request->Specification,
-                'Qty' => $request->Qty,
-                'Reference' => $request->Reference,
-                'Unit' => $request->Unit,
-                'Location' => $LSP,
-                'Purchase_Category' => $arr['Category'],
-                'Purchase_Type' => $arr['Category'],
-                'Category' => $arr['Category'],
-                'Product_Code' => "",
-            ]);
+
+            // === MULTI-PRODUCT: Insert dari GridData (JSON) ===
+            $gridDataJson = $request->input('GridData');
+            if (!empty($gridDataJson)) {
+                $gridData = json_decode($gridDataJson, true);
+                if (is_array($gridData) && count($gridData) > 0) {
+                    foreach ($gridData as $product) {
+                        DB::table('purchase_request_dtl')->insert([
+                            'PR_No' => $arr['PR_No'],
+                            'Product_Code' => $product['Product_Code'] ?? '',
+                            'Product_Desc' => $product['Product_Desc'] ?? '',
+                            'Qty' => $product['Qty'] ?? 0,
+                            'Specification' => $product['Specification'] ?? '',
+                            'Unit' => $product['Unit'] ?? 'PCS',
+                            'Default_Price' => isset($product['Price']) ? (float)$product['Price'] : 0,
+                            'Location' => $LSP,
+                            'Purchase_Category' => $arr['Category'] ?? '',
+                            'Purchase_Type' => $arr['Category'] ?? '',
+                            'Category' => $product['Category'] ?? $arr['Category'] ?? '',
+                            'Remark' => $product['Remark'] ?? '',
+                        ]);
+                    }
+                }
+            } else {
+                // Fallback untuk single product (jika tidak ada GridData)
+                DB::table('purchase_request_dtl')->insert([
+                    'PR_No' => $arr['PR_No'],
+                    'Product_Desc' => $request->Product_Desc ?? '',
+                    'Specification' => $request->Specification ?? '',
+                    'Qty' => $request->Qty ?? 0,
+                    'Reference' => $request->Reference ?? '',
+                    'Unit' => $request->Unit ?? 'PCS',
+                    'Location' => $LSP,
+                    'Purchase_Category' => $arr['Category'] ?? '',
+                    'Purchase_Type' => $arr['Category'] ?? '',
+                    'Category' => $arr['Category'] ?? '',
+                    'Product_Code' => '',
+                ]);
+            }
             try {
                 $arrLog = $arr;
                 $arrLog['Action_By'] = $Saya;
@@ -160,7 +186,7 @@ class ProcurementController extends Controller
         
                 DB::table('purchase_request_log')->insert($arrLog);
             
-                DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$_POST[PR_No]', '$_POST[Category]', '', '', 'PURCHASE-REQUEST', 'status', '$_POST[Specification]', NOW(), '$Saya')"));
+                DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$request->PR_No', '$request->Category', '', '', 'PURCHASE-REQUEST', 'status', '$request->Specification', NOW(), '$Saya')"));
     
                 echo "success";
             } catch (\Throwable $th) {
@@ -169,23 +195,23 @@ class ProcurementController extends Controller
             
             // DB::insert(DB::raw("INSERT INTO purchase_request($ax,Status,Created_By,Location,Approval_Date,Creator_Level,Note,Approval_Department) VALUES($isi,'$status','$Saya','$LSP',NOW(),1,'','$dept')"));
     
-            (new NotificationService)->makeNotification('PR APPROVAL', "PR {$_POST['PR_No']} Need to be Approved", 'approval', Auth::user()->id ?? null, $us->id ?? null);
+            (new NotificationService)->makeNotification('PR APPROVAL', "PR {$request->PR_No} Need to be Approved", 'approval', Auth::user()->id ?? null, $us->id ?? null);
     
-            $subjek = "PURCHASE REQUEST APPROVAL REQUEST PR NO $_POST[PR_No] , Request By : $Name";
+            $subjek = "PURCHASE REQUEST APPROVAL REQUEST PR NO $request->PR_No , Request By : $Name";
             $badan = "<div style=\"font-family:arial;font-size:12px;\">Kepada Yth.<br><b>".($getupper->Name ?? '') ." </b><Br><br>
             
                         Mohon dilakukan approval untuk Purchase Request tersebut. Berikut Detail PR yang telah dibuat<br>
                         
-                        No PR : $_POST[PR_No]<br><br>
-                        Reference : $_POST[Reference]<br><br>
-                        Jenis Request : $_POST[Category]<br><br>
-                        Note : $_POST[Specification]<br>
+                        No PR : $request->PR_No<br><br>
+                        Reference : $request->Reference<br><br>
+                        Jenis Request : $request->Category<br><br>
+                        Note : $request->Specification<br>
                         
                         
                         Mohon dilakukan approval untuk Permintaan Purchase Request.
                         
                         <br><br>
-                        Anda dapat melakukan approval melalui link berikut ini :<a href=\'https://dev.hexamatika.com/geu/hcga/public/$link?ID=$_POST[PR_No]&linkkey=$linkkey\' >KLIK DISINI</a><br><br>
+                        Anda dapat melakukan approval melalui link berikut ini :<a href=\'https://dev.hexamatika.com/geu/hcga/public/$link?ID=$request->PR_No&linkkey=$linkkey\' >KLIK DISINI</a><br><br>
                         
                         
                         <br><br>
@@ -532,17 +558,21 @@ class ProcurementController extends Controller
             }
 
             DB::table('purchase_request')->where("PR_No", $request->PR_No)->update($arr);
-            DB::table('purchase_request_dtl')->where("PR_No", $request->PR_No)->update([
-                'Product_Desc' => $request->Product_Desc,
-                'Specification' => $request->Specification,
-                'Qty' => $request->Qty,
-                'Reference' => $request->Reference,
-                'Unit' => $request->Unit,
-                'Location' => $LSP,
-                'Purchase_Category' => $arr['Category'],
-                'Purchase_Type' => $arr['Category'],
-                'Category' => $arr['Category'],
-            ]);
+            // Update hanya baris detail yang tersinkronisasi oleh DHTMLX grid (atau produk pertama jika form biasa)
+            $firstDtl = DB::table('purchase_request_dtl')->where("PR_No", $request->PR_No)->first();
+            if ($firstDtl) {
+                DB::table('purchase_request_dtl')->where("ID", $firstDtl->ID)->update([
+                    'Product_Desc' => $request->Product_Desc,
+                    'Specification' => $request->Specification,
+                    'Qty' => $request->Qty,
+                    'Reference' => $request->Reference,
+                    'Unit' => $request->Unit,
+                    'Location' => $LSP,
+                    'Purchase_Category' => $arr['Category'],
+                    'Purchase_Type' => $arr['Category'],
+                    'Category' => $arr['Category'],
+                ]);
+            }
             try {
                 $prOld['Action_By'] = $Saya;
                 $prOld['Action_Date'] = now();
