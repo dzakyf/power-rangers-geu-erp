@@ -288,64 +288,6 @@ $leadID = $_GET['ID'];
             }
         });
         
-        $('#Province').select2({
-            placeholder: "Pilih Provinsi",
-            allowClear: true,
-            width: '100%',
-
-            ajax: {
-                url: 'province',
-                dataType: 'json',
-                type: "POST",
-                delay: 250,
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                processResults: function (data) {
-                    // Tranforms the top-level key of the response object from 'items' to 'results'
-                    return {
-                        results: $.map(data, function (item) {
-                            return {
-                                text: item.Province,
-                                id: item.Province
-                            };
-                        })
-                    };
-                },
-                cache: true,
-            }
-        }).on('change', function () {
-            $('#City').empty(); // clear previous options
-            $('#City').val(null).trigger('change'); // reset selection
-            $('#City').select2({
-                placeholder: "Pilih Kota",
-                allowClear: true,
-                width: '100%',
-                ajax: {
-                    url: function (params) {
-                        return 'city/' + btoa($('#Province').val());
-                    },
-                    dataType: 'json',
-                    type: "POST",
-                    delay: 250,
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    processResults: function (data) {
-                        // Tranforms the top-level key of the response object from 'items' to 'results'
-                        return {
-                            results: $.map(data, function (item) {
-                                return {
-                                    text: item.City,
-                                    id: item.City
-                                };
-                            })
-                        };
-                    },
-                    cache: true,
-                }
-            });
-        });
 	});
 
 	function isValidKey(e) {

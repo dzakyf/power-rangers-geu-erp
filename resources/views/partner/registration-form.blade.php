@@ -27,7 +27,6 @@
 
 </div>
 
-@push('registration-script')
 <script>
     $('input[name="Register_As"]').change(function() {
         var val = $(this).val();
@@ -47,9 +46,14 @@
     });
 
     function bindGpsButton(btnId, latId, lngId, statusId) {
+    function bindGpsButton(btnId, latId, lngId, statusId) {
+        function warnId() {
+            return btnId === '#btnGetGps' ? '#gpsWarning' : '#gpsWarningCompany';
+        }
         $(btnId).on("click", function() {
             if (!navigator.geolocation) {
                 $(statusId).text("Geolocation not supported").css("color", "red");
+                $(warnId()).show();
                 return;
             }
             var btn = this;
@@ -61,16 +65,21 @@
                     $(lngId).val(pos.coords.longitude);
                     $(statusId).text("Location acquired").css("color", "green");
                     $(btn).prop("disabled", false).text("Get GPS");
+                    $(warnId()).hide();
                 },
                 function(err) {
                     $(statusId).text("Error: " + err.message).css("color", "red");
                     $(btn).prop("disabled", false).text("Get GPS");
+                    // Permission denied / position unavailable / timeout:
+                    // tell the user to allow location access on their browser.
+                    if (err.code === 1 || err.code === 2 || err.code === 3) {
+                        $(warnId()).show();
+                    }
                 },
                 { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
         });
     }
-
     bindGpsButton("#btnGetGps", "#Latitude", "#Longitude", "#gpsStatus");
     bindGpsButton("#btnGetGpsCompany", "#Company_Latitude", "#Company_Longitude", "#gpsStatusCompany");
 
@@ -168,5 +177,5 @@
         initAddressChained('I_');
         initAddressChained('C_');
     }
-    initAddressChainedWhenReady();</script>
-@endpush
+    initAddressChainedWhenReady();
+</script>

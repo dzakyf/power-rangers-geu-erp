@@ -307,7 +307,11 @@ class ProcurementApprovalController extends Controller
                         break;
                     case "CHANGES_REVIEWED_BY_CREATOR":
                         // Creator sudah menyetujui perubahan, lanjutkan ke tahap approval berikutnya
-                        $nstatus = 'APPROVAL_UPPER';
+                        if ($dept == 'HCGA') {
+                            $nstatus = 'APPROVAL_GA';
+                        } else {
+                            $nstatus = 'APPROVAL_UPPER';
+                        }
                         break;
                     default:
                         $nstatus = 'CREATED';
@@ -316,11 +320,19 @@ class ProcurementApprovalController extends Controller
             }
         }
 
-        // Buat data update
+        // Buat data update — simpan semua perubahan yang dilakukan approver
         $data = [
-            'Note' => $cek->Note . date("Y-m-d H:i:s") . " => " . $request->Remark . " \n",
-            'Reference' => $request->Reference ?? $cek->Reference,
-            'Status' => $nstatus,
+            'PIC'               => $newPIC,
+            'PIC_Phone'         => $newPICPhone,
+            'PIC_Address'       => $newPICAddress,
+            'Estimated_Budget'  => $newEstimatedBudget,
+            'Department'        => $newDepartment,
+            'Category'          => $newCategory,
+            'Sub_Category'      => $newSubCategory,
+            'Supplies_Type'     => $newSuppliesType,
+            'Note'              => $cek->Note . date("Y-m-d H:i:s") . " => " . $request->Remark . "\n",
+            'Reference'         => $request->Reference ?? $cek->Reference,
+            'Status'            => $nstatus,
         ];
 
         // Jika status APPROVED, buat PO

@@ -439,7 +439,9 @@ class ApprovalController extends Controller
             $request = DB::table('approval_request')->where('ID', $id)->first();
 
             DB::table('approval_log')->insert([
-                'Approver_Id'  => $this->userService->getCurrentSessionUserInfo()->id,
+                // Guests (e.g. public partner registration) have no session
+                // user; use the system placeholder '0' for the approver id.
+                'Approver_Id'  => auth()->check() ? ($this->userService->getCurrentSessionUserInfo()->id ?? 0) : 0,
                 'Notes'        => '',
                 'Action'       => $action,
                 'Request_Id'   => $id,

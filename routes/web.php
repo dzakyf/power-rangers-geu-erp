@@ -53,6 +53,7 @@ use App\Http\Controllers\HCGA\SppdController as HCGASppdController;
 use App\Http\Controllers\HCGA\SppdApprovalController as HCGASppdApprovalController;
 use App\Http\Controllers\HCGA\SettlementController as HCGASettlementController;
 use App\Http\Controllers\HCGA\SettlementApprovalController as HCGASettlementApprovalController;
+use App\Http\Controllers\HCGA\ReimbursementController as HCGAReimbursementController;
 
 use App\Http\Controllers\HCGA\AssetMovingController as HCGAAssetMovingController;
 use App\Http\Controllers\HCGA\AssetMovingApprovalController as HCGAAssetMovingApprovalController;
@@ -87,6 +88,7 @@ use App\Http\Controllers\Partner\MasterDataController;
 use App\Http\Controllers\Partner\OrderEquipmentController as PartnerOrderEquipmentController;
 use App\Http\Controllers\Partner\WarehouseController as PartnerWarehouseController;
 use App\Http\Controllers\Partner\WarehouseOpenController as PartnerWarehouseOpenController;
+use App\Http\Controllers\Partner\PartnerRegistrationController;
 use App\Http\Controllers\Partner\WarehouseMonitoringController as PartnerWarehouseMonitoringController;
 use App\Http\Controllers\Partner\MasterStockPriceController as PartnerMasterStockPriceController;
 use App\Http\Controllers\Partner\WarehouseStockRequestController as PartnerWarehouseStockRequestController;
@@ -122,13 +124,10 @@ Route::get('partner-early-registration', function () {
 Route::get('open-recruitment-employee', function () {
     return view('humanresources.recruitment.recruitment-new-open');
 });
-
 Route::get('partner-registration', function () {
     return view('partner.registration-public');
 });
-Route::post('partner-registration-submit', function () {
-    return view('sales.opportunity-registration-submit-public');
-});
+Route::post('partner-registration-submit', [PartnerRegistrationController::class, 'submit']);
 
 Route::get('partner-prints-invoice', [App\Http\Controllers\Finance\PartnerController::class, 'printInvoice']);
 Route::post('province', [App\Http\Controllers\HelperController::class, 'provinceSearch']);
@@ -1287,10 +1286,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/sales-opportunity-registration', function () {
         return view('sales.opportunity-registration');
     });
-
-    Route::post('/sales-opportunity-registration-submit', function () {
-        return view('sales.opportunity-registration-submit');
-    });
+    Route::post('/sales-opportunity-registration-submit', [PartnerRegistrationController::class, 'submit']);
     Route::get('/sales-opportunity-lists', function () {
         return view('sales.opportunity-lists');
     });
@@ -5729,6 +5725,13 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcSettlementApprovalPref-data", [HCGASettlementApprovalController::class, 'data']);
     Route::get("$hcSettlementApprovalPref-detail", [HCGASettlementApprovalController::class, 'detail']);
     Route::post("$hcSettlementApprovalPref-submit", [HCGASettlementApprovalController::class, 'approval']);
+
+    $hcReimbursementPref = "$hcPref-reimbursement";
+    Route::get("$hcReimbursementPref-index", [HCGAReimbursementController::class, 'index']);
+    Route::get("$hcReimbursementPref-data", [HCGAReimbursementController::class, 'data']);
+    Route::get("$hcReimbursementPref-new", [HCGAReimbursementController::class, 'create']);
+    Route::post("$hcReimbursementPref-new-submit", [HCGAReimbursementController::class, 'store']);
+    Route::get("$hcReimbursementPref-detail", [HCGAReimbursementController::class, 'detail']);
 
     $hcAssetPref = "$hcPref-asset";
     Route::post("$hcAssetPref-lists-new-from-po", [HCGAAssetListController::class, 'getDataFromPO']);

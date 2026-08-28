@@ -390,6 +390,9 @@
              </div>
 
 
+              <div class="alert alert-warning" id="gpsWarning" style="display:none;">
+                  <strong>Perhatian:</strong> Izinkan akses lokasi pada browser Anda (GPS harus aktif) agar koordinat dapat diisi. Anda tetap dapat mengirim formulir.
+              </div>
              <div class="row mt-2">
                  <div class="col-md-4">
                      <div class="form-group">
