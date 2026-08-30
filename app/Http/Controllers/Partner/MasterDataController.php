@@ -261,9 +261,12 @@ class MasterDataController extends Controller
 
     public function getMasterWarehouses(Request $r)
     {
-        $data = DB::table('master_warehouse')
-            ->select('ID as id', DB::raw("CONCAT(Name, ' (', Type, ')') as text"))
-            ->orderBy('Name')
+        // Operational warehouses live in warehouse_partner (the master_warehouse
+        // table is a near-empty placeholder). All consuming pages (POO nearest
+        // warehouse, stock opname, pickup create, route mapping) expect these fields.
+        $data = DB::table('warehouse_partner')
+            ->select('id', 'warehouse_task_id', 'warehouse_location', 'lat', 'lng')
+            ->orderBy('warehouse_task_id')
             ->get();
 
         return response()->json(['status' => 'success', 'data' => $data]);
@@ -900,6 +903,7 @@ class MasterDataController extends Controller
             ->select('ID as id', 'Name', 'Volume', 'Warehouse_ID', 'Note', 'Status', 'Created_By', 'Created_At')
             ->where('Status', "active")
             ->when($r->id, fn($q) => $q->where('ID', $r->id))
+            ->when($r->warehouse_id, fn($q) => $q->where('Warehouse_ID', $r->warehouse_id))
             ->get();
 
         return response()->json(['status' => 'success', 'data' => $data]);

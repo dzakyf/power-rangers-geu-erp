@@ -503,6 +503,14 @@
             actions: []
         });
 
+        // Auto-fill pickup count and total weight from the selected POs
+        // (previously hardcoded defaults); fields stay readonly/disabled.
+        var totalWeight = poOrders.reduce(function(sum, o) {
+            return sum + (parseFloat(o.Qty) || 0);
+        }, 0);
+        $('#routePickupCount').val(poOrders.length);
+        $('#routeTotalWeight').val(totalWeight);
+
         $(document).off('click', '#btnGetRoute').on('click', '#btnGetRoute', function() {
             fetchOSRMRoute(poIds);
         });

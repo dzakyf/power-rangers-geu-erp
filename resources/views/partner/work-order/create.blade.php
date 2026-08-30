@@ -36,7 +36,7 @@
                             </div>
                             <div class="form-group col-md-6">
                                 <label for="Work_Order_Date">Work Order Date</label>
-                                <input type="date" class="form-control" id="Work_Order_Date" name="Work_Order_Date">
+                                <input type="date" class="form-control" id="Work_Order_Date" name="Work_Order_Date" value="{{ date('Y-m-d') }}" min="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" readonly>
                             </div>
                         </div>
 
@@ -59,7 +59,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="Site">Site (auto from POO City)</label>
-                                    <input type="text" class="form-control" id="Site" name="Site" readonly>
+                                    <input type="text" class="form-control" id="Site" name="Site">
                                 </div>
                                 <div class="form-group col-md-6">
                                     <label for="Price">Price (auto from POO)</label>
@@ -128,6 +128,7 @@
                                 id: row.ID,
                                 text: row.Name + ' | Dibuat oleh: ' + (row.Created_By_Name || '-'),
                                 city: row.City,
+                                province: row.Province,
                                 price: row.Price
                             };
                         })
@@ -139,6 +140,9 @@
 
         $('#POO_Id').on('select2:select', function(e) {
             var data = e.params.data;
+            // Auto-fill Coverage/Site from the POO master but keep both editable.
+            var coverage = data.province ? (data.province + ' - ' + (data.city || '')) : (data.city || '');
+            $('#Coverage').val(coverage || '');
             $('#Site').val(data.city || '');
             $('#Price').val(data.price || '');
         });

@@ -26,7 +26,10 @@
                         </div>
                         <div class="form-group col-3">
                             <label for="Type">Type</label>
-                            <input type="text" class="form-control" id="Type" name="Type" value="SUPPLIER" placeholder="e.g. SUPPLIER">
+                            <select class="form-control" id="Type" name="Type">
+                                <option value="SUPPLIER" selected>SUPPLIER</option>
+                                <option value="MITRA">MITRA</option>
+                            </select>
                         </div>
                         <div class="form-group col-3">
                             <label for="Category">Category</label>
@@ -44,7 +47,13 @@
                         </div>
                         <div class="form-group col-3">
                             <label for="Price_Unit">Price Unit</label>
-                            <input type="text" class="form-control" id="Price_Unit" name="Price_Unit">
+                            <select class="form-control" id="Price_Unit" name="Price_Unit">
+                                <option value="L" selected>L</option>
+                                <option value="KG">KG</option>
+                                <option value="TON">TON</option>
+                                <option value="KEMASAN">KEMASAN</option>
+                                <option value="RP">RP</option>
+                            </select>
                         </div>
                         <div class="form-group col-3">
                             <label for="Cycle">Cycle</label>

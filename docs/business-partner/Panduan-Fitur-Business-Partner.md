@@ -33,6 +33,7 @@ Setiap pembahasan fitur disertai gambaran lokasi menu, fungsi utama, serta langk
 14. Menu Asset dan Fasilitas
 15. Profil Saya
 16. Glosarium
+17. Catatan Perbaikan dan Fitur Terbaru
 
 > Catatan: Setelah dokumen dibuka pada Microsoft Word, silakan klik kanan pada area daftar isi lalu pilih *Update Field* agar nomor halaman tampil dengan benar.
 
@@ -463,6 +464,65 @@ Disarankan meninjau kebenaran data rekening secara berkala agar pembayaran tidak
 | MTTR / MTTF | Rata-rata waktu penyelesaian gangguan / rata-rata jeda antargangguan pada layanan purna jual |
 | PIC | Person In Charge, penanggung jawab |
 | SOP | Standard Operating Procedure, prosedur operasional standar |
+
+## 17. Catatan Perbaikan dan Fitur Terbaru
+
+Bagian ini merangkum perbaikan dan penyempurnaan fitur yang dilakukan pada modul Business Partner. Dokumentasi diperbarui secara berkala mengikuti perkembangan aplikasi.
+
+### 17.1 Dashboard Aftersales (Purna Jual)
+
+- Data dashboard Aftersales kini dapat dimuat dengan benar; kolom **Penilaian / Metrik** tidak lagi menampilkan nilai kosong.
+- Parameter `warehouse` yang tidak diisi tidak lagi menyebabkan error (sistem tetap menampilkan data dengan cakupan global).
+
+### 17.2 Hak Akses (Role & Permission)
+
+- Role dan permission (Spatie) diselaraskan ulang berdasarkan menu yang terdaftar pada `menu_lists`; menu yang sebelumnya belum memiliki permission kini otomatis terisi.
+- Halaman **Credential → Role** kini dapat diedit oleh Administrator. Sebelumnya tombol dan kolom terkunci karena permission `master.credential.role.edit` belum diberikan kepada role admin.
+- Diperkenalkan pengamanan agar aksi "Revoke All" pada role **ADM** tidak mencabut akses pengelolaan role itu sendiri (mencegah admin terkunci keluar).
+
+### 17.3 Credential-Role: Tambah Menu (4 Level)
+
+- Tombol **Tambah Menu Item** dapat langsung digunakan tanpa harus memilih baris terlebih dahulu.
+- Pengisian menu kini terpandu dalam **4 level**:
+  1. **Module** (MS…)
+  2. **Submodule** (SM…)
+  3. **Subheader** (SS…) — dapat dilewati bila tidak diperlukan
+  4. **Menu Item** (SI…)
+- Pada setiap level tersedia pilihan memilih menu yang sudah ada **atau** membuat baru (**+ New**). Jika level menengah dibuat baru, sistem otomatis membuat nodenya beserta permission terkait dalam satu proses.
+
+### 17.4 Inventori: System Quantity (Opname & Outstock)
+
+- **System Quantity** pada Stock Opname dan Outstock kini dihitung dari database (stok masuk dikurangi stok keluar), bukan lagi angka 0.
+- Pada pembuatan Stock Opname, kolom System Quantity **terisi otomatis** dan hanya dapat dibaca (tidak dapat diubah manual).
+- Nilai System Quantity pada proses loading Outstock tersimpan dengan benar, termasuk saat pengiriman ulang dokumen.
+
+### 17.5 Survei (Analisis Surveyor)
+
+- Setelah survei dikirim, bagian **Analisis Surveyor → Penilaian** menampilkan angka skor tiap aspek (C/D/E/F) dan hasil analisis dengan benar — sebelumnya menampilkan kata *"undefined"*.
+
+### 17.6 Registrasi Partner
+
+- Formulir registrasi **internal (sales/admin)** dan **publik** kini memakai komponen formulir yang sama serta satu proses pengiriman (submit) terpadu.
+- Dropdown **Provinsi, Kota/Kabupaten, Kecamatan, Kelurahan, Kode Pos** berfungsi dan terisi dari data master (berantai).
+- Menambahkan peringatan agar pengguna **mengizinkan akses lokasi (GPS)** pada peramban; koordinat tetap dapat diisi secara opsional.
+- Data **Requester_Id** pada pengajuan onboarding diisi dengan akun pengirim (untuk alur internal); kolom `user_row_id` mitra terisi otomatis setelah akun mitra dibuat saat onboarding disetujui.
+
+### 17.7 Logistik UCO (WO / PO / Surat Jalan / Routing)
+
+- **Work Order**: tanggal WO dikunci ke tanggal hari ini — tidak dapat memilih tanggal lampau atau mendatang.
+- **Grid PO**: nomor PO kini tampil pada daftar (sebelumnya tersembunyi).
+- **Pembuatan PO**: kolom **Route/Coverage** dan **Site** terisi otomatis dari data POO, namun tetap dapat disunting.
+- **Surat Jalan**: setelah memilih PO, status otomatis terpilih **PROGRESS**; pada halaman pembaruan, status dapat diubah (tidak lagi selalu tertahan di PROGRESS).
+- **Route Mapping**: jumlah pickup dan total berat terisi otomatis dari PO yang dipilih.
+
+### 17.8 Outstock, Stock Opname & Master POO
+
+- Menu **Outstock** kini mengarah ke halaman daftar outstock yang lengkap (memiliki tombol **Buat Draft** untuk menambah data).
+- Pada Stock Opname, dropdown **Container (IBC)** hanya menampilkan kontainer milik gudang yang dipilih.
+- Tanggal Stock Opname **tidak dapat dimundurkan** (minimal hari ini).
+- Pada pembuatan **POO**, kolom **Nearest Warehouse** terisi dari data gudang operasional (`warehouse_partner`).
+- Kolom **Type** dan **Price Unit** pada POO kini berupa menu pilihan (dropdown) — Type: SUPPLIER / MITRA; Price Unit: L / KG / TON / KEMASAN / RP.
+
 
 ---
 

@@ -5678,6 +5678,20 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcAssetFixingApprovalPref-detail", [HCGAAssetFixingApprovalController::class, 'detail']);
     Route::post("$hcAssetFixingApprovalPref-approval", [HCGAAssetFixingApprovalController::class, 'approval']);
 
+    $hcVmPref = "$hcPref-vehicle-maintenance";
+    Route::get("$hcVmPref-index", [HCGAVehicleMaintenanceController::class, 'index']);
+    Route::get("$hcVmPref-data", [HCGAVehicleMaintenanceController::class, 'data']);
+    Route::get("$hcVmPref-create", [HCGAVehicleMaintenanceController::class, 'create']);
+    Route::post("$hcVmPref-submit", [HCGAVehicleMaintenanceController::class, 'store']);
+    Route::get("$hcVmPref-detail", [HCGAVehicleMaintenanceController::class, 'detail']);
+
+    // -- Vehicle Maintenance Approval --
+    $hcVmAppPref = "$hcPref-vehicle-maintenance-approval";
+    Route::get("$hcVmAppPref-index", [HCGAVehicleMaintenanceApprovalController::class, 'index']);
+    Route::get("$hcVmAppPref-data", [HCGAVehicleMaintenanceApprovalController::class, 'data']);
+    Route::get("$hcVmAppPref-detail", [HCGAVehicleMaintenanceApprovalController::class, 'detail']);
+    Route::post("$hcVmAppPref-approve", [HCGAVehicleMaintenanceApprovalController::class, 'approve']);
+
     $hcCarRentPref = "$hcPref-car-rent";
     Route::get("$hcCarRentPref-index", [HCGACarRentController::class, 'index']);
     Route::post("$hcCarRentPref-data", [HCGACarRentController::class, 'data']);

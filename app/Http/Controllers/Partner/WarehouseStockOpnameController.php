@@ -74,6 +74,11 @@ class WarehouseStockOpnameController extends Controller
 
     public function submitStockOpname(Request $r)
     {
+        // Opname date must never be backdated.
+        if ($r->opname_date && $r->opname_date < now()->toDateString()) {
+            return response()->json(['success' => false, 'message' => 'Tanggal opname tidak boleh mundur (harus hari ini).'], 400);
+        }
+
         DB::beginTransaction();
         try {
             $highest = WarehouseStockOpname::max('ID') ?? 0;

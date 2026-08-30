@@ -391,7 +391,19 @@ class SurveyController extends Controller
                 );
             }
 
-            return response()->json(['message' => 'success', 'data' => ['survey_id' => $surveyId]]);
+            // Return the computed section scores so the client can render the
+            // "Analisis Surveyor" (Penilaian) table right after submit - the
+            // same contract as updateMasterDataSurvey(). Missing totals here
+            // used to render "undefined" in the Penilaian column.
+            return response()->json(['message' => 'success', 'data' => [
+                'survey_id'       => $surveyId,
+                'C_Total_Score'   => $photo,
+                'D_Total_Score'   => $checklist,
+                'E_Total_Score'   => $environtment,
+                'F_Total_Score'   => $ucoEstimation,
+                'Total_Score'     => $totalScore,
+                'Analysis_Result' => $this->resolveRecommendation($totalScore),
+            ]]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

@@ -15,9 +15,6 @@ class AssetFixingController extends Controller
         return view('humanresources.asset-fixing.index');
     }
 
-    /**
-     * Data grid endpoint
-     */
     public function data()
     {
         if (stristr($_SERVER['HTTP_ACCEPT'], 'application/xhtml+xml')) {
@@ -34,7 +31,6 @@ class AssetFixingController extends Controller
 
         $Query = DB::table('asset_fixing')->orderBy('created_at', 'DESC');
 
-        // User biasa hanya lihat data milik departemennya sendiri
         if ($dept !== 'HCGA' && $dept !== 'DIR' && $dept !== 'OPERATION') {
             $Query->where('Department', $dept);
         }
@@ -43,8 +39,8 @@ class AssetFixingController extends Controller
 
         echo "<rows>";
         foreach ($results as $Fetch) {
-            echo "<row id=\"" . $Fetch->id . "\">";
-            echo "<cell>$nomor</cell>";
+            echo "<row id=\"{$Fetch->id}\">";
+            echo "<cell>{$nomor}</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->No_Trx) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Jenis_Perbaikan) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Nama_Pengaju) . "</cell>";
@@ -61,15 +57,13 @@ class AssetFixingController extends Controller
 
     public function create()
     {
-        return view('humanresources.asset-fixing.create');
+        $assetList = DB::table('asset_list')
+            ->select('Asset_No', 'Product_Code', 'Product_Description', 'SN', 'Asset_Location_Department', 'Asset_Location', 'WH_ID')
+            ->get();
+
+        return view('humanresources.asset-fixing.create', compact('assetList'));
     }
 
-    /**
-     * Endpoint pencarian aset dari asset_list berdasarkan Product_Code
-     * Dipanggil via AJAX saat user memilih aset.
-     * Request: POST dengan data: {'product_code': 'ABC123'}
-     * Response: JSON berisi { asset_no, product_code, product_description, sn, asset_location, wh_id }
-     */
     public function getAsetFromProductCode(Request $request)
     {
         $productCode = $request->input('product_code', '');
@@ -104,49 +98,54 @@ class AssetFixingController extends Controller
         ]);
     }
 
-    /**
-     * Store data perbaikan aset.
-     * Mengambil data aset dari asset_list berdasarkan Asset_No yang dipilih,
-     * kemudian menyimpanya ke tabel asset_fixing.
-     */
     public function store(Request $request)
     {
-        $Saya       = Auth::user()->username;
-        $jenis      = $request->input('Jenis_Perbaikan', 'office');
-        $productCode = $request->input('Asset_No', $request->input('Product_Code', ''));
-        $snRaw      = $request->input('Nomor_Seri', '');
+        $Saya = Auth::user()->username;
+        $jenis = $request->input('Jenis_Perbaikan', 'office');
 
-        // Jika tidak ada Product_Code yang dipilih, kirim error
+        // Product_Code adalah kunci utama pencarian ke asset_list.
+        // Form mengirimkan Product_Code (readonly, diisi JS saat pilih aset)
+        // dan Asset_No (dropdown). Jika Product_Code kosong, fallback ke Asset_No.
+        $productCode = $request->input('Product_Code', '');
         if (empty($productCode)) {
-            Log::error('AssetFixing store gagal: Product_Code kosong. User=' . $Saya);
+            $productCode = $request->input('Asset_No', '');
+        }
+
+        if (empty($productCode)) {
+            Log::error('AssetFixing store gagal: Product_Code/Asset_No kosong. User=' . $Saya);
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Harap pilih aset dari daftar terlebih dahulu!',
             ]);
         }
 
-        // Ambil data dari asset_list berdasarkan Product_Code
+        // Coba cari di asset_list menggunakan Product_Code (utama) atau Asset_No (fallback).
         $asset = DB::table('asset_list')
             ->where('Product_Code', $productCode)
             ->select('Asset_No', 'Product_Code', 'Product_Description', 'SN', 'Asset_Location', 'Asset_Location_Department', 'WH_ID')
             ->first();
 
+        // Jika tidak ditemukan via Product_Code, coba via Asset_No.
         if (!$asset) {
-            Log::error('AssetFixing store gagal: asset_list tidak ditemukan untuk Product_Code=' . $productCode . '. User=' . $Saya);
+            $asset = DB::table('asset_list')
+                ->where('Asset_No', $productCode)
+                ->select('Asset_No', 'Product_Code', 'Product_Description', 'SN', 'Asset_Location', 'Asset_Location_Department', 'WH_ID')
+                ->first();
+        }
+
+        if (!$asset) {
+            Log::error('AssetFixing store gagal: asset_list tidak ditemukan untuk kode=' . $productCode . '. User=' . $Saya);
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Aset tidak ditemukan di asset_list!',
             ]);
         }
 
-        // Nomor_Seri = SN dari asset_list
         $nomorSeri = $asset->SN ?? '';
 
-        // Estimasi biaya parsing
         $estimasiRaw  = $request->input('Estimasi_Biaya', '0');
         $estimasi     = (float) str_replace(['Rp', '.', ',', ' '], ['', '', '', ''], $estimasiRaw);
 
-        // Status awal: menunggu approval PIC
         $status = 'APPROVAL_PIC';
 
         $data = [
@@ -201,6 +200,7 @@ class AssetFixingController extends Controller
 
     public function log(Request $request)
     {
-        return view('humanresources.asset-fixing.log');
+        $ID = $request->input('ID') ?? $request->input('No_Trx') ?? '';
+        return view('humanresources.asset-fixing.log', compact('ID'));
     }
 }

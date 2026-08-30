@@ -75,6 +75,16 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label>Status Surat Jalan</label>
+                            <select class="form-control" id="DO_Status" name="DO_Status">
+                                <option value="">-- Pilih Status --</option>
+                                <option value="PROGRESS" selected>PROGRESS</option>
+                                <option value="PICKUP">PICKUP</option>
+                                <option value="DONE">DONE</option>
+                                <option value="CANCEL">CANCEL</option>
+                            </select>
+                        </div>
 
                         <hr>
 
