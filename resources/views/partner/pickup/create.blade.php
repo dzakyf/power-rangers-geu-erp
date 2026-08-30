@@ -102,7 +102,10 @@
                             return {
                                 id: row.ID,
                                 text: row.Code + ' — ' + row.POO_Name + ' | Dibuat oleh: ' + (row.POO_Created_By_Name || '-'),
-                                price: row.POO_Price
+                                price: row.POO_Price,
+                                city: row.POO_City,
+                                province: row.POO_Province,
+                                nearestWarehouse: row.POO_Nearest_Warehouse
                             };
                         })
                     };
@@ -111,10 +114,28 @@
             }
         });
 
-        // Prefill Price based on the POO linked to the selected Work Order (Qty stays manual)
+        // Prefill Price, Coverage and Site from the POO linked to the selected
+        // Work Order (Qty stays manual; Coverage/Site remain editable).
         $('#WO_Number').on('select2:select', function(e) {
             var data = e.params.data;
             $('#Price').val(data.price != null && data.price !== '' ? data.price : '');
+
+            var coverage = data.province ? (data.province + ' - ' + (data.city || '')) : (data.city || '');
+            $('#Coverage').val(coverage || '');
+
+            if (data.nearestWarehouse) {
+                var nw = String(data.nearestWarehouse);
+                var matched = $('#Site option').filter(function() {
+                    var v = String($(this).val() || '');
+                    var t = String($(this).text() || '');
+                    return v === nw || t === nw || v.indexOf(nw) === 0 || t.indexOf(nw) === 0;
+                });
+                if (matched.length) {
+                    $('#Site').val(matched.first().val()).trigger('change');
+                } else {
+                    $('#Site').val(null).trigger('change');
+                }
+            }
         });
 
         // Load sites from warehouse API

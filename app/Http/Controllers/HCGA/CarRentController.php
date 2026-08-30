@@ -28,7 +28,6 @@ class CarRentController extends Controller
 
         $getCarRent = DB::table('car_rent');
 
-        // Filter: hanya tampilkan data milik user atau yang relevan
         if ($priv != 'HCGA') {
             $getCarRent->where('User_NIK', $nik);
         }
@@ -38,8 +37,8 @@ class CarRentController extends Controller
         $nomor = 1;
         echo "<rows>";
         foreach ($getCarRent as $key => $value) {
-            echo "<row id='$value->ID'>";
-            echo "<cell>$nomor</cell>";
+            echo "<row id='{$value->ID}'>";
+            echo "<cell>{$nomor}</cell>";
             echo "<cell>" . htmlspecialchars($value->Car_Rent_No) . "</cell>";
             echo "<cell>" . htmlspecialchars($value->User_Name) . "</cell>";
             echo "<cell>" . htmlspecialchars($value->User_NIK) . "</cell>";
@@ -71,6 +70,7 @@ class CarRentController extends Controller
         $Saya = Auth::user()->username;
         $counter = DB::table('car_rent')->where("Created_By", "LIKE", date("Y-m") . "%")->count() + 1;
         $Car_Rent_No = "CR/GA/" . $LSP . "/" . date("ymdhis") . "-" . $counter;
+
         return view('humanresources.car-rent.create', compact('Car_Rent_No', 'NIK', 'Saya'));
     }
 

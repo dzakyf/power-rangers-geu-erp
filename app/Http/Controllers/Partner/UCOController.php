@@ -94,6 +94,17 @@ class UCOController extends Controller
                     DB::table('pickup_order')->where('ID', $poId)->update($updateData);
                 }
 
+                // Persist the delivery note (Surat Jalan) status for the DO the
+                // PO belongs to, so it no longer stays stuck on PROGRESS.
+                if ($r->filled('DO_Status')) {
+                    $doId = DB::table('pickup_order')->where('ID', $poId)->value('DO_Id');
+                    if ($doId) {
+                        DB::table('delivery_order')->where('ID', $doId)->update([
+                            'DO_Status' => $r->input('DO_Status'),
+                        ]);
+                    }
+                }
+
                 // Signature (base64 image)
                 if ($r->filled('Signature')) {
                     $b64    = preg_replace('/^data:image\/\w+;base64,/', '', $r->input('Signature'));
@@ -653,7 +664,10 @@ class UCOController extends Controller
                 'wo.Created_At',
                 'wo.Updated_At',
                 'mp.Created_By as POO_Created_By',
-                'u.Name as POO_Created_By_Name'
+                'u.Name as POO_Created_By_Name',
+                'mp.City as POO_City',
+                'mp.Province as POO_Province',
+                'mp.Nearest_Warehouse as POO_Nearest_Warehouse'
             );
 
         if ($id) {
@@ -711,7 +725,8 @@ class UCOController extends Controller
                 'POO_Id'          => $r->input('POO_Id'),
                 'Code'            => $this->generatorService->generateApplicationCode($woCount, 'WO'),
                 'Status'          => $r->input('Status'),
-                'Work_Order_Date' => $r->input('Work_Order_Date'),
+                // WO Date is locked to today: never trust a client-supplied date.
+                'Work_Order_Date' => now(),
             ]);
 
             if ($bypass) {
@@ -731,7 +746,7 @@ class UCOController extends Controller
                     'Code'        => $this->generatorService->generateApplicationCode($poCount, 'PO'),
                     'Type_Pickup' => $r->input('Type_Pickup'),
                     'Coverage'    => $r->input('Coverage'),
-                    'Site'        => $poo->City,
+                    'Site'        => $r->input('Site', $poo->City),
                     'Package'     => $r->input('Package'),
                     'Qty'         => $r->input('Qty'),
                     'Price'       => $poo->Price,
@@ -1163,7 +1178,7 @@ class UCOController extends Controller
             $item = $xml->addChild('row');
             $item->addAttribute('ID', $row->ID);
             $item->addChild('cell', $no);
-            $item->addChild('cell', '');
+            $item->addChild('cell', htmlspecialchars((string) ($row->Code ?? '')));
             $item->addChild('cell', htmlspecialchars((string) ($row->Type_Pickup ?? '')));
             $item->addChild('cell', htmlspecialchars((string) ($row->Coverage ?? '')));
             $item->addChild('cell', htmlspecialchars((string) ($row->Site ?? '')));
@@ -1275,7 +1290,7 @@ class UCOController extends Controller
         }
 
         try {
-            $osrm = new \App\Services\OSRMService();
+            $osrm = app(\App\Services\OSRMService::class);
             $routeData = $osrm->getRoute($waypoints);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => 'Routing failed: ' . $e->getMessage()], 500);
@@ -1338,7 +1353,7 @@ class UCOController extends Controller
         }
 
         try {
-            $osrm = new \App\Services\OSRMService();
+            $osrm = app(\App\Services\OSRMService::class);
             $routeData = $osrm->getRoute($waypoints);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => 'Routing failed: ' . $e->getMessage()], 500);

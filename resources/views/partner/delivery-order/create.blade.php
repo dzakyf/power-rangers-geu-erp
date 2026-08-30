@@ -127,6 +127,15 @@
             $('#PO_Id').val(null).trigger('change');
         });
 
+        // After selecting a PO, auto-select the Surat Jalan status as PROGRESS
+        // (still overridable by the user).
+        $('#PO_Id').on('change', function() {
+            var sel = $(this).val();
+            if (sel && sel.length > 0 && !$('#DO_Status').val()) {
+                $('#DO_Status').val('PROGRESS');
+            }
+        });
+
         $('#SubmitDO').on('click', function() {
             var form = document.getElementById('DeliveryOrderForm');
             if (!form.checkValidity()) {

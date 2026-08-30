@@ -36,7 +36,7 @@
                         </div>
                         <div class="form-group">
                             <label for="opname_date">Opname Date</label>
-                            <input type="date" class="form-control" id="opname_date" name="opname_date" value="{{ date('Y-m-d') }}">
+                            <input type="date" class="form-control" id="opname_date" name="opname_date" value="{{ date('Y-m-d') }}" min="{{ date('Y-m-d') }}">
                         </div>
                             <label for="system_qty">System Quantity (L) <small class="text-muted">(auto from stock ledger)</small></label>
                             <input type="number" step="0.01" class="form-control" id="system_qty" name="system_qty" value="0" readonly>
@@ -69,6 +69,23 @@
             });
         });
 
+        // Containers are scoped to the selected warehouse.
+        function loadContainers(whId) {
+            var $container = $('#container_id').empty().append('<option value="">-- Pilih Container --</option>');
+            $('#system_qty').val(0);
+            if (!whId) return;
+            $.get('master-container-get', { warehouse_id: whId }, function(res) {
+                $.each(res.data || [], function(_, item) {
+                    var label = item.Name + ' — ' + (Number(item.Volume || '0').toLocaleString()) + ' KG';
+                    $container.append($('<option>', { value: item.id, text: label }));
+                });
+            });
+        }
+
+        $('#warehouse_id').on('change', function() {
+            loadContainers($(this).val());
+        });
+
         // System quantity is computed server-side from the stock ledger;
         // the input is readonly and auto-fills when a container is picked.
         $('#container_id').on('change', function() {
@@ -76,15 +93,6 @@
             if (!cid) { $('#system_qty').val(0); return; }
             $.get('partner-warehouse-stock-opname-systemqty', { container_id: cid }, function(res) {
                 $('#system_qty').val(res.success ? res.system_qty : 0);
-            });
-        });
-
-        // Load containers
-        $.get('master-container-get', function(res) {
-            var $container = $('#container_id');
-            $.each(res.data || [], function(_, item) {
-                var label = item.Name + ' — ' + (Number(item.Volume || '0').toLocaleString()) + ' KG';
-                $container.append($('<option>', { value: item.id, text: label }));
             });
         });
 

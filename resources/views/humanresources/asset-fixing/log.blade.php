@@ -5,21 +5,19 @@ use Illuminate\Support\Facades\Auth;
 
 $LSP = Auth::user()->Location;
 $Saya = Auth::user()->username;
-$ID  = $_GET['ID'] ?? $_GET['No_Trx'] ?? '';
+$ID = $_GET['ID'] ?? $_GET['No_Trx'] ?? '';
 
-// Log dari asset_fixing — diurutkan terbaru di atas
 $logs = DB::table('asset_fixing_log')
     ->where('ID', $ID)
     ->orderBy('ID', 'DESC')
     ->get();
 ?>
-
 <div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">
     ASSET FIXING LOG — PERBAIKAN ASET
 </div>
 
 <div style="margin:6px 0;font-size:12px;color:#555;">
-    Request No : <strong><?php echo htmlspecialchars($ID); ?></strong>
+    Request No : <strong>{{ htmlspecialchars($ID) }}</strong>
 </div>
 
 <style>
@@ -70,9 +68,9 @@ $logs = DB::table('asset_fixing_log')
 </style>
 
 <div class="log-table-wrap">
-<?php if ($logs->isEmpty()): ?>
+@if ($logs->isEmpty())
     <div class="log-empty">No asset fixing log entries found for this Request No.</div>
-<?php else: ?>
+@else
 <table class="log-table">
   <thead>
     <tr>
@@ -102,34 +100,34 @@ $logs = DB::table('asset_fixing_log')
     </tr>
   </thead>
   <tbody>
-    <?php $no = 1; foreach ($logs as $log): ?>
+    @foreach ($logs as $log)
     <tr>
-      <td><?php echo $no++; ?></td>
-      <td><?php echo htmlspecialchars($log->Action_By); ?></td>
-      <td><?php echo htmlspecialchars($log->Action_Date); ?></td>
-      <td><?php echo htmlspecialchars($log->Action_Status); ?></td>
-      <td><?php echo htmlspecialchars($log->Tanggal_Pengajuan); ?></td>
-      <td><?php echo htmlspecialchars($log->Status); ?></td>
-      <td><?php echo htmlspecialchars($log->Jenis_Perbaikan); ?></td>
-      <td><?php echo htmlspecialchars($log->Nama_Pengaju); ?></td>
-      <td><?php echo htmlspecialchars($log->Jabatan); ?></td>
-      <td><?php echo htmlspecialchars($log->Nama_Aset); ?></td>
-      <td><?php echo htmlspecialchars($log->Nomor_Seri); ?></td>
-      <td><?php echo htmlspecialchars($log->Deskripsi_Aset); ?></td>
-      <td><?php echo htmlspecialchars($log->Kondisi_Aset); ?></td>
-      <td><?php echo htmlspecialchars($log->Lokasi_Saat_Ini); ?></td>
-      <td><?php echo htmlspecialchars($log->Alasan_Perkiraan); ?></td>
-      <td style="text-align:right;"><?php echo number_format($log->Estimasi_Biaya ?? 0, 0, ',', '.'); ?></td>
-      <td><?php echo htmlspecialchars($log->Vendor_Yang_Digunakan); ?></td>
-      <td><?php echo htmlspecialchars($log->Approval_User); ?></td>
-      <td><?php echo htmlspecialchars($log->Approval_Datetime); ?></td>
-      <td><?php echo htmlspecialchars($log->Department); ?></td>
-      <td><?php echo htmlspecialchars($log->User_NIP); ?></td>
-      <td><?php echo htmlspecialchars($log->User_Trx); ?></td>
-      <td><?php echo htmlspecialchars($log->Approval_Note); ?></td>
+      <td>{{ $loop->iteration }}</td>
+      <td>{{ $log->Action_By }}</td>
+      <td>{{ $log->Action_Date }}</td>
+      <td>{{ $log->Action_Status }}</td>
+      <td>{{ $log->Tanggal_Pengajuan }}</td>
+      <td>{{ $log->Status }}</td>
+      <td>{{ $log->Jenis_Perbaikan }}</td>
+      <td>{{ $log->Nama_Pengaju }}</td>
+      <td>{{ $log->Jabatan }}</td>
+      <td>{{ $log->Nama_Aset }}</td>
+      <td>{{ $log->Nomor_Seri }}</td>
+      <td>{{ $log->Deskripsi_Aset }}</td>
+      <td>{{ $log->Kondisi_Aset }}</td>
+      <td>{{ $log->Lokasi_Saat_Ini }}</td>
+      <td>{{ $log->Alasan_Perkiraan }}</td>
+      <td style="text-align:right;">{{ number_format($log->Estimasi_Biaya ?? 0, 0, ',', '.') }}</td>
+      <td>{{ $log->Vendor_Yang_Digunakan }}</td>
+      <td>{{ $log->Approval_User }}</td>
+      <td>{{ $log->Approval_Datetime }}</td>
+      <td>{{ $log->Department }}</td>
+      <td>{{ $log->User_NIP }}</td>
+      <td>{{ $log->User_Trx }}</td>
+      <td>{{ $log->Approval_Note }}</td>
     </tr>
-    <?php endforeach; ?>
+    @endforeach
   </tbody>
 </table>
-<?php endif; ?>
+@endif
 </div>

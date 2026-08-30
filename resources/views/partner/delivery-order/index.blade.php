@@ -132,10 +132,10 @@
     function initPickupOrderGrid(woId) {
         $('#pickupOrderCard').show();
 
-        let tHeader = ['No', null, 'Type', 'Coverage', 'Site', 'Package', 'Qty', 'Price', 'Description', 'Dibuat Pada']
-        let tWidth = tHeader.map((e, i) => i == 1 ? 0 : '150')
+        let tHeader = ['No', 'PO Number', 'Type', 'Coverage', 'Site', 'Package', 'Qty', 'Price', 'Description', 'Dibuat Pada']
+        let tWidth = tHeader.map((e, i) => i == 1 ? '120' : '150')
         let headerAttachment = tHeader.map((e, i) => i <= 1 ? '#rspan' : '#text_filter')
-        let colId = ['No', null, 'Type', 'Coverage', 'Site', 'Package', 'Qty', 'Price', 'Description', 'Dibuat Pada'].join(',')
+        let colId = ['No', 'PO_Number', 'Type', 'Coverage', 'Site', 'Package', 'Qty', 'Price', 'Description', 'Dibuat Pada'].join(',')
         let colAlign = tHeader.map((e, i) => i == 0 ? 'center' : (i == 6 || i == 7) ? 'right' : 'left')
         let colSorting = tHeader.map((e, i) => i == 0 ? 'int' : 'str')
         let colType = tHeader.map((e, i) => i == 0 ? 'ron' : 'ro')
