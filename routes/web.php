@@ -54,6 +54,8 @@ use App\Http\Controllers\HCGA\SppdApprovalController as HCGASppdApprovalControll
 use App\Http\Controllers\HCGA\SettlementController as HCGASettlementController;
 use App\Http\Controllers\HCGA\SettlementApprovalController as HCGASettlementApprovalController;
 use App\Http\Controllers\HCGA\ReimbursementController as HCGAReimbursementController;
+use App\Http\Controllers\HCGA\VehicleMaintenanceController as HCGAVehicleMaintenanceController;
+use App\Http\Controllers\HCGA\VehicleMaintenanceApprovalController as HCGAVehicleMaintenanceApprovalController;
 
 use App\Http\Controllers\HCGA\AssetMovingController as HCGAAssetMovingController;
 use App\Http\Controllers\HCGA\AssetMovingApprovalController as HCGAAssetMovingApprovalController;
@@ -3580,13 +3582,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-permission-all', function () {
         return view('humanresources.permission.xml.all');
     });
-    Route::get('/attendant-data', function () {
-        return view('humanresources.attendant.data');
-    });
-
-    Route::get('/xml-attendant-data', function () {
-        return view('humanresources.attendant.xml.data');
-    });
+    Route::get('/attendant-data', [\App\Http\Controllers\HCGA\AttendancesController::class, 'index']);
+    Route::get('/xml-attendant-data', [\App\Http\Controllers\HCGA\AttendancesController::class, 'indexXml']);
     Route::get('/permission-approval', function () {
         return view('humanresources.permission.approval');
     });
@@ -3952,31 +3949,16 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-payroll-template-master-lists-add', function () {
         return view('humanresources.payroll.xml.payroll-template-master-lists-add');
     });
-    Route::get('/attendant-entry', function () {
-        return view('humanresources.attendant.attendant-entry');
-    });
-    Route::post('/attendant-entry-update', function () {
-        return view('humanresources.attendant.attendant-entry-update');
-    });
-    Route::get('/xml-attendant-entry', function () {
-        return view('humanresources.attendant.xml.attendant-entry');
-    });
-    Route::get('/attendant-entry-lists', function () {
-        return view('humanresources.attendant.attendant-entry-lists');
-    });
-    Route::post('/attendant-entry-lists-update', function () {
-        return view('humanresources.attendant.attendant-entry-lists-update');
-    });
-    Route::get('/xml-attendant-entry-lists', function () {
-        return view('humanresources.attendant.xml.attendant-entry-lists');
-    });
+    Route::get('/attendant-entry', [\App\Http\Controllers\HCGA\AttendancesController::class, 'entryIndex']);
+    Route::post('/attendant-entry-update', [\App\Http\Controllers\HCGA\AttendancesController::class, 'entryUpdate']);
+    Route::get('/xml-attendant-entry', [\App\Http\Controllers\HCGA\AttendancesController::class, 'entryXml']);
 
-    Route::get('/attendant-data-lists', function () {
-        return view('humanresources.attendant.attendant-data-lists');
-    });
-    Route::get('/xml-attendant-data-lists', function () {
-        return view('humanresources.attendant.xml.attendant-data-lists');
-    });
+    Route::get('/attendant-entry-lists', [\App\Http\Controllers\HCGA\AttendancesController::class, 'entryLists']);
+    Route::post('/attendant-entry-lists-update', [\App\Http\Controllers\HCGA\AttendancesController::class, 'entryListsUpdate']);
+    Route::get('/xml-attendant-entry-lists', [\App\Http\Controllers\HCGA\AttendancesController::class, 'entryListsXml']);
+
+    Route::get('/attendant-data-lists', [\App\Http\Controllers\HCGA\AttendancesController::class, 'dataLists']);
+    Route::get('/xml-attendant-data-lists', [\App\Http\Controllers\HCGA\AttendancesController::class, 'dataListsXml']);
     Route::get('/resigned-employee', function () {
         return view('humanresources.other.resigned-employee');
     });

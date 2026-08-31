@@ -76,7 +76,7 @@
                         <div class="card mb-1 border-left-info">\
                             <div class="card-body py-1 px-3">\
                                 <div class="d-flex justify-content-between">\
-                                    <small><strong>' + r.Route_Code + '</strong></small>\
+                                    <small><strong>' + (r.Route_Code || r.Code || '-') + '</strong></small>\
                                     <small>Jarak: ' + r.Distance_Km + ' km | Biaya: Rp ' + r.Total_Cost + '</small>\
                                 </div>\
                             </div>\
