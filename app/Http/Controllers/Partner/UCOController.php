@@ -1382,6 +1382,10 @@ class UCOController extends Controller
                 'Field_Operational_Price'  => $r->input('field_operational', 7000),
                 'Total_Cost'               => $r->input('total_cost'),
                 'Warehouse_ID'             => $whId,
+                // Auto-flow: a freshly mapped route is immediately eligible for
+                // settlement so it appears in Cost & Route Management (Settlement)
+                // and the Cost page without a manual intermediate step.
+                'Status'                   => 'PENDING_SETTLEMENT',
             ]);
 
             $seq = 1;
@@ -1802,7 +1806,7 @@ class UCOController extends Controller
                     'Path'        => $path,
                     'Extension'   => $ext,
                     'Description' => 'Acquisition Cost Receipt',
-                    'Topic'       => 'acquisition_cost',
+                    'Topic'       => 'acquisition-cost-receipt',
                     'Map_To'      => $r->po_id,
                     'Created_At'  => now(),
                 ]);

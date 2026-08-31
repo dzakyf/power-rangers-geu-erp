@@ -1,7 +1,7 @@
 # Panduan Fitur Modul Business Partner
 
-**Versi Dokumen:** 1.0  
-**Tanggal Penyusunan:** 26 Agustus 2026  
+**Versi Dokumen:** 1.1  
+**Tanggal Penyusunan:** 31 Agustus 2026  
 **Penyusun:** Tim Sistem Informasi GEU  
 **Status:** Draf untuk reviu
 
@@ -33,7 +33,6 @@ Setiap pembahasan fitur disertai gambaran lokasi menu, fungsi utama, serta langk
 14. Menu Asset dan Fasilitas
 15. Profil Saya
 16. Glosarium
-17. Catatan Perbaikan dan Fitur Terbaru
 
 > Catatan: Setelah dokumen dibuka pada Microsoft Word, silakan klik kanan pada area daftar isi lalu pilih *Update Field* agar nomor halaman tampil dengan benar.
 
@@ -52,6 +51,10 @@ Modul ini digunakan oleh beberapa kelompok pengguna dengan hak akses yang berbed
 - **Administrator**, mengelola data induk, proses persetujuan, dan pemantauan menyeluruh.
 - **Tim Sales**, mengelola calon mitra (prospek), penugasan, dan pencapaian kinerja.
 - **Mitra (Business Partner)**, memantau usaha, fasilitas, pelatihan, laporan keuangan, dan layanan dukungan.
+
+Hak akses setiap pengguna dikelola melalui halaman **Credential → Role**. Role dan permission diselaraskan dengan daftar menu yang terdaftar pada sistem; menu yang sebelumnya belum memiliki izin akses kini otomatis terisi. Halaman ini dapat diubah oleh Administrator, dan terdapat pengamanan agar tindakan **Revoke All** pada role **ADM** tidak mencabut akses pengelolaan role itu sendiri (mencegah admin terkunci keluar).
+
+Penambahan menu baru pada halaman yang sama dilakukan secara terpandu dalam **4 level**: Modul (kode MS), Submodul (kode SM), Subheader (kode SS, dapat dilewati bila tidak diperlukan), dan Menu Item (kode SI). Pada setiap level tersedia pilihan memilih menu yang sudah ada atau membuat baru; bila menu menengah dibuat baru, sistem otomatis membuat elemen menu beserta izin aksesnya dalam satu proses.
 
 ### 1.3 Cara Membaca Panduan
 
@@ -123,6 +126,12 @@ Calon mitra dapat mendaftar melalui dua cara:
 - **Tautan pendaftaran daring** — Calon mitra mengisi formulir mandiri melalui halaman pendaftaran publik, baik untuk kategori perseorangan maupun perusahaan.
 - **Impor berkas Excel** — Tim internal mengunduh templat Excel, mengisi data calon mitra, lalu mengunggahnya agar masuk otomatis sebagai data prospek.
 
+Formulir pendaftaran **internal (sales/admin)** dan **publik** kini memakai komponen formulir yang sama dengan satu proses pengiriman terpadu. Dropdown **Provinsi, Kota/Kabupaten, Kecamatan, Kelurahan, dan Kode Pos** terisi otomatis dari data master secara berantai. Sistem menampilkan peringatan agar pengguna **mengizinkan akses lokasi (GPS)** pada peramban; koordinat lokasi tetap dapat diisi secara opsional.
+
+> **Cara perhitungan estimasi modal (Capital Estimation):** sistem mengelompokkan estimasi modal calon mitra ke dalam empat tingkat: **1** = kurang dari Rp50 juta; **2** = Rp100–200 juta; **3** = Rp200–300 juta; **4** = lebih dari Rp300 juta.
+
+> **Cara perhitungan rekomendasi kelayakan otomatis:** berdasarkan sumber dana yang diisi pada formulir, sistem memberi penanda awal kelayakan. Individu dengan sumber dana pinjaman atau pensiun otomatis ditandai **Tidak Direkomendasikan**; sumber dana tabungan atau usaha ditandai **Direkomendasikan**; selain itu **Dipertimbangkan**. Untuk perusahaan, sumber dana pinjaman juga menandai **Tidak Direkomendasikan**. Penanda ini hanya bantuan awal — keputusan akhir tetap melalui proses persetujuan.
+
 [Sisipkan tangkapan layar: Halaman pendaftaran publik calon mitra]
 
 ### 3.8 Assignment History
@@ -159,6 +168,10 @@ Setiap calon mitra melewati tahapan berikut secara berurutan. Kemajuan tahapan d
 6. **Instalasi/Penyiapan** — Pencatatan penyerapan fasilitas dan pemesanan peralatan (lihat Bab 14).
 7. **Aktif** — Setelah seluruh syarat terpenuhi, sistem otomatis membuat **akun login mitra** dan mengubah status menjadi Aktif.
 
+> **Cara perhitungan masa kerja sama:** kontrak kemitraan berlaku selama **4 tahun** sejak mitra dinyatakan aktif.
+
+> **Cara perhitungan tagihan kemitraan:** nilai tagihan dihitung dari estimasi pendapatan mitra dan dibagi menjadi tiga tahap pembayaran: **uang muka (DP)** sebesar **12,13%**, **termin 1 (pengadaan fasilitas)** sebesar **66,66%**, dan **termin 2 (modal kerja)** sebesar **21,22%** dari nilai estimasi.
+
 > Catatan: Terdapat fitur **Force Approve** untuk mempercepat persetujuan dalam kondisi khusus. Fitur ini hanya untuk pengguna berwenang karena melewati sebagian tahapan normal.
 
 [Sisipkan tangkapan layar: Halaman progres onboarding dengan tampilan tujuh tahap]
@@ -170,6 +183,16 @@ Menampilkan daftar pengajuan yang menunggu persetujuan beserta posisi pejabat pe
 ### 4.4 Survei dan Approval Survei
 
 Menu survei digunakan untuk mencatat jadwal dan hasil kunjungan survei lokasi calon mitra. Hasil survei kemudian diproses melalui menu Approval Survei sebelum tahapan onboarding dapat berlanjut.
+
+Setelah survei dikirim, bagian **Analisis Surveyor → Penilaian** menampilkan skor tiap aspek serta hasil analisisnya secara otomatis.
+
+> **Cara perhitungan nilai survei:** survei dinilai dalam empat aspek dengan skor total maksimal **100**.
+> Aspek **C (Foto)** — setiap item bernilai maksimal 2,5; total maksimal 10.
+> Aspek **D (Checklist)** — setiap item terpenuhi bernilai 6; satu item khusus bernilai 7; total maksimal 55.
+> Aspek **E (Lingkungan)** — tiap item bernilai 1, 3, atau 5; total maksimal 20.
+> Aspek **F (Estimasi UCO)** — berdasarkan perkiraan tonase UCO: lebih dari 15 ton = 15; 10 ton = 12; 6 ton = 8; 4 ton = 5; di bawah itu = 2; total maksimal 15.
+>
+> **Skor total = C + D + E + F.** Hasil **≥ 80** berarti **Layak**; **70–79** berarti **Layak Bersyarat**; di bawah 70 berarti **Tidak Layak**. Setiap calon mitra dibatasi maksimal tiga kali survei.
 
 ---
 
@@ -185,15 +208,26 @@ Pengelolaan proyeksi pendapatan tiap mitra/gudang. Proyeksi diinput melalui temp
 
 Laporan laba rugi periodik per gudang/mitra yang dapat dilihat langsung di layar maupun diekspor. Laporan menjadi dasar perhitungan bagi hasil.
 
+> **Cara perhitungan laporan (ringkas):**
+> **Pendapatan transfer** = jumlah UCO keluar × harga jual rata-rata.
+> **Harga pokok (COGS)** = biaya langsung + nilai bahan baku.
+> **Laba bersih** = pendapatan transfer − harga pokok − biaya operasional − alokasi kapital. Alokasi kapital = **2,5%** dari pendapatan transfer.
+> **Bagi hasil mitra = 60% dari laba bersih**; bagian perusahaan = 40%.
+> **EBITDA** = (laba bersih × 60%) − biaya gaji − biaya sewa; **ROI** = EBITDA ÷ total investasi × 100.
+
 [Sisipkan tangkapan layar: Laporan Keuangan Bulanan]
 
 ### 5.3 Management Fee
 
 Membandingkan nilai biaya manajemen dengan bagi hasil mitra dan perusahaan per gudang sebagai bahan evaluasi profitabilitas.
 
+> **Cara perhitungan:** total keseluruhan per gudang = biaya manajemen + bagi hasil mitra (60% laba bersih) + bagi hasil perusahaan (40% laba bersih).
+
 ### 5.4 Valuasi dan Summary Valuasi
 
 Menghitung nilai usaha mitra berdasarkan daftar aset beserta penyusutannya. Bagian Summary menyajikan total investasi, total nilai aset, akumulasi penyusutan, dan sisa nilai aset.
+
+> **Cara perhitungan penyusutan:** tingkat penyusutan = 1 ÷ masa manfaat aset (tahun). Penyusutan per bulan = total nilai aset × tingkat penyusutan ÷ 12. Sisa nilai aset = penyusutan per bulan × sisa bulan masa manfaat.
 
 ### 5.5 Dashboard Profit Sharing dan Overview Mitra
 
@@ -206,6 +240,8 @@ Mitra mengajukan pencairan bagi hasil dengan cara:
 1. Mengunduh formulir pengajuan (berkas Word) yang sudah terisi otomatis.
 2. Mencetak, menandatangani, lalu mengunggah kembali berkas tersebut.
 3. Pengajuan diproses melalui persetujuan bertingkat hingga disetujui.
+
+> **Cara perhitungan total pembayaran:** total yang dibayarkan = royalti + PPN; **PPN dihitung 11%** dari nilai royalti.
 
 ### 5.7 History Royalti
 
@@ -254,22 +290,34 @@ Menu Inventory terbagi dua bagian besar: inventori gudang mitra dan logistik UCO
 - **Stock Request (Warehouse Out)** — Permintaan dan pencatatan barang keluar dari gudang, dinilai berdasarkan harga master stok.
 - **Monitoring Stock** — Pantauan sisa stok terkini per gudang, dapat ditelusuri sampai rincian persediaan dan riwayat permintaan.
 - **Jurnal** — Catatan keuangan harian gudang berdasarkan kode akun, dilengkapi rekapitulasi bulanan dan tahunan.
-- **Stock Opname** — Penghitungan fisik stok berkala. Selisih antara stok fisik dan catatan sistem akan tercatat sebagai surplus (lebih) atau shortage (kurang). Selisih dalam batas toleransi 3% disetujui otomatis; di luar itu memerlukan persetujuan.
+- **Stock Opname** — Penghitungan fisik stok berkala. Kolom **System Quantity** (stok menurut sistem) terisi otomatis dan tidak dapat diubah manual. Daftar **Container (IBC)** hanya menampilkan kontainer milik gudang yang dipilih, dan tanggal opname tidak dapat dimundurkan (minimal hari ini). Selisih antara stok fisik dan catatan sistem tercatat sebagai **surplus** (lebih) atau **shortage** (kurang); selisih dalam batas toleransi 3% disetujui otomatis, di luar itu menunggu persetujuan.
+
+> **Cara perhitungan System Quantity:** stok menurut sistem = total stok masuk − total stok keluar pada kontainer terkait.
+
+> **Cara perhitungan selisih opname:** selisih = stok fisik − stok sistem. Selisih positif menjadi **Surplus**; selisih negatif menjadi **Shortage**. Selisih di bawah **3%** dari stok sistem disetujui otomatis; di atas itu menunggu persetujuan.
 
 [Sisipkan tangkapan layar: Monitoring Stock per gudang]
 
 ### 7.2 Logistik UCO
 
 - **Master Container** — Data induk tangki/kontainer penyimpanan di tiap gudang.
-- **Master POO (Point of Origin)** — Data titik pengumpulan UCO: penanggung jawab, alamat, koordinat, jenis dan harga UCO, serta rekening.
+- **Master POO (Point of Origin)** — Data titik pengumpulan UCO: penanggung jawab, alamat, koordinat, jenis dan harga UCO, serta rekening. Kolom **Nearest Warehouse** (gudang terdekat) terisi otomatis dari data gudang operasional; **Type** (SUPPLIER / MITRA) dan **Price Unit** (L / KG / TON / KEMASAN / RP) dipilih dari menu pilihan.
 - **Master Kemasan dan Master Status** — Data induk kemasan dan daftar status pekerjaan yang dipakai pada Work Order.
-- **Work Order (WO)** — Pembuatan perintah kerja penjemputan/pengumpulan per POO lengkap dengan status pengerjaannya.
-- **Pickup Order (PO)** — Permintaan penjemputan UCO: jenis, cakupan wilayah, paket, jumlah, harga, dan penugasan armada.
-- **Route Mapping** — Perhitungan, penyimpanan, dan tampilan peta rute penjemputan optimal dengan beberapa titik persinggahan.
-- **Surat Jalan (Delivery Order)** — Dokumen pengiriman. Pengemudi menutup DO dengan mengisi jumlah aktual, koordinat lokasi, tanda tangan penerima, foto bukti serah terima, dan foto timbangan.
+- **Work Order (WO)** — Pembuatan perintah kerja penjemputan/pengumpulan per POO lengkap dengan status pengerjaannya. Tanggal WO dikunci ke tanggal hari ini (tidak dapat memilih tanggal lain).
+- **Pickup Order (PO)** — Permintaan penjemputan UCO: jenis, cakupan wilayah, paket, jumlah, harga, dan penugasan armada. Nomor PO kini tampil pada daftar; kolom **Route/Coverage** dan **Site** terisi otomatis dari data POO namun tetap dapat disunting.
+- **Route Mapping** — Perhitungan, penyimpanan, dan tampilan peta rute penjemputan optimal dengan beberapa titik persinggahan. Jumlah pickup dan total berat terisi otomatis dari PO yang dipilih.
+- **Surat Jalan (Delivery Order)** — Dokumen pengiriman. Setelah PO dipilih, status otomatis **PROGRESS** dan dapat diubah pada halaman pembaruan. Pengemudi menutup DO dengan mengisi jumlah aktual, koordinat lokasi, tanda tangan penerima, foto bukti serah terima, dan foto timbangan.
 - **Inbound (Barang Masuk)** — Pencatatan penerimaan stok UCO per gudang/kontainer: sumber, volume diterima, harga, total, dan tolakan; termasuk form penimbangan masuk.
-- **Outbound (Barang Keluar)** — Pengelolaan pengiriman keluar: muat barang, serah terima dengan bukti foto, dan cetak surat jalan.
+- **Outbound (Barang Keluar)** — Pengelolaan pengiriman keluar. Menu Outstock menampilkan daftar lengkap dengan tombol **Buat Draft**; nilai System Quantity pada proses loading tersimpan dengan benar, termasuk saat pengiriman ulang dokumen. Prosesnya meliputi muat barang, serah terima dengan bukti foto, dan cetak surat jalan.
 - **Settlement dan Acquisition Cost** — Penyelesaian biaya per rute (jarak kilometer dan persetujuannya) serta perbandingan biaya rencana vs aktual per pengiriman dengan unggahan nota.
+
+> **Alur Settlement:** rute yang baru dibuat langsung masuk halaman **Settlement** dengan status **PENDING_SETTLEMENT**. Pengguna mitra/operasional mengisi rincian biaya rute (BBM, tol, parkir, biaya driver, biaya lapangan, dan biaya tanpa nota) beserta bukti berkas, lalu status menjadi **SETTLEMENT_PENDING**. Pada menu **Settlement Cost** (Finance), petugas menyetujui (status **SETTLED**) atau menolak (kembali ke **PENDING_SETTLEMENT**). **Pickup Cost** mencatat pencairan uang muka kas (rekening tujuan, nominal, dan bukti transfer); **Acquisition Cost** mencatat pembayaran ke POO atas UCO yang dibeli (nominal dan qty aktual, bukti transfer kini tampil pada halaman detail).
+
+> **Cara perhitungan biaya rute (mode Manual):** BBM = (jarak ÷ konsumsi kendaraan) × harga bahan bakar; biaya operasional = parkir + tol + biaya driver + biaya lapangan; total biaya = BBM + tol + biaya operasional; **total keseluruhan = total biaya + APC**.
+
+> **Cara perhitungan biaya rute (mode Lumpsum):** total = biaya lumpsum + APC.
+
+> **Cara perhitungan kapasitas kontainer:** stok terisi = total stok masuk − total stok keluar; **sisa kapasitas = volume kontainer − stok terisi**; sistem menolak pengisian yang melebihi sisa kapasitas.
 
 [Sisipkan tangkapan layar: Route Mapping dengan peta rute]
 
@@ -287,6 +335,16 @@ Menu Performance menyajikan ukuran capaian kinerja tim sales dan layanan purna j
 - **Ratio Pipeline Leads / Ratio Pipeline Deal** — Rasio konversi antartahap sebagai ukuran efektivitas sales.
 - **Aftersales Profit Mitra** — Perbandingan proyeksi dan realisasi bagi hasil per gudang, termasuk indikator surplus/minus dan persentase performa.
 - **Aftersales Handling Complain** — Pemantauan penanganan keluhan mitra: jumlah tiket keluhan, terselesaikan, tertunda, dan persentase keberhasilan penanganan.
+
+> **Cara perhitungan Team Performance:** tiga komponen — capaian deal (jumlah deal ÷ target × 100), capaian purna jual (bagi hasil ÷ proyeksi × 100), dan capaian penanganan keluhan (keluhan selesai ÷ total keluhan × 100) — dirata-ratakan menjadi satu nilai performa. Nilai **≥ 70** berstatus **Above Target**; di bawah 70 berstatus **Below Target**.
+
+> **Cara perhitungan jenjang (Tiering):** pencapaian berturut-turut (streak) menentukan jenjang: lebih dari 3 bulan beruntun di atas target = **GOLD**; tepat 3 bulan = **BRONZE**; selain itu = **SILVER**. Streak dihitung ulang saat performa berada di bawah target.
+
+> **Cara perhitungan rasio pipeline:** setiap rasio = jumlah prospek pada tahap tersebut ÷ total prospek × 100.
+
+> **Cara perhitungan penanganan keluhan:** persentase keberhasilan = keluhan selesai ÷ total keluhan × 100; keluhan belum selesai = keluhan berjalan + keluhan terbuka.
+
+> Catatan: menu **KPI** mencatat bobot, target, dan realisasi sebagai data; tidak ada skor akhir yang dihitung otomatis oleh sistem.
 
 [Sisipkan tangkapan layar: Team Performance bulanan]
 
@@ -331,6 +389,8 @@ Pusat unduhan dokumen panduan operasional. Dokumen panduan (termasuk dokumen ini
 - **Monitoring Promosi** — Pemantauan jalannya promosi dan tindak lanjutnya.
 - **Approval Promosi** — Persetujuan usulan promosi dan evaluasi hasilnya melalui proses persetujuan bertingkat.
 
+> **Cara perhitungan evaluasi pemasaran:** biaya per prospek (CPL) = anggaran ÷ jumlah prospek; tingkat konversi = jumlah deal ÷ jumlah prospek × 100; biaya per akuisisi (CPA) = anggaran ÷ jumlah deal; estimasi pendapatan = nilai investasi HUB × jumlah deal; **ROI = (pendapatan − anggaran) ÷ anggaran × 100**.
+
 ---
 
 ## 11. Menu Dashboard: Pemantauan
@@ -345,15 +405,23 @@ Ringkasan layanan purna jual, meliputi:
 - **Pemantauan kontrak**: aktif, segera berakhir (kurang dari tiga bulan), dan sudah berakhir.
 - Jumlah tiket terbuka dan selesai, kinerja respon (rata-rata waktu penyelesaian), permintaan dukungan menurut kategori, widget kinerja, serta daftar keluhan.
 
+> Pembaruan: dashboard kini dapat dimuat dengan benar, termasuk ketika filter gudang tidak dipilih — data otomatis ditampilkan dengan cakupan seluruh gudang. Widget **Penilaian Kinerja** dan **Daftar Keluhan** masih menunggu kelengkapan data.
+
+> **Cara perhitungan MTTR / MTTF:** MTTR (rata-rata waktu penyelesaian gangguan) = rata-rata jam dari munculnya gangguan hingga tindakan penyelesaiannya; MTTF (rata-rata jeda antargangguan) = rata-rata jam antara dua gangguan pada tiket yang sama. **Pemantauan kontrak** menggolongkan kontrak **segera berakhir** bila sisa masa berlaku kurang dari **3 bulan**.
+
 [Sisipkan tangkapan layar: Dashboard After Sales]
 
 ### 11.2 Dashboard Kemitraan (Membership)
 
 Ringkasan populasi mitra: jumlah mitra menurut status dan perkembangannya dari waktu ke waktu.
 
+> **Cara perhitungan ringkas:** estimasi uang muka = jumlah mitra (MOU) × nilai DP kemitraan; rasio corong = jumlah mitra tahap saat ini ÷ jumlah mitra tahap sebelumnya × 100; estimasi pendapatan = total proyeksi pendapatan (skenario rendah) untuk 12 bulan ke depan.
+
 ### 11.3 Dashboard Financial Insight
 
 Wawasan finansial ringkas: pendapatan, volume UCO, dan tren keuangan utama dalam satu halaman.
+
+> **Cara perhitungan:** ROI = EBITDA ÷ total investasi × 100; margin = laba bersih ÷ pendapatan × 100.
 
 ### 11.4 Dashboard Compliance
 
@@ -464,65 +532,12 @@ Disarankan meninjau kebenaran data rekening secara berkala agar pembayaran tidak
 | MTTR / MTTF | Rata-rata waktu penyelesaian gangguan / rata-rata jeda antargangguan pada layanan purna jual |
 | PIC | Person In Charge, penanggung jawab |
 | SOP | Standard Operating Procedure, prosedur operasional standar |
-
-## 17. Catatan Perbaikan dan Fitur Terbaru
-
-Bagian ini merangkum perbaikan dan penyempurnaan fitur yang dilakukan pada modul Business Partner. Dokumentasi diperbarui secara berkala mengikuti perkembangan aplikasi.
-
-### 17.1 Dashboard Aftersales (Purna Jual)
-
-- Data dashboard Aftersales kini dapat dimuat dengan benar; kolom **Penilaian / Metrik** tidak lagi menampilkan nilai kosong.
-- Parameter `warehouse` yang tidak diisi tidak lagi menyebabkan error (sistem tetap menampilkan data dengan cakupan global).
-
-### 17.2 Hak Akses (Role & Permission)
-
-- Role dan permission (Spatie) diselaraskan ulang berdasarkan menu yang terdaftar pada `menu_lists`; menu yang sebelumnya belum memiliki permission kini otomatis terisi.
-- Halaman **Credential → Role** kini dapat diedit oleh Administrator. Sebelumnya tombol dan kolom terkunci karena permission `master.credential.role.edit` belum diberikan kepada role admin.
-- Diperkenalkan pengamanan agar aksi "Revoke All" pada role **ADM** tidak mencabut akses pengelolaan role itu sendiri (mencegah admin terkunci keluar).
-
-### 17.3 Credential-Role: Tambah Menu (4 Level)
-
-- Tombol **Tambah Menu Item** dapat langsung digunakan tanpa harus memilih baris terlebih dahulu.
-- Pengisian menu kini terpandu dalam **4 level**:
-  1. **Module** (MS…)
-  2. **Submodule** (SM…)
-  3. **Subheader** (SS…) — dapat dilewati bila tidak diperlukan
-  4. **Menu Item** (SI…)
-- Pada setiap level tersedia pilihan memilih menu yang sudah ada **atau** membuat baru (**+ New**). Jika level menengah dibuat baru, sistem otomatis membuat nodenya beserta permission terkait dalam satu proses.
-
-### 17.4 Inventori: System Quantity (Opname & Outstock)
-
-- **System Quantity** pada Stock Opname dan Outstock kini dihitung dari database (stok masuk dikurangi stok keluar), bukan lagi angka 0.
-- Pada pembuatan Stock Opname, kolom System Quantity **terisi otomatis** dan hanya dapat dibaca (tidak dapat diubah manual).
-- Nilai System Quantity pada proses loading Outstock tersimpan dengan benar, termasuk saat pengiriman ulang dokumen.
-
-### 17.5 Survei (Analisis Surveyor)
-
-- Setelah survei dikirim, bagian **Analisis Surveyor → Penilaian** menampilkan angka skor tiap aspek (C/D/E/F) dan hasil analisis dengan benar — sebelumnya menampilkan kata *"undefined"*.
-
-### 17.6 Registrasi Partner
-
-- Formulir registrasi **internal (sales/admin)** dan **publik** kini memakai komponen formulir yang sama serta satu proses pengiriman (submit) terpadu.
-- Dropdown **Provinsi, Kota/Kabupaten, Kecamatan, Kelurahan, Kode Pos** berfungsi dan terisi dari data master (berantai).
-- Menambahkan peringatan agar pengguna **mengizinkan akses lokasi (GPS)** pada peramban; koordinat tetap dapat diisi secara opsional.
-- Data **Requester_Id** pada pengajuan onboarding diisi dengan akun pengirim (untuk alur internal); kolom `user_row_id` mitra terisi otomatis setelah akun mitra dibuat saat onboarding disetujui.
-
-### 17.7 Logistik UCO (WO / PO / Surat Jalan / Routing)
-
-- **Work Order**: tanggal WO dikunci ke tanggal hari ini — tidak dapat memilih tanggal lampau atau mendatang.
-- **Grid PO**: nomor PO kini tampil pada daftar (sebelumnya tersembunyi).
-- **Pembuatan PO**: kolom **Route/Coverage** dan **Site** terisi otomatis dari data POO, namun tetap dapat disunting.
-- **Surat Jalan**: setelah memilih PO, status otomatis terpilih **PROGRESS**; pada halaman pembaruan, status dapat diubah (tidak lagi selalu tertahan di PROGRESS).
-- **Route Mapping**: jumlah pickup dan total berat terisi otomatis dari PO yang dipilih.
-
-### 17.8 Outstock, Stock Opname & Master POO
-
-- Menu **Outstock** kini mengarah ke halaman daftar outstock yang lengkap (memiliki tombol **Buat Draft** untuk menambah data).
-- Pada Stock Opname, dropdown **Container (IBC)** hanya menampilkan kontainer milik gudang yang dipilih.
-- Tanggal Stock Opname **tidak dapat dimundurkan** (minimal hari ini).
-- Pada pembuatan **POO**, kolom **Nearest Warehouse** terisi dari data gudang operasional (`warehouse_partner`).
-- Kolom **Type** dan **Price Unit** pada POO kini berupa menu pilihan (dropdown) — Type: SUPPLIER / MITRA; Price Unit: L / KG / TON / KEMASAN / RP.
-
+| COGS | Harga pokok penjualan (Cost of Goods Sold) |
+| EBITDA | Laba sebelum bunga, pajak, penyusutan, dan amortisasi |
+| ROI | Return on Investment, tingkat pengembalian investasi |
+| CPL / CPA | Biaya per prospek / biaya per akuisisi pada evaluasi pemasaran |
+| BEP | Break Even Point, titik impas usaha |
+| APC | Biaya tambahan pada perhitungan biaya rute penjemputan |
 
 ---
 
