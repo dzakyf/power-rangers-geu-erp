@@ -31,6 +31,8 @@ $Saya =  Auth::user()->username;
         <!-- <input type="button" id="ekselPanduanListDet" name="ekselPanduanListDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="PanduanList.toExcel('./export/generate.php');" /> -->
         <!-- <input type="button" id="detailBP" name="detailBP" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailBP()" /> -->
         <input type="button" id="createBroadcast" name="createBroadcast" value="Create Panduan" class="btn btn-info mt-2 mr-2" onclick="createPanduan()" />
+        <input type="button" id="detailPanduanBtn" name="detailPanduanBtn" value="Detail Panduan" class="btn btn-success mt-2 mr-2" onclick="detailPanduan()" />
+        <input type="button" id="deletePanduanBtn" name="deletePanduanBtn" value="Delete Panduan" class="btn btn-danger mt-2 mr-2" onclick="deletePanduan()" />
         <div class="btn-group" role="group">
         </div>
     </div>
@@ -64,13 +66,15 @@ $Saya =  Auth::user()->username;
     }
 
     function PanduanListKlik() {
+
+        $("#divlistProjectList").hide();
         PanduanListID = PanduanList.getSelectedId();
         $("#divlistOpportunity").show();
         if (PanduanListID != '') {
             $("#divlistProjectList").hide();
             LoadM('divlistOpportunity', 'panduan-detail?ID=' + PanduanListID);
         }
-        return true;
+        // return true;
     }
 
     function refreshdata() {
@@ -91,8 +95,42 @@ $Saya =  Auth::user()->username;
         })
     }
 
-    function detailBP() {
+    function detailPanduan() {
+        if (!PanduanList.getSelectedId()) {
+            alert('Pilih data panduan terlebih dahulu.');
+            return;
+        }
         PanduanListKlik();
+    }
+
+    function deletePanduan() {
+        var id = PanduanList.getSelectedId();
+        if (!id) {
+            alert('Pilih data panduan terlebih dahulu.');
+            return;
+        }
+        if (!confirm('Yakin ingin menghapus panduan ini beserta file-nya?')) {
+            return;
+        }
+        $.ajax({
+            url: 'panduan-delete',
+            type: 'POST',
+            data: {
+                ID: id,
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(res) {
+                if (res.status === 'success') {
+                    alert('Panduan berhasil dihapus!');
+                    refreshdata();
+                } else {
+                    alert(res.message || 'Gagal menghapus panduan');
+                }
+            },
+            error: function(xhr) {
+                alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menghapus panduan');
+            }
+        });
     }
 
 

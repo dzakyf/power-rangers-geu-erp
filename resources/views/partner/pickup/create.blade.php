@@ -124,12 +124,14 @@
             $('#Coverage').val(coverage || '');
 
             if (data.nearestWarehouse) {
-                var nw = String(data.nearestWarehouse);
-                var matched = $('#Site option').filter(function() {
+                // POO stores the warehouse id; resolve it to the Site option
+                // label ("warehouse_task_id - warehouse_location").
+                var label = whLabelMap[String(data.nearestWarehouse)];
+                var matched = label ? $('#Site option').filter(function() {
                     var v = String($(this).val() || '');
                     var t = String($(this).text() || '');
-                    return v === nw || t === nw || v.indexOf(nw) === 0 || t.indexOf(nw) === 0;
-                });
+                    return v === label || t === label;
+                }) : $();
                 if (matched.length) {
                     $('#Site').val(matched.first().val()).trigger('change');
                 } else {
@@ -139,10 +141,12 @@
         });
 
         // Load sites from warehouse API
+        var whLabelMap = {};
         $.get('partner-warehouse-data', function(res) {
             var $site = $('#Site');
             $.each(res.data, function(_, item) {
-                var label = item.warehouse_task_id + ' -- ' + item.warehouse_location;
+                var label = item.warehouse_task_id + ' - ' + item.warehouse_location;
+                whLabelMap[String(item.id)] = label;
                 $site.append($('<option>', { value: label, text: label }));
             });
         });

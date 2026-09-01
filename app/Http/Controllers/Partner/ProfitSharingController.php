@@ -121,10 +121,10 @@ class ProfitSharingController extends Controller
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id] ?? $Fetch->partner_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($type) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By] ?? $Fetch->Created_By) . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -1289,7 +1289,7 @@ class ProfitSharingController extends Controller
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id] ?? $Fetch->partner_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($type) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
             echo "<cell>" . htmlspecialchars($investasi) . "</cell>";
@@ -1298,7 +1298,7 @@ class ProfitSharingController extends Controller
             echo "<cell>" . htmlspecialchars($ebitda) . "</cell>";
             echo "<cell>" . htmlspecialchars($bep) . "</cell>";
             echo "<cell>" . htmlspecialchars(round($roi, 3)) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->Created_By] ?? $Fetch->Created_By) . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -1364,7 +1364,7 @@ class ProfitSharingController extends Controller
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id] ?? $Fetch->partner_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($type) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
             echo "<cell>" . htmlspecialchars($managementfee) . "</cell>";
@@ -1827,7 +1827,7 @@ class ProfitSharingController extends Controller
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id] ?? $Fetch->partner_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($type) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_status) . "</cell>";
             foreach ($bulanList as $kunci => $value) {

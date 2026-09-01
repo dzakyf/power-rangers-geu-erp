@@ -46,7 +46,6 @@
     });
 
     function bindGpsButton(btnId, latId, lngId, statusId) {
-    function bindGpsButton(btnId, latId, lngId, statusId) {
         function warnId() {
             return btnId === '#btnGetGps' ? '#gpsWarning' : '#gpsWarningCompany';
         }
@@ -169,6 +168,23 @@
         makeSelect2(pSel, 'master-province', {}, 'Province', 'Province');
     }
 
+    // "5. Informasi Lokasi" (individual form): bare Province/City selects made
+    // select2, fed by the same region API as the address chain.
+    function initInformasiLokasi() {
+        var pSel = '#Province';
+        var cSel = '#City';
+
+        makeSelect2(pSel, 'master-province', {}, 'Province', 'Province');
+
+        $(pSel).on('change', function() {
+            resetSelect2(cSel);
+            var province = $(this).val();
+            if (!province) return;
+            $(cSel).prop('disabled', false);
+            makeSelect2(cSel, 'master-city', function() { return { province: $(pSel).val() }; }, 'City', 'City');
+        });
+    }
+
     function initAddressChainedWhenReady() {
         if (typeof jQuery === 'undefined' || typeof jQuery.fn.select2 === 'undefined') {
             setTimeout(initAddressChainedWhenReady, 50);
@@ -176,6 +192,7 @@
         }
         initAddressChained('I_');
         initAddressChained('C_');
+        initInformasiLokasi();
     }
     initAddressChainedWhenReady();
 </script>
