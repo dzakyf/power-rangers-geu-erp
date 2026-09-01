@@ -54,7 +54,7 @@ class WarehouseController extends Controller
             echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_task_id) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id] ?? "") . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id] ?? $Fetch->partner_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_name) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
             echo "<cell>" . htmlspecialchars($usaddress[$Fetch->partner_task_id] ?? '') . "</cell>";

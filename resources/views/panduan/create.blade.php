@@ -110,10 +110,10 @@ $Saya =  Auth::user()->username;
                 contentType: false,
                 cache: false,
                 success: function(response) {
-                    alert("Berhasil membuat broadcast");
+                    alert("Panduan berhasil dibuat!");
 
-                    $('#broadcastForm')[0].reset();
-
+                    // Back to the panduan list after successful creation.
+                    window.location.href = 'panduan-index';
                 },
                 error: function(xhr, status, error) {
                     console.log('Error details:', xhr.responseText);

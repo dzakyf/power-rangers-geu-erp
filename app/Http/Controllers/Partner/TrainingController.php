@@ -1056,7 +1056,7 @@ class TrainingController extends Controller
             echo "<row id=\"$Fetchx->id\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->training_name) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetchx->material_speaker]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetchx->material_speaker] ?? $Fetchx->material_speaker) . "</cell>";
             echo "<cell>" . htmlspecialchars($date) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->created_date) . "</cell>";
             echo "<cell>" . htmlspecialchars($name) . "</cell>";
@@ -1248,7 +1248,7 @@ class TrainingController extends Controller
             $speakers = TrainingMaterial::where('training_id', $Fetch->id)->get()->pluck('material_speaker')->unique()->filter()->values();
             $speakersText = "";
             foreach ($speakers as $kunci => $value) {
-                $speakersText  .= htmlspecialchars($usname[$value]) . ($kunci < count($speakers) - 1 ? ", " : "");
+                $speakersText  .= htmlspecialchars($usname[$value] ?? $value) . ($kunci < count($speakers) - 1 ? ", " : "");
             }
             // $speakerText = implode(", ", $speakers);
 

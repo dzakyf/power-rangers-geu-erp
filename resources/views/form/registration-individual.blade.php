@@ -358,7 +358,7 @@
                  <div class="col-md-6">
                      <div class="form-group">
                          <label for="City">Kota / Kabupaten</label>
-                         <select name="City" id="City" class="form-control">
+                         <select name="City" id="City" class="form-control" disabled>
                              <option value="">-- Pilih --</option>
                          </select>
                      </div>

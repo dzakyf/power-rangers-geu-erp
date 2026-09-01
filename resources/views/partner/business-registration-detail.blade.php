@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\DB;
 $LSP = 'GEU-HO';
 $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->get();
 $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")->orderBy("Province", "asc")->get();
-$leadID = $_GET['ID'];
+$leadID = request()->input('ID');
 ?>
 <div class="card my-3">
     <div class="card-body">

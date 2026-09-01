@@ -292,9 +292,23 @@ class MasterDataController extends Controller
         $type = $r->query('format');
 
         if ($type === 'xml') {
+            // List display: Nearest_Warehouse should show the readable label
+            // "warehouse_task_id - warehouse_location" instead of the raw id.
+            // (JSON keeps the raw id for the edit-prefill contract.)
+            $whLabels = DB::table('warehouse_partner')
+                ->select('id', 'warehouse_task_id', 'warehouse_location')
+                ->get()
+                ->mapWithKeys(function ($w) {
+                    return [$w->id => $w->warehouse_task_id . ' - ' . $w->warehouse_location];
+                });
+
             $xml = new \SimpleXMLElement('<rows/>');
 
             foreach ($rows as $row) {
+                if (!empty($row->Nearest_Warehouse) && $whLabels->has((int) $row->Nearest_Warehouse)) {
+                    $row->Nearest_Warehouse = $whLabels[(int) $row->Nearest_Warehouse];
+                }
+
                 $item = $xml->addChild('row');
                 $item->addAttribute('ID', $row->ID);
 

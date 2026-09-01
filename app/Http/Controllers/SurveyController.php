@@ -228,18 +228,25 @@ class SurveyController extends Controller
     {
         $b = $r->all();
 
+        // The 3-times limit applies only when a MITRA inputs their location
+        // through the survey form during onboarding approval. Internal
+        // submissions via partner-survey-create are unlimited.
+        $isPartner = optional(auth()->user())->Priv_ID === 'MITRA';
+
         $highest       = DB::table('survey_location as sl')->max('ID');
         $applicatonCode = $this->generatorService->generateApplicationCode($highest, 'SVY');
 
-        $count = DB::table('survey_location')
-            ->where('Opportunity_Partner_Id', $b['Opportunity_Partner_Id'] ?? 0)
-            ->count();
+        if ($isPartner) {
+            $count = DB::table('survey_location')
+                ->where('Opportunity_Partner_Id', $b['Opportunity_Partner_Id'] ?? 0)
+                ->count();
 
-        if ($count >= 3) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Maksimal 3 kali input survey untuk partner yang sama'
-            ], 400);
+            if ($count >= 3) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Maksimal 3 kali input survey untuk partner yang sama'
+                ], 400);
+            }
         }
 
         try {
@@ -287,7 +294,6 @@ class SurveyController extends Controller
 
         $totalScore = $photo + $checklist + $environtment + $ucoEstimation;
 
-        $isPartner = optional(auth()->user())->Priv_ID === 'MITRA';
         $parentId  = $b["Parent_Id"] ?? null;
 
         $surveyStatus = "NEED_APPROVAL";

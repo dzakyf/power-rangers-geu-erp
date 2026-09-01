@@ -36,10 +36,22 @@ class OperationalController extends Controller
         $id = $r->query('ID');
 
         $guide = DB::table('guide as g')->select('g.*')->where('g.ID', '=', $id)->get();
-        $files = DB::table('meta_files as mf')->select('*')->where('mf.Map_To', '=', $id)->get();
+        if ($guide->isEmpty()) {
+            abort(404, 'Panduan tidak ditemukan');
+        }
 
+        // Only files belonging to this guide (Topic = guide). Without this
+        // filter, Map_To collisions with other modules leaked unrelated files.
+        $files = DB::table('meta_files as mf')
+            ->select('*')
+            ->where('mf.Map_To', '=', $id)
+            ->where('mf.Topic', '=', 'guide')
+            ->get();
+
+        // Uploads are stored in public/guide - build the URL from there
+        // (previously hardcoded /broadcast/ which 404'd every file).
         foreach ($files as $key => $value) {
-            $files[$key]->Url = "https://dev.hexamatika.com/geu/hcga/public/broadcast/" . $value->Path;
+            $files[$key]->Url = asset('guide/' . $value->Path);
         };
 
         $guide[0]->Files = $files;
@@ -98,7 +110,47 @@ class OperationalController extends Controller
             null
         );
 
-        return view('panduan.create');
+        // JSON contract: the create page redirects to panduan-index on success.
+        return response()->json([
+            'status'   => 'success',
+            'message'  => 'Panduan berhasil dibuat.',
+            'id'       => $panduanId,
+            'redirect' => 'panduan-index',
+        ]);
+    }
+
+    public function delete(Request $r)
+    {
+        $id = $r->input('ID');
+        if (!$id) {
+            return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
+        }
+
+        $guide = DB::table('guide')->where('ID', $id)->first();
+        if (!$guide) {
+            return response()->json(['status' => 'error', 'message' => 'Panduan tidak ditemukan'], 404);
+        }
+
+        // Remove the physical file(s) in public/guide, then the meta_files rows
+        // belonging to this guide, then the guide row itself.
+        $files = DB::table('meta_files')
+            ->where('Map_To', $id)
+            ->where('Topic', 'guide')
+            ->get();
+
+        foreach ($files as $file) {
+            $diskPath = public_path('guide/' . $file->Path);
+            if (is_file($diskPath)) {
+                @unlink($diskPath);
+            }
+        }
+
+        DB::transaction(function () use ($id) {
+            DB::table('meta_files')->where('Map_To', $id)->where('Topic', 'guide')->delete();
+            DB::table('guide')->where('ID', $id)->delete();
+        });
+
+        return response()->json(['status' => 'success', 'message' => 'Panduan berhasil dihapus.']);
     }
 
     public function loadXML()

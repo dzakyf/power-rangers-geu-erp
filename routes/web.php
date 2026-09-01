@@ -4902,6 +4902,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$panduanOpsPref-create", [OperationalController::class, 'create']);
     Route::get("$panduanOpsPref-detail", [OperationalController::class, 'detail']);
     Route::post("$panduanOpsPref-submit", [OperationalController::class, 'submit']);
+    Route::post("$panduanOpsPref-delete", [OperationalController::class, 'delete']);
     Route::get("$panduanOpsPref-load-data", [OperationalController::class, 'loadXML']);
     /** */
 

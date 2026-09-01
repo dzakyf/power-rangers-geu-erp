@@ -1218,7 +1218,7 @@ class SalesController extends Controller
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars(DB::table('opportunity')->where("Task_ID", $Fetch->partner_task_id)->first()->Sales_ID ?? "NO ASSIGNMENT") . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->warehouse_location) . "</cell>";
-            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id]) . "</cell>";
+            echo "<cell>" . htmlspecialchars($usname[$Fetch->partner_task_id] ?? $Fetch->partner_task_id) . "</cell>";
             echo "<cell>" . htmlspecialchars($type) . "</cell>";
             foreach ($bulanList as $kunci => $value) {
                 echo "<cell>" . htmlspecialchars($value['proyeksi']) . "</cell>";
