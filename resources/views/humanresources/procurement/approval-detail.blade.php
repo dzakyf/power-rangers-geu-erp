@@ -69,7 +69,7 @@
 
 				<!-- Row 4: Kategori & Parameter Request -->
 				<div class="row">
-					<div class="col-md-4 form-group">
+					<div class="col-md-3 form-group">
 						<label for="Category" class="font-weight-bold">Category</label>
 						<select id="Category" class="form-control form-control-sm shadow-sm">
 							<option value="">Select Category</option>
@@ -77,14 +77,22 @@
 							<option {{ $pr->Category == 'NON ASSET' ? 'selected' : '' }}>NON ASSET</option>
 						</select>
 					</div>
-					<div class="col-md-4 form-group">
+					<div class="col-md-3 form-group">
+						<label for="Sub_Category" class="font-weight-bold">Jenis</label>
+						<select id="Sub_Category" class="form-control form-control-sm shadow-sm">
+							<option value="">Select Sub Category</option>
+							<option {{ $pr->Sub_Category == 'BARANG' ? 'selected' : '' }}>BARANG</option>
+							<option {{ $pr->Sub_Category == 'JASA' ? 'selected' : '' }}>JASA</option>
+						</select>
+					</div>
+					<div class="col-md-3 form-group">
 						<label for="Priority_Status" class="font-weight-bold">Priority</label>
 						<select name="Priority_Status" id="Priority_Status" class="form-control form-control-sm shadow-sm" required>
 							<option {{ $pr->Priority_Status == 'NORMAL' ? 'selected' : '' }}>NORMAL</option>
 							<option {{ $pr->Priority_Status == 'URGENT' ? 'selected' : '' }}>URGENT</option>
 						</select>
 					</div>
-					<div class="col-md-4 form-group">
+					<div class="col-md-3 form-group">
 						<label for="Estimated_Budget" class="font-weight-bold">Estimated Budget</label>
 						<input type="text" id="Estimated_Budget" class="form-control form-control-sm shadow-sm" value="{{ $pr->Estimated_Budget }}" required />
 					</div>
@@ -231,7 +239,7 @@
 		PRDetail.setImagePath("dhtmlx/imgs/");
 		PRDetail.setHeader("No,Purchase Type,Product Code,Product Desc,Qty,Specification,Measurement,Note,Category,SubCat,Price@unit, Total Price");
 		PRDetail.setInitWidths("50,100,100,100,200,200,100,200,100,100,100,100");
-		PRDetail.setColTypes("ro,ro,ro,ro,edn,ed,ed,ed,ro,ro,edn,ron");
+		PRDetail.setColTypes("ro,ro,ro,ro,edn,txt,ed,ed,ro,ro,edn,ron");
 		PRDetail.setColAlign("center,left,center,left,right,left,center,center,center,center,right,right");
 		PRDetail.setColSorting("int,str,str,str,str,str,str,str");
 		PRDetail.setEditable(true);

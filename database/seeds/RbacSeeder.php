@@ -80,6 +80,16 @@ class RbacSeeder extends Seeder
         $this->command->info('Assigning users to roles by Priv_ID...');
         $users = User::whereNotNull('Priv_ID')->get();
         foreach ($users as $user) {
+            // HCGA staff are scoped to the HRD module via the HRD role
+            // (see HcgaPermissionSeeder); keep that exception stable across re-seeds.
+            if ($user->Priv_ID === 'STAFF' && $user->Department === 'HCGA') {
+                $role = Role::where('name', 'HRD')->first();
+                if ($role && !$user->hasRole('HRD')) {
+                    $user->assignRole($role);
+                }
+                continue;
+            }
+
             $role = Role::where('name', $user->Priv_ID)->first();
             if ($role && !$user->hasRole($role->name)) {
                 $user->assignRole($role);
