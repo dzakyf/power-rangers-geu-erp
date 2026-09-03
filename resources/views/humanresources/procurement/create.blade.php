@@ -68,7 +68,7 @@
 
 				<!-- Row 4: Kategori -->
 				<div class="row mt-3">
-					<div class="col-md-4">
+					<div class="col-md-3">
 						<label class="font-weight-bold">Category</label>
 						<select id="Category" class="form-control form-control-sm">
 							<option value="">Select Category</option>
@@ -76,14 +76,22 @@
 							<option>NON ASSET</option>
 						</select>
 					</div>
-					<div class="col-md-4">
+					<div class="col-md-3">
+						<label class="font-weight-bold">Jenis</label>
+						<select id="Sub_Category" class="form-control form-control-sm">
+							<option value="">Select Sub Category</option>
+							<option>BARANG</option>
+							<option>Jasa</option>
+						</select>
+					</div>
+					<div class="col-md-3">
 						<label class="font-weight-bold">Priority</label>
 						<select name="Priority_Status" id="Priority_Status" class="form-control form-control-sm">
 							<option>NORMAL</option>
 							<option>URGENT</option>
 						</select>
 					</div>
-					<div class="col-md-4">
+					<div class="col-md-3">
 						<label class="font-weight-bold">Estimated Budget</label>
 						<input type="number" id="Estimated_Budget" class="form-control form-control-sm" value="0" min="0" required />
 					</div>
@@ -117,7 +125,7 @@
 									<!-- td><input type="text" name="Product_Code[]" class="form-control form-control-sm product-code" placeholder="Kode" /></td -->
 									<td><input type="text" name="Product_Desc[]" class="form-control form-control-sm product-desc" placeholder="Deskripsi" /></td>
 									<td><input type="number" name="Qty[]" class="form-control form-control-sm qty" value="1" min="1" /></td>
-									<td><input type="text" name="Specification[]" class="form-control form-control-sm specification" placeholder="Spesifikasi" /></td>
+									<td><textarea name="Specification[]" class="form-control form-control-sm specification"></textarea></td>
 									<td><input type="text" name="Unit[]" class="form-control form-control-sm unit" value="PCS" /></td>
 									<td><input type="number" name="Price[]" class="form-control form-control-sm price" value="0" min="0" step="1000" /></td>
 									<td><input type="text" name="Total[]" class="form-control form-control-sm total" value="0" readonly class="bg-light text-right" /></td>
@@ -240,7 +248,7 @@
 					<!-- td><input type="text" name="Product_Code[]" class="form-control form-control-sm product-code" placeholder="Kode" /></td -->
 					<td><input type="text" name="Product_Desc[]" class="form-control form-control-sm product-desc" placeholder="Deskripsi" /></td>
 					<td><input type="number" name="Qty[]" class="form-control form-control-sm qty" value="1" min="1" /></td>
-					<td><input type="text" name="Specification[]" class="form-control form-control-sm specification" placeholder="Spesifikasi" /></td>
+					<td><textarea name="Specification[]" class="form-control form-control-sm specification" placeholder="Spesifikasi"></textarea></td>
 					<td><input type="text" name="Unit[]" class="form-control form-control-sm unit" value="PCS" /></td>
 					<td><input type="number" name="Price[]" class="form-control form-control-sm price" value="0" min="0" step="1000" /></td>
 					<td><input type="text" name="Total[]" class="form-control form-control-sm total" value="0" readonly class="bg-light text-right" /></td>
