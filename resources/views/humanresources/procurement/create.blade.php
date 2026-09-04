@@ -81,7 +81,7 @@
 						<select id="Sub_Category" class="form-control form-control-sm">
 							<option value="">Select Sub Category</option>
 							<option>BARANG</option>
-							<option>Jasa</option>
+							<option>JASA</option>
 						</select>
 					</div>
 					<div class="col-md-3">
@@ -108,13 +108,14 @@
 								<tr>
 									<th style="width:3%">No</th>
 									<!-- th style="width:12%">Product Code</th -->
-									<th style="width:22%">Product Description</th>
-									<th style="width:5%">Qty</th>
-									<th style="width:15%">Specification</th>
+									<th style="width:15%">Product Description</th>
+									<th style="width:8%">Qty</th>
+									<th style="width:22%">Specification</th>
 									<th style="width:8%">Unit</th>
 									<th style="width:10%">Price</th>
 									<th style="width:10%">Total</th>
 									<th style="width:10%">Reference</th>
+									<th style="width:10%">Upload File</th>
 									<th style="width:7%">Action</th>
 								</tr>
 							</thead>
@@ -130,6 +131,7 @@
 									<td><input type="number" name="Price[]" class="form-control form-control-sm price" value="0" min="0" step="1000" /></td>
 									<td><input type="text" name="Total[]" class="form-control form-control-sm total" value="0" readonly class="bg-light text-right" /></td>
 									<td><input type="text" name="Reference[]" class="form-control form-control-sm reference" value="" class="bg-light text-right" /></td>
+									<td><input type="file" name="Image[]" class="form-control form-control-sm image" value="" class="bg-light text-right" /></td>
 									<td>
 										<button type="button" class="btn btn-danger btn-sm remove-row" title="Remove">
 											<i class="fa fa-times"></i>
@@ -252,8 +254,8 @@
 					<td><input type="text" name="Unit[]" class="form-control form-control-sm unit" value="PCS" /></td>
 					<td><input type="number" name="Price[]" class="form-control form-control-sm price" value="0" min="0" step="1000" /></td>
 					<td><input type="text" name="Total[]" class="form-control form-control-sm total" value="0" readonly class="bg-light text-right" /></td>
-					<td>
 					<td><input type="text" name="Reference[]" class="form-control form-control-sm reference" value="" class="bg-light text-right" /></td>
+					<td><input type="file" name="Image[]" class="form-control form-control-sm image" value="" class="bg-light text-right" /></td>
 					<td>
 						<button type="button" class="btn btn-danger btn-sm remove-row" title="Remove">
 							<i class="fa fa-times"></i>
@@ -434,7 +436,8 @@
 					Price: $(this).find('.price').val(),
 					Total: $(this).find('.total').val(),
 					Reference: $(this).find('.reference').val(),
-					Category: $(this).find('.category').val()
+					Category: $(this).find('.category').val(),
+					Image: $(this).find('.image').val(),
 				});
 			});
 			
