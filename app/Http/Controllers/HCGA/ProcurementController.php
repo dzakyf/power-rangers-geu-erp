@@ -95,7 +95,7 @@ class ProcurementController extends Controller
             $arr = [];
             foreach ($_POST as $key => $value) {
     
-                if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail' && $key != 'Reference' && $key != 'Product_Desc' && $key != 'Specification' && $key != 'Qty' && $key != 'Unit' && $key != 'Description' && substr($key,0,2) != 't_' && $key != 'undefined' && $key != 'GridData' && $key != 'RowCount') {
+                if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail' && $key != 'Reference' && $key != 'Product_Desc' && $key != 'Specification' && $key != 'Qty' && $key != 'Unit' && $key != 'Description' && substr($key,0,2) != 't_' && $key != 'undefined' && $key != 'GridData' && $key != 'RowCount' && $key != 'Image') {
                     $value = trim($value);
                     $ars .= "$key = '$value',";
                     $ax .= "$key,";
@@ -123,7 +123,7 @@ class ProcurementController extends Controller
             }else {
                 $status = "APPROVAL_GA";
             }
-            $us = DB::table('users')->where("Emp_ID", $getUpper->upper_nik)->select("id")->first();
+            $us = DB::table('users')->where("Emp_ID", $getUpper->upper_nik ?? '')->select("id")->first();
             $link = 'approvalpr';
     
     
@@ -158,6 +158,7 @@ class ProcurementController extends Controller
                             'Purchase_Type' => $arr['Category'] ?? '',
                             'Category' => $product['Category'] ?? $arr['Category'] ?? '',
                             'Remark' => $product['Remark'] ?? '',
+                            'Attachment' => $product['Image'] ?? '',
                         ]);
                     }
                 }
@@ -175,6 +176,7 @@ class ProcurementController extends Controller
                     'Purchase_Type' => $arr['Category'] ?? '',
                     'Category' => $arr['Category'] ?? '',
                     'Product_Code' => '',
+                    'Attachment' => $arr['Attachment'] ?? '',
                 ]);
             }
             try {

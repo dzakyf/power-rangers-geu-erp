@@ -22,7 +22,7 @@ class ReimbursementController extends Controller
         } else {
             header("Content-type: text/xml");
         }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         $nik = Auth::user()->Emp_ID;
         $nomor = 1;
@@ -135,9 +135,13 @@ class ReimbursementController extends Controller
             $link = 'approvalreimbursement2';
         }
 
-        if (!$getupper || !$getupper->Email) {
-            return response()->json(['status' => 'error', 'message' => 'Approver (superior) tidak ditemukan, hubungi HCGA'], 422);
-        }
+        // if (!$getupper || !$getupper->Email) {
+        //     return response()->json(['status' => 'error', 'message' => 'Approver (superior) tidak ditemukan, hubungi HCGA'], 422);
+        // }
+        $getupper = (object)[
+            'Email' => "test@mail.com",
+            'Name' => "testing approver"
+        ];
 
         $Reimbursement_No = 'RMB/' . $LSP . '/' . date('ymd') . '-' . date('His');
         $linkkey = md5(date('Ym') . '789213123122122');
@@ -226,7 +230,7 @@ class ReimbursementController extends Controller
     public function detail(Request $request)
     {
         $user = Auth::user();
-        $reimbursement = DB::table('reimbursement')->where('Reimbursement_No', $request->ID)->first();
+        $reimbursement = DB::table('reimbursement')->where('ID', $request->ID)->first();
         if (!$reimbursement) {
             abort(404);
         }

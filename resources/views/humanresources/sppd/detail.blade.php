@@ -13,8 +13,10 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="card-title m-0">Detail Request SPPD : {{ $sppd->SPPD_No }}</h4>
+                <div class="card-header bg-primary text-white p-2">
+                    <h4 class="card-title m-0 d-inline-block">Detail Request SPPD : {{ $sppd->SPPD_No }}</h4>
+			        <button type="button" class="float-right btn btn-secondary" onclick="history.back();"><i class="fa fa-times"></i> Close</button>
+                </div>
                 </div>
                 <div class="card-body">
                     <div class="row">
