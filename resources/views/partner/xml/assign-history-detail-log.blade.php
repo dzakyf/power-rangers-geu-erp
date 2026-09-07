@@ -41,7 +41,8 @@ foreach ($Query as $Fetch) {
 	echo "<cell>" . htmlspecialchars($Fetch->Full_Name) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Date) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Phone_Number) . "</cell>";
-	echo "<cell>" . htmlspecialchars("Opsi " . $Fetch->Partnership_Interest) . "</cell>";
+	$_leadPkg = $_leadPkg ?? DB::table("opportunity_partner")->where("lead_id", ($Fetch->Task_ID ?? ($_GET["ID"] ?? "")))->value("package_option");
+	echo "<cell>" . htmlspecialchars(leads_interest_label($_leadPkg, $Fetch->Hub_Type ?? null, $Fetch->Partnership_Interest ?? null)) . "</cell>";
 	echo "<cell>" . htmlspecialchars($estimation) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Created_Date) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Source_Channel) . "</cell>";

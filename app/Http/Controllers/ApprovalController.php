@@ -45,7 +45,7 @@ class ApprovalController extends Controller
 
     public function createTransferMembershipApproval()
     {
-        return view('approval.transfer-membership-create');
+        return view('partner.renewal.transfer-membership-create-application');
     }
 
     public function indexProfitSharing()
@@ -233,8 +233,17 @@ class ApprovalController extends Controller
 
     public function processTransferMembershipToNextProgress(Request $r)
     {
-        $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
-        return response()->json($result, $result['success'] ? 200 : 500);
+        return $this->processFlowToNextProgress('TRANSFER_MEMBERSHIP', $r);
+    }
+
+    public function processTerminationToNextProgress(Request $r)
+    {
+        return $this->processFlowToNextProgress('TERMINATION', $r);
+    }
+
+    public function processRenewalToNextProgress(Request $r)
+    {
+        return $this->processFlowToNextProgress('RENEWAL', $r);
     }
 
     public function processOnboardingToNextProgress(Request $r)
@@ -249,10 +258,19 @@ class ApprovalController extends Controller
         return response()->json($result, $result['success'] ? 200 : 500);
     }
 
-    public function processRenewalToNextProgress(Request $r)
+    private function processFlowToNextProgress(string $type, Request $r)
     {
         $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
-        return response()->json($result, $result['success'] ? 200 : 500);
+
+        if (!$result['success']) {
+            return response()->json($result, 500);
+        }
+
+        // The approval transaction has already committed here; never fail the
+        // approval because a side effect blew up.
+        $this->applyFlowSideEffects($type, (int) $r->input('id'));
+
+        return response()->json($result, 200);
     }
 
     public function processSurveyToNextProgress(Request $r)
@@ -270,8 +288,14 @@ class ApprovalController extends Controller
 
             $survey = DB::table('survey_location')->where('ID', $req->Map_To)->first();
             if ($survey && $survey->Opportunity_Partner_Id) {
-                app(\App\Http\Controllers\OnboardingController::class)
-                    ->advanceOnboardingStage($survey->Opportunity_Partner_Id, 'SURVEY', 'SETUP', 'Survey disetujui');
+                // The approval transaction has already committed here; never
+                // fail the approval because a side effect blew up.
+                try {
+                    app(\App\Http\Controllers\OnboardingController::class)
+                        ->advanceOnboardingStage($survey->Opportunity_Partner_Id, 'SURVEY', 'SETUP', 'Survey disetujui');
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Survey approval stage advance failed: ' . $e->getMessage());
+                }
             }
         }
 
@@ -360,11 +384,14 @@ class ApprovalController extends Controller
             ->where('Partner_ID', $q['id'])
             ->where('Checked_Sales', 1)
             ->exists();
+        // Grouped, partner-scoped: mirrors completeSetupIfReady(). The old
+        // ungrouped orWhere dropped the Partner_ID filter so any partner with
+        // an order date made this true for everyone.
         $hasOrderEquipment = DB::table('opportunity_partner_facility_dtl')
             ->where('Partner_ID', $q['id'])
             ->whereNotNull('Order_Date')
-            // ->where('Order_Date', '!=', '')
-            ->orWhere('Order_Date', '!=', '0000-00-00')
+            ->where('Order_Date', '!=', '')
+            ->where('Order_Date', '!=', '0000-00-00')
             ->exists();
 
 
@@ -472,6 +499,12 @@ class ApprovalController extends Controller
                 return ['success' => false, 'message' => 'Approval request not found'];
             }
 
+            // Already-final requests have no next level; say so explicitly
+            // instead of a confusing "Approval level not found".
+            if (in_array($req->Status, ['APPROVED', 'REJECTED'])) {
+                return ['success' => false, 'message' => 'Pengajuan ini sudah diproses (' . $req->Status . ')'];
+            }
+
             $level = DB::table('approval_level')
                 ->where('Request_Type', $req->Request_Type)
                 ->where('Level_Number', $req->Current_Level + 1)
@@ -511,7 +544,6 @@ class ApprovalController extends Controller
                 } else {
                     DB::table('approval_request')->where('ID', $req->ID)->update([
                         'Status'        => $nextLevel === null ? 'APPROVED' : 'NEED_APPROVAL',
-                        'Description'   => 'Berhasil menuju tahap selanjutnya',
                         'Current_Level' => $req->Current_Level + 1,
                         'Level_Id'      => $nextLevel->ID ?? null,
                         'Request_Type'  => $req->Request_Type,
@@ -520,8 +552,94 @@ class ApprovalController extends Controller
             });
 
             return ['success' => true, 'message' => 'success'];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Applies the business outcome of a final approval decision for the
+     * RENEWAL / TERMINATION / TRANSFER_MEMBERSHIP flows. Mirrors the SURVEY
+     * side effects: the approval itself is already committed, so failures
+     * here are logged instead of failing the request.
+     */
+    private function applyFlowSideEffects(string $type, int $requestId): void
+    {
+        try {
+            $req = DB::table('approval_request')->where('ID', $requestId)->first();
+
+            if (!$req || !in_array($req->Status, ['APPROVED', 'REJECTED'])) {
+                return;
+            }
+
+            if ($type === 'RENEWAL') {
+                $renewals = $req->Map_To
+                    ? DB::table('partner_renewal')->where('ID', $req->Map_To)->get()
+                    : DB::table('partner_renewal')
+                        ->where('Opportunity_Id', $req->Opportunity_Partner_Id)
+                        ->where('Status', 'PENDING')
+                        ->get();
+
+                foreach ($renewals as $renewal) {
+                    DB::table('partner_renewal')->where('ID', $renewal->ID)->update([
+                        'Status'      => $req->Status,
+                        'Approved_At' => $req->Status === 'APPROVED' ? now() : null,
+                    ]);
+
+                    if ($req->Status === 'APPROVED' && $renewal->Renewed_Length) {
+                        $partner = DB::table('opportunity_partner')
+                            ->where('id', $renewal->Opportunity_Id)
+                            ->first();
+
+                        if ($partner && $partner->contract_end_at) {
+                            DB::table('opportunity_partner')->where('id', $partner->id)->update([
+                                'contract_end_at' => Carbon::parse($partner->contract_end_at)
+                                    ->addMonths((int) $renewal->Renewed_Length),
+                            ]);
+                        }
+                    }
+                }
+            } elseif ($type === 'TERMINATION') {
+                $termination = $req->Map_To
+                    ? DB::table('partner_termination')->where('ID', $req->Map_To)->first()
+                    : null;
+
+                if ($termination) {
+                    DB::table('partner_termination')->where('ID', $termination->ID)->update([
+                        'Status'      => $req->Status,
+                        'Approved_At' => $req->Status === 'APPROVED' ? now() : null,
+                    ]);
+                }
+
+                if ($req->Status === 'APPROVED' && $termination && $termination->Opportunity_Id) {
+                    $leadId = DB::table('opportunity_partner')
+                        ->where('id', $termination->Opportunity_Id)
+                        ->value('lead_id');
+
+                    DB::table('opportunity_partner')
+                        ->where('id', $termination->Opportunity_Id)
+                        ->update(['status' => 'TERMINATED']);
+
+                    if ($leadId) {
+                        DB::table('warehouse_partner')
+                            ->where('partner_task_id', $leadId)
+                            ->update(['warehouse_status' => 'INACTIVE']);
+                    }
+                }
+            } elseif ($type === 'TRANSFER_MEMBERSHIP') {
+                $transfer = $req->Map_To
+                    ? DB::table('partner_transfer_membership')->where('ID', $req->Map_To)->first()
+                    : null;
+
+                if ($transfer) {
+                    DB::table('partner_transfer_membership')->where('ID', $transfer->ID)->update([
+                        'Result'                => $req->Status,
+                        'Effective_Transfer_At' => $req->Status === 'APPROVED' ? now() : null,
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('Approval side effect failed for '.$type.' #'.$requestId.': '.$e->getMessage());
         }
     }
 
@@ -650,7 +768,7 @@ class ApprovalController extends Controller
     public function getApprovalDataLog(Request $r)
     {
         $q = $r->query();
-        $apprId = $q['appr_id'] ?? "%";
+        $apprId = $q['request_id'] ?? $q['appr_id'] ?? "%";
 
 
         $d = DB::table('approval_request as request')

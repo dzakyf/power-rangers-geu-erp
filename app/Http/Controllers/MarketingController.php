@@ -206,7 +206,7 @@ class MarketingController extends Controller
             $row->addChild('cell', $d->Marketing_Desc);
             $row->addChild('cell', $d->Status);
             $row->addChild('cell', $d->Marketing_Created_At);
-            $row->addChild('cell', "Lihat Url^ " . $d->Media_Url);
+            $row->addChild('cell', "Lihat Url^ " . htmlspecialchars($d->Media_Url));
             $count++;
         }
 
@@ -425,7 +425,7 @@ class MarketingController extends Controller
             $this->uploadService->uploadMetaFile($filename, $path, $desc, $ext, $topic, $mapTo);
 
             $marketingId = DB::table('branding_marketing as bm')->where('bm.ID', '=', $marketingId)->update([
-                "Media_Url" => "{$r->root()}/$path",
+                "Media_Url" => "{$r->root()}/filevendor/$path",
             ]);
         }
 

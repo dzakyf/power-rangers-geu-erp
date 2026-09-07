@@ -169,7 +169,6 @@
                 </div>
             </div>
         </div>
-        <!-- 
         <h6>C. Dokumentasi Foto Lokasi</h6>
         <table class="table table-bordered">
             <thead>
@@ -187,7 +186,8 @@
             </tbody>
         </table>
 
-        <h6>D. Checklist Kriteria Lokasi</h6>
+        -->
+        <!-- <h6>D. Checklist Kriteria Lokasi</h6>
         <table class="table table-bordered">
             <thead>
                 <tr>
@@ -416,6 +416,63 @@
             });
         }
 
+
+
+    // C. Dokumentasi Foto Lokasi (restored: MITRA can attach location photos)
+    const photoData = [{
+            no: 1,
+            jenisFoto: 'Foto Tampak Depan',
+            keterangan: 'Foto Area Lokasi'
+        },
+        {
+            no: 2,
+            jenisFoto: 'Foto Area Operasional',
+            keterangan: 'Area untuk Booth / Mobil'
+        },
+        {
+            no: 3,
+            jenisFoto: 'Foto Akses Kendaraan',
+            keterangan: 'Jalan Masuk'
+        },
+        {
+            no: 4,
+            jenisFoto: 'Foto Lingkungan Sekitar',
+            keterangan: 'Kondisi Sekitar'
+        }
+    ];
+
+    function renderTableLocationDocumentation() {
+        let html = '';
+        $.each(photoData, function(index, item) {
+            const radioId = `C_c${index+1}`;
+            const fileInputId = `${radioId}_File`;
+            html += '<tr>';
+            html += '    <td>' + item.no + '</td>';
+            html += '    <td>' + item.jenisFoto + '</td>';
+            html += '    <td>' + item.keterangan + '</td>';
+            html += '    <td class="radio-group"><input type="radio" name="' + radioId + '" value="1" id="' + radioId + '"></td>';
+            html += '    <td class="radio-group"><input type="radio" name="' + radioId + '" value="0" id="' + radioId + '_0"></td>';
+            html += '    <td>';
+            html += '        <input type="file" name="' + fileInputId + '" id="' + fileInputId + '" style="display: none;">';
+            html += '        <button class="upload-btn" type="button" onclick="$(\'#' + fileInputId + '\').click();">Upload</button>';
+            html += '        <span class="file-name" id="fileName_' + index + '">No file chosen</span>';
+            html += '    </td>';
+            html += '</tr>';
+        });
+        $('#C_Checklist').html(html);
+    }
+
+    $(function() { renderTableLocationDocumentation(); });
+
+    // Show the chosen file name next to the Upload button (photo docs)
+    $(document).on('change', 'input[type="file"][id^="C_c"][id$="_File"]', function() {
+        var m = this.id.match(/^C_c(\d+)_File$/);
+        if (!m) { return; }
+        var $label = $('#fileName_' + (parseInt(m[1], 10) - 1));
+        if ($label.length) {
+            $label.text(this.files.length ? this.files[0].name : 'No file chosen');
+        }
+    });
 
         $('#surveyForm').on('submit', function(e) {
             e.preventDefault();

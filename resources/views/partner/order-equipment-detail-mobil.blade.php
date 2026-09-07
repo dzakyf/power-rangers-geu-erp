@@ -23,19 +23,28 @@
 	FacilityBenefitsMobil.setColTypes("ro,ro,ro,ro,edn,edn,edn,dhxCalendar,dhxCalendar,ch");
 	FacilityBenefitsMobil.enableSmartRendering(true, 150);
     FacilityBenefitsMobil.setDateFormat("%Y-%m-%d"); 
-    FacilityBenefitsMobil.setNumberFormat("0,000", 3, ".", ",");
     FacilityBenefitsMobil.setNumberFormat("0,000", 4, ".", ",");
     FacilityBenefitsMobil.setNumberFormat("0,000", 5, ".", ",");
+    FacilityBenefitsMobil.setNumberFormat("0,000", 6, ".", ",");
     FacilityBenefitsMobil.attachEvent("onEditCell", function (stage, rowId, cellIndex, newValue, oldValue) {
-        if (cellIndex == 3 || cellIndex == 4) {
-            let qty = FacilityBenefitsMobil.cells(rowId, 3).getValue();
-            let price = FacilityBenefitsMobil.cells(rowId, 4).getValue();
-            let total = parseFloat(qty) * parseFloat(price);
-            FacilityBenefitsMobil.cells(rowId, 5).setValue(total);
+        if (cellIndex == 4 || cellIndex == 5) {
+            let qty = parseFloat(FacilityBenefitsMobil.cells(rowId, 4).getValue()) || 0;
+            let price = parseFloat(FacilityBenefitsMobil.cells(rowId, 5).getValue()) || 0;
+            FacilityBenefitsMobil.cells(rowId, 6).setValue(qty * price);
         }
         return true;
     });
-	PFacilityBenefitsMobil = new dataProcessor("partner-asset-management-detail-update?Task={{$partner->id}}&wh={{ $_GET['ID'] }}");
+    // Auto-fill the order date with today when it is left blank
+    FacilityBenefitsMobil.attachEvent("onXLE", function (grid) {
+        var today = new Date().toISOString().slice(0, 10);
+        for (var i = 0; i < grid.getRowsNum(); i++) {
+            var rid = grid.getRowId(i);
+            if (!grid.cells(rid, 7).getValue()) {
+                grid.cells(rid, 7).setValue(today);
+            }
+        }
+    });
+	PFacilityBenefitsMobil = new dataProcessor("partner-order-equipment-detail-update?Task={{ $partner->id }}&wh={{ $_GET['ID'] }}");
 	PFacilityBenefitsMobil.setTransactionMode({
 		mode: "POST",
 		total: true,
@@ -64,7 +73,7 @@
 	refreshdatamobilinventory();
 
 	function refreshdatamobilinventory() {
-		FacilityBenefitsMobil.clearAndLoad('xml-partner-asset-management-detail-mobil-inventory?Task={{ $_GET['ID'] }}');
+		FacilityBenefitsMobil.clearAndLoad('xml-partner-order-equipment-detail-mobil-inventory?Task={{ $_GET['ID'] }}');
 	}
     
     function submitDataMobil()

@@ -57,6 +57,13 @@ class PartnerRegistrationSubmitTest extends TestCase
             'I_Address_Postal'       => '10110',
             'Gender'                 => 'male',
             'Package'                => 'mobil',
+            // Mandatory documents since the QA hardening (individual: KTP+NPWP)
+            'Doc_KTP'                => 'KTP',
+            'Doc_KTP_File'           => 'uploads/test-ktp.jpg',
+            'Doc_NPWP'               => 'NPWP',
+            'Doc_NPWP_File'          => 'uploads/test-npwp.jpg',
+            'NIK'                    => '3174012345670001',
+            'NPWP'                   => '012345678901234',
         ];
     }
 

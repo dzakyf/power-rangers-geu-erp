@@ -216,7 +216,13 @@ function generateInvoice() {
         type: "GET",
         success: function(response, status) {
             window.open(`https://dev.hexamatika.com/geu/hcga/public/partner-prints-invoice?id=${oppId}&type=downpayment`, '_blank');
-            $('#invoiceNextBtn').prop('disabled', false);
+            // Mark invoice issuance in the progress log and refresh the page
+            updateOnboardingLog('INVOICE', 'completed', 'Invoice DP diterbitkan', function(success) {
+                if (!success) { return; }
+                updateOnboardingLog('PKS', 'in_progress', '', function(success) {
+                    if (success) { location.reload(); }
+                });
+            });
         },
         error: function(err) {
             console.log(err);

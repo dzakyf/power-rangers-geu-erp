@@ -76,11 +76,20 @@
                 url: 'master-fleet-data',
                 dataType: 'json',
                 delay: 250,
-                data: function(p) { return { q: p.term || '' }; },
+                data: function(p) {
+                    return {
+                        q: p.term || ''
+                    };
+                },
                 processResults: function(res) {
-                    return { results: (res.data || []).map(function(r) {
-                        return { id: r.ID, text: r.Police_Number + ' - ' + (r.Fleet_Brand || '') };
-                    })};
+                    return {
+                        results: (res.data || []).map(function(r) {
+                            return {
+                                id: r.ID,
+                                text: r.Police_Number + ' - ' + (r.Fleet_Brand || '')
+                            };
+                        })
+                    };
                 },
                 cache: true
             }
@@ -94,11 +103,20 @@
                 url: 'master-warehouse-data',
                 dataType: 'json',
                 delay: 250,
-                data: function(p) { return { q: p.term || '' }; },
+                data: function(p) {
+                    return {
+                        q: p.term || ''
+                    };
+                },
                 processResults: function(res) {
-                    return { results: (res.data || []).map(function(r) {
-                        return { id: r.id, text: r.text };
-                    })};
+                    return {
+                        results: (res.data || []).map(function(r) {
+                            return {
+                                id: r.ID,
+                                text: r.Name
+                            };
+                        })
+                    };
                 },
                 cache: true
             }
@@ -112,11 +130,20 @@
                 url: 'partner-warehouse-data',
                 dataType: 'json',
                 delay: 250,
-                data: function(p) { return { q: p.term || '' }; },
+                data: function(p) {
+                    return {
+                        q: p.term || ''
+                    };
+                },
                 processResults: function(res) {
-                    return { results: (res.data || []).map(function(r) {
-                        return { id: r.id, text: r.warehouse_location + ' - ' + (r.warehouse_task_id || '') };
-                    })};
+                    return {
+                        results: (res.data || []).map(function(r) {
+                            return {
+                                id: r.id,
+                                text: r.warehouse_location + ' - ' + (r.warehouse_task_id || '')
+                            };
+                        })
+                    };
                 },
                 cache: true
             }
@@ -124,7 +151,10 @@
 
         $('#btnSubmit').on('click', function() {
             var form = document.getElementById('outstockForm');
-            if (!form.checkValidity()) { form.reportValidity(); return; }
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
 
             $.ajax({
                 url: 'partner-outstock-create-submit',
@@ -132,7 +162,9 @@
                 data: new FormData(form),
                 processData: false,
                 contentType: false,
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
                 success: function(res) {
                     if (res.status === 'success') {
                         alert('Draft berhasil dibuat');

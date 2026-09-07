@@ -63,9 +63,9 @@ class AnnouncementController extends Controller
                 try {
                     $breakUser = json_decode($value->Users);
                     $breakUser = current(array_diff($breakUser, ['ADMIN_USERS']));
-    
+
                     $user = DB::table('users')->where('username', $breakUser)->first();
-    
+
                     $notif = $notif->makeNotification(
                         $request->input('Title'),
                         $request->input('Content'),
@@ -76,7 +76,6 @@ class AnnouncementController extends Controller
                 } catch (\Throwable $th) {
                     //throw $th;
                 }
-
             }
         }
     }

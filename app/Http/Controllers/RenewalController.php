@@ -262,6 +262,11 @@ class RenewalController extends Controller
 
             $this->uploaderService->uploadMetaFile($path, $filename, $desc, 'docx', $topic, $mapTo);
 
+            $levelOneId = DB::table('approval_level')
+                ->where('Request_Type', 'TRANSFER_MEMBERSHIP')
+                ->where('Level_Number', 1)
+                ->value('ID');
+
             $approvalId = DB::table('approval_request')->insertGetId([
                 'Status' => 'NEED_APPROVAL',
                 'Requester_Id' => $user->id,
@@ -269,6 +274,8 @@ class RenewalController extends Controller
                 'Request_Type' => 'TRANSFER_MEMBERSHIP',
                 'Opportunity_Partner_Id' => $b['opportunity_id'] ?? '',
                 'Map_To' => $id,
+                'Level_Id' => $levelOneId,
+                'Submitted_At' => now(),
             ]);
 
             $reqLevel = DB::table('approval_request')->where('ID', $approvalId)->value('Current_Level');
@@ -302,20 +309,28 @@ class RenewalController extends Controller
 
         $oppId = $r->opportunity_partner_id;
 
+        $levelOneId = DB::table('approval_level')
+            ->where('Request_Type', 'RENEWAL')
+            ->where('Level_Number', 1)
+            ->value('ID');
+
         $id = DB::table('approval_request')->insertGetId([
             'Status' => 'NEED_APPROVAL',
             'Requester_Id' => $user->id,
             'Description' => "Initial Review",
             'Request_Type' => "RENEWAL",
             'Opportunity_Partner_Id' => $oppId ?? "",
+            'Level_Id' => $levelOneId,
+            'Submitted_At' => now(),
         ]);
 
         if ($oppId) {
-            DB::table('partner_renewal')->insert([
+            $renewalId = DB::table('partner_renewal')->insertGetId([
                 'Opportunity_Id' => $oppId,
                 'Created_At'     => now(),
                 'Status'         => 'PENDING',
             ]);
+            DB::table('approval_request')->where('ID', $id)->update(['Map_To' => $renewalId]);
         }
 
         $currentLevel = DB::table('approval_request')->where('ID', $id)->value('Current_Level');
@@ -509,6 +524,11 @@ class RenewalController extends Controller
                 ]);
             }
 
+            $levelOneId = DB::table('approval_level')
+                ->where('Request_Type', 'TERMINATION')
+                ->where('Level_Number', 1)
+                ->value('ID');
+
             $id = DB::table('approval_request')->insertGetId([
                 'Status' => 'NEED_APPROVAL',
                 'Requester_Id' => $user->id,
@@ -516,6 +536,8 @@ class RenewalController extends Controller
                 'Request_Type' => "TERMINATION",
                 'Opportunity_Partner_Id' => $oppId ?? "",
                 'Map_To' => $terminationId,
+                'Level_Id' => $levelOneId,
+                'Submitted_At' => now(),
             ]);
 
             $reqLevel = DB::table('approval_request')->where('ID', $id)->value('Current_Level');

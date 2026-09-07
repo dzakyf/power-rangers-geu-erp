@@ -14,7 +14,7 @@ $masterResponse = DB::table('master_leads_response')->get();
 $masterReason = DB::table('master_leads_reason')->get();
 $masterStatus = DB::table('master_leads_status')->get();
 
-$Fetch = DB::table("opportunity")->where("ID", request()->get('ID'))->first();
+$Fetch = DB::table("opportunity")->selectRaw("opportunity.*, (select op2.package_option from opportunity_partner op2 where op2.lead_id = opportunity.Task_ID order by op2.id desc limit 1) as package_option")->where("ID", request()->get('ID'))->first();
 
 if ($Fetch->Capital_Estimation == 1) {
 	$estimation = "<50 Juta";
@@ -48,7 +48,7 @@ if ($Fetch->Capital_Estimation == 1) {
 			</div>
 			<div class="col-md-6 mt-3">
 				<label for="Partnership_Interest">Partnership Interest</label>
-				<input type="text" id="Partnership_Interest" name="Partnership_Interest" class="form-control" value="Opsi {{ $Fetch->Partnership_Interest }}" readonly />
+				<input type="text" id="Partnership_Interest" name="Partnership_Interest" class="form-control" value="{{ leads_interest_label($Fetch->package_option ?? null, $Fetch->Hub_Type ?? null, $Fetch->Partnership_Interest ?? null) }}" readonly />
 			</div>
 			<div class="col-md-6 mt-3">
 				<label for="Capital_Estimation">Capital Estimation</label>

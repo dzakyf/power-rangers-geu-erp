@@ -181,13 +181,13 @@
 	}
 	WarehouseListDetail = new dhtmlXGridObject('WarehouseListDetail');
 	WarehouseListDetail.setImagePath("./dhtmlx/imgs/");
-	WarehouseListDetail.setHeader("No, Tanggal, Tipe, Qty In, Qty Out, Saldo");
-	WarehouseListDetail.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#rspan");
-	WarehouseListDetail.setInitWidths("50,120,100,100,100,120");
-	WarehouseListDetail.setColAlign("center,left,left,right,right,right");
-	WarehouseListDetail.setColSorting("int,str,str,int,int,str,str");
-	WarehouseListDetail.setColTypes("ro,ro,ro,ro,ro,ro");
-	WarehouseListDetail.attachFooter("Total,#cspan,#cspan,#stat_total,#stat_total,#cspan");
+	WarehouseListDetail.setHeader("No, Tanggal, Tipe, Qty In, Qty Out, Dregs, Saldo");
+	WarehouseListDetail.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#rspan");
+	WarehouseListDetail.setInitWidths("50,120,100,100,100,100,120");
+	WarehouseListDetail.setColAlign("center,left,left,right,right,right,right");
+	WarehouseListDetail.setColSorting("int,str,str,int,int,int,str");
+	WarehouseListDetail.setColTypes("ro,ro,ro,ro,ro,ro,ro");
+	WarehouseListDetail.attachFooter("Total,#cspan,#cspan,#stat_total,#stat_total,#stat_total,#cspan");
 	WarehouseListDetail.enableSmartRendering(true, 150);
 	// WarehouseListDetail.attachEvent("onRowDblClicked", WarehouseListDetailKlik);
 	WarehouseListDetail.setSkin("dhx_skyblue");

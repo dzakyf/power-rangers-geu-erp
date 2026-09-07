@@ -79,19 +79,22 @@ class LeadsController extends Controller
             '> 300 Juta' => 4,
         ];
 
+        // Keep the legacy int flag in sync with Hub_Type (1 = Mobil, 2 = Booth)
+        // so leads lists never fall back to "Opsi 0".
         DB::table('opportunity')->where('ID', $id)->update([
-            'Full_Name'          => $r->input('Full_Name'),
-            'Phone_Number'       => $r->input('Phone_Number'),
-            'KTP'                => $r->input('KTP'),
-            'NPWP'               => $r->input('NPWP'),
-            'Hub_Type'           => $r->input('Hub_Type'),
-            'Capital_Estimation' => $array[$r->input('Capital_Estimation')] ?? 0,
-            'Source_Channel'     => $r->input('Source_Channel'),
-            'Response'           => $r->input('Response'),
-            'Qualification'      => $r->input('Qualification'),
-            'Classification'     => $r->input('Classification'),
-            'Status'             => $r->input('Status'),
-            'Reason'             => $r->input('Reason'),
+            'Full_Name'           => $r->input('Full_Name'),
+            'Phone_Number'        => $r->input('Phone_Number'),
+            'KTP'                 => $r->input('KTP'),
+            'NPWP'                => $r->input('NPWP'),
+            'Hub_Type'            => $r->input('Hub_Type'),
+            'Partnership_Interest' => $r->input('Hub_Type') === 'booth' ? 2 : 1,
+            'Capital_Estimation'  => $array[$r->input('Capital_Estimation')] ?? 0,
+            'Source_Channel'      => $r->input('Source_Channel'),
+            'Response'            => $r->input('Response'),
+            'Qualification'       => $r->input('Qualification'),
+            'Classification'      => $r->input('Classification'),
+            'Status'              => $r->input('Status'),
+            'Reason'              => $r->input('Reason'),
         ]);
 
         return response()->json(['status' => 'success']);

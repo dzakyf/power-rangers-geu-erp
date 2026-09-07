@@ -134,7 +134,7 @@
 		formData.append('action', action)
 
 		$.ajax({
-			url: " partner-onboarding-approval-submit",
+			url: "partner-onboarding-approval-submit",
 			type: "POST",
 			data: formData,
 			processData: false,
@@ -142,11 +142,15 @@
 			cache: false,
 			success: function(response) {
 				alert("Berhasil approve");
-				// $('#broadcastForm')[0].reset();
+				location.reload();
 			},
 			error: function(xhr, status, error) {
-				// console.log('Error details:', xhr.responseText);
-				alert("Telah terjadi kesalahan. Silakan coba lagi.");
+				// Surface the server's actual reason (wewenang, duplicate entry,
+				// already processed, account creation failure, ...)
+				var msg = (xhr.responseJSON && xhr.responseJSON.message)
+					? xhr.responseJSON.message
+					: "Telah terjadi kesalahan. Silakan coba lagi.";
+				alert(msg);
 			},
 			complete: function() {
 				// $('#submitBtn').prop('disabled', false).text('Submit');

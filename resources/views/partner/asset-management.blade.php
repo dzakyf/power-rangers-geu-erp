@@ -42,32 +42,12 @@ $Saya =  Auth::user()->username;
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>
 <script>
-	function FacilityBenefitsKlikBooth() {
-
-		FacilityBenefitsID = FacilityBenefits.getSelectedId();
-		if (FacilityBenefitsID != '') {
-			LoadM('divlistOpportunity', 'partner-asset-management-detail-booth?ID=' + FacilityBenefitsID);
-		}
-		return true;
-	}
-	function FacilityBenefitsKlikMobil() {
-
-		FacilityBenefitsID = FacilityBenefits.getSelectedId();
-		if (FacilityBenefitsID != '') {
-			LoadM('divlistOpportunity', 'partner-asset-management-detail-mobil?ID=' + FacilityBenefitsID);
-		}
-		return true;
-	}
 	function FacilityBenefitsKlik() {
 
 		let FacilityBenefitsID = FacilityBenefits.getSelectedId();
-		let hub = FacilityBenefits.cells(FacilityBenefitsID, 5).getValue();
 		if (FacilityBenefitsID != '') {
-			if (hub == 'booth') {
-				LoadM('divlistOpportunity', 'partner-asset-management-detail-booth?ID=' + FacilityBenefitsID);
-			}else {
-				LoadM('divlistOpportunity', 'partner-asset-management-detail-mobil?ID=' + FacilityBenefitsID);
-			}
+			// Unified detail: booth/mobil layouts resolve from the warehouse type
+			LoadM('divlistOpportunity', 'partner-asset-management-detail?ID=' + FacilityBenefitsID);
 		}
 		return true;
 	}

@@ -2117,7 +2117,13 @@ class UCOController extends Controller
     // === Instock Dregs ===
     public function getInstockDregsData(Request $r)
     {
-        $data = DB::table('instock_dregs')->orderBy('Created_At', 'desc')->get();
+        $data = DB::table('instock_dregs as d')
+            ->leftJoin('delivery_order as do', 'd.DO_Id', '=', 'do.ID')
+            ->leftJoin('warehouse_partner as wp', 'd.Warehouse_ID', '=', 'wp.id')
+            ->select('d.*', 'do.Code as DO_Code', 'wp.warehouse_location')
+            ->when($r->query('whid'), fn($q) => $q->where('d.Warehouse_ID', $r->query('whid')))
+            ->orderBy('d.Created_At', 'desc')
+            ->get();
 
         $xml = new SimpleXMLElement('<rows/>');
         $no  = 1;
@@ -2128,6 +2134,8 @@ class UCOController extends Controller
             $row->addChild('cell', $no);
             $row->addChild('cell', htmlspecialchars((string) $d->Instock_Date));
             $row->addChild('cell', (string) $d->Quantity);
+            $row->addChild('cell', htmlspecialchars((string) ($d->DO_Code ?? '')));
+            $row->addChild('cell', htmlspecialchars((string) ($d->warehouse_location ?? '')));
             $row->addChild('cell', htmlspecialchars((string) ($d->Notes ?? '')));
             $row->addChild('cell', htmlspecialchars((string) $d->Created_At));
             $no++;
@@ -2149,10 +2157,32 @@ class UCOController extends Controller
 
     public function submitInstockDregs(Request $r)
     {
+        $doId = $r->input('DO_Id');
+
+        if (!$doId) {
+            return response()->json(['success' => false, 'message' => 'Surat Jalan wajib diisi.'], 400);
+        }
+
+        // One SJ -> one warehouse: derive it from the SJ's first pickup order
+        // (DO -> PO -> WO -> POO -> Nearest_Warehouse) and snapshot it.
+        $nearest = DB::table('pickup_order as po')
+            ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
+            ->join('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
+            ->where('po.DO_Id', $doId)
+            ->orderBy('po.ID')
+            ->value('mp.Nearest_Warehouse');
+
+        if ($nearest === null || !is_numeric($nearest)) {
+            return response()->json(['success' => false, 'message' => 'Surat Jalan tidak memiliki warehouse yang valid.'], 400);
+        }
+        $warehouseId = (int) $nearest;
+
         DB::beginTransaction();
         try {
             $id = DB::table('instock_dregs')->insertGetId([
                 'Instock_Date' => $r->input('Instock_Date'),
+                'DO_Id'        => $doId,
+                'Warehouse_ID' => $warehouseId,
                 'Quantity'    => $r->input('Quantity'),
                 'Notes'       => $r->input('Notes'),
                 'Created_At'  => now(),
@@ -2650,6 +2680,9 @@ class UCOController extends Controller
             ->whereIn('Warehouse_ID', $whIds)
             ->select('ID', 'Name', 'Warehouse_ID')
             ->get();
+        foreach ($containers as $c) {
+            $c->system_qty = $this->warehouseService->containerSystemQty($c->ID);
+        }
 
         return view('partner.outstock.edit', compact('outstock', 'warehouses', 'whIds', 'loading', 'handover', 'containers'));
     }

@@ -18,7 +18,7 @@ class BusinessFacilityController extends Controller
 
     public function indexXml()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+        if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
         } else {
             header("Content-type: text/xml");
@@ -76,7 +76,7 @@ class BusinessFacilityController extends Controller
 
     public function indexDetailBoothInventoryXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+        if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
         } else {
             header("Content-type: text/xml");
@@ -139,7 +139,7 @@ class BusinessFacilityController extends Controller
 
     public function indexDetailBoothAccessXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+        if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
         } else {
             header("Content-type: text/xml");
@@ -190,7 +190,7 @@ class BusinessFacilityController extends Controller
 
     public function indexDetailBoothSupportXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+        if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
         } else {
             header("Content-type: text/xml");
@@ -254,7 +254,7 @@ class BusinessFacilityController extends Controller
 
     public function indexDetailMobilInventoryXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+        if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
         } else {
             header("Content-type: text/xml");
@@ -329,7 +329,7 @@ class BusinessFacilityController extends Controller
 
     public function indexDetailMobilAccessXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+        if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
         } else {
             header("Content-type: text/xml");
@@ -380,7 +380,7 @@ class BusinessFacilityController extends Controller
 
     public function indexDetailMobilSupportXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
+        if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
         } else {
             header("Content-type: text/xml");
@@ -481,15 +481,14 @@ class BusinessFacilityController extends Controller
 
     public function detailFacilityUpdatekan($rowId, $param)
     {
-        $a = $param[$rowId . "_c1"]; // origin
-        $b = $param[$rowId . "_c2"]; // destination
-        $c = $param[$rowId . "_c3"]; // destination name
-        $d = $param[$rowId . "_c4"] ?? ''; // transport
-        $e = $param[$rowId . "_c5"] ?? ''; // transport
-        $f = $param[$rowId . "_c6"] ?? ''; // transport
-        $g = $param[$rowId . "_c7"] ?? ''; // transport
-        $h = $param[$rowId . "_c8"] ?? ''; // transport
-        $ix = $param[$rowId . "_c9"] ?? ''; // transport
+        $b = $param[$rowId . "_c2"] ?? ''; // booth: received date
+        $c = $param[$rowId . "_c3"] ?? ''; // booth: receipt checkbox / mobil+access: received date
+        $d = $param[$rowId . "_c4"] ?? ''; // mobil+access: receipt checkbox
+        $e = $param[$rowId . "_c5"] ?? ''; // booth: Qty
+        $f = $param[$rowId . "_c6"] ?? ''; // mobil: Qty / booth: Price
+        $g = $param[$rowId . "_c7"] ?? ''; // mobil: Price / booth: Total
+        $h = $param[$rowId . "_c8"] ?? ''; // mobil: Total / booth: Order_Date
+        $ix = $param[$rowId . "_c9"] ?? ''; // mobil: Order_Date
         $Saya = auth()->user()->username;
 
         $partnerId = $_GET['Task'] ?? null;
@@ -497,21 +496,36 @@ class BusinessFacilityController extends Controller
 
         // The Checked_Partner checkbox and Received_Date column positions differ
         // per grid layout:
-        //   mobil inventory (c9 present): checkbox=c4, date=c3
-        //   booth inventory  (c6 present, no c9): checkbox=c3, date=c2
-        //   access/support   (no c6): checkbox=c4, date=c3
+        //   mobil inventory (c9 present): checkbox=c4, date=c3, Qty=c6, Price=c7, Total=c8, Order_Date=c9
+        //   booth inventory  (c6 present, no c9): checkbox=c3, date=c2, Qty=c5, Price=c6, Total=c7, Order_Date=c8
+        //   access/support   (no c6): checkbox=c4, date=c3 (no dtl columns)
         if (isset($param[$rowId . "_c9"])) {
             $checkPartner = $d;
             $receivedDate = $c;
+            $qty = $f;
+            $price = $g;
+            $total = $h;
+            $orderDateIn = $ix;
         } elseif (isset($param[$rowId . "_c6"])) {
             $checkPartner = $c;
             $receivedDate = $b;
+            $qty = $e;
+            $price = $f;
+            $total = $g;
+            $orderDateIn = $h;
         } else {
             $checkPartner = $d;
             $receivedDate = $c;
+            $qty = null;
+            $price = null;
+            $total = null;
+            $orderDateIn = null;
         }
 
         if ($checkPartner == 1) {
+            // Receipt confirmation without a picked date falls back to today
+            // (mirrors the sales side storing Send_Date => now()).
+            $receivedDate = $receivedDate ?: now()->format('Y-m-d');
             $cekDB = DB::table('opportunity_partner_facility')
                 ->where('Facility_ID', $rowId)
                 ->where("Partner_ID", $partnerId)
@@ -544,8 +558,11 @@ class BusinessFacilityController extends Controller
             }
         }
 
-        if (isset($param[$rowId . "_c9"])) {
-            if ($f != '' && $g != '' && $h != '') {
+        if ($qty !== null) {
+            // Persist Qty/Price/Total whenever any of them is filled; the
+            // order date falls back to today when left blank.
+            if (trim((string) $qty) !== '' || trim((string) $price) !== '' || trim((string) $total) !== '') {
+                $orderDate = $orderDateIn ?: now()->format('Y-m-d');
                 $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
                     $q->where('warehouse_task_id', $whTaskId);
                 })->first();
@@ -553,27 +570,28 @@ class BusinessFacilityController extends Controller
                     DB::table('opportunity_partner_facility_dtl')
                         ->where('ID', $cekDtl->ID)
                         ->update([
-                            'Qty' => $f,
-                            'Price' => $g,
-                            'Total' => $h,
-                            'Order_Date' => $ix,
+                            'Qty' => $qty,
+                            'Price' => $price,
+                            'Total' => $total,
+                            'Order_Date' => $orderDate,
                         ]);
                 } else {
                     DB::table('opportunity_partner_facility_dtl')
                         ->insert([
                             'Facility_ID' => $rowId,
                             'Partner_ID' => $partnerId,
-                            'Qty' => $f,
-                            'Price' => $g,
-                            'Total' => $h,
-                            'Order_Date' => $ix,
+                            'warehouse_task_id' => $whTaskId,
+                            'Qty' => $qty,
+                            'Price' => $price,
+                            'Total' => $total,
+                            'Order_Date' => $orderDate,
                             'Created_By' => $Saya,
                             'Created_Date' => now(),
                         ]);
                 }
             }
 
-            if ($ix != '') {
+            if (trim((string) $orderDateIn) !== '') {
                 $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
                     $q->where('warehouse_task_id', $whTaskId);
                 })->first();
@@ -581,64 +599,15 @@ class BusinessFacilityController extends Controller
                     DB::table('opportunity_partner_facility_dtl')
                         ->where('ID', $cekDtl->ID)
                         ->update([
-                            'Order_Date' => $ix
+                            'Order_Date' => $orderDateIn
                         ]);
                 } else {
                     DB::table('opportunity_partner_facility_dtl')
                         ->insert([
                             'Facility_ID' => $rowId,
                             'Partner_ID' => $partnerId,
-                            'Order_Date' => $ix,
-                            'Created_By' => $Saya,
-                            'Created_Date' => now(),
-                        ]);
-                }
-            }
-        } else {
-            if ($e != '' && $f != '' && $g != '') {
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
-                    $q->where('warehouse_task_id', $whTaskId);
-                })->first();
-                if ($cekDtl) {
-                    DB::table('opportunity_partner_facility_dtl')
-                        ->where('ID', $cekDtl->ID)
-                        ->update([
-                            'Qty' => $e,
-                            'Price' => $f,
-                            'Total' => $g,
-                            'Order_Date' => $h
-                        ]);
-                } else {
-                    DB::table('opportunity_partner_facility_dtl')
-                        ->insert([
-                            'Facility_ID' => $rowId,
-                            'Partner_ID' => $partnerId,
-                            'Qty' => $e,
-                            'Price' => $f,
-                            'Total' => $g,
-                            'Order_Date' => $h,
-                            'Created_By' => $Saya,
-                            'Created_Date' => now(),
-                        ]);
-                }
-            }
-
-            if ($h != '') {
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $rowId)->where('Partner_ID', $partnerId)->when($whTaskId, function ($q) use ($whTaskId) {
-                    $q->where('warehouse_task_id', $whTaskId);
-                })->first();
-                if ($cekDtl) {
-                    DB::table('opportunity_partner_facility_dtl')
-                        ->where('ID', $cekDtl->ID)
-                        ->update([
-                            'Order_Date' => $h
-                        ]);
-                } else {
-                    DB::table('opportunity_partner_facility_dtl')
-                        ->insert([
-                            'Facility_ID' => $rowId,
-                            'Partner_ID' => $partnerId,
-                            'Order_Date' => $h,
+                            'warehouse_task_id' => $whTaskId,
+                            'Order_Date' => $orderDateIn,
                             'Created_By' => $Saya,
                             'Created_Date' => now(),
                         ]);

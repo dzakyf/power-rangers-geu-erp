@@ -27,6 +27,26 @@ class PartnerRegistrationController extends Controller
 
         try {
             return DB::transaction(function () use ($request, $token) {
+                // ---- Mandatory document check (before the token guard so a
+                // failed validation never consumes the registration token) --
+                $isCompany = $request->input('Register_As', $request->input('register_as')) === 'company';
+                $requiredDocs = $isCompany ? [
+                    ['box' => 'C_Doc_Akta', 'file' => 'C_Doc_Akta_File', 'label' => 'Akta Perusahaan'],
+                    ['box' => 'C_Doc_NIB',  'file' => 'C_Doc_NIB_File',  'label' => 'NIB'],
+                    ['box' => 'C_Doc_NPWP', 'file' => 'C_Doc_NPWP_File', 'label' => 'NPWP'],
+                ] : [
+                    ['box' => 'Doc_KTP',    'file' => 'Doc_KTP_File',    'label' => 'KTP'],
+                    ['box' => 'Doc_NPWP',   'file' => 'Doc_NPWP_File',   'label' => 'NPWP'],
+                ];
+                foreach ($requiredDocs as $doc) {
+                    if (!$request->input($doc['box'])) {
+                        return 'failed Dokumen ' . $doc['label'] . ' wajib diunggah||' . $doc['box'];
+                    }
+                    if (!$request->input($doc['file'])) {
+                        return 'failed File ' . $doc['label'] . ' wajib diunggah||' . $doc['box'];
+                    }
+                }
+
                 // ---- One-time token guard (public path only) -------------
                 if ($token) {
                     $opportunity = DB::table('opportunity')
@@ -126,6 +146,10 @@ class PartnerRegistrationController extends Controller
 
                 // Form radios send the literal package code ("mobil"/"booth").
                 $data['package_option'] = $request->input('Package');
+
+                // Identity numbers typed in the form (prefilled from the lead).
+                $data['ktp'] = $request->input('NIK') ?: null;
+                $data['npwp'] = $request->input('NPWP') ?: null;
                 $data['supporting_documents'] = json_encode(array_filter([
                     $request->input('Doc_KTP'),
                     $request->input('Doc_NPWP'),
@@ -248,7 +272,8 @@ class PartnerRegistrationController extends Controller
                 $extension = count($ext) > 1 ? end($ext) : '';
 
                 DB::table('opportunity_partner_file')->insert([
-                    'lead_id'        => $data['lead_id'],
+                    // lead_id is NOT NULL; the public blast flow has no lead yet
+                    'lead_id'        => $data['lead_id'] ?? '',
                     'opportunity_id' => $opportunityId,
                     'type'           => $type,
                     'file_type'      => $extension,

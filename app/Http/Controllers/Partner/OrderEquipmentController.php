@@ -18,9 +18,9 @@ class OrderEquipmentController extends Controller
 
     public function indexXml()
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
+        if ( stristr($_SERVER["HTTP_ACCEPT"] ?? "","application/xhtml+xml")) {
+            if (!headers_sent()) header("Content-type: application/xhtml+xml"); } else {
+            if (!headers_sent()) header("Content-type: text/xml");
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -76,9 +76,9 @@ class OrderEquipmentController extends Controller
 
     public function indexDetailBoothInventoryXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
+        if ( stristr($_SERVER["HTTP_ACCEPT"] ?? "","application/xhtml+xml")) {
+            if (!headers_sent()) header("Content-type: application/xhtml+xml"); } else {
+            if (!headers_sent()) header("Content-type: text/xml");
         }
         echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -111,15 +111,25 @@ class OrderEquipmentController extends Controller
                 echo "<cell>".($key + 1)."</cell>";
                 echo "<cell>".htmlspecialchars($facility->description)."</cell>";
                 echo "<cell>".htmlspecialchars($facility->asset_type)."</cell>";
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $partner->id)->first();
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')
+                    ->where("Facility_ID", $facility->id)
+                    ->where('Partner_ID', $partner->id)
+                    ->where('warehouse_task_id', $task)
+                    ->orderBy('ID')
+                    ->first();
+                // Always show the live master price so master-data edits are
+                // reflected (the saved dtl price is only a fallback).
+                $displayPrice = ($facility->price !== null && $facility->price !== '')
+                    ? $facility->price
+                    : ($cekDtl->Price ?? '');
                 if ($cekDtl) {
                     echo "<cell>".htmlspecialchars($cekDtl->Qty)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Price)."</cell>";
+                    echo "<cell>".htmlspecialchars($displayPrice)."</cell>";
                     echo "<cell>".htmlspecialchars($cekDtl->Total)."</cell>";
                     echo "<cell>".htmlspecialchars($cekDtl->Order_Date)."</cell>";
                 }else {
                     echo "<cell></cell>";
-                    echo "<cell>".htmlspecialchars($facility->price ?? '')."</cell>";
+                    echo "<cell>".htmlspecialchars($displayPrice ?? '')."</cell>";
                     echo "<cell></cell>";
                     echo "<cell></cell>";
                 }
@@ -141,9 +151,9 @@ class OrderEquipmentController extends Controller
     }
     public function indexDetailBoothAccessXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
+        if ( stristr($_SERVER["HTTP_ACCEPT"] ?? "","application/xhtml+xml")) {
+            if (!headers_sent()) header("Content-type: application/xhtml+xml"); } else {
+            if (!headers_sent()) header("Content-type: text/xml");
         }
         echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -196,9 +206,9 @@ class OrderEquipmentController extends Controller
 
     public function indexDetailBoothSupportXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
+        if ( stristr($_SERVER["HTTP_ACCEPT"] ?? "","application/xhtml+xml")) {
+            if (!headers_sent()) header("Content-type: application/xhtml+xml"); } else {
+            if (!headers_sent()) header("Content-type: text/xml");
         }
         echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -263,9 +273,9 @@ class OrderEquipmentController extends Controller
 
     public function indexDetailMobilInventoryXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
+        if ( stristr($_SERVER["HTTP_ACCEPT"] ?? "","application/xhtml+xml")) {
+            if (!headers_sent()) header("Content-type: application/xhtml+xml"); } else {
+            if (!headers_sent()) header("Content-type: text/xml");
         }
         echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -315,19 +325,32 @@ class OrderEquipmentController extends Controller
                 echo "<cell>".htmlspecialchars($facility->children)."</cell>";
                 echo "<cell>".htmlspecialchars($facility->asset_type)."</cell>";
                 
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $partner->id)->first();
+                $cekDtl = DB::table('opportunity_partner_facility_dtl')
+                    ->where("Facility_ID", $facility->id)
+                    ->where('Partner_ID', $partner->id)
+                    ->where('warehouse_task_id', $task)
+                    ->orderBy('ID')
+                    ->first();
+                $displayPrice = ($facility->price !== null && $facility->price !== '')
+                    ? $facility->price
+                    : ($cekDtl->Price ?? '');
                 if ($cekDtl) {
                     echo "<cell>".htmlspecialchars($cekDtl->Qty)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Price)."</cell>";
+                    echo "<cell>".htmlspecialchars($displayPrice)."</cell>";
                     echo "<cell>".htmlspecialchars($cekDtl->Total)."</cell>";
+                    echo "<cell>".htmlspecialchars($cekDtl->Order_Date)."</cell>";
                 }else {
                     echo "<cell></cell>";
-                    echo "<cell>".htmlspecialchars($facility->price ?? '')."</cell>";
+                    echo "<cell>".htmlspecialchars($displayPrice ?? '')."</cell>";
+                    echo "<cell></cell>";
                     echo "<cell></cell>";
                 }
-                if (isset($getCheckedBySales[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedBySales[$facility->id]['Chckd'] ?? 0)."</cell>";
+                if (isset($getCheckedByPartner[$facility->id])) {
+                    $partnerDate = $getCheckedByPartner[$facility->id]['Date'];
+                    echo "<cell>".htmlspecialchars(($partnerDate == '0000-00-00') ? '' : $partnerDate)."</cell>";
+                    echo "<cell>".htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0)."</cell>";
                 }else {
+                    echo "<cell></cell>";
                     echo "<cell>0</cell>";
                 }
             echo "</row>";
@@ -338,9 +361,9 @@ class OrderEquipmentController extends Controller
 
     public function indexDetailMobilAccessXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
+        if ( stristr($_SERVER["HTTP_ACCEPT"] ?? "","application/xhtml+xml")) {
+            if (!headers_sent()) header("Content-type: application/xhtml+xml"); } else {
+            if (!headers_sent()) header("Content-type: text/xml");
         }
         echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -393,9 +416,9 @@ class OrderEquipmentController extends Controller
 
     public function indexDetailMobilSupportXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
+        if ( stristr($_SERVER["HTTP_ACCEPT"] ?? "","application/xhtml+xml")) {
+            if (!headers_sent()) header("Content-type: application/xhtml+xml"); } else {
+            if (!headers_sent()) header("Content-type: text/xml");
         }
         echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -448,7 +471,7 @@ class OrderEquipmentController extends Controller
 
     public function detailFacilityUpdate()
     {
-        header("Content-type: text/xml");
+        if (!headers_sent()) header("Content-type: text/xml");
         echo('<?xml version="1.0" encoding="iso-8859-1"?>'); 
         echo "<data>";
 
@@ -488,7 +511,7 @@ class OrderEquipmentController extends Controller
         }
         echo "</data>";
 
-        $opportunityId = $_GET['Task'] ?? null;
+        $opportunityId = $_GET['Task'] ?? request()->query('Task');
         if ($opportunityId) {
             app(\App\Http\Controllers\ApprovalController::class)
                 ->completeSetupIfReady($opportunityId);
@@ -498,55 +521,75 @@ class OrderEquipmentController extends Controller
 
     public function detailFacilityUpdatekan($rowId, $param)
     {
-        $a = $param[$rowId."_c1"]; // origin
-        $b = $param[$rowId."_c2"]; // destination
-        $c = $param[$rowId."_c3"]; // destination name
-        $d = $param[$rowId."_c4"] ?? ''; // transport
-        $e = $param[$rowId."_c5"] ?? ''; // service
-        $f = $param[$rowId."_c6"] ?? ""; // treshold
-        $g = $param[$rowId."_c7"] ?? ""; // treshold
-        $h = $param[$rowId."_c8"] ?? ""; // treshold
+        // Column positions differ per grid layout:
+        //   booth inventory (9 cols, no c9): Qty=c3, Price=c4, Total=c5,
+        //     Order_Date=c6, Received_Date=c7, receipt checkbox=c8
+        //   mobil inventory (10 cols, c9 present): Qty=c4, Price=c5, Total=c6,
+        //     Order_Date=c7, Received_Date=c8, receipt checkbox=c9
+        if (isset($param[$rowId."_c9"])) {
+            $c = $param[$rowId."_c4"] ?? ''; // Qty
+            $d = $param[$rowId."_c5"] ?? ''; // Price
+            $e = $param[$rowId."_c6"] ?? ''; // Total
+            $f = $param[$rowId."_c7"] ?? ''; // order date
+            $g = $param[$rowId."_c8"] ?? ''; // received date
+            $h = $param[$rowId."_c9"] ?? ''; // receipt checkbox
+        } else {
+            $c = $param[$rowId."_c3"] ?? ''; // Qty
+            $d = $param[$rowId."_c4"] ?? ''; // Price
+            $e = $param[$rowId."_c5"] ?? ''; // Total
+            $f = $param[$rowId."_c6"] ?? ''; // order date
+            $g = $param[$rowId."_c7"] ?? ''; // received date
+            $h = $param[$rowId."_c8"] ?? ''; // receipt checkbox
+        }
 
         $Saya = auth()->user()->username;
+        $partnerId = $_GET['Task'] ?? request()->query('Task');
+        $whTaskId = $_GET['wh'] ?? request()->query('wh');
 
-        if (isset($param[$rowId."_c6"])) {
-            if ($f) {
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')
+        // Persist Qty/Price/Total whenever any of them is filled; the order
+        // date falls back to today when left blank (a blank date used to
+        // silently discard the amounts).
+        $hasOrderInput = trim((string) $c) !== '' || trim((string) $d) !== '' || trim((string) $e) !== '';
+        if ($hasOrderInput) {
+            $orderDate = $f ?: now()->format('Y-m-d');
+            $cekDtl = DB::table('opportunity_partner_facility_dtl')
                 ->where("Facility_ID", $rowId)
-                ->where('Partner_ID', $_GET['Task'])
-                ->where('warehouse_task_id', $_GET['wh'])
+                ->where('Partner_ID', $partnerId)
+                ->where('warehouse_task_id', $whTaskId)
                 ->first();
-                if ($cekDtl) {
-                    DB::table("opportunity_partner_facility_dtl")
-                        ->where("ID", $cekDtl->ID)
-                        ->update([
-                            "Qty" => $c,
-                            "Price" => $d,
-                            "Total" => $e,
-                            "Order_Date" => $f,
-                        ]);
-                }else {
-                    DB::table('opportunity_partner_facility_dtl')
-                        ->insert([
-                            'Facility_ID' => $rowId,
-                            'Partner_ID' => $_GET['Task'],
-                            'warehouse_task_id' => $_GET['wh'],
-                            'Order_Date' => $f,
-                            'Qty' => $c,
-                            'Price' => $d,
-                            'Total' => $e,
-                            'Created_By' => $Saya,
-                            'Created_Date' => now(),
-                        ]);
-                }
+            if ($cekDtl) {
+                DB::table("opportunity_partner_facility_dtl")
+                    ->where("ID", $cekDtl->ID)
+                    ->update([
+                        "Qty" => $c,
+                        "Price" => $d,
+                        "Total" => $e,
+                        "Order_Date" => $orderDate,
+                    ]);
+            }else {
+                DB::table('opportunity_partner_facility_dtl')
+                    ->insert([
+                        'Facility_ID' => $rowId,
+                        'Partner_ID' => $partnerId,
+                        'warehouse_task_id' => $whTaskId,
+                        'Order_Date' => $orderDate,
+                        'Qty' => $c,
+                        'Price' => $d,
+                        'Total' => $e,
+                        'Created_By' => $Saya,
+                        'Created_Date' => now(),
+                    ]);
             }
         }
-    
+
         if ($h != '' && $h != 0) {
+            // Receipt confirmation without a picked date falls back to today
+            // (mirrors the sales side storing Send_Date => now()).
+            $receivedDate = $g ?: now()->format('Y-m-d');
             $cek = DB::table('opportunity_partner_facility')
                 ->where("Facility_ID", $rowId)
-                ->where('Partner_ID', $_GET['Task'])
-                ->where("warehouse_task_id", $_GET['wh'])
+                ->where('Partner_ID', $partnerId)
+                ->where('warehouse_task_id', $whTaskId)
                 ->first();
             if ($cek) {
                 DB::table('opportunity_partner_facility')
@@ -555,27 +598,36 @@ class OrderEquipmentController extends Controller
                         'Checked_Partner' => $h,
                         'Checked_Partner_By' => $Saya,
                         'Checked_Partner_Date' => now(),
-                        'Received_Date' => $g,
+                        'Received_Date' => $receivedDate,
                     ]);
             }else {
                 DB::table('opportunity_partner_facility')
                     ->insert([
                         'Facility_ID' => $rowId,
-                        'warehouse_task_id' => $_GET['wh'],
-                        'Partner_ID' => $_GET['Task'],
+                        'warehouse_task_id' => $whTaskId,
+                        'Partner_ID' => $partnerId,
                         'Checked_Partner' => $h,
                         'Checked_Partner_By' => $Saya,
                         'Checked_Partner_Date' => now(),
-                        'Received_Date' => $g,
+                        'Received_Date' => $receivedDate,
                         'Created_By' => $Saya,
                         'Created_Date' => now(),
                     ]);
             }
         }
 
+        return 'update';
+    }
 
-        
+    // These grids never emit inserted/deleted transactions; stubs keep the
+    // dispatcher from fataling if a client ever sends one.
+    private function detailFacilityDeletekan($rowId, $param)
+    {
+        return 'update';
+    }
 
+    private function detailFacilityInsertkan($rowId, $param)
+    {
         return 'update';
     }
 }
