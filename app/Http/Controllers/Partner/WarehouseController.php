@@ -160,25 +160,58 @@ class WarehouseController extends Controller
             $rows[] = ['date' => $s->received_date, 'type' => 'INSTOCK', 'qty_in' => $s->received_qty, 'qty_out' => 0, 'reference' => (string) $s->id, 'details' => $s->source . ' - ' . ($s->name_poo ?? '')];
         }
 
-        // 2. Stock Request (old outstock)
-        foreach (WarehouseStockRequest::where("warehouse_task_id", $whTaskId)->get() as $r) {
+        // 2. Outstock (loading) — visible from LOADING time, scoped via container
+        foreach (DB::table('outstock_loading as ol')
+            ->join('master_container as mc', 'ol.Container_ID', '=', 'mc.ID')
+            ->join('outstock as o', 'ol.Outstock_ID', '=', 'o.ID')
+            ->where('mc.Warehouse_ID', $whId)
+            ->orderBy('ol.Date')
+            ->select('ol.Actual_Qty', 'ol.Date', 'o.Code', 'mc.Name as Container_Name')
+            ->get() as $ol) {
+            $rows[] = ['date' => substr((string) $ol->Date, 0, 10), 'type' => 'Outstock', 'qty_in' => 0, 'qty_out' => $ol->Actual_Qty, 'reference' => $ol->Code, 'details' => $ol->Container_Name];
+        }
+
+        // 2b. Manual stock requests only — 'OUTSTOCK:' mirror rows are the same
+        // movement as the loading rows above and would double-count
+        foreach (WarehouseStockRequest::where("warehouse_task_id", $whTaskId)
+            ->where(function ($q) {
+                $q->whereNull('reference')->orWhere('reference', 'not like', 'OUTSTOCK:%');
+            })
+            ->get() as $r) {
             $rows[] = ['date' => $r->request_date, 'type' => 'Outstock', 'qty_in' => 0, 'qty_out' => $r->request_qty, 'reference' => $r->reference, 'details' => $r->remark ?? ''];
         }
 
-        // 3. Stock Opname
+        // 3. Stock Opname — a CLOSED count rebaselines the saldo to Physical_Qty
         foreach (WarehouseStockOpname::where('Warehouse_ID', $whId)->get() as $op) {
-            $rows[] = ['date' => $op->Opname_Date, 'type' => 'OPNAME', 'qty_in' => $op->Physical_Qty, 'qty_out' => 0, 'reference' => $op->Opname_Number, 'details' => 'System: ' . $op->System_Qty . ' | Diff: ' . $op->Difference];
+            $rows[] = ['date' => substr((string) $op->Opname_Date, 0, 10), 'type' => 'OPNAME', 'qty_in' => 0, 'qty_out' => 0, 'physical' => $op->Status === 'CLOSED' ? $op->Physical_Qty : null, 'reference' => $op->Opname_Number, 'details' => 'System: ' . $op->System_Qty . ' | Physical: ' . $op->Physical_Qty . ' | Diff: ' . $op->Difference . ' | ' . $op->Status];
         }
 
-        // Sort ascending for balance calculation
-        usort($rows, function($a, $b) { return strcmp($a['date'], $b['date']); });
+        // 4. Instock Dregs (informational — received_qty already excludes dregs, saldo untouched)
+        foreach (DB::table('instock_dregs as dg')
+            ->leftJoin('delivery_order as do', 'dg.DO_Id', '=', 'do.ID')
+            ->where('dg.Warehouse_ID', $whId)
+            ->select('dg.*', 'do.Code as DO_Code')
+            ->get() as $dg) {
+            $rows[] = ['date' => $dg->Instock_Date, 'type' => 'DREGS', 'qty_in' => 0, 'qty_out' => 0, 'dregs' => $dg->Quantity, 'reference' => (string) ($dg->DO_Code ?? ''), 'details' => $dg->Notes ?? ''];
+        }
+
+        // Sort ascending for balance calculation (date, then type priority so
+        // same-date rows are deterministic: in -> out -> opname -> adjustment -> dregs)
+        $typePriority = ['INSTOCK' => 0, 'Outstock' => 1, 'OPNAME' => 2, 'DREGS' => 3];
+        usort($rows, function($a, $b) use ($typePriority) {
+            $byDate = strcmp($a['date'], $b['date']);
+            if ($byDate !== 0) return $byDate;
+            return ($typePriority[$a['type']] ?? 9) <=> ($typePriority[$b['type']] ?? 9);
+        });
 
         // Calculate running balance, reset on OPNAME
         $balance = 0;
         for ($i = 0; $i < count($rows); $i++) {
             if ($rows[$i]['type'] === 'OPNAME') {
-                $balance = $rows[$i]['qty_in'];          // Reset to Physical_Qty
-                $rows[$i]['qty_in'] = 0;                  // Don't add to In total
+                // CLOSED count rebaselines; pending/rejected counts do not
+                $balance = $rows[$i]['physical'] !== null ? (float) $rows[$i]['physical'] : $balance;
+            } elseif ($rows[$i]['type'] === 'DREGS') {
+                // Informational only — received_qty already excludes dregs
             } elseif ($rows[$i]['type'] === 'INSTOCK') {
                 $balance += $rows[$i]['qty_in'];
             } else {
@@ -200,6 +233,7 @@ class WarehouseController extends Controller
             $row->addChild('cell', htmlspecialchars((string) $r['type']));
             $row->addChild('cell', (string) $r['qty_in']);
             $row->addChild('cell', (string) $r['qty_out']);
+            $row->addChild('cell', (string) ($r['dregs'] ?? ''));
             $row->addChild('cell', (string) $r['balance']);
             $no++;
         }
@@ -349,10 +383,27 @@ class WarehouseController extends Controller
 
     public function getWarehouses(Request $r)
     {
+        $columns = ['wp.id', 'wp.warehouse_task_id', 'wp.warehouse_location', 'wp.warehouse_status', 'wp.Created_Date', 'wp.lat', 'wp.lng'];
+
+        if ($r->do_id) {
+            // Warehouses touched by a Surat Jalan: DO -> PO -> WO -> POO -> Nearest_Warehouse
+            $data = DB::table('warehouse_partner as wp')
+                ->join('master_poo as mp', 'mp.Nearest_Warehouse', '=', 'wp.id')
+                ->join('work_order as wo', 'wo.POO_Id', '=', 'mp.ID')
+                ->join('pickup_order as po', 'po.WO_Id', '=', 'wo.ID')
+                ->where('po.DO_Id', $r->do_id)
+                ->distinct()
+                ->select($columns)
+                ->orderBy('wp.id', 'desc')
+                ->get();
+
+            return response()->json(['status' => 'success', 'data' => $data]);
+        }
+
         $data = DB::table('warehouse_partner as wp')
             ->leftJoin('opportunity_partner as op', 'wp.partner_task_id', '=', 'op.lead_id')
             ->leftJoin('users as u', 'u.id', '=', 'op.user_row_id')
-            ->select('wp.id',  'wp.warehouse_task_id', 'wp.warehouse_location', 'wp.warehouse_status', 'wp.Created_Date', 'wp.lat', 'wp.lng')
+            ->select($columns)
             ->when($r->partner_id,        fn($q) => $q->where('op.lead_id',            $r->partner_id))
             ->when($r->wh_loc,            fn($q) => $q->where('wp.warehouse_location', $r->wh_loc))
             ->when($r->wh_type,           fn($q) => $q->where('wp.warehouse_type',     $r->wh_type))

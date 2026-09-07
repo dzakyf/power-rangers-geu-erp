@@ -111,13 +111,16 @@ class ValuationController extends Controller
         $cat = "";
         foreach ($facilityDtl as $key => $Fetch) {
             $orderDate = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00') ? $Fetch->Order_Date : now()->format('Y-m-d');
-            $month = $asset[$Fetch->Facility_ID]->shelf_life ?: 0;
-
             $depreciationYear = $asset[$Fetch->Facility_ID]->depreciation_year ?: 1;
+
+            $month = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00')
+                ? (int) Carbon::parse($Fetch->Order_Date)->startOfDay()->diffInMonths(Carbon::now()->startOfDay())
+                : 0;
+            $month = min($month, $depreciationYear * 12);
 
             $prosen = 1 / $depreciationYear;
             $deprPerBulan = $Fetch->Total * $prosen / 12;
-            $sisaWaktu = ($depreciationYear * 12) - $month;
+            $sisaWaktu = max(0, ($depreciationYear * 12) - $month);
             echo "<row id=\"$Fetch->ID\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($orderDate) . "</cell>";
@@ -187,13 +190,16 @@ class ValuationController extends Controller
         $nomor = 1;
         foreach ($facilityDtl as $key => $Fetch) {
             $orderDate = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00') ? $Fetch->Order_Date : now()->format('Y-m-d');
-            $month = $asset[$Fetch->Facility_ID]->shelf_life ?: 0;
-
             $depreciationYear = $asset[$Fetch->Facility_ID]->depreciation_year ?: 1;
+
+            $month = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00')
+                ? (int) Carbon::parse($Fetch->Order_Date)->startOfDay()->diffInMonths(Carbon::now()->startOfDay())
+                : 0;
+            $month = min($month, $depreciationYear * 12);
 
             $prosen = 1 / $depreciationYear;
             $deprPerBulan = $Fetch->Total * $prosen / 12;
-            $sisaWaktu = ($depreciationYear * 12) - $month;
+            $sisaWaktu = max(0, ($depreciationYear * 12) - $month);
 
             $row = $xml->addChild('row');
             $row->addAttribute("ID", $Fetch->ID);
@@ -273,14 +279,16 @@ class ValuationController extends Controller
                 //     ->get();
 
                 $orderDate = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00') ? $Fetch->Order_Date : now()->format('Y-m-d');
-
-                $month = $asset[$Fetch->Facility_ID]->shelf_life ?: 0;
-
                 $depreciationYear = $asset[$Fetch->Facility_ID]->depreciation_year ?: 1;
+
+                $month = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00')
+                    ? (int) Carbon::parse($Fetch->Order_Date)->startOfDay()->diffInMonths(Carbon::now()->startOfDay())
+                    : 0;
+                $month = min($month, $depreciationYear * 12);
 
                 $prosen = 1 / $depreciationYear;
                 $deprPerBulan = $Fetch->Total * $prosen / 12;
-                $sisaWaktu = ($depreciationYear * 12) - $month;
+                $sisaWaktu = max(0, ($depreciationYear * 12) - $month);
 
                 $sumTotal += $Fetch->Total;
                 $sumDepr += $deprPerBulan * $month;

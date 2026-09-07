@@ -28,7 +28,7 @@ echo "<rows>";
 $Query = DB::table("opportunity_sales_dtl")->where('Sales_ID', $_GET['ID'])->orderBy("ID", "DESC")->get();
 
 foreach ($Query as $Fetch) {
-	$Fetch = DB::table("opportunity")->where("Task_ID", $Fetch->Task_ID)->first();
+	$Fetch = DB::table("opportunity")->selectRaw("opportunity.*, (select op2.package_option from opportunity_partner op2 where op2.lead_id = opportunity.Task_ID order by op2.id desc limit 1) as package_option")->where("Task_ID", $Fetch->Task_ID)->first();
 	if ($Fetch->Capital_Estimation == 1) {
 		$estimation = "<50 Juta";
 	} elseif ($Fetch->Capital_Estimation == 2) {
@@ -48,7 +48,7 @@ foreach ($Query as $Fetch) {
 	echo "<cell>" . htmlspecialchars($Fetch->Full_Name) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Date) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Phone_Number) . "</cell>";
-	echo "<cell>" . htmlspecialchars("Opsi " . $Fetch->Partnership_Interest) . "</cell>";
+	echo "<cell>" . htmlspecialchars(leads_interest_label($Fetch->package_option ?? null, $Fetch->Hub_Type ?? null, $Fetch->Partnership_Interest ?? null)) . "</cell>";
 	echo "<cell>" . htmlspecialchars($estimation) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Created_Date) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Source_Channel) . "</cell>";

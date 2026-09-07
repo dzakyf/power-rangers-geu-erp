@@ -24,12 +24,21 @@
 	FacilityBenefitsBooth.setColTypes("ro,ro,ro,ron,ron,ron,dhxCalendar,dhxCalendar,ch");
     FacilityBenefitsBooth.attachEvent("onEditCell", function (stage, rowId, cellIndex, newValue, oldValue) {
         if (cellIndex == 3 || cellIndex == 4) {
-            let qty = FacilityBenefitsBooth.cells(rowId, 3).getValue();
-            let price = FacilityBenefitsBooth.cells(rowId, 4).getValue();
-            let total = parseFloat(qty) * parseFloat(price);
-            FacilityBenefitsBooth.cells(rowId, 5).setValue(total);
+            let qty = parseFloat(FacilityBenefitsBooth.cells(rowId, 3).getValue()) || 0;
+            let price = parseFloat(FacilityBenefitsBooth.cells(rowId, 4).getValue()) || 0;
+            FacilityBenefitsBooth.cells(rowId, 5).setValue(qty * price);
         }
         return true;
+    });
+    // Auto-fill the order date with today when it is left blank
+    FacilityBenefitsBooth.attachEvent("onXLE", function (grid) {
+        var today = new Date().toISOString().slice(0, 10);
+        for (var i = 0; i < grid.getRowsNum(); i++) {
+            var rid = grid.getRowId(i);
+            if (!grid.cells(rid, 6).getValue()) {
+                grid.cells(rid, 6).setValue(today);
+            }
+        }
     });
 	FacilityBenefitsBooth.enableSmartRendering(true, 150);
     FacilityBenefitsBooth.setDateFormat("%Y-%m-%d");

@@ -273,11 +273,11 @@
     function initDregsGrid() {
         DregsGrid = new dhtmlXGridObject('DregsGrid');
         DregsGrid.setImagePath("./dhtmlx/imgs/");
-        DregsGrid.setHeader("No,Instock Date,Quantity,Notes,Dibuat Pada");
-        DregsGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
-        DregsGrid.setInitWidths("50,120,100,*,150");
-        DregsGrid.setColAlign("center,left,right,left,left");
-        DregsGrid.setColTypes("ro,ro,ro,ro,ro");
+        DregsGrid.setHeader("No,Instock Date,Quantity,Surat Jalan,Warehouse,Notes,Dibuat Pada");
+        DregsGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+        DregsGrid.setInitWidths("50,120,100,150,150,*,150");
+        DregsGrid.setColAlign("center,left,right,left,left,left,left");
+        DregsGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro");
         DregsGrid.setSkin("dhx_skyblue");
         DregsGrid.init();
         loadDregsData();
@@ -503,7 +503,7 @@
             '<hr>' +
             '<div class="form-group">' +
             '<label>Surat Jalan</label>' +
-            '<select class="form-control" id="dregsDO" style="width:100%;"></select>' +
+            '<select class="form-control" id="dregsDO" name="DO_Id" style="width:100%;"></select>' +
             '</div>' +
             '</div>' +
             '<hr>' +
@@ -536,6 +536,10 @@
                     var form = document.getElementById('dregsForm');
                     if (!form.Instock_Date.value || !form.Quantity.value) {
                         alert('Instock Date dan Quantity wajib diisi');
+                        return false;
+                    }
+                    if (!form.DO_Id.value) {
+                        alert('Pilih Surat Jalan terlebih dulu');
                         return false;
                     }
                     var fd = new FormData(form);

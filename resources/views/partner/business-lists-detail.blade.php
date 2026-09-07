@@ -99,25 +99,25 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-check">
-                                    <input readonly class="form-check-input" type="radio" name="Source" id="Source_Instagram" value="Instagram" {{ (old('Source', $partner->source ?? '') == 'Instagram') ? 'checked' : '' }} />
+                                    <input readonly class="form-check-input" type="radio" name="Source" id="Source_Instagram" value="Instagram" {{ (old('Source', $partner->source_channels ?? '') == 'Instagram') ? 'checked' : '' }} />
                                     <label class="form-check-label" for="Source_Instagram">Instagram</label>
                                 </div>
                                 <div class="form-check">
-                                    <input readonly class="form-check-input" type="radio" name="Source" id="Source_Facebook" value="Facebook" {{ (old('Source', $partner->source ?? '') == 'Facebook') ? 'checked' : '' }} />
+                                    <input readonly class="form-check-input" type="radio" name="Source" id="Source_Facebook" value="Facebook" {{ (old('Source', $partner->source_channels ?? '') == 'Facebook') ? 'checked' : '' }} />
                                     <label class="form-check-label" for="Source_Facebook">Facebook</label>
                                 </div>
                                 <div class="form-check">
-                                    <input readonly class="form-check-input" type="radio" name="Source" id="Source_TikTok" value="TikTok" {{ (old('Source', $partner->source ?? '') == 'TikTok') ? 'checked' : '' }} />
+                                    <input readonly class="form-check-input" type="radio" name="Source" id="Source_TikTok" value="TikTok" {{ (old('Source', $partner->source_channels ?? '') == 'TikTok') ? 'checked' : '' }} />
                                     <label class="form-check-label" for="Source_TikTok">TikTok</label>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-check">
-                                    <input readonly class="form-check-input" type="radio" name="Source" id="Source_Website" value="Website" {{ (old('Source', $partner->source ?? '') == 'Website') ? 'checked' : '' }} />
+                                    <input readonly class="form-check-input" type="radio" name="Source" id="Source_Website" value="Website" {{ (old('Source', $partner->source_channels ?? '') == 'Website') ? 'checked' : '' }} />
                                     <label class="form-check-label" for="Source_Website">Website</label>
                                 </div>
                                 <div class="form-check">
-                                    <input readonly class="form-check-input" type="radio" name="Source" id="Source_Event" value="Event" {{ (old('Source', $partner->source ?? '') == 'Event') ? 'checked' : '' }} />
+                                    <input readonly class="form-check-input" type="radio" name="Source" id="Source_Event" value="Event" {{ (old('Source', $partner->source_channels ?? '') == 'Event') ? 'checked' : '' }} />
                                     <label class="form-check-label" for="Source_Event">Pameran/Acara</label>
                                 </div>
                             </div>

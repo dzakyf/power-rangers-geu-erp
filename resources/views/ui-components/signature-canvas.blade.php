@@ -163,7 +163,15 @@ $saveDocumentUrl = $saveDocumentUrl ?? "/geu/hcga/public/partner-onboarding-subm
                 contentType: false,
                 success: function(response) {
                     if (response && response.success) {
-                        showStatus('Document generated successfully!', 'success');
+                        showStatus('Dokumen berhasil dibuat. Mengunduh...', 'success');
+                        if (response.download_url) {
+                            var dl = document.createElement('iframe');
+                            dl.style.display = 'none';
+                            dl.src = response.download_url;
+                            document.body.appendChild(dl);
+                        }
+                        // Refresh the stepper so the MoU/PKS progress updates
+                        setTimeout(function() { location.reload(); }, 1500);
                     } else {
                         showStatus('Error: ' + (response ? response.message : 'Unknown error'), 'error');
                     }

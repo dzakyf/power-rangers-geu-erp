@@ -127,6 +127,21 @@ Route::get('open-recruitment-employee', function () {
     return view('humanresources.recruitment.recruitment-new-open');
 });
 Route::get('partner-registration', function () {
+    // Validate the blast token up-front so leads with an expired/used link
+    // see a clear notice instead of a form they cannot submit.
+    $token = request()->query('token');
+    if ($token) {
+        $valid = \Illuminate\Support\Facades\DB::table('opportunity')
+            ->where('registration_token', $token)
+            ->where(function ($q) {
+                $q->whereNull('token_expires_at')
+                  ->orWhere('token_expires_at', '>=', now());
+            })
+            ->exists();
+        if (!$valid) {
+            return view('partner.registration-expired');
+        }
+    }
     return view('partner.registration-public');
 });
 Route::post('partner-registration-submit', [PartnerRegistrationController::class, 'submit']);
@@ -4700,11 +4715,10 @@ Route::group(['middleware' => 'log.access'], function () {
     $assetManagementPref = 'partner-asset-management';
     Route::get("$assetManagementPref", [PartnerAssetManagementController::class, 'index']);
     Route::get("xml-$assetManagementPref", [PartnerAssetManagementController::class, 'indexXml']);
-    Route::get("$assetManagementPref-detail-booth", [PartnerAssetManagementController::class, 'indexDetailBooth']);
+    Route::get("$assetManagementPref-detail", [PartnerAssetManagementController::class, 'indexDetail']);
     Route::get("xml-$assetManagementPref-detail-booth-inventory", [PartnerAssetManagementController::class, 'indexDetailBoothInventoryXml']);
     Route::get("xml-$assetManagementPref-detail-booth-access", [PartnerAssetManagementController::class, 'indexDetailBoothAccessXml']);
     Route::get("xml-$assetManagementPref-detail-booth-support", [PartnerAssetManagementController::class, 'indexDetailBoothSupportXml']);
-    Route::get("$assetManagementPref-detail-mobil", [PartnerAssetManagementController::class, 'indexDetailMobil']);
     Route::get("xml-$assetManagementPref-detail-mobil-inventory", [PartnerAssetManagementController::class, 'indexDetailMobilInventoryXml']);
     Route::get("xml-$assetManagementPref-detail-mobil-access", [PartnerAssetManagementController::class, 'indexDetailMobilAccessXml']);
     Route::get("xml-$assetManagementPref-detail-mobil-support", [PartnerAssetManagementController::class, 'indexDetailMobilSupportXml']);
@@ -5043,6 +5057,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$onboardingPrefs-approval-data", [OnboardingController::class, 'getOnboardingApprovalData']);
     Route::post("$onboardingPrefs-approval-submit", [OnboardingController::class, 'processOnboardingApproval']);
     Route::get("$onboardingPrefs-approval-data-log", [OnboardingController::class, 'getOnboardingApprovalDataLog']);
+    Route::get("$onboardingPrefs-download-doc", [OnboardingController::class, 'downloadGeneratedDoc']);
     Route::post("$onboardingPrefs-preview-mou", [OnboardingController::class, 'previewMou']);
     Route::post("$onboardingPrefs-submit-mou", [OnboardingController::class, 'uploadMou']);
     Route::post("$onboardingPrefs-preview-pks", [OnboardingController::class, 'previewPks']);

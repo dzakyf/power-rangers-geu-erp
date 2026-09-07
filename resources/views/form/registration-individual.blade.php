@@ -21,13 +21,13 @@
                  <div class="col-md-6">
                      <div class="form-group">
                          <label for="Full_Name">Nama Lengkap <span style="color: red;">*</span></label>
-                         <input type="text" name="Full_Name" id="Full_Name" class="form-control" required />
+                         <input type="text" name="Full_Name" id="Full_Name" class="form-control" required value="{{ $lead->Full_Name ?? '' }}" />
                      </div>
                  </div>
                  <div class="col-md-6">
                      <div class="form-group">
                          <label for="Contact">Nomor Telepon <span style="color: red;">*</span></label>
-                         <input type="text" name="Contact" id="Contact" class="form-control" required />
+                         <input type="text" name="Contact" id="Contact" class="form-control" required value="{{ $lead->Phone_Number ?? '' }}" />
                      </div>
                  </div>
              </div>
@@ -143,25 +143,25 @@
                  <div class="row">
                      <div class="col-md-6">
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="Source" id="Source_Instagram" value="Instagram" />
+                             <input class="form-check-input" type="radio" name="Source" id="Source_Instagram" value="Instagram" {{ ($lead->Source_Channel ?? '') === 'Instagram' ? 'checked' : '' }} />
                              <label class="form-check-label" for="Source_Instagram">Instagram</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="Source" id="Source_Facebook" value="Facebook" />
+                             <input class="form-check-input" type="radio" name="Source" id="Source_Facebook" value="Facebook" {{ ($lead->Source_Channel ?? '') === 'Facebook' ? 'checked' : '' }} />
                              <label class="form-check-label" for="Source_Facebook">Facebook</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="Source" id="Source_TikTok" value="TikTok" />
+                             <input class="form-check-input" type="radio" name="Source" id="Source_TikTok" value="TikTok" {{ ($lead->Source_Channel ?? '') === 'TikTok' ? 'checked' : '' }} />
                              <label class="form-check-label" for="Source_TikTok">TikTok</label>
                          </div>
                      </div>
                      <div class="col-md-6">
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="Source" id="Source_Website" value="Website" />
+                             <input class="form-check-input" type="radio" name="Source" id="Source_Website" value="Website" {{ ($lead->Source_Channel ?? '') === 'Website' ? 'checked' : '' }} />
                              <label class="form-check-label" for="Source_Website">Website</label>
                          </div>
                          <div class="form-check">
-                             <input class="form-check-input" type="radio" name="Source" id="Source_Event" value="Event" />
+                             <input class="form-check-input" type="radio" name="Source" id="Source_Event" value="Event" {{ ($lead->Source_Channel ?? '') === 'Event' ? 'checked' : '' }} />
                              <label class="form-check-label" for="Source_Event">Pameran/Acara</label>
                          </div>
                      </div>
@@ -576,13 +576,13 @@
              <div class="row">
                  <div class="col-md-6">
                      <div class="form-check">
-                         <input class="form-check-input" type="radio" name="Package" id="Package_1" value="mobil" />
+                         <input class="form-check-input" type="radio" name="Package" id="Package_1" value="mobil" {{ ($lead->Hub_Type ?? '') === 'mobil' ? 'checked' : '' }} />
                          <label class="form-check-label" for="Package_1">Mobil Listrik</label>
                      </div>
                  </div>
                  <div class="col-md-6">
                      <div class="form-check">
-                         <input class="form-check-input" type="radio" name="Package" id="Package_2" value="booth" />
+                         <input class="form-check-input" type="radio" name="Package" id="Package_2" value="booth" {{ ($lead->Hub_Type ?? '') === 'booth' ? 'checked' : '' }} />
                          <label class="form-check-label" for="Package_2">Booth</label>
                      </div>
                  </div>
@@ -628,11 +628,11 @@
                  <div class="row mt-3">
                      <div class="col-md-6">
                          <label for="NIK">Nomor Induk Kependudukan (NIK)</label>
-                         <input type="text" class="form-control" id="NIK" name="NIK" placeholder="Nomor KTP" maxlength="16" />
+                         <input type="text" class="form-control" id="NIK" name="NIK" placeholder="Nomor KTP" maxlength="16" value="{{ $lead->KTP ?? '' }}" />
                      </div>
                      <div class="col-md-6">
                          <label for="NPWP">NPWP</label>
-                         <input type="text" class="form-control" id="NPWP" name="NPWP" placeholder="Nomor NPWP" />
+                         <input type="text" class="form-control" id="NPWP" name="NPWP" placeholder="Nomor NPWP" value="{{ $lead->NPWP ?? '' }}" />
                      </div>
                  </div>
              </div>

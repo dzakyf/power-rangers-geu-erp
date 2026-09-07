@@ -12,21 +12,56 @@ use App\MasterWarehouseAccount;
 class WarehouseService
 {
     /**
-     * Pure-ledger system quantity for a container:
-     * SUM(stock-in received_qty) - SUM(outstock Actual_Qty), floored at 0.
+     * Event-sourced system quantity for a container:
+     * stock-in (+) and outstock loading (-) replayed in timestamp order,
+     * rebaselined to the physical count at each CLOSED stock opname.
+     *
+     * Adjustments are approval artifacts of an opname, never additive terms -
+     * the CLOSED opname itself is the rebaseline. Pending/rejected counts
+     * never rebaseline. The balance may go negative before an opname: an
+     * honest signal of unattributed stock that the next physical count heals.
+     *
      * This is the single source of truth for "System Quantity" everywhere.
      */
     public function containerSystemQty($containerId): float
     {
-        $in = DB::table('warehouse_partner_supplies')
-            ->where('Container_ID', $containerId)
-            ->sum('received_qty');
+        $events = [];
 
-        $out = DB::table('outstock_loading')
+        foreach (DB::table('warehouse_partner_supplies')
             ->where('Container_ID', $containerId)
-            ->sum('Actual_Qty');
+            ->get(['received_qty', 'created_date']) as $s) {
+            $events[] = ['ts' => (string) $s->created_date, 'qty' => (float) $s->received_qty, 'reset' => false];
+        }
 
-        return max(0, (float) $in - (float) $out);
+        foreach (DB::table('outstock_loading')
+            ->where('Container_ID', $containerId)
+            ->get(['Actual_Qty', 'Created_At']) as $l) {
+            $events[] = ['ts' => (string) $l->Created_At, 'qty' => -(float) $l->Actual_Qty, 'reset' => false];
+        }
+
+        foreach (DB::table('warehouse_stock_opnames')
+            ->where('Container_ID', $containerId)
+            ->where('Status', 'CLOSED')
+            ->get(['Physical_Qty', 'Created_At']) as $o) {
+            $events[] = ['ts' => (string) $o->Created_At, 'qty' => (float) $o->Physical_Qty, 'reset' => true];
+        }
+
+        usort($events, function ($a, $b) {
+            $cmp = strcmp($a['ts'], $b['ts']);
+            if ($cmp !== 0) {
+                return $cmp;
+            }
+            // same timestamp: events sort first - the snapshot the count was
+            // taken against already included them, so the rebaseline supersedes them
+            return $a['reset'] <=> $b['reset'];
+        });
+
+        $balance = 0.0;
+        foreach ($events as $e) {
+            $balance = $e['reset'] ? $e['qty'] : $balance + $e['qty'];
+        }
+
+        return $balance;
     }
 
     public function calculateMonthlyFinancialStatement(
@@ -235,18 +270,22 @@ class WarehouseService
             $projectionNetProfitHigh = 0;
             $projectionNetProfitLow  = 0;
 
-            $firstCreatedAt = DB::table('projections')
-                ->where('warehouse_task_id', $warehouseTaskId)
-                ->whereIn('Description', ['Bagi Hasil Mitra', 'Net Profit'])
-                ->min('Created_At');
+            $operationalDate = DB::table('warehouse_partner as wp')
+                ->join('opportunity_partner as op', 'op.lead_id', '=', 'wp.partner_task_id')
+                ->where('wp.warehouse_task_id', $warehouseTaskId)
+                ->where('op.onboarding_stage', 'ACTIVE')
+                ->orderBy('op.id')
+                ->value('op.onboarding_stage_updated_at');
 
-            if ($firstCreatedAt) {
-                $origin     = Carbon::parse($firstCreatedAt)->startOfMonth();
-                $monthIndex = $origin->diffInMonths(Carbon::parse($startDate)) + 1;
-                if ($monthIndex >= 1) {
-                    $yearCount = (int) floor(($monthIndex - 1) / 12) + 1;
-                    $colIndex  = (($monthIndex - 1) % 12) + 1;
-                    $col       = "Month_{$colIndex}_Total";
+            if ($operationalDate) {
+                $origin  = Carbon::parse($operationalDate)->startOfMonth();
+                $current = Carbon::parse($startDate)->startOfMonth();
+
+                if ($current->greaterThanOrEqualTo($origin)) {
+                    $monthIndex = $origin->diffInMonths($current) + 1;
+                    $yearCount  = (int) floor(($monthIndex - 1) / 12) + 1;
+                    $colIndex   = (($monthIndex - 1) % 12) + 1;
+                    $col        = "Month_{$colIndex}_Total";
 
                     $allProjRows = DB::table('projections')
                         ->where('warehouse_task_id', $warehouseTaskId)

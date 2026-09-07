@@ -19,9 +19,9 @@ class AssetManagementController extends Controller
 
     public function indexXml()
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
+        if ( stristr($_SERVER["HTTP_ACCEPT"] ?? "","application/xhtml+xml")) {
+            if (!headers_sent()) header("Content-type: application/xhtml+xml"); } else {
+            if (!headers_sent()) header("Content-type: text/xml");
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -62,35 +62,26 @@ class AssetManagementController extends Controller
         echo "</rows>";
     }
 
-    public function indexDetailBooth(Request $request)
+    public function indexDetail(Request $request)
     {
         $task = $request->ID;
         $wh = WarehousePartner::where("warehouse_task_id", $task)->first();
         $partner = DB::table('opportunity_partner')->where("lead_id", $wh->partner_task_id)->first();
         if (!$partner) {
-            $partner  = new stdClass;
+            $partner = new stdClass;
             $partner->id = 0;
         }
-        return view('partner.asset-management-detail-booth', compact('wh','partner'));
+        $type = ($wh->warehouse_type === 'mobil') ? 'mobil' : 'booth';
+        return view('partner.asset-management-detail', compact('wh', 'partner', 'type'));
     }
 
-    public function indexDetailBoothInventoryXml(Request $request)
+    private function resolveWarehouseContext(Request $request): array
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
-        }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-
-        echo "<rows>";
-        $nomor = 1;
-
         $task = $request->Task;
         $wh = WarehousePartner::where("warehouse_task_id", $task)->first();
         $partner = DB::table('opportunity_partner')->where("lead_id", $wh->partner_task_id)->first();
-        
         if (!$partner) {
-            $partner  = new stdClass;
+            $partner = new stdClass;
             $partner->id = 0;
         }
 
@@ -99,39 +90,149 @@ class AssetManagementController extends Controller
             ->where('Partner_ID', $partner->id)
             ->get();
         $getCheckedBySales = [];
-        foreach ($getChecked as $key => $value) {
+        $getCheckedByPartner = [];
+        foreach ($getChecked as $value) {
             $getCheckedBySales[$value->Facility_ID] = [
                 'Chckd' => $value->Checked_Sales,
-                'Date' => $value->Send_Date
+                'Date' => $value->Send_Date,
             ];
             $getCheckedByPartner[$value->Facility_ID] = [
                 'Chckd' => $value->Checked_Partner,
-                'Date' => $value->Received_Date
+                'Date' => $value->Received_Date,
             ];
         }
 
-        // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'inventory')->where('is_deleted', 0)->get();
+        return [$partner, $getCheckedBySales, $getCheckedByPartner];
+    }
+
+    private function facilityChildrenText($facility): string
+    {
+        $children = json_decode($facility->children);
+        if (is_object($children)) {
+            $child = "";
+            foreach ($children as $k => $v) {
+                $child .= "$k : " . (is_array($v) ? implode(", ", $v) : json_encode($v)) . ", ";
+            }
+            return substr($child, 0, -2);
+        }
+        return is_array($children) ? implode(", ", $children) : (string) $children;
+    }
+
+    private function xmlHeader(): void
+    {
+        if ( stristr($_SERVER["HTTP_ACCEPT"] ?? "","application/xhtml+xml")) {
+            if (!headers_sent()) header("Content-type: application/xhtml+xml"); } else {
+            if (!headers_sent()) header("Content-type: text/xml");
+        }
+        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+    }
+
+    /**
+     * Unified inventory grid cells (asset-management-detail.blade.php):
+     *   c0 No, c1 Deskripsi, c2 Detail, c3 Tipe Asset, c4 Qty, c5 Price,
+     *   c6 Total, c7 Ceklist Ketersediaan, c8 Tanggal Order,
+     *   c9 Tanggal Diterima, c10 Status Diterima
+     */
+    public function indexDetailInventoryXml(Request $request, string $type)
+    {
+        $this->xmlHeader();
+        echo "<rows>";
+
+        [$partner, $getCheckedBySales, $getCheckedByPartner] = $this->resolveWarehouseContext($request);
+        $task = $request->Task;
+
+        $masterFacility = DB::table('master_facility')
+            ->where('type', $type)
+            ->where('category', 'inventory')
+            ->where('is_deleted', 0)
+            ->get();
+        foreach ($masterFacility as $key => $facility) {
+            // Warehouse-scoped so multi-warehouse partners read the row they
+            // will write to.
+            $cekDtl = DB::table('opportunity_partner_facility_dtl')
+                ->where("Facility_ID", $facility->id)
+                ->where('Partner_ID', $partner->id)
+                ->where('warehouse_task_id', $task)
+                ->orderBy('ID')
+                ->first();
+            // Always show the live master price so master-data edits are
+            // reflected (the saved dtl price is only a fallback).
+            $displayPrice = ($facility->price !== null && $facility->price !== '')
+                ? $facility->price
+                : ($cekDtl->Price ?? '');
+
+            echo "<row id=\"$facility->id\" >";
+            echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars($facility->description) . "</cell>";
+            echo "<cell>" . htmlspecialchars($this->facilityChildrenText($facility)) . "</cell>";
+            echo "<cell>" . htmlspecialchars($facility->asset_type) . "</cell>";
+            if ($cekDtl) {
+                echo "<cell>" . htmlspecialchars($cekDtl->Qty) . "</cell>";
+                echo "<cell>" . htmlspecialchars($displayPrice) . "</cell>";
+                echo "<cell>" . htmlspecialchars($cekDtl->Total) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+                echo "<cell>" . htmlspecialchars($displayPrice ?? '') . "</cell>";
+                echo "<cell></cell>";
+            }
+            echo "<cell>" . htmlspecialchars($getCheckedBySales[$facility->id]['Chckd'] ?? 0) . "</cell>";
+            $orderDate = $cekDtl->Order_Date ?? '';
+            echo "<cell>" . htmlspecialchars(($orderDate == '0000-00-00') ? '' : $orderDate) . "</cell>";
+            if (isset($getCheckedByPartner[$facility->id])) {
+                $partnerDate = $getCheckedByPartner[$facility->id]['Date'];
+                echo "<cell>" . htmlspecialchars(($partnerDate == '0000-00-00') ? '' : $partnerDate) . "</cell>";
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+                echo "<cell>0</cell>";
+            }
+            echo "</row>";
+        }
+
+        echo "</rows>";
+    }
+
+    public function indexDetailBoothInventoryXml(Request $request)
+    {
+        return $this->indexDetailInventoryXml($request, 'booth');
+    }
+
+    public function indexDetailMobilInventoryXml(Request $request)
+    {
+        return $this->indexDetailInventoryXml($request, 'mobil');
+    }
+
+    /**
+     * Unified access/support grid cells:
+     *   c0 No, c1 Deskripsi, c2 Detail, c3 Ceklist Ketersediaan,
+     *   c4 Tanggal Diterima, c5 Status Diterima
+     */
+    public function indexDetailCategoryXml(Request $request, string $type, string $category)
+    {
+        $this->xmlHeader();
+        echo "<rows>";
+
+        [$partner, $getCheckedBySales, $getCheckedByPartner] = $this->resolveWarehouseContext($request);
+
+        $masterFacility = DB::table('master_facility')
+            ->where('type', $type)
+            ->where('category', $category)
+            ->where('is_deleted', 0)
+            ->get();
         foreach ($masterFacility as $key => $facility) {
             echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->asset_type)."</cell>";
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $partner->id)->first();
-                if ($cekDtl) {
-                    echo "<cell>".htmlspecialchars($cekDtl->Qty)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Price)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Total)."</cell>";
-                }else {
-                    echo "<cell></cell>";
-                    echo "<cell></cell>";
-                    echo "<cell></cell>";
-                }
-                if (isset($getCheckedBySales[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedBySales[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell>0</cell>";
-                }
+            echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars($facility->description) . "</cell>";
+            echo "<cell>" . htmlspecialchars($this->facilityChildrenText($facility)) . "</cell>";
+            echo "<cell>" . htmlspecialchars($getCheckedBySales[$facility->id]['Chckd'] ?? 0) . "</cell>";
+            if (isset($getCheckedByPartner[$facility->id])) {
+                $partnerDate = $getCheckedByPartner[$facility->id]['Date'];
+                echo "<cell>" . htmlspecialchars(($partnerDate == '0000-00-00') ? '' : $partnerDate) . "</cell>";
+                echo "<cell>" . htmlspecialchars($getCheckedByPartner[$facility->id]['Chckd'] ?? 0) . "</cell>";
+            } else {
+                echo "<cell></cell>";
+                echo "<cell>0</cell>";
+            }
             echo "</row>";
         }
 
@@ -140,314 +241,27 @@ class AssetManagementController extends Controller
 
     public function indexDetailBoothAccessXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
-        }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-
-        echo "<rows>";
-
-        $task = $request->Task;
-        $wh = WarehousePartner::where("warehouse_task_id", $task)->first();
-        $partner = DB::table('opportunity_partner')->where("lead_id", $wh->partner_task_id)->first();
-        
-        if (!$partner) {
-            $partner  = new stdClass;
-            $partner->id = 0;
-        }
-
-        $getChecked = DB::table('opportunity_partner_facility')
-            ->where('warehouse_task_id', $task)
-            ->where('Partner_ID', $partner->id)
-            ->get();
-        $getCheckedBySales = [];
-        foreach ($getChecked as $key => $value) {
-            $getCheckedBySales[$value->Facility_ID] = [
-                'Chckd' => $value->Checked_Sales,
-                'Date' => $value->Send_Date
-            ];
-            $getCheckedByPartner[$value->Facility_ID] = [
-                'Chckd' => $value->Checked_Partner,
-                'Date' => $value->Received_Date
-            ];
-        }
-
-        // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'access')->where('is_deleted', 0)->get();
-        foreach ($masterFacility as $key => $facility) {
-            echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                $facility->children = json_decode($facility->children);
-                $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
-                echo "<cell>".htmlspecialchars($facility->children)."</cell>";
-                if (isset($getCheckedBySales[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedBySales[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell>0</cell>";
-                }
-            echo "</row>";
-        }
-
-        echo "</rows>";
+        return $this->indexDetailCategoryXml($request, 'booth', 'access');
     }
 
     public function indexDetailBoothSupportXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
-        }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-
-        echo "<rows>";
-
-        $task = $request->Task;
-        $wh = WarehousePartner::where("warehouse_task_id", $task)->first();
-        $partner = DB::table('opportunity_partner')->where("lead_id", $wh->partner_task_id)->first();
-        
-        if (!$partner) {
-            $partner  = new stdClass;
-            $partner->id = 0;
-        }
-
-        $getChecked = DB::table('opportunity_partner_facility')
-            ->where('warehouse_task_id', $task)
-            ->where('Partner_ID', $partner->id)
-            ->get();
-        $getCheckedBySales = [];
-        foreach ($getChecked as $key => $value) {
-            $getCheckedBySales[$value->Facility_ID] = [
-                'Chckd' => $value->Checked_Sales,
-                'Date' => $value->Send_Date
-            ];
-            $getCheckedByPartner[$value->Facility_ID] = [
-                'Chckd' => $value->Checked_Partner,
-                'Date' => $value->Received_Date
-            ];
-        }
-
-        // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'booth')->where('category', 'support')->where('is_deleted', 0)->get();
-        foreach ($masterFacility as $key => $facility) {
-            echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                $facility->children = json_decode($facility->children);
-                $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
-                echo "<cell>".htmlspecialchars($facility->children)."</cell>";
-                if (isset($getCheckedBySales[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedBySales[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell>0</cell>";
-                }
-            echo "</row>";
-        }
-
-        echo "</rows>";
-    }
-
-    public function indexDetailMobil(Request $request)
-    {
-        $task = $request->ID;
-        $wh = WarehousePartner::where("warehouse_task_id", $task)->first();
-        $partner = DB::table('opportunity_partner')->where("lead_id", $wh->partner_task_id)->first();
-        if (!$partner) {
-            $partner  = new stdClass;
-            $partner->id = 0;
-        }
-        return view('partner.asset-management-detail-mobil', compact('wh', 'partner'));
-    }
-
-    public function indexDetailMobilInventoryXml(Request $request)
-    {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
-        }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-
-        echo "<rows>";
-
-        $task = $request->Task;
-        $wh = WarehousePartner::where("warehouse_task_id", $task)->first();
-        $partner = DB::table('opportunity_partner')->where("lead_id", $wh->partner_task_id)->first();
-        
-        if (!$partner) {
-            $partner  = new stdClass;
-            $partner->id = 0;
-        }
-
-        $getChecked = DB::table('opportunity_partner_facility')
-            ->where('warehouse_task_id', $task)
-            ->where('Partner_ID', $partner->id)
-            ->get();
-        $getCheckedBySales = [];
-        foreach ($getChecked as $key => $value) {
-            $getCheckedBySales[$value->Facility_ID] = [
-                'Chckd' => $value->Checked_Sales,
-                'Date' => $value->Send_Date
-            ];
-            $getCheckedByPartner[$value->Facility_ID] = [
-                'Chckd' => $value->Checked_Partner,
-                'Date' => $value->Received_Date
-            ];
-        }
-
-        // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'inventory')->where('is_deleted', 0)->get();
-        foreach ($masterFacility as $key => $facility) {
-            echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                $facility->children = json_decode($facility->children);
-                $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
-                if(is_object($facility->children)) {
-                    $child = "";
-                    foreach ($facility->children as $key => $value) {
-                        $child .= "$key : " .  (is_array($value) ? implode(", ", $value) : json_encode($value)) . ", ";
-                    }
-                    $child = substr($child, 0, -2);
-                    $facility->children = $child;
-                }
-                echo "<cell>".htmlspecialchars($facility->children)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->asset_type)."</cell>";
-                
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')->where("Facility_ID", $facility->id)->where('Partner_ID', $partner->id)->first();
-                if ($cekDtl) {
-                    echo "<cell>".htmlspecialchars($cekDtl->Qty)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Price)."</cell>";
-                    echo "<cell>".htmlspecialchars($cekDtl->Total)."</cell>";
-                }else {
-                    echo "<cell></cell>";
-                    echo "<cell></cell>";
-                    echo "<cell></cell>";
-                }
-                if (isset($getCheckedBySales[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedBySales[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell>0</cell>";
-                }
-            echo "</row>";
-        }
-
-        echo "</rows>";
+        return $this->indexDetailCategoryXml($request, 'booth', 'support');
     }
 
     public function indexDetailMobilAccessXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
-        }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-
-        echo "<rows>";
-
-        $task = $request->Task;
-        $wh = WarehousePartner::where("warehouse_task_id", $task)->first();
-        $partner = DB::table('opportunity_partner')->where("lead_id", $wh->partner_task_id)->first();
-        
-        if (!$partner) {
-            $partner  = new stdClass;
-            $partner->id = 0;
-        }
-
-        $getChecked = DB::table('opportunity_partner_facility')
-            ->where('warehouse_task_id', $task)
-            ->where('Partner_ID', $partner->id)
-            ->get();
-        $getCheckedBySales = [];
-        foreach ($getChecked as $key => $value) {
-            $getCheckedBySales[$value->Facility_ID] = [
-                'Chckd' => $value->Checked_Sales,
-                'Date' => $value->Send_Date
-            ];
-            $getCheckedByPartner[$value->Facility_ID] = [
-                'Chckd' => $value->Checked_Partner,
-                'Date' => $value->Received_Date
-            ];
-        }
-
-        // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'access')->where('is_deleted', 0)->get();
-        foreach ($masterFacility as $key => $facility) {
-            echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                $facility->children = json_decode($facility->children);
-                $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
-                echo "<cell>".htmlspecialchars($facility->children)."</cell>";
-                if (isset($getCheckedBySales[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedBySales[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell>0</cell>";
-                }
-            echo "</row>";
-        }
-
-        echo "</rows>";
+        return $this->indexDetailCategoryXml($request, 'mobil', 'access');
     }
 
     public function indexDetailMobilSupportXml(Request $request)
     {
-        if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml"); } else {
-            header("Content-type: text/xml");
-        }
-        echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-
-        echo "<rows>";
-
-        $task = $request->Task;
-        $wh = WarehousePartner::where("warehouse_task_id", $task)->first();
-        $partner = DB::table('opportunity_partner')->where("lead_id", $wh->partner_task_id)->first();
-        
-        if (!$partner) {
-            $partner  = new stdClass;
-            $partner->id = 0;
-        }
-
-        $getChecked = DB::table('opportunity_partner_facility')
-            ->where('warehouse_task_id', $task)
-            ->where('Partner_ID', $partner->id)
-            ->get();
-        $getCheckedBySales = [];
-        foreach ($getChecked as $key => $value) {
-            $getCheckedBySales[$value->Facility_ID] = [
-                'Chckd' => $value->Checked_Sales,
-                'Date' => $value->Send_Date
-            ];
-            $getCheckedByPartner[$value->Facility_ID] = [
-                'Chckd' => $value->Checked_Partner,
-                'Date' => $value->Received_Date
-            ];
-        }
-
-        // Sample data, replace with actual database query
-        $masterFacility = DB::table('master_facility')->where('type', 'mobil')->where('category', 'support')->where('is_deleted', 0)->get();
-        foreach ($masterFacility as $key => $facility) {
-            echo "<row id=\"$facility->id\" >";
-                echo "<cell>".($key + 1)."</cell>";
-                echo "<cell>".htmlspecialchars($facility->description)."</cell>";
-                $facility->children = json_decode($facility->children);
-                $facility->children = is_array($facility->children) ? implode(", ", $facility->children) : $facility->children;
-                echo "<cell>".htmlspecialchars($facility->children)."</cell>";
-                if (isset($getCheckedBySales[$facility->id])) {
-                    echo "<cell>".htmlspecialchars($getCheckedBySales[$facility->id]['Chckd'] ?? 0)."</cell>";
-                }else {
-                    echo "<cell>0</cell>";
-                }
-            echo "</row>";
-        }
-
-        echo "</rows>";
+        return $this->indexDetailCategoryXml($request, 'mobil', 'support');
     }
 
     public function detailFacilityUpdate()
     {
-        header("Content-type: text/xml");
+        if (!headers_sent()) header("Content-type: text/xml");
         echo('<?xml version="1.0" encoding="iso-8859-1"?>'); 
         echo "<data>";
 
@@ -489,7 +303,7 @@ class AssetManagementController extends Controller
         }
         echo "</data>";
 
-        $opportunityId = $_GET['Task'] ?? null;
+        $opportunityId = $_GET['Task'] ?? request()->query('Task');
         if ($opportunityId) {
             app(\App\Http\Controllers\ApprovalController::class)
                 ->completeSetupIfReady($opportunityId);
@@ -499,68 +313,43 @@ class AssetManagementController extends Controller
 
     public function detailFacilityUpdatekan($rowId, $param)
     {
-        $a = $param[$rowId."_c1"]; // origin
-        $b = $param[$rowId."_c2"]; // destination
-        $c = $param[$rowId."_c3"]; // destination name
-        $d = $param[$rowId."_c4"] ?? ''; // transport
-        $e = $param[$rowId."_c5"] ?? ''; // service
-        $f = $param[$rowId."_c6"] ?? ""; // treshold
-
         $Saya = auth()->user()->username;
+        $isPartner = auth()->user()->Priv_ID === 'MITRA';
+        $partnerId = $_GET['Task'] ?? request()->query('Task');
+        $whTaskId = $_GET['wh'] ?? request()->query('wh');
 
-        // The mobil inventory grid has an extra "Detail" column (c2), which shifts
-        // the numeric/checkbox columns one position to the right compared to booth:
-        //   booth: c3=Qty, c4=Price, c5=Total, c6=Checked_Sales
-        //   mobil: c4=Qty, c5=Price, c6=Total, c7=Checked_Sales
-        $isMobilInventory = isset($param[$rowId."_c7"]);
-
-        if ($isMobilInventory) {
-            $c = $param[$rowId."_c4"] ?? ''; // Qty
-            $d = $param[$rowId."_c5"] ?? ''; // Price
-            $e = $param[$rowId."_c6"] ?? ''; // Total
-            $f = $param[$rowId."_c7"] ?? ''; // Checked_Sales
+        // Fixed unified layouts (see asset-management-detail.blade.php):
+        //   inventory (c6 present): c4=Qty, c5=Price, c6=Total,
+        //     c7=Ceklist Ketersediaan, c8=Tanggal Order, c9=Tanggal Diterima,
+        //     c10=Status Diterima
+        //   access/support (no c6): c3=Ceklist Ketersediaan,
+        //     c4=Tanggal Diterima, c5=Status Diterima
+        if (isset($param[$rowId."_c6"])) {
+            $qty = $param[$rowId."_c4"] ?? '';
+            $price = $param[$rowId."_c5"] ?? '';
+            $total = $param[$rowId."_c6"] ?? '';
+            $checkedSales = $param[$rowId."_c7"] ?? '';
+            $orderDateIn = $param[$rowId."_c8"] ?? '';
+            $receivedDateIn = $param[$rowId."_c9"] ?? '';
+            $checkPartner = $param[$rowId."_c10"] ?? '';
+        } else {
+            $qty = null;
+            $price = null;
+            $total = null;
+            $orderDateIn = null;
+            $checkedSales = $param[$rowId."_c3"] ?? '';
+            $receivedDateIn = $param[$rowId."_c4"] ?? '';
+            $checkPartner = $param[$rowId."_c5"] ?? '';
         }
 
-        if ($isMobilInventory || isset($param[$rowId."_c6"])) {
-            if ($c != '' && $d != '' && $e != '') {
-                $cekDtl = DB::table('opportunity_partner_facility_dtl')
-                ->where("Facility_ID", $rowId)
-                ->where('Partner_ID', $_GET['Task'])
-                ->where('warehouse_task_id', $_GET['wh'])
-                ->first();
-                if ($cekDtl) {
-                    DB::table('opportunity_partner_facility_dtl')
-                        ->where('ID', $cekDtl->ID)
-                        ->update([
-                            'Qty' => $c,
-                            'Price' => $d,
-                            'Total' => $e,
-                        ]);
-                }else {
-                    DB::table('opportunity_partner_facility_dtl')
-                        ->insert([
-                            'Facility_ID' => $rowId,
-                            'Partner_ID' => $_GET['Task'],
-                            'warehouse_task_id' => $_GET['wh'],
-                            'Qty' => $c,
-                            'Price' => $d,
-                            'Total' => $e,
-                            'Created_By' => $Saya,
-                            'Created_Date' => now(),
-                        ]);
-                }
-            }
-
-            $checkedSales = $f;
-        }else {
-            $checkedSales = $c;
-        }
-    
-        if ($checkedSales != '') {
+        // Availability checklist is internal-only; receipt confirmation is
+        // partner-only - role gating keeps one side from re-stamping the
+        // other side's audit columns.
+        if (!$isPartner && $checkedSales != '') {
             $cek = DB::table('opportunity_partner_facility')
                 ->where("Facility_ID", $rowId)
-                ->where('Partner_ID', $_GET['Task'])
-                ->where("warehouse_task_id", $_GET['wh'])
+                ->where('Partner_ID', $partnerId)
+                ->where('warehouse_task_id', $whTaskId)
                 ->first();
             if ($cek) {
                 DB::table('opportunity_partner_facility')
@@ -575,8 +364,8 @@ class AssetManagementController extends Controller
                 DB::table('opportunity_partner_facility')
                     ->insert([
                         'Facility_ID' => $rowId,
-                        'warehouse_task_id' => $_GET['wh'],
-                        'Partner_ID' => $_GET['Task'],
+                        'warehouse_task_id' => $whTaskId,
+                        'Partner_ID' => $partnerId,
                         'Checked_Sales' => $checkedSales,
                         'Checked_Sales_By' => $Saya,
                         'Checked_Sales_Date' => now(),
@@ -587,9 +376,107 @@ class AssetManagementController extends Controller
             }
         }
 
+        // Receipt confirmation (Status Diterima) can be ticked/unticked by
+        // both internal users and the partner. Only act when the posted value
+        // differs from the stored one, so unrelated edits (qty/price/
+        // availability) never re-stamp the receipt audit columns.
+        if ($checkPartner != '') {
+            $currentFacility = DB::table('opportunity_partner_facility')
+                ->where("Facility_ID", $rowId)
+                ->where('Partner_ID', $partnerId)
+                ->where("warehouse_task_id", $whTaskId)
+                ->first();
+            $currentChecked = $currentFacility ? (int) $currentFacility->Checked_Partner : 0;
 
-        
+            if ((int) $checkPartner !== $currentChecked) {
+                if ((int) $checkPartner === 1) {
+                    // Ticking without a picked date falls back to today
+                    // (mirrors the sales side storing Send_Date => now()).
+                    $receivedDate = $receivedDateIn ?: now()->format('Y-m-d');
+                    if ($currentFacility) {
+                        DB::table('opportunity_partner_facility')
+                            ->where('ID', $currentFacility->ID)
+                            ->update([
+                                'Checked_Partner' => 1,
+                                'Checked_Partner_By' => $Saya,
+                                'Checked_Partner_Date' => now(),
+                                'Received_Date' => $receivedDate,
+                            ]);
+                    }else {
+                        DB::table('opportunity_partner_facility')
+                            ->insert([
+                                'Facility_ID' => $rowId,
+                                'warehouse_task_id' => $whTaskId,
+                                'Partner_ID' => $partnerId,
+                                'Checked_Partner' => 1,
+                                'Checked_Partner_By' => $Saya,
+                                'Checked_Partner_Date' => now(),
+                                'Received_Date' => $receivedDate,
+                                'Created_By' => $Saya,
+                                'Created_Date' => now(),
+                            ]);
+                    }
+                } else {
+                    // Unticking keeps the last Received_Date on file
+                    if ($currentFacility) {
+                        DB::table('opportunity_partner_facility')
+                            ->where('ID', $currentFacility->ID)
+                            ->update([
+                                'Checked_Partner' => 0,
+                                'Checked_Partner_By' => $Saya,
+                                'Checked_Partner_Date' => now(),
+                            ]);
+                    }
+                }
+            }
+        }
 
+        if ($qty !== null && (trim((string) $qty) !== '' || trim((string) $price) !== '' || trim((string) $total) !== '')) {
+            // The order date falls back to today when left blank (a blank
+            // date used to silently discard the amounts).
+            $orderDate = $orderDateIn ?: now()->format('Y-m-d');
+            $cekDtl = DB::table('opportunity_partner_facility_dtl')
+                ->where("Facility_ID", $rowId)
+                ->where('Partner_ID', $partnerId)
+                ->where('warehouse_task_id', $whTaskId)
+                ->first();
+            if ($cekDtl) {
+                DB::table('opportunity_partner_facility_dtl')
+                    ->where('ID', $cekDtl->ID)
+                    ->update([
+                        'Qty' => $qty,
+                        'Price' => $price,
+                        'Total' => $total,
+                        'Order_Date' => $orderDate,
+                    ]);
+            }else {
+                DB::table('opportunity_partner_facility_dtl')
+                    ->insert([
+                        'Facility_ID' => $rowId,
+                        'Partner_ID' => $partnerId,
+                        'warehouse_task_id' => $whTaskId,
+                        'Order_Date' => $orderDate,
+                        'Qty' => $qty,
+                        'Price' => $price,
+                        'Total' => $total,
+                        'Created_By' => $Saya,
+                        'Created_Date' => now(),
+                    ]);
+            }
+        }
+
+        return 'update';
+    }
+
+    // These grids never emit inserted/deleted transactions; stubs keep the
+    // dispatcher from fataling if a client ever sends one.
+    public function detailFacilityDeletekan($rowId, $param)
+    {
+        return 'update';
+    }
+
+    public function detailFacilityInsertkan($rowId, $param)
+    {
         return 'update';
     }
 }

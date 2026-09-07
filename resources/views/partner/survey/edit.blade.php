@@ -753,7 +753,7 @@
             html += '        <input type="radio" name="' + radioId + '" value="0" id="' + radioId + '">';
             html += '    </td>';
             html += '    <td>';
-            html += '        <input type="file" id="' + fileInputId + '" style="display: none;">';
+            html += '        <input type="file" name="' + fileInputId + '" id="' + fileInputId + '" style="display: none;">';
             html += '        <button class="upload-btn" type="button" onclick="$(\'#' + fileInputId + '\').click();">Upload</button>';
             html += '        <span class="file-name" id="fileName_' + index + '">No file chosen</span>';
             html += '    </td>';
@@ -835,6 +835,17 @@
         renderTableSurveyorRecommendation()
         getSurveyData()
 
+
+        // Show the chosen file name next to the Upload button (photo docs)
+        $(document).on('change', 'input[type="file"][id^="C_c"][id$="_File"]', function() {
+            var m = this.id.match(/^C_c(\d+)_File$/);
+            if (!m) { return; }
+            var $label = $('#fileName_' + (parseInt(m[1], 10) - 1));
+            if ($label.length) {
+                $label.text(this.files.length ? this.files[0].name : 'No file chosen');
+            }
+        });
+
         $('#surveyForm').on('submit', function(e) {
             e.preventDefault();
 
@@ -847,17 +858,8 @@
             //         console.log(`${key}: ${value}`);
             //     }
             // }
-            $.each(locationAssessmentData, function(index, item) {
-
-                const fileInput = document.getElementById(`C_c${index+1}_File`);
-
-                if (fileInput && fileInput.files.length > 0) {
-                    formData.append(`C_c${index+1}_File`, fileInput.files[0]);
-
-                    // formData.append('file_' + index + '_name', fileInput.files[0].name);
-                    // formData.append('file_' + index + '_size', fileInput.files[0].size);
-                }
-            });
+            // C_c1_File..C_c4_File are named inputs, so they are already
+            // part of FormData(this).
 
 
             $('#submitBtn').prop('disabled', true).text('Submitting...');

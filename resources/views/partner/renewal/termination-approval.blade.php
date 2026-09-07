@@ -118,7 +118,9 @@
     }
 
     function selectMitra(id, cellIdx) {
-        mitraId = PartnerGrid.cells(id, 0).getValue();
+        // The grid row id IS the approval_request.ID (cell 0 is only the row
+        // counter) - reading cell 0 here targeted the wrong request.
+        mitraId = id;
     }
 
     function doubleClickMitra() {

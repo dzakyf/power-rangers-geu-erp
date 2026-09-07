@@ -82,18 +82,18 @@ class MasterDataController extends Controller
             'Village'             => 'required|string|max:255',
             'Full_Address'        => 'required|string|max:500',
             'Location_Coordinate' => ['required', 'string', 'max:255', function ($attr, $val, $fail) {
-            if (!preg_match('/^\-?\d+(?:\.\d+)?,\-?\d+(?:\.\d+)?$/', $val)) {
-                $fail('Format Location_Coordinate harus "lat,lng" (contoh: -6.2,106.8)');
-                return;
-            }
-            [$lat, $lng] = array_map('trim', explode(',', $val));
-            if ((float)$lat < -90 || (float)$lat > 90) {
-                $fail('Latitude harus antara -90 dan 90');
-            }
-            if ((float)$lng < -180 || (float)$lng > 180) {
-                $fail('Longitude harus antara -180 dan 180');
-            }
-        }],
+                if (!preg_match('/^\-?\d+(?:\.\d+)?,\-?\d+(?:\.\d+)?$/', $val)) {
+                    $fail('Format Location_Coordinate harus "lat,lng" (contoh: -6.2,106.8)');
+                    return;
+                }
+                [$lat, $lng] = array_map('trim', explode(',', $val));
+                if ((float)$lat < -90 || (float)$lat > 90) {
+                    $fail('Latitude harus antara -90 dan 90');
+                }
+                if ((float)$lng < -180 || (float)$lng > 180) {
+                    $fail('Longitude harus antara -180 dan 180');
+                }
+            }],
             'Nearest_Warehouse'   => 'required',
             'Bank_Account_Number' => 'required|string|max:255',
             'Bank_Account_Name'   => 'required|string|max:255',
@@ -166,18 +166,18 @@ class MasterDataController extends Controller
             'Village'             => 'required|string|max:255',
             'Full_Address'        => 'required|string|max:500',
             'Location_Coordinate' => ['required', 'string', 'max:255', function ($attr, $val, $fail) {
-            if (!preg_match('/^\-?\d+(?:\.\d+)?,\-?\d+(?:\.\d+)?$/', $val)) {
-                $fail('Format Location_Coordinate harus "lat,lng" (contoh: -6.2,106.8)');
-                return;
-            }
-            [$lat, $lng] = array_map('trim', explode(',', $val));
-            if ((float)$lat < -90 || (float)$lat > 90) {
-                $fail('Latitude harus antara -90 dan 90');
-            }
-            if ((float)$lng < -180 || (float)$lng > 180) {
-                $fail('Longitude harus antara -180 dan 180');
-            }
-        }],
+                if (!preg_match('/^\-?\d+(?:\.\d+)?,\-?\d+(?:\.\d+)?$/', $val)) {
+                    $fail('Format Location_Coordinate harus "lat,lng" (contoh: -6.2,106.8)');
+                    return;
+                }
+                [$lat, $lng] = array_map('trim', explode(',', $val));
+                if ((float)$lat < -90 || (float)$lat > 90) {
+                    $fail('Latitude harus antara -90 dan 90');
+                }
+                if ((float)$lng < -180 || (float)$lng > 180) {
+                    $fail('Longitude harus antara -180 dan 180');
+                }
+            }],
             'Nearest_Warehouse'   => 'required',
             'Bank_Account_Number' => 'required|string|max:255',
             'Bank_Account_Name'   => 'required|string|max:255',
@@ -264,13 +264,14 @@ class MasterDataController extends Controller
         // Operational warehouses live in warehouse_partner (the master_warehouse
         // table is a near-empty placeholder). All consuming pages (POO nearest
         // warehouse, stock opname, pickup create, route mapping) expect these fields.
-        $data = DB::table('warehouse_partner')
-            ->select('id', 'warehouse_task_id', 'warehouse_location', 'lat', 'lng')
-            ->orderBy('warehouse_task_id')
+        $data = DB::table('master_warehouse')
+            ->select('ID', 'Name', 'Coordinate', 'Type')
+            ->orderBy('ID')
             ->get();
 
         return response()->json(['status' => 'success', 'data' => $data]);
     }
+
     private function queryPOO(Request $r)
     {
         $id = $r->query('id');
@@ -478,7 +479,7 @@ class MasterDataController extends Controller
                 'no'               => $index + 1,
                 'description'      => $facility->description,
                 'children'         => (string) $children,
-                'depreciation_year'=> $facility->depreciation_year,
+                'depreciation_year' => $facility->depreciation_year,
                 'shelf_life'       => $facility->shelf_life,
                 'asset_type'       => $facility->asset_type,
                 'price'            => $facility->price,

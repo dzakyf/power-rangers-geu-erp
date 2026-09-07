@@ -99,9 +99,27 @@ class OnboardingController extends Controller
 
         $doc->saveAs($outputPath);
 
-        return response()->download($outputPath)->deleteFileAfterSend(true);
+        // Return JSON so the signature UI can offer the download and refresh
+        // the stepper (the binary download broke the AJAX handler).
+        return response()->json([
+            'success'      => true,
+            'download_url' => url("partner-onboarding-download-doc?file=mou_$now.docx"),
+        ]);
     }
 
+
+    public function downloadGeneratedDoc(Request $r)
+    {
+        $file = (string) $r->query('file');
+        if (!preg_match('/^(mou|pks)_[0-9]+\.docx$/', $file)) {
+            abort(404);
+        }
+        $path = storage_path("app/public/$file");
+        if (!file_exists($path)) {
+            abort(404);
+        }
+        return response()->download($path)->deleteFileAfterSend(true);
+    }
 
     public function uploadMou(Request $r)
     {
@@ -211,7 +229,12 @@ class OnboardingController extends Controller
 
         $doc->saveAs($outputPath);
 
-        return response()->download($outputPath)->deleteFileAfterSend(true);
+        // Return JSON so the signature UI can offer the download and refresh
+        // the stepper (the binary download broke the AJAX handler).
+        return response()->json([
+            'success'      => true,
+            'download_url' => url("partner-onboarding-download-doc?file=pks_$now.docx"),
+        ]);
     }
 
     public function uploadPks(Request $r)
@@ -349,7 +372,7 @@ class OnboardingController extends Controller
     {
         $b = $r->all();
 
-        $req = DB::table('approval_request')->where('ID', $b['id'])->first();
+        $req = DB::table('approval_request')->where('ID', (int) ($b['id'] ?? 0))->first();
         if ($req && !$req->Level_Id) {
             $firstLevel = DB::table('approval_level')
                 ->where('Request_Type', 'ONBOARDING')
@@ -364,19 +387,34 @@ class OnboardingController extends Controller
         }
 
         $approvalController = app(\App\Http\Controllers\ApprovalController::class);
-        $result = $approvalController->processToNextLevel(
-            (int) $b['id'],
-            $b['action'],
-            $b['notes'] ?? ''
-        );
 
-        if (!$result['success']) {
-            return response()->json($result, 500);
+        // Idempotent: an already-APPROVED request only needs its MITRA
+        // account (re)created - re-running processToNextLevel would only
+        // yield "Approval level not found" and block approve AND reject.
+        if (!$req || $req->Status !== 'APPROVED') {
+            $result = $approvalController->processToNextLevel(
+                (int) ($b['id'] ?? 0),
+                $b['action'],
+                $b['notes'] ?? ''
+            );
+
+            if (!$result['success']) {
+                return response()->json($result, 500);
+            }
+
+            $req = DB::table('approval_request')->where('ID', (int) ($b['id'] ?? 0))->first();
         }
 
-        $req = DB::table('approval_request')->where('ID', $b['id'])->first();
-        if ($req->Status === 'APPROVED') {
-            $this->createMitraAccount($req->Opportunity_Partner_Id);
+        if ($req && $req->Status === 'APPROVED') {
+            try {
+                $this->createMitraAccount($req->Opportunity_Partner_Id);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('MITRA account creation failed: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Approval tersimpan, namun pembuatan akun MITRA gagal: ' . $e->getMessage(),
+                ], 500);
+            }
         }
 
         return response()->json(['success' => true, 'message' => 'success'], 200);
@@ -470,9 +508,26 @@ class OnboardingController extends Controller
 
         if ($existingUser) return;
 
-        $username = $partner->email;
-        if (!$username) {
-            $username = str_replace(' ', '_', strtolower($partner->full_name)) . rand(100, 999);
+        // Uniqueness guard (restored): a duplicate username/email made the
+        // onboarding approval fail with a MySQL duplicate-entry error after
+        // the approval itself had already been committed.
+        $base = $partner->email ?: ((str_replace(' ', '_', strtolower((string) $partner->full_name)) ?: 'mitra') . rand(100, 999));
+        $username = $base;
+        $attempt = 0;
+        while (DB::table('users')->where('username', $username)->exists()) {
+            $attempt++;
+            if ($attempt >= 10) {
+                $username = $base . '_' . substr((string) time(), -6);
+                break;
+            }
+            $username = $base . rand(100, 999);
+        }
+
+        // users.email has a unique index; fall back to the (unique) username
+        // when the partner email is empty or already taken by another account.
+        $email = $partner->email;
+        if (!$email || DB::table('users')->where('email', $email)->exists()) {
+            $email = $username;
         }
 
         $contact = $partner->register_as == 'individual'
@@ -486,16 +541,16 @@ class OnboardingController extends Controller
             $contact = $opportunity->Phone_Number ?? '';
         }
 
-        DB::transaction(function () use ($partner, $username, $contact) {
+        DB::transaction(function () use ($partner, $username, $email, $contact) {
             $userRowId = DB::table('users')->insertGetId([
                 'username'   => $username,
-                'email'      => $partner->email,
+                'email'      => $email,
                 'password'   => bcrypt('geupartner123'),
                 'Emp_ID'     => $partner->lead_id,
                 'Position'   => "MITRA",
                 'Priv_ID'    => "MITRA",
                 'Location'   => 'GEU-HO',
-                'Name'       => $partner->full_name,
+                'Name'       => $partner->full_name ?: ($partner->email ?: 'MITRA'),
                 'Contact'    => $contact,
                 'created_at' => now(),
                 'Area'       => $partner->city ?? 'JABODETABEK',

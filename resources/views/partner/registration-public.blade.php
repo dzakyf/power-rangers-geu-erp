@@ -421,6 +421,19 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
         myCalendar = new dhtmlXCalendarObject("Date");
         myCalendar.setDateFormat("%Y-%m-%d");
         $('#SubmitCustDetail').click(function() {
+            // Mandatory documents: KTP + NPWP (individual) / Akta + NIB + NPWP (company)
+            var isCompany = $('input[name="Register_As"]:checked').val() === 'company';
+            var requiredDocs = isCompany
+                ? [['C_Doc_Akta', 'C_Doc_Akta_File', 'Akta Perusahaan'], ['C_Doc_NIB', 'C_Doc_NIB_File', 'NIB'], ['C_Doc_NPWP', 'C_Doc_NPWP_File', 'NPWP']]
+                : [['Doc_KTP', 'Doc_KTP_File', 'KTP'], ['Doc_NPWP', 'Doc_NPWP_File', 'NPWP']];
+            for (var i = 0; i < requiredDocs.length; i++) {
+                var doc = requiredDocs[i];
+                if (!$('input[name="' + doc[0] + '"]').is(':checked') || !$('#' + doc[1]).val()) {
+                    alert('Dokumen ' + doc[2] + ' wajib diunggah.');
+                    $('#' + doc[0]).focus();
+                    return;
+                }
+            }
             var formData = new FormData(document.getElementById('registrationForm'));
 
             $.ajax({
