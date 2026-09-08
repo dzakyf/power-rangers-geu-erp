@@ -2681,9 +2681,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-recruitment-requisition-approval', function () {
         return view('humanresources.recruitment.xml.requisition-approval');
     });
-    Route::post('/requisition-approval-update', function () {
-        return view('humanresources.recruitment.requisition-approval-update');
-    });
+    Route::post('/requisition-approval-update', [App\Http\Controllers\HCGA\RequisitionApprovalController::class, 'update']);
     Route::get('/xml-sales-po-lists-detail', function () {
         return view('humanresources.recruitment.xml.sales-po-lists-detail');
     });

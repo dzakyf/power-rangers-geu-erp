@@ -73,7 +73,7 @@
                                 <input type="number" min="1" class="form-control" id="depreciation_year" name="depreciation_year" placeholder="e.g. 10">
                             </div>
                             <div class="form-group col-md-4">
-                                <label for="shelf_life">Shelf Life</label>
+                                <label for="shelf_life">Waktu Pakai (Bulan)</label>
                                 <input type="number" min="1" class="form-control" id="shelf_life" name="shelf_life" placeholder="e.g. 60">
                             </div>
                             <div class="form-group col-md-4">

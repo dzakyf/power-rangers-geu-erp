@@ -350,13 +350,15 @@ class ApprovalController extends Controller
             ? $partner->company_package
             : $partner->package_option;
 
-        if ($package === 'option1') {
-            $warehouseType = 'booth';
-        } elseif (in_array($package, ['option2', 'mobil'])) {
-            $warehouseType = 'mobil';
-        } else {
-            $warehouseType = null;
-        }
+        $warehouseType = $package;
+
+        // if ($package === 'option1') {
+        //     $warehouseType = 'booth';
+        // } elseif (in_array($package, ['option2', 'mobil'])) {
+        //     $warehouseType = 'mobil';
+        // } else {
+        //     $warehouseType = null;
+        // }
 
         $facilityGroups = [];
         if ($warehouseType) {
@@ -390,10 +392,10 @@ class ApprovalController extends Controller
         $hasOrderEquipment = DB::table('opportunity_partner_facility_dtl')
             ->where('Partner_ID', $q['id'])
             ->whereNotNull('Order_Date')
-            ->where('Order_Date', '!=', '')
             ->where('Order_Date', '!=', '0000-00-00')
             ->exists();
 
+        // dd($hasOrderEquipment);
 
         return view('approval.progress', compact(
             'partner',
@@ -576,9 +578,9 @@ class ApprovalController extends Controller
                 $renewals = $req->Map_To
                     ? DB::table('partner_renewal')->where('ID', $req->Map_To)->get()
                     : DB::table('partner_renewal')
-                        ->where('Opportunity_Id', $req->Opportunity_Partner_Id)
-                        ->where('Status', 'PENDING')
-                        ->get();
+                    ->where('Opportunity_Id', $req->Opportunity_Partner_Id)
+                    ->where('Status', 'PENDING')
+                    ->get();
 
                 foreach ($renewals as $renewal) {
                     DB::table('partner_renewal')->where('ID', $renewal->ID)->update([
@@ -639,7 +641,7 @@ class ApprovalController extends Controller
                 }
             }
         } catch (\Throwable $e) {
-            Log::error('Approval side effect failed for '.$type.' #'.$requestId.': '.$e->getMessage());
+            Log::error('Approval side effect failed for ' . $type . ' #' . $requestId . ': ' . $e->getMessage());
         }
     }
 
@@ -880,18 +882,35 @@ class ApprovalController extends Controller
         ];
 
         DB::transaction(function () use ($data, $session, $stageLabelMap) {
-            DB::table('opportunity_partner')
+            $stageOrder = ['DOCUMENT_CHECK', 'MOU', 'INVOICE', 'PKS', 'SURVEY', 'SETUP', 'ACTIVE'];
+            $currentStage = DB::table('opportunity_partner')
                 ->where('id', $data['Opportunity_Id'])
-                ->update([
-                    'onboarding_stage' => $data['Stage'],
-                    'onboarding_stage_updated_at' => now(),
-                    'onboarding_stage_updated_by' => $session->id,
-                ]);
+                ->value('onboarding_stage');
+            $currentIndex = $currentStage ? array_search($currentStage, $stageOrder, true) : false;
+            $nextIndex = array_search($data['Stage'], $stageOrder, true);
+
+            // Only move the stage strictly forward - re-doing an already
+            // passed step (or an ACTIVE partner) must never regress.
+            if ($currentIndex === false || $nextIndex > $currentIndex) {
+                DB::table('opportunity_partner')
+                    ->where('id', $data['Opportunity_Id'])
+                    ->update([
+                        'onboarding_stage' => $data['Stage'],
+                        'onboarding_stage_updated_at' => now(),
+                        'onboarding_stage_updated_by' => $session->id,
+                    ]);
+            }
 
             $existing = DB::table('partner_onboarding_log')
                 ->where('Opportunity_Id', $data['Opportunity_Id'])
                 ->where('Stage', $data['Stage'])
                 ->first();
+
+            // Never downgrade a completed step - the redo of an earlier step
+            // must not re-open later ones.
+            if ($existing && $existing->Status === 'completed' && $data['Status'] === 'in_progress') {
+                return;
+            }
 
             $logData = [
                 'Stage' => $data['Stage'],

@@ -85,7 +85,8 @@
                             <input type="number" min="1" class="form-control" name="depreciation_year" id="edit_depreciation_year">
                         </div>
                         <div class="form-group col-md-4">
-                            <label for="edit_shelf_life">Shelf Life</label>
+                            <label for="edit_shelf_life">Waktu Pakai (Bulan)
+                            </label>
                             <input type="number" min="1" class="form-control" name="shelf_life" id="edit_shelf_life">
                         </div>
                         <div class="form-group col-md-4">

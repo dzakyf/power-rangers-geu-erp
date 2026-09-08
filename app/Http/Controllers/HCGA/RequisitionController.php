@@ -152,6 +152,33 @@ class RequisitionController extends Controller
 
         DB::table('requisition_log')->insert($logArr);
 
+        // Level 4: Manager/KADIV (berdasarkan lokasi)
+        // Hanya masuk jika belum ada record Level 4 untuk requisition ini
+        $masterL4 = DB::table('master_hr_approval')
+            ->where('Level', 4)
+            ->where('Location', $LSP)
+            ->first();
+
+        if ($masterL4) {
+            $existingL2 = DB::table('requisition_approval')
+                ->where('Task_ID', $request->input('Task_ID'))
+                ->where('Level', 4)
+                ->exists();
+
+            if (!$existingL2) {
+                DB::table('requisition_approval')->insert([
+                    'Location'        => $LSP,
+                    'Task_ID'         => $request->input('Task_ID'),
+                    'Level'           => 2,
+                    'Approved_By'     => $masterL4->username,
+                    'Approved_Status' => 0,
+                    'Approved_Date'   => null,
+                    'Approved_Note'   => null,
+                ]);
+            }
+        }
+
+        // Level 1: VP Departemen
         $master = DB::table('master_hr_approval')
             ->where('Level', 1)
             ->where('Location', $LSP)
@@ -159,45 +186,17 @@ class RequisitionController extends Controller
             ->first();
 
         if ($master) {
-            DB::table('requisition_approval')->insert([
-                'Location'        => $LSP,
-                'Task_ID'         => $request->input('Task_ID'),
-                'Level'           => 1,
-                'Approved_By'     => $master->username,
-                'Approved_Status' => 0,
-                'Approved_Date'   => null,
-                'Approved_Note'   => null,
-            ]);
-        }
+            // Cek apakah approval level 1 sudah ada untuk mencegah duplikasi
+            $existing = DB::table('requisition_approval')
+                ->where('Task_ID', $request->input('Task_ID'))
+                ->where('Level', 1)
+                ->exists();
 
-        $master = DB::table('master_hr_approval')
-            ->whereIn('Level', [2])
-            ->where('Location', $LSP)
-            ->first();
-
-        if ($master) {
-            DB::table('requisition_approval')->insert([
-                'Location'        => $LSP,
-                'Task_ID'         => $request->input('Task_ID'),
-                'Level'           => 2,
-                'Approved_By'     => $master->username,
-                'Approved_Status' => 0,
-                'Approved_Date'   => null,
-                'Approved_Note'   => null,
-            ]);
-        }
-
-        if (Str::contains($jobPosition->Level, [1, 2, 3, 4, 5, 6])) {
-            $master = DB::table('master_hr_approval')
-                ->whereIn('Level', [3, 4])
-                ->where('Location', $LSP)
-                ->first();
-
-            if ($master) {
+            if (!$existing) {
                 DB::table('requisition_approval')->insert([
                     'Location'        => $LSP,
                     'Task_ID'         => $request->input('Task_ID'),
-                    'Level'           => 2,
+                    'Level'           => 1,
                     'Approved_By'     => $master->username,
                     'Approved_Status' => 0,
                     'Approved_Date'   => null,

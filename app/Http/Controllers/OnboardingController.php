@@ -461,13 +461,24 @@ class OnboardingController extends Controller
                 DB::table('partner_onboarding_log')->insert($currentLogData);
             }
 
-            DB::table('opportunity_partner')
+            $stageOrder = ['DOCUMENT_CHECK', 'MOU', 'INVOICE', 'PKS', 'SURVEY', 'SETUP', 'ACTIVE'];
+            $currentStage = DB::table('opportunity_partner')
                 ->where('id', $opportunityId)
-                ->update([
-                    'onboarding_stage' => $nextStage,
-                    'onboarding_stage_updated_at' => now(),
-                    'onboarding_stage_updated_by' => $session->id,
-                ]);
+                ->value('onboarding_stage');
+            $currentIndex = $currentStage ? array_search($currentStage, $stageOrder, true) : false;
+            $nextIndex = array_search($nextStage, $stageOrder, true);
+
+            // Only move the stage strictly forward; a fully onboarded
+            // (ACTIVE) partner is never pulled backwards by a redone step.
+            if ($currentIndex === false || $nextIndex > $currentIndex) {
+                DB::table('opportunity_partner')
+                    ->where('id', $opportunityId)
+                    ->update([
+                        'onboarding_stage' => $nextStage,
+                        'onboarding_stage_updated_at' => now(),
+                        'onboarding_stage_updated_by' => $session->id,
+                    ]);
+            }
 
             $nextLogData = [
                 'Opportunity_Id' => $opportunityId,
