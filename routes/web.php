@@ -44,6 +44,9 @@ use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormCont
 use App\Http\Controllers\HCGA\TrainingController as HCGATrainingController;
 use App\Http\Controllers\HCGA\RequisitionController as HCGARequisitionController;
 use App\Http\Controllers\HCGA\RecruitmentController as HCGARecruitmentController;
+use App\Http\Controllers\HCGA\RecruitmentStageController as HCGARecruitmentStageController;
+use App\Http\Controllers\HCGA\RecruitmentNewSubmitController as HCGARecruitmentNewSubmitController;
+use App\Http\Controllers\HCGA\RecruitmentManagementController as HCGARecruitmentManagementController;
 use App\Http\Controllers\HCGA\OnboardingController as HrgaOnboardingController;
 use App\Http\Controllers\HCGA\ProcurementController as HCGAProcurementController;
 use App\Http\Controllers\HCGA\ProcurementApprovalController as HCGAProcurementApprovalController;
@@ -2715,9 +2718,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/recruitment-new', function () {
         return view('humanresources.recruitment.recruitment-new');
     });
-    Route::post('/recruitment-new-submit', function () {
-        return view('humanresources.recruitment.recruitment-new-submit');
-    });
+    Route::post('/recruitment-new-submit', [HCGARecruitmentNewSubmitController::class, 'store']);
     Route::get("/recruitment-new-inline", function () {
         return view("humanresources.recruitment.recruitment-new-inline");
     });
@@ -5522,9 +5523,12 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcPref-master-work-calendar-detail", [HCGAMasterWorkCalendarController::class, 'detail']);
     Route::get("xml-$hcPref-master-work-calendar-detail", [HCGAMasterWorkCalendarController::class, 'detailXml']);
 
-    Route::get("$hcPref-recruitment-management", [HCGARecruitmentController::class, 'index']);
-    Route::get("xml-$hcPref-recruitment-management", [HCGARecruitmentController::class, 'indexXml']);
-    Route::get("xml-$hcPref-recruitment-pivot", [HCGARecruitmentController::class, 'pivotXml']);
+    Route::get("$hcPref-recruitment-management", [HCGARecruitmentManagementController::class, 'index'])
+        ->name('hrd-recruitment-management');
+    Route::get("xml-$hcPref-recruitment-management", [HCGARecruitmentManagementController::class, 'indexXml'])
+        ->name('xml-hrd-recruitment-management');
+    Route::get("xml-$hcPref-recruitment-pivot", [HCGARecruitmentManagementController::class, 'pivotXml'])
+        ->name('xml-hrd-recruitment-pivot');
 
     Route::get("$hcPref-recruitment-dashboard", function () {
         return view('humanresources.recruitment.recruitment-dashboard');
@@ -5553,6 +5557,30 @@ Route::group(['middleware' => 'log.access'], function () {
 
     Route::post("$hcPref-recruitment-document-approval-detail-submit", [HCGARecruitmentController::class, 'recruitmentDocumentApproval']);
 
+
+    // === Recruitment Stage Transition Routes ===
+    // Verifikasi dokumen & transisi stage
+    Route::get("$hcPref-recruitment-verify-document/{id}", [HCGARecruitmentStageController::class, 'verifyDocumentPage'])
+        ->name('hrd-recruitment-verify-document-page');
+    Route::post("$hcPref-recruitment-verify-document", [HCGARecruitmentStageController::class, 'verifyDocument'])
+        ->name('hrd-recruitment-verify-document');
+    Route::post("$hcPref-recruitment-reject-document", [HCGARecruitmentStageController::class, 'rejectDocument']);
+    Route::post("$hcPref-recruitment-approve-psikotest", [HCGARecruitmentStageController::class, 'approvePsikotest']);
+    Route::post("$hcPref-recruitment-reject-psikotest", [HCGARecruitmentStageController::class, 'rejectPsikotest']);
+    Route::post("$hcPref-recruitment-approve-interview-hr", [HCGARecruitmentStageController::class, 'approveInterviewHR']);
+    Route::post("$hcPref-recruitment-reject-interview-hr", [HCGARecruitmentStageController::class, 'rejectInterviewHR']);
+    Route::post("$hcPref-recruitment-approve-interview-user", [HCGARecruitmentStageController::class, 'approveInterviewUser']);
+    Route::post("$hcPref-recruitment-reject-interview-user", [HCGARecruitmentStageController::class, 'rejectInterviewUser']);
+    Route::post("$hcPref-recruitment-approve-technical-test", [HCGARecruitmentStageController::class, 'approveTechnicalTest']);
+    Route::post("$hcPref-recruitment-reject-technical-test", [HCGARecruitmentStageController::class, 'rejectTechnicalTest']);
+    Route::post("$hcPref-recruitment-approve-mcu", [HCGARecruitmentStageController::class, 'approveMCU']);
+    Route::post("$hcPref-recruitment-reject-mcu", [HCGARecruitmentStageController::class, 'rejectMCU']);
+    Route::post("$hcPref-recruitment-issue-offering-letter", [HCGARecruitmentStageController::class, 'issueOfferingLetter']);
+    Route::post("$hcPref-recruitment-decline-offering", [HCGARecruitmentStageController::class, 'declineOffering']);
+    Route::post("$hcPref-recruitment-decline-invitation", [HCGARecruitmentStageController::class, 'declineInvitation']);
+    // === End Recruitment Stage Transition Routes ===
+
+    // === End Candidate Submission Route ===
 
     $hcRequisitionPref = "$hcPref-requisition";
     Route::get("$hcRequisitionPref-prints", [HCGARequisitionController::class, 'print']);
