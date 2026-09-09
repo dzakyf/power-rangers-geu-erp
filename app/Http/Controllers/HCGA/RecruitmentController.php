@@ -162,10 +162,15 @@ class RecruitmentController extends Controller
                 if ($stylePending) { $cell->addAttribute('style', 'background-color:red'); }
                 $cell = $row->addChild('cell', (string) $status4);
                 if ($style4) { $cell->addAttribute('style', 'background-color:red'); }
-                $cell = $row->addChild('cell', (string) $status5);
-                if ($style5) { $cell->addAttribute('style', 'background-color:red'); }
+                $cell = $row->addChild('cell', (string) $status6);
+                if ($style6) { $cell->addAttribute('style', 'background-color:red'); }
+                // Kolom 17: Candidate Analysis — link ke recruitment-lists-detail (sama seperti kolom 13 & 16)
+                $cell = $row->addChild('cell', (string) $status3);
+                if ($style3) { $cell->addAttribute('style', 'background-color:red'); }
+                // Kolom 18: Decline Offered
                 $cell = $row->addChild('cell', (string) $status8);
                 if ($style8) { $cell->addAttribute('style', 'background-color:red'); }
+                // Kolom 19: Hired (gunakan status6 lagi untuk kolom ke-19 — CLOSED)
                 $cell = $row->addChild('cell', (string) $status6);
                 if ($style6) { $cell->addAttribute('style', 'background-color:red'); }
 
