@@ -86,6 +86,23 @@
                                 <td>{{ $cr->Keperluan }}</td>
                             </tr>
                             <tr>
+                                <th>Tipe Perjalanan</th>
+                                <td><span class="badge {{ ($cr->Trip_Type ?? 'NON_SPPD') == 'SPPD' ? 'bg-info' : 'bg-secondary' }}">{{ $cr->Trip_Type ?? 'NON_SPPD' }}</span></td>
+                            </tr>
+                            <tr>
+                                <th>Nomor SPPD</th>
+                                <td>
+                                    @if(!empty($cr->SPPD_ID) && !empty($sppd))
+                                        <a href="hrd-sppd-detail?ID={{ $cr->SPPD_ID }}" class="text-primary"><i class="fas fa-external-link-alt"></i> {{ $cr->SPPD_No }}</a>
+                                        <small class="text-muted d-block">Status SPPD: {{ $sppd->Status }} | Tujuan: {{ $sppd->Destination }}</small>
+                                    @elseif(!empty($cr->SPPD_No))
+                                        {{ $cr->SPPD_No }} <small class="text-muted">(arsip)</small>
+                                    @else
+                                        - <small class="text-muted">(Non-SPPD)</small>
+                                    @endif
+                                </td>
+                            </tr>
+                            <tr>
                                 <th>Tujuan Penggunaan</th>
                                 <td>{{ $cr->Tujuan_Penggunaan }}</td>
                             </tr>

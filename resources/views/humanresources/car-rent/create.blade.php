@@ -56,6 +56,25 @@
                     </div>
                 </div>
 
+                <!-- Jenis Perjalanan: SPPD vs Non-SPPD -->
+                <h6 style="font-weight:bold; margin:20px 0 10px 0;">Jenis Perjalanan</h6>
+                <div class="row">
+                    <div class="FormInput_left col-md-6">Tipe Peminjaman</div>
+                    <div class="FormInput_right col-md-6">
+                        <label class="mr-3"><input type="radio" name="Trip_Type" id="Trip_Type_NON" value="NON_SPPD" {{ ($selectedSppd ?? '') ? '' : 'checked' }} /> Non-SPPD (Operasional)</label>
+                        <label><input type="radio" name="Trip_Type" id="Trip_Type_SPPD" value="SPPD" {{ ($selectedSppd ?? '') ? 'checked' : '' }} /> SPPD (Dinas)</label>
+                    </div>
+                    <div class="FormInput_left col-md-6" id="SPPD_Label" style="display:none;">Nomor SPPD (harus ACCEPTED)</div>
+                    <div class="FormInput_right col-md-6" id="SPPD_Field" style="display:none;">
+                        <select id="SPPD_ID" class="form-control">
+                            <option value="">-- Pilih SPPD --</option>
+                            @foreach($sppdList ?? [] as $s)
+                                <option value="{{ $s->ID }}" data-dest="{{ $s->Destination }}" data-date="{{ $s->Schedule_Date }}" data-no="{{ $s->SPPD_No }}" {{ (string)($selectedSppd ?? '') === (string)$s->ID ? 'selected' : '' }}>{{ $s->SPPD_No }} — {{ $s->Destination }} ({{ $s->Schedule_Date }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Keperluan & Tujuan -->
                 <h6 style="font-weight:bold; margin:20px 0 10px 0;">Keperluan & Tujuan Penggunaan</h6>
                 <div class="row">
@@ -113,13 +132,9 @@
                     <div class="FormInput_right col-md-6">
                         <select id="Jenis_Mobil" class="form-control">
                             <option value="">-- Pilih Jenis Mobil --</option>
-                            <option value="Rush">Rush</option>
-                            <option value="Avanza">Avanza</option>
-                            <option value="Innova">Innova</option>
-                            <option value="Pajero">Pajero</option>
-                            <option value="Alphard">Alphard</option>
-                            <option value="Hiace">Hiace</option>
-                            <option value="Other">Lainnya</option>
+                            @foreach(($fleetList ?? ['Rush','Avanza','Innova','Pajero','Alphard','Hiace','Other']) as $m)
+                                <option value="{{ $m }}">{{ ($m == 'Other') ? 'Lainnya' : $m }}</option>
+                            @endforeach
                         </select>
                     </div>
                 </div>
@@ -172,16 +187,38 @@
                 $('#Site_Office').val('{{ old('Site_Office') }}');
             @endif
         @endif
+
+        function toggleSppd() {
+            var isSppd = $('input[name="Trip_Type"]:checked').val() == 'SPPD';
+            $('#SPPD_Label, #SPPD_Field').toggle(isSppd);
+        }
+        $('input[name="Trip_Type"]').on('change', toggleSppd);
+        $('#SPPD_ID').on('change', function() {
+            var opt = $(this).find('option:selected');
+            if (opt.val() && !$('#Tujuan_Penggunaan').val()) {
+                $('#Tujuan_Penggunaan').val(opt.data('no') + ' - ' + opt.data('dest'));
+            }
+            if (opt.val() && opt.data('date')) { $('#Tanggal_Peminjaman').val(opt.data('date')); }
+        });
+        toggleSppd();
     });
 
     $('#SubmitCarRent').on('click', function(e) {
         e.preventDefault();
 
         // Validasi wajib
+        var tripType = $('input[name="Trip_Type"]:checked').val() || 'NON_SPPD';
+        var sppdId = $('#SPPD_ID').val() || '';
         var tanggalPeminjaman = $('#Tanggal_Peminjaman').val();
         var tanggalPengembalian = $('#Tanggal_Pengembalian').val();
         var tujuan = $('#Tujuan_Penggunaan').val();
         var jenisMobil = $('#Jenis_Mobil').val();
+
+        if (tripType == 'SPPD' && sppdId == '') {
+            alert('SPPD wajib dipilih untuk tipe SPPD!');
+            $('#SPPD_ID').focus();
+            return false;
+        }
 
         if (tanggalPeminjaman == '') {
             alert('Tanggal Peminjaman harus diisi!');
@@ -206,8 +243,12 @@
 
         $.blockUI();
 
-        var values = [];
+        var values = ['Trip_Type=' + encodeURIComponent(tripType)];
+        if (tripType == 'SPPD') { values.push('SPPD_ID=' + encodeURIComponent(sppdId)); }
         $('#formCarRent input, #formCarRent select, #formCarRent textarea').each(function() {
+            var id = $(this).attr('id');
+            if (id == 'SPPD_ID') return; // sudah dikirim eksplisit di atas
+            if ($(this).attr('name') == 'Trip_Type') return; // radio Trip_Type sudah dikirim eksplisit
             var type = $(this).attr('type');
             if ((type == 'checkbox' || type == 'radio') && this.checked) {
                 values.push($(this).attr('id') + '=' + $(this).val());

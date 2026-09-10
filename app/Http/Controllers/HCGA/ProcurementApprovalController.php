@@ -28,16 +28,18 @@ class ProcurementApprovalController extends Controller
         $getlevelsx = DB::table("organization_structure")->where("NIK", $getnik)->first();
         $lepel = 0;
 
-        if ($getlevelsx->Level1 == 1) $lepel = 1;
-        else if ($getlevelsx->Level2 == 1) $lepel = 2;
-        else if ($getlevelsx->Level3 == 1) $lepel = 3;
-        else if ($getlevelsx->Level4 == 1) $lepel = 4;
-        else if ($getlevelsx->Level5 == 1) $lepel = 5;
-        else if ($getlevelsx->Level6 == 1) $lepel = 6;
-        else if ($getlevelsx->Level7 == 1) $lepel = 7;
-        else if ($getlevelsx->Level8 == 1) $lepel = 8;
+        if ($getlevelsx) {
+            if ($getlevelsx->Level1 == 1) $lepel = 1;
+            else if ($getlevelsx->Level2 == 1) $lepel = 2;
+            else if ($getlevelsx->Level3 == 1) $lepel = 3;
+            else if ($getlevelsx->Level4 == 1) $lepel = 4;
+            else if ($getlevelsx->Level5 == 1) $lepel = 5;
+            else if ($getlevelsx->Level6 == 1) $lepel = 6;
+            else if ($getlevelsx->Level7 == 1) $lepel = 7;
+            else if ($getlevelsx->Level8 == 1) $lepel = 8;
+        }
 
-        if ($lepel > 5) {
+        if ($lepel > 5 && $dept != 'HCGA') {
             return;
         }
 
@@ -87,6 +89,10 @@ class ProcurementApprovalController extends Controller
     {
         $dpt = Auth::user()->Department;
         $pr = DB::table('purchase_request')->where("PR_No", $request->PR_No)->first();
+        if (!$pr) {
+            abort(404, "PR not found");
+        }
+
         $Query = DB::table("master_department");
         if ($dpt != 'ICT' && $dpt != 'BOD' && $dpt != 'HCGA') {
             $Query->where("Initial", $dpt);
@@ -99,10 +105,32 @@ class ProcurementApprovalController extends Controller
         return view('humanresources.procurement.approval-detail', compact('pr', 'Department', 'company'));
     }
 
+    /**
+     * Normalisasi nilai angka untuk komparasi (menghilangkan format koma/spasi)
+     */
+    private function normalizeNum($val)
+    {
+        if (is_null($val) || $val === '') return 0.0;
+        $clean = str_replace([' ', ','], ['', ''], (string)$val);
+        return (float)$clean;
+    }
+
+    /**
+     * Normalisasi string untuk komparasi
+     */
+    private function normalizeStr($val)
+    {
+        return trim((string)($val ?? ''));
+    }
+
     public function approval(Request $request)
     {
         // Ambil data PR yang sedang di-approve
         $cek = DB::table("purchase_request")->where("ID", $request->ID)->first();
+        if (!$cek && $request->PR_No) {
+            $cek = DB::table("purchase_request")->where("PR_No", $request->PR_No)->first();
+        }
+
         if (!$cek) {
             echo "error: PR not found";
             return;
@@ -113,97 +141,154 @@ class ProcurementApprovalController extends Controller
         $dept = Auth::user()->Department;
         $Name = Auth::user()->Name;
 
-        $ars = "";
-        $ax = "";
-        $isi = "";
-
-        foreach ($_POST as $key => $value) {
-            if ($key != 'DelPRNewDetail' && $key != 'SubmitPRNewDetail' && $key != 'AddPRNewDetail' && $key != 'Reference' && $key != 'Product_Desc' && $key != 'Specification' && $key != 'Qty' && $key != 'Unit' && $key != 'Description' && $key != 'Remark' && $key != 'Department' && $key != 'PIC' && $key != 'PIC_Phone' && $key != 'PIC_Address' && $key != 'Estimated_Budget' && $key != 'Category' && $key != 'Sub_Category' && $key != 'Supplies_Type' && $key != 'Priority_Status' && substr($key, 0, 2) != 't_') {
-                $ars .= "$key = '$value',";
-                $ax .= "$key,";
-                $isi .= "'$value',";
-            }
-        }
-        $ars = substr($ars, 0, -1);
-        $ax = substr($ax, 0, -1);
-        $isi = substr($isi, 0, -1);
-
         // ============================================================
         // DETECT PERUBAHAN DATA PRODUCT OLEH APPROVER
         // ============================================================
         $changesDetected = false;
         $changedFields = [];
 
-        // Gunakan data dari request sebagai data BARU (setelah approver meng-edit)
-        // dan data dari $cek sebagai data LAMA
-        $newRemark = $request->Remark ?? $cek->Note ?? '';
-        $newReference = $request->Reference ?? $cek->Reference ?? '';
-        $newCategory = $request->Category ?? $cek->Category ?? '';
-        $newSubCategory = $request->Sub_Category ?? $cek->Sub_Category ?? '';
-        $newSuppliesType = $request->Supplies_Type ?? $cek->Supplies_Type ?? '';
-        $newPIC = $request->PIC ?? $cek->PIC ?? '';
-        $newPICPhone = $request->PIC_Phone ?? $cek->PIC_Phone ?? '';
-        $newPICAddress = $request->PIC_Address ?? $cek->PIC_Address ?? '';
-        $newEstimatedBudget = $request->Estimated_Budget ?? $cek->Estimated_Budget ?? '';
-        $newDepartment = $request->Department ?? $cek->Department ?? '';
+        // stat: 1 = Approve, 2 = Reject, 3 = Approve Changes (creator)
+        $statReq = (int)($request->stat ?? 1);
 
-        // Bandingkan field-field utama
-        if (trim($newRemark) !== trim($cek->Note)) {
-            $changesDetected = true;
-            $changedFields[] = "Note/Remark: " . ($cek->Note ?? '(kosong)') . " → " . $newRemark;
-        }
-        if (trim($newReference) !== trim($cek->Reference)) {
-            $changesDetected = true;
-            $changedFields[] = "Reference: " . ($cek->Reference ?? '(kosong)') . " → " . $newReference;
-        }
-        if ($newCategory !== $cek->Category) {
-            $changesDetected = true;
-            $changedFields[] = "Category: " . ($cek->Category ?? '(kosong)') . " → " . $newCategory;
-        }
-        if ($newSubCategory !== $cek->Sub_Category) {
-            $changesDetected = true;
-            $changedFields[] = "Sub_Category: " . ($cek->Sub_Category ?? '(kosong)') . " → " . $newSubCategory;
-        }
-        if ($newSuppliesType !== $cek->Supplies_Type) {
-            $changesDetected = true;
-            $changedFields[] = "Supplies_Type: " . ($cek->Supplies_Type ?? '(kosong)') . " → " . $newSuppliesType;
-        }
-        if ($newPIC !== $cek->PIC) {
-            $changesDetected = true;
-            $changedFields[] = "PIC: " . ($cek->PIC ?? '(kosong)') . " → " . $newPIC;
-        }
-        if ($newPICPhone !== $cek->PIC_Phone) {
-            $changesDetected = true;
-            $changedFields[] = "PIC_Phone: " . ($cek->PIC_Phone ?? '(kosong)') . " → " . $newPICPhone;
-        }
-        if ($newPICAddress !== $cek->PIC_Address) {
-            $changesDetected = true;
-            $changedFields[] = "PIC_Address: " . ($cek->PIC_Address ?? '(kosong)') . " → " . $newPICAddress;
-        }
-        if ($newEstimatedBudget != $cek->Estimated_Budget) {
-            $changesDetected = true;
-            $changedFields[] = "Estimated_Budget: " . ($cek->Estimated_Budget ?? 0) . " → " . $newEstimatedBudget;
-        }
-        if ($newDepartment !== $cek->Department) {
-            $changesDetected = true;
-            $changedFields[] = "Department: " . ($cek->Department ?? '(kosong)') . " → " . $newDepartment;
-        }
+        // Nilai input dari form
+        $newReference = $this->normalizeStr($request->Reference);
+        $newCategory = $this->normalizeStr($request->Category);
+        $newSubCategory = $this->normalizeStr($request->Sub_Category);
+        $newSuppliesType = $this->normalizeStr($request->Supplies_Type ?: $request->Purchase_Type);
+        $newPIC = $this->normalizeStr($request->PIC);
+        $newPICPhone = $this->normalizeStr($request->PIC_Phone);
+        $newPICAddress = $this->normalizeStr($request->PIC_Address);
+        $newEstimatedBudget = $this->normalizeNum($request->Estimated_Budget);
+        $newDepartment = $this->normalizeStr($request->Department);
+        $newSupplierID = $this->normalizeStr($request->Supplier_ID);
+        $newPriorityStatus = $this->normalizeStr($request->Priority_Status);
 
-        // Cek perubahan di detail product (grid)
-        if (!$changesDetected) {
-            $dtlOld = DB::table('purchase_request_dtl')->where("PR_No", $cek->PR_No)->get();
-            // Data detail baru bisa dikirim melalui POST dengan prefix t_ (nama standar DHTMLX)
-            // atau melalui field yang dikirim approver
-            // Untuk deteksi sederhana: jika ada field t_* yang tidak match dengan data lama
-            foreach ($_POST as $key => $value) {
-                if (substr($key, 0, 2) == 't_') {
-                    // Field t_ adalah data dari grid DHTMLX
-                    $changesDetected = true;
-                    $changedFields[] = "Product detail ditambah/diubah oleh approver";
-                    break;
+        // Nilai acuan dari database
+        $oldReference = $this->normalizeStr($cek->Reference);
+        $oldCategory = $this->normalizeStr($cek->Category);
+        $oldSubCategory = $this->normalizeStr($cek->Sub_Category);
+        $oldSuppliesType = $this->normalizeStr($cek->Supplies_Type);
+        $oldPIC = $this->normalizeStr($cek->PIC);
+        $oldPICPhone = $this->normalizeStr($cek->PIC_Phone);
+        $oldPICAddress = $this->normalizeStr($cek->PIC_Address);
+        $oldEstimatedBudget = $this->normalizeNum($cek->Estimated_Budget);
+        $oldDepartment = $this->normalizeStr($cek->Department);
+        $oldSupplierID = $this->normalizeStr($cek->Supplier_ID);
+        $oldPriorityStatus = $this->normalizeStr($cek->Priority_Status);
+
+        // Hanya deteksi perubahan header jika bukan aksi APPROVE_CHANGES
+        if ($statReq == 1) {
+            if ($request->has('Reference') && $newReference !== $oldReference) {
+                $changesDetected = true;
+                $changedFields[] = "Reference: '{$oldReference}' → '{$newReference}'";
+            }
+            if ($request->has('Category') && $newCategory !== $oldCategory) {
+                $changesDetected = true;
+                $changedFields[] = "Category: '{$oldCategory}' → '{$newCategory}'";
+            }
+            if ($request->has('Sub_Category') && $newSubCategory !== $oldSubCategory) {
+                $changesDetected = true;
+                $changedFields[] = "Sub_Category: '{$oldSubCategory}' → '{$newSubCategory}'";
+            }
+            if (($request->has('Supplies_Type') || $request->has('Purchase_Type')) && $newSuppliesType !== '' && $newSuppliesType !== $oldSuppliesType) {
+                $changesDetected = true;
+                $changedFields[] = "Supplies_Type: '{$oldSuppliesType}' → '{$newSuppliesType}'";
+            }
+            if ($request->has('PIC') && $newPIC !== $oldPIC) {
+                $changesDetected = true;
+                $changedFields[] = "PIC: '{$oldPIC}' → '{$newPIC}'";
+            }
+            if ($request->has('PIC_Phone') && $newPICPhone !== $oldPICPhone) {
+                $changesDetected = true;
+                $changedFields[] = "PIC_Phone: '{$oldPICPhone}' → '{$newPICPhone}'";
+            }
+            if ($request->has('PIC_Address') && $newPICAddress !== $oldPICAddress) {
+                $changesDetected = true;
+                $changedFields[] = "PIC_Address: '{$oldPICAddress}' → '{$newPICAddress}'";
+            }
+            if ($request->has('Estimated_Budget') && abs($newEstimatedBudget - $oldEstimatedBudget) > 0.01) {
+                $changesDetected = true;
+                $changedFields[] = "Estimated_Budget: {$oldEstimatedBudget} → {$newEstimatedBudget}";
+            }
+            if ($request->has('Department') && $newDepartment !== '' && $newDepartment !== $oldDepartment) {
+                $changesDetected = true;
+                $changedFields[] = "Department: '{$oldDepartment}' → '{$newDepartment}'";
+            }
+            if ($request->has('Supplier_ID') && $newSupplierID !== '' && $newSupplierID !== $oldSupplierID) {
+                $changesDetected = true;
+                $changedFields[] = "Supplier_ID: '{$oldSupplierID}' → '{$newSupplierID}'";
+            }
+            if ($request->has('Priority_Status') && $newPriorityStatus !== $oldPriorityStatus) {
+                $changesDetected = true;
+                $changedFields[] = "Priority_Status: '{$oldPriorityStatus}' → '{$newPriorityStatus}'";
+            }
+
+            // Cek detail produk jika dikirim via GridData JSON
+            $gridDataJson = $request->input('GridData');
+            if (!empty($gridDataJson)) {
+                $gridData = json_decode($gridDataJson, true);
+                if (is_array($gridData)) {
+                    $dtlOld = DB::table('purchase_request_dtl')->where("PR_No", $cek->PR_No)->orderBy('ID')->get();
+                    if (count($gridData) != count($dtlOld)) {
+                        $changesDetected = true;
+                        $changedFields[] = "Jumlah item produk berubah: " . count($dtlOld) . " item → " . count($gridData) . " item";
+                    } else {
+                        foreach ($gridData as $idx => $row) {
+                            $oldRow = $dtlOld[$idx] ?? null;
+                            if (!$oldRow) {
+                                $changesDetected = true;
+                                $changedFields[] = "Item produk #" . ($idx + 1) . " baru ditambahkan";
+                                break;
+                            }
+                            if ($this->normalizeStr($row['Product_Desc'] ?? '') !== $this->normalizeStr($oldRow->Product_Desc)) {
+                                $changesDetected = true;
+                                $changedFields[] = "Item #" . ($idx + 1) . " Deskripsi: '{$oldRow->Product_Desc}' → '" . ($row['Product_Desc'] ?? '') . "'";
+                            }
+                            if ($this->normalizeNum($row['Qty'] ?? 0) != $this->normalizeNum($oldRow->Qty)) {
+                                $changesDetected = true;
+                                $changedFields[] = "Item #" . ($idx + 1) . " Qty: {$oldRow->Qty} → " . ($row['Qty'] ?? 0);
+                            }
+                            if ($this->normalizeStr($row['Specification'] ?? '') !== $this->normalizeStr($oldRow->Specification)) {
+                                $changesDetected = true;
+                                $changedFields[] = "Item #" . ($idx + 1) . " Spesifikasi diubah";
+                            }
+                            if ($this->normalizeStr($row['Unit'] ?? '') !== $this->normalizeStr($oldRow->Unit)) {
+                                $changesDetected = true;
+                                $changedFields[] = "Item #" . ($idx + 1) . " Unit: '{$oldRow->Unit}' → '" . ($row['Unit'] ?? '') . "'";
+                            }
+                            if ($this->normalizeNum($row['Price'] ?? 0) != $this->normalizeNum($oldRow->Default_Price)) {
+                                $changesDetected = true;
+                                $changedFields[] = "Item #" . ($idx + 1) . " Price: {$oldRow->Default_Price} → " . ($row['Price'] ?? 0);
+                            }
+                        }
+                    }
+                }
+            } else if ($request->has('Product_Desc') && !$request->has('GridData')) {
+                // Fallback untuk single item pada form legacy
+                $firstDtl = DB::table('purchase_request_dtl')->where("PR_No", $cek->PR_No)->first();
+                if ($firstDtl) {
+                    if ($this->normalizeStr($request->Product_Desc) !== $this->normalizeStr($firstDtl->Product_Desc)) {
+                        $changesDetected = true;
+                        $changedFields[] = "Product_Desc: '{$firstDtl->Product_Desc}' → '" . $request->Product_Desc . "'";
+                    }
+                    if ($this->normalizeNum($request->Qty) != $this->normalizeNum($firstDtl->Qty)) {
+                        $changesDetected = true;
+                        $changedFields[] = "Qty: {$firstDtl->Qty} → " . $request->Qty;
+                    }
+                    if ($this->normalizeStr($request->Specification) !== $this->normalizeStr($firstDtl->Specification)) {
+                        $changesDetected = true;
+                        $changedFields[] = "Specification diubah";
+                    }
+                    if ($this->normalizeStr($request->Unit) !== $this->normalizeStr($firstDtl->Unit)) {
+                        $changesDetected = true;
+                        $changedFields[] = "Unit: '{$firstDtl->Unit}' → '" . $request->Unit . "'";
+                    }
                 }
             }
         }
+
+        // Catatan approval baru dari textarea Remark
+        $approvalRemark = trim((string)$request->Remark);
 
         // ============================================================
         // TENTUKAN STATUS BARU
@@ -211,7 +296,7 @@ class ProcurementApprovalController extends Controller
         $nik = "";
         $uppername = "";
 
-        if ($request->stat == 2) {
+        if ($statReq == 2) {
             // === REJECT ===
             switch ($cek->Status) {
                 case "APPROVAL_DEPT":
@@ -227,49 +312,60 @@ class ProcurementApprovalController extends Controller
                     $nstatus = 'REJECTED';
                     break;
             }
-            // Untuk reject, notifikasi ke creator
+
+            // Untuk reject, notifikasi dikirim ke creator PR
             $creatorUser = DB::table('users')->where('username', $cek->Created_By)->select('Emp_ID', 'Name', 'Email')->first();
             if ($creatorUser) {
                 $nik = $creatorUser->Emp_ID;
                 $uppername = $creatorUser->Name;
             }
+        } else if ($statReq == 3 || $request->Action == 'APPROVE_CHANGES') {
+            // === CREATOR APPROVE CHANGES ===
+            if ($cek->Approval_Department == 'HCGA' || $cek->Department == 'HCGA') {
+                $nstatus = 'APPROVAL_GA';
+            } else {
+                $nstatus = 'APPROVAL_UPPER';
+            }
+
+            $getlevel = DB::table('level_general')->where("Status_Approval", "LIKE", "%$nstatus%")->first();
+            if ($getlevel) {
+                $getupper = DB::table("organization_structure")
+                    ->where("Level" . $getlevel->Level, 1)
+                    ->where("Department", $cek->Approval_Department ?: $cek->Department)
+                    ->first();
+                if ($getupper) {
+                    $nik = $getupper->NIK ?? '';
+                    $uppername = $getupper->Name ?? '';
+                }
+            }
         } else {
             // === APPROVE ===
             if ($changesDetected) {
-                // === ADA PERUBAHAN DATA ===
-                // Kembalikan ke creator untuk konfirmasi
+                // Ada perubahan data → kembalikan ke creator untuk konfirmasi
                 $nstatus = "CHANGES_REVIEWED_BY_CREATOR";
-                $statNote = "PERUBAHAN DATA: PR dikembalikan ke creator untuk konfirmasi perubahan oleh approver";
 
-                // Temukan creator
                 $creatorUser = DB::table('users')->where('username', $cek->Created_By)->select('Emp_ID', 'Name', 'Email')->first();
                 if ($creatorUser) {
                     $nik = $creatorUser->Emp_ID;
                     $uppername = $creatorUser->Name;
                 }
 
-                // Jika creator ditemukan, log perubahan detail
-                if ($creatorUser) {
-                    $changeLog = "Approver ($Saya) melakukan perubahan data berikut:\n";
-                    $changeLog .= implode("\n", $changedFields);
-                    $changeLog .= "\n\nPR dikembalikan ke creator untuk konfirmasi.";
+                $changeLog = "Approver ($Saya) melakukan perubahan data berikut:\n" . implode("\n", $changedFields) . "\n\nPR dikembalikan ke creator untuk konfirmasi.";
 
-                    DB::table('purchase_request_log')->insert([
-                        'PR_No' => $cek->PR_No,
-                        'Action_By' => $Saya,
-                        'Action_Date' => now(),
-                        'Action_Status' => "CHANGES_DETECTED_BY_APPROVER: dikembalikan ke creator",
-                        'Last_ID' => $cek->ID,
-                        'Category' => $newCategory,
-                        'Sub_Category' => $newSubCategory,
-                        'Supplies_Type' => $newSuppliesType,
-                        'Note' => $changeLog,
-                        'Reference' => $newReference,
-                    ]);
-                }
+                DB::table('purchase_request_log')->insert([
+                    'PR_No' => $cek->PR_No,
+                    'Action_By' => $Saya,
+                    'Action_Date' => now(),
+                    'Action_Status' => "CHANGES_DETECTED_BY_APPROVER: dikembalikan ke creator",
+                    'Last_ID' => $cek->ID,
+                    'Category' => $newCategory ?: $cek->Category,
+                    'Sub_Category' => $newSubCategory ?: $cek->Sub_Category,
+                    'Supplies_Type' => $newSuppliesType ?: $cek->Supplies_Type,
+                    'Note' => $changeLog,
+                    'Reference' => $newReference ?: $cek->Reference,
+                ]);
             } else {
-                // === TIDAK ADA PERUBAHAN DATA ===
-                // Lanjutkan approval normal
+                // Tidak ada perubahan → approval normal
                 switch ($cek->Status) {
                     case "CREATED":
                         $nstatus = "PROPOSED";
@@ -278,26 +374,31 @@ class ProcurementApprovalController extends Controller
                         $nstatus = 'APPROVAL_DEPT';
 
                         $getlevel = DB::table('level_general')->where("Status_Approval", "LIKE", "%$nstatus%")->first();
-                        $getupper = DB::table("organization_structure")->where("Level" . $getlevel->Level, 1)->where("Department", $dept)->first();
-
-                        $nik = $getupper->NIK ?? '';
-                        $uppername = $getupper->Name ?? '';
+                        if ($getlevel) {
+                            $getupper = DB::table("organization_structure")->where("Level" . $getlevel->Level, 1)->where("Department", $cek->Department)->first();
+                            $nik = $getupper->NIK ?? '';
+                            $uppername = $getupper->Name ?? '';
+                        }
                         break;
                     case "APPROVAL_DEPT":
                         $nstatus = 'APPROVAL_GA';
 
                         $getlevel = DB::table('level_general')->where("Status_Approval", "LIKE", "%$nstatus%")->first();
-                        $getupper = DB::table("organization_structure")->where("Level" . $getlevel->Level, 1)->where("Department", 'HCGA')->first();
-                        $nik = $getupper->NIK ?? '';
-                        $uppername = $getupper->Name ?? '';
+                        if ($getlevel) {
+                            $getupper = DB::table("organization_structure")->where("Level" . $getlevel->Level, 1)->where("Department", 'HCGA')->first();
+                            $nik = $getupper->NIK ?? '';
+                            $uppername = $getupper->Name ?? '';
+                        }
                         break;
                     case "APPROVAL_GA":
                         $nstatus = "APPROVAL_FINANCE";
 
                         $getlevel = DB::table('level_general')->where("Status_Approval", "LIKE", "%$nstatus%")->first();
-                        $getupper = DB::table("organization_structure")->where("Level" . $getlevel->Level, 1)->where("Department", 'FIN')->first();
-                        $nik = $getupper->NIK ?? '';
-                        $uppername = $getupper->Name ?? '';
+                        if ($getlevel) {
+                            $getupper = DB::table("organization_structure")->where("Level" . $getlevel->Level, 1)->where("Department", 'FIN')->first();
+                            $nik = $getupper->NIK ?? '';
+                            $uppername = $getupper->Name ?? '';
+                        }
                         break;
                     case "APPROVAL_FINANCE":
                         $nstatus = "APPROVED";
@@ -306,8 +407,7 @@ class ProcurementApprovalController extends Controller
                         $nstatus = "APPROVAL_UPPER";
                         break;
                     case "CHANGES_REVIEWED_BY_CREATOR":
-                        // Creator sudah menyetujui perubahan, lanjutkan ke tahap approval berikutnya
-                        if ($dept == 'HCGA') {
+                        if ($cek->Approval_Department == 'HCGA' || $cek->Department == 'HCGA') {
                             $nstatus = 'APPROVAL_GA';
                         } else {
                             $nstatus = 'APPROVAL_UPPER';
@@ -320,35 +420,98 @@ class ProcurementApprovalController extends Controller
             }
         }
 
-        // Buat data update — simpan semua perubahan yang dilakukan approver
+        // ============================================================
+        // COMPUTE NOTE TERBARU
+        // ============================================================
+        $updatedNote = $cek->Note;
+        if (!empty($approvalRemark)) {
+            $updatedNote .= date("Y-m-d H:i:s") . " [$Saya] => " . $approvalRemark . "\n";
+        }
+
         $data = [
-            'PIC'               => $newPIC,
-            'PIC_Phone'         => $newPICPhone,
-            'PIC_Address'       => $newPICAddress,
-            'Estimated_Budget'  => $newEstimatedBudget,
-            'Department'        => $newDepartment,
-            'Category'          => $newCategory,
-            'Sub_Category'      => $newSubCategory,
-            'Supplies_Type'     => $newSuppliesType,
-            'Note'              => $cek->Note . date("Y-m-d H:i:s") . " => " . $request->Remark . "\n",
-            'Reference'         => $request->Reference ?? $cek->Reference,
+            'PIC'               => $newPIC ?: $cek->PIC,
+            'PIC_Phone'         => $newPICPhone ?: $cek->PIC_Phone,
+            'PIC_Address'       => $newPICAddress ?: $cek->PIC_Address,
+            'Estimated_Budget'  => $newEstimatedBudget > 0 ? $newEstimatedBudget : $cek->Estimated_Budget,
+            'Department'        => $newDepartment ?: $cek->Department,
+            'Category'          => $newCategory ?: $cek->Category,
+            'Sub_Category'      => $newSubCategory ?: $cek->Sub_Category,
+            'Supplies_Type'     => $newSuppliesType ?: $cek->Supplies_Type,
+            'Note'              => $updatedNote,
+            'Reference'         => $request->has('Reference') ? $newReference : $cek->Reference,
             'Status'            => $nstatus,
         ];
 
-        // Jika status APPROVED, buat PO
-        if ($nstatus == 'APPROVED') {
+        if ($newSupplierID !== '') {
+            $data['Supplier_ID'] = $newSupplierID;
+            $sup = DB::table('supplier')->where('Supplier_ID', $newSupplierID)->first();
+            if ($sup) {
+                $data['Supplier_Name'] = $sup->Company_Name;
+            }
+        }
+        if ($newPriorityStatus !== '') {
+            $data['Priority_Status'] = $newPriorityStatus;
+        }
+
+        // ============================================================
+        // PERSIST DETAIL PRODUK JIKA ADA DARI GRID / FORM
+        // ============================================================
+        $gridDataJson = $request->input('GridData');
+        if (!empty($gridDataJson)) {
+            $gridData = json_decode($gridDataJson, true);
+            if (is_array($gridData) && count($gridData) > 0) {
+                // Hapus detail lama dan ganti dengan detail baru
+                DB::table('purchase_request_dtl')->where("PR_No", $cek->PR_No)->delete();
+                foreach ($gridData as $product) {
+                    DB::table('purchase_request_dtl')->insert([
+                        'PR_No' => $cek->PR_No,
+                        'Product_Code' => $product['Product_Code'] ?? '',
+                        'Product_Desc' => $product['Product_Desc'] ?? '',
+                        'Qty' => $this->normalizeNum($product['Qty'] ?? 0),
+                        'Specification' => $product['Specification'] ?? '',
+                        'Unit' => $product['Unit'] ?? 'PCS',
+                        'Default_Price' => $this->normalizeNum($product['Price'] ?? 0),
+                        'Location' => $LSP,
+                        'Purchase_Category' => $data['Sub_Category'],
+                        'Purchase_Type' => $data['Category'],
+                        'Category' => $product['Category'] ?? $data['Category'],
+                        'Remark' => $product['Remark'] ?? '',
+                        'Attachment' => $product['Image'] ?? '',
+                        'Reference' => $product['Reference'] ?? $data['Reference'],
+                    ]);
+                }
+            }
+        } else if ($request->has('Product_Desc')) {
+            // Form single-product
+            $firstDtl = DB::table('purchase_request_dtl')->where("PR_No", $cek->PR_No)->first();
+            if ($firstDtl) {
+                DB::table('purchase_request_dtl')->where("ID", $firstDtl->ID)->update([
+                    'Product_Desc' => $request->Product_Desc,
+                    'Specification' => $request->Specification ?? $firstDtl->Specification,
+                    'Qty' => $this->normalizeNum($request->Qty),
+                    'Unit' => $request->Unit ?? $firstDtl->Unit,
+                    'Reference' => $request->Reference ?? $firstDtl->Reference,
+                    'Purchase_Category' => $data['Sub_Category'],
+                    'Purchase_Type' => $data['Category'],
+                    'Category' => $data['Category'],
+                ]);
+            }
+        }
+
+        // Jika status APPROVAL_FINANCE, buat PO
+        if ($nstatus == 'APPROVAL_FINANCE') {
             $PO_No = $this->createPurchaseSummary($cek);
             $PONO = $this->createPurchaseOrder($cek, $PO_No);
-            $data['Processing_Status'] = "APPROVAL_FINANCE";
+            $data['Processing_Status'] = $nstatus;
             $data['Processing_Date'] = now();
         }
 
         // ============================================================
-        // LOG & NOTIFIKASI
+        // LOG TRANSAKSI
         // ============================================================
         try {
             if ($nstatus !== 'CHANGES_REVIEWED_BY_CREATOR') {
-                $stat = $nstatus == 'APPROVED' ? $nstatus : "APPROVAL STATUS {$request->Status} => $nstatus";
+                $stat = $nstatus == 'APPROVED' ? $nstatus : "APPROVAL STATUS {$cek->Status} => $nstatus";
                 $prOld = json_decode(json_encode($cek), true);
                 $prOld['Action_By'] = $Saya;
                 $prOld['Action_Date'] = now();
@@ -366,100 +529,41 @@ class ProcurementApprovalController extends Controller
             Log::error($th);
         }
 
-        DB::table('purchase_request')->where("ID", $request->ID)->update($data);
+        DB::table('purchase_request')->where("ID", $cek->ID)->update($data);
 
-        DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$request->PR_No', '$request->Category', '$request->Sub_Category', '$request->Supplies_Type', 'PURCHASE-REQUEST', '$nstatus', '$request->Note', NOW(), '$Saya')"));
+        DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$cek->PR_No', '{$data['Category']}', '{$data['Sub_Category']}', '{$data['Supplies_Type']}', 'PURCHASE-REQUEST', '$nstatus', " . DB::getPdo()->quote($approvalRemark ?: 'PROCUREMENT_APPROVAL') . ", NOW(), '$Saya')"));
 
         // ============================================================
         // NOTIFIKASI
         // ============================================================
         $subNotif = "";
 
-        if ($request->stat == 2) {
+        if ($statReq == 2) {
             // REJECT
-            $subjek = "IMPORTANT : PURCHASE REQUEST REJECTED REQUEST PR NO $request->PR_No # , Request By : $Name";
-            $subNotif = "PR {$request->PR_No} Rejected, tolong di revisi sesuai catatan";
-            $badan = "<div style=\"font-family:arial;font-size:12px;\">Kepada Yth.<br><b>$uppername</b><Br><br>
-
-                        Mohon dilakukan pengecekan lebih lanjut untuk Purchase Request tersebut. Pengecekan dapat dilakukan melalui system ERP pada menu HR -> GA -> New Procurement<br><br>
-
-                        No PR : $request->PR_No<br><br>
-                        Reference : $request->Reference<br><br>
-                        Jenis Request : $request->Category // $request->Sub_Category // $request->Supplies_Type<br><br>
-                        Note : $request->Note<br>
-
-                        <br><br>
-                        Anda dapat melakukan pengecekan melalui link berikut ini :<a href='https://" . env('APP_URL') . "/hrd-procurement-index' >KLIK DISINI</a><br><br>
-
-                        Terima kasih<br>
-                        PT GREEN ENERGI UTAMA
-
-            </div>";
+            $subjek = "IMPORTANT : PURCHASE REQUEST REJECTED REQUEST PR NO $cek->PR_No # , Request By : $Name";
+            $subNotif = "PR {$cek->PR_No} Rejected, tolong di revisi sesuai catatan";
         } else if ($changesDetected && $nstatus == "CHANGES_REVIEWED_BY_CREATOR") {
             // PERUBAHAN DATA - NOTIFIKASI KE CREATOR
-            $subjek = "PERUBAHAN DATA: PURCHASE REQUEST PR NO $request->PR_No # , Request By : $Name";
-            $subNotif = "PR {$request->PR_No} mengalami perubahan data. Mohon konfirmasi perubahan.";
-            $badan = "<div style=\"font-family:arial;font-size:12px;\">Kepada Yth.<br><b>$uppername</b><Br><br>
-
-                        Ada perubahan data pada Purchase Request Anda oleh approver. Mohon dilakukan pengecekan dan konfirmasi perubahan melalui system ERP.<br><br>
-
-                        No PR : $request->PR_No<br><br>
-                        Perubahan yang dilakukan:<br>
-                        " . implode("<br>", $changedFields) . "<br><br>
-                        Anda dapat mengecek perubahan melalui link berikut ini :<a href='https://" . env('APP_URL') . "/hrd-procurement-detail?PR_No=$request->PR_No' >KLIK DISINI</a><br><br>
-
-                        Terima kasih<br>
-                        PT GREEN ENERGI UTAMA
-
-            </div>";
-
-            // Kirim notifikasi ke creator
-            if ($nik != '') {
-                $us = DB::table('users')->where("Emp_ID", $nik)->select("id")->first();
-                (new NotificationService)->makeNotification(
-                    "PR PERUBAHAN DATA: {$request->PR_No}",
-                    "PR {$request->PR_No} mengalami perubahan data. Silahkan cek dan konfirmasi.",
-                    'approval',
-                    Auth::user()->id ?? null,
-                    $us->id ?? null
-                );
-            }
+            $subjek = "PERUBAHAN DATA: PURCHASE REQUEST PR NO $cek->PR_No # , Request By : $Name";
+            $subNotif = "PR {$cek->PR_No} mengalami perubahan data. Mohon konfirmasi perubahan.";
         } else {
             // APPROVE NORMAL - NOTIFIKASI KE ATASAN BERIKUTNYA
-            $subjek = "IMPORTANT : PURCHASE REQUEST APPROVAL REQUEST PR NO $request->PR_No # , Request By : $Name";
-            $subNotif = "PR {$request->PR_No} Need to be Approved";
-            $badan = "<div style=\"font-family:arial;font-size:12px;\">Kepada Yth.<br><b>$uppername</b><Br><br>
-
-                        Mohon dilakukan approval untuk Purchase Request tersebut. persetujuan dapat dilakukan melalui system ERP pada menu Procurement -> Request -> Approval<br><br>
-
-                        No PR : $request->PR_No<br><br>
-                        Reference : $request->Reference<br><br>
-                        Jenis Request : $request->Category // $request->Sub_Category // $request->Supplies_Type<br><br>
-                        Note : $request->Note<br>
-
-                        <br><br>
-                        Anda dapat melakukan approval melalui link berikut ini :<a href='https://" . env('APP_URL') . "/hrd-procurement-approval-mail?ID=$request->PR_No&linkkey=&saya=$Saya' >KLIK DISINI</a><br><br>
-
-                        Terima kasih<br>
-                        PT GREEN ENERGI UTAMA
-
-            </div>";
+            $subjek = "IMPORTANT : PURCHASE REQUEST APPROVAL REQUEST PR NO $cek->PR_No # , Request By : $Name";
+            $subNotif = "PR {$cek->PR_No} Need to be Approved";
         }
 
-        // Kirim notifikasi ke recipient yang sesuai
         if ($nik != '') {
             $us = DB::table('users')->where("Emp_ID", $nik)->select("id")->first();
-            (new NotificationService)->makeNotification(
-                ($changesDetected && $nstatus == "CHANGES_REVIEWED_BY_CREATOR" ? "PR PERUBAHAN DATA" : "PR APPROVAL"),
-                $subNotif,
-                'approval',
-                Auth::user()->id ?? null,
-                $us->id ?? null
-            );
+            if ($us) {
+                (new NotificationService)->makeNotification(
+                    ($changesDetected && $nstatus == "CHANGES_REVIEWED_BY_CREATOR" ? "PR PERUBAHAN DATA" : "PR APPROVAL"),
+                    $subNotif,
+                    'approval',
+                    Auth::user()->id ?? null,
+                    $us->id
+                );
+            }
         }
-
-        // Email log
-        DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('".($uppername ? ($getupper->Email ?? $creatorUser->Email) ?? '' : "") ."','$subjek','$badan','UNSENT',NOW(),NOW())"));
 
         echo "success";
     }
@@ -497,13 +601,13 @@ class ProcurementApprovalController extends Controller
             'V4_ID' => '',
             'V5_ID' => '',
             'Created_By' => $Saya,
-            'Note' => $pr->Remark ?? '',
+            'Note' => $pr->Note ?? '',
             'Priority' => $pr->Priority_Status ?? '',
         ]);
 
         $prds = DB::table('purchase_request_dtl')->where("PR_No", $pr->PR_No)->get();
         foreach ($prds as $key => $value) {
-            $price = $value->Default_Price == 0 || $value->Default_Price == null ? $value->Estimated_Budget : 0;
+            $price = $value->Default_Price == 0 || $value->Default_Price == null ? $value->Estimated_Budget : $value->Default_Price;
             DB::table('purchase_summary_detail')->insert([
                 'PR_Related' => $value->PR_No,
                 'Task_ID' => $PO_No,
@@ -603,21 +707,23 @@ class ProcurementApprovalController extends Controller
                     'Subtotal' => $task->V1_TOP,
                     'PPN' => 0,
                     'Total' => $task->V1_TOP,
-                    'Remark' => addslashes($task->Note),
+                    'Remark' => addslashes($task->Specification ?? ''),
                     'PR_No' => $task->PR_Related,
                     'Currency' => 'RP',
                 ]);
             }
 
-            DB::table('purchase_request')->where("PR_No", $task->PR_Related)->update([
+            DB::table('purchase_request')->where("PR_No", $pr->PR_No)->update([
                 'PO_No' => $PONO,
                 'Processing_Status' => 'PO APPROVED',
                 'Processing_Date' => now(),
             ]);
+
             if ($gg->V1_Discount != 0) {
                 $totalx -= $gg->V1_Discount;
             }
 
+            $ppn1 = 0;
             if ($gg->V1_Fee_Mgt != 0) {
                 if ($gg->V1_Fee_VAT != 0) {
                     $totalx += $gg->V1_Fee_Mgt;
@@ -629,7 +735,7 @@ class ProcurementApprovalController extends Controller
                     $totalx += $gg->V1_Fee_Mgt;
                 }
             } else {
-                $ppn1 = round(($totalx * $gg->V1_VAT) / 100, 0);;
+                $ppn1 = round(($totalx * $gg->V1_VAT) / 100, 0);
                 $totalx += $ppn1;
             }
             if ($gg->V1_DC != 0) {
@@ -664,8 +770,8 @@ class ProcurementApprovalController extends Controller
                 'Task_ID' => $gg->Task_ID,
                 'Delivery_Fee' => $gg->V1_DC,
                 'Management_Fee' => $gg->V1_Fee_Mgt,
-                'PPH' => $gg->V1_PPH,
-                'Management_Fee_Exclude_PPN' => $gg->V1_Fee_VAT,
+                'PPH' => $gg->V1_PPH ?? 0,
+                'Management_Fee_Exclude_PPN' => $gg->V1_Fee_VAT ?? 0,
                 'Discount' => $gg->V1_Discount,
                 'PR_No' => $pr->PR_No,
                 'Currency' => $gg->V1_Cur,

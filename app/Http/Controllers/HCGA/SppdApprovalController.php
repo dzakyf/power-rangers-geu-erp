@@ -130,14 +130,27 @@ class SppdApprovalController extends Controller
                 'Created_At' => now(),
             ]);
 
+            $carNo = null;
+            if ($newStatus === 'ACCEPTED') {
+                // Auto-create car_rent bila pengaju butuh mobil (idempoten, ikut transaksi ini).
+                $sppdRow = DB::table('sppd')->where('ID', $sppd->ID)->first();
+                list($carErr, $carNo, $carInfo) = CarRentController::createFromSppd($sppdRow, $user->username);
+                if ($carErr) {
+                    DB::rollBack();
+                    Log::error('SPPD approval auto-create car_rent failed: ' . $carErr);
+                    return response()->json(['status' => 'error', 'message' => 'SPPD disetujui tapi booking mobil gagal: ' . $carErr . '. Buat manual via hrd-car-rent-new?SPPD_ID=' . $sppd->ID], 422);
+                }
+            }
+
             DB::commit();
 
             Log::info('SPPD approval: id=' . $sppd->ID . ' newStatus=' . $newStatus . ' by=' . $user->username);
 
             return response()->json([
                 'status'    => 'success',
-                'message'   => 'Berhasil melakukan approval',
+                'message'   => $carNo ? 'Berhasil melakukan approval + booking mobil dibuat: ' . $carNo : 'Berhasil melakukan approval',
                 'newStatus' => $newStatus,
+                'Car_Rent_No' => $carNo,
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();

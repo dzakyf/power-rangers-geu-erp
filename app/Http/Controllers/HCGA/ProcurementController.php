@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Services\NotificationService;
 use App\Services\StructureService;
+use Mpdf\Mpdf;
 
 class ProcurementController extends Controller
 {
@@ -706,6 +707,127 @@ class ProcurementController extends Controller
         }
 
         echo "</rows>";
+    }
+
+    /**
+     * Teks master dokumen cetak. ponytail: pindah ke tabel config bila HCGA ubah Doc ID / ketentuan.
+     */
+    const PRINT_DOC = [
+        'pr_title' => 'Purchase Request',
+        'pr_owner' => 'HCGA',
+        'pr_rev' => '#00',
+        'pr_effective' => '8 Januari 2024',
+        'pr_doc_id' => 'FR/HCGA/02-00',
+        'po_title' => 'PURCHASE ORDER (PO)',
+        'po_terms' => [
+            'Barang yang dikirim harus sesuai dengan spesifikasi permintaan',
+            'Pembeli berhak menolak dan mengembalikan barang apabila barang tidak sesuai dengan pesanan, dan biaya pengembalian ditanggung oleh pihak vendor',
+            'Pengiriman dan jumlah barang dikirim sesuai dengan alamat yang tercantum dalam PO',
+            'Pembayaran akan dilakukan sesuai dengan invoice',
+            'Segala perselisihan yang timbul dari PO ini akan diselesaikan melalui musyawarah dan mufakat.',
+        ],
+    ];
+
+    private function rp($n)
+    {
+        return 'Rp ' . number_format((float) $n, 0, ',', '.');
+    }
+
+    public function printPR(Request $request)
+    {
+        $LSP = Auth::user()->Location;
+        $pr = DB::table('purchase_request')->where('PR_No', $request->PR_No)->first();
+        if (!$pr) abort(404, 'PR tidak ditemukan');
+        if ($pr->Location !== $LSP) abort(403, 'PR bukan lokasi Anda');
+
+        $details = DB::table('purchase_request_dtl')->where('PR_No', $pr->PR_No)->orderBy('ID')->get();
+        $creator = DB::table('users')->where('username', $pr->Created_By)->first();
+        $appr = DB::table('purchase_request_log')->where('PR_No', $pr->PR_No)
+            ->whereNotIn('Action_Status', ['CREATED PR :: WAITING APPROVAL UPPER'])
+            ->orderBy('ID')->get();
+        $doc = self::PRINT_DOC;
+
+        $html = view('humanresources.procurement.prints.pr', [
+            'pr' => $pr, 'details' => $details, 'creator' => $creator,
+            'appr' => $appr, 'doc' => $doc,
+        ])->render();
+
+        return $this->streamPdf($html, 'PR_' . preg_replace('/[^A-Za-z0-9\-]/', '_', $pr->PR_No));
+    }
+
+    public function printPO(Request $request)
+    {
+        $LSP = Auth::user()->Location;
+        $poNo = $request->PO_No ?: DB::table('purchase_request')->where('PR_No', $request->PR_No)->value('PO_No');
+        if (!$poNo) abort(404, 'PO belum diterbitkan untuk PR ini');
+        $po = DB::table('purchase_order')->where('PO_No', $poNo)->first();
+        if (!$po) abort(404, 'PO tidak ditemukan');
+        if ($po->Location !== '' && $po->Location !== $LSP) abort(403, 'PO bukan lokasi Anda');
+
+        $details = DB::table('purchase_order_dtl')->where('PO_No', $po->PO_No)->orderBy('ID')->get();
+        $vendor = $po->Supplier ? DB::table('supplier')->where('Supplier_ID', $po->Supplier)->first() : null;
+        $pr = $po->PR_No ? DB::table('purchase_request')->where('PR_No', $po->PR_No)->first() : null;
+        $isRent = stripos(($po->Purchase_Type ?? '') . ' ' . ($po->Remark ?? ''), 'sewa') !== false;
+        $doc = self::PRINT_DOC;
+
+        $html = view('humanresources.procurement.prints.po', [
+            'po' => $po, 'details' => $details, 'vendor' => $vendor,
+            'pr' => $pr, 'isRent' => $isRent, 'doc' => $doc,
+        ])->render();
+
+        return $this->streamPdf($html, 'PO_' . preg_replace('/[^A-Za-z0-9\-]/', '_', $po->PO_No));
+    }
+
+    private function streamPdf($html, $filename)
+    {
+        if (!is_dir(storage_path('app/mpdf'))) mkdir(storage_path('app/mpdf'), 0755, true);
+
+        // ── Header & Footer images (base64) ─────────────────────────────────
+        $headerPath = public_path('assets/images/surat/header_geu.jpg');
+        $footerPath = public_path('assets/images/surat/footer_geu.png');
+
+        $headerB64 = base64_encode(file_get_contents($headerPath));
+        $footerB64 = base64_encode(file_get_contents($footerPath));
+        $headerExt = strtolower(pathinfo($headerPath, PATHINFO_EXTENSION));
+        $footerExt = strtolower(pathinfo($footerPath, PATHINFO_EXTENSION));
+
+        $headerHtml = '
+            <div style="margin:0;padding:0;line-height:0;">
+                <img src="data:image/' . $headerExt . ';base64,' . $headerB64 . '"
+                     style="width:100%;display:block;">
+            </div>';
+
+        $footerHtml = '
+            <div style="margin:0;padding:0;line-height:0;">
+                <img src="data:image/' . $footerExt . ';base64,' . $footerB64 . '"
+                     style="width:100%;display:block;">
+            </div>';
+
+        // ── Inisialisasi mPDF ───────────────────────────────────────────────
+        $mpdf = new Mpdf([
+            'format'        => 'A4',
+            'tempDir'       => storage_path('app/mpdf'),
+            'margin_top'    => 0,
+            'margin_bottom' => 0,
+            'margin_left'   => 0,
+            'margin_right'  => 0,
+            'margin_header' => 0,
+            'margin_footer' => 0,
+            'setAutoTopMargin'    => 'stretch',
+            'setAutoBottomMargin' => 'stretch',
+        ]);
+
+        $mpdf->splitTableBorderWidth = 1;
+
+        $mpdf->SetHTMLHeader($headerHtml);
+        $mpdf->SetHTMLFooter($footerHtml);
+
+        $mpdf->WriteHTML($html);
+        $mpdf->SetTitle($filename);
+        return response($mpdf->Output($filename . '.pdf', 'S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '.pdf"',
+        ]);
     }
 
     /**

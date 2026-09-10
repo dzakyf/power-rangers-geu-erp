@@ -78,8 +78,9 @@ class SppdController extends Controller
         $departments = DB::table('master_department')->orderBy('Department', 'ASC')->get();
         $counter = DB::table('sppd')->where('Created_Date', 'LIKE', date('Y-m') . '%')->count() + 1;
         $SPPD_No = "SPPD/GA/" . ($user->Location ?: 'GEU-HO') . "/" . date('ymdhis') . "-" . $counter;
+        $fleetList = \App\Http\Controllers\HCGA\CarRentController::fleetOptions();
 
-        return view('humanresources.sppd.new', compact('user', 'departments', 'SPPD_No'));
+        return view('humanresources.sppd.new', compact('user', 'departments', 'SPPD_No', 'fleetList'));
     }
 
     public function store(Request $request)
@@ -123,6 +124,28 @@ class SppdController extends Controller
         $nama = $user->Name ?: $user->username;
         $nik  = $user->Emp_ID ?: '';
 
+        // Kebutuhan mobil opsional (dipakai auto-create car_rent saat SPPD ACCEPTED).
+        $needCar = (int) $request->input('Need_Car', 0) === 1 ? 1 : 0;
+        $carJenis = trim($request->input('Car_Jenis_Mobil', ''));
+        $carTglPinjam = trim($request->input('Car_Tgl_Pinjam', ''));
+        $carTglKembali = trim($request->input('Car_Tgl_Kembali', ''));
+        $carJamPinjam = trim($request->input('Car_Jam_Pinjam', ''));
+        $carJamKembali = trim($request->input('Car_Jam_Kembali', ''));
+        if ($needCar) {
+            if ($carJenis === '' || $carTglPinjam === '' || $carTglKembali === '') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Jenis mobil + tanggal pinjam/kembali wajib diisi bila butuh mobil',
+                ], 422);
+            }
+            if ($carTglKembali < $carTglPinjam) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Tanggal kembali mobil tidak boleh sebelum tanggal pinjam',
+                ], 422);
+            }
+        }
+
         $counter = DB::table('sppd')->where('Created_Date', 'LIKE', date('Y-m') . '%')->count() + 1;
         $SPPD_No = "SPPD/GA/" . ($user->Location ?: 'GEU-HO') . "/" . date('ymdhis') . "-" . $counter;
 
@@ -147,6 +170,12 @@ class SppdController extends Controller
                 'Approver_Name'  => $approverName,
                 'Created_By'     => $user->username,
                 'Created_Date'   => now(),
+                'Need_Car'       => $needCar,
+                'Car_Jenis_Mobil' => $carJenis ?: null,
+                'Car_Tgl_Pinjam' => $carTglPinjam ?: null,
+                'Car_Tgl_Kembali' => $carTglKembali ?: null,
+                'Car_Jam_Pinjam' => $carJamPinjam ?: null,
+                'Car_Jam_Kembali' => $carJamKembali ?: null,
             ]);
 
             foreach ($costs as $c) {
@@ -180,6 +209,14 @@ class SppdController extends Controller
                     'Note'       => 'Approve otomatis (pengaju adalah HCGA Manager)',
                     'Created_At' => now(),
                 ]);
+                // Auto-create car_rent bila pengaju butuh mobil (idempoten, ikut transaksi ini).
+                $sppdRow = DB::table('sppd')->where('ID', $sppdId)->first();
+                list($carErr, $carNo, $carInfo) = CarRentController::createFromSppd($sppdRow, $user->username);
+                if ($carErr) {
+                    DB::rollBack();
+                    Log::error('SPPD auto-create car_rent failed: ' . $carErr);
+                    return response()->json(['status' => 'error', 'message' => 'SPPD tersimpan tapi booking mobil gagal: ' . $carErr], 422);
+                }
             }
 
             DB::commit();
@@ -218,8 +255,47 @@ class SppdController extends Controller
         $costs = DB::table('sppd_cost')->where('SPPD_ID', $sppd->ID)->get();
         $logs  = DB::table('sppd_log')->where('SPPD_ID', $sppd->ID)->orderBy('ID', 'ASC')->get();
         $canClose = $isRequester && $sppd->Status == 'ACCEPTED';
+        $carRents = DB::table('car_rent')->where('SPPD_ID', $sppd->ID)->orderBy('ID', 'DESC')->get();
 
-        return view('humanresources.sppd.detail', compact('sppd', 'costs', 'logs', 'canClose'));
+        return view('humanresources.sppd.detail', compact('sppd', 'costs', 'logs', 'canClose', 'carRents'));
+    }
+
+    // Retry manual auto-create car_rent bila hook approval gagal (misal overlap saat itu).
+    public function createCarRent(Request $request)
+    {
+        $user = Auth::user();
+        $sppd = DB::table('sppd')->where('ID', $request->ID)->first();
+        if (!$sppd) {
+            return response()->json(['status' => 'error', 'message' => 'Data tidak ditemukan'], 404);
+        }
+        $isRequester = (int) $sppd->Requester_ID === (int) $user->id;
+        $isApprover = (int) $sppd->Approver_ID === (int) $user->id;
+        if (!$isRequester && !$isApprover) {
+            return response()->json(['status' => 'error', 'message' => 'Anda tidak berhak atas SPPD ini'], 403);
+        }
+        if ($sppd->Status !== 'ACCEPTED') {
+            return response()->json(['status' => 'error', 'message' => 'Hanya SPPD ACCEPTED yang bisa dibuatkan booking mobil'], 422);
+        }
+        if (empty($sppd->Need_Car)) {
+            return response()->json(['status' => 'error', 'message' => 'SPPD ini tidak ditandai butuh mobil'], 422);
+        }
+        DB::beginTransaction();
+        try {
+            list($carErr, $carNo, $carInfo) = CarRentController::createFromSppd($sppd, $user->username);
+            if ($carErr) {
+                DB::rollBack();
+                return response()->json(['status' => 'error', 'message' => $carErr], 422);
+            }
+            DB::commit();
+            if ($carInfo === 'exists') {
+                return response()->json(['status' => 'success', 'message' => 'Booking mobil sudah ada: ' . $carNo, 'Car_Rent_No' => $carNo], 200);
+            }
+            return response()->json(['status' => 'success', 'message' => 'Booking mobil dibuat: ' . $carNo, 'Car_Rent_No' => $carNo], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('SPPD retry create car_rent failed: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function close(Request $request)

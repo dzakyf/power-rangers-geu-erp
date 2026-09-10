@@ -104,6 +104,17 @@
                         </tbody>
                     </table>
 
+                    <h5 class="mt-3">Kebutuhan Mobil Operasional</h5>
+                    @if ($sppd->Need_Car)
+                        <table class="table table-bordered" width="60%">
+                            <tr><th width="220">Jenis Mobil</th><td>{{ $sppd->Car_Jenis_Mobil ?: '-' }}</td></tr>
+                            <tr><th>Tgl Pinjam / Kembali</th><td>{{ $sppd->Car_Tgl_Pinjam ?: '-' }} s/d {{ $sppd->Car_Tgl_Kembali ?: '-' }} ({{ $sppd->Car_Jam_Pinjam ?: '-' }} - {{ $sppd->Car_Jam_Kembali ?: '-' }})</td></tr>
+                        </table>
+                        <small class="text-muted">Booking dibuat otomatis saat APPROVE; bila gagal (misal mobil bentrok) buat manual via menu Car Rent.</small>
+                    @else
+                        <p class="text-muted">SPPD ini tidak ditandai butuh mobil.</p>
+                    @endif
+
                     <h5 class="mt-3">Progress History</h5>
                     <table class="table table-bordered" width="60%">
                         <thead class="thead-light">
