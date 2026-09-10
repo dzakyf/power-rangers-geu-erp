@@ -128,6 +128,54 @@
                             </div>
                         </div>
 
+                        <div class="col-md-12 col-12">
+                            <div class="card border-info mt-2">
+                                <div class="card-header bg-info text-white p-2">
+                                    <label class="m-0 font-weight-bold"><input type="checkbox" id="Need_Car" value="1" /> Butuh Mobil Operasional (otomatis booking saat SPPD disetujui)</label>
+                                </div>
+                                <div class="card-body" id="NeedCarBody" style="display:none;">
+                                    <div class="row">
+                                        <div class="col-md-6 col-12">
+                                            <div class="form-group">
+                                                <label for="Car_Jenis_Mobil">Jenis Mobil</label>
+                                                <select id="Car_Jenis_Mobil" class="form-control shadow-sm">
+                                                    <option value="">-- Pilih Jenis Mobil --</option>
+                                                    @foreach(($fleetList ?? ['Rush','Avanza','Innova','Pajero','Alphard','Hiace','Other']) as $m)
+                                                        <option value="{{ $m }}">{{ ($m == 'Other') ? 'Lainnya' : $m }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-12">
+                                            <div class="form-group">
+                                                <label for="Car_Tgl_Pinjam">Tgl Pinjam</label>
+                                                <input type="text" id="Car_Tgl_Pinjam" class="form-control shadow-sm" />
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-12">
+                                            <div class="form-group">
+                                                <label for="Car_Tgl_Kembali">Tgl Kembali</label>
+                                                <input type="text" id="Car_Tgl_Kembali" class="form-control shadow-sm" />
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-12">
+                                            <div class="form-group">
+                                                <label for="Car_Jam_Pinjam">Jam Pinjam</label>
+                                                <input type="text" id="Car_Jam_Pinjam" class="form-control shadow-sm" value="08:00" />
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-12">
+                                            <div class="form-group">
+                                                <label for="Car_Jam_Kembali">Jam Kembali</label>
+                                                <input type="text" id="Car_Jam_Kembali" class="form-control shadow-sm" value="17:00" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Tanggal default mengikuti Tanggal Kegiatan. Booking dibuat otomatis saat status jadi ACCEPTED; bila gagal (misal mobil bentrok) buat manual via menu Car Rent.</small>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
                     <div class="col-12 mt-2">
@@ -143,6 +191,23 @@
 var myCalendar;
 myCalendar = new dhtmlXCalendarObject(["Schedule_Date"]);
 myCalendar.setDateFormat("%Y-%m-%d");
+var carCal = new dhtmlXCalendarObject(["Car_Tgl_Pinjam", "Car_Tgl_Kembali"]);
+carCal.setDateFormat("%Y-%m-%d");
+
+$('#Need_Car').on('change', function () {
+    var need = $(this).is(':checked');
+    $('#NeedCarBody').toggle(need);
+    if (need) {
+        if (!$('#Car_Tgl_Pinjam').val()) $('#Car_Tgl_Pinjam').val($('#Schedule_Date').val());
+        if (!$('#Car_Tgl_Kembali').val()) $('#Car_Tgl_Kembali').val($('#Schedule_Date').val());
+    }
+});
+$('#Schedule_Date').on('change blur', function () {
+    if ($('#Need_Car').is(':checked')) {
+        if (!$('#Car_Tgl_Pinjam').val()) $('#Car_Tgl_Pinjam').val($(this).val());
+        if (!$('#Car_Tgl_Kembali').val()) $('#Car_Tgl_Kembali').val($(this).val());
+    }
+});
 
 var rowCost = 1;
 
@@ -189,6 +254,16 @@ $('#submitBtn').click(function (e) {
         alert("Rute asal dan tujuan tidak boleh sama!");
         return;
     }
+    if ($('#Need_Car').is(':checked')) {
+        if (!$('#Car_Jenis_Mobil').val() || !$('#Car_Tgl_Pinjam').val() || !$('#Car_Tgl_Kembali').val()) {
+            alert('Bila butuh mobil: jenis mobil + tanggal pinjam/kembali wajib diisi!');
+            return;
+        }
+        if ($('#Car_Tgl_Kembali').val() < $('#Car_Tgl_Pinjam').val()) {
+            alert('Tanggal kembali mobil tidak boleh sebelum tanggal pinjam!');
+            return;
+        }
+    }
 
     $.ajax({
         url: 'hrd-sppd-new-submit',
@@ -226,7 +301,13 @@ function buildData() {
         Schedule_Time: $('#Schedule_Time').val(),
         Program_Name: $('#Program_Name').val(),
         Description: $('#Description').val(),
-        Estimated_Cost: $('#Estimated_Cost').val()
+        Estimated_Cost: $('#Estimated_Cost').val(),
+        Need_Car: $('#Need_Car').is(':checked') ? 1 : 0,
+        Car_Jenis_Mobil: $('#Car_Jenis_Mobil').val(),
+        Car_Tgl_Pinjam: $('#Car_Tgl_Pinjam').val(),
+        Car_Tgl_Kembali: $('#Car_Tgl_Kembali').val(),
+        Car_Jam_Pinjam: $('#Car_Jam_Pinjam').val(),
+        Car_Jam_Kembali: $('#Car_Jam_Kembali').val()
     };
     $("[id^='Cost_']").each(function () {
         var idx = $(this).attr('id').replace('Cost_', '');

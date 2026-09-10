@@ -16,6 +16,31 @@
 
     <div class="card border-primary shadow-sm mb-4">
         <div class="card-body">
+            <!-- Filter: Tipe / SPPD / Mobil / Tanggal -->
+            <div class="row mb-2">
+                <div class="col-md-2 col-6">
+                    <select id="CARRENT_F_Trip" class="form-control form-control-sm">
+                        <option value="">Semua Tipe</option>
+                        <option value="NON_SPPD">NON_SPPD</option>
+                        <option value="SPPD">SPPD</option>
+                    </select>
+                </div>
+                <div class="col-md-3 col-6">
+                    <input type="text" id="CARRENT_F_Sppd" class="form-control form-control-sm" placeholder="Cari No SPPD..." />
+                </div>
+                <div class="col-md-2 col-6">
+                    <input type="text" id="CARRENT_F_Mobil" class="form-control form-control-sm" placeholder="Jenis Mobil..." />
+                </div>
+                <div class="col-md-2 col-6">
+                    <input type="text" id="CARRENT_F_From" class="form-control form-control-sm bg-white" placeholder="Tgl dari (YYYY-MM-DD)" readonly />
+                </div>
+                <div class="col-md-2 col-6">
+                    <input type="text" id="CARRENT_F_To" class="form-control form-control-sm bg-white" placeholder="Tgl s/d (YYYY-MM-DD)" readonly />
+                </div>
+                <div class="col-md-1 col-6">
+                    <button type="button" id="CARRENT_Filter" class="btn btn-primary btn-sm btn-block">Filter</button>
+                </div>
+            </div>
             <!-- Toolbar -->
             <div id="CARRENT_TOOLBAR" class="d-flex flex-wrap align-items-center mb-2">
                 <button type="button" id="CARRENT_New" class="btn btn-primary mr-2">
@@ -52,25 +77,25 @@
             "No.,Car Rent No,User Name,NIK,Jabatan,Departemen,Site/Office,SIM Link," +
             "Keperluan,Tujuan Penggunaan,Tanggal Peminjaman,Jam Peminjaman," +
             "Tanggal Pengembalian,Jam Pengembalian,Jenis Mobil," +
-            "Kerusakan/Denda,Bukti Pembayaran,Status"
+            "Kerusakan/Denda,Bukti Pembayaran,Status,Tipe,No SPPD"
         );
         CARRENT.attachHeader(
             "&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter," +
             "#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter," +
-            "#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"
+            "#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"
         );
 
         CARRENT.setInitWidths(
-            "60,150,150,100,120,130,100,180,120,200,110,90,120,100,90,130,150,70"
+            "60,150,150,100,120,130,100,180,120,200,110,90,120,100,90,130,150,70,80,150"
         );
         CARRENT.setColAlign(
-            "center,center,left,center,left,left,left,left,left,left,center,center,center,center,center,left,left,center"
+            "center,center,left,center,left,left,left,left,left,left,center,center,center,center,center,left,left,center,center,left"
         );
         CARRENT.setColSorting(
-            "int,str,str,str,str,str,str,str,str,str,date,str,date,str,str,str,str,str"
+            "int,str,str,str,str,str,str,str,str,str,date,str,date,str,str,str,str,str,str,str"
         );
         CARRENT.setColTypes(
-            "ro,ed,ro,ed,ro,ed,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro"
+            "ro,ed,ro,ed,ro,ed,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro"
         );
         CARRENT.setDateFormat("%Y-%m-%d");
         CARRENT.setNumberFormat("0", 0, ".", "");
@@ -83,8 +108,17 @@
 
         // ── Load data ──
         function CARRENTLoad() {
-            CARRENT.clearAndLoad('hrd-car-rent-data');
+            var q = [];
+            if ($('#CARRENT_F_Trip').val()) q.push('Trip_Type=' + encodeURIComponent($('#CARRENT_F_Trip').val()));
+            if ($('#CARRENT_F_Sppd').val()) q.push('SPPD_No=' + encodeURIComponent($('#CARRENT_F_Sppd').val()));
+            if ($('#CARRENT_F_Mobil').val()) q.push('Jenis_Mobil=' + encodeURIComponent($('#CARRENT_F_Mobil').val()));
+            if ($('#CARRENT_F_From').val()) q.push('Tanggal_From=' + encodeURIComponent($('#CARRENT_F_From').val()));
+            if ($('#CARRENT_F_To').val()) q.push('Tanggal_To=' + encodeURIComponent($('#CARRENT_F_To').val()));
+            var url = 'hrd-car-rent-data' + (q.length ? '?' + q.join('&') : '');
+            CARRENT.clearAndLoad(url);
         }
+
+        $('#CARRENT_Filter').on('click', CARRENTLoad);
 
         // ── Toolbar handlers ──
         $('#CARRENT_New').on('click', function() {
@@ -110,6 +144,10 @@
         });
 
         // ── Init ──
+        if (typeof dhtmlXCalendarObject !== 'undefined') {
+            var fCal = new dhtmlXCalendarObject(['CARRENT_F_From', 'CARRENT_F_To']);
+            fCal.setDateFormat('%Y-%m-%d');
+        }
         CARRENTLoad();
     </script>
 @endsection

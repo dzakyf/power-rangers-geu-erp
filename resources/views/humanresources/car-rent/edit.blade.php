@@ -40,6 +40,27 @@ if (!$cr) {
                         <div class="FormInput_left col-md-12">Link SIM (Google Drive / URL)</div>
                         <div class="FormInput_right col-md-12"><input type="text" id="Sim_Link" size="60" value="{{ $cr->Sim_Link }}" placeholder="https://drive.google.com/open?id=..." /></div>
                     </div>
+                    <h6 style="font-weight:bold; margin:20px 0 10px 0;">Jenis Perjalanan</h6>
+                    <div class="row">
+                        <div class="FormInput_left col-md-6">Tipe Peminjaman</div>
+                        <div class="FormInput_right col-md-6">
+                            <?php $tripType = $cr->Trip_Type ?? 'NON_SPPD'; ?>
+                            <label class="mr-3"><input type="radio" name="Trip_Type" value="NON_SPPD" {{ $tripType == 'NON_SPPD' ? 'checked' : '' }} /> Non-SPPD (Operasional)</label>
+                            <label><input type="radio" name="Trip_Type" value="SPPD" {{ $tripType == 'SPPD' ? 'checked' : '' }} /> SPPD (Dinas)</label>
+                        </div>
+                        <div class="FormInput_left col-md-6" id="SPPD_Label" style="{{ $tripType == 'SPPD' ? '' : 'display:none;' }}">Nomor SPPD (harus ACCEPTED)</div>
+                        <div class="FormInput_right col-md-6" id="SPPD_Field" style="{{ $tripType == 'SPPD' ? '' : 'display:none;' }}">
+                            <select id="SPPD_ID" class="form-control">
+                                <option value="">-- Pilih SPPD --</option>
+                                @foreach($sppdList ?? [] as $s)
+                                    <option value="{{ $s->ID }}" {{ (string)($cr->SPPD_ID ?? '') === (string)$s->ID ? 'selected' : '' }}>{{ $s->SPPD_No }} — {{ $s->Destination }} ({{ $s->Schedule_Date }})</option>
+                                @endforeach
+                                @if(!empty($cr->SPPD_ID) && ($sppdList ?? collect())->where('ID', $cr->SPPD_ID)->count() == 0)
+                                    <option value="{{ $cr->SPPD_ID }}" selected>{{ $cr->SPPD_No ?? $cr->SPPD_ID }} (arsip)</option>
+                                @endif
+                            </select>
+                        </div>
+                    </div>
                     <h6 style="font-weight:bold; margin:20px 0 10px 0;">Keperluan & Tujuan Penggunaan</h6>
                     <div class="row">
                         <div class="FormInput_left col-md-6">Keperluan</div>
@@ -89,9 +110,12 @@ if (!$cr) {
                         <div class="FormInput_right col-md-6">
                             <select id="Jenis_Mobil" class="form-control">
                                 <option value="">-- Pilih Jenis Mobil --</option>
-                                @foreach (['Rush', 'Avanza', 'Innova', 'Pajero', 'Alphard', 'Hiace', 'Other'] as $m)
+                                @foreach (($fleetList ?? ['Rush', 'Avanza', 'Innova', 'Pajero', 'Alphard', 'Hiace', 'Other']) as $m)
                                     <option value="{{ $m }}" {{ $cr->Jenis_Mobil == $m ? 'selected' : '' }}>{{ ($m == 'Other') ? 'Lainnya' : $m }}</option>
                                 @endforeach
+                                @if(!empty($cr->Jenis_Mobil) && !in_array($cr->Jenis_Mobil, ($fleetList ?? [])))
+                                    <option value="{{ $cr->Jenis_Mobil }}" selected>{{ $cr->Jenis_Mobil }} (arsip)</option>
+                                @endif
                             </select>
                         </div>
                     </div>
@@ -118,19 +142,31 @@ if (!$cr) {
             crEditCal.setDateFormat("%Y-%m-%d");
             $('#Jam_Peminjaman').val('{{ $cr->Jam_Peminjaman }}');
             $('#Jam_Pengembalian').val('{{ $cr->Jam_Pengembalian }}');
+            function toggleSppd() {
+                var isSppd = $('input[name="Trip_Type"]:checked').val() == 'SPPD';
+                $('#SPPD_Label, #SPPD_Field').toggle(isSppd);
+            }
+            $('input[name="Trip_Type"]').on('change', toggleSppd);
         });
 
         $('#SubmitCarRentEdit').on('click', function(e) {
             e.preventDefault();
+            var tripType = $('input[name="Trip_Type"]:checked').val() || 'NON_SPPD';
+            var sppdId = $('#SPPD_ID').val() || '';
             var tanggalPengembalian = $('#Tanggal_Pengembalian').val();
             var tujuan = $('#Tujuan_Penggunaan').val();
             var jenisMobil = $('#Jenis_Mobil').val();
+            if (tripType == 'SPPD' && sppdId == '') { alert('SPPD wajib dipilih untuk tipe SPPD!'); $('#SPPD_ID').focus(); return false; }
             if (tanggalPengembalian == '') { alert('Tanggal Pengembalian harus diisi!'); $('#Tanggal_Pengembalian').focus(); return false; }
             if (tujuan == '') { alert('Tujuan Penggunaan harus diisi!'); $('#Tujuan_Penggunaan').focus(); return false; }
             if (jenisMobil == '') { alert('Jenis Mobil harus dipilih!'); $('#Jenis_Mobil').focus(); return false; }
             $.blockUI();
-            var values = [];
+            var values = ['Trip_Type=' + encodeURIComponent(tripType)];
+            if (tripType == 'SPPD') { values.push('SPPD_ID=' + encodeURIComponent(sppdId)); }
             $('#formCarRentEdit input, #formCarRentEdit select, #formCarRentEdit textarea').each(function() {
+                var id = $(this).attr('id');
+                if (id == 'SPPD_ID') return; // sudah dikirim eksplisit di atas
+                if ($(this).attr('name') == 'Trip_Type') return;
                 var type = $(this).attr('type');
                 if ((type == 'checkbox' || type == 'radio') && this.checked) {
                     values.push($(this).attr('id') + '=' + $(this).val());

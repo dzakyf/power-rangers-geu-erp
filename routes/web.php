@@ -127,8 +127,16 @@ Route::get('partner-early-registration', function () {
 });
 
 Route::get('open-recruitment-employee', function () {
-    return view('humanresources.recruitment.recruitment-new-open');
+    $requisitions = \Illuminate\Support\Facades\DB::table('requisition')
+        ->where('Status', 'APPROVED')
+        ->orderBy('ID', 'DESC')
+        ->get();
+    return view('humanresources.recruitment.recruitment-new-open', [
+        'requisitions' => $requisitions,
+        'publicLocation' => 'GEU-HO',
+    ]);
 });
+Route::post('open-recruitment-submit', [HCGARecruitmentNewSubmitController::class, 'storePublic'])->middleware('throttle:10,1');
 Route::get('partner-registration', function () {
     // Validate the blast token up-front so leads with an expired/used link
     // see a clear notice instead of a form they cannot submit.
@@ -5598,11 +5606,14 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("xml-$hcProcurementPref-detail", [HCGAProcurementController::class, 'detailXml']);
     Route::get("$hcProcurementPref-log", [HCGAProcurementController::class, 'log']);
     Route::get("xml-$hcProcurementPref-log", [HCGAProcurementController::class, 'logData']);
+    Route::get("$hcProcurementPref-print-pr", [HCGAProcurementController::class, 'printPR']);
+    Route::get("$hcProcurementPref-print-po", [HCGAProcurementController::class, 'printPO']);
     
     $hcProcurementApprovalPref = "$hcProcurementPref-approval";
     Route::get("$hcProcurementApprovalPref-index", [HCGAProcurementApprovalController::class, 'index']);
     Route::get("$hcProcurementApprovalPref-data", [HCGAProcurementApprovalController::class, 'data']);
     Route::get("$hcProcurementApprovalPref-detail", [HCGAProcurementApprovalController::class, 'detail']);
+    Route::post("$hcProcurementApprovalPref-detail-submit", [HCGAProcurementApprovalController::class, 'approval']);
 
     $isccTraceabilityPref = "cns-iscc-traceability";
     Route::get("$isccTraceabilityPref-index", [ISCCTraceabilityController::class, 'index'])->name($isccTraceabilityPref . '.index');
@@ -5718,7 +5729,7 @@ Route::group(['middleware' => 'log.access'], function () {
 
     $hcCarRentPref = "$hcPref-car-rent";
     Route::get("$hcCarRentPref-index", [HCGACarRentController::class, 'index']);
-    Route::post("$hcCarRentPref-data", [HCGACarRentController::class, 'data']);
+    Route::match(['GET', 'POST'], "$hcCarRentPref-data", [HCGACarRentController::class, 'data']);
     Route::get("$hcCarRentPref-new", [HCGACarRentController::class, 'create']);
     Route::post("$hcCarRentPref-new-submit", [HCGACarRentController::class, 'store']);
     Route::get("$hcCarRentPref-detail", [HCGACarRentController::class, 'detail']);
@@ -5741,6 +5752,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcSppdPref-print", [HCGASppdController::class, 'printPengajuan']);
     Route::get("$hcSppdPref-print-approved", [HCGASppdController::class, 'printPersetujuan']);
     Route::post("$hcSppdPref-close", [HCGASppdController::class, 'close']);
+    Route::post("$hcSppdPref-create-car-rent", [HCGASppdController::class, 'createCarRent']);
 
     $hcSppdApprovalPref = "$hcSppdPref-approval";
     Route::get("$hcSppdApprovalPref-index", [HCGASppdApprovalController::class, 'index']);
