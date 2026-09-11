@@ -58,6 +58,7 @@ class SppdController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->SPPD_No) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Requester_Name) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Department) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->Sppd_Type ?? 'NORMAL') . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Destination) . "</cell>";
             echo "<cell>" . htmlspecialchars($route) . "</cell>";
             echo "<cell>" . htmlspecialchars($dest) . "</cell>";
@@ -86,6 +87,24 @@ class SppdController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
+
+        $sppdType = trim($request->input('Sppd_Type', 'NORMAL')) ?: 'NORMAL';
+        if ($sppdType === 'RELOKASI') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Relokasi/Mutasi belum tersedia, silakan pilih jenis lain',
+            ], 422);
+        }
+
+        $dateStart  = trim($request->input('Date_Start', ''));
+        $dateFinish = trim($request->input('Date_Finish', ''));
+        if ($dateStart === '' || $dateFinish === '') {
+            return response()->json(['status' => 'error', 'message' => 'Tanggal mulai dan selesai wajib diisi'], 422);
+        }
+        if ($dateFinish < $dateStart) {
+            return response()->json(['status' => 'error', 'message' => 'Tanggal selesai tidak boleh sebelum tanggal mulai'], 422);
+        }
+        $spanDays = (int) \Carbon\Carbon::parse($dateStart)->diffInDays(\Carbon\Carbon::parse($dateFinish)) + 1;
 
         $required = ['Department', 'Destination', 'Route_Start', 'Route_Finish', 'Schedule_Date', 'Schedule_Time', 'Program_Name', 'Description'];
         foreach ($required as $f) {
@@ -117,12 +136,56 @@ class SppdController extends Controller
             ], 422);
         }
 
-        $approver = self::getApprover();
-        $approverId   = $approver ? $approver->id : null;
-        $approverName = $approver ? ($approver->Name ?: $approver->username) : '';
-
         $nama = $user->Name ?: $user->username;
         $nik  = $user->Emp_ID ?: '';
+
+        $originSite  = trim($request->input('Origin_Site', ''));
+        $targetSite  = trim($request->input('Target_Site', ''));
+        $reason      = trim($request->input('Reason', ''));
+
+        if ($sppdType === 'NORMAL') {
+            if ($spanDays > 14) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'SPPD Normal maksimal 14 hari',
+                ], 422);
+            }
+            $approver = self::getApprover();
+            $approverId   = $approver ? $approver->id : null;
+            $approverName = $approver ? ($approver->Name ?: $approver->username) : '';
+            $status = 'SUBMITTED';
+        } else {
+            // PERBANTUAN SEMENTARA
+            if ($spanDays <= 14) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Perbantuan Sementara harus lebih dari 14 hari',
+                ], 422);
+            }
+            if ($originSite === '' || $targetSite === '' || $reason === '') {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Asal Site, Lokasi Perbantuan, dan Alasan wajib diisi',
+                ], 422);
+            }
+
+            $org = self::getRequesterOrg($nik);
+            if (!$org) {
+                return response()->json(['status' => 'error', 'message' => 'Profil organisasi tidak ditemukan, hubungi HCGA'], 422);
+            }
+            $level = self::getRequesterLevel($org);
+            if ($level === null) {
+                return response()->json(['status' => 'error', 'message' => 'Level organisasi tidak ditemukan, hubungi HCGA'], 422);
+            }
+
+            $placed = self::pbPlaceFirstStage($org, $level);
+            if (!$placed['ok']) {
+                return response()->json(['status' => 'error', 'message' => $placed['message']], 422);
+            }
+            $status = $placed['status'];
+            $approverId   = $placed['approver_id'];
+            $approverName = $placed['approver_name'];
+        }
 
         // Kebutuhan mobil opsional (dipakai auto-create car_rent saat SPPD ACCEPTED).
         $needCar = (int) $request->input('Need_Car', 0) === 1 ? 1 : 0;
@@ -165,7 +228,13 @@ class SppdController extends Controller
                 'Schedule_Time'  => trim($request->Schedule_Time),
                 'Program_Name'   => trim($request->Program_Name),
                 'Estimated_Cost' => $total,
-                'Status'         => 'SUBMITTED',
+                'Sppd_Type'      => $sppdType,
+                'Date_Start'     => $dateStart,
+                'Date_Finish'    => $dateFinish,
+                'Origin_Site'    => $originSite ?: null,
+                'Target_Site'    => $targetSite ?: null,
+                'Reason'         => $reason ?: null,
+                'Status'         => $status,
                 'Approver_ID'    => $approverId,
                 'Approver_Name'  => $approverName,
                 'Created_By'     => $user->username,
@@ -191,24 +260,32 @@ class SppdController extends Controller
                 'Action'     => 'SUBMITTED',
                 'Actor_ID'   => $user->id,
                 'Actor_Name' => $nama,
-                'Note'       => 'Request SPPD diajukan',
+                'Note'       => 'Request ' . $sppdType . ' diajukan',
                 'Created_At' => now(),
             ]);
 
-            if ($approverId && (int) $approverId === (int) $user->id) {
+            $wasApproved = ($sppdType === 'PERBANTUAN' && $status === 'APPROVED');
+            $selfApproved = ($sppdType === 'NORMAL' && $approverId && (int) $approverId === (int) $user->id);
+
+            if ($wasApproved || $selfApproved) {
+                $finalStatus = $wasApproved ? 'APPROVED' : 'ACCEPTED';
+                $note = $wasApproved
+                    ? 'Approve otomatis (pengaju adalah satu-satunya approver pada rantai organisasi)'
+                    : 'Approve otomatis (pengaju adalah HCGA Manager)';
                 DB::table('sppd')->where('ID', $sppdId)->update([
-                    'Status'        => 'ACCEPTED',
+                    'Status'        => $finalStatus,
                     'Approved_At'   => now(),
-                    'Approval_Note' => 'Approve otomatis (pengaju adalah HCGA Manager)',
+                    'Approval_Note' => $note,
                 ]);
                 DB::table('sppd_log')->insert([
                     'SPPD_ID'    => $sppdId,
-                    'Action'     => 'APPROVED',
+                    'Action'     => $finalStatus,
                     'Actor_ID'   => $user->id,
                     'Actor_Name' => $nama,
-                    'Note'       => 'Approve otomatis (pengaju adalah HCGA Manager)',
+                    'Note'       => $note,
                     'Created_At' => now(),
                 ]);
+                $status = $finalStatus;
                 // Auto-create car_rent bila pengaju butuh mobil (idempoten, ikut transaksi ini).
                 $sppdRow = DB::table('sppd')->where('ID', $sppdId)->first();
                 list($carErr, $carNo, $carInfo) = CarRentController::createFromSppd($sppdRow, $user->username);
@@ -221,7 +298,7 @@ class SppdController extends Controller
 
             DB::commit();
 
-            Log::info('SPPD created: ' . $SPPD_No . ' by ' . $user->username);
+            Log::info('SPPD created: ' . $SPPD_No . ' type=' . $sppdType . ' by ' . $user->username . ' status=' . $status);
 
             return response()->json([
                 'status'  => 'success',
@@ -248,16 +325,17 @@ class SppdController extends Controller
         $user = Auth::user();
         $isRequester = (int) $sppd->Requester_ID === (int) $user->id;
         $isApprover  = (int) $sppd->Approver_ID === (int) $user->id;
-        if (!$isRequester && !$isApprover) {
+        if (!$isRequester && !$isApprover && !$this->isPerbantuanParticipant($sppd, $user)) {
             abort(403, 'Anda tidak berhak mengakses data ini');
         }
 
         $costs = DB::table('sppd_cost')->where('SPPD_ID', $sppd->ID)->get();
         $logs  = DB::table('sppd_log')->where('SPPD_ID', $sppd->ID)->orderBy('ID', 'ASC')->get();
-        $canClose = $isRequester && $sppd->Status == 'ACCEPTED';
+        $canClose = $isRequester && in_array($sppd->Status, ['ACCEPTED', 'APPROVED']);
+        $canPrint = $sppd->Sppd_Type !== 'RELOKASI';
         $carRents = DB::table('car_rent')->where('SPPD_ID', $sppd->ID)->orderBy('ID', 'DESC')->get();
 
-        return view('humanresources.sppd.detail', compact('sppd', 'costs', 'logs', 'canClose', 'carRents'));
+        return view('humanresources.sppd.detail', compact('sppd', 'costs', 'logs', 'canClose', 'canPrint', 'carRents'));
     }
 
     // Retry manual auto-create car_rent bila hook approval gagal (misal overlap saat itu).
@@ -273,8 +351,8 @@ class SppdController extends Controller
         if (!$isRequester && !$isApprover) {
             return response()->json(['status' => 'error', 'message' => 'Anda tidak berhak atas SPPD ini'], 403);
         }
-        if ($sppd->Status !== 'ACCEPTED') {
-            return response()->json(['status' => 'error', 'message' => 'Hanya SPPD ACCEPTED yang bisa dibuatkan booking mobil'], 422);
+        if (!in_array($sppd->Status, ['ACCEPTED', 'APPROVED'])) {
+            return response()->json(['status' => 'error', 'message' => 'Hanya SPPD yang sudah disetujui yang bisa dibuatkan booking mobil'], 422);
         }
         if (empty($sppd->Need_Car)) {
             return response()->json(['status' => 'error', 'message' => 'SPPD ini tidak ditandai butuh mobil'], 422);
@@ -309,10 +387,10 @@ class SppdController extends Controller
         if ((int) $sppd->Requester_ID !== (int) $user->id) {
             return response()->json(['status' => 'error', 'message' => 'Hanya pengaju yang dapat menutup request ini'], 403);
         }
-        if ($sppd->Status !== 'ACCEPTED') {
+        if (!in_array($sppd->Status, ['ACCEPTED', 'APPROVED'])) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Request hanya dapat ditutup setelah disetujui (ACCEPTED)',
+                'message' => 'Request hanya dapat ditutup setelah disetujui',
             ], 422);
         }
 
@@ -352,6 +430,13 @@ class SppdController extends Controller
         }
         $this->authorizeViewer($sppd);
 
+        if (($sppd->Sppd_Type ?? 'NORMAL') === 'PERBANTUAN') {
+            return $this->printPerbantuan($sppd);
+        }
+        if (($sppd->Sppd_Type ?? 'NORMAL') === 'RELOKASI') {
+            abort(403, 'Dokumen relokasi/mutasi belum tersedia');
+        }
+
         $path = public_path('template-pengajuan-sppd.docx');
         if (!file_exists($path)) {
             abort(404, 'Template not found');
@@ -377,13 +462,110 @@ class SppdController extends Controller
         return $this->downloadDoc($doc, $filename);
     }
 
+    protected function printPerbantuan($sppd)
+    {
+        $org = self::getRequesterOrg($sppd->Requester_NIK);
+        $level = $org ? self::getRequesterLevel($org) : null;
+
+        // Template by requester level: >=7 staff (junior), 2..6 supervisor/manager (middle), <=1 VP/CEO (dept-head).
+        if ($level !== null && $level >= 7) {
+            $templateName = 'template-perbantuan-sementara-junior-middle.docx';
+        } elseif ($level !== null && $level >= 2) {
+            $templateName = 'template-perbantuan-sementara-middle-senior.docx';
+        } else {
+            $templateName = 'template-perbantuan-sementara-dept-head.docx';
+        }
+
+        $path = public_path($templateName);
+        if (!file_exists($path)) {
+            abort(404, 'Template not found');
+        }
+
+        $requesterUser = DB::table('users')->where('id', $sppd->Requester_ID)->first();
+        $position = $requesterUser ? ($requesterUser->Position ?: $requesterUser->Priv_ID) : '';
+
+        // Resolve signature names from the HCGA org chain (by level).
+        $nameAtLevel = function ($lv) use ($org) {
+            if (!$org) {
+                return '';
+            }
+            $q = DB::table('organization_structure')->where('Alerted', 1);
+            if ((int) $lv === 0) {
+                $q->where('Level0', 1);
+            } else {
+                $q->where('Level' . $lv, 1)->where('Department', $org->Department);
+            }
+            $row = $q->orderBy('ID', 'ASC')->first();
+            return $row ? $row->Name : '';
+        };
+
+        $directSuperior = '';
+        $deptHead = '';
+        if ($level !== null) {
+            if ($level >= 7) {
+                $directSuperior = $nameAtLevel(6); // supervisor
+                $deptHead = $nameAtLevel(3);       // manager
+            } elseif ($level == 3) {
+                $deptHead = $nameAtLevel(1);       // VP
+            } elseif ($level >= 2) {
+                $deptHead = $nameAtLevel(3);       // manager
+            }
+        }
+
+        $costs = DB::table('sppd_cost')->where('SPPD_ID', $sppd->ID)->get();
+
+        $start = \Carbon\Carbon::parse($sppd->Date_Start);
+        $finish = \Carbon\Carbon::parse($sppd->Date_Finish);
+        $duration = ((int) $start->diffInDays($finish) + 1) . ' hari';
+
+        $money = function ($val) {
+            return $this->generatorService->rupiahFormatter((float) $val);
+        };
+
+        $doc = new TemplateProcessor($path);
+        $doc->setValues([
+            'revision_no'    => '00',
+            'effective_date' => Carbon::now()->locale('id')->translatedFormat('d F Y'),
+            'reference_no'   => $sppd->SPPD_No,
+            'referece_no'    => $sppd->SPPD_No,
+            'name'           => $sppd->Requester_Name,
+            'position'       => $position,
+            'origin_site'    => $sppd->Origin_Site ?: '',
+            'target_site'    => $sppd->Target_Site ?: '',
+            'duration'       => $duration,
+            'reason'         => $sppd->Reason ?: '',
+            'total_amount'   => $money($sppd->Estimated_Cost),
+            'amount_written' => $sppd->Estimated_Cost > 0
+                ? ucfirst($this->generatorService->numberToWords((int) $sppd->Estimated_Cost)) . ' rupiah'
+                : '',
+            'requested_by'   => $sppd->Requester_Name,
+            'direct_superior'=> $directSuperior,
+            'dept_head'      => $deptHead,
+        ]);
+
+        if ($costs->count() > 0) {
+            $rows = $costs->map(function ($c) use ($money) {
+                return [
+                    'description' => $c->Description ?: '',
+                    'price'       => $money($c->Cost),
+                    'notes'       => '',
+                ];
+            })->values()->toArray();
+            $doc->cloneRowAndSetValues('description', $rows);
+        }
+
+        $filename = 'Form-Perbantuan-Sementara-' . $sppd->SPPD_No . '.docx';
+        return $this->downloadDoc($doc, $filename);
+    }
+
     public function printPersetujuan(Request $request)
     {
         $sppd = DB::table('sppd')->where('ID', $request->ID)->first();
         if (!$sppd) {
             abort(404);
         }
-        if ($sppd->Status !== 'ACCEPTED') {
+        $approvedStatuses = ($sppd->Sppd_Type ?? 'NORMAL') === 'PERBANTUAN' ? ['APPROVED'] : ['ACCEPTED'];
+        if (!in_array($sppd->Status, $approvedStatuses)) {
             abort(403, 'Approval document hanya tersedia setelah disetujui');
         }
         $this->authorizeViewer($sppd);
@@ -419,6 +601,135 @@ class SppdController extends Controller
         return $this->downloadDoc($doc, $filename);
     }
 
+    // ============ Perbantuan Sementara (org-chain) helpers ============
+
+    public static function getRequesterOrg($empId)
+    {
+        return DB::table('organization_structure')->where('NIK', $empId)->first();
+    }
+
+    public static function getRequesterLevel($org)
+    {
+        foreach (range(0, 8) as $lv) {
+            $col = 'Level' . $lv;
+            if (isset($org->$col) && (int) $org->$col == 1) {
+                return $lv;
+            }
+        }
+        return null;
+    }
+
+    // Ordered approval stages (most junior first). Value = the org level flag number.
+    public static function pbStageLevels()
+    {
+        return [
+            'APPROVAL_SUPERVISOR' => 6,
+            'APPROVAL_MANAGER'    => 3,
+            'APPROVAL_VP'         => 1,
+            'APPROVAL_CEO'        => 0,
+        ];
+    }
+
+    public static function isPbStage($status)
+    {
+        return array_key_exists($status, self::pbStageLevels());
+    }
+
+    // Approver for a stage: L6/L3/L1 scoped by requester Department; CEO (L0) is global.
+    public static function pbApproverForStage($stage, $org)
+    {
+        $levels = self::pbStageLevels();
+        if (!array_key_exists($stage, $levels)) {
+            return null;
+        }
+        $lv = $levels[$stage];
+        $q = DB::table('organization_structure')->where('Alerted', 1);
+        if ((int) $lv === 0) {
+            $q->where('Level0', 1);
+        } else {
+            $q->where('Level' . $lv, 1)->where('Department', $org->Department);
+        }
+        foreach ($q->orderBy('ID', 'ASC')->get() as $cand) {
+            $user = DB::table('users')->where('Emp_ID', $cand->NIK)->first();
+            if ($user) {
+                return $user;
+            }
+        }
+        return null;
+    }
+
+    // Stages more senior than the given requester level.
+    public static function pbStagesAbove($level)
+    {
+        $stages = [];
+        foreach (self::pbStageLevels() as $stage => $lv) {
+            if ($level !== null && $lv < $level) {
+                $stages[] = $stage;
+            }
+        }
+        return $stages;
+    }
+
+    // Place the FIRST stage at submit time; skips absent levels and self.
+    public static function pbPlaceFirstStage($org, $level)
+    {
+        $requesterId = Auth::user()->id;
+        foreach (self::pbStagesAbove($level) as $stage) {
+            $approver = self::pbApproverForStage($stage, $org);
+            if (!$approver) {
+                continue; // skip absent level
+            }
+            if ((int) $approver->id === (int) $requesterId) {
+                continue; // skip self
+            }
+            return [
+                'ok' => true,
+                'status' => $stage,
+                'approver_id' => $approver->id,
+                'approver_name' => $approver->Name ?: $approver->username,
+            ];
+        }
+        return ['ok' => true, 'status' => 'APPROVED', 'approver_id' => null, 'approver_name' => null];
+    }
+
+    // Advance to the next more-senior stage (skipping absent levels and self).
+    public static function pbAdvanceStage($org, $currentStage, $actorId)
+    {
+        $order = array_keys(self::pbStageLevels());
+        $idx = array_search($currentStage, $order);
+        if ($idx === false) {
+            return ['status' => 'APPROVED', 'approver_id' => null, 'approver_name' => null];
+        }
+        foreach (array_slice($order, $idx + 1) as $stage) {
+            $approver = self::pbApproverForStage($stage, $org);
+            if (!$approver) {
+                continue;
+            }
+            if ((int) $approver->id === (int) $actorId) {
+                continue;
+            }
+            return ['ok' => true, 'status' => $stage, 'approver_id' => $approver->id, 'approver_name' => $approver->Name ?: $approver->username];
+        }
+        return ['status' => 'APPROVED', 'approver_id' => null, 'approver_name' => null];
+    }
+
+    // Is the current user the resolved approver for this perbantuan stage?
+    public static function isPbStageApprover($sppd)
+    {
+        if (!Auth::check() || !$sppd || ($sppd->Sppd_Type ?? 'NORMAL') !== 'PERBANTUAN') {
+            return false;
+        }
+        if (!self::isPbStage($sppd->Status)) {
+            return false;
+        }
+        $org = self::getRequesterOrg($sppd->Requester_NIK);
+        if (!$org) {
+            return false;
+        }
+        $approver = self::pbApproverForStage($sppd->Status, $org);
+        return $approver && (int) $approver->id === (int) Auth::user()->id;
+    }
+
     public static function getApprover()
     {
         return DB::table('users')
@@ -444,10 +755,27 @@ class SppdController extends Controller
         return response()->download($outputPath, $filename)->deleteFileAfterSend(true);
     }
 
+    protected function isPerbantuanParticipant($sppd, $user)
+    {
+        if (($sppd->Sppd_Type ?? 'NORMAL') !== 'PERBANTUAN') {
+            return false;
+        }
+        if ($user->Department === 'HCGA') {
+            return true;
+        }
+        return DB::table('sppd_log')
+            ->where('SPPD_ID', $sppd->ID)
+            ->where('Actor_ID', $user->id)
+            ->exists();
+    }
+
     protected function authorizeViewer($sppd)
     {
         $user = Auth::user();
         if ((int) $sppd->Requester_ID === (int) $user->id || (int) $sppd->Approver_ID === (int) $user->id) {
+            return;
+        }
+        if ($this->isPerbantuanParticipant($sppd, $user)) {
             return;
         }
         abort(403, 'Anda tidak berhak mengakses dokumen ini');

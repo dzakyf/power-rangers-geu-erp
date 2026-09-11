@@ -36,6 +36,31 @@
 
                         <div class="col-md-6 col-12">
                             <div class="form-group">
+                                <label for="Sppd_Type">Jenis SPPD</label>
+                                <select id="Sppd_Type" class="form-control shadow-sm" onchange="toggleType();">
+                                    <option value="NORMAL">Normal SPPD</option>
+                                    <option value="PERBANTUAN">Perbantuan Sementara</option>
+                                    <option value="RELOKASI" disabled>Relokasi/Mutasi (belum tersedia)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-12">
+                            <div class="form-group">
+                                <label for="Date_Start">Tanggal Mulai</label>
+                                <input type="text" id="Date_Start" class="form-control shadow-sm" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-12">
+                            <div class="form-group">
+                                <label for="Date_Finish">Tanggal Selesai</label>
+                                <input type="text" id="Date_Finish" class="form-control shadow-sm" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-12">
+                            <div class="form-group">
                                 <label for="Department">Nama Departemen</label>
                                 <select id="Department" class="form-control shadow-sm" name="Department">
                                     <option value="">-- Pilih Departemen --</option>
@@ -128,6 +153,36 @@
                             </div>
                         </div>
 
+                        <div class="col-md-12 col-12" id="pbSection" style="display:none;">
+                            <div class="card border-warning mt-2">
+                                <div class="card-header bg-warning text-dark p-2">
+                                    <h6 class="m-0 font-weight-bold">Perbantuan Sementara</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 col-12">
+                                            <div class="form-group">
+                                                <label for="Origin_Site">Asal Site</label>
+                                                <input type="text" id="Origin_Site" class="form-control shadow-sm" placeholder="contoh: GEU-HO" />
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-12">
+                                            <div class="form-group">
+                                                <label for="Target_Site">Lokasi Perbantuan</label>
+                                                <input type="text" id="Target_Site" class="form-control shadow-sm" placeholder="contoh: Site Cirebon" />
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12 col-12">
+                                            <div class="form-group">
+                                                <label for="Reason">Alasan Perbantuan</label>
+                                                <textarea id="Reason" class="form-control shadow-sm" rows="2"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-md-12 col-12">
                             <div class="card border-info mt-2">
                                 <div class="card-header bg-info text-white p-2">
@@ -191,8 +246,20 @@
 var myCalendar;
 myCalendar = new dhtmlXCalendarObject(["Schedule_Date"]);
 myCalendar.setDateFormat("%Y-%m-%d");
+var rangeCal = new dhtmlXCalendarObject(["Date_Start", "Date_Finish"]);
+rangeCal.setDateFormat("%Y-%m-%d");
 var carCal = new dhtmlXCalendarObject(["Car_Tgl_Pinjam", "Car_Tgl_Kembali"]);
 carCal.setDateFormat("%Y-%m-%d");
+
+function toggleType() {
+    var t = $('#Sppd_Type').val();
+    $('#pbSection').toggle(t === 'PERBANTUAN');
+    if (t === 'RELOKASI') {
+        $('#Sppd_Type').val('NORMAL');
+        toggleType();
+        alert('Relokasi/Mutasi belum tersedia. Silakan pilih jenis lain.');
+    }
+}
 
 $('#Need_Car').on('change', function () {
     var need = $(this).is(':checked');
@@ -250,6 +317,32 @@ $('#submitBtn').click(function (e) {
         alert("Rincian biaya wajib diisi minimal satu baris!");
         return;
     }
+    if ($.trim($("#Date_Start").val()) === "" || $.trim($("#Date_Finish").val()) === "") {
+        alert("Tanggal mulai dan selesai wajib diisi!");
+        return;
+    }
+    var ds = new Date($("#Date_Start").val());
+    var df = new Date($("#Date_Finish").val());
+    if (df < ds) {
+        alert("Tanggal selesai tidak boleh sebelum tanggal mulai!");
+        return;
+    }
+    var span = Math.floor((df - ds) / 86400000) + 1;
+    var st = $('#Sppd_Type').val();
+    if (st === 'NORMAL' && span > 14) {
+        alert("SPPD Normal maksimal 14 hari!");
+        return;
+    }
+    if (st === 'PERBANTUAN') {
+        if (span <= 14) {
+            alert("Perbantuan Sementara harus lebih dari 14 hari!");
+            return;
+        }
+        if ($.trim($("#Origin_Site").val()) === "" || $.trim($("#Target_Site").val()) === "" || $.trim($("#Reason").val()) === "") {
+            alert("Asal Site, Lokasi Perbantuan, dan Alasan wajib diisi!");
+            return;
+        }
+    }
     if ($("#Route_Start").val() == $("#Route_Finish").val()) {
         alert("Rute asal dan tujuan tidak boleh sama!");
         return;
@@ -291,6 +384,12 @@ $('#submitBtn').click(function (e) {
 function buildData() {
     var out = {
         SPPD_No: $('#SPPD_No').val(),
+        Sppd_Type: $('#Sppd_Type').val(),
+        Date_Start: $('#Date_Start').val(),
+        Date_Finish: $('#Date_Finish').val(),
+        Origin_Site: $('#Origin_Site').val(),
+        Target_Site: $('#Target_Site').val(),
+        Reason: $('#Reason').val(),
         Requester_NIK: $('#Requester_NIK').val(),
         Department: $('#Department').val(),
         Requester_Name: $('#Requester_Name').val(),
