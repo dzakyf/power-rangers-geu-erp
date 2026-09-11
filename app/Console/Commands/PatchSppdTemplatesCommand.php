@@ -29,7 +29,18 @@ class PatchSppdTemplatesCommand extends Command
             $this->patchSettlementTemplate($stlPath);
         }
 
-        foreach ([$reqPath, $apprPath, $stlPath] as $path) {
+        $pbPaths = [
+            public_path('template-perbantuan-sementara-junior-middle.docx'),
+            public_path('template-perbantuan-sementara-middle-senior.docx'),
+            public_path('template-perbantuan-sementara-dept-head.docx'),
+        ];
+        foreach ($pbPaths as $pbPath) {
+            if (file_exists($pbPath)) {
+                $this->patchPerbantuanTemplate($pbPath);
+            }
+        }
+
+        foreach (array_merge([$reqPath, $apprPath, $stlPath], $pbPaths) as $path) {
             if (!file_exists($path)) {
                 continue;
             }
@@ -61,6 +72,23 @@ class PatchSppdTemplatesCommand extends Command
                 $xml,
                 1
             );
+        }
+
+        $this->writeDocumentXml($path, $xml);
+    }
+
+    protected function patchPerbantuanTemplate($path)
+    {
+        $xml = $this->readDocumentXml($path);
+
+        $xml = $this->mergeSplitMacros($xml);
+
+        // The generic merge corrupts the split `${ amount _ written }` macro into a
+        // single `${_}` marker; repair it to the intended `${amount_written}` macro.
+        $fixed = str_replace('${_}', '${amount_written}', $xml);
+        if ($fixed !== $xml) {
+            $xml = $fixed;
+            $this->info('Repaired ${ amount _ written } to ${amount_written}');
         }
 
         $this->writeDocumentXml($path, $xml);

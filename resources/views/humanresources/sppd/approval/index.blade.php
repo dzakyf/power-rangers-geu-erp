@@ -19,12 +19,12 @@
 <script>
 SppdApprovalGrid = new dhtmlXGridObject('SppdApprovalGrid');
 SppdApprovalGrid.setImagePath("./dhtmlx/imgs/");
-SppdApprovalGrid.setHeader("No,SPPD No,Requester,Department,Destination,Rute,Biaya,Status,Tanggal Pengajuan");
-SppdApprovalGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-SppdApprovalGrid.setInitWidths("40,150,150,150,150,180,140,110,150");
-SppdApprovalGrid.setColAlign("center,left,left,left,left,left,right,center,center");
-SppdApprovalGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");
-SppdApprovalGrid.setColSorting("int,str,str,str,str,str,str,str,str");
+SppdApprovalGrid.setHeader("No,SPPD No,Requester,Department,Type,Destination,Rute,Biaya,Status,Tanggal Pengajuan");
+SppdApprovalGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+SppdApprovalGrid.setInitWidths("40,150,150,150,110,150,180,140,110,150");
+SppdApprovalGrid.setColAlign("center,left,left,left,left,left,left,right,center,center");
+SppdApprovalGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+SppdApprovalGrid.setColSorting("int,str,str,str,str,str,str,str,str,str");
 SppdApprovalGrid.setSkin("dhx_skyblue");
 SppdApprovalGrid.init();
 SppdApprovalGrid.clearAndLoad('hrd-sppd-approval-data');
