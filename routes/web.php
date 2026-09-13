@@ -139,21 +139,24 @@ Route::get('open-recruitment-employee', function () {
 Route::post('open-recruitment-submit', [HCGARecruitmentNewSubmitController::class, 'storePublic'])->middleware('throttle:10,1');
 Route::get('partner-registration', function () {
     // Validate the blast token up-front so leads with an expired/used link
-    // see a clear notice instead of a form they cannot submit.
+    // see a clear notice instead of a form they cannot submit. The linked
+    // opportunity is also passed in so the form prefills the data captured
+    // earlier by the sales team.
     $token = request()->query('token');
+    $lead = null;
     if ($token) {
-        $valid = \Illuminate\Support\Facades\DB::table('opportunity')
+        $lead = \Illuminate\Support\Facades\DB::table('opportunity')
             ->where('registration_token', $token)
             ->where(function ($q) {
                 $q->whereNull('token_expires_at')
                   ->orWhere('token_expires_at', '>=', now());
             })
-            ->exists();
-        if (!$valid) {
+            ->first();
+        if (!$lead) {
             return view('partner.registration-expired');
         }
     }
-    return view('partner.registration-public');
+    return view('partner.registration-public', ['lead' => $lead]);
 });
 Route::post('partner-registration-submit', [PartnerRegistrationController::class, 'submit']);
 
@@ -5010,6 +5013,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("my-profile", [UserController::class, 'profilePage']);
     Route::get("$partner-profile-data", [UserController::class, 'getMitraData']);
     Route::post("$partner-profile-update", [UserController::class, 'updateMitraData']);
+    Route::post("$partner-profile-update-signature", [UserController::class, 'updateSignature']);
 
     $cns = "cns";
     Route::get("$cns-data-police-license", [UCOLogisticController::class, 'getPoliceLicenseNumber']);
@@ -5028,14 +5032,18 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$partnerRenewalPrefs-approval-create", [RenewalController::class, 'createApproval']);
     Route::post("$partnerRenewalPrefs-approval-approve", [ApprovalController::class, 'processRenewalToNextProgress']);
     Route::get("$partnerRenewalPrefs-download", [RenewalController::class, 'downloadRenewalApplication']);
-    Route::post("$partnerRenewalPrefs-submit-application", [RenewalController::class, 'uploadRenewalApplication']);
+    Route::post("$partnerRenewalPrefs-preview-application", [RenewalController::class, 'previewRenewalApplication']);
+    Route::post("$partnerRenewalPrefs-finalize-application", [RenewalController::class, 'finalizeRenewalApplication']);
+    Route::post("$partnerRenewalPrefs-submit-application", [RenewalController::class, 'finalizeRenewalApplication']);
 
     /** exit/terminasi */
     $partnerTerminationPrefs = "partner-termination";
     Route::get("$partnerTerminationPrefs-index", [RenewalController::class, 'indexTermination']);
     Route::get("$partnerTerminationPrefs-data", [RenewalController::class, 'getTerminationData']);
     Route::get("$partnerTerminationPrefs-download", [RenewalController::class, 'downloadTerminationApplication']);
-    Route::post("$partnerTerminationPrefs-submit-application", [RenewalController::class, 'uploadTerminationApplication']);
+    Route::post("$partnerTerminationPrefs-preview-application", [RenewalController::class, 'previewTerminationApplication']);
+    Route::post("$partnerTerminationPrefs-finalize-application", [RenewalController::class, 'finalizeTerminationApplication']);
+    Route::post("$partnerTerminationPrefs-submit-application", [RenewalController::class, 'finalizeTerminationApplication']);
     Route::get("$partnerTerminationPrefs-approval-index", [RenewalController::class, 'indexTerminationApproval']);
     Route::get("$partnerTerminationPrefs-approval-create", [RenewalController::class, 'createTerminationApproval']);
     Route::get("$partnerTerminationPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);

@@ -298,7 +298,7 @@ class SurveyController extends Controller
 
         $surveyStatus = "NEED_APPROVAL";
         if (!$isPartner && $parentId) {
-            $surveyStatus = "APPROVED";
+            $surveyStatus = "DONE_SURVEY";
         }
 
         $surveyId = DB::transaction(function () use ($b, $applicatonCode, $photo, $checklist, $environtment, $ucoEstimation, $totalScore, $surveyStatus) {
@@ -591,7 +591,7 @@ class SurveyController extends Controller
             ->exists();
 
         if ($survey && !$isPartner && !$hasApprovalRequest) {
-            DB::table('survey_location')->where('ID', $rowId)->update(['Status' => 'APPROVED']);
+            DB::table('survey_location')->where('ID', $rowId)->update(['Status' => 'DONE_SURVEY']);
 
             if ($survey->Opportunity_Partner_Id) {
                 $this->advanceOnboardingStageToSetup($survey->Opportunity_Partner_Id);

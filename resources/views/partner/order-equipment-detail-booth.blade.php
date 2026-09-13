@@ -21,7 +21,7 @@
 	FacilityBenefitsBooth.setInitWidths("60,200,100,100,100,100,100,100,100");
 	FacilityBenefitsBooth.setColAlign("center,left,center,right,right,right,center,center,center");
 	FacilityBenefitsBooth.setColSorting("int,str,str,int,int,int,str,str,int");
-	FacilityBenefitsBooth.setColTypes("ro,ro,ro,ron,ron,ron,dhxCalendar,dhxCalendar,ch");
+	FacilityBenefitsBooth.setColTypes("ro,ro,ro,edn,edn,edn,dhxCalendar,dhxCalendar,ch");
     FacilityBenefitsBooth.attachEvent("onEditCell", function (stage, rowId, cellIndex, newValue, oldValue) {
         if (cellIndex == 3 || cellIndex == 4) {
             let qty = parseFloat(FacilityBenefitsBooth.cells(rowId, 3).getValue()) || 0;

@@ -184,6 +184,10 @@ class WarehouseStockOpnameController extends Controller
                 'Approved_By' => $r->approved_by ?? auth()->user()->username ?? '',
             ]);
 
+            if ($opname->Status === 'CLOSED') {
+                $this->warehouseService->recomputeWarehouseSystemQty($opname->Warehouse_ID);
+            }
+
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Opname finalized successfully']);
         } catch (\Exception $e) {
@@ -219,6 +223,7 @@ class WarehouseStockOpnameController extends Controller
                         'Difference'   => $newDifference,
                         'Status'       => 'CLOSED',
                     ]);
+                    $this->warehouseService->recomputeWarehouseSystemQty($opname->Warehouse_ID);
                 }
 
                 DB::commit();

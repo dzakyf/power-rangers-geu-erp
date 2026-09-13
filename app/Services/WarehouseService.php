@@ -25,6 +25,21 @@ class WarehouseService
      */
     public function containerSystemQty($containerId): float
     {
+        return $this->foldEvents($this->containerEvents($containerId), null);
+    }
+
+    /**
+     * The container balance as of (strictly before) a point in time - used for
+     * a document's pre-document baseline without later events (e.g. a CLOSED
+     * opname rebaseline) contaminating it.
+     */
+    public function containerSystemQtyAsOf($containerId, ?string $asOf, array $excludeDetailIds = []): float
+    {
+        return $this->foldEvents($this->containerEvents($containerId), $asOf, $excludeDetailIds);
+    }
+
+    private function containerEvents($containerId): array
+    {
         $events = [];
 
         foreach (DB::table('warehouse_partner_supplies')
@@ -33,10 +48,10 @@ class WarehouseService
             $events[] = ['ts' => (string) $s->created_date, 'qty' => (float) $s->received_qty, 'reset' => false];
         }
 
-        foreach (DB::table('outstock_loading')
+        foreach (DB::table('outstock_details')
             ->where('Container_ID', $containerId)
-            ->get(['Actual_Qty', 'Created_At']) as $l) {
-            $events[] = ['ts' => (string) $l->Created_At, 'qty' => -(float) $l->Actual_Qty, 'reset' => false];
+            ->get(['ID', 'Actual_Qty', 'Created_At']) as $l) {
+            $events[] = ['id' => (int) $l->ID, 'ts' => (string) $l->Created_At, 'qty' => -(float) $l->Actual_Qty, 'reset' => false];
         }
 
         foreach (DB::table('warehouse_stock_opnames')
@@ -56,12 +71,46 @@ class WarehouseService
             return $a['reset'] <=> $b['reset'];
         });
 
+        return $events;
+    }
+
+    private function foldEvents(array $events, ?string $asOf, array $excludeDetailIds = []): float
+    {
         $balance = 0.0;
         foreach ($events as $e) {
+            if (!empty($e['id']) && in_array($e['id'], $excludeDetailIds, true)) {
+                continue; // this document's own loading lines
+            }
+            if ($asOf !== null && strcmp($e['ts'], $asOf) > 0) {
+                continue; // events strictly after the document's loading time
+            }
             $balance = $e['reset'] ? $e['qty'] : $balance + $e['qty'];
         }
-
         return $balance;
+    }
+
+    /**
+     * Recompute and cache the warehouse-level system quantity. Call inside a
+     * transaction; locks the warehouse row to serialise concurrent updates.
+     */
+    public function recomputeWarehouseSystemQty($warehouseId): float
+    {
+        $wh = DB::table('warehouse_partner')->where('id', $warehouseId)->lockForUpdate()->first(['id']);
+        if (!$wh) {
+            return 0.0;
+        }
+
+        $total = 0.0;
+        foreach (DB::table('master_container')->where('Warehouse_ID', $warehouseId)->pluck('ID') as $cid) {
+            $total += $this->containerSystemQty($cid);
+        }
+
+        DB::table('warehouse_partner')->where('id', $warehouseId)->update([
+            'System_Qty'            => $total,
+            'System_Qty_Updated_At' => now(),
+        ]);
+
+        return $total;
     }
 
     public function calculateMonthlyFinancialStatement(

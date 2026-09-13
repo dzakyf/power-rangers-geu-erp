@@ -143,6 +143,24 @@
                     </div>
 
                     <hr>
+                    <h6 class="text-muted font-weight-bold mb-3">Tanda Tangan</h6>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            @include('ui-components.signature-canvas-field', [
+                                'id' => 'profile_sig',
+                                'name' => 'signature',
+                                'label' => 'Gambar tanda tangan Anda',
+                                'height' => 200,
+                            ])
+                            <button type="button" class="btn btn-success mt-2" id="saveSignatureBtn">Simpan Tanda Tangan</button>
+                            <div class="mt-3" id="signaturePreviewWrap" style="display:none;">
+                                <small class="text-muted d-block mb-1">Tanda tangan tersimpan:</small>
+                                <img id="signaturePreview" src="" alt="Tanda Tangan" style="max-height:120px;border:1px solid #dee2e6;background:#fff;" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
                     <button type="submit" class="btn btn-primary">Submit</button>
                     <button type="reset" class="btn btn-secondary ml-2">Reset</button>
 
@@ -208,34 +226,68 @@
                 });
                 $('#Bank_Account_No').val(data.Bank_Account_No);
                 $('#Bank_Account_Name').val(data.Bank_Account_Name);
+
+                if (data.signature_url) {
+                    $('#signaturePreview').attr('src', data.signature_url);
+                    $('#signaturePreviewWrap').show();
+                }
             },
             error: function(xhr) {
                 console.error('Failed to fetch profile data:', xhr.responseText);
             }
         });
 
-        $('UpdateProfileForm').on('submit', function(e) {
+        $('#UpdateProfileForm').on('submit', function(e) {
             e.preventDefault();
 
-            let fd = new FormData(this)
+            let fd = new FormData(this);
 
             $.ajax({
                 url: $(this).attr('action'),
                 method: 'POST',
-                data: formData,
+                data: fd,
                 processData: false,
                 contentType: false,
                 cache: false,
                 success: function(response) {
-                    if (response.status === 'success') {
+                    if (response.message === 'success') {
                         alert('Profile updated successfully');
                     } else {
-                        alert('Update failed: ' + response.message);
+                        alert('Update failed: ' + (response.message || ''));
                     }
                 },
                 error: function(xhr) {
                     console.error('Failed to update profile:', xhr.responseText);
                     alert('An error occurred while updating profile');
+                }
+            });
+        });
+
+        $('#saveSignatureBtn').on('click', function() {
+            var value = Signature.getValue('profile_sig');
+            if (!value) {
+                alert('Silakan gambar tanda tangan terlebih dahulu');
+                return;
+            }
+
+            $.ajax({
+                url: 'partner-profile-update-signature',
+                method: 'POST',
+                data: { _token: '{{ csrf_token() }}', signature: value },
+                success: function(response) {
+                    if (response.message === 'success') {
+                        alert('Tanda tangan berhasil disimpan');
+                        if (response.url) {
+                            $('#signaturePreview').attr('src', response.url);
+                            $('#signaturePreviewWrap').show();
+                        }
+                        Signature.clear('profile_sig');
+                    } else {
+                        alert('Gagal menyimpan tanda tangan');
+                    }
+                },
+                error: function(xhr) {
+                    alert(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Gagal menyimpan tanda tangan');
                 }
             });
         });

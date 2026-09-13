@@ -60,6 +60,41 @@
 
 <div class="card mt-3">
 	<div class="card-body">
+		<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">CONTAINER SYSTEM QUANTITY</div>
+		<div class="row mt-3">
+			<div class="col-md-4">
+				<label class="mb-0">Total System Qty (containers)</label>
+				<h4>{{ number_format($totalSystemQty ?? 0, 2, ',', '.') }} L</h4>
+			</div>
+			<div class="col-md-4">
+				<label class="mb-0">Unattributed stock (no container)</label>
+				<h4>{{ number_format($unattributedQty ?? 0, 2, ',', '.') }} L</h4>
+			</div>
+		</div>
+		<div class="table-responsive mt-2">
+			<table class="table table-sm table-bordered mb-0">
+				<thead>
+					<tr><th>Container</th><th class="text-right">Capacity (L)</th><th class="text-right">System Qty (L)</th></tr>
+				</thead>
+				<tbody>
+					@forelse($whContainers ?? [] as $c)
+					<tr>
+						<td>{{ $c->Name }}</td>
+						<td class="text-right">{{ number_format((float) $c->Volume, 2, ',', '.') }}</td>
+						<td class="text-right">{{ number_format((float) $c->System_Qty, 2, ',', '.') }}</td>
+					</tr>
+					@empty
+					<tr><td colspan="3" class="text-center text-muted">Belum ada container</td></tr>
+					@endforelse
+				</tbody>
+			</table>
+		</div>
+		<small class="text-muted">Total System Qty hanya menghitung stok yang teratribusi ke container. Unattributed stock (instock tanpa container) tidak termasuk.</small>
+	</div>
+</div>
+
+<div class="card mt-3">
+	<div class="card-body">
 		<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">UCO OPERATION LOG</div>
 		<div id="WarehouseListDetail" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 		<div>
@@ -165,7 +200,7 @@
 
 	function WarehouseListDetailNew() {
 
-		LoadM('divlistOpportunityDetail', 'partner-warehouse-list-detail-new?Task={{ $_GET["Task"] }}');
+		LoadM('divlistOpportunityDetail', 'partner-warehouse-list-detail-new?Task={{ $taskId ?? "" }}');
 		return true;
 	}
 
@@ -195,7 +230,7 @@
 	refreshdataDetail();
 
 	function refreshdataDetail() {
-		WarehouseListDetail.clearAndLoad('xml-partner-warehouse-list-detail?Task={{$_GET["Task"]}}');
+		WarehouseListDetail.clearAndLoad('xml-partner-warehouse-list-detail?Task={{ $taskId ?? "" }}');
 
 	}
 

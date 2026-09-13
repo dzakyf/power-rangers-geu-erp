@@ -1001,6 +1001,9 @@ class ProfitSharingController extends Controller
             ]);
 
             unlink($tempImage);
+        } elseif (auth()->check()) {
+            // Fall back to the signature stored on the user's profile.
+            apply_stored_signature($doc, 'mitra_signature', auth()->id());
         }
 
         return ['doc' => $doc, 'contract_no' => $referenceNo, 'royalti' => $nominalRoyalty];

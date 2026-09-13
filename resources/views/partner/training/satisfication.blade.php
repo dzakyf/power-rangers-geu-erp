@@ -47,7 +47,7 @@ $Saya =  Auth::user()->username;
 	function TrainingSatisficationKlik() {
         
 		let TrainingSatisficationID = TrainingSatisfication.getSelectedId();
-		if (TrainingSatisficationID.length != null) {
+		if (TrainingSatisficationID != null) {
             if (TrainingSatisfication.cells(TrainingSatisficationID, 7).getValue() != 'SUDAH') {
                 LoadM('divlistOpportunity', 'partner-training-satisfication-new?Task=' + TrainingSatisficationID);
             }else {

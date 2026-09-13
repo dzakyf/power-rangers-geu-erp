@@ -115,6 +115,9 @@ class PartnerRegistrationController extends Controller
                 $data['gross_annual'] = $request->input('Gross_Annual');
 
                 $rawFunds = array_filter([
+                    // Current forms submit one radio group; the legacy
+                    // per-option names are still accepted for old clients.
+                    $request->input('Source_Fund'),
                     $request->input('Source_Personal_Savings'),
                     $request->input('Source_Inheritance'),
                     $request->input('Source_Business_Income'),
@@ -180,6 +183,9 @@ class PartnerRegistrationController extends Controller
                 $data['estimated_revenue'] = $request->input('Estimated_Revenue');
 
                 $rawCompanyFunds = array_filter([
+                    // Current forms submit one radio group; the legacy
+                    // per-option names are still accepted for old clients.
+                    $request->input('Company_Fund'),
                     $request->input('Company_Fund_Business'),
                     $request->input('Company_Fund_Investor'),
                     $request->input('Company_Fund_Loan'),
@@ -190,6 +196,8 @@ class PartnerRegistrationController extends Controller
 
                 if (in_array('loan', $rawCompanyFunds)) {
                     $data['is_recommended_to_be_approved'] = '2';
+                } elseif (in_array('business', $rawCompanyFunds) || in_array('investor', $rawCompanyFunds)) {
+                    $data['is_recommended_to_be_approved'] = '1';
                 }
                 if (empty($data['email']) && !empty($data['pic_email'])) {
                     $data['email'] = $request->input('PIC_Email');

@@ -48,6 +48,14 @@ class UserController extends Controller
             ], 404);
         }
 
+        $signature = DB::table('meta_files')
+            ->where('Topic', 'user-signature')
+            ->where('Map_To', (string) $id)
+            ->orderByDesc('ID')
+            ->first();
+
+        $d->signature_url = $signature ? asset('filevendor/' . $signature->Path) : null;
+
         return response()->json([
             'status' => 'success',
             'data' => $d
@@ -85,6 +93,37 @@ class UserController extends Controller
             ]);
 
         return response()->json(['message' => 'success']);
+    }
+
+    public function updateSignature(Request $request)
+    {
+        $session = $this->users->getCurrentSessionUserInfo();
+        $signature = $request->input('signature');
+
+        if (!$signature) {
+            return response()->json(['message' => 'Signature is required'], 422);
+        }
+
+        $base64 = preg_replace('/^data:image\/\w+;base64,/', '', $signature);
+
+        if (base64_decode($base64, true) === false) {
+            return response()->json(['message' => 'Invalid signature image'], 422);
+        }
+
+        $fileId = app(\App\Services\UploadService::class)->storeFile(
+            $base64,
+            'base64',
+            'user-signature',
+            (string) $session->id,
+            'Signature'
+        );
+
+        $path = DB::table('meta_files')->where('ID', $fileId)->value('Path');
+
+        return response()->json([
+            'message' => 'success',
+            'url' => asset('filevendor/' . $path),
+        ]);
     }
 
     public function AuthRouteAPI(Request $request)

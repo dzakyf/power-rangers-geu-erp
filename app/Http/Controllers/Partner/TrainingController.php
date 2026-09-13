@@ -34,10 +34,12 @@ class TrainingController extends Controller
 
     public function indexTrainingXml()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -203,10 +205,12 @@ class TrainingController extends Controller
 
     public function approvalTrainingXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -282,10 +286,12 @@ class TrainingController extends Controller
 
     public function approvalTrainingDetailMaterial()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -430,10 +436,12 @@ class TrainingController extends Controller
 
     public function listTrainingXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -492,10 +500,12 @@ class TrainingController extends Controller
 
     public function listTrainingDetailParticipantXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -534,10 +544,12 @@ class TrainingController extends Controller
 
     public function listTrainingDetailMaterialXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -579,10 +591,12 @@ class TrainingController extends Controller
 
     public function attendTrainingXml()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -695,10 +709,12 @@ class TrainingController extends Controller
 
     public function satisficationTrainingXml()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -834,10 +850,12 @@ class TrainingController extends Controller
 
     public function satisficationManagerTrainingXml()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -966,10 +984,12 @@ class TrainingController extends Controller
 
     public function certificateTrainingXml()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -1027,10 +1047,12 @@ class TrainingController extends Controller
 
     public function certificateMentorTrainingXml()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -1134,10 +1156,12 @@ class TrainingController extends Controller
     public function libraryTrainingXml()
     {
         /*
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
     */
@@ -1158,10 +1182,9 @@ class TrainingController extends Controller
         })->orderBy('created_date', 'desc')->get();
         
         foreach ($get as $key => $Fetch) {
-            $link = $Fetch->material_attachment;
-            if ($link == '') {
-                $link = $Fetch->material_link;
-            }
+            $link = $Fetch->material_attachment
+                ? asset('filevendor/' . $Fetch->material_attachment)
+                : $Fetch->material_link;
             $name = $usname[$Fetch->created_by];
             echo "<row id=\"$Fetch->id||$link\">";
             echo "<cell>$nomor</cell>";
@@ -1187,10 +1210,12 @@ class TrainingController extends Controller
     public function reportMitraTrainingXml()
     {
         /*
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
         */

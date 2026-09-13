@@ -186,9 +186,6 @@ class MasterMaterialController extends Controller
             if (!isset($r['material_view']) && $cek->material_view) {
                 $r['material_view'] = 0;
             }
-            if (!isset($r['material_attachment']) && $cek->material_attachment) {
-                $r['material_attachment'] = 0;
-            }
             $r['material_status'] = "OPEN";
 
             MasterMaterial::where('id', $r['id'])->update($r);

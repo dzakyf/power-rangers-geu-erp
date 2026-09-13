@@ -14,21 +14,13 @@
 
     <div class="col-12">
         <div class="form-group">
-            <label for="Hub_Type">Unduh Template Pengajuan<span style="color: red;">*</span></label>
-            <div class="partner-profit-sharing-download">
-                <a href="partner-renewal-download">Download template</a>
-            </div>
-        </div>
-        <div class="form-group">
             <label for="mitra_select">Pilih Mitra <span style="color:red;">*</span></label>
             <select class="form-control select2" id="mitra_select" name="opportunity_partner_id" style="width:100%" required>
                 <option value="">-- Pilih Mitra --</option>
             </select>
         </div>
-        <div class="form-group">
-            <label for="fileInput">Upload Pengajuan</label>
-            <input type="file" class="form-control" id="fileInput" name="file" accept=".docx,.pdf,.xlsx" required />
-        </div>
+        <p class="text-muted">Surat permohonan perpanjangan kemitraan dibuat otomatis oleh sistem menggunakan data kemitraan dan tanda tangan pada profil Anda.</p>
+        <button type="button" class="btn btn-success" id="previewBtn">Preview</button>
         <button type="button" class="btn btn-primary" id="submitBtn">Submit</button>
     </div>
 </div>
@@ -62,40 +54,47 @@
         }
     });
 
-    $('#submitBtn').on('click', function() {
+    function submitApplication(action) {
         var oppId = $('#mitra_select').val();
         if (!oppId) { alert('Pilih Mitra terlebih dahulu'); return; }
 
-        var fileInput = document.getElementById('fileInput');
-        if (!fileInput.files || fileInput.files.length === 0) {
-            alert('Pilih file terlebih dahulu');
-            return;
-        }
-
         var formData = new FormData();
         formData.append('_token', '{{ csrf_token() }}');
-        formData.append('file', fileInput.files[0]);
-        formData.append('user_id', new URLSearchParams(window.location.search).get('id'));
-        formData.append('opportunity_partner_id', oppId);
+        formData.append('opportunity_id', oppId);
 
         $.ajax({
-            url: 'partner-renewal-submit-application',
+            url: 'partner-renewal-' + action + '-application',
             type: 'POST',
             data: formData,
             processData: false,
             contentType: false,
-            success: function(res) {
-                if (res.message === 'success') {
+            xhrFields: { responseType: 'blob' },
+            cache: false,
+            success: function(response, status, xhr) {
+                var filename = 'document.docx';
+                var cd = xhr.getResponseHeader('Content-Disposition');
+                if (cd) {
+                    var match = cd.match(/filename=([^"]+)/);
+                    if (match && match[1]) { filename = match[1].replace(/["]/g, ''); }
+                }
+                var blob = new Blob([response]);
+                var link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+                window.URL.revokeObjectURL(link.href);
+
+                if (action === 'finalize') {
                     alert('Pengajuan berhasil disubmit');
-                    window.location.href = 'partner-renewal-renewal-index';
-                } else {
-                    alert('Gagal: ' + (res.message || ''));
                 }
             },
             error: function(xhr) {
-                alert(xhr.responseJSON ? xhr.responseJSON.message : 'Error Internal!');
+                alert('Error Internal!');
             }
         });
-    });
+    }
+
+    $('#previewBtn').on('click', function() { submitApplication('preview'); });
+    $('#submitBtn').on('click', function() { submitApplication('finalize'); });
 </script>
 @endsection

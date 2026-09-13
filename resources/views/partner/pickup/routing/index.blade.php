@@ -411,8 +411,8 @@
             '<input type="number" id="routePickupCount" class="form-control form-control-sm" value="15" disabled />' +
             '</div>' +
             '<div class="col-md-3 form-group mb-0">' +
-            '<label class="small">Total Berat (kg)</label>' +
-            '<div class="input-group input-group-sm"><input type="number" id="routeTotalWeight" class="form-control form-control-sm" value="1000" disabled /><div class="input-group-append"><span class="input-group-text">Kg</span></div></div>' +
+            '<label class="small">Total Berat (L)</label>' +
+            '<div class="input-group input-group-sm"><input type="number" id="routeTotalWeight" class="form-control form-control-sm" value="0" disabled /><div class="input-group-append"><span class="input-group-text">L</span></div></div>' +
             '</div>' +
             '<div class="col-md-3 form-group mb-0">' +
             '<label class="small">Estimasi Tol</label>' +

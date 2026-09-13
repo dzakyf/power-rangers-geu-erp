@@ -18,10 +18,12 @@ class MasterTrainingController extends Controller
 
     public function indexTrainingXml()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -40,7 +42,11 @@ class MasterTrainingController extends Controller
         
         foreach ($get as $key => $Fetch) {
             $name = $usname[$Fetch->created_by];
-            $month = $Fetch->frequency != 'month' ? date('F Y', strtotime(date('Y').'-'.sprintf($Fetch->training_month).'-01')) : 'continue';
+            // Schedule only applies to non-monthly frequencies with a valid month.
+            $month = '';
+            if ($Fetch->frequency != 'month' && (int) $Fetch->training_month >= 1 && (int) $Fetch->training_month <= 12) {
+                $month = date('F Y', strtotime(date('Y').'-'.sprintf('%02d', $Fetch->training_month).'-01'));
+            }
 
             echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
@@ -49,7 +55,6 @@ class MasterTrainingController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->frequency) . "</cell>";
             echo "<cell>" . htmlspecialchars($month) . "</cell>";
             echo "<cell>" . htmlspecialchars($name) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->created_date) . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -127,7 +132,7 @@ class MasterTrainingController extends Controller
             'target' => $a,
             'training_name' => $b,
             'frequency' => $c,
-            'training_month' => $this->getDateMonth($d),
+            'training_month' => ($c !== 'month' && $d && strtotime($d)) ? (int) date('m', strtotime($d)) : 0,
             'created_by' => $Saya,
             'created_date' => now(),
         ]);
@@ -148,7 +153,7 @@ class MasterTrainingController extends Controller
             'target' => $a,
             'training_name' => $b,
             'frequency' => $c,
-            'training_month' => $this->getDateMonth($d),
+            'training_month' => ($c !== 'month' && $d && strtotime($d)) ? (int) date('m', strtotime($d)) : 0,
         ]);
     }
 

@@ -47,7 +47,7 @@ foreach ($Query as $Fetch) {
 	echo "<cell>" . htmlspecialchars($Fetch->Full_Name) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Date) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Phone_Number) . "</cell>";
-	echo "<cell>" . htmlspecialchars("Opsi " . $Fetch->Partnership_Interest) . "</cell>";
+	echo "<cell>" . htmlspecialchars(leads_interest_label(null, $Fetch->Hub_Type ?? null, $Fetch->Partnership_Interest ?? null)) . "</cell>";
 	echo "<cell>" . htmlspecialchars($estimation) . "</cell>";
 	echo "<cell ". ($Fetch->FU_1 == 1 ? "disabled='true'" : "") .">" . htmlspecialchars($Fetch->FU_1) . "</cell>";
 	echo "<cell ". ($Fetch->FU_2 == 1 ? "disabled='true'" : "") .">" . htmlspecialchars($Fetch->FU_2) . "</cell>";

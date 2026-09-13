@@ -47,8 +47,8 @@ $Saya =  Auth::user()->username;
 
 		TicketOpenID = TicketOpen.getSelectedId();
 		if (TicketOpenID != null) {
-			LoadM('divlistOpportunity', 'partner-ticket-open-detail?Task_ID=' + TicketOpen.cells(TicketOpenID,1).getValue());
-		}else {
+			LoadM('divlistOpportunity', 'partner-ticket-open-detail?Task_ID=' + TicketOpen.cells(TicketOpenID, 1).getValue());
+		} else {
 			alert("Pilih baris data");
 		}
 		return true;
@@ -61,7 +61,7 @@ $Saya =  Auth::user()->username;
 	TicketOpen.setInitWidths("60,150,100,200,100,120,120,200,300,100");
 	TicketOpen.setColAlign("center,left,left,left,left,left,left,left,left,left");
 	TicketOpen.setColSorting("int,str,str,str,str,str,str,str,str,str");
-	TicketOpen.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	TicketOpen.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,link");
 	TicketOpen.enableSmartRendering(true, 150);
 	// TicketOpen.setNumberFormat("0,000", 7, ".", ",");
 	TicketOpen.attachEvent("onRowDblClicked", TicketOpenKlik);

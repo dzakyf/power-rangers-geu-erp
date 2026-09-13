@@ -348,7 +348,7 @@ $lead = $leadID ? DB::table('opportunity')->where('Task_ID', $leadID)->first() :
 
 	function getAllValues() {
 		var inputValues = [];
-		$('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
+		$('#registrationForm input,#registrationForm select,#registrationForm textarea').each(function() {
 			var type = $(this).attr("type");
 			if ((type == "checkbox" || type == "radio") && this.checked) {
 				inputValues.push($(this).attr("name") + "=" + $(this).val());

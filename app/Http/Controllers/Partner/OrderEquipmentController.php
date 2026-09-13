@@ -117,11 +117,11 @@ class OrderEquipmentController extends Controller
                     ->where('warehouse_task_id', $task)
                     ->orderBy('ID')
                     ->first();
-                // Always show the live master price so master-data edits are
-                // reflected (the saved dtl price is only a fallback).
-                $displayPrice = ($facility->price !== null && $facility->price !== '')
-                    ? $facility->price
-                    : ($cekDtl->Price ?? '');
+                // The saved per-mitra price wins; the master price is only
+                // the initial value for mitra that have not set their own.
+                $displayPrice = $cekDtl
+                    ? $cekDtl->Price
+                    : ($facility->price ?? '');
                 if ($cekDtl) {
                     echo "<cell>".htmlspecialchars($cekDtl->Qty)."</cell>";
                     echo "<cell>".htmlspecialchars($displayPrice)."</cell>";
@@ -331,9 +331,11 @@ class OrderEquipmentController extends Controller
                     ->where('warehouse_task_id', $task)
                     ->orderBy('ID')
                     ->first();
-                $displayPrice = ($facility->price !== null && $facility->price !== '')
-                    ? $facility->price
-                    : ($cekDtl->Price ?? '');
+                // The saved per-mitra price wins; the master price is only
+                // the initial value for mitra that have not set their own.
+                $displayPrice = $cekDtl
+                    ? $cekDtl->Price
+                    : ($facility->price ?? '');
                 if ($cekDtl) {
                     echo "<cell>".htmlspecialchars($cekDtl->Qty)."</cell>";
                     echo "<cell>".htmlspecialchars($displayPrice)."</cell>";
@@ -475,7 +477,7 @@ class OrderEquipmentController extends Controller
         echo('<?xml version="1.0" encoding="iso-8859-1"?>'); 
         echo "<data>";
 
-        $request_body = urldecode(file_get_contents('php://input'));
+        $request_body = urldecode(request()->getContent());
 
         $ids = explode("&",$request_body);
         foreach($ids as $datax){
@@ -552,6 +554,11 @@ class OrderEquipmentController extends Controller
         $hasOrderInput = trim((string) $c) !== '' || trim((string) $d) !== '' || trim((string) $e) !== '';
         if ($hasOrderInput) {
             $orderDate = $f ?: now()->format('Y-m-d');
+            $qty = is_numeric($c) ? $c : 0;
+            $price = is_numeric($d) ? $d : 0;
+            // Respect a posted Total (the mobil grid allows editing it) but
+            // fall back to Qty x Price when the payload leaves it blank.
+            $total = (trim((string) $e) !== '' && is_numeric($e)) ? $e : $qty * $price;
             $cekDtl = DB::table('opportunity_partner_facility_dtl')
                 ->where("Facility_ID", $rowId)
                 ->where('Partner_ID', $partnerId)
@@ -561,9 +568,9 @@ class OrderEquipmentController extends Controller
                 DB::table("opportunity_partner_facility_dtl")
                     ->where("ID", $cekDtl->ID)
                     ->update([
-                        "Qty" => $c,
-                        "Price" => $d,
-                        "Total" => $e,
+                        "Qty" => $qty,
+                        "Price" => $price,
+                        "Total" => $total,
                         "Order_Date" => $orderDate,
                     ]);
             }else {
@@ -573,9 +580,9 @@ class OrderEquipmentController extends Controller
                         'Partner_ID' => $partnerId,
                         'warehouse_task_id' => $whTaskId,
                         'Order_Date' => $orderDate,
-                        'Qty' => $c,
-                        'Price' => $d,
-                        'Total' => $e,
+                        'Qty' => $qty,
+                        'Price' => $price,
+                        'Total' => $total,
                         'Created_By' => $Saya,
                         'Created_Date' => now(),
                     ]);
