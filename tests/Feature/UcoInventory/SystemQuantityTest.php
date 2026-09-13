@@ -75,9 +75,10 @@ class SystemQuantityTest extends TestCase
 
     private function addOutRow(int $outstockId, float $actualQty): void
     {
-        DB::table('outstock_loading')->insert([
+        DB::table('outstock_details')->insert([
             'Outstock_ID'  => $outstockId,
             'Container_ID' => $this->containerId,
+            'Warehouse_ID' => $this->warehouseId,
             'Date'         => now()->toDateString(),
             'System_Qty'   => 0,
             'Actual_Qty'   => $actualQty,
@@ -184,7 +185,7 @@ class SystemQuantityTest extends TestCase
             ->assertOk()->assertJson(['success' => true]);
 
         // Snapshot taken BEFORE this doc's own rows entered the ledger.
-        $row = DB::table('outstock_loading')->where('Outstock_ID', $doc)->first();
+        $row = DB::table('outstock_details')->where('Outstock_ID', $doc)->first();
         $this->assertEquals(60, (float) $row->System_Qty);
 
         // Resubmitting the same document must keep the snapshot stable:
@@ -194,7 +195,7 @@ class SystemQuantityTest extends TestCase
             ->postJson('/partner-outstock-loading-submit', $payload)
             ->assertOk()->assertJson(['success' => true]);
 
-        $row = DB::table('outstock_loading')->where('Outstock_ID', $doc)->first();
+        $row = DB::table('outstock_details')->where('Outstock_ID', $doc)->first();
         $this->assertEquals(60, (float) $row->System_Qty);
     }
 
@@ -248,10 +249,10 @@ class SystemQuantityTest extends TestCase
         $c = $this->containerId;
 
         // loading events with no containerized supply yet (legacy gap)
-        DB::table('outstock_loading')->insert([
-            ['Outstock_ID' => $this->makeOutstock(), 'Container_ID' => $c, 'Date' => '2026-07-28',
+        DB::table('outstock_details')->insert([
+            ['Outstock_ID' => $this->makeOutstock(), 'Container_ID' => $c, 'Warehouse_ID' => $this->warehouseId, 'Date' => '2026-07-28',
              'System_Qty' => 0, 'Actual_Qty' => 15, 'Notes' => '', 'Created_At' => '2026-07-28 17:16:36'],
-            ['Outstock_ID' => $this->makeOutstock(), 'Container_ID' => $c, 'Date' => '2026-09-07',
+            ['Outstock_ID' => $this->makeOutstock(), 'Container_ID' => $c, 'Warehouse_ID' => $this->warehouseId, 'Date' => '2026-09-07',
              'System_Qty' => 0, 'Actual_Qty' => 10, 'Notes' => '', 'Created_At' => '2026-09-07 06:05:00'],
         ]);
 
@@ -268,8 +269,8 @@ class SystemQuantityTest extends TestCase
             'pickup_type' => 'T', 'name_poo' => 'p', 'source' => 's', 'coverage' => 'c',
             'created_date' => '2026-09-07 06:12:00', 'created_by' => '__test_sq__', 'total' => 0, 'Container_ID' => $c,
         ]);
-        DB::table('outstock_loading')->insert([
-            'Outstock_ID' => $this->makeOutstock(), 'Container_ID' => $c, 'Date' => '2026-09-07',
+        DB::table('outstock_details')->insert([
+            'Outstock_ID' => $this->makeOutstock(), 'Container_ID' => $c, 'Warehouse_ID' => $this->warehouseId, 'Date' => '2026-09-07',
             'System_Qty' => 0, 'Actual_Qty' => 90, 'Notes' => '', 'Created_At' => '2026-09-07 06:15:00',
         ]);
 
@@ -288,8 +289,8 @@ class SystemQuantityTest extends TestCase
             'pickup_type' => 'T', 'name_poo' => 'p', 'source' => 's', 'coverage' => 'c',
             'created_date' => '2026-09-01 10:00:00', 'created_by' => '__test_sq__', 'total' => 0, 'Container_ID' => $c,
         ]);
-        DB::table('outstock_loading')->insert([
-            'Outstock_ID' => $this->makeOutstock(), 'Container_ID' => $c, 'Date' => '2026-09-02',
+        DB::table('outstock_details')->insert([
+            'Outstock_ID' => $this->makeOutstock(), 'Container_ID' => $c, 'Warehouse_ID' => $this->warehouseId, 'Date' => '2026-09-02',
             'System_Qty' => 0, 'Actual_Qty' => 75, 'Notes' => '', 'Created_At' => '2026-09-02 11:45:00',
         ]);
         DB::table('warehouse_stock_opnames')->insert([
@@ -413,8 +414,9 @@ class SystemQuantityTest extends TestCase
             'Name' => 'SQ-Other '.uniqid(), 'Volume' => 1000,
             'Warehouse_ID' => $this->warehouseId + 1000, 'Status' => 'active',
         ]);
-        DB::table('outstock_loading')->insert([
+        DB::table('outstock_details')->insert([
             'Outstock_ID' => $this->makeOutstock(), 'Container_ID' => $otherContainer,
+            'Warehouse_ID' => $this->warehouseId + 1000,
             'Date' => now()->toDateString(), 'System_Qty' => 0, 'Actual_Qty' => 50,
             'Notes' => '', 'Created_At' => now(),
         ]);
@@ -467,5 +469,131 @@ class SystemQuantityTest extends TestCase
         // Pre-document system qty = 200; the readonly field must NOT show the
         // post-subtraction value (130) nor a flat 0.
         $this->assertStringContainsString('value="200"', html_entity_decode($html));
+    }
+
+    // ------------------------------------------------------------------
+    // As-of balance
+    // ------------------------------------------------------------------
+
+    /** @test */
+    public function as_of_excludes_later_events()
+    {
+        $svc = app(\App\Services\WarehouseService::class);
+        $c = $this->containerId;
+
+        DB::table('warehouse_partner_supplies')->insert([
+            'warehouse_task_id' => 'TEST-WH-SQ', 'received_date' => '2026-09-07', 'received_qty' => 90,
+            'pickup_type' => 'T', 'name_poo' => 'p', 'source' => 's', 'coverage' => 'c',
+            'created_date' => '2026-09-07 10:00:00', 'created_by' => '__test_sq__', 'total' => 0, 'Container_ID' => $c,
+        ]);
+        DB::table('outstock_details')->insert([
+            'Outstock_ID' => $this->makeOutstock(), 'Container_ID' => $c, 'Warehouse_ID' => $this->warehouseId,
+            'Date' => '2026-09-07', 'System_Qty' => 0, 'Actual_Qty' => 30, 'Notes' => '', 'Created_At' => '2026-09-07 11:00:00',
+        ]);
+        DB::table('warehouse_stock_opnames')->insert([
+            'Opname_Number' => 'WSO-T-ASOF', 'Warehouse_ID' => $this->warehouseId, 'Container_ID' => $c,
+            'Opname_Date' => '2026-09-07', 'System_Qty' => 60, 'Physical_Qty' => 120, 'Difference' => 60,
+            'Status' => 'CLOSED', 'Created_At' => '2026-09-07 12:00:00', 'Updated_At' => '2026-09-07 12:30:00',
+        ]);
+
+        $this->assertEquals(60.0, $svc->containerSystemQtyAsOf($c, '2026-09-07 11:30:00'), 'before opname');
+        $this->assertEquals(120.0, $svc->containerSystemQtyAsOf($c, '2026-09-07 13:00:00'), 'after opname');
+        $this->assertEquals(120.0, $svc->containerSystemQty($c));
+    }
+
+    // ------------------------------------------------------------------
+    // Handover distribution (one total -> container lines)
+    // ------------------------------------------------------------------
+
+    /** @test */
+    public function handover_distributes_total_across_container_lines()
+    {
+        $c2 = DB::table('master_container')->insertGetId([
+            'Name' => 'SQ-C2 '.uniqid(), 'Volume' => 1000,
+            'Warehouse_ID' => $this->warehouseId, 'Status' => 'active',
+        ]);
+        $doc = $this->makeOutstock();
+        DB::table('outstock_warehouses')->insert([
+            'Outstock_ID' => $doc, 'Warehouse_ID' => $this->warehouseId,
+        ]);
+        DB::table('outstock_details')->insert([
+            ['Outstock_ID' => $doc, 'Container_ID' => $this->containerId, 'Warehouse_ID' => $this->warehouseId,
+             'Date' => now()->toDateString(), 'System_Qty' => 0, 'Actual_Qty' => 30, 'Notes' => '', 'Created_At' => now()],
+            ['Outstock_ID' => $doc, 'Container_ID' => $c2, 'Warehouse_ID' => $this->warehouseId,
+             'Date' => now()->toDateString(), 'System_Qty' => 0, 'Actual_Qty' => 70, 'Notes' => '', 'Created_At' => now()],
+        ]);
+
+        $this->actingAs($this->admin())
+            ->postJson('/partner-outstock-handover-submit', [
+                'outstock_id' => $doc,
+                'Date'        => now()->toDateString(),
+                'Actual_Qty'  => 80,
+                'Destination' => 'Test Dest',
+                'Notes'       => '',
+            ])
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $lines = DB::table('outstock_details')->where('Outstock_ID', $doc)->orderBy('ID')->get();
+        $this->assertEquals(80.0, (float) $lines->sum('Actual_Qty'), 'distributed lines sum to the handover total');
+        $this->assertEquals(24.0, (float) $lines[0]->Actual_Qty, '30/100 * 80');
+        $this->assertEquals(56.0, (float) $lines[1]->Actual_Qty, 'residual keeps the sum exact');
+        $this->assertEquals(80.0, (float) DB::table('outstock')->where('ID', $doc)->value('Actual_Qty'));
+
+        $mirror = DB::table('warehouse_partner_stock_request')
+            ->where('source', 'OUTSTOCK')->where('source_id', $doc)->first();
+        $this->assertNotNull($mirror, 'finance mirror generated from distributed lines');
+        $this->assertEquals(80.0, (float) $mirror->request_qty);
+    }
+
+    // ------------------------------------------------------------------
+    // Warehouse system qty cache
+    // ------------------------------------------------------------------
+
+    /** @test */
+    public function loading_submit_recomputes_warehouse_system_qty_cache()
+    {
+        $this->addStockIn(100); // container balance = 100
+        $doc = $this->makeOutstock();
+
+        $this->actingAs($this->admin())
+            ->postJson('/partner-outstock-loading-submit', [
+                'outstock_id' => $doc,
+                'rows' => [[
+                    'container_id' => $this->containerId,
+                    'date'         => now()->toDateString(),
+                    'actual_qty'   => 30,
+                    'notes'        => '',
+                ]],
+            ])
+            ->assertOk()->assertJson(['success' => true]);
+
+        $wh = DB::table('warehouse_partner')->where('id', $this->warehouseId)->first();
+        $this->assertEquals(70.0, (float) $wh->System_Qty);
+        $this->assertNotNull($wh->System_Qty_Updated_At);
+    }
+
+    // ------------------------------------------------------------------
+    // Warehouse detail summary
+    // ------------------------------------------------------------------
+
+    /** @test */
+    public function warehouse_detail_shows_total_breakdown_and_unattributed()
+    {
+        $this->addStockIn(100); // containerized
+        DB::table('warehouse_partner_supplies')->insert([
+            'warehouse_task_id' => 'TEST-WH-SQ', 'received_date' => now()->toDateString(), 'received_qty' => 15,
+            'pickup_type' => 'T', 'name_poo' => 'p', 'source' => 's', 'coverage' => 'c',
+            'created_date' => now(), 'created_by' => '__test_sq__', 'total' => 0, 'Container_ID' => null,
+        ]);
+
+        $html = $this->actingAs($this->admin())
+            ->get('/partner-warehouse-list-detail?Task='.$this->warehouseId)
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('Total System Qty (containers)', $html);
+        $this->assertStringContainsString('100,00', $html, 'container total');
+        $this->assertStringContainsString('15,00', $html, 'unattributed stock');
     }
 }

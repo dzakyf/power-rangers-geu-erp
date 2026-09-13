@@ -599,7 +599,7 @@
                          </div>
                          <div style="display:none;" id="Doc_KTP_Files_Div" class="mt-2 text-center">
                              <div id="Doc_KTP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_KTP_File" />
+                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" name="Doc_KTP_File" id="Doc_KTP_File" />
                          </div>
                      </div>
                      <div class="col-md-4">
@@ -610,7 +610,7 @@
                          <div style="display:none;" id="Doc_NPWP_Files_Div" class="mt-2">
                              <span class="badge badge-info py-2 mb-3 w-100">Upload NPWP</span>
                              <div id="Doc_NPWP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_NPWP_File" />
+                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" name="Doc_NPWP_File" id="Doc_NPWP_File" />
                          </div>
                      </div>
                      <div class="col-md-4">
@@ -621,7 +621,7 @@
                          <div style="display:none;" id="Doc_Others_Files_Div" class="mt-2">
                              <span class="badge badge-info py-2 mb-3 w-100">Upload Dokumen Lainnya</span>
                              <div id="Doc_Others_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="Doc_Others_File" />
+                             <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" name="Doc_Others_File" id="Doc_Others_File" />
                          </div>
                      </div>
                  </div>

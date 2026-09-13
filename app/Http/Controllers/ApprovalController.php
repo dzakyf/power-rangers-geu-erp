@@ -284,7 +284,7 @@ class ApprovalController extends Controller
 
         $req = DB::table('approval_request')->where('ID', $requestId)->first();
         if ($req && $req->Status === 'APPROVED' && $req->Map_To) {
-            DB::table('survey_location')->where('ID', $req->Map_To)->update(['Status' => 'APPROVED']);
+            DB::table('survey_location')->where('ID', $req->Map_To)->update(['Status' => 'DONE_SURVEY']);
 
             $survey = DB::table('survey_location')->where('ID', $req->Map_To)->first();
             if ($survey && $survey->Opportunity_Partner_Id) {
@@ -729,7 +729,7 @@ class ApprovalController extends Controller
         // approval request is stale (still NEED_APPROVAL), heal the approval request.
         if ($type == "SURVEY") {
             foreach ($d as $p) {
-                if (($p->Survey_Status ?? '') === 'APPROVED' && $p->Status !== 'APPROVED') {
+                if (($p->Survey_Status ?? '') === 'DONE_SURVEY' && $p->Status !== 'APPROVED') {
                     DB::table('approval_request')->where('ID', $p->ID)->update(['Status' => 'APPROVED']);
                     $p->Status = 'APPROVED';
                 }
@@ -757,7 +757,7 @@ class ApprovalController extends Controller
             $row->addChild('cell', $p->Request_Type);
             $row->addChild('cell', $p->Status);
             $row->addChild('cell', $p->Submitted_At);
-            $row->addChild('cell', $approvalMapper[$recommendation]);
+            $row->addChild('cell', $approvalMapper[$recommendation] ?? 'Dalam Pertimbangan');
 
             $counter++;
         }

@@ -123,7 +123,25 @@ class WarehouseController extends Controller
         })->where('status', 'ACTIVE')->get();
 
         $kotakab = DB::table('master_kodepos')->select('City')->groupBy("City")->get();
-        return view('partner.warehouse.list-detail', compact('wh', 'partner', 'kotakab'));
+
+        $warehouseService = app(\App\Services\WarehouseService::class);
+        $whContainers = DB::table('master_container')
+            ->where('Warehouse_ID', $wh->id)
+            ->orderBy('Name')
+            ->get(['ID', 'Name', 'Volume'])
+            ->map(function ($c) use ($warehouseService) {
+                $c->System_Qty = $warehouseService->containerSystemQty($c->ID);
+                return $c;
+            });
+        $totalSystemQty = (float) $whContainers->sum('System_Qty');
+        $unattributedQty = (float) DB::table('warehouse_partner_supplies')
+            ->where('warehouse_task_id', $wh->warehouse_task_id)
+            ->whereNull('Container_ID')
+            ->sum('received_qty');
+
+        $taskId = $request->Task;
+
+        return view('partner.warehouse.list-detail', compact('wh', 'partner', 'kotakab', 'whContainers', 'totalSystemQty', 'unattributedQty', 'taskId'));
     }
 
     public function detailWarehouseListUpdate(Request $request)
@@ -160,11 +178,11 @@ class WarehouseController extends Controller
             $rows[] = ['date' => $s->received_date, 'type' => 'INSTOCK', 'qty_in' => $s->received_qty, 'qty_out' => 0, 'reference' => (string) $s->id, 'details' => $s->source . ' - ' . ($s->name_poo ?? '')];
         }
 
-        // 2. Outstock (loading) — visible from LOADING time, scoped via container
-        foreach (DB::table('outstock_loading as ol')
-            ->join('master_container as mc', 'ol.Container_ID', '=', 'mc.ID')
+        // 2. Outstock (details) — visible from LOADING time, scoped by Warehouse_ID
+        foreach (DB::table('outstock_details as ol')
             ->join('outstock as o', 'ol.Outstock_ID', '=', 'o.ID')
-            ->where('mc.Warehouse_ID', $whId)
+            ->leftJoin('master_container as mc', 'ol.Container_ID', '=', 'mc.ID')
+            ->where('ol.Warehouse_ID', $whId)
             ->orderBy('ol.Date')
             ->select('ol.Actual_Qty', 'ol.Date', 'o.Code', 'mc.Name as Container_Name')
             ->get() as $ol) {

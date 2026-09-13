@@ -64,19 +64,24 @@ class OnboardingController extends Controller
             'repayment'      => $money($config('ONBOARDING_THIRD_PHASE_PAYMENT')),
         ]);
 
-        $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $body['signature']);
-        $imageData = base64_decode($base64Image);
+        if (!empty($body['signature'])) {
+            $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $body['signature']);
+            $imageData = base64_decode($base64Image);
 
-        $tempImage = tempnam(sys_get_temp_dir(), 'img') . '.png';
-        file_put_contents($tempImage, $imageData);
+            $tempImage = tempnam(sys_get_temp_dir(), 'img') . '.png';
+            file_put_contents($tempImage, $imageData);
 
-        $doc->setImageValue('mitra_signature', [
-            'path' => $tempImage,
-            'height' => 100,
-            'ratio' => false
-        ]);
+            $doc->setImageValue('mitra_signature', [
+                'path' => $tempImage,
+                'height' => 100,
+                'ratio' => false
+            ]);
 
-        unlink($tempImage);
+            unlink($tempImage);
+        } else {
+            // Fall back to the signature stored on the partner's profile.
+            apply_stored_signature($doc, 'mitra_signature', $data->user_row_id ?? null);
+        }
 
         return $doc;
     }
@@ -196,19 +201,24 @@ class OnboardingController extends Controller
             'namapaket'       => $data->package_option ?? '',
         ]);
 
-        $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $body['signature']);
-        $imageData = base64_decode($base64Image);
+        if (!empty($body['signature'])) {
+            $base64Image = preg_replace('/^data:image\/\w+;base64,/', '', $body['signature']);
+            $imageData = base64_decode($base64Image);
 
-        $tempImage = tempnam(sys_get_temp_dir(), 'img') . '.png';
-        file_put_contents($tempImage, $imageData);
+            $tempImage = tempnam(sys_get_temp_dir(), 'img') . '.png';
+            file_put_contents($tempImage, $imageData);
 
-        $doc->setImageValue('mitra_signature', [
-            'path' => $tempImage,
-            'height' => 100,
-            'ratio' => false
-        ]);
+            $doc->setImageValue('mitra_signature', [
+                'path' => $tempImage,
+                'height' => 100,
+                'ratio' => false
+            ]);
 
-        unlink($tempImage);
+            unlink($tempImage);
+        } else {
+            // Fall back to the signature stored on the partner's profile.
+            apply_stored_signature($doc, 'mitra_signature', $data->user_row_id ?? null);
+        }
         return $doc;
     }
 

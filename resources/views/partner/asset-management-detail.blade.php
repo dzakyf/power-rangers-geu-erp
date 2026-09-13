@@ -51,7 +51,7 @@
 	FacilityBenefitsInventory.setInitWidths("60,200,200,100,100,110,110,120,110,110,110");
 	FacilityBenefitsInventory.setColAlign("center,left,left,center,right,right,right,center,center,center,center");
 	FacilityBenefitsInventory.setColSorting("int,str,str,str,int,int,int,int,str,str,int");
-	FacilityBenefitsInventory.setColTypes("ro,ro,ro,ro,edn,edn,edn,ch,{{ $isPartner ? 'dhxCalendar' : 'ro' }},{{ $isPartner ? 'dhxCalendar' : 'ro' }},ch");
+	FacilityBenefitsInventory.setColTypes("ro,ro,ro,ro,ron,ron,ron,ch,{{ $isPartner ? 'dhxCalendar' : 'ro' }},{{ $isPartner ? 'dhxCalendar' : 'ro' }},ch");
 	FacilityBenefitsInventory.enableSmartRendering(true, 150);
 	FacilityBenefitsInventory.setDateFormat("%Y-%m-%d");
 	FacilityBenefitsInventory.setNumberFormat("0,000", 4, ".", ",");
@@ -83,6 +83,8 @@
 @endif
 	FacilityBenefitsInventory.setSkin("dhx_skyblue");
 	FacilityBenefitsInventory.init();
+	// Ceklist Ketersediaan is handled in the partner-facility module.
+	FacilityBenefitsInventory.setColumnHidden(7, true);
 	refreshInventory();
 
 	PFacilityBenefitsInventory = new dataProcessor("partner-asset-management-detail-update?Task={{ $partner->id }}&wh={{ $whTaskId }}");
@@ -123,6 +125,8 @@
 	FacilityBenefitsAccess.setDateFormat("%Y-%m-%d");
 	FacilityBenefitsAccess.setSkin("dhx_skyblue");
 	FacilityBenefitsAccess.init();
+	// Ceklist Ketersediaan is handled in the partner-facility module.
+	FacilityBenefitsAccess.setColumnHidden(3, true);
 	refreshAccess();
 
 	PFacilityBenefitsAccess = new dataProcessor("partner-asset-management-detail-update?Task={{ $partner->id }}&wh={{ $whTaskId }}");
@@ -163,6 +167,8 @@
 	FacilityBenefitsSupport.setDateFormat("%Y-%m-%d");
 	FacilityBenefitsSupport.setSkin("dhx_skyblue");
 	FacilityBenefitsSupport.init();
+	// Ceklist Ketersediaan is handled in the partner-facility module.
+	FacilityBenefitsSupport.setColumnHidden(3, true);
 	refreshSupport();
 
 	PFacilityBenefitsSupport = new dataProcessor("partner-asset-management-detail-update?Task={{ $partner->id }}&wh={{ $whTaskId }}");

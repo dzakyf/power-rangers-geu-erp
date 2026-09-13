@@ -557,7 +557,7 @@
                  <div style="display:none;" id="C_Doc_Akta_Files_Div" class="mt-2">
                      <span class="badge badge-info py-2 mb-3 w-100">Upload Akta Pendirian</span>
                      <div id="C_Doc_Akta_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                     <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="C_Doc_Akta_File" />
+                     <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" name="C_Doc_Akta_File" id="C_Doc_Akta_File" />
                  </div>
              </div>
              <div class="col-md-3">
@@ -568,7 +568,7 @@
                  <div style="display:none;" id="C_Doc_NIB_Files_Div" class="mt-2">
                      <span class="badge badge-info py-2 mb-3 w-100">Upload NIB</span>
                      <div id="C_Doc_NIB_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                     <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="C_Doc_NIB_File" />
+                     <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" name="C_Doc_NIB_File" id="C_Doc_NIB_File" />
                  </div>
              </div>
              <div class="col-md-3">
@@ -579,7 +579,7 @@
                  <div style="display:none;" id="C_Doc_NPWP_Files_Div" class="mt-2">
                      <span class="badge badge-info py-2 mb-3 w-100">Upload NPWP</span>
                      <div id="C_Doc_NPWP_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                     <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="C_Doc_NPWP_File" />
+                     <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" name="C_Doc_NPWP_File" id="C_Doc_NPWP_File" />
                  </div>
              </div>
              <div class="col-md-3">
@@ -590,7 +590,7 @@
                  <div style="display:none;" id="C_Doc_Others_Files_Div" class="mt-2">
                      <span class="badge badge-info py-2 mb-3 w-100">Upload Lainnya</span>
                      <div id="C_Doc_Others_Files" class="with-header" style='height:200px;margin:0px;width:auto;'></div>
-                     <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" id="C_Doc_Others_File" />
+                     <input class='form-control' style="background-color:#fff" type="hidden" size="40" readonly="readonly" name="C_Doc_Others_File" id="C_Doc_Others_File" />
                  </div>
              </div>
          </div>

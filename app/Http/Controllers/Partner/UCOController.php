@@ -2415,6 +2415,12 @@ class UCOController extends Controller
                 }
             }
 
+            foreach ($groups as $g) {
+                if (is_numeric($g['warehouse'] ?? null)) {
+                    $this->warehouseService->recomputeWarehouseSystemQty($g['warehouse']);
+                }
+            }
+
             if ($r->has('webcam_photos') && is_array($r->input('webcam_photos'))) {
                 foreach ($r->input('webcam_photos') as $b64) {
                     if ($b64) {
@@ -2444,7 +2450,16 @@ class UCOController extends Controller
     public function deleteInstockSupply(Request $r)
     {
         try {
+            $supply = DB::table('warehouse_partner_supplies')->where('id', $r->input('id'))->first();
             DB::table('warehouse_partner_supplies')->where('id', $r->input('id'))->delete();
+
+            if ($supply && $supply->Container_ID) {
+                $whId = DB::table('master_container')->where('ID', $supply->Container_ID)->value('Warehouse_ID');
+                if ($whId) {
+                    $this->warehouseService->recomputeWarehouseSystemQty($whId);
+                }
+            }
+
             return response()->json(['success' => true, 'message' => 'Instock supply deleted.']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -2455,9 +2470,8 @@ class UCOController extends Controller
     // === Container helpers for instock ===
     private function getContainerFill($containerId)
     {
-        $in = DB::table('warehouse_partner_supplies')->where('Container_ID', $containerId)->sum('received_qty');
-        $out = DB::table('outstock_loading')->where('Container_ID', $containerId)->sum('Actual_Qty');
-        return max(0, $in - $out);
+        // Authoritative event-sourced balance (includes CLOSED opname rebaselines).
+        return max(0, $this->warehouseService->containerSystemQty($containerId));
     }
 
     private function getContainersForWarehouse($warehouseId)
@@ -2650,30 +2664,31 @@ class UCOController extends Controller
             ->select('id', 'warehouse_location', 'warehouse_task_id')
             ->get();
 
-        $loading = DB::table('outstock_loading')
-            ->leftJoin('master_container as mc', 'outstock_loading.Container_ID', '=', 'mc.ID')
-            ->select('outstock_loading.*', 'mc.Name as Container_Name', 'mc.Warehouse_ID')
-            ->where('Outstock_ID', $id)
+        $loading = DB::table('outstock_details as ol')
+            ->leftJoin('master_container as mc', 'ol.Container_ID', '=', 'mc.ID')
+            ->select('ol.*', 'mc.Name as Container_Name')
+            ->where('ol.Outstock_ID', $id)
             ->get();
 
-        // System Qty per container = pure stock ledger (stock-in - stock-out),
-        // adjusted to the PRE-document state: rows belonging to THIS outstock
-        // are added back so the readonly field never counts this doc against
-        // itself, and missing opnames can no longer force it to zero.
-        $ownDocQtyByContainer = DB::table('outstock_loading')
-            ->where('Outstock_ID', $id)
-            ->selectRaw('Container_ID, SUM(Actual_Qty) AS qty')
-            ->groupBy('Container_ID')
-            ->pluck('qty', 'Container_ID');
+        // As-of the document's own (preserved) loading time: the pre-document
+        // system quantity, free of later events such as a CLOSED opname.
+        $boundary = DB::table('outstock_details')->where('Outstock_ID', $id)->min('Created_At');
+        $asOf = $boundary ?: now()->toDateTimeString();
+        $ownDetailIds = DB::table('outstock_details')->where('Outstock_ID', $id)->pluck('ID')->all();
 
         foreach ($loading as $l) {
-            $own = (float) ($ownDocQtyByContainer[$l->Container_ID] ?? 0);
-            $l->System_Qty = $this->warehouseService->containerSystemQty($l->Container_ID) + $own;
+            $l->System_Qty = $this->warehouseService->containerSystemQtyAsOf($l->Container_ID, $asOf, $ownDetailIds);
+            $l->Current_System_Qty = $this->warehouseService->containerSystemQty($l->Container_ID);
         }
 
-        $handover = DB::table('outstock_handover')
-            ->where('Outstock_ID', $id)
-            ->first();
+        $handover = (object) [
+            'ID'          => $outstock->ID,
+            'Date'        => $outstock->Handover_Date,
+            'Actual_Qty'  => $outstock->Actual_Qty,
+            'Destination' => $outstock->Handover_Destination,
+            'Photo_Path'  => $outstock->Handover_Photo_Path,
+            'Notes'       => $outstock->Handover_Notes,
+        ];
 
         $containers = DB::table('master_container')
             ->where('Status', 'active')
@@ -2699,36 +2714,46 @@ class UCOController extends Controller
             // whatever this document itself previously loaded (rows that are
             // about to be deleted). First submits and resubmits therefore
             // store the same stable baseline.
-            $ownQtyByContainer = DB::table('outstock_loading')
-                ->where('Outstock_ID', $outstockId)
-                ->selectRaw('Container_ID, SUM(Actual_Qty) AS qty')
-                ->groupBy('Container_ID')
-                ->pluck('qty', 'Container_ID');
+            // Preserve the document's original loading time across resubmits so
+            // its event position (and pre-document baseline) stays stable.
+            $boundary = DB::table('outstock_details')->where('Outstock_ID', $outstockId)->min('Created_At');
+            $createdAt = $boundary ?: now()->toDateTimeString();
+            $ownDetailIds = DB::table('outstock_details')->where('Outstock_ID', $outstockId)->pluck('ID')->all();
 
             $systemQtyByContainer = [];
+            $warehouseIds = [];
             foreach ($rows as $row) {
                 $cid = $row['container_id'];
                 if (!array_key_exists($cid, $systemQtyByContainer)) {
-                    $own = (float) ($ownQtyByContainer[$cid] ?? 0);
-                    $systemQtyByContainer[$cid] = $this->warehouseService->containerSystemQty($cid) + $own;
+                    $systemQtyByContainer[$cid] = $this->warehouseService->containerSystemQtyAsOf($cid, $createdAt, $ownDetailIds);
+                }
+                $whId = DB::table('master_container')->where('ID', $cid)->value('Warehouse_ID');
+                if ($whId) {
+                    $warehouseIds[$whId] = true;
                 }
             }
 
-            DB::table('outstock_loading')->where('Outstock_ID', $outstockId)->delete();
+            DB::table('outstock_details')->where('Outstock_ID', $outstockId)->delete();
 
             foreach ($rows as $row) {
-                DB::table('outstock_loading')->insert([
+                $cid = $row['container_id'];
+                DB::table('outstock_details')->insert([
                     'Outstock_ID'  => $outstockId,
-                    'Container_ID' => $row['container_id'],
+                    'Container_ID' => $cid,
+                    'Warehouse_ID' => DB::table('master_container')->where('ID', $cid)->value('Warehouse_ID'),
                     'Date'         => $row['date'],
-                    'System_Qty'   => $systemQtyByContainer[$row['container_id']],
+                    'System_Qty'   => $systemQtyByContainer[$cid],
                     'Actual_Qty'   => $row['actual_qty'] ?? 0,
                     'Notes'        => $row['notes'] ?? '',
-                    'Created_At'   => now(),
+                    'Created_At'   => $createdAt,
                 ]);
             }
 
             DB::table('outstock')->where('ID', $outstockId)->update(['Status' => 'LOADING']);
+
+            foreach (array_keys($warehouseIds) as $whId) {
+                $this->warehouseService->recomputeWarehouseSystemQty($whId);
+            }
 
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Loading data saved. Status: LOADING.']);
@@ -2749,7 +2774,7 @@ class UCOController extends Controller
             if (!is_dir($dir)) { mkdir($dir, 0777, true); }
             $file->move($dir, $name);
 
-            DB::table('outstock_loading')->where('ID', $id)->update(['Photo_Path' => 'outstock/' . $name]);
+            DB::table('outstock_details')->where('ID', $id)->update(['Photo_Path' => 'outstock/' . $name]);
             return response()->json(['success' => true, 'path' => 'outstock/' . $name]);
         }
         return response()->json(['success' => false, 'message' => 'No file uploaded'], 400);
@@ -2767,20 +2792,44 @@ class UCOController extends Controller
                 throw new \Exception('Outstock not found');
             }
 
-            DB::table('outstock_handover')->where('Outstock_ID', $outstockId)->delete();
+            $total = (float) ($r->input('Actual_Qty') ?? 0);
 
-            DB::table('outstock_handover')->insert([
-                'Outstock_ID'  => $outstockId,
-                'Date'         => $r->input('Date'),
-                'Actual_Qty'   => $r->input('Actual_Qty') ?? 0,
-                'Destination'  => $r->input('Destination'),
-                'Notes'        => $r->input('Notes'),
-                'Created_At'   => now(),
+            // Distribute the single handover total across the container lines
+            // (proportional to provisional loading actual; equal split if 0;
+            // residual to the last line so the sum is exact).
+            $lines = DB::table('outstock_details')->where('Outstock_ID', $outstockId)->orderBy('ID')->get();
+            if ($lines->isNotEmpty()) {
+                $basis = $lines->map(fn ($l) => (float) $l->Actual_Qty)->values();
+                $sumBasis = (float) $basis->sum();
+                if ($sumBasis <= 0) {
+                    $basis = $basis->map(fn () => 1.0);
+                    $sumBasis = (float) $basis->count();
+                }
+                $running = 0.0;
+                $lastIndex = $lines->count() - 1;
+                foreach ($lines as $i => $l) {
+                    $share = $i === $lastIndex
+                        ? round($total - $running, 2)
+                        : round($total * ((float) $basis[$i] / $sumBasis), 2);
+                    DB::table('outstock_details')->where('ID', $l->ID)->update(['Actual_Qty' => $share]);
+                    $running += $share;
+                }
+            }
+
+            DB::table('outstock')->where('ID', $outstockId)->update([
+                'Actual_Qty'           => $total,
+                'Handover_Date'        => $r->input('Date'),
+                'Handover_Destination' => $r->input('Destination'),
+                'Handover_Notes'       => $r->input('Notes'),
+                'Status'               => 'COMPLETED',
             ]);
 
-            DB::table('outstock')->where('ID', $outstockId)->update(['Status' => 'COMPLETED']);
+            // Rebuild finance movement mirrors (idempotent) from distributed lines.
+            DB::table('warehouse_partner_stock_request')
+                ->where('source', 'OUTSTOCK')
+                ->where('source_id', $outstockId)
+                ->delete();
 
-            // Insert into warehouse_partner_stock_request for each warehouse
             $outstockWhs = DB::table('outstock_warehouses')
                 ->where('Outstock_ID', $outstockId)
                 ->pluck('Warehouse_ID');
@@ -2789,11 +2838,10 @@ class UCOController extends Controller
                 $wp = DB::table('warehouse_partner')->where('id', $whId)->first(['warehouse_task_id', 'warehouse_location']);
                 if (!$wp || !$wp->warehouse_task_id) continue;
 
-                $loadingQty = DB::table('outstock_loading')
-                    ->join('master_container as mc', 'outstock_loading.Container_ID', '=', 'mc.ID')
-                    ->where('outstock_loading.Outstock_ID', $outstockId)
-                    ->where('mc.Warehouse_ID', $whId)
-                    ->sum('outstock_loading.Actual_Qty');
+                $loadingQty = (float) DB::table('outstock_details')
+                    ->where('Outstock_ID', $outstockId)
+                    ->where('Warehouse_ID', $whId)
+                    ->sum('Actual_Qty');
 
                 if ($loadingQty <= 0) continue;
 
@@ -2820,9 +2868,13 @@ class UCOController extends Controller
                     'total'             => round($loadingQty * $avgPrice, 2),
                     'reference'         => 'OUTSTOCK: ' . $outstock->Code . ' - ' . ($wp->warehouse_location ?? 'WH#' . $whId),
                     'remark'            => 'Auto-generated from outstock completion',
+                    'source'            => 'OUTSTOCK',
+                    'source_id'         => $outstockId,
                     'created_date'      => now(),
                     'created_by'        => auth()->user()->username ?? 'outstock',
                 ]);
+
+                $this->warehouseService->recomputeWarehouseSystemQty($whId);
             }
 
             DB::commit();
@@ -2844,7 +2896,7 @@ class UCOController extends Controller
             if (!is_dir($dir)) { mkdir($dir, 0777, true); }
             $file->move($dir, $name);
 
-            DB::table('outstock_handover')->where('ID', $id)->update(['Photo_Path' => 'outstock/' . $name]);
+            DB::table('outstock')->where('ID', $id)->update(['Handover_Photo_Path' => 'outstock/' . $name]);
             return response()->json(['success' => true, 'path' => 'outstock/' . $name]);
         }
         return response()->json(['success' => false, 'message' => 'No file uploaded'], 400);
@@ -2868,11 +2920,10 @@ class UCOController extends Controller
 
         $warehouse = DB::table('warehouse_partner')->where('id', $warehouseId)->first();
 
-        $actualWeight = DB::table('outstock_loading')
-            ->join('master_container as mc', 'outstock_loading.Container_ID', '=', 'mc.ID')
-            ->where('outstock_loading.Outstock_ID', $id)
-            ->where('mc.Warehouse_ID', $warehouseId)
-            ->sum('outstock_loading.Actual_Qty');
+        $actualWeight = DB::table('outstock_details')
+            ->where('Outstock_ID', $id)
+            ->where('Warehouse_ID', $warehouseId)
+            ->sum('Actual_Qty');
 
         $templatePath = public_path('template-outstock-surat-jalan.docx');
         if (!file_exists($templatePath)) {

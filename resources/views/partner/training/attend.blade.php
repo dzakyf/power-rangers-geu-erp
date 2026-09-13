@@ -47,7 +47,7 @@ $Saya =  Auth::user()->username;
 	function TrainingAttendKlik() {
         
 		let TrainingAttendID = TrainingAttend.getSelectedId()
-		if (TrainingAttendID.length != null) {
+		if (TrainingAttendID != null) {
 			LoadM('divlistOpportunity', 'partner-training-attend-presence?Task=' + TrainingAttendID);
 		}else {
 			alert("Pilih baris data");

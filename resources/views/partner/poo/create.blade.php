@@ -65,7 +65,10 @@
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="UCO_Type">UCO Type</label>
-                                <input type="text" class="form-control" id="UCO_Type" name="UCO_Type">
+                                <select class="form-control" id="UCO_Type" name="UCO_Type">
+                                    <option value="CAIR" selected>Cair</option>
+                                    <option value="PADAT">Padat</option>
+                                </select>
                             </div>
                             <div class="form-group col-md-3">
                                 <label for="Price">Price</label>
@@ -331,7 +334,10 @@
                 var bankSel = $('#Bank_Name');
                 bankSel.empty().append('<option value="">-- Pilih Bank --</option>');
                 res.data.forEach(function(item) {
-                    bankSel.append($('<option>', { value: item.text, text: item.text }));
+                    bankSel.append($('<option>', {
+                        value: item.text,
+                        text: item.text
+                    }));
                 });
             }
         });

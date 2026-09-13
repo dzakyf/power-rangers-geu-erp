@@ -187,6 +187,9 @@ class RenewalController extends Controller
             ]);
 
             unlink($tempImage);
+        } elseif ($data) {
+            // Fall back to the signature stored on the partner's profile.
+            apply_stored_signature($doc, 'signature', $data->user_row_id ?? null);
         }
 
         return [
@@ -296,6 +299,296 @@ class RenewalController extends Controller
         }
     }
 
+
+    private function partnerForDoc($body)
+    {
+        $oppId = $body['opportunity_id'] ?? $body['opportunity_partner_id'] ?? null;
+        if (!$oppId) {
+            return null;
+        }
+
+        return DB::table('opportunity_partner')->where('ID', $oppId)->first();
+    }
+
+    private function partnerName($data): string
+    {
+        if (($data->register_as ?? '') === 'individual') {
+            return $data->full_name ?? '';
+        }
+
+        return $data->company_name ?? $data->company_official_name ?? $data->full_name ?? '';
+    }
+
+    private function partnerPosition($data): string
+    {
+        return ($data->register_as ?? '') === 'individual'
+            ? 'Pemilik'
+            : ($data->pic_position ?? '');
+    }
+
+    private function applyPartnerSignature($doc, string $placeholder, $data): void
+    {
+        $stored = data_get($data, 'user_row_id');
+        if ($stored && apply_stored_signature($doc, $placeholder, $stored)) {
+            return;
+        }
+
+        $session = $this->userService->getCurrentSessionUserInfo();
+        if ($session) {
+            apply_stored_signature($doc, $placeholder, $session->id);
+        }
+    }
+
+    private function recordMetaFile(string $relativePath, string $filename, string $desc, string $topic, $mapTo): int
+    {
+        return DB::table('meta_files')->insertGetId([
+            'Filename'    => $filename,
+            'Path'        => $relativePath,
+            'Extension'   => 'docx',
+            'Description' => $desc,
+            'Topic'       => $topic,
+            'Map_To'      => (string) $mapTo,
+            'Created_At'  => now(),
+        ]);
+    }
+
+    public function makeRenewalDocs($body)
+    {
+        $path = public_path('template-perpanjangan-kemitraan.docx');
+        if (!file_exists($path)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        $data = $this->partnerForDoc($body);
+        if (!$data) {
+            return response()->json(['error' => 'Partner not found'], 404);
+        }
+
+        $doc = new TemplateProcessor($path);
+        $month = Carbon::now()->translatedFormat('F');
+        $year = Carbon::now()->year;
+        $ref_no = "000/RS/PFS/APL/{$month}/{$year}";
+
+        $doc->setValues([
+            'reference_no'   => $ref_no,
+            'contract_end'   => $data->contract_end_at ? Carbon::parse($data->contract_end_at)->translatedFormat('d F Y') : '',
+            'now'            => Carbon::now()->translatedFormat('d F Y'),
+            'mitra_fullname' => $this->partnerName($data),
+            'position'       => $this->partnerPosition($data),
+        ]);
+
+        $this->applyPartnerSignature($doc, 'signature', $data);
+
+        return ['doc' => $doc, 'reference_no' => $ref_no];
+    }
+
+    public function previewRenewalApplication(Request $r)
+    {
+        $doc = $this->makeRenewalDocs($r->all());
+        if (!is_array($doc)) {
+            return $doc;
+        }
+
+        $outputPath = storage_path('app/public/filevendor/renewal_'.Str::uuid().'.docx');
+        if (!is_dir(dirname($outputPath))) {
+            mkdir(dirname($outputPath), 0777, true);
+        }
+        $doc['doc']->saveAs($outputPath);
+
+        return response()->download($outputPath)->deleteFileAfterSend(true);
+    }
+
+    public function finalizeRenewalApplication(Request $r)
+    {
+        $b = $r->all();
+        $doc = $this->makeRenewalDocs($b);
+        if (!is_array($doc)) {
+            return $doc;
+        }
+
+        $data = $this->partnerForDoc($b);
+        $oppId = $b['opportunity_id'] ?? $b['opportunity_partner_id'];
+
+        $year = Carbon::now()->year;
+        $month = Carbon::now()->format('m');
+        $relative = "filevendor/$year/$month/rnw_".Str::uuid().".docx";
+        $outputPath = public_path($relative);
+        if (!is_dir(dirname($outputPath))) {
+            mkdir(dirname($outputPath), 0777, true);
+        }
+        $doc['doc']->saveAs($outputPath);
+
+        $user = $this->userService->getCurrentSessionUserInfo();
+
+        DB::beginTransaction();
+        try {
+            $renewalId = DB::table('partner_renewal')->insertGetId([
+                'Opportunity_Id'  => $oppId,
+                'Contract_End_At' => $data->contract_end_at,
+                'Created_At'      => now(),
+                'Status'          => 'PENDING',
+            ]);
+
+            $this->recordMetaFile($relative, basename($outputPath), 'Dokumen perpanjangan kemitraan', 'renewal', $renewalId);
+
+            $levelOneId = DB::table('approval_level')
+                ->where('Request_Type', 'RENEWAL')
+                ->where('Level_Number', 1)
+                ->value('ID');
+
+            $approvalId = DB::table('approval_request')->insertGetId([
+                'Status'                 => 'NEED_APPROVAL',
+                'Requester_Id'           => $user->id,
+                'Description'            => 'Initial Review',
+                'Request_Type'           => 'RENEWAL',
+                'Opportunity_Partner_Id' => $oppId,
+                'Map_To'                 => $renewalId,
+                'Level_Id'               => $levelOneId,
+                'Submitted_At'           => now(),
+            ]);
+
+            $reqLevel = DB::table('approval_request')->where('ID', $approvalId)->value('Current_Level');
+            DB::table('approval_log')->insertGetId([
+                'Approver_Id'  => $user->id,
+                'Notes'        => '',
+                'Action'       => 'IN_PROGRESS',
+                'Request_Id'   => $approvalId,
+                'Level_Number' => $reqLevel,
+                'Next_Level'   => $reqLevel + 1,
+            ]);
+
+            DB::commit();
+            return response()->download($outputPath)->deleteFileAfterSend(true);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'error', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function makeTerminationDocs($body)
+    {
+        $path = public_path('template-surat-terminasi-kemitraan.docx');
+        if (!file_exists($path)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        $data = $this->partnerForDoc($body);
+        if (!$data) {
+            return response()->json(['error' => 'Partner not found'], 404);
+        }
+
+        $doc = new TemplateProcessor($path);
+        $month = Carbon::now()->translatedFormat('F');
+        $year = Carbon::now()->year;
+        $ref_no = "000/RS/PFS/EXT/{$month}/{$year}";
+
+        $doc->setValues([
+            'ref_no'         => $ref_no,
+            'mitra_fullname' => $this->partnerName($data),
+            'position'       => $this->partnerPosition($data),
+            'applied_at'     => Carbon::now()->translatedFormat('d F Y'),
+            'alasan'         => $body['reason'] ?? '',
+        ]);
+
+        // Map the selected Jenis Terminasi to the letter's checkboxes.
+        $typeMap = [
+            'BERAKHIR_MASA_KONTRAK'       => 1,
+            'PENGAKHIRAN_OLEH_MITRA'      => 2,
+            'PENGAKHIRAN_OLEH_PERUSAHAAN' => 3,
+            'KESEPAKATAN_BERSAMA'         => 4,
+        ];
+        $selectedType = $typeMap[$body['type'] ?? ''] ?? null;
+        for ($i = 1; $i <= 4; $i++) {
+            $doc->setValue("type{$i}", $i === $selectedType ? '☒' : '☐');
+        }
+
+        $this->applyPartnerSignature($doc, 'signature', $data);
+
+        return ['doc' => $doc, 'reference_no' => $ref_no];
+    }
+
+    public function previewTerminationApplication(Request $r)
+    {
+        $doc = $this->makeTerminationDocs($r->all());
+        if (!is_array($doc)) {
+            return $doc;
+        }
+
+        $outputPath = storage_path('app/public/filevendor/termination_'.Str::uuid().'.docx');
+        if (!is_dir(dirname($outputPath))) {
+            mkdir(dirname($outputPath), 0777, true);
+        }
+        $doc['doc']->saveAs($outputPath);
+
+        return response()->download($outputPath)->deleteFileAfterSend(true);
+    }
+
+    public function finalizeTerminationApplication(Request $r)
+    {
+        $b = $r->all();
+        $doc = $this->makeTerminationDocs($b);
+        if (!is_array($doc)) {
+            return $doc;
+        }
+
+        $oppId = $b['opportunity_id'] ?? $b['opportunity_partner_id'];
+
+        $year = Carbon::now()->year;
+        $month = Carbon::now()->format('m');
+        $relative = "filevendor/$year/$month/trm_".Str::uuid().".docx";
+        $outputPath = public_path($relative);
+        if (!is_dir(dirname($outputPath))) {
+            mkdir(dirname($outputPath), 0777, true);
+        }
+        $doc['doc']->saveAs($outputPath);
+
+        $user = $this->userService->getCurrentSessionUserInfo();
+
+        DB::beginTransaction();
+        try {
+            $terminationId = DB::table('partner_termination')->insertGetId([
+                'Opportunity_Id' => $oppId,
+                'Type'           => $b['type'] ?? null,
+                'Resolution'     => $b['reason'] ?? null,
+                'Created_At'     => now(),
+                'Status'         => 'PENDING',
+            ]);
+
+            $this->recordMetaFile($relative, basename($outputPath), 'Dokumen terminasi kemitraan', 'termination', $terminationId);
+
+            $levelOneId = DB::table('approval_level')
+                ->where('Request_Type', 'TERMINATION')
+                ->where('Level_Number', 1)
+                ->value('ID');
+
+            $approvalId = DB::table('approval_request')->insertGetId([
+                'Status'                 => 'NEED_APPROVAL',
+                'Requester_Id'           => $user->id,
+                'Description'            => 'Termination request',
+                'Request_Type'           => 'TERMINATION',
+                'Opportunity_Partner_Id' => $oppId,
+                'Map_To'                 => $terminationId,
+                'Level_Id'               => $levelOneId,
+                'Submitted_At'           => now(),
+            ]);
+
+            $reqLevel = DB::table('approval_request')->where('ID', $approvalId)->value('Current_Level');
+            DB::table('approval_log')->insertGetId([
+                'Approver_Id'  => $user->id,
+                'Notes'        => '',
+                'Action'       => 'IN_PROGRESS',
+                'Request_Id'   => $approvalId,
+                'Level_Number' => $reqLevel,
+                'Next_Level'   => $reqLevel + 1,
+            ]);
+
+            DB::commit();
+            return response()->download($outputPath)->deleteFileAfterSend(true);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'error', 'error' => $e->getMessage()], 500);
+        }
+    }
 
     public function uploadRenewalApplication(Request $r)
     {
@@ -567,7 +860,7 @@ class RenewalController extends Controller
         $d = DB::table('partner_termination as pt')
             ->join('opportunity_partner as op', 'pt.Opportunity_Id', '=', 'op.id')
             ->leftJoin('meta_files as mf', function ($join) {
-                $join->on('pt.Opportunity_Id', '=', 'mf.Map_To')
+                $join->on('pt.ID', '=', 'mf.Map_To')
                     ->where('mf.Topic', '=', 'termination');
             })
             ->select('pt.*', 'op.full_name', 'op.lead_id', 'mf.Path as File_Path')

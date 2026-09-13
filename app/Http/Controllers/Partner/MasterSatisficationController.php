@@ -17,10 +17,12 @@ class MasterSatisficationController extends Controller
 
     public function indexSatisficationXml()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
@@ -54,11 +56,13 @@ class MasterSatisficationController extends Controller
     public function updateSatisfication(Request $request)
     {
         
-        header("Content-type: text/xml");
+        if (!headers_sent()) {
+            header("Content-type: text/xml");
+        }
         echo('<?xml version="1.0" encoding="iso-8859-1"?>'); 
         echo "<data>";
 
-        $request_body = urldecode(file_get_contents('php://input'));
+        $request_body = urldecode(request()->getContent());
         $Saya = Auth::user()->username;
         $LSP = Auth::user()->Location;
 
@@ -106,10 +110,8 @@ class MasterSatisficationController extends Controller
 
     public function updateSatisficationInsert($rowId, $param)
     {
-        $a = $param[$rowId."_c1"]; // origin
-        $b = $param[$rowId."_c2"]; // destination
-        $c = $param[$rowId."_c3"]; // destination name
-        $d = $param[$rowId."_c4"]; // transport
+        $a = $param[$rowId."_c1"] ?? null; // peruntukan
+        $b = $param[$rowId."_c2"] ?? null; // pertanyaan
 
         $Saya = auth()->user()->username;
         $LSP = auth()->user()->Location;
@@ -125,10 +127,8 @@ class MasterSatisficationController extends Controller
 
     public function updateSatisficationUpdate($rowId, $param)
     {
-        $a = $param[$rowId."_c1"]; // origin
-        $b = $param[$rowId."_c2"]; // destination
-        $c = $param[$rowId."_c3"]; // destination name
-        $d = $param[$rowId."_c4"]; // transport
+        $a = $param[$rowId."_c1"] ?? null; // peruntukan
+        $b = $param[$rowId."_c2"] ?? null; // pertanyaan
 
         $Saya = auth()->user()->username;
         $LSP = auth()->user()->Location;
@@ -141,10 +141,8 @@ class MasterSatisficationController extends Controller
 
     public function updateSatisficationDelete($rowId, $param)
     {
-        $a = $param[$rowId."_c1"]; // origin
-        $b = $param[$rowId."_c2"]; // destination
-        $c = $param[$rowId."_c3"]; // destination name
-        $d = $param[$rowId."_c4"]; // transport
+        $a = $param[$rowId."_c1"] ?? null; // peruntukan
+        $b = $param[$rowId."_c2"] ?? null; // pertanyaan
 
         $Saya = auth()->user()->username;
         $LSP = auth()->user()->Location;

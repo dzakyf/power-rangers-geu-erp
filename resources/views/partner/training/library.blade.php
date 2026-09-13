@@ -59,7 +59,7 @@ $Saya =  Auth::user()->username;
 	TrainingLibrary.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// TrainingLibrary.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	TrainingLibrary.setInitWidths("60,100,150,200,100,100");
-	TrainingLibrary.setColAlign("center,left,left,left,left");
+	TrainingLibrary.setColAlign("center,left,left,left,left,left");
 	TrainingLibrary.setColSorting("int,str,str,str,str,str");
 	TrainingLibrary.setColTypes("ron,ro,ro,ro,ro,ro,ro");
 	TrainingLibrary.enableSmartRendering(true, 150);

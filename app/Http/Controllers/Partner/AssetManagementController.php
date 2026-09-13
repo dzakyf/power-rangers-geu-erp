@@ -155,24 +155,21 @@ class AssetManagementController extends Controller
                 ->where('warehouse_task_id', $task)
                 ->orderBy('ID')
                 ->first();
-            // Always show the live master price so master-data edits are
-            // reflected (the saved dtl price is only a fallback).
-            $displayPrice = ($facility->price !== null && $facility->price !== '')
-                ? $facility->price
-                : ($cekDtl->Price ?? '');
-
             echo "<row id=\"$facility->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
             echo "<cell>" . htmlspecialchars($facility->description) . "</cell>";
             echo "<cell>" . htmlspecialchars($this->facilityChildrenText($facility)) . "</cell>";
             echo "<cell>" . htmlspecialchars($facility->asset_type) . "</cell>";
+            // Amounts mirror the pre-existing order-equipment submission
+            // (opportunity_partner_facility_dtl) only - master_facility.price
+            // is never used here and unsubmitted rows stay blank.
             if ($cekDtl) {
                 echo "<cell>" . htmlspecialchars($cekDtl->Qty) . "</cell>";
-                echo "<cell>" . htmlspecialchars($displayPrice) . "</cell>";
+                echo "<cell>" . htmlspecialchars($cekDtl->Price) . "</cell>";
                 echo "<cell>" . htmlspecialchars($cekDtl->Total) . "</cell>";
             } else {
                 echo "<cell></cell>";
-                echo "<cell>" . htmlspecialchars($displayPrice ?? '') . "</cell>";
+                echo "<cell></cell>";
                 echo "<cell></cell>";
             }
             echo "<cell>" . htmlspecialchars($getCheckedBySales[$facility->id]['Chckd'] ?? 0) . "</cell>";

@@ -54,7 +54,7 @@
                         <th>Warehouse</th>
                         <th>Container</th>
                         <th>Tanggal</th>
-                        <th>System Qty</th>
+                        <th>System Qty (saat loading)</th>
                         <th>Actual Qty</th>
                         <th>Notes</th>
                         <th>Foto</th>
@@ -124,8 +124,8 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label>Actual Qty</label>
-                            <input type="number" step="0.01" class="form-control" name="Actual_Qty" value="{{ $handover->Actual_Qty ?? 0 }}">
+                            <label>Actual Qty (total, final)</label>
+                            <input type="number" step="0.01" class="form-control" name="Actual_Qty" value="{{ $handover->Actual_Qty ?? $loading->sum('Actual_Qty') }}">
                         </div>
                     </div>
                     <div class="col-md-4">

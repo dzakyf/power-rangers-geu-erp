@@ -8,53 +8,56 @@ use Illuminate\Database\Eloquent\Builder;
 use App\Opportunity;
 
 $LSP = Auth::user()->Location ?? 'GEU-HO';
-$Saya =  Auth::user()->username ?? 'admin';
+$Saya = Auth::user()->username ?? 'admin';
 
-$ars = "";
-$ax = "";
-$isi = "";
 $Task_ID = 'BP/' . $LSP . '/' . date('Ymdhis') . '/' . substr(md5($Saya), 0, 3);
+
+$input = request()->request->all();
+
+// Bookkeeping fields that must never be persisted on the opportunity row.
+$skip = ['ID', 'Task_ID', 'SubmitCustDetail', 'DelCustDetail', 'Created_Date', 'Location', '_token'];
+
+// Only these are mandatory. The old blanket "any empty field" check produced
+// false "tidak boleh kosong" prompts for optional/unchecked fields.
+$required = ['Full_Name', 'Phone_Number', 'Source_Channel', 'Partnership_Interest', 'Capital_Estimation'];
+foreach ($required as $field) {
+    if (trim((string) ($input[$field] ?? '')) === '') {
+        $label = str_replace('_', ' ', $field);
+        echo "Field $label tidak boleh kosong ||" . $field;
+        return;
+    }
+}
+
+// Normalise the package selection. Current forms submit 1/2; the legacy
+// internal form submits "booth"/"mobil" strings. Storing the raw string in
+// the int column used to coerce it to 0 ("Opsi 0" in the lists).
+$pi = strtolower(trim((string) $input['Partnership_Interest']));
+if (in_array($pi, ['1', 'mobil', 'mobil listrik'], true)) {
+    $hubType = 'mobil';
+    $partnershipInterest = 1;
+} elseif (in_array($pi, ['2', 'booth'], true)) {
+    $hubType = 'booth';
+    $partnershipInterest = 2;
+} else {
+    echo "Field Partnership Interest tidak valid ||Partnership_Interest";
+    return;
+}
+
 $arr = [];
-
-// $_POST['Estimated_Rev'] = str_replace(",","",$_POST['Estimated_Rev']);
-foreach ($_POST as $key => $value) {
-
-	if ($key != 'ID' && $key != 'Task_ID' && $key != 'SubmitCustDetail' && $key != 'DelCustDetail' && $key != 'Created_Date' && $key != 'Created_Date' && $key != 'Location' && $key != 'ID') {
-		$ars .= "$key = '$value',";
-		$ax .= "$key,";
-		$isi .= "'$value',";
-		$arr[$key] = $value;
-		if ($value  == '') {
-			$keys = str_replace("_", " ", $key);
-			echo "Field $keys tidak boleh kosong ||" . $key;
-			exit;
-		}
-	}
+foreach ($input as $key => $value) {
+    if (in_array($key, $skip, true)) {
+        continue;
+    }
+    $arr[$key] = $value;
 }
 
-if (!isset($arr['Partnership_Interest'])) {
-	echo "Field Partnership Interest tidak boleh kosong ||Partnership_Interest";
-	exit;
-}
-
-if (!isset($arr['Capital_Estimation'])) {
-	echo "Field Capital Estimation tidak boleh kosong ||Capital_Estimation";
-	exit;
-}
-
-$ax = substr($ax, 0, -1);
-$ars = substr($ars, 0, -1);
-$isi = substr($isi, 0, -1);
-
-
+$arr['Partnership_Interest'] = $partnershipInterest;
 $arr['Location'] = $LSP;
 $arr['Created_Date'] = date('Y-m-d H:i:s');
 $arr['Created_By'] = $Saya;
 $arr['Task_ID'] = $Task_ID;
 $arr['Classification'] = 'Fresh';
-$arr['Hub_Type'] = $arr['Partnership_Interest'] == 1 ? "mobil" : "booth";
-// $kueri = "INSERT INTO opportunity($ax,Location,Created_Date,Created_By,Task_ID,Classification) values ($isi,'$LSP',NOW(),'$Saya','$Task_ID','Fresh')";
-// DB::insert(DB::raw($kueri));
+$arr['Hub_Type'] = $hubType;
 
 $opportunity = Opportunity::create($arr);
 

@@ -57,7 +57,7 @@ $Saya =  Auth::user()->username;
 	function TrainingListKlik() {
         
 		let TrainingListID = TrainingList.getSelectedId()
-		if (TrainingListID.length != null) {
+		if (TrainingListID != null) {
 			LoadM('divlistOpportunity', 'partner-training-list-detail?Task=' + TrainingListID + "&target=" + $('#target').val());
 		}else {
 			alert("Pilih baris data");
@@ -67,7 +67,7 @@ $Saya =  Auth::user()->username;
 	function TrainingListEmail() {
         
 		let TrainingListID = TrainingList.getSelectedId()
-		if (TrainingListID.length != null) {
+		if (TrainingListID != null) {
 			window.open('partner-training-mail?Task=' + TrainingListID, '_blank');
 			// LoadM('divlistOpportunity', 'partner-training-mail?Task=' + TrainingListID);
 		}else {
