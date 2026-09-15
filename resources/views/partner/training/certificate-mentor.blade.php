@@ -22,7 +22,7 @@ $Saya =  Auth::user()->username;
 			<a href="/">Training</a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">Approval</span>
+			<span class="active">Certificate - Mentor</span>
 		</li>
 	</ol>
 </div>

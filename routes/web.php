@@ -149,7 +149,7 @@ Route::get('partner-registration', function () {
             ->where('registration_token', $token)
             ->where(function ($q) {
                 $q->whereNull('token_expires_at')
-                  ->orWhere('token_expires_at', '>=', now());
+                    ->orWhere('token_expires_at', '>=', now());
             })
             ->first();
         if (!$lead) {
@@ -5616,7 +5616,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("xml-$hcProcurementPref-log", [HCGAProcurementController::class, 'logData']);
     Route::get("$hcProcurementPref-print-pr", [HCGAProcurementController::class, 'printPR']);
     Route::get("$hcProcurementPref-print-po", [HCGAProcurementController::class, 'printPO']);
-    
+
     $hcProcurementApprovalPref = "$hcProcurementPref-approval";
     Route::get("$hcProcurementApprovalPref-index", [HCGAProcurementApprovalController::class, 'index']);
     Route::get("$hcProcurementApprovalPref-data", [HCGAProcurementApprovalController::class, 'data']);

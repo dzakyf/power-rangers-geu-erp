@@ -307,8 +307,16 @@ class ProfitSharingController extends Controller
         $date = $request->date;
         $calculate = [];
 
-        $start = strlen($date) == 4 ? $date . '-01-01' : $date . '-01';
-        $end   = strlen($date) == 4 ? $date . '-12-31' : $date . '-31';
+        if (strlen($date) == 4) {
+            $start = $date . '-01-01';
+            $end   = $date . '-12-31';
+        } else {
+            // Month end must use the real last day (Feb/Apr/Jun/Sep/Nov have < 31
+            // days; a hard-coded '-31' produces an invalid date and an empty range).
+            $monthStart = strlen($date) == 7 ? $date . '-01' : $date;
+            $start = Carbon::parse($monthStart)->startOfMonth()->format('Y-m-d');
+            $end   = Carbon::parse($monthStart)->endOfMonth()->format('Y-m-d');
+        }
 
         $stmt = app(WarehouseService::class)->calculateFinancialStatement(
             $request->Task,
