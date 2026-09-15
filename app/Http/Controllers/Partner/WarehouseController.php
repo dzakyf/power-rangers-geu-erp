@@ -134,14 +134,10 @@ class WarehouseController extends Controller
                 return $c;
             });
         $totalSystemQty = (float) $whContainers->sum('System_Qty');
-        $unattributedQty = (float) DB::table('warehouse_partner_supplies')
-            ->where('warehouse_task_id', $wh->warehouse_task_id)
-            ->whereNull('Container_ID')
-            ->sum('received_qty');
 
         $taskId = $request->Task;
 
-        return view('partner.warehouse.list-detail', compact('wh', 'partner', 'kotakab', 'whContainers', 'totalSystemQty', 'unattributedQty', 'taskId'));
+        return view('partner.warehouse.list-detail', compact('wh', 'partner', 'kotakab', 'whContainers', 'totalSystemQty', 'taskId'));
     }
 
     public function detailWarehouseListUpdate(Request $request)

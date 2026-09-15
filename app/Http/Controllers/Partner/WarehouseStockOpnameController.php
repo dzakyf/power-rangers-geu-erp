@@ -112,7 +112,10 @@ class WarehouseStockOpnameController extends Controller
     public function detailStockOpname(Request $r)
     {
         $data = WarehouseStockOpname::findOrFail($r->ID);
-        return view('partner.warehouse.stock-opname-detail', compact('data'));
+        $liveSystemQty = $data->Container_ID
+            ? $this->warehouseService->containerSystemQty($data->Container_ID)
+            : (float) $data->System_Qty;
+        return view('partner.warehouse.stock-opname-detail', compact('data', 'liveSystemQty'));
     }
 
     public function updateStockOpname(Request $r)
@@ -149,12 +152,17 @@ class WarehouseStockOpnameController extends Controller
                 return response()->json(['success' => false, 'message' => 'Opname must be in COUNTED status to finalize'], 400);
             }
 
-            $difference = $opname->Difference;
+            // Refresh the system figure from the latest ledger before closing.
+            $currentSystem = $opname->Container_ID
+                ? $this->warehouseService->containerSystemQty($opname->Container_ID)
+                : (float) $opname->System_Qty;
+
+            $difference = (float) $opname->Physical_Qty - $currentSystem;
             $adjustmentType = $difference >= 0 ? 'SURPLUS' : 'SHORTAGE';
 
-            // Calculate threshold
-            $ratio = $opname->System_Qty > 0
-                ? abs($difference) / $opname->System_Qty
+            // Calculate threshold against the refreshed system qty
+            $ratio = $currentSystem > 0
+                ? abs($difference) / $currentSystem
                 : 1;
             $approvalStatus = $ratio < self::ADJUSTMENT_THRESHOLD ? 'AUTO' : 'PENDING';
 
@@ -164,7 +172,7 @@ class WarehouseStockOpnameController extends Controller
                     'Opname_ID'      => $opname->ID,
                     'Warehouse_ID'   => $opname->Warehouse_ID,
                     'Adjustment_Type' => $adjustmentType,
-                    'Qty_Before'     => $opname->System_Qty,
+                    'Qty_Before'     => $currentSystem,
                     'Qty_After'      => $opname->Physical_Qty,
                     'Difference'     => abs($difference),
                     'Reason'         => $r->reason ?? 'Stock opname adjustment',
@@ -180,8 +188,11 @@ class WarehouseStockOpnameController extends Controller
             }
 
             $opname->update([
+                'System_Qty'  => $currentSystem,
+                'Difference'  => $difference,
                 'Status'      => $approvalStatus === 'AUTO' ? 'CLOSED' : 'CLOSED_PENDING',
                 'Approved_By' => $r->approved_by ?? auth()->user()->username ?? '',
+                'Closed_At'   => $approvalStatus === 'AUTO' ? now() : null,
             ]);
 
             if ($opname->Status === 'CLOSED') {
@@ -215,13 +226,28 @@ class WarehouseStockOpnameController extends Controller
                 ]);
 
                 $opname = WarehouseStockOpname::find($adjustment->Opname_ID);
-                if ($opname && $opname->Status === 'CLOSED_PENDING') {
+                if ($opname) {
+                    // Refresh against the latest ledger at approval time and
+                    // apply the correction, whether this was a first approval or
+                    // a post-close correction on an already CLOSED opname.
+                    $currentSystem = $opname->Container_ID
+                        ? $this->warehouseService->containerSystemQty($opname->Container_ID)
+                        : (float) $opname->System_Qty;
+
                     $newPhysical = $adjustment->Qty_After;
-                    $newDifference = $newPhysical - $opname->System_Qty;
+                    $newDifference = $newPhysical - $currentSystem;
+
+                    $adjustment->update([
+                        'Qty_Before' => $currentSystem,
+                        'Difference' => abs($newDifference),
+                    ]);
+
                     $opname->update([
+                        'System_Qty'   => $currentSystem,
                         'Physical_Qty' => $newPhysical,
                         'Difference'   => $newDifference,
                         'Status'       => 'CLOSED',
+                        'Closed_At'    => now(),
                     ]);
                     $this->warehouseService->recomputeWarehouseSystemQty($opname->Warehouse_ID);
                 }
@@ -239,6 +265,15 @@ class WarehouseStockOpnameController extends Controller
                 'Approved_At'     => now(),
                 'Approval_Note'   => $r->note,
             ]);
+
+            // Context-aware reject: a denied post-close correction keeps its
+            // approved baseline (back to CLOSED); a disputed initial count
+            // returns to COUNTED so it can be re-counted.
+            $opname = WarehouseStockOpname::find($adjustment->Opname_ID);
+            if ($opname && $opname->Status === 'CLOSED_PENDING') {
+                $opname->update(['Status' => $opname->Closed_At ? 'CLOSED' : 'COUNTED']);
+            }
+
             return response()->json(['success' => true, 'message' => 'Adjustment rejected']);
         }
 

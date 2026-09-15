@@ -12,23 +12,13 @@ use Tests\TestCase;
  * Regression tests for Finance > Dashboard Profit Sharing projections.
  *
  * Projections are uploaded as relative months (Month_1..Month_12 per Year
- * 1..4). Month 1 must map to the calendar month in which the partner's
- * warehouse became operational (opportunity_partner.onboarding_stage =
- * 'ACTIVE' via onboarding_stage_updated_at), NOT to the projection Excel
- * upload date (MIN(projections.Created_At)). Calendar months before the
- * operational month must show 0 (the partner had not joined yet), and
- * pre-anchor months must not mirror post-anchor columns (Carbon 2's
- * absolute diffInMonths()).
+ * 1..4). The timeline is anchored to the month AFTER the latest upload:
+ * Month 1 = (projection Created_At month) + 1. Calendar months before that
+ * origin show 0. This is independent of the partner's onboarding stage.
  *
- * The fixture mimics the real flow: the Excel is uploaded during onboarding
- * SETUP (3 months before operations start) and the partner goes ACTIVE
- * later. WarehouseService::calculateFinancialStatement() is called exactly
- * like ProfitSharingController@dashboardProfitSharingXml does: one call per
+ * WarehouseService::calculateFinancialStatement() is called exactly like
+ * ProfitSharingController@dashboardProfitSharingXml does: one call per
  * calendar month with a single-month range.
- *
- * All fixture tables are InnoDB and the inserts happen inside the per-test
- * transaction opened by DatabaseTransactions, so nothing persists to the
- * dev database.
  */
 class ProfitSharingProjectionAnchorTest extends TestCase
 {
@@ -39,20 +29,28 @@ class ProfitSharingProjectionAnchorTest extends TestCase
     private const CREATED_BY = '__test_profitsharing__';
 
     /**
-     * The month the warehouse becomes operational (2 months before now).
-     */
-    private function operationalMonth(): Carbon
-    {
-        return now()->startOfMonth()->subMonths(2);
-    }
-
-    /**
-     * The month the projection Excel was uploaded during SETUP
-     * (3 months before the operational month).
+     * The month the projection Excel was uploaded.
      */
     private function uploadMonth(): Carbon
     {
-        return $this->operationalMonth()->copy()->subMonths(3);
+        return now()->startOfMonth()->subMonths(3);
+    }
+
+    /**
+     * The origin of the projection timeline: the month after the upload.
+     */
+    private function originMonth(): Carbon
+    {
+        return $this->uploadMonth()->copy()->addMonth();
+    }
+
+    /**
+     * A distinct operational month, so the test proves the anchor is the
+     * upload month (not the onboarding/ACTIVE month).
+     */
+    private function operationalMonth(): Carbon
+    {
+        return now()->startOfMonth()->subMonth();
     }
 
     private function seedScenario(bool $partnerActive = true): void
@@ -109,10 +107,6 @@ class ProfitSharingProjectionAnchorTest extends TestCase
             ->all()));
     }
 
-    /**
-     * Runs the statement exactly like the dashboard does: one single-month
-     * range for the given calendar month.
-     */
     private function statementFor(Carbon $month): array
     {
         return app(WarehouseService::class)->calculateFinancialStatement(
@@ -123,44 +117,44 @@ class ProfitSharingProjectionAnchorTest extends TestCase
     }
 
     /** @test */
-    public function test_first_projection_month_is_the_operational_month(): void
+    public function test_first_projection_month_is_the_month_after_upload(): void
     {
         $this->seedScenario();
 
-        $stmt = $this->statementFor($this->operationalMonth());
+        $stmt = $this->statementFor($this->originMonth());
 
         $this->assertEquals(
             100,
             $stmt['projection_royalty_low'],
-            'Projection Month 1 belongs to the month the warehouse became operational'
+            'Projection Month 1 belongs to the month after the upload'
         );
     }
 
     /** @test */
-    public function test_second_projection_month_follows_operational_month(): void
+    public function test_second_projection_month_follows_the_origin(): void
     {
         $this->seedScenario();
 
-        $stmt = $this->statementFor($this->operationalMonth()->copy()->addMonth());
+        $stmt = $this->statementFor($this->originMonth()->copy()->addMonth());
 
         $this->assertEquals(
             200,
             $stmt['projection_royalty_low'],
-            'Projection Month 2 is the month after the operational month'
+            'Projection Month 2 is the month after Month 1'
         );
     }
 
     /** @test */
-    public function test_projection_is_zero_before_operational_month(): void
+    public function test_projection_is_zero_before_the_month_after_upload(): void
     {
         $this->seedScenario();
 
-        $stmt = $this->statementFor($this->operationalMonth()->copy()->subMonth());
+        $stmt = $this->statementFor($this->uploadMonth());
 
         $this->assertEquals(
             0,
             $stmt['projection_royalty_low'],
-            'The partner had not joined yet - no projection may be shown'
+            'The projection timeline has not started yet - no value may be shown'
         );
     }
 
@@ -169,7 +163,7 @@ class ProfitSharingProjectionAnchorTest extends TestCase
     {
         $this->seedScenario();
 
-        $stmt = $this->statementFor($this->operationalMonth()->copy()->addMonths(12));
+        $stmt = $this->statementFor($this->originMonth()->copy()->addMonths(12));
 
         $this->assertEquals(
             1300,
@@ -179,16 +173,16 @@ class ProfitSharingProjectionAnchorTest extends TestCase
     }
 
     /** @test */
-    public function test_projection_is_zero_for_partner_not_yet_active(): void
+    public function test_projection_shows_regardless_of_onboarding_stage(): void
     {
-        $this->seedScenario(false);
+        $this->seedScenario(false); // partner not ACTIVE, no operational date
 
-        $stmt = $this->statementFor($this->uploadMonth());
+        $stmt = $this->statementFor($this->originMonth());
 
         $this->assertEquals(
-            0,
+            100,
             $stmt['projection_royalty_low'],
-            'Without an operational (ACTIVE) date no projection may be shown'
+            'Projections are anchored to the upload month, not the onboarding stage'
         );
     }
 }

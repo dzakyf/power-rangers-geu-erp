@@ -1646,7 +1646,18 @@ class UCOController extends Controller
         }
 
         if ($action === 'approve') {
-            DB::table('pickup_routes')->where('ID', $routeId)->update(['Status' => 'SETTLED']);
+            DB::beginTransaction();
+            try {
+                DB::table('pickup_routes')->where('ID', $routeId)->update(['Status' => 'SETTLED']);
+                // Post the settlement lines into the financial-report journal
+                // (Direct Costs) for the mapped sections.
+                app(\App\Services\SettlementJournalService::class)->postForRoute((string) $routeId);
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            }
+
             return response()->json(['status' => 'success', 'message' => 'Settlement approved.']);
         }
 

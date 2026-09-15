@@ -77,6 +77,11 @@ class WarehouseOpenController extends Controller
 
         WarehousePartnerSupplies::create($r);
 
+        $whId = DB::table('warehouse_partner')->where('warehouse_task_id', $r['warehouse_task_id'] ?? '')->value('id');
+        if ($whId) {
+            app(\App\Services\WarehouseService::class)->recomputeWarehouseSystemQty($whId);
+        }
+
         echo 'success';
     }
 
@@ -96,7 +101,22 @@ class WarehouseOpenController extends Controller
         unset($r['id']);
         unset($r['_token']);
 
+        $before = WarehousePartnerSupplies::where('id', $request->id)->first();
         WarehousePartnerSupplies::where('id', $request->id)->update($r);
+
+        $service = app(\App\Services\WarehouseService::class);
+        $whIds = [];
+        foreach ([$before->warehouse_task_id ?? null, $r['warehouse_task_id'] ?? null] as $taskId) {
+            if ($taskId) {
+                $whId = DB::table('warehouse_partner')->where('warehouse_task_id', $taskId)->value('id');
+                if ($whId) {
+                    $whIds[$whId] = true;
+                }
+            }
+        }
+        foreach (array_keys($whIds) as $whId) {
+            $service->recomputeWarehouseSystemQty($whId);
+        }
 
         echo 'success';
     }

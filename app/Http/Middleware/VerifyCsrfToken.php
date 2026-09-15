@@ -27,6 +27,7 @@ class VerifyCsrfToken extends Middleware
         '/approveproformafinal_approve',
         '/approveproforma_reject',
         '/approveproformafinal_reject',
+        '/partner-registration-submit',
 		
 		
     ];

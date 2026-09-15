@@ -578,14 +578,9 @@ class SystemQuantityTest extends TestCase
     // ------------------------------------------------------------------
 
     /** @test */
-    public function warehouse_detail_shows_total_breakdown_and_unattributed()
+    public function warehouse_detail_shows_total_and_breakdown()
     {
-        $this->addStockIn(100); // containerized
-        DB::table('warehouse_partner_supplies')->insert([
-            'warehouse_task_id' => 'TEST-WH-SQ', 'received_date' => now()->toDateString(), 'received_qty' => 15,
-            'pickup_type' => 'T', 'name_poo' => 'p', 'source' => 's', 'coverage' => 'c',
-            'created_date' => now(), 'created_by' => '__test_sq__', 'total' => 0, 'Container_ID' => null,
-        ]);
+        $this->addStockIn(100);
 
         $html = $this->actingAs($this->admin())
             ->get('/partner-warehouse-list-detail?Task='.$this->warehouseId)
@@ -594,6 +589,6 @@ class SystemQuantityTest extends TestCase
 
         $this->assertStringContainsString('Total System Qty (containers)', $html);
         $this->assertStringContainsString('100,00', $html, 'container total');
-        $this->assertStringContainsString('15,00', $html, 'unattributed stock');
+        $this->assertStringNotContainsString('Unattributed', $html);
     }
 }

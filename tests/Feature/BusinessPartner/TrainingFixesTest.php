@@ -63,6 +63,46 @@ class TrainingFixesTest extends TestCase
     }
 
     /** @test */
+    public function library_view_and_download_cells_are_links(): void
+    {
+        DB::table('master_materials')->insert([
+            'material_no' => 'MTR/TEST/0002',
+            'material_name' => 'Link Columns Material',
+            'material_category' => 'Umum',
+            'material_status' => 'OPEN',
+            'material_download' => 1,
+            'material_view' => 1,
+            'material_attachment' => '2026/09/fileinvendor-test.pdf',
+            'created_by' => $this->testUser()->username,
+            'created_date' => now(),
+        ]);
+
+        ob_start();
+        $response = $this->actingAs($this->testUser())->get('/xml-partner-training-library');
+        $body = (string) ob_get_clean();
+
+        $response->assertOk();
+        $url = asset('filevendor/2026/09/fileinvendor-test.pdf');
+
+        // dhtmlx "link" cells receive "label^url" and render a hyperlink.
+        $this->assertStringContainsString('View^'.$url, $body);
+        $this->assertStringContainsString('Download^'.$url, $body);
+    }
+
+    /** @test */
+    public function library_grid_declares_link_columns_and_drops_the_row_select_handler(): void
+    {
+        $response = $this->actingAs($this->testUser())->get('/partner-training-library');
+
+        $response->assertOk();
+        $body = (string) $response->getContent();
+
+        $this->assertStringContainsString('setColTypes("ron,ro,ro,ro,link,link")', $body);
+        $this->assertStringNotContainsString("split('||')", $body);
+        $this->assertStringNotContainsString('onRowSelect', $body);
+    }
+
+    /** @test */
     public function master_question_save_persists_without_undefined_cell_reads(): void
     {
         $body = 'ids=u1&u1_c1=mitra&u1_c2=Test%20Question&u1_!nativeeditor_status=inserted';
@@ -134,6 +174,22 @@ class TrainingFixesTest extends TestCase
         $body = (string) $response->getContent();
         $this->assertStringContainsString('TrainingAttendID != null', $body);
         $this->assertStringNotContainsString('TrainingAttendID.length != null', $body);
+    }
+
+    /** @test */
+    public function master_question_grid_offers_a_peruntukan_dropdown_and_blank_new_rows(): void
+    {
+        $response = $this->actingAs($this->testUser())->get('/partner-master-satisfication');
+
+        $response->assertOk();
+        $body = (string) $response->getContent();
+
+        $this->assertStringContainsString('setColTypes("ron,combo,ed")', $body);
+        $this->assertStringContainsString('getColumnCombo(1)', $body);
+        // New rows must not pre-fill the allocation column with today's date
+        // nor the question column with '0'.
+        $this->assertStringContainsString("addRow(uid, [num, '', '', '', ''])", $body);
+        $this->assertStringNotContainsString('addRow(uid, [num,"'.now()->format('Y-m-d'), $body);
     }
 
     /** @test */

@@ -1,7 +1,8 @@
 # Panduan Fitur Modul Business Partner
 
-**Versi Dokumen:** 1.1  
+**Versi Dokumen:** 1.2  
 **Tanggal Penyusunan:** 31 Agustus 2026  
+**Tanggal Pembaruan:** 15 September 2026  
 **Penyusun:** Tim Sistem Informasi GEU  
 **Status:** Draf untuk reviu
 
@@ -128,9 +129,11 @@ Calon mitra dapat mendaftar melalui dua cara:
 
 Formulir pendaftaran **internal (sales/admin)** dan **publik** kini memakai komponen formulir yang sama dengan satu proses pengiriman terpadu. Dropdown **Provinsi, Kota/Kabupaten, Kecamatan, Kelurahan, dan Kode Pos** terisi otomatis dari data master secara berantai. Sistem menampilkan peringatan agar pengguna **mengizinkan akses lokasi (GPS)** pada peramban; koordinat lokasi tetap dapat diisi secara opsional.
 
+Formulir pendaftaran yang dibuka melalui tautan yang dikirim oleh tim sales (misalnya melalui WhatsApp) kini **terisi otomatis** dari data prospek yang telah diinput sebelumnya, sehingga calon mitra tidak perlu mengisi ulang data yang sama. Berkas KTP dan NPWP yang diunggah melalui formulir tersebut kini ikut tersimpan dengan benar pada saat pengajuan dikirim.
+
 > **Cara perhitungan estimasi modal (Capital Estimation):** sistem mengelompokkan estimasi modal calon mitra ke dalam empat tingkat: **1** = kurang dari Rp50 juta; **2** = Rp100–200 juta; **3** = Rp200–300 juta; **4** = lebih dari Rp300 juta.
 
-> **Cara perhitungan rekomendasi kelayakan otomatis:** berdasarkan sumber dana yang diisi pada formulir, sistem memberi penanda awal kelayakan. Individu dengan sumber dana pinjaman atau pensiun otomatis ditandai **Tidak Direkomendasikan**; sumber dana tabungan atau usaha ditandai **Direkomendasikan**; selain itu **Dipertimbangkan**. Untuk perusahaan, sumber dana pinjaman juga menandai **Tidak Direkomendasikan**. Penanda ini hanya bantuan awal — keputusan akhir tetap melalui proses persetujuan.
+> **Cara perhitungan rekomendasi kelayakan otomatis:** berdasarkan sumber dana yang diisi pada formulir, sistem memberi penanda awal kelayakan. Individu dengan sumber dana pinjaman atau pensiun otomatis ditandai **Tidak Direkomendasikan**; sumber dana tabungan atau usaha ditandai **Direkomendasikan**; selain itu **Dipertimbangkan**. Untuk perusahaan, sumber dana pinjaman menandai **Tidak Direkomendasikan**, sedangkan sumber dana usaha atau investor menandai **Direkomendasikan**. Penanda ini hanya bantuan awal — keputusan akhir tetap melalui proses persetujuan.
 
 [Sisipkan tangkapan layar: Halaman pendaftaran publik calon mitra]
 
@@ -174,17 +177,21 @@ Setiap calon mitra melewati tahapan berikut secara berurutan. Kemajuan tahapan d
 
 > Catatan: Terdapat fitur **Force Approve** untuk mempercepat persetujuan dalam kondisi khusus. Fitur ini hanya untuk pengguna berwenang karena melewati sebagian tahapan normal.
 
+> Pembaruan: setiap tahap yang sudah selesai dapat dibuka kembali tanpa menurunkan kembali kemajuan mitra. Mitra yang telah berstatus **Aktif** tetap Aktif, dan data tahap yang sudah selesai tidak berubah.
+
 [Sisipkan tangkapan layar: Halaman progres onboarding dengan tampilan tujuh tahap]
 
 ### 4.3 Halaman Persetujuan (Approval)
 
 Menampilkan daftar pengajuan yang menunggu persetujuan beserta posisi pejabat penyetuju saat ini. Penyetuju dapat menyetujui (approve) atau menolak (reject) disertai catatan. Seluruh keputusan tercatat dalam log persetujuan yang dapat ditinjau ulang.
 
+Daftar ini juga menampilkan rekomendasi kelayakan setiap pengajuan (**Direkomendasikan**, **Tidak Direkomendasikan**, atau **Dalam Pertimbangan**) sesuai sumber dana yang diisi pada saat pendaftaran. Proses persetujuan untuk perpanjangan (renewal), pengakhiran (termination), dan pengalihan kepemilikan (transfer) kini berjalan tuntas: keputusan akhir otomatis memperbarui data pengajuan terkait.
+
 ### 4.4 Survei dan Approval Survei
 
 Menu survei digunakan untuk mencatat jadwal dan hasil kunjungan survei lokasi calon mitra. Hasil survei kemudian diproses melalui menu Approval Survei sebelum tahapan onboarding dapat berlanjut.
 
-Setelah survei dikirim, bagian **Analisis Surveyor → Penilaian** menampilkan skor tiap aspek serta hasil analisisnya secara otomatis.
+Setelah survei dikirim, bagian **Analisis Surveyor → Penilaian** menampilkan skor tiap aspek serta hasil analisisnya secara otomatis. Survei yang telah disetujui pada seluruh tingkat persetujuan kini tercatat dengan status **selesai (DONE_SURVEY)**, dan tahapan onboarding dapat dilanjutkan.
 
 > **Cara perhitungan nilai survei:** survei dinilai dalam empat aspek dengan skor total maksimal **100**.
 > Aspek **C (Foto)** — setiap item bernilai maksimal 2,5; total maksimal 10.
@@ -229,9 +236,13 @@ Menghitung nilai usaha mitra berdasarkan daftar aset beserta penyusutannya. Bagi
 
 > **Cara perhitungan penyusutan:** tingkat penyusutan = 1 ÷ masa manfaat aset (tahun). Penyusutan per bulan = total nilai aset × tingkat penyusutan ÷ 12. Sisa nilai aset = penyusutan per bulan × sisa bulan masa manfaat.
 
+> **Cara perhitungan waktu pakai (bulan):** waktu pakai dihitung sejak **tanggal order** aset, bukan dari konfigurasi masa manfaat. Nilai waktu pakai dibatasi maksimal sepanjang masa penyusutan, sehingga sisa waktu penyusutan tidak pernah bernilai negatif.
+
 ### 5.5 Dashboard Profit Sharing dan Overview Mitra
 
 Menampilkan bagi hasil per gudang selama dua belas bulan serta rekap bagi hasil per mitra. Berguna untuk memantau tren bagi hasil dari waktu ke waktu.
+
+Proyeksi pada dashboard mengikuti **bulan operasional gudang**: bulan operasional pertama dipetakan sebagai **Bulan 1** pada proyeksi, sehingga seluruh **empat tahun** proyeksi tampil berurutan dan tidak lagi dimulai dari Januari.
 
 ### 5.6 Pengajuan Bagi Hasil dan Approval
 
@@ -267,7 +278,7 @@ Gudang penyimpanan dokumen Prosedur Operasional Standar yang dapat diunduh oleh 
 
 ### 6.3 Warehouse Audit
 
-Pencatatan jadwal audit gudang beserta nomor audit dan temuan yang ditemukan. Temuan audit menjadi dasar tindak lanjut perbaikan.
+Pencatatan jadwal audit gudang beserta nomor audit dan temuan yang ditemukan. Temuan audit menjadi dasar tindak lanjut perbaikan. Warna baris pada daftar audit mengikuti rentang skor (Sangat Baik, Baik, Perlu Perbaikan, Tidak Memenuhi Standar), sedangkan temuan berkategori **kritis** ditandai dengan warna merah pada kolom kategori temuan.
 
 ### 6.4 Update Pajak Kemitraan
 
@@ -445,17 +456,21 @@ Menu ini mengatur kejadian-kejadian penting menjelang atau setelah masa kerja sa
 
 Kontrak yang mendekati masa berakhir ditampilkan pada daftar renewal. Alur perpanjangan:
 
-1. Unduh formulir pengajuan perpanjangan (berkas Word) yang telah terisi data kontrak.
-2. Cetak, tandatangani, lalu unggah kembali.
-3. Pengajuan diproses pada menu **Approval Renewal** hingga disetujui.
+1. Pilih mitra yang akan diperpanjang, lalu klik **Preview** untuk melihat pratinjau surat permohonan perpanjangan.
+2. Klik **Submit** — sistem membuat surat permohonan perpanjangan secara otomatis (terisi data kontrak dan **tanda tangan dari halaman profil**), menyimpannya, dan mengirimkannya ke proses persetujuan.
+3. Pengajuan diproses pada menu **Approval Renewal**. Setelah disetujui pada seluruh tingkat, status perpanjangan menjadi **Disetujui** dan masa kontrak diperpanjang sesuai lama perpanjangan yang tercatat.
 
 ### 12.2 Pemutusan Mitra (Termination)
 
-Pencatatan pengakhiran kerja sama menggunakan pola yang sama: unduh formulir, tanda tangan, unggah, lalu proses pada **Approval Pemutusan Mitra**.
+Alur pengakhiran kerja sama:
+
+1. Pilih mitra, lalu pilih **Jenis Terminasi** (Berakhir Masa Kontrak, Pengakhiran oleh Mitra, Pengakhiran oleh Perusahaan, atau Kesepakatan Bersama) dan isi **Alasan Terminasi**.
+2. Klik **Preview** untuk melihat pratinjau surat, lalu **Submit** — sistem membuat surat pemberitahuan exit/terminasi secara otomatis: jenis terminasi yang dipilih ditandai pada surat, alasan tercantum, dan surat ditandatangani dengan **tanda tangan dari halaman profil**.
+3. Pengajuan diproses pada menu **Approval Pemutusan Mitra**. Setelah disetujui, status mitra menjadi **Terminated** dan gudang terkait dinonaktifkan.
 
 ### 12.3 Transfer Kepemilikan
 
-Pengalihan keanggotaan kepada pihak baru. Pengguna memilih mitra saat ini dan mitra baru, memeriksa pratinjau dokumen transfer, memfinalisasi pengajuan, lalu memprosesnya pada **Approval Transfer Kepemilikan**.
+Pengalihan keanggotaan kepada pihak baru. Pengguna memilih mitra saat ini dan mitra baru, memeriksa pratinjau dokumen transfer, memfinalisasi pengajuan, lalu memprosesnya pada **Approval Transfer Kepemilikan**. Setelah pengajuan disetujui, hasil transfer dan tanggal efektifnya tercatat pada data pengalihan.
 
 [Sisipkan tangkapan layar: Halaman Transfer Kepemilikan]
 
@@ -468,11 +483,11 @@ Menu Training mengelola kegiatan peningkatan kapasitas mitra secara menyeluruh.
 - **Training Application** — Mitra mengajukan pelatihan: nama pelatihan, daftar peserta (nama, jabatan, unit, surel), dan estimasi biaya.
 - **Approval Training** — Pengajuan ditelaah, disetujui, dan ditetapkan pembicara serta materinya.
 - **Training List** — Daftar pelatihan berjalan sesuai target: nama, tanggal, biaya, metode, lokasi, dan status.
-- **Attendance** — Presensi peserta per sesi; kehadiran menjadi dasar kelulusan peserta.
+- **Attendance** — Presensi peserta per sesi; kehadiran menjadi dasar kelulusan peserta. Halaman presensi hanya menampilkan jadwal **hari ini** milik peserta yang sedang login; pilih baris jadwal lalu klik **Lakukan Presensi**. Baris berwarna hijau apabila peserta sudah tercatat hadir.
 - **Certificate** — Penerbitan dan pencetakan sertifikat peserta maupun mentor, termasuk langkah unggah tanda tangan.
-- **Materi** — Perpustakaan materi pelatihan dengan hitungan jumlah dilihat dan diunduh.
+- **Materi** — Perpustakaan materi pelatihan dengan hitungan jumlah dilihat dan diunduh. Kolom **View** dan **Download** berupa tautan langsung yang dapat diklik menuju berkas materi.
 - **Penilaian Kepuasan (Satisfaction)** — Kuesioner kepuasan peserta atas pelatihan, dilengkapi bank soal pada **Master Pertanyaan**.
-- **Master Materi, Master Training, Master Pertanyaan** — Data induk yang mendukung seluruh proses pelatihan.
+- **Master Materi, Master Training, Master Pertanyaan** — Data induk yang mendukung seluruh proses pelatihan. Pada **Master Training**, kolom Peruntukan, Frekuensi, dan Jadwal dipilih dari menu dropdown; baris baru tidak lagi terisi tanggal atau angka secara otomatis. Pada **Master Pertanyaan**, kolom Peruntukan dipilih dari menu (participant/manager) dan tombol **Save Training** menyimpan perubahan.
 - **Report Training** — Rekapitulasi pelatihan per mitra sebagai bahan evaluasi.
 
 [Sisipkan tangkapan layar: Training List]
@@ -483,8 +498,8 @@ Menu Training mengelola kegiatan peningkatan kapasitas mitra secara menyeluruh.
 
 Menu ini mendampingi proses penyiapan sarana usaha mitra, baik untuk tipe HUB **Booth** maupun **Mobil**.
 
-- **Order Equipment** — Pencatatan pemesanan peralatan per gudang: tanggal order, tanggal penerimaan, dan ceklist penerimaan barang.
-- **Asset Management** — Daftar aset yang terpasang di lokasi mitra beserta ceklist ketersediaannya: jenis aset, jumlah, harga satuan, dan total.
+- **Order Equipment** — Pencatatan pemesanan peralatan per gudang: tanggal order, tanggal penerimaan, dan ceklist penerimaan barang. Nilai **Harga Satuan** terisi awal dari data master fasilitas namun dapat diubah; nilai yang diubah tersimpan khusus untuk mitra tersebut.
+- **Asset Management** — Daftar aset yang terpasang di lokasi mitra: jenis aset, jumlah, harga satuan, dan total. Nilai **Qty, Harga Satuan, dan Total** bersifat baca-saja dan mengikuti nilai yang telah dikirim melalui Order Equipment. Kolom ceklist ketersediaan tidak lagi ditampilkan karena pengelolaannya berada pada modul Fasilitas.
 - **Fasilitas Booth / Fasilitas Mobil** — Status pengiriman barang benefit kemitraan: tanggal terkirim, status kiriman, tanggal diterima, serta jumlah dan harga barang. Mitra melakukan **konfirmasi penerimaan** pada daftar ceklist ini; konfirmasi tersebut menjadi salah satu syarat tahapan instalasi pada proses onboarding.
 
 > Hubungan proses: Order Equipment dan konfirmasi Fasilitas akan otomatis memajukan tahap Instalasi pada proses persetujuan mitra apabila seluruh item telah terpenuhi.
@@ -500,6 +515,7 @@ Halaman profil menampilkan dan mengelola data akun pengguna yang sedang login:
 - Data diri: nama, kontak, surel, alamat, kota, jabatan, dan area kerja.
 - Data rekening (nama bank, nomor, dan nama pemilik) yang digunakan untuk pembayaran, misalnya bagi hasil.
 - Nama pengguna (username) bersifat tetap dan tidak dapat diubah dari halaman ini.
+- **Tanda Tangan** — pengguna dapat menggambar tanda tangan pada halaman ini; tanda tangan tersimpan dan otomatis digunakan pada dokumen yang dihasilkan sistem (misalnya surat perpanjangan dan surat pengakhiran).
 
 Disarankan meninjau kebenaran data rekening secara berkala agar pembayaran tidak terkendala.
 

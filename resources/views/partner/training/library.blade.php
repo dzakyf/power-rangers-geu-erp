@@ -43,16 +43,6 @@ $Saya =  Auth::user()->username;
 </div>
 
 <script>
-    function selectedRow(id, cInd)
-    {
-        if (cInd == 4 || cInd == 5) {
-            if (TrainingLibrary.cells(id, cInd).getValue() != '') {
-                // var selectedId = TrainingLibrary.getSelectedId();
-                let split = id.split('||');
-                window.open(split[1], '_blank');
-            }
-        }
-    }
 	TrainingLibrary = new dhtmlXGridObject('TrainingLibrary');
 	TrainingLibrary.setImagePath("./dhtmlx/imgs/");
 	TrainingLibrary.setHeader("No,No Materi, Nama Materi, Kategori, View, Download");
@@ -61,10 +51,9 @@ $Saya =  Auth::user()->username;
 	TrainingLibrary.setInitWidths("60,100,150,200,100,100");
 	TrainingLibrary.setColAlign("center,left,left,left,left,left");
 	TrainingLibrary.setColSorting("int,str,str,str,str,str");
-	TrainingLibrary.setColTypes("ron,ro,ro,ro,ro,ro,ro");
+	TrainingLibrary.setColTypes("ron,ro,ro,ro,link,link");
 	TrainingLibrary.enableSmartRendering(true, 150);
 	// TrainingLibrary.setNumberFormat("0,000", 7, ".", ",");
-	TrainingLibrary.attachEvent("onRowSelect", selectedRow);
 	TrainingLibrary.setSkin("dhx_skyblue");
 	TrainingLibrary.init();
 	refreshdata();

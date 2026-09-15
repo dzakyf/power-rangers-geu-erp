@@ -28,6 +28,9 @@
                     </span>
                 </div>
                 <div class="col-md-4 mt-2"><strong>System Qty:</strong> {{ $data->System_Qty }} L</div>
+                @if ($data->Status == 'DRAFT')
+                <div class="col-md-4 mt-2"><strong>Current System Qty (live):</strong> <span class="text-info">{{ $liveSystemQty ?? $data->System_Qty }} L</span></div>
+                @endif
                 <div class="col-md-4 mt-2"><strong>Physical Qty:</strong> {{ $data->Physical_Qty }} L</div>
                 @if ($data->Status == 'COUNTED' || $data->Status == 'CLOSED' || $data->Status == 'CLOSED_PENDING')
                 <div class="col-md-4 mt-2"><strong>Difference:</strong>

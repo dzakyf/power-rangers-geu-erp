@@ -54,11 +54,16 @@ class WarehouseService
             $events[] = ['id' => (int) $l->ID, 'ts' => (string) $l->Created_At, 'qty' => -(float) $l->Actual_Qty, 'reset' => false];
         }
 
+        // Include any opname that has an approved baseline: Status CLOSED, or a
+        // closed timestamp (a pending post-close correction keeps its baseline).
         foreach (DB::table('warehouse_stock_opnames')
             ->where('Container_ID', $containerId)
-            ->where('Status', 'CLOSED')
-            ->get(['Physical_Qty', 'Created_At']) as $o) {
-            $events[] = ['ts' => (string) $o->Created_At, 'qty' => (float) $o->Physical_Qty, 'reset' => true];
+            ->where(function ($q) {
+                $q->where('Status', 'CLOSED')->orWhereNotNull('Closed_At');
+            })
+            ->get(['Physical_Qty', 'Created_At', 'Closed_At']) as $o) {
+            $resetTs = $o->Closed_At ?: $o->Created_At;
+            $events[] = ['ts' => (string) $resetTs, 'qty' => (float) $o->Physical_Qty, 'reset' => true];
         }
 
         usort($events, function ($a, $b) {
@@ -319,15 +324,15 @@ class WarehouseService
             $projectionNetProfitHigh = 0;
             $projectionNetProfitLow  = 0;
 
-            $operationalDate = DB::table('warehouse_partner as wp')
-                ->join('opportunity_partner as op', 'op.lead_id', '=', 'wp.partner_task_id')
-                ->where('wp.warehouse_task_id', $warehouseTaskId)
-                ->where('op.onboarding_stage', 'ACTIVE')
-                ->orderBy('op.id')
-                ->value('op.onboarding_stage_updated_at');
+            // Projections are anchored to the month after the latest upload:
+            // Month 1 = (projection Created_At month) + 1. Independent of the
+            // partner's onboarding stage.
+            $projectionInputAt = DB::table('projections')
+                ->where('warehouse_task_id', $warehouseTaskId)
+                ->max('Created_At');
 
-            if ($operationalDate) {
-                $origin  = Carbon::parse($operationalDate)->startOfMonth();
+            if ($projectionInputAt) {
+                $origin  = Carbon::parse($projectionInputAt)->startOfMonth()->addMonth();
                 $current = Carbon::parse($startDate)->startOfMonth();
 
                 if ($current->greaterThanOrEqualTo($origin)) {

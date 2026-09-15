@@ -57,7 +57,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	MasterSatisfication.setInitWidths("60,100,auto");
 	MasterSatisfication.setColAlign("center,center,left");
 	MasterSatisfication.setColSorting("int,str,str");
-	MasterSatisfication.setColTypes("ron,ed,ed");
+	MasterSatisfication.setColTypes("ron,combo,ed");
 	MasterSatisfication.enableSmartRendering(true, 150);
     MasterSatisfication.setDateFormat("%Y-%m-%d");
 	PMasterSatisfication = new dataProcessor("partner-master-satisfication-update");
@@ -86,6 +86,11 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
     });
 	MasterSatisfication.setSkin("dhx_skyblue");
 	MasterSatisfication.init();
+
+	// Peruntukan is a dropdown (participant / manager).
+	var peruntukanCombo = MasterSatisfication.getColumnCombo(1);
+	peruntukanCombo.addOption([["participant", "participant"], ["manager", "manager"]]);
+
 	refreshdata();
 
 	function refreshdata() {
@@ -110,7 +115,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
     {
         let uid = MasterSatisfication.uid();
         let num = MasterSatisfication.getRowsNum() + 1;
-        MasterSatisfication.addRow(uid, [num,"{{ date('Y-m-d') }}",'0','','']);
+        MasterSatisfication.addRow(uid, [num, '', '', '', '']);
         MasterSatisfication.selectRow(uid);
     }
 

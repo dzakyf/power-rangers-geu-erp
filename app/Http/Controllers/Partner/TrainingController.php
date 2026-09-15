@@ -56,7 +56,7 @@ class TrainingController extends Controller
         if (!auth()->user()->Training_Approval) {
             $get->where('participant', auth()->user()->username);
             $get = $get->get();
-            
+
             foreach ($get as $key => $Fetch) {
                 $date = date('d F Y', strtotime($Fetch->requested_date_from));
                 if ($Fetch->requested_date_day > 1) {
@@ -73,12 +73,12 @@ class TrainingController extends Controller
                 echo "<cell>" . htmlspecialchars($Fetch->created_date) . "</cell>";
                 echo "<cell>" . htmlspecialchars($name) . "</cell>";
                 echo "</row>";
-    
+
                 $nomor++;
             }
-        }else {
+        } else {
             $get = $get->get();
-            
+
             foreach ($get as $key => $Fetch) {
                 $date = date('d F Y', strtotime($Fetch->requested_date_from));
                 if ($Fetch->requested_date_day > 1) {
@@ -99,10 +99,9 @@ class TrainingController extends Controller
                 echo "<cell>" . htmlspecialchars($Fetch->created_date) . "</cell>";
                 echo "<cell>" . htmlspecialchars($name) . "</cell>";
                 echo "</row>";
-    
+
                 $nomor++;
             }
-
         }
 
         echo "</rows>";
@@ -143,19 +142,19 @@ class TrainingController extends Controller
             DB::beginTransaction();
 
             $train = MasterTraining::where("training_no", $request->training_no)->get();
-            
+
             $dateFrom = new DateTime($request->requested_date_from);
             $dateTo = new DateTime($request->requested_date_to);
             $interval = $dateFrom->diff($dateTo);
             $dayDiff = $interval->days + 1;
-            
+
             $timeDay = "";
 
             if ($request->requested_time_from == null && $request->requested_time_to == null) {
                 $timeDay = 'allday';
             }
             $r = $request->all();
-    
+
             if ($r['training_why'] == null) {
                 $r['training_why'] = '';
             }
@@ -174,11 +173,11 @@ class TrainingController extends Controller
             $r['status'] = "REQUESTED";
             $r['created_by'] = auth()->user()->username;
             $r['created_date'] = now();
-    
+
             TrainingApplication::create($r);
-            
+
             DB::commit();
-            
+
             // return response()->json([
             //     'status'=>'success',
             //     'message'=>'Pengajuan berhasil disimpan'
@@ -187,8 +186,8 @@ class TrainingController extends Controller
             DB::rollBack();
             Log::error($th);
             return response()->json([
-                'status'=>'error',
-                'message'=>'Pengajuan gagal disimpan'
+                'status' => 'error',
+                'message' => 'Pengajuan gagal disimpan'
             ]);
         }
     }
@@ -198,7 +197,7 @@ class TrainingController extends Controller
         if (auth()->user()->Training_Approval) {
             $trainings = MasterTraining::get();
             return view('partner.training.approval', compact('trainings'));
-        }else {
+        } else {
             abort(404);
         }
     }
@@ -223,9 +222,9 @@ class TrainingController extends Controller
         }
         $nomor = 1;
 
-        $get = TrainingApplication::where('status','REQUESTED')->where('training_id', null)->where('training_no', $request->training)->orderBy('created_date', 'desc');
+        $get = TrainingApplication::where('status', 'REQUESTED')->where('training_id', null)->where('training_no', $request->training)->orderBy('created_date', 'desc');
         $get = $get->get();
-        
+
         foreach ($get as $key => $Fetch) {
             $date = date('d F Y', strtotime($Fetch->requested_date_from));
             if ($Fetch->requested_date_day > 1) {
@@ -267,7 +266,7 @@ class TrainingController extends Controller
         if ($getMaterial->material_speaker != null && $getMaterial->material_speaker != '') {
             $exp = explode(',', $getMaterial->material_speaker);
             $getUsers = User::whereIn('username', $exp)->get();
-        }else {
+        } else {
             $getUsers = User::where('Priv_ID', '!=', 'MITRA')->get();
         }
         $speakers = [];
@@ -306,7 +305,7 @@ class TrainingController extends Controller
         $nomor = 1;
 
         $get = MasterMaterial::where('material_status', 'OPEN')->where('material_category', 'Training')->get();
-        
+
         foreach ($get as $key => $Fetch) {
             $speakers = $users;
             if ($Fetch->material_speaker != null && $Fetch->material_speaker != '') {
@@ -334,7 +333,7 @@ class TrainingController extends Controller
 
             $material = [];
 
-            for ($i=1; $i <= $r['counter']; $i++) { 
+            for ($i = 1; $i <= $r['counter']; $i++) {
                 $material['material'][] = $r['material' . $i] != '' ? $r['material' . $i] : null;
                 if ($r['material' . $i] != '') {
                     $material['object'][] = MasterMaterial::where('material_no', $r['material' . $i])->first();
@@ -368,11 +367,11 @@ class TrainingController extends Controller
             $interval = $dateFrom->diff($dateTo);
 
             foreach ($participant as $key => $value) {
-                for ($i=0; $i <= $interval->days; $i++) { 
+                for ($i = 0; $i <= $interval->days; $i++) {
                     TrainingAttendance::create([
                         'training_id' => $training->id,
                         'training_no' => $r['training_no'],
-                        'training_date' => date("Y-m-d", strtotime($r['training_date_from'] . " + ".$i." day")),
+                        'training_date' => date("Y-m-d", strtotime($r['training_date_from'] . " + " . $i . " day")),
                         'participant' => $value->participant,
                         'created_by' => auth()->user()->username,
                         'created_date' => $now,
@@ -392,12 +391,12 @@ class TrainingController extends Controller
                 if ($training->training_date_from != $training->training_date_to) {
                     $trainingDate .= " - " . date('d F Y', strtotime($training->training_date_to));
                 }
-                
+
                 $subject = "Invitation Training";
                 $msg = "Anda dijadwalkan mengikuti " . $r['training_name'] . " pada " . $trainingDate . ".";
 
                 $getUsId = User::where('username', $value->participant)->first();
-                
+
                 $this->notificationService->makeNotification($subject, $msg, 'training', auth()->user()->id, $getUsId->id);
             }
 
@@ -460,7 +459,7 @@ class TrainingController extends Controller
             $get->where('target', $request->target);
         }
         $get = $get->get();
-        
+
         foreach ($get as $key => $Fetch) {
             $date = date('d F Y', strtotime($Fetch->training_date_from));
             if ($Fetch->training_date_from != $Fetch->training_date_to) {
@@ -471,7 +470,7 @@ class TrainingController extends Controller
             if ($Fetch->training_date_from <= date("Y-m-d") && $Fetch->training_date_to >= date("Y-m-d")) {
                 $warna = 'style="background-color:#F7C85C"';
                 $status = "ON PROGRESS";
-            }else if($Fetch->training_date_to < date("Y-m-d")) {
+            } else if ($Fetch->training_date_to < date("Y-m-d")) {
                 $warna = 'style="background-color:#7FB77E"';
                 $status = "DONE";
             }
@@ -521,7 +520,7 @@ class TrainingController extends Controller
 
         $get = TrainingAttendance::where('training_id', $request->training)->orderBy('participant', 'ASC');
         $get = $get->get();
-        
+
         foreach ($get as $key => $Fetch) {
             $participant = TrainingApplication::where('participant', $Fetch->participant)->where('training_id', $request->training)->where('training_no', $Fetch->training_no)->first();
             if ($participant) {
@@ -534,7 +533,7 @@ class TrainingController extends Controller
                 echo "<cell>" . htmlspecialchars($participant->participant_email) . "</cell>";
                 echo "<cell>" . htmlspecialchars($Fetch->attendance ? 'Hadir' : 'Tanpa Keterangan') . "</cell>";
                 echo "</row>";
-    
+
                 $nomor++;
             }
         }
@@ -565,7 +564,7 @@ class TrainingController extends Controller
 
         $get = TrainingMaterial::where('training_id', $request->training)->orderBy('id', 'ASC');
         $get = $get->get();
-        
+
         foreach ($get as $key => $Fetch) {
             echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
@@ -613,7 +612,7 @@ class TrainingController extends Controller
 
         $get = TrainingAttendance::where('training_date', date("Y-m-d"))->where('participant', $Saya)->orderBy('participant', 'ASC');
         $get = $get->get();
-        
+
         foreach ($get as $key => $Fetch) {
             $participant = TrainingApplication::where('participant', $Fetch->participant)->where('training_id', $Fetch->training_id)->where('training_no', $Fetch->training_no)->first();
             if ($participant) {
@@ -630,7 +629,7 @@ class TrainingController extends Controller
                 echo "<cell $warna>" . htmlspecialchars($training->address) . "</cell>";
                 echo "<cell $warna>" . htmlspecialchars($Fetch->attendance ? 'Hadir' : 'Belum melakukan presensi') . "</cell>";
                 echo "</row>";
-    
+
                 $nomor++;
             }
         }
@@ -645,7 +644,7 @@ class TrainingController extends Controller
         if ($cek) {
             if ($cek->attendance) {
                 $alert = "Sudah melakukan presensi";
-            }else {
+            } else {
                 $alert = "Presensi berhasil dilakukan";
                 TrainingAttendance::where('id', $request->Task)->update([
                     'attendance' => 1,
@@ -658,9 +657,8 @@ class TrainingController extends Controller
                         'attendances' => 1,
                     ]);
                 }
-
             }
-        }else {
+        } else {
             $alert = "Gagal melakukan presensi";
         }
 
@@ -731,7 +729,7 @@ class TrainingController extends Controller
 
         $get = TrainingApplication::where('attendances', 1)->where('participant', $Saya)->orderBy('participant', 'ASC');
         $get = $get->get();
-        
+
         foreach ($get as $key => $Fetch) {
             $date = date('d F Y', strtotime($Fetch->training_date_from));
             if ($Fetch->training_date_from != $Fetch->training_date_to) {
@@ -762,8 +760,8 @@ class TrainingController extends Controller
     public function satisficationTrainingNew(Request $request)
     {
         $masterSatisfication = MasterSatisfication::where('target', 'participant')->get();
-        $training = TrainingApplication::where('id',$request->Task)->first();
-        return view('partner.training.satisfication-new', compact('masterSatisfication','training'));
+        $training = TrainingApplication::where('id', $request->Task)->first();
+        return view('partner.training.satisfication-new', compact('masterSatisfication', 'training'));
     }
 
     public function satisficationTrainingNewSubmit(Request $request)
@@ -771,8 +769,8 @@ class TrainingController extends Controller
         try {
             DB::beginTransaction();
             $r = $request->except('_token');
-            $counter = TrainingSatisfication::where('created_date', 'LIKE', date("Y")."%")->count();
-            $task = "NPK/GEU/".date("Y")."/".sprintf("%04d", $counter + 1);
+            $counter = TrainingSatisfication::where('created_date', 'LIKE', date("Y") . "%")->count();
+            $task = "NPK/GEU/" . date("Y") . "/" . sprintf("%04d", $counter + 1);
             $satisfy = TrainingSatisfication::create([
                 'satisfication_no' => $task,
                 'assessor' => auth()->user()->username,
@@ -786,18 +784,18 @@ class TrainingController extends Controller
             $masterSatisfication = MasterSatisfication::where('target', 'participant')->get();
             $totalScore = 0;
             foreach ($masterSatisfication as $key => $value) {
-                if (isset($r['question'.$value->id])) {
+                if (isset($r['question' . $value->id])) {
                     TrainingSatisficationDtl::create([
                         'satisfication_no' => $task,
                         'satisfication_id' => $value->id,
-                        'satisfication_score' => $r['question'.$value->id],
-                        'satisfication_note' => $r['question'.$value->id.'_note'] ?? '',
+                        'satisfication_score' => $r['question' . $value->id],
+                        'satisfication_note' => $r['question' . $value->id . '_note'] ?? '',
                         'created_by' => auth()->user()->username,
                         'created_date' => now(),
                     ]);
                 }
 
-                $totalScore += $r['question'.$value->id];
+                $totalScore += $r['question' . $value->id];
             }
 
             TrainingSatisfication::where('id', $satisfy->id)->update([
@@ -810,7 +808,7 @@ class TrainingController extends Controller
                     'satisfication_score' => $totalScore,
                 ]);
             }
-            
+
 
             DB::commit();
 
@@ -824,13 +822,12 @@ class TrainingController extends Controller
                 'status' => 'error',
             ]);
         }
-        
     }
 
     public function satisficationTrainingDetail(Request $request)
     {
         $masterSatisfication = MasterSatisfication::where('target', 'participant')->get();
-        $training = TrainingApplication::where('id',$request->Task)->first();
+        $training = TrainingApplication::where('id', $request->Task)->first();
         $satisfication = TrainingSatisfication::where('training_id', $training->training_id)->where('assessor', $training->participant)->where('training_no', $training->training_no)->first();
         $satisficationDtl = TrainingSatisficationDtl::where('satisfication_no', $satisfication->satisfication_no)->get();
         $satisfyDtl = [];
@@ -840,7 +837,7 @@ class TrainingController extends Controller
                 'note' => $value->satisfication_note,
             ];
         }
-        return view('partner.training.satisfication-detail', compact('masterSatisfication','training', 'satisfication', 'satisficationDtl', 'satisfyDtl'));
+        return view('partner.training.satisfication-detail', compact('masterSatisfication', 'training', 'satisfication', 'satisficationDtl', 'satisfyDtl'));
     }
 
     public function satisficationManagerTraining()
@@ -872,7 +869,7 @@ class TrainingController extends Controller
 
         $get = Training::where('training_date_to', '<', date("Y-m-d"))->orderBy('training_date_from', 'DESC');
         $get = $get->get();
-        
+
         foreach ($get as $key => $Fetch) {
             $date = date('d F Y', strtotime($Fetch->training_date_from));
             if ($Fetch->training_date_from != $Fetch->training_date_to) {
@@ -899,8 +896,8 @@ class TrainingController extends Controller
     public function satisficationManagerTrainingNew(Request $request)
     {
         $masterSatisfication = MasterSatisfication::where('target', 'manager')->get();
-        $training = Training::where('id',$request->Task)->first();
-        return view('partner.training.satisfication-manager-new', compact('masterSatisfication','training'));
+        $training = Training::where('id', $request->Task)->first();
+        return view('partner.training.satisfication-manager-new', compact('masterSatisfication', 'training'));
     }
 
     public function satisficationManagerTrainingNewSubmit(Request $request)
@@ -908,8 +905,8 @@ class TrainingController extends Controller
         try {
             DB::beginTransaction();
             $r = $request->except('_token');
-            $counter = TrainingSatisfication::where('created_date', 'LIKE', date("Y")."%")->count();
-            $task = "NPK/GEU/".date("Y")."/".sprintf("%04d", $counter + 1);
+            $counter = TrainingSatisfication::where('created_date', 'LIKE', date("Y") . "%")->count();
+            $task = "NPK/GEU/" . date("Y") . "/" . sprintf("%04d", $counter + 1);
             $satisfy = TrainingSatisfication::create([
                 'satisfication_no' => $task,
                 'assessor' => auth()->user()->username,
@@ -923,23 +920,23 @@ class TrainingController extends Controller
             $masterSatisfication = MasterSatisfication::where('target', 'manager')->get();
             $totalScore = 0;
             foreach ($masterSatisfication as $key => $value) {
-                if (isset($r['question'.$value->id])) {
+                if (isset($r['question' . $value->id])) {
                     TrainingSatisficationDtl::create([
                         'satisfication_no' => $task,
                         'satisfication_id' => $value->id,
-                        'satisfication_score' => $r['question'.$value->id],
-                        'satisfication_note' => $r['question'.$value->id.'_note'] ?? '',
+                        'satisfication_score' => $r['question' . $value->id],
+                        'satisfication_note' => $r['question' . $value->id . '_note'] ?? '',
                         'created_by' => auth()->user()->username,
                         'created_date' => now(),
                     ]);
                 }
 
-                $totalScore += $r['question'.$value->id];
+                $totalScore += $r['question' . $value->id];
             }
 
             TrainingSatisfication::where('id', $satisfy->id)->update([
                 'satisfication_score' => $totalScore,
-            ]);            
+            ]);
 
             DB::commit();
 
@@ -953,13 +950,12 @@ class TrainingController extends Controller
                 'status' => 'error',
             ]);
         }
-        
     }
 
     public function satisficationManagerTrainingDetail(Request $request)
     {
         $masterSatisfication = MasterSatisfication::where('target', 'manager')->get();
-        $training = Training::where('id',$request->Task)->first();
+        $training = Training::where('id', $request->Task)->first();
         $satisfication = TrainingSatisfication::where('training_id', $training->id)->where('type', 'manager')->where('assessor', auth()->user()->username)->where('training_no', $training->training_no)->first();
         $satisficationDtl = TrainingSatisficationDtl::where('satisfication_no', $satisfication->satisfication_no)->get();
         $satisfyDtl = [];
@@ -969,7 +965,7 @@ class TrainingController extends Controller
                 'note' => $value->satisfication_note,
             ];
         }
-        return view('partner.training.satisfication-manager-detail', compact('masterSatisfication','training', 'satisfication', 'satisficationDtl', 'satisfyDtl'));
+        return view('partner.training.satisfication-manager-detail', compact('masterSatisfication', 'training', 'satisfication', 'satisficationDtl', 'satisfyDtl'));
     }
 
     public function satisficationTrainingDetailParticipant()
@@ -1002,9 +998,9 @@ class TrainingController extends Controller
         }
         $nomor = 1;
 
-        $get = TrainingApplication::where('status','APPROVED')->where('training_id', '!=', null)->where('attendances', 1)->orderBy('created_date', 'desc');
+        $get = TrainingApplication::where('status', 'APPROVED')->where('training_id', '!=', null)->where('attendances', 1)->orderBy('created_date', 'desc');
         $get = $get->get();
-        
+
         foreach ($get as $key => $Fetch) {
             $date = date('d F Y', strtotime($Fetch->requested_date_from));
             if ($Fetch->requested_date_day > 1) {
@@ -1031,7 +1027,7 @@ class TrainingController extends Controller
 
         echo "</rows>";
     }
-    
+
     public function certificateTrainingPrint(Request $request)
     {
         $certificate = TrainingApplication::where("id", $request->Task)->first();
@@ -1067,7 +1063,7 @@ class TrainingController extends Controller
 
         $get = TrainingMaterial::where('training_id', '!=', null)->orderBy('created_date', 'desc');
         $get = $get->get();
-        
+
         foreach ($get as $key => $Fetchx) {
             $Fetch = Training::where('id', $Fetchx->training_id)->first();
             $date = date('d F Y', strtotime($Fetch->training_date_from));
@@ -1089,7 +1085,7 @@ class TrainingController extends Controller
 
         echo "</rows>";
     }
-    
+
     public function certificateMentorTrainingPrint(Request $request)
     {
         $getUsers = User::get();
@@ -1100,7 +1096,7 @@ class TrainingController extends Controller
         $certificate = TrainingMaterial::where("id", $request->Task)->first();
         $training = Training::where('id', $certificate->training_id)->first();
         $signature = DB::table('certificate_signature')->first();
-        return view('partner.training.print.certificate-mentor', compact('certificate', 'training', 'signature','usname'));
+        return view('partner.training.print.certificate-mentor', compact('certificate', 'training', 'signature', 'usname'));
     }
 
     public function certificateTrainingSignature()
@@ -1127,7 +1123,7 @@ class TrainingController extends Controller
                 'created_by' => auth()->user()->username,
                 'created_date' => now(),
             ]);
-        }else {
+        } else {
             DB::table('certificate_signature')->where('id', $cek->id)->update([
                 'signature1_name' => $req['signature1_name'],
                 'signature1_position' => $req['signature1_position'],
@@ -1177,22 +1173,22 @@ class TrainingController extends Controller
         $training = TrainingAttendance::where('participant', auth()->user()->username)->where('attendance', 1)->get()->pluck('training_no');
         $material = TrainingMaterial::whereIn('training_no', $training)->get()->pluck('material_no');
 
-        $get = MasterMaterial::where('material_status', "OPEN")->where(function($q) use($material) {
+        $get = MasterMaterial::where('material_status', "OPEN")->where(function ($q) use ($material) {
             $q->whereIn('material_no', $material)->orWhereIn('material_category', ['Umum', 'News']);
         })->orderBy('created_date', 'desc')->get();
-        
+
         foreach ($get as $key => $Fetch) {
             $link = $Fetch->material_attachment
                 ? asset('filevendor/' . $Fetch->material_attachment)
                 : $Fetch->material_link;
             $name = $usname[$Fetch->created_by];
-            echo "<row id=\"$Fetch->id||$link\">";
+            echo "<row id=\"$Fetch->id\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->material_no) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->material_name) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->material_category) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->material_view ? $link : '') . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->material_download ? 'Download' : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->material_view ? 'View^' . $link : '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->material_download ? 'Download^' . $link : '') . "</cell>";
             echo "<cell>" . htmlspecialchars($name) . "</cell>";
             echo "</row>";
 
@@ -1239,9 +1235,9 @@ class TrainingController extends Controller
             5 => 'Sangat Puas',
         ];
 
-        $get = Training::orderBy('training_date_from', 'DESC')->where('target','mitra');
+        $get = Training::orderBy('training_date_from', 'DESC')->where('target', 'mitra');
         $get = $get->get();
-        
+
         foreach ($get as $key => $Fetch) {
             $date = date('d F Y', strtotime($Fetch->training_date_from));
             if ($Fetch->training_date_from != $Fetch->training_date_to) {
@@ -1256,17 +1252,17 @@ class TrainingController extends Controller
             if ($Fetch->training_date_from <= date("Y-m-d") && $Fetch->training_date_to >= date("Y-m-d")) {
                 $warna = 'style="background-color:#F7C85C"';
                 $status = "ON PROGRESS";
-            }else if($Fetch->training_date_to < date("Y-m-d")) {
+            } else if ($Fetch->training_date_to < date("Y-m-d")) {
                 $warna = 'style="background-color:#7FB77E"';
                 $status = "DONE";
             }
             // $participantSatisfication = TrainingSatisfication::where('training_id', $Fetch->id)->where('training_no', $Fetch->training_no)->where('type', 'participant')->first();
-            $avgParticipantSatisfication = TrainingSatisficationDtl::whereIn('satisfication_no', function($q) use($Fetch) {
+            $avgParticipantSatisfication = TrainingSatisficationDtl::whereIn('satisfication_no', function ($q) use ($Fetch) {
                 $q->select('satisfication_no')->from('training_satisfication')->where('training_id', $Fetch->id)->where('training_no', $Fetch->training_no)->where('type', 'participant');
             })->avg('satisfication_score');
 
             // $managerSatisfication = TrainingSatisfication::where('training_id', $Fetch->id)->where('training_no', $Fetch->training_no)->where('type', 'manager')->first();
-            $avgManagerSatisfication = TrainingSatisficationDtl::whereIn('satisfication_no', function($q) use($Fetch) {
+            $avgManagerSatisfication = TrainingSatisficationDtl::whereIn('satisfication_no', function ($q) use ($Fetch) {
                 $q->select('satisfication_no')->from('training_satisfication')->where('training_id', $Fetch->id)->where('training_no', $Fetch->training_no)->where('type', 'manager');
             })->avg('satisfication_score');
 

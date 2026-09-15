@@ -66,10 +66,6 @@
 				<label class="mb-0">Total System Qty (containers)</label>
 				<h4>{{ number_format($totalSystemQty ?? 0, 2, ',', '.') }} L</h4>
 			</div>
-			<div class="col-md-4">
-				<label class="mb-0">Unattributed stock (no container)</label>
-				<h4>{{ number_format($unattributedQty ?? 0, 2, ',', '.') }} L</h4>
-			</div>
 		</div>
 		<div class="table-responsive mt-2">
 			<table class="table table-sm table-bordered mb-0">
@@ -89,7 +85,6 @@
 				</tbody>
 			</table>
 		</div>
-		<small class="text-muted">Total System Qty hanya menghitung stok yang teratribusi ke container. Unattributed stock (instock tanpa container) tidak termasuk.</small>
 	</div>
 </div>
 
