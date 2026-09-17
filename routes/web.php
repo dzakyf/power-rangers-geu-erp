@@ -5756,6 +5756,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcSppdPref-data", [HCGASppdController::class, 'data']);
     Route::get("$hcSppdPref-new", [HCGASppdController::class, 'create']);
     Route::post("$hcSppdPref-new-submit", [HCGASppdController::class, 'store']);
+    Route::get("$hcSppdPref-matrix", [HCGASppdController::class, 'getMatrixAllowance']);
     Route::get("$hcSppdPref-detail", [HCGASppdController::class, 'detail']);
     Route::get("$hcSppdPref-print", [HCGASppdController::class, 'printPengajuan']);
     Route::get("$hcSppdPref-print-approved", [HCGASppdController::class, 'printPersetujuan']);

@@ -115,7 +115,7 @@
 									<th style="width:10%">Price</th>
 									<th style="width:10%">Total</th>
 									<th style="width:10%">Reference</th>
-									<th style="width:10%">Upload File</th>
+									<th style="width:10%">Upload File<br><small class="text-muted">(Image/PDF)</small></th>
 									<th style="width:7%">Action</th>
 								</tr>
 							</thead>
@@ -131,7 +131,7 @@
 									<td><input type="number" name="Price[]" class="form-control form-control-sm price" value="0" min="0" step="1000" /></td>
 									<td><input type="text" name="Total[]" class="form-control form-control-sm total" value="0" readonly class="bg-light text-right" /></td>
 									<td><input type="text" name="Reference[]" class="form-control form-control-sm reference" value="" class="bg-light text-right" /></td>
-									<td><input type="file" name="Image[]" class="form-control form-control-sm image" value="" class="bg-light text-right" /></td>
+									<td><input type="file" name="Image[]" class="form-control form-control-sm image" accept="image/*,.pdf" /></td>
 									<td>
 										<button type="button" class="btn btn-danger btn-sm remove-row" title="Remove">
 											<i class="fa fa-times"></i>
@@ -255,7 +255,7 @@
 					<td><input type="number" name="Price[]" class="form-control form-control-sm price" value="0" min="0" step="1000" /></td>
 					<td><input type="text" name="Total[]" class="form-control form-control-sm total" value="0" readonly class="bg-light text-right" /></td>
 					<td><input type="text" name="Reference[]" class="form-control form-control-sm reference" value="" class="bg-light text-right" /></td>
-					<td><input type="file" name="Image[]" class="form-control form-control-sm image" value="" class="bg-light text-right" /></td>
+					<td><input type="file" name="Image[]" class="form-control form-control-sm image" accept="image/*,.pdf" /></td>
 					<td>
 						<button type="button" class="btn btn-danger btn-sm remove-row" title="Remove">
 							<i class="fa fa-times"></i>
@@ -422,13 +422,43 @@
 
 			$.blockUI();
 
-			dapat = getAllValues();
+			// Build FormData for file upload
+			var formData = new FormData();
 			
-			// Collect product data
+			// Add basic fields
+			$('#ContentPages input, #ContentPages select, #ContentPages textarea').each(function() {
+				var type = $(this).attr('type');
+				var id = $(this).attr('id');
+				var name = $(this).attr('name');
+				
+				if (type == 'file') return; // Skip file inputs here
+				if (type == 'button' || type == 'submit') return;
+				if (!id && !name) return;
+				
+				if (type == 'checkbox' || type == 'radio') {
+					if (this.checked) {
+						formData.append(id || name, $(this).val());
+					}
+				} else {
+					formData.append(id || name, $(this).val());
+				}
+			});
+			
+			// Collect product data with files
 			var gridData = [];
-			$('#productTableBody tr.product-row').each(function() {
+			var fileIndex = 0;
+			$('#productTableBody tr.product-row').each(function(idx) {
+				var fileInput = $(this).find('.image')[0];
+				var fileKey = '';
+				
+				if (fileInput && fileInput.files && fileInput.files[0]) {
+					fileKey = 'file_' + fileIndex;
+					formData.append(fileKey, fileInput.files[0]);
+					fileIndex++;
+				}
+				
 				gridData.push({
-					Product_Code: $(this).find('.product-code').val(),
+					Product_Code: $(this).find('.product-code').val() || '',
 					Product_Desc: $(this).find('.product-desc').val(),
 					Qty: $(this).find('.qty').val(),
 					Specification: $(this).find('.specification').val(),
@@ -436,19 +466,21 @@
 					Price: $(this).find('.price').val(),
 					Total: $(this).find('.total').val(),
 					Reference: $(this).find('.reference').val(),
-					Category: $(this).find('.category').val(),
-					Image: $(this).find('.image').val(),
+					Category: $(this).find('.category').val() || '',
+					Image: fileKey
 				});
 			});
 			
-			dapat['GridData'] = JSON.stringify(gridData);
-			dapat['RowCount'] = gridData.length;
+			formData.append('GridData', JSON.stringify(gridData));
+			formData.append('RowCount', gridData.length);
+			formData.append('_token', '{{ csrf_token() }}');
 			
 			$.ajax({
-				headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
-				url: "hrd-procurement-new-submit?_token={{ csrf_token() }}",
+				url: "hrd-procurement-new-submit",
 				type: "POST",
-				data: dapat,
+				data: formData,
+				processData: false,
+				contentType: false,
 				success: function(data) {
 					if (data == 'success') {
 						alert('PR Submitted! (' + gridData.length + ' products)');

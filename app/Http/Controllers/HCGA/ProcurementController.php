@@ -96,7 +96,7 @@ class ProcurementController extends Controller
             $arr = [];
             foreach ($_POST as $key => $value) {
     
-                if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail' && $key != 'Reference' && $key != 'Product_Desc' && $key != 'Specification' && $key != 'Qty' && $key != 'Unit' && $key != 'Description' && substr($key,0,2) != 't_' && $key != 'undefined' && $key != 'GridData' && $key != 'RowCount' && $key != 'Image') {
+                if ($key != 'DelPRDetail' && $key != 'SubmitPRDetail' && $key != 'AddPRDetail' && $key != 'Reference' && $key != 'Product_Desc' && $key != 'Specification' && $key != 'Qty' && $key != 'Unit' && $key != 'Description' && substr($key,0,2) != 't_' && $key != 'undefined' && $key != 'GridData' && $key != 'RowCount' && $key != 'Image' && $key != 'file_0' && $key != 'Price' && $key != 'Total' && $key != '_token') {
                     $value = trim($value);
                     $ars .= "$key = '$value',";
                     $ax .= "$key,";
@@ -146,6 +146,16 @@ class ProcurementController extends Controller
                 $gridData = json_decode($gridDataJson, true);
                 if (is_array($gridData) && count($gridData) > 0) {
                     foreach ($gridData as $product) {
+                        // Handle file upload
+                        $attachmentPath = '';
+                        $fileKey = $product['Image'] ?? '';
+                        if (!empty($fileKey) && $request->hasFile($fileKey)) {
+                            $file = $request->file($fileKey);
+                            $filename = time() . '_' . $file->getClientOriginalName();
+                            $file->move(public_path('uploads/procurement'), $filename);
+                            $attachmentPath = 'uploads/procurement/' . $filename;
+                        }
+                        
                         DB::table('purchase_request_dtl')->insert([
                             'PR_No' => $arr['PR_No'],
                             'Product_Code' => $product['Product_Code'] ?? '',
@@ -159,7 +169,7 @@ class ProcurementController extends Controller
                             'Purchase_Type' => $arr['Category'] ?? '',
                             'Category' => $product['Category'] ?? $arr['Category'] ?? '',
                             'Remark' => $product['Remark'] ?? '',
-                            'Attachment' => $product['Image'] ?? '',
+                            'Attachment' => $attachmentPath,
                         ]);
                     }
                 }
@@ -206,9 +216,6 @@ class ProcurementController extends Controller
                         Mohon dilakukan approval untuk Purchase Request tersebut. Berikut Detail PR yang telah dibuat<br>
                         
                         No PR : $request->PR_No<br><br>
-                        Reference : $request->Reference<br><br>
-                        Jenis Request : $request->Category<br><br>
-                        Note : $request->Specification<br>
                         
                         
                         Mohon dilakukan approval untuk Permintaan Purchase Request.
@@ -227,6 +234,7 @@ class ProcurementController extends Controller
             DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$email','$subjek','$badan','UNSENT',NOW(),NOW())"));
 
             DB::commit();
+            echo 'success';
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error($th);
@@ -752,7 +760,21 @@ class ProcurementController extends Controller
             'appr' => $appr, 'doc' => $doc,
         ])->render();
 
-        return $this->streamPdf($html, 'PR_' . preg_replace('/[^A-Za-z0-9\-]/', '_', $pr->PR_No));
+        // Collect attachments
+        $attachments = [];
+        foreach ($details as $d) {
+            if (!empty($d->Attachment)) {
+                $paths = is_string($d->Attachment) ? explode(',', $d->Attachment) : [$d->Attachment];
+                foreach ($paths as $p) {
+                    $p = trim($p);
+                    if ($p && file_exists(public_path($p))) {
+                        $attachments[] = public_path($p);
+                    }
+                }
+            }
+        }
+
+        return $this->streamPdf($html, 'PR_' . preg_replace('/[^A-Za-z0-9\\-]/', '_', $pr->PR_No), $attachments);
     }
 
     public function printPO(Request $request)
@@ -778,7 +800,7 @@ class ProcurementController extends Controller
         return $this->streamPdf($html, 'PO_' . preg_replace('/[^A-Za-z0-9\-]/', '_', $po->PO_No));
     }
 
-    private function streamPdf($html, $filename)
+    private function streamPdf($html, $filename, $attachments = [])
     {
         if (!is_dir(storage_path('app/mpdf'))) mkdir(storage_path('app/mpdf'), 0755, true);
 
@@ -823,6 +845,27 @@ class ProcurementController extends Controller
         $mpdf->SetHTMLFooter($footerHtml);
 
         $mpdf->WriteHTML($html);
+
+        // ── Merge attachments (image/PDF) ───────────────────────────────────
+        if (!empty($attachments)) {
+            foreach ($attachments as $path) {
+                $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+                if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+                    // Image: add new page with image fit A4
+                    $mpdf->AddPage();
+                    $mpdf->Image($path, 0, 0, 210, 297, $ext, '', true, false);
+                } elseif ($ext === 'pdf') {
+                    // PDF: import pages
+                    $pageCount = $mpdf->SetSourceFile($path);
+                    for ($i = 1; $i <= $pageCount; $i++) {
+                        $mpdf->AddPage();
+                        $tplId = $mpdf->ImportPage($i);
+                        $mpdf->UseTemplate($tplId);
+                    }
+                }
+            }
+        }
+
         $mpdf->SetTitle($filename);
         return response($mpdf->Output($filename . '.pdf', 'S'), 200, [
             'Content-Type' => 'application/pdf',
