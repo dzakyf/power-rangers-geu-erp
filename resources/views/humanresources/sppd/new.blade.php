@@ -48,14 +48,14 @@
                         <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="Date_Start">Tanggal Mulai</label>
-                                <input type="text" id="Date_Start" class="form-control shadow-sm" />
+                                <input type="text" id="Date_Start" class="form-control shadow-sm" onblur="updateAllowanceInfo()" />
                             </div>
                         </div>
 
                         <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="Date_Finish">Tanggal Selesai</label>
-                                <input type="text" id="Date_Finish" class="form-control shadow-sm" />
+                                <input type="text" id="Date_Finish" class="form-control shadow-sm" onblur="updateAllowanceInfo()" />
                             </div>
                         </div>
 
@@ -118,6 +118,10 @@
                                 <label for="Program_Name">Kegiatan</label>
                                 <input type="text" id="Program_Name" class="form-control shadow-sm" name="Program_Name" placeholder="contoh: Koordinasi dengan Mitra" />
                             </div>
+                        </div>
+
+                        <div class="col-md-12 col-12">
+                            <div id="allowanceInfo"></div>
                         </div>
 
                         <div class="col-md-12 col-12">
@@ -251,6 +255,19 @@ rangeCal.setDateFormat("%Y-%m-%d");
 var carCal = new dhtmlXCalendarObject(["Car_Tgl_Pinjam", "Car_Tgl_Kembali"]);
 carCal.setDateFormat("%Y-%m-%d");
 
+var matrixData = null;
+var userJobLevel = "{{ $jobLevel ?? 'pelaksana' }}";
+
+// Load matrix on page load
+$(document).ready(function() {
+    $.get('hrd-sppd-matrix', function(resp) {
+        if (resp.status === 'success') {
+            matrixData = resp.data;
+            updateAllowanceInfo();
+        }
+    });
+});
+
 function toggleType() {
     var t = $('#Sppd_Type').val();
     $('#pbSection').toggle(t === 'PERBANTUAN');
@@ -259,6 +276,89 @@ function toggleType() {
         toggleType();
         alert('Relokasi/Mutasi belum tersedia. Silakan pilih jenis lain.');
     }
+    updateAllowanceInfo();
+}
+
+function updateAllowanceInfo() {
+    if (!matrixData) return;
+    
+    var sppdType = $('#Sppd_Type').val();
+    var tripKey = sppdType === 'NORMAL' ? 'tugas_kerja' : (sppdType === 'PERBANTUAN' ? 'perbantuan_sementara' : 'relokasi');
+    
+    var trip = matrixData.trip_types[tripKey];
+    if (!trip || !trip.allowances || !trip.allowances[userJobLevel]) return;
+    
+    var allowance = trip.allowances[userJobLevel];
+    
+    // Build info text
+    var info = '<div class="alert alert-info mt-2"><strong>Allowance untuk Level Anda (' + userJobLevel.replace(/_/g, ' ').toUpperCase() + '):</strong><br>';
+    
+    if (allowance.transport) {
+        info += '<strong>Transport:</strong> ' + (allowance.transport.air || allowance.transport.land.join(', '));
+        if (allowance.transport.ticket_max) info += ' (Max: Rp ' + allowance.transport.ticket_max.toLocaleString('id-ID') + ')';
+        if (allowance.transport.reimburse_max_per_night) info += ' | Reimburse/malam: Rp ' + allowance.transport.reimburse_max_per_night.toLocaleString('id-ID');
+        info += '<br>';
+    }
+    
+    if (allowance.accommodation) {
+        info += '<strong>Hotel:</strong> ' + allowance.accommodation.hotel_star + ' bintang<br>';
+    }
+    
+    if (allowance.daily) {
+        info += '<strong>Uang Harian:</strong> Makan Rp ' + allowance.daily.meal.toLocaleString('id-ID') + ' + Saku Rp ' + allowance.daily.pocket.toLocaleString('id-ID') + '<br>';
+
+        if ($('#Sppd_Type').val() === 'NORMAL') {
+            var a = Date.parse($('#Date_Start').val());
+            var b = Date.parse($('#Date_Finish').val());
+            var days = Math.round((b - a) / (1000 * 60 * 60 * 24));
+            if (isNaN(days)) {
+                days = 0;
+            }
+            days += 1;
+            $("#Cost_0").val(allowance.daily.pocket * days);
+            $("#Desc_0").val('Uang Harian');
+            $("#Desc_0").attr('disabled', true);
+            if (!$('#Desc_1').length) {
+                tambahRow();
+            }
+            $("#Cost_1").val(allowance.daily.meal * days);
+            $("#Desc_1").val('Makan');
+            $("#Desc_1").attr('disabled', true);
+        } else if ($('#Sppd_Type').val() === 'PERBANTUAN') {
+            var a = Date.parse($('#Date_Start').val());
+            var b = Date.parse($('#Date_Finish').val());
+            var days = Math.round((b - a) / (1000 * 60 * 60 * 24));
+            if (isNaN(days)) {
+                days = 0;
+            }
+            days += 1;
+            $("#Cost_0").val(allowance.daily.pocket * days);
+            $("#Desc_0").val('Uang Harian');
+            $("#Desc_0").attr('disabled', true);
+            if (!$('#Desc_1').length) {
+                tambahRow();
+            }
+            $("#Cost_1").val(allowance.daily.meal * days);
+            $("#Desc_1").val('Makan');
+            $("#Desc_1").attr('disabled', true);
+        }
+    }
+    
+    if (allowance.assistance) {
+        info += '<strong>Bantuan:</strong> Kos Rp ' + allowance.assistance.kos_per_month.toLocaleString('id-ID') + '/bulan<br>';
+    }
+    
+    if (allowance.relocation) {
+        info += '<strong>Relokasi:</strong> Rp ' + allowance.relocation.one_time_payment.toLocaleString('id-ID') + ' (sekali)<br>';
+    }
+    
+    if (allowance.mobilization) {
+        info += '<strong>Mobilisasi:</strong> Rp ' + allowance.mobilization.cost_per_week.toLocaleString('id-ID') + '/minggu<br>';
+    }
+    
+    info += '</div>';
+    
+    $('#allowanceInfo').html(info);
 }
 
 $('#Need_Car').on('change', function () {

@@ -144,7 +144,7 @@
                                         <td><input type="text" name="Reference[]" class="form-control form-control-sm reference bg-light text-right" value="{{ $dtl->Reference }}" /></td>
                                         <td>
                                             @if(!empty($dtl->Attachment))
-                                                <a href="{{ asset('storage/'.$dtl->Attachment) }}" target="_blank" class="btn btn-xs btn-outline-info mb-1"><i class="fa fa-download"></i> View</a>
+                                                <a href="{{ asset($dtl->Attachment) }}" target="_blank" class="btn btn-xs btn-outline-info mb-1"><i class="fa fa-download"></i> View</a>
                                             @endif
                                             <input type="file" name="Image[]" class="form-control form-control-sm image bg-light text-right" />
                                         </td>

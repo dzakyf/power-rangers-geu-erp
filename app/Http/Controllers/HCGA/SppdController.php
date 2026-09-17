@@ -81,7 +81,34 @@ class SppdController extends Controller
         $SPPD_No = "SPPD/GA/" . ($user->Location ?: 'GEU-HO') . "/" . date('ymdhis') . "-" . $counter;
         $fleetList = \App\Http\Controllers\HCGA\CarRentController::fleetOptions();
 
-        return view('humanresources.sppd.new', compact('user', 'departments', 'SPPD_No', 'fleetList'));
+        // Get job level from employment
+        $jobLevel = 'pelaksana'; // default
+        $empData = DB::table('employment')->where('NIK', $user->Emp_ID)->first();
+        if ($empData && !empty($empData->Position)) {
+            $pos = DB::table('master_position')->where("Initial", $empData->Position)->first();
+            $grade = $pos->Level ?? 0;
+            if ($grade >= 1 && $grade <= 3) {
+                $jobLevel = 'management';
+            } elseif ($grade >= 4 && $grade <= 6) {
+                $jobLevel = 'senior_middle';
+            } elseif ($grade >= 7 && $grade <= 8) {
+                $jobLevel = 'junior_middle';
+            } else {
+                $jobLevel = 'pelaksana';
+            }
+        }
+
+        return view('humanresources.sppd.new', compact('user', 'departments', 'SPPD_No', 'fleetList', 'jobLevel'));
+    }
+
+    public function getMatrixAllowance()
+    {
+        $matrixPath = base_path('app/Helpers/matric.json');
+        if (!file_exists($matrixPath)) {
+            return response()->json(['status' => 'error', 'message' => 'Matrix file not found'], 404);
+        }
+        $matrix = json_decode(file_get_contents($matrixPath), true);
+        return response()->json(['status' => 'success', 'data' => $matrix]);
     }
 
     public function store(Request $request)
