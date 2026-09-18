@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
+use App\MasterSppdAllowance;
+use App\MasterSppdJobLevel;
+use App\MasterSppdTripType;
 use App\Services\GeneratorService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -34,11 +37,11 @@ class SppdController extends Controller
         }
         echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
-        $isApprover = self::isApprover();
+        $canSeeAll = self::isApprover() || self::isHcgaVerifier() || self::isAdministrator();
         $nomor = 1;
 
         $Query = DB::table('sppd')->orderBy('ID', 'DESC');
-        if (!$isApprover) {
+        if (!$canSeeAll) {
             $Query->where('Requester_ID', Auth::user()->id);
         }
 
@@ -80,6 +83,7 @@ class SppdController extends Controller
         $counter = DB::table('sppd')->where('Created_Date', 'LIKE', date('Y-m') . '%')->count() + 1;
         $SPPD_No = "SPPD/GA/" . ($user->Location ?: 'GEU-HO') . "/" . date('ymdhis') . "-" . $counter;
         $fleetList = \App\Http\Controllers\HCGA\CarRentController::fleetOptions();
+        $locations = DB::table('location')->orderBy('Name', 'ASC')->get();
 
         // Get job level from employment
         $jobLevel = 'pelaksana'; // default
@@ -98,11 +102,78 @@ class SppdController extends Controller
             }
         }
 
-        return view('humanresources.sppd.new', compact('user', 'departments', 'SPPD_No', 'fleetList', 'jobLevel'));
+        return view('humanresources.sppd.new', compact('user', 'departments', 'SPPD_No', 'fleetList', 'jobLevel', 'locations'));
     }
 
     public function getMatrixAllowance()
     {
+        try {
+            $jobLevels = MasterSppdJobLevel::all();
+            $tripTypes = MasterSppdTripType::all();
+            $allowances = MasterSppdAllowance::all();
+
+            if ($jobLevels->count() > 0 && $tripTypes->count() > 0) {
+                $matrixData = [
+                    'title' => 'Tabel Regulasi Perjalanan Dinas',
+                    'job_levels' => $jobLevels->map(function ($jl) {
+                        return [
+                            'level' => $jl->level,
+                            'grade' => $jl->grade,
+                            'label' => $jl->label,
+                        ];
+                    })->values()->toArray(),
+                    'trip_types' => [],
+                ];
+
+                foreach ($tripTypes as $tt) {
+                    $typeAllowances = [];
+                    $filtered = $allowances->where('trip_type_key', $tt->type_key);
+                    foreach ($filtered as $allw) {
+                        $land = is_string($allw->transport_land) ? json_decode($allw->transport_land, true) : $allw->transport_land;
+                        $typeAllowances[$allw->job_level_key] = [
+                            'transport' => [
+                                'land' => $land,
+                                'air' => $allw->transport_air,
+                                'ticket_max' => $allw->ticket_max,
+                                'reimburse_max_per_night' => $allw->reimburse_max_per_night,
+                            ],
+                            'accommodation' => [
+                                'hotel_star' => $allw->hotel_star,
+                            ],
+                            'daily' => [
+                                'meal' => $allw->daily_meal,
+                                'pocket' => $allw->daily_pocket,
+                            ],
+                            'assistance' => $allw->kos_per_month !== null || $allw->assistance_note !== null ? [
+                                'kos_per_month' => $allw->kos_per_month,
+                                'note' => $allw->assistance_note,
+                            ] : null,
+                            'relocation' => $allw->relocation_one_time_payment !== null || $allw->relocation_note !== null ? [
+                                'one_time_payment' => $allw->relocation_one_time_payment,
+                                'note' => $allw->relocation_note,
+                            ] : null,
+                            'mobilization' => $allw->mobilization_cost_per_week !== null || $allw->mobilization_note !== null ? [
+                                'cost_per_week' => $allw->mobilization_cost_per_week,
+                                'note' => $allw->mobilization_note,
+                            ] : null,
+                        ];
+                    }
+
+                    $matrixData['trip_types'][$tt->type_key] = [
+                        'name' => $tt->name,
+                        'duration' => $tt->duration,
+                        'note' => $tt->note,
+                        'allowances' => $typeAllowances,
+                    ];
+                }
+
+                return response()->json(['status' => 'success', 'data' => $matrixData]);
+            }
+        } catch (\Exception $e) {
+            // Fallback to JSON file if database error occurs
+            Log::error($e);
+        }
+
         $matrixPath = base_path('app/Helpers/matric.json');
         if (!file_exists($matrixPath)) {
             return response()->json(['status' => 'error', 'message' => 'Matrix file not found'], 404);
@@ -361,8 +432,9 @@ class SppdController extends Controller
         $canClose = $isRequester && in_array($sppd->Status, ['ACCEPTED', 'APPROVED']);
         $canPrint = $sppd->Sppd_Type !== 'RELOKASI';
         $carRents = DB::table('car_rent')->where('SPPD_ID', $sppd->ID)->orderBy('ID', 'DESC')->get();
+        $settlements = DB::table('settlement_sppd')->where('SPPD_ID', $sppd->ID)->orderBy('ID', 'DESC')->get();
 
-        return view('humanresources.sppd.detail', compact('sppd', 'costs', 'logs', 'canClose', 'canPrint', 'carRents'));
+        return view('humanresources.sppd.detail', compact('sppd', 'costs', 'logs', 'canClose', 'canPrint', 'carRents', 'settlements'));
     }
 
     // Retry manual auto-create car_rent bila hook approval gagal (misal overlap saat itu).
@@ -771,6 +843,19 @@ class SppdController extends Controller
     {
         $approver = self::getApprover();
         return $approver && Auth::check() && (int) $approver->id === (int) Auth::user()->id;
+    }
+
+    public static function isAdministrator()
+    {
+        return Auth::check()
+            && (Auth::user()->hasRole('ADM') || Auth::user()->Position === 'Administrator');
+    }
+
+    public static function isHcgaVerifier()
+    {
+        return Auth::check()
+            && Auth::user()->Department === 'HCGA'
+            && in_array(Auth::user()->Priv_ID, ['MANAGER', 'HEAD', 'VP', 'HCGA'], true);
     }
 
     protected function downloadDoc(TemplateProcessor $doc, $filename)

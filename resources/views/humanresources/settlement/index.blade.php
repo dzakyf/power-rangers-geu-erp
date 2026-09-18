@@ -22,12 +22,12 @@
 <script>
 SettlementGrid = new dhtmlXGridObject('SettlementGrid');
 SettlementGrid.setImagePath("./dhtmlx/imgs/");
-SettlementGrid.setHeader("No,No Settlement,Requester,Department,Jml Rincian,Total Biaya,Status,Invoice,Doc");
-SettlementGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,&nbsp;,&nbsp;");
-SettlementGrid.setInitWidths("40,160,150,150,90,130,110,100,120");
-SettlementGrid.setColAlign("center,left,left,left,center,right,center,center,center");
-SettlementGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,link,link");
-SettlementGrid.setColSorting("int,str,str,str,str,str,str,str,str");
+SettlementGrid.setHeader("No,No Settlement,Requester,Department,Ref SPPD,Jml Rincian,Total Biaya,Status,Invoice,Doc");
+SettlementGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,&nbsp;,&nbsp;");
+SettlementGrid.setInitWidths("40,160,150,140,150,90,130,110,100,120");
+SettlementGrid.setColAlign("center,left,left,left,left,center,right,center,center,center");
+SettlementGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,link,link");
+SettlementGrid.setColSorting("int,str,str,str,str,str,str,str,str,str");
 SettlementGrid.setSkin("dhx_skyblue");
 SettlementGrid.init();
 SettlementGrid.clearAndLoad('hrd-settlement-data');

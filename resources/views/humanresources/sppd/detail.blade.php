@@ -209,6 +209,34 @@
                 <p class="text-muted">Belum ada booking mobil untuk SPPD ini.</p>
                 @endif
 
+                <h5 class="mt-3">Settlement Terkait</h5>
+                @if (($settlements ?? collect())->count() > 0)
+                <table class="table table-bordered" width="80%">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>No</th>
+                            <th>No Settlement</th>
+                            <th>Status</th>
+                            <th>Biaya Advance</th>
+                            <th>Tanggal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($settlements as $i => $s)
+                        <tr>
+                            <td>{{ $i + 1 }}</td>
+                            <td><a href="hrd-settlement-detail?ID={{ $s->ID }}" style="color:blue;">{{ $s->STTL_No }}</a></td>
+                            <td>{{ $s->Status }}</td>
+                            <td align="right">{{ $s->Advance_Nominal !== null ? number_format((float) $s->Advance_Nominal, 0, ',', '.') : '-' }}</td>
+                            <td>{{ $s->Created_Date }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                @else
+                <p class="text-muted">Belum ada settlement untuk SPPD ini.</p>
+                @endif
+
                 <h5 class="mt-3">Progress History</h5>
                 <table class="table table-bordered" width="60%">
                     <thead class="thead-light">

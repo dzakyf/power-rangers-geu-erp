@@ -27,6 +27,7 @@ $QAgent = DB::table('location')->get();
 				echo "<row id=\"$FGL->ID\">";
 					echo "<cell>$nomor</cell>";#a
 					echo "<cell>".$FGL->Name."</cell>";#b
+					echo "<cell>".htmlspecialchars($FGL->Location_Type)."</cell>";#type
 					echo "<cell>".htmlspecialchars($FGL->Location_ID)."</cell>";#c
 					echo "<cell>".$FGL->Address.", ".$FGL->Street."</cell>";#d
 					echo "<cell>".$FGL->City."</cell>";#d

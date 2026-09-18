@@ -37,11 +37,11 @@ class SettlementController extends Controller
         }
         echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
-        $isVerifier = self::isHcgaVerifier();
+        $canSeeAll = self::isHcgaVerifier() || \App\Http\Controllers\HCGA\SppdController::isAdministrator();
         $nomor = 1;
 
         $Query = DB::table('settlement_sppd')->orderBy('ID', 'DESC');
-        if (!$isVerifier) {
+        if (!$canSeeAll) {
             $Query->where('Requester_ID', Auth::user()->id);
         }
 
@@ -63,6 +63,7 @@ class SettlementController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch->STTL_No) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Requester_Name) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Department) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->SPPD_No ?: '-') . "</cell>";
             echo "<cell>" . count($expenses) . "</cell>";
             echo "<cell>" . number_format($total, 0, ',', '.') . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Status) . "</cell>";
@@ -81,7 +82,14 @@ class SettlementController extends Controller
         $counter = DB::table('settlement_sppd')->where('Created_Date', 'LIKE', date('Y-m') . '%')->count() + 1;
         $STTL_No = "STTL/GA/" . ($user->Location ?: 'GEU-HO') . "/" . date('ymdhis') . "-" . $counter;
 
-        return view('humanresources.settlement.new', compact('user', 'departments', 'STTL_No'));
+        // Selectable SPPD references: requester's own (excluding REJECTED); administrator sees all.
+        $sppdQuery = DB::table('sppd')->orderBy('ID', 'DESC')->where('Status', '!=', 'REJECTED');
+        if (!\App\Http\Controllers\HCGA\SppdController::isAdministrator()) {
+            $sppdQuery->where('Requester_ID', $user->id);
+        }
+        $sppdList = $sppdQuery->get(['ID', 'SPPD_No', 'Destination', 'Sppd_Type', 'Estimated_Cost', 'Department', 'Route_Start', 'Route_Finish']);
+
+        return view('humanresources.settlement.new', compact('user', 'departments', 'STTL_No', 'sppdList'));
     }
 
     public function store(Request $request)
@@ -129,6 +137,22 @@ class SettlementController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Ukuran berkas Invoice maksimal 5MB'], 422);
         }
 
+        // Optional SPPD reference
+        $sppdRefId = null;
+        $sppdRefNo = null;
+        $sppdRef = trim($request->input('SPPD_ID', ''));
+        if ($sppdRef !== '') {
+            $sppdRow = DB::table('sppd')->where('ID', $sppdRef)->first();
+            if (!$sppdRow) {
+                return response()->json(['status' => 'error', 'message' => 'Referensi SPPD tidak ditemukan'], 422);
+            }
+            if ((int) $sppdRow->Requester_ID !== (int) $user->id && !\App\Http\Controllers\HCGA\SppdController::isAdministrator()) {
+                return response()->json(['status' => 'error', 'message' => 'Referensi SPPD bukan milik Anda'], 422);
+            }
+            $sppdRefId = (int) $sppdRow->ID;
+            $sppdRefNo = $sppdRow->SPPD_No;
+        }
+
         $validator = self::getDeptHead();
         $validatorId   = $validator ? $validator->id : null;
         $validatorName = $validator ? ($validator->Name ?: $validator->username) : '';
@@ -152,6 +176,8 @@ class SettlementController extends Controller
                 'Requester_Name'  => $nama,
                 'Requester_NIK'   => $nik,
                 'Department'      => trim($request->Department),
+                'SPPD_ID'         => $sppdRefId,
+                'SPPD_No'         => $sppdRefNo,
                 'Invoice_File'    => $metaId,
                 'Advance_Nominal' => $advance,
                 'Bank'            => trim($request->input('Bank', '')),
@@ -221,7 +247,7 @@ class SettlementController extends Controller
 
         $user = Auth::user();
         $isRequester = (int) $settlement->Requester_ID === (int) $user->id;
-        if (!$isRequester && !self::isHcgaVerifier()) {
+        if (!$isRequester && !self::isHcgaVerifier() && !\App\Http\Controllers\HCGA\SppdController::isAdministrator()) {
             abort(403, 'Anda tidak berhak mengakses data ini');
         }
 
@@ -287,7 +313,7 @@ class SettlementController extends Controller
         }
 
         $user = Auth::user();
-        if ((int) $settlement->Requester_ID !== (int) $user->id && !self::isHcgaVerifier()) {
+        if ((int) $settlement->Requester_ID !== (int) $user->id && !self::isHcgaVerifier() && !\App\Http\Controllers\HCGA\SppdController::isAdministrator()) {
             abort(403, 'Anda tidak berhak mengakses berkas ini');
         }
 
@@ -312,7 +338,7 @@ class SettlementController extends Controller
         }
 
         $user = Auth::user();
-        if ((int) $settlement->Requester_ID !== (int) $user->id && !self::isHcgaVerifier()) {
+        if ((int) $settlement->Requester_ID !== (int) $user->id && !self::isHcgaVerifier() && !\App\Http\Controllers\HCGA\SppdController::isAdministrator()) {
             abort(403, 'Anda tidak berhak mengakses dokumen ini');
         }
 

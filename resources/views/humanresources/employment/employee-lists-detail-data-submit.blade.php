@@ -42,6 +42,13 @@ $isi = substr($isi,0,-1);
 $kueri = "UPDATE employment set $MX WHERE ID=$_POST[ID]";
 DB::update(DB::raw($kueri));
 
+// Sync the employee's branch office to users.Location (matched by users.Emp_ID = employment.NIK)
+if (isset($_POST['Location'])) {
+	$empRow = DB::table('employment')->where('ID', $_POST['ID'])->first();
+	if ($empRow) {
+		DB::table('users')->where('Emp_ID', $empRow->NIK)->update(['Location' => $_POST['Location']]);
+	}
+}
 
 echo "success";
 ?>

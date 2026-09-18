@@ -248,6 +248,25 @@ foreach ($Query1 as $Fetch1) {
 			</td>
 		</tr>
 		<tr height="30">
+			<td class="badan">Branch Office</td>
+			<td class="badan">:</td>
+			<td class="badan_kiri">
+				<select id="Location" class="form-control-lg" style="width:100%">
+					<option value="">-- Pilih Branch Office --</option>
+					<?php
+					$locList = DB::table('location')->orderBy('Name', 'ASC')->get();
+					foreach ($locList as $loc) {
+						$sel = ($datahasil->Location == $loc->Location_ID) ? 'selected' : '';
+						echo "<option value='" . htmlspecialchars($loc->Location_ID) . "' $sel>" . htmlspecialchars($loc->Name) . " (" . htmlspecialchars($loc->Location_ID) . ")</option>";
+					}
+					?>
+				</select>
+			</td>
+			<td class="badan"></td>
+			<td class="badan"></td>
+			<td class="badan_kiri"></td>
+		</tr>
+		<tr height="30">
 			<td class="badan">Education Major</td>
 			<td class="badan">:</td>
 			<td class="badan_kiri">
@@ -507,6 +526,7 @@ foreach ($Query1 as $Fetch1) {
 
 	var myCalendar;
 	myCalendar = new dhtmlXCalendarObject(["Start_Date", "End_Date", "Date_in", "Birth_Date"]);
+	$('#Location').select2({ width: '100%', placeholder: '-- Pilih Branch Office --', allowClear: true });
 	myCalendar.setDateFormat("%Y-%m-%d");
 
 

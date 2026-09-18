@@ -38,11 +38,11 @@
 
 LocationMaster = new dhtmlXGridObject('LocationMaster');
 LocationMaster.setImagePath("./dhtmlx/imgs/");
-LocationMaster.setHeader("No,Location Name,Location ID,Address,City,Phone,PIC,Main City,Latitude,Longitude");
-LocationMaster.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#rspan,#rspan,#rspan,#rspan");
-LocationMaster.setInitWidths("80,150,80,300,100,100,100,100,100,150");
-LocationMaster.setColAlign("center,left,left,center,left,center,left,center,center,center");
-LocationMaster.setColTypes("ro,ed,ed,ed,ed,ed,ed,ed,ed,ed");
+LocationMaster.setHeader("No,Location Name,Location Type,Location ID,Address,City,Phone,PIC,Main City,Latitude,Longitude");
+LocationMaster.attachHeader("#rspan,#text_filter,#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#rspan,#rspan,#rspan");
+LocationMaster.setInitWidths("50,160,110,100,300,100,100,100,100,100,150");
+LocationMaster.setColAlign("center,left,left,left,left,left,center,left,center,center,center");
+LocationMaster.setColTypes("ro,ed,combo,ro,ed,ed,ed,ed,ed,ed,ed");
 LocationMaster.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
 LocationMaster.setEditable(true);
 LocationMaster.enableMultiline(true);
@@ -59,6 +59,8 @@ PLocationMaster = new dataProcessor("master-location-submit");
     })
 	
 PLocationMaster.init(LocationMaster);
+LocationMaster.getCombo(2).put("Head Office","Head Office");
+LocationMaster.getCombo(2).put("Branch Office","Branch Office");
 LocationMaster.enableEditEvents(true,true,true);
 LocationMaster.init();
 
@@ -88,7 +90,7 @@ $("#DeleteBM").click(function(){
 });
 $("#AddBM").click(function(){
 	var idbi =LocationMaster.uid();
-		LocationMaster.addRow(idbi,[LocationMaster.getRowsNum()+1,''],0);
+		LocationMaster.addRow(idbi,[LocationMaster.getRowsNum()+1,'','Branch Office','','','','','','','',''],0);
 		LocationMaster.selectRow(0);
 		
 });
