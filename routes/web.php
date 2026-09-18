@@ -54,9 +54,11 @@ use App\Http\Controllers\HCGA\AssetFixingController as HCGAAssetFixingController
 use App\Http\Controllers\HCGA\AssetFixingApprovalController as HCGAAssetFixingApprovalController;
 use App\Http\Controllers\HCGA\SppdController as HCGASppdController;
 use App\Http\Controllers\HCGA\SppdApprovalController as HCGASppdApprovalController;
+use App\Http\Controllers\HCGA\MasterSppdRegulationController as HCGAMasterSppdRegulationController;
 use App\Http\Controllers\HCGA\SettlementController as HCGASettlementController;
 use App\Http\Controllers\HCGA\SettlementApprovalController as HCGASettlementApprovalController;
 use App\Http\Controllers\HCGA\ReimbursementController as HCGAReimbursementController;
+use App\Http\Controller\Accounting\MasterOfficeController;
 use App\Http\Controllers\HCGA\VehicleMaintenanceController as HCGAVehicleMaintenanceController;
 use App\Http\Controllers\HCGA\VehicleMaintenanceApprovalController as HCGAVehicleMaintenanceApprovalController;
 
@@ -493,9 +495,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-accounting-master-location', function () {
         return view('accounting.xml.master-location');
     });
-    Route::post('/master-location-submit', function () {
-        return view('accounting.master-location-submit');
-    });
+    Route::post('/master-location-submit', [MasterOfficeController::class, 'submit']);
     Route::get('/accounting-naster-vendor', function () {
         return view('accounting.master-vendor');
     });
@@ -5762,6 +5762,24 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcSppdPref-print-approved", [HCGASppdController::class, 'printPersetujuan']);
     Route::post("$hcSppdPref-close", [HCGASppdController::class, 'close']);
     Route::post("$hcSppdPref-create-car-rent", [HCGASppdController::class, 'createCarRent']);
+
+    $hcSppdMasterPref = "$hcSppdPref-master";
+    Route::get("$hcSppdMasterPref-index", [HCGAMasterSppdRegulationController::class, 'index']);
+    Route::get("$hcSppdMasterPref-job-levels", [HCGAMasterSppdRegulationController::class, 'getJobLevels']);
+    Route::post("$hcSppdMasterPref-job-level-store", [HCGAMasterSppdRegulationController::class, 'storeJobLevel']);
+    Route::post("$hcSppdMasterPref-job-level-update/{id}", [HCGAMasterSppdRegulationController::class, 'updateJobLevel']);
+    Route::delete("$hcSppdMasterPref-job-level-delete/{id}", [HCGAMasterSppdRegulationController::class, 'deleteJobLevel']);
+
+    Route::get("$hcSppdMasterPref-trip-types", [HCGAMasterSppdRegulationController::class, 'getTripTypes']);
+    Route::post("$hcSppdMasterPref-trip-type-store", [HCGAMasterSppdRegulationController::class, 'storeTripType']);
+    Route::post("$hcSppdMasterPref-trip-type-update/{id}", [HCGAMasterSppdRegulationController::class, 'updateTripType']);
+    Route::delete("$hcSppdMasterPref-trip-type-delete/{id}", [HCGAMasterSppdRegulationController::class, 'deleteTripType']);
+
+    Route::get("$hcSppdMasterPref-allowance-components", [HCGAMasterSppdRegulationController::class, 'getAllowanceComponents']);
+    Route::get("$hcSppdMasterPref-allowances", [HCGAMasterSppdRegulationController::class, 'getAllowances']);
+    Route::post("$hcSppdMasterPref-allowance-save", [HCGAMasterSppdRegulationController::class, 'saveAllowance']);
+
+    Route::post("$hcSppdMasterPref-sync-json", [HCGAMasterSppdRegulationController::class, 'syncFromJson']);
 
     $hcSppdApprovalPref = "$hcSppdPref-approval";
     Route::get("$hcSppdApprovalPref-index", [HCGASppdApprovalController::class, 'index']);

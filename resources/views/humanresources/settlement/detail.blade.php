@@ -49,6 +49,21 @@
                             </div>
                         </div>
 
+                        @if (!empty($settlement->SPPD_No))
+                        <div class="col-md-6 col-12">
+                            <div class="form-group">
+                                <label>Referensi SPPD</label>
+                                <div>
+                                    @if (!empty($settlement->SPPD_ID))
+                                        <a href="hrd-sppd-detail?ID={{ $settlement->SPPD_ID }}" target="_blank">{{ $settlement->SPPD_No }}</a>
+                                    @else
+                                        {{ $settlement->SPPD_No }}
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label>Biaya Advance yang Diterima</label>

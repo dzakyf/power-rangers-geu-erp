@@ -1,6 +1,8 @@
 @extends('layout.mainlayout')
 
 @section('content-wrapper')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
 @csrf
     <div class="main-content-header">
         <h1>Human Capital and General Affairs</h1>
@@ -38,7 +40,7 @@
                             <div class="form-group">
                                 <label for="Sppd_Type">Jenis SPPD</label>
                                 <select id="Sppd_Type" class="form-control shadow-sm" onchange="toggleType();">
-                                    <option value="NORMAL">Normal SPPD</option>
+                                    <option value="NORMAL">Regular SPPD</option>
                                     <option value="PERBANTUAN">Perbantuan Sementara</option>
                                     <option value="RELOKASI" disabled>Relokasi/Mutasi (belum tersedia)</option>
                                 </select>
@@ -88,14 +90,24 @@
                         <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="Route_Start">Rute (Asal)</label>
-                                <input type="text" id="Route_Start" class="form-control shadow-sm" name="Route_Start" placeholder="Asal" />
+                                <select id="Route_Start" class="form-control shadow-sm">
+                                    <option value="">-- Pilih Lokasi --</option>
+                                    @foreach (($locations ?? collect()) as $loc)
+                                        <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
 
                         <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="Route_Finish">Rute (Tujuan)</label>
-                                <input type="text" id="Route_Finish" class="form-control shadow-sm" name="Route_Finish" placeholder="Tujuan" />
+                                <select id="Route_Finish" class="form-control shadow-sm">
+                                    <option value="">-- Pilih Lokasi --</option>
+                                    @foreach (($locations ?? collect()) as $loc)
+                                        <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
 
@@ -166,14 +178,24 @@
                                     <div class="row">
                                         <div class="col-md-6 col-12">
                                             <div class="form-group">
-                                                <label for="Origin_Site">Asal Site</label>
-                                                <input type="text" id="Origin_Site" class="form-control shadow-sm" placeholder="contoh: GEU-HO" />
+                                <label for="Origin_Site">Asal Site</label>
+                                <select id="Origin_Site" class="form-control shadow-sm">
+                                    <option value="">-- Pilih Lokasi --</option>
+                                    @foreach (($locations ?? collect()) as $loc)
+                                        <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
+                                    @endforeach
+                                </select>
                                             </div>
                                         </div>
                                         <div class="col-md-6 col-12">
                                             <div class="form-group">
-                                                <label for="Target_Site">Lokasi Perbantuan</label>
-                                                <input type="text" id="Target_Site" class="form-control shadow-sm" placeholder="contoh: Site Cirebon" />
+                                <label for="Target_Site">Lokasi Perbantuan</label>
+                                <select id="Target_Site" class="form-control shadow-sm">
+                                    <option value="">-- Pilih Lokasi --</option>
+                                    @foreach (($locations ?? collect()) as $loc)
+                                        <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
+                                    @endforeach
+                                </select>
                                             </div>
                                         </div>
                                         <div class="col-md-12 col-12">
@@ -254,6 +276,13 @@ var rangeCal = new dhtmlXCalendarObject(["Date_Start", "Date_Finish"]);
 rangeCal.setDateFormat("%Y-%m-%d");
 var carCal = new dhtmlXCalendarObject(["Car_Tgl_Pinjam", "Car_Tgl_Kembali"]);
 carCal.setDateFormat("%Y-%m-%d");
+
+// Searchable dropdowns (select2 is loaded globally in mainlayout)
+$('#Department, #Route_Start, #Route_Finish, #Origin_Site, #Target_Site').select2({
+    width: '100%',
+    placeholder: '-- Pilih --',
+    allowClear: true
+});
 
 var matrixData = null;
 var userJobLevel = "{{ $jobLevel ?? 'pelaksana' }}";

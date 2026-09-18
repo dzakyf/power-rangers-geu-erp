@@ -12,10 +12,18 @@ class SppdApprovalController extends Controller
 {
     public function index()
     {
-        // if (!SppdController::isApprover() && !$this->userIsPbApprover()) {
-        //     abort(403, 'Hanya approver yang dapat mengakses halaman ini');
-        // }
+        if (!$this->canViewApprovalPage()) {
+            abort(403, 'Hanya approver / verifier yang dapat mengakses halaman ini');
+        }
         return view('humanresources.sppd.approval.index');
+    }
+
+    protected function canViewApprovalPage()
+    {
+        return SppdController::isApprover()
+            || SppdController::isHcgaVerifier()
+            || SppdController::isAdministrator()
+            || $this->userIsPbApprover();
     }
 
     public function data()
@@ -25,40 +33,69 @@ class SppdApprovalController extends Controller
         } else {
             header("Content-type: text/xml");
         }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>
+");
 
-        if (!SppdController::isApprover() && !$this->userIsPbApprover()) {
+        if (!$this->canViewApprovalPage()) {
             echo "<rows></rows>";
             return;
         }
 
+        $admin    = SppdController::isAdministrator();
+        $verifier = $admin || SppdController::isHcgaVerifier() || SppdController::isApprover();
         $nomor = 1;
-        $rows = collect();
 
-        // NORMAL: pending for the HCGA manager (single approver)
-        $normal = DB::table('sppd')
-            ->where('Approver_ID', Auth::user()->id)
-            ->where('Status', 'SUBMITTED')
-            ->where('Sppd_Type', 'NORMAL')
-            ->orderBy('ID', 'DESC')
-            ->get();
-        $rows = $rows->merge($normal);
-
-        // PERBANTUAN: pending where current user is the org-resolved stage approver
-        $pb = DB::table('sppd')
-            ->where('Sppd_Type', 'PERBANTUAN')
-            ->whereIn('Status', ['APPROVAL_SUPERVISOR', 'APPROVAL_MANAGER', 'APPROVAL_VP', 'APPROVAL_CEO'])
-            ->orderBy('ID', 'DESC')
-            ->get();
-        foreach ($pb as $p) {
-            if (SppdController::isPbStageApprover($p)) {
-                $rows->push($p);
+        if ($admin) {
+            // Administrator: full visibility (all types / statuses)
+            $rows = DB::table('sppd')->orderBy('ID', 'DESC')->get();
+        } elseif ($verifier) {
+            // HCGA verifier / manager: monitoring of all pending
+            $normal = DB::table('sppd')
+                ->where('Sppd_Type', 'NORMAL')
+                ->where('Status', 'SUBMITTED')
+                ->orderBy('ID', 'DESC')->get();
+            $pb = DB::table('sppd')
+                ->where('Sppd_Type', 'PERBANTUAN')
+                ->whereIn('Status', ['APPROVAL_SUPERVISOR', 'APPROVAL_MANAGER', 'APPROVAL_VP', 'APPROVAL_CEO'])
+                ->orderBy('ID', 'DESC')->get();
+            $rows = $normal->merge($pb)->sortByDesc('ID')->values();
+        } else {
+            // Pb-stage approver: only rows awaiting their action
+            $rows = collect();
+            $normal = DB::table('sppd')
+                ->where('Approver_ID', Auth::user()->id)
+                ->where('Status', 'SUBMITTED')
+                ->where('Sppd_Type', 'NORMAL')
+                ->orderBy('ID', 'DESC')->get();
+            $rows = $rows->merge($normal);
+            $pb = DB::table('sppd')
+                ->where('Sppd_Type', 'PERBANTUAN')
+                ->whereIn('Status', ['APPROVAL_SUPERVISOR', 'APPROVAL_MANAGER', 'APPROVAL_VP', 'APPROVAL_CEO'])
+                ->orderBy('ID', 'DESC')->get();
+            foreach ($pb as $p) {
+                if (SppdController::isPbStageApprover($p)) {
+                    $rows->push($p);
+                }
             }
+            $rows = $rows->sortByDesc('ID')->values();
         }
 
+        $stageLabels = [
+            'SUBMITTED'           => 'Manager HCGA',
+            'APPROVAL_SUPERVISOR' => 'Supervisor',
+            'APPROVAL_MANAGER'    => 'Manager',
+            'APPROVAL_VP'         => 'VP',
+            'APPROVAL_CEO'        => 'CEO',
+            'ACCEPTED'            => 'Approved',
+            'APPROVED'            => 'Approved',
+            'REJECTED'            => 'Rejected',
+            'CLOSED'              => 'Closed',
+        ];
+
         echo "<rows>";
-        foreach ($rows->sortByDesc('ID') as $Fetch) {
+        foreach ($rows as $Fetch) {
             $route = $Fetch->Route_Start . ' - ' . $Fetch->Route_Finish;
+            $stage = ($stageLabels[$Fetch->Status] ?? $Fetch->Status) . ' / ' . ($Fetch->Approver_Name ?: '-');
             echo "<row id=\"" . $Fetch->ID . "\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->SPPD_No) . "</cell>";
@@ -69,6 +106,7 @@ class SppdApprovalController extends Controller
             echo "<cell>" . htmlspecialchars($route) . "</cell>";
             echo "<cell>" . number_format((float) $Fetch->Estimated_Cost, 0, ',', '.') . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Status) . "</cell>";
+            echo "<cell>" . htmlspecialchars($stage) . "</cell>";
             echo "<cell>" . ($Fetch->Created_Date ? date('d-m-Y H:i', strtotime($Fetch->Created_Date)) : '-') . "</cell>";
             echo "</row>";
             $nomor++;
@@ -78,8 +116,8 @@ class SppdApprovalController extends Controller
 
     public function detail(Request $request)
     {
-        if (!SppdController::isApprover() && !$this->userIsPbApprover()) {
-            abort(403, 'Hanya approver yang dapat mengakses halaman ini');
+        if (!$this->canViewApprovalPage()) {
+            abort(403, 'Hanya approver / verifier yang dapat mengakses halaman ini');
         }
 
         $sppd = DB::table('sppd')->where('ID', $request->ID)->first();
@@ -87,17 +125,21 @@ class SppdApprovalController extends Controller
             abort(404);
         }
 
+        $adminOrVerifier = SppdController::isAdministrator() || SppdController::isHcgaVerifier();
         if (($sppd->Sppd_Type ?? 'NORMAL') === 'PERBANTUAN') {
-            if (!SppdController::isPbStageApprover($sppd)) {
-                abort(403, 'SPPD ini bukan untuk approval Anda');
-            }
-        } elseif ((int) $sppd->Approver_ID !== (int) Auth::user()->id) {
+            $isActingApprover = SppdController::isPbStageApprover($sppd);
+        } else {
+            $isActingApprover = ((int) $sppd->Approver_ID === (int) Auth::user()->id);
+        }
+
+        if (!$isActingApprover && !$adminOrVerifier) {
             abort(403, 'SPPD ini bukan untuk approval Anda');
         }
 
         $costs = DB::table('sppd_cost')->where('SPPD_ID', $sppd->ID)->get();
         $logs  = DB::table('sppd_log')->where('SPPD_ID', $sppd->ID)->orderBy('ID', 'ASC')->get();
-        $canApprove = in_array($sppd->Status, ['SUBMITTED', 'APPROVAL_SUPERVISOR', 'APPROVAL_MANAGER', 'APPROVAL_VP', 'APPROVAL_CEO']);
+        $canApprove = $isActingApprover
+            && in_array($sppd->Status, ['SUBMITTED', 'APPROVAL_SUPERVISOR', 'APPROVAL_MANAGER', 'APPROVAL_VP', 'APPROVAL_CEO']);
 
         return view('humanresources.sppd.approval.detail', compact('sppd', 'costs', 'logs', 'canApprove'));
     }

@@ -17,6 +17,7 @@
     @if (App\Http\Controllers\HCGA\SppdController::isApprover())
     <input type="button" id="SppdApproval" class="btn btn-warning mr-2 mt-2" value="Approval SPPD" onclick="SppdApproval();" />
     @endif
+    <input type="button" id="SppdMaster" class="btn btn-dark mr-2 mt-2" value="Master Regulasi" onclick="SppdMaster();" />
 </div>
 
 <script>
@@ -42,6 +43,10 @@
 
     function SppdApproval() {
         location.href = 'hrd-sppd-approval-index';
+    }
+
+    function SppdMaster() {
+        location.href = 'hrd-sppd-master-index';
     }
     SppdGrid.attachEvent("onRowDblClicked", function(id) {
         location.href = 'hrd-sppd-detail?ID=' + id;

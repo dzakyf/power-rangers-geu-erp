@@ -52,6 +52,19 @@
                             </div>
                         </div>
 
+                        <div class="col-md-6 col-12">
+                            <div class="form-group">
+                                <label for="SPPD_ID">Referensi SPPD (opsional)</label>
+                                <select id="SPPD_ID" class="form-control shadow-sm">
+                                    <option value="">-- Tanpa Referensi SPPD --</option>
+                                    @foreach (($sppdList ?? collect()) as $sp)
+                                        <option value="{{ $sp->ID }}">{{ $sp->SPPD_No }} — {{ $sp->Destination }}</option>
+                                    @endforeach
+                                </select>
+                                <small class="form-text text-muted" id="sppdInfo"></small>
+                            </div>
+                        </div>
+
                         <div class="col-md-12 col-12">
                             <div class="form-group">
                                 <label>Rincian Penggunaan Biaya</label>
@@ -112,7 +125,30 @@
         </div>
     </div>
 
+@php
+    $sppdMap = collect($sppdList ?? [])->mapWithKeys(function ($s) {
+        return [$s->ID => ['no' => $s->SPPD_No, 'dept' => $s->Department, 'dest' => $s->Destination, 'cost' => (float) $s->Estimated_Cost]];
+    });
+@endphp
 <script>
+var SPPD_MAP = {!! json_encode($sppdMap) !!};
+
+$(function () {
+    $('#SPPD_ID').select2({ width: '100%', placeholder: '-- Tanpa Referensi SPPD --', allowClear: true });
+    $('#Department').select2({ width: '100%', placeholder: '-- Pilih Departemen --', allowClear: true });
+
+    $('#SPPD_ID').on('change', function () {
+        var s = SPPD_MAP[$(this).val()];
+        if (s) {
+            if (s.dept) { $('#Department').val(s.dept).trigger('change.select2'); }
+            if (s.cost) { $('#Advance_Nominal').val(s.cost); hitungTotal(); }
+            $('#sppdInfo').text('Tujuan: ' + (s.dest || '-') + ' | Estimasi SPPD: ' + Number(s.cost || 0).toLocaleString('id-ID'));
+        } else {
+            $('#sppdInfo').text('');
+        }
+    });
+});
+
 var rowExpense = 1;
 
 function tambahRow() {
@@ -159,6 +195,7 @@ $('#submitBtn').click(function (e) {
     formData.append('Requester_NIK', $('#Requester_NIK').val());
     formData.append('Department', $('#Department').val());
     formData.append('Requester_Name', $('#Requester_Name').val());
+    formData.append('SPPD_ID', $('#SPPD_ID').val());
     formData.append('Advance_Nominal', $('#Advance_Nominal').val());
     formData.append('Bank', $('#Bank').val());
     formData.append('Invoice_File', $('#Invoice_File')[0].files[0]);
