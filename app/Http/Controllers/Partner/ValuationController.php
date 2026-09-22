@@ -131,7 +131,7 @@ class ValuationController extends Controller
             echo "<cell>" . htmlspecialchars($depreciationYear) . "</cell>";
             echo "<cell>" . htmlspecialchars(round($prosen * 100, 2) . '%') . "</cell>";
             echo "<cell>" . htmlspecialchars($deprPerBulan) . "</cell>";
-            echo "<cell>" . htmlspecialchars($asset[$Fetch->Facility_ID]->asset_type ?: '-') . "</cell>";
+            echo "<cell>" . htmlspecialchars(strtoupper($asset[$Fetch->Facility_ID]->asset_type ?: '-')) . "</cell>";
             echo "<cell>" . htmlspecialchars($month) . "</cell>";
             echo "<cell>" . htmlspecialchars($deprPerBulan * $month) . "</cell>";
             echo "<cell>" . htmlspecialchars($sisaWaktu) . "</cell>";
@@ -212,7 +212,7 @@ class ValuationController extends Controller
             $row->addChild('cell', $depreciationYear);
             $row->addChild('cell', round($prosen * 100, 2) . '%');
             $row->addChild('cell', $deprPerBulan);
-            $row->addChild('cell', $asset[$Fetch->Facility_ID]->asset_type ?? '-');
+            $row->addChild('cell', strtoupper($asset[$Fetch->Facility_ID]->asset_type ?? '-'));
             $row->addChild('cell', $month);
             $row->addChild('cell', $deprPerBulan * $month);
             $row->addChild('cell', $sisaWaktu);

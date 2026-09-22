@@ -142,6 +142,21 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
+                            <label>Harga Transfer (per Liter)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" name="Transfer_Price" value="{{ $outstock->Transfer_Price ?? '' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Dokumen Harga Transfer</label>
+                            @if(!empty($outstock->Transfer_Document))
+                            <a href="{{ asset('filevendor/' . $outstock->Transfer_Document) }}" target="_blank" class="btn btn-sm btn-outline-primary mb-1">Lihat</a>
+                            @endif
+                            <input type="file" class="form-control-file" name="Transfer_Document" id="Transfer_Document">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
                             <label>Foto</label><br>
                             @if($handover && $handover->Photo_Path)
                             <a href="{{ asset('filevendor/' . $handover->Photo_Path) }}" target="_blank" class="btn btn-sm btn-outline-primary">Lihat</a>
@@ -296,17 +311,24 @@
     $('#btnSaveHandover').on('click', function() {
         if (!confirm('Simpan handover dan selesaikan outstock?')) return;
 
+        var fd = new FormData();
+        fd.append('_token', '{{ csrf_token() }}');
+        fd.append('outstock_id', outstockId);
+        fd.append('Date', $('input[name="Date"]').val());
+        fd.append('Actual_Qty', $('input[name="Actual_Qty"]').val());
+        fd.append('Destination', $('input[name="Destination"]').val());
+        fd.append('Notes', $('input[name="Notes"]').val());
+        fd.append('Transfer_Price', $('input[name="Transfer_Price"]').val());
+        var tf = document.getElementById('Transfer_Document');
+        if (tf && tf.files[0]) { fd.append('Transfer_Document', tf.files[0]); }
+
         $.ajax({
             url: 'partner-outstock-handover-submit',
             type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                outstock_id: outstockId,
-                Date: $('input[name="Date"]').val(),
-                Actual_Qty: $('input[name="Actual_Qty"]').val(),
-                Destination: $('input[name="Destination"]').val(),
-                Notes: $('input[name="Notes"]').val()
-            },
+            data: fd,
+            processData: false,
+            contentType: false,
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
             success: function(res) {
                 if (res.success) {
                     alert(res.message);

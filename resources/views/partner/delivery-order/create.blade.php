@@ -46,7 +46,7 @@
                                     <option value="PROGRESS">PROGRESS</option>
                                     <option value="PICKUP">PICKUP</option>
                                     <option value="DONE">DONE</option>
-                                    <option value="CANCEL">CANCEL</option>
+                                    <option value="CANCELLED">CANCELLED</option>
                                 </select>
                             </div>
                         </div>

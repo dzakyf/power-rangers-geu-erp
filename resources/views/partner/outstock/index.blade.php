@@ -43,11 +43,11 @@
     function initGrid() {
         OutstockGrid = new dhtmlXGridObject('OutstockGrid');
         OutstockGrid.setImagePath('./dhtmlx/imgs/');
-        OutstockGrid.setHeader("No, Code, Tanggal, Warehouse Asal, Fleet, Status");
-        OutstockGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-        OutstockGrid.setInitWidths("60,120,100,*,150,100");
-        OutstockGrid.setColAlign("center,left,left,left,left,left");
-        OutstockGrid.setColTypes("ro,ro,ro,ro,ro,ro");
+        OutstockGrid.setHeader("No, Code, Tanggal, Warehouse Asal, Transfer Price, Fleet, Status");
+        OutstockGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+        OutstockGrid.setInitWidths("60,120,100,*,130,150,100");
+        OutstockGrid.setColAlign("center,left,left,left,right,left,left");
+        OutstockGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro");
         OutstockGrid.setSkin("dhx_skyblue");
         OutstockGrid.attachEvent("onRowSelect", function(id) {
             selectedId = OutstockGrid.getRowAttribute(id, 'ID');

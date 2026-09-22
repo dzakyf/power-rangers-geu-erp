@@ -1,16 +1,13 @@
 @extends('layout.mainlayout-mitra')
 @section('content-wrapper')
 @csrf
+@push('head')
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/plugins/data-tables/css/datatables.min.css') }}">
+@endpush
 <!-- Main Content Header -->
 <h4>Dashboard Aftersales Management</h4>
 
 <div class="row mt-3 mb-2 align-items-end">
-    <div class="col-auto">
-        <label for="Region" class="d-block mb-1">Pilih Region</label>
-        <select id="Region" name="region" class="form-control">
-            <option value="">-- Select Region --</option>
-        </select>
-    </div>
     <div class="col-auto">
         <label class="d-block mb-1">Pilih Gudang</label>
         <select id="filter_warehouse" class="form-control d-inline-block w-auto">
@@ -234,9 +231,9 @@
 
 {{-- Net Profit per Warehouse --}}
 <p class="text-muted small font-weight-bold text-uppercase mt-3 mb-1">Net Profit per Warehouse</p>
-<div class="row p-3">
-    <div class="col-sm-6">
-        <div class="card">
+<div class="row ">
+    <div class="col-sm-8">
+        <div class="card p-3">
             <div class="card-body p-0">
                 <table class="table table-sm table-bordered mb-0" id="netProfitTable">
                     <thead class="thead-light">
@@ -259,6 +256,7 @@
 <script>
     $(document).ready(function() {
         loadWarehouses();
+        initNetProfitTable();
         getDashboardData();
 
         $('#start').on('change', function() {
@@ -280,6 +278,13 @@
                     opt.textContent = w.warehouse_task_id + ' — ' + w.warehouse_location;
                     sel.appendChild(opt);
                 });
+            
+
+                $('#filter_warehouse').select2({
+                    placeholder: '-- Semua Gudang --',
+                    allowClear: true,
+                    width: '100%'
+                });
             });
     }
 
@@ -287,14 +292,55 @@
         return 'Rp ' + Number(amount).toLocaleString('id-ID');
     }
 
+    function monthEnd(ym) {
+        var d = new Date(ym + '-01T00:00:00');
+        d.setMonth(d.getMonth() + 1);
+        d.setDate(0);
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    var netProfitTable = null;
+
+    function initNetProfitTable() {
+        if (netProfitTable) return netProfitTable;
+        netProfitTable = $('#netProfitTable').DataTable({
+            data: [],
+            columns: [{
+                    data: 'warehouse'
+                },
+                {
+                    data: 'amount',
+                    className: 'text-right',
+                    render: function(val) {
+                        var cls = Number(val) < 0 ? 'text-danger' : 'text-success';
+                        return '<span class="' + cls + '">' + formatRp(val) + '</span>';
+                    }
+                }
+            ],
+            scrollY: '300px',
+            scrollCollapse: true,
+            paging: true,
+            pageLength: 10,
+            order: [
+                [1, 'desc']
+            ],
+            language: {
+                emptyTable: 'No data',
+                zeroRecords: 'No data'
+            }
+        });
+        return netProfitTable;
+    }
+
     function getDashboardData() {
+        var ym = $('#start').val();
         $.ajax({
-            url: 'partner-dashboard-aftersales-data?Task=GEU/HQO/0001',
+            url: 'partner-dashboard-aftersales-data',
             method: 'GET',
             data: {
                 warehouse: $('#filter_warehouse').val(),
-                date_start: `${$('#start').val()}-01`,
-                end_date: $('#end').val()
+                date_start: ym ? ym + '-01' : null,
+                date_end: ym ? monthEnd(ym) : null
             },
             success: function(response) {
                 let d = response.data;
@@ -333,15 +379,8 @@
                 $('#UcoVolume').text(d.uco_volume);
                 $('#UcoVolumeSold').text(d.uco_volume_sold);
 
-                // Net profit table
-                let rows = d.net_profit.map(function(item) {
-                    let color = item.amount < 0 ? 'text-danger' : 'text-success';
-                    return `<tr>
-                    <td>${item.warehouse}</td>
-                    <td class="text-right ${color}">${formatRp(item.amount)}</td>
-                </tr>`;
-                }).join('');
-                $('#netProfitBody').html(rows || '<tr><td colspan="2" class="text-center">No data</td></tr>');
+                // Net profit table (DataTables)
+                initNetProfitTable().clear().rows.add(d.net_profit || []).draw();
             },
             error: function(xhr) {
                 console.error('Failed to load dashboard data:', xhr);
@@ -349,4 +388,8 @@
         });
     }
 </script>
+
+@push('scripts')
+<script src="{{ asset('assets/plugins/data-tables/js/datatables.min.js') }}"></script>
+@endpush
 @endsection

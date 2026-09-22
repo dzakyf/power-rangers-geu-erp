@@ -504,6 +504,7 @@ class UserController extends Controller
             $row->addChild('cell', $p->id);
             $row->addChild('cell', $p->Name);
             $row->addChild('cell', $p->Address);
+            $row->addChild('cell', $p->lead_id ?? '');
         }
 
         return response()->make($xml->asXML(), 200, [

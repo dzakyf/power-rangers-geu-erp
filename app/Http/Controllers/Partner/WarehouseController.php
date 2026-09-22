@@ -171,58 +171,101 @@ class WarehouseController extends Controller
 
         // 1. Instock
         foreach (WarehousePartnerSupplies::where("warehouse_task_id", $whTaskId)->get() as $s) {
-            $rows[] = ['date' => $s->received_date, 'type' => 'INSTOCK', 'qty_in' => $s->received_qty, 'qty_out' => 0, 'reference' => (string) $s->id, 'details' => $s->source . ' - ' . ($s->name_poo ?? '')];
+            $rows[] = [
+                'ts'         => (string) ($s->created_date ?: ($s->received_date . ' 00:00:00')),
+                'type'       => 'INSTOCK',
+                'qty_in'     => $s->received_qty,
+                'qty_out'    => 0,
+                'reference'  => (string) $s->id,
+                'keterangan' => trim((string) $s->source . ' - ' . (string) ($s->name_poo ?? '')),
+            ];
         }
 
         // 2. Outstock (details) — visible from LOADING time, scoped by Warehouse_ID
-        foreach (DB::table('outstock_details as ol')
-            ->join('outstock as o', 'ol.Outstock_ID', '=', 'o.ID')
-            ->leftJoin('master_container as mc', 'ol.Container_ID', '=', 'mc.ID')
-            ->where('ol.Warehouse_ID', $whId)
-            ->orderBy('ol.Date')
-            ->select('ol.Actual_Qty', 'ol.Date', 'o.Code', 'mc.Name as Container_Name')
-            ->get() as $ol) {
-            $rows[] = ['date' => substr((string) $ol->Date, 0, 10), 'type' => 'Outstock', 'qty_in' => 0, 'qty_out' => $ol->Actual_Qty, 'reference' => $ol->Code, 'details' => $ol->Container_Name];
+        foreach (
+            DB::table('outstock_details as ol')
+                ->join('outstock as o', 'ol.Outstock_ID', '=', 'o.ID')
+                ->leftJoin('master_container as mc', 'ol.Container_ID', '=', 'mc.ID')
+                ->where('ol.Warehouse_ID', $whId)
+                ->select('ol.Actual_Qty', 'ol.Date', 'ol.Created_At', 'o.Code', 'mc.Name as Container_Name')
+                ->get() as $ol
+        ) {
+            $rows[] = [
+                'ts'         => (string) ($ol->Created_At ?: ($ol->Date . ' 00:00:00')),
+                'type'       => 'Outstock',
+                'qty_in'     => 0,
+                'qty_out'    => $ol->Actual_Qty,
+                'reference'  => $ol->Code,
+                'keterangan' => trim(($ol->Container_Name ?: '') . ($ol->Code ? ' · ' . $ol->Code : '')),
+            ];
         }
 
         // 2b. Manual stock requests only — 'OUTSTOCK:' mirror rows are the same
         // movement as the loading rows above and would double-count
-        foreach (WarehouseStockRequest::where("warehouse_task_id", $whTaskId)
-            ->where(function ($q) {
-                $q->whereNull('reference')->orWhere('reference', 'not like', 'OUTSTOCK:%');
-            })
-            ->get() as $r) {
-            $rows[] = ['date' => $r->request_date, 'type' => 'Outstock', 'qty_in' => 0, 'qty_out' => $r->request_qty, 'reference' => $r->reference, 'details' => $r->remark ?? ''];
+        foreach (
+            WarehouseStockRequest::where("warehouse_task_id", $whTaskId)
+                ->where(function ($q) {
+                    $q->whereNull('reference')->orWhere('reference', 'not like', 'OUTSTOCK:%');
+                })
+                ->get() as $r
+        ) {
+            $rows[] = [
+                'ts'         => (string) ($r->created_date ?: ($r->request_date . ' 00:00:00')),
+                'type'       => 'Outstock',
+                'qty_in'     => 0,
+                'qty_out'    => $r->request_qty,
+                'reference'  => $r->reference,
+                'keterangan' => trim((string) ($r->remark ?? '') . ($r->reference ? ' · ' . $r->reference : '')),
+            ];
         }
 
         // 3. Stock Opname — a CLOSED count rebaselines the saldo to Physical_Qty
-        foreach (WarehouseStockOpname::where('Warehouse_ID', $whId)->get() as $op) {
-            $rows[] = ['date' => substr((string) $op->Opname_Date, 0, 10), 'type' => 'OPNAME', 'qty_in' => 0, 'qty_out' => 0, 'physical' => $op->Status === 'CLOSED' ? $op->Physical_Qty : null, 'reference' => $op->Opname_Number, 'details' => 'System: ' . $op->System_Qty . ' | Physical: ' . $op->Physical_Qty . ' | Diff: ' . $op->Difference . ' | ' . $op->Status];
+        foreach (WarehouseStockOpname::where('Warehouse_ID', $whId)->where('Status', 'CLOSED')->get() as $op) {
+            $isClosed = $op->Status === 'CLOSED';
+            $ts = $isClosed ? ($op->Closed_At ?: $op->Created_At) : $op->Created_At;
+            $rows[] = [
+                'ts'         => (string) ($ts ?: ($op->Opname_Date . ' 00:00:00')),
+                'type'       => 'OPNAME',
+                'qty_in'     => 0,
+                'qty_out'    => 0,
+                'physical'   => $isClosed ? $op->Physical_Qty : null,
+                'reference'  => $op->Opname_Number,
+                'keterangan' => 'System: ' . $op->System_Qty . ' | Physical: ' . $op->Physical_Qty . ' | Diff: ' . $op->Difference . ' | ' . $op->Status,
+            ];
         }
 
         // 4. Instock Dregs (informational — received_qty already excludes dregs, saldo untouched)
-        foreach (DB::table('instock_dregs as dg')
-            ->leftJoin('delivery_order as do', 'dg.DO_Id', '=', 'do.ID')
-            ->where('dg.Warehouse_ID', $whId)
-            ->select('dg.*', 'do.Code as DO_Code')
-            ->get() as $dg) {
-            $rows[] = ['date' => $dg->Instock_Date, 'type' => 'DREGS', 'qty_in' => 0, 'qty_out' => 0, 'dregs' => $dg->Quantity, 'reference' => (string) ($dg->DO_Code ?? ''), 'details' => $dg->Notes ?? ''];
+        foreach (
+            DB::table('instock_dregs as dg')
+                ->leftJoin('delivery_order as do', 'dg.DO_Id', '=', 'do.ID')
+                ->where('dg.Warehouse_ID', $whId)
+                ->select('dg.*', 'do.Code as DO_Code')
+                ->get() as $dg
+        ) {
+            $rows[] = [
+                'ts'         => (string) ($dg->Created_At ?: ($dg->Instock_Date . ' 00:00:00')),
+                'type'       => 'DREGS',
+                'qty_in'     => 0,
+                'qty_out'    => 0,
+                'dregs'      => $dg->Quantity,
+                'reference'  => (string) ($dg->DO_Code ?? ''),
+                'keterangan' => trim(($dg->DO_Code ? 'SJ ' . $dg->DO_Code : '') . (!empty($dg->Notes) ? ' · ' . $dg->Notes : '')),
+            ];
         }
 
-        // Sort ascending for balance calculation (date, then type priority so
-        // same-date rows are deterministic: in -> out -> opname -> adjustment -> dregs)
+        // Sort ascending by (entry timestamp, type priority) for the balance fold:
+        // in -> out -> opname -> dregs on ties.
         $typePriority = ['INSTOCK' => 0, 'Outstock' => 1, 'OPNAME' => 2, 'DREGS' => 3];
-        usort($rows, function($a, $b) use ($typePriority) {
-            $byDate = strcmp($a['date'], $b['date']);
-            if ($byDate !== 0) return $byDate;
+        usort($rows, function ($a, $b) use ($typePriority) {
+            $byTs = strcmp($a['ts'], $b['ts']);
+            if ($byTs !== 0) return $byTs;
             return ($typePriority[$a['type']] ?? 9) <=> ($typePriority[$b['type']] ?? 9);
         });
 
-        // Calculate running balance, reset on OPNAME
+        // Calculate running balance; a CLOSED opname rebaselines to Physical_Qty.
         $balance = 0;
         for ($i = 0; $i < count($rows); $i++) {
             if ($rows[$i]['type'] === 'OPNAME') {
-                // CLOSED count rebaselines; pending/rejected counts do not
                 $balance = $rows[$i]['physical'] !== null ? (float) $rows[$i]['physical'] : $balance;
             } elseif ($rows[$i]['type'] === 'DREGS') {
                 // Informational only — received_qty already excludes dregs
@@ -234,8 +277,9 @@ class WarehouseController extends Controller
             $rows[$i]['balance'] = $balance;
         }
 
-        // Sort descending for display
-        usort($rows, function($a, $b) { return strcmp($b['date'], $a['date']); });
+        // Display: fully descending by timestamp (reverse of the fold order),
+        // so the running saldo reads correctly top-to-bottom.
+        $rows = array_reverse($rows);
 
         $xml = new SimpleXMLElement('<rows/>');
         $no = 1;
@@ -243,8 +287,9 @@ class WarehouseController extends Controller
             $row = $xml->addChild('row');
             $row->addAttribute('ID', $no);
             $row->addChild('cell', $no);
-            $row->addChild('cell', htmlspecialchars((string) $r['date']));
+            $row->addChild('cell', htmlspecialchars((string) $r['ts']));
             $row->addChild('cell', htmlspecialchars((string) $r['type']));
+            $row->addChild('cell', htmlspecialchars((string) ($r['keterangan'] ?? '')));
             $row->addChild('cell', (string) $r['qty_in']);
             $row->addChild('cell', (string) $r['qty_out']);
             $row->addChild('cell', (string) ($r['dregs'] ?? ''));

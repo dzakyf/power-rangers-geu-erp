@@ -19,6 +19,19 @@
                 <option value="">-- Pilih Mitra --</option>
             </select>
         </div>
+        <div class="form-group">
+            <label>Nomor Kontrak Kemitraan</label>
+            <input type="text" class="form-control" id="contract_no" readonly>
+        </div>
+        <div class="form-group">
+            <label for="renewal_length">Jangka Waktu Perpanjangan yang Diajukan <span style="color:red;">*</span></label>
+            <select class="form-control" id="renewal_length" name="renewal_length" required>
+                <option value="">-- Pilih Jangka Waktu --</option>
+                <option value="1">1 Tahun</option>
+                <option value="3">3 Tahun</option>
+                <option value="5">5 Tahun</option>
+            </select>
+        </div>
         <p class="text-muted">Surat permohonan perpanjangan kemitraan dibuat otomatis oleh sistem menggunakan data kemitraan dan tanda tangan pada profil Anda.</p>
         <button type="button" class="btn btn-success" id="previewBtn">Preview</button>
         <button type="button" class="btn btn-primary" id="submitBtn">Submit</button>
@@ -45,7 +58,8 @@
                 $(xmlData).find('row').each(function() {
                     results.push({
                         id: $(this).attr('Opportunity_Id'),
-                        text: $(this).find('cell').eq(1).text()
+                        text: $(this).find('cell').eq(1).text(),
+                        lead_id: $(this).find('cell').eq(3).text()
                     });
                 });
                 return { results: results };
@@ -54,13 +68,22 @@
         }
     });
 
+    $('#mitra_select').on('select2:select', function(e) {
+        $('#contract_no').val((e.params.data && e.params.data.lead_id) ? e.params.data.lead_id : '');
+    });
+    $('#mitra_select').on('select2:clear', function() { $('#contract_no').val(''); });
+
     function submitApplication(action) {
         var oppId = $('#mitra_select').val();
         if (!oppId) { alert('Pilih Mitra terlebih dahulu'); return; }
 
+        var length = $('#renewal_length').val();
+        if (!length) { alert('Pilih Jangka Waktu Perpanjangan terlebih dahulu'); return; }
+
         var formData = new FormData();
         formData.append('_token', '{{ csrf_token() }}');
         formData.append('opportunity_id', oppId);
+        formData.append('renewal_length', length);
 
         $.ajax({
             url: 'partner-renewal-' + action + '-application',
@@ -97,4 +120,5 @@
     $('#previewBtn').on('click', function() { submitApplication('preview'); });
     $('#submitBtn').on('click', function() { submitApplication('finalize'); });
 </script>
+@include('partner.valuation.list-detail', ['dataUrl' => "xml-partner-valuation-detail-aggregate"])
 @endsection

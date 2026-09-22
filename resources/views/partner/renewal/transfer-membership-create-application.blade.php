@@ -50,6 +50,37 @@
                         </select>
                     </div>
                 </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Nomor Kontrak Kemitraan</label>
+                        <input type="text" class="form-control" id="contract_no" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="effective_transfer_at">Tanggal Efektif Transfer <span style="color: red;">*</span></label>
+                        <input type="date" name="effective_transfer_at" id="effective_transfer_at" class="form-control" required />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="status">Status Kontrak Setelah Transfer <span style="color: red;">*</span></label>
+                        <select name="status" id="status" class="form-control" required>
+                            <option value="">-- Pilih Status --</option>
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="fee">Biaya Administrasi Transfer <span style="color: red;">*</span></label>
+                        <input type="number" step="0.01" min="0" name="fee" id="fee" class="form-control" required />
+                    </div>
+                </div>
             </div>
             <div class="row">
                 <div class="col-md-6">
@@ -107,7 +138,8 @@
                     $(xmlData).find('row').each(function() {
                         results.push({
                             id: $(this).attr('Opportunity_Id'),
-                            text: $(this).find('cell').eq(1).text()
+                            text: $(this).find('cell').eq(1).text(),
+                            lead_id: $(this).find('cell').eq(3).text()
                         });
                     });
                     return {
@@ -117,6 +149,11 @@
                 cache: true
             }
         });
+        $('#mitra_select').on('select2:select', function(e) {
+            $('#contract_no').val((e.params.data && e.params.data.lead_id) ? e.params.data.lead_id : '');
+        });
+        $('#mitra_select').on('select2:clear', function() { $('#contract_no').val(''); });
+
         let type = null;
         let year = null;
         let userId = null;

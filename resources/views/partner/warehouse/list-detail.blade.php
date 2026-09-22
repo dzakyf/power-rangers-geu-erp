@@ -70,7 +70,11 @@
 		<div class="table-responsive mt-2">
 			<table class="table table-sm table-bordered mb-0">
 				<thead>
-					<tr><th>Container</th><th class="text-right">Capacity (L)</th><th class="text-right">System Qty (L)</th></tr>
+					<tr>
+						<th>Container</th>
+						<th class="text-right">Capacity (L)</th>
+						<th class="text-right">System Qty (L)</th>
+					</tr>
 				</thead>
 				<tbody>
 					@forelse($whContainers ?? [] as $c)
@@ -80,7 +84,9 @@
 						<td class="text-right">{{ number_format((float) $c->System_Qty, 2, ',', '.') }}</td>
 					</tr>
 					@empty
-					<tr><td colspan="3" class="text-center text-muted">Belum ada container</td></tr>
+					<tr>
+						<td colspan="3" class="text-center text-muted">Belum ada container</td>
+					</tr>
 					@endforelse
 				</tbody>
 			</table>
@@ -211,13 +217,13 @@
 	}
 	WarehouseListDetail = new dhtmlXGridObject('WarehouseListDetail');
 	WarehouseListDetail.setImagePath("./dhtmlx/imgs/");
-	WarehouseListDetail.setHeader("No, Tanggal, Tipe, Qty In, Qty Out, Dregs, Saldo");
-	WarehouseListDetail.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#rspan");
-	WarehouseListDetail.setInitWidths("50,120,100,100,100,100,120");
-	WarehouseListDetail.setColAlign("center,left,left,right,right,right,right");
-	WarehouseListDetail.setColSorting("int,str,str,int,int,int,str");
-	WarehouseListDetail.setColTypes("ro,ro,ro,ro,ro,ro,ro");
-	WarehouseListDetail.attachFooter("Total,#cspan,#cspan,#stat_total,#stat_total,#stat_total,#cspan");
+	WarehouseListDetail.setHeader("No, Tanggal - Waktu, Tipe, Keterangan, Qty In, Qty Out, Total Ampas, Saldo");
+	WarehouseListDetail.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#rspan");
+	WarehouseListDetail.setInitWidths("50,150,100,240,100,100,100,120");
+	WarehouseListDetail.setColAlign("center,left,left,left,right,right,right,right");
+	WarehouseListDetail.setColSorting("int,str,str,str,int,int,int,str");
+	WarehouseListDetail.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
+	WarehouseListDetail.attachFooter("Total,#cspan,#cspan,#cspan,#stat_total,#stat_total,#stat_total,#cspan");
 	WarehouseListDetail.enableSmartRendering(true, 150);
 	// WarehouseListDetail.attachEvent("onRowDblClicked", WarehouseListDetailKlik);
 	WarehouseListDetail.setSkin("dhx_skyblue");

@@ -24,13 +24,19 @@
                         <button type="button" class="btn btn-warning float-right m-3 px-3 py-2" onclick="goingBack()"><i class="fas fa-arrow-left"></i> Back</button>
                     </div>
                     <div class="card-body">
+                        @if (!empty($locked))
+                        <div class="alert alert-warning">
+                            <strong>Surat Jalan sudah DONE — read-only.</strong>
+                            Data hanya dapat dilihat (untuk tracing) dan tidak dapat diubah.
+                        </div>
+                        @endif
                         {{-- Section 1: Take Photo --}}
                         <h6 class="font-weight-bold">1. Take Photo</h6>
                         <div class="form-group">
                             <label>GPS Location</label>
                             <div class="input-group mb-2">
-                                <input type="text" class="form-control" id="Lat" name="Lat" placeholder="Latitude" readonly>
-                                <input type="text" class="form-control" id="Lng" name="Lng" placeholder="Longitude" readonly>
+                                <input type="text" class="form-control" id="Lat" name="Lat" placeholder="Latitude" value="{{ $po->Lat ?? '' }}" readonly>
+                                <input type="text" class="form-control" id="Lng" name="Lng" placeholder="Longitude" value="{{ $po->Lng ?? '' }}" readonly>
                                 <div class="input-group-append">
                                     <button type="button" class="btn btn-outline-secondary" id="btnGetGPS">Get GPS</button>
                                 </div>
@@ -67,7 +73,7 @@
                         <div class="form-group">
                             <label>Total Berat Aktual</label>
                             <div class="input-group">
-                                <input type="number" class="form-control" id="Actual_Qty" name="Actual_Qty" min="0" step="any">
+                                <input type="number" class="form-control" id="Actual_Qty" name="Actual_Qty" min="0" step="any" value="{{ $po->Actual_Qty ?? '' }}" {{ !empty($locked) ? 'disabled' : '' }}>
                                 <div class="input-group-append">
                                     <select class="form-control" id="BeratUnit" name="BeratUnit">
                                         <option value="L" selected>L (Liter)</option>
@@ -77,12 +83,12 @@
                         </div>
                         <div class="form-group">
                             <label>Status Surat Jalan</label>
-                            <select class="form-control" id="DO_Status" name="DO_Status">
+                            <select class="form-control" id="DO_Status" name="DO_Status" {{ !empty($locked) ? 'disabled' : '' }}>
                                 <option value="">-- Pilih Status --</option>
-                                <option value="PROGRESS" selected>PROGRESS</option>
-                                <option value="PICKUP">PICKUP</option>
-                                <option value="DONE">DONE</option>
-                                <option value="CANCEL">CANCEL</option>
+                                <option value="PROGRESS" {{ ($do->DO_Status ?? 'PROGRESS') == 'PROGRESS' ? 'selected' : '' }}>PROGRESS</option>
+                                <option value="PICKUP" {{ ($do->DO_Status ?? '') == 'PICKUP' ? 'selected' : '' }}>PICKUP</option>
+                                <option value="DONE" {{ ($do->DO_Status ?? '') == 'DONE' ? 'selected' : '' }}>DONE</option>
+                                <option value="CANCELLED" {{ ($do->DO_Status ?? '') == 'CANCELLED' ? 'selected' : '' }}>CANCELLED</option>
                             </select>
                         </div>
 
@@ -185,6 +191,7 @@
         window.location.href = 'partner-delivery-order';
     }
     var capturedPhotos = [];
+    var isLocked = {{ !empty($locked) ? 'true' : 'false' }};
     var webcamStream = null;
     var isDragging = false;
     var dragStartX = 0;
@@ -247,6 +254,7 @@
     }
 
     function submitForm() {
+        if (isLocked) { return; }
         var form = document.getElementById('UpdateReceiptForm');
         if (!form.checkValidity()) {
             form.reportValidity();
@@ -315,6 +323,12 @@
     }
 
     $(document).ready(function() {
+        if (isLocked) {
+            $('#UpdateReceiptForm').find('input, select, textarea, button').prop('disabled', true);
+            $('#slideConfirmTrack').css('pointer-events', 'none');
+            $('#slideConfirmText').text('Read-only');
+            return;
+        }
         startWebcam();
 
         var urlParams = new URLSearchParams(window.location.search);

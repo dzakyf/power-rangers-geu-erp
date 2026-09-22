@@ -42,26 +42,32 @@ class WarehouseService
     {
         $events = [];
 
-        foreach (DB::table('warehouse_partner_supplies')
-            ->where('Container_ID', $containerId)
-            ->get(['received_qty', 'created_date']) as $s) {
+        foreach (
+            DB::table('warehouse_partner_supplies')
+                ->where('Container_ID', $containerId)
+                ->get(['received_qty', 'created_date']) as $s
+        ) {
             $events[] = ['ts' => (string) $s->created_date, 'qty' => (float) $s->received_qty, 'reset' => false];
         }
 
-        foreach (DB::table('outstock_details')
-            ->where('Container_ID', $containerId)
-            ->get(['ID', 'Actual_Qty', 'Created_At']) as $l) {
+        foreach (
+            DB::table('outstock_details')
+                ->where('Container_ID', $containerId)
+                ->get(['ID', 'Actual_Qty', 'Created_At']) as $l
+        ) {
             $events[] = ['id' => (int) $l->ID, 'ts' => (string) $l->Created_At, 'qty' => -(float) $l->Actual_Qty, 'reset' => false];
         }
 
         // Include any opname that has an approved baseline: Status CLOSED, or a
         // closed timestamp (a pending post-close correction keeps its baseline).
-        foreach (DB::table('warehouse_stock_opnames')
-            ->where('Container_ID', $containerId)
-            ->where(function ($q) {
-                $q->where('Status', 'CLOSED')->orWhereNotNull('Closed_At');
-            })
-            ->get(['Physical_Qty', 'Created_At', 'Closed_At']) as $o) {
+        foreach (
+            DB::table('warehouse_stock_opnames')
+                ->where('Container_ID', $containerId)
+                ->where(function ($q) {
+                    $q->where('Status', 'CLOSED')->orWhereNotNull('Closed_At');
+                })
+                ->get(['Physical_Qty', 'Created_At', 'Closed_At']) as $o
+        ) {
             $resetTs = $o->Closed_At ?: $o->Created_At;
             $events[] = ['ts' => (string) $resetTs, 'qty' => (float) $o->Physical_Qty, 'reset' => true];
         }
@@ -126,6 +132,113 @@ class WarehouseService
         return $this->calculateFinancialStatement($warehouseTaskId, $dateStart, $dateEnd);
     }
 
+    /**
+     * Warehouse task ids in scope for dashboards: all registered warehouses,
+     * or only the current MITRA's own warehouses.
+     */
+    public function scopedWarehouseTaskIds(): array
+    {
+        $q = DB::table('warehouse_partner');
+        $user = auth()->user();
+        if ($user && $user->Priv_ID === 'MITRA') {
+            $q->where('partner_task_id', $user->Emp_ID);
+        }
+        return $q->pluck('warehouse_task_id')->all();
+    }
+
+    /**
+     * Aggregate the financial statement across the scoped warehouses.
+     * Returns ['aggregate' => summed statement, 'per_warehouse' => [taskId => statement]].
+     * Warehouses without data are still included (as zeroed statements).
+     */
+    public function calculateFinancialStatementAll(?string $dateStart, ?string $dateEnd): array
+    {
+        $perWarehouse = [];
+        $aggregate = null;
+
+        foreach ($this->scopedWarehouseTaskIds() as $taskId) {
+            $stmt = $this->calculateFinancialStatement($taskId, $dateStart, $dateEnd);
+            $perWarehouse[$taskId] = $stmt;
+            $aggregate = $aggregate === null ? $stmt : $this->mergeStatements($aggregate, $stmt);
+        }
+
+        if ($aggregate === null) {
+            $aggregate = $this->calculateFinancialStatement('', $dateStart, $dateEnd);
+        }
+
+        return ['aggregate' => $aggregate, 'per_warehouse' => $perWarehouse];
+    }
+
+    public function calculateMonthlyFinancialStatementAll(?string $dateStart, ?string $dateEnd): array
+    {
+        return $this->calculateFinancialStatementAll($dateStart, $dateEnd)['aggregate'];
+    }
+
+    private function mergeStatements(array $a, array $b): array
+    {
+        $sumKeys = [
+            'qty_in',
+            'qty_out',
+            'total_investation',
+            'total_transaction',
+            'opex',
+            'transfer_income',
+            'income',
+            'net_profit',
+            'nominal_royalty',
+            'company_profit_share',
+            'raw_material_price',
+            'direct_cost',
+            'overhead_cost',
+            'total_overhead_cost',
+            'cogs',
+            'ebitda',
+            'gross_margin',
+            'revenue',
+            'rental_cost',
+            'employee_salary',
+            'projection_net_profit_high',
+            'projection_net_profit_low',
+            'projection_royalty_high',
+            'projection_royalty_low',
+        ];
+
+        $out = $a;
+        foreach ($sumKeys as $k) {
+            $out[$k] = (float) ($a[$k] ?? 0) + (float) ($b[$k] ?? 0);
+        }
+
+        $out['raw_avg_in']  = $this->weightedAvg($a, $b, 'raw_avg_in', 'qty_in');
+        $out['avg_in']      = $this->weightedAvg($a, $b, 'avg_in', 'qty_in');
+        $out['raw_avg_out'] = $this->weightedAvg($a, $b, 'raw_avg_out', 'qty_out');
+        $out['avg_out']     = $this->weightedAvg($a, $b, 'avg_out', 'qty_out');
+
+        $out['transfer_price']        = $out['qty_out'] > 0 ? $out['transfer_income'] / $out['qty_out'] : 0;
+        $out['percent_profit_margin'] = $out['revenue'] > 0 ? round(($out['net_profit'] / $out['revenue']) * 100, 2) : 0;
+        $out['total_roi']             = $out['total_investation'] > 0 ? round(($out['ebitda'] / $out['total_investation']) * 100, 2) : 0;
+
+        $details = $a['expense_details'] ?? [];
+        foreach (($b['expense_details'] ?? []) as $group => $accounts) {
+            foreach ($accounts as $acct => $amount) {
+                $details[$group][$acct] = ($details[$group][$acct] ?? 0) + $amount;
+            }
+        }
+        $out['expense_details'] = $details;
+
+        return $out;
+    }
+
+    private function weightedAvg(array $a, array $b, string $avgKey, string $qtyKey): float
+    {
+        $qa = (float) ($a[$qtyKey] ?? 0);
+        $qb = (float) ($b[$qtyKey] ?? 0);
+        $total = $qa + $qb;
+        if ($total <= 0) {
+            return 0.0;
+        }
+        return (((float) ($a[$avgKey] ?? 0)) * $qa + ((float) ($b[$avgKey] ?? 0)) * $qb) / $total;
+    }
+
     public function calculateFinancialStatement(
         string $warehouseTaskId,
         ?string $dateStart = null,
@@ -142,7 +255,7 @@ class WarehouseService
         $defaultMonth = ['qty' => 0, 'avg' => 0, 'qty_out' => 0, 'avg_out' => 0, 'expenses' => []];
 
         $wh = DB::table('warehouse_partner as wp')
-            ->select('wp.warehouse_task_id', 'wp.warehouse_type')
+            ->select('wp.id', 'wp.warehouse_task_id', 'wp.warehouse_type')
             ->where('wp.warehouse_task_id', $warehouseTaskId)
             ->first();
 
@@ -308,10 +421,27 @@ class WarehouseService
             }
         }
 
+        // Harga Transfer / Pendapatan come from the transfer price inputted on
+        // each completed outstock document (decoupled from the cost mirror).
+        $outstockQty = 0.0;
+        $outstockIncome = 0.0;
+        if (!empty($wh->id)) {
+            $aggTransfer = DB::table('outstock_details as od')
+                ->join('outstock as o', 'od.Outstock_ID', '=', 'o.ID')
+                ->where('od.Warehouse_ID', $wh->id)
+                ->where('o.Status', 'COMPLETED')
+                ->whereBetween('o.Date', [$startDate, $endDate])
+                ->selectRaw('SUM(od.Actual_Qty) as qty, SUM(od.Actual_Qty * COALESCE(o.Transfer_Price, 0)) as income')
+                ->first();
+            $outstockQty = (float) ($aggTransfer->qty ?? 0);
+            $outstockIncome = (float) ($aggTransfer->income ?? 0);
+        }
+        $transferPrice = $outstockQty > 0 ? $outstockIncome / $outstockQty : 0;
+
         if ($isSingleMonth) {
             $row = $result[$startMonth];
 
-            $income            = $row['transfer_income'];
+            $income            = $outstockIncome;
             $capitalAllocVal  = $income * $capitalAllocMultiplier;
             $row['net_profit'] = $income - $row['cogs'] - $row['overhead_cost'] - $capitalAllocVal;
             $nominalRoyalty    = $row['net_profit'] * 0.6;
@@ -372,8 +502,8 @@ class WarehouseService
                 'total_investation'         => $row['total_investation'],
                 'total_transaction'         => 0,
                 'opex'                      => $row['opex'],
-                'transfer_income'           => $row['transfer_income'] ?? 0,
-                'transfer_price'            => $row['raw_avg_out'] ?? 0,
+                'transfer_income'           => $outstockIncome,
+                'transfer_price'            => $transferPrice,
                 'transfer_variance'         => ($row['transfer_income'] ?? 0) - $income,
                 'income'                    => $income,
                 'net_profit'                => $row['net_profit'],
@@ -445,6 +575,7 @@ class WarehouseService
 
         $agg['cogs'] = $agg['direct_cost'] + $agg['raw_material_price'];
 
+        $agg['transfer_income'] = $outstockIncome;
         $incomeAgg = $agg['transfer_income'];
         $capitalAllocationAgg = $incomeAgg * $capitalAllocMultiplier;
         $agg['net_profit'] = $incomeAgg - $agg['cogs'] - $agg['overhead_cost'] - $capitalAllocationAgg;
@@ -465,7 +596,7 @@ class WarehouseService
             'total_transaction'         => 0,
             'opex'                      => $agg['opex'],
             'transfer_income'           => $agg['transfer_income'] ?? 0,
-            'transfer_price'            => $agg['raw_avg_out'] ?? 0,
+            'transfer_price'            => $transferPrice,
             'transfer_variance'         => ($agg['transfer_income'] ?? 0) - $incomeDerived,
             'income'                    => $incomeDerived,
             'net_profit'                => $agg['net_profit'],

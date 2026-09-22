@@ -292,13 +292,13 @@ class InstockDregsTest extends TestCase
 
         $dregsRows = array_values(array_filter($rows, fn ($c) => ($c[2] ?? '') === 'DREGS'));
         $this->assertCount(1, $dregsRows, 'only dregs assigned to this warehouse appear');
-        $this->assertEquals('5.00', $dregsRows[0][5], 'dregs qty in its own column');
-        $this->assertEquals('70', $dregsRows[0][6], 'dregs must not change the saldo');
+        $this->assertEquals('5.00', $dregsRows[0][6], 'dregs qty in its own column');
+        $this->assertEquals('70', $dregsRows[0][7], 'dregs must not change the saldo');
 
         $instock = array_values(array_filter($rows, fn ($c) => ($c[2] ?? '') === 'INSTOCK'));
-        $this->assertEquals('100', $instock[0][3]);
+        $this->assertEquals('100', $instock[0][4]);
         $outstock = array_values(array_filter($rows, fn ($c) => ($c[2] ?? '') === 'Outstock'));
-        $this->assertEquals('30', $outstock[0][4]);
-        $this->assertEquals('70', $outstock[0][6]);
+        $this->assertEquals('30', $outstock[0][5]);
+        $this->assertEquals('70', $outstock[0][7]);
     }
 }

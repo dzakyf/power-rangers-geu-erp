@@ -1612,7 +1612,17 @@ class SalesController extends Controller
     {
         $whid = $r->query('warehouse');
 
-        $calculatedWh = $this->warehouseService->calculateMonthlyFinancialStatement((string) $whid, $r->date_start, $r->date_end);
+        if ($whid) {
+            $calculatedWh = $this->warehouseService->calculateMonthlyFinancialStatement((string) $whid, $r->date_start, $r->date_end);
+            $netProfitList = [['warehouse' => $whid, 'amount' => $calculatedWh['net_profit']]];
+        } else {
+            $all = $this->warehouseService->calculateFinancialStatementAll($r->date_start, $r->date_end);
+            $calculatedWh = $all['aggregate'];
+            $netProfitList = [];
+            foreach ($all['per_warehouse'] as $taskId => $stmt) {
+                $netProfitList[] = ['warehouse' => $taskId, 'amount' => $stmt['net_profit']];
+            }
+        }
 
         $hubStats = DB::table('opportunity_partner as wp')
             ->selectRaw("
@@ -1731,12 +1741,7 @@ class SalesController extends Controller
                 'mttr' => $avgTime->avg_hours ?? 0, // avg time to respond
                 'mttf' => $avgTime->avg_resolution_hours ?? 0, // avg time to fix
             ],
-            'net_profit' => [
-                [
-                    'warehouse' => $whid,
-                    'amount' => $calculatedWh['net_profit']
-                ]
-            ],
+            'net_profit' => $netProfitList,
 
             'complaints_list' => [],
             'total_income' => $calculatedWh['income'],
@@ -1796,11 +1801,16 @@ class SalesController extends Controller
 
         $cursor = $start->copy();
         while ($cursor <= $end) {
-            $monthly = $this->warehouseService->calculateMonthlyFinancialStatement(
-                $r->Task,
-                $cursor->format('Y-m-01'),
-                $cursor->format('Y-m-t')
-            );
+            $monthly = $r->Task
+                ? $this->warehouseService->calculateMonthlyFinancialStatement(
+                    $r->Task,
+                    $cursor->format('Y-m-01'),
+                    $cursor->format('Y-m-t')
+                )
+                : $this->warehouseService->calculateMonthlyFinancialStatementAll(
+                    $cursor->format('Y-m-01'),
+                    $cursor->format('Y-m-t')
+                );
 
             foreach ($res as $key => $_) {
                 $res[$key] += $monthly[$key] ?? 0;

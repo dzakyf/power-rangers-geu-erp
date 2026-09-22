@@ -148,12 +148,20 @@ class RenewalController extends Controller
 
         $ref_no = '43001/PTF/20262403';
 
+        $effectiveTransfer = !empty($body['effective_transfer_at'])
+            ? Carbon::parse($body['effective_transfer_at'])->translatedFormat('d F Y')
+            : '';
+
         $doc->setValues([
             'ref_no' => $ref_no,
+            'contract_no' => $data->lead_id ?? '',
             'current_mitra_name' => $partner_name ?? '${contoh}',
             'new_mitra_name' => $body['new_mitra_name'],
             'reason' => $body['reason'],
             'now' => Carbon::now(),
+            'effective_transfer_at' => $effectiveTransfer,
+            'status' => $body['status'] ?? '',
+            'fee' => $body['fee'] ?? '',
             "type{$body['type']}" => '☒',
         ]);
 
@@ -256,6 +264,10 @@ class RenewalController extends Controller
                 "New_Mitra_Name" => $b['new_mitra_name'],
                 "Type" => $b['type'],
                 "Reason" => $b['reason'],
+                "Applied_At" => now(),
+                "Effective_Transfer_At" => $b['effective_transfer_at'] ?? null,
+                "Result" => $b['status'] ?? null,
+                "Fee" => $b['fee'] ?? null,
             ]);
 
             $filename = basename($path);
@@ -369,8 +381,16 @@ class RenewalController extends Controller
         $year = Carbon::now()->year;
         $ref_no = "000/RS/PFS/APL/{$month}/{$year}";
 
+        $renewalLabel = [
+            '1' => '1 Tahun',
+            '3' => '3 Tahun',
+            '5' => '5 Tahun',
+        ][(string) ($body['renewal_length'] ?? '')] ?? '';
+
         $doc->setValues([
             'reference_no'   => $ref_no,
+            'contract_no'    => $data->lead_id ?? '',
+            'jangka_waktu'   => $renewalLabel,
             'contract_end'   => $data->contract_end_at ? Carbon::parse($data->contract_end_at)->translatedFormat('d F Y') : '',
             'now'            => Carbon::now()->translatedFormat('d F Y'),
             'mitra_fullname' => $this->partnerName($data),
@@ -425,6 +445,7 @@ class RenewalController extends Controller
             $renewalId = DB::table('partner_renewal')->insertGetId([
                 'Opportunity_Id'  => $oppId,
                 'Contract_End_At' => $data->contract_end_at,
+                'Renewed_Length'  => $b['renewal_length'] ?? null,
                 'Created_At'      => now(),
                 'Status'          => 'PENDING',
             ]);
@@ -482,8 +503,14 @@ class RenewalController extends Controller
         $year = Carbon::now()->year;
         $ref_no = "000/RS/PFS/EXT/{$month}/{$year}";
 
+        $effectiveTermination = !empty($body['effective_termination_at'])
+            ? Carbon::parse($body['effective_termination_at'])->translatedFormat('d F Y')
+            : '';
+
         $doc->setValues([
             'ref_no'         => $ref_no,
+            'contract_no'    => $data->lead_id ?? '',
+            'effective_termination_at' => $effectiveTermination,
             'mitra_fullname' => $this->partnerName($data),
             'position'       => $this->partnerPosition($data),
             'applied_at'     => Carbon::now()->translatedFormat('d F Y'),
@@ -550,6 +577,7 @@ class RenewalController extends Controller
                 'Opportunity_Id' => $oppId,
                 'Type'           => $b['type'] ?? null,
                 'Resolution'     => $b['reason'] ?? null,
+                'Effective_Termination_At' => $b['effective_termination_at'] ?? null,
                 'Created_At'     => now(),
                 'Status'         => 'PENDING',
             ]);

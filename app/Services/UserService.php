@@ -38,7 +38,7 @@ class UserService
 
     public function getActiveMitra()
     {
-        $partner = DB::table('users as usr')->select('usr.*', 'op.id as Opportunity_Id')
+        $partner = DB::table('users as usr')->select('usr.*', 'op.id as Opportunity_Id', 'op.lead_id')
             ->leftJoin('opportunity_partner as op', 'op.user_row_id', '=', 'usr.id')
             ->where('usr.Position', '=', 'MITRA')->where('usr.Status', '=', 'ACTIVE')->get();
 

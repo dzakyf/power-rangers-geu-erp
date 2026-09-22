@@ -148,6 +148,13 @@
                     opt.textContent = w.warehouse_task_id + ' — ' + w.warehouse_location;
                     sel.appendChild(opt);
                 });
+            
+
+                $('#filter_warehouse').select2({
+                    placeholder: '-- Semua Gudang --',
+                    allowClear: true,
+                    width: '100%'
+                });
             });
     }
 
