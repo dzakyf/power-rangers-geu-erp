@@ -20,6 +20,14 @@
             </select>
         </div>
         <div class="form-group">
+            <label>Nomor Kontrak Kemitraan</label>
+            <input type="text" class="form-control" id="contract_no" readonly>
+        </div>
+        <div class="form-group">
+            <label for="effective_termination_at">Tanggal efektif Terminasi <span style="color:red;">*</span></label>
+            <input type="date" class="form-control" id="effective_termination_at" name="effective_termination_at" required>
+        </div>
+        <div class="form-group">
             <label for="type">Jenis Terminasi <span style="color:red;">*</span></label>
             <select class="form-control" id="type" name="type" required>
                 <option value="">-- Pilih Jenis Terminasi --</option>
@@ -62,7 +70,8 @@
                 $(xmlData).find('row').each(function() {
                     results.push({
                         id: $(this).attr('Opportunity_Id'),
-                        text: $(this).find('cell').eq(1).text()
+                        text: $(this).find('cell').eq(1).text(),
+                        lead_id: $(this).find('cell').eq(3).text()
                     });
                 });
                 return {
@@ -73,9 +82,17 @@
         }
     });
 
+    $('#mitra_select').on('select2:select', function(e) {
+        $('#contract_no').val((e.params.data && e.params.data.lead_id) ? e.params.data.lead_id : '');
+    });
+    $('#mitra_select').on('select2:clear', function() { $('#contract_no').val(''); });
+
     function submitApplication(action) {
         var oppId = $('#mitra_select').val();
         if (!oppId) { alert('Pilih Mitra terlebih dahulu'); return; }
+
+        var effective = $('#effective_termination_at').val();
+        if (!effective) { alert('Tanggal efektif Terminasi wajib diisi'); return; }
 
         var type = $('#type').val();
         if (!type) { alert('Pilih Jenis Terminasi terlebih dahulu'); return; }
@@ -88,6 +105,7 @@
         formData.append('opportunity_id', oppId);
         formData.append('type', type);
         formData.append('reason', reason);
+        formData.append('effective_termination_at', effective);
 
         $.ajax({
             url: 'partner-termination-' + action + '-application',

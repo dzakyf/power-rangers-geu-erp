@@ -226,7 +226,15 @@ class AftersalesDashboardTest extends TestCase
         $json = $this->fetchDashboardData();
 
         $this->assertSame('success', $json['status']);
-        $this->assertNull($json['data']['net_profit'][0]['warehouse']);
+        // No warehouse selected -> aggregate across all registered warehouses
+        // (one net_profit row per warehouse, not a single null row).
+        $this->assertNotEmpty($json['data']['net_profit']);
+        $this->assertNotNull($json['data']['net_profit'][0]['warehouse']);
+        $this->assertEqualsWithDelta(
+            (float) $json['data']['total_net_profit'],
+            (float) collect($json['data']['net_profit'])->sum('amount'),
+            0.01
+        );
 
         foreach (self::PAYLOAD_KEYS as $key) {
             $this->assertArrayHasKey($key, $json['data'], "Missing payload key: {$key}");

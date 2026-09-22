@@ -58,9 +58,25 @@ class UCOController extends Controller
         return view('uco.create-inbound');
     }
 
-    public function updateDeliveryOrderPage()
+    public function updateDeliveryOrderPage(Request $r)
     {
-        return view('partner.delivery-order.update');
+        $poId = $r->query('po_id');
+        $po = $poId ? DB::table('pickup_order')->where('ID', $poId)->first() : null;
+        $do = ($po && $po->DO_Id) ? DB::table('delivery_order')->where('ID', $po->DO_Id)->first() : null;
+        $locked = ($do && $do->DO_Status === 'DONE');
+
+        return view('partner.delivery-order.update', compact('poId', 'po', 'do', 'locked'));
+    }
+
+    /**
+     * A Surat Jalan with DO_Status = DONE is locked (no further edits).
+     */
+    private function deliveryOrderIsLocked($doId): bool
+    {
+        if (!$doId) {
+            return false;
+        }
+        return DB::table('delivery_order')->where('ID', $doId)->value('DO_Status') === 'DONE';
     }
 
     public function submitUpdateDeliveryOrder(Request $r)
@@ -69,6 +85,11 @@ class UCOController extends Controller
 
         if (!$poId) {
             return response()->json(['status' => 'error', 'message' => 'PO_Id is required'], 400);
+        }
+
+        $doId = DB::table('pickup_order')->where('ID', $poId)->value('DO_Id');
+        if ($this->deliveryOrderIsLocked($doId)) {
+            return response()->json(['status' => 'error', 'message' => 'Surat Jalan sudah DONE dan tidak dapat diubah'], 403);
         }
 
         try {
@@ -948,6 +969,10 @@ class UCOController extends Controller
             return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
         }
 
+        if ($this->deliveryOrderIsLocked($id)) {
+            return response()->json(['status' => 'error', 'message' => 'Surat Jalan sudah DONE dan tidak dapat diubah'], 403);
+        }
+
         try {
             DB::transaction(function () use ($r, $id) {
                 $year  = Carbon::now()->year;
@@ -1009,6 +1034,10 @@ class UCOController extends Controller
 
         if (!$id) {
             return response()->json(['status' => 'error', 'message' => 'ID is required'], 400);
+        }
+
+        if ($this->deliveryOrderIsLocked($id)) {
+            return response()->json(['status' => 'error', 'message' => 'Surat Jalan sudah DONE dan tidak dapat diubah'], 403);
         }
 
         try {
@@ -2582,7 +2611,7 @@ class UCOController extends Controller
             ->leftJoin('outstock_warehouses as ow', 'outstock.ID', '=', 'ow.Outstock_ID')
             ->leftJoin('warehouse_partner as wp', 'ow.Warehouse_ID', '=', 'wp.id')
             ->leftJoin('master_fleet as mf', 'outstock.Fleet_ID', '=', 'mf.ID')
-            ->select('outstock.*', DB::raw('GROUP_CONCAT(DISTINCT wp.warehouse_location SEPARATOR ", ") as Warehouse_Names'), 'mf.Police_Number as Fleet_Number')
+            ->select('outstock.*', DB::raw('GROUP_CONCAT(DISTINCT CONCAT_WS(" - ", wp.warehouse_task_id, wp.warehouse_location) SEPARATOR ", ") as Warehouse_Names'), 'mf.Police_Number as Fleet_Number')
             ->groupBy('outstock.ID')
             ->orderBy('outstock.Created_At', 'desc')
             ->get();
@@ -2596,6 +2625,9 @@ class UCOController extends Controller
             $row->addChild('cell', htmlspecialchars((string) $d->Code));
             $row->addChild('cell', htmlspecialchars((string) $d->Date));
             $row->addChild('cell', htmlspecialchars((string) ($d->Warehouse_Names ?? '')));
+            $row->addChild('cell', $d->Transfer_Price !== null
+                ? htmlspecialchars('Rp ' . number_format((float) $d->Transfer_Price, 0, ',', '.'))
+                : '');
             $row->addChild('cell', htmlspecialchars((string) ($d->Fleet_Number ?? '')));
             $row->addChild('cell', htmlspecialchars((string) $d->Status));
             $no++;
@@ -2744,6 +2776,24 @@ class UCOController extends Controller
                 }
             }
 
+            // Hard block: never outstock an empty/negative container, and never
+            // exceed the container's system quantity.
+            foreach ($rows as $row) {
+                $cid = $row['container_id'];
+                $sys = (float) $systemQtyByContainer[$cid];
+                $qty = (float) ($row['actual_qty'] ?? 0);
+                $cName = DB::table('master_container')->where('ID', $cid)->value('Name') ?? ('#' . $cid);
+
+                if ($sys <= 0) {
+                    DB::rollBack();
+                    return response()->json(['success' => false, 'message' => "Container '{$cName}' memiliki system qty {$sys} L; tidak dapat outstock. Lakukan stock opname terlebih dahulu."], 400);
+                }
+                if ($qty > $sys) {
+                    DB::rollBack();
+                    return response()->json(['success' => false, 'message' => "Qty loading {$qty} L melebihi system qty {$sys} L untuk container '{$cName}'."], 400);
+                }
+            }
+
             DB::table('outstock_details')->where('Outstock_ID', $outstockId)->delete();
 
             foreach ($rows as $row) {
@@ -2810,30 +2860,66 @@ class UCOController extends Controller
             // residual to the last line so the sum is exact).
             $lines = DB::table('outstock_details')->where('Outstock_ID', $outstockId)->orderBy('ID')->get();
             if ($lines->isNotEmpty()) {
+                $boundary = DB::table('outstock_details')->where('Outstock_ID', $outstockId)->min('Created_At');
+                $ownIds = $lines->pluck('ID')->all();
+
                 $basis = $lines->map(fn ($l) => (float) $l->Actual_Qty)->values();
                 $sumBasis = (float) $basis->sum();
                 if ($sumBasis <= 0) {
                     $basis = $basis->map(fn () => 1.0);
                     $sumBasis = (float) $basis->count();
                 }
+
+                $shares = [];
                 $running = 0.0;
                 $lastIndex = $lines->count() - 1;
                 foreach ($lines as $i => $l) {
                     $share = $i === $lastIndex
                         ? round($total - $running, 2)
                         : round($total * ((float) $basis[$i] / $sumBasis), 2);
-                    DB::table('outstock_details')->where('ID', $l->ID)->update(['Actual_Qty' => $share]);
+                    $shares[$l->ID] = ['cid' => $l->Container_ID, 'qty' => $share];
                     $running += $share;
+                }
+
+                // Overdraw guard: every distributed line must stay within its
+                // container's system quantity.
+                foreach ($shares as $info) {
+                    $sys = $this->warehouseService->containerSystemQtyAsOf($info['cid'], $boundary, $ownIds);
+                    if ($info['qty'] > $sys) {
+                        $cName = DB::table('master_container')->where('ID', $info['cid'])->value('Name') ?? ('#' . $info['cid']);
+                        DB::rollBack();
+                        return response()->json(['success' => false, 'message' => "Handover qty {$info['qty']} L melebihi system qty {$sys} L untuk container '{$cName}'."], 400);
+                    }
+                }
+
+                foreach ($shares as $lineId => $info) {
+                    DB::table('outstock_details')->where('ID', $lineId)->update(['Actual_Qty' => $info['qty']]);
                 }
             }
 
-            DB::table('outstock')->where('ID', $outstockId)->update([
+            // Transfer price + supporting document (new concept; report reads it).
+            $transferPrice = $r->filled('Transfer_Price') ? (float) $r->input('Transfer_Price') : null;
+
+            $updateHeader = [
                 'Actual_Qty'           => $total,
                 'Handover_Date'        => $r->input('Date'),
                 'Handover_Destination' => $r->input('Destination'),
                 'Handover_Notes'       => $r->input('Notes'),
+                'Transfer_Price'       => $transferPrice,
                 'Status'               => 'COMPLETED',
-            ]);
+            ];
+
+            if ($r->hasFile('Transfer_Document') && $r->file('Transfer_Document')->isValid()) {
+                $file = $r->file('Transfer_Document');
+                $ext = $file->getClientOriginalExtension();
+                $name = 'transfer_' . $outstockId . '_' . time() . '.' . $ext;
+                $dir = public_path('filevendor/outstock');
+                if (!is_dir($dir)) { mkdir($dir, 0777, true); }
+                $file->move($dir, $name);
+                $updateHeader['Transfer_Document'] = 'outstock/' . $name;
+            }
+
+            DB::table('outstock')->where('ID', $outstockId)->update($updateHeader);
 
             // Rebuild finance movement mirrors (idempotent) from distributed lines.
             DB::table('warehouse_partner_stock_request')

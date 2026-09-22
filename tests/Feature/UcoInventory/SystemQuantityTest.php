@@ -395,14 +395,40 @@ class SystemQuantityTest extends TestCase
 
         $outstock = array_values(array_filter($rows, fn ($c) => ($c[2] ?? '') === 'Outstock'));
         $this->assertCount(2, $outstock, 'loading + manual request shown; mirror excluded');
-        $vals = array_map('floatval', array_map(fn ($c) => $c[4], $outstock));
+        $vals = array_map('floatval', array_map(fn ($c) => $c[5], $outstock));
         sort($vals);
         $this->assertEquals([5.0, 30.0], $vals, 'mirror (99) must not appear; loading (30) must');
 
 
         $opname = array_values(array_filter($rows, fn ($c) => ($c[2] ?? '') === 'OPNAME'));
         $this->assertNotEmpty($opname);
-        $this->assertEquals('71', $opname[0][6], 'closed opname rebases the log saldo to physical');
+        $this->assertEquals('71', $opname[0][7], 'closed opname rebases the log saldo to physical');
+    }
+
+    /** @test */
+    public function operation_log_orders_same_date_rows_by_entry_timestamp_descending()
+    {
+        $date = now()->toDateString();
+        foreach ([['08:00:00', 10], ['12:00:00', 20]] as [$time, $qty]) {
+            DB::table('warehouse_partner_supplies')->insert([
+                'warehouse_task_id' => 'TEST-WH-SQ', 'received_date' => $date, 'received_qty' => $qty,
+                'pickup_type' => 'T', 'name_poo' => 'p', 'source' => 's', 'coverage' => 'c',
+                'created_date' => $date.' '.$time, 'created_by' => '__test_sq__', 'total' => 0, 'Container_ID' => $this->containerId,
+            ]);
+        }
+
+        $rows = $this->xmlRows(
+            $this->actingAs($this->admin())
+                ->get('/xml-partner-warehouse-list-detail?Task='.$this->warehouseId)
+                ->assertOk()
+                ->getContent()
+        );
+
+        $this->assertCount(2, $rows);
+        $this->assertStringContainsString('12:00:00', $rows[1][1], 'newest entry first');
+        $this->assertStringContainsString('08:00:00', $rows[2][1]);
+        $this->assertEquals('30', $rows[1][7], 'saldo after the newest entry');
+        $this->assertEquals('10', $rows[2][7], 'saldo after the older entry');
     }
 
     /** @test */
@@ -431,7 +457,7 @@ class SystemQuantityTest extends TestCase
         $outstock = array_values(array_filter($rows, fn ($c) => ($c[2] ?? '') === 'Outstock'));
         $this->assertCount(0, $outstock, 'another warehouse loading must not leak in');
         $instock = array_values(array_filter($rows, fn ($c) => ($c[2] ?? '') === 'INSTOCK'));
-        $this->assertEquals('100', $instock[0][6]);
+        $this->assertEquals('100', $instock[0][7]);
     }
 
     /** @test */
@@ -511,6 +537,13 @@ class SystemQuantityTest extends TestCase
         $c2 = DB::table('master_container')->insertGetId([
             'Name' => 'SQ-C2 '.uniqid(), 'Volume' => 1000,
             'Warehouse_ID' => $this->warehouseId, 'Status' => 'active',
+        ]);
+        // Stock both containers so the handover overdraw guard is satisfied.
+        $this->addStockIn(100);
+        DB::table('warehouse_partner_supplies')->insert([
+            'warehouse_task_id' => 'TEST-WH-SQ', 'received_date' => now()->toDateString(), 'received_qty' => 100,
+            'pickup_type' => 'T', 'name_poo' => 'p', 'source' => 's', 'coverage' => 'c',
+            'created_date' => now(), 'created_by' => '__test_sq__', 'total' => 0, 'Container_ID' => $c2,
         ]);
         $doc = $this->makeOutstock();
         DB::table('outstock_warehouses')->insert([

@@ -6,12 +6,6 @@
 {{-- Filters --}}
 <div class="row mt-3 mb-2 align-items-end">
     <div class="col-auto">
-        <label for="Region" class="d-block mb-1">Pilih Region</label>
-        <select id="Region" name="region" class="form-control">
-            <option value="">-- Select Region --</option>
-        </select>
-    </div>
-    <div class="col-auto">
         <label class="d-block mb-1">Pilih Gudang</label>
         <select id="filter_whid" class="form-control d-inline-block w-auto">
             <option value="">-- Semua Gudang --</option>
@@ -135,6 +129,13 @@
                     opt.value = w.warehouse_task_id;
                     opt.textContent = w.warehouse_task_id + ' — ' + w.warehouse_location;
                     sel.appendChild(opt);
+                });
+            
+
+                $('#filter_whid').select2({
+                    placeholder: '-- Semua Gudang --',
+                    allowClear: true,
+                    width: '100%'
                 });
             });
     }

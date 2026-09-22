@@ -1,8 +1,8 @@
 # Panduan Fitur Modul Business Partner
 
-**Versi Dokumen:** 1.2  
+**Versi Dokumen:** 1.3  
 **Tanggal Penyusunan:** 31 Agustus 2026  
-**Tanggal Pembaruan:** 15 September 2026  
+**Tanggal Pembaruan:** 22 September 2026  
 **Penyusun:** Tim Sistem Informasi GEU  
 **Status:** Draf untuk reviu
 
@@ -211,16 +211,20 @@ Menu Keuangan memuat seluruh laporan dan proses terkait aspek finansial kemitraa
 
 Pengelolaan proyeksi pendapatan tiap mitra/gudang. Proyeksi diinput melalui templat Excel yang diunduh, diisi, lalu diunggah kembali ke sistem. Daftar pengeluaran juga dikelola pada bagian ini.
 
+> **Cara perhitungan awal periode proyeksi:** proyeksi dihitung mulai dari **bulan setelah bulan pengunggahan berkas**. Bulan pertama setelah unggah dipetakan sebagai **Bulan 1**; bulan-bulan sebelum itu bernilai nol. Acuan ini **tidak** bergantung pada tahap onboarding mitra, dan apabila berkas diunggah ulang, awal periode mengikuti bulan unggah yang terbaru.
+
 ### 5.2 Laporan Keuangan Bulanan dan Tahunan (LK)
 
 Laporan laba rugi periodik per gudang/mitra yang dapat dilihat langsung di layar maupun diekspor. Laporan menjadi dasar perhitungan bagi hasil.
 
 > **Cara perhitungan laporan (ringkas):**
-> **Pendapatan transfer** = jumlah UCO keluar × harga jual rata-rata.
-> **Harga pokok (COGS)** = biaya langsung + nilai bahan baku.
-> **Laba bersih** = pendapatan transfer − harga pokok − biaya operasional − alokasi kapital. Alokasi kapital = **2,5%** dari pendapatan transfer.
+> **Harga Transfer dan Pendapatan** diambil dari **harga transfer per liter yang diisi pada setiap dokumen outstock yang telah selesai (COMPLETED)**: Pendapatan = total (jumlah UCO keluar kontainer × harga transfer dokumen); Harga Transfer = Pendapatan ÷ total jumlah keluar. Bulan tanpa dokumen outstock berharga transfer menampilkan nilai **nol** (konsep harga transfer baru; data lama dibiarkan nol).
+> **Harga pokok (COGS)** = biaya langsung (jurnal golongan 502) + nilai bahan baku (harga beli rata-rata × jumlah UCO keluar).
+> **Laba bersih** = pendapatan − harga pokok − biaya operasional − alokasi kapital. Alokasi kapital = **2,5%** dari pendapatan.
 > **Bagi hasil mitra = 60% dari laba bersih**; bagian perusahaan = 40%.
 > **EBITDA** = (laba bersih × 60%) − biaya gaji − biaya sewa; **ROI** = EBITDA ÷ total investasi × 100.
+> **Periode laporan** mengikuti tanggal akhir bulan yang sebenarnya, sehingga seluruh bulan (termasuk Februari, April, Juni, September, dan November) tampil dengan benar.
+> **Baris biaya langsung** pada laporan mengikuti kode akun COA: **52001 Bensin, 52002 Charging, dan 52003 Parkir**.
 
 [Sisipkan tangkapan layar: Laporan Keuangan Bulanan]
 
@@ -238,11 +242,13 @@ Menghitung nilai usaha mitra berdasarkan daftar aset beserta penyusutannya. Bagi
 
 > **Cara perhitungan waktu pakai (bulan):** waktu pakai dihitung sejak **tanggal order** aset, bukan dari konfigurasi masa manfaat. Nilai waktu pakai dibatasi maksimal sepanjang masa penyusutan, sehingga sisa waktu penyusutan tidak pernah bernilai negatif.
 
+> **Catatan daftar aset:** daftar aset pada halaman valuasi (termasuk pada formulir pengajuan perpanjangan, pemutusan, dan pengalihan kepemilikan) hanya menampilkan item dengan status **ASSET**.
+
 ### 5.5 Dashboard Profit Sharing dan Overview Mitra
 
 Menampilkan bagi hasil per gudang selama dua belas bulan serta rekap bagi hasil per mitra. Berguna untuk memantau tren bagi hasil dari waktu ke waktu.
 
-Proyeksi pada dashboard mengikuti **bulan operasional gudang**: bulan operasional pertama dipetakan sebagai **Bulan 1** pada proyeksi, sehingga seluruh **empat tahun** proyeksi tampil berurutan dan tidak lagi dimulai dari Januari.
+Proyeksi pada dashboard mengikuti **bulan unggah berkas proyeksi**: bulan **setelah** bulan unggah dipetakan sebagai **Bulan 1**, sehingga seluruh **empat tahun** proyeksi tampil berurutan dan tidak lagi dimulai dari Januari. Acuan ini tidak bergantung pada tahap onboarding mitra.
 
 ### 5.6 Pengajuan Bagi Hasil dan Approval
 
@@ -296,16 +302,18 @@ Menu Inventory terbagi dua bagian besar: inventori gudang mitra dan logistik UCO
 
 ### 7.1 Inventori Gudang Mitra
 
-- **Gudang** — Pendaftaran gudang mitra dengan kode otomatis, lokasi, kapasitas, tipe HUB, dan status aktif/nonaktif. Detail gudang menampilkan riwayat operasional UCO.
+- **Gudang** — Pendaftaran gudang mitra dengan kode otomatis, lokasi, kapasitas, tipe HUB, dan status aktif/nonaktif. Halaman detail gudang menampilkan **Total System Quantity** (jumlah stok menurut sistem pada seluruh kontainer gudang) beserta rincian per kontainer, serta riwayat operasional UCO dalam satu log yang dapat ditelusuri.
 - **Open Warehouse** — Pencatatan penerimaan barang masuk gudang, lengkap dengan volume diterima, harga per liter, volume tolakan, dan unggahan bukti timbangan.
 - **Stock Request (Warehouse Out)** — Permintaan dan pencatatan barang keluar dari gudang, dinilai berdasarkan harga master stok.
 - **Monitoring Stock** — Pantauan sisa stok terkini per gudang, dapat ditelusuri sampai rincian persediaan dan riwayat permintaan.
 - **Jurnal** — Catatan keuangan harian gudang berdasarkan kode akun, dilengkapi rekapitulasi bulanan dan tahunan.
-- **Stock Opname** — Penghitungan fisik stok berkala. Kolom **System Quantity** (stok menurut sistem) terisi otomatis dan tidak dapat diubah manual. Daftar **Container (IBC)** hanya menampilkan kontainer milik gudang yang dipilih, dan tanggal opname tidak dapat dimundurkan (minimal hari ini). Selisih antara stok fisik dan catatan sistem tercatat sebagai **surplus** (lebih) atau **shortage** (kurang); selisih dalam batas toleransi 3% disetujui otomatis, di luar itu menunggu persetujuan.
+- **Stock Opname** — Penghitungan fisik stok berkala per kontainer. Kolom **System Quantity** (stok menurut sistem) terisi otomatis dan tidak dapat diubah manual; nilainya **diperbarui dari catatan terkini pada saat opname diselesaikan**. Daftar **Container (IBC)** hanya menampilkan kontainer milik gudang yang dipilih, dan tanggal opname tidak dapat dimundurkan (minimal hari ini). Selisih antara stok fisik dan catatan sistem tercatat sebagai **surplus** (lebih) atau **shortage** (kurang); selisih dalam batas toleransi 3% disetujui otomatis, di luar itu menunggu persetujuan. Apabila pengajuan **ditolak**, opname hitung biasa dikembalikan ke status **COUNTED** untuk dihitung ulang, sedangkan koreksi atas opname yang telah selesai dikembalikan ke status **CLOSED** tanpa mengubah saldo.
 
-> **Cara perhitungan System Quantity:** stok menurut sistem = total stok masuk − total stok keluar pada kontainer terkait.
+> **Cara perhitungan System Quantity:** stok menurut sistem dihitung sebagai rangkaian kejadian (event): **ditambah** setiap stok masuk (received_qty) dan **dikurangi** setiap pengeluaran (aktual loading outstock) sesuai urutan waktu pencatatan; pada setiap **opname berstatus CLOSED**, saldo **diatur ulang (rebaseline)** menjadi **Physical_Qty** hasil hitung fisik. Opname berstatus DRAFT, COUNTED, atau CLOSED_PENDING **tidak** mengubah saldo. Nilai dapat bernilai negatif sebelum dilakukan opname, dan hitung fisik berikutnya akan menyelaraskannya.
 
-> **Cara perhitungan selisih opname:** selisih = stok fisik − stok sistem. Selisih positif menjadi **Surplus**; selisih negatif menjadi **Shortage**. Selisih di bawah **3%** dari stok sistem disetujui otomatis; di atas itu menunggu persetujuan.
+> **Cara pembacaan log operasional UCO (detail gudang):** setiap baris menampilkan **waktu pencatatan lengkap (tanggal dan jam:menit:detik)**, jenis operasi (Instock, Outstock, Opname, Ampas/Dregs), kolom **Keterangan** (nomor dokumen/kontainer/POO), serta kolom Qty Masuk, Qty Keluar, Ampas, dan Saldo. Urutan tampilan dari yang **terbaru ke terlama** (menurun); baris dengan operasi **Opname hanya ditampilkan bila opname telah selesai (CLOSED)**.
+
+> **Cara perhitungan selisih opname:** selisih = stok fisik − stok sistem. Selisih positif menjadi **Surplus**; selisih negatif menjadi **Shortage**. Selisih di bawah **3%** dari stok sistem disetujui otomatis; di atas itu menunggu persetujuan. Waktu acuan penyelesaian opname menggunakan **waktu persetujuan (Closed_At)**.
 
 [Sisipkan tangkapan layar: Monitoring Stock per gudang]
 
@@ -317,9 +325,9 @@ Menu Inventory terbagi dua bagian besar: inventori gudang mitra dan logistik UCO
 - **Work Order (WO)** — Pembuatan perintah kerja penjemputan/pengumpulan per POO lengkap dengan status pengerjaannya. Tanggal WO dikunci ke tanggal hari ini (tidak dapat memilih tanggal lain).
 - **Pickup Order (PO)** — Permintaan penjemputan UCO: jenis, cakupan wilayah, paket, jumlah, harga, dan penugasan armada. Nomor PO kini tampil pada daftar; kolom **Route/Coverage** dan **Site** terisi otomatis dari data POO namun tetap dapat disunting.
 - **Route Mapping** — Perhitungan, penyimpanan, dan tampilan peta rute penjemputan optimal dengan beberapa titik persinggahan. Jumlah pickup dan total berat terisi otomatis dari PO yang dipilih.
-- **Surat Jalan (Delivery Order)** — Dokumen pengiriman. Setelah PO dipilih, status otomatis **PROGRESS** dan dapat diubah pada halaman pembaruan. Pengemudi menutup DO dengan mengisi jumlah aktual, koordinat lokasi, tanda tangan penerima, foto bukti serah terima, dan foto timbangan.
-- **Inbound (Barang Masuk)** — Pencatatan penerimaan stok UCO per gudang/kontainer: sumber, volume diterima, harga, total, dan tolakan; termasuk form penimbangan masuk.
-- **Outbound (Barang Keluar)** — Pengelolaan pengiriman keluar. Menu Outstock menampilkan daftar lengkap dengan tombol **Buat Draft**; nilai System Quantity pada proses loading tersimpan dengan benar, termasuk saat pengiriman ulang dokumen. Prosesnya meliputi muat barang, serah terima dengan bukti foto, dan cetak surat jalan.
+- **Surat Jalan (Delivery Order)** — Dokumen pengiriman. Setelah PO dipilih, status otomatis **PROGRESS** dan dapat diubah pada halaman pembaruan. Pengemudi menutup DO dengan mengisi jumlah aktual, koordinat lokasi, tanda tangan penerima, foto bukti serah terima, dan foto timbangan. Apabila status Surat Jalan telah **DONE**, dokumen menjadi **terkunci** dan tidak dapat diubah lagi (halaman pembaruan tampil hanya-baca); pilihan pembatalan menggunakan label **CANCELLED**.
+- **Inbound (Barang Masuk)** — Pencatatan penerimaan stok UCO per gudang/kontainer: sumber, volume diterima, harga, total, dan tolakan; termasuk form penimbangan masuk. Alokasi ke **kontainer wajib diisi** dan total alokasi harus sama dengan volume yang diterima; sistem menolak pengisian yang melebihi kapasitas kontainer. Volume **ampas (dregs)** dicatat terpisah pada tab Ampas dan tidak mengurangi volume UCO yang diterima.
+- **Outbound (Barang Keluar)** — Pengelolaan pengiriman keluar. Menu Outstock menampilkan daftar lengkap dengan tombol **Buat Draft**. Prosesnya meliputi muat barang (loading), serah terima dengan bukti foto, penetapan **Harga Transfer per liter beserta dokumen pendukung**, dan cetak surat jalan. Pada saat loading, sistem **menolak** pengeluaran apabila stok menurut sistem kontainer **0 atau kurang**, atau apabila jumlah yang dimuat **melebihi** stok sistem kontainer tersebut (tanpa menyimpan data). Pada tahap serah terima, satu total aktual dibagikan ke baris-baris kontainer secara proporsional, dan sistem memeriksa ulang agar jumlah yang dibagikan tidak melebihi stok sistem tiap kontainer.
 - **Settlement dan Acquisition Cost** — Penyelesaian biaya per rute (jarak kilometer dan persetujuannya) serta perbandingan biaya rencana vs aktual per pengiriman dengan unggahan nota.
 
 > **Alur Settlement:** rute yang baru dibuat langsung masuk halaman **Settlement** dengan status **PENDING_SETTLEMENT**. Pengguna mitra/operasional mengisi rincian biaya rute (BBM, tol, parkir, biaya driver, biaya lapangan, dan biaya tanpa nota) beserta bukti berkas, lalu status menjadi **SETTLEMENT_PENDING**. Pada menu **Settlement Cost** (Finance), petugas menyetujui (status **SETTLED**) atau menolak (kembali ke **PENDING_SETTLEMENT**). **Pickup Cost** mencatat pencairan uang muka kas (rekening tujuan, nominal, dan bukti transfer); **Acquisition Cost** mencatat pembayaran ke POO atas UCO yang dibeli (nominal dan qty aktual, bukti transfer kini tampil pada halaman detail).
@@ -328,7 +336,11 @@ Menu Inventory terbagi dua bagian besar: inventori gudang mitra dan logistik UCO
 
 > **Cara perhitungan biaya rute (mode Lumpsum):** total = biaya lumpsum + APC.
 
-> **Cara perhitungan kapasitas kontainer:** stok terisi = total stok masuk − total stok keluar; **sisa kapasitas = volume kontainer − stok terisi**; sistem menolak pengisian yang melebihi sisa kapasitas.
+> **Cara perhitungan kapasitas kontainer:** stok terisi mengikuti **System Quantity** (perhitungan kejadian seperti pada bagian 7.1); **sisa kapasitas = volume kontainer − stok terisi**; sistem menolak pengisian yang melebihi sisa kapasitas.
+
+> **Cara perhitungan Harga Transfer pada laporan:** nilai Harga Transfer dan Pendapatan pada Laporan Keuangan diambil dari **Harga Transfer per liter** yang diisi pada dokumen outstock yang selesai, bukan dari harga pokok pembelian. Dokumen outstock lama yang belum memiliki harga transfer bernilai **nol**.
+
+> **Pembukuan jurnal biaya langsung:** saat settlement disetujui (SETTLED), rincian biaya yang telah dipetakan dibukukan ke jurnal keuangan mitra sebagai **Biaya Langsung (Direct Costs)** — BBM ke akun **52001** dan Parkir ke akun **52003**; rincian biaya yang belum dipetakan ke akun tidak dibukukan.
 
 [Sisipkan tangkapan layar: Route Mapping dengan peta rute]
 
@@ -416,7 +428,7 @@ Ringkasan layanan purna jual, meliputi:
 - **Pemantauan kontrak**: aktif, segera berakhir (kurang dari tiga bulan), dan sudah berakhir.
 - Jumlah tiket terbuka dan selesai, kinerja respon (rata-rata waktu penyelesaian), permintaan dukungan menurut kategori, widget kinerja, serta daftar keluhan.
 
-> Pembaruan: dashboard kini dapat dimuat dengan benar, termasuk ketika filter gudang tidak dipilih — data otomatis ditampilkan dengan cakupan seluruh gudang. Widget **Penilaian Kinerja** dan **Daftar Keluhan** masih menunggu kelengkapan data.
+> Pembaruan: ketika filter gudang **tidak dipilih**, data dihitung untuk **seluruh gudang terdaftar**; bagi pengguna mitra, cakupannya hanya gudang milik mitra tersebut. Tabel **Net Profit per Gudang** menampilkan **satu baris per gudang terdaftar** (termasuk gudang tanpa data dengan nilai 0) dan disajikan dengan komponen **DataTables** berjendela tetap yang dapat **digulir dan berpaginasi**. Filter **Pilih Gudang** kini dapat **dicari (searchable)**, dan filter **Region** dihapus. Widget **Penilaian Kinerja** dan **Daftar Keluhan** masih menunggu kelengkapan data.
 
 > **Cara perhitungan MTTR / MTTF:** MTTR (rata-rata waktu penyelesaian gangguan) = rata-rata jam dari munculnya gangguan hingga tindakan penyelesaiannya; MTTF (rata-rata jeda antargangguan) = rata-rata jam antara dua gangguan pada tiket yang sama. **Pemantauan kontrak** menggolongkan kontrak **segera berakhir** bila sisa masa berlaku kurang dari **3 bulan**.
 
@@ -424,19 +436,19 @@ Ringkasan layanan purna jual, meliputi:
 
 ### 11.2 Dashboard Kemitraan (Membership)
 
-Ringkasan populasi mitra: jumlah mitra menurut status dan perkembangannya dari waktu ke waktu.
+Ringkasan populasi mitra: jumlah mitra menurut status dan perkembangannya dari waktu ke waktu. Filter **Pilih Gudang** dapat dicari (searchable); filter Region tidak ditampilkan.
 
 > **Cara perhitungan ringkas:** estimasi uang muka = jumlah mitra (MOU) × nilai DP kemitraan; rasio corong = jumlah mitra tahap saat ini ÷ jumlah mitra tahap sebelumnya × 100; estimasi pendapatan = total proyeksi pendapatan (skenario rendah) untuk 12 bulan ke depan.
 
 ### 11.3 Dashboard Financial Insight
 
-Wawasan finansial ringkas: pendapatan, volume UCO, dan tren keuangan utama dalam satu halaman.
+Wawasan finansial ringkas: pendapatan, volume UCO, dan tren keuangan utama dalam satu halaman. Ketika filter gudang tidak dipilih, seluruh angka dihitung dari **seluruh gudang terdaftar** (bagi pengguna mitra, hanya gudang miliknya). Filter **Pilih Gudang** dapat dicari (searchable).
 
 > **Cara perhitungan:** ROI = EBITDA ÷ total investasi × 100; margin = laba bersih ÷ pendapatan × 100.
 
 ### 11.4 Dashboard Compliance
 
-Ringkasan tindak lanjut perbaikan (corrective action) atas temuan audit gudang.
+Ringkasan tindak lanjut perbaikan (corrective action) atas temuan audit gudang. Filter **Pilih Gudang** dapat dicari (searchable); filter Region tidak ditampilkan.
 
 ### 11.5 Dashboard Survey
 
@@ -456,21 +468,26 @@ Menu ini mengatur kejadian-kejadian penting menjelang atau setelah masa kerja sa
 
 Kontrak yang mendekati masa berakhir ditampilkan pada daftar renewal. Alur perpanjangan:
 
-1. Pilih mitra yang akan diperpanjang, lalu klik **Preview** untuk melihat pratinjau surat permohonan perpanjangan.
-2. Klik **Submit** — sistem membuat surat permohonan perpanjangan secara otomatis (terisi data kontrak dan **tanda tangan dari halaman profil**), menyimpannya, dan mengirimkannya ke proses persetujuan.
-3. Pengajuan diproses pada menu **Approval Renewal**. Setelah disetujui pada seluruh tingkat, status perpanjangan menjadi **Disetujui** dan masa kontrak diperpanjang sesuai lama perpanjangan yang tercatat.
+1. Pilih mitra yang akan diperpanjang. Sistem menampilkan **Nomor Kontrak Kemitraan** sesuai data mitra, pilihan **Jangka Waktu Perpanjangan yang Diajukan (1 Tahun, 3 Tahun, atau 5 Tahun)**, serta daftar aset/barang gudang mitra sebagai bahan peninjauan.
+2. Klik **Preview** untuk melihat pratinjau surat permohonan perpanjangan, lalu **Submit** — sistem membuat surat permohonan perpanjangan secara otomatis: **nomor kontrak kemitraan tercantum, jangka waktu yang diajukan tercantum sebagai teks (1/3/5 Tahun), dan surat ditandatangani dengan tanda tangan dari halaman profil**.
+3. Pengajuan diproses pada menu **Approval Renewal**. Setelah disetujui pada seluruh tingkat, status perpanjangan menjadi **Disetujui** dan masa kontrak diperpanjang sesuai lama perpanjangan yang dipilih (tersimpan sebagai lama perpanjangan).
 
 ### 12.2 Pemutusan Mitra (Termination)
 
 Alur pengakhiran kerja sama:
 
-1. Pilih mitra, lalu pilih **Jenis Terminasi** (Berakhir Masa Kontrak, Pengakhiran oleh Mitra, Pengakhiran oleh Perusahaan, atau Kesepakatan Bersama) dan isi **Alasan Terminasi**.
-2. Klik **Preview** untuk melihat pratinjau surat, lalu **Submit** — sistem membuat surat pemberitahuan exit/terminasi secara otomatis: jenis terminasi yang dipilih ditandai pada surat, alasan tercantum, dan surat ditandatangani dengan **tanda tangan dari halaman profil**.
-3. Pengajuan diproses pada menu **Approval Pemutusan Mitra**. Setelah disetujui, status mitra menjadi **Terminated** dan gudang terkait dinonaktifkan.
+1. Pilih mitra; sistem menampilkan **Nomor Kontrak Kemitraan** sesuai data mitra dan daftar aset/barang gudang mitra. Pilih **Jenis Terminasi** (Berakhir Masa Kontrak, Pengakhiran oleh Mitra, Pengakhiran oleh Perusahaan, atau Kesepakatan Bersama), isi **Alasan Terminasi**, dan isi **Tanggal Efektif Terminasi**.
+2. Klik **Preview** untuk melihat pratinjau surat, lalu **Submit** — sistem membuat surat pemberitahuan exit/terminasi secara otomatis: jenis terminasi yang dipilih ditandai pada surat, alasan tercantum, **tanggal efektif terminasi tercantum pada surat**, dan surat ditandatangani dengan tanda tangan dari halaman profil.
+3. Pengajuan diproses pada menu **Approval Pemutusan Mitra**. Setelah disetujui, status mitra menjadi **Terminated**, **tanggal efektif terminasi tersimpan**, dan gudang terkait dinonaktifkan.
 
 ### 12.3 Transfer Kepemilikan
 
-Pengalihan keanggotaan kepada pihak baru. Pengguna memilih mitra saat ini dan mitra baru, memeriksa pratinjau dokumen transfer, memfinalisasi pengajuan, lalu memprosesnya pada **Approval Transfer Kepemilikan**. Setelah pengajuan disetujui, hasil transfer dan tanggal efektifnya tercatat pada data pengalihan.
+Pengalihan keanggotaan kepada pihak baru.
+
+1. Pilih mitra saat ini dan mitra baru; sistem menampilkan **Nomor Kontrak Kemitraan** sesuai data mitra beserta daftar aset/barang gudang mitra.
+2. Isi **Tanggal Efektif Transfer**, **Status Kontrak Setelah Transfer (ACTIVE atau INACTIVE)**, dan **Biaya Administrasi Transfer**.
+3. Periksa pratinjau dokumen transfer (memuat nomor kontrak, tanggal efektif, status kontrak, biaya administrasi, dan **tanda tangan pemohon dari halaman profil**), lalu finalisasi pengajuan.
+4. Pengajuan diproses pada **Approval Transfer Kepemilikan**. Setelah disetujui, hasil transfer, status kontrak, biaya, dan tanggal efektifnya tersimpan pada data pengalihan.
 
 [Sisipkan tangkapan layar: Halaman Transfer Kepemilikan]
 
