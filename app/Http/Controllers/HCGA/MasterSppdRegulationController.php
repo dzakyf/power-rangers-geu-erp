@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\MasterSppdJobLevel;
 use App\MasterSppdTripType;
 use App\MasterSppdAllowance;
+use App\MasterSppdComponent;
 use Illuminate\Support\Facades\DB;
 
 class MasterSppdRegulationController extends Controller
@@ -16,8 +17,9 @@ class MasterSppdRegulationController extends Controller
         $jobLevels = MasterSppdJobLevel::orderBy('id', 'asc')->get();
         $tripTypes = MasterSppdTripType::orderBy('id', 'asc')->get();
         $allowances = MasterSppdAllowance::orderBy('id', 'asc')->get();
+        $components = MasterSppdComponent::orderBy('id', 'asc')->get();
 
-        return view('humanresources.sppd.master', compact('jobLevels', 'tripTypes', 'allowances'));
+        return view('humanresources.sppd.master', compact('jobLevels', 'tripTypes', 'allowances', 'components'));
     }
 
     // --- JOB LEVELS CRUD ---
@@ -130,25 +132,67 @@ class MasterSppdRegulationController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Jenis Perjalanan berhasil dihapus']);
     }
 
-    // --- ALLOWANCES MATRIX CRUD ---
+    // --- ALLOWANCE COMPONENTS CRUD ---
 
     public function getAllowanceComponents()
     {
-        $components = [
-            ['key' => 'transport_land', 'name' => 'Transport Darat', 'category' => 'Transportasi', 'type' => 'array/string', 'desc' => 'Moda transportasi darat yang diizinkan (misal: kereta ekonomi, bus ekonomi)'],
-            ['key' => 'transport_air', 'name' => 'Transport Udara', 'category' => 'Transportasi', 'type' => 'string', 'desc' => 'Kelas penerbangan udara yang diizinkan (misal: pesawat ekonomi)'],
-            ['key' => 'ticket_max', 'name' => 'Batas Maksimal Tiket', 'category' => 'Transportasi', 'type' => 'decimal', 'desc' => 'Batas atas klaim tiket transportasi'],
-            ['key' => 'reimburse_max_per_night', 'name' => 'Reimburse Maksimal per Malam', 'category' => 'Akomodasi', 'type' => 'decimal', 'desc' => 'Batas maksimum klaim reimbursement hotel per malam'],
-            ['key' => 'hotel_star', 'name' => 'Bintang Hotel', 'category' => 'Akomodasi', 'type' => 'integer', 'desc' => 'Kelas standar bintang penginapan/hotel'],
-            ['key' => 'daily_meal', 'name' => 'Uang Makan / Hari', 'category' => 'Uang Harian', 'type' => 'decimal', 'desc' => 'Alokasi tunjangan makan per hari'],
-            ['key' => 'daily_pocket', 'name' => 'Uang Saku / Hari', 'category' => 'Uang Harian', 'type' => 'decimal', 'desc' => 'Alokasi tunjangan uang saku harian'],
-            ['key' => 'kos_per_month', 'name' => 'Bantuan Kos / Bulan', 'category' => 'Bantuan Khusus', 'type' => 'decimal', 'desc' => 'Bantuan sewa tempat tinggal per bulan'],
-            ['key' => 'relocation_one_time_payment', 'name' => 'Bantuan Relokasi', 'category' => 'Bantuan Khusus', 'type' => 'decimal', 'desc' => 'Uang bantuan relokasi (one-time payment)'],
-            ['key' => 'mobilization_cost_per_week', 'name' => 'Mobilisasi / Minggu', 'category' => 'Bantuan Khusus', 'type' => 'decimal', 'desc' => 'Biaya mobilisasi rutin per minggu'],
-        ];
-
+        $components = MasterSppdComponent::orderBy('id', 'asc')->get();
         return response()->json(['status' => 'success', 'data' => $components]);
     }
+
+    public function storeComponent(Request $request)
+    {
+        $request->validate([
+            'code'        => 'required|string|max:100|unique:master_sppd_components,code',
+            'name'        => 'required|string|max:150',
+            'category'    => 'required|string|max:100',
+            'type'        => 'required|string|max:100',
+            'description' => 'nullable|string',
+        ]);
+
+        $item = MasterSppdComponent::create([
+            'code'        => strtolower(str_replace(' ', '_', trim($request->code))),
+            'name'        => trim($request->name),
+            'category'    => trim($request->category),
+            'type'        => trim($request->type),
+            'description' => $request->description ? trim($request->description) : null,
+        ]);
+
+        return response()->json(['status' => 'success', 'message' => 'Komponen Tunjangan berhasil ditambahkan', 'data' => $item]);
+    }
+
+    public function updateComponent(Request $request, $id)
+    {
+        $item = MasterSppdComponent::findOrFail($id);
+
+        $request->validate([
+            'code'        => 'required|string|max:100|unique:master_sppd_components,code,' . $id,
+            'name'        => 'required|string|max:150',
+            'category'    => 'required|string|max:100',
+            'type'        => 'required|string|max:100',
+            'description' => 'nullable|string',
+        ]);
+
+        $item->update([
+            'code'        => strtolower(str_replace(' ', '_', trim($request->code))),
+            'name'        => trim($request->name),
+            'category'    => trim($request->category),
+            'type'        => trim($request->type),
+            'description' => $request->description ? trim($request->description) : null,
+        ]);
+
+        return response()->json(['status' => 'success', 'message' => 'Komponen Tunjangan berhasil diperbarui', 'data' => $item]);
+    }
+
+    public function deleteComponent($id)
+    {
+        $item = MasterSppdComponent::findOrFail($id);
+        $item->delete();
+
+        return response()->json(['status' => 'success', 'message' => 'Komponen Tunjangan berhasil dihapus']);
+    }
+
+    // --- ALLOWANCES MATRIX CRUD ---
 
     public function getAllowances()
     {
@@ -207,6 +251,7 @@ class MasterSppdRegulationController extends Controller
             MasterSppdAllowance::truncate();
             MasterSppdTripType::truncate();
             MasterSppdJobLevel::truncate();
+            MasterSppdComponent::truncate();
 
             $seeder = new \MasterSppdRegulationSeeder();
             $seeder->run();
@@ -219,3 +264,4 @@ class MasterSppdRegulationController extends Controller
         }
     }
 }
+

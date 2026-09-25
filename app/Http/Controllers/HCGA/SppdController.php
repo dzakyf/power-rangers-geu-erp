@@ -80,8 +80,13 @@ class SppdController extends Controller
     {
         $user = Auth::user();
         $departments = DB::table('master_department')->orderBy('Department', 'ASC')->get();
-        $counter = DB::table('sppd')->where('Created_Date', 'LIKE', date('Y-m') . '%')->count() + 1;
-        $SPPD_No = "SPPD/GA/" . ($user->Location ?: 'GEU-HO') . "/" . date('ymdhis') . "-" . $counter;
+        $typeCounts = [
+            'NORMAL'     => DB::table('sppd')->where('Sppd_Type', 'NORMAL')->count(),
+            'PERBANTUAN' => DB::table('sppd')->where('Sppd_Type', 'PERBANTUAN')->count(),
+            'RELOKASI'   => DB::table('sppd')->where('Sppd_Type', 'RELOKASI')->count(),
+        ];
+        $ymd = date('ymd');
+        $SPPD_No = self::nextSppdNumber('NORMAL');
         $fleetList = \App\Http\Controllers\HCGA\CarRentController::fleetOptions();
         $locations = DB::table('location')->orderBy('Name', 'ASC')->get();
 
@@ -102,7 +107,7 @@ class SppdController extends Controller
             }
         }
 
-        return view('humanresources.sppd.new', compact('user', 'departments', 'SPPD_No', 'fleetList', 'jobLevel', 'locations'));
+        return view('humanresources.sppd.new', compact('user', 'departments', 'SPPD_No', 'fleetList', 'jobLevel', 'locations', 'typeCounts', 'ymd'));
     }
 
     public function getMatrixAllowance()
@@ -204,7 +209,7 @@ class SppdController extends Controller
         }
         $spanDays = (int) \Carbon\Carbon::parse($dateStart)->diffInDays(\Carbon\Carbon::parse($dateFinish)) + 1;
 
-        $required = ['Department', 'Destination', 'Route_Start', 'Route_Finish', 'Schedule_Date', 'Schedule_Time', 'Program_Name', 'Description'];
+        $required = ['Department', 'Route_Start', 'Schedule_Date', 'Departure_Time', 'Return_Time', 'Program_Name', 'Description'];
         foreach ($required as $f) {
             if (trim($request->input($f, '')) === '') {
                 return response()->json([
@@ -212,6 +217,34 @@ class SppdController extends Controller
                     'message' => "Field $f wajib diisi",
                 ], 422);
             }
+        }
+
+        // Rute (Tujuan): Kantor (office) OR destination point (map)
+        $routeFinish = trim($request->input('Route_Finish', ''));
+        $destLat = trim($request->input('Dest_Lat', ''));
+        $destLng = trim($request->input('Dest_Lng', ''));
+        $hasDestPoint = ($destLat !== '' && $destLng !== '');
+        $destination = trim($request->input('Destination', ''));
+
+        if ($routeFinish === '' && !$hasDestPoint) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Rute (Tujuan) wajib diisi: pilih lokasi kantor atau titik tujuan pada peta',
+            ], 422);
+        }
+
+        if ($hasDestPoint) {
+            // Point mode: the destination name is mandatory (auto-filled by the map / editable)
+            if ($destination === '') {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Tujuan Perjalanan Dinas wajib diisi untuk Pilih Titik Tujuan',
+                ], 422);
+            }
+        } else {
+            // Office mode: destination = the selected office
+            $office = DB::table('location')->where('Location_ID', $routeFinish)->first();
+            $destination = $office ? trim($office->Name . ' (' . $office->Location_ID . ')') : $routeFinish;
         }
 
         $costs = [];
@@ -307,8 +340,7 @@ class SppdController extends Controller
             }
         }
 
-        $counter = DB::table('sppd')->where('Created_Date', 'LIKE', date('Y-m') . '%')->count() + 1;
-        $SPPD_No = "SPPD/GA/" . ($user->Location ?: 'GEU-HO') . "/" . date('ymdhis') . "-" . $counter;
+        $SPPD_No = self::nextSppdNumber($sppdType);
 
         DB::beginTransaction();
         try {
@@ -318,12 +350,16 @@ class SppdController extends Controller
                 'Requester_Name' => $nama,
                 'Requester_NIK'  => $nik,
                 'Department'     => trim($request->Department),
-                'Destination'    => trim($request->Destination),
+                'Destination'    => $destination,
                 'Route_Start'    => trim($request->Route_Start),
                 'Route_Finish'   => trim($request->Route_Finish),
                 'Description'    => trim($request->Description),
                 'Schedule_Date'  => $request->Schedule_Date,
-                'Schedule_Time'  => trim($request->Schedule_Time),
+                'Schedule_Time'  => trim($request->Departure_Time) . ' - ' . trim($request->Return_Time),
+                'Departure_Time' => trim($request->Departure_Time),
+                'Return_Time'    => trim($request->Return_Time),
+                'Dest_Lat'       => $destLat ?: null,
+                'Dest_Lng'       => $destLng ?: null,
                 'Program_Name'   => trim($request->Program_Name),
                 'Estimated_Cost' => $total,
                 'Sppd_Type'      => $sppdType,
@@ -548,7 +584,7 @@ class SppdController extends Controller
             'department'       => $sppd->Department,
             'requester'        => $sppd->Requester_Name,
             'destination'      => $sppd->Destination,
-            'routeDestination' => $sppd->Route_Start . ' - ' . $sppd->Route_Finish,
+            'routeDestination' => $sppd->Route_Start . ' - ' . ($sppd->Route_Finish ?: $sppd->Destination),
             'shceduleDate'     => $sppd->Schedule_Date ? Carbon::parse($sppd->Schedule_Date)->format('d-m-Y') : '',
             'scheduleTime'     => $sppd->Schedule_Time ?: '',
             'programName'      => $sppd->Program_Name ?: '',
@@ -827,6 +863,13 @@ class SppdController extends Controller
         }
         $approver = self::pbApproverForStage($sppd->Status, $org);
         return $approver && (int) $approver->id === (int) Auth::user()->id;
+    }
+
+    public static function nextSppdNumber($type)
+    {
+        $code = ['NORMAL' => 'RS', 'PERBANTUAN' => 'PS', 'RELOKASI' => 'RL'][$type] ?? 'RS';
+        $seq  = DB::table('sppd')->where('Sppd_Type', $type)->count() + 1;
+        return "SPPD/{$code}/GEU/" . date('ymd') . "-{$seq}";
     }
 
     public static function getApprover()

@@ -126,7 +126,7 @@
                                     @endforeach
                                 </tr>
                                 <tr>
-                                    <td class="font-weight-bold text-dark">Mobilisasi / Minggu</td>
+                                    <td class="font-weight-bold text-dark">Uang Perbantuan / Minggu</td>
                                     @foreach($jobLevels as $jl)
                                     @php $allw = $allowances->where('trip_type_key', $tt->type_key)->where('job_level_key', $jl->level)->first(); @endphp
                                     <td class="text-center">{{ $allw && $allw->mobilization_cost_per_week ? 'Rp '.number_format($allw->mobilization_cost_per_week, 0, ',', '.') : '-' }}</td>
@@ -152,42 +152,38 @@
             <!-- TAB 2: KOMPONEN TUNJANGAN -->
             <div class="tab-pane fade" id="component-content" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0 text-primary font-weight-bold">Daftar Komponen Tunjangan Regulasi SPPD</h5>
-                    <small class="text-muted"><i class="fa fa-info-circle"></i> Komponen tunjangan standar yang dikelola dalam matriks regulasi</small>
+                    <div>
+                        <h5 class="m-0 text-primary font-weight-bold">Daftar Komponen Tunjangan Regulasi SPPD</h5>
+                        <small class="text-muted"><i class="fa fa-info-circle"></i> Komponen tunjangan standar yang dikelola dalam matriks regulasi</small>
+                    </div>
+                    <button class="btn btn-success btn-sm" onclick="addComponent()"><i class="fa fa-plus"></i> Tambah Komponen</button>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped">
                         <thead class="bg-primary text-white">
                             <tr>
-                                <th style="width: 50px;">No</th>
+                                <th style="width: 50px;">ID</th>
+                                <th style="width: 150px;">Kode Key</th>
                                 <th style="width: 220px;">Nama Komponen</th>
                                 <th style="width: 180px;">Kategori</th>
                                 <th style="width: 150px;">Tipe Input</th>
                                 <th>Keterangan / Deskripsi Regulasi</th>
+                                <th style="width: 120px;" class="text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @php
-                                $components = [
-                                    ['name' => 'Transport Darat', 'category' => 'Transportasi', 'type' => 'Teks / List Pilihan', 'desc' => 'Moda transportasi darat yang diizinkan (misal: Kereta Ekonomi, Bus Ekonomi, Mobil Dinas)'],
-                                    ['name' => 'Transport Udara', 'category' => 'Transportasi', 'type' => 'Teks', 'desc' => 'Kelas penerbangan udara yang diizinkan (misal: Pesawat Ekonomi, Kelas Bisnis)'],
-                                    ['name' => 'Batas Maksimal Tiket', 'category' => 'Transportasi', 'type' => 'Nominal (Rp)', 'desc' => 'Batas atas klaim pembelian tiket penerbangan/transportasi'],
-                                    ['name' => 'Reimburse Maksimal per Malam', 'category' => 'Akomodasi', 'type' => 'Nominal (Rp)', 'desc' => 'Batas maksimum reimbursement penginapan/hotel per malam'],
-                                    ['name' => 'Bintang Hotel', 'category' => 'Akomodasi', 'type' => 'Angka (Star)', 'desc' => 'Kelas standar bintang penginapan/hotel yang dapat dipergunakan'],
-                                    ['name' => 'Uang Makan / Hari', 'category' => 'Uang Harian', 'type' => 'Nominal (Rp)', 'desc' => 'Alokasi tunjangan uang makan harian selama masa perjalanan dinas'],
-                                    ['name' => 'Uang Saku / Hari', 'category' => 'Uang Harian', 'type' => 'Nominal (Rp)', 'desc' => 'Alokasi tunjangan uang saku harian selama masa perjalanan dinas'],
-                                    ['name' => 'Bantuan Kos / Bulan', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'desc' => 'Bantuan sewa tempat tinggal / kos per bulan pada skenario Perbantuan/Relokasi'],
-                                    ['name' => 'Bantuan Relokasi', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'desc' => 'Uang bantuan relokasi (satu kali bayar) saat mutasi / penugasan permanen'],
-                                    ['name' => 'Mobilisasi / Minggu', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'desc' => 'Biaya mobilisasi rutin per minggu pada penugasan khusus'],
-                                ];
-                            @endphp
-                            @foreach($components as $idx => $comp)
+                            @foreach($components as $comp)
                             <tr>
-                                <td>{{ $idx + 1 }}</td>
-                                <td><strong>{{ $comp['name'] }}</strong></td>
-                                <td><span class="badge badge-info">{{ $comp['category'] }}</span></td>
-                                <td><span class="badge badge-secondary">{{ $comp['type'] }}</span></td>
-                                <td>{{ $comp['desc'] }}</td>
+                                <td>{{ $comp->id }}</td>
+                                <td><code>{{ $comp->code }}</code></td>
+                                <td><strong>{{ $comp->name }}</strong></td>
+                                <td><span class="badge badge-info">{{ $comp->category }}</span></td>
+                                <td><span class="badge badge-secondary">{{ $comp->type }}</span></td>
+                                <td>{{ $comp->description }}</td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-info" onclick="editComponent({{ $comp->id }}, '{{ $comp->code }}', '{{ addslashes($comp->name) }}', '{{ addslashes($comp->category) }}', '{{ addslashes($comp->type) }}', '{{ addslashes($comp->description) }}')"><i class="fa fa-edit"></i></button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteComponent({{ $comp->id }}, '{{ addslashes($comp->name) }}')"><i class="fa fa-trash"></i></button>
+                                </td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -341,7 +337,7 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Mobilisasi / Minggu (Rp)</label>
+                                <label>Uang Perbantuan / Minggu (Rp)</label>
                                 <input type="number" class="form-control" id="allowance_mobilization_cost_per_week" name="mobilization_cost_per_week">
                             </div>
                         </div>
@@ -426,6 +422,59 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Simpan Jenis</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL COMPONENT TUNJANGAN -->
+<div class="modal fade" id="modalComponent" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalComponentTitle">Komponen Tunjangan</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <form id="formComponent" onsubmit="submitComponent(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="component_id">
+                    <div class="form-group">
+                        <label>Kode Key <small class="text-muted">(Huruf kecil, tanpa spasi, contoh: transport_land)</small></label>
+                        <input type="text" class="form-control" id="component_code" required placeholder="Contoh: daily_meal">
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Komponen</label>
+                        <input type="text" class="form-control" id="component_name" required placeholder="Contoh: Uang Makan / Hari">
+                    </div>
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <select class="form-control" id="component_category" required>
+                            <option value="Transportasi">Transportasi</option>
+                            <option value="Akomodasi">Akomodasi</option>
+                            <option value="Uang Saku">Uang Saku</option>
+                            <option value="Bantuan Khusus">Bantuan Khusus</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipe Input</label>
+                        <select class="form-control" id="component_type" required>
+                            <option value="Nominal (Rp)">Nominal (Rp)</option>
+                            <option value="Teks">Teks</option>
+                            <option value="Teks / List Pilihan">Teks / List Pilihan</option>
+                            <option value="Angka (Star)">Angka (Star)</option>
+                            <option value="Angka">Angka</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Keterangan / Deskripsi Regulasi</label>
+                        <textarea class="form-control" id="component_description" rows="3" placeholder="Penjelasan mengenai komponen regulasi ini"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Simpan Komponen</button>
                 </div>
             </form>
         </div>
@@ -604,6 +653,72 @@ function deleteTripType(id, name) {
     if (!confirm('Apakah Anda yakin ingin menghapus Jenis Perjalanan "' + name + '"? Data matriks terkait juga akan terhapus.')) return;
     $.ajax({
         url: 'hrd-sppd-master-trip-type-delete/' + id,
+        type: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+        success: function(resp) {
+            alert(resp.message);
+            location.reload();
+        }
+    });
+}
+
+// Component Functions
+function addComponent() {
+    $('#component_id').val('');
+    $('#component_code').val('').prop('readonly', false);
+    $('#component_name').val('');
+    $('#component_category').val('Transportasi');
+    $('#component_type').val('Nominal (Rp)');
+    $('#component_description').val('');
+    $('#modalComponentTitle').text('Tambah Komponen Tunjangan Baru');
+    $('#modalComponent').modal('show');
+}
+
+function editComponent(id, code, name, category, type, description) {
+    $('#component_id').val(id);
+    $('#component_code').val(code).prop('readonly', true);
+    $('#component_name').val(name);
+    $('#component_category').val(category);
+    $('#component_type').val(type);
+    $('#component_description').val(description);
+    $('#modalComponentTitle').text('Edit Komponen Tunjangan');
+    $('#modalComponent').modal('show');
+}
+
+function submitComponent(e) {
+    e.preventDefault();
+    var id = $('#component_id').val();
+    var url = id ? ('hrd-sppd-master-component-update/' + id) : 'hrd-sppd-master-component-store';
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        data: {
+            code: $('#component_code').val(),
+            name: $('#component_name').val(),
+            category: $('#component_category').val(),
+            type: $('#component_type').val(),
+            description: $('#component_description').val(),
+            _token: '{{ csrf_token() }}'
+        },
+        success: function(resp) {
+            if (resp.status === 'success') {
+                alert(resp.message);
+                location.reload();
+            } else {
+                alert(resp.message || 'Gagal menyimpan');
+            }
+        },
+        error: function(err) {
+            alert('Gagal menyimpan Komponen Tunjangan');
+        }
+    });
+}
+
+function deleteComponent(id, name) {
+    if (!confirm('Apakah Anda yakin ingin menghapus Komponen Tunjangan "' + name + '"?')) return;
+    $.ajax({
+        url: 'hrd-sppd-master-component-delete/' + id,
         type: 'DELETE',
         headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
         success: function(resp) {
