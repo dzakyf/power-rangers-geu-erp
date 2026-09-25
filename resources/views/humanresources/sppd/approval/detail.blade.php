@@ -52,16 +52,28 @@
                         <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label>Rute</label>
-                                <div>{{ $sppd->Route_Start }} - {{ $sppd->Route_Finish }}</div>
+                                <div>{{ $sppd->Route_Start }} - {{ $sppd->Route_Finish ?: $sppd->Destination }}</div>
                             </div>
                         </div>
 
                         <div class="col-md-6 col-12">
                             <div class="form-group">
-                                <label>Tanggal / Jam Kegiatan</label>
-                                <div>{{ $sppd->Schedule_Date }} / {{ $sppd->Schedule_Time }}</div>
+                                <label>Tanggal / Jam (Berangkat - Kembali)</label>
+                                <div>{{ $sppd->Schedule_Date }} / {{ $sppd->Departure_Time ?: '-' }} - {{ $sppd->Return_Time ?: '-' }}</div>
                             </div>
                         </div>
+
+                        @if (!empty($sppd->Dest_Lat) && !empty($sppd->Dest_Lng))
+                        <div class="col-md-6 col-12">
+                            <div class="form-group">
+                                <label>Titik Tujuan</label>
+                                <div>
+                                    {{ $sppd->Dest_Lat }}, {{ $sppd->Dest_Lng }} &mdash;
+                                    <a href="https://www.openstreetmap.org/?mlat={{ $sppd->Dest_Lat }}&mlon={{ $sppd->Dest_Lng }}#map=16/{{ $sppd->Dest_Lat }}/{{ $sppd->Dest_Lng }}" target="_blank">Lihat di OpenStreetMap</a>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
 
                         <div class="col-md-6 col-12">
                             <div class="form-group">

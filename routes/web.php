@@ -5778,6 +5778,10 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcSppdMasterPref-allowance-components", [HCGAMasterSppdRegulationController::class, 'getAllowanceComponents']);
     Route::get("$hcSppdMasterPref-allowances", [HCGAMasterSppdRegulationController::class, 'getAllowances']);
     Route::post("$hcSppdMasterPref-allowance-save", [HCGAMasterSppdRegulationController::class, 'saveAllowance']);
+    
+    Route::post("$hcSppdMasterPref-component-store", [HCGAMasterSppdRegulationController::class, 'storeComponent']);
+    Route::post("$hcSppdMasterPref-component-update/{id}", [HCGAMasterSppdRegulationController::class, 'updateComponent']);
+    Route::delete("$hcSppdMasterPref-component-delete/{id}", [HCGAMasterSppdRegulationController::class, 'deleteComponent']);
 
     Route::post("$hcSppdMasterPref-sync-json", [HCGAMasterSppdRegulationController::class, 'syncFromJson']);
 
