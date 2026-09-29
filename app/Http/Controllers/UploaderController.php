@@ -73,7 +73,7 @@ class UploaderController extends Controller
                     'Partnership_Interest' => "1",
                     'Capital_Estimation'   => $estimationModalMapper[$estimasiModal] ?? null,
                     'Created_By'           => $this->userService->getCurrentSessionUser(),
-                    'Status'               => "Fresh",
+                    'Status'               => "",
                     'Classification'        => "Fresh",
                     'Updated_By'           => "",
                 ]);

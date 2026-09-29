@@ -45,10 +45,10 @@ $Saya =  Auth::user()->username;
 <script>
 	SalesRatioPipelineLeads = new dhtmlXGridObject('SalesRatioPipelineLeads');
 	SalesRatioPipelineLeads.setImagePath("./dhtmlx/imgs/");
-	SalesRatioPipelineLeads.setHeader("No,Sales, Ratio Response (%), Ratio No Response (%), Ratio Qualified (%), Ratio Unqualified (%), Ratio Unidentified (%), Ratio Meeting 1 (%), Ratio Meeting 2 (%), Ratio Qualified To Warm (%), Ratio Warm to Deal (%), Ratio Cold (%), Ratio Cancel (%)");
-	SalesRatioPipelineLeads.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	SalesRatioPipelineLeads.setHeader("No,Sales, Ratio Response (%), Ratio No Response (%), Ratio Qualified (%), Ratio Unqualified (%), Ratio Unidentified (%), Ratio Meeting 1 (%), Ratio Meeting 2 (%), Ratio Warm (%), Ratio Negotiation (%), Ratio Deal (%), Ratio Cancel No Response (%), Ratio Cancel Unqualified (%), Ratio Cancel Total (%)");
+	SalesRatioPipelineLeads.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// SalesRatioPipelineLeads.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	SalesRatioPipelineLeads.setInitWidths("60,200,100,100,100,100,100,100,100,100,100,100,100,100,100");
+	SalesRatioPipelineLeads.setInitWidths("60,200,100,100,100,100,100,100,100,100,100,100,110,110,110");
 	SalesRatioPipelineLeads.setColAlign("center,left,right,right,right,right,right,right,right,right,right,right,right,right,right");
 	SalesRatioPipelineLeads.setColSorting("int,str,int,int,int,int,int,int,int,int,int,int,int,int,int");
 	SalesRatioPipelineLeads.setColTypes("ron,ro,ron,ron,ron,ron,ron,ron,ron,ron,ron,ron,ron,ron,ron");

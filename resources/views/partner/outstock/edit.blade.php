@@ -2,6 +2,7 @@
 
 @section('content-wrapper')
 @csrf
+@php $locked = ($outstock->Status === 'COMPLETED'); @endphp
 <div class="main-content-header">
     <h1>Partner</h1>
     <ol class="breadcrumb">
@@ -76,17 +77,17 @@
                             <input type="hidden" class="loading-container" value="{{ $l->Container_ID }}">
                             <input type="text" class="form-control form-control-sm" value="{{ $l->Container_Name ?? '-' }}" readonly>
                         </td>
-                        <td><input type="date" class="form-control form-control-sm loading-date" value="{{ $l->Date }}"></td>
+                        <td><input type="date" class="form-control form-control-sm loading-date" value="{{ $l->Date }}" @if($locked) readonly @endif></td>
                         <td><input type="text" class="form-control form-control-sm loading-system" value="{{ $l->System_Qty ?? 0 }}" readonly></td>
-                        <td><input type="number" step="0.01" class="form-control form-control-sm loading-actual" value="{{ $l->Actual_Qty }}"></td>
-                        <td><input type="text" class="form-control form-control-sm loading-notes" value="{{ $l->Notes }}"></td>
+                        <td><input type="number" step="0.01" class="form-control form-control-sm loading-actual" value="{{ $l->Actual_Qty }}" @if($locked) readonly @endif></td>
+                        <td><input type="text" class="form-control form-control-sm loading-notes" value="{{ $l->Notes }}" @if($locked) readonly @endif></td>
                         <td>
                             @if($l->Photo_Path)
                             <a href="{{ asset('filevendor/' . $l->Photo_Path) }}" target="_blank" class="btn btn-sm btn-outline-primary">Lihat</a>
                             @endif
-                            <input type="file" class="form-control-file loading-photo" accept="image/*" data-id="{{ $l->ID }}" style="font-size:12px;">
+                            <input type="file" class="form-control-file loading-photo" accept="image/*" data-id="{{ $l->ID }}" style="font-size:12px;" @if($locked) disabled @endif>
                         </td>
-                        <td><button type="button" class="btn btn-sm btn-danger remove-loading-row">X</button></td>
+                        <td>@if(!$locked)<button type="button" class="btn btn-sm btn-danger remove-loading-row">X</button>@endif</td>
                     </tr>
                     @empty
                     <tr class="loading-empty-row">
@@ -95,8 +96,30 @@
                     @endforelse
                 </tbody>
             </table>
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Harga Transfer (per Liter)</label>
+                        <input type="number" step="0.01" min="0" class="form-control" name="Transfer_Price" id="loadingTransferPrice"
+                               value="{{ $outstock->Transfer_Price ?? '' }}" @if($locked) readonly @endif>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Dokumen Harga Transfer</label><br>
+                        @if(!empty($outstock->Transfer_Document))
+                        <a href="{{ asset('filevendor/' . $outstock->Transfer_Document) }}" target="_blank" class="btn btn-sm btn-outline-primary mb-1">Lihat</a>
+                        @endif
+                        @if(!$locked)
+                        <input type="file" class="form-control-file" name="Transfer_Document" id="loadingTransferDocument">
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @if(!$locked)
             <button type="button" class="btn btn-success btn-sm" id="btnAddLoadingRow">+ Tambah Container</button>
             <button type="button" class="btn btn-primary btn-sm ml-2" id="btnSaveLoading">Simpan Loading</button>
+            @endif
         </div>
     </div>
 
@@ -143,16 +166,17 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Harga Transfer (per Liter)</label>
-                            <input type="number" step="0.01" min="0" class="form-control" name="Transfer_Price" value="{{ $outstock->Transfer_Price ?? '' }}">
+                            <input type="text" class="form-control" value="{{ $outstock->Transfer_Price !== null ? 'Rp ' . number_format((float) $outstock->Transfer_Price, 0, ',', '.') : '-' }}" readonly>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label>Dokumen Harga Transfer</label>
+                            <label>Dokumen Harga Transfer</label><br>
                             @if(!empty($outstock->Transfer_Document))
                             <a href="{{ asset('filevendor/' . $outstock->Transfer_Document) }}" target="_blank" class="btn btn-sm btn-outline-primary mb-1">Lihat</a>
+                            @else
+                            <span class="text-muted">-</span>
                             @endif
-                            <input type="file" class="form-control-file" name="Transfer_Document" id="Transfer_Document">
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -263,14 +287,21 @@
             });
         });
 
+        var fd = new FormData();
+        fd.append('_token', '{{ csrf_token() }}');
+        fd.append('outstock_id', outstockId);
+        fd.append('rows', JSON.stringify(rows));
+        fd.append('Transfer_Price', $('#loadingTransferPrice').val() || '');
+        var tf = document.getElementById('loadingTransferDocument');
+        if (tf && tf.files[0]) { fd.append('Transfer_Document', tf.files[0]); }
+
         $.ajax({
             url: 'partner-outstock-loading-submit',
             type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                outstock_id: outstockId,
-                rows: rows
-            },
+            data: fd,
+            processData: false,
+            contentType: false,
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
             success: function(res) {
                 if (res.success) {
                     alert('Loading saved');
@@ -318,9 +349,6 @@
         fd.append('Actual_Qty', $('input[name="Actual_Qty"]').val());
         fd.append('Destination', $('input[name="Destination"]').val());
         fd.append('Notes', $('input[name="Notes"]').val());
-        fd.append('Transfer_Price', $('input[name="Transfer_Price"]').val());
-        var tf = document.getElementById('Transfer_Document');
-        if (tf && tf.files[0]) { fd.append('Transfer_Document', tf.files[0]); }
 
         $.ajax({
             url: 'partner-outstock-handover-submit',

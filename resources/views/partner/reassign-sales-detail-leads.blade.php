@@ -123,6 +123,15 @@ if ($Fetch->Capital_Estimation == 1) {
 					@endforeach
 				</select>
 			</div>
+			<div class="col-md-6 mt-3" style="display:none" id="divCancelStage">
+				<label for="Cancel_Stage">Cancel Stage</label>
+				<select class="form-control" name="Cancel_Stage" id="Cancel_Stage">
+					<option value="" selected disabled>-- Pilih Cancel Stage --</option>
+					<option value="FU 3">FU 3</option>
+					<option value="Meeting 1">Meeting 1</option>
+					<option value="Meeting 2">Meeting 2</option>
+				</select>
+			</div>
 			<div class="col-md-6 mt-3" style="display:none" id="divReason">
 				<label for="Reason">Cancel Reason</label>
 				<select readonly class="form-control" name="Reason" id="Reason">
@@ -141,51 +150,11 @@ if ($Fetch->Capital_Estimation == 1) {
 		var Status = $("#Status").find('option:selected').val();
 		if (Status == 'Cancel') {
 			$('#divReason').show();
+			$('#divCancelStage').show();
 		} else {
 			$('#divReason').hide();
+			$('#divCancelStage').hide();
 		}
 	}
-	$('#SubmitCustDetail').click(function() {
 
-		gettingVars = getAllValues();
-
-		$.ajax({
-			headers: {
-				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-			},
-			url: "partner-outstanding-leads-detail-submit?_token={{ csrf_token() }}",
-			type: "POST",
-			data: gettingVars,
-			success: function(data, textStatus, jqXHR) {
-				var dataPos = data.indexOf("success");
-				if (dataPos != '-1') {
-					var cariAWB = data.split(":");
-					alert('Data Opportunity Submitted!');
-
-					location.href = "partner-outstanding-leads";
-				} else {
-					alert('Opportunity Failed to Submit!');
-				}
-			},
-			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
-
-			}
-		});
-	})
-
-	function getAllValues() {
-		var inputValues = [];
-		$('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
-			var type = $(this).attr("type");
-			if ((type == "checkbox" || type == "radio") && this.checked) {
-				inputValues.push($(this).attr("name") + "=" + $(this).val());
-			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			} else if ($(this).is("textarea")) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			}
-		})
-		return inputValues.join('&');
-	}
 </script>

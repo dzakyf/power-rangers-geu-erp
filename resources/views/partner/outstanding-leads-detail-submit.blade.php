@@ -36,6 +36,25 @@ $isi = substr($isi,0,-1);
 // $kueri = "INSERT INTO opportunity($ax,Location,Created_Date,Created_By,Task_ID,Classification) values ($isi,'$LSP',NOW(),'$Saya','$Task_ID','Fresh')";
 // DB::insert(DB::raw($kueri));
 
+$leadService = app(\App\Services\LeadsService::class);
+$leadStatus  = $_POST['Status'] ?? null;
+
+$funnelError = $leadService->validateStage(
+    $leadStatus,
+    $_POST['Response'] ?? null,
+    $_POST['Cancel_Stage'] ?? null,
+    $_POST['Reason'] ?? null
+);
+if ($funnelError) {
+    http_response_code(422);
+    echo $funnelError;
+    exit;
+}
+
+$arr['Classification'] = $leadService->deriveClassification($leadStatus, $_POST['Cancel_Stage'] ?? null);
+$arr['Qualification']  = $leadService->deriveQualification($leadStatus, $_POST['Reason'] ?? null);
+$arr['Cancel_Stage']   = ($leadStatus === 'Cancel') ? ($_POST['Cancel_Stage'] ?? null) : null;
+
 $opportunity = Opportunity::where('ID', $_POST['ID'])->first();
 
 Opportunity::where('ID', $_POST['ID'])->update($arr);

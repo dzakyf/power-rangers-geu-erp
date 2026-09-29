@@ -199,8 +199,11 @@
 
     function renderSalesFunnelTable(data) {
         const statusColor = {
-            'Fresh': 'primary',
+            'Total Leads': 'dark',
+            'Response': 'primary',
             'Qualified': 'info',
+            'Meeting 1': 'warning',
+            'Meeting 2': 'warning',
             'Warm': 'warning',
             'Deal': 'success',
         };

@@ -61,9 +61,9 @@ class OutstockBlockTransferPriceTest extends TestCase
         return $id;
     }
 
-    private function saveLoading(int $doc, int $cid, float $qty)
+    private function saveLoading(int $doc, int $cid, float $qty, $price = null, ?UploadedFile $file = null)
     {
-        return $this->actingAs($this->admin())->postJson('/partner-outstock-loading-submit', [
+        $payload = [
             'outstock_id' => $doc,
             'rows' => [[
                 'container_id' => $cid,
@@ -71,7 +71,15 @@ class OutstockBlockTransferPriceTest extends TestCase
                 'actual_qty'   => $qty,
                 'notes'        => '',
             ]],
-        ]);
+        ];
+        if ($price !== null) {
+            $payload['Transfer_Price'] = $price;
+        }
+        if ($file !== null) {
+            $payload['Transfer_Document'] = $file;
+            return $this->actingAs($this->admin())->post('/partner-outstock-loading-submit', $payload);
+        }
+        return $this->actingAs($this->admin())->postJson('/partner-outstock-loading-submit', $payload);
     }
 
     /** @test */
@@ -136,25 +144,33 @@ class OutstockBlockTransferPriceTest extends TestCase
     }
 
     /** @test */
-    public function handover_saves_transfer_price_and_report_reflects_it()
+    public function loading_saves_transfer_price_and_report_reflects_it()
     {
         $wh = $this->seedWarehouse('TEST-OS-E');
         $c = $this->seedContainer($wh);
         $this->addStockIn($wh, 'TEST-OS-E', $c, 100);
         $doc = $this->makeOutstock($wh);
-        $this->saveLoading($doc, $c, 80)->assertOk();
 
+        // Captured during the loading phase (with supporting document).
+        $this->saveLoading($doc, $c, 80, 11000, UploadedFile::fake()->create('transfer.pdf', 10, 'application/pdf'))
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $afterLoading = DB::table('outstock')->where('ID', $doc)->first();
+        $this->assertEquals(11000, (float) $afterLoading->Transfer_Price);
+        $this->assertNotNull($afterLoading->Transfer_Document);
+
+        // Handover only completes; it must not touch the transfer fields.
         $this->actingAs($this->admin())
-            ->post('/partner-outstock-handover-submit', [
+            ->postJson('/partner-outstock-handover-submit', [
                 'outstock_id' => $doc, 'Date' => now()->toDateString(),
                 'Actual_Qty' => 80, 'Destination' => 'x', 'Notes' => '',
-                'Transfer_Price' => 11000,
-                'Transfer_Document' => UploadedFile::fake()->create('transfer.pdf', 10, 'application/pdf'),
             ])
             ->assertOk()
             ->assertJson(['success' => true]);
 
         $os = DB::table('outstock')->where('ID', $doc)->first();
+        $this->assertEquals('COMPLETED', $os->Status);
         $this->assertEquals(11000, (float) $os->Transfer_Price);
         $this->assertNotNull($os->Transfer_Document);
 
@@ -163,6 +179,42 @@ class OutstockBlockTransferPriceTest extends TestCase
         );
         $this->assertEquals(11000.0, (float) $stmt['transfer_price']);
         $this->assertEquals(80 * 11000.0, (float) $stmt['transfer_income']);
+    }
+
+    /** @test */
+    public function handover_does_not_overwrite_transfer_price_saved_at_loading()
+    {
+        $wh = $this->seedWarehouse('TEST-OS-G');
+        $c = $this->seedContainer($wh);
+        $this->addStockIn($wh, 'TEST-OS-G', $c, 100);
+        $doc = $this->makeOutstock($wh);
+
+        $this->saveLoading($doc, $c, 60, 9000)->assertOk();
+
+        $this->actingAs($this->admin())
+            ->postJson('/partner-outstock-handover-submit', [
+                'outstock_id' => $doc, 'Date' => now()->toDateString(),
+                'Actual_Qty' => 60, 'Destination' => 'x', 'Notes' => '',
+                'Transfer_Price' => 11000,
+            ])->assertOk();
+
+        $this->assertEquals(9000, (float) DB::table('outstock')->where('ID', $doc)->value('Transfer_Price'));
+    }
+
+    /** @test */
+    public function resaving_loading_without_document_keeps_existing()
+    {
+        $wh = $this->seedWarehouse('TEST-OS-H');
+        $c = $this->seedContainer($wh);
+        $this->addStockIn($wh, 'TEST-OS-H', $c, 100);
+        $doc = $this->makeOutstock($wh);
+
+        $this->saveLoading($doc, $c, 70, 8000, UploadedFile::fake()->create('t1.pdf', 10, 'application/pdf'))->assertOk();
+        $first = DB::table('outstock')->where('ID', $doc)->value('Transfer_Document');
+        $this->assertNotNull($first);
+
+        $this->saveLoading($doc, $c, 70, 8000)->assertOk();
+        $this->assertEquals($first, DB::table('outstock')->where('ID', $doc)->value('Transfer_Document'));
     }
 
     /** @test */

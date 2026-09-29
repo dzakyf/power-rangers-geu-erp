@@ -97,6 +97,15 @@
 
                     </select>
                 </div>
+                <div class="col-md-6 mt-3" style="display:none" id="divCancelStage">
+                    <label for="Cancel_Stage">Cancel Stage</label>
+                    <select class="form-control" name="Cancel_Stage" id="Cancel_Stage">
+                        <option value="" selected disabled>-- Pilih Cancel Stage --</option>
+                        <option value="FU 3">FU 3</option>
+                        <option value="Meeting 1">Meeting 1</option>
+                        <option value="Meeting 2">Meeting 2</option>
+                    </select>
+                </div>
                 <div class="col-md-6 mt-3" style="display:none" id="divReason">
                     <label for="Reason">Alasan Cancel</label>
                     <select class="form-control" name="Reason" id="Reason">
@@ -240,8 +249,10 @@
         var Status = $("#Status").find('option:selected').val();
         if (Status == 'Cancel') {
             $('#divReason').show();
+            $('#divCancelStage').show();
         } else {
             $('#divReason').hide();
+            $('#divCancelStage').hide();
         }
     }
 

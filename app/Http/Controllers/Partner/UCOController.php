@@ -2749,6 +2749,9 @@ class UCOController extends Controller
     {
         $outstockId = $r->input('outstock_id');
         $rows = $r->input('rows', []);
+        if (is_string($rows)) {
+            $rows = json_decode($rows, true) ?: [];
+        }
 
         try {
             DB::beginTransaction();
@@ -2810,7 +2813,24 @@ class UCOController extends Controller
                 ]);
             }
 
-            DB::table('outstock')->where('ID', $outstockId)->update(['Status' => 'LOADING']);
+            // Transfer price + supporting document are captured at the loading
+            // phase (kept across resubmits; the report reads them once the
+            // document is COMPLETED).
+            $headerUpdate = ['Status' => 'LOADING'];
+            if ($r->has('Transfer_Price')) {
+                $headerUpdate['Transfer_Price'] = $r->filled('Transfer_Price') ? (float) $r->input('Transfer_Price') : null;
+            }
+            if ($r->hasFile('Transfer_Document') && $r->file('Transfer_Document')->isValid()) {
+                $file = $r->file('Transfer_Document');
+                $ext = $file->getClientOriginalExtension();
+                $name = 'transfer_' . $outstockId . '_' . time() . '.' . $ext;
+                $dir = public_path('filevendor/outstock');
+                if (!is_dir($dir)) { mkdir($dir, 0777, true); }
+                $file->move($dir, $name);
+                $headerUpdate['Transfer_Document'] = 'outstock/' . $name;
+            }
+
+            DB::table('outstock')->where('ID', $outstockId)->update($headerUpdate);
 
             foreach (array_keys($warehouseIds) as $whId) {
                 $this->warehouseService->recomputeWarehouseSystemQty($whId);
@@ -2897,27 +2917,13 @@ class UCOController extends Controller
                 }
             }
 
-            // Transfer price + supporting document (new concept; report reads it).
-            $transferPrice = $r->filled('Transfer_Price') ? (float) $r->input('Transfer_Price') : null;
-
             $updateHeader = [
                 'Actual_Qty'           => $total,
                 'Handover_Date'        => $r->input('Date'),
                 'Handover_Destination' => $r->input('Destination'),
                 'Handover_Notes'       => $r->input('Notes'),
-                'Transfer_Price'       => $transferPrice,
                 'Status'               => 'COMPLETED',
             ];
-
-            if ($r->hasFile('Transfer_Document') && $r->file('Transfer_Document')->isValid()) {
-                $file = $r->file('Transfer_Document');
-                $ext = $file->getClientOriginalExtension();
-                $name = 'transfer_' . $outstockId . '_' . time() . '.' . $ext;
-                $dir = public_path('filevendor/outstock');
-                if (!is_dir($dir)) { mkdir($dir, 0777, true); }
-                $file->move($dir, $name);
-                $updateHeader['Transfer_Document'] = 'outstock/' . $name;
-            }
 
             DB::table('outstock')->where('ID', $outstockId)->update($updateHeader);
 
