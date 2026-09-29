@@ -82,8 +82,6 @@ if ($Fetch->Capital_Estimation == 1) {
 				<label for="Status">Status</label>
 				<select disabled class="form-control" name="Status" id="Status" onchange="changeStatus()">
 					<option value="" selected disabled>-- Pilih Status --</option>
-					<option value="Cold" {{ $Fetch->Status == 'Cold' ? 'selected' : '' }}>Cold</option>
-					<option value="Warm" {{ $Fetch->Status == 'Warm' ? 'selected' : '' }}>Warm</option>
 					<option value="Deal" {{ $Fetch->Status == 'Deal' ? 'selected' : '' }}>Deal</option>
 					<option value="Cancel" {{ $Fetch->Status == 'Cancel' ? 'selected' : '' }}>Cancel</option>
 				</select>

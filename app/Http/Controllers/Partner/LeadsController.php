@@ -69,7 +69,19 @@ class LeadsController extends Controller
         if (!$exists) {
             return response()->json(['status' => 'error', 'message' => 'Record not found'], 404);
         }
-        
+
+        $service = app(\App\Services\LeadsService::class);
+        $status  = $r->input('Status');
+        $stageError = $service->validateStage(
+            $status,
+            $r->input('Response'),
+            $r->input('Cancel_Stage'),
+            $r->input('Reason')
+        );
+        if ($stageError) {
+            return response()->json(['status' => 'error', 'message' => $stageError], 422);
+        }
+
         $array = [
             '<50 Juta' => 1,
             '< 50 Juta' => 1,
@@ -91,10 +103,11 @@ class LeadsController extends Controller
             'Capital_Estimation'  => $array[$r->input('Capital_Estimation')] ?? 0,
             'Source_Channel'      => $r->input('Source_Channel'),
             'Response'            => $r->input('Response'),
-            'Qualification'       => $r->input('Qualification'),
-            'Classification'      => $r->input('Classification'),
-            'Status'              => $r->input('Status'),
+            'Cancel_Stage'        => ($status === 'Cancel') ? $r->input('Cancel_Stage') : null,
+            'Status'              => $status,
             'Reason'              => $r->input('Reason'),
+            'Qualification'       => $service->deriveQualification($status, $r->input('Reason')),
+            'Classification'      => $service->deriveClassification($status, $r->input('Cancel_Stage')),
         ]);
 
         return response()->json(['status' => 'success']);

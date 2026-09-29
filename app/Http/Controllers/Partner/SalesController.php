@@ -382,7 +382,7 @@ class SalesController extends Controller
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
-        $priv = auth()->user()->Priv_ID;
+
         $getUsers = User::get();
         $usname = [];
         foreach ($getUsers as $key => $value) {
@@ -390,61 +390,31 @@ class SalesController extends Controller
             $usname[$value->Emp_ID] = $value->Name;
         }
 
-        $opptSales = DB::table('opportunity_sales')->get();
-        foreach ($opptSales as $key => $value) {
-            $sales[$value->Sales_ID] = $value->Sales;
-        }
+        $rows = app(\App\Services\LeadsService::class)->funnelBySales();
 
         $nomor = 1;
-        $getPartner = DB::table('opportunity as o')
-            ->leftJoin('opportunity_sales as s', 'o.Sales_ID', '=', 's.Sales_ID')
-            ->select(
-                's.sales as Sales_ID',
+        foreach ($rows as $Fetch) {
+            $salesName = $Fetch['sales_ref'] == null
+                ? 'Tidak ada sales'
+                : ($usname[$Fetch['sales_ref']] ?? 'Tidak ada sales');
 
-                DB::raw('COUNT(*) as pipeline_leads'),
-                DB::raw('COUNT(*) as total_leads'),
-
-                DB::raw("SUM(CASE WHEN Response = 'Response' THEN 1 ELSE 0 END) as response"),
-                DB::raw("SUM(CASE WHEN Response = 'No Response' THEN 1 ELSE 0 END) as no_response"),
-
-                DB::raw("SUM(CASE WHEN Qualification = 'Qualified' THEN 1 ELSE 0 END) as qualified"),
-                DB::raw("SUM(CASE WHEN Qualification = 'Unqualified' THEN 1 ELSE 0 END) as unqualified"),
-                DB::raw("SUM(CASE WHEN Qualification = 'Unidentified' THEN 1 ELSE 0 END) as unidentified"),
-
-                DB::raw("SUM(CASE WHEN Classification = 'Meeting 1' THEN 1 ELSE 0 END) as meeting_1"),
-                DB::raw("SUM(CASE WHEN Classification = 'Meeting 2' THEN 1 ELSE 0 END) as meeting_2"),
-
-                DB::raw("SUM(CASE WHEN o.Status = 'Cold' THEN 1 ELSE 0 END) as cold"),
-                DB::raw("SUM(CASE WHEN o.Status = 'Warm' THEN 1 ELSE 0 END) as warm"),
-                DB::raw("SUM(CASE WHEN o.Status = 'Deal' THEN 1 ELSE 0 END) as deal"),
-                DB::raw("SUM(CASE WHEN o.Status = 'Cancel' THEN 1 ELSE 0 END) as cancel")
-            )
-            ->groupBy('Sales_ID')
-            ->orderBy('Sales_ID')
-            ->get();
-
-        foreach ($getPartner as $key => $Fetch) {
-            if ($Fetch->Sales_ID == null) {
-                $Fetch->Sales_ID = 'Not Yet Assign';
-            } else {
-                $Fetch->Sales_ID = $usname[$Fetch->Sales_ID] ?? 'Not Yet Assign';
-            }
-            echo "<row id=\"$Fetch->Sales_ID\">";
+            echo "<row id=\"" . htmlspecialchars($salesName) . "\">";
             echo "<cell>$nomor</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->Sales_ID) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->total_leads) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->response) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->no_response) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->qualified) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->unqualified) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->unidentified) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->meeting_1) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->meeting_2) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->cold) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->warm) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->deal) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->cancel) . "</cell>";
-
+            echo "<cell>" . htmlspecialchars($salesName) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['total_leads']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['response']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['no_response']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['qualified']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['unqualified']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['unidentified']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['meeting_1']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['meeting_2']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['warm']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['negotiation']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['deal']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['cancel_no_response']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['cancel_unqualified']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['cancel_total']) . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -467,7 +437,7 @@ class SalesController extends Controller
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
-        $priv = auth()->user()->Priv_ID;
+
         $getUsers = User::get();
         $usname = [];
         foreach ($getUsers as $key => $value) {
@@ -475,96 +445,33 @@ class SalesController extends Controller
             $usname[$value->Emp_ID] = $value->Name;
         }
 
-        $opptSales = DB::table('opportunity_sales')->get();
-        foreach ($opptSales as $key => $value) {
-            $sales[$value->Sales_ID] = $value->Sales;
-        }
+        $service = app(\App\Services\LeadsService::class);
+        $rows = $service->funnelBySales();
 
         $nomor = 1;
-        $getPartner = DB::table('opportunity as o')
-            ->leftJoin('opportunity_sales as s', 'o.Sales_ID', '=', 's.Sales_ID')
-            ->select(
-                's.sales as Sales_ID',
+        foreach ($rows as $Fetch) {
+            $salesName = $Fetch['sales_ref'] == null
+                ? 'Not Yet Assign'
+                : ($usname[$Fetch['sales_ref']] ?? 'Not Yet Assign');
 
-                DB::raw("ROUND(
-                    SUM(CASE WHEN o.Response='Response' THEN 1 ELSE 0 END) 
-                    / COUNT(o.ID) * 100
-                ,0) as ratio_response"),
+            $r = $service->ratios($Fetch);
 
-                DB::raw("ROUND(
-                    SUM(CASE WHEN o.Response='No Response' THEN 1 ELSE 0 END) 
-                    / COUNT(o.ID) * 100
-                ,0) as ratio_no_response"),
-
-                DB::raw("ROUND(
-                    SUM(CASE WHEN o.Qualification='Qualified' THEN 1 ELSE 0 END) 
-                    / COUNT(o.ID) * 100
-                ,0) as ratio_qualified"),
-
-                DB::raw("ROUND(
-                    SUM(CASE WHEN o.Qualification='Unqualified' THEN 1 ELSE 0 END) 
-                    / COUNT(o.ID) * 100
-                ,0) as ratio_unqualified"),
-
-                DB::raw("ROUND(
-                    SUM(CASE WHEN o.Qualification='Unidentified' THEN 1 ELSE 0 END) 
-                    / COUNT(o.ID) * 100
-                ,0) as ratio_unidentified"),
-
-                DB::raw("ROUND(
-                    SUM(CASE WHEN o.Classification='Meeting 1' THEN 1 ELSE 0 END) 
-                    / COUNT(o.ID) * 100
-                ,0) as ratio_meeting1"),
-
-                DB::raw("ROUND(
-                    SUM(CASE WHEN o.Classification='Meeting 2' THEN 1 ELSE 0 END) 
-                    / COUNT(o.ID) * 100
-                ,0) as ratio_meeting2"),
-
-                DB::raw("ROUND(
-                    SUM(CASE WHEN o.Status='Warm' AND o.Qualification='Qualified' THEN 1 ELSE 0 END) 
-                    / COUNT(o.ID) * 100
-                ,0) as ratio_warm"),
-
-                DB::raw("ROUND(
-                    SUM(CASE WHEN o.Status='Deal' THEN 1 ELSE 0 END) 
-                    / COUNT(o.ID) * 100
-                ,0) as ratio_deal"),
-
-                DB::raw("ROUND(
-                    SUM(CASE WHEN o.Status='Cold' THEN 1 ELSE 0 END) 
-                    / COUNT(o.ID) * 100
-                ,0) as ratio_cold"),
-
-                DB::raw("ROUND(
-                    SUM(CASE WHEN o.Status='Cancel' THEN 1 ELSE 0 END) 
-                    / COUNT(o.ID) * 100
-                ,0) as ratio_cancel")
-            )
-            ->groupBy('Sales_ID')
-            ->get();
-
-        foreach ($getPartner as $key => $Fetch) {
-            if ($Fetch->Sales_ID == null) {
-                $Fetch->Sales_ID = 'Not Yet Assign';
-            } else {
-                $Fetch->Sales_ID = $usname[$Fetch->Sales_ID] ?? 'Not Yet Assign';
-            }
-            echo "<row id=\"$Fetch->Sales_ID\">";
+            echo "<row id=\"" . htmlspecialchars($salesName) . "\">";
             echo "<cell>$nomor</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->Sales_ID) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->ratio_response) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->ratio_no_response) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->ratio_qualified) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->ratio_unqualified) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->ratio_unidentified) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->ratio_meeting1) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->ratio_meeting2) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->ratio_warm) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->ratio_deal) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->ratio_cold) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->ratio_cancel) . "</cell>";
-
+            echo "<cell>" . htmlspecialchars($salesName) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['response']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['no_response']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['qualified']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['unqualified']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['unidentified']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['meeting_1']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['meeting_2']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['warm']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['negotiation']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['deal']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['cancel_no_response']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['cancel_unqualified']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['cancel_total']) . "</cell>";
             echo "</row>";
 
             $nomor++;
@@ -1479,28 +1386,26 @@ class SalesController extends Controller
     END"))
             ->get();
 
-        $funnelOrder = ['fresh', 'qualified', 'warm', 'deal'];
+        $leadFunnelMetrics = app(\App\Services\LeadsService::class)->funnel([
+            'date_start' => $dateStart ? $dateStart->toDateString() : null,
+            'date_end'   => $dateEnd ? $dateEnd->toDateString() : null,
+        ]);
 
-        $rawFunnel = DB::table('opportunity')
-            ->select(DB::raw('LOWER(Status) as status'), DB::raw('COUNT(*) as count'))
-            ->when($dateStart, fn($q) => $q->whereDate('Created_Date', '>=', $dateStart))
-            ->when($dateEnd,   fn($q) => $q->whereDate('Created_Date', '<=', $dateEnd))
-            ->groupBy('Status')
-            ->get();
+        $funnelStages = [
+            ['status' => 'Total Leads', 'count' => $leadFunnelMetrics['total_leads'] ?? 0],
+            ['status' => 'Response',    'count' => $leadFunnelMetrics['response'] ?? 0],
+            ['status' => 'Qualified',   'count' => $leadFunnelMetrics['qualified'] ?? 0],
+            ['status' => 'Meeting 1',   'count' => $leadFunnelMetrics['meeting_1'] ?? 0],
+            ['status' => 'Meeting 2',   'count' => $leadFunnelMetrics['meeting_2'] ?? 0],
+            ['status' => 'Warm',        'count' => $leadFunnelMetrics['warm'] ?? 0],
+            ['status' => 'Negotiation', 'count' => $leadFunnelMetrics['negotiation'] ?? 0],
+            ['status' => 'Deal',        'count' => $leadFunnelMetrics['deal'] ?? 0],
+        ];
 
-        $salesFunnel = collect($funnelOrder)->map(function ($stage) use ($rawFunnel) {
-            $found = $rawFunnel->firstWhere('status', $stage);
-            return [
-                'status' => ucfirst($stage),
-                'count'  => $found ? $found->count : 0,
-            ];
-        })->values();
-
-        $salesFunnel = $salesFunnel->map(function ($item, $index) use ($salesFunnel) {
-            $prev      = $salesFunnel->get($index - 1);
+        $salesFunnel = collect($funnelStages)->values()->map(function ($item, $index) use ($funnelStages) {
             $prevCount = $index === 0
                 ? $item['count']
-                : ($prev !== null ? $prev['count'] : 0);
+                : ($funnelStages[$index - 1]['count'] ?? 0);
 
             $ratio = $prevCount > 0
                 ? round(($item['count'] / $prevCount) * 100, 1)

@@ -23,6 +23,13 @@ $priv = Auth::user()->Priv_ID ?? '';
 $saya = Auth::user()->username ?? 'admin';
 $nomor = 1;
 
+$usname = [];
+foreach (DB::table('users')->get() as $u) {
+	$usname[$u->username] = $u->Name;
+	$usname[$u->Emp_ID] = $u->Name;
+}
+$salesMap = DB::table('opportunity_sales')->pluck('Sales', 'Sales_ID')->all();
+
 echo "<rows>";
 
 $Query = DB::table("opportunity")->selectRaw("opportunity.*, (select op2.package_option from opportunity_partner op2 where op2.lead_id = opportunity.Task_ID order by op2.id desc limit 1) as package_option")->where("Location", $LSP)->orderBy("ID", "DESC")->get();
@@ -40,6 +47,9 @@ foreach ($Query as $Fetch) {
 		$estimation = "50 Juta - 100 Juta";
 	}
 
+	$salesUser = $Fetch->Sales_ID ? ($salesMap[$Fetch->Sales_ID] ?? null) : null;
+	$salesName = $salesUser ? ($usname[$salesUser] ?? $salesUser) : 'Not Yet Assign';
+
 	echo "<row id=\"$Fetch->ID\">";
 	echo "<cell>$nomor</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Task_ID) . "</cell>";
@@ -48,6 +58,8 @@ foreach ($Query as $Fetch) {
 	echo "<cell>" . htmlspecialchars($Fetch->Date) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Phone_Number) . "</cell>";
 	echo "<cell>" . htmlspecialchars(leads_interest_label($Fetch->package_option ?? null, $Fetch->Hub_Type ?? null, $Fetch->Partnership_Interest ?? null)) . "</cell>";
+	echo "<cell>" . htmlspecialchars($estimation) . "</cell>";
+	echo "<cell>" . htmlspecialchars($salesName) . "</cell>";
 	echo "<cell>" . htmlspecialchars($Fetch->Created_Date) . "</cell>";
 	echo "</row>";
 

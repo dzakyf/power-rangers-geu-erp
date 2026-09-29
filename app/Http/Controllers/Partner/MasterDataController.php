@@ -28,7 +28,7 @@ class MasterDataController extends Controller
 
     public function getLeadStatus()
     {
-        $master = DB::table('master_leads_status')->where('status', '!=', 'Negotiation')->get();
+        $master = DB::table('master_leads_status')->orderBy('urutan')->get();
 
         return response()->json(['data' => $master]);
     }

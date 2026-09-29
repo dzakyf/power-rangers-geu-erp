@@ -35,7 +35,6 @@ function updatekan($rowId,$param) {
 	$cek = DB::table('opportunity')->where("ID", $rowId)->first();
     if ($cek) {
         $qua = [];
-		$qua['Status'] = "WARM";
         $qua['Updated_By'] = $Saya;
         $qua['Updated_Date'] = now();
         DB::table('opportunity')->where("ID", $rowId)->update($qua);
@@ -47,7 +46,6 @@ function updatekan($rowId,$param) {
 function deletekan($rowId,$param){
 	// DB::delete(DB::raw("UPDATE customerz SET Status='CANCELED_FU' where ID=$rowId")); 
     DB::table('opportunity')->where("ID", $rowId)->update([
-        'Status' => 'CANCELED_QUALIFIED',
         'Updated_By' => auth()->user()->username,
         'Updated_Date' => now()
     ]);
