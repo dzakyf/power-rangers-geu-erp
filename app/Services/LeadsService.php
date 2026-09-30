@@ -38,6 +38,7 @@ class LeadsService
             'qualified'          => "SUM(CASE WHEN opportunity.Status IN ('Qualified','Meeting 1','Meeting 2','Warm','Negotiation','Deal') THEN 1 ELSE 0 END)",
             'unqualified'        => "SUM(CASE WHEN opportunity.Status = 'Cancel' AND opportunity.Reason = 'Unqualified' THEN 1 ELSE 0 END)",
             'unidentified'       => "COUNT(*) - SUM($responded)",
+            'cold'               => "COUNT(*) - SUM($responded)",
             'meeting_1'          => "SUM(CASE WHEN opportunity.Status IN ('Meeting 1','Meeting 2','Warm','Negotiation','Deal') THEN 1 ELSE 0 END)",
             'meeting_2'          => "SUM(CASE WHEN opportunity.Status IN ('Meeting 2','Warm','Negotiation','Deal') THEN 1 ELSE 0 END)",
             'warm'               => "SUM(CASE WHEN opportunity.Status IN ('Warm','Negotiation','Deal') THEN 1 ELSE 0 END)",
@@ -75,30 +76,47 @@ class LeadsService
             ->map(fn ($row) => $this->cast($row));
     }
 
-    public function ratios(array $m): array
+    /**
+     * Numerator/denominator pairs per ratio key - single source for both the
+     * ratio percentages and the grid hover tooltips.
+     */
+    public function ratioParts(array $m): array
     {
-        $pct = function ($num, $den) {
-            $num = (float) ($num ?? 0);
-            $den = (float) ($den ?? 0);
-
-            return $den > 0 ? round(($num / $den) * 100, 0) : 0;
+        $v = function ($k) use ($m) {
+            return (float) ($m[$k] ?? 0);
         };
 
+        $total     = $v('total_leads');
+        $qualified = $v('qualified');
+        $warm      = $v('warm');
+
         return [
-            'response'           => $pct($m['response'] ?? 0, $m['total_leads'] ?? 0),
-            'no_response'        => $pct($m['no_response'] ?? 0, $m['total_leads'] ?? 0),
-            'qualified'          => $pct($m['qualified'] ?? 0, $m['response'] ?? 0),
-            'unqualified'        => $pct($m['unqualified'] ?? 0, $m['response'] ?? 0),
-            'unidentified'       => $pct($m['unidentified'] ?? 0, $m['no_response'] ?? 0),
-            'meeting_1'          => $pct($m['meeting_1'] ?? 0, $m['qualified'] ?? 0),
-            'meeting_2'          => $pct($m['meeting_2'] ?? 0, $m['meeting_1'] ?? 0),
-            'warm'               => $pct($m['warm'] ?? 0, $m['meeting_2'] ?? 0),
-            'negotiation'        => $pct($m['negotiation'] ?? 0, $m['warm'] ?? 0),
-            'deal'               => $pct($m['deal'] ?? 0, $m['negotiation'] ?? 0),
-            'cancel_no_response' => $pct($m['cancel_no_response'] ?? 0, $m['no_response'] ?? 0),
-            'cancel_unqualified' => $pct($m['cancel_unqualified'] ?? 0, $m['response'] ?? 0),
-            'cancel_total'       => $pct($m['cancel_total'] ?? 0, $m['total_leads'] ?? 0),
+            'total_leads'        => [$total, $total],
+            'response'           => [$v('response'), $total],
+            'no_response'        => [$v('no_response'), $total],
+            'qualified'          => [$v('qualified'), $total],
+            'unqualified'        => [$v('unqualified'), $total],
+            'unidentified'       => [$v('unidentified'), $total],
+            'cold'               => [$v('cold'), $total],
+            'meeting_1'          => [$v('meeting_1'), $qualified],
+            'meeting_2'          => [$v('meeting_2'), $qualified],
+            'warm'               => [$v('warm'), $qualified],
+            'negotiation'        => [$v('negotiation'), $warm],
+            'deal'               => [$v('deal'), $warm],
+            'cancel_no_response' => [$v('cancel_no_response'), $v('no_response')],
+            'cancel_unqualified' => [$v('cancel_unqualified'), $v('response')],
+            'cancel_total'       => [$v('cancel_total'), $total],
         ];
+    }
+
+    public function ratios(array $m): array
+    {
+        $out = [];
+        foreach ($this->ratioParts($m) as $key => [$num, $den]) {
+            $out[$key] = $den > 0 ? round(($num / $den) * 100, 0) : 0;
+        }
+
+        return $out;
     }
 
     public function deriveClassification(?string $status, ?string $cancelStage = null): ?string

@@ -33,14 +33,17 @@ $getUsers = DB::table('users')->where('Priv_ID', 'SALES')->get();
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">MASTER TARGET</div>
 	<div class="card">
 		<div class="card-body">
-            <div>
-                <input type="text" name="year" id="year" size="5" placeholder="Year" value="{{ date('Y') }}" readonly />
+            <div class="form-inline mb-3">
+                <label class="mr-2" for="year">Year</label>
+                <select id="year" name="year" class="form-control mr-3" onchange="refreshdata()">
+                    @for ($y = date('Y'); $y >= date('Y') - 4; $y--)
+                    <option value="{{ $y }}" {{ $y == date('Y') ? 'selected' : '' }}>{{ $y }}</option>
+                    @endfor
+                </select>
             </div>
 			<div id="SalesTiering" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselSalesTieringDet" name="ekselSalesTieringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="SalesTiering.toExcel('./export/generate.php');" />
-				<input type="button" id="addSalesTiering" name="addSalesTiering" class="btn btn-primary mt-2 mr-2" value="Add Row" onclick="addRow()" />
-				<input type="button" id="submitSalesTiering" name="submitSalesTiering" class="btn btn-success mt-2 mr-2" value="Update" onclick="submitButton()" />
 			</div>
 		</div>
 	</div>
@@ -51,14 +54,6 @@ $getUsers = DB::table('users')->where('Priv_ID', 'SALES')->get();
 
 <script>
     
-	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["year"]);
-	myCalendar.setDateFormat("%Y");
-	myCalendar.attachEvent("onChange", function(date, state) {
-		if(state) {
-            refreshdata();
-		}
-	});
 	SalesTiering = new dhtmlXGridObject('SalesTiering');
 	SalesTiering.setImagePath("./dhtmlx/imgs/");
 	SalesTiering.setHeader("No,Sales<?php for($i=1;$i<=12;$i++) {echo ',' . date('F', mktime(0, 0, 0, $i, 1, date('Y'))).',#cspan';} ?>");
