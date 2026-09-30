@@ -390,7 +390,8 @@ class SalesController extends Controller
             $usname[$value->Emp_ID] = $value->Name;
         }
 
-        $rows = app(\App\Services\LeadsService::class)->funnelBySales();
+        $service = app(\App\Services\LeadsService::class);
+        $rows = $service->funnelBySales();
 
         $nomor = 1;
         foreach ($rows as $Fetch) {
@@ -398,7 +399,14 @@ class SalesController extends Controller
                 ? 'Tidak ada sales'
                 : ($usname[$Fetch['sales_ref']] ?? 'Tidak ada sales');
 
-            echo "<row id=\"" . htmlspecialchars($salesName) . "\">";
+            $rowId = $Fetch['sales_ref'] == null ? '__unassigned__' : $Fetch['sales_ref'];
+
+            $tipAttrs = '';
+            foreach ($service->ratioParts($Fetch) as $k => [$num, $den]) {
+                $tipAttrs .= ' t_' . $k . '="' . htmlspecialchars($num . ' / ' . $den) . '"';
+            }
+
+            echo "<row id=\"" . htmlspecialchars($rowId) . "\"" . $tipAttrs . ">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($salesName) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch['total_leads']) . "</cell>";
@@ -407,13 +415,11 @@ class SalesController extends Controller
             echo "<cell>" . htmlspecialchars($Fetch['qualified']) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch['unqualified']) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch['unidentified']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch['cold']) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch['meeting_1']) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch['meeting_2']) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch['warm']) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch['negotiation']) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch['deal']) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch['cancel_no_response']) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch['cancel_unqualified']) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch['cancel_total']) . "</cell>";
             echo "</row>";
 
@@ -456,7 +462,12 @@ class SalesController extends Controller
 
             $r = $service->ratios($Fetch);
 
-            echo "<row id=\"" . htmlspecialchars($salesName) . "\">";
+            $tipAttrs = '';
+            foreach ($service->ratioParts($Fetch) as $k => [$num, $den]) {
+                $tipAttrs .= ' t_' . $k . '="' . htmlspecialchars($num . ' / ' . $den) . '"';
+            }
+
+            echo "<row id=\"" . htmlspecialchars($salesName) . "\"" . $tipAttrs . ">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($salesName) . "</cell>";
             echo "<cell>" . htmlspecialchars($r['response']) . "</cell>";
@@ -464,13 +475,11 @@ class SalesController extends Controller
             echo "<cell>" . htmlspecialchars($r['qualified']) . "</cell>";
             echo "<cell>" . htmlspecialchars($r['unqualified']) . "</cell>";
             echo "<cell>" . htmlspecialchars($r['unidentified']) . "</cell>";
+            echo "<cell>" . htmlspecialchars($r['cold']) . "</cell>";
             echo "<cell>" . htmlspecialchars($r['meeting_1']) . "</cell>";
             echo "<cell>" . htmlspecialchars($r['meeting_2']) . "</cell>";
             echo "<cell>" . htmlspecialchars($r['warm']) . "</cell>";
-            echo "<cell>" . htmlspecialchars($r['negotiation']) . "</cell>";
             echo "<cell>" . htmlspecialchars($r['deal']) . "</cell>";
-            echo "<cell>" . htmlspecialchars($r['cancel_no_response']) . "</cell>";
-            echo "<cell>" . htmlspecialchars($r['cancel_unqualified']) . "</cell>";
             echo "<cell>" . htmlspecialchars($r['cancel_total']) . "</cell>";
             echo "</row>";
 
@@ -485,8 +494,10 @@ class SalesController extends Controller
     }
 
 
-    public function ratioPipelineDealXml()
+    public function ratioPipelineDealXml(Request $r)
     {
+        $year = $r->query('year') ?: date('Y');
+
         if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
             header("Content-type: application/xhtml+xml");
         } else {
@@ -518,7 +529,7 @@ class SalesController extends Controller
             $sales[$value->Sales_ID] = $value->Sales;
         }
 
-        $getTarget = DB::table('opportunity_target')->where('Year', date('Y'))->get();
+        $getTarget = DB::table('opportunity_target')->where('Year', $year)->get();
         foreach ($getTarget as $key => $value) {
             $target[$value->Sales][(int)$value->Month] = $value->Target;
         }
@@ -552,7 +563,7 @@ class SalesController extends Controller
 
                 DB::raw("SUM(CASE WHEN MONTH(o.Updated_Date)=12 AND o.Status = 'Deal' THEN 1 ELSE 0 END) as dec_acv")
             )
-            ->whereYear('o.Updated_Date', 'LIKE', date('Y') . '%')
+            ->whereYear('o.Updated_Date', $year)
             ->groupBy('Sales_ID')
             ->get();
 

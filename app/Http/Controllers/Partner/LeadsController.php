@@ -16,11 +16,33 @@ class LeadsController extends Controller
 
         $id = $r->query('id');
 
-        $query = DB::table('opportunity as o')->select('o.*');
+        $query = DB::table('opportunity as o')
+            ->leftJoin('opportunity_sales as s', 'o.Sales_ID', '=', 's.Sales_ID')
+            ->leftJoin('users as u', 'u.username', '=', 's.Sales')
+            ->select('o.*', 's.Sales as Sales_Ref', 'u.Name as Sales_Name');
 
         if ($id) {
             $query->where('o.ID', $id);
         }
+
+        if ($r->filled('sales')) {
+            $sales = $r->query('sales');
+            if ($sales === '__unassigned__') {
+                $query->whereNull('s.Sales');
+            } else {
+                $query->where('s.Sales', $sales);
+            }
+        }
+
+        if ($r->filled('status')) {
+            $query->where('o.Status', $r->query('status'));
+        }
+
+        if ($r->filled('response')) {
+            $query->where('o.Response', $r->query('response'));
+        }
+
+        $query->orderByDesc('o.ID');
 
         return response()->json(['data' => $query->get()]);
     }
