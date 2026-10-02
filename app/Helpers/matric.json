@@ -104,18 +104,15 @@
     "perbantuan_sementara": {
       "name": "Perbantuan Sementara",
       "duration": "2 minggu - 3 bulan",
-      "note": "Sama dengan Tugas Kerja + bantuan tambahan",
+      "note": "Bantuan kos bulanan; tanpa penginapan (penginapan hanya untuk Tugas Kerja)",
       "allowances": {
         "pelaksana": {
           "transport": {
             "land": ["kereta ekonomi", "bus ekonomi"],
             "air": "pesawat harga terendah",
-            "ticket_max": null,
-            "reimburse_max_per_night": 300000
+            "ticket_max": null
           },
-          "accommodation": {
-            "hotel_star": 2
-          },
+          "accommodation": null,
           "daily": {
             "meal": 30000,
             "pocket": 20000
@@ -134,12 +131,9 @@
           "transport": {
             "land": ["kereta ekonomi/bisnis", "bus ekonomi/eksekutif"],
             "air": "pesawat ekonomi",
-            "ticket_max": 1500000,
-            "reimburse_max_per_night": 400000
+            "ticket_max": 1500000
           },
-          "accommodation": {
-            "hotel_star": 3
-          },
+          "accommodation": null,
           "daily": {
             "meal": 45000,
             "pocket": 30000
@@ -158,12 +152,9 @@
           "transport": {
             "land": ["kereta ekonomi/bisnis/eksekutif", "bus ekonomi/eksekutif/VIP"],
             "air": "pesawat ekonomi",
-            "ticket_max": 1500000,
-            "reimburse_max_per_night": 600000
+            "ticket_max": 1500000
           },
-          "accommodation": {
-            "hotel_star": 4
-          },
+          "accommodation": null,
           "daily": {
             "meal": 75000,
             "pocket": 50000
@@ -182,12 +173,9 @@
           "transport": {
             "land": ["kereta semua kelas", "bus semua kelas"],
             "air": "pesawat ekonomi/bisnis",
-            "ticket_max": 2000000,
-            "reimburse_max_per_night": 900000
+            "ticket_max": 2000000
           },
-          "accommodation": {
-            "hotel_star": 5
-          },
+          "accommodation": null,
           "daily": {
             "meal": 90000,
             "pocket": 110000

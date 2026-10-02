@@ -156,6 +156,10 @@
                     </div>
 
                     <div class="col-md-12 col-12">
+                        <div id="routeScopeInfo"></div>
+                    </div>
+
+                    <div class="col-md-12 col-12">
                         <div id="allowanceInfo"></div>
                     </div>
 
@@ -311,6 +315,10 @@
 
     var matrixData = null;
     var userJobLevel = "{{ $jobLevel ?? 'pelaksana' }}";
+    var routeScope = null;        // 'MEAL_ONLY' | 'FULL'
+    var routeDistanceKm = null;
+    var routeDurationMin = null;
+    var routeResolved = false;
 
     var TYPE_CODES = {
         NORMAL: 'RS',
@@ -325,6 +333,108 @@
         var code = TYPE_CODES[t] || 'RS';
         var seq = ((TYPE_COUNTS[t] || 0) + 1);
         $('#SPPD_No').val('SPPD/' + code + '/GEU/' + SPPD_YMD + '-' + seq);
+    }
+
+    function fmtDuration(min) {
+        if (min === null || min === undefined || isNaN(min)) return '-';
+        var h = Math.floor(min / 60), m = min % 60;
+        return h + ' jam' + (m ? ' ' + m + ' mnt' : '');
+    }
+
+    function fetchRouteInfo(origin, cb) {
+        $.ajax({
+            url: 'hrd-sppd-route-info',
+            type: 'GET',
+            data: {
+                Route_Start: origin,
+                Route_Finish: $('#Route_Finish').val(),
+                Dest_Lat: $('#Dest_Lat').val(),
+                Dest_Lng: $('#Dest_Lng').val(),
+                Departure_Time: $('#Departure_Time').val(),
+                Return_Time: $('#Return_Time').val()
+            },
+            success: function(resp) {
+                if (resp.status === 'success' && resp.data) {
+                    cb(true, resp.data.distance_km, resp.data.duration_min);
+                } else {
+                    cb(false);
+                }
+            },
+            error: function() {
+                cb(false);
+            }
+        });
+    }
+
+    function updateRouteScope() {
+        var sppdType = $('#Sppd_Type').val();
+        var origin = $('#Route_Start').val();
+
+        if (sppdType !== 'NORMAL') {
+            // Perbantuan Sementara selalu hak penuh (di luar kriteria 120 km / 8 jam)
+            routeScope = 'FULL';
+            routeResolved = false;
+            routeDistanceKm = null;
+            routeDurationMin = null;
+            renderScopeBanner();
+            updateAllowanceInfo();
+            if (origin) {
+                fetchRouteInfo(origin, function(ok, dist, dur) {
+                    if (ok) {
+                        routeDistanceKm = dist;
+                        routeDurationMin = dur;
+                        routeResolved = true;
+                        renderScopeBanner();
+                    }
+                });
+            }
+            return;
+        }
+
+        if (!origin) {
+            routeScope = null;
+            routeResolved = false;
+            routeDistanceKm = null;
+            routeDurationMin = null;
+            renderScopeBanner();
+            updateAllowanceInfo();
+            return;
+        }
+
+        fetchRouteInfo(origin, function(ok, dist, dur) {
+            if (!ok) {
+                routeScope = null;
+                routeResolved = false;
+                routeDistanceKm = null;
+                routeDurationMin = null;
+            } else {
+                routeDistanceKm = dist;
+                routeDurationMin = dur;
+                routeResolved = true;
+                routeScope = (dist !== null && dur !== null && dist < 120 && dur < 480) ? 'MEAL_ONLY' : 'FULL';
+            }
+            renderScopeBanner();
+            updateAllowanceInfo();
+        });
+    }
+
+    function renderScopeBanner() {
+        var sppdType = $('#Sppd_Type').val();
+        if (sppdType !== 'NORMAL') {
+            var extra = (routeDistanceKm !== null) ? 'Jarak: ' + routeDistanceKm + ' km &bull; ' : '';
+            $('#routeScopeInfo').html('<div class="alert alert-success py-2 mb-0"><strong>Perbantuan Sementara:</strong> ' + extra + 'hak penuh (di luar kriteria 120 km / 8 jam).</div>');
+            return;
+        }
+        if (!routeResolved || routeDistanceKm === null) {
+            $('#routeScopeInfo').html('<div class="alert alert-warning py-2 mb-0"><strong>Rute belum dapat dihitung.</strong> Pastikan lokasi asal &amp; tujuan memiliki koordinat (atau pilih titik tujuan pada peta) dan isi Jam Berangkat/Kembali.</div>');
+            return;
+        }
+        var isMeal = (routeScope === 'MEAL_ONLY');
+        var css = isMeal ? 'alert-info' : 'alert-primary';
+        var label = isMeal
+            ? '&lt; 120 km &amp; &lt; 8 jam &rarr; <strong>hanya Uang Makan</strong>'
+            : '&ge; 120 km atau &ge; 8 jam &rarr; <strong>hak penuh</strong>';
+        $('#routeScopeInfo').html('<div class="alert ' + css + ' py-2 mb-0">Jarak: <strong>' + routeDistanceKm + ' km</strong> &bull; Durasi: <strong>' + fmtDuration(routeDurationMin) + '</strong> &bull; ' + label + '</div>');
     }
 
     function updateRuteMode() {
@@ -342,6 +452,7 @@
             $('#Dest_Lng').val('');
             $('#destPointInfo').html('');
         }
+        updateRouteScope();
     }
 
     // Load matrix on page load
@@ -351,8 +462,11 @@
         $.get('hrd-sppd-matrix', function(resp) {
             if (resp.status === 'success') {
                 matrixData = resp.data;
-                updateAllowanceInfo();
+                updateRouteScope();
             }
+        });
+        $('#Route_Start, #Route_Finish, #Departure_Time, #Return_Time').on('change', function() {
+            updateRouteScope();
         });
     });
 
@@ -365,7 +479,7 @@
             alert('Relokasi/Mutasi belum tersedia. Silakan pilih jenis lain.');
         }
         updateSppdNo();
-        updateAllowanceInfo();
+        updateRouteScope();
     }
 
     function updateAllowanceInfo() {
@@ -473,11 +587,21 @@
         var t = allowance.transport || {};
         var acc = allowance.accommodation || {};
         var daily = allowance.daily || {};
+        var isTugasKerja = ($('#Sppd_Type').val() === 'NORMAL');
+
+        // Normal SPPD within 120 km AND 8 hours: meal allowance only
+        if (isTugasKerja && routeScope === 'MEAL_ONLY') {
+            if (daily.meal) {
+                reg.push({ cost: daily.meal * days, desc: 'Uang Makan (Rp ' + moneyID(daily.meal) + '/hari' + (hasDates ? ' \u00d7 ' + days + ' hari' : '') + ')' });
+            }
+            renderCostRows(reg, manuals);
+            return;
+        }
 
         if (t.ticket_max) {
             reg.push({ cost: t.ticket_max, desc: 'Tiket PP (maks. Rp ' + moneyID(t.ticket_max) + ')' });
         }
-        if (t.reimburse_max_per_night && nights > 0) {
+        if (isTugasKerja && t.reimburse_max_per_night && nights > 0) {
             var peng = 'Penginapan';
             if (acc.hotel_star) peng += ' \u2605' + acc.hotel_star;
             peng += ' (Rp ' + moneyID(t.reimburse_max_per_night) + '/malam' + (hasDates ? ' \u00d7 ' + nights + ' malam' : '') + ')';
@@ -606,6 +730,7 @@
         $('#Dest_Lat').val(lat);
         $('#Dest_Lng').val(lng);
         renderDestPointInfo(lat, lng);
+        updateRouteScope();
         // Reverse geocode via Nominatim (free, OSM) to fill the destination name
         $.get('https://nominatim.openstreetmap.org/reverse', {
                 format: 'jsonv2',
@@ -735,6 +860,10 @@
                 alert("Rute asal dan tujuan tidak boleh sama!");
                 return;
             }
+        }
+        if ($('#Sppd_Type').val() === 'NORMAL' && !(routeResolved && routeScope)) {
+            alert('Jarak & durasi rute belum dapat dihitung. Pastikan lokasi asal & tujuan memiliki koordinat (atau pilih titik tujuan pada peta) lalu isi Jam Berangkat & Jam Kembali.');
+            return;
         }
         if ($('#Need_Car').is(':checked')) {
             if (!$('#Car_Jenis_Mobil').val() || !$('#Car_Tgl_Pinjam').val() || !$('#Car_Tgl_Kembali').val()) {

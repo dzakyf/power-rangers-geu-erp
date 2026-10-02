@@ -7,6 +7,7 @@ use App\MasterSppdAllowance;
 use App\MasterSppdJobLevel;
 use App\MasterSppdTripType;
 use App\Services\GeneratorService;
+use App\Services\OSRMService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -187,6 +188,129 @@ class SppdController extends Controller
         return response()->json(['status' => 'success', 'data' => $matrix]);
     }
 
+    public function routeInfo(Request $request)
+    {
+        try {
+            $distanceKm = self::routeDistanceKm(
+                trim($request->input('Route_Start', '')),
+                trim($request->input('Route_Finish', '')),
+                $request->input('Dest_Lat', ''),
+                $request->input('Dest_Lng', '')
+            );
+            $durationMin = self::tripDurationMinutes($request->input('Departure_Time', ''), $request->input('Return_Time', ''));
+
+            if ($distanceKm === null) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Koordinat asal/tujuan belum tersedia, rute tidak dapat dihitung',
+                ], 422);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => [
+                    'distance_km'  => $distanceKm,
+                    'duration_min' => $durationMin,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal menghitung rute: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public static function resolveLocationCoords($locationId)
+    {
+        if (!$locationId) {
+            return null;
+        }
+        $loc = DB::table('location')->where('Location_ID', $locationId)->first();
+        if (!$loc) {
+            return null;
+        }
+        $lat = trim((string) $loc->Latitude);
+        $lng = trim((string) $loc->Longitude);
+        if ($lat === '' || $lng === '' || !is_numeric($lat) || !is_numeric($lng)) {
+            return null;
+        }
+        return [(float) $lat, (float) $lng];
+    }
+
+    public static function tripDurationMinutes($departure, $return)
+    {
+        $parse = function ($t) {
+            $t = trim((string) $t);
+            if ($t === '') {
+                return null;
+            }
+            $parts = explode(':', $t);
+            if (count($parts) < 2 || !is_numeric($parts[0]) || !is_numeric($parts[1])) {
+                return null;
+            }
+            return ((int) $parts[0]) * 60 + ((int) $parts[1]);
+        };
+        $d = $parse($departure);
+        $r = $parse($return);
+        if ($d === null || $r === null) {
+            return null;
+        }
+        if ($r <= $d) {
+            $r += 1440; // overnight trip
+        }
+        return $r - $d;
+    }
+
+    public static function routeDistanceKm($routeStart, $routeFinish, $destLat, $destLng)
+    {
+        $origin = self::resolveLocationCoords($routeStart);
+        if (!$origin) {
+            return null;
+        }
+
+        $lat = trim((string) $destLat);
+        $lng = trim((string) $destLng);
+        if ($lat !== '' && $lng !== '' && is_numeric($lat) && is_numeric($lng)) {
+            $dest = [(float) $lat, (float) $lng];
+        } else {
+            $dest = self::resolveLocationCoords($routeFinish);
+        }
+        if (!$dest) {
+            return null;
+        }
+
+        $route = app(OSRMService::class)->getRoute([
+            [$origin[1], $origin[0]],
+            [$dest[1], $dest[0]],
+        ]);
+
+        return $route['distance_km'];
+    }
+
+    public static function computeRouteScope($sppdType, $routeStart, $routeFinish, $destLat, $destLng, $departure, $return)
+    {
+        $durationMin = self::tripDurationMinutes($departure, $return);
+
+        $distanceKm = null;
+        try {
+            $distanceKm = self::routeDistanceKm($routeStart, $routeFinish, $destLat, $destLng);
+        } catch (\Throwable $e) {
+            $distanceKm = null;
+        }
+
+        if ($sppdType !== 'NORMAL') {
+            return [$distanceKm, $durationMin, 'FULL'];
+        }
+
+        if ($distanceKm === null || $durationMin === null) {
+            return [null, $durationMin, null];
+        }
+
+        $scope = ($distanceKm < 120 && $durationMin < 480) ? 'MEAL_ONLY' : 'FULL';
+        return [$distanceKm, $durationMin, $scope];
+    }
+
     public function store(Request $request)
     {
         $user = Auth::user();
@@ -245,6 +369,23 @@ class SppdController extends Controller
             // Office mode: destination = the selected office
             $office = DB::table('location')->where('Location_ID', $routeFinish)->first();
             $destination = $office ? trim($office->Name . ' (' . $office->Location_ID . ')') : $routeFinish;
+        }
+
+        // Distance / duration based entitlement scope (cross-referenced with master regulation)
+        list($distanceKm, $durationMin, $scope) = self::computeRouteScope(
+            $sppdType,
+            trim($request->input('Route_Start', '')),
+            $routeFinish,
+            $destLat,
+            $destLng,
+            trim($request->input('Departure_Time', '')),
+            trim($request->input('Return_Time', ''))
+        );
+        if ($sppdType === 'NORMAL' && $scope === null) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Jarak & durasi tidak dapat dihitung. Pastikan lokasi asal/tujuan memiliki koordinat, atau pilih titik tujuan pada peta.',
+            ], 422);
         }
 
         $costs = [];
@@ -360,6 +501,9 @@ class SppdController extends Controller
                 'Return_Time'    => trim($request->Return_Time),
                 'Dest_Lat'       => $destLat ?: null,
                 'Dest_Lng'       => $destLng ?: null,
+                'Distance_Km'    => $distanceKm,
+                'Duration_Min'   => $durationMin,
+                'Entitlement_Scope' => $scope,
                 'Program_Name'   => trim($request->Program_Name),
                 'Estimated_Cost' => $total,
                 'Sppd_Type'      => $sppdType,
@@ -577,6 +721,19 @@ class SppdController extends Controller
             abort(404, 'Template not found');
         }
 
+        $scopeParts = [];
+        if ($sppd->Distance_Km !== null) {
+            $scopeParts[] = 'Jarak: ' . rtrim(rtrim(number_format((float) $sppd->Distance_Km, 2, ',', '.'), '0'), ',') . ' km';
+        }
+        if ($sppd->Duration_Min !== null) {
+            $dur = floor($sppd->Duration_Min / 60) . ' jam' . (($sppd->Duration_Min % 60) ? ' ' . ($sppd->Duration_Min % 60) . ' mnt' : '');
+            $scopeParts[] = 'Durasi: ' . $dur;
+        }
+        if ($sppd->Entitlement_Scope) {
+            $scopeParts[] = 'Skema: ' . ($sppd->Entitlement_Scope === 'MEAL_ONLY' ? 'Hanya Uang Makan' : 'Hak Penuh');
+        }
+        $scopeInfo = $scopeParts ? ' (' . implode(', ', $scopeParts) . ')' : '';
+
         $doc = new TemplateProcessor($path);
         $doc->setValues([
             'effectiveDate'    => Carbon::now()->locale('id')->translatedFormat('d F Y'),
@@ -584,7 +741,7 @@ class SppdController extends Controller
             'department'       => $sppd->Department,
             'requester'        => $sppd->Requester_Name,
             'destination'      => $sppd->Destination,
-            'routeDestination' => $sppd->Route_Start . ' - ' . ($sppd->Route_Finish ?: $sppd->Destination),
+            'routeDestination' => $sppd->Route_Start . ' - ' . ($sppd->Route_Finish ?: $sppd->Destination) . $scopeInfo,
             'shceduleDate'     => $sppd->Schedule_Date ? Carbon::parse($sppd->Schedule_Date)->format('d-m-Y') : '',
             'scheduleTime'     => $sppd->Schedule_Time ?: '',
             'programName'      => $sppd->Program_Name ?: '',
