@@ -75,6 +75,19 @@
                         </div>
                         @endif
 
+                        @if ($sppd->Distance_Km !== null || $sppd->Duration_Min !== null || $sppd->Entitlement_Scope)
+                        <div class="col-md-6 col-12">
+                            <div class="form-group">
+                                <label>Jarak / Durasi / Skema</label>
+                                <div>
+                                    {{ $sppd->Distance_Km !== null ? $sppd->Distance_Km . ' km' : '-' }} &bull;
+                                    {{ $sppd->Duration_Min !== null ? floor($sppd->Duration_Min / 60) . ' jam' . ($sppd->Duration_Min % 60 ? ' ' . ($sppd->Duration_Min % 60) . ' mnt' : '') : '-' }} &bull;
+                                    {{ $sppd->Entitlement_Scope === 'MEAL_ONLY' ? 'Hanya Uang Makan' : ($sppd->Entitlement_Scope === 'FULL' ? 'Hak Penuh' : '-') }}
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label>Kegiatan</label>
