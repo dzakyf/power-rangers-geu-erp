@@ -45,22 +45,22 @@ $Saya =  Auth::user()->username;
                                         <td>{{ $loop->iteration }}</td>
                                         <td style="font-size:13pt">{{ $item->question }}</td>
                                         <td style="text-align: center;vertical-align:middle;">
-                                            <input type="radio" class="radio-lg" name="question{{$item->id}}" id="question{{$item->id}}1" data-counter="{{$item->id}}" value="1" {{ $satisfyDtl[$item->id]['score'] == 1 ? 'checked' : '' }} disabled>
+                                            <input type="radio" class="radio-lg" name="question{{$item->id}}" id="question{{$item->id}}1" data-counter="{{$item->id}}" value="1" {{ ($satisfyDtl[$item->id]['score'] ?? null) == 1 ? 'checked' : '' }} disabled>
                                         </td>
                                         <td style="text-align: center;vertical-align:middle;">
-                                            <input type="radio" class="radio-lg" name="question{{$item->id}}" id="question{{$item->id}}2" data-counter="{{$item->id}}" value="2"  {{ $satisfyDtl[$item->id]['score'] == 2 ? 'checked' : '' }} disabled>
+                                            <input type="radio" class="radio-lg" name="question{{$item->id}}" id="question{{$item->id}}2" data-counter="{{$item->id}}" value="2"  {{ ($satisfyDtl[$item->id]['score'] ?? null) == 2 ? 'checked' : '' }} disabled>
                                         </td>
                                         <td style="text-align: center;vertical-align:middle;">
-                                            <input type="radio" class="radio-lg" name="question{{$item->id}}" id="question{{$item->id}}3" data-counter="{{$item->id}}" value="3"  {{ $satisfyDtl[$item->id]['score'] == 3 ? 'checked' : '' }} disabled>
+                                            <input type="radio" class="radio-lg" name="question{{$item->id}}" id="question{{$item->id}}3" data-counter="{{$item->id}}" value="3"  {{ ($satisfyDtl[$item->id]['score'] ?? null) == 3 ? 'checked' : '' }} disabled>
                                         </td>
                                         <td style="text-align: center;vertical-align:middle;">
-                                            <input type="radio" class="radio-lg" name="question{{$item->id}}" id="question{{$item->id}}4" data-counter="{{$item->id}}" value="4"  {{ $satisfyDtl[$item->id]['score'] == 4 ? 'checked' : '' }} disabled>
+                                            <input type="radio" class="radio-lg" name="question{{$item->id}}" id="question{{$item->id}}4" data-counter="{{$item->id}}" value="4"  {{ ($satisfyDtl[$item->id]['score'] ?? null) == 4 ? 'checked' : '' }} disabled>
                                         </td>
                                         <td style="text-align: center;vertical-align:middle;">
-                                            <input type="radio" class="radio-lg" name="question{{$item->id}}" id="question{{$item->id}}5" data-counter="{{$item->id}}" value="5"  {{ $satisfyDtl[$item->id]['score'] == 5 ? 'checked' : '' }} disabled>
+                                            <input type="radio" class="radio-lg" name="question{{$item->id}}" id="question{{$item->id}}5" data-counter="{{$item->id}}" value="5"  {{ ($satisfyDtl[$item->id]['score'] ?? null) == 5 ? 'checked' : '' }} disabled>
                                         </td>
                                         <td>
-                                            <input type="text" name="question{{$item->id}}_note" id="question{{$item->id}}_note" class="form-control" value="{{ $satisfyDtl[$item->id]['note'] }}" readonly>
+                                            <input type="text" name="question{{$item->id}}_note" id="question{{$item->id}}_note" class="form-control" value="{{ ($satisfyDtl[$item->id]['note'] ?? '') }}" readonly>
                                         </td>
                                     </tr>
                                 @endforeach

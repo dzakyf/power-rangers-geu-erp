@@ -795,7 +795,7 @@ class TrainingController extends Controller
                     ]);
                 }
 
-                $totalScore += $r['question' . $value->id];
+                $totalScore += $r['question' . $value->id] ?? 0;
             }
 
             TrainingSatisfication::where('id', $satisfy->id)->update([
@@ -828,15 +828,26 @@ class TrainingController extends Controller
     {
         $masterSatisfication = MasterSatisfication::where('target', 'participant')->get();
         $training = TrainingApplication::where('id', $request->Task)->first();
+        if (!$training) {
+            abort(404, 'Training not found.');
+        }
+
         $satisfication = TrainingSatisfication::where('training_id', $training->training_id)->where('assessor', $training->participant)->where('training_no', $training->training_no)->first();
-        $satisficationDtl = TrainingSatisficationDtl::where('satisfication_no', $satisfication->satisfication_no)->get();
+        $satisficationDtl = $satisfication
+            ? TrainingSatisficationDtl::where('satisfication_no', $satisfication->satisfication_no)->get()
+            : collect();
+
         $satisfyDtl = [];
-        foreach ($satisficationDtl as $key => $value) {
+        foreach ($masterSatisfication as $m) {
+            $satisfyDtl[$m->id] = ['score' => null, 'note' => ''];
+        }
+        foreach ($satisficationDtl as $value) {
             $satisfyDtl[$value->satisfication_id] = [
                 'score' => $value->satisfication_score,
                 'note' => $value->satisfication_note,
             ];
         }
+
         return view('partner.training.satisfication-detail', compact('masterSatisfication', 'training', 'satisfication', 'satisficationDtl', 'satisfyDtl'));
     }
 
@@ -931,7 +942,7 @@ class TrainingController extends Controller
                     ]);
                 }
 
-                $totalScore += $r['question' . $value->id];
+                $totalScore += $r['question' . $value->id] ?? 0;
             }
 
             TrainingSatisfication::where('id', $satisfy->id)->update([
@@ -956,15 +967,26 @@ class TrainingController extends Controller
     {
         $masterSatisfication = MasterSatisfication::where('target', 'manager')->get();
         $training = Training::where('id', $request->Task)->first();
+        if (!$training) {
+            abort(404, 'Training not found.');
+        }
+
         $satisfication = TrainingSatisfication::where('training_id', $training->id)->where('type', 'manager')->where('assessor', auth()->user()->username)->where('training_no', $training->training_no)->first();
-        $satisficationDtl = TrainingSatisficationDtl::where('satisfication_no', $satisfication->satisfication_no)->get();
+        $satisficationDtl = $satisfication
+            ? TrainingSatisficationDtl::where('satisfication_no', $satisfication->satisfication_no)->get()
+            : collect();
+
         $satisfyDtl = [];
-        foreach ($satisficationDtl as $key => $value) {
+        foreach ($masterSatisfication as $m) {
+            $satisfyDtl[$m->id] = ['score' => null, 'note' => ''];
+        }
+        foreach ($satisficationDtl as $value) {
             $satisfyDtl[$value->satisfication_id] = [
                 'score' => $value->satisfication_score,
                 'note' => $value->satisfication_note,
             ];
         }
+
         return view('partner.training.satisfication-manager-detail', compact('masterSatisfication', 'training', 'satisfication', 'satisficationDtl', 'satisfyDtl'));
     }
 
