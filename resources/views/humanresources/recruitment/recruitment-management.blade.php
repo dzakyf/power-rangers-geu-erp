@@ -322,6 +322,11 @@ RecruitmentPivot.setHeader(
     "PTK Number,Current Approver By,Seleksi<br>Administrasi,Psikotes,Interview<br>HR,Interview<br>User,Tes<br>Teknik,MCU,Offering<br>Letter,Keterangan"
 );
 
+// Header attachment
+RecruitmentPivot.attachHeader(
+    "#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"
+);
+
 RecruitmentPivot.setInitWidths(
     "150,150,90,80,90,90,80,70,90,250"
 );
