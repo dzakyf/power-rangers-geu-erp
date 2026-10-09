@@ -9,7 +9,7 @@ $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
 
 $getRecruit = DB::table('requisition')
-	->select('Task_ID', 'Subject', 'Placement', 'Job_Position', 'Department', 'Priority', 'Allocation', 'Qty', 'Status', 'Requisition_Type', 'PO_No', 'PIC_Production', 'Work_Area', 'Work_Schedule', 'Start_Date', 'End_Date', 'Created_By')
+	->select('Task_ID', 'Subject', 'Placement', 'Job_Position', 'Department', 'Priority', 'Allocation', 'Qty', 'Status', 'Requisition_Type', 'PO_No', 'PIC_Production', 'Work_Area', 'Work_Schedule', 'Created_By')
 	->where('Location', $LSP)
 	->get();
 
