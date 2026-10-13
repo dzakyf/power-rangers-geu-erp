@@ -1,3 +1,4 @@
+<?php if ((auth()->user()->Priv_ID ?? '') === 'MITRA') { abort(403); } ?>
 <?php
 //error_reporting(E_ALL ^ E_NOTICE);
 error_reporting(0);
@@ -33,7 +34,7 @@ foreach ($users as $key => $value) {
 
 $Query = DB::table("opportunity_sales")->where("Location", $LSP);
 
-if ($priv == 'SALES') {
+if (!can_menu('MI00221', 'approve')) {
 	$Query->where("Sales", $saya);
 }
 

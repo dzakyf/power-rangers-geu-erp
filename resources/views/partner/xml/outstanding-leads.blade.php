@@ -1,3 +1,4 @@
+<?php if ((auth()->user()->Priv_ID ?? '') === 'MITRA') { abort(403); } ?>
 <?php
 //error_reporting(E_ALL ^ E_NOTICE);
 error_reporting(0);
@@ -24,7 +25,7 @@ $nomor = 1;
 
 echo "<rows>";
 $Query = DB::table('opportunity_sales');
-if ($priv == 'SALES') {
+if (!can_menu('SI00218', 'approve')) {
 	$Query->where("Sales", $saya);
 }
 $Query = $Query->get()->pluck('Sales_ID');
