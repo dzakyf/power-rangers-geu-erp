@@ -98,6 +98,13 @@ $leadID = 'BP/' . $LSP . '/' . date('Ymdhis') . '/' . substr(md5($Saya), 0, 3);
 				<input type="radio" name="Capital_Estimation" id="Capital_Estimation_4" value="4" /> >300 Million
 
 			</div>
+
+			<div class="FormInput_left">
+				Source Channel
+			</div>
+			<div class="FormInput_right">
+				<input type="text" name="Source_Channel" id="Source_Channel" value="INTERNAL" readonly />
+			</div>
 		</div>
 		<div id="divtom">
 			<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit" class="btn btn-success mt-2 mr-2" />

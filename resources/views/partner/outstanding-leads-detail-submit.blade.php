@@ -1,3 +1,4 @@
+<?php if ((auth()->user()->Priv_ID ?? '') === 'MITRA') { abort(403); } ?>
 <?php
 error_reporting(0);
 use Illuminate\Http\Request;

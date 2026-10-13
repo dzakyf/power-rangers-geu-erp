@@ -57,6 +57,10 @@ $arr['Created_Date'] = date('Y-m-d H:i:s');
 $arr['Created_By'] = $Saya;
 $arr['Task_ID'] = $Task_ID;
 $arr['Classification'] = 'Fresh';
+$arr['Status'] = 'Fresh';
+if (empty($arr['Response'])) {
+    $arr['Response'] = 'No Response';
+}
 $arr['Hub_Type'] = $hubType;
 
 $opportunity = Opportunity::create($arr);
