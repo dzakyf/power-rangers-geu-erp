@@ -66,6 +66,6 @@
 			alert('Select row to print.');
 			return;
 		}
-		window.open('template_iscc.docx','_blank');
+		window.open('cns-iscc-traceability-print/' + selectedFragmentIdDetail, '_blank');
 	}
 </script>
