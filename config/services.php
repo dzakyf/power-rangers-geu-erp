@@ -32,7 +32,7 @@ return [
         'timeout'     => (int) env('APIPI_TIMEOUT', 30),
         'verify'      => filter_var(env('APIPI_VERIFY_TLS', true), FILTER_VALIDATE_BOOLEAN),
         'session_ttl' => (int) env('APIPI_SESSION_TTL', 1500),
-        'throttle_ms' => (int) env('APIPI_THROTTLE_MS', 300),
+        'throttle_ms' => (int) env('APIPI_THROTTLE_MS', 150),
         'cache_path'  => env('APIPI_CACHE_PATH') ?: storage_path('app/apipi/cache'),
     ],
 

@@ -459,4 +459,134 @@ class ISCCTraceabilityController extends Controller
 
         return $xml;
     }
+
+    /**
+     * Generate the per-fragment ISCC document from template_iscc.docx.
+     */
+    public function printDoc($fragmentId)
+    {
+        $fragment = DB::table('traceability_external_poo_fragments as tep')
+            ->join('traceability_external_deliveries as ted', 'ted.id', '=', 'tep.traceability_external_delivery_id')
+            ->where('tep.id', $fragmentId)
+            ->select('tep.*', 'ted.plat_no', 'ted.ttd', 'ted.photos')
+            ->first();
+
+        if (!$fragment) {
+            abort(404, 'Fragment not found.');
+        }
+
+        $qty   = (float) $fragment->quantity_kg;
+        $price = (float) ($fragment->price ?? 0);
+        $total = $price * $qty;
+
+        $templatePath = public_path('template_iscc.docx');
+        if (!is_file($templatePath)) {
+            abort(500, 'template_iscc.docx not found.');
+        }
+
+        $t = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+
+        $t->setValues([
+            'name'             => (string) ($fragment->poo_name ?? ''),
+            'address'          => (string) ($fragment->full_address ?? ''),
+            'city'             => (string) ($fragment->city ?? ''),
+            'lat'              => (string) ($fragment->lat ?? ''),
+            'lng'              => (string) ($fragment->lng ?? ''),
+            'phone'            => (string) ($fragment->phone ?? ''),
+            'account_no'       => (string) ($fragment->account_no ?? ''),
+            'account_name'     => (string) ($fragment->account_name ?? ''),
+            'type'             => (string) ($fragment->poo_type ?? ''),
+            'kode'             => (string) ($fragment->do_code ?? ''),
+            'po_no'            => (string) ($fragment->po_code ?? ''),
+            'platno'           => (string) ($fragment->plat_no ?? ''),
+            'created'          => (string) ($fragment->do_date ?? ''),
+            'tfdate'           => (string) ($fragment->do_date ?? ''),
+            'total'            => $this->num($qty),
+            'price'            => $this->num($price),
+            'total_price'      => $this->num($total),
+            'totalprice'       => $this->num($total),
+            'totalpricecalled' => $this->terbilang($total),
+            'tricode'          => '',
+        ]);
+
+        // oil documentation image (first photo only)
+        $photo = $this->firstPhoto($fragment);
+        if ($photo && ($tmp = $this->downloadToTemp($photo, 'jpg'))) {
+            $t->setImageValue('oil_doc', ['path' => $tmp, 'width' => 220, 'height' => 160]);
+        } else {
+            $t->setValue('oil_doc', '');
+        }
+
+        // signature image
+        if (!empty($fragment->ttd) && ($tmp = $this->downloadToTemp($fragment->ttd, 'png'))) {
+            $t->setImageValue('sign_pict', ['path' => $tmp, 'width' => 140, 'height' => 70]);
+        } else {
+            $t->setValue('sign_pict', '');
+        }
+
+        $outDir = storage_path('app/temp');
+        if (!is_dir($outDir)) { @mkdir($outDir, 0775, true); }
+        $outFile = $outDir . '/iscc_fragment_' . $fragmentId . '_' . time() . '.docx';
+        $t->saveAs($outFile);
+
+        $downloadName = 'ISCC_' . preg_replace('/[^A-Za-z0-9\-]/', '_', (string) $fragment->poo_name) . '_' . $fragmentId . '.docx';
+
+        return response()->download($outFile, $downloadName)->deleteFileAfterSend(true);
+    }
+
+    protected function firstPhoto($fragment): ?string
+    {
+        if (!empty($fragment->photos)) {
+            $arr = json_decode((string) $fragment->photos, true);
+            if (is_array($arr) && !empty($arr[0])) { return (string) $arr[0]; }
+        }
+        if (!empty($fragment->oil_documentation)) {
+            return (string) $fragment->oil_documentation;
+        }
+        return null;
+    }
+
+    protected function downloadToTemp(string $url, string $ext): ?string
+    {
+        try {
+            $client = new \GuzzleHttp\Client(['timeout' => 30, 'verify' => false]);
+            $res = $client->get($url);
+            if ($res->getStatusCode() !== 200) { return null; }
+            $dir = storage_path('app/temp');
+            if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
+            $path = $dir . '/iscc_img_' . md5($url) . '.' . $ext;
+            file_put_contents($path, (string) $res->getBody());
+            return is_file($path) ? $path : null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    protected function num($v): string
+    {
+        return number_format((float) $v, 2, ',', '.');
+    }
+
+    protected function terbilang($number): string
+    {
+        $n = (int) round((float) $number);
+        $words = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+
+        $spell = function ($x) use (&$spell, $words) {
+            if ($x < 12) return $words[$x];
+            if ($x < 20) return $spell($x - 10) . ' belas';
+            if ($x < 100) return $spell(intdiv($x, 10)) . ' puluh' . ($x % 10 ? ' ' . $spell($x % 10) : '');
+            if ($x < 200) return 'seratus' . ($x - 100 ? ' ' . $spell($x - 100) : '');
+            if ($x < 1000) return $spell(intdiv($x, 100)) . ' ratus' . ($x % 100 ? ' ' . $spell($x % 100) : '');
+            if ($x < 2000) return 'seribu' . ($x - 1000 ? ' ' . $spell($x - 1000) : '');
+            if ($x < 1000000) return $spell(intdiv($x, 1000)) . ' ribu' . ($x % 1000 ? ' ' . $spell($x % 1000) : '');
+            if ($x < 1000000000) return $spell(intdiv($x, 1000000)) . ' juta' . ($x % 1000000 ? ' ' . $spell($x % 1000000) : '');
+            if ($x < 1000000000000) return $spell(intdiv($x, 1000000000)) . ' miliar' . ($x % 1000000000 ? ' ' . $spell($x % 1000000000) : '');
+            return $spell(intdiv($x, 1000000000000)) . ' triliun' . ($x % 1000000000000 ? ' ' . $spell($x % 1000000000000) : '');
+        };
+
+        if ($n === 0) { return 'nol'; }
+        return trim($spell($n)) . ' rupiah';
+    }
+
 }

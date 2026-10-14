@@ -5635,6 +5635,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$isccTraceabilityPref-photo-upload", [ISCCTraceabilityController::class, 'uploadPhoto'])->name($isccTraceabilityPref . '.photo-upload');
     Route::post("$isccTraceabilityPref-photo-delete", [ISCCTraceabilityController::class, 'deletePhoto'])->name($isccTraceabilityPref . '.photo-delete');
     Route::post("$isccTraceabilityPref-mark-audited", [ISCCTraceabilityController::class, 'markAudited'])->name($isccTraceabilityPref . '.mark-audited');
+    Route::get("$isccTraceabilityPref-print/{fragmentId}", [ISCCTraceabilityController::class, 'printDoc'])->name($isccTraceabilityPref . '.print');
 
     $hcAssetMovingPref = "$hcPref-asset-moving";
     Route::get("$hcAssetMovingPref-index", [HCGAAssetMovingController::class, 'index']);
