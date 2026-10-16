@@ -40,7 +40,6 @@ foreach($Query->get() as $Fetch){
 	echo "<row id=\"$Fetch->ID\">";
 		echo "<cell>$nomor</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Task_ID)."</cell>";
-		echo "<cell>".htmlspecialchars($Fetch->Subject)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Job_Position)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->PO_Desc)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Requirement)."</cell>";

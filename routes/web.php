@@ -3164,6 +3164,12 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-employee-lists', function () {
         return view('humanresources.employment.xml.employee-lists');
     });
+    Route::post('/employee-lists-columns-save', function () {
+        return view('humanresources.employment.employee-lists-columns-save');
+    });
+    Route::get('/xml-employee-pivot', function () {
+        return view('humanresources.employment.xml.employee-pivot');
+    });
     Route::get('/employee-lists-detail', function () {
         return view('humanresources.employment.employee-lists-detail');
     });

@@ -66,6 +66,10 @@ function insertkan($rowId,$param){
 	$Saya = Auth::user()->username;
 	$LSP = Auth::user()->Location;
 
+	if ($a == '' && $b == '' && $c == '' && $d == '') {
+		return 'cannot_empty';
+	}
+
 	DB::insert(DB::raw("INSERT INTO master_position(Directorat,Department,Subsection,Position,Initial_Code,Initial,Created_By,Created_Date,Level) VALUES('$a','$b','$c','$d','$e','$f','$Saya',NOW(),'$g')"));
 
 

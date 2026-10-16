@@ -81,3 +81,226 @@ if (!function_exists('apply_stored_signature')) {
         return true;
     }
 }
+
+if (!function_exists('employee_grid_columns')) {
+    function employee_grid_columns(): array
+    {
+        return [
+            'Task_ID' => ['NIK', 100, 'center', '#text_filter', 'str'],
+            'NIK' => ['NIK KTP', 140, 'center', '#text_filter', 'str'],
+            'NIK_Client' => ['NIK Client', 120, 'center', '#text_filter', 'str'],
+            'Attendant_No' => ['Attendant No', 110, 'center', '#text_filter', 'str'],
+            'Name' => ['Name', 170, 'left', '#text_filter', 'str'],
+            'Initial' => ['Initial', 70, 'center', '#text_filter', 'str'],
+            'Birth_Place' => ['Birth Place', 120, 'left', '#text_filter', 'str'],
+            'Birth_Date' => ['Birth Date', 110, 'center', '#text_filter', 'date'],
+            'Gender' => ['Gender', 90, 'center', '#combo_filter', 'str'],
+            'Marital_Status' => ['Marital Status', 110, 'center', '#combo_filter', 'str'],
+            'PTKP_Status' => ['PTKP Status', 100, 'center', '#combo_filter', 'str'],
+            'kewarganegaraan' => ['Kewarganegaraan', 120, 'center', '#combo_filter', 'str'],
+            'Last_Education' => ['Last Education', 120, 'center', '#combo_filter', 'str'],
+            'Last_Education_From' => ['Last Education From', 160, 'left', '#text_filter', 'str'],
+            'Education_Major' => ['Education Major', 160, 'left', '#text_filter', 'str'],
+            'Religion' => ['Religion', 100, 'center', '#combo_filter', 'str'],
+            'Blood' => ['Blood', 70, 'center', '#combo_filter', 'str'],
+            'Blood_Rhesus' => ['Rhesus', 70, 'center', '#combo_filter', 'str'],
+            'Status' => ['Status', 100, 'center', '#combo_filter', 'str'],
+            'Address' => ['Address', 200, 'left', '#text_filter', 'str'],
+            'City' => ['City', 120, 'left', '#text_filter', 'str'],
+            'Address_Living' => ['Address Living', 200, 'left', '#text_filter', 'str'],
+            'City_Living' => ['City Living', 120, 'left', '#text_filter', 'str'],
+            'Phone' => ['Phone', 120, 'left', '#text_filter', 'str'],
+            'Handphone' => ['Handphone', 130, 'left', '#text_filter', 'str'],
+            'Email' => ['Email', 170, 'left', '#text_filter', 'str'],
+            'Email_Individual' => ['Email Individual', 170, 'left', '#text_filter', 'str'],
+            'KTP' => ['KTP', 140, 'center', '#text_filter', 'str'],
+            'Foto' => ['Foto', 120, 'center', '#text_filter', 'str'],
+            'Position' => ['Last Position', 150, 'center', '#combo_filter', 'str'],
+            'Reason' => ['Reason', 150, 'left', '#text_filter', 'str'],
+            'Location' => ['Location', 100, 'center', '#combo_filter', 'str'],
+            'Alocation' => ['Alocation', 120, 'center', '#text_filter', 'str'],
+            'Work_Area' => ['Work Area', 120, 'center', '#combo_filter', 'str'],
+            'Department' => ['Department', 130, 'center', '#combo_filter', 'str'],
+            'Directorat' => ['Directorat', 110, 'center', '#combo_filter', 'str'],
+            'Priority' => ['Priority', 90, 'center', '#combo_filter', 'str'],
+            'Created_Date' => ['Created Date', 110, 'center', '#text_filter', 'date'],
+            'Created_By' => ['Created By', 120, 'center', '#text_filter', 'str'],
+            'Registration_Status' => ['Registration Status', 130, 'center', '#combo_filter', 'str'],
+            'Registration_Status_Date' => ['Registration Status Date', 150, 'center', '#text_filter', 'date'],
+            'Registration_Status_Note' => ['Registration Status Note', 180, 'left', '#text_filter', 'str'],
+            'Interview_Note' => ['Interview Note', 180, 'left', '#text_filter', 'str'],
+            'Interview_Date' => ['Interview Date', 110, 'center', '#text_filter', 'date'],
+            'Interview_Result' => ['Interview Result', 130, 'center', '#combo_filter', 'str'],
+            'Interview_By' => ['Interview By', 130, 'center', '#text_filter', 'str'],
+            'Employment_Status' => ['Employee Status', 120, 'center', '#combo_filter', 'str'],
+            'Employment_Status_Date' => ['Employment Status Date', 150, 'center', '#text_filter', 'date'],
+            'Employment_Class' => ['Employment Class', 120, 'center', '#combo_filter', 'str'],
+            'Employment_Grade' => ['Employment Grade', 120, 'center', '#combo_filter', 'str'],
+            'Salary_Accepted' => ['Salary Accepted', 130, 'right', '#text_filter', 'int'],
+            'Contract_No' => ['Contract No', 130, 'center', '#text_filter', 'str'],
+            'Subsection' => ['Subsection', 120, 'center', '#combo_filter', 'str'],
+            'Start_Date' => ['Start Date', 110, 'center', '#text_filter', 'date'],
+            'End_Date' => ['End Date', 110, 'center', '#text_filter', 'date'],
+            'Date_in' => ['Date In', 110, 'center', '#text_filter', 'date'],
+            'Note_In' => ['Note In', 150, 'left', '#text_filter', 'str'],
+            'Date_Out' => ['Date Out', 110, 'center', '#text_filter', 'date'],
+            'Note_Out' => ['Note Out', 150, 'left', '#text_filter', 'str'],
+            'Salary_Group' => ['Salary Group', 110, 'center', '#combo_filter', 'str'],
+            'Payment_Method' => ['Payment Method', 120, 'center', '#combo_filter', 'str'],
+            'Payment_Reference' => ['Payment Reference', 150, 'center', '#text_filter', 'str'],
+            'Payment_Reference2' => ['Payment Reference 2', 150, 'center', '#text_filter', 'str'],
+            'Payment_Reference_Branch' => ['Payment Reference Branch', 170, 'center', '#text_filter', 'str'],
+            'Payment_Reference3' => ['Payment Reference 3', 150, 'center', '#text_filter', 'str'],
+            'Notes' => ['Notes', 180, 'left', '#text_filter', 'str'],
+            'NPWP' => ['NPWP', 150, 'center', '#text_filter', 'str'],
+            'PPH_Allowance' => ['PPH Allowance', 110, 'center', '#combo_filter', 'str'],
+            'Sisa_Cuti' => ['Sisa Cuti', 90, 'center', '#numeric_filter', 'int'],
+            'Category' => ['Category', 100, 'center', '#combo_filter', 'str'],
+            'Prorate_Salary' => ['Prorate Salary', 120, 'center', '#text_filter', 'str'],
+            'Prorate_Salary_Date' => ['Prorate Salary Date', 140, 'center', '#text_filter', 'date'],
+            'Prorate_Resigned' => ['Prorate Resigned', 120, 'center', '#text_filter', 'str'],
+            'Prorate_Resigned_Date' => ['Prorate Resigned Date', 150, 'center', '#text_filter', 'date'],
+            'Resigned_Date' => ['Resigned Date', 110, 'center', '#text_filter', 'date'],
+            'Resigned_Note' => ['Resigned Note', 170, 'left', '#text_filter', 'str'],
+            'Recruitment_ID' => ['Recruitment ID', 120, 'center', '#text_filter', 'str'],
+            'Recruitment_Status' => ['Recruitment Status', 130, 'center', '#combo_filter', 'str'],
+            'Address_Living_City' => ['Address Living City', 140, 'left', '#text_filter', 'str'],
+            'bpjs_tk' => ['BPJS TK', 130, 'center', '#text_filter', 'str'],
+            'bpjs_kes' => ['BPJS Kes', 130, 'center', '#text_filter', 'str'],
+            'Conversion_Date' => ['Conversion Date', 120, 'center', '#text_filter', 'date'],
+            'Mutation_File' => ['Mutation File', 140, 'center', '#text_filter', 'str'],
+            'Reference_No' => ['Reference No', 130, 'center', '#text_filter', 'str'],
+            'Employee_Type' => ['Employee Type', 120, 'center', '#combo_filter', 'str'],
+            'Age' => ['Age', 70, 'center', '#numeric_filter', 'int'],
+            'Academic_Major' => ['Last Education Major', 160, 'left', '#text_filter', 'str'],
+        ];
+    }
+}
+
+if (!function_exists('employee_grid_default_columns')) {
+    function employee_grid_default_columns(): array
+    {
+        return ['Name', 'Task_ID', 'Gender', 'Marital_Status', 'Age', 'Position', 'Department', 'Directorat', 'Employment_Status', 'Location', 'Last_Education', 'Academic_Major'];
+    }
+}
+
+if (!function_exists('employee_grid_cell')) {
+    function employee_grid_cell(string $key, $row, array $akademis = []): string
+    {
+        if ($key === 'Age') {
+            $b = isset($row->Birth_Date) ? $row->Birth_Date : '';
+            if ($b !== '' && $b !== '0000-00-00') {
+                return (string) floor((time() - strtotime($b)) / 31556926);
+            }
+            return '';
+        }
+        if ($key === 'Academic_Major') {
+            $tid = isset($row->Task_ID) ? $row->Task_ID : null;
+            return isset($akademis[$tid]) ? (string) $akademis[$tid] : '';
+        }
+        return isset($row->$key) ? (string) $row->$key : '';
+    }
+}
+
+if (!function_exists('employee_grid_column_admins')) {
+    function employee_grid_column_admins(): array
+    {
+        return ['admin', 'admin.hris'];
+    }
+}
+
+if (!function_exists('employee_grid_can_manage_columns')) {
+    function employee_grid_can_manage_columns(): bool
+    {
+        if (!auth()->check()) {
+            return false;
+        }
+        return in_array(auth()->user()->username, employee_grid_column_admins(), true);
+    }
+}
+
+if (!function_exists('employee_pivot_fields')) {
+    function employee_pivot_fields(): array
+    {
+        return [
+            'Department' => 'Department',
+            'Directorat' => 'Directorat',
+            'Location' => 'Location',
+            'Position' => 'Last Position',
+            'Employment_Status' => 'Employee Status',
+            'Employment_Class' => 'Employment Class',
+            'Employment_Grade' => 'Employment Grade',
+            'Gender' => 'Gender',
+            'Marital_Status' => 'Marital Status',
+            'Last_Education' => 'Last Education',
+            'Religion' => 'Religion',
+            'Category' => 'Category',
+            'Employee_Type' => 'Employee Type',
+            'Work_Area' => 'Work Area',
+            'Subsection' => 'Subsection',
+        ];
+    }
+}
+
+
+if (!function_exists('requisition_manager_levels')) {
+    function requisition_manager_levels(): array
+    {
+        return [1, 2, 3];
+    }
+}
+
+if (!function_exists('requisition_approval_chain')) {
+    function requisition_approval_chain(string $location, string $dept, int $posLevel): array
+    {
+        $db = '\\Illuminate\\Support\\Facades\\DB';
+        $isManagerUp = in_array($posLevel, requisition_manager_levels(), true);
+        $steps = [];
+
+        $mgrDept = $db::table('master_hr_approval')
+            ->where('Level', 3)->where('Location', $location)->where('Department', $dept)->first();
+        if (!$mgrDept) {
+            return ['chain' => [], 'error' => 'Manager departemen ' . $dept . ' belum terdaftar di master_hr_approval.'];
+        }
+        $steps[] = ['Level' => 1, 'Approved_By' => $mgrDept->username, 'Role' => 'Manager ' . $dept];
+
+        if ($isManagerUp) {
+            $vpDept = $db::table('master_hr_approval')
+                ->where('Level', 2)->where('Location', $location)->where('Department', $dept)->first();
+            if (!$vpDept) {
+                return ['chain' => [], 'error' => 'VP departemen ' . $dept . ' belum terdaftar di master_hr_approval (Level 2).'];
+            }
+            $steps[] = ['Level' => 2, 'Approved_By' => $vpDept->username, 'Role' => 'VP ' . $dept];
+        }
+
+        $mgrHcga = $db::table('master_hr_approval')
+            ->where('Level', 3)->where('Location', $location)->where('Department', 'HCGA')->first();
+        if (!$mgrHcga) {
+            return ['chain' => [], 'error' => 'Manager HCGA belum terdaftar di master_hr_approval.'];
+        }
+        $steps[] = ['Level' => 3, 'Approved_By' => $mgrHcga->username, 'Role' => 'Manager HCGA'];
+
+        if ($isManagerUp) {
+            $vpGeu = $db::table('master_hr_approval')
+                ->where('Level', 1)->where('Location', $location)->first();
+            if (!$vpGeu) {
+                return ['chain' => [], 'error' => 'VP Geu belum terdaftar di master_hr_approval (Level 1).'];
+            }
+            $steps[] = ['Level' => 4, 'Approved_By' => $vpGeu->username, 'Role' => 'VP Geu'];
+        }
+
+        $chain = [];
+        $seen = [];
+        foreach ($steps as $s) {
+            if (in_array($s['Approved_By'], $seen, true)) {
+                continue;
+            }
+            $seen[] = $s['Approved_By'];
+            $chain[] = $s;
+        }
+        foreach ($chain as $i => $s) {
+            $chain[$i]['Level'] = $i + 1;
+        }
+        return ['chain' => $chain, 'error' => null];
+    }
+}

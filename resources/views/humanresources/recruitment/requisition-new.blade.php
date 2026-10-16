@@ -12,6 +12,8 @@ $workCalendar = DB::table('work_calendars')->get();
 $req = DB::table('requisition')->where("Created_Date", 'LIKE', date("Y") . '%')->count() + 1;
 $Taskid = 'REQ/' . $LSP . '/' . date('Ymdhis') . '-' . sprintf('%02d', $req);
 
+$location = DB::table('location')->get()
+
 ?>
 
 
@@ -45,19 +47,23 @@ $Taskid = 'REQ/' . $LSP . '/' . date('Ymdhis') . '-' . sprintf('%02d', $req);
                             @endforeach
                         </select>
                     </div>
-                    <div class="form-group col-md-6">
+                    <!-- div class="form-group col-md-6">
                         <label>
                             Subject
                         </label>
 
                         <input type="text" class="form-control" id="Subject" />
-                    </div>
+                    </div -->
                     <div class="form-group col-md-6">
                         <label>
                             Site Penempatan
                         </label>
-
-                        <input type="text" class="form-control" id="Placement" />
+                        <select name="Placement" id="Placement" class="form-control">
+                            <option value="">-- Pilih penempatan --</option>
+                            @foreach ($location as $item)
+                            <option value="{{ $item->Location_ID }}">{{ $item->Name }} ({{ $item->Location_ID }})</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div class="form-group col-md-6">
                         <label>
@@ -195,10 +201,15 @@ $Taskid = 'REQ/' . $LSP . '/' . date('Ymdhis') . '-' . sprintf('%02d', $req);
                 'X-CSRF-TOKEN': "{{ csrf_token() }}"
             },
             success: function(response) {
-                alert('Requisition submitted successfully!');
-                $('#NewRec')[0].reset();
-                refreshdata();
-                $('#divlistRequisition').html('');
+                if (response == 'success') {
+                    alert('Requisition submitted successfully!');
+                    $('#NewRec')[0].reset();
+                    refreshdata();
+                    $('#divlistRequisition').html('');
+                }else if(response == 'exist') {
+                    alert('Sudah ada pengajuan yang sama');
+                    $('#Placement').focus();
+                }
             },
             error: function(xhr) {
                 if (xhr.status === 422) {

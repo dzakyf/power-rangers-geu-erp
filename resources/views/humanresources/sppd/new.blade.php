@@ -98,6 +98,7 @@
                             <select id="Rute_Mode" class="form-control shadow-sm" onchange="updateRuteMode();">
                                 <option value="KANTOR">Kantor</option>
                                 <option value="TITIK">Pilih Titik Tujuan</option>
+                                <option value="KOORDINAT">Koordinat (Latitude/Longitude)</option>
                             </select>
                         </div>
                     </div>
@@ -124,6 +125,24 @@
                             <div class="small mt-1" id="destPointInfo"></div>
                             <input type="hidden" id="Dest_Lat" />
                             <input type="hidden" id="Dest_Lng" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-12" id="ruteKoordinat" style="display:none;">
+                        <div class="form-group">
+                            <label>Titik Koordinat Tujuan</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <input type="text" id="Coord_Lat" class="form-control shadow-sm" placeholder="Latitude cth: -6.200000" />
+                                </div>
+                                <div class="col-6">
+                                    <input type="text" id="Coord_Lng" class="form-control shadow-sm" placeholder="Longitude cth: 106.816666" />
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-1" id="btnPickCoordPoint">
+                                <i class="fa fa-map-marker-alt"></i> Pilih di Peta
+                            </button>
+                            <div class="small mt-1" id="coordPointInfo"></div>
                         </div>
                     </div>
 
@@ -441,12 +460,25 @@
         var m = $('#Rute_Mode').val();
         if (m === 'TITIK') {
             $('#ruteKantor').hide();
+            $('#ruteKoordinat').hide();
             $('#ruteTitik').show();
             $('#Route_Finish').val('');
             $('#Route_Finish').trigger('change.select2');
+        } else if (m === 'KOORDINAT') {
+            $('#ruteKantor').hide();
+            $('#ruteTitik').hide();
+            $('#ruteKoordinat').show();
+            $('#Route_Finish').val('');
+            $('#Route_Finish').trigger('change.select2');
+            if ($('#Dest_Lat').val() && $('#Dest_Lng').val() && $.trim($('#Coord_Lat').val()) === '') {
+                $('#Coord_Lat').val($('#Dest_Lat').val());
+                $('#Coord_Lng').val($('#Dest_Lng').val());
+            }
+            syncCoordToDest();
         } else {
             $('#ruteKantor').show();
             $('#ruteTitik').hide();
+            $('#ruteKoordinat').hide();
             $('#Destination').val('');
             $('#Dest_Lat').val('');
             $('#Dest_Lng').val('');
@@ -464,6 +496,9 @@
                 matrixData = resp.data;
                 updateRouteScope();
             }
+        });
+        $('#Coord_Lat, #Coord_Lng').on('change blur', function() {
+            syncCoordToDest();
         });
         $('#Route_Start, #Route_Finish, #Departure_Time, #Return_Time').on('change', function() {
             updateRouteScope();
@@ -720,6 +755,53 @@
         $('#destPointInfo').html('Titik: ' + lat + ', ' + lng + ' &mdash; <a href="' + url + '" target="_blank">Lihat di OpenStreetMap</a>');
     }
 
+    function validCoord(lat, lng) {
+        if (lat === '' || lng === '' || lat === null || lng === null) return false;
+        var la = parseFloat(String(lat).replace(',', '.'));
+        var ln = parseFloat(String(lng).replace(',', '.'));
+        if (isNaN(la) || isNaN(ln)) return false;
+        return la >= -90 && la <= 90 && ln >= -180 && ln <= 180;
+    }
+
+    function renderCoordPointInfo(lat, lng) {
+        var url = 'https://www.openstreetmap.org/?mlat=' + lat + '&mlon=' + lng + '#map=16/' + lat + '/' + lng;
+        $('#coordPointInfo').html('Titik: ' + lat + ', ' + lng + ' &mdash; <a href="' + url + '" target="_blank">Lihat di OpenStreetMap</a>');
+    }
+
+    function syncCoordToDest() {
+        if ($('#Rute_Mode').val() !== 'KOORDINAT') return;
+        var lat = $.trim($('#Coord_Lat').val()).replace(',', '.');
+        var lng = $.trim($('#Coord_Lng').val()).replace(',', '.');
+        if (!validCoord(lat, lng)) {
+            $('#Dest_Lat').val('');
+            $('#Dest_Lng').val('');
+            $('#coordPointInfo').html('<span class="text-muted">Isi latitude (-90 s/d 90) dan longitude (-180 s/d 180) yang valid.</span>');
+            updateRouteScope();
+            return;
+        }
+        var la = parseFloat(lat).toFixed(6),
+            ln = parseFloat(lng).toFixed(6);
+        $('#Dest_Lat').val(la);
+        $('#Dest_Lng').val(ln);
+        renderCoordPointInfo(la, ln);
+        if ($.trim($('#Destination').val()) === '') {
+            $('#Destination').val(la + ', ' + ln);
+        }
+        updateRouteScope();
+        $.get('https://nominatim.openstreetmap.org/reverse', {
+                format: 'jsonv2',
+                lat: la,
+                lon: ln,
+                zoom: 16,
+                addressdetails: 1
+            })
+            .done(function(res) {
+                if (res && res.display_name && $('#Rute_Mode').val() === 'KOORDINAT') {
+                    $('#Destination').val(res.display_name);
+                }
+            });
+    }
+
     function applyDestPoint() {
         if (!destLatLng) {
             alert('Klik pada peta untuk memilih titik tujuan terlebih dahulu.');
@@ -730,6 +812,11 @@
         $('#Dest_Lat').val(lat);
         $('#Dest_Lng').val(lng);
         renderDestPointInfo(lat, lng);
+        if ($('#Rute_Mode').val() === 'KOORDINAT') {
+            $('#Coord_Lat').val(lat);
+            $('#Coord_Lng').val(lng);
+            renderCoordPointInfo(lat, lng);
+        }
         updateRouteScope();
         // Reverse geocode via Nominatim (free, OSM) to fill the destination name
         $.get('https://nominatim.openstreetmap.org/reverse', {
@@ -746,7 +833,7 @@
             });
     }
 
-    $('#btnPickDestPoint').on('click', function() {
+    $('#btnPickDestPoint, #btnPickCoordPoint').on('click', function() {
         loadLeafletAssets(function() {
             var bodyHtml = '<div id="destPickerMap" style="height:420px;"></div>' +
                 '<div class="small text-muted mt-1">Klik/tap pada peta untuk memilih titik tujuan, lalu seret penanda untuk menyesuaikan.</div>' +
@@ -770,7 +857,9 @@
             });
             setTimeout(function() {
                 var start = [-6.2, 106.8];
-                if ($('#Dest_Lat').val() && $('#Dest_Lng').val()) {
+                if ($('#Rute_Mode').val() === 'KOORDINAT' && validCoord($('#Coord_Lat').val(), $('#Coord_Lng').val())) {
+                    start = [parseFloat(String($('#Coord_Lat').val()).replace(',', '.')), parseFloat(String($('#Coord_Lng').val()).replace(',', '.'))];
+                } else if ($('#Dest_Lat').val() && $('#Dest_Lng').val()) {
                     start = [parseFloat($('#Dest_Lat').val()), parseFloat($('#Dest_Lng').val())];
                 }
                 destMap = L.map('destPickerMap').setView(start, 12);
@@ -845,7 +934,16 @@
                 return;
             }
         }
-        if ($('#Rute_Mode').val() === 'TITIK') {
+        if ($('#Rute_Mode').val() === 'KOORDINAT') {
+            syncCoordToDest();
+            if (!validCoord($('#Coord_Lat').val(), $('#Coord_Lng').val()) || $.trim($("#Dest_Lat").val()) === "") {
+                alert("Untuk Koordinat: isi Latitude (-90 s/d 90) dan Longitude (-180 s/d 180) yang valid!");
+                return;
+            }
+            if ($.trim($("#Destination").val()) === "") {
+                $("#Destination").val($.trim($("#Coord_Lat").val()) + ", " + $.trim($("#Coord_Lng").val()));
+            }
+        } else if ($('#Rute_Mode').val() === 'TITIK') {
             if ($.trim($("#Destination").val()) === "" ||
                 $.trim($("#Dest_Lat").val()) === "" || $.trim($("#Dest_Lng").val()) === "") {
                 alert("Untuk Pilih Titik Tujuan: Tujuan Perjalanan Dinas + titik pada peta wajib diisi!");

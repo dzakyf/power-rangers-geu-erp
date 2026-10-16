@@ -109,11 +109,17 @@
                     @if (!empty($sppd->Dest_Lat) && !empty($sppd->Dest_Lng))
                     <div class="col-md-6 col-12">
                         <div class="form-group">
-                            <label>Titik Tujuan</label>
+                            <label>Titik Tujuan{{ empty($sppd->Route_Finish) ? ' (Koordinat)' : '' }}</label>
                             <div>
                                 {{ $sppd->Dest_Lat }}, {{ $sppd->Dest_Lng }} &mdash;
                                 <a href="https://www.openstreetmap.org/?mlat={{ $sppd->Dest_Lat }}&mlon={{ $sppd->Dest_Lng }}#map=16/{{ $sppd->Dest_Lat }}/{{ $sppd->Dest_Lng }}" target="_blank">Lihat di OpenStreetMap</a>
                             </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <div class="form-group">
+                            <label>Peta Titik Tujuan</label>
+                            <div id="destDetailMap" style="height:260px;background:#eee;"></div>
                         </div>
                     </div>
                     @endif
@@ -339,6 +345,32 @@
             }
         });
     });
+    (function() {
+        var dLat = '{{ $sppd->Dest_Lat }}', dLng = '{{ $sppd->Dest_Lng }}';
+        if (!dLat || !dLng || !$('#destDetailMap').length) return;
+        function renderDestMap() {
+            var lat = parseFloat(dLat), lng = parseFloat(dLng);
+            var map = L.map('destDetailMap').setView([lat, lng], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+            L.marker([lat, lng]).addTo(map).bindPopup('Tujuan: {{ addslashes($sppd->Destination) }}').openPopup();
+            setTimeout(function() { map.invalidateSize(); }, 250);
+        }
+        if (typeof L !== 'undefined') {
+            renderDestMap();
+            return;
+        }
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+        var script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = renderDestMap;
+        document.head.appendChild(script);
+    })();
     $('#BtnCloseSppd').click(function(e) {
         e.preventDefault();
         if (!confirm('Apakah Anda yakin menutup request SPPD ini?')) return;

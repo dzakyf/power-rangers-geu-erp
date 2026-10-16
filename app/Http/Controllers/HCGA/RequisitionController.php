@@ -97,7 +97,6 @@ class RequisitionController extends Controller
     {
         $request->validate([
             'Job_Position'  => 'required|integer|exists:master_position,ID',
-            'Subject'       => 'required|string|max:255',
             'Placement'     => 'required|string|max:255',
             'Description'   => 'required|string',
             'Requirement'   => 'required|string',
@@ -123,7 +122,7 @@ class RequisitionController extends Controller
             'Task_ID'          => $request->input('Task_ID'),
             'Job_Position'     => $jobPosition->Position,
             'Department'       => $jobPosition->Department,
-            'Subject'          => $request->input('Subject'),
+            'Subject'          => $request->input('Subject') ?? '',
             'Placement'        => $request->input('Placement'),
             'Description'      => $request->input('Description'),
             'Requirement'      => $request->input('Requirement'),
@@ -142,6 +141,32 @@ class RequisitionController extends Controller
             'Requisition_Type' => 'NON_PO',
         ];
 
+        // Cegah Task_ID ganda (double submit)
+        $dupTask = DB::table('requisition')->where('Task_ID', $request->input('Task_ID'))->first();
+        if ($dupTask) {
+            return 'exist';
+        }
+
+        // Cegah PTK terbuka ganda untuk posisi + departemen yang sama
+        $openReq = DB::table('requisition')
+            ->where('Job_Position', $jobPosition->Position)
+            ->where('Department', $jobPosition->Department)
+            ->where("Allocation", $request->Allocation)
+            ->whereNotIn('Status', ['CANCELED', 'CLOSED', 'REJECTED'])
+            ->orderBy('ID', 'DESC')
+            ->first();
+        if ($openReq && strtotime($openReq->End_Date) >= strtotime(date('Y-m-d'))) {
+            return 'exist';
+        }
+
+        // Susun rantai approval dulu agar tidak ada PTK macet tanpa approver.
+        // L1 Manager dept pengaju -> (L2 VP dept bila posisi manager+) ->
+        // L3 Manager HCGA -> (L4 VP Geu bila posisi manager+).
+        $chainResult = requisition_approval_chain($LSP, Auth::user()->Department, (int) $jobPosition->Level);
+        if ($chainResult['error'] !== null) {
+            return $chainResult['error'];
+        }
+
         $reqId = DB::table('requisition')->insertGetId($arr);
 
         $logArr = $arr;
@@ -152,25 +177,17 @@ class RequisitionController extends Controller
 
         DB::table('requisition_log')->insert($logArr);
 
-        // Level 4: Manager/KADIV (berdasarkan lokasi)
-        // Hanya masuk jika belum ada record Level 4 untuk requisition ini
-        $masterL4 = DB::table('master_hr_approval')
-            ->where('Level', 4)
-            ->where('Location', $LSP)
-            ->first();
-
-        if ($masterL4) {
-            $existingL2 = DB::table('requisition_approval')
+        foreach ($chainResult['chain'] as $step) {
+            $exists = DB::table('requisition_approval')
                 ->where('Task_ID', $request->input('Task_ID'))
-                ->where('Level', 4)
+                ->where('Level', $step['Level'])
                 ->exists();
-
-            if (!$existingL2) {
+            if (!$exists) {
                 DB::table('requisition_approval')->insert([
                     'Location'        => $LSP,
                     'Task_ID'         => $request->input('Task_ID'),
-                    'Level'           => 2,
-                    'Approved_By'     => $masterL4->username,
+                    'Level'           => $step['Level'],
+                    'Approved_By'     => $step['Approved_By'],
                     'Approved_Status' => 0,
                     'Approved_Date'   => null,
                     'Approved_Note'   => null,
@@ -178,33 +195,6 @@ class RequisitionController extends Controller
             }
         }
 
-        // Level 1: VP Departemen
-        $master = DB::table('master_hr_approval')
-            ->where('Level', 1)
-            ->where('Location', $LSP)
-            ->where('Department', Auth::user()->Department)
-            ->first();
-
-        if ($master) {
-            // Cek apakah approval level 1 sudah ada untuk mencegah duplikasi
-            $existing = DB::table('requisition_approval')
-                ->where('Task_ID', $request->input('Task_ID'))
-                ->where('Level', 1)
-                ->exists();
-
-            if (!$existing) {
-                DB::table('requisition_approval')->insert([
-                    'Location'        => $LSP,
-                    'Task_ID'         => $request->input('Task_ID'),
-                    'Level'           => 1,
-                    'Approved_By'     => $master->username,
-                    'Approved_Status' => 0,
-                    'Approved_Date'   => null,
-                    'Approved_Note'   => null,
-                ]);
-            }
-        }
-
-        return response()->json(['status' => 'success', 'message' => 'Requisition created.']);
+        return 'success';
     }
 }
