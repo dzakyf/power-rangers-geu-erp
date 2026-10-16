@@ -52,11 +52,11 @@ $Saya =  Auth::user()->username;
 	}
 	RequisitionLists = new dhtmlXGridObject('RequisitionLists');
 	RequisitionLists.setImagePath("./dhtmlx/imgs/");
-	RequisitionLists.setHeader("No.,PTK No,Subject,Job Position,Description,Requirement,Department,Priority,Qty,Aging(days),Start date,End Date,Reference,PIC,Status,Note");
-	RequisitionLists.setInitWidths("70,100,250,120,120,120,100,100,50,100,100,100,100,100,100,100");
-	RequisitionLists.setColAlign("center,left,left,center,center,center,center,center,center,center,center,center,center,center,left");
-	RequisitionLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,coro,ro,ro,ro,ro,ro,combo,ro,ro");
-	RequisitionLists.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
+	RequisitionLists.setHeader("No.,PTK No,Job Position,Description,Requirement,Department,Priority,Qty,Aging(days),Start date,End Date,Reference,PIC,Status,Note");
+	RequisitionLists.setInitWidths("70,100,120,120,120,100,100,50,100,100,100,100,100,100,100");
+	RequisitionLists.setColAlign("center,left,center,center,center,center,center,center,center,center,center,center,center,left");
+	RequisitionLists.setColTypes("ro,ro,ro,ro,ro,ro,coro,ro,ro,ro,ro,ro,combo,ro,ro");
+	RequisitionLists.setColSorting("int,str,str,str,str,str,str,str,str,str");
 	RequisitionLists.setEditable(true);
 	PRequisitionLists = new dataProcessor("requisition-submit");
 	PRequisitionLists.setTransactionMode({

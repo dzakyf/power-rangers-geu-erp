@@ -24,7 +24,7 @@
     SppdGrid = new dhtmlXGridObject('SppdGrid');
     SppdGrid.setImagePath("./dhtmlx/imgs/");
     SppdGrid.setHeader("No,SPPD No,Requester,Department,Type,Destination,Route,Kegiatan,Schedule Date,Estimated Cost,Status,Doc Pengajuan,Doc Persetujuan");
-    SppdGrid.attachHeader("#span,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#span,#span");
+    SppdGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#span,#span");
     SppdGrid.setInitWidths("40,140,140,140,110,150,170,130,110,130,110,110,130");
     SppdGrid.setColAlign("center,left,left,left,left,left,left,left,center,right,center,center,center");
     SppdGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,link,link");

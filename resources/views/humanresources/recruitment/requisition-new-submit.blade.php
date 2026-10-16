@@ -33,6 +33,21 @@ $ars = substr($ars,0,-1);
 $MX = substr($MX,0,-1);
 $jobPosition = DB::table('master_position')->where("ID", $_POST['Job_Position'])->first();
 
+$cekExisting = DB::table('requisition')
+	->where("Job_Position", $jobPosition->Position)
+	->where("Department", $jobPosition->Department)
+	->whereNotIn("Status", ['CANCELED','CLOSED'])->first();
+	
+$buat = strtotime($cekExisting->End_Date);
+$now = strtotime(date('Y-m-d'));
+$kurang = ($now-$buat)/86400;
+$hari = round($kurang,0);
+
+if ($hari <= 0) {
+	echo "exist";
+	return;
+}
+
 $arr['Created_By'] = $Saya;
 $arr['Location'] = $LSP;
 $arr['Created_Date'] = now();
