@@ -5632,10 +5632,11 @@ Route::group(['middleware' => 'log.access'], function () {
     $isccTraceabilityPref = "cns-iscc-traceability";
     Route::get("$isccTraceabilityPref-index", [ISCCTraceabilityController::class, 'index'])->name($isccTraceabilityPref . '.index');
     Route::get("$isccTraceabilityPref-utama", [ISCCTraceabilityController::class, 'utama'])->name($isccTraceabilityPref . '.utama');
-    Route::get("$isccTraceabilityPref-utama-data", [ISCCTraceabilityController::class, 'utamaData'])->name($isccTraceabilityPref . '.utama-data');
     Route::get("$isccTraceabilityPref-utama-detail", [ISCCTraceabilityController::class, 'utamaDetail'])->name($isccTraceabilityPref . '.utama-detail');
-    Route::get("$isccTraceabilityPref-utama-detail-data", [ISCCTraceabilityController::class, 'utamaDetailData'])->name($isccTraceabilityPref . '.utama-detail-data');
-    Route::get("$isccTraceabilityPref-data", [ISCCTraceabilityController::class, 'data'])->name($isccTraceabilityPref . '.data');
+    Route::get("$isccTraceabilityPref-fragment-data", [ISCCTraceabilityController::class, 'fragmentData'])->name($isccTraceabilityPref . '.fragment-data');
+    Route::get("$isccTraceabilityPref-delivery-data", [ISCCTraceabilityController::class, 'deliveryData'])->name($isccTraceabilityPref . '.delivery-data');
+    Route::get("$isccTraceabilityPref-delivery-fragment-data", [ISCCTraceabilityController::class, 'deliveryFragmentData'])->name($isccTraceabilityPref . '.delivery-fragment-data');
+    Route::get("$isccTraceabilityPref-fragment-export", [ISCCTraceabilityController::class, 'exportFragments'])->name($isccTraceabilityPref . '.fragment-export');
     Route::get("$isccTraceabilityPref-edit/{fragmentId}", [ISCCTraceabilityController::class, 'edit'])->name($isccTraceabilityPref . '.edit');
     Route::post("$isccTraceabilityPref-update", [ISCCTraceabilityController::class, 'update'])->name($isccTraceabilityPref . '.update');
     Route::post("$isccTraceabilityPref-photo-upload", [ISCCTraceabilityController::class, 'uploadPhoto'])->name($isccTraceabilityPref . '.photo-upload');
