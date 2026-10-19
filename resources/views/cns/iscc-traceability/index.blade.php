@@ -1,17 +1,20 @@
 @extends('layout.mainlayout-cns')
 
+@push('head')
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/plugins/data-tables/css/datatables.min.css') }}">
+<style>
+	.frag-row { cursor: pointer; }
+	.frag-row.selected { background-color: #d9edf7 !important; }
+</style>
+@endpush
+
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
 <div class="main-content-header">
 	<h1>ISCC Sustainability</h1>
 	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/">ISCC Sustainability</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">Traceability</span>
-		</li>
+		<li class="breadcrumb-item"><a href="/">ISCC Sustainability</a></li>
+		<li class="breadcrumb-item active"><span class="active">Traceability</span></li>
 	</ol>
 </div>
 
@@ -31,81 +34,128 @@
 				<input type="button" value="Filter" class="btn btn-primary mr-2" onclick="applyFilter()" />
 				<input type="button" value="Reset" class="btn btn-secondary" onclick="resetFilter()" />
 			</form>
-			<div id="TraceGrid" style="width:auto;height:400px; background-color:white;overflow:hidden"></div>
-			<div>
-				<input type="button" id="editBtn" name="editBtn" value="Edit Data" class="btn btn-primary mt-2 mr-2" onclick="editSelected()" />
-				<input type="button" id="printOutBtn" name="printOutBtn" value="Print Doc" class="btn btn-info mt-2 mr-2" onclick="printOutData()" />
-				<input type="button" id="exportBtn" name="exportBtn" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="TraceGrid.toExcel('./export/generate.php');" />
+			<table id="fragTable" class="table table-striped table-bordered" style="width:100%">
+				<thead>
+					<tr>
+						<th>No</th>
+						<th>Source</th>
+						<th>POO Name</th>
+						<th>Type</th>
+						<th>City</th>
+						<th>Province</th>
+						<th>Qty (Kg)</th>
+						<th>PO Qty</th>
+						<th>WO Code</th>
+						<th>WO Date</th>
+						<th>WO Status</th>
+						<th>PO Code</th>
+						<th>PO Date</th>
+						<th>PO Status</th>
+						<th>Surat Jalan Code</th>
+						<th>Surat Jalan Date</th>
+						<th>Surat Jalan Status</th>
+						<th>Split</th>
+					</tr>
+				</thead>
+			</table>
+			<div class="mt-2">
+				<button type="button" id="editBtn" class="btn btn-warning mr-2" onclick="editSelected()" disabled>Edit Data</button>
+				<button type="button" id="printBtn" class="btn btn-info mr-2" onclick="printSelected()" disabled>Print Doc</button>
+				<button type="button" id="exportBtn" class="btn btn-secondary" onclick="exportExcel()">Export Excel</button>
 			</div>
 		</div>
 	</div>
 	<div id="divTraceDetail"></div>
 </div>
+@endsection
 
+@push('scripts')
+<script src="{{ asset('assets/plugins/data-tables/js/datatables.min.js') }}"></script>
 <script>
-	var TraceGrid;
-	var selectedFragmentId = null;
+	var fragTable;
+	var selectedRow = null;
 
-	TraceGrid = new dhtmlXGridObject('TraceGrid');
-	TraceGrid.setImagePath("./dhtmlx/imgs/");
-	TraceGrid.setHeader("No,Source,POO Name,Type,City,Province,Qty (Kg),PO Qty,WO Code,WO Date,WO Status,PO Code,PO Date,PO Status,Surat Jalan Code,Surat Jalan Date,Surat Jalan Status,Split,");
-	TraceGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#cspan");
-	TraceGrid.setInitWidths("40,70,200,80,120,100,80,80,140,90,80,140,90,80,140,90,80,60,0");
-	TraceGrid.setColAlign("center,center,left,center,left,left,right,right,left,center,center,left,center,right,left,center,center,center,center");
-	TraceGrid.setColSorting("int,str,str,str,str,str,num,num,str,str,str,str,str,str,str,str,str,str,str");
-	TraceGrid.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-	TraceGrid.enableSmartRendering(true, 150);
-	TraceGrid.attachEvent("onRowSelect", function(id) {
-		var src = TraceGrid.cells(id, 1).getValue();
-		var fid = TraceGrid.cells(id, 18).getValue();
-		selectedFragmentId = (fid && fid !== '') ? fid : null;
-		document.getElementById('editBtn').style.display = (src === 'EXTERNAL') ? '' : 'none';
+	$(function () {
+		fragTable = $('#fragTable').DataTable({
+			processing: true,
+			serverSide: true,
+			pageLength: 25,
+			lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+			ajax: {
+				url: 'cns-iscc-traceability-fragment-data',
+				data: function (d) {
+					d.source = $('#fSource').val();
+					d.city = $('#fCity').val();
+					d.date_from = $('#fDateFrom').val();
+					d.date_to = $('#fDateTo').val();
+				}
+			},
+			columns: [
+				{ data: 'no' },
+				{ data: 'source' },
+				{ data: 'poo_name' },
+				{ data: 'poo_type' },
+				{ data: 'city' },
+				{ data: 'province' },
+				{ data: 'quantity_kg', className: 'text-right' },
+				{ data: 'po_qty', className: 'text-right' },
+				{ data: 'wo_code' },
+				{ data: 'wo_date' },
+				{ data: 'wo_status' },
+				{ data: 'po_code' },
+				{ data: 'po_date' },
+				{ data: 'po_status' },
+				{ data: 'do_code' },
+				{ data: 'do_date' },
+				{ data: 'do_status' },
+				{ data: 'split' }
+			],
+			order: [[2, 'asc']],
+			rowCallback: function (row, data) {
+				$(row).addClass('frag-row');
+				$(row).on('click', function () {
+					$('#fragTable tbody tr').removeClass('selected');
+					$(this).addClass('selected');
+					selectedRow = data;
+					var ok = (data.source === 'EXTERNAL' && data.fragment_id);
+					$('#editBtn').prop('disabled', !ok);
+					$('#printBtn').prop('disabled', !ok);
+				});
+			},
+			drawCallback: function () {
+				selectedRow = null;
+				$('#editBtn, #printBtn').prop('disabled', true);
+			}
+		});
 	});
-	TraceGrid.setSkin("dhx_skyblue");
-	TraceGrid.init();
-	TraceGrid.setColumnHidden(18, true);
-	refreshdata();
 
-	function refreshdata() {
-		var params = [];
-		var source = document.getElementById('fSource').value;
-		var city = document.getElementById('fCity').value;
-		var dateFrom = document.getElementById('fDateFrom').value;
-		var dateTo = document.getElementById('fDateTo').value;
-		if (source) params.push('source=' + encodeURIComponent(source));
-		if (city) params.push('city=' + encodeURIComponent(city));
-		if (dateFrom) params.push('date_from=' + encodeURIComponent(dateFrom));
-		if (dateTo) params.push('date_to=' + encodeURIComponent(dateTo));
-		var qs = params.length ? ('?' + params.join('&')) : '';
-		TraceGrid.clearAndLoad('cns-iscc-traceability-data' + qs);
-	}
-
-	function applyFilter() {
-		refreshdata();
-	}
-
+	function applyFilter() { fragTable.ajax.reload(); }
 	function resetFilter() {
-		document.getElementById('fSource').value = '';
-		document.getElementById('fCity').value = '';
-		document.getElementById('fDateFrom').value = '';
-		document.getElementById('fDateTo').value = '';
-		refreshdata();
+		$('#fSource').val('');
+		$('#fCity').val('');
+		$('#fDateFrom').val('');
+		$('#fDateTo').val('');
+		fragTable.ajax.reload();
 	}
-
 	function editSelected() {
-		if (!selectedFragmentId) {
-			alert('Select an EXTERNAL (Supplier) row to edit.');
-			return;
+		if (selectedRow && selectedRow.fragment_id) {
+			LoadM('divTraceDetail', 'cns-iscc-traceability-edit/' + selectedRow.fragment_id);
 		}
-		LoadM('divTraceDetail', 'cns-iscc-traceability-edit/' + selectedFragmentId);
 	}
-
-	function printOutData() {
-		if (!selectedFragmentId) {
-			alert('Select row to print.');
-			return;
+	function printSelected() {
+		if (selectedRow && selectedRow.fragment_id) {
+			window.open('cns-iscc-traceability-print/' + selectedRow.fragment_id, '_blank');
 		}
-		window.open('cns-iscc-traceability-print/' + selectedFragmentId, '_blank');
+	}
+	function exportExcel() {
+		var q = $.param({
+			source: $('#fSource').val(),
+			city: $('#fCity').val(),
+			date_from: $('#fDateFrom').val(),
+			date_to: $('#fDateTo').val(),
+			search: fragTable.search()
+		});
+		window.open('cns-iscc-traceability-fragment-export?' + q, '_blank');
 	}
 </script>
-@endsection
+@endpush

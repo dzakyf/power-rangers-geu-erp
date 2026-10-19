@@ -1,71 +1,109 @@
+<style>
+	.frag-row { cursor: pointer; }
+	.frag-row.selected { background-color: #d9edf7 !important; }
+</style>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">TRACEABILITY</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">TRACEABILITY DETAIL</div>
 	<div class="card">
 		<div class="card-body">
-			<div id="TraceGridDetail" style="width:auto;height:400px; background-color:white;overflow:hidden"></div>
-			<div>
-				<input type="button" id="editBtn" name="editBtn" value="Edit Data" class="btn btn-warning mt-2 mr-2" onclick="editSelected()" />
-				<input type="button" id="exportButton" name="exportButton" value="Print Doc" class="btn btn-info mt-2 mr-2" onclick="printOutData()" />
+			<table id="deliveryFragTable" class="table table-striped table-bordered" style="width:100%">
+				<thead>
+					<tr>
+						<th>No</th>
+						<th>Source</th>
+						<th>POO Name</th>
+						<th>Type</th>
+						<th>City</th>
+						<th>Province</th>
+						<th>Qty (Kg)</th>
+						<th>PO Qty</th>
+						<th>WO Code</th>
+						<th>WO Date</th>
+						<th>WO Status</th>
+						<th>PO Code</th>
+						<th>PO Date</th>
+						<th>PO Status</th>
+						<th>Surat Jalan Code</th>
+						<th>Surat Jalan Date</th>
+						<th>Surat Jalan Status</th>
+						<th>Split</th>
+					</tr>
+				</thead>
+			</table>
+			<div class="mt-2">
+				<button type="button" id="editDetailBtn" class="btn btn-warning mr-2" onclick="editSelectedDetail()" disabled>Edit Data</button>
+				<button type="button" id="printDetailBtn" class="btn btn-info" onclick="printSelectedDetail()" disabled>Print Doc</button>
 			</div>
 		</div>
 	</div>
-	<div id="divTraceDetail"></div>
+	<div id="divTraceDetailInner"></div>
 </div>
 
 <script>
-	var TraceGridDetail;
-	var selectedFragmentIdDetail = null;
+	(function () {
+		var id = {{ (int) ($id ?? 0) }};
+		var selectedRow = null;
 
-	TraceGridDetail = new dhtmlXGridObject('TraceGridDetail');
-	TraceGridDetail.setImagePath("./dhtmlx/imgs/");
-	TraceGridDetail.setHeader("No,Source,POO Name,Type,City,Province,Qty (Kg),PO Qty,WO Code,WO Date,WO Status,PO Code,PO Date,PO Status,Surat Jalan Code,Surat Jalan Date,Surat Jalan Status,Split,");
-	TraceGridDetail.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#cspan");
-	TraceGridDetail.attachFooter(["Total", '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', "#stat_total"]);
-	TraceGridDetail.setInitWidths("40,70,200,80,120,100,80,80,140,90,80,140,90,80,140,90,80,60,0");
-	TraceGridDetail.setColAlign("center,center,left,center,left,left,right,right,left,center,center,left,center,right,left,center,center,center,center");
-	TraceGridDetail.setColSorting("int,str,str,str,str,str,num,num,str,str,str,str,str,str,str,str,str,str,str");
-	TraceGridDetail.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-	TraceGridDetail.enableSmartRendering(true, 150);
-	TraceGridDetail.attachEvent("onRowSelect", function(id) {
-		var src = TraceGridDetail.cells(id, 1).getValue();
-		var fid = TraceGridDetail.cells(id, 18).getValue();
-		selectedFragmentIdDetail = (fid && fid !== '') ? fid : null;
-		document.getElementById('editBtn').style.display = (src === 'EXTERNAL') ? '' : 'none';
-	});
-	TraceGridDetail.setSkin("dhx_skyblue");
-	TraceGridDetail.init();
-	TraceGridDetail.setColumnHidden(18, true);
-	refreshdataDetail();
-
-	function refreshdataDetail() {
-		TraceGridDetail.clearAndLoad('cns-iscc-traceability-utama-detail-data?id={{$id}}');
-	}
-
-	function applyFilter() {
-		refreshdataDetail();
-	}
-
-	function resetFilter() {
-		document.getElementById('fSource').value = '';
-		document.getElementById('fCity').value = '';
-		document.getElementById('fDateFrom').value = '';
-		document.getElementById('fDateTo').value = '';
-		refreshdataDetail();
-	}
-
-	function editSelected() {
-		if (!selectedFragmentIdDetail) {
-			alert('Select an EXTERNAL (Supplier) row to edit.');
-			return;
+		if ($.fn.DataTable.isDataTable('#deliveryFragTable')) {
+			$('#deliveryFragTable').DataTable().destroy();
 		}
-		LoadM('divTraceDetail', 'cns-iscc-traceability-edit/' + selectedFragmentIdDetail);
-	}
 
-	function printOutData() {
-		if (!selectedFragmentIdDetail) {
-			alert('Select row to print.');
-			return;
-		}
-		window.open('cns-iscc-traceability-print/' + selectedFragmentIdDetail, '_blank');
-	}
+		var tbl = $('#deliveryFragTable').DataTable({
+			processing: true,
+			serverSide: true,
+			pageLength: 25,
+			lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+			ajax: {
+				url: 'cns-iscc-traceability-delivery-fragment-data',
+				data: function (d) { d.id = id; }
+			},
+			columns: [
+				{ data: 'no' },
+				{ data: 'source' },
+				{ data: 'poo_name' },
+				{ data: 'poo_type' },
+				{ data: 'city' },
+				{ data: 'province' },
+				{ data: 'quantity_kg', className: 'text-right' },
+				{ data: 'po_qty', className: 'text-right' },
+				{ data: 'wo_code' },
+				{ data: 'wo_date' },
+				{ data: 'wo_status' },
+				{ data: 'po_code' },
+				{ data: 'po_date' },
+				{ data: 'po_status' },
+				{ data: 'do_code' },
+				{ data: 'do_date' },
+				{ data: 'do_status' },
+				{ data: 'split' }
+			],
+			order: [[0, 'asc']],
+			rowCallback: function (row, data) {
+				$(row).addClass('frag-row');
+				$(row).on('click', function () {
+					$('#deliveryFragTable tbody tr').removeClass('selected');
+					$(this).addClass('selected');
+					selectedRow = data;
+					var ok = !!data.fragment_id;
+					$('#editDetailBtn').prop('disabled', !ok);
+					$('#printDetailBtn').prop('disabled', !ok);
+				});
+			},
+			drawCallback: function () {
+				selectedRow = null;
+				$('#editDetailBtn, #printDetailBtn').prop('disabled', true);
+			}
+		});
+
+		window.editSelectedDetail = function () {
+			if (selectedRow && selectedRow.fragment_id) {
+				LoadM('divTraceDetailInner', 'cns-iscc-traceability-edit/' + selectedRow.fragment_id);
+			}
+		};
+		window.printSelectedDetail = function () {
+			if (selectedRow && selectedRow.fragment_id) {
+				window.open('cns-iscc-traceability-print/' + selectedRow.fragment_id, '_blank');
+			}
+		};
+	})();
 </script>

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
-use App\Services\ISCCTraceabilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -13,148 +12,364 @@ class ISCCTraceabilityController extends Controller
     const PHOTO_TOPIC = 'TRACEABILITY_EXTERNAL';
     const PHOTO_MAX = 3;
 
+    /* ----------------------------------------------------------------- views */
+
     public function index()
     {
         return view('cns.iscc-traceability.index');
     }
 
-    public function data(Request $request)
+    public function utama()
     {
-        $city = $request->get('city');
-        $dateFrom = $request->get('date_from');
-        $dateTo = $request->get('date_to');
-        $source = $request->get('source');
-
-        $rows = collect();
-
-        if (!$source || $source === 'NATURAL') {
-            $natural = DB::table('master_poo as mp')
-                ->leftJoin('work_order as wo', 'wo.POO_Id', '=', 'mp.ID')
-                ->leftJoin('pickup_order as po', 'po.WO_Id', '=', 'wo.ID')
-                ->leftJoin('delivery_order as do', 'do.ID', '=', 'po.DO_Id')
-                ->where('mp.Is_Active', 1)
-                ->when($city, function ($q) use ($city) {
-                    return $q->where('mp.City', $city);
-                })
-                ->when($dateFrom, function ($q) use ($dateFrom) {
-                    return $q->whereDate('wo.Work_Order_Date', '>=', $dateFrom);
-                })
-                ->when($dateTo, function ($q) use ($dateTo) {
-                    return $q->whereDate('wo.Work_Order_Date', '<=', $dateTo);
-                })
-                ->select(
-                    'mp.ID as poo_id',
-                    'mp.Name as poo_name',
-                    'mp.Type as poo_type',
-                    'mp.City as city',
-                    'mp.Province as province',
-                    'wo.Code as wo_code',
-                    'wo.Work_Order_Date as wo_date',
-                    'wo.Status as wo_status',
-                    'po.Code as po_code',
-                    'po.Pickup_At as po_date',
-                    'po.Qty as po_qty',
-                    'po.Status as po_status',
-                    'do.Code as do_code',
-                    'do.DO_Date as do_date',
-                    'do.DO_Status as do_status'
-                )
-                ->get()
-                ->map(function ($row) {
-                    return [
-                        'source' => 'NATURAL',
-                        'fragment_id' => null,
-                        'split' => 'Tidak',
-                        'poo_name' => $row->poo_name,
-                        'poo_type' => $row->poo_type,
-                        'city' => $row->city,
-                        'province' => $row->province,
-                        'quantity_kg' => $row->po_qty,
-                        'wo_code' => $row->wo_code,
-                        'wo_date' => $row->wo_date,
-                        'wo_status' => $row->wo_status,
-                        'po_code' => $row->po_code,
-                        'po_date' => $row->po_date,
-                        'po_qty' => $row->po_qty,
-                        'po_status' => $row->po_status,
-                        'do_code' => $row->do_code,
-                        'do_date' => $row->do_date,
-                        'do_status' => $row->do_status,
-                    ];
-                });
-
-            $rows = $rows->merge($natural);
-        }
-
-        if (!$source || $source === 'EXTERNAL') {
-            $external = DB::table('traceability_external_poo_fragments as tep')
-                ->join('traceability_external_deliveries as ted', 'ted.id', '=', 'tep.traceability_external_delivery_id')
-                ->leftJoin(
-                    DB::raw('(SELECT traceability_external_delivery_id, COUNT(*) AS frag_count FROM traceability_external_poo_fragments GROUP BY traceability_external_delivery_id) AS fcnt'),
-                    'fcnt.traceability_external_delivery_id', '=', 'tep.traceability_external_delivery_id'
-                )
-                ->whereIn('ted.status', ['LOCKED', 'AUDITED'])
-                ->when($city, function ($q) use ($city) {
-                    return $q->where('tep.city', $city);
-                })
-                ->when($dateFrom, function ($q) use ($dateFrom) {
-                    return $q->whereDate('ted.delivery_date', '>=', $dateFrom);
-                })
-                ->when($dateTo, function ($q) use ($dateTo) {
-                    return $q->whereDate('ted.delivery_date', '<=', $dateTo);
-                })
-                ->select(
-                    'tep.id as fragment_id',
-                    'tep.poo_name',
-                    'tep.poo_type',
-                    'tep.quantity_kg',
-                    'tep.city',
-                    'tep.province',
-                    'tep.wo_code',
-                    'tep.wo_date',
-                    'tep.wo_status',
-                    'tep.po_code',
-                    'tep.po_date',
-                    'tep.po_qty',
-                    'tep.po_status',
-                    'tep.do_code',
-                    'tep.do_date',
-                    'tep.do_status',
-                    'fcnt.frag_count'
-                )
-                ->get()
-                ->map(function ($row) {
-                    return [
-                        'source' => 'EXTERNAL',
-                        'fragment_id' => $row->fragment_id,
-                        'split' => ($row->frag_count ?? 0) > 1 ? 'Ya' : 'Tidak',
-                        'poo_name' => $row->poo_name,
-                        'poo_type' => $row->poo_type ?? 'SUPPLIER',
-                        'city' => $row->city,
-                        'province' => $row->province,
-                        'quantity_kg' => $row->quantity_kg,
-                        'wo_code' => $row->wo_code,
-                        'wo_date' => $row->wo_date,
-                        'wo_status' => $row->wo_status,
-                        'po_code' => $row->po_code,
-                        'po_date' => $row->po_date,
-                        'po_qty' => $row->po_qty,
-                        'po_status' => $row->po_status,
-                        'do_code' => $row->do_code,
-                        'do_date' => $row->do_date,
-                        'do_status' => $row->do_status,
-                    ];
-                });
-
-            $rows = $rows->merge($external);
-        }
-
-        $rows = $rows->sortBy(function ($row) {
-            return $row['city'] . '|' . $row['poo_name'];
-        })->values();
-
-        return response($this->buildXml($rows))->header('Content-Type', 'text/xml');
+        return view('cns.iscc-traceability.utama');
     }
+
+    public function utamaDetail(Request $request)
+    {
+        $id = $request->get('id');
+        return view('cns.iscc-traceability.utama-detail', compact('id'));
+    }
+
+    /* ------------------------------------------------- server-side datatables */
+
+    /**
+     * Index grid (fragments) - EXTERNAL + NATURAL.
+     */
+    public function fragmentData(Request $request)
+    {
+        $source   = $request->get('source');
+        $city     = $request->get('city');
+        $dateFrom = $request->get('date_from');
+        $dateTo   = $request->get('date_to');
+
+        $query = $this->fragmentUnion($source ?: 'ALL', $city, $dateFrom, $dateTo);
+
+        return $this->dataTables($request, $query, [
+            'searchable' => ['poo_name', 'poo_type', 'city', 'province', 'wo_code', 'po_code', 'do_code', 'source'],
+            'order'      => [
+                1 => 'source', 2 => 'poo_name', 3 => 'poo_type', 4 => 'city', 5 => 'province',
+                6 => 'quantity_kg', 7 => 'po_qty', 8 => 'wo_code', 9 => 'wo_date', 10 => 'wo_status',
+                11 => 'po_code', 12 => 'po_date', 13 => 'po_status', 14 => 'do_code', 15 => 'do_date',
+                16 => 'do_status', 17 => 'split',
+            ],
+            'defaultOrder' => 'poo_name',
+            'map' => function ($r, $no) {
+                return [
+                    'no' => $no,
+                    'source' => $r->source,
+                    'poo_name' => $r->poo_name,
+                    'poo_type' => $r->poo_type,
+                    'city' => $r->city,
+                    'province' => $r->province,
+                    'quantity_kg' => $r->quantity_kg,
+                    'po_qty' => $r->po_qty,
+                    'wo_code' => $r->wo_code,
+                    'wo_date' => $r->wo_date,
+                    'wo_status' => $r->wo_status,
+                    'po_code' => $r->po_code,
+                    'po_date' => $r->po_date,
+                    'po_status' => $r->po_status,
+                    'do_code' => $r->do_code,
+                    'do_date' => $r->do_date,
+                    'do_status' => $r->do_status,
+                    'split' => $r->split,
+                    'fragment_id' => $r->fragment_id,
+                ];
+            },
+        ]);
+    }
+
+    /**
+     * Utama grid (deliveries).
+     */
+    public function deliveryData(Request $request)
+    {
+        $city     = $request->get('city');
+        $dateFrom = $request->get('date_from');
+        $dateTo   = $request->get('date_to');
+
+        $query = DB::table('traceability_external_deliveries')
+            ->whereIn('status', ['LOCKED', 'AUDITED'])
+            ->when($city, function ($q) use ($city) { return $q->where('city', $city); })
+            ->when($dateFrom, function ($q) use ($dateFrom) { return $q->whereDate('delivery_date', '>=', $dateFrom); })
+            ->when($dateTo, function ($q) use ($dateTo) { return $q->whereDate('delivery_date', '<=', $dateTo); })
+            ->select(
+                DB::raw("'EXTERNAL' as source"),
+                'id as delivery_id',
+                'supplier_name',
+                'city',
+                'province',
+                'delivery_date',
+                'total_quantity_kg',
+                'status',
+                'api_reference as reference'
+            );
+
+        return $this->dataTables($request, $query, [
+            'searchable' => ['supplier_name', 'city', 'province', 'api_reference'],
+            'order' => [
+                1 => 'source', 2 => 'supplier_name', 3 => 'city', 4 => 'province',
+                5 => 'delivery_date', 6 => 'total_quantity_kg', 7 => 'status', 8 => 'api_reference',
+            ],
+            'defaultOrder' => 'delivery_date',
+            'map' => function ($r, $no) {
+                return [
+                    'no' => $no,
+                    'source' => $r->source,
+                    'supplier_name' => $r->supplier_name,
+                    'city' => $r->city,
+                    'province' => $r->province,
+                    'delivery_date' => $r->delivery_date,
+                    'total_quantity_kg' => $r->total_quantity_kg,
+                    'status' => $r->status,
+                    'reference' => $r->reference,
+                    'delivery_id' => $r->delivery_id,
+                ];
+            },
+        ]);
+    }
+
+    /**
+     * Fragment grid scoped to one delivery (utama detail).
+     */
+    public function deliveryFragmentData(Request $request)
+    {
+        $deliveryId = $request->get('id');
+
+        $query = DB::table('traceability_external_poo_fragments as tep')
+            ->join('traceability_external_deliveries as ted', 'ted.id', '=', 'tep.traceability_external_delivery_id')
+            ->leftJoin(
+                DB::raw('(SELECT traceability_external_delivery_id, COUNT(*) AS frag_count FROM traceability_external_poo_fragments GROUP BY traceability_external_delivery_id) AS fcnt'),
+                'fcnt.traceability_external_delivery_id', '=', 'tep.traceability_external_delivery_id'
+            )
+            ->whereIn('ted.status', ['LOCKED', 'AUDITED'])
+            ->where('ted.id', $deliveryId)
+            ->select(
+                DB::raw("'EXTERNAL' as source"),
+                'tep.poo_name as poo_name',
+                'tep.poo_type as poo_type',
+                'tep.city as city',
+                'tep.province as province',
+                'tep.quantity_kg as quantity_kg',
+                'tep.po_qty as po_qty',
+                'tep.wo_code as wo_code',
+                'tep.wo_date as wo_date',
+                'tep.wo_status as wo_status',
+                'tep.po_code as po_code',
+                'tep.po_date as po_date',
+                'tep.po_status as po_status',
+                'tep.do_code as do_code',
+                'tep.do_date as do_date',
+                'tep.do_status as do_status',
+                DB::raw("CASE WHEN COALESCE(fcnt.frag_count,0) > 1 THEN 'Ya' ELSE 'Tidak' END as split"),
+                'tep.id as fragment_id'
+            );
+
+        return $this->dataTables($request, $query, [
+            'searchable' => ['tep.poo_name', 'tep.poo_type', 'tep.city', 'tep.province', 'tep.wo_code', 'tep.po_code', 'tep.do_code'],
+            'order' => [
+                2 => 'tep.poo_name', 3 => 'tep.poo_type', 4 => 'tep.city', 5 => 'tep.province',
+                6 => 'tep.quantity_kg', 7 => 'tep.po_qty', 8 => 'tep.wo_code', 9 => 'tep.wo_date',
+                10 => 'tep.wo_status', 11 => 'tep.po_code', 12 => 'tep.po_date', 13 => 'tep.po_status',
+                14 => 'tep.do_code', 15 => 'tep.do_date', 16 => 'tep.do_status', 17 => 'tep.split',
+            ],
+            'defaultOrder' => 'tep.id',
+            'map' => function ($r, $no) {
+                return [
+                    'no' => $no,
+                    'source' => $r->source,
+                    'poo_name' => $r->poo_name,
+                    'poo_type' => $r->poo_type,
+                    'city' => $r->city,
+                    'province' => $r->province,
+                    'quantity_kg' => $r->quantity_kg,
+                    'po_qty' => $r->po_qty,
+                    'wo_code' => $r->wo_code,
+                    'wo_date' => $r->wo_date,
+                    'wo_status' => $r->wo_status,
+                    'po_code' => $r->po_code,
+                    'po_date' => $r->po_date,
+                    'po_status' => $r->po_status,
+                    'do_code' => $r->do_code,
+                    'do_date' => $r->do_date,
+                    'do_status' => $r->do_status,
+                    'split' => $r->split,
+                    'fragment_id' => $r->fragment_id,
+                ];
+            },
+        ]);
+    }
+
+    /**
+     * Excel export of the full filtered fragment set.
+     */
+    public function exportFragments(Request $request)
+    {
+        $source   = $request->get('source');
+        $city     = $request->get('city');
+        $dateFrom = $request->get('date_from');
+        $dateTo   = $request->get('date_to');
+        $search   = $request->get('search');
+
+        $query = $this->fragmentUnion($source ?: 'ALL', $city, $dateFrom, $dateTo);
+
+        if ($search !== null && $search !== '') {
+            $query->where(function ($q) use ($search) {
+                foreach (['poo_name', 'poo_type', 'city', 'province', 'wo_code', 'po_code', 'do_code', 'source'] as $col) {
+                    $q->orWhere($col, 'like', "%{$search}%");
+                }
+            });
+        }
+
+        $rows = $query->orderBy('poo_name', 'asc')->get();
+
+        $headers = ['No', 'Source', 'POO Name', 'Type', 'City', 'Province', 'Qty (Kg)', 'PO Qty', 'WO Code', 'WO Date', 'WO Status', 'PO Code', 'PO Date', 'PO Status', 'Surat Jalan Code', 'Surat Jalan Date', 'Surat Jalan Status', 'Split'];
+        $data = [];
+        $i = 1;
+        foreach ($rows as $r) {
+            $data[] = [$i++, $r->source, $r->poo_name, $r->poo_type, $r->city, $r->province, $r->quantity_kg, $r->po_qty, $r->wo_code, $r->wo_date, $r->wo_status, $r->po_code, $r->po_date, $r->po_status, $r->do_code, $r->do_date, $r->do_status, $r->split];
+        }
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->fromArray($headers, null, 'A1');
+        if ($data) { $sheet->fromArray($data, null, 'A2'); }
+
+        $dir = storage_path('app/temp');
+        if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
+        $path = $dir . '/iscc_traceability_' . date('YmdHis') . '.xlsx';
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save($path);
+
+        return response()->download($path, 'ISCC_Traceability.xlsx')->deleteFileAfterSend(true);
+    }
+
+    /* --------------------------------------------------------------- helpers */
+
+    /**
+     * Build the fragment union (EXTERNAL + NATURAL) as a queryable subquery.
+     */
+    protected function fragmentUnion(string $source, ?string $city, ?string $dateFrom, ?string $dateTo)
+    {
+        $ext = DB::table('traceability_external_poo_fragments as tep')
+            ->join('traceability_external_deliveries as ted', 'ted.id', '=', 'tep.traceability_external_delivery_id')
+            ->leftJoin(
+                DB::raw('(SELECT traceability_external_delivery_id, COUNT(*) AS frag_count FROM traceability_external_poo_fragments GROUP BY traceability_external_delivery_id) AS fcnt'),
+                'fcnt.traceability_external_delivery_id', '=', 'tep.traceability_external_delivery_id'
+            )
+            ->whereIn('ted.status', ['LOCKED', 'AUDITED'])
+            ->when($city, function ($q) use ($city) { return $q->where('tep.city', $city); })
+            ->when($dateFrom, function ($q) use ($dateFrom) { return $q->whereDate('ted.delivery_date', '>=', $dateFrom); })
+            ->when($dateTo, function ($q) use ($dateTo) { return $q->whereDate('ted.delivery_date', '<=', $dateTo); })
+            ->select(
+                DB::raw("'EXTERNAL' as source"),
+                'tep.poo_name as poo_name',
+                'tep.poo_type as poo_type',
+                'tep.city as city',
+                'tep.province as province',
+                'tep.quantity_kg as quantity_kg',
+                'tep.po_qty as po_qty',
+                'tep.wo_code as wo_code',
+                'tep.wo_date as wo_date',
+                'tep.wo_status as wo_status',
+                'tep.po_code as po_code',
+                'tep.po_date as po_date',
+                'tep.po_status as po_status',
+                'tep.do_code as do_code',
+                'tep.do_date as do_date',
+                'tep.do_status as do_status',
+                DB::raw("CASE WHEN COALESCE(fcnt.frag_count,0) > 1 THEN 'Ya' ELSE 'Tidak' END as split"),
+                'tep.id as fragment_id'
+            );
+
+        $nat = DB::table('master_poo as mp')
+            ->leftJoin('work_order as wo', 'wo.POO_Id', '=', 'mp.ID')
+            ->leftJoin('pickup_order as po', 'po.WO_Id', '=', 'wo.ID')
+            ->leftJoin('delivery_order as do', 'do.ID', '=', 'po.DO_Id')
+            ->where('mp.Is_Active', 1)
+            ->when($city, function ($q) use ($city) { return $q->where('mp.City', $city); })
+            ->when($dateFrom, function ($q) use ($dateFrom) { return $q->whereDate('wo.Work_Order_Date', '>=', $dateFrom); })
+            ->when($dateTo, function ($q) use ($dateTo) { return $q->whereDate('wo.Work_Order_Date', '<=', $dateTo); })
+            ->select(
+                DB::raw("'NATURAL' as source"),
+                'mp.Name as poo_name',
+                'mp.Type as poo_type',
+                'mp.City as city',
+                'mp.Province as province',
+                'po.Qty as quantity_kg',
+                'po.Qty as po_qty',
+                'wo.Code as wo_code',
+                'wo.Work_Order_Date as wo_date',
+                'wo.Status as wo_status',
+                'po.Code as po_code',
+                'po.Pickup_At as po_date',
+                'po.Status as po_status',
+                'do.Code as do_code',
+                'do.DO_Date as do_date',
+                'do.DO_Status as do_status',
+                DB::raw("'Tidak' as split"),
+                DB::raw("NULL as fragment_id")
+            );
+
+        if (strtoupper($source) === 'EXTERNAL') {
+            return DB::query()->fromSub($ext, 'u');
+        }
+        if (strtoupper($source) === 'NATURAL') {
+            return DB::query()->fromSub($nat, 'u');
+        }
+
+        return DB::query()->fromSub($ext->unionAll($nat), 'u');
+    }
+
+    /**
+     * Generic server-side DataTables response.
+     */
+    protected function dataTables(Request $request, $query, array $cfg)
+    {
+        $draw   = (int) $request->input('draw', 0);
+        $start  = (int) $request->input('start', 0);
+        $length = (int) $request->input('length', 25);
+
+        $total = (clone $query)->count();
+
+        $search = $request->input('search.value');
+        if ($search !== null && $search !== '') {
+            $query->where(function ($q) use ($search, $cfg) {
+                foreach (($cfg['searchable'] ?? []) as $col) {
+                    $q->orWhere($col, 'like', "%{$search}%");
+                }
+            });
+        }
+
+        $filtered = (clone $query)->count();
+
+        $colIdx = (int) $request->input('order.0.column', 0);
+        $dir    = strtolower((string) $request->input('order.0.dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $orderCol = $cfg['order'][$colIdx] ?? ($cfg['defaultOrder'] ?? 'poo_name');
+        $query->orderBy($orderCol, $dir);
+
+        if ($length >= 0) {
+            $query->offset($start)->limit($length);
+        }
+
+        $rows = $query->get();
+
+        $data = [];
+        $no = $start;
+        foreach ($rows as $r) {
+            $data[] = ($cfg['map'])($r, ++$no);
+        }
+
+        return response()->json([
+            'draw' => $draw,
+            'recordsTotal' => $total,
+            'recordsFiltered' => $filtered,
+            'data' => $data,
+        ]);
+    }
+
+    /* ------------------------------------------------------------ edit/photos */
 
     public function edit($fragmentId)
     {
@@ -295,174 +510,8 @@ class ISCCTraceabilityController extends Controller
         return response()->json(['status' => 'error', 'message' => 'Delivery not found.'], 404);
     }
 
-    protected function buildXml($rows)
-    {
-        $xml = '<?xml version="1.0" encoding="utf-8"?><rows>';
+    /* ------------------------------------------------------------- print doc */
 
-        $i = 1;
-        foreach ($rows as $row) {
-            $xml .= '<row id="' . $i . '">';
-            $xml .= '<cell>' . $i . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['source']) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['poo_name']) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['poo_type'] ?? '') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['city'] ?? '') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['province'] ?? '') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars((string) ($row['quantity_kg'] ?? '')) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars((string) ($row['po_qty'] ?? '')) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['wo_code'] ?? '') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars((string) ($row['wo_date'] ?? '')) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['wo_status'] ?? '') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['po_code'] ?? '') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars((string) ($row['po_date'] ?? '')) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['po_status'] ?? '') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['do_code'] ?? '') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars((string) ($row['do_date'] ?? '')) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['do_status'] ?? '') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['split'] ?? 'Tidak') . '</cell>';
-            $xml .= '<cell>' . ($row['fragment_id'] ?? '') . '</cell>';
-            $xml .= '</row>';
-            $i++;
-        }
-
-        $xml .= '</rows>';
-
-        return $xml;
-    }
-
-    public function utama()
-    {
-        return view('cns.iscc-traceability.utama');
-    }
-
-    public function utamaData(Request $request)
-    {
-        $rows = collect();
-
-        $external = DB::table('traceability_external_deliveries')
-            ->whereIn("Status", ["LOCKED", "AUDITED"])
-            ->get()
-            ->map(function ($row) {
-                return [
-                    'data' => $row->id,
-                    'source' => 'EXTERNAL',
-                    'supplier_name' => $row->supplier_name,
-                    'city' => $row->city,
-                    'province' => $row->province,
-                    'delivery_date' => $row->delivery_date,
-                    'total_quantity_kg' => $row->total_quantity_kg,
-                    'status' => $row->status,
-                    'reference' => $row->api_reference,
-                ];
-            });
-
-        $rows = $rows->merge($external);
-
-        $rows = $rows->sortBy(function ($row) {
-            return $row['city'];
-        })->values();
-
-        return response($this->buildXmlUtama($rows))->header('Content-Type', 'text/xml');
-    }
-
-    public function utamaDetail(Request $request)
-    {
-        $id = $request->get('id');
-        return view('cns.iscc-traceability.utama-detail', compact('id'));
-    }
-
-    public function utamaDetailData(Request $request)
-    {
-        $rows = collect();
-
-        $external = DB::table('traceability_external_poo_fragments as tep')
-            ->join('traceability_external_deliveries as ted', 'ted.id', '=', 'tep.traceability_external_delivery_id')
-            ->leftJoin(
-                DB::raw('(SELECT traceability_external_delivery_id, COUNT(*) AS frag_count FROM traceability_external_poo_fragments GROUP BY traceability_external_delivery_id) AS fcnt'),
-                'fcnt.traceability_external_delivery_id', '=', 'tep.traceability_external_delivery_id'
-            )
-            ->whereIn('ted.status', ['LOCKED', 'AUDITED'])
-            ->where("ted.id", $request->get('id'))
-            ->select(
-                'tep.id as fragment_id',
-                'tep.poo_name',
-                'tep.poo_type',
-                'tep.quantity_kg',
-                'tep.city',
-                'tep.province',
-                'tep.wo_code',
-                'tep.wo_date',
-                'tep.wo_status',
-                'tep.po_code',
-                'tep.po_date',
-                'tep.po_qty',
-                'tep.po_status',
-                'tep.do_code',
-                'tep.do_date',
-                'tep.do_status',
-                'fcnt.frag_count'
-            )
-            ->get()
-            ->map(function ($row) {
-                return [
-                    'source' => 'EXTERNAL',
-                    'fragment_id' => $row->fragment_id,
-                    'split' => ($row->frag_count ?? 0) > 1 ? 'Ya' : 'Tidak',
-                    'poo_name' => $row->poo_name,
-                    'poo_type' => $row->poo_type ?? 'SUPPLIER',
-                    'city' => $row->city,
-                    'province' => $row->province,
-                    'quantity_kg' => $row->quantity_kg,
-                    'wo_code' => $row->wo_code,
-                    'wo_date' => $row->wo_date,
-                    'wo_status' => $row->wo_status,
-                    'po_code' => $row->po_code,
-                    'po_date' => $row->po_date,
-                    'po_qty' => $row->po_qty,
-                    'po_status' => $row->po_status,
-                    'do_code' => $row->do_code,
-                    'do_date' => $row->do_date,
-                    'do_status' => $row->do_status,
-                ];
-            });
-
-        $rows = $rows->merge($external);
-
-        $rows = $rows->sortBy(function ($row) {
-            return $row['city'] . '|' . $row['poo_name'];
-        })->values();
-
-        return response($this->buildXml($rows))->header('Content-Type', 'text/xml');
-    }
-
-    protected function buildXmlUtama($rows)
-    {
-        $xml = '<?xml version="1.0" encoding="utf-8"?><rows>';
-
-        $i = 1;
-        foreach ($rows as $row) {
-            $xml .= '<row id="' . $row['data'] . '">';
-            $xml .= '<cell>' . $i . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['source']) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['supplier_name']) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['city']) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['province']) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['delivery_date']) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['total_quantity_kg']) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['status']) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row['reference']) . '</cell>';
-            $xml .= '</row>';
-            $i++;
-        }
-
-        $xml .= '</rows>';
-
-        return $xml;
-    }
-
-    /**
-     * Generate the per-fragment ISCC document from template_iscc.docx.
-     */
     public function printDoc($fragmentId)
     {
         $fragment = DB::table('traceability_external_poo_fragments as tep')
@@ -509,7 +558,6 @@ class ISCCTraceabilityController extends Controller
             'tricode'          => '',
         ]);
 
-        // oil documentation image (first photo only)
         $photo = $this->firstPhoto($fragment);
         if ($photo && ($tmp = $this->downloadToTemp($photo, 'jpg'))) {
             $t->setImageValue('oil_doc', ['path' => $tmp, 'width' => 220, 'height' => 160]);
@@ -517,7 +565,6 @@ class ISCCTraceabilityController extends Controller
             $t->setValue('oil_doc', '');
         }
 
-        // signature image
         if (!empty($fragment->ttd) && ($tmp = $this->downloadToTemp($fragment->ttd, 'png'))) {
             $t->setImageValue('sign_pict', ['path' => $tmp, 'width' => 140, 'height' => 70]);
         } else {
@@ -588,5 +635,4 @@ class ISCCTraceabilityController extends Controller
         if ($n === 0) { return 'nol'; }
         return trim($spell($n)) . ' rupiah';
     }
-
 }
