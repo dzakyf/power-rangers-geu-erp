@@ -94,7 +94,7 @@ class ISCCTraceabilityController extends Controller
             ->when($dateFrom, function ($q) use ($dateFrom) { return $q->whereDate('delivery_date', '>=', $dateFrom); })
             ->when($dateTo, function ($q) use ($dateTo) { return $q->whereDate('delivery_date', '<=', $dateTo); })
             ->select(
-                DB::raw("'EXTERNAL' as source"),
+                DB::raw("'GREES' as source"),
                 'id as delivery_id',
                 'supplier_name',
                 'city',
@@ -145,7 +145,7 @@ class ISCCTraceabilityController extends Controller
             ->whereIn('ted.status', ['LOCKED', 'AUDITED'])
             ->where('ted.id', $deliveryId)
             ->select(
-                DB::raw("'EXTERNAL' as source"),
+                DB::raw("'GREES' as source"),
                 'tep.poo_name as poo_name',
                 'tep.poo_type as poo_type',
                 'tep.city as city',
@@ -263,7 +263,7 @@ class ISCCTraceabilityController extends Controller
             ->when($dateFrom, function ($q) use ($dateFrom) { return $q->whereDate('ted.delivery_date', '>=', $dateFrom); })
             ->when($dateTo, function ($q) use ($dateTo) { return $q->whereDate('ted.delivery_date', '<=', $dateTo); })
             ->select(
-                DB::raw("'EXTERNAL' as source"),
+                DB::raw("'GREES' as source"),
                 'tep.poo_name as poo_name',
                 'tep.poo_type as poo_type',
                 'tep.city as city',
@@ -288,11 +288,14 @@ class ISCCTraceabilityController extends Controller
             ->leftJoin('pickup_order as po', 'po.WO_Id', '=', 'wo.ID')
             ->leftJoin('delivery_order as do', 'do.ID', '=', 'po.DO_Id')
             ->where('mp.Is_Active', 1)
+            ->whereNotNull('wo.Code')->where('wo.Code', '<>', '')
+            ->whereNotNull('po.Code')->where('po.Code', '<>', '')
+            ->whereNotNull('do.Code')->where('do.Code', '<>', '')
             ->when($city, function ($q) use ($city) { return $q->where('mp.City', $city); })
             ->when($dateFrom, function ($q) use ($dateFrom) { return $q->whereDate('wo.Work_Order_Date', '>=', $dateFrom); })
             ->when($dateTo, function ($q) use ($dateTo) { return $q->whereDate('wo.Work_Order_Date', '<=', $dateTo); })
             ->select(
-                DB::raw("'NATURAL' as source"),
+                DB::raw("'BDP' as source"),
                 'mp.Name as poo_name',
                 'mp.Type as poo_type',
                 'mp.City as city',
@@ -312,11 +315,24 @@ class ISCCTraceabilityController extends Controller
                 DB::raw("NULL as fragment_id")
             );
 
-        if (strtoupper($source) === 'EXTERNAL') {
+        $src = strtoupper((string) $source);
+        $showBdp = (bool) config('services.traceability.show_bdp', false);
+
+        if ($src === 'GREES') {
             return DB::query()->fromSub($ext, 'u');
         }
-        if (strtoupper($source) === 'NATURAL') {
+
+        if ($src === 'BDP') {
+            // BDP hidden until real MITRA data exists (show_bdp flag)
+            if (!$showBdp) {
+                return DB::query()->fromSub($nat, 'u')->whereRaw('1=0');
+            }
             return DB::query()->fromSub($nat, 'u');
+        }
+
+        // ALL / empty
+        if (!$showBdp) {
+            return DB::query()->fromSub($ext, 'u');
         }
 
         return DB::query()->fromSub($ext->unionAll($nat), 'u');

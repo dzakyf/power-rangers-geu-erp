@@ -25,8 +25,8 @@
 			<form id="filterForm" class="form-inline mb-2">
 				<select id="fSource" name="source" class="form-control mr-2">
 					<option value="">All Sources</option>
-					<option value="NATURAL">Natural (MITRA)</option>
-					<option value="EXTERNAL">External (Supplier)</option>
+					<option value="BDP">BDP</option>
+					<option value="GREES">GREES</option>
 				</select>
 				<input type="text" id="fCity" name="city" placeholder="City / Regency" class="form-control mr-2" />
 				<input type="date" id="fDateFrom" name="date_from" class="form-control mr-2" />
@@ -117,7 +117,7 @@
 					$('#fragTable tbody tr').removeClass('selected');
 					$(this).addClass('selected');
 					selectedRow = data;
-					var ok = (data.source === 'EXTERNAL' && data.fragment_id);
+					var ok = (data.source === 'GREES' && data.fragment_id);
 					$('#editBtn').prop('disabled', !ok);
 					$('#printBtn').prop('disabled', !ok);
 				});
