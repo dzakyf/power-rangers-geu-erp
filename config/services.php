@@ -36,6 +36,10 @@ return [
         'cache_path'  => env('APIPI_CACHE_PATH') ?: storage_path('app/apipi/cache'),
     ],
 
+    'traceability' => [
+        'show_bdp' => filter_var(env('TRACEABILITY_SHOW_BDP', false), FILTER_VALIDATE_BOOLEAN),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
