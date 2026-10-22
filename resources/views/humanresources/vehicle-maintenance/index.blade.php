@@ -22,6 +22,7 @@
                 <input type="button" id="ekselVM" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="VehicleMaintenance.toExcel('./export/generate.php');" disabled />
                 <input type="button" id="VM_Refresh" class="btn btn-info mt-2 mr-2" value="Refresh Data" onclick="VehicleMaintenanceRefresh();" />
                 <input type="button" id="VM_New" class="btn btn-primary mt-2 mr-2" value="Form Perawatan Kendaraan" onclick="VehicleMaintenanceNew();" />
+				<a href="hrd-vehicle-operations" class="btn btn-success mr-2 mt-2 font-weight-bold"><i class="fa fa-truck mr-1"></i> Logbook & Fuel Tracking</a>
             </div>
         </div>
     </div>
@@ -51,14 +52,14 @@ function VehicleMaintenanceRefresh() {
 
 VehicleMaintenance = new dhtmlXGridObject('VehicleMaintenance');
 VehicleMaintenance.setImagePath("./dhtmlx/imgs/");
-VehicleMaintenance.setHeader("No,Request No,Jenis Perawatan,Plat Nomor,Nama Kendaraan,Kilometer,Estimasi Biaya,Status");
-VehicleMaintenance.attachHeader("&nbsp;,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-VehicleMaintenance.setInitWidths("60,160,130,100,220,90,120,110");
-VehicleMaintenance.setColAlign("center,center,center,center,left,right,right,center");
+VehicleMaintenance.setHeader("No,Request No,Asset No,Jenis Perawatan,Plat Nomor,Nama Kendaraan,Kilometer,Estimasi Biaya,Status");
+VehicleMaintenance.attachHeader("&nbsp;,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+VehicleMaintenance.setInitWidths("60,170,130,110,100,220,90,120,110");
+VehicleMaintenance.setColAlign("center,center,center,center,center,left,right,right,center");
 VehicleMaintenance.setDateFormat("%Y-%m-%d");
-VehicleMaintenance.setColSorting("int,str,str,str,str,int,str,str");
-VehicleMaintenance.setColTypes("ro,ed,ro,ro,ro,ro,ro,ro");
-VehicleMaintenance.setNumberFormat("0,000",5,".",",");
+VehicleMaintenance.setColSorting("int,str,str,str,str,str,int,str,str");
+VehicleMaintenance.setColTypes("ro,ed,ro,ro,ro,ro,ro,ro,ro");
+VehicleMaintenance.setNumberFormat("0,000",6,".",",");
 VehicleMaintenance.enableSmartRendering(true, 150);
 VehicleMaintenance.setSkin("dhx_skyblue");
 VehicleMaintenance.init();

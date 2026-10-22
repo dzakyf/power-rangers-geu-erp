@@ -50,6 +50,12 @@
                         <input type="date" class="form-control" value="{{ $data->Tanggal_Pengajuan ?? '' }}" readonly />
                     </div>
                 </div>
+                <div class="col-md-6 col-12">
+                    <div class="form-group">
+                        <label>Nomor Formulir</label>
+                        <input type="text" class="form-control" value="{{ $data->Nomor_Formulir ?? '' }}" readonly />
+                    </div>
+                </div>
 
                 <!-- Kendaraan -->
                 <div class="col-md-6 col-12">

@@ -48,7 +48,7 @@
                     </div>
                 </div>
 
-                <!-- Pilih Kendaraan dari asset_list -->
+                <!-- Pilih Kendaraan dari asset_list (hanya sub category VEHICLE - VC) -->
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Asset_No">Pilih Kendaraan dari Daftar *</label>
@@ -59,31 +59,83 @@
                                         data-sn="{{ $a->SN }}"
                                         data-pc="{{ $a->Product_Code }}"
                                         data-pd="{{ $a->Product_Description }}"
+                                        data-plat="{{ $a->Registration_No }}"
+                                        data-kategori="{{ $a->Jenis_Kendaraan }}"
+                                        data-km="{{ $a->KM_Saat_Ini }}"
+                                        data-km-jadwal="{{ $a->KM_Jadwal_PM }}"
+                                        data-interval="{{ $a->Interval_PM }}"
+                                        data-tgl-jadwal="{{ $a->Tanggal_Jadwal_PM }}"
+                                        data-tgl-terakhir="{{ $a->Tanggal_PM_Terakhir }}"
+                                        data-vendor="{{ $a->Repair_Vendor }}"
                                         data-loc="{{ $a->Asset_Location ?? $a->Asset_Location_Department ?? '' }}">
                                     {{ $a->Asset_No }} — {{ $a->Product_Description ?? 'Tanpa Deskripsi' }} [SN: {{ $a->SN ?? 'N/A' }}]
                                 </option>
                             @endforeach
                         </select>
+                        <small class="text-muted">Hanya asset dengan sub category VEHICLE - VC yang ditampilkan.</small>
+                    </div>
+                </div>
+
+                <!-- Ringkasan data kendaraan (otomatis dari asset_list) -->
+                <div class="col-md-12 col-12">
+                    <div class="card border-info mb-2">
+                        <div class="card-body py-2">
+                            <h6 class="card-title text-info font-weight-bold mb-2"><i class="fas fa-car mr-1"></i>Data Kendaraan &amp; Jadwal PM (dari Master Asset)</h6>
+                            <div class="row" id="KendaraanInfo">
+                                <div class="col-md-3 col-6">
+                                    <small class="text-muted">Plat Nomor</small>
+                                    <div class="font-weight-bold" id="Info_Plat">-</div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <small class="text-muted">Kategori Kendaraan</small>
+                                    <div class="font-weight-bold" id="Info_Kategori">-</div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <small class="text-muted">KM Saat Ini</small>
+                                    <div class="font-weight-bold" id="Info_KM">-</div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <small class="text-muted">Batas KM PM Berikutnya</small>
+                                    <div class="font-weight-bold" id="Info_KMJadwal">-</div>
+                                </div>
+                                <div class="col-md-3 col-6 mt-2">
+                                    <small class="text-muted">PM Terakhir</small>
+                                    <div class="font-weight-bold" id="Info_PMTerakhir">-</div>
+                                </div>
+                                <div class="col-md-3 col-6 mt-2">
+                                    <small class="text-muted">PM Berikutnya</small>
+                                    <div class="font-weight-bold" id="Info_PMBerikutnya">-</div>
+                                </div>
+                                <div class="col-md-3 col-6 mt-2">
+                                    <small class="text-muted">Interval PM</small>
+                                    <div class="font-weight-bold" id="Info_Interval">-</div>
+                                </div>
+                                <div class="col-md-3 col-6 mt-2">
+                                    <small class="text-muted">Vendor Bengkel</small>
+                                    <div class="font-weight-bold" id="Info_Vendor">-</div>
+                                </div>
+                            </div>
+                            <div id="PMWarning" class="alert alert-warning py-1 px-2 mt-2 mb-0" style="display:none;">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                <span id="PMWarningText"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Plat_Nomor">Plat Nomor</label>
-                        <input type="text" id="Plat_Nomor" class="form-control shadow-sm" name="Plat_Nomor" value="" />
+                        <input type="text" id="Plat_Nomor" class="form-control shadow-sm" name="Plat_Nomor" value="" readonly />
                     </div>
                 </div>
 
                 <div class="col-md-6 col-12">
                     <div class="form-group">
                         <label for="Kategori_Kendaraan">Kategori Kendaraan</label>
-                        <select id="Kategori_Kendaraan" name="Kategori_Kendaraan" class="form-control shadow-sm">
-                            <option value="">-- Pilih Kategori --</option>
-                            <option value="Truck">Truck / Engkel</option>
-                            <option value="Mobil_Kerja">Mobil Kerja</option>
-                            <option value="Motor">Motor</option>
-                            <option value="Lainnya">Lainnya</option>
-                        </select>
+                        <input type="text" id="Kategori_Kendaraan" class="form-control shadow-sm" name="Kategori_Kendaraan"
+                               value="" readonly />
+                        <small class="text-muted">Otomatis mengikuti master asset (tidak ada input ganda).</small>
                     </div>
                 </div>
 
@@ -110,12 +162,12 @@
                         <label for="Tipe_Service_Preventif">Tipe Service Preventif</label>
                         <select id="Tipe_Service_Preventif" name="Tipe_Service_Preventif" class="form-control shadow-sm">
                             <option value="">-- Pilih Tipe --</option>
-                            <option value="Ganti_Oli_dan_Filter">Ganti Oli & Filter</option>
-                            <option value="Cek_Rem_dan_Ban">Cek Rem, Ban & Tekanan Angin</option>
-                            <option value="Cek_Belt_dan_Hidrolika">Cek Belt, Aki & Sistem Hidrolika</option>
-                            <option value="Service_Aki_dan_Alternator">Service Aki & Alternator</option>
+                            <option value="Ganti_Oli_dan_Filter">Ganti Oli &amp; Filter</option>
+                            <option value="Cek_Rem_dan_Ban">Cek Rem, Ban &amp; Tekanan Angin</option>
+                            <option value="Cek_Belt_dan_Hidrolika">Cek Belt, Aki &amp; Sistem Hidrolika</option>
+                            <option value="Service_Aki_dan_Alternator">Service Aki &amp; Alternator</option>
                             <option value="Cek_Injeksi_dan_Carb">Cek Sistem Bahan Bakar (Injeksi/Carb)</option>
-                            <option value="Cek_Transmisi_dan_Oli_Gear">Cek Transmisi & Oli Gear</option>
+                            <option value="Cek_Transmisi_dan_Oli_Gear">Cek Transmisi &amp; Oli Gear</option>
                             <option value="Lainnya">Lainnya</option>
                         </select>
                     </div>
@@ -126,7 +178,7 @@
                         <label for="Jadwal_Perawatan_Bulan">Jadwal Perawatan Berdasarkan Bulan Ke Berapa</label>
                         <input type="number" id="Jadwal_Perawatan_Bulan" class="form-control shadow-sm" name="Jadwal_Perawatan_Bulan"
                                value="" min="1" max="12" placeholder="Contoh: 6 (setiap 6 bulan)" />
-                        <small class="text-muted">* Diisi jika perawatan dilakukan berdasarkan cycle kilometer/bulan.</small>
+                        <small class="text-muted">* Otomatis terisi dari Master Asset (Interval PM). Bisa diubah bila siklus perawatan berbeda.</small>
                     </div>
                 </div>
 
@@ -207,21 +259,86 @@
         }
     }
 
+    function fmtTgl(v) {
+        if (!v || v === '0000-00-00') { return '-'; }
+        var p = String(v).split('-');
+        return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0]) : v;
+    }
+
+    function fmtNum(v) {
+        if (v === null || v === undefined || v === '') { return '-'; }
+        var n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);
+        return isNaN(n) ? '-' : n.toLocaleString('id-ID');
+    }
+
+    /**
+     * Ambil data kendaraan terpilih dari asset_list (tanpa input ulang):
+     * plat, kategori, KM, dan seluruh jadwal PM.
+     */
     function PilihKendaraan() {
         var select = $('#Asset_No');
         var val = select.val();
+
         if (!val) {
             $('#Plat_Nomor').val('');
-            $('#Kilometer_Saat_Ini').val('');
             $('#Kategori_Kendaraan').val('');
+            $('#Kilometer_Saat_Ini').val('');
+            $('#Jadwal_Perawatan_Bulan').val('');
+            $('#Info_Plat').text('-');
+            $('#Info_Kategori').text('-');
+            $('#Info_KM').text('-');
+            $('#Info_KMJadwal').text('-');
+            $('#Info_PMTerakhir').text('-');
+            $('#Info_PMBerikutnya').text('-');
+            $('#Info_Interval').text('-');
+            $('#Info_Vendor').text('-');
+            $('#PMWarning').hide();
             return;
         }
+
         var opt = select.find('option:selected');
-        var sn = opt.data('sn') || '';
-        var pc = opt.data('pc') || '';
-        var pd = opt.data('pd') || '';
-        $('#Plat_Nomor').val('');
-        $('#Kilometer_Saat_Ini').val('');
+
+        var plat = opt.data('plat') || '';
+        var kategori = opt.data('kategori') || '';
+        var km = opt.data('km') || '';
+        var kmJadwal = opt.data('km-jadwal') || '';
+        var interval = opt.data('interval') || '';
+        var tglJadwal = opt.data('tgl-jadwal') || '';
+        var tglTerakhir = opt.data('tgl-terakhir') || '';
+        var vendor = opt.data('vendor') || '';
+
+        $('#Plat_Nomor').val(plat);
+        $('#Kategori_Kendaraan').val(kategori);
+        $('#Kilometer_Saat_Ini').val(km);
+        $('#Jadwal_Perawatan_Bulan').val(interval);
+
+        $('#Info_Plat').text(plat || '-');
+        $('#Info_Kategori').text(kategori || '-');
+        $('#Info_KM').text(fmtNum(km));
+        $('#Info_KMJadwal').text(fmtNum(kmJadwal));
+        $('#Info_PMTerakhir').text(fmtTgl(tglTerakhir));
+        $('#Info_PMBerikutnya').text(fmtTgl(tglJadwal));
+        $('#Info_Interval').text(interval ? (interval + ' bulan') : '-');
+        $('#Info_Vendor').text(vendor || '-');
+
+        // Peringatan bila PM sudah jatuh tempo (tanggal atau KM)
+        var pesan = '';
+        if (tglJadwal && tglJadwal !== '0000-00-00') {
+            var today = new Date(); today.setHours(0, 0, 0, 0);
+            var due = new Date(tglJadwal);
+            if (!isNaN(due.getTime()) && due.getTime() <= today.getTime()) {
+                pesan = 'Jadwal PM tanggal ' + fmtTgl(tglJadwal) + ' sudah jatuh tempo.';
+            }
+        }
+        if (km && kmJadwal && parseInt(km) >= parseInt(kmJadwal)) {
+            pesan = (pesan ? pesan + ' ' : '') + 'KM saat ini (' + fmtNum(km) + ') sudah melewati batas KM PM (' + fmtNum(kmJadwal) + ').';
+        }
+        if (pesan) {
+            $('#PMWarningText').text(pesan);
+            $('#PMWarning').show();
+        } else {
+            $('#PMWarning').hide();
+        }
     }
 
     function SubmitForm() {
@@ -262,8 +379,6 @@
                 Tanggal_Pengajuan: $('#Tanggal_Pengajuan').val(),
                 Nomor_Formulir: $('#Nomor_Formulir').val(),
                 Asset_No: $('#Asset_No').val(),
-                Product_Code: $('#Asset_No').val(),
-                Product_Description: '',
                 Plat_Nomor: $('#Plat_Nomor').val(),
                 Kategori_Kendaraan: $('#Kategori_Kendaraan').val(),
                 Kilometer_Saat_Ini: $('#Kilometer_Saat_Ini').val(),

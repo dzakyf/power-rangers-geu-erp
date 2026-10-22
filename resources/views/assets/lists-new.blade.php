@@ -13,8 +13,7 @@ $getPO = DB::table('purchase_order as po')
     ->get();
 $qx = DB::select(DB::raw("SELECT * FROM master_product_group WHERE Initial IN ('FA')"));
 
-$gudang = DB::table('gudang_list')->get();
-?>
+$gudang = DB::table('gudang_list')->get(); ?>
 
 <div class="container-fluid mt-4">
     <div class="card border-primary shadow-sm mb-4">
@@ -42,9 +41,9 @@ $gudang = DB::table('gudang_list')->get();
                                 <label for="PO_No" class="font-weight-bold">PO No</label>
                                 <select id="PO_No" class="form-control select2" style="width: 100%;">
                                     <option value="">-- Pilih data PO --</option>
-                                    @foreach ($getPO as $item)
+                                    <?php $__currentLoopData = $getPO; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <option value="{{ $item->PO_No }}">{{ $item->PO_No }} - {{ $item->Company_Name }}</option>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                             </div>
                 
@@ -75,11 +74,9 @@ $gudang = DB::table('gudang_list')->get();
                             <div class="form-group col-md-4">
                                 <label for="Asset_Category" class="font-weight-bold">Asset Category</label>
                                 <select id="Asset_Category" class="form-control" onchange="loadSubcategory();">
-                                    <?php
-                                        foreach ($qx as $fa){
+                                    <?php foreach ($qx as $fa){
                                             echo "<option value='$fa->Product_Group'>$fa->Product_Group - $fa->Initial</option>";
-                                        }
-                                    ?>
+                                        } ?>
                                 </select>
                             </div>
 
@@ -210,15 +207,13 @@ $gudang = DB::table('gudang_list')->get();
                                 </div>
                                 <div class="form-group col-md-6">
                                     <label for="Supplier">Supplier</label>
-                                    <?php
-                                    $qr = DB::select(DB::raw("SELECT Supplier_ID, Company_Name FROM supplier ORDER BY Company_Name ASC"));
+                                    <?php $qr = DB::select(DB::raw("SELECT Supplier_ID, Company_Name FROM supplier ORDER BY Company_Name ASC"));
                                     echo "<select id='Supplier' class='form-control select2'>";
                                     echo "<option value=''>-- Pilih Supplier --</option>";    
                                     foreach($qr as $fa){
                                         echo "<option value='".$fa->Supplier_ID."'>".$fa->Company_Name." - ".$fa->Supplier_ID."</option>";    
                                     }
-                                    echo "</select>";
-                                    ?>
+                                    echo "</select>"; ?>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="Depr">Depreciation Year Max</label>
@@ -228,10 +223,7 @@ $gudang = DB::table('gudang_list')->get();
                                     <label for="Depr_M">Depreciation Method</label>
                                     <select id="Depr_M" class="form-control">
                                         <option>STRAIGHT_MONTH</option>
-                                        {{-- <option>STRAIGHT_YEAR</option>
-                                        <option>SUM_OF_YEAR</option>
-                                        <option>UNIT_OF_PRODUCTION</option>
-                                        <option>DOUBLE_DECLINING_BALANCE</option> --}}
+                                        
                                     </select>
                                 </div>
                                 <div class="form-group col-md-6">
@@ -245,36 +237,7 @@ $gudang = DB::table('gudang_list')->get();
                             </div>
                         </div>
                     </div>
-{{--                     
-                    <!-- Kelompok 5: Lokasi & Penanggung Jawab -->
-                    <div class="card mb-3 border-light bg-light">
-                        <div class="card-body">
-                            <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">5. Lokasi & Penanggung Jawab</h6>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label for="Asset_Location">Asset Location</label>
-                                    <select name="Asset_Location" id="Asset_Location" class="form-control" onchange="assetLocation(this,'')">
-                                        <option value="">-- Pilih Gudang --</option>
-                                        @foreach ($gudang as $item)
-                                        <option value="{{ $item->Gudang_ID }}">{{ $item->Gudang_ID. ' - ' .$item->Description }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label for="Asset_Location_Address">Location Address</label>
-                                    <input type="text" id="Asset_Location_Address" class="form-control" />
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="Asset_Location_Street">Location Street</label>
-                                    <input type="text" id="Asset_Location_Street" class="form-control" />
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="Asset_Location_City">Location City</label>
-                                    <input type="text" id="Asset_Location_City" class="form-control" />
-                                </div>
-                            </div>
-                        </div>
-                    </div> --}}
+
 
                     <!-- Kelompok 5: Informasi Leasing / Cicilan -->
                     <div class="card mb-3 border-light bg-light">
@@ -283,15 +246,13 @@ $gudang = DB::table('gudang_list')->get();
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="Leasing_Vendor">Leasing Vendor</label>
-                                    <?php
-                                    $qr = DB::select(DB::raw("SELECT * FROM supplier ORDER BY Company_Name ASC"));
+                                    <?php $qr = DB::select(DB::raw("SELECT * FROM supplier ORDER BY Company_Name ASC"));
                                     echo "<select id='Leasing_Vendor' class='form-control select2'>";
                                     echo "<option value=''>-- Pilih Vendor Leasing --</option>";    
                                     foreach($qr as $fa){
                                         echo "<option value='".$fa->Supplier_ID."'>".$fa->Company_Name." - ".$fa->Supplier_ID."</option>";    
                                     }
-                                    echo "</select>";
-                                    ?>
+                                    echo "</select>"; ?>
                                 </div>
                                 <div class="form-group col-md-3">
                                     <label for="Leasing_Val">Leasing Total Value</label>
@@ -351,6 +312,147 @@ $gudang = DB::table('gudang_list')->get();
                             </div>
                         </div>
                     </div>
+                    <!-- Kelompok 6: Data Kendaraan -->
+                    <div class="card mb-3 border-light bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">6. Data Kendaraan</h6>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="BPKB_No">No. BPKB</label>
+                                    <input type="text" id="BPKB_No" class="form-control" placeholder="ex: F03812510N" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Surat_Jalan_No">No. Surat Jalan (Buku Servis)</label>
+                                    <input type="text" id="Surat_Jalan_No" class="form-control" placeholder="ex: U4352034" />
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="Asuransi">Asuransi</label>
+                                    <input type="text" id="Asuransi" class="form-control" placeholder="ex: ASTRA INSURANCE (s.d 25 April 2028)" />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="STNK_Tahunan">STNK Tahunan</label>
+                                    <input type="text" id="STNK_Tahunan" class="form-control bg-white" readonly />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="STNK_5_Tahun">STNK 5 Tahunan</label>
+                                    <input type="text" id="STNK_5_Tahun" class="form-control bg-white" readonly />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Jadwal_KIR">Jadwal KIR Terupdate</label>
+                                    <input type="text" id="Jadwal_KIR" class="form-control" placeholder="ex: 23/12/2026" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Berkas_KIR">Berkas Update KIR Terakhir</label>
+                                    <input type="text" id="Berkas_KIR" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Subsid_Mypertamina">Subsidi Barcode Mypertamina</label>
+                                    <select id="Subsid_Mypertamina" class="form-control">
+                                        <option value="">-- Pilih --</option>
+                                        <option>ADA</option>
+                                        <option>TIDAK ADA</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Barcode_Kode">Kode Generated Barcode</label>
+                                    <input type="text" id="Barcode_Kode" class="form-control" placeholder="ex: PCK-MLG-216/001" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Barcode_Kode_PSAK">Kode Generated Barcode (PSAK Version)</label>
+                                    <input type="text" id="Barcode_Kode_PSAK" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Service_Terakhir">Tanggal Service Terakhir</label>
+                                    <input type="text" id="Service_Terakhir" class="form-control bg-white" readonly />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Service_Berikutnya">Tanggal Service Berikutnya</label>
+                                    <input type="text" id="Service_Berikutnya" class="form-control bg-white" readonly />
+                                </div>
+                                <div class="form-group col-md-12">
+                                    <label for="Riwayat_KIR">Riwayat KIR</label>
+                                    <textarea id="Riwayat_KIR" class="form-control" rows="2" placeholder="ex: KIR 1: 23/06/2026 ..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kelompok 7: Dokumen & Riwayat Aset -->
+                    <div class="card mb-3 border-light bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">7. Dokumen & Riwayat Aset</h6>
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label for="Interval_PM">Interval PM (bulan)</label>
+                                    <input type="text" id="Interval_PM" class="form-control" placeholder="ex: 6" />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="Tanggal_PM_Terakhir">Tanggal PM Terakhir</label>
+                                    <input type="text" id="Tanggal_PM_Terakhir" class="form-control bg-white" readonly />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="Tanggal_Penghapusan">Tanggal Penghapusan</label>
+                                    <input type="text" id="Tanggal_Penghapusan" class="form-control bg-white" readonly />
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="User_Sebelumnya">User Sebelumnya</label>
+                                    <input type="text" id="User_Sebelumnya" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Link_QR">Link Detail QR</label>
+                                    <input type="text" id="Link_QR" class="form-control" placeholder="https://..." />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="QR_Aset">QR Aset</label>
+                                    <input type="text" id="QR_Aset" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Last_Reminder_Sent">Last Reminder Sent</label>
+                                    <input type="text" id="Last_Reminder_Sent" class="form-control" placeholder="ex: 2026-10-21 08:00:00" />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="Tanggal_Jadwal_PM">Jadwal Pemeliharaan / Next Maintenance</label>
+                                    <input type="text" id="Tanggal_Jadwal_PM" class="form-control bg-white" readonly />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="KM_Jadwal_PM">KM Jadwal PM</label>
+                                    <input type="text" id="KM_Jadwal_PM" class="form-control" placeholder="ex: 40000" />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="Jadwal_PM">Jadwal PM (bebas)</label>
+                                    <input type="text" id="Jadwal_PM" class="form-control" placeholder="ex: 6 BULAN" />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="Repair_Vendor">Repair Vendor</label>
+                                    <input type="text" id="Repair_Vendor" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="User_Responsible">PIC / User Responsible</label>
+                                    <input type="text" id="User_Responsible" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="User_Responsible_NIK">NIK PIC</label>
+                                    <input type="text" id="User_Responsible_NIK" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Photo">Foto Aset (nama file / URL)</label>
+                                    <input type="text" id="Photo" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="Riwayat_Aset">Riwayat Aset</label>
+                                    <textarea id="Riwayat_Aset" class="form-control" rows="2"></textarea>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="Dokumentasi">Dokumentasi Terkait</label>
+                                    <textarea id="Dokumentasi" class="form-control" rows="2"></textarea>
+                                </div>
+                                <div class="form-group col-md-12">
+                                    <label for="Note">Note / Catatan Tambahan</label>
+                                    <textarea id="Note" class="form-control" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
 
@@ -368,7 +470,7 @@ $gudang = DB::table('gudang_list')->get();
 
 <script>
 var myCalendar;
-myCalendar = new dhtmlXCalendarObject(["Buy_Date","Exp_Date",'Manufacture_Date','Registration_Date']);
+myCalendar = new dhtmlXCalendarObject(["Buy_Date","Exp_Date",'Manufacture_Date','Registration_Date','STNK_Tahunan','STNK_5_Tahun','Service_Terakhir','Service_Berikutnya','Tanggal_PM_Terakhir','Tanggal_Penghapusan','Tanggal_Jadwal_PM','Leasing_Date','Installment_Last_Date']);
 myCalendar.setDateFormat("%Y-%m-%d");
 loadSubcategory()
 function loadSubcategory(){
@@ -388,13 +490,13 @@ function getAllValues() {
         var type = $(this).attr("type");
         if ((type == "checkbox" || type == "radio")) {
             if (this.checked) {
-                inputValues.push($(this).attr("id") + "=" + $(this).val());
+                inputValues.push(encodeURIComponent($(this).attr("id")) + "=" + encodeURIComponent($(this).val()));
             }
         }
         else if (type != "button" && type != "submit") {
-            inputValues.push($(this).attr("id") + "=" + $(this).val());
+            inputValues.push(encodeURIComponent($(this).attr("id")) + "=" + encodeURIComponent($(this).val()));
         } else if ($(this).is("textarea")) {
-            inputValues.push($(this).attr("id") + "=" + $(this).val());
+            inputValues.push(encodeURIComponent($(this).attr("id")) + "=" + encodeURIComponent($(this).val()));
         }
     });
     return inputValues.join('&');
@@ -652,15 +754,13 @@ function renderAssetForms(itemData, qty) {
                     </div>
                     <div class="form-group col-md-6">
                         <label for="Supplier${i}">Supplier</label>
-                        <?php
-                        $qr = DB::select(DB::raw("SELECT Supplier_ID, Company_Name FROM supplier ORDER BY Company_Name ASC"));
+                        <?php $qr = DB::select(DB::raw("SELECT Supplier_ID, Company_Name FROM supplier ORDER BY Company_Name ASC"));
                         echo "<select id='Supplier' class='form-control select2'>";
                         echo "<option value=''>-- Pilih Supplier --</option>";    
                         foreach($qr as $fa){
                             echo "<option value='".$fa->Supplier_ID."'>".$fa->Company_Name." - ".$fa->Supplier_ID."</option>";    
                         }
-                        echo "</select>";
-                        ?>
+                        echo "</select>"; ?>
                     </div>
                     <div class="form-group col-md-3">
                         <label for="Depr${i}">Depreciation Year Max</label>
@@ -670,10 +770,7 @@ function renderAssetForms(itemData, qty) {
                         <label for="Depr_M${i}">Depreciation Method</label>
                         <select id="Depr_M${i}" data-index="${i}" class="form-control">
                             <option>STRAIGHT_MONTH</option>
-                            {{-- <option>STRAIGHT_YEAR</option>
-                            <option>SUM_OF_YEAR</option>
-                            <option>UNIT_OF_PRODUCTION</option>
-                            <option>DOUBLE_DECLINING_BALANCE</option> --}}
+                            
                         </select>
                     </div>
                     <div class="form-group col-md-6">
@@ -695,15 +792,13 @@ function renderAssetForms(itemData, qty) {
                 <div class="form-row">
                     <div class="form-group col-md-6">
                         <label for="Leasing_Vendor${i}">Leasing Vendor</label>
-                        <?php
-                        $qr = DB::select(DB::raw("SELECT * FROM supplier ORDER BY Company_Name ASC"));
+                        <?php $qr = DB::select(DB::raw("SELECT * FROM supplier ORDER BY Company_Name ASC"));
                         echo "<select id='Leasing_Vendor' class='form-control select2'>";
                         echo "<option value=''>-- Pilih Vendor Leasing --</option>";    
                         foreach($qr as $fa){
                             echo "<option value='".$fa->Supplier_ID."'>".$fa->Company_Name." - ".$fa->Supplier_ID."</option>";    
                         }
-                        echo "</select>";
-                        ?>
+                        echo "</select>"; ?>
                     </div>
                     <div class="form-group col-md-3">
                         <label for="Leasing_Val${i}">Leasing Total Value</label>
@@ -759,6 +854,147 @@ function renderAssetForms(itemData, qty) {
                         <label for="Installment_Due_Days${i}">Installment Due Days</label>
                         <input type="text" id="Installment_Due_Days${i}" data-index="${i}" class="form-control" value="25" />
                         <small class="form-text text-muted">Tgl jatuh tempo tiap bulan</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Kelompok 6: Data Kendaraan -->
+        <div class="card mb-3 border-light bg-light">
+            <div class="card-body">
+                <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">6. Data Kendaraan</h6>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label for="BPKB_No${i}">No. BPKB</label>
+                        <input type="text" id="BPKB_No${i}" data-index="${i}" class="form-control" placeholder="ex: F03812510N" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Surat_Jalan_No${i}">No. Surat Jalan (Buku Servis)</label>
+                        <input type="text" id="Surat_Jalan_No${i}" data-index="${i}" class="form-control" placeholder="ex: U4352034" />
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="Asuransi${i}">Asuransi</label>
+                        <input type="text" id="Asuransi${i}" data-index="${i}" class="form-control" placeholder="ex: ASTRA INSURANCE (s.d 25 April 2028)" />
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="STNK_Tahunan${i}">STNK Tahunan</label>
+                        <input type="text" id="STNK_Tahunan${i}" data-index="${i}" class="form-control bg-white" readonly />
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="STNK_5_Tahun${i}">STNK 5 Tahunan</label>
+                        <input type="text" id="STNK_5_Tahun${i}" data-index="${i}" class="form-control bg-white" readonly />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Jadwal_KIR${i}">Jadwal KIR Terupdate</label>
+                        <input type="text" id="Jadwal_KIR${i}" data-index="${i}" class="form-control" placeholder="ex: 23/12/2026" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Berkas_KIR${i}">Berkas Update KIR Terakhir</label>
+                        <input type="text" id="Berkas_KIR${i}" data-index="${i}" class="form-control" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Subsid_Mypertamina${i}">Subsidi Barcode Mypertamina</label>
+                        <select id="Subsid_Mypertamina${i}" data-index="${i}" class="form-control">
+                            <option value="">-- Pilih --</option>
+                            <option>ADA</option>
+                            <option>TIDAK ADA</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Barcode_Kode${i}">Kode Generated Barcode</label>
+                        <input type="text" id="Barcode_Kode${i}" data-index="${i}" class="form-control" placeholder="ex: PCK-MLG-216/001" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Barcode_Kode_PSAK${i}">Kode Generated Barcode (PSAK Version)</label>
+                        <input type="text" id="Barcode_Kode_PSAK${i}" data-index="${i}" class="form-control" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Service_Terakhir${i}">Tanggal Service Terakhir</label>
+                        <input type="text" id="Service_Terakhir${i}" data-index="${i}" class="form-control bg-white" readonly />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Service_Berikutnya${i}">Tanggal Service Berikutnya</label>
+                        <input type="text" id="Service_Berikutnya${i}" data-index="${i}" class="form-control bg-white" readonly />
+                    </div>
+                    <div class="form-group col-md-12">
+                        <label for="Riwayat_KIR${i}">Riwayat KIR</label>
+                        <textarea id="Riwayat_KIR${i}" data-index="${i}" class="form-control" rows="2" placeholder="ex: KIR 1: 23/06/2026 ..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kelompok 7: Dokumen & Riwayat Aset -->
+        <div class="card mb-3 border-light bg-light">
+            <div class="card-body">
+                <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">7. Dokumen & Riwayat Aset</h6>
+                <div class="form-row">
+                    <div class="form-group col-md-2">
+                        <label for="Interval_PM${i}">Interval PM (bulan)</label>
+                        <input type="text" id="Interval_PM${i}" data-index="${i}" class="form-control" placeholder="ex: 6" />
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="Tanggal_PM_Terakhir${i}">Tanggal PM Terakhir</label>
+                        <input type="text" id="Tanggal_PM_Terakhir${i}" data-index="${i}" class="form-control bg-white" readonly />
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="Tanggal_Penghapusan${i}">Tanggal Penghapusan</label>
+                        <input type="text" id="Tanggal_Penghapusan${i}" data-index="${i}" class="form-control bg-white" readonly />
+                    </div>
+                    <div class="form-group col-md-2">
+                        <label for="User_Sebelumnya${i}">User Sebelumnya</label>
+                        <input type="text" id="User_Sebelumnya${i}" data-index="${i}" class="form-control" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Link_QR${i}">Link Detail QR</label>
+                        <input type="text" id="Link_QR${i}" data-index="${i}" class="form-control" placeholder="https://..." />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="QR_Aset${i}">QR Aset</label>
+                        <input type="text" id="QR_Aset${i}" data-index="${i}" class="form-control" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Last_Reminder_Sent${i}">Last Reminder Sent</label>
+                        <input type="text" id="Last_Reminder_Sent${i}" data-index="${i}" class="form-control" placeholder="ex: 2026-10-21 08:00:00" />
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="Tanggal_Jadwal_PM${i}">Jadwal Pemeliharaan / Next Maintenance</label>
+                        <input type="text" id="Tanggal_Jadwal_PM${i}" data-index="${i}" class="form-control bg-white" readonly />
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="KM_Jadwal_PM${i}">KM Jadwal PM</label>
+                        <input type="text" id="KM_Jadwal_PM${i}" data-index="${i}" class="form-control" placeholder="ex: 40000" />
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="Jadwal_PM${i}">Jadwal PM (bebas)</label>
+                        <input type="text" id="Jadwal_PM${i}" data-index="${i}" class="form-control" placeholder="ex: 6 BULAN" />
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="Repair_Vendor${i}">Repair Vendor</label>
+                        <input type="text" id="Repair_Vendor${i}" data-index="${i}" class="form-control" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="User_Responsible${i}">PIC / User Responsible</label>
+                        <input type="text" id="User_Responsible${i}" data-index="${i}" class="form-control" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="User_Responsible_NIK${i}">NIK PIC</label>
+                        <input type="text" id="User_Responsible_NIK${i}" data-index="${i}" class="form-control" />
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Photo${i}">Foto Aset (nama file / URL)</label>
+                        <input type="text" id="Photo${i}" data-index="${i}" class="form-control" />
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="Riwayat_Aset${i}">Riwayat Aset</label>
+                        <textarea id="Riwayat_Aset${i}" data-index="${i}" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="Dokumentasi${i}">Dokumentasi Terkait</label>
+                        <textarea id="Dokumentasi${i}" data-index="${i}" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-group col-md-12">
+                        <label for="Note${i}">Note / Catatan Tambahan</label>
+                        <textarea id="Note${i}" data-index="${i}" class="form-control" rows="2"></textarea>
                     </div>
                 </div>
             </div>
