@@ -106,7 +106,26 @@ class TraceabilityApiFetcher
             $id = $sj['id'] ?? null;
             if ($id === null || isset($doneMap[$id])) { continue; }
 
-            $detail = $this->client->suratJalanDetail($id);
+            // per-SJ resilience: retry a few times, skip on persistent failure
+            $detail = null;
+            for ($try = 1; $try <= 3; $try++) {
+                try {
+                    $detail = $this->client->suratJalanDetail($id);
+                    break;
+                } catch (\Throwable $e) {
+                    if ($try === 3) {
+                        $progress['sj_detail_failed'] = array_values(array_unique(array_merge($progress['sj_detail_failed'] ?? [], [$id])));
+                        $this->writeJson('progress.json', $progress);
+                        $detail = null;
+                        break;
+                    }
+                    sleep($try); // 1s, 2s backoff
+                }
+            }
+            if ($detail === null) {
+                if ($cb) { $cb('sj_details', $fetched, count($doneMap), count($list)); }
+                continue;
+            }
 
             if ($withPhotos && !empty($detail['details'])) {
                 foreach ($detail['details'] as $k => $ln) {

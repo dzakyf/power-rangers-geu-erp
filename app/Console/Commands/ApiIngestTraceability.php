@@ -66,10 +66,17 @@ class ApiIngestTraceability extends Command
         $lines = 0; $missing = 0;
 
         if (is_file($ndjson)) {
+            // dedupe by SJ id (last occurrence wins) to avoid double counting
+            $records = [];
             $fh = fopen($ndjson, 'r');
             while (($line = fgets($fh)) !== false) {
                 $rec = json_decode($line, true);
-                if (!$rec) { continue; }
+                if (!$rec || !isset($rec['id'])) { continue; }
+                $records[$rec['id']] = $rec;
+            }
+            fclose($fh);
+
+            foreach ($records as $rec) {
                 $header = $rec['detail']['header'] ?? [];
                 $sjKode = $rec['kode'] ?? ($header['kode'] ?? null);
                 $sjDate = $rec['tgl'] ?? ($header['tgl'] ?? null);
@@ -105,7 +112,6 @@ class ApiIngestTraceability extends Command
                     ];
                 }
             }
-            fclose($fh);
         }
 
         $this->info('  lines: ' . $lines . ' | collections: ' . count($collections) . ' | unresolved supplier: ' . $missing);

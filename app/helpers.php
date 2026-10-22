@@ -304,3 +304,129 @@ if (!function_exists('requisition_approval_chain')) {
         return ['chain' => $chain, 'error' => null];
     }
 }
+
+if (!function_exists('asset_photo_topic')) {
+    /**
+     * meta_files.Topic used for every asset_list photo. Photos are append-only rows
+     * (one row per file) so an asset can hold more than one picture; asset_list.Photo
+     * caches the cover (first) photo so grids/QR pages keep working.
+     */
+    function asset_photo_topic(): string
+    {
+        return 'asset-photo';
+    }
+}
+
+if (!function_exists('asset_photos')) {
+    /**
+     * All photos of one asset, oldest first. $assetNo is asset_list.Asset_No.
+     */
+    function asset_photos($assetNo)
+    {
+        if (!$assetNo) {
+            return collect();
+        }
+
+        return \Illuminate\Support\Facades\DB::table('meta_files')
+            ->where('Topic', asset_photo_topic())
+            ->where('Map_To', (string) $assetNo)
+            ->orderBy('ID', 'ASC')
+            ->get();
+    }
+}
+
+if (!function_exists('asset_photo_url')) {
+    /**
+     * Public URL of a meta_files row, or null when the file is missing on disk.
+     */
+    function asset_photo_url($meta): ?string
+    {
+        return $meta && $meta->Path ? asset('filevendor/' . $meta->Path) : null;
+    }
+}
+
+if (!function_exists('asset_photo_sync_cover')) {
+    /**
+     * Keep asset_list.Photo pointing at the first photo of the asset (cover).
+     * Never called on delete-with-remaining-rows without a re-read, so the cover
+     * always follows the photos table.
+     */
+    function asset_photo_sync_cover($assetNo): void
+    {
+        if (!$assetNo) {
+            return;
+        }
+
+        $first = asset_photos($assetNo)->first();
+
+        \Illuminate\Support\Facades\DB::table('asset_list')
+            ->where('Asset_No', (string) $assetNo)
+            ->update(['Photo' => $first ? asset_photo_url($first) : null]);
+    }
+}
+
+if (!function_exists('asset_photo_store')) {
+    /**
+     * Store one uploaded photo for an asset and register it in meta_files.
+     * Returns the meta_files ID. Mirrors UploadService::storeFile() (filevendor/YYYY/MM).
+     */
+    function asset_photo_store($file, $assetNo, string $description = 'Asset Photo'): ?int
+    {
+        if (!$file || !$file->isValid()) {
+            return null;
+        }
+
+        $year = now()->format('Y');
+        $month = now()->format('m');
+        $dir = public_path("filevendor/{$year}/{$month}");
+
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
+        $ext = $file->getClientOriginalExtension() ?: 'jpg';
+        $name = 'asset_' . preg_replace('/[^A-Za-z0-9_-]/', '_', (string) $assetNo)
+            . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+
+        $file->move($dir, $name);
+
+        return \Illuminate\Support\Facades\DB::table('meta_files')->insertGetId([
+            'Filename'    => $name,
+            'Path'        => "{$year}/{$month}/{$name}",
+            'Extension'   => $ext,
+            'Description' => $description,
+            'Topic'       => asset_photo_topic(),
+            'Map_To'      => (string) $assetNo,
+            'Created_At'  => now(),
+        ]);
+    }
+}
+
+if (!function_exists('asset_photo_delete')) {
+    /**
+     * Delete one photo row (and its file) then refresh the asset cover.
+     * Deleting a photo never touches the other photos of the asset.
+     */
+    function asset_photo_delete($photoId, $assetNo = null): bool
+    {
+        $photo = \Illuminate\Support\Facades\DB::table('meta_files')
+            ->where('ID', $photoId)
+            ->where('Topic', asset_photo_topic())
+            ->first();
+
+        if (!$photo) {
+            return false;
+        }
+
+        $fullPath = public_path('filevendor/' . $photo->Path);
+        if ($photo->Path && file_exists($fullPath)) {
+            @unlink($fullPath);
+        }
+
+        \Illuminate\Support\Facades\DB::table('meta_files')->where('ID', $photoId)->delete();
+
+        asset_photo_sync_cover($assetNo ?: $photo->Map_To);
+
+        return true;
+    }
+}

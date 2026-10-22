@@ -73,6 +73,7 @@ use App\Http\Controllers\HCGA\AssetHandoverReturnedController as HCGAAssetHandov
 use App\Http\Controllers\HCGA\AssetHandoverReturnedApprovalController as HCGAAssetHandoverReturnedApprovalController;
 use App\Http\Controllers\HCGA\AssetDispossalController as HCGAAssetDispossalController;
 use App\Http\Controllers\HCGA\AssetDispossalApprovalController as HCGAAssetDispossalApprovalController;
+use App\Http\Controllers\HCGA\VehicleOperationsController as HCGAVehicleOperationsController;
 use App\Http\Controllers\HCGA\CarRentController as HCGACarRentController;
 
 use App\Http\Controllers\Finance\CostManagementController;
@@ -2451,6 +2452,18 @@ Route::group(['middleware' => 'log.access'], function () {
     });
     Route::post('/asset-lists-detail-submit', function () {
         return view('assets.lists-detail-submit');
+    });
+    Route::post('/asset-lists-stnk-update', function () {
+        return view('assets.lists-stnk-update');
+    });
+    Route::post('/asset-lists-kir-update', function () {
+        return view('assets.lists-kir-update');
+    });
+    Route::post('/asset-lists-photo-upload', function () {
+        return view('assets.lists-photo-upload');
+    });
+    Route::post('/asset-lists-photo-delete', function () {
+        return view('assets.lists-photo-delete');
     });
     Route::get('/xml-asset-lists', function () {
         return view('assets.xml.asset-lists');
@@ -5826,4 +5839,21 @@ Route::group(['middleware' => 'log.access'], function () {
     $hcAssetPref = "$hcPref-asset";
     Route::post("$hcAssetPref-lists-new-from-po", [HCGAAssetListController::class, 'getDataFromPO']);
     Route::post("$hcAssetPref-lists-new-get-wh", [HCGAAssetListController::class, 'getDataFromWH']);
+
+    // Vehicle Operations: Logbook & Fuel Tracking (Controller based)
+    $vehOpsPref = "$hcPref-vehicle-operations";
+    Route::get("$vehOpsPref", [HCGAVehicleOperationsController::class, 'index']);
+    Route::get("$vehOpsPref-logbook-data", [HCGAVehicleOperationsController::class, 'logbookData']);
+    Route::get("$vehOpsPref-fuel-data", [HCGAVehicleOperationsController::class, 'fuelData']);
+    Route::get("$vehOpsPref-kpi-data", [HCGAVehicleOperationsController::class, 'kpiData']);
+    Route::get("$vehOpsPref-vehicle-info", [HCGAVehicleOperationsController::class, 'vehicleInfo']);
+    Route::post("$vehOpsPref-logbook-submit", [HCGAVehicleOperationsController::class, 'storeLogbook']);
+    Route::post("$vehOpsPref-logbook-finish", [HCGAVehicleOperationsController::class, 'finishLogbook']);
+    Route::post("$vehOpsPref-logbook-delete", [HCGAVehicleOperationsController::class, 'deleteLogbook']);
+    Route::post("$vehOpsPref-fuel-submit", [HCGAVehicleOperationsController::class, 'storeFuel']);
+    Route::post("$vehOpsPref-fuel-delete", [HCGAVehicleOperationsController::class, 'deleteFuel']);
+    Route::get("$vehOpsPref-export-logbook", [HCGAVehicleOperationsController::class, 'exportLogbook']);
+    Route::get("$vehOpsPref-export-fuel", [HCGAVehicleOperationsController::class, 'exportFuel']);
+    Route::get("/xml-vehicle-logbook", [HCGAVehicleOperationsController::class, 'logbookData']);
+    Route::get("/xml-vehicle-fuel", [HCGAVehicleOperationsController::class, 'fuelData']);
 });
