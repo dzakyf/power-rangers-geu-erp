@@ -12,10 +12,13 @@ try {
 	$reqCols = isset($_GET['cols']) ? explode(',', $_GET['cols']) : [];
 	$keys = array_values(array_intersect($reqCols, array_keys($map)));
 	if (!count($keys)) {
-		$keys = employee_grid_default_columns();
-	}
-	foreach (['Age', 'Sisa_Cuti'] as $nk) {
-		if (!in_array($nk, $keys, true)) $keys[] = $nk;
+		$savedJson = DB::table('user_grid_prefs')
+			->where('username', Auth::user()->username)
+			->where('view', 'employee-lists')
+			->value('columns_json');
+		$saved = $savedJson ? json_decode($savedJson, true) : [];
+		$keys = array_values(array_intersect((array) $saved, array_keys($map)));
+		if (!count($keys)) $keys = employee_grid_default_columns();
 	}
 	$needAkad = in_array('Academic_Major', $keys, true);
 	$akademis = [];

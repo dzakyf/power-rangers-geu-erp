@@ -145,6 +145,7 @@ class TraceabilityApiFetcher
                 'kode'   => $sj['kode'] ?? ($detail['header']['kode'] ?? null),
                 'tgl'    => $sj['tgl'] ?? ($detail['header']['tgl'] ?? null),
                 'plat'   => $sj['fleet_plat'] ?? null,
+                'driver' => $sj['driver_name'] ?? null,
                 'kode_pickup' => $sj['kode_pickup'] ?? null,
                 'detail' => $detail,
             ], JSON_UNESCAPED_SLASHES) . "\n");

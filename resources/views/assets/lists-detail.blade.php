@@ -268,59 +268,61 @@ $result = DB::select(DB::raw("SHOW COLUMNS FROM asset_list")); ?>
                         </div>
                     </div>
                 </div>
-
+                
                 <!-- Kelompok 6: Data Kendaraan -->
-                <div class="card mb-3 border-light bg-light">
-                    <div class="card-body">
-                        <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">6. Data Kendaraan</h6>
-                        <div class="form-row">
-                            <div class="form-group col-md-4">
-                                <label for="BPKB_No">No. BPKB</label>
-                                <input type="text" id="BPKB_No" class="form-control" placeholder="ex: F03812510N" />
-                            </div>
-                            <div class="form-group col-md-4">
-                                <label for="Surat_Jalan_No">No. Surat Jalan (Buku Servis)</label>
-                                <input type="text" id="Surat_Jalan_No" class="form-control" placeholder="ex: U4352034" />
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label for="Asuransi">Asuransi</label>
-                                <input type="text" id="Asuransi" class="form-control" placeholder="ex: ASTRA INSURANCE (s.d 25 April 2028)" />
-                            </div>
-                            <div class="form-group col-md-3">
-                                <label for="STNK_Tahunan">STNK Tahunan</label>
-                                <input type="text" id="STNK_Tahunan" class="form-control bg-white" readonly />
-                            </div>
-                            <div class="form-group col-md-3">
-                                <label for="STNK_5_Tahun">STNK 5 Tahunan</label>
-                                <input type="text" id="STNK_5_Tahun" class="form-control bg-white" readonly />
-                            </div>
-                            <div class="form-group col-md-4">
-                                <label for="Jadwal_KIR">Jadwal KIR Terupdate</label>
-                                <input type="text" id="Jadwal_KIR" class="form-control" placeholder="ex: 23/12/2026" />
-                            </div>
-                            <div class="form-group col-md-4">
-                                <label for="Berkas_KIR">Berkas Update KIR Terakhir</label>
-                                <input type="text" id="Berkas_KIR" class="form-control" />
-                            </div>
-                            <div class="form-group col-md-4">
-                                <label for="Subsid_Mypertamina">Subsidi Barcode Mypertamina</label>
-                                <select id="Subsid_Mypertamina" class="form-control">
-                                    <option value="">-- Pilih --</option>
-                                    <option>ADA</option>
-                                    <option>TIDAK ADA</option>
-                                </select>
-                            </div>
-                            <div class="form-group col-md-4">
-                                <label for="Barcode_Kode">Kode Generated Barcode</label>
-                                <input type="text" id="Barcode_Kode" class="form-control" placeholder="ex: PCK-MLG-216/001" />
-                            </div>
-                            <div class="form-group col-md-4">
-                                <label for="Barcode_Kode_PSAK">Kode Generated Barcode (PSAK Version)</label>
-                                <input type="text" id="Barcode_Kode_PSAK" class="form-control" />
-                            </div>
-                            <div class="form-group col-md-12">
-                                <label for="Riwayat_KIR">Riwayat KIR</label>
-                                <textarea id="Riwayat_KIR" class="form-control" rows="2" placeholder="ex: KIR 1: 23/06/2026 ..."></textarea>
+                <div id="vehicle-sections-detail">
+                    <div class="card mb-3 border-light bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">6. Data Kendaraan</h6>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="BPKB_No">No. BPKB</label>
+                                    <input type="text" id="BPKB_No" class="form-control" placeholder="ex: F03812510N" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Surat_Jalan_No">No. Surat Jalan (Buku Servis)</label>
+                                    <input type="text" id="Surat_Jalan_No" class="form-control" placeholder="ex: U4352034" />
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="Asuransi">Asuransi</label>
+                                    <input type="text" id="Asuransi" class="form-control" placeholder="ex: ASTRA INSURANCE (s.d 25 April 2028)" />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="STNK_Tahunan">STNK Tahunan</label>
+                                    <input type="text" id="STNK_Tahunan" class="form-control bg-white" readonly />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="STNK_5_Tahun">STNK 5 Tahunan</label>
+                                    <input type="text" id="STNK_5_Tahun" class="form-control bg-white" readonly />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Jadwal_KIR">Jadwal KIR Terupdate</label>
+                                    <input type="text" id="Jadwal_KIR" class="form-control" placeholder="ex: 23/12/2026" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Berkas_KIR">Berkas Update KIR Terakhir</label>
+                                    <input type="text" id="Berkas_KIR" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Subsid_Mypertamina">Subsidi Barcode Mypertamina</label>
+                                    <select id="Subsid_Mypertamina" class="form-control">
+                                        <option value="">-- Pilih --</option>
+                                        <option>ADA</option>
+                                        <option>TIDAK ADA</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Barcode_Kode">Kode Generated Barcode</label>
+                                    <input type="text" id="Barcode_Kode" class="form-control" placeholder="ex: PCK-MLG-216/001" />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="Barcode_Kode_PSAK">Kode Generated Barcode (PSAK Version)</label>
+                                    <input type="text" id="Barcode_Kode_PSAK" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-12">
+                                    <label for="Riwayat_KIR">Riwayat KIR</label>
+                                    <textarea id="Riwayat_KIR" class="form-control" rows="2" placeholder="ex: KIR 1: 23/06/2026 ..."></textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -773,6 +775,21 @@ $result = DB::select(DB::raw("SHOW COLUMNS FROM asset_list")); ?>
     }
 } ?>
 
+// Diperbaiki agar lebih fleksibel mendeteksi 'VEHICLE' atau 'KENDARAAN'
+function toggleVehicleFieldsDetail(){
+    var v = ($('#Asset_Sub_Category').val() || '').toString().trim().toUpperCase();
+    if(v.includes('VEHICLE') || v.includes('KENDARAAN')){
+        $('#vehicle-sections-detail').show();
+    } else {
+        $('#vehicle-sections-detail').hide();
+    }
+}
+
+// Panggil fungsi saat halaman pertama kali diload agar section kendaraan langsung menyesuaikan
+$(document).ready(function() {
+    toggleVehicleFieldsDetail();
+});
+
 var csrfToken = '{{ csrf_token() }}';
 var myCalendar;
 myCalendar = new dhtmlXCalendarObject(["Buy_Date","Exp_Date",'Manufacture_Date','Registration_Date','STNK_Tahunan','STNK_5_Tahun','Tanggal_PM_Terakhir','Tanggal_Penghapusan','Tanggal_Jadwal_PM','Leasing_Date','Installment_Last_Date','Depr_Process_Date','Express_PM_Date','STNK_Upd_Tanggal','KIR_Upd_Tanggal']);
@@ -894,5 +911,4 @@ $("#BtnUpdKIR").click(function() {
         }
     });
 });
-
 </script>

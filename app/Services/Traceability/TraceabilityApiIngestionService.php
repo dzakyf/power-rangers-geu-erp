@@ -66,6 +66,7 @@ class TraceabilityApiIngestionService
                     'wo_codes'    => [],
                     'po_code'     => $c['po_code'] ?? null,
                     'plat'        => $c['plat'] ?? null,
+                    'driver'      => $c['driver'] ?? null,
                     'ttd'         => null,
                     'photo'       => null,
                 ];
@@ -74,6 +75,7 @@ class TraceabilityApiIngestionService
             if (!empty($c['wo_code'])) { $groups[$key]['wo_codes'][$c['wo_code']] = true; }
             if (empty($groups[$key]['po_code']) && !empty($c['po_code'])) { $groups[$key]['po_code'] = $c['po_code']; }
             if (empty($groups[$key]['plat']) && !empty($c['plat'])) { $groups[$key]['plat'] = $c['plat']; }
+            if (empty($groups[$key]['driver']) && !empty($c['driver'])) { $groups[$key]['driver'] = $c['driver']; }
             if (empty($groups[$key]['ttd']) && !empty($c['ttd'])) { $groups[$key]['ttd'] = $c['ttd']; }
             if (empty($groups[$key]['photo']) && !empty($c['photo'])) { $groups[$key]['photo'] = $c['photo']; }
         }
@@ -111,6 +113,7 @@ class TraceabilityApiIngestionService
                 'api_reference'     => $apiRef,
                 'status'            => 'LOCKED',
                 'plat_no'           => $g['plat'],
+                'driver_name'       => $g['driver'],
                 'ttd'               => $g['ttd'],
                 'photos'            => $g['photo'] ? json_encode([$g['photo']]) : null,
             ];
@@ -163,6 +166,7 @@ class TraceabilityApiIngestionService
                     'poo_name'                          => trim((string) ($src['name'] ?? '')) . ($repeat ? ' (' . $seq . ')' : ''),
                     'poo_type'                          => $src['jenis'] ? (trim((string) $src['jenis']) ?: $label) : $label,
                     'quantity_kg'                       => $qty,
+                    'site'                              => $src['gudang_name'] ?? null,
                     'city'                              => $src['kota_name'] ?? null,
                     'province'                          => $src['provinsi_name'] ?? null,
                     'full_address'                      => $src['alamat'] ?? null,

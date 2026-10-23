@@ -36,15 +36,19 @@
 			</form>
 			<table id="fragTable" class="table table-striped table-bordered" style="width:100%">
 				<thead>
-					<tr>
+										<tr>
 						<th>No</th>
 						<th>Source</th>
 						<th>POO Name</th>
 						<th>Type</th>
+						<th>Site</th>
 						<th>City</th>
 						<th>Province</th>
+						<th>Plat Nomor</th>
+						<th>Driver Name</th>
 						<th>Qty (Kg)</th>
-						<th>PO Qty</th>
+						<th>Price</th>
+						<th>Total Price</th>
 						<th>WO Code</th>
 						<th>WO Date</th>
 						<th>WO Status</th>
@@ -54,7 +58,6 @@
 						<th>Surat Jalan Code</th>
 						<th>Surat Jalan Date</th>
 						<th>Surat Jalan Status</th>
-						<th>Split</th>
 					</tr>
 				</thead>
 			</table>
@@ -95,10 +98,14 @@
 				{ data: 'source' },
 				{ data: 'poo_name' },
 				{ data: 'poo_type' },
+				{ data: 'site' },
 				{ data: 'city' },
 				{ data: 'province' },
+				{ data: 'plat_no' },
+				{ data: 'driver_name' },
 				{ data: 'quantity_kg', className: 'text-right' },
-				{ data: 'po_qty', className: 'text-right' },
+				{ data: 'price', className: 'text-right' },
+				{ data: 'total_price', className: 'text-right' },
 				{ data: 'wo_code' },
 				{ data: 'wo_date' },
 				{ data: 'wo_status' },
@@ -107,8 +114,7 @@
 				{ data: 'po_status' },
 				{ data: 'do_code' },
 				{ data: 'do_date' },
-				{ data: 'do_status' },
-				{ data: 'split' }
+				{ data: 'do_status' }
 			],
 			order: [[2, 'asc']],
 			rowCallback: function (row, data) {

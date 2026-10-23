@@ -83,7 +83,7 @@ $gudang = DB::table('gudang_list')->get(); ?>
                             <div class="form-group col-md-4">
                                 <label for="Asset_Sub_Category" class="font-weight-bold">Asset Sub Category</label>
                                 <div id="subcat">
-                                    <select id="Asset_Sub_Category" class="form-control"></select>
+                                    <select id="Asset_Sub_Category" class="form-control" onchange="toggleVehicleFieldsNew()"></select>
                                 </div>
                             </div>
 
@@ -312,70 +312,74 @@ $gudang = DB::table('gudang_list')->get(); ?>
                             </div>
                         </div>
                     </div>
+                    
                     <!-- Kelompok 6: Data Kendaraan -->
-                    <div class="card mb-3 border-light bg-light">
-                        <div class="card-body">
-                            <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">6. Data Kendaraan</h6>
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="BPKB_No">No. BPKB</label>
-                                    <input type="text" id="BPKB_No" class="form-control" placeholder="ex: F03812510N" />
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="Surat_Jalan_No">No. Surat Jalan (Buku Servis)</label>
-                                    <input type="text" id="Surat_Jalan_No" class="form-control" placeholder="ex: U4352034" />
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label for="Asuransi">Asuransi</label>
-                                    <input type="text" id="Asuransi" class="form-control" placeholder="ex: ASTRA INSURANCE (s.d 25 April 2028)" />
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="STNK_Tahunan">STNK Tahunan</label>
-                                    <input type="text" id="STNK_Tahunan" class="form-control bg-white" readonly />
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label for="STNK_5_Tahun">STNK 5 Tahunan</label>
-                                    <input type="text" id="STNK_5_Tahun" class="form-control bg-white" readonly />
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="Jadwal_KIR">Jadwal KIR Terupdate</label>
-                                    <input type="text" id="Jadwal_KIR" class="form-control" placeholder="ex: 23/12/2026" />
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="Berkas_KIR">Berkas Update KIR Terakhir</label>
-                                    <input type="text" id="Berkas_KIR" class="form-control" />
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="Subsid_Mypertamina">Subsidi Barcode Mypertamina</label>
-                                    <select id="Subsid_Mypertamina" class="form-control">
-                                        <option value="">-- Pilih --</option>
-                                        <option>ADA</option>
-                                        <option>TIDAK ADA</option>
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="Barcode_Kode">Kode Generated Barcode</label>
-                                    <input type="text" id="Barcode_Kode" class="form-control" placeholder="ex: PCK-MLG-216/001" />
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="Barcode_Kode_PSAK">Kode Generated Barcode (PSAK Version)</label>
-                                    <input type="text" id="Barcode_Kode_PSAK" class="form-control" />
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="Service_Terakhir">Tanggal Service Terakhir</label>
-                                    <input type="text" id="Service_Terakhir" class="form-control bg-white" readonly />
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="Service_Berikutnya">Tanggal Service Berikutnya</label>
-                                    <input type="text" id="Service_Berikutnya" class="form-control bg-white" readonly />
-                                </div>
-                                <div class="form-group col-md-12">
-                                    <label for="Riwayat_KIR">Riwayat KIR</label>
-                                    <textarea id="Riwayat_KIR" class="form-control" rows="2" placeholder="ex: KIR 1: 23/06/2026 ..."></textarea>
+                    <div id="vehicle-sections" style="display:none;">
+                        <div class="card mb-3 border-light bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title text-secondary font-weight-bold border-bottom pb-2">6. Data Kendaraan</h6>
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label for="BPKB_No">No. BPKB</label>
+                                        <input type="text" id="BPKB_No" class="form-control" placeholder="ex: F03812510N" />
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="Surat_Jalan_No">No. Surat Jalan (Buku Servis)</label>
+                                        <input type="text" id="Surat_Jalan_No" class="form-control" placeholder="ex: U4352034" />
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="Asuransi">Asuransi</label>
+                                        <input type="text" id="Asuransi" class="form-control" placeholder="ex: ASTRA INSURANCE (s.d 25 April 2028)" />
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="STNK_Tahunan">STNK Tahunan</label>
+                                        <input type="text" id="STNK_Tahunan" class="form-control bg-white" readonly />
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="STNK_5_Tahun">STNK 5 Tahunan</label>
+                                        <input type="text" id="STNK_5_Tahun" class="form-control bg-white" readonly />
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="Jadwal_KIR">Jadwal KIR Terupdate</label>
+                                        <input type="text" id="Jadwal_KIR" class="form-control" placeholder="ex: 23/12/2026" />
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="Berkas_KIR">Berkas Update KIR Terakhir</label>
+                                        <input type="text" id="Berkas_KIR" class="form-control" />
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="Subsid_Mypertamina">Subsidi Barcode Mypertamina</label>
+                                        <select id="Subsid_Mypertamina" class="form-control">
+                                            <option value="">-- Pilih --</option>
+                                            <option>ADA</option>
+                                            <option>TIDAK ADA</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="Barcode_Kode">Kode Generated Barcode</label>
+                                        <input type="text" id="Barcode_Kode" class="form-control" placeholder="ex: PCK-MLG-216/001" />
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="Barcode_Kode_PSAK">Kode Generated Barcode (PSAK Version)</label>
+                                        <input type="text" id="Barcode_Kode_PSAK" class="form-control" />
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="Service_Terakhir">Tanggal Service Terakhir</label>
+                                        <input type="text" id="Service_Terakhir" class="form-control bg-white" readonly />
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="Service_Berikutnya">Tanggal Service Berikutnya</label>
+                                        <input type="text" id="Service_Berikutnya" class="form-control bg-white" readonly />
+                                    </div>
+                                    <div class="form-group col-md-12">
+                                        <label for="Riwayat_KIR">Riwayat KIR</label>
+                                        <textarea id="Riwayat_KIR" class="form-control" rows="2" placeholder="ex: KIR 1: 23/06/2026 ..."></textarea>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+
+                        </div>
 
                     <!-- Kelompok 7: Dokumen & Riwayat Aset -->
                     <div class="card mb-3 border-light bg-light">
@@ -472,16 +476,47 @@ $gudang = DB::table('gudang_list')->get(); ?>
 var myCalendar;
 myCalendar = new dhtmlXCalendarObject(["Buy_Date","Exp_Date",'Manufacture_Date','Registration_Date','STNK_Tahunan','STNK_5_Tahun','Service_Terakhir','Service_Berikutnya','Tanggal_PM_Terakhir','Tanggal_Penghapusan','Tanggal_Jadwal_PM','Leasing_Date','Installment_Last_Date']);
 myCalendar.setDateFormat("%Y-%m-%d");
-loadSubcategory()
+
+
+function toggleVehicleFieldsNew(){
+    // Mengambil value dan teks yang sedang dipilih, ubah ke uppercase untuk mengantisipasi perbedaan huruf besar/kecil
+    var val = ($('#Asset_Sub_Category').val() || '').toString().trim().toUpperCase();
+    var text = ($('#Asset_Sub_Category option:selected').text() || '').toString().trim().toUpperCase();
+    
+    // Cek apakah mengandung kata 'VEHICLE' atau 'KENDARAAN' pada value atau teksnya
+    if(val.includes('VEHICLE') || text.includes('VEHICLE')){
+        $('#vehicle-sections').show();
+    } else {
+        $('#vehicle-sections').hide();
+    }
+}
+loadSubcategory();
+
 function loadSubcategory(){
-    LoadM('subcat','asset-lists-sub-category?Category=' + encodeURI($(`#Asset_Category`).val()));
-    setTimeout(() => {
-        loadassettype();
-    }, 500);
+    LoadM('subcat','asset-lists-sub-category?Category=' + encodeURI($('#Asset_Category').val()));
+    
+    // Pengecekan interval untuk memastikan elemen sub-kategori sudah selesai dirender oleh LoadM
+    var checkInterval = setInterval(function() {
+        if ($('#Asset_Sub_Category').length > 0 && $('#Asset_Sub_Category option').length > 0) {
+            clearInterval(checkInterval);
+            
+            // Jika belum ada nilai yang terpilih, pilih opsi pertama secara otomatis
+            if (!$('#Asset_Sub_Category').val()) {
+                $('#Asset_Sub_Category').prop('selectedIndex', 0);
+            }
+            
+            // Panggil load asset type dan toggle vehicle setelah sub-kategori siap
+            loadassettype();
+            if (typeof toggleVehicleFieldsNew === 'function') { 
+                toggleVehicleFieldsNew(); 
+            }
+        }
+    }, 100);
 }
 
 function loadassettype(){
-    LoadM('subcat2','asset-lists-sub-sub-category?Category=' + encodeURI($(`#Asset_Category`).val()) + '&Sub_Category=' + encodeURI($(`#Asset_Sub_Category`).val()));
+    var subCatVal = $('#Asset_Sub_Category').val() || '';
+    LoadM('subcat2','asset-lists-sub-sub-category?Category=' + encodeURI($('#Asset_Category').val()) + '&Sub_Category=' + encodeURI(subCatVal));
 }
 
 function getAllValues() {
@@ -580,7 +615,8 @@ $('#PO_Item_Select').on('change', function() {
     $('#Asset_Category').val(cat).trigger('change')
     setTimeout(() => {
         $('#Asset_Sub_Category').val(subcat)
-        $('#Asset_Sub_Category').trigger('change')
+        $('#Asset_Sub_Category').trigger('change');
+        if(typeof toggleVehicleFieldsNew==='function'){ toggleVehicleFieldsNew(); }
         $('#Asset_Type').val(subsubcat).trigger('change')
     }, 500);
     

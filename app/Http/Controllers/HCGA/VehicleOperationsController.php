@@ -79,12 +79,12 @@ class VehicleOperationsController extends Controller
     protected function ensureMenuRegistered()
     {
         if (Schema::hasTable('menu_lists')) {
-            $exists = DB::table('menu_lists')->where('Path_Loc', 'vehicle-operations')->exists();
+            $exists = DB::table('menu_lists')->where('Path_Loc', 'hrd-vehicle-operations')->exists();
             if (!$exists) {
                 DB::table('menu_lists')->insert([
                     'Menu_ID' => 'SI00163B',
                     'Name' => 'Vehicle Log & Fuel',
-                    'Path_Loc' => 'vehicle-operations',
+                    'Path_Loc' => 'hrd-vehicle-operations',
                     'Position' => 4,
                     'Parent_Menu' => 'SS00039',
                     'Urutan' => 11,
