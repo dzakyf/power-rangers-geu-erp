@@ -86,7 +86,7 @@ class VehicleMaintenanceController extends Controller
                 'Product_Description',
                 'SN',
                 'Registration_No',
-                'Jenis_Kendaraan',
+                'Asset_Type',
                 'Asset_Location',
                 'Asset_Location_Department',
                 'KM_Saat_Ini',
@@ -189,7 +189,7 @@ class VehicleMaintenanceController extends Controller
             'SN'                   => $asset->SN ?? '',
             // Plat & kategori selalu mengikuti asset_list (tidak ada input ganda)
             'Plat_Nomor'           => $asset->Registration_No ?? '',
-            'Kategori_Kendaraan'   => $asset->Jenis_Kendaraan ?? '',
+            'Kategori_Kendaraan'   => $asset->Asset_Type ?? '',
             'Kilometer_Saat_Ini'   => $km,
             'Tipe_Service_Preventif' => $request->input('Tipe_Service_Preventif', ''),
             'Jadwal_Perawatan_Bulan' => $interval,

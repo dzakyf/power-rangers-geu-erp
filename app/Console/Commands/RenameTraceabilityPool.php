@@ -193,6 +193,7 @@ class RenameTraceabilityPool extends Command
                 DB::table('traceability_external_poo_fragments')->where('id', $fid)->update([
                     'poo_name'     => $s['name'] ?? null,
                     'poo_type'     => trim((string) ($s['jenis'] ?? '')) ?: null,
+                    'site'         => $s['gudang_name'] ?? null,
                     'full_address' => $d['alamat'] ?? ($s['alamat'] ?? null),
                     'lat'          => $lat,
                     'lng'          => $lng,

@@ -65,10 +65,9 @@ foreach($Query as $dapat){
 						echo "<cell>".htmlspecialchars(($dapat->Subsid_Mypertamina ?? ""))."</cell>";
 						echo "<cell>".htmlspecialchars(($dapat->Barcode_Kode ?? ""))."</cell>";
 						echo "<cell>".htmlspecialchars(($dapat->Barcode_Kode_PSAK ?? ""))."</cell>";
-						echo "<cell>".htmlspecialchars(($dapat->Service_Terakhir ?? ""))."</cell>";
-						echo "<cell>".htmlspecialchars(($dapat->Service_Berikutnya ?? ""))."</cell>";
 						echo "<cell>".htmlspecialchars(($dapat->Tanggal_PM_Terakhir ?? ""))."</cell>";
 						echo "<cell>".htmlspecialchars(($dapat->Tanggal_Jadwal_PM ?? ""))."</cell>";
+						echo "<cell>".htmlspecialchars(($dapat->KM_Saat_Ini ?? ""))."</cell>";
 						echo "<cell>".htmlspecialchars(($dapat->KM_Jadwal_PM ?? ""))."</cell>";
 						echo "<cell>".htmlspecialchars(($dapat->Interval_PM ?? ""))."</cell>";
 						echo "<cell>".htmlspecialchars(($dapat->Tanggal_Penghapusan ?? ""))."</cell>";
