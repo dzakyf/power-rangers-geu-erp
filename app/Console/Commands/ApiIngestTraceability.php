@@ -83,6 +83,8 @@ class ApiIngestTraceability extends Command
                 $sjDate = $rec['tgl'] ?? ($header['tgl'] ?? null);
                 $plat   = $rec['plat'] ?? null;
                 $driver = $rec['driver'] ?? null;
+                $gudang = $rec['gudang'] ?? null;
+                $pickupId = $rec['pickup_id'] ?? ($header['pickup_id'] ?? null);
                 $poCode = $rec['kode_pickup'] ?? ($header['pickup']['kode'] ?? null);
                 if (!$sjKode) { continue; }
 
@@ -110,6 +112,9 @@ class ApiIngestTraceability extends Command
                         'po_code'     => $poCode,
                         'plat'        => $plat,
                         'driver'      => $driver,
+                        'gudang'      => $gudang,
+                        'pickup_id'   => $pickupId,
+                        'unit'        => $ln['satuan_name'] ?? null,
                         'ttd'         => $ln['ttd'] ?? null,
                         'photo'       => $ln['_first_photo'] ?? null,
                     ];

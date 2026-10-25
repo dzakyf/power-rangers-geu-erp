@@ -116,6 +116,11 @@ class ApipiApiClient
         return $this->get('/api-tms/surat-jalan', $q);
     }
 
+    public function pickup($id): array
+    {
+        return $this->get('/api-tms/pickups/' . $id);
+    }
+
     public function suratJalanDetail($id): array
     {
         return $this->get('/api-tms/surat-jalan/' . $id);
