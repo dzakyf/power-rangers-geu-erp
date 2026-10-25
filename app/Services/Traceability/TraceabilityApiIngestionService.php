@@ -67,6 +67,9 @@ class TraceabilityApiIngestionService
                     'po_code'     => $c['po_code'] ?? null,
                     'plat'        => $c['plat'] ?? null,
                     'driver'      => $c['driver'] ?? null,
+                    'gudang'      => $c['gudang'] ?? null,
+                    'pickup_id'   => $c['pickup_id'] ?? null,
+                    'unit'        => $c['unit'] ?? null,
                     'ttd'         => null,
                     'photo'       => null,
                 ];
@@ -76,6 +79,9 @@ class TraceabilityApiIngestionService
             if (empty($groups[$key]['po_code']) && !empty($c['po_code'])) { $groups[$key]['po_code'] = $c['po_code']; }
             if (empty($groups[$key]['plat']) && !empty($c['plat'])) { $groups[$key]['plat'] = $c['plat']; }
             if (empty($groups[$key]['driver']) && !empty($c['driver'])) { $groups[$key]['driver'] = $c['driver']; }
+            if (empty($groups[$key]['gudang']) && !empty($c['gudang'])) { $groups[$key]['gudang'] = $c['gudang']; }
+            if (empty($groups[$key]['pickup_id']) && !empty($c['pickup_id'])) { $groups[$key]['pickup_id'] = $c['pickup_id']; }
+            if (empty($groups[$key]['unit']) && !empty($c['unit'])) { $groups[$key]['unit'] = $c['unit']; }
             if (empty($groups[$key]['ttd']) && !empty($c['ttd'])) { $groups[$key]['ttd'] = $c['ttd']; }
             if (empty($groups[$key]['photo']) && !empty($c['photo'])) { $groups[$key]['photo'] = $c['photo']; }
         }
@@ -109,6 +115,7 @@ class TraceabilityApiIngestionService
                 'city'              => $sup['kota_name'] ?? null,
                 'province'          => $sup['provinsi_name'] ?? null,
                 'delivery_date'     => $sjDate,
+                'pickup_id'         => $g['pickup_id'] ?? null,
                 'total_quantity_kg' => $total,
                 'api_reference'     => $apiRef,
                 'status'            => 'LOCKED',
@@ -166,7 +173,8 @@ class TraceabilityApiIngestionService
                     'poo_name'                          => trim((string) ($src['name'] ?? '')) . ($repeat ? ' (' . $seq . ')' : ''),
                     'poo_type'                          => $src['jenis'] ? (trim((string) $src['jenis']) ?: $label) : $label,
                     'quantity_kg'                       => $qty,
-                    'site'                              => $src['gudang_name'] ?? null,
+                    'unit'                              => $g['unit'] ?? null,
+                    'site'                              => $g['gudang'] ?? null,
                     'city'                              => $src['kota_name'] ?? null,
                     'province'                          => $src['provinsi_name'] ?? null,
                     'full_address'                      => $src['alamat'] ?? null,

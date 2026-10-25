@@ -16,7 +16,10 @@ class ISCCTraceabilityController extends Controller
 
     public function index()
     {
-        return view('cns.iscc-traceability.index');
+        $sites = DB::table('traceability_external_poo_fragments')
+            ->whereNotNull('site')->where('site', '<>', '')
+            ->distinct()->orderBy('site')->pluck('site');
+        return view('cns.iscc-traceability.index', compact('sites'));
     }
 
     public function utama()
@@ -39,18 +42,19 @@ class ISCCTraceabilityController extends Controller
     {
         $source   = $request->get('source');
         $city     = $request->get('city');
+        $site     = $request->get('site');
         $dateFrom = $request->get('date_from');
         $dateTo   = $request->get('date_to');
 
-        $query = $this->fragmentUnion($source ?: 'ALL', $city, $dateFrom, $dateTo);
+        $query = $this->fragmentUnion($source ?: 'ALL', $city, $dateFrom, $dateTo, $site);
 
         return $this->dataTables($request, $query, [
             'searchable' => ['poo_name', 'poo_type', 'city', 'province', 'wo_code', 'po_code', 'do_code', 'source'],
             'order'      => [
                 1 => 'source', 2 => 'poo_name', 3 => 'poo_type', 4 => 'site', 5 => 'city', 6 => 'province',
-                7 => 'plat_no', 8 => 'driver_name', 9 => 'quantity_kg', 10 => 'price', 11 => 'total_price',
-                12 => 'wo_code', 13 => 'wo_date', 14 => 'wo_status', 15 => 'po_code', 16 => 'po_date',
-                17 => 'po_status', 18 => 'do_code', 19 => 'do_date', 20 => 'do_status',
+                7 => 'plat_no', 8 => 'driver_name', 9 => 'quantity_kg', 10 => 'unit', 11 => 'price', 12 => 'total_price',
+                13 => 'wo_code', 14 => 'wo_date', 15 => 'wo_status', 16 => 'po_code', 17 => 'po_date',
+                18 => 'po_status', 19 => 'do_code', 20 => 'do_date', 21 => 'do_status',
             ],
             'defaultOrder' => 'poo_name',
             'map' => function ($r, $no) {
@@ -65,6 +69,7 @@ class ISCCTraceabilityController extends Controller
                     'plat_no' => $r->plat_no,
                     'driver_name' => $r->driver_name,
                     'quantity_kg' => $r->quantity_kg,
+                    'unit' => $r->unit,
                     'price' => $r->price,
                     'total_price' => $r->total_price,
                     'wo_code' => $r->wo_code,
@@ -153,6 +158,7 @@ class ISCCTraceabilityController extends Controller
                 'ted.plat_no as plat_no',
                 'ted.driver_name as driver_name',
                 'tep.quantity_kg as quantity_kg',
+                'tep.unit as unit',
                 'tep.price as price',
                 DB::raw('tep.price * tep.quantity_kg as total_price'),
                 'tep.wo_code as wo_code',
@@ -171,9 +177,9 @@ class ISCCTraceabilityController extends Controller
             'searchable' => ['tep.poo_name', 'tep.poo_type', 'tep.city', 'tep.province', 'tep.wo_code', 'tep.po_code', 'tep.do_code'],
             'order' => [
                 2 => 'poo_name', 3 => 'poo_type', 4 => 'site', 5 => 'city', 6 => 'province',
-                7 => 'plat_no', 8 => 'driver_name', 9 => 'quantity_kg', 10 => 'price', 11 => 'total_price',
-                12 => 'wo_code', 13 => 'wo_date', 14 => 'wo_status', 15 => 'po_code', 16 => 'po_date',
-                17 => 'po_status', 18 => 'do_code', 19 => 'do_date', 20 => 'do_status',
+                7 => 'plat_no', 8 => 'driver_name', 9 => 'quantity_kg', 10 => 'unit', 11 => 'price', 12 => 'total_price',
+                13 => 'wo_code', 14 => 'wo_date', 15 => 'wo_status', 16 => 'po_code', 17 => 'po_date',
+                18 => 'po_status', 19 => 'do_code', 20 => 'do_date', 21 => 'do_status',
             ],
             'defaultOrder' => 'tep.id',
             'map' => function ($r, $no) {
@@ -188,6 +194,7 @@ class ISCCTraceabilityController extends Controller
                     'plat_no' => $r->plat_no,
                     'driver_name' => $r->driver_name,
                     'quantity_kg' => $r->quantity_kg,
+                    'unit' => $r->unit,
                     'price' => $r->price,
                     'total_price' => $r->total_price,
                     'wo_code' => $r->wo_code,
@@ -212,11 +219,12 @@ class ISCCTraceabilityController extends Controller
     {
         $source   = $request->get('source');
         $city     = $request->get('city');
+        $site     = $request->get('site');
         $dateFrom = $request->get('date_from');
         $dateTo   = $request->get('date_to');
         $search   = $request->get('search');
 
-        $query = $this->fragmentUnion($source ?: 'ALL', $city, $dateFrom, $dateTo);
+        $query = $this->fragmentUnion($source ?: 'ALL', $city, $dateFrom, $dateTo, $site);
 
         if ($search !== null && $search !== '') {
             $query->where(function ($q) use ($search) {
@@ -228,11 +236,11 @@ class ISCCTraceabilityController extends Controller
 
         $rows = $query->orderBy('poo_name', 'asc')->get();
 
-        $headers = ['No', 'Source', 'POO Name', 'Type', 'Site', 'City', 'Province', 'Plat Nomor', 'Driver Name', 'Qty (Kg)', 'Price', 'Total Price', 'WO Code', 'WO Date', 'WO Status', 'PO Code', 'PO Date', 'PO Status', 'Surat Jalan Code', 'Surat Jalan Date', 'Surat Jalan Status'];
+        $headers = ['No', 'Source', 'POO Name', 'Type', 'Site', 'City', 'Province', 'Plat Nomor', 'Driver Name', 'Qty (Kg)', 'Unit', 'Price', 'Total Price', 'WO Code', 'WO Date', 'WO Status', 'PO Code', 'PO Date', 'PO Status', 'Surat Jalan Code', 'Surat Jalan Date', 'Surat Jalan Status'];
         $data = [];
         $i = 1;
         foreach ($rows as $r) {
-            $data[] = [$i++, $r->source, $r->poo_name, $r->poo_type, $r->site, $r->city, $r->province, $r->plat_no, $r->driver_name, $r->quantity_kg, $r->price, $r->total_price, $r->wo_code, $this->fmtDate($r->wo_date), $r->wo_status, $r->po_code, $this->fmtDate($r->po_date), $r->po_status, $r->do_code, $this->fmtDate($r->do_date), $r->do_status];
+            $data[] = [$i++, $r->source, $r->poo_name, $r->poo_type, $r->site, $r->city, $r->province, $r->plat_no, $r->driver_name, $r->quantity_kg, $r->unit, $r->price, $r->total_price, $r->wo_code, $this->fmtDate($r->wo_date), $r->wo_status, $r->po_code, $this->fmtDate($r->po_date), $r->po_status, $r->do_code, $this->fmtDate($r->do_date), $r->do_status];
         }
 
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -255,12 +263,13 @@ class ISCCTraceabilityController extends Controller
     /**
      * Build the fragment union (EXTERNAL + NATURAL) as a queryable subquery.
      */
-    protected function fragmentUnion(string $source, ?string $city, ?string $dateFrom, ?string $dateTo)
+    protected function fragmentUnion(string $source, ?string $city, ?string $dateFrom, ?string $dateTo, ?string $site = null)
     {
         $ext = DB::table('traceability_external_poo_fragments as tep')
             ->join('traceability_external_deliveries as ted', 'ted.id', '=', 'tep.traceability_external_delivery_id')
             ->whereIn('ted.status', ['LOCKED', 'AUDITED'])
             ->when($city, function ($q) use ($city) { return $q->where('tep.city', $city); })
+            ->when($site, function ($q) use ($site) { return $q->where('tep.site', $site); })
             ->when($dateFrom, function ($q) use ($dateFrom) { return $q->whereDate('ted.delivery_date', '>=', $dateFrom); })
             ->when($dateTo, function ($q) use ($dateTo) { return $q->whereDate('ted.delivery_date', '<=', $dateTo); })
             ->select(
@@ -273,6 +282,7 @@ class ISCCTraceabilityController extends Controller
                 'ted.plat_no as plat_no',
                 'ted.driver_name as driver_name',
                 'tep.quantity_kg as quantity_kg',
+                'tep.unit as unit',
                 'tep.price as price',
                 DB::raw('tep.price * tep.quantity_kg as total_price'),
                 'tep.wo_code as wo_code',
@@ -308,6 +318,7 @@ class ISCCTraceabilityController extends Controller
                 DB::raw('NULL as plat_no'),
                 DB::raw('NULL as driver_name'),
                 'po.Qty as quantity_kg',
+                DB::raw('NULL as unit'),
                 DB::raw('NULL as price'),
                 DB::raw('NULL as total_price'),
                 'wo.Code as wo_code',
@@ -330,15 +341,15 @@ class ISCCTraceabilityController extends Controller
         }
 
         if ($src === 'BDP') {
-            // BDP hidden until real MITRA data exists (show_bdp flag)
-            if (!$showBdp) {
+            // BDP hidden until real MITRA data exists (show_bdp flag); no site on NATURAL
+            if (!$showBdp || $site) {
                 return DB::query()->fromSub($nat, 'u')->whereRaw('1=0');
             }
             return DB::query()->fromSub($nat, 'u');
         }
 
         // ALL / empty
-        if (!$showBdp) {
+        if (!$showBdp || $site) {
             return DB::query()->fromSub($ext, 'u');
         }
 

@@ -19,6 +19,7 @@
 						<th>Plat Nomor</th>
 						<th>Driver Name</th>
 						<th>Qty (Kg)</th>
+						<th>Unit</th>
 						<th>Price</th>
 						<th>Total Price</th>
 						<th>WO Code</th>
@@ -71,6 +72,7 @@
 				{ data: 'plat_no' },
 				{ data: 'driver_name' },
 				{ data: 'quantity_kg', className: 'text-right' },
+				{ data: 'unit' },
 				{ data: 'price', className: 'text-right' },
 				{ data: 'total_price', className: 'text-right' },
 				{ data: 'wo_code' },

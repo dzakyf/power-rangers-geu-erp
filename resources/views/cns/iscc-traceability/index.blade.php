@@ -3,8 +3,13 @@
 @push('head')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/plugins/data-tables/css/datatables.min.css') }}">
 <style>
-	.frag-row { cursor: pointer; }
-	.frag-row.selected { background-color: #d9edf7 !important; }
+	.frag-row {
+		cursor: pointer;
+	}
+
+	.frag-row.selected {
+		background-color: #d9edf7 !important;
+	}
 </style>
 @endpush
 
@@ -29,6 +34,12 @@
 					<option value="GREES">GREES</option>
 				</select>
 				<input type="text" id="fCity" name="city" placeholder="City / Regency" class="form-control mr-2" />
+				<select id="fSite" name="site" class="form-control mr-2">
+					<option value="">All Sites</option>
+					@foreach(($sites ?? []) as $s)
+					<option value="{{ $s }}">{{ $s }}</option>
+					@endforeach
+				</select>
 				<input type="date" id="fDateFrom" name="date_from" class="form-control mr-2" />
 				<input type="date" id="fDateTo" name="date_to" class="form-control mr-2" />
 				<input type="button" value="Filter" class="btn btn-primary mr-2" onclick="applyFilter()" />
@@ -36,7 +47,7 @@
 			</form>
 			<table id="fragTable" class="table table-striped table-bordered" style="width:100%">
 				<thead>
-										<tr>
+					<tr>
 						<th>No</th>
 						<th>Source</th>
 						<th>POO Name</th>
@@ -46,7 +57,8 @@
 						<th>Province</th>
 						<th>Plat Nomor</th>
 						<th>Driver Name</th>
-						<th>Qty (Kg)</th>
+						<th>Qty</th>
+						<th>Unit</th>
 						<th>Price</th>
 						<th>Total Price</th>
 						<th>WO Code</th>
@@ -78,48 +90,101 @@
 	var fragTable;
 	var selectedRow = null;
 
-	$(function () {
+	$(function() {
 		fragTable = $('#fragTable').DataTable({
 			processing: true,
 			serverSide: true,
 			pageLength: 25,
-			lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+			lengthMenu: [
+				[10, 25, 50, 100],
+				[10, 25, 50, 100]
+			],
 			ajax: {
 				url: 'cns-iscc-traceability-fragment-data',
-				data: function (d) {
+				data: function(d) {
 					d.source = $('#fSource').val();
 					d.city = $('#fCity').val();
+					d.site = $('#fSite').val();
 					d.date_from = $('#fDateFrom').val();
 					d.date_to = $('#fDateTo').val();
 				}
 			},
-			columns: [
-				{ data: 'no' },
-				{ data: 'source' },
-				{ data: 'poo_name' },
-				{ data: 'poo_type' },
-				{ data: 'site' },
-				{ data: 'city' },
-				{ data: 'province' },
-				{ data: 'plat_no' },
-				{ data: 'driver_name' },
-				{ data: 'quantity_kg', className: 'text-right' },
-				{ data: 'price', className: 'text-right' },
-				{ data: 'total_price', className: 'text-right' },
-				{ data: 'wo_code' },
-				{ data: 'wo_date' },
-				{ data: 'wo_status' },
-				{ data: 'po_code' },
-				{ data: 'po_date' },
-				{ data: 'po_status' },
-				{ data: 'do_code' },
-				{ data: 'do_date' },
-				{ data: 'do_status' }
+			columns: [{
+					data: 'no'
+				},
+				{
+					data: 'source'
+				},
+				{
+					data: 'poo_name'
+				},
+				{
+					data: 'poo_type'
+				},
+				{
+					data: 'site'
+				},
+				{
+					data: 'city'
+				},
+				{
+					data: 'province'
+				},
+				{
+					data: 'plat_no'
+				},
+				{
+					data: 'driver_name'
+				},
+				{
+					data: 'quantity_kg',
+					className: 'text-right'
+				},
+				{
+					data: 'unit'
+				},
+				{
+					data: 'price',
+					className: 'text-right'
+				},
+				{
+					data: 'total_price',
+					className: 'text-right'
+				},
+				{
+					data: 'wo_code'
+				},
+				{
+					data: 'wo_date'
+				},
+				{
+					data: 'wo_status'
+				},
+				{
+					data: 'po_code'
+				},
+				{
+					data: 'po_date'
+				},
+				{
+					data: 'po_status'
+				},
+				{
+					data: 'do_code'
+				},
+				{
+					data: 'do_date'
+				},
+				{
+					data: 'do_status'
+				}
 			],
-			order: [[2, 'asc']],
-			rowCallback: function (row, data) {
+			order: [
+				[2, 'asc']
+			],
+			rowCallback: function(row, data) {
 				$(row).addClass('frag-row');
-				$(row).on('click', function () {
+				$(row).on('click', function() {
 					$('#fragTable tbody tr').removeClass('selected');
 					$(this).addClass('selected');
 					selectedRow = data;
@@ -128,35 +193,43 @@
 					$('#printBtn').prop('disabled', !ok);
 				});
 			},
-			drawCallback: function () {
+			drawCallback: function() {
 				selectedRow = null;
 				$('#editBtn, #printBtn').prop('disabled', true);
 			}
 		});
 	});
 
-	function applyFilter() { fragTable.ajax.reload(); }
+	function applyFilter() {
+		fragTable.ajax.reload();
+	}
+
 	function resetFilter() {
 		$('#fSource').val('');
 		$('#fCity').val('');
+		$('#fSite').val('');
 		$('#fDateFrom').val('');
 		$('#fDateTo').val('');
 		fragTable.ajax.reload();
 	}
+
 	function editSelected() {
 		if (selectedRow && selectedRow.fragment_id) {
 			LoadM('divTraceDetail', 'cns-iscc-traceability-edit/' + selectedRow.fragment_id);
 		}
 	}
+
 	function printSelected() {
 		if (selectedRow && selectedRow.fragment_id) {
 			window.open('cns-iscc-traceability-print/' + selectedRow.fragment_id, '_blank');
 		}
 	}
+
 	function exportExcel() {
 		var q = $.param({
 			source: $('#fSource').val(),
 			city: $('#fCity').val(),
+			site: $('#fSite').val(),
 			date_from: $('#fDateFrom').val(),
 			date_to: $('#fDateTo').val(),
 			search: fragTable.search()
