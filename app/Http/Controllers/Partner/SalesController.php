@@ -214,7 +214,7 @@ class SalesController extends Controller
 
     private function buildSalesPerformanceData(Request $r): array
     {
-        $year = date('Y');
+        $year = (int) ($r->query('year') ?: date('Y'));
 
         // Get all sales users
         $salesUsers = DB::table('users')
@@ -334,8 +334,22 @@ class SalesController extends Controller
     // TODO: check output
     public function teamPerformanceSalesXml(Request $r)
     {
-        $year     = date('Y');
+        $year     = (int) ($r->query('year') ?: date('Y'));
         $standard = $this->performanceStandard;
+
+        $from = $r->query('month_from');
+        $to   = $r->query('month_to');
+        $hasMonthFilter = ($from !== null && $from !== '' && $from !== 'All');
+
+        if ($hasMonthFilter) {
+            $fromMonth = (int) $from;
+            $toMonth   = (int) ($to ?: $from);
+            if ($fromMonth > $toMonth) {
+                $swap      = $fromMonth;
+                $fromMonth = $toMonth;
+                $toMonth   = $swap;
+            }
+        }
 
         $result     = $this->buildSalesPerformanceData($r);
         $salesData  = $result['performance'];
@@ -346,12 +360,16 @@ class SalesController extends Controller
 
         foreach ($salesData as $username => $months) {
             foreach ($months as $month => $data) {
+                if ($hasMonthFilter && ($month < $fromMonth || $month > $toMonth)) {
+                    continue;
+                }
+
                 $status = $data['performance'] >= $standard ? 'Above Target' : 'Below Target';
 
                 $row = $xml->addChild('row');
                 $row->addChild('cell', $id++);
                 $row->addChild('cell', htmlspecialchars($data['user']->Name));
-                $row->addChild('cell', $month);
+                $row->addChild('cell', date('F', mktime(0, 0, 0, (int) $month, 1)));
                 $row->addChild('cell', $year);
                 $row->addChild('cell', $data['acv_deal']);
                 $row->addChild('cell', $data['acv_aftersales_profit']);
@@ -617,7 +635,7 @@ class SalesController extends Controller
     //based on sales id 
     public function aftersalesProfitMitraCollection(Request $r)
     {
-        $year   = date('Y');
+        $year   = (int) ($r->query('year') ?: date('Y'));
         $months = range(1, 12);
         $q      = $r->query();
 
@@ -1460,6 +1478,66 @@ class SalesController extends Controller
         $booth = $hubTypeCounts->get('booth', 0);
         $topProduct = $mobil >= $booth ? 'Mobil Listrik' : 'Booth';
 
+        // Sales performance (selected period): top 10 sales by deal count.
+        $perfStart = $dateStart ?: Carbon::now()->startOfMonth();
+        $perfEnd   = $dateEnd ?: Carbon::now()->endOfMonth();
+        $perfStartDate = $perfStart->toDateString();
+        $perfEndDate   = $perfEnd->toDateString();
+
+        $perfStartLabel = $perfStart->format('Y-m');
+        $perfEndLabel   = $perfEnd->format('Y-m');
+        $perfPeriodLabel = ($perfStartLabel === $perfEndLabel)
+            ? $perfStartLabel
+            : ($perfStartLabel . ' s/d ' . $perfEndLabel);
+
+        $salesUsers = DB::table('users')
+            ->where('Priv_ID', 'SALES')
+            ->get(['username', 'Name']);
+
+        $dealCounts = DB::table('opportunity as o')
+            ->join('opportunity_sales as s', 'o.Sales_ID', '=', 's.Sales_ID')
+            ->where('o.Status', 'Deal')
+            ->whereDate('o.Updated_Date', '>=', $perfStartDate)
+            ->whereDate('o.Updated_Date', '<=', $perfEndDate)
+            ->selectRaw('s.Sales as sales, COUNT(*) as c')
+            ->groupBy('s.Sales')
+            ->pluck('c', 'sales');
+
+        $leadCounts = DB::table('opportunity as o')
+            ->join('opportunity_sales as s', 'o.Sales_ID', '=', 's.Sales_ID')
+            ->whereDate('o.Created_Date', '>=', $perfStartDate)
+            ->whereDate('o.Created_Date', '<=', $perfEndDate)
+            ->selectRaw('s.Sales as sales, COUNT(*) as c')
+            ->groupBy('s.Sales')
+            ->pluck('c', 'sales');
+
+        $perfRows = [];
+        foreach ($salesUsers as $u) {
+            $perfRows[] = [
+                'sales' => $u->Name,
+                'leads' => (int) ($leadCounts[$u->username] ?? 0),
+                'deal'  => (int) ($dealCounts[$u->username] ?? 0),
+            ];
+        }
+
+        usort($perfRows, function ($a, $b) {
+            if ($b['deal'] !== $a['deal']) {
+                return $b['deal'] <=> $a['deal'];
+            }
+
+            return $b['leads'] <=> $a['leads'];
+        });
+        $perfRows = array_slice($perfRows, 0, 10);
+        foreach ($perfRows as $i => &$row) {
+            $row['rank'] = $i + 1;
+        }
+        unset($row);
+
+        $salesPerformance = [
+            'month' => $perfPeriodLabel,
+            'rows'  => $perfRows,
+        ];
+
         $data = [
             'est_dp' => $est_dp,
             'est_dp_formatted'        => $this->generatorService->rupiahFormatter($est_dp),
@@ -1480,6 +1558,7 @@ class SalesController extends Controller
                 // 'ratio_labels' => $salesFunnel->pluck('ratio_label')->toArray(),
                 'data'         => $salesFunnel,
             ],
+            'sales_performance' => $salesPerformance,
         ];
 
         return response()->json([
