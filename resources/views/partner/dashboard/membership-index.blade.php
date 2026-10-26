@@ -127,6 +127,30 @@
             </div>
         </div>
     </div>
+
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Sales Performance <small class="text-muted" id="salesPerformanceMonth"></small></h5>
+                <div class="table-responsive" style="max-height:230px;overflow:auto;">
+                    <table class="table table-bordered table-hover table-sm mb-2">
+                        <thead class="thead">
+                            <tr>
+                                <th>Sales</th>
+                                <th>Rank</th>
+                                <th>Leads</th>
+                                <th>Deal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesPerformanceBody">
+                            <tr><td colspan="4" class="text-center">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="window.location='partner-sales-team-performance'">Lihat Sales Performance</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.js" integrity="sha512-D4pL3vNgjkHR/qq+nZywuS6Hg1gwR+UzrdBW6Yg8l26revKyQHMgPq9CLJ2+HHalepS+NuGw1ayCCsGXu9JCXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -186,6 +210,7 @@
                 initLeadsSourceChart(data.leads_source.labels, data.leads_source.data_arr);
                 initSalesFunnelChart(data.sales_funnel.labels, data.sales_funnel.data_arr);
                 renderSalesFunnelTable(data.sales_funnel.data);
+                renderSalesPerformance(data.sales_performance);
                 $("#DownPayment").html(data.est_dp_formatted);
                 $("#EstimatedRevenue").html(data.est_revenue_formatted);
                 $("#BrandLicense").html(data.brand_license_formatted);
@@ -226,6 +251,27 @@
         }).join('');
 
         $('#salesFunnelBody').html(rows);
+    }
+
+    function renderSalesPerformance(data) {
+        if (!data) {
+            $('#salesPerformanceBody').html('<tr><td colspan="4" class="text-center text-muted">No data</td></tr>');
+            return;
+        }
+
+        $('#salesPerformanceMonth').text('(' + (data.month || '') + ')');
+
+        const rows = (data.rows || []).map(function(item) {
+            const dealCls = item.deal >= 5 ? 'text-success' : (item.deal >= 1 ? 'text-warning' : 'text-muted');
+            return '<tr>' +
+                '<td>' + item.sales + '</td>' +
+                '<td class="text-center">' + item.rank + '</td>' +
+                '<td class="text-right">' + item.leads + '</td>' +
+                '<td class="text-right ' + dealCls + '">' + item.deal + '</td>' +
+                '</tr>';
+        }).join('');
+
+        $('#salesPerformanceBody').html(rows || '<tr><td colspan="4" class="text-center text-muted">No data</td></tr>');
     }
 
 
