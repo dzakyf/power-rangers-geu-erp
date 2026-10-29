@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Services\Approval\ApprovalAuthorizationService;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -27,6 +29,17 @@ class AuthServiceProvider extends ServiceProvider
 
         \Auth::provider('active_eloquent', function ($app, array $config) {
             return new \App\Auth\ActiveUserProvider($app['hash'], $config['model']);
+        });
+
+        // Wildcard admin may use every approval.* ability (claim release,
+        // self-approval exception, etc.). Non-admin users are untouched.
+        Gate::before(function ($user, $ability) {
+            if (Str::startsWith((string) $ability, 'approval.')
+                && app(ApprovalAuthorizationService::class)->isWildcardAdmin($user)) {
+                return true;
+            }
+
+            return null;
         });
     }
 }
