@@ -1,0 +1,1 @@
+<label @if(!empty($for)) for="{{ $for }}" @endif @if(!empty($class)) class="{{ $class }}" @endif>{{ $label }}@if(!empty($helpKey))<button type="button" class="policy-help-link" onclick="return PolicyHelpClick(event, '{{ $helpKey }}');" title="Penjelasan field" aria-label="Penjelasan {{ $label }}">?</button>@endif</label>

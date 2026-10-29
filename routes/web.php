@@ -52,15 +52,21 @@ use App\Http\Controllers\HCGA\ProcurementController as HCGAProcurementController
 use App\Http\Controllers\HCGA\ProcurementApprovalController as HCGAProcurementApprovalController;
 use App\Http\Controllers\HCGA\AssetFixingController as HCGAAssetFixingController;
 use App\Http\Controllers\HCGA\AssetFixingApprovalController as HCGAAssetFixingApprovalController;
+use App\Http\Controllers\HCGA\ApprovalInboxController as HCGAApprovalInboxController;
+use App\Http\Controllers\HCGA\ApprovalPolicyController as HCGAApprovalPolicyController;
+use App\Http\Controllers\HCGA\ApprovalPositionController as HCGAApprovalPositionController;
 use App\Http\Controllers\HCGA\SppdController as HCGASppdController;
 use App\Http\Controllers\HCGA\SppdApprovalController as HCGASppdApprovalController;
 use App\Http\Controllers\HCGA\MasterSppdRegulationController as HCGAMasterSppdRegulationController;
+use App\Http\Controllers\HCGA\StatusChangeController as HCGAStatusChangeController;
 use App\Http\Controllers\HCGA\SettlementController as HCGASettlementController;
 use App\Http\Controllers\HCGA\SettlementApprovalController as HCGASettlementApprovalController;
 use App\Http\Controllers\HCGA\ReimbursementController as HCGAReimbursementController;
 use App\Http\Controller\Accounting\MasterOfficeController;
 use App\Http\Controllers\HCGA\VehicleMaintenanceController as HCGAVehicleMaintenanceController;
 use App\Http\Controllers\HCGA\VehicleMaintenanceApprovalController as HCGAVehicleMaintenanceApprovalController;
+use App\Http\Controllers\HCGA\PermitLicenseController as HCGAPermitLicenseController;
+use App\Http\Controllers\HCGA\EmailSettingsController as HCGAEmailSettingsController;
 
 use App\Http\Controllers\HCGA\AssetMovingController as HCGAAssetMovingController;
 use App\Http\Controllers\HCGA\AssetMovingApprovalController as HCGAAssetMovingApprovalController;
@@ -75,6 +81,7 @@ use App\Http\Controllers\HCGA\AssetDispossalController as HCGAAssetDispossalCont
 use App\Http\Controllers\HCGA\AssetDispossalApprovalController as HCGAAssetDispossalApprovalController;
 use App\Http\Controllers\HCGA\VehicleOperationsController as HCGAVehicleOperationsController;
 use App\Http\Controllers\HCGA\CarRentController as HCGACarRentController;
+use App\Http\Controllers\HCGA\OrganizationChartController as HCGAOrganizationChartController;
 
 use App\Http\Controllers\Finance\CostManagementController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
@@ -2705,9 +2712,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/recruitment-requisition-approval', function () {
         return view('humanresources.recruitment.requisition-approval');
     });
-    Route::get('/xml-recruitment-requisition-approval', function () {
-        return view('humanresources.recruitment.xml.requisition-approval');
-    });
+    Route::get('/xml-recruitment-requisition-approval', [App\Http\Controllers\HCGA\RequisitionApprovalController::class, 'data']);
     Route::post('/requisition-approval-update', [App\Http\Controllers\HCGA\RequisitionApprovalController::class, 'update']);
     Route::get('/xml-sales-po-lists-detail', function () {
         return view('humanresources.recruitment.xml.sales-po-lists-detail');
@@ -5756,6 +5761,64 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcVmAppPref-detail", [HCGAVehicleMaintenanceApprovalController::class, 'detail']);
     Route::post("$hcVmAppPref-approve", [HCGAVehicleMaintenanceApprovalController::class, 'approve']);
 
+    // -- Permit & License --
+    $hcPermitLicensePref = "$hcPref-permit-license";
+    Route::get("$hcPermitLicensePref-index", [HCGAPermitLicenseController::class, 'index']);
+    Route::get("$hcPermitLicensePref-data", [HCGAPermitLicenseController::class, 'data']);
+    Route::get("$hcPermitLicensePref-detail", [HCGAPermitLicenseController::class, 'detail']);
+    Route::post("$hcPermitLicensePref-save", [HCGAPermitLicenseController::class, 'save']);
+    Route::post("$hcPermitLicensePref-delete", [HCGAPermitLicenseController::class, 'delete']);
+    Route::get("$hcPermitLicensePref-document", [HCGAPermitLicenseController::class, 'document']);
+    Route::get("$hcPermitLicensePref-download", [HCGAPermitLicenseController::class, 'download']);
+    Route::post("$hcPermitLicensePref-sync-reminder", [HCGAPermitLicenseController::class, 'syncReminder']);
+    Route::get("$hcPermitLicensePref-mail-settings", [HCGAPermitLicenseController::class, 'mailSettings']);
+    Route::post("$hcPermitLicensePref-mail-settings-save", [HCGAPermitLicenseController::class, 'mailSettingsSave']);
+    Route::get("$hcPermitLicensePref-mail-preview", [HCGAPermitLicenseController::class, 'mailPreview']);
+
+    // -- Position-based approval workflow --
+    $hcApprovalPref = "$hcPref-approval";
+    Route::get("$hcApprovalPref-inbox", [HCGAApprovalInboxController::class, 'index']);
+    Route::get("$hcApprovalPref-inbox-data", [HCGAApprovalInboxController::class, 'data']);
+    Route::get("$hcApprovalPref-detail", [HCGAApprovalInboxController::class, 'detail']);
+    Route::post("$hcApprovalPref-claim", [HCGAApprovalInboxController::class, 'claim']);
+    Route::post("$hcApprovalPref-act", [HCGAApprovalInboxController::class, 'act']);
+    Route::post("$hcApprovalPref-release", [HCGAApprovalInboxController::class, 'release']);
+    Route::post("$hcApprovalPref-self-exception", [HCGAApprovalInboxController::class, 'grantSelfException']);
+    Route::post("$hcApprovalPref-add-candidate", [HCGAApprovalInboxController::class, 'addCandidate']);
+    Route::get("$hcApprovalPref-escalation", [HCGAApprovalInboxController::class, 'escalation']);
+    Route::get("$hcApprovalPref-escalation-data", [HCGAApprovalInboxController::class, 'escalationData']);
+    Route::get("$hcApprovalPref-policy", [HCGAApprovalPolicyController::class, 'index']);
+    Route::get("$hcApprovalPref-policy-data", [HCGAApprovalPolicyController::class, 'data']);
+    Route::get("$hcApprovalPref-policy-detail", [HCGAApprovalPolicyController::class, 'detail']);
+    Route::post("$hcApprovalPref-policy-save", [HCGAApprovalPolicyController::class, 'save']);
+    Route::post("$hcApprovalPref-policy-step-save", [HCGAApprovalPolicyController::class, 'saveStep']);
+    Route::post("$hcApprovalPref-policy-step-delete", [HCGAApprovalPolicyController::class, 'deleteStep']);
+    Route::post("$hcApprovalPref-policy-toggle", [HCGAApprovalPolicyController::class, 'toggle']);
+    Route::get("$hcApprovalPref-position", [HCGAApprovalPositionController::class, 'index']);
+    Route::get("$hcApprovalPref-position-data", [HCGAApprovalPositionController::class, 'data']);
+    Route::get("$hcApprovalPref-position-detail", [HCGAApprovalPositionController::class, 'detail']);
+    Route::post("$hcApprovalPref-position-save", [HCGAApprovalPositionController::class, 'save']);
+    Route::post("$hcApprovalPref-position-toggle", [HCGAApprovalPositionController::class, 'toggle']);
+    Route::post("$hcApprovalPref-position-sync", [HCGAApprovalPositionController::class, 'sync']);
+
+    // -- Bagan struktur organisasi --
+    Route::get("$hcPref-organization-chart", [HCGAOrganizationChartController::class, 'index']);
+    Route::get("$hcPref-organization-chart-data", [HCGAOrganizationChartController::class, 'data']);
+    Route::post("$hcPref-organization-chart-save-parent", [HCGAOrganizationChartController::class, 'saveParent']);
+
+    // -- Form Perubahan Status (dipakai bersama oleh menu Mutation, Promotion & Perubahan Status) --
+    $hcStatusChangePref = "$hcPref-status-change";
+    Route::get("$hcStatusChangePref-index", [HCGAStatusChangeController::class, 'index']);
+    Route::get("$hcStatusChangePref-data", [HCGAStatusChangeController::class, 'data']);
+    Route::get("$hcStatusChangePref-new", [HCGAStatusChangeController::class, 'create']);
+    Route::post("$hcStatusChangePref-new-submit", [HCGAStatusChangeController::class, 'store']);
+    Route::get("$hcStatusChangePref-detail", [HCGAStatusChangeController::class, 'detail']);
+    Route::get("$hcStatusChangePref-edit", [HCGAStatusChangeController::class, 'edit']);
+    Route::post("$hcStatusChangePref-edit-submit", [HCGAStatusChangeController::class, 'update']);
+    Route::post("$hcStatusChangePref-delete", [HCGAStatusChangeController::class, 'delete']);
+    Route::get("$hcStatusChangePref-print", [HCGAStatusChangeController::class, 'printForm']);
+    Route::get("$hcStatusChangePref-employee-search", [HCGAStatusChangeController::class, 'employeeSearch']);
+
     $hcCarRentPref = "$hcPref-car-rent";
     Route::get("$hcCarRentPref-index", [HCGACarRentController::class, 'index']);
     Route::match(['GET', 'POST'], "$hcCarRentPref-data", [HCGACarRentController::class, 'data']);
@@ -5856,4 +5919,13 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$vehOpsPref-export-fuel", [HCGAVehicleOperationsController::class, 'exportFuel']);
     Route::get("/xml-vehicle-logbook", [HCGAVehicleOperationsController::class, 'logbookData']);
     Route::get("/xml-vehicle-fuel", [HCGAVehicleOperationsController::class, 'fuelData']);
+
+    // -- General email settings (SMTP, sender, recipients, test, log) --
+    $creEmailSettingsPref = "credential-email-settings";
+    Route::get("$creEmailSettingsPref-index", [HCGAEmailSettingsController::class, 'index']);
+    Route::post("$creEmailSettingsPref-save", [HCGAEmailSettingsController::class, 'save']);
+    Route::post("$creEmailSettingsPref-recipient-save", [HCGAEmailSettingsController::class, 'recipientSave']);
+    Route::post("$creEmailSettingsPref-recipient-toggle", [HCGAEmailSettingsController::class, 'recipientToggle']);
+    Route::post("$creEmailSettingsPref-recipient-delete", [HCGAEmailSettingsController::class, 'recipientDelete']);
+    Route::post("$creEmailSettingsPref-test", [HCGAEmailSettingsController::class, 'test']);
 });

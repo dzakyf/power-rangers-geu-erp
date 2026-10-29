@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\HCGA;
 
+use App\Exceptions\ApprovalWorkflowException;
 use App\Http\Controllers\Controller;
+use App\Services\Approval\RequisitionApprovalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Mpdf\Mpdf;
 
@@ -93,6 +96,13 @@ class RequisitionController extends Controller
         ]);
     }
 
+    protected $approval;
+
+    public function __construct(RequisitionApprovalService $approval)
+    {
+        $this->approval = $approval;
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -103,15 +113,16 @@ class RequisitionController extends Controller
             'Priority'      => 'required|in:NORMAL,HIGH,URGENT',
             'Allocation'    => 'required|in:NEW,REPLACEMENT',
             'Request_Type'  => 'required|string',
-            'Request_Desc'  => 'required_if:Request_Type,OTHER|string|max:255',
+            'Request_Desc'  => 'nullable|required_if:Request_Type,OTHER|string|max:255',
             'Work_Schedule' => 'required|integer|exists:work_calendars,ID',
             'Qty'           => 'required|integer|min:1',
             'Start_Date'    => 'required|date',
             'Task_ID'       => 'required|string|max:255',
         ]);
 
-        $LSP = Auth::user()->Location;
-        $Saya = Auth::user()->username;
+        $user = Auth::user();
+        $LSP = $user->Location;
+        $Saya = $user->username;
 
         $jobPosition = DB::table('master_position')->where('ID', $request->input('Job_Position'))->first();
 
@@ -151,7 +162,7 @@ class RequisitionController extends Controller
         $openReq = DB::table('requisition')
             ->where('Job_Position', $jobPosition->Position)
             ->where('Department', $jobPosition->Department)
-            ->where("Allocation", $request->Allocation)
+            ->where('Allocation', $request->input('Allocation'))
             ->whereNotIn('Status', ['CANCELED', 'CLOSED', 'REJECTED'])
             ->orderBy('ID', 'DESC')
             ->first();
@@ -159,40 +170,62 @@ class RequisitionController extends Controller
             return 'exist';
         }
 
-        // Susun rantai approval dulu agar tidak ada PTK macet tanpa approver.
-        // L1 Manager dept pengaju -> (L2 VP dept bila posisi manager+) ->
-        // L3 Manager HCGA -> (L4 VP Geu bila posisi manager+).
-        $chainResult = requisition_approval_chain($LSP, Auth::user()->Department, (int) $jobPosition->Level);
-        if ($chainResult['error'] !== null) {
-            return $chainResult['error'];
-        }
+        // requisition dan requisition_log adalah MyISAM, jadi transaksi tidak
+        // bisa rollback baris tersebut. Validasi policy dilakukan SEBELUM
+        // insert agar error POLICY_NOT_FOUND tidak meninggalkan data PTK.
+        $draftRequisition = (object) [
+            'ID' => 0,
+            'Task_ID' => $request->input('Task_ID'),
+            'Location' => $LSP,
+            'Department' => $jobPosition->Department,
+        ];
 
-        $reqId = DB::table('requisition')->insertGetId($arr);
+        $reqId = null;
 
-        $logArr = $arr;
-        $logArr['Action_By'] = $Saya;
-        $logArr['Action_Date'] = now();
-        $logArr['Action_Status'] = 'CREATE FROM REQUISITION';
-        $logArr['Last_ID'] = $reqId;
+        try {
+            $this->approval->assertCanSubmit($draftRequisition, $jobPosition, $user);
 
-        DB::table('requisition_log')->insert($logArr);
+            DB::transaction(function () use ($arr, $jobPosition, $user, &$reqId) {
+                $reqId = DB::table('requisition')->insertGetId($arr);
 
-        foreach ($chainResult['chain'] as $step) {
-            $exists = DB::table('requisition_approval')
-                ->where('Task_ID', $request->input('Task_ID'))
-                ->where('Level', $step['Level'])
-                ->exists();
-            if (!$exists) {
-                DB::table('requisition_approval')->insert([
-                    'Location'        => $LSP,
-                    'Task_ID'         => $request->input('Task_ID'),
-                    'Level'           => $step['Level'],
-                    'Approved_By'     => $step['Approved_By'],
-                    'Approved_Status' => 0,
-                    'Approved_Date'   => null,
-                    'Approved_Note'   => null,
-                ]);
+                $logArr = $arr;
+                $logArr['Action_By'] = $user->username;
+                $logArr['Action_Date'] = now();
+                $logArr['Action_Status'] = 'CREATE FROM REQUISITION';
+                $logArr['Last_ID'] = $reqId;
+
+                DB::table('requisition_log')->insert($logArr);
+
+                // Buat approval_request + task dari policy yang aktif.
+                $requisition = DB::table('requisition')->where('ID', $reqId)->first();
+                $this->approval->submit($requisition, $jobPosition, $user);
+            });
+        } catch (ApprovalWorkflowException $e) {
+            if ($reqId !== null) {
+                $this->approval->cleanupFailedSubmission($request->input('Task_ID'), (int) $reqId);
             }
+
+            Log::warning('Requisition approval policy gagal: ' . $e->getMessage(), [
+                'code' => $e->getErrorCode(),
+                'Task_ID' => $request->input('Task_ID'),
+            ]);
+
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => $e->getErrorCode(),
+            ], $e->getStatusCode());
+        } catch (\Throwable $e) {
+            if ($reqId !== null) {
+                $this->approval->cleanupFailedSubmission($request->input('Task_ID'), (int) $reqId);
+            }
+
+            Log::error('Requisition submit gagal: ' . $e->getMessage(), [
+                'Task_ID' => $request->input('Task_ID'),
+            ]);
+
+            return response()->json([
+                'message' => 'Requisition gagal diajukan: ' . $e->getMessage(),
+            ], 500);
         }
 
         return 'success';

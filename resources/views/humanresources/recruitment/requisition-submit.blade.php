@@ -38,7 +38,7 @@ function updatekan($rowId,$param) {
 	return "update";
 }
 function deletekan($rowId,$param){
-	DB::update(DB::raw("UPDATE requisition where SET Status='CANCELED',PIC_Production='$m'  where ID=$rowId")); 
+	DB::update(DB::raw("UPDATE requisition SET Status='CANCELED',PIC_Production='$m'  where ID=$rowId"));
 		return "delete";
 
 }

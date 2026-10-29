@@ -430,3 +430,218 @@ if (!function_exists('asset_photo_delete')) {
         return true;
     }
 }
+
+if (!function_exists('org_chart_level_of')) {
+    /**
+     * Level struktural satu baris organization_structure.
+     * Angka kecil = jabatan lebih tinggi.
+     */
+    function org_chart_level_of($row): int
+    {
+        // organization_structure versi bagan baru menyimpan Level langsung.
+        return (int) ($row->Level ?? 8);
+    }
+}
+
+if (!function_exists('org_chart_nodes')) {
+    /**
+     * Bangun daftar node bagan struktur organisasi dari organization_structure.
+     *
+     * Atasan (Parent_ID) memakai Reports_To_Position_ID. Bila kosong, dicari
+     * atasan terdekat dengan Level lebih kecil di departemen yang sama.
+     *
+     * $opts: department, directorat, include_system
+     */
+    function org_chart_nodes(array $opts = []): array
+    {
+        $db = '\Illuminate\Support\Facades\DB';
+
+        $query = $db::table('organization_structure as o')
+            ->select(
+                'o.ID',
+                'o.Position_ID',
+                'o.NIK',
+                'o.Name',
+                'o.Position',
+                'o.Department',
+                'o.Dept_Name',
+                'o.Directorat',
+                'o.Email',
+                'o.Is_System',
+                'o.Reports_To_Position_ID',
+                'o.Sort_Order',
+                'o.Level'
+            );
+
+        if (empty($opts['include_system'])) {
+            $query->where('o.Is_System', 0);
+        }
+        if (!empty($opts['directorat'])) {
+            $query->where('o.Directorat', $opts['directorat']);
+        }
+        if (!empty($opts['department'])) {
+            $query->where('o.Department', $opts['department']);
+        }
+
+        $rows = $query->orderBy('o.Sort_Order')->orderBy('o.ID')->get();
+
+        $nodes = [];
+        foreach ($rows as $r) {
+            $level = (int) ($r->Level ?? 8);
+            $nodes[(int) $r->ID] = [
+                'ID'          => (int) $r->ID,
+                'Position_ID' => (int) ($r->Position_ID ?? 0),
+                'NIK'         => (string) ($r->NIK ?? ''),
+                'Name'        => (string) ($r->Name ?? ''),
+                'Position'    => (string) ($r->Position ?: '-'),
+                'Department'  => (string) ($r->Department ?? ''),
+                'Dept_Name'   => (string) ($r->Dept_Name ?: $r->Department),
+                'Directorat'  => (string) ($r->Directorat ?: '-'),
+                'Email'       => (string) ($r->Email ?: ''),
+                'Level'       => $level,
+                'Level_Name'  => org_chart_level_name($level),
+                'Is_System'   => (int) ($r->Is_System ?? 0),
+                'Parent_ID'   => !empty($r->Reports_To_Position_ID) ? (int) $r->Reports_To_Position_ID : null,
+                'Children'    => [],
+            ];
+        }
+
+        if (empty($nodes)) {
+            return ['nodes' => [], 'roots' => [], 'issues' => []];
+        }
+
+        // Lengkapi atasan yang belum diisi / menunjuk node di luar filter.
+        foreach ($nodes as $id => $n) {
+            if ($n['Parent_ID'] !== null && isset($nodes[$n['Parent_ID']]) && $n['Parent_ID'] !== $id) {
+                continue;
+            }
+
+            $bestId = null;
+            $bestLevel = -1;
+            foreach ($nodes as $cid => $cand) {
+                if ($cid === $id || $cand['Department'] !== $n['Department']) {
+                    continue;
+                }
+                if ($cand['Level'] >= $n['Level']) {
+                    continue;
+                }
+                if ($cand['Level'] > $bestLevel) {
+                    $bestLevel = $cand['Level'];
+                    $bestId = $cid;
+                }
+            }
+
+            $nodes[$id]['Parent_ID'] = $bestId;
+        }
+
+        $roots = [];
+        foreach ($nodes as $id => $n) {
+            $parentId = $n['Parent_ID'];
+            if ($parentId === null || !isset($nodes[$parentId])) {
+                $roots[] = $id;
+            } else {
+                $nodes[$parentId]['Children'][] = $id;
+            }
+        }
+
+        $sorter = function ($a, $b) use (&$nodes) {
+            if ($nodes[$a]['Level'] !== $nodes[$b]['Level']) {
+                return $nodes[$a]['Level'] <=> $nodes[$b]['Level'];
+            }
+            return strcasecmp($nodes[$a]['Name'], $nodes[$b]['Name']);
+        };
+        foreach ($nodes as $id => $n) {
+            if (!empty($nodes[$id]['Children'])) {
+                usort($nodes[$id]['Children'], $sorter);
+            }
+        }
+        usort($roots, $sorter);
+
+        $issues = [];
+        $nikCounts = [];
+        foreach ($nodes as $n) {
+            $nik = trim((string) $n['NIK']);
+            if ($nik !== '' && strtoupper(trim($n['Name'])) !== 'VACANT') {
+                $nikCounts[$nik] = ($nikCounts[$nik] ?? 0) + 1;
+            }
+            if ($n['Position'] === '-') {
+                $issues[] = ['type' => 'NO_POSITION', 'message' => $n['Name'] . ' belum punya jabatan'];
+            }
+        }
+        foreach ($nikCounts as $nik => $count) {
+            if ($count > 1) {
+                $issues[] = ['type' => 'DUPLICATE_NIK', 'message' => "NIK $nik dipakai $count baris"];
+            }
+        }
+        if (count($roots) > 1) {
+            $issues[] = ['type' => 'MULTI_ROOT', 'message' => count($roots) . ' node tidak punya atasan (multi-root)'];
+        }
+
+        return ['nodes' => $nodes, 'roots' => $roots, 'issues' => $issues];
+    }
+}
+
+if (!function_exists('org_chart_level_name')) {
+    /**
+     * Label level dari master level_general (fallback statis).
+     */
+    function org_chart_level_name(int $level): string
+    {
+        static $cache = null;
+
+        if ($cache === null) {
+            $cache = [];
+            try {
+                foreach (\Illuminate\Support\Facades\DB::table('level_general')->get() as $l) {
+                    $cache[(int) $l->Level] = (string) $l->Techincal;
+                }
+            } catch (\Throwable $e) {
+                $cache = [];
+            }
+        }
+
+        return $cache[$level] ?? ('Level ' . $level);
+    }
+}
+
+if (!function_exists('org_chart_departments')) {
+    /**
+     * Daftar departemen yang punya data di bagan (untuk filter).
+     */
+    function org_chart_departments(): array
+    {
+        try {
+            return \Illuminate\Support\Facades\DB::table('organization_structure')
+                ->select('Department')
+                ->distinct()
+                ->whereNotNull('Department')
+                ->where('Department', '<>', '')
+                ->orderBy('Department')
+                ->pluck('Department')
+                ->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+}
+
+if (!function_exists('org_chart_directorats')) {
+    /**
+     * Daftar direktorat yang punya data di bagan (untuk filter).
+     */
+    function org_chart_directorats(): array
+    {
+        try {
+            return \Illuminate\Support\Facades\DB::table('organization_structure')
+                ->select('Directorat')
+                ->distinct()
+                ->whereNotNull('Directorat')
+                ->where('Directorat', '<>', '')
+                ->orderBy('Directorat')
+                ->pluck('Directorat')
+                ->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+}

@@ -26,10 +26,13 @@ class LogUserAccess
 
         // Ambil payload / data request (baik dari POST, PUT, atau Query Parameters)
         // json_encode digunakan agar data array/object bisa disimpan rapi dalam bentuk string JSON
-        $payload = json_encode($request->all());
-
-        // Jika Anda ingin menyaring data sensitif (seperti password) agar tidak ikut tercatat:
-        // $payload = json_encode($request->except(['password', 'password_confirmation']));
+        // Jangan catat field sensitif (password, token CSRF, password SMTP) ke user_logs.
+        $payload = json_encode($request->except([
+            'password',
+            'password_confirmation',
+            'Smtp_Password',
+            '_token',
+        ]));
 
         // Execute the request only for authenticated users, then track it
         $response = $next($request);

@@ -212,20 +212,28 @@ $location = DB::table('location')->get()
                 }
             },
             error: function(xhr) {
-                if (xhr.status === 422) {
-                    var errors = xhr.responseJSON.errors;
+                var payload = xhr.responseJSON || {};
+
+                // Error policy approval (POLICY_NOT_FOUND, CONTEXT_INVALID, dll).
+                if (payload.message) {
+                    alert(payload.message);
+                    return;
+                }
+
+                if (xhr.status === 422 && payload.errors) {
                     $('.field-error').remove();
                     $('.is-invalid').removeClass('is-invalid');
-                    $.each(errors, function(field, messages) {
+                    $.each(payload.errors, function(field, messages) {
                         var el = $('#' + field);
                         if (el.length) {
                             el.addClass('is-invalid');
                             el.after('<div class="field-error text-danger small">' + messages[0] + '</div>');
                         }
                     });
-                } else {
-                    alert('Error submitting requisition: ' + xhr.responseText);
+                    return;
                 }
+
+                alert('Error submitting requisition: ' + (xhr.responseText || xhr.statusText));
             }
         });
     });
