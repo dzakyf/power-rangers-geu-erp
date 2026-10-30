@@ -21,7 +21,6 @@
         <input type="button" class="btn btn-info mt-2 mr-2" value="Refresh" onclick="ApprovalEscalationRefresh();" />
         <a class="btn btn-secondary mt-2 mr-2" href="hrd-approval-inbox">Back to Inbox</a>
         <a class="btn btn-dark mt-2 mr-2" href="hrd-approval-policy">Policy Management</a>
-        <a class="btn btn-primary mt-2 mr-2" href="hrd-approval-position">Position Assignment</a>
     </div>
 </div>
 

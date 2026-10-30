@@ -6,6 +6,7 @@ ini_set('memory_limit', '-1');
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Eloquent\Builder;
 	
 	if ( stristr($_SERVER["HTTP_ACCEPT"],"application/xhtml+xml")) {
@@ -15,12 +16,6 @@ use Illuminate\Database\Eloquent\Builder;
 	echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
 
-
-$Query1 = DB::table("employment_akademic")->get();
-
-foreach($Query1 as $Fetch1){
-	$akademis[$Fetch1->Task_ID] = $Fetch1->Education_Major;
-}
 $LSP = Auth::user()->Location;
 $DOP = Auth::user()->DOP;
 $priv = Auth::user()->Priv_ID;
@@ -43,7 +38,8 @@ foreach($Query as $Fetch){
 		echo "<cell>".htmlspecialchars($Fetch->Reference)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Notes)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Start_Date)."</cell>";
-		echo "<cell>".htmlspecialchars($Fetch->End_Date)."</cell>";
+		$endDate = ($Fetch->End_Date === '9999-12-31') ? '' : $Fetch->End_Date;
+		echo "<cell>".htmlspecialchars($endDate)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Remark)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->User_Trx)."</cell>";
 		echo "<cell>".htmlspecialchars($Fetch->Date_Trx)."</cell>";
@@ -54,7 +50,11 @@ $nomor++;
 // -- Pengajuan Perubahan Status (status_changes) karyawan yang sama --
 // Sudah tercatat otomatis ke employment_history saat form disimpan;
 // baris data lama yang belum tercatat ditampilkan di sini agar tidak hilang.
-$scRows = DB::table("status_changes")->where("NIK", $_GET["ID"])->orderBy("id", "DESC")->get();
+$scRows = [];
+
+if (Schema::hasTable("status_changes")) {
+    $scRows = DB::table("status_changes")->where("NIK", $_GET["ID"])->orderBy("id", "DESC")->get();
+}
 
 if (count($scRows)) {
     $tercatat = DB::table("employment_history")
@@ -87,7 +87,7 @@ if (count($scRows)) {
         echo "<row id=\"SC" . $Fetch->id . "\">";
         echo "<cell>" . $nomor . "</cell>";
         echo "<cell></cell>";
-        echo "<cell>" . htmlspecialchars($Fetch->NIK) . "</cell>";
+        echo "<cell>" . htmlspecialchars($Fetch->nik) . "</cell>";
         echo "<cell>" . htmlspecialchars(substr((string) $Fetch->created_at, 0, 10)) . "</cell>";
         echo "<cell>PERUBAHAN STATUS</cell>";
         echo "<cell>" . htmlspecialchars($formNo) . "</cell>";
@@ -102,6 +102,5 @@ if (count($scRows)) {
     }
 }
 
-echo "</rows>";
 echo "</rows>";
 ?>

@@ -209,7 +209,9 @@ class EmailSettingsController extends Controller
 
     protected function authorizeEmail($action = 'view')
     {
-        if (!can_menu(self::MENU_ID, $action) && !Auth::user()->hasRole('ADM')) {
+        $user = Auth::user();
+
+        if (!$user || (!can_menu(self::MENU_ID, $action) && !$user->hasRole('ADM'))) {
             abort(403, 'Anda tidak berhak mengakses menu Email Settings.');
         }
     }

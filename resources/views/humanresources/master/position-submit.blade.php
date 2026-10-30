@@ -1,121 +1,133 @@
 <?php
 error_reporting(0);
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Fungsi;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
-
 header("Content-type: text/xml");
-echo('<?xml version="1.0" encoding="iso-8859-1"?>'); 
+echo '<?xml version="1.0" encoding="UTF-8"?>';
 
-
-function updatekan($rowId,$param) {
-	
-	$a = $param[$rowId."_c1"]; // origin
-	$b = $param[$rowId."_c2"]; // destination
-	$c = $param[$rowId."_c3"]; // destination name
-	$d = $param[$rowId."_c4"]; // transport
-	$e = $param[$rowId."_c5"]; // service
-	$f = $param[$rowId."_c6"]; // treshold
-	$g = $param[$rowId."_c7"]; // unit price
-	$h = $param[$rowId."_c8"]; // additional
-	$ix = $param[$rowId."_c9"]; // lead time
-	$j = $param[$rowId."_c10"]; // lead time
-	$k = $param[$rowId."_c11"]; // lead time
-	$l = $param[$rowId."_c12"]; // lead time
-	$m = $param[$rowId."_c13"]; // lead time
-	$n = $param[$rowId."_c14"]; // lead time
-	$o = $param[$rowId."_c15"]; // lead time
-	$p = $param[$rowId."_c16"]; // lead time
-
-$Saya = Auth::user()->username;
-$LSP = Auth::user()->Location;
-
-	DB::update(DB::raw("UPDATE master_position set Directorat ='$a',Department='$b',Subsection='$c',Position='$d',Initial_Code='$e',Initial='$f',Level=1 where ID=$rowId"));
-			
-
-
-	
-	
-	return "update";
-}
-function deletekan($rowId,$param){
-	DB::delete(DB::raw("DELETE FROM master_position where ID=$rowId")); 	
-}
-function insertkan($rowId,$param){
-	$a = $param[$rowId."_c1"]; // origin
-	$b = $param[$rowId."_c2"]; // destination
-	$c = $param[$rowId."_c3"]; // destination name
-	$d = $param[$rowId."_c4"]; // transport
-	$e = $param[$rowId."_c5"]; // service
-	$f = $param[$rowId."_c6"]; // treshold
-	$g = $param[$rowId."_c7"]; // unit price
-	$h = $param[$rowId."_c8"]; // additional
-	$ix = $param[$rowId."_c9"]; // lead time
-	$j = $param[$rowId."_c10"]; // lead time
-	$k = $param[$rowId."_c11"]; // lead time
-	$l = $param[$rowId."_c12"]; // lead time
-	$m = $param[$rowId."_c13"]; // lead time
-	$n = $param[$rowId."_c14"]; // lead time
-	$o = $param[$rowId."_c15"]; // lead time
-	$p = $param[$rowId."_c16"]; // lead time
-
-	$Saya = Auth::user()->username;
-	$LSP = Auth::user()->Location;
-
-	if ($a == '' && $b == '' && $c == '' && $d == '') {
-		return 'cannot_empty';
-	}
-
-	DB::insert(DB::raw("INSERT INTO master_position(Directorat,Department,Subsection,Position,Initial_Code,Initial,Created_By,Created_Date,Level) VALUES('$a','$b','$c','$d','$e','$f','$Saya',NOW(),'$g')"));
-
-
-	
-	
-	return "insert";
-	
+function sanitizeVal($val) {
+    return trim((string) $val);
 }
 
+function updatekan($rowId, $param) {
+    $directorat    = sanitizeVal($param[$rowId."_c1"] ?? '');
+    $department    = sanitizeVal($param[$rowId."_c2"] ?? '');
+    $subsection    = sanitizeVal($param[$rowId."_c3"] ?? '');
+    $position      = sanitizeVal($param[$rowId."_c4"] ?? '');
+    $initialCode   = sanitizeVal($param[$rowId."_c5"] ?? '');
+    $initial       = sanitizeVal($param[$rowId."_c6"] ?? '');
+    $level         = (int) ($param[$rowId."_c7"] ?? 1);
+    $parentId      = sanitizeVal($param[$rowId."_c8"] ?? '');
+    $location      = sanitizeVal($param[$rowId."_c9"] ?? 'GEU-HO');
+    $companyId     = sanitizeVal($param[$rowId."_c10"] ?? 'GEU');
+    $positionType  = sanitizeVal($param[$rowId."_c11"] ?? 'STRUCTURAL');
+    $status        = strtoupper(sanitizeVal($param[$rowId."_c12"] ?? 'ACTIVE'));
 
+    $user = Auth::user()->username ?? 'system';
+
+    $updateData = [
+        'Directorat'         => $directorat,
+        'Department'         => $department,
+        'Subsection'         => $subsection,
+        'Position'           => $position,
+        'Initial_Code'       => $initialCode,
+        'Initial'            => $initial,
+        'Level'              => $level,
+        'Parent_Position_ID' => $parentId !== '' ? (int) $parentId : null,
+        'Location'           => $location ?: 'GEU-HO',
+        'Company_ID'         => $companyId ?: 'GEU',
+        'Position_Type'      => $positionType ?: 'STRUCTURAL',
+        'Status'             => $status ?: 'ACTIVE',
+        'Updated_By'         => $user,
+        'Updated_Date'       => now(),
+    ];
+
+    DB::table('master_position')->where('ID', (int) $rowId)->update($updateData);
+
+    return "update";
+}
+
+function deletekan($rowId, $param) {
+    DB::table('master_position')->where('ID', (int) $rowId)->delete();
+    return "delete";
+}
+
+function insertkan($rowId, $param) {
+    $directorat    = sanitizeVal($param[$rowId."_c1"] ?? '');
+    $department    = sanitizeVal($param[$rowId."_c2"] ?? '');
+    $subsection    = sanitizeVal($param[$rowId."_c3"] ?? '');
+    $position      = sanitizeVal($param[$rowId."_c4"] ?? '');
+    $initialCode   = sanitizeVal($param[$rowId."_c5"] ?? '');
+    $initial       = sanitizeVal($param[$rowId."_c6"] ?? '');
+    $level         = (int) ($param[$rowId."_c7"] ?? 1);
+    $parentId      = sanitizeVal($param[$rowId."_c8"] ?? '');
+    $location      = sanitizeVal($param[$rowId."_c9"] ?? 'GEU-HO');
+    $companyId     = sanitizeVal($param[$rowId."_c10"] ?? 'GEU');
+    $positionType  = sanitizeVal($param[$rowId."_c11"] ?? 'STRUCTURAL');
+    $status        = strtoupper(sanitizeVal($param[$rowId."_c12"] ?? 'ACTIVE'));
+
+    $user = Auth::user()->username ?? 'system';
+
+    if ($position === '' && $initial === '') {
+        return "cannot_empty";
+    }
+
+    $insertData = [
+        'Directorat'         => $directorat,
+        'Department'         => $department,
+        'Subsection'         => $subsection,
+        'Position'           => $position,
+        'Initial_Code'       => $initialCode,
+        'Initial'            => $initial,
+        'Level'              => $level,
+        'Parent_Position_ID' => $parentId !== '' ? (int) $parentId : null,
+        'Location'           => $location ?: 'GEU-HO',
+        'Company_ID'         => $companyId ?: 'GEU',
+        'Position_Type'      => $positionType ?: 'STRUCTURAL',
+        'Status'             => $status ?: 'ACTIVE',
+        'Created_By'         => $user,
+        'Created_Date'       => now(),
+    ];
+
+    DB::table('master_position')->insert($insertData);
+
+    return "insert";
+}
 
 echo "<data>";
 
 $request_body = urldecode(file_get_contents('php://input'));
-$Saya = Auth::user()->username;
-$LSP = Auth::user()->Location;
-
-$ids = explode("&",$request_body);
-foreach($ids as $datax){
-	
-	$idenya = explode("=",$datax);
-	$param[$idenya[0]] = $idenya[1];
-	
+$ids = explode("&", $request_body);
+$param = [];
+foreach ($ids as $datax) {
+    $idenya = explode("=", $datax);
+    if (isset($idenya[0]) && isset($idenya[1])) {
+        $param[$idenya[0]] = $idenya[1];
+    }
 }
-$checkids = explode(",",$param["ids"]);
 
-for ($i=0; $i < sizeof($checkids); $i++) { 
-	$rowId = $checkids[$i]; //id or row which was updated 
-	$newId = $rowId; //will be used for insert operation	
-	$mode = $param[$rowId."_!nativeeditor_status"]; 
-		$d = $param[$rowId."_c4"]; // transport
-		$a = $param[$rowId."_c1"]; // origin
-		switch($mode){
-			case "updated":
-				$action = updatekan($rowId,$param);break;
-		case "deleted":
-				$action = deletekan($rowId,$param);break;
-		case "inserted":
-				$action = insertkan($rowId,$param);break;
-		}
-		
-	echo "<action type='".$action."' sid='".$rowId."' tid='".$newId."'/>";	
+if (!empty($param["ids"])) {
+    $checkids = explode(",", $param["ids"]);
+    for ($i = 0; $i < sizeof($checkids); $i++) {
+        $rowId = $checkids[$i];
+        $newId = $rowId;
+        $mode = $param[$rowId . "_!nativeeditor_status"] ?? '';
+        $action = 'error';
+        switch ($mode) {
+            case "updated":
+                $action = updatekan($rowId, $param);
+                break;
+            case "deleted":
+                $action = deletekan($rowId, $param);
+                break;
+            case "inserted":
+                $action = insertkan($rowId, $param);
+                break;
+        }
+        echo "<action type='" . $action . "' sid='" . $rowId . "' tid='" . $newId . "'/>";
+    }
 }
+
 echo "</data>";
-
-
-
-
-?>

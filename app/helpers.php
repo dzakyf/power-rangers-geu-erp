@@ -205,7 +205,7 @@ if (!function_exists('employee_grid_cell')) {
 if (!function_exists('employee_grid_column_admins')) {
     function employee_grid_column_admins(): array
     {
-        return ['admin', 'admin.hris'];
+        return ['admin', 'admin.hris', 'user.hcga'];
     }
 }
 

@@ -70,7 +70,7 @@ foreach ($AllCols as $ck => $cm) {
 		<div class="col-12 mb-2">
 			<button class="btn btn-primary" onclick="toggleDivPivotTable();">Show/Hide Pivot Table</button>
 		</div>
-        <div class="col-12 mb-2" id="divPivotTable" style="display:block;">
+        <div class="col-12 mb-2" id="divPivotTable" style="display:none;">
             <div style="width:100%;border:1px solid #ccc;background:#fff;padding:10px;">
                 <b>Tabel Pivot</b> <span style="color:#888;">(geser field baris / kolom / nilai sesuai kebutuhan)</span>
                 <div id="EmployeePivotUI" style="margin-top:10px;overflow:auto;"></div>
