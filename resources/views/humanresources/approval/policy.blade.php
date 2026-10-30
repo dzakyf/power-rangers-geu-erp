@@ -32,7 +32,6 @@
         <input type="button" class="btn btn-primary mt-2 mr-2" value="Edit" onclick="ApprovalPolicyEdit();" />
         <input type="button" class="btn btn-warning mt-2 mr-2" value="Toggle Active" onclick="ApprovalPolicyToggle();" />
         <a class="btn btn-secondary mt-2 mr-2" href="hrd-approval-inbox">Back to Inbox</a>
-        <a class="btn btn-primary mt-2 mr-2" href="hrd-approval-position">Position Assignment</a>
     </div>
 </div>
 

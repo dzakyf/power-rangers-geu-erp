@@ -1,4 +1,3 @@
-@csrf
 <div class="main-content-header">
     <h1>FORM PERUBAHAN STATUS KARYAWAN</h1>
     <ol class="breadcrumb">
@@ -173,8 +172,11 @@
                 <div class="col-md-6">
                     <div class="form-group row">
                         <label class="col-md-5 col-form-label col-form-label-sm">Diusulkan oleh</label>
-                        <div class="col-md-7">
-                            <input type="text" class="form-control form-control-sm" id="proposed_by" />
+                        <div class="col-md-7 position-relative">
+                            <input type="hidden" id="proposed_by" value="{{ $proposerDefault }}" />
+                            <input type="text" class="form-control form-control-sm" id="proposed_by_display" value="{{ $proposerDefault }}" readonly title="Hasil pilihan user — tidak bisa diketik bebas" />
+                            <input type="text" class="form-control form-control-sm mt-1" id="proposer_search" placeholder="Ganti pengusul: cari nama / username / NIK..." autocomplete="off" />
+                            <div id="proposer_search_results" class="list-group position-absolute w-100 shadow-sm" style="z-index:1000; max-height:250px; overflow-y:auto; display:none;"></div>
                         </div>
                     </div>
                 </div>
@@ -216,7 +218,7 @@
             <hr />
             <div>
                 <input type="submit" id="SubmitStatusChange" class="btn btn-success px-4" name="SubmitStatusChange" value="Submit Form Perubahan Status" />
-                <button type="button" class="btn btn-secondary px-3 ml-2" onclick="window.location.href='hrd-status-change-index'">Batal</button>
+                <button type="button" class="btn btn-secondary px-3 ml-2" onclick="window.location.href='hrd-status-change-index{{ $jenisDefault ? '?jenis=' . $jenisDefault : '' }}'">Batal</button>
             </div>
         </form>
     </div>
@@ -285,12 +287,59 @@
         $('#current_department').val(e.Department || '');
         $('#current_grade').val(e.Employment_Grade || '');
         $('#current_work_location').val(e.Location || '');
-        $('#current_marital_dependents').val(e.Marital_Status || '');
+        $('#current_marital_dependents').val(e.Marital_Status || '').change();
         $('#current_employment_status').val(e.Employment_Class || e.Employment_Status || '');
         $('#current_salary').val(e.Salary === 0 ? '' : (e.Salary || ''));
     }
 
-    // -- Berikut: Jabatan usulan seacara otomatis menarik jumlah Jabatan & Divisi (data-department / data-division yang ter-sertakan opsi) --
+    // -- Pengusul: dipilih dari users/employment (bukan teks bebas), nilai "Nama (username)" --
+    var scProposerTimer = null;
+
+    $('#proposer_search').on('keyup', function() {
+        var q = $(this).val().trim();
+        clearTimeout(scProposerTimer);
+        if (q.length < 2) {
+            $('#proposer_search_results').empty().hide();
+            return;
+        }
+        scProposerTimer = setTimeout(function() {
+            $.ajax({
+                headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+                url: 'hrd-status-change-proposer-search?q=' + encodeURIComponent(q),
+                type: 'GET',
+                success: function(res) {
+                    var box = $('#proposer_search_results').empty();
+                    if (!res.data || !res.data.length) {
+                        box.append($('<span class="list-group-item text-muted small">').text('Tidak ada user yang cocok.')).show();
+                        return;
+                    }
+                    $.each(res.data, function(i, e) {
+                        box.append(
+                            $('<a href="javascript:void(0)" class="list-group-item list-group-item-action py-1">')
+                                .text(e.label + (e.position ? ' · ' + e.position : '') + (e.department ? ' · ' + e.department : ''))
+                                .on('mousedown', function(ev) {
+                                    ev.preventDefault();
+                                    $('#proposed_by').val(e.label);
+                                    $('#proposed_by_display').val(e.label);
+                                    $('#proposer_search').val('');
+                                    box.hide();
+                                })
+                        );
+                    });
+                    box.show();
+                },
+                error: function(xhr) {
+                    alert('Pencarian pengusul gagal: ' + (xhr.responseText || xhr.statusText));
+                }
+            });
+        }, 300);
+    });
+
+    $('#proposer_search').on('blur', function() {
+        setTimeout(function() { $('#proposer_search_results').hide(); }, 200);
+    });
+
+    // -- Jabatan usulan secara otomatis menarik Divisi & Departemen dari opsi (data-department / data-division) --
     $('#proposed_position').on('change', function() {
         var $opt = $(this).find('option:selected');
         $('#proposed_department').val($opt.data('department') || '');
@@ -335,7 +384,8 @@
                 $.unblockUI();
                 if (data.status == 'success') {
                     alert('Nomor otomatis: ' + (data.form_number || '') + '\n\n' + (data.message || 'Berhasil disimpan.'));
-                    window.location.href = 'hrd-status-change-index';
+                    var jenis = data.jenis || '{{ $jenisDefault }}';
+                    window.location.href = 'hrd-status-change-index' + (jenis ? '?jenis=' + encodeURIComponent(jenis) : '');
                 } else {
                     alert(data.message || 'Terjadi kesalahan!');
                 }

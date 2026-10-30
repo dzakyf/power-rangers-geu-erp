@@ -23,14 +23,20 @@ class OrganizationChartSyncService
 
         foreach ($rows as $row) {
             $position = DB::table('master_position')
-                ->where('Position', $row->Position)
+                ->where(function ($q) use ($row) {
+                    $q->where('Position', $row->Position)
+                      ->orWhere('Initial', $row->Position);
+                })
                 ->where('Department', $row->Department)
                 ->orderBy('ID')
                 ->first();
 
             if (!$position) {
                 $candidates = DB::table('master_position')
-                    ->where('Position', $row->Position)
+                    ->where(function ($q) use ($row) {
+                        $q->where('Position', $row->Position)
+                          ->orWhere('Initial', $row->Position);
+                    })
                     ->orderBy('ID')
                     ->get();
                 if ($candidates->count() === 1) {

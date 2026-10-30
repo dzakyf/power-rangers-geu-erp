@@ -16,6 +16,7 @@ class CreateStatusChangesTable extends Migration
         Schema::create('status_changes', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('form_number')->unique()->nullable();
+            $table->string('jenis', 20)->default('MUTATION')->index();
 
             // Identitas karyawan
             $table->string('employee_name');

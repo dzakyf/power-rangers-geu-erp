@@ -1,6 +1,6 @@
 <?php
 // Filter jenis pengajuan dari menu (?jenis=MUTATION / PROMOTION) atau dropdown filter.
-$jenisQ = isset($_GET['jenis']) ? strtoupper(trim((string) $_GET['jenis'])) : '';
+$jenisQ = isset($jenis) ? strtoupper(trim((string) $jenis)) : '';
 if (!in_array($jenisQ, ['MUTATION', 'PROMOTION'])) {
     $jenisQ = '';
 }
@@ -71,7 +71,7 @@ if (!in_array($jenisQ, ['MUTATION', 'PROMOTION'])) {
     <div id="STCH_DTL"></div>
 
     <script>
-        // -- Menu dari mana halaman dibuka (-- / --) --
+        // -- Jenis default dari menu (Mutation / Promotion / semua) --
         var STCH_JENIS = '<?= $jenisQ ?>';
 
         // -- Grid object --
@@ -103,6 +103,8 @@ if (!in_array($jenisQ, ['MUTATION', 'PROMOTION'])) {
         STATUSCHANGE.setColTypes(
             "ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro"
         );
+
+        STATUSCHANGE.init();
 
         // -- Row double-click -> Detail --
         STATUSCHANGE.attachEvent("onRowDblClicked", function(id) {

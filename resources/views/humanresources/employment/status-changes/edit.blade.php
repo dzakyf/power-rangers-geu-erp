@@ -93,7 +93,39 @@
                     <div class="form-group row">
                         <label class="col-md-5 col-form-label col-form-label-sm">{{ $label }}</label>
                         <div class="col-md-7">
+                            @if($section['prefix'] == 'proposed' && $field == 'position')
+                            <select class="form-control form-control-sm" id="proposed_position">
+                                <option value="">-- Pilih Jabatan (master_position) --</option>
+                                @if(!empty($sc->proposed_position) && !collect($positions)->firstWhere('Position', (string) $sc->proposed_position))
+                                <option value="{{ $sc->proposed_position }}" selected>{{ $sc->proposed_position }} (nilai tersimpan — tidak ada di master)</option>
+                                @endif
+                                @foreach($positions as $mp)
+                                <option value="{{ $mp->Position }}" data-department="{{ $mp->Department }}" data-division="{{ $mp->Directorat }}" {{ $sc->proposed_position == $mp->Position ? 'selected' : '' }}>{{ $mp->Department }} · {{ $mp->Position }} ({{ $mp->Initial }})</option>
+                                @endforeach
+                            </select>
+                            @elseif($section['prefix'] == 'proposed' && $field == 'division')
+                            <select class="form-control form-control-sm" id="proposed_division">
+                                <option value="">-- Pilih Divisi --</option>
+                                @if(!empty($sc->proposed_division) && !in_array($sc->proposed_division, $divisions, true))
+                                <option value="{{ $sc->proposed_division }}" selected>{{ $sc->proposed_division }} (nilai tersimpan)</option>
+                                @endif
+                                @foreach($divisions as $d)
+                                <option value="{{ $d }}" {{ $sc->proposed_division == $d ? 'selected' : '' }}>{{ $d }}</option>
+                                @endforeach
+                            </select>
+                            @elseif($section['prefix'] == 'proposed' && $field == 'department')
+                            <select class="form-control form-control-sm" id="proposed_department">
+                                <option value="">-- Pilih Departemen --</option>
+                                @if(!empty($sc->proposed_department) && !in_array($sc->proposed_department, $departments, true))
+                                <option value="{{ $sc->proposed_department }}" selected>{{ $sc->proposed_department }} (nilai tersimpan)</option>
+                                @endif
+                                @foreach($departments as $d)
+                                <option value="{{ $d }}" {{ $sc->proposed_department == $d ? 'selected' : '' }}>{{ $d }}</option>
+                                @endforeach
+                            </select>
+                            @else
                             <input type="text" class="form-control form-control-sm" id="{{ $section['prefix'] }}_{{ $field }}" value="{{ $sc->{$section['prefix'] . '_' . $field} }}" />
+                            @endif
                         </div>
                     </div>
                     @endforeach
@@ -158,8 +190,11 @@
                 <div class="col-md-6">
                     <div class="form-group row">
                         <label class="col-md-5 col-form-label col-form-label-sm">Diusulkan oleh</label>
-                        <div class="col-md-7">
-                            <input type="text" class="form-control form-control-sm" id="proposed_by" value="{{ $sc->proposed_by }}" />
+                        <div class="col-md-7 position-relative">
+                            <input type="hidden" id="proposed_by" value="{{ $proposerDefault }}" />
+                            <input type="text" class="form-control form-control-sm" id="proposed_by_display" value="{{ $proposerDefault }}" readonly title="Hasil pilihan user — tidak bisa diketik bebas" />
+                            <input type="text" class="form-control form-control-sm mt-1" id="proposer_search" placeholder="Ganti pengusul: cari nama / username / NIK..." autocomplete="off" />
+                            <div id="proposer_search_results" class="list-group position-absolute w-100 shadow-sm" style="z-index:1000; max-height:250px; overflow-y:auto; display:none;"></div>
                         </div>
                     </div>
                 </div>
@@ -274,6 +309,60 @@
         $('#current_salary').val(e.Salary === 0 ? '' : (e.Salary || ''));
     }
 
+    // -- Jabatan usulan: pilih dari master_position otomatis mengisi Divisi & Departemen --
+    $('#proposed_position').on('change', function() {
+        var $opt = $(this).find('option:selected');
+        $('#proposed_department').val($opt.data('department') || '');
+        $('#proposed_division').val($opt.data('division') || '');
+    });
+
+    // -- Pengusul: dipilih dari users/employment (bukan teks bebas), nilai "Nama (username)" --
+    var scProposerTimer = null;
+
+    $('#proposer_search').on('keyup', function() {
+        var q = $(this).val().trim();
+        clearTimeout(scProposerTimer);
+        if (q.length < 2) {
+            $('#proposer_search_results').empty().hide();
+            return;
+        }
+        scProposerTimer = setTimeout(function() {
+            $.ajax({
+                headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+                url: 'hrd-status-change-proposer-search?q=' + encodeURIComponent(q),
+                type: 'GET',
+                success: function(res) {
+                    var box = $('#proposer_search_results').empty();
+                    if (!res.data || !res.data.length) {
+                        box.append($('<span class="list-group-item text-muted small">').text('Tidak ada user yang cocok.')).show();
+                        return;
+                    }
+                    $.each(res.data, function(i, e) {
+                        box.append(
+                            $('<a href="javascript:void(0)" class="list-group-item list-group-item-action py-1">')
+                                .text(e.label + (e.position ? ' · ' + e.position : '') + (e.department ? ' · ' + e.department : ''))
+                                .on('mousedown', function(ev) {
+                                    ev.preventDefault();
+                                    $('#proposed_by').val(e.label);
+                                    $('#proposed_by_display').val(e.label);
+                                    $('#proposer_search').val('');
+                                    box.hide();
+                                })
+                        );
+                    });
+                    box.show();
+                },
+                error: function(xhr) {
+                    alert('Pencarian pengusul gagal: ' + (xhr.responseText || xhr.statusText));
+                }
+            });
+        }, 300);
+    });
+
+    $('#proposer_search').on('blur', function() {
+        setTimeout(function() { $('#proposer_search_results').hide(); }, 200);
+    });
+
     $('#SubmitStatusChange').on('click', function(e) {
         e.preventDefault();
 
@@ -312,7 +401,8 @@
                 $.unblockUI();
                 if (data.status == 'success') {
                     alert('Form perubahan status berhasil diperbarui!');
-                    window.location.href = 'hrd-status-change-index';
+                    var scJenis = $('#jenis').val();
+                    window.location.href = 'hrd-status-change-index' + (scJenis ? '?jenis=' + encodeURIComponent(scJenis) : '');
                 } else {
                     alert(data.message || 'Terjadi kesalahan!');
                 }

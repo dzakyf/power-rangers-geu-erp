@@ -17,7 +17,7 @@ class StatusChange extends Model
         'proposed_marital_dependents', 'proposed_salary', 'proposed_benefit',
         'proposed_description', 'effective_date', 'proposed_by',
         'origin_department_head', 'destination_department_head',
-        'hcga_verifier', 'director_approver',
+        'hcga_verifier', 'director_approver', 'jenis',
     ];
 
     protected $dates = ['join_date', 'effective_date'];

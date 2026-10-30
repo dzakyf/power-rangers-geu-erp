@@ -30,6 +30,7 @@ class StatusChangeController extends Controller
         'TK/1' => 'Tidak kawin (TK/1)',
         'TK/2' => 'Tidak kawin (TK/2)',
         'TK/3' => 'Tidak kawin (TK/3)',
+        'TK/4' => 'Tidak kawin (TK/4)',
         'K/0'  => 'Kawin (K/0)',
         'K/1'  => 'Kawin (K/1)',
         'K/2'  => 'Kawin (K/2)',
@@ -132,6 +133,7 @@ class StatusChangeController extends Controller
             'sc'              => null,
             'maritalOptions'  => self::MARITAL_OPTIONS,
             'jenisDefault'    => in_array($jenis, self::JENIS, true) ? $jenis : '',
+            'proposerDefault' => $this->currentProposer(),
         ]));
     }
 
@@ -206,6 +208,7 @@ class StatusChangeController extends Controller
             'message'     => 'Form perubahan status berhasil dibuat.',
             'form_number' => $formNumber,
             'ID'          => $newId,
+            'jenis'       => $clean['jenis'],
         ]);
     }
 
@@ -296,6 +299,53 @@ class StatusChangeController extends Controller
         return response()->json(['status' => 'success', 'data' => $data]);
     }
 
+    /**
+     * API pencarian pengusul ("Diusulkan oleh") — dari users + employment.
+     * Yang disimpan ke status_changes.proposed_by adalah "Nama (username)"
+     * sehingga tetap bisa ditelusuri ke akun user-nya.
+     */
+    public function proposerSearch(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
+
+        $query = DB::table('users')
+            ->leftJoin('employment', 'employment.NIK', '=', 'users.Emp_ID')
+            ->where('users.Status', 'ACTIVE')
+            ->select([
+                'users.username', 'users.Name as User_Name', 'users.Emp_ID',
+                'users.Position as User_Position', 'users.Department as User_Department',
+                'employment.Name as Emp_Name', 'employment.Position as Emp_Position',
+                'employment.Department as Emp_Department',
+            ]);
+
+        if ($q !== '') {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('users.username', 'LIKE', '%' . $q . '%')
+                    ->orWhere('users.Name', 'LIKE', '%' . $q . '%')
+                    ->orWhere('users.Emp_ID', 'LIKE', '%' . $q . '%')
+                    ->orWhere('employment.Name', 'LIKE', '%' . $q . '%');
+            });
+        }
+
+        $rows = $query->orderBy('users.Name')->limit(10)->get();
+
+        $data = [];
+        foreach ($rows as $r) {
+            $nama = trim((string) ($r->Emp_Name ?: $r->User_Name));
+
+            $data[] = [
+                'username'   => $r->username,
+                'nik'        => $r->Emp_ID ?: '',
+                'name'       => $nama !== '' ? $nama : $r->username,
+                'position'   => $r->Emp_Position ?: ($r->User_Position ?: ''),
+                'department' => $r->Emp_Department ?: ($r->User_Department ?: ''),
+                'label'      => ($nama !== '' ? $nama : $r->username) . ' (' . $r->username . ')',
+            ];
+        }
+
+        return response()->json(['status' => 'success', 'data' => $data]);
+    }
+
     public function detail(Request $request)
     {
         $sc = DB::table('status_changes')->where('id', (int) $request->ID)->first();
@@ -318,7 +368,25 @@ class StatusChangeController extends Controller
         return view('humanresources.employment.status-changes.edit', array_merge($this->masterOptions(), [
             'sc'             => $sc,
             'maritalOptions' => self::MARITAL_OPTIONS,
+            'proposerDefault' => $sc->proposed_by ?: $this->currentProposer(),
         ]));
+    }
+
+    /**
+     * Label pengusul default: user yang sedang login, "Nama (username)".
+     */
+    private function currentProposer()
+    {
+        if (!Auth::check()) {
+            return '';
+        }
+
+        $user = Auth::user();
+        $emp = $user->Emp_ID ? DB::table('employment')->where('NIK', $user->Emp_ID)->first() : null;
+
+        $nama = trim((string) ($emp->Name ?? '')) ?: trim((string) ($user->Name ?? ''));
+
+        return ($nama !== '' ? $nama : $user->username) . ' (' . $user->username . ')';
     }
 
     /**

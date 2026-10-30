@@ -899,6 +899,7 @@ function OrgChartResetView() {
     var ty = 10;
     OrgChartState.zoom.scale(scale).translate([tx, ty]);
     d3.select('#OrgChartViewport').attr('transform', 'translate(' + tx + ',' + ty + ') scale(' + scale + ')');
+    OrgChartUpdateMinimapLens(); // FIX: Update lensa saat reset
 }
 
 function OrgChartFit() {
@@ -912,6 +913,7 @@ function OrgChartFit() {
     var ty = (h - OrgChartState.contentH * scale) / 2;
     OrgChartState.zoom.scale(scale).translate([tx, ty]);
     d3.select('#OrgChartViewport').attr('transform', 'translate(' + tx + ',' + ty + ') scale(' + scale + ')');
+    OrgChartUpdateMinimapLens(); // FIX: Update lensa saat fit
 }
 
 function OrgChartZoom(factor) {
@@ -921,6 +923,7 @@ function OrgChartZoom(factor) {
     OrgChartState.zoom.scale(scale);
     var tr = OrgChartState.zoom.translate();
     d3.select('#OrgChartViewport').attr('transform', 'translate(' + tr + ') scale(' + scale + ')');
+    OrgChartUpdateMinimapLens(); // FIX: Update lensa saat zoom
 }
 
 function OrgChartPanelEmpty() {
@@ -1004,55 +1007,77 @@ function OrgChartSaveParentPanel(id) {
     OrgChartSaveParentDragDrop(id, parentId);
 }
 
-/* Minimap Renderer */
+/* Render Minimap Presisi */
 function OrgChartRenderMinimap(contentW, contentH, positioned, links, offsetX, offsetY) {
     var minimap = d3.select('#OrgMinimap');
+    
+    // Pastikan viewBox minimap memetakan seluruh area fisik kanvas (0 s/d contentW, 0 s/d contentH)
     minimap.attr('viewBox', '0 0 ' + contentW + ' ' + contentH);
+    
     var miniGroup = d3.select('#OrgMinimapViewport');
     miniGroup.selectAll('*').remove();
 
     if (!contentW || !contentH) return;
 
+    // Render Garis Penghubung pada Minimap
     for (var l = 0; l < links.length; l++) {
         var src = links[l].source;
         var tgt = links[l].target;
         if (src.id === '__root__' || tgt.id === '__root__') continue;
-        var x1 = src.px + offsetX, y1 = src.py + offsetY;
-        var x2 = tgt.px + offsetX, y2 = tgt.py + offsetY;
+        
+        var x1 = src.px + offsetX + (ORG_NODE_W / 2);
+        var y1 = src.py + offsetY + (ORG_NODE_H / 2);
+        var x2 = tgt.px + offsetX + (ORG_NODE_W / 2);
+        var y2 = tgt.py + offsetY + (ORG_NODE_H / 2);
+
         miniGroup.append('line')
-            .attr('x1', x1 + ORG_NODE_W / 2).attr('y1', y1 + ORG_NODE_H / 2)
-            .attr('x2', x2 + ORG_NODE_W / 2).attr('y2', y2 + ORG_NODE_H / 2)
-            .attr('stroke', '#b9c3d1').attr('stroke-width', 2);
+            .attr('x1', x1).attr('y1', y1)
+            .attr('x2', x2).attr('y2', y2)
+            .attr('stroke', '#cbd5e1').attr('stroke-width', 3);
     }
 
+    // Render Kotak Node pada Minimap
     for (var k = 0; k < positioned.length; k++) {
         var nd = positioned[k];
         var data = OrgChartState.nodes[nd.id];
         if (!data) continue;
+        
         miniGroup.append('rect')
-            .attr('x', nd.px + offsetX).attr('y', nd.py + offsetY)
-            .attr('width', ORG_NODE_W).attr('height', ORG_NODE_H).attr('rx', 4)
+            .attr('x', nd.px + offsetX)
+            .attr('y', nd.py + offsetY)
+            .attr('width', ORG_NODE_W)
+            .attr('height', ORG_NODE_H)
+            .attr('rx', 6)
             .attr('fill', data.is_vacant ? '#e74c3c' : orgDeptColor(data.department));
     }
+
+    // Panggil pembaruan lensa posisi
     OrgChartUpdateMinimapLens();
 }
 
+/* Update Posisi Lensa Minimap (Kamera Viewport) */
 function OrgChartUpdateMinimapLens() {
-    if (!OrgChartState.zoom || !OrgChartState.contentW) return;
+    if (!OrgChartState.zoom || !OrgChartState.contentW || !OrgChartState.contentH) return;
+
     var wrap = document.getElementById('OrgChartWrap');
     var w = wrap.clientWidth || 900;
     var h = wrap.clientHeight || 600;
+
     var currentTranslate = OrgChartState.zoom.translate();
     var currentScale = OrgChartState.zoom.scale();
 
+    // Perhitungan Lensa berdasarkan Transformasi Viewport D3
     var lensX = -currentTranslate[0] / currentScale;
     var lensY = -currentTranslate[1] / currentScale;
     var lensW = w / currentScale;
     var lensH = h / currentScale;
 
+    // Posisikan Lensa Biru tepat pada koordinat tampilan saat ini
     d3.select('#OrgMinimapLens')
-        .attr('x', lensX).attr('y', lensY)
-        .attr('width', Math.max(10, lensW)).attr('height', Math.max(10, lensH));
+        .attr('x', lensX)
+        .attr('y', lensY)
+        .attr('width', Math.max(15, lensW))
+        .attr('height', Math.max(15, lensH));
 }
 
 function OrgChartExpandAncestors(id) {
@@ -1128,20 +1153,42 @@ $(document).ready(function () {
     });
 
     // Minimap Click Pan
-    $('#OrgMinimap').on('click', function (e) {
-        if (!OrgChartState.zoom || !OrgChartState.contentW) return;
+    $('#OrgMinimap').off('click').on('click', function (e) {
+        if (!OrgChartState.zoom || !OrgChartState.contentW || !OrgChartState.contentH) return;
+
         var svgEl = document.getElementById('OrgMinimap');
-        var pt = svgEl.createSVGPoint();
-        pt.x = e.clientX; pt.y = e.clientY;
-        var svgPoint = pt.matrixTransform(svgEl.getScreenCTM().inverse());
+        var rect = svgEl.getBoundingClientRect();
+
+        // Hitung posisi relatif klik kursor di dalam elemen minimap (0.0 sampai 1.0)
+        var clickXRatio = (e.clientX - rect.left) / rect.width;
+        var clickYRatio = (e.clientY - rect.top) / rect.height;
+
+        // Konversi ke koordinat penuh Kanvas Utama
+        var targetCanvasX = clickXRatio * OrgChartState.contentW;
+        var targetCanvasY = clickYRatio * OrgChartState.contentH;
+
         var wrap = document.getElementById('OrgChartWrap');
         var w = wrap.clientWidth || 900;
         var h = wrap.clientHeight || 600;
+
         var scale = OrgChartState.zoom.scale();
-        var tx = (w / 2) - (svgPoint.x * scale);
-        var ty = (h / 2) - (svgPoint.y * scale);
+
+        // Hitung translasi agar titik klik tepat menjadi pusat tampilan
+        var tx = (w / 2) - (targetCanvasX * scale);
+        var ty = (h / 2) - (targetCanvasY * scale);
+
         OrgChartState.zoom.scale(scale).translate([tx, ty]);
-        d3.select('#OrgChartViewport').transition().duration(400).attr('transform', 'translate(' + tx + ',' + ty + ') scale(' + scale + ')');
+
+        // Animasi perpindahan kanvas & perbarui lensa minimap
+        d3.select('#OrgChartViewport')
+            .transition()
+            .duration(350)
+            .ease('cubic-out')
+            .attr('transform', 'translate(' + tx + ',' + ty + ') scale(' + scale + ')')
+            .each('end', function() {
+                OrgChartUpdateMinimapLens();
+            });
+
         OrgChartUpdateMinimapLens();
     });
 });

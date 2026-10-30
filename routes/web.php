@@ -3651,6 +3651,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-combo-section', function () {
         return view('humanresources.master.xml.combo-section');
     });
+    Route::get('/xml-combo-parent-position', function () {
+        return view('humanresources.master.xml.combo-parent-position');
+    });
     Route::get('/master-holiday-detail', function () {
         return view('humanresources.permission.master-holiday-detail');
     });
@@ -5818,6 +5821,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcStatusChangePref-delete", [HCGAStatusChangeController::class, 'delete']);
     Route::get("$hcStatusChangePref-print", [HCGAStatusChangeController::class, 'printForm']);
     Route::get("$hcStatusChangePref-employee-search", [HCGAStatusChangeController::class, 'employeeSearch']);
+    Route::get("$hcStatusChangePref-proposer-search", [HCGAStatusChangeController::class, 'proposerSearch']);
 
     $hcCarRentPref = "$hcPref-car-rent";
     Route::get("$hcCarRentPref-index", [HCGACarRentController::class, 'index']);

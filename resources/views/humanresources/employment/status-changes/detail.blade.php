@@ -16,7 +16,7 @@
             <button type="button" class="btn btn-info btn-sm mr-2" onclick="window.open('hrd-status-change-print?ID={{ $sc->id }}', '_blank')">
                 <i class="fas fa-file-pdf"></i> Print
             </button>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='hrd-status-change-index'">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='hrd-status-change-index?jenis={{ $sc->jenis ?: 'MUTATION' }}'">
                 <i class="fas fa-arrow-left"></i> Kembali
             </button>
         </div>

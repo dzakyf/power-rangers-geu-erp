@@ -36,7 +36,6 @@
         <input type="button" class="btn btn-warning mt-2 mr-2" value="Release Claim" onclick="ApprovalInboxRelease();" />
         <a class="btn btn-secondary mt-2 mr-2" href="hrd-approval-escalation">Escalation Queue</a>
         <a class="btn btn-dark mt-2 mr-2" href="hrd-approval-policy">Policy Management</a>
-        <a class="btn btn-primary mt-2 mr-2" href="hrd-approval-position">Position Assignment</a>
         <a class="btn btn-info mt-2 mr-2" href="hrd-organization-chart">Bagan Organisasi</a>
         @endif
     </div>

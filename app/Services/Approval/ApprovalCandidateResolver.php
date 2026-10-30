@@ -159,7 +159,75 @@ class ApprovalCandidateResolver
             $this->addCandidate($candidates, (int) $row->id, $type, null);
         }
 
-        // Legacy fallback: many existing users only have users.Position.
+        // 2. Direct lookup via employment and users:
+        // When employees are recruited or updated in `employment` and their user account is created in `users`
+        // (linked via users.Emp_ID = employment.NIK or users.username = employment.NIK),
+        // resolve candidates directly if their position matches master_position.
+        if (empty($candidates)) {
+            $fromEmployment = DB::table('employment as e')
+                ->join('users as u', function ($join) {
+                    $join->on('u.Emp_ID', '=', 'e.NIK')
+                         ->orOn('u.username', '=', 'e.NIK');
+                })
+                ->where('e.Status', 'ACTIVE')
+                ->where('u.Status', 'ACTIVE')
+                ->where(function ($query) use ($position) {
+                    $query->where('e.Position', $position->Initial)
+                        ->orWhere('e.Position', $position->Position);
+                });
+
+            if (!empty($context['Location'])) {
+                $fromEmployment->where(function ($q) use ($context) {
+                    $q->where('e.Location', $context['Location'])
+                      ->orWhere('u.Location', $context['Location']);
+                });
+            }
+            if (!empty($context['Company_ID'])) {
+                $fromEmployment->where(function ($q) use ($context) {
+                    $q->where('u.Company_ID', $context['Company_ID'])
+                      ->orWhereNull('u.Company_ID');
+                });
+            }
+
+            foreach ($fromEmployment->distinct()->pluck('u.id')->all() as $userId) {
+                $this->addCandidate($candidates, (int) $userId, 'HOLDER', null);
+            }
+        }
+
+        // 3. Direct lookup via organization_structure:
+        // If the position is represented in organization_structure with an assigned NIK,
+        // resolve user matching that NIK.
+        if (empty($candidates)) {
+            $fromOrgStructure = DB::table('organization_structure as os')
+                ->join('users as u', function ($join) {
+                    $join->on('u.Emp_ID', '=', 'os.NIK')
+                         ->orOn('u.username', '=', 'os.NIK');
+                })
+                ->where('u.Status', 'ACTIVE')
+                ->whereNotNull('os.NIK')
+                ->where('os.NIK', '<>', '')
+                ->where(function ($query) use ($position) {
+                    $query->where('os.Position_ID', (int) $position->ID)
+                        ->orWhere('os.Position', $position->Initial)
+                        ->orWhere('os.Position', $position->Position);
+                });
+
+            if (!empty($context['Location'])) {
+                $fromOrgStructure->where('u.Location', $context['Location']);
+            }
+            if (!empty($context['Company_ID'])) {
+                $fromOrgStructure->where(function ($q) use ($context) {
+                    $q->where('u.Company_ID', $context['Company_ID'])
+                      ->orWhereNull('u.Company_ID');
+                });
+            }
+
+            foreach ($fromOrgStructure->distinct()->pluck('u.id')->all() as $userId) {
+                $this->addCandidate($candidates, (int) $userId, 'HOLDER', null);
+            }
+        }
+
+        // 4. Legacy fallback: existing users with only users.Position.
         if (empty($candidates)) {
             $legacy = DB::table('users')
                 ->where('Status', 'ACTIVE')
