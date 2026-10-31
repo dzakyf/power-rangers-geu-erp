@@ -5549,6 +5549,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$buyerContractPref-buyers", [BuyerContractController::class, 'buyers']);
 
     $nonUcoSupplierPref = "$procPref-non-uco-supplier";
+    Route::get("$nonUcoSupplierPref-vendors", [NonUcoSupplierController::class, 'vendors']);
     Route::post("$nonUcoSupplierPref-new-submit", [NonUcoSupplierController::class, 'newNonUcoSupplierSubmit']);
     Route::get("$nonUcoSupplierPref-detail", [NonUcoSupplierController::class, 'detailNonUcoSupplier']);
     Route::post("$nonUcoSupplierPref-detail-submit", [NonUcoSupplierController::class, 'detailNonUcoSupplierSubmit']);

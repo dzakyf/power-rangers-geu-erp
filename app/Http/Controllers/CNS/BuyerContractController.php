@@ -6,6 +6,7 @@ use App\BuyerContract;
 use App\BuyerContractBooking;
 use App\Http\Controllers\Controller;
 use App\Services\CNS\ProcurementListService;
+use App\Services\GeneratorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,10 +15,12 @@ use Illuminate\Validation\Rule;
 class BuyerContractController extends Controller
 {
     private $listService;
+    private $generatorService;
 
-    public function __construct(ProcurementListService $listService)
+    public function __construct(ProcurementListService $listService, GeneratorService $generatorService)
     {
         $this->listService = $listService;
+        $this->generatorService = $generatorService;
     }
 
     public function indexBuyerContract()
@@ -73,8 +76,12 @@ class BuyerContractController extends Controller
 
     public function newBuyerContract()
     {
+        $highest = DB::table('cns_buyer_contracts')->max('ID') ?? 0;
+        $generatedContractNo = $this->generatorService->generateApplicationCode($highest, 'CTR');
+
         return view('cns.procurement.buyer-contract-new', array_merge($this->formData(), [
             'nonUcoCategories' => NonUcoSupplierController::CATEGORIES,
+            'generatedContractNo' => $generatedContractNo,
         ]));
     }
 
@@ -112,7 +119,7 @@ class BuyerContractController extends Controller
             'Incoterms'          => $data['Incoterms'],
             'Price_Currency'     => $data['Price_Currency'],
             'Price_Per_MT'       => $data['Price_Per_MT'],
-            'Status'             => $data['Status'],
+            'Status'             => 'UNDER_REVIEW',
             'Contract_File'      => 'filescontract/contracts/' . $filename,
             'Contract_File_Name' => $file->getClientOriginalName(),
             'Note'               => $data['Note'] ?? null,
@@ -165,7 +172,6 @@ class BuyerContractController extends Controller
             'Incoterms'       => 'required|in:FOB,CIF',
             'Price_Currency'  => 'required|in:IDR,USD,EUR',
             'Price_Per_MT'    => 'required|numeric|min:0.01',
-            'Status'          => 'required|in:' . implode(',', array_keys(BuyerContract::STATUSES)),
             'Note'            => 'nullable|string',
             'Contract_File'   => 'nullable|file|mimes:pdf,doc,docx|max:5120',
         ]);
@@ -203,7 +209,6 @@ class BuyerContractController extends Controller
             'Incoterms'       => $data['Incoterms'],
             'Price_Currency'  => $data['Price_Currency'],
             'Price_Per_MT'    => $data['Price_Per_MT'],
-            'Status'          => $data['Status'],
             'Note'            => $data['Note'] ?? null,
             'Updated_By'      => Auth::user()->username,
             'Updated_Date'    => now(),
@@ -373,7 +378,6 @@ class BuyerContractController extends Controller
         return [
             'buyers'         => $buyers,
             'buyersPayload'  => $buyersPayload,
-            'statuses'       => BuyerContract::STATUSES,
             'currencies'     => ['IDR' => 'IDR', 'USD' => 'USD', 'EUR' => 'EUR'],
             'incoterms'      => ['FOB' => 'FOB - Free On Board', 'CIF' => 'CIF - Cost, Insurance and Freight'],
             'containerSizes' => ['20 ft' => '20 ft', '40 ft' => '40 ft'],
@@ -398,7 +402,6 @@ class BuyerContractController extends Controller
             'Incoterms'       => 'required|in:FOB,CIF',
             'Price_Currency'  => 'required|in:IDR,USD,EUR',
             'Price_Per_MT'    => 'required|numeric|min:0.01',
-            'Status'          => 'required|in:' . implode(',', array_keys(BuyerContract::STATUSES)),
             'Note'            => 'nullable|string',
             'Contract_File'   => 'required|file|mimes:pdf,doc,docx|max:5120',
         ]);
