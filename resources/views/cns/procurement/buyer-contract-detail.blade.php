@@ -85,19 +85,19 @@
     }
 
     function addEmailRow(value) {
-        if ($('#EmailRows .email-row').length >= 10) {
+        if ($('#UcoEmailRows .uco-email-row').length >= 10) {
             return;
         }
-        var row = $('<div class="input-group mb-2 email-row">' +
+        var row = $('<div class="input-group mb-2 uco-email-row">' +
             '<input type="email" name="Buyer_Emails[]" class="form-control shadow-sm" placeholder="nama@domain.com" />' +
-            '<div class="input-group-append"><button type="button" class="btn btn-outline-danger remove-email">Hapus</button></div>' +
+            '<div class="input-group-append"><button type="button" class="btn btn-outline-danger remove-uco-email">Hapus</button></div>' +
             '</div>');
         row.find('input').val(value || '');
-        $('#EmailRows').append(row);
+        $('#UcoEmailRows').append(row);
     }
 
     function renderEmails(values) {
-        $('#EmailRows').empty();
+        $('#UcoEmailRows').empty();
         if (!values || values.length === 0) {
             values = [''];
         }
@@ -123,7 +123,7 @@
         formData.append('Buyer_Name', $('#Buyer_Name').val());
         formData.append('Buyer_Address', $('#Buyer_Address').val());
         formData.append('Buyer_Phone', $('#Buyer_Phone').val());
-        $('#EmailRows input[name="Buyer_Emails[]"]').each(function () {
+        $('#UcoEmailRows input[name="Buyer_Emails[]"]').each(function () {
             var value = $.trim($(this).val());
             if (value !== '') {
                 formData.append('Buyer_Emails[]', value);
@@ -153,20 +153,20 @@
         $('#Supplier_ID').select2({ width: '100%', placeholder: '-- Pilih Buyer --', allowClear: true });
         updateQtyPreview();
 
-        $('#AddEmailBtn').on('click', function () {
-            if ($('#EmailRows .email-row').length >= 10) {
+        $('#UcoAddEmailBtn').on('click', function () {
+            if ($('#UcoEmailRows .uco-email-row').length >= 10) {
                 alert('Maksimal 10 alamat email.');
                 return;
             }
             addEmailRow('');
         });
 
-        $(document).on('click', '.remove-email', function () {
-            if ($('#EmailRows .email-row').length <= 1) {
-                $(this).closest('.email-row').find('input').val('');
+        $(document).on('click', '.remove-uco-email', function () {
+            if ($('#UcoEmailRows .uco-email-row').length <= 1) {
+                $(this).closest('.uco-email-row').find('input').val('');
                 return;
             }
-            $(this).closest('.email-row').remove();
+            $(this).closest('.uco-email-row').remove();
         });
 
         $('#Supplier_ID').on('change', function () {

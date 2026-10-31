@@ -56,6 +56,5 @@ return [
     'SI00315' => ['Delivery Note', 'cns-export-delivery-note', 'CNS', 4, 'SS00082', 8],
     'SI00316' => ['Quality Control Reguler', 'cns-quality-index', 'CNS', 4, 'SS00083', 9],
     'SI00325' => ['Annex VII', 'cns-export-annex-index', 'CNS', 4, 'SS00082', 9],
-    'SI00335' => ['Contract Buyer (UCO)', 'cns-procurement-buyer-contract', 'CNS', 4, 'SS00091', 1],
-    'SI00336' => ['Supplier Non-UCO', 'cns-procurement-non-uco-supplier', 'CNS', 4, 'SS00091', 2],
+    'SI00335' => ['Kontrak Buyer & Supplier', 'cns-procurement-buyer-contract', 'CNS', 4, 'SS00091', 1],
 ];

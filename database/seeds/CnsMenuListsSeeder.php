@@ -29,6 +29,9 @@ class CnsMenuListsSeeder extends Seeder
             $count++;
         }
 
+        // The unified procurement entry replaces the old separate Non-UCO menu.
+        DB::table('menu_lists')->where('Menu_ID', 'SI00336')->delete();
+
         $this->command->info("CNS menu_lists seeded/updated: {$count} rows");
     }
 }
