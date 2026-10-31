@@ -39,7 +39,7 @@
                         </div>
                     </div>
                     <div class="col-md-7 d-flex align-items-center">
-                        <a href="cns-master-company-buyer" target="_blank" class="btn btn-outline-primary btn-sm mr-2">
+                        <a href="cns-master-company" target="_blank" class="btn btn-outline-primary btn-sm mr-2">
                             + Tambah Data Buyer
                         </a>
                         <button type="button" class="btn btn-outline-secondary btn-sm" id="RefreshBuyerBtn">Refresh Buyer</button>
@@ -66,17 +66,17 @@
 
                 <div class="form-group">
                     <label>Alamat Email Buyer (maksimal 10)</label>
-                    <div id="EmailRows">
+                    <div id="UcoEmailRows">
                         @foreach($emails as $email)
-                            <div class="input-group mb-2 email-row">
+                            <div class="input-group mb-2 uco-email-row">
                                 <input type="email" name="Buyer_Emails[]" value="{{ $email }}" class="form-control shadow-sm" placeholder="nama@domain.com" />
                                 <div class="input-group-append">
-                                    <button type="button" class="btn btn-outline-danger remove-email">Hapus</button>
+                                    <button type="button" class="btn btn-outline-danger remove-uco-email">Hapus</button>
                                 </div>
                             </div>
                         @endforeach
                     </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="AddEmailBtn">+ Tambah Email</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="UcoAddEmailBtn">+ Tambah Email</button>
                     <small class="text-muted d-block">Maksimal 10 alamat email.</small>
                 </div>
 

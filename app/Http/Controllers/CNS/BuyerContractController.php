@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\BuyerContract;
 use App\BuyerContractBooking;
 use App\Http\Controllers\Controller;
+use App\Services\CNS\ProcurementListService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -12,40 +13,56 @@ use Illuminate\Validation\Rule;
 
 class BuyerContractController extends Controller
 {
+    private $listService;
+
+    public function __construct(ProcurementListService $listService)
+    {
+        $this->listService = $listService;
+    }
+
     public function indexBuyerContract()
     {
         return view('cns.procurement.buyer-contract');
     }
 
-    public function indexBuyerContractXml()
+    public function indexBuyerContractXml(Request $request)
     {
         if (!headers_sent()) {
             header("Content-type: text/xml");
         }
 
-        $contracts = BuyerContract::where('Location', Auth::user()->Location)
-            ->orderBy('Created_Date', 'desc')
-            ->get();
+        $rows = $this->listService->rows([
+            'contract' => $request->query('contract', 'all'),
+            'group'    => $request->query('group', 'all'),
+            'product'  => $request->query('product', 'all'),
+        ]);
 
         echo "<rows>";
         $nomor = 1;
 
-        foreach ($contracts as $contract) {
-            $bookingCount = DB::table('cns_buyer_contract_bookings')
-                ->where('Contract_ID', $contract->ID)
-                ->count();
+        foreach ($rows as $row) {
+            $file = '';
 
-            echo '<row id="' . $contract->ID . '">';
+            if (!empty($row['file'])) {
+                $file = htmlspecialchars(asset($row['file'])) . '^Lihat^_blank';
+            }
+
+            echo '<row id="' . htmlspecialchars($row['id']) . '">';
             echo '<cell>' . $nomor . '</cell>';
-            echo '<cell>' . htmlspecialchars($contract->Contract_No) . '</cell>';
-            echo '<cell>' . htmlspecialchars($contract->Buyer_Name) . '</cell>';
-            echo '<cell>' . htmlspecialchars($contract->quantityDisplay()) . '</cell>';
-            echo '<cell>' . htmlspecialchars($contract->Loading_Start . ' - ' . $contract->Loading_End) . '</cell>';
-            echo '<cell>' . htmlspecialchars($contract->Incoterms) . '</cell>';
-            echo '<cell>' . htmlspecialchars($contract->priceDisplay()) . '</cell>';
-            echo '<cell>' . htmlspecialchars($contract->statusLabel()) . '</cell>';
-            echo '<cell>' . $bookingCount . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $contract->Created_Date) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['name']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['address']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['phone']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['email']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['group']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['product']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['contract_label']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['contract_no']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['loading_period']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['contract_qty']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['delivered']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['outstanding']) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $row['status']) . '</cell>';
+            echo '<cell>' . $file . '</cell>';
             echo '</row>';
 
             $nomor++;
@@ -56,7 +73,9 @@ class BuyerContractController extends Controller
 
     public function newBuyerContract()
     {
-        return view('cns.procurement.buyer-contract-new', $this->formData());
+        return view('cns.procurement.buyer-contract-new', array_merge($this->formData(), [
+            'nonUcoCategories' => NonUcoSupplierController::CATEGORIES,
+        ]));
     }
 
     public function newBuyerContractSubmit(Request $request)

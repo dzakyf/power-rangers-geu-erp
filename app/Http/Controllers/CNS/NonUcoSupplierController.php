@@ -15,53 +15,6 @@ class NonUcoSupplierController extends Controller
         'Kemasan dan Ampas',
     ];
 
-    public function indexNonUcoSupplier()
-    {
-        return view('cns.procurement.non-uco-supplier');
-    }
-
-    public function indexNonUcoSupplierXml()
-    {
-        if (!headers_sent()) {
-            header("Content-type: text/xml");
-        }
-
-        $rows = DB::table('supplier')
-            ->where('Location', Auth::user()->Location)
-            ->where('Is_Supplier', 1)
-            ->whereIn('Supply_Category', self::CATEGORIES)
-            ->orderBy('Company_Name')
-            ->get();
-
-        echo "<rows>";
-        $nomor = 1;
-
-        foreach ($rows as $row) {
-            $emails = $this->emailsOf($row);
-
-            echo '<row id="' . $row->ID . '">';
-            echo '<cell>' . $nomor . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row->Supplier_ID) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row->Company_Name) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row->Phone) . '</cell>';
-            echo '<cell>' . htmlspecialchars(implode(', ', $emails)) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row->Supply_Category) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row->Created_Date) . '</cell>';
-            echo '</row>';
-
-            $nomor++;
-        }
-
-        echo "</rows>";
-    }
-
-    public function newNonUcoSupplier()
-    {
-        return view('cns.procurement.non-uco-supplier-new', [
-            'categories' => self::CATEGORIES,
-        ]);
-    }
-
     public function newNonUcoSupplierSubmit(Request $request)
     {
         $data = $this->validateVendor($request);
@@ -80,6 +33,7 @@ class NonUcoSupplierController extends Controller
             'Supplier_ID'     => 'GEU-COMP-2' . sprintf('%04d', $count + 1),
             'Company_Name'    => $data['Company_Name'],
             'Phone'           => $data['Phone'],
+            'Address'         => $data['Address'] ?? null,
             'Email'           => $this->primaryEmail($emails),
             'Emails'          => json_encode($emails),
             'Supply_Category' => $data['Supply_Category'],
@@ -115,6 +69,7 @@ class NonUcoSupplierController extends Controller
             'ID'              => 'required|integer|exists:supplier,ID',
             'Company_Name'    => 'required|string|max:100',
             'Phone'           => 'required|string|max:60',
+            'Address'         => 'nullable|string|max:500',
             'Emails'          => 'required|array|min:1|max:10',
             'Emails.*'        => 'required|email|max:150',
             'Supply_Category' => 'required|in:' . implode(',', self::CATEGORIES),
@@ -133,6 +88,7 @@ class NonUcoSupplierController extends Controller
         DB::table('supplier')->where('ID', $data['ID'])->update([
             'Company_Name'    => $data['Company_Name'],
             'Phone'           => $data['Phone'],
+            'Address'         => $data['Address'] ?? null,
             'Email'           => $this->primaryEmail($emails),
             'Emails'          => json_encode($emails),
             'Supply_Category' => $data['Supply_Category'],
@@ -146,6 +102,7 @@ class NonUcoSupplierController extends Controller
         return $request->validate([
             'Company_Name'    => 'required|string|max:100',
             'Phone'           => 'required|string|max:60',
+            'Address'         => 'nullable|string|max:500',
             'Emails'          => 'required|array|min:1|max:10',
             'Emails.*'        => 'required|email|max:150',
             'Supply_Category' => 'required|in:' . implode(',', self::CATEGORIES),

@@ -36,6 +36,7 @@ class SupplierContractTest extends TestCase
         $payload = [
             'Company_Name' => 'CV UJI NON UCO',
             'Phone' => '08123456789',
+            'Address' => 'Jl. Non UCO',
             'Emails' => ['a@example.com', 'b@example.com'],
             'Supply_Category' => 'Flexibag',
         ];
@@ -50,6 +51,7 @@ class SupplierContractTest extends TestCase
         $this->assertNotNull($row, 'Vendor row must be stored in supplier table');
         $this->assertSame('Flexibag', $row->Supply_Category);
         $this->assertSame('08123456789', $row->Phone);
+        $this->assertSame('Jl. Non UCO', $row->Address);
         $this->assertSame(['a@example.com', 'b@example.com'], json_decode($row->Emails, true));
         $this->assertSame('a@example.com', $row->Email);
         $this->assertSame(1, (int) $row->Is_Supplier);
@@ -177,6 +179,36 @@ class SupplierContractTest extends TestCase
             'Location'        => $this->testUser()->Location,
             'Created_By'      => $this->testUser()->username,
         ]);
+    }
+
+    private function makeNonUcoSupplier(string $name, string $category = 'Flexibag'): int
+    {
+        return DB::table('supplier')->insertGetId([
+            'Location'        => $this->testUser()->Location,
+            'Supplier_ID'     => 'SUP-' . md5($name),
+            'Company_Name'    => $name,
+            'Address'         => 'Jl. ' . $name,
+            'Phone'           => '081200009999',
+            'Email'           => 'supplier@example.com',
+            'Emails'          => json_encode(['supplier@example.com']),
+            'Supply_Category' => $category,
+            'Is_Company'      => 1,
+            'Is_Supplier'     => 1,
+            'Is_Consignee'    => 0,
+            'Status'          => 'NORMAL',
+            'Created_By'      => $this->testUser()->username,
+            'Created_Date'    => now(),
+        ]);
+    }
+
+    private function xmlContent(array $query = []): string
+    {
+        $url = '/xml-cns-procurement-buyer-contract' . ($query ? '?' . http_build_query($query) : '');
+
+        ob_start();
+        $this->actingAs($this->testUser())->get($url)->assertOk();
+
+        return ob_get_clean();
     }
 
     /** @test */
@@ -324,13 +356,13 @@ class SupplierContractTest extends TestCase
     }
 
     /** @test */
-    public function non_uco_pages_render(): void
+    public function non_uco_detail_page_renders(): void
     {
-        $this->actingAs($this->testUser())->get('/cns-procurement-non-uco-supplier')->assertOk();
-        $this->actingAs($this->testUser())->get('/cns-procurement-non-uco-supplier-new')->assertOk();
-        ob_start();
-        $this->actingAs($this->testUser())->get('/xml-cns-procurement-non-uco-supplier')->assertOk();
-        ob_end_clean();
+        $vendorId = $this->makeNonUcoSupplier('VENDOR DETAIL PAGE');
+
+        $this->actingAs($this->testUser())
+            ->get('/cns-procurement-non-uco-supplier-detail?ID=' . $vendorId)
+            ->assertOk();
     }
 
     /** @test */
@@ -370,6 +402,7 @@ class SupplierContractTest extends TestCase
             'Supplier_ID'     => 'GEU-COMP-2-UPD',
             'Company_Name'    => 'VENDOR LAMA',
             'Phone'           => '0811',
+            'Address'         => 'Jl. Lama',
             'Email'           => 'lama@example.com',
             'Emails'          => json_encode(['lama@example.com']),
             'Supply_Category' => 'Flexibag',
@@ -382,6 +415,7 @@ class SupplierContractTest extends TestCase
                 'ID'              => $vendorId,
                 'Company_Name'    => 'VENDOR BARU',
                 'Phone'           => '0822',
+                'Address'         => 'Jl. Baru',
                 'Emails'          => ['baru@example.com', 'kedua@example.com'],
                 'Supply_Category' => 'Besi Penyangga',
             ]);
@@ -391,6 +425,7 @@ class SupplierContractTest extends TestCase
         $row = DB::table('supplier')->where('ID', $vendorId)->first();
         $this->assertSame('VENDOR BARU', $row->Company_Name);
         $this->assertSame('0822', $row->Phone);
+        $this->assertSame('Jl. Baru', $row->Address);
         $this->assertSame('baru@example.com', $row->Email);
         $this->assertSame(['baru@example.com', 'kedua@example.com'], json_decode($row->Emails, true));
         $this->assertSame('Besi Penyangga', $row->Supply_Category);
@@ -465,4 +500,44 @@ class SupplierContractTest extends TestCase
         $this->assertSame(0, DB::table('cns_buyer_contract_bookings')->where('Contract_ID', $contractId)->count());
     }
 
+
+    /** @test */
+    public function unified_procurement_list_contains_contract_and_non_uco_supplier(): void
+    {
+        $this->makeContract('UJI-LIST-CONTRACT');
+        $this->makeNonUcoSupplier('VENDOR LIST NON UCO');
+
+        $xml = $this->xmlContent();
+
+        $this->assertStringContainsString('UJI-LIST-CONTRACT', $xml);
+        $this->assertStringContainsString('VENDOR LIST NON UCO', $xml);
+        $this->assertStringContainsString('Non-UCO', $xml);
+    }
+
+    /** @test */
+    public function unified_procurement_list_filters_by_contract_group_and_product(): void
+    {
+        $this->makeContract('UJI-FILTER-CONTRACT');
+        $this->makeNonUcoSupplier('VENDOR FILTER FLEXIBAG', 'Flexibag');
+
+        $with = $this->xmlContent(['contract' => 'with']);
+        $this->assertStringContainsString('UJI-FILTER-CONTRACT', $with);
+        $this->assertStringNotContainsString('VENDOR FILTER FLEXIBAG', $with);
+
+        $without = $this->xmlContent(['contract' => 'without']);
+        $this->assertStringContainsString('VENDOR FILTER FLEXIBAG', $without);
+        $this->assertStringNotContainsString('UJI-FILTER-CONTRACT', $without);
+
+        $uco = $this->xmlContent(['group' => 'UCO']);
+        $this->assertStringContainsString('UJI-FILTER-CONTRACT', $uco);
+        $this->assertStringNotContainsString('VENDOR FILTER FLEXIBAG', $uco);
+
+        $nonUco = $this->xmlContent(['group' => 'Non-UCO']);
+        $this->assertStringContainsString('VENDOR FILTER FLEXIBAG', $nonUco);
+        $this->assertStringNotContainsString('UJI-FILTER-CONTRACT', $nonUco);
+
+        $product = $this->xmlContent(['product' => 'Flexibag']);
+        $this->assertStringContainsString('VENDOR FILTER FLEXIBAG', $product);
+        $this->assertStringNotContainsString('UJI-FILTER-CONTRACT', $product);
+    }
 }
