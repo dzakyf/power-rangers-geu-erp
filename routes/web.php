@@ -36,6 +36,8 @@ use App\Http\Controllers\CNS\SalesOrderController as CNSSalesOrderController;
 use App\Http\Controllers\CNS\PurchaseRequestController as CNSPurchaseRequestController;
 use App\Http\Controllers\CNS\PurchaseOrderController as CNSPurchaseOrderController;
 use App\Http\Controllers\CNS\QualityController;
+use App\Http\Controllers\CNS\BuyerContractController;
+use App\Http\Controllers\CNS\NonUcoSupplierController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\CNS\ISCCTraceabilityController;
 use App\Http\Controllers\HCGA\MasterApprovalController as HCGAMasterApprovalController;
@@ -5534,6 +5536,25 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$poPref-detail", [CNSPurchaseOrderController::class, 'detailPurchaseOrder']);
     Route::get("xml-$poPref-detail", [CNSPurchaseOrderController::class, 'detailPurchaseOrderXml']);
     Route::get("$poPref-print", [CNSPurchaseOrderController::class, 'printPurchaseOrder']);
+
+    $buyerContractPref = "$procPref-buyer-contract";
+    Route::get("$buyerContractPref", [BuyerContractController::class, 'indexBuyerContract']);
+    Route::get("xml-$buyerContractPref", [BuyerContractController::class, 'indexBuyerContractXml']);
+    Route::get("$buyerContractPref-new", [BuyerContractController::class, 'newBuyerContract']);
+    Route::post("$buyerContractPref-new-submit", [BuyerContractController::class, 'newBuyerContractSubmit']);
+    Route::get("$buyerContractPref-detail", [BuyerContractController::class, 'detailBuyerContract']);
+    Route::post("$buyerContractPref-detail-submit", [BuyerContractController::class, 'detailBuyerContractSubmit']);
+    Route::post("$buyerContractPref-booking-submit", [BuyerContractController::class, 'addBooking']);
+    Route::post("$buyerContractPref-booking-delete", [BuyerContractController::class, 'deleteBooking']);
+    Route::get("$buyerContractPref-buyers", [BuyerContractController::class, 'buyers']);
+
+    $nonUcoSupplierPref = "$procPref-non-uco-supplier";
+    Route::get("$nonUcoSupplierPref", [NonUcoSupplierController::class, 'indexNonUcoSupplier']);
+    Route::get("xml-$nonUcoSupplierPref", [NonUcoSupplierController::class, 'indexNonUcoSupplierXml']);
+    Route::get("$nonUcoSupplierPref-new", [NonUcoSupplierController::class, 'newNonUcoSupplier']);
+    Route::post("$nonUcoSupplierPref-new-submit", [NonUcoSupplierController::class, 'newNonUcoSupplierSubmit']);
+    Route::get("$nonUcoSupplierPref-detail", [NonUcoSupplierController::class, 'detailNonUcoSupplier']);
+    Route::post("$nonUcoSupplierPref-detail-submit", [NonUcoSupplierController::class, 'detailNonUcoSupplierSubmit']);
 
     $exportAnnexPref = "cns-export-annex";
     Route::get("$exportAnnexPref-index", [CNSAnnexVIIController::class, 'indexAnnex']);
