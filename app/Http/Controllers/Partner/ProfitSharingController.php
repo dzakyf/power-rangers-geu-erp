@@ -1213,7 +1213,7 @@ class ProfitSharingController extends Controller
                     $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
                     $updatedId = DB::table('account_payable as ap')->where('ap.ID', '=', $b['Application_Id'])->update([
-                        'Url_Transfer' => "https://dev.hexamatika.com/geu/hcga/public/filevendor/$path",
+                        'Url_Transfer' => asset("filevendor/$path"),
                     ]);
                 }
             }

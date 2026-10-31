@@ -1,4 +1,4 @@
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 
 @section('content-wrapper')
 @csrf
@@ -212,10 +212,10 @@ $(document).ready(function() {
 
 function generateInvoice() {
     $.ajax({
-        url: `/geu/hcga/public/partner-prints-invoice?id=${oppId}&type=downpayment`,
+        url: `{{ url('partner-prints-invoice') }}?id=${oppId}&type=downpayment`,
         type: "GET",
         success: function(response, status) {
-            window.open(`https://dev.hexamatika.com/geu/hcga/public/partner-prints-invoice?id=${oppId}&type=downpayment`, '_blank');
+            window.open(`{{ url('partner-prints-invoice') }}?id=${oppId}&type=downpayment`, '_blank');
             // Mark invoice issuance in the progress log and refresh the page
             updateOnboardingLog('INVOICE', 'completed', 'Invoice DP diterbitkan', function(success) {
                 if (!success) { return; }

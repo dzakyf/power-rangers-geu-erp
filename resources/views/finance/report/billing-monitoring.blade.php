@@ -15,7 +15,7 @@ $tanggal2 = date("Y-m-d", strtotime("last day of this month"));
 
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
 @csrf

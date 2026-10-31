@@ -211,6 +211,7 @@ class ProcurementController extends Controller
             (new NotificationService)->makeNotification('PR APPROVAL', "PR {$request->PR_No} Need to be Approved", 'approval', Auth::user()->id ?? null, $us->id ?? null);
     
             $subjek = "PURCHASE REQUEST APPROVAL REQUEST PR NO $request->PR_No , Request By : $Name";
+            $approvalUrl = url($link) . "?ID={$request->PR_No}&linkkey=$linkkey";
             $badan = "<div style=\"font-family:arial;font-size:12px;\">Kepada Yth.<br><b>".($getupper->Name ?? '') ." </b><Br><br>
             
                         Mohon dilakukan approval untuk Purchase Request tersebut. Berikut Detail PR yang telah dibuat<br>
@@ -221,7 +222,7 @@ class ProcurementController extends Controller
                         Mohon dilakukan approval untuk Permintaan Purchase Request.
                         
                         <br><br>
-                        Anda dapat melakukan approval melalui link berikut ini :<a href=\'https://dev.hexamatika.com/geu/hcga/public/$link?ID=$request->PR_No&linkkey=$linkkey\' >KLIK DISINI</a><br><br>
+                        Anda dapat melakukan approval melalui link berikut ini :<a href='$approvalUrl' >KLIK DISINI</a><br><br>
                         
                         
                         <br><br>

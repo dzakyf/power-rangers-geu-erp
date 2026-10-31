@@ -189,6 +189,7 @@ class ReimbursementController extends Controller
             ]);
 
             $subjek = "IMPORTANT : APPROVAL PERMINTAAN REIMBURSEMENT $Reimbursement_No # , Request By : $nama";
+            $approvalUrl = url($link) . "?ID=$Reimbursement_No&linkkey=$linkkey&saya=$user->username";
             $badan = "<div style=\"font-family:arial;font-size:12px;\">Kepada Yth.<br><b>" . ($getupper->Name ?? '') . "</b><Br><br>
                     Mohon dilakukan approval untuk Permintaan Reimbursement dengan rincian sebagai berikut:<br><br>
                     No Permintaan : $Reimbursement_No<br><br>
@@ -197,7 +198,7 @@ class ReimbursementController extends Controller
                     Nilai : " . number_format($total, 0, ',', '.') . "<br><br>
                     Note : " . trim($request->Description) . "<br>
                     <br><br>
-                    Anda dapat melakukan approval melalui link berikut ini :<a href='https://dev.hexamatika.com/geu/hcga/public/$link?ID=$Reimbursement_No&linkkey=$linkkey&saya=$user->username'>KLIK DISINI</a><br><br>
+                    Anda dapat melakukan approval melalui link berikut ini :<a href='$approvalUrl'>KLIK DISINI</a><br><br>
                     Terima kasih<br>
                     GREEN ENERGI UTAMA
             </div>";

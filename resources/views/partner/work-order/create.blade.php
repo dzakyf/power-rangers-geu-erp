@@ -1,4 +1,4 @@
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 
 @section('content-wrapper')
 <div class="main-content-header">

@@ -19,7 +19,7 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
 $leadID = Auth::user()->Emp_ID ?? "";
 ?>
 
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 
 @push('head')
 <meta name="csrf-token" content="{{ csrf_token() }}">

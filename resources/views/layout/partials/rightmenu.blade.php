@@ -78,7 +78,7 @@
               headers: {
                   'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
               },
-              url: "/geu/hcga/public/notification-getall?_token={{ csrf_token() }}",
+              url: "{{ url('notification-getall') }}?_token={{ csrf_token() }}",
               type: "GET",
               success: function(data, textStatus, jqXHR) {
                   if (!data || data.data.length < 1) {

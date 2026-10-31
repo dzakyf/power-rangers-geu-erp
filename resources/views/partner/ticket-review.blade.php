@@ -18,7 +18,7 @@ $leadID = 'BP/'.$LSP.'/'.date('Ymdhis').'/'.substr(md5($Saya),0,3);
 $masterCategory = DB::table('master_ticket_category')->get();
 ?>
 
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 
 @section('content-wrapper')
 @csrf

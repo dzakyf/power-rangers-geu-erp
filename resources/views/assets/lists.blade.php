@@ -1,4 +1,4 @@
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-asset')
 
 @section('content-wrapper')
     <!-- Main Content Header -->

@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Auth;
 
 $Saya = Auth::user()->username; ?>
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-credential')
 
 @push('head')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/plugins/data-tables/css/datatables.min.css') }}">

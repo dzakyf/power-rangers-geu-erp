@@ -9,7 +9,7 @@ $Priv = Auth::user()->Priv_ID;
 $DOP = Auth::user()->DOP_Class;
 ?>
 <nav class="navbar navbar-expand fixed-top top-menu">
-    <a class="navbar-brand" href="/geu/hcga/public/">
+    <a class="navbar-brand" href="{{ url('/') }}">
         <!-- Large logo -->
         <img src="{{ asset('/assets/images/large-logo.png') }}" alt="Logo" class="large-logo" height="55" align="center">
         <!-- Small logo -->

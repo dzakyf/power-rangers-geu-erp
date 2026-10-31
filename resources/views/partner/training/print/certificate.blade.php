@@ -49,7 +49,7 @@
 </head>
 <body>
     <div style="position: relative">
-        <img src="/geu/hcga/public/assets/images/SERTIFIKAT.png" style="width: 29.2cm" alt="Sertifikat">
+        <img src="{{ asset('assets/images/SERTIFIKAT.png') }}" style="width: 29.2cm" alt="Sertifikat">
         <div style="position: absolute;left: calc(13.5cm - 0.333333 * {{strlen($certificate->participant_name)}} * 1cm);top:8cm;font-size:52pt;color:#a7852c" class="pinyon-script-regular">{{ ucfirst(strtolower($certificate->participant_name)) }}</div>
         <div style="position: absolute;left: calc(15.5cm - 0.333333 * 11 * 1cm);top:10.2cm;font-size:21pt;color:#a7852c" class="noto-serif">PARTICIPANT</div>
         <div style="position: absolute;left: calc(9.5cm - 0.333333 * 11 * 1cm);top:11.5cm;font-size:10.3pt;color:#554415;max-width:17cm;text-align:center" class="noto-serif">Has completed the “{{ $training->training_name }}” training held on {{ $date }}. {{ $training->training_coverage != '' ? "This training covered " . $training->training_coverage : '' }}</div>

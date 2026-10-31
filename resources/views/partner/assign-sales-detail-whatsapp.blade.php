@@ -23,7 +23,7 @@ if ($cekLeads && $cekLeads->Status == "Deal") {
             'token_expires_at'   => now()->addDays(3),
         ]);
     }
-    $link = "https://dev.hexamatika.com/geu/hcga/public/partner-registration?token=" . urlencode($token);
+    $link = url('partner-registration') . "?token=" . urlencode($token);
     echo "https://wa.me/62" . $cekLeads->Phone_Number . "?text=Silahkan+akses+link+tersebut+untuk+registrasi%0D%0A" . urlencode($link);
 }else {
     echo "";

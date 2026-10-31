@@ -12,7 +12,7 @@ $tanggal2 = isset($_GET['Tgl2']) ? $_GET['Tgl2'] : date("Y-m-d");
 
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
 @csrf

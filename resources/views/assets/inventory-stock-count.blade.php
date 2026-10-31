@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 	
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-asset')
 
 @section('content-wrapper')
 @csrf

@@ -13,7 +13,7 @@ $APNo = "APM/$LSP/" . substr(md5($Saya . date("c")), 0, 3) . "/" . date('ymdhis'
 
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
 @csrf

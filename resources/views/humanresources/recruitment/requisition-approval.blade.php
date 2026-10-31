@@ -14,7 +14,7 @@ $cekLevel = DB::table('master_hr_approval')->where("Location", $LSP)->whereIn("L
 
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
 @csrf

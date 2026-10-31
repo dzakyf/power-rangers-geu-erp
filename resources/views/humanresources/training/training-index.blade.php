@@ -12,7 +12,7 @@ $Saya =  Auth::user()->username;
 
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
 @csrf

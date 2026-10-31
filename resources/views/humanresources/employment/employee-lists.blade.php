@@ -28,7 +28,7 @@ foreach ($AllCols as $ck => $cm) {
 
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
 @csrf

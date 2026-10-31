@@ -6,7 +6,7 @@ if (!in_array($jenisQ, ['MUTATION', 'PROMOTION'])) {
 }
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
     <!-- Main Content Header -->

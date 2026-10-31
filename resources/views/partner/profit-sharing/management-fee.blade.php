@@ -11,7 +11,7 @@ $priv = Auth::user()->Priv_ID;
 
 ?>
 
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 
 @section('content-wrapper')
 @csrf

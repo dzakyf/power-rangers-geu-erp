@@ -14,7 +14,7 @@ $partner = DB::table('warehouse_partner')
 
 ?>
 
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 
 @section('content-wrapper')
 @csrf

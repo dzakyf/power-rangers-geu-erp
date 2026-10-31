@@ -8,7 +8,7 @@ $LSP = Auth::user()->Location;
 $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('Location')->pluck('Location');
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-credential')
 
 @push('head')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/plugins/data-tables/css/datatables.min.css') }}">

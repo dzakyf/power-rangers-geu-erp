@@ -16,7 +16,7 @@ $Priv = Auth::user()->Priv_ID;
 // }
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
 @csrf
