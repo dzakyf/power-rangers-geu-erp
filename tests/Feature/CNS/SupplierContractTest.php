@@ -31,32 +31,27 @@ class SupplierContractTest extends TestCase
     }
 
     /** @test */
-    public function non_uco_vendor_is_saved_with_category_and_emails(): void
+    public function non_uco_vendor_category_is_updated_for_existing_supplier(): void
     {
-        $payload = [
-            'Company_Name' => 'CV UJI NON UCO',
-            'Phone' => '08123456789',
-            'Address' => 'Jl. Non UCO',
-            'Emails' => ['a@example.com', 'b@example.com'],
-            'Supply_Category' => 'Flexibag',
-        ];
+        $vendorId = $this->makeNonUcoSupplier('VENDOR KATEGORI', 'Flexibag');
+        $before = DB::table('supplier')->count();
 
         $response = $this->actingAs($this->testUser())
-            ->post('/cns-procurement-non-uco-supplier-new-submit', $payload);
+            ->post('/cns-procurement-non-uco-supplier-new-submit', [
+                'Vendor_ID' => $vendorId,
+                'Supply_Category' => 'Besi Penyangga',
+            ]);
 
         $response->assertOk();
 
-        $row = DB::table('supplier')->where('Company_Name', 'CV UJI NON UCO')->first();
+        $row = DB::table('supplier')->where('ID', $vendorId)->first();
 
-        $this->assertNotNull($row, 'Vendor row must be stored in supplier table');
-        $this->assertSame('Flexibag', $row->Supply_Category);
-        $this->assertSame('08123456789', $row->Phone);
-        $this->assertSame('Jl. Non UCO', $row->Address);
-        $this->assertSame(['a@example.com', 'b@example.com'], json_decode($row->Emails, true));
-        $this->assertSame('a@example.com', $row->Email);
-        $this->assertSame(1, (int) $row->Is_Supplier);
-        $this->assertSame($this->testUser()->Location, $row->Location);
+        $this->assertSame('Besi Penyangga', $row->Supply_Category);
+        $this->assertSame('VENDOR KATEGORI', $row->Company_Name);
+        $this->assertSame('Jl. VENDOR KATEGORI', $row->Address);
+        $this->assertSame($before, DB::table('supplier')->count(), 'No duplicate supplier should be created.');
     }
+
     /** @test */
     public function uco_contract_is_saved_with_quantity_price_and_snapshot(): void
     {
@@ -87,7 +82,6 @@ class SupplierContractTest extends TestCase
             'Incoterms'         => 'FOB',
             'Price_Currency'    => 'USD',
             'Price_Per_MT'      => 1105,
-            'Status'            => 'UNDER_REVIEW',
             'Note'              => 'Catatan uji',
             'Contract_File'     => UploadedFile::fake()->create('contract.pdf', 100, 'application/pdf'),
         ];
@@ -212,24 +206,31 @@ class SupplierContractTest extends TestCase
     }
 
     /** @test */
-    public function non_uco_vendor_rejects_more_than_ten_emails(): void
+    public function non_uco_vendor_requires_valid_supplier(): void
     {
-        $emails = [];
-        for ($i = 1; $i <= 11; $i++) {
-            $emails[] = "user{$i}@example.com";
-        }
-
         $response = $this->actingAs($this->testUser())
             ->withHeaders(['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'])
             ->post('/cns-procurement-non-uco-supplier-new-submit', [
-                'Company_Name'    => 'CV EMAIL LEBIH',
-                'Phone'           => '0812',
-                'Emails'          => $emails,
+                'Vendor_ID' => 999999,
                 'Supply_Category' => 'Flexibag',
             ]);
 
         $response->assertStatus(422);
-        $this->assertNull(DB::table('supplier')->where('Company_Name', 'CV EMAIL LEBIH')->first());
+    }
+
+    /** @test */
+    public function vendors_endpoint_returns_supplier_data(): void
+    {
+        $vendorId = $this->makeNonUcoSupplier('VENDOR JSON', 'Flexibag');
+
+        $response = $this->actingAs($this->testUser())
+            ->get('/cns-procurement-non-uco-supplier-vendors');
+
+        $response->assertOk();
+        $response->assertJsonFragment([
+            'id' => $vendorId,
+            'name' => 'VENDOR JSON',
+        ]);
     }
 
     /** @test */
@@ -335,7 +336,6 @@ class SupplierContractTest extends TestCase
             'Incoterms'        => 'FOB',
             'Price_Currency'   => 'USD',
             'Price_Per_MT'     => 1105,
-            'Status'           => 'UNDER_REVIEW',
             'Contract_File'    => UploadedFile::fake()->create('contract.pdf', 100, 'application/pdf'),
         ];
     }
@@ -395,40 +395,22 @@ class SupplierContractTest extends TestCase
     }
 
     /** @test */
-    public function non_uco_vendor_can_be_updated(): void
+    public function non_uco_detail_updates_category_only(): void
     {
-        $vendorId = DB::table('supplier')->insertGetId([
-            'Location'        => $this->testUser()->Location,
-            'Supplier_ID'     => 'GEU-COMP-2-UPD',
-            'Company_Name'    => 'VENDOR LAMA',
-            'Phone'           => '0811',
-            'Address'         => 'Jl. Lama',
-            'Email'           => 'lama@example.com',
-            'Emails'          => json_encode(['lama@example.com']),
-            'Supply_Category' => 'Flexibag',
-            'Is_Supplier'     => 1,
-            'Status'          => 'NORMAL',
-        ]);
+        $vendorId = $this->makeNonUcoSupplier('VENDOR DETAIL EDIT', 'Flexibag');
 
         $response = $this->actingAs($this->testUser())
             ->post('/cns-procurement-non-uco-supplier-detail-submit', [
-                'ID'              => $vendorId,
-                'Company_Name'    => 'VENDOR BARU',
-                'Phone'           => '0822',
-                'Address'         => 'Jl. Baru',
-                'Emails'          => ['baru@example.com', 'kedua@example.com'],
-                'Supply_Category' => 'Besi Penyangga',
+                'ID' => $vendorId,
+                'Supply_Category' => 'Kemasan dan Ampas',
             ]);
 
         $response->assertOk();
 
         $row = DB::table('supplier')->where('ID', $vendorId)->first();
-        $this->assertSame('VENDOR BARU', $row->Company_Name);
-        $this->assertSame('0822', $row->Phone);
-        $this->assertSame('Jl. Baru', $row->Address);
-        $this->assertSame('baru@example.com', $row->Email);
-        $this->assertSame(['baru@example.com', 'kedua@example.com'], json_decode($row->Emails, true));
-        $this->assertSame('Besi Penyangga', $row->Supply_Category);
+        $this->assertSame('Kemasan dan Ampas', $row->Supply_Category);
+        $this->assertSame('VENDOR DETAIL EDIT', $row->Company_Name);
+        $this->assertSame('Jl. VENDOR DETAIL EDIT', $row->Address);
     }
 
     /** @test */
@@ -454,7 +436,6 @@ class SupplierContractTest extends TestCase
                 'Incoterms'       => 'CIF',
                 'Price_Currency'  => 'EUR',
                 'Price_Per_MT'    => 1200,
-                'Status'          => 'ACTIVE_IN_PROGRESS',
                 'Note'            => 'Update catatan',
             ]);
 
@@ -466,7 +447,7 @@ class SupplierContractTest extends TestCase
         $this->assertSame('40 ft', $row->Container_Size);
         $this->assertSame('CIF', $row->Incoterms);
         $this->assertSame('EUR', $row->Price_Currency);
-        $this->assertSame('ACTIVE_IN_PROGRESS', $row->Status);
+        $this->assertSame('UNDER_REVIEW', $row->Status);
         $this->assertSame(['updated@example.com'], json_decode($row->Buyer_Emails, true));
         $this->assertSame($this->testUser()->username, $row->Updated_By);
         $this->assertNull($row->Contract_File, 'Old file should remain untouched when no new file is uploaded');

@@ -47,19 +47,19 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Nama Buyer (Snapshot Kontrak)</label>
-                            <input type="text" name="Buyer_Name" id="Buyer_Name" value="{{ old('Buyer_Name', $contract->Buyer_Name ?? '') }}" class="form-control shadow-sm" required />
+                            <input type="text" name="Buyer_Name" id="Buyer_Name" value="{{ old('Buyer_Name', $contract->Buyer_Name ?? '') }}" class="form-control shadow-sm" readonly required />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Nomor Telepon</label>
-                            <input type="text" name="Buyer_Phone" id="Buyer_Phone" value="{{ old('Buyer_Phone', $contract->Buyer_Phone ?? '') }}" class="form-control shadow-sm" required />
+                            <input type="text" name="Buyer_Phone" id="Buyer_Phone" value="{{ old('Buyer_Phone', $contract->Buyer_Phone ?? '') }}" class="form-control shadow-sm" readonly required />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Alamat</label>
-                            <textarea name="Buyer_Address" id="Buyer_Address" rows="2" class="form-control shadow-sm" required>{{ old('Buyer_Address', $contract->Buyer_Address ?? '') }}</textarea>
+                            <textarea name="Buyer_Address" id="Buyer_Address" rows="2" class="form-control shadow-sm" readonly required>{{ old('Buyer_Address', $contract->Buyer_Address ?? '') }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -69,36 +69,22 @@
                     <div id="UcoEmailRows">
                         @foreach($emails as $email)
                             <div class="input-group mb-2 uco-email-row">
-                                <input type="email" name="Buyer_Emails[]" value="{{ $email }}" class="form-control shadow-sm" placeholder="nama@domain.com" />
-                                <div class="input-group-append">
-                                    <button type="button" class="btn btn-outline-danger remove-uco-email">Hapus</button>
-                                </div>
+                                <input type="email" name="Buyer_Emails[]" value="{{ $email }}" class="form-control shadow-sm" placeholder="nama@domain.com" readonly />
                             </div>
                         @endforeach
                     </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="UcoAddEmailBtn">+ Tambah Email</button>
-                    <small class="text-muted d-block">Maksimal 10 alamat email.</small>
+                    <small class="text-muted d-block">Email diambil dari Master Company.</small>
                 </div>
 
                 <h6 class="font-weight-bold border-bottom pb-1 mt-3" style="color:#1a56a0;">Kontrak</h6>
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <div class="form-group">
                             <label>Nomor Kontrak</label>
-                            <input type="text" name="Contract_No" id="Contract_No" value="{{ old('Contract_No', $contract->Contract_No ?? '') }}" class="form-control shadow-sm" required />
+                            <input type="text" name="Contract_No" id="Contract_No" value="{{ old('Contract_No', $contract->Contract_No ?? $generatedContractNo ?? '') }}" class="form-control shadow-sm" readonly required />
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label>Status Kontrak</label>
-                            <select name="Status" id="Status" class="form-control shadow-sm" required>
-                                @foreach($statuses as $code => $label)
-                                    <option value="{{ $code }}" {{ old('Status', $contract->Status ?? 'UNDER_REVIEW') === $code ? 'selected' : '' }}>{{ $label }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <div class="form-group">
                             <label>Incoterms</label>
                             <select name="Incoterms" id="Incoterms" class="form-control shadow-sm" required>

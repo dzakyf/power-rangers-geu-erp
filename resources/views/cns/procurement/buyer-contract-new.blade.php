@@ -21,7 +21,7 @@
         'supplier' => null,
         'categories' => $nonUcoCategories,
         'formId' => 'NonUcoNewForm',
-        'emailPrefix' => 'NonUcoNew',
+        'fieldPrefix' => 'NonUcoNew',
     ])
 </div>
 
@@ -32,6 +32,7 @@
 
 <script>
     var BUYERS = @json($buyersPayload);
+    var VENDORS = [];
 
     function togglePurchaseGroup() {
         var group = $('#Purchase_Group').val();
@@ -40,24 +41,16 @@
         $('#SubmitProcurement').text(group === 'UCO' ? 'Simpan Kontrak' : 'Simpan Supplier');
     }
 
-    function addUcoEmailRow(value) {
-        if ($('#UcoEmailRows .uco-email-row').length >= 10) {
-            return;
-        }
-        var row = $('<div class="input-group mb-2 uco-email-row">' +
-            '<input type="email" name="Buyer_Emails[]" class="form-control shadow-sm" placeholder="nama@domain.com" />' +
-            '<div class="input-group-append"><button type="button" class="btn btn-outline-danger remove-uco-email">Hapus</button></div>' +
-            '</div>');
-        row.find('input').val(value || '');
-        $('#UcoEmailRows').append(row);
-    }
-
     function renderUcoEmails(values) {
         $('#UcoEmailRows').empty();
         if (!values || values.length === 0) {
             values = [''];
         }
-        values.slice(0, 10).forEach(function (email) { addUcoEmailRow(email); });
+        values.slice(0, 10).forEach(function (email) {
+            var input = $('<input type="email" name="Buyer_Emails[]" class="form-control shadow-sm" readonly />');
+            input.val(email || '');
+            $('#UcoEmailRows').append($('<div class="input-group mb-2 uco-email-row"></div>').append(input));
+        });
     }
 
     function updateQtyPreview() {
@@ -71,16 +64,40 @@
         }
     }
 
-    function addNonUcoNewEmailRow(value) {
-        if ($('#NonUcoNewEmailRows .nonucnew-email-row').length >= 10) {
+    function loadVendors(selectedId) {
+        $.get('cns-procurement-non-uco-supplier-vendors', function (data) {
+            VENDORS = data;
+            var select = $('#Vendor_ID');
+            select.empty().append('<option value="">-- Pilih Vendor --</option>');
+            data.forEach(function (vendor) {
+                select.append($('<option>').val(vendor.id).text(vendor.name));
+            });
+            if (selectedId) {
+                select.val(selectedId);
+            }
+            select.trigger('change.select2');
+            select.trigger('change');
+        });
+    }
+
+    function fillVendorFields() {
+        var id = parseInt($('#Vendor_ID').val(), 10);
+        var vendor = VENDORS.find(function (item) { return item.id === id; });
+
+        if (!vendor) {
+            $('#NonUcoNewPhone').val('');
+            $('#NonUcoNewAddress').val('');
+            $('#NonUcoNewEmails').val('');
             return;
         }
-        var row = $('<div class="input-group mb-2 nonucnew-email-row">' +
-            '<input type="email" name="Emails[]" class="form-control shadow-sm" placeholder="nama@domain.com" />' +
-            '<div class="input-group-append"><button type="button" class="btn btn-outline-danger remove-nonucnew-email">Hapus</button></div>' +
-            '</div>');
-        row.find('input').val(value || '');
-        $('#NonUcoNewEmailRows').append(row);
+
+        $('#NonUcoNewPhone').val(vendor.phone || '');
+        $('#NonUcoNewAddress').val(vendor.address || '');
+        $('#NonUcoNewEmails').val((vendor.emails || []).join(', '));
+
+        if (vendor.supply_category) {
+            $('#NonUcoNewSupplyCategory').val(vendor.supply_category);
+        }
     }
 
     function submitUcoContract() {
@@ -111,7 +128,6 @@
         formData.append('Incoterms', $('#Incoterms').val());
         formData.append('Price_Currency', $('#Price_Currency').val());
         formData.append('Price_Per_MT', $('#Price_Per_MT').val());
-        formData.append('Status', $('#Status').val());
         formData.append('Note', $('#Note').val());
         formData.append('Contract_File', fileInput.files[0]);
 
@@ -176,38 +192,6 @@
         $('#Supplier_ID').select2({ width: '100%', placeholder: '-- Pilih Buyer --', allowClear: true });
         updateQtyPreview();
 
-        $('#UcoAddEmailBtn').on('click', function () {
-            if ($('#UcoEmailRows .uco-email-row').length >= 10) {
-                alert('Maksimal 10 alamat email.');
-                return;
-            }
-            addUcoEmailRow('');
-        });
-
-        $(document).on('click', '.remove-uco-email', function () {
-            if ($('#UcoEmailRows .uco-email-row').length <= 1) {
-                $(this).closest('.uco-email-row').find('input').val('');
-                return;
-            }
-            $(this).closest('.uco-email-row').remove();
-        });
-
-        $('#NonUcoNewAddEmailBtn').on('click', function () {
-            if ($('#NonUcoNewEmailRows .nonucnew-email-row').length >= 10) {
-                alert('Maksimal 10 alamat email.');
-                return;
-            }
-            addNonUcoNewEmailRow('');
-        });
-
-        $(document).on('click', '.remove-nonucnew-email', function () {
-            if ($('#NonUcoNewEmailRows .nonucnew-email-row').length <= 1) {
-                $(this).closest('.nonucnew-email-row').find('input').val('');
-                return;
-            }
-            $(this).closest('.nonucnew-email-row').remove();
-        });
-
         $('#Supplier_ID').on('change', function () {
             var id = parseInt($(this).val(), 10);
             var buyer = BUYERS.find(function (item) { return item.id === id; });
@@ -235,6 +219,13 @@
         });
 
         $('#Quantity_MT, #Container_Count, #Container_Size').on('input change', updateQtyPreview);
+
+        $('#Vendor_ID').select2({ width: '100%', placeholder: '-- Pilih Vendor --', allowClear: true });
+        $('#Vendor_ID').on('change', fillVendorFields);
+        $('#RefreshVendorBtn').on('click', function () {
+            loadVendors($('#Vendor_ID').val());
+        });
+        loadVendors();
 
         $('#SubmitProcurement').on('click', function () {
             if ($('#Purchase_Group').val() === 'UCO') {

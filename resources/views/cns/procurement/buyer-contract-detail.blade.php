@@ -88,12 +88,9 @@
         if ($('#UcoEmailRows .uco-email-row').length >= 10) {
             return;
         }
-        var row = $('<div class="input-group mb-2 uco-email-row">' +
-            '<input type="email" name="Buyer_Emails[]" class="form-control shadow-sm" placeholder="nama@domain.com" />' +
-            '<div class="input-group-append"><button type="button" class="btn btn-outline-danger remove-uco-email">Hapus</button></div>' +
-            '</div>');
-        row.find('input').val(value || '');
-        $('#UcoEmailRows').append(row);
+        var input = $('<input type="email" name="Buyer_Emails[]" class="form-control shadow-sm" readonly />');
+        input.val(value || '');
+        $('#UcoEmailRows').append($('<div class="input-group mb-2 uco-email-row"></div>').append(input));
     }
 
     function renderEmails(values) {
@@ -138,7 +135,6 @@
         formData.append('Incoterms', $('#Incoterms').val());
         formData.append('Price_Currency', $('#Price_Currency').val());
         formData.append('Price_Per_MT', $('#Price_Per_MT').val());
-        formData.append('Status', $('#Status').val());
         formData.append('Note', $('#Note').val());
 
         var fileInput = $('#Contract_File')[0];
@@ -152,22 +148,6 @@
     $(function () {
         $('#Supplier_ID').select2({ width: '100%', placeholder: '-- Pilih Buyer --', allowClear: true });
         updateQtyPreview();
-
-        $('#UcoAddEmailBtn').on('click', function () {
-            if ($('#UcoEmailRows .uco-email-row').length >= 10) {
-                alert('Maksimal 10 alamat email.');
-                return;
-            }
-            addEmailRow('');
-        });
-
-        $(document).on('click', '.remove-uco-email', function () {
-            if ($('#UcoEmailRows .uco-email-row').length <= 1) {
-                $(this).closest('.uco-email-row').find('input').val('');
-                return;
-            }
-            $(this).closest('.uco-email-row').remove();
-        });
 
         $('#Supplier_ID').on('change', function () {
             var id = parseInt($(this).val(), 10);

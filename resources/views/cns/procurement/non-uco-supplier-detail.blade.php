@@ -2,7 +2,7 @@
     'supplier' => $supplier,
     'categories' => $categories,
     'formId' => 'NonUcoDetailForm',
-    'emailPrefix' => 'NonUcoDetail',
+    'fieldPrefix' => 'NonUcoDetail',
 ])
 
 <div class="mb-3 mt-2">
@@ -11,35 +11,7 @@
 </div>
 
 <script>
-    function addNonUcoEmailRow(value) {
-        if ($('#NonUcoDetailEmailRows .nonucodetail-email-row').length >= 10) {
-            return;
-        }
-        var row = $('<div class="input-group mb-2 nonucodetail-email-row">' +
-            '<input type="email" name="Emails[]" class="form-control shadow-sm" placeholder="nama@domain.com" />' +
-            '<div class="input-group-append"><button type="button" class="btn btn-outline-danger remove-nonucodetail-email">Hapus</button></div>' +
-            '</div>');
-        row.find('input').val(value || '');
-        $('#NonUcoDetailEmailRows').append(row);
-    }
-
     $(function () {
-        $('#NonUcoDetailAddEmailBtn').on('click', function () {
-            if ($('#NonUcoDetailEmailRows .nonucodetail-email-row').length >= 10) {
-                alert('Maksimal 10 alamat email.');
-                return;
-            }
-            addNonUcoEmailRow('');
-        });
-
-        $(document).on('click', '.remove-nonucodetail-email', function () {
-            if ($('#NonUcoDetailEmailRows .nonucodetail-email-row').length <= 1) {
-                $(this).closest('.nonucodetail-email-row').find('input').val('');
-                return;
-            }
-            $(this).closest('.nonucodetail-email-row').remove();
-        });
-
         $('#SubmitNonUco').on('click', function () {
             $.blockUI();
             $.ajax({

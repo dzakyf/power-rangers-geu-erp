@@ -15,34 +15,45 @@ class NonUcoSupplierController extends Controller
         'Kemasan dan Ampas',
     ];
 
+    public function vendors()
+    {
+        $rows = DB::table('supplier')
+            ->where('Location', Auth::user()->Location)
+            ->where('Is_Supplier', 1)
+            ->orderBy('Company_Name')
+            ->get();
+
+        return response()->json($rows->map(function ($row) {
+            return [
+                'id'              => (int) $row->ID,
+                'name'            => $row->Company_Name,
+                'address'         => $row->Address,
+                'phone'           => $row->Phone,
+                'emails'          => $this->emailsOf($row),
+                'supply_category' => $row->Supply_Category,
+            ];
+        })->values());
+    }
+
     public function newNonUcoSupplierSubmit(Request $request)
     {
-        $data = $this->validateVendor($request);
+        $data = $request->validate([
+            'Vendor_ID'       => 'required|integer|exists:supplier,ID',
+            'Supply_Category' => 'required|in:' . implode(',', self::CATEGORIES),
+        ]);
 
-        $emails = $this->cleanEmails($data['Emails']);
+        $vendor = DB::table('supplier')
+            ->where('ID', $data['Vendor_ID'])
+            ->where('Location', Auth::user()->Location)
+            ->where('Is_Supplier', 1)
+            ->first();
 
-        if (count($emails) < 1) {
-            return response()->json(['message' => 'Minimal satu alamat email wajib diisi.'], 422);
+        if (!$vendor) {
+            return response()->json(['message' => 'Vendor tidak ditemukan.'], 422);
         }
 
-        $location = Auth::user()->Location;
-        $count    = DB::table('supplier')->where('Location', $location)->count();
-
-        DB::table('supplier')->insert([
-            'Location'        => $location,
-            'Supplier_ID'     => 'GEU-COMP-2' . sprintf('%04d', $count + 1),
-            'Company_Name'    => $data['Company_Name'],
-            'Phone'           => $data['Phone'],
-            'Address'         => $data['Address'] ?? null,
-            'Email'           => $this->primaryEmail($emails),
-            'Emails'          => json_encode($emails),
+        DB::table('supplier')->where('ID', $vendor->ID)->update([
             'Supply_Category' => $data['Supply_Category'],
-            'Is_Company'      => 1,
-            'Is_Supplier'     => 1,
-            'Is_Consignee'    => 0,
-            'Status'          => 'NORMAL',
-            'Created_By'      => Auth::user()->username,
-            'Created_Date'    => now(),
         ]);
 
         return 'success';
@@ -58,7 +69,6 @@ class NonUcoSupplierController extends Controller
 
         return view('cns.procurement.non-uco-supplier-detail', [
             'supplier'   => $supplier,
-            'emails'     => $this->emailsOf($supplier),
             'categories' => self::CATEGORIES,
         ]);
     }
@@ -67,11 +77,6 @@ class NonUcoSupplierController extends Controller
     {
         $data = $request->validate([
             'ID'              => 'required|integer|exists:supplier,ID',
-            'Company_Name'    => 'required|string|max:100',
-            'Phone'           => 'required|string|max:60',
-            'Address'         => 'nullable|string|max:500',
-            'Emails'          => 'required|array|min:1|max:10',
-            'Emails.*'        => 'required|email|max:150',
             'Supply_Category' => 'required|in:' . implode(',', self::CATEGORIES),
         ]);
 
@@ -79,34 +84,11 @@ class NonUcoSupplierController extends Controller
             return response()->json(['message' => 'Supplier tidak ditemukan.'], 422);
         }
 
-        $emails = $this->cleanEmails($data['Emails']);
-
-        if (count($emails) < 1) {
-            return response()->json(['message' => 'Minimal satu alamat email wajib diisi.'], 422);
-        }
-
         DB::table('supplier')->where('ID', $data['ID'])->update([
-            'Company_Name'    => $data['Company_Name'],
-            'Phone'           => $data['Phone'],
-            'Address'         => $data['Address'] ?? null,
-            'Email'           => $this->primaryEmail($emails),
-            'Emails'          => json_encode($emails),
             'Supply_Category' => $data['Supply_Category'],
         ]);
 
         return 'success';
-    }
-
-    private function validateVendor(Request $request): array
-    {
-        return $request->validate([
-            'Company_Name'    => 'required|string|max:100',
-            'Phone'           => 'required|string|max:60',
-            'Address'         => 'nullable|string|max:500',
-            'Emails'          => 'required|array|min:1|max:10',
-            'Emails.*'        => 'required|email|max:150',
-            'Supply_Category' => 'required|in:' . implode(',', self::CATEGORIES),
-        ]);
     }
 
     private function findVendor($id)
@@ -135,17 +117,5 @@ class NonUcoSupplierController extends Controller
         }
 
         return $emails;
-    }
-
-    private function cleanEmails(array $emails): array
-    {
-        return array_values(array_filter(array_unique(array_map('trim', $emails)), function ($email) {
-            return $email !== '';
-        }));
-    }
-
-    private function primaryEmail(array $emails)
-    {
-        return strlen($emails[0]) <= 60 ? $emails[0] : null;
     }
 }
