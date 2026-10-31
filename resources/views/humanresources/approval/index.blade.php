@@ -1,4 +1,4 @@
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
 <div class="main-content-header">

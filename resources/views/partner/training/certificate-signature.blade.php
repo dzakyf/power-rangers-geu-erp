@@ -24,7 +24,7 @@ $formId3 = "drawing_form_{$instanceId3}";
 $finalizeFormId3 = "finalize_form_{$instanceId3}";
 ?>
 
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 
 @section('content-wrapper')
 @csrf

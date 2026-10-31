@@ -25,8 +25,8 @@
             $id = request()->query('id') ?? null;
             @endphp
             @include('ui-components.signature-canvas', [
-            'saveUrl' => "/geu/hcga/public/partner-onboarding-preview-mou?id={$id}",
-            'saveDocumentUrl' => "/geu/hcga/public/partner-onboarding-submit-mou?id={$id}"]);
+            'saveUrl' => url('partner-onboarding-preview-mou') . "?id={$id}",
+            'saveDocumentUrl' => url('partner-onboarding-submit-mou') . "?id={$id}"]);
         </div>
     </div>
 
@@ -42,7 +42,7 @@
 
 //     var vault = new dhx.Vault("File_Documents", {
 //         uploader: {
-//             target: "/geu/hcga/public/partner-onboarding-submit-mou",
+//             target: "/partner-onboarding-submit-mou",
 //             params: {
 //                 '_token': '{{ csrf_token() }}',
 //             }

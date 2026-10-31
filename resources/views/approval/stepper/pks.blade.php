@@ -19,8 +19,8 @@
             @endphp
 
             @include('ui-components.signature-canvas', [
-            'saveUrl' => "/geu/hcga/public/partner-onboarding-preview-pks?id={$id}",
-            'saveDocumentUrl' => "/geu/hcga/public/partner-onboarding-submit-pks?id={$id}"]);
+            'saveUrl' => url('partner-onboarding-preview-pks') . "?id={$id}",
+            'saveDocumentUrl' => url('partner-onboarding-submit-pks') . "?id={$id}"]);
         </div>
     </div>
 </div>
@@ -32,7 +32,7 @@
 <script>
 //     var vault = new dhx.Vault("File_PKS", {
 //         uploader: {
-//             target: "/geu/hcga/public/partner-onboarding-submit-pks",
+//             target: "/partner-onboarding-submit-pks",
 //             params: {
 //                 '_token': '{{ csrf_token() }}',
 //             }

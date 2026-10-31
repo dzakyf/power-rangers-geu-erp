@@ -44,6 +44,14 @@ class LoginController extends Controller
         return 'dashboard1';
     }
 
+    /**
+     * Redirect to the login page after logout.
+     */
+    protected function loggedOut(Request $request)
+    {
+        return redirect('/login');
+    }
+
     protected function sendLoginResponse(Request $request)
     {
         $request->session()->regenerate();

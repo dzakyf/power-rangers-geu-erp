@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 $Saya = Auth::user()->username;
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
     <!-- Main Content Header -->

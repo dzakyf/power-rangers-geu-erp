@@ -21,7 +21,7 @@ function load_bac_kota()
 
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
 <!-- Main Content Header -->

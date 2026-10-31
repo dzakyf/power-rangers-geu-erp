@@ -11,7 +11,7 @@ $expired = "Wed, 18 Dec 2030 12:00:00 GMT;";
 
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
 @csrf

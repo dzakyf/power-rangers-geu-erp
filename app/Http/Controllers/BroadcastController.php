@@ -68,7 +68,7 @@ class BroadcastController extends Controller
         $files = DB::table('meta_files as mf')->select('*')->where('mf.Map_To', '=', $id)->get();
 
         foreach ($files as $key => $value) {
-            $files[$key]->Url = "https://dev.hexamatika.com/geu/hcga/public/broadcast/" . $value->Path;
+            $files[$key]->Url = asset('broadcast/' . $value->Path);
         };
 
         $broadcast[0]->Files = $files;

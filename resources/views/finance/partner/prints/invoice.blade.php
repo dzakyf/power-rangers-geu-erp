@@ -220,8 +220,8 @@ $moneyFormat = new moneyFormat();
 
 	@font-face {
 		font-family: 'FontAwesome';
-		src: url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.eot?v=4.5.0');
-		src: url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.eot?#iefix&v=4.5.0') format('embedded-opentype'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.woff2?v=4.5.0') format('woff2'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.woff?v=4.5.0') format('woff'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.ttf?v=4.5.0') format('truetype'), url('/geu/hcga/public/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.svg?v=4.5.0#fontawesomeregular') format('svg');
+		src: url('/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.eot?v=4.5.0');
+		src: url('/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.eot?#iefix&v=4.5.0') format('embedded-opentype'), url('/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.woff2?v=4.5.0') format('woff2'), url('/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.woff?v=4.5.0') format('woff'), url('/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.ttf?v=4.5.0') format('truetype'), url('/dhtmlx/fonts/font_awesome/fonts/fontawesome-webfont.svg?v=4.5.0#fontawesomeregular') format('svg');
 		font-weight: normal;
 		font-style: normal;
 	}

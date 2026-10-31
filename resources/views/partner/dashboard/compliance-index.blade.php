@@ -1,4 +1,4 @@
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 @section('content-wrapper')
 @csrf
 <h4>Dashboard Compliance Gudang</h4>

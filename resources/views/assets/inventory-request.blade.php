@@ -25,7 +25,7 @@ if ($Saya != 'admin'){
 }
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-asset')
 
 @section('content-wrapper')
 @csrf

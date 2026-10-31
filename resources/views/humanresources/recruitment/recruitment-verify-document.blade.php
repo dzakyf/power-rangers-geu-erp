@@ -12,7 +12,7 @@
  * - Tombol Approve (lanjut ke Psikotest) / Reject
  */
 ?>
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
 <style>

@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
 	
 	?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
 <!-- Main Content Header -->

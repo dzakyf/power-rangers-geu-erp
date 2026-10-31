@@ -1,4 +1,4 @@
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 
 @push('head')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/plugins/data-tables/css/datatables.min.css') }}">

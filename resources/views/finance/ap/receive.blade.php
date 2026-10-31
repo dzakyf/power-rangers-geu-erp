@@ -11,7 +11,7 @@ $Saya =  Auth::user()->username;
 
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
 @csrf

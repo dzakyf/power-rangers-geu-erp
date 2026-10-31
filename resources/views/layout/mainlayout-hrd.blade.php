@@ -1,43 +1,37 @@
 <!doctype html>
 <html lang="en">
-
 <head>
-    @include('layout.partials.head')
+    @include('layout.adminor.head')
 </head>
+<body class="main-body app sidebar-mini ltr">
+@php
+    $adminorMenuModule = 'HRD';
+    $adminorHome = 'home-hrd';
+@endphp
+    @include('layout.adminor.loader')
 
-<body>
-    <!-- Preloader -->
-    @include('layout.partials.loader')
+    <div class="page">
+        @include('layout.adminor.header')
 
-    <!-- Top Navbar -->
-    @include('layout.partials.top-nav-hrd')
+        <div class="app-sidebar__overlay" data-bs-toggle="sidebar"></div>
+        <div class="sticky">
+            <aside class="app-sidebar sidebar-scroll">
+                @include('layout.adminor.sidebar')
+            </aside>
+        </div>
 
-    <!-- Side Menu -->
-    @include('layout.partials.sidemenu')
-    @include('layout.plugins')
+        @include('layout.adminor.vendor-scripts')
 
-    <!-- Main Content Wrapper -->
-    <div class="main-content d-flex flex-column hide-sidemenu" id="PagesContent">
-        <!-- Main Content Layout -->
-        @yield('content-wrapper')
+        <div class="main-content app-content">
+            <div class="main-container container-fluid">
+                @yield('content-wrapper')
+            </div>
+        </div>
 
-        <!-- Footer -->
-        @include('layout.partials.footer')
+        @include('layout.adminor.footer')
     </div>
-    <!-- End Main Content Wrapper -->
 
-    <!-- Theme Color customizer Right Modal -->
-    @include('layout.partials.theme-color-customizer')
-
-    <!-- Footer Scripts -->
-    @include('layout.partials.footer-scripts')
+    @include('ui-components.modal-bp')
+    @include('layout.adminor.scripts')
 </body>
-
 </html>
-<link href="{{ asset('ajaxloader/ajaxloader.css') }}" type="text/css" rel="stylesheet" />
-
-<script src="{{ asset('jquery.ajaxloader.1.5.1.js') }}"></script>
-<script src="{{ asset('blockui.js') }}"></script>
-<link rel="stylesheet" type="text/css" href="{{ asset('blockui.css') }}" />
-<link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolautosuggest.css') }}" />
-<link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolfieldset.css') }}" />

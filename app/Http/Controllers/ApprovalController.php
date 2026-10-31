@@ -84,7 +84,7 @@ class ApprovalController extends Controller
 
 
         foreach ($documents as $key => $value) {
-            $documents[$key]->url = "https://dev.hexamatika.com/geu/hcga/public/filevendor/" . $value->file_path;
+            $documents[$key]->url = asset('filevendor/' . $value->file_path);
         };
 
         return view('approval.detail', compact('partner', 'pic', 'documents'));
@@ -320,7 +320,7 @@ class ApprovalController extends Controller
 
 
         foreach ($documents as $key => $value) {
-            $documents[$key]->url = "https://dev.hexamatika.com/geu/hcga/public/filevendor/" . $value->file_path;
+            $documents[$key]->url = asset('filevendor/' . $value->file_path);
         };
 
         $status = DB::table('approval_request as ar')

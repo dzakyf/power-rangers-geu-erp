@@ -12,7 +12,7 @@ $getUsers = DB::table('users')->where('Priv_ID', 'SALES')->get();
 
 ?>
 
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 
 @section('content-wrapper')
 @csrf

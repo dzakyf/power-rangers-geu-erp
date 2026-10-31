@@ -1,4 +1,4 @@
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-credential')
 
 @section('content-wrapper')
 @csrf

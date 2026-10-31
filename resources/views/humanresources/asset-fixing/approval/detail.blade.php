@@ -2,7 +2,7 @@
 use Illuminate\Support\Facades\Auth;
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
 @csrf

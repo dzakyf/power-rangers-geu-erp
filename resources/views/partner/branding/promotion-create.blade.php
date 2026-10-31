@@ -8,7 +8,7 @@ $Saya =  Auth::user()->username;
 // $Saya = "admin";
 ?>
 
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 
 @section('content-wrapper')
 @csrf

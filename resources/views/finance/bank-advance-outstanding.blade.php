@@ -20,7 +20,7 @@ $priv =  Auth::user()->Priv_ID;
 
 ?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
 @csrf

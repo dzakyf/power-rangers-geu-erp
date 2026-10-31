@@ -6,8 +6,8 @@ $formId = "drawing_form_{$instanceId}";
 $finalizeFormId = "finalize_form_{$instanceId}";
 
 $opportunityId = $opportunityId ?? request('id', "null");
-$saveUrl = $saveUrl ?? "/geu/hcga/public/partner-onboarding-preview-pks?id=" . $opportunityId;
-$saveDocumentUrl = $saveDocumentUrl ?? "/geu/hcga/public/partner-onboarding-submit-pks?id=" . $opportunityId;
+$saveUrl = $saveUrl ?? url('partner-onboarding-preview-pks') . '?id=' . $opportunityId;
+$saveDocumentUrl = $saveDocumentUrl ?? url('partner-onboarding-submit-pks') . '?id=' . $opportunityId;
 @endphp
 
 <div class="signature-canvas-wrapper" data-instance-id="{{ $instanceId }}">

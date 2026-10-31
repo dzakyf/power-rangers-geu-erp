@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 	
 	?>
 
-@extends('layout.mainlayout')
+@extends('layout.mainlayout-finance')
 
 @section('content-wrapper')
 @csrf

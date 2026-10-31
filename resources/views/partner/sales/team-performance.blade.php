@@ -21,7 +21,7 @@ $years = $years->map(fn($y) => (int) $y)->unique()->sortByDesc(function ($y) {
 
 ?>
 
-@extends('layout.mainlayout-mitra')
+@extends('layout.mainlayout-bp')
 
 @section('content-wrapper')
 @csrf
