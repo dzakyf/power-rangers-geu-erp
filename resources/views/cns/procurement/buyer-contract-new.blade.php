@@ -128,6 +128,7 @@
         formData.append('Incoterms', $('#Incoterms').val());
         formData.append('Price_Currency', $('#Price_Currency').val());
         formData.append('Price_Per_MT', $('#Price_Per_MT').val());
+        formData.append('Status', $('#Status').val());
         formData.append('Note', $('#Note').val());
         formData.append('Contract_File', fileInput.files[0]);
 

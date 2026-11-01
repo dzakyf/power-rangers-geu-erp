@@ -135,6 +135,7 @@
         formData.append('Incoterms', $('#Incoterms').val());
         formData.append('Price_Currency', $('#Price_Currency').val());
         formData.append('Price_Per_MT', $('#Price_Per_MT').val());
+        formData.append('Status', $('#Status').val());
         formData.append('Note', $('#Note').val());
 
         var fileInput = $('#Contract_File')[0];
