@@ -82,6 +82,7 @@ class SupplierContractTest extends TestCase
             'Incoterms'         => 'FOB',
             'Price_Currency'    => 'USD',
             'Price_Per_MT'      => 1105,
+            'Status'            => 'UNDER_REVIEW',
             'Note'              => 'Catatan uji',
             'Contract_File'     => UploadedFile::fake()->create('contract.pdf', 100, 'application/pdf'),
         ];
@@ -336,6 +337,7 @@ class SupplierContractTest extends TestCase
             'Incoterms'        => 'FOB',
             'Price_Currency'   => 'USD',
             'Price_Per_MT'     => 1105,
+            'Status'           => 'UNDER_REVIEW',
             'Contract_File'    => UploadedFile::fake()->create('contract.pdf', 100, 'application/pdf'),
         ];
     }
@@ -436,6 +438,7 @@ class SupplierContractTest extends TestCase
                 'Incoterms'       => 'CIF',
                 'Price_Currency'  => 'EUR',
                 'Price_Per_MT'    => 1200,
+                'Status'          => 'ACTIVE_IN_PROGRESS',
                 'Note'            => 'Update catatan',
             ]);
 
@@ -447,7 +450,7 @@ class SupplierContractTest extends TestCase
         $this->assertSame('40 ft', $row->Container_Size);
         $this->assertSame('CIF', $row->Incoterms);
         $this->assertSame('EUR', $row->Price_Currency);
-        $this->assertSame('UNDER_REVIEW', $row->Status);
+        $this->assertSame('ACTIVE_IN_PROGRESS', $row->Status);
         $this->assertSame(['updated@example.com'], json_decode($row->Buyer_Emails, true));
         $this->assertSame($this->testUser()->username, $row->Updated_By);
         $this->assertNull($row->Contract_File, 'Old file should remain untouched when no new file is uploaded');

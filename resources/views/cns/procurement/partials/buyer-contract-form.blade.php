@@ -78,13 +78,23 @@
 
                 <h6 class="font-weight-bold border-bottom pb-1 mt-3" style="color:#1a56a0;">Kontrak</h6>
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label>Nomor Kontrak</label>
                             <input type="text" name="Contract_No" id="Contract_No" value="{{ old('Contract_No', $contract->Contract_No ?? $generatedContractNo ?? '') }}" class="form-control shadow-sm" readonly required />
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Status Kontrak</label>
+                            <select name="Status" id="Status" class="form-control shadow-sm" required>
+                                @foreach($statuses as $code => $label)
+                                    <option value="{{ $code }}" {{ old('Status', $contract->Status ?? 'UNDER_REVIEW') === $code ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label>Incoterms</label>
                             <select name="Incoterms" id="Incoterms" class="form-control shadow-sm" required>
