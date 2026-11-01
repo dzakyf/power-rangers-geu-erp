@@ -81,35 +81,39 @@ class CreateBdpSupportEngagementTables extends Migration
             $table->Integer('Last_ID')->nullable();
         });
         DB::statement("ALTER TABLE `ticket_response_log` MODIFY `ID` int NOT NULL AUTO_INCREMENT");
-        Schema::create('chat', function (Blueprint $table) {
-            $table->engine = 'InnoDB';
-            $table->charset = 'utf8mb4';
-            $table->collation = 'utf8mb4_general_ci';
-            $table->increments('id');
-            $table->Integer('room_chat_id');
-            $table->text('message');
-            $table->text('attachment');
-            $table->string('created_by', 150);
-            $table->dateTime('created_date')->useCurrent();
-            $table->Integer('is_sent')->default(0);
-            $table->dateTime('sent_date')->nullable();
-            $table->Integer('is_read')->default(0);
-            $table->dateTime('read_date')->nullable();
-            $table->Integer('announcement_id')->nullable();
-        });
-        DB::statement("ALTER TABLE `chat` MODIFY `id` int NOT NULL AUTO_INCREMENT");
-        Schema::create('room_chat', function (Blueprint $table) {
-            $table->engine = 'InnoDB';
-            $table->charset = 'utf8mb4';
-            $table->collation = 'utf8mb4_general_ci';
-            $table->increments('ID');
-            $table->text('Users');
-            $table->Integer('User_ID_Left');
-            $table->Integer('User_ID_Right');
-            $table->string('Created_By', 150);
-            $table->dateTime('Created_Date');
-        });
-        DB::statement("ALTER TABLE `room_chat` MODIFY `ID` int NOT NULL AUTO_INCREMENT");
+        if (!Schema::hasTable('chat')) {
+            Schema::create('chat', function (Blueprint $table) {
+                $table->engine = 'InnoDB';
+                $table->charset = 'utf8mb4';
+                $table->collation = 'utf8mb4_general_ci';
+                $table->increments('id');
+                $table->Integer('room_chat_id');
+                $table->text('message');
+                $table->text('attachment');
+                $table->string('created_by', 150);
+                $table->dateTime('created_date')->useCurrent();
+                $table->Integer('is_sent')->default(0);
+                $table->dateTime('sent_date')->nullable();
+                $table->Integer('is_read')->default(0);
+                $table->dateTime('read_date')->nullable();
+                $table->Integer('announcement_id')->nullable();
+            });
+            DB::statement("ALTER TABLE `chat` MODIFY `id` int NOT NULL AUTO_INCREMENT");
+        }
+        if (!Schema::hasTable('room_chat')) {
+            Schema::create('room_chat', function (Blueprint $table) {
+                $table->engine = 'InnoDB';
+                $table->charset = 'utf8mb4';
+                $table->collation = 'utf8mb4_general_ci';
+                $table->increments('ID');
+                $table->text('Users');
+                $table->Integer('User_ID_Left');
+                $table->Integer('User_ID_Right');
+                $table->string('Created_By', 150);
+                $table->dateTime('Created_Date');
+            });
+            DB::statement("ALTER TABLE `room_chat` MODIFY `ID` int NOT NULL AUTO_INCREMENT");
+        }
         Schema::create('broadcast', function (Blueprint $table) {
             $table->engine = 'InnoDB';
             $table->charset = 'utf8mb4';
