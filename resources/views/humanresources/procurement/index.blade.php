@@ -24,6 +24,7 @@
 			<input type="button" id="LogRequestProcurement" NAME="LogRequestProcurement" class="btn btn-success mt-2 mr-2" value="Log Request" />
 			<input type="button" id="PrintPRProcurement" NAME="PrintPRProcurement" class="btn btn-dark mt-2 mr-2" value="Cetak PR" />
 			<input type="button" id="PrintPOProcurement" NAME="PrintPOProcurement" class="btn btn-secondary mt-2 mr-2" value="Cetak PO" />
+			<input type="button" id="CheckInventoryProcurement" NAME="CheckInventoryProcurement" class="btn btn-info mt-2 mr-2" value="Cek Penerimaan Barang (GR)" />
 			<input type="button" id="ekselRequestProcurement" name="ekselRequestProcurement" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="PurchaseManagement.toExcel('./export/generate.php');"  />
 			{{-- <input type="button" id="SubmitPRNewDetail" NAME="SubmitPRNewDetail" class="btn btn-success mt-2 mr-2" value="Update Priority &amp; Approve" />                 --}}
 		</div>
@@ -98,6 +99,17 @@
 			let s = selectedPRPO(); if(!s) return;
 			if(!s.po) { alert('PO belum diterbitkan untuk PR ini'); return; }
 			streamPdf('hrd-procurement-print-po?PR_No=' + encodeURIComponent(s.pr) + '&PO_No=' + encodeURIComponent(s.po), 'Cetak PO ' + s.po);
+		})
+
+		$('#CheckInventoryProcurement').on('click', function() {
+			let s = selectedPRPO(); if(!s) return;
+			if(!s.po) {
+				alert('PO belum diterbitkan untuk PR ini. Penerimaan barang memerlukan nomor PO yang sudah disetujui.');
+				return;
+			}
+			$.blockUI();
+			// Buka form penerimaan barang (good receive) dengan membawa nomor PO
+			LoadM('PurchaseManagementDiv', 'inventory-incoming-new?PO_NO=' + encodeURIComponent(s.po));
 		})
 		
 		</script>

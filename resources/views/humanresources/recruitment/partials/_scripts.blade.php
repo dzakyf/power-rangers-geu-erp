@@ -1,32 +1,100 @@
 <script>
 $(document).ready(function() {
     // ========================================
-    // TAB NAVIGATION LOGIC
+    // TAB NAVIGATION LOGIC (STRICT VALIDATION)
     // ========================================
-    
     var currentTab = 0;
     var totalTabs = 5; // personal, contact, education, documents, review
-    
+
+    // Set tanggal deklarasi otomatis hari ini
+    if ($('#declaration_date').length) {
+        $('#declaration_date').val(new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }));
+    }
+
     // Initialize progress bar
     updateProgressBar(0);
-    
-    // ========================================
-    // TAB SWITCHING
-    // ========================================
-    
+    updateButtons();
+
+    function getTabId(index) {
+        var tabIds = ['personal', 'contact', 'education', 'documents', 'review'];
+        return tabIds[index] + '-tab';
+    }
+
     function switchTab(tabId) {
-        $('#' + tabId).tab('show');
-        
-        if (tabId === 'personal') currentTab = 0;
-        else if (tabId === 'contact') currentTab = 1;
-        else if (tabId === 'education') currentTab = 2;
-        else if (tabId === 'documents') currentTab = 3;
-        else if (tabId === 'review') currentTab = 4;
-        
+        var targetTrigger = $('#' + tabId);
+        if (!targetTrigger.length) {
+            targetTrigger = $('#' + tabId + '-tab');
+        }
+
+        // Tampilkan tab menggunakan Bootstrap 5 / Bootstrap 4 / fallback manual
+        if (targetTrigger.length) {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                var tabInstance = bootstrap.Tab.getOrCreateInstance(targetTrigger[0]);
+                tabInstance.show();
+            } else if (typeof targetTrigger.tab === 'function') {
+                targetTrigger.tab('show');
+            } else {
+                var targetPaneId = targetTrigger.attr('href');
+                $('.nav-tabs-recruitment .nav-link').removeClass('active');
+                targetTrigger.addClass('active');
+                $('.tab-pane').removeClass('show active');
+                $(targetPaneId).addClass('show active');
+            }
+        }
+
+        var order = {
+            'personal': 0, 'personal-tab': 0,
+            'contact': 1, 'contact-tab': 1,
+            'education': 2, 'education-tab': 2,
+            'documents': 3, 'documents-tab': 3,
+            'review': 4, 'review-tab': 4
+        };
+
+        if (order[tabId] !== undefined) {
+            currentTab = order[tabId];
+        }
+
         updateButtons();
         updateProgressBar(currentTab);
+
+        if (currentTab === 4) {
+            populateReviewData();
+        }
+
+        window.scrollTo({ top: $('#recruitmentForm').offset().top - 80, behavior: 'smooth' });
     }
-    
+
+    window.switchToTab = switchTab;
+
+    // INTERCEPT KLIK LANGSUNG PADA TAB: VALIDASI REQUIRED DULU SEBELUM PINDAH
+    $('.nav-tabs-recruitment a.nav-link').on('click', function(e) {
+        e.preventDefault();
+        var clickedId = $(this).attr('id');
+        var order = {
+            'personal-tab': 0,
+            'contact-tab': 1,
+            'education-tab': 2,
+            'documents-tab': 3,
+            'review-tab': 4
+        };
+        var targetIndex = order[clickedId];
+
+        // Jika user mengklik tab yang sama, abaikan
+        if (targetIndex === currentTab) {
+            return;
+        }
+
+        // Jika user ingin maju ke tab depan, wajib lolos validasi tab saat ini
+        if (targetIndex > currentTab) {
+            if (!validateCurrentTab()) {
+                return;
+            }
+        }
+
+        // Pindah ke tab tujuan jika valid atau kembali ke tab sebelumnya
+        switchTab(clickedId);
+    });
+
     // Previous button click
     $('#btnPrevious').click(function() {
         if (currentTab > 0) {
@@ -35,8 +103,8 @@ $(document).ready(function() {
             switchTab(tabId);
         }
     });
-    
-    // Next button click
+
+    // Next button click (wajib validasi tab saat ini)
     $('#btnNext').click(function() {
         if (currentTab < totalTabs - 1) {
             if (validateCurrentTab()) {
@@ -46,322 +114,273 @@ $(document).ready(function() {
             }
         }
     });
-    
+
     // Submit button click
     $('#btnSubmit').click(function() {
+        if (!$('#agree_terms').is(':checked') || !$('#agree_privacy').is(':checked')) {
+            showError('Harap centang persetujuan syarat & ketentuan serta kebijakan privasi.');
+            return;
+        }
+        if (!$('#declaration_name').val().trim()) {
+            showError('Harap ketik nama lengkap Anda sebagai tanda tangan elektronik.');
+            $('#declaration_name').focus();
+            return;
+        }
         if (validateCurrentTab()) {
             submitForm();
         }
     });
-    
+
     // Save Draft button click
     $('#btnSaveDraft').click(function() {
         saveDraft();
     });
-    
-    // ========================================
-    // HELPER FUNCTIONS
-    // ========================================
-    
-    function getTabId(index) {
-        var tabIds = ['personal', 'contact', 'education', 'documents', 'review'];
-        return tabIds[index] + '-tab';
-    }
-    
+
     function updateButtons() {
         if (currentTab === 0) {
-            $('#btnPrevious').prop('disabled', true);
-            $('#btnPrevious').css('opacity', '0.5');
+            $('#btnPrevious').prop('disabled', true).css('opacity', '0.5');
         } else {
-            $('#btnPrevious').prop('disabled', false);
-            $('#btnPrevious').css('opacity', '1');
+            $('#btnPrevious').prop('disabled', false).css('opacity', '1');
         }
-        
+
         if (currentTab === totalTabs - 1) {
-            $('#btnNext').css('display', 'none');
-            $('#btnSubmit').css('display', 'inline-block');
+            $('#btnNext').hide();
+            $('#btnSubmit').show();
         } else {
-            $('#btnNext').css('display', 'inline-block');
-            $('#btnSubmit').css('display', 'none');
+            $('#btnNext').show();
+            $('#btnSubmit').hide();
         }
     }
-    
+
     function updateProgressBar(tabIndex) {
         var progress = ((tabIndex + 1) / totalTabs) * 100;
-        $('#formProgress').css('width', progress + '%');
-        $('#formProgress').attr('aria-valuenow', tabIndex + 1);
+        $('#formProgress').css('width', progress + '%').attr('aria-valuenow', tabIndex + 1);
+
+        $('.step-label').removeClass('active text-success fw-bold');
+        $('#step-label-' + tabIndex).addClass('active text-success fw-bold');
     }
-    
-    // ========================================
-    // VALIDATION
-    // ========================================
-    
+
     function validateCurrentTab() {
         var isValid = true;
         var activeTab = $('.tab-pane.active');
-        
+
         activeTab.find('input[required], select[required], textarea[required]').each(function() {
-            var field = $(this);
-            var fieldId = field.attr('id');
-            var fieldValue = field.val().trim();
-            
-            if (fieldValue === '') {
-                field.addClass('is-invalid');
+            var input = $(this);
+            var val = (input.val() || '').trim();
+
+            if (val === '') {
+                input.addClass('is-invalid');
                 isValid = false;
-            } else {
-                field.removeClass('is-invalid');
-                
-                if (fieldId === 'Email') {
-                    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!emailRegex.test(fieldValue)) {
-                        field.addClass('is-invalid');
-                        isValid = false;
-                    }
-                }
-                
-                if (fieldId === 'Handphone' || fieldId === 'Phone') {
-                    var phoneRegex = /^[0-9]{10,15}$/;
-                    if (!phoneRegex.test(fieldValue.replace(/[\s-]/g, ''))) {
-                        field.addClass('is-invalid');
-                        isValid = false;
-                    }
+                return;
+            }
+            input.removeClass('is-invalid');
+
+            var id = input.attr('id');
+            if (id === 'Email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+                input.addClass('is-invalid');
+                isValid = false;
+            }
+            if ((id === 'Handphone' || id === 'Phone') && !/^[0-9+\s-]{10,18}$/.test(val)) {
+                input.addClass('is-invalid');
+                isValid = false;
+            }
+            if (id === 'KTP' && !/^[0-9]{16,20}$/.test(val.replace(/[\s-]/g, ''))) {
+                input.addClass('is-invalid');
+                isValid = false;
+            }
+            if (id === 'Birth_Date' && val !== '') {
+                var age = (Date.now() - new Date(val).getTime()) / 31557600000;
+                if (age < 17) {
+                    input.addClass('is-invalid');
+                    isValid = false;
+                    showError('Usia kandidat minimal 17 tahun.');
                 }
             }
         });
-        
-        if (!isValid) {
-            showError('Please complete all required fields in this section.');
+
+        // Tab Documents file wajib: Foto, CV, KTP, Ijazah
+        if (activeTab.attr('id') === 'documents') {
+            ['Foto', 'CV_File', 'KTP_File', 'Education_Certificate_File'].forEach(function(fieldId) {
+                var fileElem = $('#' + fieldId)[0];
+                if (!fileElem || !fileElem.files || fileElem.files.length === 0) {
+                    $('#' + fieldId).addClass('is-invalid');
+                    isValid = false;
+                } else {
+                    $('#' + fieldId).removeClass('is-invalid');
+                }
+            });
         }
-        
+
+        if (!isValid) {
+            showError('Harap lengkapi semua bidang isian wajib (*) pada bagian ini sebelum berpindah.');
+        }
+
         return isValid;
     }
-    
-    // ========================================
-    // FORM SUBMISSION
-    // ========================================
-    
+
+    // Populate Data Ringkasan ke Tab Review
+    window.populateReviewData = function() {
+        var fields = [
+            'Name', 'Gender', 'Birth_Place', 'Birth_Date', 'KTP', 'kewarganegaraan',
+            'Religion', 'Marital_Status', 'Address', 'Province', 'City', 'District', 'Sub_District', 'ZipCode',
+            'Phone', 'Handphone', 'Email', 'Email_Individual', 'Emergency_Contact_Name', 'Last_Education',
+            'Last_Education_From', 'Education_Major', 'Graduation_Year', 'GPA', 'Salary_Accepted'
+        ];
+
+        fields.forEach(function(id) {
+            var val = $('#' + id).val();
+            var target = $('#review-' + id);
+            if (target.length) {
+                target.text(val ? val : '-');
+            }
+        });
+
+        // Tampilkan nama posisi dari dropdown
+        var selectedPos = $('#Requisition_ID option:selected').text();
+        if ($('#review-Position').length) {
+            $('#review-Position').text(selectedPos ? selectedPos : '-');
+        }
+
+        // Tampilkan dokumen yang telah diunggah
+        var docHtml = '';
+        var hasDocs = false;
+        $('input[type="file"]').each(function() {
+            if (this.files && this.files.length > 0) {
+                hasDocs = true;
+                var label = $(this).closest('.form-group').find('label').first().text().replace('*', '').trim();
+                docHtml += '<li class="mb-2 text-dark"><i class="fas fa-check-circle text-success me-2"></i><strong>' + label + ':</strong> ' + this.files[0].name + '</li>';
+            }
+        });
+
+        if ($('#review-documents').length) {
+            $('#review-documents').html(hasDocs ? docHtml : '<li class="mb-2 text-muted"><i class="fas fa-times-circle text-danger me-2"></i>Belum ada dokumen yang diunggah</li>');
+        }
+    };
+
     function submitForm() {
-        var formData = new FormData();
-        
-        $('#recruitmentForm input:not([type="file"]):not([type="button"]), ' +
-          '#recruitmentForm select, ' +
-          '#recruitmentForm textarea').each(function() {
-            var field = $(this);
-            if (field.attr('type') !== 'hidden' || field.attr('id') !== 'Task_ID') {
-                formData.append(field.attr('name'), field.val());
-            }
-        });
-        
-        $('#recruitmentForm input[type="file"]').each(function() {
-            if (this.files.length > 0) {
-                formData.append(this.name, this.files[0]);
-            }
-        });
-        
         showLoading(true);
-        
+        var formData = new FormData($('#recruitmentForm')[0]);
+
         $.ajax({
-            url: '{{ url('recruitment-new-submit') }}',
+            url: '{{ url("recruitment-new-submit") }}',
             type: 'POST',
             data: formData,
             processData: false,
             contentType: false,
             headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') || "{{ csrf_token() }}"
             },
             success: function(response) {
                 showLoading(false);
-                
-                if (response.status === 'success') {
-                    showSuccess('Data submitted successfully! Candidate ID: ' + response.data.id);
+                if (response.status === 'success' || response.status === 'ok') {
+                    showSuccess('Data kandidat berhasil disimpan! ID/Task: ' + (response.task_id || response.Task_ID || 'Sukses'));
                     setTimeout(function() {
-                        window.location.href = '{{ url('recruitment') }}';
+                        window.location.href = "{{ url('recruitment-data') }}";
                     }, 2000);
                 } else {
-                    showError(response.message || 'Submission failed. Please try again.');
+                    showError(response.message || 'Gagal menyimpan data kandidat. Silakan periksa kembali.');
                 }
             },
-            error: function(jqXHR, textStatus, errorThrown) {
+            error: function(xhr) {
                 showLoading(false);
-                var errorMsg = 'Submission failed.';
-                if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
-                    errorMsg = jqXHR.responseJSON.message;
+                var errorMsg = 'Terjadi kesalahan saat menyimpan formulir.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
                 }
                 showError(errorMsg);
             }
         });
     }
-    
+
     function saveDraft() {
-        var formData = new FormData();
-        
-        $('#recruitmentForm input:not([type="file"]):not([type="button"]), ' +
-          '#recruitmentForm select, ' +
-          '#recruitmentForm textarea').each(function() {
-            formData.append($(this).attr('name'), $(this).val());
-        });
-        
-        $('#recruitmentForm input[type="file"]').each(function() {
-            if (this.files.length > 0) {
-                formData.append(this.name, this.files[0]);
-            }
-        });
-        
         showLoading(true);
-        
+        var formData = new FormData($('#recruitmentForm')[0]);
+        formData.append('is_draft', '1');
+
         $.ajax({
-            url: '{{ url('recruitment-new-submit') }}',
+            url: '{{ url("recruitment-new-submit") }}',
             type: 'POST',
             data: formData,
             processData: false,
             contentType: false,
             headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') || "{{ csrf_token() }}"
             },
             success: function(response) {
                 showLoading(false);
-                if (response.status === 'success') {
-                    showSuccess('Draft saved successfully!');
-                } else {
-                    showError(response.message);
-                }
+                showSuccess('Draft berhasil disimpan!');
             },
-            error: function(jqXHR) {
+            error: function(xhr) {
                 showLoading(false);
-                var errorMsg = 'Failed to save draft.';
-                if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
-                    errorMsg = jqXHR.responseJSON.message;
-                }
-                showError(errorMsg);
+                showError('Gagal menyimpan draft: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error server'));
             }
         });
     }
-    
-    // ========================================
-    // UI HELPER FUNCTIONS
-    // ========================================
-    
+
     function showLoading(isLoading) {
         if (isLoading) {
             $('#btnSubmit, #btnNext, #btnPrevious, #btnSaveDraft').prop('disabled', true);
-            $('.btn').addClass('loading');
+            if (typeof $.blockUI === 'function') {
+                $.blockUI({ message: 'Memproses data rekrutmen...' });
+            }
         } else {
             $('#btnSubmit, #btnNext, #btnPrevious, #btnSaveDraft').prop('disabled', false);
-            $('.btn').removeClass('loading');
+            if (typeof $.unblockUI === 'function') {
+                $.unblockUI();
+            }
         }
     }
-    
+
     function showSuccess(message) {
-        $('.alert-success-notification').remove();
-        
-        var alertHtml = '<div class="alert alert-success alert-dismissible fade show alert-success-notification" role="alert">' +
-            '<i class="fas fa-check-circle"></i> ' + message +
-            '<button type="button" class="close" data-dismiss="alert">&times;</button>' +
+        $('.alert-notification').remove();
+        var alertHtml = '<div class="alert alert-success alert-dismissible fade show alert-notification mb-3" role="alert">' +
+            '<i class="fas fa-check-circle me-2"></i>' + message +
+            '<button type="button" class="btn-close close" data-dismiss="alert" data-bs-dismiss="alert" aria-label="Close"></button>' +
             '</div>';
-        
         $('#recruitmentForm').before(alertHtml);
-        setTimeout(function() {
-            $('.alert-success-notification').alert('close');
-        }, 5000);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    
+
     function showError(message) {
-        $('.alert-danger-notification').remove();
-        
-        var alertHtml = '<div class="alert alert-danger alert-dismissible fade show alert-danger-notification" role="alert">' +
-            '<i class="fas fa-exclamation-circle"></i> ' + message +
-            '<button type="button" class="close" data-dismiss="alert">&times;</button>' +
+        $('.alert-notification').remove();
+        var alertHtml = '<div class="alert alert-danger alert-dismissible fade show alert-notification mb-3" role="alert">' +
+            '<i class="fas fa-exclamation-circle me-2"></i>' + message +
+            '<button type="button" class="btn-close close" data-dismiss="alert" data-bs-dismiss="alert" aria-label="Close"></button>' +
             '</div>';
-        
         $('#recruitmentForm').before(alertHtml);
-        setTimeout(function() {
-            $('.alert-danger-notification').alert('close');
-        }, 8000);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    
-    // ========================================
-    // AUTO-SAVE (every 30 seconds)
-    // ========================================
-    
-    var autoSaveInterval = setInterval(function() {
-        if ($('#recruitmentForm.isDirty')) {
-            saveDraft();
-        }
-    }, 30000);
-    
-    $('#recruitmentForm input, #recruitmentForm select, #recruitmentForm textarea').on('change input', function() {
-        $('#recruitmentForm').addClass('isDirty');
-    });
-    
-    // ========================================
-    // FILE UPLOAD PREVIEW
-    // ========================================
-    
+
+    // File Preview dan Validasi Ukuran File
     $('input[type="file"]').on('change', function() {
-        var fileInput = $(this);
+        var input = $(this);
         var file = this.files[0];
-        var fileId = fileInput.attr('id');
-        var fileLabel = fileInput.next('.custom-file-label');
-        
+        var id = input.attr('id');
+
         if (file) {
-            var fileName = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name;
-            fileLabel.html(fileName);
-            
-            var maxSize = (file.type.startsWith('image/')) ? 2 * 1024 * 1024 : 5 * 1024 * 1024;
-            
+            var maxSize = (id === 'Foto') ? 2 * 1024 * 1024 : 5 * 1024 * 1024;
             if (file.size > maxSize) {
-                showError('File size exceeds limit (' + (maxSize / (1024 * 1024)).toFixed(1) + 'MB). Please choose a smaller file.');
-                fileInput.val('');
-                fileLabel.html('Choose file');
+                showError('Ukuran file ' + file.name + ' melebihi batas (' + (maxSize / (1024 * 1024)) + 'MB).');
+                input.val('');
                 return;
             }
-            
-            if (file.type.startsWith('image/')) {
+
+            var fileName = file.name.length > 25 ? file.name.substring(0, 22) + '...' : file.name;
+            input.next('.custom-file-label').text(fileName);
+
+            if (file.type.indexOf('image/') === 0) {
                 var reader = new FileReader();
                 reader.onload = function(e) {
-                    var previewContainer = $('#preview-' + fileId);
-                    if (previewContainer.length) {
-                        previewContainer.html(
-                            '<img src="' + e.target.result + '" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">'
-                        );
+                    var preview = $('#preview-' + id);
+                    if (preview.length) {
+                        preview.html('<img src="' + e.target.result + '" class="img-thumbnail mt-2" style="max-height: 150px; border-radius: 6px;">');
                     }
                 };
                 reader.readAsDataURL(file);
-            }
-            
-            $('#check-' + fileId).removeClass('text-muted').addClass('text-success');
-        }
-    });
-    
-    // ========================================
-    // CITY-TO-PROVINCE AUTO-FILL
-    // ========================================
-    
-    var cityProvinceMap = {
-        'jakarta': 'DKI Jakarta',
-        'bandung': 'West Java',
-        'surabaya': 'East Java',
-        'medan': 'North Sumatra',
-        'makassar': 'South Sulawesi',
-        'yogyakarta': 'Yogyakarta',
-        'semarang': 'Central Java',
-        'bali': 'Bali',
-        'banjarmasin': 'South Kalimantan',
-        'palembang': 'South Sumatra'
-    };
-    
-    $('#City').on('change input', function() {
-        var city = $(this).val().toLowerCase();
-        var matchedProvince = null;
-        
-        for (var key in cityProvinceMap) {
-            if (city.includes(key)) {
-                matchedProvince = cityProvinceMap[key];
-                break;
+            } else {
+                $('#info-' + id).html('<span class="text-success small fw-bold"><i class="fas fa-check-circle me-1"></i> ' + file.name + '</span>');
             }
         }
-        
-        $('#Province').val(matchedProvince || '');
     });
 });
 </script>

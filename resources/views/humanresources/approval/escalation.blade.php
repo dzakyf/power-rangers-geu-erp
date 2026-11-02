@@ -18,9 +18,9 @@
 
 <div class="card mt-3">
     <div class="card-body">
-        <input type="button" class="btn btn-info mt-2 mr-2" value="Refresh" onclick="ApprovalEscalationRefresh();" />
-        <a class="btn btn-secondary mt-2 mr-2" href="hrd-approval-inbox">Back to Inbox</a>
-        <a class="btn btn-dark mt-2 mr-2" href="hrd-approval-policy">Policy Management</a>
+        <input type="button" class="btn btn-info mt-2 mr-2 me-2" value="Refresh" onclick="ApprovalEscalationRefresh();" />
+        <a class="btn btn-secondary mt-2 mr-2 me-2" href="hrd-approval-inbox">Back to Inbox</a>
+        <a class="btn btn-dark mt-2 mr-2 me-2" href="hrd-approval-policy">Policy Management</a>
     </div>
 </div>
 

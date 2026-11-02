@@ -645,3 +645,147 @@ if (!function_exists('org_chart_directorats')) {
         }
     }
 }
+
+if (!function_exists('recruitment_management_columns')) {
+    function recruitment_management_columns(): array
+    {
+        return [
+            'Recruitment_Type' => ['Recruitment Type', 120, 'left', '#combo_filter', 'str'],
+            'Name' => ['Name', 170, 'left', '#text_filter', 'str'],
+            'Gender' => ['Gender', 80, 'center', '#combo_filter', 'str'],
+            'PO_No' => ['PO No', 100, 'center', '#text_filter', 'str'],
+            'Requisition' => ['Requisition / Job Position', 180, 'left', '#text_filter', 'str'],
+            'Last_Education' => ['Last Education', 110, 'center', '#combo_filter', 'str'],
+            'Education_Major' => ['Education Major', 150, 'left', '#text_filter', 'str'],
+            'Interview_By' => ['Recruiter / Interviewer', 130, 'left', '#text_filter', 'str'],
+            'Doc_Status' => ['Seleksi Administrasi', 120, 'center', '#combo_filter', 'str'],
+            'Psikotest_Status' => ['Psikotest', 100, 'center', '#combo_filter', 'str'],
+            'Decline_Invitation' => ['Decline Invitation', 110, 'center', '#combo_filter', 'str'],
+            'Interview_HR' => ['Interview HR', 110, 'center', '#combo_filter', 'str'],
+            'Pending_Status' => ['Pending', 90, 'center', '#combo_filter', 'str'],
+            'Reject_Status' => ['Rejected', 90, 'center', '#combo_filter', 'str'],
+            'Interview_User' => ['Interview User', 110, 'center', '#combo_filter', 'str'],
+            'Candidate_Analysis' => ['Candidate Analysis', 120, 'center', '#combo_filter', 'str'],
+            'Decline_Offered' => ['Decline Offered', 110, 'center', '#combo_filter', 'str'],
+            'Hired_Status' => ['Hired', 90, 'center', '#combo_filter', 'str'],
+        ];
+    }
+}
+
+if (!function_exists('recruitment_management_default_columns')) {
+    function recruitment_management_default_columns(): array
+    {
+        return [
+            'Recruitment_Type',
+            'Name',
+            'Gender',
+            'PO_No',
+            'Requisition',
+            'Last_Education',
+            'Education_Major',
+            'Interview_By',
+            'Doc_Status',
+            'Psikotest_Status',
+            'Decline_Invitation',
+            'Interview_HR',
+            'Pending_Status',
+            'Reject_Status',
+            'Interview_User',
+            'Candidate_Analysis',
+            'Decline_Offered',
+            'Hired_Status',
+        ];
+    }
+}
+
+if (!function_exists('recruitment_data_columns')) {
+    function recruitment_data_columns(): array
+    {
+        return [
+            'KTP' => ['No. KTP', 140, 'center', '#text_filter', 'str'],
+            'NIK' => ['NIK', 120, 'center', '#text_filter', 'str'],
+            'Task_ID' => ['Task ID', 140, 'center', '#text_filter', 'str'],
+            'Name' => ['Nama Kandidat', 170, 'left', '#text_filter', 'str'],
+            'Initial' => ['Initial', 80, 'center', '#text_filter', 'str'],
+            'Gender' => ['Jenis Kelamin', 90, 'center', '#combo_filter', 'str'],
+            'Birth_Place' => ['Tempat Lahir', 120, 'left', '#text_filter', 'str'],
+            'Birth_Date' => ['Tanggal Lahir', 110, 'center', '#text_filter', 'date'],
+            'Age' => ['Usia', 70, 'center', '#numeric_filter', 'int'],
+            'Marital_Status' => ['Status Nikah', 110, 'center', '#combo_filter', 'str'],
+            'PTKP_Status' => ['Status PTKP', 100, 'center', '#combo_filter', 'str'],
+            'kewarganegaraan' => ['Kewarganegaraan', 120, 'center', '#combo_filter', 'str'],
+            'Religion' => ['Agama', 100, 'center', '#combo_filter', 'str'],
+            'Blood' => ['Gol. Darah', 70, 'center', '#combo_filter', 'str'],
+            'Blood_Rhesus' => ['Rhesus', 70, 'center', '#combo_filter', 'str'],
+            'Requisition' => ['Posisi / Requisition', 180, 'left', '#text_filter', 'str'],
+            'Position' => ['Posisi Dilamar', 160, 'left', '#text_filter', 'str'],
+            'Department' => ['Departemen', 130, 'center', '#combo_filter', 'str'],
+            'Directorat' => ['Direktorat', 120, 'center', '#combo_filter', 'str'],
+            'Location' => ['Lokasi', 100, 'center', '#combo_filter', 'str'],
+            'Priority' => ['Prioritas', 90, 'center', '#combo_filter', 'str'],
+            'Recruitment_Type' => ['Tipe Rekrutmen', 120, 'center', '#combo_filter', 'str'],
+            'Last_Education' => ['Pendidikan Terakhir', 110, 'center', '#combo_filter', 'str'],
+            'Education_Major' => ['Jurusan', 150, 'left', '#text_filter', 'str'],
+            'Last_Education_From' => ['Institusi / Universitas', 170, 'left', '#text_filter', 'str'],
+            'Phone' => ['No. Telepon', 120, 'left', '#text_filter', 'str'],
+            'Handphone' => ['No. Handphone', 130, 'left', '#text_filter', 'str'],
+            'Email' => ['Email', 170, 'left', '#text_filter', 'str'],
+            'Email_Individual' => ['Email Pribadi', 170, 'left', '#text_filter', 'str'],
+            'Address' => ['Alamat KTP', 200, 'left', '#text_filter', 'str'],
+            'City' => ['Kota KTP', 120, 'left', '#text_filter', 'str'],
+            'Address_Living' => ['Alamat Domisili', 200, 'left', '#text_filter', 'str'],
+            'City_Living' => ['Kota Domisili', 120, 'left', '#text_filter', 'str'],
+            'NPWP' => ['NPWP', 140, 'center', '#text_filter', 'str'],
+            'BPJS_Kesehatan' => ['BPJS Kesehatan', 130, 'center', '#text_filter', 'str'],
+            'BPJS_TK' => ['BPJS Ketenagakerjaan', 130, 'center', '#text_filter', 'str'],
+            'Salary_Accepted' => ['Ekspektasi Gaji', 130, 'right', '#numeric_filter', 'int'],
+            'Status' => ['Status Rekrutmen', 130, 'center', '#combo_filter', 'str'],
+            'Document_Status' => ['Status Administrasi', 120, 'center', '#combo_filter', 'str'],
+            'Document_Date' => ['Tgl Administrasi', 110, 'center', '#text_filter', 'date'],
+            'Psikotest_Status' => ['Status Psikotes', 110, 'center', '#combo_filter', 'str'],
+            'Psikotest_Score' => ['Nilai Psikotes', 100, 'center', '#numeric_filter', 'int'],
+            'Psikotest_Date' => ['Tgl Psikotes', 110, 'center', '#text_filter', 'date'],
+            'Interview_By' => ['Pewawancara HR', 140, 'left', '#text_filter', 'str'],
+            'Interview_Status' => ['Status Interview HR', 120, 'center', '#combo_filter', 'str'],
+            'Interview_Date' => ['Tgl Interview HR', 110, 'center', '#text_filter', 'date'],
+            'User_Interview_By' => ['Pewawancara User', 140, 'left', '#text_filter', 'str'],
+            'User_Interview_Status' => ['Status Interview User', 120, 'center', '#combo_filter', 'str'],
+            'User_Interview_Date' => ['Tgl Interview User', 110, 'center', '#text_filter', 'date'],
+            'Technical_Test_Status' => ['Status Tes Teknik', 120, 'center', '#combo_filter', 'str'],
+            'Technical_Score' => ['Nilai Tes Teknik', 100, 'center', '#numeric_filter', 'int'],
+            'Technical_Date' => ['Tgl Tes Teknik', 110, 'center', '#text_filter', 'date'],
+            'MCU_Status' => ['Status MCU', 110, 'center', '#combo_filter', 'str'],
+            'MCU_Schedule' => ['Jadwal MCU', 110, 'center', '#text_filter', 'date'],
+            'Offering_Status' => ['Status Offering', 110, 'center', '#combo_filter', 'str'],
+            'PO_Desc' => ['PO Description', 140, 'left', '#text_filter', 'str'],
+            'Remaining_Days' => ['Sisa Waktu (Hari)', 110, 'center', '#numeric_filter', 'int'],
+            'Created_Date' => ['Tanggal Masuk', 110, 'center', '#text_filter', 'date'],
+            'Created_By' => ['Dibuat Oleh', 120, 'center', '#text_filter', 'str'],
+        ];
+    }
+}
+
+if (!function_exists('recruitment_data_default_columns')) {
+    function recruitment_data_default_columns(): array
+    {
+        return [
+            'KTP',
+            'Name',
+            'Gender',
+            'Birth_Date',
+            'Requisition',
+            'Last_Education',
+            'Education_Major',
+            'Last_Education_From',
+            'Handphone',
+            'Email',
+            'Status',
+            'Document_Status',
+            'Psikotest_Status',
+            'Interview_Status',
+            'User_Interview_Status',
+            'Offering_Status',
+            'Remaining_Days',
+        ];
+    }
+}

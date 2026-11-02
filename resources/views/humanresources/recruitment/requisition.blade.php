@@ -32,10 +32,10 @@ $Saya =  Auth::user()->username;
 <div>
 	<div id="RequisitionLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
-		<input type="button" id="ekselRequisitionListsDet" name="ekselRequisitionListsDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="RequisitionLists.toExcel('./export/generate.php');" />
-		<input type="button" id="delets" name="delets" value="Cancel PTK" onclick="delsRequisition()" class="btn btn-info mt-2 mr-2" onclick="delsRequisition()" />
-		<input type="button" id="CancelReq" name="CancelReq" class="btn btn-danger mt-2 mr-2" onclick="closereq()" value="Close PTK" />
-		<input type="button" id="NewReq" name="NewReq" onclick="newreq()" class="btn btn-success mt-2 mr-2" value="Form PTK" />
+		<input type="button" id="ekselRequisitionListsDet" name="ekselRequisitionListsDet" value="Export Excel" class="btn btn-warning mt-2 mr-2 me-2" onclick="RequisitionLists.toExcel('./export/generate.php');" />
+		<input type="button" id="delets" name="delets" value="Cancel PTK" onclick="delsRequisition()" class="btn btn-info mt-2 mr-2 me-2" onclick="delsRequisition()" />
+		<input type="button" id="CancelReq" name="CancelReq" class="btn btn-danger mt-2 mr-2 me-2" onclick="closereq()" value="Close PTK" />
+		<input type="button" id="NewReq" name="NewReq" onclick="newreq()" class="btn btn-success mt-2 mr-2 me-2" value="Form PTK" />
 	</div>
 
 </div>

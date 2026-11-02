@@ -21,6 +21,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class RecruitmentNewSubmitController extends Controller
@@ -32,14 +33,19 @@ class RecruitmentNewSubmitController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'Requisition_ID'       => 'required|integer',
+            'Requisition_ID'       => 'nullable',
+            'Position'             => 'nullable|string|max:255',
             'Name'                 => 'required|string|max:255',
             'Gender'               => 'required|in:MALE,FEMALE',
             'Birth_Date'           => 'required|date|before:today',
             'Birth_Place'          => 'nullable|string|max:255',
             'KTP'                  => 'nullable|string|max:20',
             'Address'              => 'nullable|string',
+            'Province'             => 'nullable|string|max:100',
             'City'                 => 'nullable|string|max:255',
+            'District'             => 'nullable|string|max:100',
+            'Sub_District'         => 'nullable|string|max:100',
+            'ZipCode'              => 'nullable|string|max:10',
             'Phone'                => 'nullable|string|max:20',
             'Handphone'            => 'nullable|string|max:20',
             'Marital_Status'       => 'nullable|in:SINGLE,MARRIED,WIDOWER,WIDOW',
@@ -60,24 +66,41 @@ class RecruitmentNewSubmitController extends Controller
             ], 422);
         }
 
-        // ===== GATEKEEPING: Cek apakah Requisition_ID sudah APPROVED =====
+        // ===== Resolusi Position & Requisition_ID =====
         $requisitionId = $request->input('Requisition_ID');
-        $requisition = DB::table('requisition')
-            ->where('Task_ID', $requisitionId)
-            ->first();
+        $positionName  = $request->input('Position');
 
-        if (!$requisition) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Requisition tidak ditemukan.',
-            ], 422);
-        }
+        // Jika Position dikirim (berasal dari master position), coba cari Requisition aktif (APPROVED) dengan Job_Position yang sama dan masa aktif berlaku
+        if (!empty($positionName)) {
+            $activeReq = DB::table('requisition')
+                ->where('Status', 'APPROVED')
+                ->where(function($q) use ($positionName) {
+                    $q->where('Job_Position', $positionName)
+                      ->orWhere('Subject', 'like', "%{$positionName}%");
+                })
+                ->where(function($q) {
+                    $q->whereNull('End_Date')
+                      ->orWhere('End_Date', '>=', date('Y-m-d'));
+                })
+                ->orderBy('ID', 'DESC')
+                ->first();
 
-        if ($requisition->Status !== 'APPROVED') {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Requisition belum APPROVED. Status saat ini: ' . $requisition->Status,
-            ], 422);
+            if ($activeReq) {
+                $requisitionId = $activeReq->Task_ID;
+            }
+        } elseif (!empty($requisitionId)) {
+            // Jika Requisition_ID dikirim langsung (angka ID atau Task_ID)
+            $requisition = DB::table('requisition')
+                ->where('Task_ID', $requisitionId)
+                ->orWhere('ID', $requisitionId)
+                ->first();
+
+            if ($requisition) {
+                $requisitionId = $requisition->Task_ID;
+                if (empty($positionName)) {
+                    $positionName = $requisition->Job_Position;
+                }
+            }
         }
 
         // ===== Tentukan source (public vs internal) =====
@@ -107,7 +130,8 @@ class RecruitmentNewSubmitController extends Controller
         // Data utama candidate
         $data = [
             'Task_ID'                    => $taskId,
-            'Requisition_ID'             => $request->input('Requisition_ID'),
+            'Requisition_ID'             => $requisitionId,
+            'Position'                   => $positionName,
             'Recruitment_Type'           => 'GENERAL',
             'Name'                       => $request->input('Name'),
             'Gender'                     => $request->input('Gender'),
@@ -115,7 +139,11 @@ class RecruitmentNewSubmitController extends Controller
             'Birth_Place'                => $request->input('Birth_Place', ''),
             'KTP'                        => $request->input('KTP', ''),
             'Address'                    => $request->input('Address', ''),
+            'Province'                   => $request->input('Province', ''),
             'City'                       => $request->input('City', ''),
+            'District'                   => $request->input('District', ''),
+            'Sub_District'               => $request->input('Sub_District', ''),
+            'ZipCode'                    => $request->input('ZipCode', ''),
             'Phone'                      => $request->input('Phone', ''),
             'Handphone'                  => $request->input('Handphone', ''),
             'Marital_Status'             => $request->input('Marital_Status', 'SINGLE'),
@@ -189,7 +217,29 @@ class RecruitmentNewSubmitController extends Controller
             'Description'                => null,
         ];
 
-        $id = DB::table('recruitment')->insertGetId($data);
+        // Ambil daftar kolom yang ada di database tabel recruitment agar aman dari Unknown column
+        $allowedColumns = Schema::getColumnListing('recruitment');
+        $insertData = !empty($allowedColumns)
+            ? array_intersect_key($data, array_flip($allowedColumns))
+            : $data;
+
+        $id = DB::table('recruitment')->insertGetId($insertData);
+
+        // Jika CV diupload dan tabel recruitment_document punya kolom CV / CV_File, catat juga
+        if ($cvPath || $fotoPath) {
+            $docUpdate = [];
+            if ($cvPath && Schema::hasColumn('recruitment_document', 'CV')) {
+                $docUpdate['CV'] = $cvPath;
+            } elseif ($cvPath && Schema::hasColumn('recruitment_document', 'CV_File')) {
+                $docUpdate['CV_File'] = $cvPath;
+            }
+            if ($fotoPath && Schema::hasColumn('recruitment_document', 'Foto')) {
+                $docUpdate['Foto'] = $fotoPath;
+            }
+            if (!empty($docUpdate)) {
+                DB::table('recruitment_document')->where('Task_ID', $taskId)->update($docUpdate);
+            }
+        }
 
         // Insert ke tabel pendukung
         $this->createSupportingRecords($taskId, $id);
@@ -233,55 +283,79 @@ class RecruitmentNewSubmitController extends Controller
     }
 
     /**
+     * Helper aman untuk insert row ke tabel pendukung jika tabel ada dan kolom disesuaikan
+     */
+    private function safeInsert($table, array $data)
+    {
+        try {
+            if (Schema::hasTable($table)) {
+                $columns = Schema::getColumnListing($table);
+                if (!empty($columns)) {
+                    $insertData = array_intersect_key($data, array_flip($columns));
+                    DB::table($table)->insert($insertData);
+                    return;
+                }
+            }
+            // Fallback jika pengecekan schema gagal
+            DB::table($table)->insert($data);
+        } catch (\Exception $e) {
+            // Log warning atau skip jika kolom/tabel berbeda pada legacy schema
+            \Illuminate\Support\Facades\Log::warning("Safe insert failed for table {$table}: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Buat record di tabel pendukung
      */
     private function createSupportingRecords($taskId, $recruitmentId)
     {
+        $now = now();
+
         // recruitment_detail
-        DB::table('recruitment_detail')->insert([
-            'Task_ID'   => $taskId,
-            'created_at' => now(),
+        $this->safeInsert('recruitment_detail', [
+            'Task_ID'    => $taskId,
+            'created_at' => $now,
         ]);
 
         // recruitment_document
-        DB::table('recruitment_document')->insert([
-            'Task_ID'   => $taskId,
-            'created_at' => now(),
+        $this->safeInsert('recruitment_document', [
+            'Task_ID'    => $taskId,
+            'created_at' => $now,
         ]);
 
         // recruitment_akademic (4 default)
         $levels = ['SENIOR/VOCATIONAL SCHOOL', 'DIPLOMA', 'BACHELOR', 'MAGISTER'];
         foreach ($levels as $level) {
-            DB::table('recruitment_akademic')->insert([
-                'Task_ID'   => $taskId,
+            $this->safeInsert('recruitment_akademic', [
+                'Task_ID'         => $taskId,
                 'Education_Level' => $level,
-                'created_at' => now(),
+                'created_at'      => $now,
             ]);
         }
 
         // recruitment_language (4 default)
         for ($i = 0; $i < 4; $i++) {
-            DB::table('recruitment_language')->insert([
-                'Task_ID'   => $taskId,
-                'created_at' => now(),
+            $this->safeInsert('recruitment_language', [
+                'Task_ID'    => $taskId,
+                'created_at' => $now,
             ]);
         }
 
         // recruitment_organization (4 default)
         for ($i = 0; $i < 4; $i++) {
-            DB::table('recruitment_organization')->insert([
-                'Task_ID'   => $taskId,
-                'created_at' => now(),
+            $this->safeInsert('recruitment_organization', [
+                'Task_ID'    => $taskId,
+                'created_at' => $now,
             ]);
         }
 
         // recruitment_driving (5 default)
         $sims = ['SIM A', 'SIM B', 'SIM B1', 'SIM B1 UMUM', 'SIM C'];
         foreach ($sims as $sim) {
-            DB::table('recruitment_driving')->insert([
-                'Task_ID'   => $taskId,
+            $this->safeInsert('recruitment_driving', [
+                'Task_ID'     => $taskId,
                 'Description' => $sim,
-                'created_at' => now(),
+                'created_at'  => $now,
             ]);
         }
 
@@ -293,66 +367,66 @@ class RecruitmentNewSubmitController extends Controller
             'Abnormality',
         ];
         foreach ($healths as $h) {
-            DB::table('recruitment_health')->insert([
-                'Task_ID'   => $taskId,
+            $this->safeInsert('recruitment_health', [
+                'Task_ID'     => $taskId,
                 'Description' => $h,
-                'created_at' => now(),
+                'created_at'  => $now,
             ]);
         }
 
         // recruitment_experiences (4 default)
         for ($i = 0; $i < 4; $i++) {
-            DB::table('recruitment_experiences')->insert([
-                'Task_ID'   => $taskId,
-                'created_at' => now(),
+            $this->safeInsert('recruitment_experiences', [
+                'Task_ID'    => $taskId,
+                'created_at' => $now,
             ]);
         }
 
         // recruitment_informal (4 default)
         for ($i = 0; $i < 4; $i++) {
-            DB::table('recruitment_informal')->insert([
-                'Task_ID'   => $taskId,
-                'created_at' => now(),
+            $this->safeInsert('recruitment_informal', [
+                'Task_ID'    => $taskId,
+                'created_at' => $now,
             ]);
         }
 
         // recruitment_awards (4 default)
         for ($i = 0; $i < 4; $i++) {
-            DB::table('recruitment_awards')->insert([
-                'Task_ID'   => $taskId,
-                'created_at' => now(),
+            $this->safeInsert('recruitment_awards', [
+                'Task_ID'    => $taskId,
+                'created_at' => $now,
             ]);
         }
 
         // recruitment_other_skill (4 default)
         for ($i = 0; $i < 4; $i++) {
-            DB::table('recruitment_other_skill')->insert([
-                'Task_ID'   => $taskId,
-                'created_at' => now(),
+            $this->safeInsert('recruitment_other_skill', [
+                'Task_ID'    => $taskId,
+                'created_at' => $now,
             ]);
         }
 
         // recruitment_contact_point (4 default)
         for ($i = 0; $i < 4; $i++) {
-            DB::table('recruitment_contact_point')->insert([
-                'Task_ID'   => $taskId,
-                'created_at' => now(),
+            $this->safeInsert('recruitment_contact_point', [
+                'Task_ID'    => $taskId,
+                'created_at' => $now,
             ]);
         }
 
         // recruitment_family (10 default)
         for ($i = 0; $i < 10; $i++) {
-            DB::table('recruitment_family')->insert([
-                'Task_ID'   => $taskId,
-                'created_at' => now(),
+            $this->safeInsert('recruitment_family', [
+                'Task_ID'    => $taskId,
+                'created_at' => $now,
             ]);
         }
 
         // recruitment_family_big (10 default)
         for ($i = 0; $i < 10; $i++) {
-            DB::table('recruitment_family_big')->insert([
-                'Task_ID'   => $taskId,
-                'created_at' => now(),
+            $this->safeInsert('recruitment_family_big', [
+                'Task_ID'    => $taskId,
+                'created_at' => $now,
             ]);
         }
     }

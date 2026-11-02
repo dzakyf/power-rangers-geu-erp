@@ -7,9 +7,9 @@ use Illuminate\Console\Command;
 
 class SyncApprovalOrganizationChart extends Command
 {
-    protected $signature = 'approval:sync-organization-chart {--assignments : Also create assignments from NIK on bagan nodes}';
+    protected $signature = 'approval:sync-organization-chart {--assignments : Also create assignments from employment (NIK -> users.Emp_ID)}';
 
-    protected $description = 'Link organization_structure to master_position and sync bagan hierarchy into approval fallback';
+    protected $description = 'Link organization_structure to master_position, sync bagan hierarchy, and optionally seed assignments from employment';
 
     public function handle(OrganizationChartSyncService $sync)
     {
@@ -24,10 +24,11 @@ class SyncApprovalOrganizationChart extends Command
         if ($this->option('assignments')) {
             $assignment = $sync->syncAssignments();
             $this->info(sprintf(
-                '%s assignment created, %s skipped (no user), %s skipped (already active).',
+                '%s assignment created, %s skipped (no user), %s skipped (already active), %s skipped (no position).',
                 $assignment['created'],
                 $assignment['skipped_no_user'],
-                $assignment['skipped_existing']
+                $assignment['skipped_existing'],
+                isset($assignment['skipped_no_position']) ? $assignment['skipped_no_position'] : 0
             ));
         }
 

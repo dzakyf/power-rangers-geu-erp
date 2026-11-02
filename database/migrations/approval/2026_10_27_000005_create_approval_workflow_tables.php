@@ -41,6 +41,27 @@ class CreateApprovalWorkflowTables extends Migration
                 $table->index(['Request_ID', 'Status'], 'approval_task_request_status_index');
                 $table->index(['Claimed_By', 'Status'], 'approval_task_claim_index');
             });
+        } else {
+            Schema::table('approval_request_task', function (Blueprint $table) {
+                if (!Schema::hasColumn('approval_request_task', 'Acted_By')) {
+                    $table->unsignedBigInteger('Acted_By')->nullable()->index();
+                }
+                if (!Schema::hasColumn('approval_request_task', 'Acted_At')) {
+                    $table->timestamp('Acted_At')->nullable();
+                }
+                if (!Schema::hasColumn('approval_request_task', 'Action')) {
+                    $table->string('Action', 20)->nullable();
+                }
+                if (!Schema::hasColumn('approval_request_task', 'Released_By')) {
+                    $table->unsignedBigInteger('Released_By')->nullable();
+                }
+                if (!Schema::hasColumn('approval_request_task', 'Released_At')) {
+                    $table->timestamp('Released_At')->nullable();
+                }
+                if (!Schema::hasColumn('approval_request_task', 'Release_Reason')) {
+                    $table->text('Release_Reason')->nullable();
+                }
+            });
         }
 
         if (!Schema::hasTable('approval_task_candidate')) {
@@ -57,6 +78,12 @@ class CreateApprovalWorkflowTables extends Migration
 
                 $table->unique(['Task_ID', 'User_Id', 'Candidate_Type'], 'approval_candidate_unique');
                 $table->index(['User_Id', 'Status'], 'approval_candidate_user_status_index');
+            });
+        } else {
+            Schema::table('approval_task_candidate', function (Blueprint $table) {
+                if (!Schema::hasColumn('approval_task_candidate', 'Notified_At')) {
+                    $table->timestamp('Notified_At')->nullable();
+                }
             });
         }
 
@@ -79,6 +106,15 @@ class CreateApprovalWorkflowTables extends Migration
 
                 $table->index(['Delegator_Id', 'Status'], 'approval_delegation_delegator_index');
                 $table->index(['Delegate_Id', 'Status'], 'approval_delegation_delegate_index');
+            });
+        } else {
+            Schema::table('approval_delegation', function (Blueprint $table) {
+                if (!Schema::hasColumn('approval_delegation', 'Position_ID')) {
+                    $table->unsignedBigInteger('Position_ID')->nullable()->index();
+                }
+                if (!Schema::hasColumn('approval_delegation', 'Updated_At')) {
+                    $table->timestamp('Updated_At')->nullable();
+                }
             });
         }
 
@@ -106,6 +142,15 @@ class CreateApprovalWorkflowTables extends Migration
                 $table->timestamp('Notified_At')->useCurrent();
                 $table->timestamp('Acknowledged_At')->nullable();
                 $table->json('Metadata')->nullable();
+            });
+        } else {
+            Schema::table('approval_held_notification', function (Blueprint $table) {
+                if (!Schema::hasColumn('approval_held_notification', 'Acknowledged_At')) {
+                    $table->timestamp('Acknowledged_At')->nullable();
+                }
+                if (!Schema::hasColumn('approval_held_notification', 'Metadata')) {
+                    $table->json('Metadata')->nullable();
+                }
             });
         }
     }

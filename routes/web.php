@@ -49,6 +49,8 @@ use App\Http\Controllers\HCGA\RecruitmentController as HCGARecruitmentController
 use App\Http\Controllers\HCGA\RecruitmentStageController as HCGARecruitmentStageController;
 use App\Http\Controllers\HCGA\RecruitmentNewSubmitController as HCGARecruitmentNewSubmitController;
 use App\Http\Controllers\HCGA\RecruitmentManagementController as HCGARecruitmentManagementController;
+use App\Http\Controllers\HCGA\RecruitmentCandidateBatchController as HCGARecruitmentCandidateBatchController;
+use App\Http\Controllers\HCGA\MasterKodeposController as HCGAMasterKodeposController;
 use App\Http\Controllers\HCGA\OnboardingController as HrgaOnboardingController;
 use App\Http\Controllers\HCGA\ProcurementController as HCGAProcurementController;
 use App\Http\Controllers\HCGA\ProcurementApprovalController as HCGAProcurementApprovalController;
@@ -70,6 +72,14 @@ use App\Http\Controllers\HCGA\VehicleMaintenanceApprovalController as HCGAVehicl
 use App\Http\Controllers\HCGA\PermitLicenseController as HCGAPermitLicenseController;
 use App\Http\Controllers\HCGA\EmailSettingsController as HCGAEmailSettingsController;
 
+use App\Http\Controllers\HCGA\GA\TicketController as HCGAGaTicketController;
+use App\Http\Controllers\HCGA\GA\WorkOrderController as HCGAGaWorkOrderController;
+use App\Http\Controllers\HCGA\GA\TicketMasterController as HCGAGaTicketMasterController;
+use App\Http\Controllers\HCGA\GA\QrPointController as HCGAGaQrPointController;
+use App\Http\Controllers\HCGA\GA\InventoryController as HCGAGaInventoryController;
+use App\Http\Controllers\HCGA\GA\RoomBookingController as HCGAGaRoomBookingController;
+use App\Http\Controllers\HCGA\GA\SecurityController as HCGAGaSecurityController;
+use App\Http\Controllers\HCGA\GA\CleaningController as HCGAGaCleaningController;
 use App\Http\Controllers\HCGA\AssetMovingController as HCGAAssetMovingController;
 use App\Http\Controllers\HCGA\AssetMovingApprovalController as HCGAAssetMovingApprovalController;
 use App\Http\Controllers\HCGA\AssetIncomingController as HCGAAssetIncomingController;
@@ -149,6 +159,12 @@ Route::get('open-recruitment-employee', function () {
     ]);
 });
 Route::post('open-recruitment-submit', [HCGARecruitmentNewSubmitController::class, 'storePublic'])->middleware('throttle:10,1');
+Route::get('api/master-kodepos/search', [HCGAMasterKodeposController::class, 'search']);
+Route::get('api/master-kodepos/provinces', [HCGAMasterKodeposController::class, 'provinces']);
+Route::get('api/master-kodepos/cities', [HCGAMasterKodeposController::class, 'cities']);
+Route::get('api/master-kodepos/districts', [HCGAMasterKodeposController::class, 'districts']);
+Route::get('api/master-kodepos/subdistricts', [HCGAMasterKodeposController::class, 'subDistricts']);
+Route::get('api/master-kodepos/by-zipcode', [HCGAMasterKodeposController::class, 'byZipcode']);
 Route::get('partner-registration', function () {
     // Validate the blast token up-front so leads with an expired/used link
     // see a clear notice instead of a form they cannot submit. The linked
@@ -2768,9 +2784,16 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/recruitment-data', function () {
         return view('humanresources.recruitment.recruitment-data');
     });
+    Route::post('/recruitment-data-columns-save', [HCGARecruitmentCandidateBatchController::class, 'saveColumns']);
     Route::get('/xml-recruitment-data', function () {
         return view('humanresources.recruitment.xml.recruitment-data');
     });
+
+    // Batch Action: Create Candidate User Accounts
+    Route::post('/recruitment-data-batch-create-user', [HCGARecruitmentCandidateBatchController::class, 'batchCreateUser']);
+
+    // Batch Action: Update Position / Link Requisition PTK (Approved)
+    Route::post('/recruitment-data-batch-update-position', [HCGARecruitmentCandidateBatchController::class, 'batchUpdatePosition']);
     Route::get('/recruitment-pending', function () {
         return view('humanresources.recruitment.recruitment-pending');
     });
@@ -5589,6 +5612,8 @@ Route::group(['middleware' => 'log.access'], function () {
         ->name('hrd-recruitment-management');
     Route::get("xml-$hcPref-recruitment-management", [HCGARecruitmentManagementController::class, 'indexXml'])
         ->name('xml-hrd-recruitment-management');
+    Route::post("$hcPref-recruitment-management-columns-save", [HCGARecruitmentManagementController::class, 'saveColumns'])
+        ->name('hrd-recruitment-management-columns-save');
     Route::get("xml-$hcPref-recruitment-pivot", [HCGARecruitmentManagementController::class, 'pivotXml'])
         ->name('xml-hrd-recruitment-pivot');
 
@@ -5942,6 +5967,121 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$vehOpsPref-export-fuel", [HCGAVehicleOperationsController::class, 'exportFuel']);
     Route::get("/xml-vehicle-logbook", [HCGAVehicleOperationsController::class, 'logbookData']);
     Route::get("/xml-vehicle-fuel", [HCGAVehicleOperationsController::class, 'fuelData']);
+
+    // -- General Affairs: Ticketing & Work Orders --
+    $gaPref = "$hcPref-ga";
+    Route::get("$gaPref-ticket-index", [HCGAGaTicketController::class, 'index']);
+    Route::get("$gaPref-ticket-data", [HCGAGaTicketController::class, 'data']);
+    Route::get("$gaPref-ticket-create", [HCGAGaTicketController::class, 'create']);
+    Route::post("$gaPref-ticket-submit", [HCGAGaTicketController::class, 'store']);
+    Route::get("$gaPref-ticket-detail", [HCGAGaTicketController::class, 'detail']);
+    Route::post("$gaPref-ticket-triage", [HCGAGaTicketController::class, 'triage']);
+    Route::post("$gaPref-ticket-assign", [HCGAGaTicketController::class, 'assign']);
+    Route::post("$gaPref-ticket-status", [HCGAGaTicketController::class, 'transition']);
+    Route::post("$gaPref-ticket-comment", [HCGAGaTicketController::class, 'comment']);
+    Route::get("$gaPref-ticket-options", [HCGAGaTicketController::class, 'categoryOptionsJson']);
+    Route::get("$gaPref-my-assignment-index", [HCGAGaTicketController::class, 'myAssignments']);
+    Route::get("$gaPref-my-assignment-data", [HCGAGaTicketController::class, 'myAssignmentData']);
+    Route::get("$gaPref-ticket-qr", [HCGAGaTicketController::class, 'qr']);
+    Route::post("$gaPref-ticket-sla-scan", [HCGAGaTicketController::class, 'slaScan']);
+
+    Route::get("$gaPref-work-order-index", [HCGAGaWorkOrderController::class, 'index']);
+    Route::get("$gaPref-work-order-data", [HCGAGaWorkOrderController::class, 'data']);
+    Route::get("$gaPref-work-order-create", [HCGAGaWorkOrderController::class, 'create']);
+    Route::post("$gaPref-work-order-submit", [HCGAGaWorkOrderController::class, 'store']);
+    Route::get("$gaPref-work-order-detail", [HCGAGaWorkOrderController::class, 'detail']);
+    Route::post("$gaPref-work-order-status", [HCGAGaWorkOrderController::class, 'transition']);
+    Route::post("$gaPref-work-order-approval-submit", [HCGAGaWorkOrderController::class, 'submitApproval']);
+    Route::post("$gaPref-work-order-approval-sync", [HCGAGaWorkOrderController::class, 'syncApproval']);
+    Route::post("$gaPref-work-order-cost-add", [HCGAGaWorkOrderController::class, 'addCost']);
+
+    Route::get("$gaPref-ticket-master-index", [HCGAGaTicketMasterController::class, 'index']);
+    Route::get("$gaPref-ticket-master-category-data", [HCGAGaTicketMasterController::class, 'categoryData']);
+    Route::post("$gaPref-ticket-master-category-save", [HCGAGaTicketMasterController::class, 'saveCategory']);
+    Route::post("$gaPref-ticket-master-category-delete", [HCGAGaTicketMasterController::class, 'deleteCategory']);
+    Route::get("$gaPref-ticket-master-sla-data", [HCGAGaTicketMasterController::class, 'slaData']);
+    Route::post("$gaPref-ticket-master-sla-save", [HCGAGaTicketMasterController::class, 'saveSla']);
+    Route::get("$gaPref-ticket-master-team-data", [HCGAGaTicketMasterController::class, 'teamData']);
+    Route::post("$gaPref-ticket-master-team-save", [HCGAGaTicketMasterController::class, 'saveTeam']);
+    Route::get("$gaPref-ticket-master-member-data", [HCGAGaTicketMasterController::class, 'memberData']);
+    Route::post("$gaPref-ticket-master-member-save", [HCGAGaTicketMasterController::class, 'saveMember']);
+    Route::post("$gaPref-ticket-master-member-delete", [HCGAGaTicketMasterController::class, 'deleteMember']);
+    Route::get("$gaPref-ticket-master-routing-data", [HCGAGaTicketMasterController::class, 'routingData']);
+    Route::post("$gaPref-ticket-master-routing-save", [HCGAGaTicketMasterController::class, 'saveRouting']);
+    Route::get("$gaPref-ticket-master-options", [HCGAGaTicketMasterController::class, 'options']);
+
+    Route::get("$gaPref-qr-point-index", [HCGAGaQrPointController::class, 'index']);
+    Route::get("$gaPref-qr-point-data", [HCGAGaQrPointController::class, 'data']);
+    Route::post("$gaPref-qr-point-save", [HCGAGaQrPointController::class, 'save']);
+    Route::post("$gaPref-qr-point-delete", [HCGAGaQrPointController::class, 'delete']);
+    Route::get("$gaPref-qr-point-image", [HCGAGaQrPointController::class, 'image']);
+    Route::get("$gaPref-qr-point-print", [HCGAGaQrPointController::class, 'printSheet']);
+
+    // -- General Affairs: Inventory Phase 1 --
+    Route::get("$gaPref-inventory-low-stock", [HCGAGaInventoryController::class, 'lowStockIndex']);
+    Route::get("$gaPref-inventory-low-stock-data", [HCGAGaInventoryController::class, 'lowStockData']);
+    Route::get("$gaPref-inventory-minimum-stock", [HCGAGaInventoryController::class, 'minimumStockIndex']);
+    Route::get("$gaPref-inventory-minimum-stock-data", [HCGAGaInventoryController::class, 'minimumStockData']);
+    Route::post("$gaPref-inventory-minimum-stock-save", [HCGAGaInventoryController::class, 'saveMinimumStock']);
+    Route::get("$gaPref-inventory-ledger", [HCGAGaInventoryController::class, 'ledgerIndex']);
+    Route::get("$gaPref-inventory-ledger-data", [HCGAGaInventoryController::class, 'ledgerData']);
+    Route::post("$gaPref-inventory-opening-backfill", [HCGAGaInventoryController::class, 'backfillOpening']);
+    Route::get("$gaPref-inventory-cutoff", [HCGAGaInventoryController::class, 'cutoffIndex']);
+    Route::get("$gaPref-inventory-cutoff-data", [HCGAGaInventoryController::class, 'cutoffData']);
+    Route::get("$gaPref-inventory-ytd", [HCGAGaInventoryController::class, 'ytdIndex']);
+    Route::get("$gaPref-inventory-ytd-data", [HCGAGaInventoryController::class, 'ytdData']);
+    Route::post("$gaPref-inventory-request-reversal", [HCGAGaInventoryController::class, 'reverseStockRequest']);
+    Route::post("$gaPref-inventory-request-handover", [HCGAGaInventoryController::class, 'confirmHandover']);
+    Route::get("$gaPref-inventory-transfer-stock", [HCGAGaInventoryController::class, 'transferStockIndex']);
+    Route::post("$gaPref-inventory-transfer-stock-save", [HCGAGaInventoryController::class, 'transferStockSave']);
+    Route::get("$gaPref-inventory-reusable", [HCGAGaInventoryController::class, 'reusableIndex']);
+    Route::get("$gaPref-inventory-reusable-unit-data", [HCGAGaInventoryController::class, 'reusableUnitData']);
+    Route::get("$gaPref-inventory-reusable-loan-data", [HCGAGaInventoryController::class, 'reusableLoanData']);
+    Route::post("$gaPref-inventory-reusable-unit-save", [HCGAGaInventoryController::class, 'reusableSaveUnit']);
+    Route::post("$gaPref-inventory-reusable-loan-save", [HCGAGaInventoryController::class, 'reusableSaveLoan']);
+    Route::post("$gaPref-inventory-reusable-return-save", [HCGAGaInventoryController::class, 'reusableSaveReturn']);
+    Route::get("$gaPref-inventory-adjustment", [HCGAGaInventoryController::class, 'adjustmentIndex']);
+    Route::get("$gaPref-inventory-adjustment-data", [HCGAGaInventoryController::class, 'adjustmentData']);
+    Route::post("$gaPref-inventory-adjustment-save", [HCGAGaInventoryController::class, 'saveAdjustment']);
+    Route::post("$gaPref-inventory-generate-pr", [HCGAGaInventoryController::class, 'generatePurchaseRequestFromLowStock']);
+
+    // -- General Affairs: Room Booking --
+    Route::get("$gaPref-room-booking-index", [HCGAGaRoomBookingController::class, 'index']);
+    Route::get("$gaPref-room-data", [HCGAGaRoomBookingController::class, 'roomData']);
+    Route::get("$gaPref-room-booking-data", [HCGAGaRoomBookingController::class, 'bookingData']);
+    Route::post("$gaPref-room-save", [HCGAGaRoomBookingController::class, 'saveRoom']);
+    Route::post("$gaPref-room-booking-save", [HCGAGaRoomBookingController::class, 'saveBooking']);
+    Route::post("$gaPref-room-booking-cancel", [HCGAGaRoomBookingController::class, 'cancelBooking']);
+
+    // -- General Affairs: Security & Visitor Management --
+    Route::get("$gaPref-security-index", [HCGAGaSecurityController::class, 'index']);
+    Route::get("$gaPref-security-visitor-data", [HCGAGaSecurityController::class, 'visitorData']);
+    Route::post("$gaPref-security-visitor-entry", [HCGAGaSecurityController::class, 'saveVisitorEntry']);
+    Route::post("$gaPref-security-visitor-exit", [HCGAGaSecurityController::class, 'saveVisitorExit']);
+    Route::get("$gaPref-security-incident-data", [HCGAGaSecurityController::class, 'incidentData']);
+    Route::post("$gaPref-security-incident-save", [HCGAGaSecurityController::class, 'saveIncident']);
+    Route::post("$gaPref-security-incident-resolve", [HCGAGaSecurityController::class, 'resolveIncident']);
+    Route::post("$gaPref-security-incident-ticket", [HCGAGaSecurityController::class, 'createFollowUpTicket']);
+
+    // -- General Affairs: Cleaning Management --
+    Route::get("$gaPref-cleaning-index", [HCGAGaCleaningController::class, 'index']);
+    Route::get("$gaPref-cleaning-area-data", [HCGAGaCleaningController::class, 'areaData']);
+    Route::post("$gaPref-cleaning-area-save", [HCGAGaCleaningController::class, 'saveArea']);
+    Route::get("$gaPref-cleaning-schedule-data", [HCGAGaCleaningController::class, 'scheduleData']);
+    Route::post("$gaPref-cleaning-schedule-save", [HCGAGaCleaningController::class, 'saveSchedule']);
+    Route::post("$gaPref-cleaning-generate-tasks", [HCGAGaCleaningController::class, 'generateTasks']);
+    Route::get("$gaPref-cleaning-task-data", [HCGAGaCleaningController::class, 'taskData']);
+    Route::get("$gaPref-cleaning-task-checklist-template", [HCGAGaCleaningController::class, 'taskChecklistTemplate']);
+    Route::post("$gaPref-cleaning-task-start", [HCGAGaCleaningController::class, 'startTask']);
+    Route::post("$gaPref-cleaning-task-complete", [HCGAGaCleaningController::class, 'completeTask']);
+    Route::get("$gaPref-cleaning-inspection-data", [HCGAGaCleaningController::class, 'inspectionData']);
+    Route::get("$gaPref-cleaning-inspection-detail", [HCGAGaCleaningController::class, 'inspectionDetail']);
+    Route::post("$gaPref-cleaning-inspection-save", [HCGAGaCleaningController::class, 'saveInspection']);
+    Route::post("$gaPref-cleaning-reinspection-save", [HCGAGaCleaningController::class, 'saveReinspection']);
+    Route::get("$gaPref-cleaning-area-qr-image", [HCGAGaCleaningController::class, 'areaQrImage']);
+    Route::get("$gaPref-cleaning-area-print-qr", [HCGAGaCleaningController::class, 'printAreaQr']);
+
+
 
     // -- General email settings (SMTP, sender, recipients, test, log) --
     $creEmailSettingsPref = "credential-email-settings";

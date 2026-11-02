@@ -85,7 +85,14 @@ function updatekan($rowId,$param){
 		
 		
 		DB::insert(DB::raw("INSERT INTO supplies(Supplies_Type,Location,Product_Code,Product_Description,Specification,
-		Barcode,SN,Qty,Unit,UnitPrice,PO_No,PR_No,GR_No,Status,Supplier,Remark,User_Trx) SELECT Purchase_Category,'$LSP','$b','$PDesc','$Spec','$c','$d','$f','$units','$ix',PO_No,PR_No,'$Task_ID','GOOD','','$pesanmama','$Saya' FROM good_receive WHERE GR_No='$Task_ID'"));		
+		Barcode,SN,Qty,Unit,UnitPrice,PO_No,PR_No,GR_No,Status,Supplier,Remark,User_Trx) SELECT Purchase_Category,'$LSP','$b','$PDesc','$Spec','$c','$d','$f','$units','$ix',PO_No,PR_No,'$Task_ID','GOOD','','$pesanmama','$Saya' FROM good_receive WHERE GR_No='$Task_ID'"));
+
+		try {
+			$gaInventory = app(\App\Services\GA\GaInventoryService::class);
+			$gaInventory->recordReceiptFromGoodReceive($Task_ID, $b, $f, $ix, $LSP, '', Auth::user());
+		} catch (\Exception $e) {
+			\Illuminate\Support\Facades\Log::warning('GA Ledger auto-record receipt skipped/failed: ' . $e->getMessage());
+		}		
 		
 	return "update";
 	

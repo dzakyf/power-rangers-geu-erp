@@ -27,11 +27,11 @@
 
 <div class="card mt-3">
     <div class="card-body">
-        <input type="button" class="btn btn-info mt-2 mr-2" value="Refresh" onclick="ApprovalPolicyRefresh();" />
-        <input type="button" class="btn btn-success mt-2 mr-2" value="New Policy" onclick="ApprovalPolicyNew();" />
-        <input type="button" class="btn btn-primary mt-2 mr-2" value="Edit" onclick="ApprovalPolicyEdit();" />
-        <input type="button" class="btn btn-warning mt-2 mr-2" value="Toggle Active" onclick="ApprovalPolicyToggle();" />
-        <a class="btn btn-secondary mt-2 mr-2" href="hrd-approval-inbox">Back to Inbox</a>
+        <input type="button" class="btn btn-info mt-2 mr-2 me-2" value="Refresh" onclick="ApprovalPolicyRefresh();" />
+        <input type="button" class="btn btn-success mt-2 mr-2 me-2" value="New Policy" onclick="ApprovalPolicyNew();" />
+        <input type="button" class="btn btn-primary mt-2 mr-2 me-2" value="Edit" onclick="ApprovalPolicyEdit();" />
+        <input type="button" class="btn btn-warning mt-2 mr-2 me-2" value="Toggle Active" onclick="ApprovalPolicyToggle();" />
+        <a class="btn btn-secondary mt-2 mr-2 me-2" href="hrd-approval-inbox">Back to Inbox</a>
     </div>
 </div>
 

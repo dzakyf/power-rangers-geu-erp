@@ -18,17 +18,17 @@
 
 <div class="card mt-3">
     <div class="card-body">
-        <input type="button" class="btn btn-info mt-2 mr-2" value="Refresh" onclick="ApprovalPositionRefresh();" />
-        <input type="button" class="btn btn-success mt-2 mr-2" value="New Assignment" onclick="ApprovalPositionNew();" />
-        <input type="button" class="btn btn-primary mt-2 mr-2" value="Edit" onclick="ApprovalPositionEdit();" />
-        <input type="button" class="btn btn-warning mt-2 mr-2" value="Toggle Active" onclick="ApprovalPositionToggle();" />
+        <input type="button" class="btn btn-info mt-2 mr-2 me-2" value="Refresh" onclick="ApprovalPositionRefresh();" />
+        <input type="button" class="btn btn-success mt-2 mr-2 me-2" value="New Assignment" onclick="ApprovalPositionNew();" />
+        <input type="button" class="btn btn-primary mt-2 mr-2 me-2" value="Edit" onclick="ApprovalPositionEdit();" />
+        <input type="button" class="btn btn-warning mt-2 mr-2 me-2" value="Toggle Active" onclick="ApprovalPositionToggle();" />
         <form method="POST" action="{{ url('hrd-approval-position-sync') }}" class="d-inline" onsubmit="return confirm('Sinkronkan node bagan ke master position dan hierarki approval?');">
             @csrf
-            <button type="submit" class="btn btn-success mt-2 mr-2">Sync Bagan</button>
+            <button type="submit" class="btn btn-success mt-2 mr-2 me-2">Sync Bagan</button>
         </form>
-        <a class="btn btn-info mt-2 mr-2" href="hrd-organization-chart">Buka Bagan Organisasi</a>
-        <a class="btn btn-dark mt-2 mr-2" href="hrd-approval-policy">Policy Management</a>
-        <a class="btn btn-secondary mt-2 mr-2" href="hrd-approval-inbox">Back to Inbox</a>
+        <a class="btn btn-info mt-2 mr-2 me-2" href="hrd-organization-chart">Buka Bagan Organisasi</a>
+        <a class="btn btn-dark mt-2 mr-2 me-2" href="hrd-approval-policy">Policy Management</a>
+        <a class="btn btn-secondary mt-2 mr-2 me-2" href="hrd-approval-inbox">Back to Inbox</a>
     </div>
 </div>
 

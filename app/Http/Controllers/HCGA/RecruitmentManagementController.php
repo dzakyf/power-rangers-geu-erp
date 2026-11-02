@@ -22,41 +22,171 @@ class RecruitmentManagementController extends Controller
             $q->select('Task_ID')->from('requisition');
         })->get();
 
-        // Tahapan yang ditampilkan di dashboard pivot (urut sesuai alur yang benar)
-        $stages = [
-            'ACC'            => ['status' => 'CREATED', 'statusField' => 'Registration_Status',   'dateField' => 'Registration_Status_Date'],
-            'Seleksi_Adm'    => ['status' => 'ACCEPT',  'statusField' => 'Document_Status',      'dateField' => 'Document_Date'],
-            'Psikotes'       => ['status' => 'ACCEPT',  'statusField' => 'Psikotest_Status',     'dateField' => 'Psikotest_Date'],
-            'Interview_HR'   => ['status' => 'ACCEPT',  'statusField' => 'Interview_Status',     'dateField' => 'Interview_Date'],
-            'Interview_User' => ['status' => 'ACCEPT',  'statusField' => 'User_Interview_Status','dateField' => 'User_Interview_Date'],
-            'Tes_Teknik'     => ['status' => 'ACCEPT',  'statusField' => 'Technical_Test_Status','dateField' => 'Technical_Date'],
-            'MCU'            => ['status' => 'ACCEPT',  'statusField' => 'MCU_Status',           'dateField' => 'MCU_Schedule'],
-            'Offering'       => ['status' => 'ACCEPT',  'statusField' => 'Offering_Status',      'dateField' => null],
+        // Urutan tahapan recruitment funnel
+        $stageKeys = [
+            'Seleksi_Adm',
+            'Psikotes',
+            'Interview_HR',
+            'Interview_User',
+            'Tes_Teknik',
+            'MCU',
+            'Offering',
         ];
 
         $rows = collect();
 
         foreach ($query->groupBy('Requisition_ID') as $ptk => $group) {
-            foreach ($stages as $stageName => $cfg) {
-                $matching = $group->filter(function ($c) use ($cfg) {
-                    return $c->{$cfg['statusField']} === $cfg['status']
-                        && !is_null($c->{$cfg['dateField']});
-                });
+            // Hitung metrik funnel kumulatif per tanggal pendaftaran/tahap
+            foreach ($group as $c) {
+                $statusMap = $this->calculateCandidateFunnel($c);
+                $date = !empty($c->Created_Date) ? \Carbon\Carbon::parse($c->Created_Date)->format('d M Y') : date('d M Y');
 
-                foreach ($matching->groupBy(function ($c) use ($cfg) {
-                    return \Carbon\Carbon::parse($c->{$cfg['dateField']})->format('Y-m-d');
-                }) as $date => $items) {
-                    $rows->push([
-                        'no_ptk' => $ptk,
-                        'Stage'  => $stageName,
-                        'Date'   => \Carbon\Carbon::parse($date)->format('d M Y'),
-                        'Count'  => $items->count(),
-                    ]);
+                foreach ($stageKeys as $st) {
+                    if ($statusMap[$st]['entered']) {
+                        $rows->push([
+                            'no_ptk'   => $ptk,
+                            'Stage'    => $st,
+                            'Type'     => 'Total Masuk',
+                            'Date'     => $date,
+                            'Count'    => 1,
+                        ]);
+                    }
+                    if ($statusMap[$st]['passed']) {
+                        $rows->push([
+                            'no_ptk'   => $ptk,
+                            'Stage'    => $st,
+                            'Type'     => 'Lolos',
+                            'Date'     => $date,
+                            'Count'    => 1,
+                        ]);
+                    }
                 }
             }
         }
 
-        return view('humanresources.recruitment.recruitment-management', compact('rows'));
+        $allCols = recruitment_management_columns();
+        $defaultCols = recruitment_management_default_columns();
+        $activeCols = $defaultCols;
+        $username = Auth::user()->username ?? '';
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('user_grid_prefs') && $username !== '') {
+            $savedJson = DB::table('user_grid_prefs')
+                ->where('username', $username)
+                ->where('view', 'recruitment-management')
+                ->value('columns_json');
+            $savedCols = $savedJson ? json_decode($savedJson, true) : null;
+            if (is_array($savedCols) && count($savedCols)) {
+                $valid = array_values(array_intersect($savedCols, array_keys($allCols)));
+                if (count($valid)) {
+                    $activeCols = $valid;
+                }
+            }
+        }
+
+        $meta = [];
+        foreach ($allCols as $ck => $cm) {
+            $meta[$ck] = [
+                'label'  => $cm[0],
+                'width'  => $cm[1],
+                'align'  => $cm[2],
+                'filter' => $cm[3],
+                'sort'   => $cm[4],
+                'type'   => 'ro',
+            ];
+        }
+
+        return view('humanresources.recruitment.recruitment-management', compact('rows', 'allCols', 'defaultCols', 'activeCols', 'meta'));
+    }
+
+    /**
+     * Hitung status funnel kumulatif seorang kandidat:
+     * Menentukan tahap apa saja yang pernah dimasuki (entered) dan lolos (passed).
+     */
+    private function calculateCandidateFunnel($c): array
+    {
+        // Kondisi lolos tiap tahap
+        $passAdm    = ($c->Document_Status === 'ACCEPT');
+        $passPsi    = ($c->Psikotest_Status === 'ACCEPT');
+        $passHr     = ($c->Interview_Status === 'ACCEPT');
+        $passUser   = ($c->User_Interview_Status === 'ACCEPT');
+        $passTech   = ($c->Technical_Test_Status === 'ACCEPT');
+        $passMcu    = ($c->MCU_Status === 'ACCEPT');
+        $passOffer  = ($c->Offering_Status === 'ACCEPT' || $c->Status === 'HIRED' || $c->Status === 'CLOSED');
+
+        // Indikasi apakah kandidat sudah pernah disentuh/masuk ke tahap berikutnya
+        $touchPsi   = $passAdm  || !empty($c->Psikotest_Status) || !empty($c->Psikotest_Date);
+        $touchHr    = ($passAdm && $passPsi) || !empty($c->Interview_Status) || !empty($c->Interview_Date);
+        $touchUser  = ($passAdm && $passPsi && $passHr) || !empty($c->User_Interview_Status) || !empty($c->User_Interview_Date);
+        $touchTech  = ($passAdm && $passPsi && $passHr && $passUser) || !empty($c->Technical_Test_Status) || !empty($c->Technical_Date);
+        $touchMcu   = ($passAdm && $passPsi && $passHr && $passUser && $passTech) || !empty($c->MCU_Status) || !empty($c->MCU_Schedule);
+        $touchOffer = ($passAdm && $passPsi && $passHr && $passUser && $passTech && $passMcu) || !empty($c->Offering_Status) || $passOffer;
+
+        return [
+            'Seleksi_Adm' => [
+                'entered' => true, // Semua yang mendaftar masuk seleksi berkas
+                'passed'  => $passAdm || $touchPsi,
+            ],
+            'Psikotes' => [
+                'entered' => $touchPsi,
+                'passed'  => $passPsi || $touchHr,
+            ],
+            'Interview_HR' => [
+                'entered' => $touchHr,
+                'passed'  => $passHr || $touchUser,
+            ],
+            'Interview_User' => [
+                'entered' => $touchUser,
+                'passed'  => $passUser || $touchTech,
+            ],
+            'Tes_Teknik' => [
+                'entered' => $touchTech,
+                'passed'  => $passTech || $touchMcu,
+            ],
+            'MCU' => [
+                'entered' => $touchMcu,
+                'passed'  => $passMcu || $touchOffer,
+            ],
+            'Offering' => [
+                'entered' => $touchOffer,
+                'passed'  => $passOffer,
+            ],
+        ];
+    }
+
+    /**
+     * Simpan preferensi kolom yang dipilih user.
+     * POST /hrd-recruitment-management-columns-save
+     */
+    public function saveColumns(Request $request)
+    {
+        $out = ['status' => 'error', 'message' => 'Terjadi kesalahan.'];
+        try {
+            $username = Auth::user()->username ?? '';
+            if ($username === '') {
+                throw new \Exception('Sesi user tidak valid.');
+            }
+
+            $allCols = recruitment_management_columns();
+            $colsParam = (string) $request->input('cols', '');
+            $keys = array_values(array_intersect(explode(',', $colsParam), array_keys($allCols)));
+
+            if (!count($keys)) {
+                throw new \Exception('Pilih minimal 1 kolom.');
+            }
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('user_grid_prefs')) {
+                DB::table('user_grid_prefs')->updateOrInsert(
+                    ['username' => $username, 'view' => 'recruitment-management'],
+                    ['columns_json' => json_encode($keys), 'Updated_Date' => date('Y-m-d H:i:s')]
+                );
+            }
+
+            $out = ['status' => 'ok'];
+        } catch (\Exception $e) {
+            $out['message'] = $e->getMessage();
+        }
+
+        return response()->json($out);
     }
 
     /**
@@ -113,13 +243,10 @@ class RecruitmentManagementController extends Controller
 
         // Color mapping untuk visual indicator di grid
         $statusColors = [
-            // Status tahapan (field-by-field)
-            'ACCEPT'  => ['bg' => '#d4edda', 'text' => '#155724', 'label' => 'Selesai'],   // Hijau
-            'PENDING' => ['bg' => '#e2e3e5', 'text' => '#383d41', 'label' => 'Pending'],   // Abu-abu
-            'REJECT'  => ['bg' => '#f8d7da', 'text' => '#721c24', 'label' => 'Ditolak'],   // Merah
-            'SEEK'    => ['bg' => '#fff3cd', 'text' => '#856404', 'label' => 'Process'],    // Kuning
-            
-            // Status utama
+            'ACCEPT'  => ['bg' => '#d4edda', 'text' => '#155724', 'label' => 'Selesai'],
+            'PENDING' => ['bg' => '#e2e3e5', 'text' => '#383d41', 'label' => 'Pending'],
+            'REJECT'  => ['bg' => '#f8d7da', 'text' => '#721c24', 'label' => 'Ditolak'],
+            'SEEK'    => ['bg' => '#fff3cd', 'text' => '#856404', 'label' => 'Process'],
             'CREATED'          => ['bg' => '#e2e3e5', 'text' => '#383d41', 'label' => 'Baru'],
             'UPLOADED'        => ['bg' => '#fff3cd', 'text' => '#856404', 'label' => 'Uploaded'],
             'PSIKOTEST'       => ['bg' => '#cce5ff', 'text' => '#004085', 'label' => 'Psikotest'],
@@ -129,14 +256,23 @@ class RecruitmentManagementController extends Controller
             'MCU'             => ['bg' => '#cce5ff', 'text' => '#004085', 'label' => 'MCU'],
             'OFFERING'        => ['bg' => '#d4edda', 'text' => '#155724', 'label' => 'Offering'],
             'HIRED'           => ['bg' => '#28a745', 'text' => '#ffffff', 'label' => 'Hired'],
-            'PENDING'         => ['bg' => '#e2e3e5', 'text' => '#383d41', 'label' => 'Pending'],
             'BUSINESS_REVIEW' => ['bg' => '#fff3cd', 'text' => '#856404', 'label' => 'Review'],
             'CLOSED'          => ['bg' => '#d4edda', 'text' => '#155724', 'label' => 'Closed'],
-            'REJECT'          => ['bg' => '#f8d7da', 'text' => '#721c24', 'label' => 'Ditolak'],
             'OFFER DECLINED'  => ['bg' => '#f8d7da', 'text' => '#721c24', 'label' => 'Declined'],
             'INVITATION DECLINED' => ['bg' => '#f8d7da', 'text' => '#721c24', 'label' => 'Inv. Declined'],
             'CANCELED'        => ['bg' => '#e2e3e5', 'text' => '#383d41', 'label' => 'Canceled'],
         ];
+
+        // Dapatkan kolom dinamis yang diminta
+        $allCols = recruitment_management_columns();
+        $defaultCols = recruitment_management_default_columns();
+        $activeCols = $defaultCols;
+        if ($request->filled('cols')) {
+            $parsed = array_values(array_intersect(explode(',', (string) $request->input('cols')), array_keys($allCols)));
+            if (count($parsed)) {
+                $activeCols = $parsed;
+            }
+        }
 
         $xml = new \SimpleXMLElement('<rows/>');
         $nomor = 1;
@@ -148,140 +284,83 @@ class RecruitmentManagementController extends Controller
                 $Requisition = $requisitions->get($pecahreq);
                 if (!$Requisition) continue;
 
-                // ---- Status untuk tiap tahap ----
-                // Status berdasarkan field-by-field di tabel recruitment
                 $docStatus   = $Fetch->Document_Status ?? 'PENDING';
                 $psyStatus   = $Fetch->Psikotest_Status ?? 'PENDING';
                 $hrStatus    = $Fetch->Interview_Status ?? 'PENDING';
                 $userStatus  = $Fetch->User_Interview_Status ?? 'PENDING';
-                $techStatus  = $Fetch->Technical_Test_Status ?? 'PENDING';
-                $mcuStatus   = $Fetch->MCU_Status ?? 'PENDING';
-                $offerStatus = $Fetch->Offering_Status ?? 'PENDING';
-
-                // Helper: dapatkan warna dan nilai untuk cell status
-                $getStatusCell = function($statusValue, $isDone, $colors) use ($statusColors) {
-                    $color = $statusColors[$statusValue] ?? $statusColors['PENDING'];
-                    $val   = $isDone ? '1' : '0';
-                    $style = "background-color: {$color['bg']}; color: {$color['text']};";
-                    return "<cell style=\"{$style}\">{$val}</cell>";
-                };
-
-                // Tentukan apakah stage selesai (ACCEPT) atau tidak
                 $isDocDone   = ($docStatus === 'ACCEPT');
                 $isPsyDone   = ($psyStatus === 'ACCEPT');
                 $isHrDone    = ($hrStatus === 'ACCEPT');
                 $isUserDone  = ($userStatus === 'ACCEPT');
-                $isTechDone  = ($techStatus === 'ACCEPT');
-                $isMcuDone   = ($mcuStatus === 'ACCEPT');
-                $isOfferDone = ($offerStatus === 'ACCEPT');
 
-                // Build row XML
+                $isRejected = in_array($Fetch->Status, ['REJECT', 'OFFER DECLINED', 'INVITATION DECLINED']);
+                $isHired = ($Fetch->Status === 'HIRED' || $Fetch->Status === 'CLOSED');
+
                 $row = $xml->addChild('row');
                 $row->addAttribute('id', $Fetch->ID . '|' . $nomor);
 
-                // Kolom 1: No
+                // Kolom nomor urut
                 $row->addChild('cell', (string) $nomor);
 
-                // Kolom 2: Recruitment Type
-                $row->addChild('cell', (string) ($Fetch->Recruitment_Type ?? ''));
+                // Seluruh data per kolom dinamis
+                $cellData = [
+                    'Recruitment_Type' => ['val' => (string) ($Fetch->Recruitment_Type ?? ''), 'style' => null],
+                    'Name' => ['val' => (string) ($Fetch->Name ?? ''), 'style' => null],
+                    'Gender' => ['val' => (string) ($Fetch->Gender ?? ''), 'style' => null],
+                    'PO_No' => ['val' => (string) ($Requisition->PO_No ?? ''), 'style' => null],
+                    'Requisition' => ['val' => (string) ($Requisition->Job_Position ?? ''), 'style' => null],
+                    'Last_Education' => ['val' => (string) ($Fetch->Last_Education ?? ''), 'style' => null],
+                    'Education_Major' => ['val' => (string) ($Fetch->Education_Major ?? ''), 'style' => null],
+                    'Interview_By' => ['val' => (string) ($Fetch->Interview_By ?? ''), 'style' => null],
+                    'Doc_Status' => [
+                        'val' => $isDocDone ? '1' : '0',
+                        'style' => 'background-color: ' . ($statusColors[$docStatus]['bg'] ?? '#e2e3e5') . '; color: ' . ($statusColors[$docStatus]['text'] ?? '#383d41') . ';'
+                    ],
+                    'Psikotest_Status' => [
+                        'val' => $isPsyDone ? '1' : '0',
+                        'style' => 'background-color: ' . ($statusColors[$psyStatus]['bg'] ?? '#e2e3e5') . '; color: ' . ($statusColors[$psyStatus]['text'] ?? '#383d41') . ';'
+                    ],
+                    'Decline_Invitation' => [
+                        'val' => ($Fetch->Status === 'INVITATION DECLINED') ? '1' : '0',
+                        'style' => 'background-color: ' . (($Fetch->Status === 'INVITATION DECLINED') ? $statusColors['INVITATION DECLINED']['bg'] : $statusColors['PENDING']['bg']) . '; color: ' . (($Fetch->Status === 'INVITATION DECLINED') ? $statusColors['INVITATION DECLINED']['text'] : $statusColors['PENDING']['text']) . ';'
+                    ],
+                    'Interview_HR' => [
+                        'val' => $isHrDone ? '1' : '0',
+                        'style' => 'background-color: ' . ($statusColors[$hrStatus]['bg'] ?? '#e2e3e5') . '; color: ' . ($statusColors[$hrStatus]['text'] ?? '#383d41') . ';'
+                    ],
+                    'Pending_Status' => [
+                        'val' => ($Fetch->Status === 'PENDING') ? '1' : '0',
+                        'style' => 'background-color: ' . (($Fetch->Status === 'PENDING') ? $statusColors['PENDING']['bg'] : $statusColors['CREATED']['bg']) . '; color: ' . (($Fetch->Status === 'PENDING') ? $statusColors['PENDING']['text'] : $statusColors['CREATED']['text']) . ';'
+                    ],
+                    'Reject_Status' => [
+                        'val' => $isRejected ? '1' : '0',
+                        'style' => 'background-color: ' . ($isRejected ? $statusColors['REJECT']['bg'] : $statusColors['PENDING']['bg']) . '; color: ' . ($isRejected ? $statusColors['REJECT']['text'] : $statusColors['PENDING']['text']) . ';'
+                    ],
+                    'Interview_User' => [
+                        'val' => $isUserDone ? '1' : '0',
+                        'style' => 'background-color: ' . ($statusColors[$userStatus]['bg'] ?? '#e2e3e5') . '; color: ' . ($statusColors[$userStatus]['text'] ?? '#383d41') . ';'
+                    ],
+                    'Candidate_Analysis' => [
+                        'val' => $isHrDone ? '1' : '0',
+                        'style' => 'background-color: ' . ($statusColors[$hrStatus]['bg'] ?? '#e2e3e5') . '; color: ' . ($statusColors[$hrStatus]['text'] ?? '#383d41') . ';'
+                    ],
+                    'Decline_Offered' => [
+                        'val' => ($Fetch->Status === 'OFFER DECLINED') ? '1' : '0',
+                        'style' => 'background-color: ' . (($Fetch->Status === 'OFFER DECLINED') ? $statusColors['OFFER DECLINED']['bg'] : $statusColors['PENDING']['bg']) . '; color: ' . (($Fetch->Status === 'OFFER DECLINED') ? $statusColors['OFFER DECLINED']['text'] : $statusColors['PENDING']['text']) . ';'
+                    ],
+                    'Hired_Status' => [
+                        'val' => $isHired ? '1' : '0',
+                        'style' => 'background-color: ' . ($isHired ? $statusColors['HIRED']['bg'] : $statusColors['PENDING']['bg']) . '; color: ' . ($isHired ? $statusColors['HIRED']['text'] : $statusColors['PENDING']['text']) . ';'
+                    ],
+                ];
 
-                // Kolom 3: Name
-                $row->addChild('cell', (string) ($Fetch->Name ?? ''));
-
-                // Kolom 4: Gender
-                $row->addChild('cell', (string) ($Fetch->Gender ?? ''));
-
-                // Kolom 5: PO No
-                $row->addChild('cell', (string) ($Requisition->PO_No ?? ''));
-
-                // Kolom 6: Position/Requisition
-                $row->addChild('cell', (string) ($Requisition->Job_Position ?? ''));
-
-                // Kolom 7: Last Education
-                $row->addChild('cell', (string) ($Fetch->Last_Education ?? ''));
-
-                // Kolom 8: Education Major
-                $row->addChild('cell', (string) ($Fetch->Education_Major ?? ''));
-
-                // Kolom 9: Interview By / Recruiter
-                $row->addChild('cell', (string) ($Fetch->Interview_By ?? ''));
-
-                // ---- KOLOM STATUS PER TAHAP (dengan warna berbeda) ----
-                
-                // Kolom 10: Seleksi Administrasi (Document Status)
-                // 1 = selesai (hijau), 0 = pending (abu), reject = merah
-                $docBg    = isset($statusColors[$docStatus]['bg']) ? $statusColors[$docStatus]['bg'] : '#e2e3e5';
-                $docText  = isset($statusColors[$docStatus]['text']) ? $statusColors[$docStatus]['text'] : '#383d41';
-                $cell10   = $row->addChild('cell', $isDocDone ? '1' : '0');
-                $cell10->addAttribute('style', "background-color: {$docBg}; color: {$docText};");
-
-                // Kolom 11: Psikotest
-                $psyBg    = isset($statusColors[$psyStatus]['bg']) ? $statusColors[$psyStatus]['bg'] : '#e2e3e5';
-                $psyText  = isset($statusColors[$psyStatus]['text']) ? $statusColors[$psyStatus]['text'] : '#383d41';
-                $cell11   = $row->addChild('cell', $isPsyDone ? '1' : '0');
-                $cell11->addAttribute('style', "background-color: {$psyBg}; color: {$psyText};");
-
-                // Kolom 12: Decline Invitation (special column)
-                // 1 jika candidate decline undangan
-                $declineColor = ($Fetch->Status === 'INVITATION DECLINED') 
-                    ? $statusColors['INVITATION DECLINED'] 
-                    : $statusColors['PENDING'];
-                $declineVal   = ($Fetch->Status === 'INVITATION DECLINED') ? '1' : '0';
-                $cell12 = $row->addChild('cell', $declineVal);
-                $cell12->addAttribute('style', "background-color: {$declineColor['bg']}; color: {$declineColor['text']};");
-
-                // Kolom 13: Interview HR
-                $hrBg     = isset($statusColors[$hrStatus]['bg']) ? $statusColors[$hrStatus]['bg'] : '#e2e3e5';
-                $hrText   = isset($statusColors[$hrStatus]['text']) ? $statusColors[$hrStatus]['text'] : '#383d41';
-                $cell13   = $row->addChild('cell', $isHrDone ? '1' : '0');
-                $cell13->addAttribute('style', "background-color: {$hrBg}; color: {$hrText};");
-
-                // Kolom 14: Pending (special - status PENDING)
-                $pendingColor = ($Fetch->Status === 'PENDING') 
-                    ? $statusColors['PENDING'] 
-                    : $statusColors['CREATED'];
-                $pendingVal   = ($Fetch->Status === 'PENDING') ? '1' : '0';
-                $cell14 = $row->addChild('cell', $pendingVal);
-                $cell14->addAttribute('style', "background-color: {$pendingColor['bg']}; color: {$pendingColor['text']};");
-
-                // Kolom 15: Rejected (special - candidate ditolak)
-                $isRejected = in_array($Fetch->Status, ['REJECT', 'OFFER DECLINED', 'INVITATION DECLINED']);
-                $rejectColor = $isRejected 
-                    ? $statusColors['REJECT'] 
-                    : ($Fetch->Status === 'CREATED' ? $statusColors['CREATED'] : $statusColors['PENDING']);
-                $rejectVal   = $isRejected ? '1' : '0';
-                $cell15 = $row->addChild('cell', $rejectVal);
-                $cell15->addAttribute('style', "background-color: {$rejectColor['bg']}; color: {$rejectColor['text']};");
-
-                // Kolom 16: Interview User
-                $userBg   = isset($statusColors[$userStatus]['bg']) ? $statusColors[$userStatus]['bg'] : '#e2e3e5';
-                $userText = isset($statusColors[$userStatus]['text']) ? $statusColors[$userStatus]['text'] : '#383d41';
-                $cell16   = $row->addChild('cell', $isUserDone ? '1' : '0');
-                $cell16->addAttribute('style', "background-color: {$userBg}; color: {$userText};");
-
-                // Kolom 17: Candidate Analysis (link ke halaman detail)
-                // Sama seperti Interview HR - kolom navigasi ke detail candidate
-                $analysisColor = isset($statusColors[$hrStatus]) ? $statusColors[$hrStatus] : $statusColors['PENDING'];
-                $analysisVal   = $isHrDone ? '1' : '0';
-                $cell17 = $row->addChild('cell', $analysisVal);
-                $cell17->addAttribute('style', "background-color: {$analysisColor['bg']}; color: {$analysisColor['text']};");
-
-                // Kolom 18: Decline Offered (menolak offering)
-                $declinedOffColor = ($Fetch->Status === 'OFFER DECLINED') 
-                    ? $statusColors['OFFER DECLINED'] 
-                    : $statusColors['PENDING'];
-                $declinedOffVal   = ($Fetch->Status === 'OFFER DECLINED') ? '1' : '0';
-                $cell18 = $row->addChild('cell', $declinedOffVal);
-                $cell18->addAttribute('style', "background-color: {$declinedOffColor['bg']}; color: {$declinedOffColor['text']};");
-
-                // Kolom 19: Hired (candidate sudah diterima)
-                $isHired = ($Fetch->Status === 'HIRED' || $Fetch->Status === 'CLOSED');
-                $hiredColor = $isHired 
-                    ? $statusColors['HIRED'] 
-                    : $statusColors['PENDING'];
-                $hiredVal   = $isHired ? '1' : '0';
-                $cell19 = $row->addChild('cell', $hiredVal);
-                $cell19->addAttribute('style', "background-color: {$hiredColor['bg']}; color: {$hiredColor['text']};");
+                foreach ($activeCols as $cKey) {
+                    $cDef = $cellData[$cKey] ?? ['val' => '', 'style' => null];
+                    $cNode = $row->addChild('cell', (string) $cDef['val']);
+                    if (!empty($cDef['style'])) {
+                        $cNode->addAttribute('style', $cDef['style']);
+                    }
+                }
 
                 $nomor++;
             }
@@ -293,10 +372,12 @@ class RecruitmentManagementController extends Controller
     /**
      * Generate XML untuk Pivot Grid (dashboard summary per PTK)
      * GET /xml-hrd-recruitment-pivot
+     * Mendukung mode: 'total' (default) atau 'breakdown' (2 baris per PTK)
      */
     public function pivotXml(Request $request)
     {
         $LSP = Auth::user()->Location ?? 'GEU-HO';
+        $mode = $request->input('mode', 'total'); // 'total' atau 'breakdown'
 
         $candidates = DB::table('recruitment')
             ->where('Location', $LSP)
@@ -318,25 +399,17 @@ class RecruitmentManagementController extends Controller
             ->get()
             ->keyBy('Task_ID');
 
-        $approvals = DB::table('requisition_approval')
-            ->whereIn('Task_ID', $reqIds)
-            ->where('Approved_Status', 1)
-            ->orderBy('Level', 'DESC')
-            ->get()
-            ->groupBy('Task_ID');
-
-        // Tahapan untuk pivot (urut sesuai alur yang benar)
-        $stages = [
-            'Seleksi Administrasi' => ['status' => 'Document_Status', 'value' => 'ACCEPT', 'date' => 'Document_Date'],
-            'Psikotes'             => ['status' => 'Psikotest_Status', 'value' => 'ACCEPT', 'date' => 'Psikotest_Date'],
-            'Interview HR'         => ['status' => 'Interview_Status', 'value' => 'ACCEPT', 'date' => 'Interview_Date'],
-            'Interview User'       => ['status' => 'User_Interview_Status', 'value' => 'ACCEPT', 'date' => 'User_Interview_Date'],
-            'Tes Teknik'           => ['status' => 'Technical_Test_Status', 'value' => 'ACCEPT', 'date' => 'Technical_Date'],
-            'MCU'                  => ['status' => 'MCU_Status', 'value' => 'ACCEPT', 'date' => 'MCU_Schedule'],
-            'Offering Letter'      => ['status' => 'Offering_Status', 'value' => 'ACCEPT'],
+        $stageMap = [
+            'Seleksi Administrasi' => 'Seleksi_Adm',
+            'Psikotes'             => 'Psikotes',
+            'Interview HR'         => 'Interview_HR',
+            'Interview User'       => 'Interview_User',
+            'Tes Teknik'           => 'Tes_Teknik',
+            'MCU'                  => 'MCU',
+            'Offering Letter'      => 'Offering',
         ];
 
-        $pivotRows = collect();
+        $xml = new \SimpleXMLElement('<rows/>');
 
         foreach ($candidates->groupBy('Requisition_ID') as $ptk => $group) {
             $requisition = $requisitions->get($ptk);
@@ -344,42 +417,50 @@ class RecruitmentManagementController extends Controller
                 ->where('Task_ID', $ptk)
                 ->where('Approved_Status', 1)
                 ->orderBy('Level', 'DESC')
-                ->value('Approved_By');
+                ->value('Approved_By') ?? '';
+            $desc = $requisition ? $requisition->Description : '';
 
-            $row = [
-                'PTK_Number'          => $ptk,
-                'Current_Approver_By' => $approvedBy ?? '',
-                'Keterangan'          => $requisition ? $requisition->Description : '',
-            ];
+            // Hitung status kumulatif tiap candidate
+            $funnels = $group->map(function ($c) {
+                return $this->calculateCandidateFunnel($c);
+            });
 
-            foreach ($stages as $stageName => $cfg) {
-                $count = $group->filter(function ($c) use ($cfg) {
-                    $statusMatch = $c->{$cfg['status']} === $cfg['value'];
-                    $dateMatch = !isset($cfg['date']) || !is_null($c->{$cfg['date']});
-                    return $statusMatch && $dateMatch;
-                })->count();
+            if ($mode === 'breakdown') {
+                // Baris 1: Total Masuk (Entered)
+                $nodeEntered = $xml->addChild('row');
+                $nodeEntered->addAttribute('id', $ptk . '|ENTERED');
+                $nodeEntered->addChild('cell', (string) $ptk);
+                $nodeEntered->addChild('cell', 'Total Masuk');
+                $nodeEntered->addChild('cell', (string) $approvedBy);
+                foreach ($stageMap as $label => $key) {
+                    $cnt = $funnels->where($key . '.entered', true)->count();
+                    $nodeEntered->addChild('cell', (string) $cnt);
+                }
+                $nodeEntered->addChild('cell', (string) $desc);
 
-                $row[$stageName] = $count;
+                // Baris 2: Lolos / Approved (Passed)
+                $nodePassed = $xml->addChild('row');
+                $nodePassed->addAttribute('id', $ptk . '|PASSED');
+                $nodePassed->addChild('cell', (string) $ptk);
+                $nodePassed->addChild('cell', 'Lolos / Approved');
+                $nodePassed->addChild('cell', (string) $approvedBy);
+                foreach ($stageMap as $label => $key) {
+                    $cnt = $funnels->where($key . '.passed', true)->count();
+                    $nodePassed->addChild('cell', (string) $cnt);
+                }
+                $nodePassed->addChild('cell', (string) $desc);
+            } else {
+                // Mode Default: Total Masuk kumulatif per tahap
+                $node = $xml->addChild('row');
+                $node->addAttribute('id', (string) $ptk);
+                $node->addChild('cell', (string) $ptk);
+                $node->addChild('cell', (string) $approvedBy);
+                foreach ($stageMap as $label => $key) {
+                    $cnt = $funnels->where($key . '.entered', true)->count();
+                    $node->addChild('cell', (string) $cnt);
+                }
+                $node->addChild('cell', (string) $desc);
             }
-
-            $pivotRows->push($row);
-        }
-
-        $xml = new \SimpleXMLElement('<rows/>');
-
-        foreach ($pivotRows as $row) {
-            $node = $xml->addChild('row');
-            $node->addAttribute('id', (string) $row['PTK_Number']);
-            $node->addChild('cell', (string) $row['PTK_Number']);
-            $node->addChild('cell', (string) $row['Current_Approver_By']);
-            $node->addChild('cell', (string) $row['Seleksi Administrasi']);
-            $node->addChild('cell', (string) $row['Psikotes']);
-            $node->addChild('cell', (string) $row['Interview HR']);
-            $node->addChild('cell', (string) $row['Interview User']);
-            $node->addChild('cell', (string) $row['Tes Teknik']);
-            $node->addChild('cell', (string) $row['MCU']);
-            $node->addChild('cell', (string) $row['Offering Letter']);
-            $node->addChild('cell', (string) $row['Keterangan']);
         }
 
         return response($xml->asXML())->header('Content-Type', 'text/xml');

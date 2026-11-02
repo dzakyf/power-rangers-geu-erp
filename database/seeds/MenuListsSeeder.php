@@ -58,6 +58,10 @@ class MenuListsSeeder extends Seeder
         }
         $this->command->info("Named: {$named}, with Path: {$pathed}");
         $this->command->info('MenuListsSeeder complete.');
+
+        // GA menu entries are not part of the legacy backup; re-add them
+        // after the truncate/rebuild so the module stays visible.
+        $this->call(GaMenuSeeder::class);
     }
 
     protected function buildHierarchy($backup)

@@ -55,9 +55,10 @@ class StatusChangeController extends Controller
         'hcga_verifier', 'director_approver',
     ];
 
-    public function index()
+    public function index(Request $request)
     {
-        return view('humanresources.employment.status-changes.index');
+        $jenis = strtoupper(trim((string) $request->input('jenis', '')));
+        return view('humanresources.employment.status-changes.index', compact('jenis'));
     }
 
     /**

@@ -101,6 +101,12 @@ var myCalendar;
     myCalendar = new dhtmlXCalendarObject(["Incoming_Date"]);
 	myCalendar.setDateFormat("%Y-%m-%d");
 
+var preSelectedPO = "<?php echo isset($_GET['PO_NO']) ? addslashes($_GET['PO_NO']) : ''; ?>";
+if (preSelectedPO !== '') {
+	$("#PO_No_KSPS").val(preSelectedPO);
+	$("#PO_No").val(preSelectedPO);
+}
+
 setTimeout(function(){
 	
 	$("#PO_No_KSPS").coolautosuggest({
@@ -150,6 +156,8 @@ PGRDetail.init(GRDetail);
 GRDetail.setSkin("dhx_skyblue");
 GRDetail.init();
 
+var preSelectedPO = '<?php echo isset($_GET['PO_NO']) ? addslashes($_GET['PO_NO']) : ""; ?>';
+if (preSelectedPO !== '') { $('#PO_No_KSPS').val(preSelectedPO); $('#PO_No').val(preSelectedPO); setTimeout(function(){ gantidata(preSelectedPO); }, 500); }
 function gantidata(pono){
 	GRDetail.clearAndLoad('xml-inventory-incoming-new?PO_NO=' + pono);
 

@@ -28,17 +28,17 @@ $location = DB::table('location')->get()
                 <div class="FormInput_Form_Content" class="form-row">
                     <div class="form-group col-md-6">
                         <label>
-                            PTK No
+                            PTK No <span class="text-danger">*</span>
                         </label>
 
-                        <input type="text" class="form-control" id="Task_ID" value="{{ $Taskid }}" readonly />
+                        <input type="text" class="form-control" id="Task_ID" value="{{ $Taskid }}" readonly required />
                     </div>
                     <div class="form-group col-md-6">
                         <label>
-                            Posisi
+                            Posisi <span class="text-danger">*</span>
                         </label>
 
-                        <select id="Job_Position" class="form-control">
+                        <select id="Job_Position" class="form-control" required>
                             <option value="">-- Pilih Posisi Pekerjaan -- </option>
                             @foreach($positions as $position)
                             <option value="{{ $position->ID }}">
@@ -56,9 +56,9 @@ $location = DB::table('location')->get()
                     </div -->
                     <div class="form-group col-md-6">
                         <label>
-                            Site Penempatan
+                            Site Penempatan <span class="text-danger">*</span>
                         </label>
-                        <select name="Placement" id="Placement" class="form-control">
+                        <select name="Placement" id="Placement" class="form-control" required>
                             <option value="">-- Pilih penempatan --</option>
                             @foreach ($location as $item)
                             <option value="{{ $item->Location_ID }}">{{ $item->Name }} ({{ $item->Location_ID }})</option>
@@ -67,24 +67,24 @@ $location = DB::table('location')->get()
                     </div>
                     <div class="form-group col-md-6">
                         <label>
-                            Deskripsi
+                            Deskripsi <span class="text-danger">*</span>
                         </label>
 
-                        <textarea cols="100" rows="4" id="Description" class="form-control"></textarea>
+                        <textarea cols="100" rows="4" id="Description" class="form-control" required></textarea>
                     </div>
                     <div class="form-group col-md-6">
                         <label>
-                            Detail Requirement
+                            Detail Requirement <span class="text-danger">*</span>
                         </label>
 
-                        <textarea cols="100" rows="4" id="Requirement" class="form-control"></textarea>
+                        <textarea cols="100" rows="4" id="Requirement" class="form-control" required></textarea>
                     </div>
                     <div class="form-group col-md-3">
                         <label>
-                            Prioritas
+                            Prioritas <span class="text-danger">*</span>
                         </label>
 
-                        <select id="Priority" class="form-control">
+                        <select id="Priority" class="form-control" required>
                             <option>NORMAL</option>
                             <option>HIGH</option>
                             <option>URGENT</option>
@@ -92,20 +92,20 @@ $location = DB::table('location')->get()
                     </div>
                     <div class="form-group col-md-3">
                         <label>
-                            Tipe
+                            Tipe <span class="text-danger">*</span>
                         </label>
 
-                        <select id="Allocation" class="form-control">
+                        <select id="Allocation" class="form-control" required>
                             <option value="NEW">KARYAWAN BARU</option>
                             <option value="REPLACEMENT">REPLACEMENT KARYAWAN </option>
                         </select>
                     </div>
                     <div class="form-group col-md-3">
                         <label>
-                            Permintaan kerja berkaitan dengan
+                            Permintaan kerja berkaitan dengan <span class="text-danger">*</span>
                         </label>
 
-                        <select id="Request_Type" class="form-control">
+                        <select id="Request_Type" class="form-control" required>
                             <option value="1">Ada peningkatan volume kerja</option>
                             <option value="2">Pengganti tenaga kerja keluar</option>
                             <option value="OTHER">Lainnya</option>
@@ -123,10 +123,10 @@ $location = DB::table('location')->get()
                     </div> --}}
                     <div class="form-group col-md-3">
                         <label>
-                            Work Schedule
+                            Work Schedule <span class="text-danger">*</span>
                         </label>
 
-                        <select name="Work_Schedule" id="Work_Schedule" class="form-control">
+                        <select name="Work_Schedule" id="Work_Schedule" class="form-control" required>
                             <option value="">-- Pilih Waktu Kerja --</option>
                             @foreach ($workCalendar as $item)
                             <option value="{{$item->ID}}">{{$item->Name}}</option>
@@ -135,15 +135,15 @@ $location = DB::table('location')->get()
                     </div>
                     <div class="form-group col-md-3">
                         <label>
-                            Jumlah
+                            Jumlah <span class="text-danger">*</span>
                         </label>
-                        <input type="text" id="Qty" class="form-control" size="10" value="1" />
+                        <input type="number" min="1" id="Qty" class="form-control" size="10" value="1" required />
                     </div>
                     <div class="form-group col-md-3">
                         <label>
-                            Mulai Tanggal
+                            Mulai Tanggal <span class="text-danger">*</span>
                         </label>
-                        <input type="text" id="Start_Date" class="form-control bg-white" size="15" value="<?php echo date('d M Y'); ?>" readonly />
+                        <input type="text" id="Start_Date" class="form-control bg-white" size="15" value="<?php echo date('d M Y'); ?>" readonly required />
                     </div>
                     <div class="form-group col-md-12">
                         <button class="btn btn-danger" type="reset">Reset</button>
