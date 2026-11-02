@@ -110,7 +110,7 @@ $Saya =  Auth::user()->username;
 	}
 	ShipmentInstruction = new dhtmlXGridObject('ShipmentInstruction');
 	ShipmentInstruction.setImagePath("./dhtmlx/imgs/");
-	ShipmentInstruction.setHeader("No,Order (DO)/Booking Confirmation (BC), SI No, SI Date,Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross, Gross (MT), Note");
+	ShipmentInstruction.setHeader("No,Order (DO)/Booking Confirmation (BC), SI No, SI Date,Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross, Gross (MT), Status");
 	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// ShipmentInstruction.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
 	ShipmentInstruction.setInitWidths("60,150,150,150,150,150,100,100,100,100,100,auto");

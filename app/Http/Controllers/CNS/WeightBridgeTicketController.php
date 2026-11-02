@@ -32,7 +32,7 @@ class WeightBridgeTicketController extends Controller
         $nomor = 1;
         $wbt = WeightBridgeTicket::whereBetween('Departure_Date', [$request->tgl1, $request->tgl2])->get();
         foreach ($wbt as $key => $value) {
-            $vsd = VesselScheduleDtl::where("SI_No", $value->SI_No)->get();
+            $vsd = VesselScheduleDtl::active()->where("SI_No", $value->SI_No)->get();
             foreach ($vsd as $k => $v) {
                 $value->Container .= $v->Container . " (" . $v->Seal . "),";
             }
@@ -84,7 +84,7 @@ class WeightBridgeTicketController extends Controller
     {
         $pl = PackingList::where("Packing_List_No", $request->input("Packing_List_No"))->first();
         if ($pl) {
-            $si = VesselScheduleDtl::where('SI_No', $pl->SI_No)->get();
+            $si = VesselScheduleDtl::active()->where('SI_No', $pl->SI_No)->get();
             $pl->orderDetails = $si;
             return response()->json($pl);
         } else {
@@ -169,7 +169,7 @@ class WeightBridgeTicketController extends Controller
         ]);
 
         foreach ($getContainId as $key => $value) {
-            $vsd = VesselScheduleDtl::where("id", $value)->first();
+            $vsd = VesselScheduleDtl::active()->where("id", $value)->first();
             $name = "";
             $ext = "";
             if ($r['Container' . $value] != 'undefined') {
@@ -238,7 +238,7 @@ class WeightBridgeTicketController extends Controller
         $wbt->save();
 
         foreach ($getContainId as $key => $value) {
-            $vsd = VesselScheduleDtl::where("id", $value)->first();
+            $vsd = VesselScheduleDtl::active()->where("id", $value)->first();
             $name = "";
             $ext = "";
             if ($r['Container' . $value] != 'undefined') {

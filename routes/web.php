@@ -5380,19 +5380,29 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$vesselPref-detail", [VesselScheduleController::class, "detailVesselSchedule"]);
     Route::post("$vesselPref-detail-submit", [VesselScheduleController::class, "detailVesselScheduleSubmit"]);
     Route::get("xml-$vesselPref-detail-log", [VesselScheduleController::class, "detailLogVesselScheduleXml"]);
+    Route::get("$vesselPref-bookings", [VesselScheduleController::class, "bookings"]);
 
     $stuffPref = "cns-stuffing";
     Route::get("$stuffPref", [CNSStuffingController::class, "indexStuffing"]);
     Route::get("xml-$stuffPref", [CNSStuffingController::class, "indexStuffingXml"]);
     Route::get("$stuffPref-detail", [CNSStuffingController::class, "detailStuffing"]);
     Route::get("xml-$stuffPref-detail", [CNSStuffingController::class, "detailStuffingXml"]);
-    Route::post("$stuffPref-detail-update", [CNSStuffingController::class, "updateDetailStuffing"]);
-    Route::get("xml-$stuffPref-combo-police-no", [CNSStuffingController::class, "comboPoliceNumber"]);
+    Route::get("$stuffPref-detail-data", [CNSStuffingController::class, "detailStuffingData"]);
+    Route::post("$stuffPref-detail-save", [CNSStuffingController::class, "saveDetailStuffing"]);
+    Route::post("$stuffPref-detail-delete", [CNSStuffingController::class, "deleteDetailStuffing"]);
+    Route::post("$stuffPref-detail-photo-delete", [CNSStuffingController::class, "deleteDetailPhoto"]);
+    Route::post("$stuffPref-detail-checklist", [CNSStuffingController::class, "saveDetailChecklist"]);
+    Route::get("$stuffPref-detail-note-info", [CNSStuffingController::class, "detailNoteInfo"]);
+    Route::get("$stuffPref-detail-note", [CNSStuffingController::class, "detailNote"]);
 
     $stuffMonitoringPref = "cns-export-stuffing-monitoring";
     Route::get("$stuffMonitoringPref", [CNSStuffingMonitoringController::class, 'indexStuffingMonitoring']);
     Route::get("xml-$stuffMonitoringPref", [CNSStuffingMonitoringController::class, 'indexStuffingMonitoringXml']);
-    Route::post("$stuffMonitoringPref-update", [CNSStuffingMonitoringController::class, 'updateStuffingMonitoring']);
+    Route::post("$stuffMonitoringPref-save", [CNSStuffingMonitoringController::class, 'saveStuffingMonitoring']);
+    Route::post("$stuffMonitoringPref-delete", [CNSStuffingMonitoringController::class, 'deleteStuffingMonitoring']);
+    Route::get("$stuffMonitoringPref-detail", [CNSStuffingMonitoringController::class, 'detailStuffingMonitoring']);
+    Route::get("$stuffMonitoringPref-note", [CNSStuffingMonitoringController::class, 'showWeighbridgeNote']);
+    Route::get("$stuffMonitoringPref-note-info", [CNSStuffingMonitoringController::class, 'weighbridgeNoteInfo']);
 
     $masterCompanyPref = "cns-master-company";
     Route::get("$masterCompanyPref", [MasterCompanyController::class, "indexMasterCompany"]);
@@ -5430,6 +5440,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$siPref-new-submit", [ShipmentInstructionController::class, 'newShipmentInstructionSubmit']);
     Route::get("$siPref-generate-fsi", [ShipmentInstructionController::class, 'generateFinalShipmentInstruction']);
     Route::get("$siPref-detail", [ShipmentInstructionController::class, 'detailShipmentInstruction']);
+    Route::post("$siPref-detail-get-order", [ShipmentInstructionController::class, 'getOrderDetail']);
     Route::post("$siPref-detail-submit", [ShipmentInstructionController::class, 'detailShipmentInstructionSubmit']);
 
     $fsiPref = "cns-export-final-shipment-instruction";
