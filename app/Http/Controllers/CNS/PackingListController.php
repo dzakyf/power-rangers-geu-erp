@@ -31,7 +31,7 @@ class PackingListController extends Controller
         echo "<rows>";
 
         $vsdData = [];
-        $vsds = VesselScheduleDtl::whereNotNull('SI_No')->get();
+        $vsds = VesselScheduleDtl::active()->whereNotNull('SI_No')->get();
         foreach ($vsds as $key => $vsd) {
             if (!isset($vsdData[$vsd->SI_No])) {
                 $vsdData[$vsd->SI_No] = [
@@ -86,7 +86,7 @@ class PackingListController extends Controller
         //     $companies[$value->Supplier_ID] = $value;
         // }
         // $shipment = PackingList::where('Packing_List_No', $request->Task)->first();
-        // $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
+        // $vsds = VesselScheduleDtl::active()->where('SI_No', $shipment->SI_No)->get();
         // return view('cns.export.print.pl', compact('shipment', 'vsds','companies'));
         // ── Ambil data (sesuaikan dengan model Anda) ──────────────────────
         $companies = [];
@@ -95,7 +95,7 @@ class PackingListController extends Controller
             $companies[$value->Supplier_ID] = $value;
         }
         $shipment = PackingList::where('Packing_List_No', $request->Task)->first();
-        $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
+        $vsds = VesselScheduleDtl::active()->where('SI_No', $shipment->SI_No)->get();
  
         // ── Hitung total ──────────────────────────────────────────────────
         $gross = $vsds->sum('Gross_KG');
@@ -262,7 +262,7 @@ class PackingListController extends Controller
         $pl->save();
 
         $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
-        $vsd = VesselScheduleDtl::where('Task_ID', $vs->Task_ID)
+        $vsd = VesselScheduleDtl::active()->where('Task_ID', $vs->Task_ID)
             ->get()
             ->map(function ($item) {
                 return $item->Container . ' (' . $item->Seal . ')';
@@ -288,7 +288,7 @@ class PackingListController extends Controller
         $SINo = $request->input('SI_No');
         $shipment = ShipmentInstruction::where('Final_SI_No', $SINo)->first();
         if ($shipment) {
-            $shipment->orderDetails = VesselScheduleDtl::where("SI_No", $shipment->SI_No)->get();
+            $shipment->orderDetails = VesselScheduleDtl::active()->where("SI_No", $shipment->SI_No)->get();
             return response()->json($shipment);
         } else {
             return response()->json(['error' => 'Shipping Instruction not found'], 404);

@@ -3,201 +3,207 @@
 namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CNS\StuffingContainerRequest;
+use App\Services\CNS\StuffingContainerService;
+use App\Services\CNS\StuffingNoteService;
+use App\VesselSchedule;
 use App\VesselScheduleDtl;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class StuffingMonitoringController extends Controller
 {
+    protected $containers;
+    protected $notes;
+
+    public function __construct(StuffingContainerService $containers, StuffingNoteService $notes)
+    {
+        $this->containers = $containers;
+        $this->notes = $notes;
+    }
+
     public function indexStuffingMonitoring()
     {
-        return view('cns.export.stuffing-monitoring');
+        $vss = VesselSchedule::orderBy('Order_No')->get();
+
+        return view('cns.export.stuffing-monitoring', compact('vss'));
     }
 
     public function indexStuffingMonitoringXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
         echo "<rows>";
 
-        $vessels = VesselScheduleDtl::whereBetween('Date', [$request->tgl1,$request->tgl2])->get();
+        $vessels = VesselScheduleDtl::active()
+            ->whereBetween('Date', [$request->tgl1, $request->tgl2])
+            ->get();
+
+        $vesselIdsByOrder = VesselSchedule::whereIn('Order_No', $vessels->pluck('Order_No')->filter()->unique()->values())
+            ->pluck('id', 'Order_No');
+        $noteMetadata = $this->notes->metadataByScheduleIds($vesselIdsByOrder->values()->all());
+
         foreach ($vessels as $key => $vessel) {
-            echo "<row id=\"$vessel->id\" >";
+            $tare = (float) $vessel->Tare;
+            $nettoKg = (float) $vessel->Netto_KG;
+            $nettoMt = round($nettoKg / 1000, 2);
+            $grossKg = $tare + $nettoKg;
+            $grossMt = round($grossKg / 1000, 2);
+            $vesselId = $vesselIdsByOrder->get($vessel->Order_No);
+            $hasNote = $vesselId && isset($noteMetadata[(string) $vesselId]);
+
+            echo "<row id=\"$vessel->ID\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Order_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars(date("H:i",strtotime($vessel->Time_From))) . "</cell>";
-            echo "<cell>" . htmlspecialchars(date("H:i",strtotime($vessel->Time_To))) . "</cell>";
-            echo "<cell>" . htmlspecialchars(date("d M Y",strtotime($vessel->Date))) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Police_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Container) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Seal) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Tare) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Netto_KG) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Netto_MT) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Gross_KG) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Gross_MT) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $vessel->Order_No) . "</cell>";
+            echo "<cell>" . htmlspecialchars(date("H:i", strtotime($vessel->Time_From))) . "</cell>";
+            echo "<cell>" . htmlspecialchars(date("H:i", strtotime($vessel->Time_To))) . "</cell>";
+            echo "<cell>" . htmlspecialchars(date("d M Y", strtotime($vessel->Date))) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $vessel->Police_No) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $vessel->Container) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $vessel->Seal) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($tare, 2, '.', '')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($nettoKg, 2, '.', '')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($nettoMt, 2, '.', '')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($grossKg, 2, '.', '')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($grossMt, 2, '.', '')) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $vessel->Note) . "</cell>";
+            echo "<cell>" . ($hasNote ? 'Ada' : 'Tidak Ada') . "</cell>";
             echo "</row>";
         }
 
         echo "</rows>";
     }
 
-    public function updateStuffingMonitoring(Request $request)
+    public function saveStuffingMonitoring(StuffingContainerRequest $request)
     {
-        echo "<data>";
+        $request->validate([
+            'Order_No' => 'required|string|exists:vessel_schedules,Order_No',
+        ]);
 
-        $request_body = urldecode(file_get_contents('php://input'));
+        $schedule = $this->containers->scheduleForOrder((string) $request->input('Order_No'));
 
-        $ids = explode("&", $request_body);
-        foreach ($ids as $datax) {
-
-            $idenya = explode("=", $datax);
-            $param[$idenya[0]] = $idenya[1];
+        if (!$schedule) {
+            return response()->json(['status' => 'error', 'message' => 'Vessel schedule not found'], 404);
         }
-        $checkids = explode(",", $param["ids"]);
 
-        for ($i = 0; $i < sizeof($checkids); $i++) {
-            $rowId = $checkids[$i]; //id or row which was updated 
-            $newId = $rowId; //will be used for insert operation	
-            $mode = $param[$rowId . "_!nativeeditor_status"];
+        try {
+            $container = null;
 
-            switch ($mode) {
-                case "updated":
-                    $action = $this->updateStuffingMonitoringUpdate($rowId, $param);
-                    break;
-                case "inserted":
-                    $action = $this->updateStuffingMonitoringInsert($rowId, $param);
-                    break;
-                case "deleted":
-                    $action = $this->updateStuffingMonitoringDelete($rowId);
-                    break;
-            }
+            DB::transaction(function () use ($request, $schedule, &$container) {
+                $container = $this->containers->save(
+                    $schedule,
+                    $request->all(),
+                    $request->filled('id') ? (int) $request->input('id') : null
+                );
 
-            echo "<action type='" . $action . "' sid='" . $rowId . "' tid='" . $newId . "'/>";
+                if ($request->hasFile('Weighbridge_Note')) {
+                    $this->notes->replace($schedule, $request->file('Weighbridge_Note'));
+                }
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         }
-        echo "</data>";
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $request->filled('id') ? 'Container updated successfully' : 'Container created successfully',
+            'id' => $container ? $container->ID : null,
+        ]);
     }
 
-    public function updateStuffingMonitoringUpdate($rowId, $param)
+    public function deleteStuffingMonitoring(Request $request)
     {
-        $a = $param[$rowId . "_c1"]; // Time From
-        $b = $param[$rowId . "_c2"]; // Time To
-        $c = $param[$rowId . "_c3"]; // Date
-        $d = $param[$rowId . "_c4"]; // Police No
-        $e = $param[$rowId . "_c5"]; // Container
-        $f = $param[$rowId . "_c6"]; // Seal
-        $g = $param[$rowId . "_c7"]; // Tare
-        $h = $param[$rowId . "_c8"]; // Netto KG
-        $ix = $param[$rowId . "_c9"]; // Netto MT
-        $j = $param[$rowId . "_c10"]; // Gross KG
-        $k = $param[$rowId . "_c11"]; // Gross MT
-        $l = $param[$rowId . "_c12"]; // Gross MT
-        $m = $param[$rowId . "_c13"]; // Gross MT
+        $request->validate(['id' => 'required|integer']);
 
-        $vsd = VesselScheduleDtl::where('id', $rowId)->first();
-        if ($vsd) {
-            $vsd->Time_From = $b;
-            $vsd->Time_To = $c;
-            $vsd->Date = date("Y-m-d",strtotime($d));
-            $vsd->Police_No = $e;
-            $vsd->Container = $f;
-            $vsd->Seal = $g;
-            $vsd->Tare = $h;
-            $vsd->Netto_KG = $ix;
-            $vsd->Netto_MT = $j;
-            $vsd->Gross_KG = $k;
-            $vsd->Gross_MT = $l;
-            $vsd->Note = $m;
-            $vsd->Updated_By = auth()->user()->username;
-            $vsd->Updated_Date = date('Y-m-d H:i:s');
+        $container = VesselScheduleDtl::active()->where('ID', $request->input('id'))->first();
+
+        if (!$container) {
+            return response()->json(['status' => 'error', 'message' => 'Container not found'], 404);
         }
 
-        if ($vsd->save()) {
-            return "updated";
-        } else {
-            return "error";
+        $schedule = VesselSchedule::where('Order_No', $container->Order_No)->orderBy('id')->first();
+
+        if (!$schedule) {
+            return response()->json(['status' => 'error', 'message' => 'Vessel schedule not found'], 404);
         }
+
+        try {
+            $this->containers->cancelMany($schedule, [$container->ID]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
+
+        return response()->json(['status' => 'success', 'message' => 'Container deleted successfully']);
     }
 
-    public function updateStuffingMonitoringInsert($rowId, $param)
+    public function detailStuffingMonitoring(Request $request)
     {
-        $a = $param[$rowId . "_c1"]; // Time From
-        $b = $param[$rowId . "_c2"]; // Time To
-        $c = $param[$rowId . "_c3"]; // Date
-        $d = $param[$rowId . "_c4"]; // Police No
-        $e = $param[$rowId . "_c5"]; // Container
-        $f = $param[$rowId . "_c6"]; // Seal
-        $g = $param[$rowId . "_c7"]; // Tare
-        $h = $param[$rowId . "_c8"]; // Netto KG
-        $ix = $param[$rowId . "_c9"]; // Netto MT
-        $j = $param[$rowId . "_c10"]; // Gross KG
-        $k = $param[$rowId . "_c11"]; // Gross MT
-        $l = $param[$rowId . "_c12"]; // Gross MT
-        $m = $param[$rowId . "_c13"]; // Gross MT
+        $request->validate(['ID' => 'required|integer']);
 
-        $vsd = new VesselScheduleDtl();
-        $vsd->Order_No = $a;
-        $vsd->Time_From = $b;
-        $vsd->Time_To = $c;
-        $vsd->Date = date("Y-m-d",strtotime($d));
-        $vsd->Police_No = $e;
-        $vsd->Container = $f;
-        $vsd->Seal = $g;
-        $vsd->Tare = $h;
-        $vsd->Netto_KG = $ix;
-        $vsd->Netto_MT = $j;
-        $vsd->Gross_KG = $k;
-        $vsd->Gross_MT = $l;
-        $vsd->Note = $m;
-        $vsd->Created_By = auth()->user()->username;
-        $vsd->Created_Date = date('Y-m-d H:i:s');
+        $vsd = VesselScheduleDtl::active()->where('ID', $request->input('ID'))->first();
 
-        if ($vsd->save()) {
-            return "updated";
-        } else {
-            return "error";
+        if (!$vsd) {
+            return response()->json(['status' => 'error', 'message' => 'Container not found'], 404);
         }
+
+        $vs = VesselSchedule::where('Order_No', $vsd->Order_No)->orderBy('id')->first();
+        $note = $vs ? $this->notes->forSchedule($vs) : null;
+
+        return response()->json([
+            'ID' => $vsd->ID,
+            'Order_No' => $vsd->Order_No,
+            'Time_From' => substr($vsd->Time_From, 0, 5),
+            'Time_To' => substr($vsd->Time_To, 0, 5),
+            'Date' => $vsd->Date,
+            'Police_No' => $vsd->Police_No,
+            'Container' => $vsd->Container,
+            'Seal' => $vsd->Seal,
+            'Tare' => (float) $vsd->Tare,
+            'Netto_KG' => (float) $vsd->Netto_KG,
+            'Note' => $vsd->Note,
+            'Note_Url' => $this->notes->url($note),
+            'Note_Name' => $note ? $note->Filename : null,
+        ]);
     }
 
-    public function updateStuffingMonitoringDelete($rowId)
+    public function showWeighbridgeNote(Request $request)
     {
-        $vsd = VesselScheduleDtl::where('id', $rowId)->first();
-        if ($vsd) {
-            if ($vsd->delete()) {
-                return "deleted";
-            } else {
-                return "error";
-            }
-        }else {
-            return "error";
+        $note = $this->notes->forOrder((string) $request->query('Order_No'));
+
+        if (!$note) {
+            abort(404, 'Weighbridge note not found');
         }
+
+        $path = public_path('filevendor/' . $note->Path);
+
+        if (!is_file($path)) {
+            abort(404, 'Weighbridge note file not found');
+        }
+
+        return response()->file($path);
     }
 
-    
-
-    public function comboPoliceNumber()
+    public function weighbridgeNoteInfo(Request $request)
     {
-        header('Content-Type: application/json');
-            
-        echo "{
-        options: ["; 
-        $qy = VesselScheduleDtl::get();
-        $dx = "";
-        foreach ($qy as $ax){
-            
-                $dx .= "{value:'$ax->Police_No',text:'$ax->Police_No - $ax->Order_No'},";
+        $note = $this->notes->forOrder((string) $request->query('Order_No'));
 
-            
-        }
-        $dx = substr($dx,0,-1);
-
-        echo "
-        $dx
-        ]
-        }"; 
+        return response()->json([
+            'url' => $this->notes->url($note),
+            'name' => $note ? $note->Filename : null,
+        ]);
     }
 }

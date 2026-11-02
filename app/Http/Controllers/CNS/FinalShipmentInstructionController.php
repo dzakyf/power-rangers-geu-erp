@@ -32,7 +32,7 @@ class FinalShipmentInstructionController extends Controller
         echo "<rows>";
 
         $vsdData = [];
-        $vsds = VesselScheduleDtl::whereNotNull('SI_No')->get();
+        $vsds = VesselScheduleDtl::active()->whereNotNull('SI_No')->get();
         foreach ($vsds as $key => $vsd) {
             if (!isset($vsdData[$vsd->SI_No])) {
                 $vsdData[$vsd->SI_No] = [
@@ -87,7 +87,7 @@ class FinalShipmentInstructionController extends Controller
         //     $companies[$value->Supplier_ID] = $value;
         // }
         // $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
-        // $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
+        // $vsds = VesselScheduleDtl::active()->where('SI_No', $shipment->SI_No)->get();
         // return view('cns.export.print.fsi', compact('shipment', 'vsds','companies'));
         
         // ── Ambil data (sesuaikan dengan model Anda) ──────────────────────
@@ -97,7 +97,7 @@ class FinalShipmentInstructionController extends Controller
             $companies[$value->Supplier_ID] = $value;
         }
         $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
-        $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
+        $vsds = VesselScheduleDtl::active()->where('SI_No', $shipment->SI_No)->get();
  
         // ── Hitung total ──────────────────────────────────────────────────
         $gross = $vsds->sum('Gross_KG');
@@ -197,7 +197,7 @@ class FinalShipmentInstructionController extends Controller
         $SINo = $request->input('SI_No');
         $shipment = ShipmentInstruction::where('SI_No', $SINo)->first();
         if ($shipment) {
-            $vsd = VesselScheduleDtl::where("SI_No", $SINo)->get();
+            $vsd = VesselScheduleDtl::active()->where("SI_No", $SINo)->get();
             $shipment->orderDetails = $vsd;
             unset($shipment->id);
             return response()->json($shipment);
@@ -256,7 +256,7 @@ class FinalShipmentInstructionController extends Controller
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         $shipment = ShipmentInstruction::where('ID', request()->query('Task'))->first();
         if ($shipment) {
-            $vsd = VesselScheduleDtl::where("SI_No", $shipment->SI_No)->get();
+            $vsd = VesselScheduleDtl::active()->where("SI_No", $shipment->SI_No)->get();
             $shipment->orderDetails = $vsd;
         }
         return view('cns.export.fsi-detail', compact('vss', 'sis', 'companies', 'masProducts', 'shipment'));
@@ -282,7 +282,7 @@ class FinalShipmentInstructionController extends Controller
         // $shipment->save();
 
         $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
-        $vsd = VesselScheduleDtl::where('Task_ID', $vs->Task_ID)
+        $vsd = VesselScheduleDtl::active()->where('Task_ID', $vs->Task_ID)
             ->get()
             ->map(function ($item) {
                 return $item->Container . ' (' . $item->Seal . ')';
@@ -332,7 +332,7 @@ class FinalShipmentInstructionController extends Controller
         }
 
         $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
-        $vsd = VesselScheduleDtl::where('Task_ID', $vs->Task_ID)
+        $vsd = VesselScheduleDtl::active()->where('Task_ID', $vs->Task_ID)
             ->get()
             ->map(function ($item) {
                 return $item->Container . ' (' . $item->Seal . ')';
@@ -348,7 +348,7 @@ class FinalShipmentInstructionController extends Controller
         unset($vs['id']);
         VesselScheduleLog::create($vs);
 
-        $getVSD = VesselScheduleDtl::where("Order_No", $vs['Order_No'])->where("SI_No", $shipment->SI_No)->sum('Netto_MT');
+        $getVSD = VesselScheduleDtl::active()->where("Order_No", $vs['Order_No'])->where("SI_No", $shipment->SI_No)->sum('Netto_MT');
     
         $counter = CommercialInvoice::where('Inv_Date', "LIKE", date("Y-m") . "%")->count();
         

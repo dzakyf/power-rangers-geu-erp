@@ -82,7 +82,7 @@ class CommercialInvoiceController extends Controller
     {
         $si = ShipmentInstruction::where('Final_SI_No', $request->input('Final_SI_No'))->first();
         if ($si) {
-            $vsd = VesselScheduleDtl::where("SI_No", $si->SI_No)->sum('Netto_MT');
+            $vsd = VesselScheduleDtl::active()->where("SI_No", $si->SI_No)->sum('Netto_MT');
             $si->Netto_MT = round($vsd, 2);
         }
         return response()->json($si);
