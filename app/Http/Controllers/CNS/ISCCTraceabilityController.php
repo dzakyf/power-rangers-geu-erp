@@ -593,14 +593,24 @@ class ISCCTraceabilityController extends Controller
         ]);
 
         $photo = $this->firstPhoto($fragment);
-        if ($photo && ($tmp = $this->downloadToTemp($photo, 'jpg'))) {
-            $t->setImageValue('oil_doc', ['path' => $tmp, 'width' => 220, 'height' => 160]);
+        $tmp = $photo ? $this->downloadToTemp($photo) : null;
+        if ($tmp) {
+            try {
+                $t->setImageValue('oil_doc', ['path' => $tmp, 'width' => 220, 'height' => 160]);
+            } catch (\Throwable $e) {
+                $t->setValue('oil_doc', '');
+            }
         } else {
             $t->setValue('oil_doc', '');
         }
 
-        if (!empty($fragment->ttd) && ($tmp = $this->downloadToTemp($fragment->ttd, 'png'))) {
-            $t->setImageValue('sign_pict', ['path' => $tmp, 'width' => 140, 'height' => 70]);
+        $tmpTtd = !empty($fragment->ttd) ? $this->downloadToTemp($fragment->ttd) : null;
+        if ($tmpTtd) {
+            try {
+                $t->setImageValue('sign_pict', ['path' => $tmpTtd, 'width' => 140, 'height' => 70]);
+            } catch (\Throwable $e) {
+                $t->setValue('sign_pict', '');
+            }
         } else {
             $t->setValue('sign_pict', '');
         }
@@ -627,20 +637,94 @@ class ISCCTraceabilityController extends Controller
         return null;
     }
 
-    protected function downloadToTemp(string $url, string $ext): ?string
+    /**
+     * Download an image and return a local path in a PHPWord-supported format (JPEG).
+     * Unsupported formats (e.g. webp) are converted to JPEG with a white background.
+     * Returns null on failure (caller omits the image).
+     */
+    protected function downloadToTemp(string $url, ?string $ext = null): ?string
     {
         try {
             $client = new \GuzzleHttp\Client(['timeout' => 30, 'verify' => false]);
             $res = $client->get($url);
             if ($res->getStatusCode() !== 200) { return null; }
+            $body = (string) $res->getBody();
+            if ($body === '') { return null; }
+
             $dir = storage_path('app/temp');
             if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
-            $path = $dir . '/iscc_img_' . md5($url) . '.' . $ext;
-            file_put_contents($path, (string) $res->getBody());
-            return is_file($path) ? $path : null;
+            $base = $dir . '/iscc_img_' . md5($url);
+
+            $info = @getimagesizefromstring($body);
+            $mime = is_array($info) ? ($info['mime'] ?? null) : null;
+
+            // already JPEG -> write directly
+            if ($mime === 'image/jpeg') {
+                $path = $base . '.jpg';
+                file_put_contents($path, $body);
+                return is_file($path) ? $path : null;
+            }
+
+            // try convert to JPEG (webp/avif/etc.)
+            $path = $base . '.jpg';
+            if ($this->convertToJpeg($body, $path)) {
+                return is_file($path) ? $path : null;
+            }
+
+            // supported non-jpeg formats PHPWord can embed natively
+            $map = ['image/png' => '.png', 'image/gif' => '.gif', 'image/bmp' => '.bmp'];
+            if ($mime && isset($map[$mime])) {
+                $p = $base . $map[$mime];
+                file_put_contents($p, $body);
+                return is_file($p) ? $p : null;
+            }
+
+            return null;
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    /**
+     * Convert arbitrary image bytes to JPEG (white background). GD first, Imagick fallback.
+     */
+    protected function convertToJpeg(string $body, string $path): bool
+    {
+        if (function_exists('imagecreatefromstring')) {
+            $img = @imagecreatefromstring($body);
+            if ($img !== false) {
+                $w = imagesx($img);
+                $h = imagesy($img);
+                $canvas = imagecreatetruecolor($w, $h);
+                $white = imagecolorallocate($canvas, 255, 255, 255);
+                imagefilledrectangle($canvas, 0, 0, $w, $h, $white);
+                imagecopy($canvas, $img, 0, 0, 0, 0, $w, $h);
+                $ok = imagejpeg($canvas, $path, 90);
+                imagedestroy($canvas);
+                imagedestroy($img);
+                if ($ok) { return true; }
+            }
+        }
+
+        if (extension_loaded('imagick')) {
+            try {
+                $im = new \Imagick();
+                $im->readImageBlob($body);
+                $im->setImageBackgroundColor('white');
+                if (defined('\Imagick::ALPHACHANNEL_REMOVE')) {
+                    $im->setImageAlphaChannel(\Imagick::ALPHACHANNEL_REMOVE);
+                }
+                $im->setImageFormat('jpeg');
+                $im->setImageCompressionQuality(90);
+                $ok = $im->writeImage($path);
+                $im->clear();
+                if ($ok) { return true; }
+            } catch (\Throwable $e) {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     protected function fmtDate($v): ?string

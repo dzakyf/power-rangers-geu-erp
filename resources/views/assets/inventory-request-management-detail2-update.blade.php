@@ -73,6 +73,14 @@ function updatekan($rowId,$param){
 	$units = $PRD->Unit_Name;	
 	DB::update(DB::raw("UPDATE stock_request_dtl set Qty_Approved='$e',Keterangan=CONCAT('$g\n',Keterangan) where ID=$rowId"));
 	DB::update(DB::raw("UPDATE supplies set Qty=Qty-$e,Remark=CONCAT('Request using $_GET[SR_No] # $g\n',Remark) where Product_Code='$b' AND Qty > 0 AND Location='$LSP'"));
+
+	try {
+		$srHeader = DB::table('stock_request')->where('SR_No', $_GET['SR_No'])->first();
+		$gaInventory = app(\App\Services\GA\GaInventoryService::class);
+		$gaInventory->recordIssueFromStockRequest($_GET['SR_No'], $b, $e, $LSP, ($srHeader ? $srHeader->WH_Dest : ''), ($srHeader ? $srHeader->Department : null), Auth::user());
+	} catch (\Exception $ex) {
+		\Illuminate\Support\Facades\Log::warning('GA Ledger auto-record issue skipped/failed: ' . $ex->getMessage());
+	}
 	
 				
 	

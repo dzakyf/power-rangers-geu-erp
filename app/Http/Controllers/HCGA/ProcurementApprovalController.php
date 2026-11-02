@@ -4,6 +4,9 @@ namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
 use App\Services\NotificationService;
+use App\Services\Approval\ProcurementApprovalService;
+use App\Services\Approval\ApprovalWorkflowService;
+use App\Services\Approval\ApprovalAuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +14,19 @@ use Illuminate\Support\Facades\Log;
 
 class ProcurementApprovalController extends Controller
 {
+    protected $procurementApprovalService;
+    protected $workflowService;
+    protected $authorizationService;
+
+    public function __construct(
+        ProcurementApprovalService $procurementApprovalService,
+        ApprovalWorkflowService $workflowService,
+        ApprovalAuthorizationService $authorizationService
+    ) {
+        $this->procurementApprovalService = $procurementApprovalService;
+        $this->workflowService = $workflowService;
+        $this->authorizationService = $authorizationService;
+    }
     public function index()
     {
         return view('humanresources.procurement.approval');
@@ -18,48 +34,45 @@ class ProcurementApprovalController extends Controller
 
     public function data()
     {
-        $Saya = Auth::User()->username;
-        $Name = Auth::User()->Name;
-        $LSP = Auth::user()->Location;
-        $getnik = Auth::user()->Emp_ID;
-        $dept = Auth::user()->Department;
-        $pos = Auth::user()->Position;
-
-        $getlevelsx = DB::table("organization_structure")->where("NIK", $getnik)->first();
-        $lepel = 0;
-
-        if ($getlevelsx) {
-            if ($getlevelsx->Level1 == 1) $lepel = 1;
-            else if ($getlevelsx->Level2 == 1) $lepel = 2;
-            else if ($getlevelsx->Level3 == 1) $lepel = 3;
-            else if ($getlevelsx->Level4 == 1) $lepel = 4;
-            else if ($getlevelsx->Level5 == 1) $lepel = 5;
-            else if ($getlevelsx->Level6 == 1) $lepel = 6;
-            else if ($getlevelsx->Level7 == 1) $lepel = 7;
-            else if ($getlevelsx->Level8 == 1) $lepel = 8;
-        }
-
-        if ($lepel > 5 && $dept != 'HCGA') {
-            return;
-        }
+        $user = Auth::user();
+        $userId = (int) $user->id;
+        $LSP = $user->Location;
 
         echo "<rows>";
 
+        // 1. Ambil PR yang terhubung ke Approval Workflow Policy Engine
+        $pendingTasks = DB::table('approval_request_task as art')
+            ->join('approval_request as ar', 'art.Request_ID', '=', 'ar.ID')
+            ->join('approval_task_candidate as atc', 'art.ID', '=', 'atc.Task_ID')
+            ->where('ar.Request_Type', 'PROCUREMENT')
+            ->where('art.Status', 'PENDING')
+            ->where('atc.User_ID', $userId)
+            ->select('ar.Map_To as PR_ID', 'art.ID as Task_ID', 'art.Stage_Order')
+            ->get();
+
+        $prIdsFromPolicy = $pendingTasks->pluck('PR_ID')->filter()->all();
+
+        // 2. Query data PR (dukung PR baru via Approval Policy + PR legacy yang masih in progress)
         $kueri = DB::table('purchase_request')->where("Location", $LSP)->orderBy('ID', "DESC");
 
-        if ($dept != 'HCGA') {
-            $kueri->where("Approval_Department", $dept);
-            if ($lepel == 1) {
-                $kueri->where(function ($q) {
-                    $q->where("Status", "APPROVAL_DEPT")->orWhere("Status", "REJECTED_GA");
-                });
-            } else if ($lepel == 3) {
-                $kueri->where(function ($q) {
-                    $q->where("Status", "APPROVAL_UPPER")->orWhere("Status", "REJECTED_DEPT");
-                });
-            }
+        if (!empty($prIdsFromPolicy)) {
+            $kueri->where(function ($q) use ($prIdsFromPolicy, $user) {
+                $q->whereIn('ID', $prIdsFromPolicy)
+                  ->orWhere(function ($sub) use ($user) {
+                      // Fallback support untuk PR legacy yang belum punya Approval_Request_ID
+                      $sub->whereNull('Approval_Request_ID')
+                          ->whereIn('Status', ['APPROVAL_UPPER', 'APPROVAL_DEPT', 'APPROVAL_GA']);
+                  });
+            });
         } else {
-            $kueri->where("Status", "APPROVAL_GA");
+            // Jika belum ada task policy, fallback ke legacy status
+            $dept = $user->Department;
+            if ($dept != 'HCGA') {
+                $kueri->where("Approval_Department", $dept)
+                      ->whereIn("Status", ["APPROVAL_UPPER", "APPROVAL_DEPT", "REJECTED_GA", "REJECTED_DEPT"]);
+            } else {
+                $kueri->where("Status", "APPROVAL_GA");
+            }
         }
 
         $kueri = $kueri->get();
@@ -290,8 +303,30 @@ class ProcurementApprovalController extends Controller
         // Catatan approval baru dari textarea Remark
         $approvalRemark = trim((string)$request->Remark);
 
+        // Jika PR terhubung ke Approval Workflow Policy Engine, gunakan service
+        if (!empty($cek->Approval_Request_ID)) {
+            try {
+                DB::beginTransaction();
+
+                if ($statReq == 2) {
+                    $this->procurementApprovalService->reject((int) $cek->ID, Auth::user(), $approvalRemark ?: 'Rejected by approver');
+                } else {
+                    $this->procurementApprovalService->approve((int) $cek->ID, Auth::user(), $approvalRemark ?: 'Approved');
+                }
+
+                DB::commit();
+                echo "success";
+                return;
+            } catch (\Throwable $th) {
+                DB::rollBack();
+                Log::error('Procurement Approval Error: ' . $th->getMessage());
+                echo "Gagal: " . $th->getMessage();
+                return;
+            }
+        }
+
         // ============================================================
-        // TENTUKAN STATUS BARU
+        // TENTUKAN STATUS BARU (LEGACY FALLBACK)
         // ============================================================
         $nik = "";
         $uppername = "";

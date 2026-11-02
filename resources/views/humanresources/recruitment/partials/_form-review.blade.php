@@ -51,8 +51,20 @@
                             <dt class="col-sm-5">Address:</dt>
                             <dd class="col-sm-7" id="review-Address">-</dd>
                             
-                            <dt class="col-sm-5">City:</dt>
+                            <dt class="col-sm-5">City / Regency:</dt>
                             <dd class="col-sm-7" id="review-City">-</dd>
+
+                            <dt class="col-sm-5">Province:</dt>
+                            <dd class="col-sm-7" id="review-Province">-</dd>
+
+                            <dt class="col-sm-5">District (Kecamatan):</dt>
+                            <dd class="col-sm-7" id="review-District">-</dd>
+
+                            <dt class="col-sm-5">Sub-District (Kelurahan):</dt>
+                            <dd class="col-sm-7" id="review-Sub_District">-</dd>
+
+                            <dt class="col-sm-5">Postal Code (Kode Pos):</dt>
+                            <dd class="col-sm-7" id="review-ZipCode">-</dd>
                         </dl>
                     </div>
                 </div>
@@ -172,7 +184,7 @@
                 <div class="custom-control custom-checkbox mt-3">
                     <input type="checkbox" class="custom-control-input" id="agree_privacy" name="agree_privacy" required>
                     <label class="custom-control-label" for="agree_privacy">
-                        I have read and agree to the <a href="#" data-toggle="modal" data-target="#privacyModal">Privacy Policy</a> and consent to the processing of my personal data for recruitment purposes.
+                        I have read and agree to the <a href="#" data-toggle="modal" data-bs-toggle="modal" data-target="#privacyModal" data-bs-target="#privacyModal">Privacy Policy</a> and consent to the processing of my personal data for recruitment purposes.
                     </label>
                 </div>
             </div>
@@ -213,12 +225,12 @@
 {{-- Privacy Policy Modal --}}
 <div class="modal fade" id="privacyModal" tabindex="-1" role="dialog" aria-labelledby="privacyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
+        <div class="modal-content shadow">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="privacyModalLabel">
-                    <i class="fas fa-shield-alt"></i> Privacy Policy
+                <h5 class="modal-title font-weight-bold" id="privacyModalLabel">
+                    <i class="fas fa-shield-alt me-2"></i> Privacy Policy
                 </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close btn-close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -246,7 +258,7 @@
                 <p>For questions about data privacy, contact our HR department at: <strong>hr@company.com</strong></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

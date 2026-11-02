@@ -22,27 +22,7 @@ class OrganizationChartSyncService
             ->get();
 
         foreach ($rows as $row) {
-            $position = DB::table('master_position')
-                ->where(function ($q) use ($row) {
-                    $q->where('Position', $row->Position)
-                      ->orWhere('Initial', $row->Position);
-                })
-                ->where('Department', $row->Department)
-                ->orderBy('ID')
-                ->first();
-
-            if (!$position) {
-                $candidates = DB::table('master_position')
-                    ->where(function ($q) use ($row) {
-                        $q->where('Position', $row->Position)
-                          ->orWhere('Initial', $row->Position);
-                    })
-                    ->orderBy('ID')
-                    ->get();
-                if ($candidates->count() === 1) {
-                    $position = $candidates->first();
-                }
-            }
+            $position = $this->matchPosition($row);
 
             if (!$position) {
                 continue;
@@ -55,6 +35,69 @@ class OrganizationChartSyncService
         }
 
         return $linked;
+    }
+
+    /**
+     * organization_structure.Position menyimpan kode posisi
+     * (master_position.Initial), bukan nama jabatan. Urutan pencocokan:
+     * Initial + Department, Initial unik, nama Position + Department,
+     * nama Position unik, lalu Initial_Code dari Position_Code.
+     */
+    protected function matchPosition($row)
+    {
+        $code = trim((string) $row->Position);
+        $department = trim((string) $row->Department);
+
+        if ($code === '') {
+            return null;
+        }
+
+        $attempts = [
+            ['Initial', true],
+            ['Initial', false],
+            ['Position', true],
+            ['Position', false],
+        ];
+
+        foreach ($attempts as $attempt) {
+            $column = $attempt[0];
+            $withDepartment = $attempt[1];
+
+            $query = DB::table('master_position')->where($column, $code);
+
+            if ($withDepartment && $department !== '') {
+                $query->where('Department', $department);
+            }
+
+            $matches = $query->orderBy('ID')->get();
+
+            if ($matches->count() === 1) {
+                return $matches->first();
+            }
+
+            if ($matches->count() > 1 && $department !== '') {
+                $exact = $matches->first(function ($item) use ($department) {
+                    return (string) $item->Department === $department;
+                });
+
+                if ($exact) {
+                    return $exact;
+                }
+            }
+        }
+
+        if (!empty($row->Position_Code)) {
+            $byCode = DB::table('master_position')
+                ->where('Initial_Code', trim((string) $row->Position_Code))
+                ->orderBy('ID')
+                ->get();
+
+            if ($byCode->count() === 1) {
+                return $byCode->first();
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -93,47 +136,56 @@ class OrganizationChartSyncService
         return $updated;
     }
 
+
     /**
-     * Optional: create PRIMARY assignments from the NIK on each bagan node.
-     * Not run by default because demo/fake NIK data can point at the wrong
-     * user. Use the CLI command --assignments flag after validating data.
+     * Buat position_assignment dari data kepegawaian (employment) + users.
+     * Cukup satu input di employment: NIK -> users.Emp_ID dan
+     * employment.Position -> master_position.Initial. Assignment manual tidak
+     * lagi wajib agar approver dikenali.
      */
     public function syncAssignments(): array
     {
         $created = 0;
         $skippedNoUser = 0;
         $skippedExisting = 0;
+        $skippedNoPosition = 0;
 
-        $rows = DB::table('organization_structure')
-            ->whereNotNull('Position_ID')
-            ->whereNotNull('NIK')
-            ->where('NIK', '<>', '')
-            ->orderBy('ID')
+        $rows = DB::table('employment as e')
+            ->leftJoin('users as u', 'u.Emp_ID', '=', 'e.NIK')
+            ->where(function ($query) {
+                $query->whereNull('e.Status')->orWhere('e.Status', 'ACTIVE');
+            })
+            ->select(
+                'e.NIK',
+                'e.Position',
+                'e.Department',
+                'e.Location',
+                'u.id as User_Id',
+                'u.Emp_ID as User_Emp_ID',
+                'u.Status as User_Status',
+                'u.Location as User_Location',
+                'u.Company_ID as User_Company_ID',
+                'u.Department as User_Department'
+            )
+            ->orderBy('e.ID')
             ->get();
 
         foreach ($rows as $row) {
-            $user = DB::table('users')
-                ->where('Emp_ID', $row->NIK)
-                ->where('Status', 'ACTIVE')
-                ->first();
-
-            if (!$user) {
+            if (empty($row->User_Id) || strtoupper((string) $row->User_Status) !== 'ACTIVE') {
                 $skippedNoUser++;
                 continue;
             }
 
-            $position = DB::table('master_position')
-                ->where('ID', (int) $row->Position_ID)
-                ->first();
+            $position = $this->matchEmploymentPosition($row);
 
             if (!$position) {
-                $skippedNoUser++;
+                $skippedNoPosition++;
                 continue;
             }
 
             $exists = DB::table('position_assignment')
-                ->where('Position_ID', (int) $row->Position_ID)
-                ->where('User_Id', (int) $user->id)
+                ->where('Position_ID', (int) $position->ID)
+                ->where('User_Id', (int) $row->User_Id)
                 ->where('Status', 'ACTIVE')
                 ->exists();
 
@@ -143,16 +195,16 @@ class OrganizationChartSyncService
             }
 
             DB::table('position_assignment')->insert([
-                'Position_ID' => (int) $row->Position_ID,
-                'User_Id' => (int) $user->id,
-                'Emp_ID' => $user->Emp_ID,
-                'Location' => $position->Location ?: $user->Location,
-                'Company_ID' => $position->Company_ID ?: $user->Company_ID,
-                'Department' => $user->Department ?: $position->Department,
+                'Position_ID' => (int) $position->ID,
+                'User_Id' => (int) $row->User_Id,
+                'Emp_ID' => $row->NIK ?: $row->User_Emp_ID,
+                'Location' => $position->Location ?: ($row->Location ?: $row->User_Location),
+                'Company_ID' => $position->Company_ID ?: $row->User_Company_ID,
+                'Department' => $row->Department ?: ($row->User_Department ?: $position->Department),
                 'Assignment_Type' => 'PRIMARY',
                 'Start_Date' => now()->toDateString(),
                 'Status' => 'ACTIVE',
-                'Created_By' => 'organization-chart-sync',
+                'Created_By' => 'employment-sync',
                 'Created_At' => now(),
             ]);
             $created++;
@@ -162,7 +214,39 @@ class OrganizationChartSyncService
             'created' => $created,
             'skipped_no_user' => $skippedNoUser,
             'skipped_existing' => $skippedExisting,
+            'skipped_no_position' => $skippedNoPosition,
         ];
+    }
+
+    /**
+     * Cocokkan employment.Position (kode posisi) ke master_position.
+     */
+    protected function matchEmploymentPosition($row)
+    {
+        $code = trim((string) $row->Position);
+        $department = trim((string) $row->Department);
+
+        if ($code === '') {
+            return null;
+        }
+
+        $query = DB::table('master_position')
+            ->where(function ($sub) use ($code) {
+                $sub->where('Initial', $code)->orWhere('Position', $code);
+            })
+            ->where(function ($sub) {
+                $sub->whereNull('Status')->orWhere('Status', 'ACTIVE');
+            });
+
+        if ($department !== '') {
+            $query->where(function ($sub) use ($department) {
+                $sub->whereNull('Department')
+                    ->orWhere('Department', '')
+                    ->orWhere('Department', $department);
+            });
+        }
+
+        return $query->orderBy('ID')->first();
     }
 
     public function syncStructure(): array

@@ -42,23 +42,23 @@ if (!in_array($jenisQ, ['MUTATION', 'PROMOTION'])) {
             </div>
             <!-- Toolbar -->
             <div id="STCH_TOOLBAR" class="d-flex flex-wrap align-items-center mb-2">
-                <button type="button" id="STCH_New" class="btn btn-primary mr-2">
-                    <i class="fas fa-plus mr-1"></i> New Data
+                <button type="button" id="STCH_New" class="btn btn-primary me-2">
+                    <i class="fas fa-plus me-1"></i> New Data
                 </button>
-                <button type="button" id="STCH_Detail" class="btn btn-info mr-2">
-                    <i class="fas fa-eye mr-1"></i> Detail Data
+                <button type="button" id="STCH_Detail" class="btn btn-info me-2">
+                    <i class="fas fa-eye me-1"></i> Detail Data
                 </button>
-                <button type="button" id="STCH_Edit" class="btn btn-warning mr-2">
-                    <i class="fas fa-edit mr-1"></i> Edit Data
+                <button type="button" id="STCH_Edit" class="btn btn-warning me-2">
+                    <i class="fas fa-edit me-1"></i> Edit Data
                 </button>
-                <button type="button" id="STCH_Print" class="btn btn-secondary mr-2">
-                    <i class="fas fa-file-pdf mr-1"></i> Print
+                <button type="button" id="STCH_Print" class="btn btn-secondary me-2">
+                    <i class="fas fa-file-pdf me-1"></i> Print
                 </button>
-                <button type="button" id="STCH_Delete" class="btn btn-danger mr-2">
-                    <i class="fas fa-trash mr-1"></i> Hapus Data
+                <button type="button" id="STCH_Delete" class="btn btn-danger me-2">
+                    <i class="fas fa-trash me-1"></i> Hapus Data
                 </button>
                 <button type="button" id="STCH_Refresh" class="btn btn-success">
-                    <i class="fas fa-sync-alt mr-1"></i> Refresh Data
+                    <i class="fas fa-sync-alt me-1"></i> Refresh Data
                 </button>
             </div>
 

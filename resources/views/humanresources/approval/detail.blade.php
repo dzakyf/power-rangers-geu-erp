@@ -4,7 +4,7 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <strong>Task #{{ $task->ID }} - {{ $task->Request_No }}</strong>
-        <span class="badge badge-info">{{ $task->Task_Status }}</span>
+        <span class="badge bg-info text-white badge-info">{{ $task->Task_Status }}</span>
     </div>
     <div class="card-body">
         <div class="row">

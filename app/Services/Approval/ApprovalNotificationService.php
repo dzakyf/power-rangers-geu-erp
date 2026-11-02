@@ -157,6 +157,64 @@ class ApprovalNotificationService
         $today = Carbon::now()->toDateString();
         $recipients = [];
 
+        $position = DB::table('master_position')
+            ->where('ID', (int) $task->Position_ID)
+            ->first();
+
+        // 1. Pemegang posisi dari data kepegawaian (employment) + akun users.
+        if ($position && (!empty($position->Initial) || !empty($position->Position))) {
+            $employment = DB::table('employment as e')
+                ->join('users as u', function ($join) {
+                    $join->on('u.Emp_ID', '=', 'e.NIK')
+                        ->orOn('u.username', '=', 'e.NIK');
+                })
+                ->where('u.Status', 'ACTIVE')
+                ->where(function ($sub) use ($request) {
+                    $sub->where('e.Location', $request->Location)
+                        ->orWhere('u.Location', $request->Location);
+                })
+                ->where(function ($sub) use ($request) {
+                    $sub->where('u.Company_ID', $request->Company_ID)
+                        ->orWhereNull('u.Company_ID')
+                        ->orWhere('u.Company_ID', '');
+                })
+                ->where(function ($sub) {
+                    $sub->whereNull('e.Status')->orWhere('e.Status', 'ACTIVE');
+                })
+                ->where(function ($sub) use ($today) {
+                    $sub->whereNull('e.End_Date')
+                        ->orWhere('e.End_Date', '')
+                        ->orWhere('e.End_Date', '0000-00-00')
+                        ->orWhere('e.End_Date', '>=', $today);
+                })
+                ->where(function ($sub) use ($position) {
+                    $hasCondition = false;
+
+                    if (!empty($position->Initial)) {
+                        $sub->where('e.Position', $position->Initial);
+                        $hasCondition = true;
+                    }
+                    if (!empty($position->Position)) {
+                        if ($hasCondition) {
+                            $sub->orWhere('e.Position', $position->Position);
+                        } else {
+                            $sub->where('e.Position', $position->Position);
+                        }
+                    }
+                });
+
+            if (!empty($position->Department)) {
+                $employment->where(function ($sub) use ($position) {
+                    $sub->whereNull('e.Department')
+                        ->orWhere('e.Department', '')
+                        ->orWhere('e.Department', $position->Department);
+                });
+            }
+
+            $recipients = array_merge($recipients, $employment->distinct()->pluck('u.id')->all());
+        }
+
+        // 2. Assignment aktif (PRIMARY/ACTING) pada posisi dan level yang sama.
         $assignments = DB::table('position_assignment as pa')
             ->join('master_position as mp', 'pa.Position_ID', '=', 'mp.ID')
             ->join('users as u', 'pa.User_Id', '=', 'u.id')
@@ -175,10 +233,36 @@ class ApprovalNotificationService
             ->pluck('u.id')
             ->all();
 
-        if (!empty($assignments)) {
-            $recipients = array_merge($recipients, $assignments);
-        }
+        $recipients = array_merge($recipients, $assignments);
 
+        // 3. Bagan organisasi (organization_structure) sebagai cadangan.
+        $org = DB::table('organization_structure as o')
+            ->join('users as u', function ($join) {
+                $join->on('u.Emp_ID', '=', 'o.NIK')
+                    ->orOn('u.username', '=', 'o.NIK');
+            })
+            ->where('u.Status', 'ACTIVE')
+            ->where('u.Location', $request->Location)
+            ->where(function ($sub) use ($request) {
+                $sub->where('u.Company_ID', $request->Company_ID)
+                    ->orWhereNull('u.Company_ID')
+                    ->orWhere('u.Company_ID', '');
+            })
+            ->whereNotNull('o.NIK')
+            ->where('o.NIK', '<>', '')
+            ->where(function ($sub) use ($task) {
+                $sub->where('o.Position_ID', (int) $task->Position_ID);
+
+                if (!empty($task->Position_Code)) {
+                    $sub->orWhere('o.Position', $task->Position_Code);
+                }
+            })
+            ->pluck('u.id')
+            ->all();
+
+        $recipients = array_merge($recipients, $org);
+
+        // 4. Legacy: sebagian akun lama hanya mengisi users.Position.
         if (!empty($task->Position_Code)) {
             $legacy = DB::table('users')
                 ->where('Status', 'ACTIVE')

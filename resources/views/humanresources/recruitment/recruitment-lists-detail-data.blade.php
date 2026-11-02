@@ -1,4 +1,5 @@
 @include('layout.plugins')
+@include('layout.adminor.tab-head')
 <script src="{{ asset('blockui.js') }}"></script>
 <link rel="stylesheet" type="text/css" href="{{ asset('blockui.css') }}" />
 <?php
@@ -7,436 +8,430 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
-	
-	$LSP = Auth::user()->Location;
-	$Saya =  Auth::user()->username;
-	$priv =  Auth::user()->Priv_ID;
-	$datahasil = DB::table("recruitment")->where("ID",$_GET['ID'])->first();
-	$result = DB::select("SELECT COLUMN_NAME FROM information_schema.columns where TABLE_NAME = 'recruitment' AND TABLE_SCHEMA = 'erp_ksps'");
-	$jumlah = count($result);
-	if ($jumlah > 0) {
-		echo "<script>";
-		
-		foreach ($result as $row) {
-			
-			$kolom = $row->column_name;
-			
-				
-				if ($datahasil->$kolom == '0000-00-00')
-				{
-					echo "$('#$kolom').val('');\n";
-				
-				}else{
-					if($datahasil->$kolom != 'ID'){
-					$dataForm = $datahasil->$kolom;
-					
-					echo "$('#$kolom').val('$dataForm');\n";
-					}
-				}
-			
 
+$LSP = Auth::user()->Location;
+$Saya =  Auth::user()->username;
+$priv =  Auth::user()->Priv_ID;
+$datahasil = DB::table("recruitment")->where("ID", $_GET['ID'])->first();
+$result = DB::select("SELECT COLUMN_NAME FROM information_schema.columns where TABLE_NAME = 'recruitment' AND TABLE_SCHEMA = 'erp_ksps'");
+$jumlah = count($result);
+if ($jumlah > 0) {
+	echo "<script>";
+	foreach ($result as $row) {
+		$kolom = $row->column_name;
+		if ($datahasil->$kolom == '0000-00-00') {
+			echo "$('#$kolom').val('');\n";
+		} else {
+			if ($datahasil->$kolom != 'ID') {
+				$dataForm = $datahasil->$kolom;
+				echo "$('#$kolom').val('$dataForm');\n";
+			}
 		}
-	   echo "</script>";
-
 	}
-	
-		$datapo = DB::table("opportunity_detail")->where("Task_ID",$datahasil->Registration_Status)->first();
-	$datahasil2 = DB::table("recruitment_detail")->where("Task_ID",$datahasil->Task_ID)->first();
-	$Query1 = DB::table("recruitment_akademic")->get();
+	echo "</script>";
+}
 
-	foreach($Query1 as $Fetch1){
-		$akademis[$Fetch1->Task_ID] = $Fetch1->Education_Major;
+$datapo = DB::table("opportunity_detail")->where("Task_ID", $datahasil->Registration_Status)->first();
+$datahasil2 = DB::table("recruitment_detail")->where("Task_ID", $datahasil->Task_ID)->first();
+$Query1 = DB::table("recruitment_akademic")->get();
+
+foreach ($Query1 as $Fetch1) {
+	$akademis[$Fetch1->Task_ID] = $Fetch1->Education_Major;
+}
+$rekusisi = "";
+$pecahin = explode(",", $datahasil->Requisition_ID);
+
+foreach ($pecahin as $pecahreq) {
+	$Requisition = DB::table("requisition")->where("Task_ID", $pecahreq)->first();
+	if ($Requisition && !empty($Requisition->Job_Position)) {
+		$rekusisi .= $Requisition->Job_Position . ",";
 	}
-	$rekusisi = "";
-		$pecahin = explode(",",$datahasil->Requisition_ID);
-		
-		foreach($pecahin as $pecahreq){
-		$Requisition = DB::table("requisition")->where("Task_ID",$pecahreq)->first();
-		$rekusisi .= $Requisition->Job_Position .",";
-		}
-$rekusisi = substr($rekusisi,0,-1);
+}
+$rekusisi = rtrim($rekusisi, ',');
+$ptkNo = $datahasil->Requisition_ID ?? '-';
 ?>
-<div id="fotonya" style="position:absolute;height:113px;width:100px;border:10px solid gray;top:50px;left:86%;"><img height="113" width='100' src="./doc_recruitment/photo/<?php echo $datahasil->Foto?>" id="gambar" onclick="cekFoto('<?php echo $datahasil->Foto?>')"/><br><Br>
-<input type="button" id="gantifoto" value="Change" onclick="uploadGambar('Foto');"/>  </div>
 
-<div id="ContentPages">    		
-<table cellpadding="0" cellspacing="0" width="100%" align="center" style="padding-top:10;" border="0"  class="table table-hover text-vertical-middle mb-0">
-    <tr><td align="center">
-		<table cellpadding="0" cellspacing="0" width="100%" border="0" style="padding:10px">
-    <tr height="30">
-        <td class="badan" width="150">Task ID</td>
-        <td class="badan" width="30">:</td>
-        <td class="badan_kiri" width="250">
-		<input type="hidden" value="<?php echo $datahasil->ID?>" id="ID" readonly="readonly" size="6"/>
-		<input type="hidden" value="<?php echo $datahasil->Foto?>" id="Foto" readonly="readonly" size="6"/>
-            <?php echo $datahasil->Task_ID;?>
-        </td>
-        <td class="badan" width="100">Name</td>
-        <td class="badan" width="30">:</td>
-        <td class="badan_kiri" width="250">
-            <?php echo $datahasil->Name;?>
-        </td>
-    </tr>
-	 <tr height="30">
-       <td class="badan" width="150">Initial</td>
-        <td class="badan" width="30">:</td>
-        <td class="badan_kiri" width="250">
-		<input type="text" id="Initial" size="20" class="form-control-lg" value="<?php echo $datahasil->Initial;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
-        </td>
-        <td class="badan">Religion</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<select id="Religion">
-			<option>ISLAM</option>
-			<option>KRISTEN PROTESTAN</option>
-			<option>KRISTEN KATHOLIK</option>
-			<option>HINDU</option>
-			<option>BUDHA</option>
-			<option>KONGHUCU</option>
-		</select>
-        </td>
-    </tr>
+<div class="container-fluid py-3" id="ContentPages">
+    <input type="hidden" value="<?php echo $datahasil->ID?>" id="ID" readonly="readonly"/>
+    <input type="hidden" value="<?php echo $datahasil->Foto?>" id="Foto" readonly="readonly"/>
 
-    <tr height="30">
-        <td class="badan">Gender</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<select id="Gender">
-			<option value="L">MALE</option>
-			<option value="P">FEMALE</option>
-		</select>
-        </td>
-        
-        <td class="badan">Birth Date &amp; Place </td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<input type="text" id="Birth_Date" size="10" readonly="readonly" class="form-control-lg" value="<?php echo $datahasil->Birth_Date;?>" style="border:none;outline:none;border-bottom:1px solid gray"/> / <input type="text" id="Birth_Place" size="10" class="form-control-lg" value="<?php echo $datahasil->Birth_Place;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
-        </td>
-    </tr>
-	
-    <tr height="30">
-        <td class="badan">Citizen ID Card </td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-				<input type="text" id="KTP" size="20" class="form-control-lg" value="<?php echo $datahasil->KTP;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
-		</td>
-        <td class="badan">Citizenship</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<input type="text" id="kewarganegaraan" size="20" class="form-control-lg" value="<?php echo $datahasil->kewarganegaraan;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
-		</td>
-        </td>
-    </tr>
-    <tr height="30">
-        <td class="badan">Marital Status </td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<select id="Marital_Status">
-			<option>SINGLE</option>
-			<option>MARRIED</option>
-			<option>WIDOW</option>
-			<option>WIDOWER</option>
-		</select>
-        </td>
-        <td class="badan">Last Education </td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<select id="Last_Education">
-			<option>SMA</option>
-			<option>SMK</option>
-			<option>D2</option>
-			<option>D3</option>
-			<option>S1</option>
-			<option>S2</option>
-		</select>
-        </td>
-    </tr>
-    <tr height="30">
-        <td class="badan">Priority Recruitment </td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<select id="Priority">
-			<option>URGENT</option>
-			<option>NORMAL</option>
-		</select>
-            
-        </td>
-        <td class="badan">Date Created </td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Created_Date;?>
-        </td>
-    </tr>
-    <tr height="30">
-        <td class="badan">Address (ID Card)</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<input type="text" id="Address" size="40" class="form-control-lg" value="<?php echo $datahasil->Address;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>,
-		City : <input type="text" id="City" size="10" class="form-control-lg" value="<?php echo $datahasil->City;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>,
-		
-           
-        </td>
-         <td class="badan">Phone Contact</td>
-         <td class="badan">:</td>
-        <td class="badan_kiri">
-		<input type="text" id="Phone" size="20" class="form-control-lg" value="<?php echo $datahasil->Phone;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
-		Whatsapp No  <input type="text" id="Handphone" size="20" class="form-control-lg" value="<?php echo $datahasil->Handphone;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
-        </td>
-	</tr>
-	 <tr height="30">
-        <td class="badan">Address (Live)</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<input type="text" id="Address_Living" size="40" class="form-control-lg" value="<?php echo $datahasil->Address;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>,
-		City : <input type="text" id="Address_Living_City" size="10" class="form-control-lg" value="<?php echo $datahasil->City;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>,
-		
-        </td>
-         <td class="badan" width="100">Blood Type</td>
-        <td class="badan" width="30">:</td>
-        <td class="badan_kiri" width="250">
-		<select id="Blood">
-			<option>A</option>
-			<option>AB</option>
-			<option>B</option>
-			<option>O</option>
-		</select>
-		Rhesus : <select id="Blood_Rhesus">
-			<option>+</option>
-			<option>-</option>
-		</select>
-        </td>
-	</tr>
-    <tr height="30">
-        <td class="badan">Education From</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<input type="text" id="Last_Education_From" size="30" class="form-control-lg" value="<?php echo $datahasil->Last_Education_From;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
-        
-        </td>
-         <td class="badan">Interested Requisition</td>
-         <td class="badan">:</td>
-        <td class="badan_kiri">
-			<input type="text" id="Position" size="30" class="form-control-lg" value="<?php echo $rekusisi;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
+    <!-- Profile & Header Card -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex flex-column flex-md-row align-items-center gap-4">
+                <div class="position-relative text-center">
+                    <div class="rounded-3 overflow-hidden border shadow-sm" style="width: 120px; height: 140px; background-color: #f8f9fa;">
+                        <img src="./doc_recruitment/photo/<?php echo $datahasil->Foto?>" id="gambar" onclick="if(typeof cekFoto === 'function') cekFoto('<?php echo $datahasil->Foto?>')" class="w-100 h-100 object-fit-cover" style="cursor:pointer;" alt="Candidate Photo" onerror="this.src='{{ asset('assets/images/user/big/1.png') }}'">
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" onclick="if(typeof uploadGambar === 'function') uploadGambar('Foto');">
+                        <i class="fa fa-camera me-1"></i> Change
+                    </button>
+                </div>
+                <div class="flex-grow-1 text-center text-md-start">
+                    <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
+                        <h4 class="fw-bold mb-0 text-dark"><?php echo $datahasil->Name ?: 'Unnamed Candidate';?></h4>
+                        @if($datahasil->Priority)
+                            <span class="badge <?php echo $datahasil->Priority == 'URGENT' ? 'bg-danger text-white' : 'bg-secondary text-white'; ?> px-2 py-1">
+                                <?php echo $datahasil->Priority;?>
+                            </span>
+                        @endif
+                    </div>
+                    <div class="row g-2 text-muted small">
+                        <div class="col-sm-6 col-lg-2">
+                            <span class="fw-semibold text-secondary">Task No:</span>
+                            <div class="text-dark fw-bold"><?php echo $datahasil->Task_ID;?></div>
+                        </div>
+                        <div class="col-sm-6 col-lg-2">
+                            <span class="fw-semibold text-secondary">PTK No:</span>
+                            <div class="text-dark fw-bold"><?php echo $ptkNo;?></div>
+                        </div>
+                        <div class="col-sm-6 col-lg-2">
+                            <span class="fw-semibold text-secondary">Interested Position:</span>
+                            <div class="text-dark"><?php echo $rekusisi ?: '-';?></div>
+                        </div>
+                        <div class="col-sm-6 col-lg-2">
+                            <span class="fw-semibold text-secondary">Date Created:</span>
+                            <div class="text-dark"><?php echo $datahasil->Created_Date ?: '-';?></div>
+                        </div>
+                        <div class="col-sm-6 col-lg-2">
+                            <span class="fw-semibold text-secondary">Date Join:</span>
+                            <div class="text-dark"><?php echo !empty($datahasil->Date_in) && $datahasil->Date_in != '0000-00-00' ? date("d M Y", strtotime($datahasil->Date_in)) : '-';?></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        </td>
-	</tr>
-	<tr height="30">
-        <td class="badan">Education Major</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <input type="text" id="Education_Major" size="20" class="form-control-lg" value="<?php echo $datahasil->Education_Major;?>"style="border:none;outline:none;border-bottom:1px solid gray"/>
-        
-        </td>
-        <td class="badan">Email Individual </td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-					<input type="text" id="Email_Individual" size="20" class="form-control-lg" value="<?php echo $datahasil->Email_Individual;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
+    <!-- Section 1: Personal Information -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary text-white py-2">
+            <h6 class="mb-0 fw-bold"><i class="fa fa-user me-2"></i>Personal Information</h6>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Task ID</label>
+                    <input type="text" class="form-control form-control-sm" value="<?php echo $datahasil->Task_ID;?>" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">PTK No (Requisition ID)</label>
+                    <input type="text" class="form-control form-control-sm bg-light fw-bold text-primary" value="<?php echo $ptkNo;?>" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Candidate Name</label>
+                    <input type="text" class="form-control form-control-sm" value="<?php echo $datahasil->Name;?>" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Initial">Initial</label>
+                    <input type="text" id="Initial" class="form-control form-control-sm" value="<?php echo $datahasil->Initial;?>">
+                </div>
 
-        </td>
-    </tr>
-	<tr height="30">
-        <td class="badan">Date Join </td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-				<input type="text" id="Date_in" size="10" readonly="readonly" class="form-control-lg" value="<?php echo  date("d M Y",strtotime($datahasil->Date_in));?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Religion">Religion</label>
+                    <select id="Religion" class="form-select form-select-sm">
+                        <option>ISLAM</option>
+                        <option>KRISTEN PROTESTAN</option>
+                        <option>KRISTEN KATHOLIK</option>
+                        <option>HINDU</option>
+                        <option>BUDHA</option>
+                        <option>KONGHUCU</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Gender">Gender</label>
+                    <select id="Gender" class="form-select form-select-sm">
+                        <option value="L">MALE</option>
+                        <option value="P">FEMALE</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Birth_Date">Birth Date</label>
+                    <input type="text" id="Birth_Date" class="form-control form-control-sm" readonly value="<?php echo $datahasil->Birth_Date;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Birth_Place">Birth Place</label>
+                    <input type="text" id="Birth_Place" class="form-control form-control-sm" value="<?php echo $datahasil->Birth_Place;?>">
+                </div>
 
-        </td>
-        <td class="badan">PTKP</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<select id="PTKP_Status">
-			<option>TK/0</option>
-			<option>K/0</option>
-			<option>K/1</option>
-			<option>K/2</option>
-			<option>K/3</option>
-			<option>K/4</option>
-			<option>K/5</option>
-			<option>K/6</option>
-			<option>K/7</option>
-			<option>K/8</option>
-			<option>TK/0</option>
-			<option>TK/1</option>
-			<option>TK/2</option>
-			<option>TK/3</option>
-			<option>TK/4</option>
-			<option>TK/5</option>
-			<option>TK/6</option>
-			<option>TK/7</option>
-			<option>TK/8</option>
-		</select>
-	  </td>
-    </tr>
-	
-	<tr height="30">
-        <td class="badan">NPWP</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<input type="text" id="NPWP" size="20" class="form-control-lg" value="<?php echo $datahasil->NPWP;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
-            <?php echo $datahasil->NPWP;?>
-        </td>
-        <td class="badan">Payment Method</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Payment_Method;?>
-        </td>
-    </tr>
-	
-	<tr height="30">
-        <td class="badan">Bank Account</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-				<input type="text" id="Payment_Reference" size="20" class="form-control-lg" value="<?php echo $datahasil->Payment_Reference;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="KTP">Citizen ID (KTP)</label>
+                    <input type="text" id="KTP" class="form-control form-control-sm" value="<?php echo $datahasil->KTP;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="kewarganegaraan">Citizenship</label>
+                    <input type="text" id="kewarganegaraan" class="form-control form-control-sm" value="<?php echo $datahasil->kewarganegaraan;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Marital_Status">Marital Status</label>
+                    <select id="Marital_Status" class="form-select form-select-sm">
+                        <option>SINGLE</option>
+                        <option>MARRIED</option>
+                        <option>WIDOW</option>
+                        <option>WIDOWER</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Priority">Priority Recruitment</label>
+                    <select id="Priority" class="form-select form-select-sm">
+                        <option>URGENT</option>
+                        <option>NORMAL</option>
+                    </select>
+                </div>
 
-        </td>
-        <td class="badan">Bank Account No</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-				<input type="text" id="Payment_Reference2" size="20" class="form-control-lg" value="<?php echo $datahasil->Payment_Reference2;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted" for="Address">Address (ID Card)</label>
+                    <input type="text" id="Address" class="form-control form-control-sm" value="<?php echo $datahasil->Address;?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted" for="City">City (ID Card)</label>
+                    <input type="text" id="City" class="form-control form-control-sm" value="<?php echo $datahasil->City;?>">
+                </div>
 
-        </td>
-    </tr>
-	<tr height="30">
-        <td class="badan">Bank Branch</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<input type="text" id="Payment_Reference_Branch" size="20" class="form-control-lg" value="<?php echo $datahasil->Payment_Reference_Branch;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
-        </td>
-        <td class="badan">Bank Account Name</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-		<input type="text" id="Payment_Reference3" size="20" class="form-control-lg" value="<?php echo $datahasil->Payment_Reference3;?>" style="border:none;outline:none;border-bottom:1px solid gray"/>
-      
-        </td>
-    </tr>
-	<tr height="30">
-        <td colspan="6" style="color:#699;background-image:url(hdr_back.gif);">EMPLOYEE JOB DETAIL</td>
-       
-        </td>
-    </tr>
-	<tr height="30">
-        <td class="badan">Division</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Directorat;?>
-        </td>
-        <td class="badan">Alocation</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Alocation;?>
-        </td>
-    </tr>
-	<tr height="30">
-        <td class="badan">Department</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Department;?>
-        </td>
-        <td class="badan">Location</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Location;?>
-        </td>
-    </tr>
-	<tr height="30">
-        <td class="badan">Subsection</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Subsection;?>
-        </td>
-        <td class="badan">Work Area</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Work_Area;?>
-        </td>
-    </tr>
-	<tr height="30">
-        <td class="badan">Employment Type</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Employment_Class;?>
-        </td>
-        <td class="badan">Employee Grade</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Employment_Grade;?>
-        </td>
-    </tr>	
-	<tr height="30">
-        <td colspan="6" style="color:#699;background-image:url(hdr_back.gif);">Interview Result</td>
-       
-        </td>
-    </tr>
-	<tr height="30">
-        <td class="badan">Interview Note</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Interview_Note;?>
-        </td>
-        <td class="badan">Interview Date</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Interview_Date;?>
-        </td>
-    </tr>
-	<tr height="30">
-        <td class="badan">Interview Result</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Interview_Result;?>
-        </td>
-        <td class="badan">Interview By</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->Interview_By;?>
-        </td>
-    </tr>
-	<tr height="30">
-        <td colspan="6" style="color:#699;background-image:url(hdr_back.gif);">User Interview Result</td>
-       
-        </td>
-    </tr>
-	<tr height="30">
-        <td class="badan">Interview Note</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->User_Interview_Note;?>
-        </td>
-        <td class="badan">Interview Date</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->User_Interview_Date;?>
-        </td>
-    </tr>
-	<tr height="30">
-        <td class="badan">Interview Result</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->User_Interview_Result;?>
-        </td>
-        <td class="badan">Interview By</td>
-        <td class="badan">:</td>
-        <td class="badan_kiri">
-            <?php echo $datahasil->User_Interview_By;?>
-        </td>
-    </tr>
-</table>
-</td>
-</tr>
-</table>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted" for="Address_Living">Current Address (Living)</label>
+                    <input type="text" id="Address_Living" class="form-control form-control-sm" value="<?php echo $datahasil->Address_Living ?: $datahasil->Address;?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted" for="Address_Living_City">Current City (Living)</label>
+                    <input type="text" id="Address_Living_City" class="form-control form-control-sm" value="<?php echo $datahasil->City_Living ?: $datahasil->City;?>">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Phone">Phone Contact</label>
+                    <input type="text" id="Phone" class="form-control form-control-sm" value="<?php echo $datahasil->Phone;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Handphone">WhatsApp No</label>
+                    <input type="text" id="Handphone" class="form-control form-control-sm" value="<?php echo $datahasil->Handphone;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Email_Individual">Email Individual</label>
+                    <input type="email" id="Email_Individual" class="form-control form-control-sm" value="<?php echo $datahasil->Email_Individual;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Blood Type / Rhesus</label>
+                    <div class="input-group input-group-sm">
+                        <select id="Blood" class="form-select">
+                            <option>A</option>
+                            <option>AB</option>
+                            <option>B</option>
+                            <option>O</option>
+                        </select>
+                        <select id="Blood_Rhesus" class="form-select" style="max-width: 80px;">
+                            <option>+</option>
+                            <option>-</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Education & Payroll Data -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary text-white py-2">
+            <h6 class="mb-0 fw-bold"><i class="fa fa-graduation-cap me-2"></i>Education & Tax Information</h6>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Last_Education">Last Education</label>
+                    <select id="Last_Education" class="form-select form-select-sm">
+                        <option>SMA</option>
+                        <option>SMK</option>
+                        <option>D2</option>
+                        <option>D3</option>
+                        <option>S1</option>
+                        <option>S2</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Last_Education_From">Education From (Institution)</label>
+                    <input type="text" id="Last_Education_From" class="form-control form-control-sm" value="<?php echo $datahasil->Last_Education_From;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Education_Major">Education Major</label>
+                    <input type="text" id="Education_Major" class="form-control form-control-sm" value="<?php echo $datahasil->Education_Major;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Position">Interested Position</label>
+                    <input type="text" id="Position" class="form-control form-control-sm" value="<?php echo $rekusisi;?>">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Date_in">Date Join</label>
+                    <input type="text" id="Date_in" class="form-control form-control-sm" readonly value="<?php echo !empty($datahasil->Date_in) && $datahasil->Date_in != '0000-00-00' ? date('d M Y', strtotime($datahasil->Date_in)) : '';?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="PTKP_Status">PTKP Status</label>
+                    <select id="PTKP_Status" class="form-select form-select-sm">
+                        <option>TK/0</option>
+                        <option>K/0</option>
+                        <option>K/1</option>
+                        <option>K/2</option>
+                        <option>K/3</option>
+                        <option>TK/1</option>
+                        <option>TK/2</option>
+                        <option>TK/3</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="NPWP">NPWP</label>
+                    <input type="text" id="NPWP" class="form-control form-control-sm" value="<?php echo $datahasil->NPWP;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Payment Method</label>
+                    <input type="text" class="form-control form-control-sm" value="<?php echo $datahasil->Payment_Method;?>" readonly>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Payment_Reference">Bank Name</label>
+                    <input type="text" id="Payment_Reference" class="form-control form-control-sm" value="<?php echo $datahasil->Payment_Reference;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Payment_Reference2">Bank Account No</label>
+                    <input type="text" id="Payment_Reference2" class="form-control form-control-sm" value="<?php echo $datahasil->Payment_Reference2;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Payment_Reference3">Bank Account Name</label>
+                    <input type="text" id="Payment_Reference3" class="form-control form-control-sm" value="<?php echo $datahasil->Payment_Reference3;?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="Payment_Reference_Branch">Bank Branch</label>
+                    <input type="text" id="Payment_Reference_Branch" class="form-control form-control-sm" value="<?php echo $datahasil->Payment_Reference_Branch;?>">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3: Employee Job Detail -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary text-white py-2">
+            <h6 class="mb-0 fw-bold"><i class="fa fa-briefcase me-2"></i>Employee Job Placement Detail</h6>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Division / Directorate</label>
+                    <input type="text" class="form-control form-control-sm bg-light" value="<?php echo $datahasil->Directorat;?>" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Allocation</label>
+                    <input type="text" class="form-control form-control-sm bg-light" value="<?php echo $datahasil->Alocation;?>" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Department</label>
+                    <input type="text" class="form-control form-control-sm bg-light" value="<?php echo $datahasil->Department;?>" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Location</label>
+                    <input type="text" class="form-control form-control-sm bg-light" value="<?php echo $datahasil->Location;?>" readonly>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Subsection</label>
+                    <input type="text" class="form-control form-control-sm bg-light" value="<?php echo $datahasil->Subsection;?>" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Work Area</label>
+                    <input type="text" class="form-control form-control-sm bg-light" value="<?php echo $datahasil->Work_Area;?>" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Employment Type</label>
+                    <input type="text" class="form-control form-control-sm bg-light" value="<?php echo $datahasil->Employment_Class;?>" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Employee Grade</label>
+                    <input type="text" class="form-control form-control-sm bg-light" value="<?php echo $datahasil->Employment_Grade;?>" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 4: HR & User Interview Summary -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-light py-2 border-bottom">
+                    <h6 class="mb-0 fw-bold text-primary"><i class="fa fa-comments me-2"></i>HR Interview Result</h6>
+                </div>
+                <div class="card-body p-3">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">Interview Note</label>
+                        <div class="p-2 rounded bg-light border text-secondary small" style="min-height: 50px;">
+                            <?php echo nl2br(e($datahasil->Interview_Note)) ?: '<em>No note provided</em>';?>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <span class="small text-muted d-block fw-semibold">Date:</span>
+                            <span class="small text-dark"><?php echo $datahasil->Interview_Date ?: '-';?></span>
+                        </div>
+                        <div class="col-4">
+                            <span class="small text-muted d-block fw-semibold">Result:</span>
+                            <span class="badge bg-info text-white"><?php echo $datahasil->Interview_Result ?: '-';?></span>
+                        </div>
+                        <div class="col-4">
+                            <span class="small text-muted d-block fw-semibold">Interviewer:</span>
+                            <span class="small text-dark"><?php echo $datahasil->Interview_By ?: '-';?></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-light py-2 border-bottom">
+                    <h6 class="mb-0 fw-bold text-success"><i class="fa fa-user-check me-2"></i>User Interview Result</h6>
+                </div>
+                <div class="card-body p-3">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">User Interview Note</label>
+                        <div class="p-2 rounded bg-light border text-secondary small" style="min-height: 50px;">
+                            <?php echo nl2br(e($datahasil->User_Interview_Note)) ?: '<em>No note provided</em>';?>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <span class="small text-muted d-block fw-semibold">Date:</span>
+                            <span class="small text-dark"><?php echo $datahasil->User_Interview_Date ?: '-';?></span>
+                        </div>
+                        <div class="col-4">
+                            <span class="small text-muted d-block fw-semibold">Result:</span>
+                            <span class="badge bg-success text-white"><?php echo $datahasil->User_Interview_Result ?: '-';?></span>
+                        </div>
+                        <div class="col-4">
+                            <span class="small text-muted d-block fw-semibold">Interviewer:</span>
+                            <span class="small text-dark"><?php echo $datahasil->User_Interview_By ?: '-';?></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-3 d-flex justify-content-end gap-2">
+            <button type="button" id="buttonSimpan" class="btn btn-primary px-4">
+                <i class="fa fa-save me-1"></i> Save Changes
+            </button>
+        </div>
+    </div>
 </div>
-<div style="padding:10px">
-    <input type="button" id="buttonSimpan" class="btn btn-primary" value="Save">
-</div>
+
 <script>
 var myCalendar;
-myCalendar = new dhtmlXCalendarObject(["Start_Date","End_Date","Date_in","Birth_Date"]);
-myCalendar.setDateFormat("%Y-%m-%d");
-
+if (typeof dhtmlXCalendarObject !== 'undefined') {
+    myCalendar = new dhtmlXCalendarObject(["Start_Date","End_Date","Date_in","Birth_Date"]);
+    myCalendar.setDateFormat("%Y-%m-%d");
+}
 
 $('#buttonSimpan').click(function(){
-    $.blockUI();
-    gettingVars = getAllValues();
+    if (typeof $.blockUI === 'function') $.blockUI();
+    var gettingVars = getAllValues();
     $.ajax({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -444,7 +439,9 @@ $('#buttonSimpan').click(function(){
         url : "recruitment-lists-detail-data-submit?_token={{ csrf_token() }}",
         type: "POST",
         data : gettingVars,
-        complete: function() { $.unblockUI(); },
+        complete: function() { 
+            if (typeof $.unblockUI === 'function') $.unblockUI(); 
+        },
         success: function(data) {
             if (data && data.status === 'success') {
                 alert('Data updated successfully.');
@@ -455,28 +452,26 @@ $('#buttonSimpan').click(function(){
             }
         },
         error: function () {
-            alert( "Error Internal! Please Try again!" );
+            alert("Error Internal! Please Try again!");
         }
     });
-})
+});
 
 function getAllValues() {
-		var inputValues = [];
-		$('#ContentPages input,select,textarea').each(function() {
-			var type = $(this).attr("type");
-			if ((type == "checkbox" || type == "radio") && this.checked) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			}
-			else if (type != "button" || type != "submit") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			 } else if ($this.is("textarea")) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			}
-		})
-		return inputValues.join('&');
+    var inputValues = [];
+    $('#ContentPages input, #ContentPages select, #ContentPages textarea').each(function() {
+        var el = $(this);
+        var id = el.attr("id");
+        if (!id) return;
+        var type = el.attr("type");
+        if ((type === "checkbox" || type === "radio") && this.checked) {
+            inputValues.push(encodeURIComponent(id) + "=" + encodeURIComponent(el.val()));
+        } else if (type !== "button" && type !== "submit") {
+            inputValues.push(encodeURIComponent(id) + "=" + encodeURIComponent(el.val()));
+        } else if (el.is("textarea")) {
+            inputValues.push(encodeURIComponent(id) + "=" + encodeURIComponent(el.val()));
+        }
+    });
+    return inputValues.join('&');
 }
-
-
-
 </script>
-

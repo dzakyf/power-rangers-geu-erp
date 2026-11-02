@@ -9,10 +9,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Services\NotificationService;
 use App\Services\StructureService;
+use App\Services\Approval\ProcurementApprovalService;
 use Mpdf\Mpdf;
 
 class ProcurementController extends Controller
 {
+    protected $approvalService;
+
+    public function __construct(ProcurementApprovalService $approvalService)
+    {
+        $this->approvalService = $approvalService;
+    }
     public function index()
     {
         return view('humanresources.procurement.index');
@@ -114,31 +121,23 @@ class ProcurementController extends Controller
             $getnik = Auth::user()->Emp_ID;
             $dept = Auth::user()->Department;
     
-            $sup = DB::table('supplier')->where("Supplier_ID", $arr['Supplier_ID'])->first();
+            $sup = DB::table('supplier')->where("Supplier_ID", $arr['Supplier_ID'] ?? '')->first();
     
-            $linkkey = Auth::user()->TokenAuth;
-            $getUpper = (new StructureService)->getDirectUpper($getnik);
-            
-            if ($dept != 'HCGA') {
-                $status = "APPROVAL_UPPER";
-            }else {
-                $status = "APPROVAL_GA";
-            }
-            $us = DB::table('users')->where("Emp_ID", $getUpper->upper_nik ?? '')->select("id")->first();
-            $link = 'approvalpr';
-    
-    
-            // $position = DB::table('master_position')->where("");
-            $arr['Status'] = $status;
             $arr['Created_By'] = $Saya;
             $arr['Location'] = $LSP;
-            $arr['Supplier_Name'] = $sup->Company_Name;
+            $arr['Supplier_Name'] = $sup->Company_Name ?? '';
             $arr['Approval_Date'] = now();
             $arr['Creator_Level'] = 1;
             $arr['Reference'] = '';
             $arr['Note'] = '';
             $arr['Approval_Department'] = $dept;
+            $arr['Status'] = 'APPROVAL_PROCESS';
+
+            // Assert bahwa policy approval tersedia untuk PR ini
+            $this->approvalService->assertCanSubmit($arr, Auth::user());
+
             $pr = DB::table('purchase_request')->insertGetId($arr);
+            $arr['ID'] = $pr;
 
             // === MULTI-PRODUCT: Insert dari GridData (JSON) ===
             $gridDataJson = $request->input('GridData');
@@ -190,49 +189,22 @@ class ProcurementController extends Controller
                     'Attachment' => $arr['Attachment'] ?? '',
                 ]);
             }
+            // Submit ke Approval Workflow Engine
+            $approvalReq = $this->approvalService->submit($arr, Auth::user());
+
             try {
                 $arrLog = $arr;
                 $arrLog['Action_By'] = $Saya;
                 $arrLog['Action_Date'] = now();
-                $arrLog['Action_Status'] = "CREATED PR :: WAITING APPROVAL UPPER";
+                $arrLog['Action_Status'] = "CREATED PR :: IN PROGRESS APPROVAL POLICY";
                 $arrLog['Last_ID'] = $pr;
         
                 DB::table('purchase_request_log')->insert($arrLog);
             
                 DB::insert(DB::raw("INSERT INTO purchase_log (Location, Task_ID, Category, Sub_Category, Purchase_Type, Transaction, Status, Remark, Date_Trx, User_Trx) VALUES ('$LSP', '$request->PR_No', '$request->Category', '', '', 'PURCHASE-REQUEST', 'status', '$request->Specification', NOW(), '$Saya')"));
-    
-                echo "success";
             } catch (\Throwable $th) {
                 Log::error($th);
             }
-            
-            // DB::insert(DB::raw("INSERT INTO purchase_request($ax,Status,Created_By,Location,Approval_Date,Creator_Level,Note,Approval_Department) VALUES($isi,'$status','$Saya','$LSP',NOW(),1,'','$dept')"));
-    
-            (new NotificationService)->makeNotification('PR APPROVAL', "PR {$request->PR_No} Need to be Approved", 'approval', Auth::user()->id ?? null, $us->id ?? null);
-    
-            $subjek = "PURCHASE REQUEST APPROVAL REQUEST PR NO $request->PR_No , Request By : $Name";
-            $approvalUrl = url($link) . "?ID={$request->PR_No}&linkkey=$linkkey";
-            $badan = "<div style=\"font-family:arial;font-size:12px;\">Kepada Yth.<br><b>".($getupper->Name ?? '') ." </b><Br><br>
-            
-                        Mohon dilakukan approval untuk Purchase Request tersebut. Berikut Detail PR yang telah dibuat<br>
-                        
-                        No PR : $request->PR_No<br><br>
-                        
-                        
-                        Mohon dilakukan approval untuk Permintaan Purchase Request.
-                        
-                        <br><br>
-                        Anda dapat melakukan approval melalui link berikut ini :<a href='$approvalUrl' >KLIK DISINI</a><br><br>
-                        
-                        
-                        <br><br>
-                        
-                        Terima kasih
-                        GREEN ENERGI UTAMA
-                        
-            </div>";
-            $email = $getupper->Email ?? '';
-            DB::insert(DB::raw("INSERT INTO mail_logs(Email_To,Subject,Contents,Status,Inserted_Date,Send_Date) VALUES('$email','$subjek','$badan','UNSENT',NOW(),NOW())"));
 
             DB::commit();
             echo 'success';

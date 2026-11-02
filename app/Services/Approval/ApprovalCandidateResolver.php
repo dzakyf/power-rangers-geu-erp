@@ -132,102 +132,37 @@ class ApprovalCandidateResolver
 
     public function candidatesForPosition($policy, $position, array $context): array
     {
-        $today = Carbon::now()->toDateString();
         $candidates = [];
+        $today = Carbon::now()->toDateString();
 
-        $assignments = DB::table('position_assignment as pa')
-            ->join('users as u', 'pa.User_Id', '=', 'u.id')
-            ->where('pa.Position_ID', (int) $position->ID)
-            ->where('pa.Status', 'ACTIVE')
-            ->where('u.Status', 'ACTIVE')
-            ->where(function ($query) use ($today) {
-                $query->whereNull('pa.Start_Date')->orWhere('pa.Start_Date', '<=', $today);
-            })
-            ->where(function ($query) use ($today) {
-                $query->whereNull('pa.End_Date')->orWhere('pa.End_Date', '>=', $today);
-            });
-
-        if (!empty($context['Location'])) {
-            $assignments->where('pa.Location', $context['Location']);
-        }
-        if (!empty($context['Company_ID'])) {
-            $assignments->where('pa.Company_ID', $context['Company_ID']);
+        // 1. Sumber utama: employment (data kepegawaian) + users (akun login).
+        //    Karyawan baru cukup diinput sekali di employment; approver langsung
+        //    dikenali tanpa menambah baris position_assignment manual.
+        foreach ($this->employmentHolders($position, $context) as $userId) {
+            $this->addCandidate($candidates, (int) $userId, 'HOLDER', null);
         }
 
-        foreach ($assignments->select('u.id', 'pa.Assignment_Type')->get() as $row) {
-            $type = strtoupper((string) $row->Assignment_Type) === 'ACTING' ? 'ACTING' : 'HOLDER';
-            $this->addCandidate($candidates, (int) $row->id, $type, null);
-        }
-
-        // 2. Direct lookup via employment and users:
-        // When employees are recruited or updated in `employment` and their user account is created in `users`
-        // (linked via users.Emp_ID = employment.NIK or users.username = employment.NIK),
-        // resolve candidates directly if their position matches master_position.
+        // 2. Assignment PRIMARY/SECONDARY dipakai bila employment belum terisi
+        //    (data lama atau masa transisi).
         if (empty($candidates)) {
-            $fromEmployment = DB::table('employment as e')
-                ->join('users as u', function ($join) {
-                    $join->on('u.Emp_ID', '=', 'e.NIK')
-                         ->orOn('u.username', '=', 'e.NIK');
-                })
-                ->where('e.Status', 'ACTIVE')
-                ->where('u.Status', 'ACTIVE')
-                ->where(function ($query) use ($position) {
-                    $query->where('e.Position', $position->Initial)
-                        ->orWhere('e.Position', $position->Position);
-                });
-
-            if (!empty($context['Location'])) {
-                $fromEmployment->where(function ($q) use ($context) {
-                    $q->where('e.Location', $context['Location'])
-                      ->orWhere('u.Location', $context['Location']);
-                });
-            }
-            if (!empty($context['Company_ID'])) {
-                $fromEmployment->where(function ($q) use ($context) {
-                    $q->where('u.Company_ID', $context['Company_ID'])
-                      ->orWhereNull('u.Company_ID');
-                });
-            }
-
-            foreach ($fromEmployment->distinct()->pluck('u.id')->all() as $userId) {
+            foreach ($this->assignmentHolders($position, $context, ['PRIMARY', 'SECONDARY']) as $userId) {
                 $this->addCandidate($candidates, (int) $userId, 'HOLDER', null);
             }
         }
 
-        // 3. Direct lookup via organization_structure:
-        // If the position is represented in organization_structure with an assigned NIK,
-        // resolve user matching that NIK.
+        // 3. Pelaksana tugas (ACTING) selalu ikut sebagai kandidat tambahan.
+        foreach ($this->assignmentHolders($position, $context, ['ACTING']) as $userId) {
+            $this->addCandidate($candidates, (int) $userId, 'ACTING', null);
+        }
+
+        // 4. Bagan organisasi (organization_structure) sebagai sumber cadangan.
         if (empty($candidates)) {
-            $fromOrgStructure = DB::table('organization_structure as os')
-                ->join('users as u', function ($join) {
-                    $join->on('u.Emp_ID', '=', 'os.NIK')
-                         ->orOn('u.username', '=', 'os.NIK');
-                })
-                ->where('u.Status', 'ACTIVE')
-                ->whereNotNull('os.NIK')
-                ->where('os.NIK', '<>', '')
-                ->where(function ($query) use ($position) {
-                    $query->where('os.Position_ID', (int) $position->ID)
-                        ->orWhere('os.Position', $position->Initial)
-                        ->orWhere('os.Position', $position->Position);
-                });
-
-            if (!empty($context['Location'])) {
-                $fromOrgStructure->where('u.Location', $context['Location']);
-            }
-            if (!empty($context['Company_ID'])) {
-                $fromOrgStructure->where(function ($q) use ($context) {
-                    $q->where('u.Company_ID', $context['Company_ID'])
-                      ->orWhereNull('u.Company_ID');
-                });
-            }
-
-            foreach ($fromOrgStructure->distinct()->pluck('u.id')->all() as $userId) {
+            foreach ($this->organizationHolders($position, $context) as $userId) {
                 $this->addCandidate($candidates, (int) $userId, 'HOLDER', null);
             }
         }
 
-        // 4. Legacy fallback: existing users with only users.Position.
+        // 5. Legacy: sebagian akun lama hanya mengisi users.Position.
         if (empty($candidates)) {
             $legacy = DB::table('users')
                 ->where('Status', 'ACTIVE')
@@ -290,6 +225,185 @@ class ApprovalCandidateResolver
         return array_values($candidates);
     }
 
+    /**
+     * Pegawai aktif di employment yang menduduki master_position ini.
+     * Relasi: employment.Position -> master_position.Initial (kode posisi),
+     *         employment.NIK      -> users.Emp_ID (akun login).
+     */
+    protected function employmentHolders($position, array $context): array
+    {
+        if (empty($position->Initial) && empty($position->Position)) {
+            return [];
+        }
+
+        $today = Carbon::now()->toDateString();
+
+        $query = DB::table('employment as e')
+            ->join('users as u', function ($join) {
+                $join->on('u.Emp_ID', '=', 'e.NIK')
+                    ->orOn('u.username', '=', 'e.NIK');
+            })
+            ->where('u.Status', 'ACTIVE')
+            ->where(function ($sub) {
+                $sub->whereNull('e.Status')->orWhere('e.Status', 'ACTIVE');
+            })
+            ->where(function ($sub) use ($today) {
+                $sub->whereNull('e.End_Date')
+                    ->orWhere('e.End_Date', '')
+                    ->orWhere('e.End_Date', '0000-00-00')
+                    ->orWhere('e.End_Date', '>=', $today);
+            })
+            ->where(function ($sub) use ($position) {
+                $this->applyCodeMatch($sub, 'e.Position', $position);
+            });
+
+        if (!empty($position->Department)) {
+            $query->where(function ($sub) use ($position) {
+                $sub->whereNull('e.Department')
+                    ->orWhere('e.Department', '')
+                    ->orWhere('e.Department', $position->Department);
+            });
+        }
+
+        if (!empty($context['Location'])) {
+            $query->where(function ($sub) use ($context) {
+                $sub->where('e.Location', $context['Location'])
+                    ->orWhere('u.Location', $context['Location']);
+            });
+        }
+        if (!empty($context['Company_ID'])) {
+            $query->where(function ($sub) use ($context) {
+                $sub->where('u.Company_ID', $context['Company_ID'])
+                    ->orWhereNull('u.Company_ID')
+                    ->orWhere('u.Company_ID', '');
+            });
+        }
+
+        return $query->distinct()->pluck('u.id')->all();
+    }
+
+    /**
+     * Assignment aktif pada position_assignment (override manual / acting).
+     */
+    protected function assignmentHolders($position, array $context, array $types): array
+    {
+        $today = Carbon::now()->toDateString();
+
+        $query = DB::table('position_assignment as pa')
+            ->join('users as u', 'pa.User_Id', '=', 'u.id')
+            ->where('pa.Position_ID', (int) $position->ID)
+            ->where('pa.Status', 'ACTIVE')
+            ->where('u.Status', 'ACTIVE')
+            ->where(function ($sub) use ($types) {
+                $sub->whereIn('pa.Assignment_Type', $types);
+                if (in_array('PRIMARY', $types, true)) {
+                    $sub->orWhereNull('pa.Assignment_Type')
+                        ->orWhere('pa.Assignment_Type', '');
+                }
+            })
+            ->where(function ($query) use ($today) {
+                $query->whereNull('pa.Start_Date')->orWhere('pa.Start_Date', '<=', $today);
+            })
+            ->where(function ($query) use ($today) {
+                $query->whereNull('pa.End_Date')->orWhere('pa.End_Date', '>=', $today);
+            });
+
+        if (!empty($context['Location'])) {
+            $query->where('pa.Location', $context['Location']);
+        }
+        if (!empty($context['Company_ID'])) {
+            $query->where('pa.Company_ID', $context['Company_ID']);
+        }
+
+        return $query->distinct()->pluck('u.id')->all();
+    }
+
+    /**
+     * Pemegang posisi menurut bagan organisasi (organization_structure).
+     * NIK pada bagan adalah kunci ke users.Emp_ID.
+     */
+    protected function organizationHolders($position, array $context): array
+    {
+        $query = DB::table('organization_structure as o')
+            ->join('users as u', function ($join) {
+                $join->on('u.Emp_ID', '=', 'o.NIK')
+                    ->orOn('u.username', '=', 'o.NIK');
+            })
+            ->where('u.Status', 'ACTIVE')
+            ->whereNotNull('o.NIK')
+            ->where('o.NIK', '<>', '')
+            ->where(function ($sub) use ($position) {
+                $this->applyPositionNodeMatch($sub, $position);
+            });
+
+        if (!empty($position->Department)) {
+            $query->where(function ($sub) use ($position) {
+                $sub->whereNull('o.Department')
+                    ->orWhere('o.Department', '')
+                    ->orWhere('o.Department', $position->Department);
+            });
+        }
+        if (!empty($context['Location'])) {
+            $query->where('u.Location', $context['Location']);
+        }
+        if (!empty($context['Company_ID'])) {
+            $query->where('u.Company_ID', $context['Company_ID']);
+        }
+
+        return $query->distinct()->pluck('u.id')->all();
+    }
+
+    /**
+     * Cocokkan kode posisi (Initial) atau nama posisi pada sebuah kolom.
+     */
+    protected function applyCodeMatch($sub, $column, $position): void
+    {
+        $hasCondition = false;
+
+        if (!empty($position->Initial)) {
+            $sub->where($column, $position->Initial);
+            $hasCondition = true;
+        }
+
+        if (!empty($position->Position)) {
+            if ($hasCondition) {
+                $sub->orWhere($column, $position->Position);
+            } else {
+                $sub->where($column, $position->Position);
+            }
+        }
+    }
+
+    /**
+     * Cocokkan node bagan lewat Position_ID, kode Initial, atau nama posisi.
+     */
+    protected function applyPositionNodeMatch($sub, $position): void
+    {
+        $hasCondition = false;
+
+        if (!empty($position->ID)) {
+            $sub->where('o.Position_ID', (int) $position->ID);
+            $hasCondition = true;
+        }
+
+        if (!empty($position->Initial)) {
+            if ($hasCondition) {
+                $sub->orWhere('o.Position', $position->Initial);
+            } else {
+                $sub->where('o.Position', $position->Initial);
+                $hasCondition = true;
+            }
+        }
+
+        if (!empty($position->Position)) {
+            if ($hasCondition) {
+                $sub->orWhere('o.Position', $position->Position);
+            } else {
+                $sub->where('o.Position', $position->Position);
+            }
+        }
+    }
+
     public function fallbackForPosition($policy, $position, array $context, int $depth = 0): ?array
     {
         if ($depth >= 4) {
@@ -346,27 +460,83 @@ class ApprovalCandidateResolver
 
     protected function organizationParent($position, array $context)
     {
-        if (empty($position->ID)) {
+        if (empty($position->ID) && empty($position->Initial) && empty($position->Position)) {
             return null;
         }
 
         try {
-            $row = DB::table('organization_structure as o')
-                ->join('organization_structure as p', 'p.ID', '=', 'o.Reports_To_Position_ID')
-                ->where('o.Position_ID', (int) $position->ID)
-                ->whereNotNull('p.Position_ID')
-                ->select('p.Position_ID')
+            $node = DB::table('organization_structure')
+                ->where(function ($sub) use ($position) {
+                    $hasCondition = false;
+
+                    if (!empty($position->ID)) {
+                        $sub->where('Position_ID', (int) $position->ID);
+                        $hasCondition = true;
+                    }
+                    if (!empty($position->Initial)) {
+                        if ($hasCondition) {
+                            $sub->orWhere('Position', $position->Initial);
+                        } else {
+                            $sub->where('Position', $position->Initial);
+                            $hasCondition = true;
+                        }
+                    }
+                    if (!empty($position->Position)) {
+                        if ($hasCondition) {
+                            $sub->orWhere('Position', $position->Position);
+                        } else {
+                            $sub->where('Position', $position->Position);
+                        }
+                    }
+                })
+                ->whereNotNull('Reports_To_Position_ID')
+                ->orderBy('ID')
                 ->first();
+
+            if (!$node) {
+                return null;
+            }
+
+            $parentNode = DB::table('organization_structure')
+                ->where('ID', (int) $node->Reports_To_Position_ID)
+                ->first();
+
+            if (!$parentNode) {
+                return null;
+            }
+
+            if (!empty($parentNode->Position_ID)) {
+                return $this->positionById((int) $parentNode->Position_ID, $context);
+            }
+
+            if (empty($parentNode->Position)) {
+                return null;
+            }
+
+            $parent = DB::table('master_position')
+                ->where(function ($sub) use ($parentNode) {
+                    $sub->where('Initial', $parentNode->Position)
+                        ->orWhere('Position', $parentNode->Position);
+                })
+                ->where(function ($sub) {
+                    $sub->whereNull('Status')->orWhere('Status', 'ACTIVE');
+                });
+
+            $this->applyPositionScope($parent, $context);
+
+            if (!empty($parentNode->Department)) {
+                $parent->where(function ($sub) use ($parentNode) {
+                    $sub->whereNull('Department')
+                        ->orWhere('Department', '')
+                        ->orWhere('Department', $parentNode->Department);
+                });
+            }
+
+            return $parent->orderBy('ID')->first();
         } catch (\Throwable $e) {
             // Bagan belum dimigrasi / tabel belum siap: fallback level tetap jalan.
             return null;
         }
-
-        if (!$row) {
-            return null;
-        }
-
-        return $this->positionById((int) $row->Position_ID, $context);
     }
 
     public function higherLevelPositions(int $level, array $context, int $excludeId = null): array

@@ -27,16 +27,16 @@
 
 <div class="card mt-3">
     <div class="card-body">
-        <input type="button" class="btn btn-info mt-2 mr-2" value="Refresh" onclick="ApprovalInboxRefresh();" />
-        <input type="button" class="btn btn-primary mt-2 mr-2" value="Detail" onclick="ApprovalInboxDetail();" />
-        <input type="button" class="btn btn-success mt-2 mr-2" value="Claim" onclick="ApprovalInboxClaim();" />
-        <input type="button" class="btn btn-primary mt-2 mr-2" value="Approve" onclick="ApprovalInboxAct('APPROVE');" />
-        <input type="button" class="btn btn-danger mt-2 mr-2" value="Reject" onclick="ApprovalInboxAct('REJECT');" />
+        <input type="button" class="btn btn-info mt-2 mr-2 me-2" value="Refresh" onclick="ApprovalInboxRefresh();" />
+        <input type="button" class="btn btn-primary mt-2 mr-2 me-2" value="Detail" onclick="ApprovalInboxDetail();" />
+        <input type="button" class="btn btn-success mt-2 mr-2 me-2" value="Claim" onclick="ApprovalInboxClaim();" />
+        <input type="button" class="btn btn-primary mt-2 mr-2 me-2" value="Approve" onclick="ApprovalInboxAct('APPROVE');" />
+        <input type="button" class="btn btn-danger mt-2 mr-2 me-2" value="Reject" onclick="ApprovalInboxAct('REJECT');" />
         @if($isAdmin)
-        <input type="button" class="btn btn-warning mt-2 mr-2" value="Release Claim" onclick="ApprovalInboxRelease();" />
-        <a class="btn btn-secondary mt-2 mr-2" href="hrd-approval-escalation">Escalation Queue</a>
-        <a class="btn btn-dark mt-2 mr-2" href="hrd-approval-policy">Policy Management</a>
-        <a class="btn btn-info mt-2 mr-2" href="hrd-organization-chart">Bagan Organisasi</a>
+        <input type="button" class="btn btn-warning mt-2 mr-2 me-2" value="Release Claim" onclick="ApprovalInboxRelease();" />
+        <a class="btn btn-secondary mt-2 mr-2 me-2" href="hrd-approval-escalation">Escalation Queue</a>
+        <a class="btn btn-dark mt-2 mr-2 me-2" href="hrd-approval-policy">Policy Management</a>
+        <a class="btn btn-info mt-2 mr-2 me-2" href="hrd-organization-chart">Bagan Organisasi</a>
         @endif
     </div>
 </div>
