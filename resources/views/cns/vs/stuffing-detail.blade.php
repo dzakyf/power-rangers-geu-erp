@@ -57,6 +57,83 @@
 </div>
 
 <div class="mt-3">
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">DELIVERY ORDER</div>
+	<div class="card">
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-3 col-12">
+					<div class="form-group">
+						<label>Contract No</label>
+						<input type="text" value="{{ $vs->Contract_No }}" class="form-control bg-white" readonly />
+					</div>
+				</div>
+				<div class="col-md-3 col-12">
+					<div class="form-group">
+						<label>Qty Kontrak (MT)</label>
+						<input type="text" value="{{ $contract ? number_format((float) $contract->Quantity_MT, 3, '.', '') : '-' }}" class="form-control bg-white" readonly />
+					</div>
+				</div>
+				<div class="col-md-6 col-12">
+					<div class="form-group">
+						<label>File DO Saat Ini</label>
+						<div id="currentDeliveryOrder" class="form-control bg-white" style="min-height:38px;height:auto;">
+							@if($deliveryOrder)
+								<a href="{{ asset('filevendor/' . $deliveryOrder->Path) }}" target="_blank" rel="noopener">{{ $deliveryOrder->Filename }}</a>
+							@else
+								Tidak ada DO.
+							@endif
+						</div>
+					</div>
+				</div>
+			</div>
+			<form id="DeliveryOrderForm" enctype="multipart/form-data">
+				<div class="row">
+					<div class="col-md-4 col-12">
+						<div class="form-group">
+							<label for="DO_No">Nomor DO</label>
+							<input type="text" name="DO_No" id="DO_No" value="{{ $vs->DO_No }}" class="form-control shadow-sm" />
+						</div>
+					</div>
+					<div class="col-md-4 col-12">
+						<div class="form-group">
+							<label for="DO_File">Upload DO (PDF/JPG/JPEG)</label>
+							<input type="file" name="DO_File" id="DO_File" class="form-control-file" accept=".pdf,.jpg,.jpeg" />
+							<small class="text-muted">Kosongkan jika hanya ingin mengubah status/catatan. File baru akan mengganti file lama.</small>
+						</div>
+					</div>
+					<div class="col-md-2 col-12">
+						<div class="form-group">
+							<label for="DO_Status">Status Qty</label>
+							<select name="DO_Status" id="DO_Status" class="form-control shadow-sm">
+								<option value="">-- Pilih Status --</option>
+								<option value="KURANG" {{ $vs->DO_Status === 'KURANG' ? 'selected' : '' }}>KURANG</option>
+								<option value="SESUAI" {{ $vs->DO_Status === 'SESUAI' ? 'selected' : '' }}>SESUAI</option>
+								<option value="MELEBIH" {{ $vs->DO_Status === 'MELEBIH' ? 'selected' : '' }}>MELEBIH</option>
+							</select>
+						</div>
+					</div>
+					<div class="col-md-2 col-12">
+						<div class="form-group">
+							<label for="DO_Note">Catatan</label>
+							<input type="text" name="DO_Note" id="DO_Note" value="{{ $vs->DO_Note }}" class="form-control shadow-sm" />
+						</div>
+					</div>
+				</div>
+				<small class="text-muted">Buka file DO untuk membandingkan qty aktual pada DO dengan qty kontrak. Status diisi manual.</small>
+				<div class="mt-3">
+					<button type="submit" id="SaveDeliveryOrder" class="btn btn-success">Simpan DO</button>
+					<small class="text-muted ml-2">
+						Terakhir diubah:
+						{{ $vs->DO_Updated_By ?: '-' }}
+						{{ $vs->DO_Updated_Date ? ' / ' . date('d F Y H:i', strtotime($vs->DO_Updated_Date)) : '' }}
+					</small>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<div class="mt-3">
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">CHECKLIST STATUS PENGIRIMAN</div>
 	<div class="card">
 		<div class="card-body">
@@ -591,6 +668,56 @@
 		});
 	});
 
+	$('#DeliveryOrderForm').on('submit', function(e) {
+		e.preventDefault();
+
+		let formData = new FormData(this);
+		formData.append('_token', '{{ csrf_token() }}');
+		let button = $('#SaveDeliveryOrder');
+
+		button.prop('disabled', true).text('Menyimpan...');
+
+		$.ajax({
+			url: 'cns-stuffing-detail-delivery-order?task={{ $vs->id }}',
+			type: 'POST',
+			data: formData,
+			processData: false,
+			contentType: false,
+			headers: {'Accept': 'application/json'},
+			success: function(response) {
+				alert(response.message || 'Delivery Order berhasil disimpan.');
+
+				if (response.url) {
+					$('#currentDeliveryOrder').html(
+						$('<a>', {
+							href: response.url,
+							target: '_blank',
+							rel: 'noopener'
+						}).text(response.name || 'Lihat Delivery Order')
+					);
+				}
+
+				refreshdataDataLog();
+			},
+			error: function(xhr) {
+				if (xhr.responseJSON && xhr.responseJSON.errors) {
+					let messages = [];
+					Object.keys(xhr.responseJSON.errors).forEach(function(key) {
+						messages.push(xhr.responseJSON.errors[key].join('\n'));
+					});
+					alert(messages.join('\n'));
+				} else if (xhr.responseJSON && xhr.responseJSON.message) {
+					alert(xhr.responseJSON.message);
+				} else {
+					alert('Gagal menyimpan Delivery Order.');
+				}
+			},
+			complete: function() {
+				button.prop('disabled', false).text('Simpan DO');
+			}
+		});
+	});
+
 	$('#SaveStuffingChecklist').on('click', function() {
 		$.ajax({
 			url: 'cns-stuffing-detail-checklist?task={{ $vs->id }}',
@@ -607,6 +734,9 @@
 			success: function(response) {
 				alert(response.message || 'Checklist berhasil disimpan.');
 				refreshdataDataLog();
+				if (typeof refreshdata === 'function') {
+					refreshdata();
+				}
 			},
 			error: function(xhr) {
 				alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menyimpan checklist.');

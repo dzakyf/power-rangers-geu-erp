@@ -5,8 +5,10 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CNS\StuffingContainerRequest;
 use App\Services\CNS\StuffingContainerService;
+use App\Services\CNS\StuffingDeliveryOrderService;
 use App\Services\CNS\StuffingNoteService;
 use App\Services\CNS\StuffingPhotoService;
+use App\Services\CNS\StuffingReportService;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
 use Illuminate\Http\Request;
@@ -18,15 +20,21 @@ class StuffingController extends Controller
     protected $containers;
     protected $notes;
     protected $photos;
+    protected $deliveryOrders;
+    protected $reports;
 
     public function __construct(
         StuffingContainerService $containers,
         StuffingNoteService $notes,
-        StuffingPhotoService $photos
+        StuffingPhotoService $photos,
+        StuffingDeliveryOrderService $deliveryOrders,
+        StuffingReportService $reports
     ) {
         $this->containers = $containers;
         $this->notes = $notes;
         $this->photos = $photos;
+        $this->deliveryOrders = $deliveryOrders;
+        $this->reports = $reports;
     }
 
     public function indexStuffing()
@@ -64,13 +72,15 @@ class StuffingController extends Controller
             ->get();
 
         foreach ($vessels as $key => $vessel) {
-            $warna = "style='background-color: #ffccccff'";
-            if (isset($vsd[$vessel->Order_No])) {
-                if (count($vsd[$vessel->Order_No]) < $vessel->Qty1) {
-                    $warna = "style='background-color: #feffccff'";
-                } elseif (count($vsd[$vessel->Order_No]) == $vessel->Qty1) {
-                    $warna = "style='background-color: #ccffcfff'";
-                }
+            $hasContainers = isset($vsd[$vessel->Order_No]) && count($vsd[$vessel->Order_No]) > 0;
+            $isDone = !empty($vessel->Checklist_Done_Kapal_Berangkat);
+
+            if ($isDone) {
+                $warna = "style='background-color: #ccffcfff'";
+            } elseif ($hasContainers) {
+                $warna = "style='background-color: #feffccff'";
+            } else {
+                $warna = "style='background-color: #ffccccff'";
             }
             echo "<row id=\"$vessel->id\" $warna>";
             echo "<cell>" . ($key + 1) . "</cell>";
@@ -114,13 +124,33 @@ class StuffingController extends Controller
         echo "</rows>";
     }
 
+    public function generateStuffingReport(Request $request)
+    {
+        $schedule = VesselSchedule::where('id', $request->query('task'))->first();
+
+        abort_if(!$schedule, 404);
+
+        $path = $this->reports->generate($schedule);
+        $label = preg_replace('/[^A-Za-z0-9_-]+/', '_', (string) ($schedule->Order_No ?: $schedule->Task_ID));
+        $filename = 'Final_Stuffing_Report_' . trim($label, '_') . '_' . date('Ymd_His') . '.xlsx';
+
+        return response()->download($path, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
+    }
+
     public function detailStuffing(Request $request)
     {
         $vs = VesselSchedule::where('id', $request->task)->first();
 
         abort_if(!$vs, 404);
 
-        return view('cns.vs.stuffing-detail', compact('vs'));
+        $contract = $vs->Contract_ID
+            ? DB::table('cns_buyer_contracts')->where('ID', $vs->Contract_ID)->first()
+            : null;
+        $deliveryOrder = $this->deliveryOrders->forSchedule($vs);
+
+        return view('cns.vs.stuffing-detail', compact('vs', 'contract', 'deliveryOrder'));
     }
 
     public function detailStuffingXml(Request $request)
@@ -301,6 +331,57 @@ class StuffingController extends Controller
         }
 
         return response()->json(['status' => 'success', 'message' => 'Foto berhasil dihapus.']);
+    }
+
+    public function saveDetailDeliveryOrder(Request $request)
+    {
+        $request->validate([
+            'DO_File' => 'nullable|file|mimes:pdf,jpg,jpeg|max:10240',
+            'DO_No' => 'nullable|string|max:150',
+            'DO_Status' => 'nullable|in:KURANG,SESUAI,MELEBIH',
+            'DO_Note' => 'nullable|string|max:1000',
+        ]);
+
+        $schedule = VesselSchedule::where('id', $request->query('task'))->first();
+
+        abort_if(!$schedule, 404);
+
+        if (!$schedule->DO_No && !$request->filled('DO_No')) {
+            return response()->json([
+                'message' => 'Nomor Delivery Order wajib diisi.',
+            ], 422);
+        }
+
+        if (!$schedule->DO_Meta_File_ID && !$request->hasFile('DO_File')) {
+            return response()->json([
+                'message' => 'File Delivery Order wajib diunggah pada penyimpanan pertama.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($request, $schedule) {
+            $this->deliveryOrders->save(
+                $schedule,
+                $request->file('DO_File'),
+                $request->input('DO_No'),
+                $request->input('DO_Status'),
+                $request->input('DO_Note'),
+                auth()->check() ? (string) auth()->user()->username : 'system'
+            );
+
+            $this->containers->writeScheduleLog($schedule, 'DELIVERY ORDER UPDATED');
+        });
+
+        $meta = $this->deliveryOrders->forSchedule($schedule);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Delivery Order berhasil disimpan.',
+            'url' => $this->deliveryOrders->url($meta),
+            'name' => $meta ? $meta->Filename : null,
+            'DO_No' => $schedule->DO_No,
+            'DO_Status' => $schedule->DO_Status,
+            'DO_Note' => $schedule->DO_Note,
+        ]);
     }
 
     public function saveDetailChecklist(Request $request)

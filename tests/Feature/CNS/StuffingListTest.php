@@ -61,6 +61,59 @@ class StuffingListTest extends TestCase
     }
 
     /** @test */
+    public function stuffing_status_is_red_when_not_started(): void
+    {
+        $orderNo = 'TEST-STUFF-STATUS-RED-' . uniqid();
+        $taskId = 'VS/TEST/' . uniqid();
+        $this->makeVesselSchedule($orderNo, $taskId);
+
+        $content = $this->getStuffingXml();
+
+        $this->assertStringContainsString('background-color: #ffccccff', $content);
+    }
+
+    /** @test */
+    public function stuffing_status_is_yellow_when_containers_exist_but_done_is_unchecked(): void
+    {
+        $orderNo = 'TEST-STUFF-STATUS-YELLOW-' . uniqid();
+        $taskId = 'VS/TEST/' . uniqid();
+        $this->makeVesselSchedule($orderNo, $taskId);
+        $this->makeStuffingContainer($taskId, $orderNo, 'TESTU7654322', 'SEAL-YELLOW');
+
+        $content = $this->getStuffingXml();
+
+        $this->assertStringContainsString('background-color: #feffccff', $content);
+        $this->assertStringNotContainsString('background-color: #ccffcfff', $content);
+    }
+
+    /** @test */
+    public function stuffing_status_is_green_when_done_is_checked(): void
+    {
+        $orderNo = 'TEST-STUFF-STATUS-GREEN-' . uniqid();
+        $taskId = 'VS/TEST/' . uniqid();
+        $vs = $this->makeVesselSchedule($orderNo, $taskId);
+        DB::table('vessel_schedules')->where('id', $vs->id)->update(['Checklist_Done_Kapal_Berangkat' => 1]);
+
+        $content = $this->getStuffingXml();
+
+        $this->assertStringContainsString('background-color: #ccffcfff', $content);
+    }
+
+    private function getStuffingXml(): string
+    {
+        $_SERVER['HTTP_ACCEPT'] = 'text/xml';
+
+        ob_start();
+        $response = $this->actingAs($this->testUser())
+            ->get('/xml-cns-stuffing?tgl1=2026-10-01&tgl2=2026-10-01');
+        $content = ob_get_clean();
+
+        $response->assertOk();
+
+        return $content;
+    }
+
+    /** @test */
     public function duplicate_cleanup_removes_identical_schedules_and_preserves_log_references(): void
     {
         $orderNo = 'TEST-STUFF-CLEAN-' . uniqid();
