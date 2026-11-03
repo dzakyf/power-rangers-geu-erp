@@ -143,15 +143,41 @@ class ApprovalInboxController extends Controller
             ->orderBy('l.ID', 'ASC')
             ->get();
 
+        $userId = (int) Auth::id();
         $isAdmin = $this->authorization->isWildcardAdmin(Auth::user());
+        $isMyClaim = ((int) $task->Claimed_By === $userId);
+        $isPending = (strtoupper((string) $task->Task_Status) === 'PENDING');
+        $isCandidate = DB::table('approval_task_candidate')
+            ->where('Task_ID', $taskId)
+            ->where('User_Id', $userId)
+            ->where('Status', 'ACTIVE')
+            ->exists();
 
-        return view('humanresources.approval.detail', compact('task', 'candidates', 'logs', 'isAdmin'));
+        $canAct = ($isMyClaim || ($isPending && $isCandidate) || $isAdmin);
+        $canClaim = ($isPending && ($isCandidate || $isAdmin));
+        $canRelease = ($isAdmin && strtoupper((string) $task->Task_Status) === 'CLAIMED');
+
+        return view('humanresources.approval.detail', compact(
+            'task',
+            'candidates',
+            'logs',
+            'isAdmin',
+            'canAct',
+            'canClaim',
+            'canRelease',
+            'isMyClaim'
+        ));
     }
 
     public function claim(Request $request)
     {
-        return $this->jsonWorkflow(function () use ($request) {
-            $task = $this->workflow->claim((int) $request->input('Task_ID'), (int) Auth::id());
+        $taskId = (int) $request->input('Task_ID');
+        if ($taskId <= 0) {
+            return response()->json(['status' => 'error', 'message' => 'Task ID tidak valid.'], 422);
+        }
+
+        return $this->jsonWorkflow(function () use ($taskId) {
+            $task = $this->workflow->claim($taskId, (int) Auth::id());
 
             return ['message' => 'Task berhasil di-claim.', 'task' => $task];
         });
@@ -161,20 +187,46 @@ class ApprovalInboxController extends Controller
     {
         $action = strtoupper(trim((string) $request->input('Action')));
         $notes = trim((string) $request->input('Notes'));
+        $taskId = (int) $request->input('Task_ID');
 
-        return $this->jsonWorkflow(function () use ($request, $action, $notes) {
-            $task = $this->workflow->act((int) $request->input('Task_ID'), (int) Auth::id(), $action, $notes);
+        if ($taskId <= 0) {
+            return response()->json(['status' => 'error', 'message' => 'Pilih task approval terlebih dahulu.'], 422);
+        }
 
-            return ['message' => 'Keputusan approval tersimpan.', 'task' => $task];
+        return $this->jsonWorkflow(function () use ($taskId, $action, $notes) {
+            $userId = (int) Auth::id();
+
+            $task = DB::table('approval_request_task')->where('ID', $taskId)->first();
+            if (!$task) {
+                throw new ApprovalWorkflowException('Task approval tidak ditemukan.', 'TASK_NOT_FOUND', 404);
+            }
+
+            // Jika status masih PENDING, otomatis claim terlebih dahulu agar user tidak terblokir
+            if (strtoupper((string) $task->Status) === 'PENDING') {
+                $this->workflow->claim($taskId, $userId);
+            }
+
+            $task = $this->workflow->act($taskId, $userId, $action, $notes);
+
+            $message = $action === 'APPROVE'
+                ? 'Permohonan berhasil disetujui (Approved).'
+                : 'Permohonan berhasil ditolak (Rejected).';
+
+            return ['message' => $message, 'task' => $task];
         });
     }
 
     public function release(Request $request)
     {
+        $taskId = (int) $request->input('Task_ID');
         $reason = trim((string) $request->input('Reason'));
 
-        return $this->jsonWorkflow(function () use ($request, $reason) {
-            $task = $this->workflow->release((int) $request->input('Task_ID'), (int) Auth::id(), $reason);
+        if ($taskId <= 0) {
+            return response()->json(['status' => 'error', 'message' => 'Pilih task approval terlebih dahulu.'], 422);
+        }
+
+        return $this->jsonWorkflow(function () use ($taskId, $reason) {
+            $task = $this->workflow->release($taskId, (int) Auth::id(), $reason);
 
             return ['message' => 'Claim berhasil di-release.', 'task' => $task];
         });

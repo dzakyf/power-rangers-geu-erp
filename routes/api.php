@@ -27,5 +27,12 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/attendance/scan', [AttendancesController::class, 'apiScan']);
     Route::put('/attendance/scan/{id}', [AttendancesController::class, 'apiUpdateScan']);
     Route::patch('/attendance/scan/{id}', [AttendancesController::class, 'apiUpdateScan']);
+
+    // Extended Attendance & Timesheet APIs (GPS Geofence, Clock-in/out, Requests)
+    Route::post('/attendance/clock-in', [AttendancesController::class, 'apiClockIn']);
+    Route::post('/attendance/clock-out', [AttendancesController::class, 'apiClockOut']);
+    Route::get('/attendance/timesheet', [AttendancesController::class, 'apiTimesheet']);
+    Route::post('/attendance/request/leave', [AttendancesController::class, 'apiSubmitLeave']);
+    Route::post('/attendance/request/correction', [AttendancesController::class, 'apiSubmitCorrection']);
 });
 

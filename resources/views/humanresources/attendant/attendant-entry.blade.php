@@ -2,106 +2,172 @@
 
 @section('content-wrapper')
     <!-- Main Content Header -->
-    <div class="main-content-header">
-        <h1>Human Resources</h1>
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/dashboard1">Attendant</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <span class="active">Attendant Log</span>
-            </li>
-        </ol>
+    <div class="main-content-header mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="fw-bold mb-1 text-primary"><i class="fa fa-fingerprint me-2"></i>Attendance & Timesheet Entry</h4>
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/dashboard1">Human Resources</a></li>
+                    <li class="breadcrumb-item active">Attendance Log</li>
+                </ol>
+            </div>
+            <div>
+                <a href="{{ route('attendance.mobile.index') }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill shadow-sm me-2">
+                    <i class="fa fa-mobile-screen-button me-1"></i> Preview Mobile Webview
+                </a>
+            </div>
+        </div>
     </div> 
     <!-- End Main Content Header -->
 
-	<!-- Stats Card -->
-	<div class="row">
-		 <div id="AttendantEntry" style="width:auto;height:300px; background-color:white;overflow:hidden"></div>
-			<input type="button" id="ekselPODListDet" name="ekselPODListDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="AttendantEntry.toExcel('./export/generate.php');"  />
-				<input type="button" id="RefreshBM" NAME="RefreshBM" value="Refresh Data"class="btn btn-info mt-2 mr-2" />
-			<input type="button" id="DeleteBM" NAME="DeleteBM" value="Cancel Selected Periode" class="btn btn-danger mt-2 mr-2"  />                
-			<input type="button" id="AddBM" NAME="AddBM" value="Add Periode" class="btn btn-info mt-2 mr-2"/>
-			<input type="button" id="SETLIST" NAME="SETLIST" value="Data Atttendant" class="btn btn-info mt-2 mr-2"/>
+    <!-- Info Stats & Overview -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-primary border-4">
+                <small class="text-muted d-block">Total Periode Aktif</small>
+                <h5 class="fw-bold mb-0 text-dark" id="stat-total-period">Memuat...</h5>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-success border-4">
+                <small class="text-muted d-block">Status Kehadiran Hari Ini</small>
+                <h5 class="fw-bold mb-0 text-success"><i class="fa fa-circle-check me-1"></i>Aktif</h5>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted d-block">Panduan Cepat</small>
+                        <span class="small text-secondary">Pilih baris pada tabel periode, lalu klik <strong>Buka Rincian Harian</strong> untuk mengisi jam masuk/pulang.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-		</div>
+    <!-- Panel Grid Periode Absensi -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center">
+                <div class="bg-primary text-white p-2 rounded-3 me-2">
+                    <i class="fa fa-calendar-alt"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0">Daftar Periode Absensi Karyawan</h6>
+                    <small class="text-muted">Kelola rekap log absensi per bulan</small>
+                </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" id="AddBM" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                    <i class="fa fa-plus-circle me-1"></i> Buat Periode Baru
+                </button>
+                <button type="button" id="SETLIST" class="btn btn-info text-white btn-sm rounded-pill px-3 shadow-sm">
+                    <i class="fa fa-folder-open me-1"></i> Buka Rincian Harian
+                </button>
+                <button type="button" id="RefreshBM" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+                    <i class="fa fa-rotate me-1"></i> Refresh
+                </button>
+                <button type="button" id="ekselPODListDet" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm" onclick="AttendantEntry.toExcel('./export/generate.php');">
+                    <i class="fa fa-file-excel me-1"></i> Export Excel
+                </button>
+                <button type="button" id="DeleteBM" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm">
+                    <i class="fa fa-trash-can me-1"></i> Batalkan Periode
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-3">
+            <div id="AttendantEntry" style="width:100%;height:320px;background-color:white;border-radius:8px;overflow:hidden;border:1px solid #e9ecef;"></div>
+        </div>
+    </div>
 
-		<div id="AttendantEntryDiv"></div>
+    <!-- Container Rincian Harian (Loaded via Ajax LoadM) -->
+    <div id="AttendantEntryDiv"></div>
 
-
-	
-	</div>
 <script>
-
-
-
-
-
 AttendantEntry = new dhtmlXGridObject('AttendantEntry');
 AttendantEntry.setImagePath("./dhtmlx/imgs/");
-AttendantEntry.setHeader("No,Task No,NIK,Name,Periode,Status,Created By,Created Date");
-AttendantEntry.setInitWidths("80,130,150,250,100,100,100,100,100");
-AttendantEntry.setColAlign("center,left,left,center,left,center,left,center,center,center");
+AttendantEntry.setHeader("No,Task No,NIK,Nama Karyawan,Periode,Status,Dibuat Oleh,Tanggal Dibuat");
+AttendantEntry.setInitWidths("60,160,140,220,110,120,130,*");
+AttendantEntry.setColAlign("center,left,left,left,center,center,left,center");
 AttendantEntry.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
-AttendantEntry.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
+AttendantEntry.setColSorting("int,str,str,str,str,str,str,str");
 AttendantEntry.setEditable(false);
 AttendantEntry.setSkin("dhx_skyblue");
+
 PAttendantEntry = new dataProcessor("attendant-entry-update");
-	PAttendantEntry.setTransactionMode({
-     mode: "POST",
-	  total:true,
-      headers:{
+PAttendantEntry.setTransactionMode({
+    mode: "POST",
+    total: true,
+    headers: {
         'X-CSRF-TOKEN': "{{ csrf_token() }}"
-      }	,
-	  
-    })
+    }
+});
 PAttendantEntry.setUpdateMode("Off");
 PAttendantEntry.init(AttendantEntry);
 AttendantEntry.init();
-	Reload_AttendantEntry();
+
+Reload_AttendantEntry();
 
 function Reload_AttendantEntry(){
-	AttendantEntry.clearAndLoad("xml-attendant-entry");	
-
+    AttendantEntry.clearAndLoad("xml-attendant-entry", function() {
+        var count = AttendantEntry.getRowsNum();
+        document.getElementById('stat-total-period').innerText = count + ' Periode';
+    });
 }
 
+// Double click langsung buka rincian
+AttendantEntry.attachEvent("onRowDblClicked", function(rId, cInd){
+    var AttendantID = AttendantEntry.cells(rId, 1).getValue();
+    if(AttendantID) {
+        LoadM('AttendantEntryDiv', 'attendant-entry-lists?ID=' + AttendantID);
+        $('html, body').animate({
+            scrollTop: $("#AttendantEntryDiv").offset().top - 80
+        }, 400);
+    }
+});
+
 $("#DeleteBM").click(function(){
-		AttendantEntry.deleteSelectedRows();
-		PAttendantEntry.sendData();
-		alert("Data were deleted!");
-		Reload_AttendantEntry();
-
-		
+    var selectedId = AttendantEntry.getSelectedId();
+    if(!selectedId) {
+        alert("Pilih baris periode yang ingin dibatalkan terlebih dahulu.");
+        return;
+    }
+    if(confirm("Apakah Anda yakin ingin membatalkan periode absensi terpilih?")) {
+        AttendantEntry.deleteSelectedRows();
+        PAttendantEntry.sendData();
+        Reload_AttendantEntry();
+    }
 });
+
 $("#AddBM").click(function(){
-		$.blockUI();
-		var idbi =AttendantEntry.uid();
-		AttendantEntry.addRow(idbi,[AttendantEntry.getRowsNum()+1,''],0);
-		AttendantEntry.selectRow(0);
-		PAttendantEntry.sendData();
-		setTimeout(function(){
-			$.unblockUI();
-			alert("Task Created! Double Click on the Task for entry detail");
-			Reload_AttendantEntry();
-		},2000);
-		
+    $.blockUI({ message: '<h6><i class="fa fa-spinner fa-spin me-2"></i>Membuat Periode Absensi...</h6>' });
+    var idbi = AttendantEntry.uid();
+    AttendantEntry.addRow(idbi, [AttendantEntry.getRowsNum()+1, ''], 0);
+    AttendantEntry.selectRow(0);
+    PAttendantEntry.sendData();
+    setTimeout(function(){
+        $.unblockUI();
+        Reload_AttendantEntry();
+    }, 1500);
 });
-
 
 $("#RefreshBM").click(function(){
-	Reload_AttendantEntry();		
+    Reload_AttendantEntry();        
 });
-
-
-
 
 $("#SETLIST").click(function(){
-	AttendantID  = AttendantEntry.cells(AttendantEntry.getSelectedId(),1).getValue();
-	LoadM('AttendantEntryDiv','attendant-entry-lists?ID=' + AttendantID);
-		
+    var selectedId = AttendantEntry.getSelectedId();
+    if(!selectedId) {
+        alert("Silakan pilih baris periode pada tabel terlebih dahulu.");
+        return;
+    }
+    var AttendantID = AttendantEntry.cells(selectedId, 1).getValue();
+    LoadM('AttendantEntryDiv', 'attendant-entry-lists?ID=' + AttendantID);
+    $('html, body').animate({
+        scrollTop: $("#AttendantEntryDiv").offset().top - 80
+    }, 400);
 });
-
-
 </script>
 
 @endsection
