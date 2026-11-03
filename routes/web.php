@@ -5385,6 +5385,7 @@ Route::group(['middleware' => 'log.access'], function () {
     $stuffPref = "cns-stuffing";
     Route::get("$stuffPref", [CNSStuffingController::class, "indexStuffing"]);
     Route::get("xml-$stuffPref", [CNSStuffingController::class, "indexStuffingXml"]);
+    Route::get("$stuffPref-report", [CNSStuffingController::class, "generateStuffingReport"]);
     Route::get("$stuffPref-detail", [CNSStuffingController::class, "detailStuffing"]);
     Route::get("xml-$stuffPref-detail", [CNSStuffingController::class, "detailStuffingXml"]);
     Route::get("$stuffPref-detail-data", [CNSStuffingController::class, "detailStuffingData"]);
@@ -5392,6 +5393,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$stuffPref-detail-delete", [CNSStuffingController::class, "deleteDetailStuffing"]);
     Route::post("$stuffPref-detail-photo-delete", [CNSStuffingController::class, "deleteDetailPhoto"]);
     Route::post("$stuffPref-detail-checklist", [CNSStuffingController::class, "saveDetailChecklist"]);
+    Route::post("$stuffPref-detail-delivery-order", [CNSStuffingController::class, "saveDetailDeliveryOrder"]);
     Route::get("$stuffPref-detail-note-info", [CNSStuffingController::class, "detailNoteInfo"]);
     Route::get("$stuffPref-detail-note", [CNSStuffingController::class, "detailNote"]);
 

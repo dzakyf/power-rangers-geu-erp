@@ -102,6 +102,14 @@
   .sig-title { font-size: 7.5pt; }
 </style>
 
+@php
+  $v = $print['values'];
+  $shipper = $print['shipper'];
+  $consignee = $print['consignee'];
+  $notify = $print['notify'];
+  $destination = $print['destination'];
+@endphp
+
 {{-- =====================================================
      WRAPPER — padding kiri kanan mengikuti margin mPDF
      ===================================================== --}}
@@ -114,14 +122,16 @@
     <tr>
       {{-- Logo --}}
       <td width="28mm" style="border-right:1px solid #000;padding:6px;text-align:center;vertical-align:middle;">
-        <img src="{{ $companies[$shipment->Shipper]->Logo }}" alt="Logo" width="65px" height="65px">
+        @if(!empty($shipper['logo_data_uri']))
+          <img src="{{ $shipper['logo_data_uri'] }}" alt="Logo" width="65px" height="65px">
+        @endif
       </td>
       {{-- Heading + Meta --}}
       <td style="vertical-align:top;">
         <table width="100%" cellspacing="0" cellpadding="0">
           <tr>
             <td colspan="4" class="title-heading">
-              {{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? 'FINAL ' : '' }}SHIPPING INSTRUCTION
+              SHIPPING INSTRUCTION ({{ $v['status_label'] }})
             </td>
           </tr>
           <tr>
@@ -153,9 +163,9 @@
           </tr>
           <tr>
             <td style="padding:5px 6px;font-size:8pt;line-height:1.6;height:20mm;vertical-align:top;">
-              {{ $companies[$shipment->Shipper]->Company_Name }}<br>
-              {{ $companies[$shipment->Shipper]->Address }}<br>
-              {{ $companies[$shipment->Shipper]->City }}
+              {!! nl2br(e($shipper['name'])) !!}<br>
+              {!! nl2br(e($shipper['address'])) !!}<br>
+              {!! nl2br(e($shipper['city'])) !!}
             </td>
           </tr>
         </table>
@@ -168,9 +178,9 @@
           </tr>
           <tr>
             <td style="padding:5px 6px;font-size:8pt;line-height:1.6;height:20mm;vertical-align:top;">
-              {{ $companies[$shipment->Consignee]->Company_Name }}<br>
-              {{ $companies[$shipment->Consignee]->Address }}<br>
-              {{ $companies[$shipment->Consignee]->City }}
+              {!! nl2br(e($consignee['name'])) !!}<br>
+              {!! nl2br(e($consignee['address'])) !!}<br>
+              {!! nl2br(e($consignee['city'])) !!}
             </td>
           </tr>
         </table>
@@ -183,9 +193,9 @@
           </tr>
           <tr>
             <td style="padding:5px 6px;font-size:8pt;line-height:1.6;height:20mm;vertical-align:top;">
-              {{ $companies[$shipment->Notify]->Company_Name }}<br>
-              {{ $companies[$shipment->Notify]->Address }}<br>
-              {{ $companies[$shipment->Notify]->City }}
+              {!! nl2br(e($notify['name'])) !!}<br>
+              {!! nl2br(e($notify['address'])) !!}<br>
+              {!! nl2br(e($notify['city'])) !!}
             </td>
           </tr>
         </table>
@@ -195,15 +205,15 @@
               style="border:1px solid #000;border-collapse:collapse;">
           <tr>
             <td style="font-weight:bold;font-size:7.5pt;padding:3px 6px;width:38mm;white-space:nowrap;">B/L No</td>
-            <td style="font-size:7.5pt;padding:3px 6px;">{{ $shipment->BL_No }}</td>
+            <td style="font-size:7.5pt;padding:3px 6px;">{{ $v['bl_no'] }}</td>
           </tr>
           <tr>
             <td style="font-weight:bold;font-size:7.5pt;padding:3px 6px;white-space:nowrap;">Port of Loading</td>
-            <td style="font-size:7.5pt;padding:3px 6px;">{{ $shipment->POL }}</td>
+            <td style="font-size:7.5pt;padding:3px 6px;">{{ $v['pol'] }}</td>
           </tr>
           <tr>
             <td style="font-weight:bold;font-size:7.5pt;padding:3px 6px;white-space:nowrap;">Port of Discharge</td>
-            <td style="font-size:7.5pt;padding:3px 6px;">{{ $shipment->POD }}</td>
+            <td style="font-size:7.5pt;padding:3px 6px;">{{ $v['pod'] }}</td>
           </tr>
         </table>
   
@@ -217,30 +227,30 @@
               style="border:1px solid #000;border-collapse:collapse;margin-bottom:4px;">
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">
-              {{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? 'Final ' : '' }}SI No.
+              {{ $print['is_final'] ? 'Final ' : '' }}SI No.
             </td>
             <td class="fval" style="border-bottom:1px solid #000;">
-              {{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? $shipment->Final_SI_No : $shipment->SI_No }}
+              {{ $v['si_no'] }}
             </td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Date</td>
-            <td class="fval" style="border-bottom:1px solid #000;">{{ date('F, d Y', strtotime($shipment->SI_Date)) }}</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $v['si_date'] }}</td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;vertical-align:top;padding-top:5px;">To</td>
             <td class="fval" style="border-bottom:1px solid #000;vertical-align:top;padding-top:5px;height:14mm;">
-              {{ $companies[$shipment->Destination_Letter]->Company_Name }}<br>
-              {{ $companies[$shipment->Destination_Letter]->Address }}
+              {!! nl2br(e($destination['name'])) !!}<br>
+              {!! nl2br(e($destination['address'])) !!}
             </td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Terms of Delivery</td>
-            <td class="fval" style="border-bottom:1px solid #000;">{{ $shipment->Delivery_Terms }}</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $v['delivery_terms'] }}</td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;">Contract No</td>
-            <td class="fval">{{ $shipment->Contract_No }}</td>
+            <td class="fval">{{ $v['contract_no'] }}</td>
           </tr>
         </table>
   
@@ -249,35 +259,35 @@
               style="border:1px solid #000;border-collapse:collapse;margin-bottom:4px;">
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Shipped by</td>
-            <td class="fval" style="border-bottom:1px solid #000;">{{ $shipment->Shipped_By }}</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $v['shipped_by'] }}</td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Voyage</td>
-            <td class="fval" style="border-bottom:1px solid #000;">{{ $shipment->Voyage }}</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $v['voyage'] }}</td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">ETD</td>
-            <td class="fval" style="border-bottom:1px solid #000;">{{ date('F, d Y', strtotime($shipment->ETD)) }}</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $v['etd'] }}</td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">ETA</td>
-            <td class="fval" style="border-bottom:1px solid #000;">{{ date('F, d Y', strtotime($shipment->ETA)) }}</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $v['eta'] }}</td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Stuffing date</td>
-            <td class="fval" style="border-bottom:1px solid #000;">{{ date('F, d Y', strtotime($shipment->Stuffing)) }}</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $v['stuffing'] }}</td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">PEB</td>
-            <td class="fval" style="border-bottom:1px solid #000;">{{ $shipment->PEB }}</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $v['peb_no'] }}</td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Date PEB</td>
-            <td class="fval" style="border-bottom:1px solid #000;">{{ date('F, d Y', strtotime($shipment->PEB_Date)) }}</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $v['peb_date'] }}</td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;">Quantity</td>
-            <td class="fval">{{ $shipment->Qty }}</td>
+            <td class="fval">{{ $v['quantity'] }}</td>
           </tr>
         </table>
   
@@ -285,7 +295,7 @@
         <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
           <tr>
             <td style="font-size:7.5pt;padding:2px 0;">
-              A.&nbsp;&nbsp;&nbsp;{{ Str::contains($shipment->Qty2, 'FT') ? 'Good, Clean and Suitable for Flexibag' : 'Good and Clean' }}
+              A.&nbsp;&nbsp;&nbsp;{{ Str::contains(strtoupper($v['package_type']), 'FT') ? 'Good, Clean and Suitable for Flexibag' : 'Good and Clean' }}
             </td>
           </tr>
         </table>
@@ -340,24 +350,24 @@
             SHIPPING MARK: FREIGHT PREPAID<br>
             SHIPPED ON BOARD<br>
             <span class="red">
-              {{ number_format($mt, 2, ',', '.') }} MT {{ strtoupper($shipment->Product_Name) }}<br>
-              {{ Str::contains($shipment->Qty2, 'FT') ? 'PACKING IN FLEXIBAG' : '' }}
+              {{ number_format($mt, 2, ',', '.') }} MT {{ strtoupper($v['product_name']) }}<br>
+              {{ Str::contains(strtoupper($v['package_type']), 'FT') ? 'PACKING IN FLEXIBAG' : '' }}
             </span><br>
             GW {{ number_format($gross, 0, ',', '.') }} KGS<br>
             NW {{ number_format($netto, 0, ',', '.') }} KGS<br>
-            HS Code : {{ $shipment->HS_Code }}<br>
+            HS Code : {{ $v['hs_code'] }}<br>
             COUNTRY OF ORIGIN: INDONESIA
           </div>
         </td>
         <td class="td-data" style="border-right:1px solid #000;vertical-align:middle;">
           <div class="desc-cell">
             <span class="bold-red">
-              {{ number_format($mt, 2, ',', '.') }} MT {{ strtoupper($shipment->Product_Name) }}
-              &nbsp;{{ Str::contains($shipment->Qty2, 'FT') ? 'PACKING IN FLEXIBAG' : '' }}
+              {{ number_format($mt, 2, ',', '.') }} MT {{ strtoupper($v['product_name']) }}
+              &nbsp;{{ Str::contains(strtoupper($v['package_type']), 'FT') ? 'PACKING IN FLEXIBAG' : '' }}
             </span><br>
             GW {{ number_format($gross, 0, ',', '.') }} KGS<br>
             NW {{ number_format($netto, 0, ',', '.') }} KGS<br>
-            HS Code : {{ $shipment->HS_Code }}<br>
+            HS Code : {{ $v['hs_code'] }}<br>
             COUNTRY OF ORIGIN: INDONESIA
           </div>
         </td>
