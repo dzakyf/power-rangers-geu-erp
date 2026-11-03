@@ -3658,6 +3658,22 @@ Route::group(['middleware' => 'log.access'], function () {
     });
     Route::get('/attendant-data', [\App\Http\Controllers\HCGA\AttendancesController::class, 'index']);
     Route::get('/xml-attendant-data', [\App\Http\Controllers\HCGA\AttendancesController::class, 'indexXml']);
+
+    // Web Desktop Portal Attendance, Leave & Approval Tracking
+    Route::get('/attendance-portal', [\App\Http\Controllers\HCGA\AttendancesController::class, 'portalIndex'])->name('attendance.portal');
+    Route::get('/attendance/portal', [\App\Http\Controllers\HCGA\AttendancesController::class, 'portalIndex']); // Alias fallback
+    Route::get('/attendance/approval-progress/{id}', [\App\Http\Controllers\HCGA\AttendancesController::class, 'getApprovalProgress'])->name('attendance.approval.progress');
+    Route::post('/attendance/admin/reset', [\App\Http\Controllers\HCGA\AttendancesController::class, 'resetAttendance'])->name('attendance.admin.reset');
+    Route::post('/attendance/request/correction', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiSubmitCorrection'])->name('attendance.request.correction');
+
+    // Mobile Webview Attendance & Timesheet
+    Route::get('/attendance/mobile', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileIndex'])->name('attendance.mobile.index');
+    Route::get('/attendance/mobile/timesheet', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileTimesheet'])->name('attendance.mobile.timesheet');
+    Route::get('/attendance/mobile/leave', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileLeaveForm'])->name('attendance.mobile.leave');
+    Route::post('/attendance/mobile/clock-in', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiClockIn'])->name('attendance.mobile.clockin');
+    Route::post('/attendance/mobile/clock-out', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiClockOut'])->name('attendance.mobile.clockout');
+    Route::post('/attendance/mobile/request/leave', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiSubmitLeave'])->name('attendance.mobile.submitleave');
+    Route::post('/attendance/mobile/request/correction', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiSubmitCorrection'])->name('attendance.mobile.submitcorrection');
     Route::get('/permission-approval', function () {
         return view('humanresources.permission.approval');
     });

@@ -43,6 +43,11 @@ $ApprovedPtk = DB::table('requisition')
 	->select('ID', 'Task_ID', 'Job_Position', 'Department', 'Location')
 	->orderBy('Job_Position', 'ASC')
 	->get();
+
+// Ambil daftar posisi dari master_position untuk pilihan posisi standar
+$MasterPositions = DB::table('master_position')
+	->orderBy('Position', 'ASC')
+	->get(['ID', 'Position', 'Department', 'Directorat']);
 ?>
 
 @extends('layout.mainlayout-hrd')
@@ -75,7 +80,7 @@ $ApprovedPtk = DB::table('requisition')
 				<span id="RecColMsg" class="ms-2 text-success fw-bold small"></span>
 			</div>
 			<div>
-				<button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleMultiSelectMode()">
+				<button type="button" class="btn btn-sm btn-outline-info" onclick="toggleMultiSelectMode()">
 					<i class="fa fa-check-square-o me-1"></i> <span id="btnSelectModeText">Enable Multi-Select</span>
 				</button>
 			</div>
@@ -105,12 +110,25 @@ $ApprovedPtk = DB::table('requisition')
 	</div>
 </div>
 
-<div class="card shadow border-0">
-	<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3">
-		<h5 class="card-title mb-0 text-white font-weight-bold"><i class="fa fa-users me-2"></i>Data Management Candidates</h5>
-		<span class="badge bg-light text-dark">
-			<i class="fa fa-info-circle me-1"></i> Dobel klik baris untuk detail &middot; Gunakan Ctrl / Shift + Klik untuk multi-pilih baris
-		</span>
+<div class="card shadow-sm border mb-3">
+	<div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 px-3">
+		<div class="d-flex align-items-center gap-2">
+			<h5 class="card-title mb-0 text-dark font-weight-bold"><i class="fa fa-users text-primary me-2"></i>Data Management Candidates</h5>
+			<span class="badge bg-success text-white ms-2" id="headerSelectedBadge" style="display:none; font-size:12px; font-weight: 500;">0 dipilih</span>
+		</div>
+		<div class="d-flex align-items-center flex-wrap gap-2">
+			<div class="btn-group">
+				<button type="button" class="btn btn-sm btn-outline-primary fw-medium" onclick="selectAllRows()" title="Pilih semua data di grid">
+					<i class="fa fa-check-square me-1"></i> Pilih Semua
+				</button>
+				<button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllRows()" title="Hapus semua seleksi">
+					<i class="fa fa-square-o me-1"></i> Batal Pilih
+				</button>
+			</div>
+			<span class="badge bg-light text-secondary border py-2 px-2 d-none d-md-inline-block" style="font-weight: normal; font-size: 11px;">
+				<i class="fa fa-info-circle text-info me-1"></i> Dobel klik baris untuk detail &middot; Ctrl / Shift + Klik multi-pilih
+			</span>
+		</div>
 	</div>
 	<div class="card-body p-0">
 		<div id="RecruitmentLists" style="width:100%;height:460px; background-color:white;overflow:hidden;border:1px solid #ced4da;"></div>
@@ -180,12 +198,25 @@ $ApprovedPtk = DB::table('requisition')
 					<small class="form-text text-muted">Secara otomatis akan menghubungkan kandidat ke Requisition PTK ini.</small>
 				</div>
 
-				<div class="text-center my-2 text-muted font-italic">- ATAU INPUT POSISI MANUAL -</div>
+				<div class="text-center my-2 text-muted font-italic">- ATAU PILIH DARI MASTER POSISI STANDAR -</div>
 
 				<div class="form-group mb-3">
-					<label class="form-label font-weight-bold text-dark">Nama Posisi Manual:</label>
+					<label class="form-label font-weight-bold text-dark">Pilih dari Master Posisi:</label>
+					<select id="selectMasterPosition" class="form-control" onchange="onMasterPosSelectChange()">
+						<option value="">-- Pilih Posisi dari master_position --</option>
+						@foreach($MasterPositions as $mpos)
+						<option value="{{ $mpos->Position }}">
+							{{ $mpos->Position }} @if($mpos->Department) [{{ $mpos->Department }}] @endif
+						</option>
+						@endforeach
+					</select>
+					<small class="form-text text-muted">Data ditarik langsung dari master_position untuk memastikan standarisasi jabatan.</small>
+				</div>
+
+				<div class="form-group mb-3">
+					<label class="form-label font-weight-bold text-dark">Ketik Posisi Manual (Kustom):</label>
 					<input type="text" id="inputCustomPosition" class="form-control" placeholder="Contoh: Staff Accounting" oninput="onCustomPosInput()">
-					<small class="form-text text-muted">Gunakan jika posisi tidak terkait langsung dengan nomor PTK yang terdaftar.</small>
+					<small class="form-text text-muted">Gunakan jika posisi baru belum terdaftar di PTK maupun master_position.</small>
 				</div>
 			</div>
 			<div class="modal-footer">
@@ -202,13 +233,6 @@ $ApprovedPtk = DB::table('requisition')
 
 <!-- Custom CSS - Kontras & Header dhtmlxGrid -->
 <style>
-	.card-header.bg-primary {
-		background-color: #0d6efd !important;
-		color: #ffffff !important;
-	}
-	.card-header.bg-primary h5 {
-		color: #ffffff !important;
-	}
 	div.gridbox_dhx_skyblue table.hdr td {
 		font-weight: 600 !important;
 		font-size: 12px;
@@ -270,9 +294,23 @@ function updateSelectedCountBadge() {
 	$('#selectedRowsBadge').text(count + ' kandidat dipilih');
 	if (count > 0) {
 		$('#selectedRowsBadge').removeClass('badge-secondary').addClass('badge-success');
+		$('#headerSelectedBadge').text(count + ' dipilih').show();
 	} else {
 		$('#selectedRowsBadge').removeClass('badge-success').addClass('badge-info');
+		$('#headerSelectedBadge').hide();
 	}
+}
+
+function selectAllRows() {
+	if (!RecruitmentLists) return;
+	RecruitmentLists.selectAll();
+	updateSelectedCountBadge();
+}
+
+function deselectAllRows() {
+	if (!RecruitmentLists) return;
+	RecruitmentLists.clearSelection();
+	updateSelectedCountBadge();
 }
 
 function toggleMultiSelectMode() {
@@ -378,6 +416,7 @@ function openBatchPositionModal() {
 	}
 	$('#modalSelectedCount').text(ids.length);
 	$('#selectApprovedPtk').val('');
+	$('#selectMasterPosition').val('');
 	$('#inputCustomPosition').val('');
 	$('#modalBatchPosition').modal('show');
 }
@@ -385,6 +424,15 @@ function openBatchPositionModal() {
 function onSelectPtkChange() {
 	var val = $('#selectApprovedPtk').val();
 	if (val) {
+		$('#selectMasterPosition').val('');
+		$('#inputCustomPosition').val('');
+	}
+}
+
+function onMasterPosSelectChange() {
+	var val = $('#selectMasterPosition').val();
+	if (val) {
+		$('#selectApprovedPtk').val('');
 		$('#inputCustomPosition').val('');
 	}
 }
@@ -392,16 +440,20 @@ function onSelectPtkChange() {
 function onCustomPosInput() {
 	if ($('#inputCustomPosition').val().trim() !== '') {
 		$('#selectApprovedPtk').val('');
+		$('#selectMasterPosition').val('');
 	}
 }
 
 function submitBatchPosition() {
 	var ids = getSelectedIds();
 	var reqTaskId = $('#selectApprovedPtk').val();
+	var masterPos = $('#selectMasterPosition').val();
 	var customPos = $('#inputCustomPosition').val().trim();
 
-	if (!reqTaskId && !customPos) {
-		alert('Pilih salah satu posisi dari PTK Approved atau masukkan posisi manual!');
+	var chosenPosition = masterPos || customPos;
+
+	if (!reqTaskId && !chosenPosition) {
+		alert('Pilih posisi dari PTK Approved, Master Posisi, atau masukkan posisi manual!');
 		return;
 	}
 
@@ -411,7 +463,7 @@ function submitBatchPosition() {
 		_token: "{{ csrf_token() }}",
 		ids: ids,
 		requisition_task_id: reqTaskId,
-		custom_position: customPos
+		custom_position: chosenPosition
 	}, function(res) {
 		if (typeof $.unblockUI === 'function') $.unblockUI();
 		if (res.status === 'ok') {
@@ -435,7 +487,7 @@ function buildRecruitmentDataGrid(keys) {
 	RecruitmentLists = new dhtmlXGridObject('RecruitmentLists');
 	RecruitmentLists.setImagePath("./dhtmlx/imgs/");
 
-	var header = ['No.'], fh = ['#rspan'], w = ['50'], al = ['center'], ty = ['ro'], so = ['int'];
+	var header = ['No.'], fh = ['#rspan'], w = ['50'], al = ['center'], ty = ['ro'], so = ['int'], ft = ['Total Baris','#cspan','#stat_count'];
 	for (var i = 0; i < keys.length; i++) {
 		var m = RecColMeta[keys[i]];
 		if (!m) continue;
@@ -449,6 +501,7 @@ function buildRecruitmentDataGrid(keys) {
 
 	RecruitmentLists.setHeader(header.join(','));
 	RecruitmentLists.attachHeader(fh.join(','));
+	RecruitmentLists.attachFooter(ft.join(','));
 	RecruitmentLists.setInitWidths(w.join(','));
 	RecruitmentLists.setColAlign(al.join(','));
 	RecruitmentLists.setColTypes(ty.join(','));

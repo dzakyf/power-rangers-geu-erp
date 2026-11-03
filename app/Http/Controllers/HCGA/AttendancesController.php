@@ -6,12 +6,20 @@ use App\Attendance;
 use App\AttendanceMain;
 use App\Http\Controllers\Controller;
 use App\Libur;
+use App\Services\Attendance\AttendanceService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class AttendancesController extends Controller
 {
+    protected $attendanceService;
+
+    public function __construct(AttendanceService $attendanceService)
+    {
+        $this->attendanceService = $attendanceService;
+    }
     /**
      * Web: daftar periode absensi utama (halaman grid utama)
      */
@@ -55,6 +63,246 @@ class AttendancesController extends Controller
     }
 
     /**
+     * Web Desktop: Portal Absensi & Timesheet Mandiri Karyawan
+     */
+    public function portalIndex()
+    {
+        $user = Auth::user();
+        $today = date('Y-m-d');
+        $periode = (int) date('Ym');
+
+        // Pastikan periode bulan ini ada
+        AttendanceMain::firstOrCreate(
+            ['NIK' => $user->Emp_ID, 'Periode' => $periode],
+            [
+                'Task_ID'      => 'ATT-' . $user->Emp_ID . '-' . $periode . '-000001',
+                'Status'       => 'CREATED',
+                'Created_By'   => $user->username,
+                'Created_Date' => now(),
+            ]
+        );
+
+        $todayEntry = Attendance::where('NIK', $user->Emp_ID)->where('Scan_Date', $today)->first();
+        $schedule = $this->attendanceService->getWorkScheduleForDate($user->Emp_ID, $today);
+
+        // Riwayat Pengajuan Cuti & Izin
+        $leaveRequests = DB::table('attendance_leave_requests')
+            ->where('nik', $user->Emp_ID)
+            ->orderBy('id', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Riwayat Pengajuan Koreksi Absensi
+        $corrections = DB::table('attendance_corrections')
+            ->where('nik', $user->Emp_ID)
+            ->orderBy('id', 'desc')
+            ->limit(10)
+            ->get();
+
+        $kategoriList = DB::table('kategori_izin')->where('status', 'ACTIVE')->orderBy('izin_jenis_id', 'asc')->get();
+
+        return view('humanresources.attendant.portal', compact('user', 'todayEntry', 'schedule', 'leaveRequests', 'corrections', 'kategoriList'));
+    }
+
+    /**
+     * Web Desktop / Modal: Detail Progress Alur Approval Pengajuan
+     */
+    public function getApprovalProgress($approvalRequestId)
+    {
+        $requestData = DB::table('approval_request as r')
+            ->leftJoin('users as u', 'u.id', '=', 'r.Requester_Id')
+            ->where('r.ID', $approvalRequestId)
+            ->select('r.*', 'u.name as Requester_Name', 'u.username as Requester_Username')
+            ->first();
+
+        if (!$requestData) {
+            return response()->json(['status' => 'error', 'message' => 'Data approval tidak ditemukan.'], 404);
+        }
+
+        $tasks = DB::table('approval_request_task as t')
+            ->where('t.Request_ID', $approvalRequestId)
+            ->orderBy('t.Stage_Order', 'asc')
+            ->orderBy('t.Level_Number', 'asc')
+            ->get();
+
+        $taskIds = $tasks->pluck('ID')->toArray();
+        $candidates = DB::table('approval_task_candidate as c')
+            ->join('users as u', 'u.id', '=', 'c.User_ID')
+            ->whereIn('c.Task_ID', $taskIds)
+            ->select('c.*', 'u.name as Approver_Name', 'u.username as Approver_Username', 'u.Email as Approver_Email', 'u.Department as Approver_Dept')
+            ->get()
+            ->groupBy('Task_ID');
+
+        $tasksByStage = $tasks->keyBy('Stage_Order');
+
+        // Ambil semua steps lengkap dari Policy_Snapshot atau tabel approval_policy_step
+        $steps = [];
+        if (!empty($requestData->Policy_Snapshot)) {
+            $snapshot = json_decode($requestData->Policy_Snapshot, true);
+            $steps = $snapshot['Steps'] ?? [];
+        }
+        if (empty($steps) && !empty($requestData->Policy_ID)) {
+            $steps = DB::table('approval_policy_step')
+                ->where('Policy_ID', $requestData->Policy_ID)
+                ->orderBy('Stage_Order', 'asc')
+                ->get()
+                ->map(function ($s) { return (array) $s; })
+                ->toArray();
+        }
+
+        $allStages = [];
+        foreach ($steps as $step) {
+            $stageOrder = (int) ($step['Stage_Order'] ?? 1);
+            $levelNum   = (int) ($step['Level_Number'] ?? 1);
+            $label      = $step['Label'] ?? ('Level ' . $levelNum);
+
+            if ($tasksByStage->has($stageOrder)) {
+                $task = $tasksByStage->get($stageOrder);
+                $taskCandidates = $candidates->get($task->ID, collect([]))->map(function($c) {
+                    return [
+                        'name'       => $c->Approver_Name,
+                        'username'   => $c->Approver_Username,
+                        'email'      => $c->Approver_Email,
+                        'department' => $c->Approver_Dept,
+                        'status'     => $c->Status,
+                    ];
+                })->toArray();
+
+                $allStages[] = [
+                    'stage_order'   => $stageOrder,
+                    'level_number'  => $levelNum,
+                    'label'         => $label,
+                    'position_name' => $task->Position_Name ?? ($step['Position_Code'] ?? 'Approver'),
+                    'department'    => $task->Department ?? ($step['Department'] ?? null),
+                    'status'        => $task->Status,
+                    'is_current'    => in_array($task->Status, ['PENDING', 'IN_PROGRESS']),
+                    'is_completed'  => $task->Status === 'APPROVED',
+                    'approvers'     => $taskCandidates,
+                    'acted_at'      => $task->Acted_At,
+                    'notes'         => $task->Notes,
+                ];
+            } else {
+                // Tahap antrean berikutnya (waiting tahap sebelumnya)
+                $prospectives = DB::table('master_position as p')
+                    ->join('position_assignment as pa', 'pa.Position_ID', '=', 'p.ID')
+                    ->join('users as u', 'u.id', '=', 'pa.User_ID')
+                    ->where('pa.Status', 'ACTIVE')
+                    ->where(function ($q) use ($step, $requestData) {
+                        if (!empty($step['Position_Code'])) {
+                            $q->where('p.Initial', $step['Position_Code']);
+                        }
+                        if (!empty($step['Department'])) {
+                            $q->where('p.Department', $step['Department']);
+                        } elseif (!empty($requestData->Department) && $requestData->Department !== 'ALL') {
+                            $q->where('p.Department', $requestData->Department);
+                        }
+                        if (!empty($step['Level_Number'])) {
+                            $q->where('p.Level', $step['Level_Number']);
+                        }
+                    })
+                    ->select('u.name as name', 'u.username as username', 'u.Email as email', 'p.Department as department', 'p.Position as position')
+                    ->get()
+                    ->toArray();
+
+                $allStages[] = [
+                    'stage_order'   => $stageOrder,
+                    'level_number'  => $levelNum,
+                    'label'         => $label,
+                    'position_name' => $step['Position_Code'] ?? 'Approver',
+                    'department'    => $step['Department'] ?? null,
+                    'status'        => 'WAITING',
+                    'is_current'    => false,
+                    'is_completed'  => false,
+                    'approvers'     => $prospectives,
+                    'acted_at'      => null,
+                    'notes'         => 'Menunggu persetujuan tahap sebelumnya.',
+                ];
+            }
+        }
+
+        return response()->json([
+            'status'     => 'success',
+            'request'    => $requestData,
+            'tasks'      => $tasks,
+            'stages'     => $allStages,
+            'candidates' => $candidates,
+        ]);
+    }
+
+    /**
+     * Dev/Admin Helper: Reset Clock-In / Clock-Out / Keduanya untuk kemudahan testing development
+     */
+    public function resetAttendance(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user || strtolower($user->username) !== 'admin') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Akses ditolak. Fitur reset hanya diperuntukkan untuk akun admin/developer.',
+            ], 403);
+        }
+
+        $type = $request->input('type', 'both'); // 'in', 'out', 'both'
+        $date = $request->input('date', date('Y-m-d'));
+        $targetNik = $request->input('nik', $user->Emp_ID);
+
+        $entry = Attendance::where('NIK', $targetNik)->where('Scan_Date', $date)->first();
+
+        if (!$entry) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Data log absensi tanggal ' . $date . ' belum ada.',
+            ], 404);
+        }
+
+        if ($type === 'in') {
+            DB::table('attendant_log')->where('ID', $entry->ID)->update([
+                'Start_Time'           => null,
+                'Clock_In_Lat'         => null,
+                'Clock_In_Lng'         => null,
+                'Clock_In_Photo'       => null,
+                'Clock_In_Status'      => null,
+                'Late_Minutes'         => 0,
+            ]);
+            $msg = 'Clock-In berhasil di-reset.';
+        } elseif ($type === 'out') {
+            DB::table('attendant_log')->where('ID', $entry->ID)->update([
+                'End_Time'              => null,
+                'Clock_Out_Lat'         => null,
+                'Clock_Out_Lng'         => null,
+                'Clock_Out_Photo'       => null,
+                'Clock_Out_Status'      => null,
+                'Early_Leave_Minutes'   => 0,
+                'Overtime_Minutes'      => 0,
+            ]);
+            $msg = 'Clock-Out berhasil di-reset.';
+        } else {
+            // Reset Keduanya
+            DB::table('attendant_log')->where('ID', $entry->ID)->update([
+                'Start_Time'           => null,
+                'Clock_In_Lat'         => null,
+                'Clock_In_Lng'         => null,
+                'Clock_In_Photo'       => null,
+                'Clock_In_Status'      => null,
+                'Late_Minutes'         => 0,
+                'End_Time'              => null,
+                'Clock_Out_Lat'         => null,
+                'Clock_Out_Lng'         => null,
+                'Clock_Out_Photo'       => null,
+                'Clock_Out_Status'      => null,
+                'Early_Leave_Minutes'   => 0,
+                'Overtime_Minutes'      => 0,
+            ]);
+            $msg = 'Clock-In dan Clock-Out berhasil di-reset ke kondisi awal.';
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => $msg,
+        ]);
+    }
+
+    /**
      * Web: halaman entry absensi (pilih periode)
      */
     public function entryIndex()
@@ -72,12 +320,24 @@ class AttendancesController extends Controller
 
         $user = Auth::user();
         $nomor = 1;
+        $currentPeriode = (int) date('Ym');
+
+        // Otomatis pastikan periode bulan berjalan aktif untuk karyawan ini (Opsi A)
+        AttendanceMain::firstOrCreate(
+            ['NIK' => $user->Emp_ID, 'Periode' => $currentPeriode],
+            [
+                'Task_ID'      => 'ATT-' . $user->Emp_ID . '-' . $currentPeriode . '-000001',
+                'Status'       => 'CREATED',
+                'Created_By'   => $user->username,
+                'Created_Date' => now(),
+            ]
+        );
 
         echo "<rows>";
 
         $query = AttendanceMain::where('NIK', $user->Emp_ID)
             ->where('Status', '!=', 'CANCELED')
-            ->orderBy('ID', 'DESC')
+            ->orderBy('Periode', 'DESC')
             ->get();
 
         foreach ($query as $row) {
@@ -373,12 +633,12 @@ class AttendancesController extends Controller
     private function doUpdateEntry(string $rowId, array $param, string $username): string
     {
         $scanDate = $param[$rowId . '_c1'] ?? '';
-        $category = $param[$rowId . '_c4'] ?? '';
-        $startTime = $param[$rowId . '_c5'] ?? '';
-        $endTime = $param[$rowId . '_c6'] ?? '';
-        $shift1 = (int) ($param[$rowId . '_c7'] ?? 0);
-        $shift2 = (int) ($param[$rowId . '_c8'] ?? 0);
-        $shift3 = (int) ($param[$rowId . '_c9'] ?? 0);
+        $category = $param[$rowId . '_c3'] ?? ($param[$rowId . '_c4'] ?? '');
+        $startTime = $param[$rowId . '_c4'] ?? ($param[$rowId . '_c5'] ?? '');
+        $endTime = $param[$rowId . '_c5'] ?? ($param[$rowId . '_c6'] ?? '');
+        $shift1 = (int) ($param[$rowId . '_c6'] ?? ($param[$rowId . '_c7'] ?? 0));
+        $shift2 = (int) ($param[$rowId . '_c7'] ?? ($param[$rowId . '_c8'] ?? 0));
+        $shift3 = (int) ($param[$rowId . '_c8'] ?? ($param[$rowId . '_c9'] ?? 0));
 
         Attendance::where('ID', $rowId)->update([
             'Scan_Date'   => $scanDate,
@@ -412,23 +672,38 @@ class AttendancesController extends Controller
         $username = $user->username;
         $nik = $user->Emp_ID;
 
+        $currentPeriode = (int) date('Ym');
         $catCount = AttendanceMain::where('NIK', $nik)->count() + 1;
-        $pid = 'ATT-' . $nik . '-' . sprintf('%06d', $catCount);
+        $taskId = 'ATT-' . $nik . '-' . $currentPeriode . '-' . sprintf('%06d', $catCount);
 
-        DB::table('attendant_log')->insert([
-            'Task_ID'      => $pid,
-            'NIK'          => $nik,
-            'Periode'      => substr($date, 0, 7),
-            'Scan_Date'    => $date,
-            'Category'     => $param['Task_ID_c4'] ?? null,
-            'Start_Time'   => $param['Task_ID_c5'] ?? null,
-            'End_Time'     => $param['Task_ID_c6'] ?? null,
-            'Created_Date' => now(),
-            'Shift_1'      => (int) ($param['Task_ID_c7'] ?? 1),
-            'Shift_2'      => (int) ($param['Task_ID_c8'] ?? 0),
-            'Shift_3'      => (int) ($param['Task_ID_c9'] ?? 0),
-            'Created_By'   => $username,
-        ]);
+        // 1. Buat header di attendant_log_main agar tampil di tabel periode utama
+        $main = AttendanceMain::firstOrCreate(
+            ['NIK' => $nik, 'Periode' => $currentPeriode],
+            [
+                'Task_ID'      => $taskId,
+                'Status'       => 'CREATED',
+                'Created_By'   => $username,
+                'Created_Date' => now(),
+            ]
+        );
+
+        // 2. Buat log hari pertama jika ada parameter tanggal
+        if (!empty($date)) {
+            DB::table('attendant_log')->insert([
+                'Task_ID'      => $main->Task_ID,
+                'NIK'          => $nik,
+                'Periode'      => $currentPeriode,
+                'Scan_Date'    => $date,
+                'Category'     => $param['Task_ID_c4'] ?? 'KERJA',
+                'Start_Time'   => $param['Task_ID_c5'] ?? '08:00:00',
+                'End_Time'     => $param['Task_ID_c6'] ?? '17:00:00',
+                'Created_Date' => now(),
+                'Shift_1'      => (int) ($param['Task_ID_c7'] ?? 1),
+                'Shift_2'      => (int) ($param['Task_ID_c8'] ?? 0),
+                'Shift_3'      => (int) ($param['Task_ID_c9'] ?? 0),
+                'Created_By'   => $username,
+            ]);
+        }
 
         return 'insert';
     }
@@ -744,5 +1019,252 @@ class AttendancesController extends Controller
             ->max('ID');
 
         return $prefix . sprintf('%06d', ($last ?? 0) + 1);
+    }
+
+    /**
+     * API: Clock-In Karyawan dengan validasi Geofence & Foto
+     */
+    public function apiClockIn(Request $request)
+    {
+        $request->validate([
+            'latitude'  => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'photo'     => 'nullable|string',
+            'notes'     => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $user = $request->user() ?: Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Sesi login telah berakhir. Silakan login kembali.',
+                ], 401);
+            }
+            $result = $this->attendanceService->clockIn($user, $request->all());
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => $result['message'],
+                'data'    => $result,
+            ], 200);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Clock-Out Karyawan dengan kalkulasi Lembur / Early Leave
+     */
+    public function apiClockOut(Request $request)
+    {
+        $request->validate([
+            'latitude'  => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'photo'     => 'nullable|string',
+            'notes'     => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $user = $request->user() ?: Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Sesi login telah berakhir. Silakan login kembali.',
+                ], 401);
+            }
+            $result = $this->attendanceService->clockOut($user, $request->all());
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => $result['message'],
+                'data'    => $result,
+            ], 200);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Dapatkan Ringkasan Timesheet Bulanan
+     */
+    public function apiTimesheet(Request $request)
+    {
+        $user = $request->user();
+        $nik = $user->Emp_ID;
+        $month = $request->input('month', date('Y-m')); // e.g. 2026-11
+        $periode = (int) date('Ym', strtotime($month . '-01'));
+
+        $main = AttendanceMain::where('NIK', $nik)->where('Periode', $periode)->first();
+        $entries = [];
+
+        if ($main) {
+            $entries = Attendance::where('Task_ID', $main->Task_ID)
+                ->orderBy('Scan_Date', 'asc')
+                ->get();
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'month'   => $month,
+            'periode' => $periode,
+            'data'    => $entries,
+        ]);
+    }
+
+    /**
+     * API: Pengajuan Izin/Cuti
+     */
+    public function apiSubmitLeave(Request $request)
+    {
+        $request->validate([
+            'leave_type'          => 'required|string|max:100',
+            'start_date'          => 'required|date_format:Y-m-d',
+            'end_date'            => 'required|date_format:Y-m-d',
+            'clock_in_time'       => 'nullable|string',
+            'clock_out_time'      => 'nullable|string',
+            'reason'              => 'required|string',
+            'attachment'          => 'nullable',
+            'attachment_file'     => 'nullable|file|max:5120',
+        ]);
+
+        try {
+            $user = $request->user() ?: Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Sesi login telah berakhir. Silakan login kembali.',
+                ], 401);
+            }
+            $uploaded = $request->hasFile('attachment_file') ? $request->file('attachment_file') : null;
+            $result = $this->attendanceService->submitLeaveRequest($user, $request->all(), $uploaded);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => $result['message'],
+                'data'    => $result,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * API: Pengajuan Koreksi Absensi
+     */
+    public function apiSubmitCorrection(Request $request)
+    {
+        $request->validate([
+            'attendance_date'     => 'required|date_format:Y-m-d',
+            'correction_type'     => 'nullable|string|in:BOTH,IN,OUT',
+            'corrected_clock_in'  => 'nullable|string',
+            'corrected_clock_out' => 'nullable|string',
+            'reason'              => 'required|string',
+            'evidence_attachment' => 'nullable|file|max:5120',
+            'evidence_file'       => 'nullable',
+        ]);
+
+        try {
+            $user = $request->user() ?: Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Sesi login telah berakhir. Silakan login kembali.',
+                ], 401);
+            }
+            $uploaded = $request->hasFile('evidence_attachment') ? $request->file('evidence_attachment') : null;
+            $result = $this->attendanceService->submitCorrectionRequest($user, $request->all(), $uploaded);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => $result['message'],
+                'data'    => $result,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Webview Mobile: Halaman Utama Presensi & Clock-in/out
+     */
+    public function mobileIndex(Request $request)
+    {
+        $user = Auth::user();
+        $today = date('Y-m-d');
+        $periode = (int) date('Ym');
+
+        // Cari log hari ini langsung berdasarkan NIK dan Scan_Date agar selalu sinkron
+        $todayEntry = Attendance::where('NIK', $user->Emp_ID)
+            ->where('Scan_Date', $today)
+            ->first();
+
+        // Fallback jika hanya terikat ke Task_ID
+        if (!$todayEntry) {
+            $main = AttendanceMain::where('NIK', $user->Emp_ID)->where('Periode', $periode)->first();
+            if ($main) {
+                $todayEntry = Attendance::where('Task_ID', $main->Task_ID)->where('Scan_Date', $today)->first();
+            }
+        }
+
+        $schedule = $this->attendanceService->getWorkScheduleForDate($user->Emp_ID, $today);
+        $locations = DB::table('attendance_locations')->where('status', 'ACTIVE')->get();
+
+        return view('humanresources.attendant.mobile.index', compact('user', 'todayEntry', 'schedule', 'locations'));
+    }
+
+    /**
+     * Webview Mobile: Halaman Timesheet & Kalender Mandiri
+     */
+    public function mobileTimesheet(Request $request)
+    {
+        $user = Auth::user();
+        $month = $request->input('month', date('Y-m'));
+        $periode = (int) date('Ym', strtotime($month . '-01'));
+
+        $main = AttendanceMain::where('NIK', $user->Emp_ID)->where('Periode', $periode)->first();
+        $entries = [];
+        if ($main) {
+            $entries = Attendance::where('Task_ID', $main->Task_ID)->orderBy('Scan_Date', 'asc')->get();
+        }
+
+        return view('humanresources.attendant.mobile.timesheet', compact('user', 'entries', 'month'));
+    }
+
+    /**
+     * Webview Mobile: Form Pengajuan Izin / Cuti
+     */
+    public function mobileLeaveForm()
+    {
+        $user = Auth::user();
+        $leaves = DB::table('attendance_leave_requests')
+            ->where('nik', $user->Emp_ID)
+            ->orderBy('id', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('humanresources.attendant.mobile.leave-form', compact('user', 'leaves'));
     }
 }
