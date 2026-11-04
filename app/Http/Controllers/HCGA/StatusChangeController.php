@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
+use App\Services\Approval\ApprovalWorkflowService;
+use App\Services\Approval\StatusChangeApprovalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +57,15 @@ class StatusChangeController extends Controller
         'hcga_verifier', 'director_approver',
     ];
 
+    protected $approvalService;
+    protected $workflowService;
+
+    public function __construct(StatusChangeApprovalService $approvalService, ApprovalWorkflowService $workflowService)
+    {
+        $this->approvalService = $approvalService;
+        $this->workflowService = $workflowService;
+    }
+
     public function index(Request $request)
     {
         $jenis = strtoupper(trim((string) $request->input('jenis', '')));
@@ -66,7 +77,7 @@ class StatusChangeController extends Controller
      *
      * Urutan <cell> HARUS sama dengan urutan setHeader / attachHeader / setInitWidths /
      * setColAlign / setColTypes / setColSorting pada index.blade.php (kontrak posisional):
-     * No., Nomor Form, Jenis, Nama, NIK, Tanggal Join, Jabatan Sekarang,
+     * No., Nomor Form, Jenis, Status, Nama, NIK, Tanggal Join, Jabatan Sekarang,
      * Status Sekarang, Jabatan Usulan, Status Usulan, Gaji Usulan (Rp),
      * Tanggal Efektif, Tanggal Dibuat.
      *
@@ -103,10 +114,12 @@ class StatusChangeController extends Controller
         echo "<rows>";
 
         foreach ($getSc as $value) {
+            $statusVal = strtoupper(trim((string) ($value->status ?: 'DRAFT')));
             echo "<row id='{$value->id}'>";
             echo "<cell>{$nomor}</cell>";
             echo "<cell>" . htmlspecialchars((string) ($value->form_number ?: '')) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) ($value->jenis ?: 'MUTATION')) . "</cell>";
+            echo "<cell>" . htmlspecialchars($statusVal) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) ($value->employee_name ?: '')) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) ($value->nik ?: '')) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) ($value->join_date ?: '')) . "</cell>";
@@ -146,9 +159,12 @@ class StatusChangeController extends Controller
             return response()->json(['status' => 'error', 'message' => $err], 422);
         }
 
+        $directSubmit = (bool) $request->input('direct_submit', false);
+
         DB::beginTransaction();
         try {
             $clean['jenis'] = $this->resolveJenis($request, $clean);
+            $clean['status'] = StatusChangeApprovalService::STATUS_DRAFT;
 
             $now = now();
             $clean['created_at'] = $now;
@@ -162,40 +178,6 @@ class StatusChangeController extends Controller
                 'form_number' => $formNumber,
             ]);
 
-            // -- Hubungkan ke riwayat karyawan (employment_history) --
-            $emp = !empty($clean['nik'])
-                ? DB::table('employment')->where('NIK', $clean['nik'])->orderBy('ID', 'ASC')->first()
-                : null;
-
-            $catatan = 'Jenis: ' . $clean['jenis'];
-
-            if ((string) $clean['current_position'] !== '' || (string) $clean['proposed_position'] !== '') {
-                $catatan .= '; Jabatan: ' . ($clean['current_position'] ?: '-') . ' -> ' . ($clean['proposed_position'] ?: '-');
-            }
-            if ((string) $clean['current_department'] !== '' || (string) $clean['proposed_department'] !== '') {
-                $catatan .= '; Departemen: ' . ($clean['current_department'] ?: '-') . ' -> ' . ($clean['proposed_department'] ?: '-');
-            }
-            if ((string) $clean['current_work_location'] !== '' || (string) $clean['proposed_work_location'] !== '') {
-                $catatan .= '; Lokasi: ' . ($clean['current_work_location'] ?: '-') . ' -> ' . ($clean['proposed_work_location'] ?: '-');
-            }
-            if ($clean['current_salary'] != $clean['proposed_salary']) {
-                $catatan .= '; Salary: ' . number_format((float) $clean['current_salary'], 0, ',', '.') . ' -> ' . number_format((float) $clean['proposed_salary'], 0, ',', '.');
-            }
-
-            DB::table('employment_history')->insert([
-                'Task_ID'      => $emp->Task_ID ?? '',
-                'NIK'          => $clean['nik'],
-                'Date_Process' => $now,
-                'Activity'     => 'PERUBAHAN STATUS',
-                'Reference'    => $formNumber,
-                'Notes'        => $catatan,
-                'Start_Date'   => $clean['effective_date'] ?: date('Y-m-d'),
-                'End_Date'     => '',
-                'Remark'       => $clean['jenis'] === 'PROMOTION' ? 'Promosi' : 'Mutasi',
-                'User_Trx'     => Auth::user()->username ?? '',
-                'Date_Trx'     => $now,
-            ]);
-
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -204,9 +186,33 @@ class StatusChangeController extends Controller
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
 
+        // Jika opsi direct_submit dipilih, langsung submit ke approval engine
+        if ($directSubmit) {
+            try {
+                $savedRow = DB::table('status_changes')->where('id', $newId)->first();
+                $this->approvalService->submit($savedRow, Auth::user());
+                return response()->json([
+                    'status'      => 'success',
+                    'message'     => 'Form perubahan status berhasil dibuat dan langsung diajukan ke Approval.',
+                    'form_number' => $formNumber,
+                    'ID'          => $newId,
+                    'jenis'       => $clean['jenis'],
+                ]);
+            } catch (\Exception $ex) {
+                Log::warning('StatusChange direct submit approval failed: ' . $ex->getMessage());
+                return response()->json([
+                    'status'      => 'success',
+                    'message'     => 'Form berhasil disimpan sebagai DRAFT, namun submit approval terkendala: ' . $ex->getMessage(),
+                    'form_number' => $formNumber,
+                    'ID'          => $newId,
+                    'jenis'       => $clean['jenis'],
+                ]);
+            }
+        }
+
         return response()->json([
             'status'      => 'success',
-            'message'     => 'Form perubahan status berhasil dibuat.',
+            'message'     => 'Form perubahan status berhasil disimpan sebagai DRAFT.',
             'form_number' => $formNumber,
             'ID'          => $newId,
             'jenis'       => $clean['jenis'],
@@ -349,13 +355,27 @@ class StatusChangeController extends Controller
 
     public function detail(Request $request)
     {
-        $sc = DB::table('status_changes')->where('id', (int) $request->ID)->first();
+        $id = (int) $request->ID;
+        $userId = (int) Auth::id();
+
+        // Sinkronisasi status approval terkini
+        $this->approvalService->syncApprovalStatus($id, Auth::user()->username ?? 'system');
+
+        $sc = DB::table('status_changes')->where('id', $id)->first();
 
         if (!$sc) {
             return redirect('hrd-status-change-index');
         }
 
-        return view('humanresources.employment.status-changes.detail', compact('sc'));
+        $approvalDetails = $this->approvalService->getApprovalDetails($id);
+        $pendingTask = $this->approvalService->pendingTaskForUser($id, $userId);
+        $claimedByOther = $pendingTask ? null : $this->approvalService->claimedByOtherForUser($id, $userId);
+
+        return view('humanresources.employment.status-changes.detail', array_merge([
+            'sc'             => $sc,
+            'pendingTask'    => $pendingTask,
+            'claimedByOther' => $claimedByOther,
+        ], $approvalDetails));
     }
 
     public function edit(Request $request)
@@ -448,8 +468,13 @@ class StatusChangeController extends Controller
     {
         $id = (int) $request->ID;
 
-        if (!DB::table('status_changes')->where('id', $id)->exists()) {
+        $sc = DB::table('status_changes')->where('id', $id)->first();
+        if (!$sc) {
             return response()->json(['status' => 'error', 'message' => 'Data tidak ditemukan.'], 404);
+        }
+
+        if (in_array(strtoupper((string) $sc->status), ['APPROVED', 'IN_APPROVAL'], true)) {
+            return response()->json(['status' => 'error', 'message' => 'Pengajuan yang sedang berjalan atau sudah disetujui tidak dapat dihapus.'], 422);
         }
 
         try {
@@ -462,6 +487,84 @@ class StatusChangeController extends Controller
             'status'  => 'success',
             'message' => 'Form perubahan status berhasil dihapus.',
         ]);
+    }
+
+    /**
+     * Ajukan form status change (DRAFT) ke Dynamic Approval Engine.
+     */
+    public function submitApproval(Request $request)
+    {
+        $id = (int) $request->input('ID');
+        $sc = DB::table('status_changes')->where('id', $id)->first();
+
+        if (!$sc) {
+            return response()->json(['status' => 'error', 'message' => 'Data form tidak ditemukan.'], 404);
+        }
+
+        if ($sc->status === StatusChangeApprovalService::STATUS_APPROVED) {
+            return response()->json(['status' => 'error', 'message' => 'Form ini sudah disetujui.'], 422);
+        }
+
+        try {
+            $approvalReq = $this->approvalService->submit($sc, Auth::user());
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Form ' . $sc->form_number . ' berhasil diajukan ke Approval Engine.',
+                'request' => $approvalReq,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Submit Approval StatusChange error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Gagal submit approval: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Aksi Approval (APPROVE / REJECT) langsung dari halaman detail status change.
+     */
+    public function actApproval(Request $request)
+    {
+        $id = (int) $request->input('ID');
+        $action = strtoupper(trim((string) $request->input('action')));
+        $notes = trim((string) $request->input('notes', ''));
+
+        if (!in_array($action, ['APPROVE', 'REJECT'], true)) {
+            return response()->json(['status' => 'error', 'message' => 'Aksi tidak valid.'], 422);
+        }
+
+        $userId = (int) Auth::id();
+        $task = $this->approvalService->pendingTaskForUser($id, $userId);
+
+        if (!$task) {
+            $claimedOther = $this->approvalService->claimedByOtherForUser($id, $userId);
+            if ($claimedOther) {
+                $claimer = $claimedOther->Claimed_By_Name ?: ($claimedOther->Claimed_By_Username ?: 'approver lain');
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => "Task approval ini sedang di-claim oleh {$claimer}. Anda tidak dapat mengambil tindakan kecuali claim di-release.",
+                ], 409);
+            }
+            return response()->json(['status' => 'error', 'message' => 'Anda tidak memiliki tugas persetujuan aktif untuk form ini.'], 403);
+        }
+
+        try {
+            // Klaim otomatis jika status task masih PENDING
+            if (strtoupper((string) $task->Status) === 'PENDING') {
+                $this->workflowService->claim((int) $task->ID, $userId);
+            }
+
+            $this->workflowService->act((int) $task->ID, $userId, $action, $notes);
+
+            // Sinkronisasi status akhir form
+            $this->approvalService->syncApprovalStatus($id, Auth::user()->username ?? 'system');
+
+            $msg = $action === 'APPROVE' ? 'Form perubahan status berhasil disetujui (Approved).' : 'Form perubahan status ditolak (Rejected).';
+            return response()->json(['status' => 'success', 'message' => $msg]);
+        } catch (\App\Exceptions\ApprovalWorkflowException $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], $e->getStatusCode() ?: 409);
+        } catch (\Exception $e) {
+            Log::error('Act Approval StatusChange error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Gagal memproses approval: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -480,9 +583,28 @@ class StatusChangeController extends Controller
         // lalu dikirim sebagai data URI agar tidak jadi hitam di mPDF.
         $logo = $this->logoDataUri(public_path('assets/images/small-logo.png'));
 
+        // Approver dinamis dan QR Code dari Approval Engine
+        $signatures = $this->approvalService->getSignaturesForPrint((int) $sc->id);
+        foreach ($signatures as $key => $sig) {
+            $signatures[$key]['qr_uri'] = !empty($sig['qr_data'])
+                ? $this->qrDataUri($sig['qr_data'])
+                : null;
+        }
+
+        // QR Pengusul
+        $proposerName = !empty($signatures['proposer']['name']) && $signatures['proposer']['name'] !== '-'
+            ? $signatures['proposer']['name']
+            : ($sc->proposed_by ?: '-');
+        $proposerDate = $sc->created_at ? date('d/m/Y', strtotime($sc->created_at)) : date('d/m/Y');
+        $proposerQrData = "PROPOSED BY\nName: {$proposerName}\nForm: {$sc->form_number}\nDate: {$proposerDate}";
+        $proposerQrUri = $this->qrDataUri($proposerQrData);
+
         $html = view('humanresources.employment.status-changes.print', [
-            'statusChange' => $sc,
-            'logo'         => $logo,
+            'statusChange'  => $sc,
+            'logo'          => $logo,
+            'signatures'    => $signatures,
+            'proposerName'  => $proposerName,
+            'proposerQrUri' => $proposerQrUri,
         ])->render();
 
         // Folder temp mPDF di storage agar tidak bermasalah permission di vendor/
@@ -666,5 +788,19 @@ class StatusChangeController extends Controller
         imagedestroy($dst);
 
         return 'data:image/png;base64,' . base64_encode($png);
+    }
+
+    /**
+     * Hasilkan QR Code Data URI (SVG base64 bersih dari deklarasi XML) agar aman dirender di mPDF.
+     */
+    private function qrDataUri($text)
+    {
+        try {
+            $svg = (string) \SimpleSoftwareIO\QrCode\Facade::format('svg')->size(120)->margin(1)->generate($text);
+            $svg = preg_replace('/<\?xml[^\?]*\?>\s*/i', '', $svg);
+            return 'data:image/svg+xml;base64,' . base64_encode($svg);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 }

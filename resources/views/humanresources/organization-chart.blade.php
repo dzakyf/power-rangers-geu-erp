@@ -1,20 +1,42 @@
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
-<div class="main-content-header">
-    <h1>Human Capital and General Affairs</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="hrd-approval-inbox">Approval</a></li>
-        <li class="breadcrumb-item active"><span class="active">Bagan Struktur Organisasi</span></li>
-    </ol>
+<div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+    <div>
+        <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+            Bagan Struktur Organisasi
+        </h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="hrd-approval-inbox" style="color: rgba(255, 255, 255, 0.8) !important;">Human Capital &amp; GA</a></li>
+                <li class="breadcrumb-item"><a href="hrd-approval-inbox" style="color: rgba(255, 255, 255, 0.8) !important;">Approval Engine</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Bagan Struktur Organisasi</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-none d-sm-flex align-items-center gap-2">
+        <span class="badge px-3 py-2 fs-12 shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+            <i class="fa fa-sitemap me-1"></i> Interactive Hierarchy Visualizer
+        </span>
+    </div>
 </div>
 
-<div class="card mt-3">
-    <div class="card-body">
-        <div class="row">
+{{-- Filter Card --}}
+<div class="card shadow-sm border mb-3">
+    <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+        <span class="fw-semibold text-dark fs-13">
+            <i class="fa fa-filter text-primary me-1"></i> Filter &amp; Pencarian Struktur
+        </span>
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="OrgFilterSystem" role="switch">
+            <label class="form-check-label small text-muted ms-1" for="OrgFilterSystem">Tampilkan akun sistem / dummy</label>
+        </div>
+    </div>
+    <div class="card-body py-3 px-3">
+        <div class="row g-2 align-items-end">
             <div class="col-md-3">
-                <label class="small text-muted mb-1">Direktorat</label>
-                <select id="OrgFilterDirectorat" class="form-control form-control-sm">
+                <label class="small text-muted fw-semibold mb-1">Direktorat</label>
+                <select id="OrgFilterDirectorat" class="form-select form-select-sm">
                     <option value="">Semua direktorat</option>
                     @foreach($directorats as $dir)
                     <option value="{{ $dir }}">{{ $dir }}</option>
@@ -22,8 +44,8 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="small text-muted mb-1">Departemen</label>
-                <select id="OrgFilterDepartment" class="form-control form-control-sm">
+                <label class="small text-muted fw-semibold mb-1">Departemen</label>
+                <select id="OrgFilterDepartment" class="form-select form-select-sm">
                     <option value="">Semua departemen</option>
                     @foreach($departments as $dept)
                     <option value="{{ $dept }}">{{ $dept }}</option>
@@ -31,83 +53,112 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="small text-muted mb-1">Cari Posisi / Karyawan</label>
+                <label class="small text-muted fw-semibold mb-1">Cari Posisi / Karyawan</label>
                 <div class="input-group input-group-sm position-relative">
                     <input type="text" id="OrgSearchQuery" class="form-control" placeholder="Jabatan, nama, NIK..." autocomplete="off">
-                    <div class="input-group-append">
-                        <button class="btn btn-outline-secondary" type="button" onclick="OrgChartSearch();">Cari</button>
-                    </div>
+                    <button class="btn btn-outline-secondary" type="button" onclick="OrgChartSearch();">
+                        <i class="fa fa-magnifying-glass"></i>
+                    </button>
                     <div id="OrgSearchDropdown" class="dropdown-menu w-100 shadow-sm" style="display: none; max-height: 220px; overflow-y: auto; position: absolute; top: 100%; left: 0; z-index: 1050;"></div>
                 </div>
             </div>
             <div class="col-md-3">
-                <label class="small text-muted mb-1">Orientasi bagan</label>
-                <select id="OrgOrientation" class="form-control form-control-sm">
+                <label class="small text-muted fw-semibold mb-1">Orientasi Bagan</label>
+                <select id="OrgOrientation" class="form-select form-select-sm">
                     <option value="h" selected>Horizontal (kiri ke kanan)</option>
                     <option value="v">Vertikal (atas ke bawah)</option>
                 </select>
             </div>
-            <div class="col-md-3 mt-2">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="OrgFilterSystem" />
-                    <label class="form-check-label small" for="OrgFilterSystem">Tampilkan akun sistem / dummy</label>
-                </div>
-            </div>
         </div>
 
-        <hr />
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 mt-3 border-top">
+            <div class="d-flex flex-wrap align-items-center gap-1">
+                <button type="button" class="btn btn-primary btn-sm text-white shadow-sm" onclick="OrgChartLoad();">
+                    <i class="fa fa-play me-1"></i> Tampilkan
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="OrgChartFit();" title="Sesuaikan Tampilan">
+                    <i class="fa fa-expand me-1"></i> Fit Layar
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="OrgChartResetView();" title="Reset Zoom">
+                    <i class="fa fa-rotate me-1"></i> Reset
+                </button>
+                <div class="btn-group btn-group-sm ms-1" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="OrgChartZoom(1.25);" title="Perbesar">
+                        <i class="fa fa-magnifying-glass-plus"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="OrgChartZoom(0.8);" title="Perkecil">
+                        <i class="fa fa-magnifying-glass-minus"></i>
+                    </button>
+                </div>
+            </div>
 
-        <button type="button" class="btn btn-primary btn-sm" onclick="OrgChartLoad();">Tampilkan</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="OrgChartFit();">Fit ke layar</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="OrgChartResetView();">Reset Zoom</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="OrgChartZoom(1.25);">Zoom +</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="OrgChartZoom(0.8);">Zoom -</button>
-        <span class="mx-2 text-muted">|</span>
-        <button type="button" class="btn btn-success btn-sm" onclick="OrgChartExportPng();">Export PNG</button>
-        <button type="button" class="btn btn-danger btn-sm" onclick="OrgChartExportPdf();">Export PDF</button>
-        <button type="button" class="btn btn-info btn-sm" onclick="OrgChartExportSvg();">Export SVG</button>
+            <div class="d-flex flex-wrap align-items-center gap-1">
+                <button type="button" class="btn btn-success btn-sm text-white shadow-sm" onclick="OrgChartExportPng();">
+                    <i class="fa fa-file-image me-1"></i> Export PNG
+                </button>
+                <button type="button" class="btn btn-danger btn-sm text-white shadow-sm" onclick="OrgChartExportPdf();">
+                    <i class="fa fa-file-pdf me-1"></i> Export PDF
+                </button>
+                <button type="button" class="btn btn-info btn-sm text-white shadow-sm" onclick="OrgChartExportSvg();">
+                    <i class="fa fa-bezier-curve me-1"></i> Export SVG
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
-<div id="OrgChartAlert" class="mt-3"></div>
+<div id="OrgChartAlert" class="mt-2"></div>
 
-<div class="row mt-3">
+<div class="row g-3 mt-1">
     <div class="col-lg-9">
-        <div class="card">
+        <div class="card shadow-sm border mb-3">
+            <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                <span class="fw-semibold text-dark fs-13">
+                    <i class="fa fa-diagram-project text-primary me-1"></i> Kanvas Pohon Hierarki Posisi
+                </span>
+                <span class="badge bg-light text-muted border fw-normal" id="canvasHelper">
+                    <i class="fa fa-mouse-pointer me-1"></i> Scroll = Zoom &bull; Drag = Geser
+                </span>
+            </div>
             <div class="card-body p-0">
                 <div id="OrgChartWrap" style="position:relative; width:100%; height:640px; overflow:hidden; background:#f7f9fc; border-radius:4px;">
                     <svg id="OrgChart" width="100%" height="100%"></svg>
                     
                     <!-- Minimap Navigator -->
-                    <svg id="OrgMinimap" style="position:absolute; top:50px; left:50px; width:180px; height:120px; background:#ffffff; border:1px solid #d5dce6; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.08); z-index:10;">
+                    <svg id="OrgMinimap" style="position:absolute; top:20px; left:20px; width:180px; height:120px; background:#ffffff; border:1px solid #d5dce6; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.12); z-index:10;">
                         <g id="OrgMinimapViewport"></g>
                         <rect id="OrgMinimapLens" fill="rgba(31, 111, 235, 0.2)" stroke="#1f6feb" stroke-width="1.5" rx="2" style="cursor: pointer; pointer-events: none;"></rect>
                     </svg>
                 </div>
             </div>
-            <div class="card-footer small text-muted">
-                <span id="OrgChartStats">-</span>
-                <span class="float-right">
+            <div class="card-footer bg-light py-2 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span id="OrgChartStats" class="small text-muted">-</span>
+                <span class="small text-muted">
                     @if($canManage)
-                    Tarik ikon <b>:::</b> untuk <b>Drag & Drop</b> atasan posisi. <b>Scroll</b> zoom, <b>Drag</b> geser.
+                    <i class="fa fa-arrows-up-down-left-right text-info me-1"></i> Tarik ikon <strong>:::</strong> untuk <strong>Drag &amp; Drop</strong> atasan posisi.
                     @else
-                    Hanya admin yang dapat mengubah atasan posisi. <b>Scroll</b> zoom, <b>Drag</b> geser.
+                    <i class="fa fa-lock text-muted me-1"></i> Hanya admin yang dapat mengubah hierarki atasan posisi.
                     @endif
                 </span>
             </div>
         </div>
     </div>
     <div class="col-lg-3">
-        <div class="card">
-            <div class="card-header"><strong>Detail Posisi</strong></div>
-            <div class="card-body" id="OrgChartPanel">
-                <p class="text-muted small mb-0">Klik salah satu kotak pada bagan.</p>
+        <div class="card shadow-sm border mb-3">
+            <div class="card-header bg-white py-2 px-3 border-bottom">
+                <strong class="fs-13 text-dark"><i class="fa fa-id-card text-primary me-1"></i> Detail Posisi</strong>
+            </div>
+            <div class="card-body p-3" id="OrgChartPanel">
+                <p class="text-muted small mb-0"><i class="fa fa-circle-info me-1"></i> Klik salah satu kotak pada bagan untuk melihat rincian pemegang jabatan.</p>
             </div>
         </div>
         
-        <div class="card mt-3">
-            <div class="card-header"><strong>Kualitas Data</strong></div>
-            <div class="card-body" id="OrgChartIssues">
+        <div class="card shadow-sm border mb-3">
+            <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                <strong class="fs-13 text-dark"><i class="fa fa-shield-halved text-warning me-1"></i> Kualitas Data</strong>
+                <span class="badge bg-light text-muted border" id="badgeQualityCount">Audit</span>
+            </div>
+            <div class="card-body p-3" id="OrgChartIssues">
                 <p class="text-muted small mb-0">-</p>
             </div>
         </div>
@@ -636,7 +687,7 @@ function OrgChartIssues(issues) {
 
     var html = '<ul class="list-unstyled small mb-2">';
     for (var t in counts) {
-        html += '<li><span class="badge badge-warning">' + counts[t] + '</span> ' + orgEsc(labels[t] || t) + '</li>';
+        html += '<li class="mb-1"><span class="badge bg-warning text-dark me-1">' + counts[t] + '</span> ' + orgEsc(labels[t] || t) + '</li>';
     }
     html += '</ul><ul class="small text-muted mb-0" style="padding-left:16px;max-height:180px;overflow:auto">';
     for (var j = 0; j < Math.min(issues.length, 25); j++) {
@@ -647,6 +698,11 @@ function OrgChartIssues(issues) {
     }
     html += '</ul>';
     $('#OrgChartIssues').html(html);
+    var countBadge = document.getElementById('badgeQualityCount');
+    if (countBadge) {
+        countBadge.innerText = issues.length + ' Isu';
+        countBadge.className = 'badge bg-warning text-dark';
+    }
 }
 
 function OrgChartSearch() {

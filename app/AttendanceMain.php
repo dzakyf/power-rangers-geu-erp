@@ -8,6 +8,8 @@ class AttendanceMain extends Model
 {
     protected $table = 'attendant_log_main';
 
+    protected $primaryKey = 'ID';
+
     protected $guarded = [];
 
     public $timestamps = false;

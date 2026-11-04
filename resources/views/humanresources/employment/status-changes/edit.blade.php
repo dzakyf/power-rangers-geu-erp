@@ -200,37 +200,11 @@
                 </div>
             </div>
 
-            <!-- Persetujuan -->
-            <div class="badge badge-info w-100 my-2 py-2">Persetujuan</div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group row">
-                        <label class="col-md-5 col-form-label col-form-label-sm">Dept. Head Departemen Asal</label>
-                        <div class="col-md-7">
-                            <input type="text" class="form-control form-control-sm" id="origin_department_head" value="{{ $sc->origin_department_head }}" />
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label class="col-md-5 col-form-label col-form-label-sm">Diverifikasi — Senior Manager HCGA</label>
-                        <div class="col-md-7">
-                            <input type="text" class="form-control form-control-sm" id="hcga_verifier" value="{{ $sc->hcga_verifier }}" />
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group row">
-                        <label class="col-md-5 col-form-label col-form-label-sm">Dept. Head Departemen Tujuan</label>
-                        <div class="col-md-7">
-                            <input type="text" class="form-control form-control-sm" id="destination_department_head" value="{{ $sc->destination_department_head }}" />
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label class="col-md-5 col-form-label col-form-label-sm">Mengetahui — Direktur</label>
-                        <div class="col-md-7">
-                            <input type="text" class="form-control form-control-sm" id="director_approver" value="{{ $sc->director_approver }}" />
-                        </div>
-                    </div>
-                </div>
+            <!-- Alur Persetujuan -->
+            <div class="badge badge-info w-100 my-2 py-2">Alur Persetujuan (Otomatis dari Approval Policy Engine)</div>
+            <div class="alert alert-light border small mb-3">
+                <i class="fas fa-info-circle text-primary me-1"></i>
+                Persetujuan (Dept. Head Asal, Dept. Head Tujuan, Verifikator HCGA, dan Direktur) diproses secara <strong>otomatis oleh Approval Engine</strong> sesuai dengan kebijakan organisasi dan siapa yang memberikan approval.
             </div>
 
             <hr />

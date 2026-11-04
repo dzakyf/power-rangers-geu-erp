@@ -104,51 +104,77 @@ class RecruitmentManagementController extends Controller
      */
     private function calculateCandidateFunnel($c): array
     {
-        // Kondisi lolos tiap tahap
+        $statusUpper = strtoupper((string) ($c->Status ?? ''));
+
+        // Stage hierarchy rank untuk mengetahui posisi progress kandidat saat ini
+        $stageRank = [
+            'CREATED'          => 1,
+            'PENDING'          => 1,
+            'UPLOADED'         => 1,
+            'VERIFICATION'     => 1,
+            'SEEK'             => 1,
+            'PSIKOTEST'        => 2,
+            'INTERVIEW_HR'     => 3,
+            'INTERVIEWED'      => 4, // Legacy status setelah lolos HR
+            'INTERVIEW_USER'   => 4,
+            'BUSINESS_REVIEW'  => 5,
+            'TECHNICAL_TEST'   => 5,
+            'MCU'              => 6,
+            'OFFERING'         => 7,
+            'HIRED'            => 8,
+            'CLOSED'           => 8,
+        ];
+
+        $currentRank = $stageRank[$statusUpper] ?? 1;
+
+        // Kondisi lolos (passed) eksplisit tiap tahap
         $passAdm    = ($c->Document_Status === 'ACCEPT');
         $passPsi    = ($c->Psikotest_Status === 'ACCEPT');
         $passHr     = ($c->Interview_Status === 'ACCEPT');
         $passUser   = ($c->User_Interview_Status === 'ACCEPT');
         $passTech   = ($c->Technical_Test_Status === 'ACCEPT');
         $passMcu    = ($c->MCU_Status === 'ACCEPT');
-        $passOffer  = ($c->Offering_Status === 'ACCEPT' || $c->Status === 'HIRED' || $c->Status === 'CLOSED');
+        $passOffer  = ($c->Offering_Status === 'ACCEPT' || in_array($statusUpper, ['HIRED', 'CLOSED']));
 
-        // Indikasi apakah kandidat sudah pernah disentuh/masuk ke tahap berikutnya
-        $touchPsi   = $passAdm  || !empty($c->Psikotest_Status) || !empty($c->Psikotest_Date);
-        $touchHr    = ($passAdm && $passPsi) || !empty($c->Interview_Status) || !empty($c->Interview_Date);
-        $touchUser  = ($passAdm && $passPsi && $passHr) || !empty($c->User_Interview_Status) || !empty($c->User_Interview_Date);
-        $touchTech  = ($passAdm && $passPsi && $passHr && $passUser) || !empty($c->Technical_Test_Status) || !empty($c->Technical_Date);
-        $touchMcu   = ($passAdm && $passPsi && $passHr && $passUser && $passTech) || !empty($c->MCU_Status) || !empty($c->MCU_Schedule);
-        $touchOffer = ($passAdm && $passPsi && $passHr && $passUser && $passTech && $passMcu) || !empty($c->Offering_Status) || $passOffer;
+        // Indikasi apakah kandidat sudah pernah disentuh/masuk (entered) ke tahap tertentu:
+        // Masuk ke tahap X jika lolos tahap sebelumnya, ada riwayat tanggal/status tahap X,
+        // ATAU status saat ini sudah berada di tahap X atau tahap setelahnya dalam pipeline!
+        $touchAdm   = true; // Semua pendaftar masuk seleksi administrasi
+        $touchPsi   = $passAdm || !empty($c->Psikotest_Status) || !empty($c->Psikotest_Date) || $currentRank >= 2;
+        $touchHr    = ($passAdm && $passPsi) || !empty($c->Interview_Status) || !empty($c->Interview_Date) || $currentRank >= 3;
+        $touchUser  = ($passAdm && $passPsi && $passHr) || !empty($c->User_Interview_Status) || !empty($c->User_Interview_Date) || $currentRank >= 4;
+        $touchTech  = ($passAdm && $passPsi && $passHr && $passUser) || !empty($c->Technical_Test_Status) || !empty($c->Technical_Date) || $currentRank >= 5;
+        $touchMcu   = ($passAdm && $passPsi && $passHr && $passUser && $passTech) || !empty($c->MCU_Status) || !empty($c->MCU_Schedule) || $currentRank >= 6;
+        $touchOffer = ($passAdm && $passPsi && $passHr && $passUser && $passTech && $passMcu) || !empty($c->Offering_Status) || $passOffer || $currentRank >= 7;
 
         return [
             'Seleksi_Adm' => [
-                'entered' => true, // Semua yang mendaftar masuk seleksi berkas
-                'passed'  => $passAdm || $touchPsi,
+                'entered' => $touchAdm,
+                'passed'  => $passAdm || $currentRank >= 2 || $touchPsi,
             ],
             'Psikotes' => [
                 'entered' => $touchPsi,
-                'passed'  => $passPsi || $touchHr,
+                'passed'  => $passPsi || $currentRank >= 3 || $touchHr,
             ],
             'Interview_HR' => [
                 'entered' => $touchHr,
-                'passed'  => $passHr || $touchUser,
+                'passed'  => $passHr || $currentRank >= 4 || $touchUser,
             ],
             'Interview_User' => [
                 'entered' => $touchUser,
-                'passed'  => $passUser || $touchTech,
+                'passed'  => $passUser || $currentRank >= 5 || $touchTech,
             ],
             'Tes_Teknik' => [
                 'entered' => $touchTech,
-                'passed'  => $passTech || $touchMcu,
+                'passed'  => $passTech || $currentRank >= 6 || $touchMcu,
             ],
             'MCU' => [
                 'entered' => $touchMcu,
-                'passed'  => $passMcu || $touchOffer,
+                'passed'  => $passMcu || $currentRank >= 7 || $touchOffer,
             ],
             'Offering' => [
                 'entered' => $touchOffer,
-                'passed'  => $passOffer,
+                'passed'  => $passOffer || $currentRank >= 8,
             ],
         ];
     }
@@ -229,6 +255,19 @@ class RecruitmentManagementController extends Controller
 
         $candidates = $query->get();
 
+        // Filter berdasarkan Stage dan Metrik (jika dikirim dari klik kolom pivot)
+        $stageParam = $request->input('stage');
+        $metricParam = $request->input('metric', 'ENTERED'); // 'ENTERED' atau 'PASSED'
+        if ($stageParam) {
+            $candidates = $candidates->filter(function ($c) use ($stageParam, $metricParam) {
+                $funnel = $this->calculateCandidateFunnel($c);
+                if (!isset($funnel[$stageParam])) {
+                    return true;
+                }
+                return $metricParam === 'PASSED' ? !empty($funnel[$stageParam]['passed']) : !empty($funnel[$stageParam]['entered']);
+            });
+        }
+
         $reqIds = $candidates->pluck('Requisition_ID')
             ->flatMap(function ($r) {
                 return array_filter(explode(',', (string) $r));
@@ -284,14 +323,18 @@ class RecruitmentManagementController extends Controller
                 $Requisition = $requisitions->get($pecahreq);
                 if (!$Requisition) continue;
 
+                $funnel = $this->calculateCandidateFunnel($Fetch);
+
                 $docStatus   = $Fetch->Document_Status ?? 'PENDING';
                 $psyStatus   = $Fetch->Psikotest_Status ?? 'PENDING';
                 $hrStatus    = $Fetch->Interview_Status ?? 'PENDING';
                 $userStatus  = $Fetch->User_Interview_Status ?? 'PENDING';
-                $isDocDone   = ($docStatus === 'ACCEPT');
-                $isPsyDone   = ($psyStatus === 'ACCEPT');
-                $isHrDone    = ($hrStatus === 'ACCEPT');
-                $isUserDone  = ($userStatus === 'ACCEPT');
+                
+                // Gunakan evaluasi hierarki funnel agar konsisten (jika sudah di tahap berikutnya, tahap sebelumnya dianggap lolos)
+                $isDocDone   = !empty($funnel['Seleksi_Adm']['passed']);
+                $isPsyDone   = !empty($funnel['Psikotes']['passed']);
+                $isHrDone    = !empty($funnel['Interview_HR']['passed']);
+                $isUserDone  = !empty($funnel['Interview_User']['passed']);
 
                 $isRejected = in_array($Fetch->Status, ['REJECT', 'OFFER DECLINED', 'INVITATION DECLINED']);
                 $isHired = ($Fetch->Status === 'HIRED' || $Fetch->Status === 'CLOSED');

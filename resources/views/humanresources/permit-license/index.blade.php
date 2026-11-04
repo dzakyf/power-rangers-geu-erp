@@ -1,65 +1,90 @@
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
-<div class="main-content-header">
-    <h1>Human Capital and General Affairs</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="#">GA</a></li>
-        <li class="breadcrumb-item active"><span class="active">Permit &amp; License</span></li>
-    </ol>
+<div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+    <div>
+        <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+            Permit &amp; License Management
+        </h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Human Capital &amp; GA</a></li>
+                <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">General Affairs</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Permit &amp; License</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-none d-sm-flex align-items-center gap-2">
+        <span class="badge px-3 py-2 fs-12 shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+            <i class="fa fa-certificate me-1"></i> Legal Compliance &amp; Reminder
+        </span>
+    </div>
 </div>
 
 @if(session('success'))
-<div class="alert alert-success mt-3">{{ session('success') }}</div>
+<div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+    <i class="fa fa-circle-check me-2"></i>{{ session('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
 @endif
 @if(session('error'))
-<div class="alert alert-danger mt-3">{{ session('error') }}</div>
+<div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+    <i class="fa fa-circle-exclamation me-2"></i>{{ session('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
 @endif
 @if($errors->any())
-<div class="alert alert-danger mt-3">
-    <ul class="mb-0">
+<div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+    <i class="fa fa-triangle-exclamation me-2"></i>
+    <ul class="mb-0 ps-3">
         @foreach($errors->all() as $error)
         <li>{{ $error }}</li>
         @endforeach
     </ul>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 @endif
 
 @if($expiring->count() > 0)
-<div class="alert alert-warning mt-3">
-    <h5 class="alert-heading mb-2">Masa Berlaku Akan Berakhir</h5>
-    <p class="mb-2">{{ $expiring->count() }} perizinan akan berakhir dalam periode pengingatnya. Segera lakukan perpanjangan.</p>
-    <div class="table-responsive">
-        <table class="table table-sm table-bordered bg-white mb-0">
-            <thead>
+<div class="alert alert-warning alert-dismissible fade show shadow-sm mt-3" role="alert">
+    <div class="d-flex align-items-center mb-2">
+        <i class="fa fa-triangle-exclamation fs-18 text-warning me-2"></i>
+        <h5 class="alert-heading fw-bold mb-0">Masa Berlaku Akan Berakhir</h5>
+    </div>
+    <p class="mb-2 small">Terdapat <strong>{{ $expiring->count() }} perizinan</strong> yang akan berakhir dalam periode pengingat. Segera lakukan perpanjangan dokumen.</p>
+    <div class="table-responsive rounded border bg-white">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="bg-light">
                 <tr>
-                    <th>Nama Perizinan</th>
+                    <th class="ps-3">Nama Perizinan</th>
                     <th>Nomor</th>
                     <th>Kode</th>
                     <th>Berakhir</th>
                     <th>Sisa Hari</th>
-                    <th>Aksi</th>
+                    <th class="text-center pe-3">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($expiring as $item)
                 @php $remaining = $reminderService->daysRemaining($item); @endphp
                 <tr>
-                    <td>{{ $item->Name }}</td>
+                    <td class="ps-3 fw-semibold">{{ $item->Name }}</td>
                     <td>{{ $item->Permit_Number ?: '-' }}</td>
-                    <td>{{ $item->Category_Code ?: '-' }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ $item->Category_Code ?: '-' }}</span></td>
                     <td>{{ $reminderService->formatDate($item->Valid_To) }}</td>
                     <td>
                         @if($remaining === null)
-                        -
+                        <span class="text-muted">-</span>
                         @elseif($remaining === 0)
-                        Hari ini
+                        <span class="badge bg-danger text-white">Hari ini</span>
                         @else
-                        {{ $remaining }} hari
+                        <span class="badge bg-warning text-dark">{{ $remaining }} hari lagi</span>
                         @endif
                     </td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="PermitLicenseEditId({{ (int) $item->ID }});">Edit</button>
+                    <td class="text-center pe-3">
+                        <button type="button" class="btn btn-xs btn-outline-primary" onclick="PermitLicenseEditId({{ (int) $item->ID }});">
+                            <i class="fa fa-pen me-1"></i> Edit
+                        </button>
                     </td>
                 </tr>
                 @endforeach
@@ -70,43 +95,81 @@
 @endif
 
 @if($expiredCount > 0)
-<div class="alert alert-danger mt-3">
-    <strong>{{ $expiredCount }} perizinan sudah kedaluwarsa.</strong>
-    Periksa kolom Status pada daftar di bawah dan segera perbarui dokumennya.
+<div class="alert alert-danger alert-dismissible fade show shadow-sm mt-3 d-flex align-items-center" role="alert">
+    <i class="fa fa-circle-xmark fs-20 text-danger me-2"></i>
+    <div>
+        <strong>{{ $expiredCount }} perizinan sudah kedaluwarsa.</strong>
+        Periksa kolom Status pada daftar di bawah dan segera perbarui dokumennya.
+    </div>
 </div>
 @endif
 
-<div class="card mt-3">
-    <div class="card-body">
-        <input type="button" class="btn btn-info mt-2 mr-2" value="Refresh" onclick="PermitLicenseRefresh();" />
-        <input type="button" class="btn btn-success mt-2 mr-2" value="New Permit" onclick="PermitLicenseNew();" />
-        <input type="button" class="btn btn-primary mt-2 mr-2" value="Edit" onclick="PermitLicenseEdit();" />
-        <input type="button" class="btn btn-danger mt-2 mr-2" value="Delete" onclick="PermitLicenseDelete();" />
-        <input type="button" class="btn btn-outline-info mt-2 mr-2" value="Lihat Dokumen" onclick="PermitLicenseDocument();" />
-        <input type="button" class="btn btn-outline-primary mt-2 mr-2" value="Download" onclick="PermitLicenseDownload();" />
-        <input type="button" class="btn btn-warning mt-2 mr-2" value="Sinkron Notifikasi" onclick="PermitLicenseSync();" />
-        @if(can_menu('SI01007', 'edit') || (auth()->check() && auth()->user()->hasRole('ADM')))
-        <a class="btn btn-outline-secondary mt-2 mr-2" href="{{ url('hrd-permit-license-mail-settings') }}">
-            Template Email
-            @if($mailEnabled)
-            <span class="badge badge-success">Email Aktif{{ $mailRecipientCount > 0 ? ' (' . $mailRecipientCount . ')' : '' }}</span>
-            @else
-            <span class="badge badge-secondary">Email Nonaktif</span>
-            @endif
-        </a>
-        @endif
+{{-- Toolbar Card --}}
+<div class="card shadow-sm border mb-3">
+    <div class="card-body py-2 px-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex flex-wrap align-items-center gap-1">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="PermitLicenseRefresh();" title="Refresh">
+                    <i class="fa fa-rotate me-1"></i> Refresh
+                </button>
+                <button type="button" class="btn btn-success btn-sm text-white" onclick="PermitLicenseNew();">
+                    <i class="fa fa-plus me-1"></i> New Permit
+                </button>
+                <button type="button" class="btn btn-primary btn-sm text-white" onclick="PermitLicenseEdit();">
+                    <i class="fa fa-pen me-1"></i> Edit
+                </button>
+                <button type="button" class="btn btn-danger btn-sm text-white" onclick="PermitLicenseDelete();">
+                    <i class="fa fa-trash me-1"></i> Delete
+                </button>
+
+                <div class="vr my-1 mx-1 text-muted opacity-50"></div>
+
+                <button type="button" class="btn btn-outline-info btn-sm" onclick="PermitLicenseDocument();">
+                    <i class="fa fa-file-lines me-1"></i> Lihat Dokumen
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="PermitLicenseDownload();">
+                    <i class="fa fa-download me-1"></i> Download
+                </button>
+                <button type="button" class="btn btn-warning btn-sm text-dark" onclick="PermitLicenseSync();">
+                    <i class="fa fa-bell me-1"></i> Sinkron Notifikasi
+                </button>
+
+                @if(can_menu('SI01007', 'edit') || (auth()->check() && auth()->user()->hasRole('ADM')))
+                <a class="btn btn-outline-secondary btn-sm" href="{{ url('hrd-permit-license-mail-settings') }}">
+                    <i class="fa fa-envelope me-1"></i> Template Email
+                    @if($mailEnabled)
+                    <span class="badge bg-success text-white ms-1">Aktif{{ $mailRecipientCount > 0 ? ' (' . $mailRecipientCount . ')' : '' }}</span>
+                    @else
+                    <span class="badge bg-secondary text-white ms-1">Nonaktif</span>
+                    @endif
+                </a>
+                @endif
+            </div>
+
+            <div class="d-flex align-items-center gap-1">
+                <span class="badge bg-success text-white">AKTIF</span>
+                <span class="badge bg-warning text-dark">AKAN BERAKHIR</span>
+                <span class="badge bg-danger text-white">KEDALUWARSA</span>
+                <span class="badge bg-secondary text-white">SESUAI KETENTUAN</span>
+            </div>
+        </div>
     </div>
 </div>
 
-<div id="PermitLicenseGrid" style="width:auto;height:400px;background-color:white;overflow:hidden"></div>
-<div id="PermitLicenseDetail" class="mt-3"></div>
-
-<div class="mt-2">
-    <span class="badge badge-success">AKTIF</span>
-    <span class="badge badge-warning">AKAN BERAKHIR</span>
-    <span class="badge badge-danger">KEDALUWARSA</span>
-    <span class="badge badge-secondary">SESUAI KETENTUAN</span>
+{{-- dhtmlXGrid Container --}}
+<div class="card shadow-sm border mb-3">
+    <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+        <span class="fw-semibold text-dark fs-13">
+            <i class="fa fa-list text-primary me-1"></i> Daftar Perizinan &amp; Lisensi Perusahaan
+        </span>
+        <small class="text-muted"><i class="fa fa-filter me-1"></i> Gunakan kolom header untuk mencari/memfilter</small>
+    </div>
+    <div class="card-body p-0">
+        <div id="PermitLicenseGrid" style="width:100%;height:400px;background-color:white;overflow:hidden"></div>
+    </div>
 </div>
+
+<div id="PermitLicenseDetail" class="mt-3"></div>
 
 <form id="PermitLicenseDeleteForm" method="POST" action="{{ url('hrd-permit-license-delete') }}" style="display:none;">
     @csrf

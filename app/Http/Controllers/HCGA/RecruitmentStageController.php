@@ -28,6 +28,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class RecruitmentStageController extends Controller
@@ -93,6 +94,74 @@ class RecruitmentStageController extends Controller
         ['no' => 6, 'name' => 'MCU',                 'status_field' => 'MCU_Status', 'date_field' => 'MCU_Schedule', 'status_value' => 'ACCEPT'],
         ['no' => 7, 'name' => 'Offering Letter',     'status_field' => 'Offering_Status', 'date_field' => null, 'status_value' => 'ACCEPT'],
     ];
+
+    /**
+     * TAMPILKAN DAFTAR KANDIDAT YANG MEMERLUKAN VERIFIKASI DOKUMEN
+     * GET /hrd-recruitment-verify-document-list
+     */
+    public function verifyDocumentList(Request $request)
+    {
+        $statusFilter = $request->get('status', 'ALL');
+        $search = trim((string) $request->get('q', ''));
+        $perPage = (int) $request->get('per_page', 15);
+        if (!in_array($perPage, [10, 15, 25, 50, 100], true)) {
+            $perPage = 15;
+        }
+
+        $query = DB::table('recruitment')
+            ->whereIn('Status', ['CREATED', 'PENDING', 'UPLOADED'])
+            ->where("Location", Auth::user()->Location)
+            ->where(function($q) {
+                $q->where("Requisition_ID", '!=', null)->orWhere("Requisition_ID", "!=", '');
+            });
+
+        if ($statusFilter !== 'ALL' && in_array($statusFilter, ['CREATED', 'PENDING', 'UPLOADED'])) {
+            $query->where('Status', $statusFilter);
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('Name', 'LIKE', "%{$search}%")
+                  ->orWhere('Task_ID', 'LIKE', "%{$search}%")
+                  ->orWhere('Position', 'LIKE', "%{$search}%")
+                  ->orWhere('Requisition_ID', 'LIKE', "%{$search}%")
+                  ->orWhere('Email', 'LIKE', "%{$search}%")
+                  ->orWhere('Phone_Number', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $candidates = $query->orderBy('ID', 'desc')->paginate($perPage);
+
+        // Ambil data dokumen pendukung
+        $taskIds = $candidates->pluck('Task_ID')->filter()->toArray();
+        $documents = DB::table('recruitment_document')
+            ->whereIn('Task_ID', $taskIds)
+            ->get()
+            ->keyBy('Task_ID');
+
+        $requisitionIds = $candidates->pluck('Requisition_ID')->filter()->toArray();
+        $requisitions = DB::table('requisition')
+            ->whereIn('Task_ID', $requisitionIds)
+            ->get()
+            ->keyBy('Task_ID');
+
+        $counts = [
+            'all'      => DB::table('recruitment')->whereIn('Status', ['CREATED', 'PENDING', 'UPLOADED'])->count(),
+            'uploaded' => DB::table('recruitment')->where('Status', 'UPLOADED')->count(),
+            'created'  => DB::table('recruitment')->where('Status', 'CREATED')->count(),
+            'pending'  => DB::table('recruitment')->where('Status', 'PENDING')->count(),
+        ];
+
+        return view('humanresources.recruitment.recruitment-verify-document-list', [
+            'candidates'    => $candidates,
+            'documents'     => $documents,
+            'requisitions'  => $requisitions,
+            'statusFilter'  => $statusFilter,
+            'search'        => $search,
+            'perPage'       => $perPage,
+            'counts'        => $counts,
+        ]);
+    }
 
     /**
      * TAMPILKAN HALAMAN VERIFIKASI DOKUMEN
@@ -179,15 +248,23 @@ class RecruitmentStageController extends Controller
         }
 
         // Update ke tahap selanjutnya: PSIKOTEST
-        DB::table('recruitment')->where('ID', $id)->update([
+        $updateData = [
             'Status'              => 'PSIKOTEST',
             'Registration_Status' => 'PSIKOTEST',
             'Document_Status'     => 'ACCEPT',
             'Document_Date'       => now(),
-            'Document_Note'       => $note,
             'Modified_By'         => Auth::user()->username ?? 'SYSTEM',
             'Modified_Date'       => now(),
-        ]);
+        ];
+
+        // Catat catatan verifikasi jika ada
+        if (!empty($note)) {
+            $updateData['Document_Note'] = $note;
+            $updateData['Registration_Status_Note'] = $note;
+            $updateData['Notes'] = $note;
+        }
+
+        $this->updateRecruitmentSafe($id, $updateData);
 
         return response()->json([
             'status'  => 'success',
@@ -252,13 +329,14 @@ class RecruitmentStageController extends Controller
 
         $nextStatus = 'INTERVIEW_HR';
 
-        DB::table('recruitment')->where('ID', $id)->update([
+        $this->updateRecruitmentSafe($id, [
             'Status'              => $nextStatus,
             'Registration_Status' => $nextStatus,
             'Psikotest_Status'    => 'ACCEPT',
             'Psikotest_Date'      => now(),
             'Psikotest_Score'     => $score,
             'Psikotest_Result'    => $result,
+            'Psikotes_Result'     => $result,
             'Psikotest_Note'      => $note,
             'Psikotest_File'      => $request->input('psikotest_file'),
             'Modified_By'         => Auth::user()->username ?? 'SYSTEM',
@@ -327,7 +405,7 @@ class RecruitmentStageController extends Controller
 
         $nextStatus = 'INTERVIEW_USER';
 
-        DB::table('recruitment')->where('ID', $id)->update([
+        $this->updateRecruitmentSafe($id, [
             'Status'                => $nextStatus,
             'Registration_Status'   => $nextStatus,
             'Interview_Status'      => 'ACCEPT',
@@ -401,7 +479,7 @@ class RecruitmentStageController extends Controller
 
         $nextStatus = 'TECHNICAL_TEST';
 
-        DB::table('recruitment')->where('ID', $id)->update([
+        $this->updateRecruitmentSafe($id, [
             'Status'                  => $nextStatus,
             'Registration_Status'     => $nextStatus,
             'User_Interview_Status'   => 'ACCEPT',
@@ -476,7 +554,7 @@ class RecruitmentStageController extends Controller
 
         $nextStatus = 'MCU';
 
-        DB::table('recruitment')->where('ID', $id)->update([
+        $this->updateRecruitmentSafe($id, [
             'Status'                => $nextStatus,
             'Registration_Status'   => $nextStatus,
             'Technical_Test_Status' => 'ACCEPT',
@@ -520,6 +598,7 @@ class RecruitmentStageController extends Controller
             'result'   => 'nullable|string|max:500',
             'note'     => 'nullable|string|max:500',
             'schedule' => 'nullable|date',
+            'mcu_file' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -551,13 +630,14 @@ class RecruitmentStageController extends Controller
 
         $nextStatus = 'OFFERING';
 
-        DB::table('recruitment')->where('ID', $id)->update([
+        $this->updateRecruitmentSafe($id, [
             'Status'          => $nextStatus,
             'Registration_Status' => $nextStatus,
             'MCU_Status'      => 'ACCEPT',
             'MCU_Schedule'    => $schedule,
             'MCU_Result'      => $result,
             'MCU_Note'        => $note,
+            'MCU_File'        => $request->input('mcu_file') ?: ($recruitment->MCU_File ?? null),
             'Modified_By'     => Auth::user()->username ?? 'SYSTEM',
             'Modified_Date'   => now(),
         ]);
@@ -639,7 +719,7 @@ class RecruitmentStageController extends Controller
         }
         $offeringNumber = "OF-{$year}-{$newNo}";
 
-        DB::table('recruitment')->where('ID', $id)->update([
+        $this->updateRecruitmentSafe($id, [
             'Status'                  => 'HIRED',
             'Registration_Status'     => 'HIRED',
             'Offering_Status'         => 'ACCEPT',
@@ -696,7 +776,7 @@ class RecruitmentStageController extends Controller
             ], 404);
         }
 
-        DB::table('recruitment')->where('ID', $id)->update([
+        $this->updateRecruitmentSafe($id, [
             'Status'              => 'OFFER DECLINED',
             'Registration_Status' => 'OFFER DECLINED',
             'Offering_Status'     => 'REJECT',
@@ -745,7 +825,7 @@ class RecruitmentStageController extends Controller
             ], 404);
         }
 
-        DB::table('recruitment')->where('ID', $id)->update([
+        $this->updateRecruitmentSafe($id, [
             'Status'              => 'INVITATION DECLINED',
             'Registration_Status' => 'INVITATION DECLINED',
             'Decline_Reason'      => $reason,
@@ -809,14 +889,26 @@ class RecruitmentStageController extends Controller
             ], 400);
         }
 
-        DB::table('recruitment')->where('ID', $id)->update([
+        $updateData = [
             'Status'              => 'REJECT',
             'Registration_Status' => 'REJECT',
-            'Reject_Note'         => $reason,
-            'Reject_Date'         => now(),
             'Modified_By'         => Auth::user()->username ?? 'SYSTEM',
             'Modified_Date'       => now(),
-        ]);
+        ];
+
+        if (Schema::hasColumn('recruitment', 'Reject_Note')) {
+            $updateData['Reject_Note'] = $reason;
+        } elseif (Schema::hasColumn('recruitment', 'Registration_Status_Note')) {
+            $updateData['Registration_Status_Note'] = $reason;
+        } elseif (Schema::hasColumn('recruitment', 'Notes')) {
+            $updateData['Notes'] = $reason;
+        }
+
+        if (Schema::hasColumn('recruitment', 'Reject_Date')) {
+            $updateData['Reject_Date'] = now();
+        }
+
+        $this->updateRecruitmentSafe($id, $updateData);
 
         $stageLabel = ucfirst(str_replace('_', ' ', $stage));
         return response()->json([
@@ -865,5 +957,20 @@ class RecruitmentStageController extends Controller
                 'current_status' => $recruitment->Status,
             ],
         ]);
+    }
+
+    /**
+     * Helper untuk melakukan update ke tabel recruitment dengan memfilter hanya kolom
+     * yang benar-benar ada di tabel database (mencegah error Unknown Column).
+     */
+    private function updateRecruitmentSafe($id, array $data)
+    {
+        static $allowedColumns = null;
+        if ($allowedColumns === null) {
+            $allowedColumns = Schema::getColumnListing('recruitment');
+        }
+
+        $filtered = array_intersect_key($data, array_flip($allowedColumns));
+        return DB::table('recruitment')->where('ID', $id)->update($filtered);
     }
 }

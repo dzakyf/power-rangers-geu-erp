@@ -221,6 +221,13 @@
                                 @endif
                             </span>
                         @endif
+                        @if($todayEntry && !empty($todayEntry->Clock_In_Photo))
+                            <div class="mt-2 pt-1 border-top">
+                                <a href="javascript:void(0)" onclick="previewSelfieModal('{{ asset($todayEntry->Clock_In_Photo) }}', 'Foto Selfie Clock-In')" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 10px;">
+                                    <i class="fa fa-camera me-1"></i>Lihat Foto
+                                </a>
+                            </div>
+                        @endif
                     </div>
                 </div>
                 <div class="col-6">
@@ -234,6 +241,13 @@
                                     (-{{ formatDurationMinutesHome($todayEntry->Early_Leave_Minutes) }})
                                 @endif
                             </span>
+                        @endif
+                        @if($todayEntry && !empty($todayEntry->Clock_Out_Photo))
+                            <div class="mt-2 pt-1 border-top">
+                                <a href="javascript:void(0)" onclick="previewSelfieModal('{{ asset($todayEntry->Clock_Out_Photo) }}', 'Foto Selfie Clock-Out')" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 10px;">
+                                    <i class="fa fa-camera me-1"></i>Lihat Foto
+                                </a>
+                            </div>
                         @endif
                     </div>
                 </div>
@@ -295,6 +309,21 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PREVIEW FOTO SELFIE MOBILE -->
+    <div class="modal fade" id="previewSelfieModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 pb-1">
+                    <h6 class="modal-title fw-bold" id="previewSelfieTitle">Foto Bukti Kehadiran</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3 text-center">
+                    <img id="previewSelfieImg" src="" class="img-fluid rounded-3 shadow-sm border" alt="Selfie" style="max-height: 380px; width: 100%; object-fit: cover;">
                 </div>
             </div>
         </div>
@@ -499,6 +528,8 @@
                     latitude: userLat,
                     longitude: userLng,
                     photo: selfieBase64,
+                    client: 'mobile',
+                    is_mobile: 1,
                     notes: ''
                 })
             })
@@ -530,6 +561,14 @@
         function closeAttendanceFlow() {
             stopCameraLive();
             attendanceModal.hide();
+        }
+
+        // Modal Preview Foto Selfie
+        function previewSelfieModal(url, title) {
+            document.getElementById('previewSelfieTitle').innerText = title || 'Foto Bukti Kehadiran';
+            document.getElementById('previewSelfieImg').src = url;
+            const modal = new bootstrap.Modal(document.getElementById('previewSelfieModal'));
+            modal.show();
         }
 
         // Reset Khusus Akun Admin Dev

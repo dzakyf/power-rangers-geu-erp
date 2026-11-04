@@ -2,64 +2,108 @@
 @section('content-wrapper')
 @csrf
 
-<!-- Main Content Header -->
-<div class="main-content-header">
-    <h1>Human Resources</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a href="#">Recruitment</a>
-        </li>
-        <li class="breadcrumb-item active">
-            <span class="active">Dashboard Progress</span>
-        </li>
-    </ol>
+<style>
+/* Custom Recruitment Management UX styling (Reference: Approval Engine UI) */
+.management-metric-card {
+    transition: all 0.2s ease-in-out;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.06);
+}
+.management-metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.pipeline-step {
+    transition: all 0.15s ease;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.3rem 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.quick-action-btn {
+    transition: all 0.15s ease;
+    font-weight: 500;
+}
+.quick-action-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+.quick-action-btn:disabled {
+    opacity: 0.45 !important;
+    cursor: not-allowed;
+}
+#RecruitmentPivotGrid, #RecruitmentLists {
+    border-radius: 4px;
+}
+</style>
+
+{{-- Modern Breadcrumb Header --}}
+<div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+    <div>
+        <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+            Recruitment Management Dashboard
+        </h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Human Capital</a></li>
+                <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Recruitment</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Dashboard Progress</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-none d-sm-flex align-items-center gap-2">
+        <span class="badge px-3 py-2 fs-12 shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+            <i class="fa fa-chart-line me-1"></i> Funnel &amp; Progress Tracker
+        </span>
+    </div>
 </div>
 
-<!-- Info Box: Alur Recruitment -->
-<div class="row mb-3">
-    <div class="col-12">
-        <div class="card border-left-primary shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-lg-12">
-                        <div class="d-flex align-items-center">
-                            <div class="ml-4">
-                                <h5 class="font-weight-bold text-primary">📋 Alur Recruitment HCGA</h5>
-                                <div class="mt-2 text-muted">
-                                    <span class="badge bg-info text-white me-1">1. Input Candidate</span> → 
-                                    <span class="badge bg-warning text-dark me-1">2. Verifikasi Dokumen</span> → 
-                                    <span class="badge bg-info text-white me-1">3. Psikotest</span> → 
-                                    <span class="badge bg-warning text-dark me-1">4. Interview HR</span> → 
-                                    <span class="badge bg-info text-white me-1">5. Interview User</span> → 
-                                    <span class="badge bg-warning text-dark me-1">6. Tes Teknik</span> → 
-                                    <span class="badge bg-info text-white me-1">7. MCU</span> → 
-                                    <span class="badge bg-success text-white">8. Offering Letter</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+{{-- Info Box: Pipeline Alur Recruitment --}}
+<div class="card shadow-sm border-0 mb-3 bg-white">
+    <div class="card-body py-3 px-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <span class="fw-bold text-dark fs-13 d-flex align-items-center">
+                    <i class="fa fa-diagram-project text-primary me-2"></i> Pipeline Alur Rekrutmen HCGA:
+                </span>
+                <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
+                    <span class="pipeline-step bg-info-transparent text-info border">1. Seleksi Berkas</span>
+                    <i class="fa fa-chevron-right text-muted fs-11"></i>
+                    <span class="pipeline-step bg-primary-transparent text-white border">2. Psikotest</span>
+                    <i class="fa fa-chevron-right text-muted fs-11"></i>
+                    <span class="pipeline-step bg-info-transparent text-info border">3. Interview HR</span>
+                    <i class="fa fa-chevron-right text-muted fs-11"></i>
+                    <span class="pipeline-step bg-warning-transparent text-warning border">4. Interview User</span>
+                    <i class="fa fa-chevron-right text-muted fs-11"></i>
+                    <span class="pipeline-step bg-secondary-transparent text-secondary border">5. Tes Teknik</span>
+                    <i class="fa fa-chevron-right text-muted fs-11"></i>
+                    <span class="pipeline-step bg-info-transparent text-info border">6. MCU</span>
+                    <i class="fa fa-chevron-right text-muted fs-11"></i>
+                    <span class="pipeline-step bg-success-transparent text-success border">7. Offering &amp; Hired</span>
                 </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary quick-action-btn" onclick="toggleDivPivotTable()">
+                    <i class="fa fa-chart-pie me-1"></i> Toggle Pivot Table
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Panel Pengaturan Kolom (Dinamis seperti di employee-lists) -->
-<div class="card shadow border-0 mb-3">
+{{-- Panel Pengaturan Kolom Dinamis --}}
+<div class="card shadow-sm border mb-3">
     <div class="card-body p-3">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div class="d-flex align-items-center flex-wrap gap-2">
                 <a href="javascript:void(0)" onclick="toggleRecColPanel()" class="text-primary text-decoration-none fw-bold">
-                    <span id="RecColToggleIcon">&#9656;</span> Pengaturan Kolom (<span id="RecColCount">{{ count($activeCols) }}</span> aktif)
+                    <span id="RecColToggleIcon">&#9656;</span> Pengaturan Kolom Tabel (<span id="RecColCount">{{ count($activeCols) }}</span> aktif)
                 </a>
                 <input type="text" id="RecColSearch" placeholder="Cari kolom..." onkeyup="filterRecCols()" onclick="expandRecColPanel()" style="padding:4px 10px;width:220px;border:1px solid #ced4da;border-radius:4px;font-size:13px;" />
-                <span id="RecColFound" class="text-muted ms-1 small">{{ count($allCols) }} kolom</span>
+                <span id="RecColFound" class="text-muted ms-1 small">{{ count($allCols) }} kolom tersedia</span>
                 <span id="RecColMsg" class="ms-2 text-success fw-bold small"></span>
-            </div>
-            <div>
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleDivPivotTable()">
-                    <i class="fa fa-chart-pie me-1"></i> Toggle Pivot Table
-                </button>
             </div>
         </div>
         <div id="RecColPanel" style="margin-top:15px;display:none;padding-top:12px;border-top:1px dashed #ced4da;">
@@ -76,10 +120,10 @@
                 @endforeach
             </div>
             <div class="mt-3 pt-2 border-top d-flex gap-2">
-                <button type="button" class="btn btn-success btn-sm me-2" onclick="saveRecruitmentCols(false)">
+                <button type="button" class="btn btn-success btn-sm quick-action-btn" onclick="saveRecruitmentCols(false)">
                     <i class="fa fa-check me-1"></i> Simpan Pilihan
                 </button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="saveRecruitmentCols(true)">
+                <button type="button" class="btn btn-secondary btn-sm quick-action-btn" onclick="saveRecruitmentCols(true)">
                     <i class="fa fa-undo me-1"></i> Reset Default
                 </button>
             </div>
@@ -87,83 +131,94 @@
     </div>
 </div>
 
-<div class="row">
-    <!-- Pivot Dashboard Card -->
-    <div class="col-12 mb-3" id="divPivotTable" style="display:none;">
-        <div class="card shadow border-0">
-            <div class="card-header bg-primary text-white m-2 d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0 text-white">📊 Dashboard Progress (Pivot)</h5>
+{{-- Pivot UI Table Container (Collapsible) --}}
+<div class="row" id="divPivotTable" style="display:none;">
+    <div class="col-12 mb-3">
+        <div class="card shadow-sm border">
+            <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                <span class="fw-semibold text-dark fs-13">
+                    <i class="fa fa-chart-pie text-primary me-2"></i>Pivot UI Analysis
+                </span>
+                <button type="button" class="btn-close btn-sm" onclick="toggleDivPivotTable()"></button>
             </div>
             <div class="card-body">
-                <div class="w-100 mb-3" id="pivottrial"></div>
+                <div class="w-100 mb-2" id="pivottrial"></div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="card shadow border-0">
-    <div class="card-header bg-primary text-white m-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+{{-- Dashboard Progress (Pivot Grid Table) --}}
+<div class="card shadow-sm border mb-3">
+    <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div class="d-flex align-items-center gap-3">
-            <h5 class="card-title mb-0 text-white">📊 Dashboard Progress (Table)</h5>
+            <span class="fw-semibold text-dark fs-13">
+                <i class="fa fa-table-list text-primary me-2"></i>Rekap Progress Rekrutmen per PTK
+            </span>
             <div class="btn-group btn-group-sm" role="group" aria-label="Pivot Mode Toggle">
-                <button type="button" class="btn btn-light fw-bold text-primary active" id="btnModeTotal" onclick="setPivotMode('total')">
-                    <i class="fa fa-list-ol me-1"></i> Mode Total (Default)
+                <button type="button" class="btn btn-primary btn-sm quick-action-btn active" id="btnModeTotal" onclick="setPivotMode('total')">
+                    <i class="fa fa-list-ol me-1"></i> Mode Total
                 </button>
-                <button type="button" class="btn btn-outline-light fw-bold text-white" id="btnModeBreakdown" onclick="setPivotMode('breakdown')">
+                <button type="button" class="btn btn-outline-secondary btn-sm quick-action-btn" id="btnModeBreakdown" onclick="setPivotMode('breakdown')">
                     <i class="fa fa-layer-group me-1"></i> Mode Rincian (Masuk vs Lolos)
                 </button>
             </div>
         </div>
-        <span class="badge bg-light text-primary">Klik 2x pada baris untuk memfilter daftar kandidat di bawah</span>
+        <span class="badge bg-light text-muted border fw-normal">
+            <i class="fa fa-mouse-pointer text-primary me-1"></i> Klik sel pada tabel untuk menyaring daftar kandidat
+        </span>
     </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-12">
-                <div id="RecruitmentPivotGrid" style="width:auto;height:280px;background-color:white;overflow:hidden;border:1px solid #ced4da;border-radius:4px;"></div>
-            </div>
-        </div>
+    <div class="card-body p-0">
+        <div id="RecruitmentPivotGrid" style="width:100%;height:280px;background-color:white;overflow:hidden;"></div>
+    </div>
+    <div class="card-footer bg-light py-2 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <small class="text-muted">
+            <i class="fa fa-circle-info text-info me-1"></i> <strong>Tips:</strong> Klik baris PTK untuk menampilkan seluruh kandidat posisi terkait, atau klik angka kolom tahapan untuk menyaring kandidat pada tahap tersebut.
+        </small>
+        <button type="button" class="btn btn-outline-secondary btn-sm quick-action-btn py-0 px-2 fs-11" onclick="RecruitmentPivot.load('xml-hrd-recruitment-pivot?mode=' + currentPivotMode);">
+            <i class="fa fa-rotate me-1"></i> Refresh Rekap
+        </button>
     </div>
 </div>
-<!-- Detail PTK Card (Grid Utama) -->
-<div class="card shadow border-0 mt-3" id="detailPTKCard" style="display: none;">
-    <div class="card-header bg-primary text-white m-2 d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0 text-white">📋 Daftar Candidate (Recruitment Lists)</h5>
-        <div class="badge bg-light text-dark">
-            <i class="fa fa-info-circle me-1"></i> Klik 2x pada baris untuk melihat detail
+
+{{-- Detail PTK Card (Grid Utama Kandidat) --}}
+<div class="card shadow-sm border mb-3" id="detailPTKCard" style="display: none;">
+    <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <span class="fw-semibold text-dark fs-13" id="detailCardTitle">
+                <i class="fa fa-users text-primary me-2"></i>Daftar Kandidat (Recruitment Lists)
+            </span>
+            <small id="detailCardSubtitle" class="text-muted ms-2" style="display:none;"></small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-muted border fw-normal">
+                <i class="fa fa-circle-info text-info me-1"></i> Klik ganda baris untuk melihat detail lengkap
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="delsRecruitment();" title="Tutup Tabel Kandidat">
+                <i class="fa fa-xmark"></i>
+            </button>
         </div>
     </div>
     <div class="card-body p-0">
-        <div id="RecruitmentLists" style="width:auto;height:550px; background-color:white;overflow:hidden;border:1px solid #ced4da;border-radius:4px 4px 0 0;"></div>
-        <div class="p-2 border-top d-flex align-items-center justify-content-between" style="background-color:#f8f9fa;">
-            <div>
-                <button type="button" class="btn btn-warning btn-sm me-2" onclick="RecruitmentLists.toExcel('./export/generate.php');">
-                    <i class="fa fa-file-export me-1"></i> Export Excel
-                </button>
-                <button type="button" class="btn btn-info btn-sm text-white me-2" onclick="refreshdata();">
-                    <i class="fa fa-sync me-1"></i> Refresh
-                </button>
-                <button type="button" class="btn btn-danger btn-sm" onclick="delsRecruitment();">
-                    <i class="fa fa-times-circle me-1"></i> Cancel Selection
-                </button>
-            </div>
-            <div id="selectedPtkNotice" class="text-muted small"></div>
+        <div id="RecruitmentLists" style="width:100%;height:520px;background-color:white;overflow:hidden;"></div>
+    </div>
+    <div class="card-footer bg-light py-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-success btn-sm text-white quick-action-btn" onclick="RecruitmentLists.toExcel('./export/generate.php');">
+                <i class="fa fa-file-excel me-1"></i> Export Excel
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm quick-action-btn" onclick="refreshdata();">
+                <i class="fa fa-rotate me-1"></i> Refresh
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm quick-action-btn" onclick="delsRecruitment();">
+                <i class="fa fa-xmark me-1"></i> Tutup Seleksi
+            </button>
         </div>
+        <div id="selectedPtkNotice" class="text-muted small"></div>
     </div>
 </div>
 
-<div id="divlistRecruitment"></div>
-
-<!-- Custom CSS - Perbaikan Kontras Teks & Header Grid -->
-<style>
-    /* Header & Badge styling */
-    .card-header.bg-primary {
-        background-color: #0d6efd !important;
-        color: #ffffff !important;
-    }
-    .card-header.bg-primary h5 {
-        color: #ffffff !important;
-    }
-</style>
+<div id="divlistRecruitment" class="mb-4"></div>
 
 <script>
 var RecColMeta = {!! json_encode($meta) !!};
@@ -195,177 +250,213 @@ function filterRecCols() {
     if (q !== "") expandRecColPanel();
     var n = 0;
     $(".recColItem").each(function() {
-        var hit = $(this).text().toLowerCase().indexOf(q) !== -1;
-        $(this).toggle(hit);
-        if (hit) n++;
+        var t = $(this).attr("title").toLowerCase();
+        if (t.indexOf(q) !== -1) {
+            $(this).show();
+            n++;
+        } else {
+            $(this).hide();
+        }
     });
-    $("#RecColFound").text(q === "" ? (RecColTotal + " kolom") : (n + " cocok"));
+    $("#RecColFound").text(n + " kolom ditemukan");
 }
 
-function updateRecColCount() {
-    $("#RecColCount").text($(".recColCheck:checked").length);
-}
-
-$(document).on("change", ".recColCheck", updateRecColCount);
-
-/**
- * Click handler untuk klik ganda pada baris
- */
-function RecruitmentListsKlik() {
-    var RecruitmentListsID = RecruitmentLists.getSelectedId();
-    if (RecruitmentListsID !== '' && RecruitmentListsID !== null) {
-        var splitID = RecruitmentListsID.split('|');
-        var recruitmentId = splitID[0];
-        LoadM('divlistRecruitment', 'recruitment-lists-detail?ID=' + encodeURIComponent(recruitmentId));
+function saveRecruitmentCols(reset) {
+    var cols = [];
+    if (reset) {
+        cols = RecDefaultCols.slice();
+    } else {
+        $(".recColCheck:checked").each(function() {
+            cols.push($(this).val());
+        });
     }
-    return true;
-}
+    if (!cols.length) {
+        alert("Pilih minimal 1 kolom.");
+        return;
+    }
 
-/**
- * Hapus candidate yang dipilih
- */
-function delsRecruitment() {
-    dhtmlx.confirm({
-        title: 'Cancel Recruitment?',
-        text: 'Apakah Anda yakin ingin membatalkan recruitment candidate yang dipilih?',
-        ok: 'Yes, Cancel',
-        cancel: 'Batal',
-        callback: function(result) {
-            if (result) {
-                RecruitmentLists.deleteSelectedRows();
-                if (PRecruitmentLists) {
-                    PRecruitmentLists.sendData();
-                }
-                alert('Data Successfully Deleted!');
-                setTimeout(function() {
-                    refreshdata();
-                }, 1000);
+    $("#RecColMsg").text("Menyimpan...").removeClass("text-danger").addClass("text-success");
+    $.ajax({
+        url: "{{ url('hrd-recruitment-management-columns-save') }}",
+        type: "POST",
+        data: {
+            _token: "{{ csrf_token() }}",
+            cols: cols.join(",")
+        },
+        dataType: "json",
+        success: function(res) {
+            if (res.status === "ok") {
+                RecActiveCols = cols;
+                $("#RecColCount").text(cols.length);
+                $(".recColCheck").each(function() {
+                    $(this).prop("checked", cols.indexOf($(this).val()) !== -1);
+                });
+                $("#RecColMsg").text("Tersimpan.");
+                setTimeout(function() { $("#RecColMsg").text(""); }, 2000);
+                buildRecruitmentGrid(cols);
+            } else {
+                $("#RecColMsg").text(res.message || "Gagal menyimpan").removeClass("text-success").addClass("text-danger");
             }
+        },
+        error: function() {
+            $("#RecColMsg").text("Gagal koneksi").removeClass("text-success").addClass("text-danger");
         }
     });
 }
 
-/**
- * Bangun grid utama candidate sesuai kolom aktif
- */
-function buildRecruitmentGrid(keys) {
-    document.getElementById('RecruitmentLists').innerHTML = '';
-    RecruitmentLists = new dhtmlXGridObject('RecruitmentLists');
-    RecruitmentLists.setImagePath("./dhtmlx/imgs/");
+var currentFilterPtk = null;
+var currentFilterStage = null;
+var currentFilterMetric = 'ENTERED';
 
-    var header = ['No.'], fh = ['#rspan'], w = ['50'], al = ['center'], ty = ['ro'], so = ['int'];
-    for (var i = 0; i < keys.length; i++) {
-        var m = RecColMeta[keys[i]];
-        if (!m) continue;
-        header.push(m.label);
-        fh.push(m.filter);
-        w.push(m.width);
-        al.push(m.align);
-        ty.push(m.type);
-        so.push(m.sort);
+function filterByRequisitionAndStage(ptk, stageKey, stageLabel, metric) {
+    currentFilterPtk = ptk;
+    currentFilterStage = stageKey;
+    currentFilterMetric = metric || 'ENTERED';
+
+    var title = '<i class="fa fa-users text-primary me-2"></i>Daftar Candidate PTK: <span class="text-primary">' + ptk + '</span>';
+    var subTitle = '';
+
+    if (stageLabel) {
+        var metricLabel = (currentFilterMetric === 'PASSED') ? 'Lolos / Approved' : 'Total Masuk';
+        title += ' &bull; Tahap: <span class="badge bg-primary text-white">' + stageLabel + ' (' + metricLabel + ')</span>';
+        subTitle = 'Menyaring kandidat yang masuk kriteria ' + stageLabel + ' (' + metricLabel + ') pada nomor PTK ' + ptk;
+    } else {
+        subTitle = 'Menampilkan seluruh kandidat pada nomor PTK ' + ptk;
     }
 
-    RecruitmentLists.setHeader(header.join(','));
-    RecruitmentLists.attachHeader(fh.join(','));
-    RecruitmentLists.setInitWidths(w.join(','));
-    RecruitmentLists.setColAlign(al.join(','));
-    RecruitmentLists.setColTypes(ty.join(','));
-    RecruitmentLists.setColSorting(so.join(','));
+    $('#detailCardTitle').html(title);
+    if (subTitle) {
+        $('#detailCardSubtitle').html(subTitle).show();
+    } else {
+        $('#detailCardSubtitle').hide();
+    }
+
+    $('#detailPTKCard').slideDown();
+    $('html, body').animate({
+        scrollTop: $("#detailPTKCard").offset().top - 70
+    }, 300);
+
+    refreshdata();
+}
+
+function delsRecruitment() {
+    currentFilterPtk = null;
+    currentFilterStage = null;
+    currentFilterMetric = 'ENTERED';
+    $('#detailPTKCard').slideUp();
+    $('#divlistRecruitment').html('');
+}
+
+function refreshdata() {
+    if (!RecruitmentLists) return;
+    var url = 'xml-hrd-recruitment-management?cols=' + encodeURIComponent(RecActiveCols.join(','));
+    if (currentFilterPtk) {
+        url += '&Requisition_ID=' + encodeURIComponent(currentFilterPtk);
+    }
+    if (currentFilterStage) {
+        url += '&stage=' + encodeURIComponent(currentFilterStage);
+        url += '&metric=' + encodeURIComponent(currentFilterMetric);
+    }
+    RecruitmentLists.clearAndLoad(url);
+}
+
+function buildRecruitmentGrid(activeCols) {
+    if (!activeCols || !activeCols.length) {
+        activeCols = RecDefaultCols;
+    }
+
+    var headers = ["No"];
+    var filters = ["#rspan"];
+    var widths = ["50"];
+    var aligns = ["center"];
+    var sorts = ["int"];
+    var types = ["ro"];
+
+    for (var i = 0; i < activeCols.length; i++) {
+        var k = activeCols[i];
+        var m = RecColMeta[k];
+        if (!m) continue;
+        headers.push(m.label);
+        filters.push(m.filter || "#text_filter");
+        widths.push(m.width || 120);
+        aligns.push(m.align || "left");
+        sorts.push(m.sort || "str");
+        types.push(m.type || "ro");
+    }
+
+    document.getElementById("RecruitmentLists").innerHTML = "";
+    RecruitmentLists = new dhtmlXGridObject("RecruitmentLists");
+    RecruitmentLists.setImagePath("./dhtmlx/imgs/");
+    RecruitmentLists.setHeader(headers.join(","));
+    RecruitmentLists.attachHeader(filters.join(","));
+    RecruitmentLists.setInitWidths(widths.join(","));
+    RecruitmentLists.setColAlign(aligns.join(","));
+    RecruitmentLists.setColSorting(sorts.join(","));
+    RecruitmentLists.setColTypes(types.join(","));
+    RecruitmentLists.enableSmartRendering(true, 150);
     RecruitmentLists.enableKeyboardSupport(true);
-    RecruitmentLists.setEditable(false);
-    RecruitmentLists.attachEvent("onRowDblClicked", RecruitmentListsKlik);
     RecruitmentLists.setSkin("dhx_skyblue");
 
-    // Init data processor
-    PRecruitmentLists = new dataProcessor("recruitment-data-submit");
-    PRecruitmentLists.setTransactionMode({
-        mode: "POST",
-        total: true,
-        headers: {
-            'X-CSRF-TOKEN': "{{ csrf_token() }}"
-        },
+    RecruitmentLists.attachEvent("onRowDblClicked", function(rowId) {
+        var realId = rowId.indexOf("|") !== -1 ? rowId.split("|")[0] : rowId;
+        if (realId) {
+            $('#divlistRecruitment').html(
+                '<div class="card shadow-sm border p-4 text-center my-3">' +
+                    '<div class="spinner-border text-primary mx-auto mb-2" role="status"></div>' +
+                    '<div class="text-muted small">Memuat rincian dokumen &amp; profil kandidat...</div>' +
+                '</div>'
+            );
+            $('html, body').animate({
+                scrollTop: $("#divlistRecruitment").offset().top - 80
+            }, 300);
+            LoadM("divlistRecruitment", "recruitment-lists-detail?ID=" + encodeURIComponent(realId));
+        }
+        return true;
     });
-    PRecruitmentLists.setTransactionMode("POST", true);
-    PRecruitmentLists.setUpdateMode("Off");
-    PRecruitmentLists.init(RecruitmentLists);
 
     RecruitmentLists.init();
     refreshdata();
 }
 
-/**
- * Simpan pengaturan kolom ke server
- */
-function saveRecruitmentCols(reset) {
-    var keys = reset ? RecDefaultCols.slice() : $(".recColCheck:checked").map(function() { return this.value; }).get();
-    if (!keys.length) {
-        alert('Pilih minimal 1 kolom.');
-        return;
-    }
-    $("#RecColMsg").text('Menyimpan...');
-    $.post('{{ route("hrd-recruitment-management-columns-save") }}', {
-        _token: "{{ csrf_token() }}",
-        cols: keys.join(',')
-    }, function(res) {
-        if (res && res.status === 'ok') {
-            $(".recColCheck").each(function() {
-                this.checked = (keys.indexOf(this.value) !== -1);
-            });
-            updateRecColCount();
-            RecActiveCols = keys;
-            buildRecruitmentGrid(keys);
-            $("#RecColMsg").text('Pilihan kolom tersimpan.');
-            setTimeout(function() { $("#RecColMsg").text(''); }, 3000);
-        } else {
-            $("#RecColMsg").text('');
-            alert('Gagal menyimpan: ' + ((res && res.message) ? res.message : 'unknown error'));
-        }
-    }, 'json').fail(function() {
-        $("#RecColMsg").text('');
-        alert('Gagal menyimpan pilihan kolom.');
-    });
-}
-
-/**
- * Refresh data dari server
- */
-function refreshdata() {
-    if (!RecruitmentLists) return;
-    var colsParam = RecActiveCols.join(',');
-    var id = (RecruitmentPivot && typeof RecruitmentPivot.getSelectedId === 'function') ? RecruitmentPivot.getSelectedId() : null;
-
-    var url = 'xml-hrd-recruitment-management?cols=' + encodeURIComponent(colsParam);
-    if (id !== null && id !== '') {
-        url += '&Requisition_ID=' + encodeURIComponent(id);
-        $("#selectedPtkNotice").html('Filter PTK: <b>' + id + '</b> <a href="javascript:void(0)" onclick="clearPtkFilter()" class="ms-1 text-danger">(Hapus Filter)</a>');
-    } else {
-        $("#selectedPtkNotice").html('');
-    }
-
-    RecruitmentLists.clearAndLoad(url);
-    RecruitmentLists.sortRows(0, "str", "des");
-}
-
-function clearPtkFilter() {
-    if (RecruitmentPivot) {
-        RecruitmentPivot.clearSelection();
-    }
-    refreshdata();
-}
-
-/**
- * Filter data berdasarkan Requisition ID
- */
-function filterByRequisition(id) {
-    if (!RecruitmentLists) return;
-    setTimeout(function() {
-        RecruitmentLists.setSizes();
-        refreshdata();
-    }, 50);
-}
-
 // Inisialisasi Pivot Grid (Dashboard Summary)
 var currentPivotMode = 'total';
+
+var stageColMapTotal = {
+    2: { key: 'Seleksi_Adm', label: 'Seleksi Administrasi' },
+    3: { key: 'Psikotes', label: 'Psikotes' },
+    4: { key: 'Interview_HR', label: 'Interview HR' },
+    5: { key: 'Interview_User', label: 'Interview User' },
+    6: { key: 'Tes_Teknik', label: 'Tes Teknik' },
+    7: { key: 'MCU', label: 'MCU' },
+    8: { key: 'Offering', label: 'Offering Letter' }
+};
+
+var stageColMapBreakdown = {
+    3: { key: 'Seleksi_Adm', label: 'Seleksi Administrasi' },
+    4: { key: 'Psikotes', label: 'Psikotes' },
+    5: { key: 'Interview_HR', label: 'Interview HR' },
+    6: { key: 'Interview_User', label: 'Interview User' },
+    7: { key: 'Tes_Teknik', label: 'Tes Teknik' },
+    8: { key: 'MCU', label: 'MCU' },
+    9: { key: 'Offering', label: 'Offering Letter' }
+};
+
+function handlePivotCellInteraction(id, ind) {
+    var rawPtk = id.indexOf('|') !== -1 ? id.split('|')[0] : id;
+    var metric = 'ENTERED';
+    if (id.indexOf('|PASSED') !== -1) {
+        metric = 'PASSED';
+    }
+
+    var colMap = (currentPivotMode === 'breakdown') ? stageColMapBreakdown : stageColMapTotal;
+    var stageInfo = colMap[ind] || null;
+
+    if (stageInfo) {
+        filterByRequisitionAndStage(rawPtk, stageInfo.key, stageInfo.label, metric);
+    } else {
+        filterByRequisitionAndStage(rawPtk, null, null, metric);
+    }
+}
 
 function initPivotGrid(mode) {
     currentPivotMode = mode || 'total';
@@ -392,22 +483,28 @@ function initPivotGrid(mode) {
     RecruitmentPivot.enableKeyboardSupport(true);
     RecruitmentPivot.setEditable(false);
     RecruitmentPivot.setSkin("dhx_skyblue");
-    RecruitmentPivot.attachEvent("onRowDblClicked", function(id, ind) {
-        document.getElementById('detailPTKCard').style.display = '';
-        var rawPtk = id.indexOf('|') !== -1 ? id.split('|')[0] : id;
-        filterByRequisition(rawPtk);
+
+    // Single click pada cell kolom
+    RecruitmentPivot.attachEvent("onRowSelect", function(id, ind) {
+        handlePivotCellInteraction(id, ind);
     });
+
+    // Double click pada baris/cell
+    RecruitmentPivot.attachEvent("onRowDblClicked", function(id, ind) {
+        handlePivotCellInteraction(id, ind);
+    });
+
     RecruitmentPivot.init();
     RecruitmentPivot.load('xml-hrd-recruitment-pivot?mode=' + currentPivotMode);
 }
 
 function setPivotMode(mode) {
     if (mode === 'breakdown') {
-        $('#btnModeBreakdown').removeClass('btn-outline-light text-white').addClass('btn-light text-primary active');
-        $('#btnModeTotal').removeClass('btn-light text-primary active').addClass('btn-outline-light text-white');
+        $('#btnModeBreakdown').removeClass('btn-outline-secondary').addClass('btn-primary active');
+        $('#btnModeTotal').removeClass('btn-primary active').addClass('btn-outline-secondary');
     } else {
-        $('#btnModeTotal').removeClass('btn-outline-light text-white').addClass('btn-light text-primary active');
-        $('#btnModeBreakdown').removeClass('btn-light text-primary active').addClass('btn-outline-light text-white');
+        $('#btnModeTotal').removeClass('btn-outline-secondary').addClass('btn-primary active');
+        $('#btnModeBreakdown').removeClass('btn-primary active').addClass('btn-outline-secondary');
     }
     initPivotGrid(mode);
 }

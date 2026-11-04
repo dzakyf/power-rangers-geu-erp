@@ -27,6 +27,11 @@ class OnboardingController extends Controller
     {
         $materials = DB::table('onboarding_materials as om')
             ->join('meta_files as mf', 'om.Meta_File_ID', '=', 'mf.id')
+            ->select(
+                'om.*',
+                'mf.Path as File_Path',
+                'mf.Name as File_Name'
+            )
             ->orderBy('om.created_at', 'DESC')
             ->get();
 
@@ -40,7 +45,7 @@ class OnboardingController extends Controller
             $row->addChild('cell', htmlspecialchars($m->Title));
             $row->addChild('cell', htmlspecialchars($m->Category ?? ''));
             $row->addChild('cell', htmlspecialchars($m->Description ?? ''));
-            $fileUrl = asset('filevendor/' . $m->Path);
+            $fileUrl = asset('filevendor/' . $m->File_Path);
             $docCell = $row->addChild('cell');
             $dom = dom_import_simplexml($docCell);
             $cdata = $dom->ownerDocument->createCDATASection('<a href="' . $fileUrl . '" target="_blank">Dokumen</a>');
@@ -65,6 +70,11 @@ class OnboardingController extends Controller
         $id = $request->input('id');
         $material = DB::table('onboarding_materials as om')
             ->join('meta_files as mf', 'om.Meta_File_ID', '=', 'mf.id')
+            ->select(
+                'om.*',
+                'mf.Path as File_Path',
+                'mf.Name as File_Name'
+            )
             ->where('om.id', $id)
             ->first();
 

@@ -38,7 +38,7 @@ class ApprovalAuthorizationService
         // Legacy HCGA admin flags. Kept for compatibility with existing users.
         $priv = strtolower(trim((string) ($user->Priv_ID ?? '')));
         $mainPriv = strtolower(trim((string) ($user->MainPriv ?? '')));
-        if (strpos($priv, 'adm') !== false || strpos($mainPriv, 'admin') !== false) {
+        if (strpos($priv, 'adm') !== false || strpos($mainPriv, 'admin') !== false || strpos($priv, 'hr') !== false) {
             return true;
         }
 

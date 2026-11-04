@@ -182,43 +182,22 @@
                 </div>
             </div>
 
-            <!-- Persetujuan -->
-            <div class="badge badge-info w-100 my-2 py-2">Persetujuan</div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group row">
-                        <label class="col-md-5 col-form-label col-form-label-sm">Dept. Head Departemen Asal</label>
-                        <div class="col-md-7">
-                            <input type="text" class="form-control form-control-sm" id="origin_department_head" />
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label class="col-md-5 col-form-label col-form-label-sm">Diverifikasi — Senior Manager HCGA</label>
-                        <div class="col-md-7">
-                            <input type="text" class="form-control form-control-sm" id="hcga_verifier" />
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group row">
-                        <label class="col-md-5 col-form-label col-form-label-sm">Dept. Head Departemen Tujuan</label>
-                        <div class="col-md-7">
-                            <input type="text" class="form-control form-control-sm" id="destination_department_head" />
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label class="col-md-5 col-form-label col-form-label-sm">Mengetahui — Direktur</label>
-                        <div class="col-md-7">
-                            <input type="text" class="form-control form-control-sm" id="director_approver" />
-                        </div>
-                    </div>
-                </div>
+            <!-- Alur Persetujuan -->
+            <div class="badge badge-info w-100 my-2 py-2">Alur Persetujuan (Otomatis dari Approval Policy Engine)</div>
+            <div class="alert alert-light border small mb-3">
+                <i class="fas fa-info-circle text-primary me-1"></i>
+                Persetujuan (Dept. Head Asal, Dept. Head Tujuan, Verifikator HCGA, dan Direktur) akan <strong>otomatis ditentukan dan dicatat oleh Approval Engine</strong> sesuai dengan kebijakan organisasi dan siapa yang memberikan approval. Anda tidak perlu menginput nama approver secara manual.
             </div>
 
             <hr />
             <div>
-                <input type="submit" id="SubmitStatusChange" class="btn btn-success px-4" name="SubmitStatusChange" value="Submit Form Perubahan Status" />
-                <button type="button" class="btn btn-secondary px-3 ml-2" onclick="window.location.href='hrd-status-change-index{{ $jenisDefault ? '?jenis=' . $jenisDefault : '' }}'">Batal</button>
+                <button type="button" id="SaveDraftStatusChange" class="btn btn-primary px-4 me-2">
+                    <i class="fas fa-save me-1"></i> Simpan Sebagai Draft
+                </button>
+                <button type="button" id="SubmitStatusChange" class="btn btn-success px-4 me-2">
+                    <i class="fas fa-paper-plane me-1"></i> Simpan &amp; Langsung Ajukan Approval
+                </button>
+                <button type="button" class="btn btn-secondary px-3" onclick="window.location.href='hrd-status-change-index{{ $jenisDefault ? '?jenis=' . $jenisDefault : '' }}'">Batal</button>
             </div>
         </form>
     </div>
@@ -346,9 +325,7 @@
         $('#proposed_division').val($opt.data('division') || '');
     });
 
-    $('#SubmitStatusChange').on('click', function(e) {
-        e.preventDefault();
-
+    function doSubmitStatusChange(isDirectSubmit) {
         if ($('#employee_name').val().trim() == '') {
             alert('Nama karyawan wajib diisi!');
             $('#employee_name').focus();
@@ -360,11 +337,16 @@
             return false;
         }
 
-        $.blockUI({ message: '<div class="small">Menyimpan data...</div>' });
+        var loadingMsg = isDirectSubmit ? 'Menyimpan & mengajukan approval...' : 'Menyimpan draft data...';
+        $.blockUI({ message: '<div class="small">' + loadingMsg + '</div>' });
 
         var values = ['_token={{ csrf_token() }}'];
+        if (isDirectSubmit) {
+            values.push('direct_submit=1');
+        }
+
         $('#formStatusChange :input').each(function() {
-            if ($(this).attr('name') == 'SubmitStatusChange') return;
+            if ($(this).attr('id') == 'SubmitStatusChange' || $(this).attr('id') == 'SaveDraftStatusChange') return;
             var type = $(this).attr('type');
             if ((type == 'checkbox' || type == 'radio') && this.checked) {
                 values.push($(this).attr('id') + '=' + encodeURIComponent($(this).val()));
@@ -398,5 +380,15 @@
         });
 
         return false;
+    }
+
+    $('#SaveDraftStatusChange').on('click', function(e) {
+        e.preventDefault();
+        return doSubmitStatusChange(false);
+    });
+
+    $('#SubmitStatusChange').on('click', function(e) {
+        e.preventDefault();
+        return doSubmitStatusChange(true);
     });
 </script>

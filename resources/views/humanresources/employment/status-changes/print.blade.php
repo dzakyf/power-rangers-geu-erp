@@ -210,6 +210,15 @@
     </table>
 
     {{-- ===== TANDA TANGAN ===== --}}
+    @php
+        $signs = $signatures ?? [];
+        $originSign = $signs['origin'] ?? ['name' => $statusChange->origin_department_head, 'position' => 'Dept. Head', 'qr_uri' => null];
+        $destSign   = $signs['destination'] ?? ['name' => $statusChange->destination_department_head, 'position' => 'Dept. Head', 'qr_uri' => null];
+        $hcgaSign   = $signs['hcga'] ?? ['name' => ($statusChange->hcga_verifier ?: 'Arie S. Wirawan'), 'position' => 'Senior Manager HCGA', 'qr_uri' => null];
+        $dirSign    = $signs['director'] ?? ['name' => ($statusChange->director_approver ?: 'Dhimas Arif Wibowo'), 'position' => 'Direktur', 'qr_uri' => null];
+
+        $proposerDisplay = $proposerName ?? ($signs['proposer']['name'] ?? ($statusChange->proposed_by ?: '-'));
+    @endphp
     <table class="sign">
         <tr>
             <th rowspan="2" width="20%" style="vertical-align: middle;">Diusulkan oleh</th>
@@ -222,25 +231,73 @@
             <th width="20%">Departemen Tujuan</th>
         </tr>
         <tr>
-            <td class="space">&nbsp;</td>
-            <td class="space">&nbsp;</td>
-            <td class="space">&nbsp;</td>
-            <td class="space">&nbsp;</td>
-            <td class="space">&nbsp;</td>
+            <td class="space" style="height: 60px; vertical-align: middle; text-align: center;">
+                @if(!empty($proposerQrUri))
+                    <img src="{{ $proposerQrUri }}" width="48" height="48" alt="QR Proposer" />
+                @else
+                    &nbsp;
+                @endif
+            </td>
+            <td class="space" style="height: 60px; vertical-align: middle; text-align: center;">
+                @if(!empty($originSign['qr_uri']))
+                    <img src="{{ $originSign['qr_uri'] }}" width="48" height="48" alt="QR Dept Head Asal" />
+                @elseif(($originSign['status'] ?? '') === 'CLAIMED')
+                    <span style="color: #b45309; font-size: 7pt;">(Sedang Diklaim)</span>
+                @elseif(($originSign['status'] ?? '') === 'REJECTED')
+                    <span style="color: #dc2626; font-size: 7pt; font-weight: bold;">(DITOLAK)</span>
+                @else
+                    <span style="color: #999; font-size: 7pt;">(Menunggu Approval)</span>
+                @endif
+            </td>
+            <td class="space" style="height: 60px; vertical-align: middle; text-align: center;">
+                @if(!empty($destSign['qr_uri']))
+                    <img src="{{ $destSign['qr_uri'] }}" width="48" height="48" alt="QR Dept Head Tujuan" />
+                @elseif(($destSign['status'] ?? '') === 'CLAIMED')
+                    <span style="color: #b45309; font-size: 7pt;">(Sedang Diklaim)</span>
+                @elseif(($destSign['status'] ?? '') === 'REJECTED')
+                    <span style="color: #dc2626; font-size: 7pt; font-weight: bold;">(DITOLAK)</span>
+                @elseif(!empty($destSign['name']))
+                    <span style="color: #999; font-size: 7pt;">(Menunggu Approval)</span>
+                @else
+                    <span style="color: #ccc; font-size: 7pt;">-</span>
+                @endif
+            </td>
+            <td class="space" style="height: 60px; vertical-align: middle; text-align: center;">
+                @if(!empty($hcgaSign['qr_uri']))
+                    <img src="{{ $hcgaSign['qr_uri'] }}" width="48" height="48" alt="QR HCGA" />
+                @elseif(($hcgaSign['status'] ?? '') === 'CLAIMED')
+                    <span style="color: #b45309; font-size: 7pt;">(Sedang Diklaim)</span>
+                @elseif(($hcgaSign['status'] ?? '') === 'REJECTED')
+                    <span style="color: #dc2626; font-size: 7pt; font-weight: bold;">(DITOLAK)</span>
+                @else
+                    <span style="color: #999; font-size: 7pt;">(Menunggu Approval)</span>
+                @endif
+            </td>
+            <td class="space" style="height: 60px; vertical-align: middle; text-align: center;">
+                @if(!empty($dirSign['qr_uri']))
+                    <img src="{{ $dirSign['qr_uri'] }}" width="48" height="48" alt="QR Direktur" />
+                @elseif(($dirSign['status'] ?? '') === 'CLAIMED')
+                    <span style="color: #b45309; font-size: 7pt;">(Sedang Diklaim)</span>
+                @elseif(($dirSign['status'] ?? '') === 'REJECTED')
+                    <span style="color: #dc2626; font-size: 7pt; font-weight: bold;">(DITOLAK)</span>
+                @else
+                    <span style="color: #999; font-size: 7pt;">(Menunggu Approval)</span>
+                @endif
+            </td>
         </tr>
         <tr>
-            <td>{{ $statusChange->proposed_by ?: '(Nama)' }}</td>
-            <td>{{ $statusChange->origin_department_head ?: '(Nama)' }}</td>
-            <td>{{ $statusChange->destination_department_head ?: '(Nama)' }}</td>
-            <td>{{ $statusChange->hcga_verifier ?: 'Arie S. Wirawan' }}</td>
-            <td>{{ $statusChange->director_approver ?: 'Dhimas Arif Wibowo' }}</td>
+            <td><strong>{{ $proposerDisplay }}</strong></td>
+            <td><strong>{{ $originSign['name'] ?: '-' }}</strong></td>
+            <td><strong>{{ $destSign['name'] ?: '-' }}</strong></td>
+            <td><strong>{{ $hcgaSign['name'] ?: '-' }}</strong></td>
+            <td><strong>{{ $dirSign['name'] ?: '-' }}</strong></td>
         </tr>
         <tr>
             <td style="text-align: left;">Jabatan</td>
-            <td>Dept. Head</td>
-            <td>Dept. Head</td>
-            <td>Senior Manager HCGA</td>
-            <td>Direktur</td>
+            <td>{{ $originSign['position'] ?? 'Dept. Head' }}</td>
+            <td>{{ $destSign['position'] ?? 'Dept. Head' }}</td>
+            <td>{{ $hcgaSign['position'] ?? 'Senior Manager HCGA' }}</td>
+            <td>{{ $dirSign['position'] ?? 'Direktur' }}</td>
         </tr>
     </table>
 

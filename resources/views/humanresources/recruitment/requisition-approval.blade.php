@@ -1,16 +1,9 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Builder;
 
-$LSP = Auth::user()->Location;
-$Saya =  Auth::user()->username;
-
-$cekLevel = DB::table('master_hr_approval')->where("Location", $LSP)->whereIn("Level", [2, 3])
-    ->where('username', $Saya)->first();
-
+$LSP = $location ?? Auth::user()->Location;
+$Saya = $username ?? Auth::user()->username;
 
 ?>
 
@@ -18,168 +11,355 @@ $cekLevel = DB::table('master_hr_approval')->where("Location", $LSP)->whereIn("L
 
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
-<div class="main-content-header">
-    <h1>Human Resources</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a href="#">Recruitment</a>
-        </li>
-        <li class="breadcrumb-item active">
-            <span class="active">PTK</span>
-        </li>
-    </ol>
+<style>
+#RequisitionLists img,
+.gridbox_dhx_skyblue img {
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+}
+.quick-action-btn {
+    transition: all 0.15s ease;
+    font-weight: 500;
+}
+.quick-action-btn:disabled {
+    opacity: 0.45 !important;
+    cursor: not-allowed;
+}
+</style>
+
+{{-- Simple Header --}}
+<div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-3 pt-1 pb-2">
+    <div>
+        <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.3rem;">
+            Approval Permintaan Tenaga Kerja (PTK)
+        </h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Recruitment</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Approval PTK</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge px-3 py-2 fs-12" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.35); color: #ffffff !important;">
+            <i class="fa fa-inbox me-1"></i> Antrean: <strong id="badgeQueueCount">0</strong> PTK
+        </span>
+    </div>
 </div>
 
-<div>
-    <div id="RequisitionLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-    <div>
-        <input type="button" id="ekselRequisitionListsDet" name="ekselRequisitionListsDet" value="Export Excel" class="btn btn-warning mt-2 mr-2" onclick="RequisitionLists.toExcel('./export/generate.php');" />
-        <div class="card card-body my-3">
-            <div class="form-group">
-                <label for="txtRequisitionListsDet">Notes:</label>
-                <textarea id="txtRequisitionListsDet" name="txtRequisitionListsDet" class="form-control" rows="3"></textarea>
-            </div>
-            <div class="d-inline-block">
-                <input type="button" id="delets" name="delets" value="Cancel PTK" onclick="delsRequisition()" class="btn btn-danger mr-2" onclick="delsRequisition()" />
-                <input type="button" id="approvePTK" name="approvePTK" class="btn btn-success mr-2" onclick="closereq()" value="Approve PTK" />
-                @if ($cekLevel)
-                <!-- <input type="button" id="approveDirPTK" name="approveDirPTK" class="btn btn-success mr-2" onclick="closereqdir()" value="Approve PTK and Request Approve Director" /> -->
-                @endif
-            </div>
+{{-- Main Grid & Action Card (Satu Card Bersih & Fokus) --}}
+<div class="card shadow-sm border mb-3">
+    {{-- Top Toolbar --}}
+    <div class="card-header bg-white py-2 px-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm quick-action-btn" onclick="refreshdata()" title="Refresh Data">
+                <i class="fa fa-rotate me-1"></i> Refresh
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm quick-action-btn" id="btnActionDetail" onclick="showApprovalDetail(null, true)" disabled>
+                <i class="fa fa-eye me-1"></i> Lihat Detail PTK
+            </button>
+            <button type="button" id="ekselRequisitionListsDet" class="btn btn-outline-success btn-sm quick-action-btn" onclick="RequisitionLists.toExcel('./export/generate.php');">
+                <i class="fa fa-file-excel me-1"></i> Export Excel
+            </button>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 small">
+            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" onclick="toggleCheckAllPtk(true)">Pilih Semua</button>
+            <span class="text-muted">&bull;</span>
+            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-muted" onclick="toggleCheckAllPtk(false)">Reset Centang</button>
+            <span class="badge bg-light text-dark border ms-2 px-2 py-1">
+                Dicentang: <strong id="checkedCountText" class="text-primary">0</strong>
+            </span>
         </div>
     </div>
 
+    {{-- Grid Table --}}
+    <div class="card-body p-0">
+        <div id="RequisitionLists" style="width:100%;height:360px;background-color:white;overflow:hidden"></div>
+    </div>
+
+    {{-- Compact Approval Decision Footer --}}
+    <div class="card-footer bg-light p-3 border-top">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-8">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white fw-semibold text-dark">
+                        <i class="fa fa-comment-dots text-primary me-1"></i> Catatan (Notes) <span class="text-danger ms-1">*</span>
+                    </span>
+                    <input type="text" id="txtRequisitionListsDet" name="txtRequisitionListsDet" class="form-control" placeholder="Ketik catatan persetujuan atau alasan penolakan (min. 4 karakter)...">
+                </div>
+            </div>
+            <div class="col-md-4 d-flex justify-content-md-end gap-2">
+                <button type="button" id="delets" class="btn btn-danger btn-sm px-3 fw-bold flex-fill flex-md-grow-0" onclick="delsRequisition()">
+                    <i class="fa fa-xmark me-1"></i> Reject / Cancel
+                </button>
+                <button type="button" id="approvePTK" class="btn btn-success btn-sm px-3 fw-bold text-white flex-fill flex-md-grow-0" onclick="closereq()">
+                    <i class="fa fa-check me-1"></i> Approve PTK
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-<div id="divlistRequisition"></div>
+
+{{-- Detail Container (Hanya muncul saat tombol "Lihat Detail PTK" diklik atau baris di-double click) --}}
+<div id="divlistRequisition" class="mb-4"></div>
+
+{{-- Modal Notifikasi --}}
+<div class="modal fade" id="modalApprovalPtkAlert" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content shadow border-0 text-center p-3">
+            <div class="modal-body py-2">
+                <div id="modalApprovalPtkAlertIconContainer" class="mb-3"></div>
+                <h5 class="fw-bold mb-2 text-dark" id="modalApprovalPtkAlertTitle">Notifikasi</h5>
+                <p class="text-muted small mb-0" id="modalApprovalPtkAlertMessage"></p>
+            </div>
+            <div class="modal-footer justify-content-center border-0 pt-0">
+                <button type="button" class="btn btn-primary btn-sm px-4" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+var currentApprovalRowId = null;
+var bsModalApprovalAlert = null;
+var RequisitionLists;
+var PRequisitionLists;
+
+document.addEventListener('DOMContentLoaded', function () {
+    var modalEl = document.getElementById('modalApprovalPtkAlert');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        bsModalApprovalAlert = new bootstrap.Modal(modalEl);
+    }
+    initApprovalGrid();
+});
+
+function showAppNotification(title, message, type) {
+    type = type || 'info';
+    var iconHtml = '';
+
+    if (type === 'success') {
+        iconHtml = '<div class="avatar avatar-xl bg-success-transparent text-success rounded-circle mx-auto"><i class="fa fa-check fs-24"></i></div>';
+    } else if (type === 'danger' || type === 'error') {
+        iconHtml = '<div class="avatar avatar-xl bg-danger-transparent text-danger rounded-circle mx-auto"><i class="fa fa-exclamation-circle fs-24"></i></div>';
+    } else if (type === 'warning') {
+        iconHtml = '<div class="avatar avatar-xl bg-warning-transparent text-warning rounded-circle mx-auto"><i class="fa fa-triangle-exclamation fs-24"></i></div>';
+    } else {
+        iconHtml = '<div class="avatar avatar-xl bg-info-transparent text-info rounded-circle mx-auto"><i class="fa fa-circle-info fs-24"></i></div>';
+    }
+
+    var iconContainer = document.getElementById('modalApprovalPtkAlertIconContainer');
+    var titleEl = document.getElementById('modalApprovalPtkAlertTitle');
+    var msgEl = document.getElementById('modalApprovalPtkAlertMessage');
+
+    if (iconContainer) iconContainer.innerHTML = iconHtml;
+    if (titleEl) titleEl.innerText = title;
+    if (msgEl) msgEl.innerText = message;
+
+    if (bsModalApprovalAlert) {
+        bsModalApprovalAlert.show();
+    } else {
+        alert(message);
+    }
+}
+
+function updateCheckedCounter() {
+    if (!RequisitionLists) return;
+    var checkedStr = RequisitionLists.getCheckedRows(0);
+    var count = checkedStr ? checkedStr.split(',').filter(Boolean).length : 0;
+    var elChecked = document.getElementById('checkedCountText');
+    if (elChecked) elChecked.innerText = count;
+}
+
+function toggleCheckAllPtk(checkState) {
+    if (!RequisitionLists) return;
+    var val = checkState ? 1 : 0;
+    RequisitionLists.forEachRow(function (id) {
+        RequisitionLists.cells(id, 0).setValue(val);
+        PRequisitionLists.setUpdated(id, checkState, "updated");
+    });
+    updateCheckedCounter();
+}
+
+function initApprovalGrid() {
     RequisitionLists = new dhtmlXGridObject('RequisitionLists');
     RequisitionLists.setImagePath("./dhtmlx/imgs/");
-    RequisitionLists.setHeader("Checklist,No.,Task ID,Subject,Job Position,Description,Requirement,Department,Priority,Qty,Aging(days),Start date,End Date,Reference,PIC,Status");
-    RequisitionLists.setInitWidths("60,70,100,250,120,120,120,100,100,50,100,100,100,100,100,100");
-    RequisitionLists.setColAlign("center,left,left,center,center,center,center,center,center,center,center,center,center,center");
+    RequisitionLists.setHeader("Checklist,No.,No. PTK,Subject,Posisi Jabatan,Deskripsi,Requirement,Departemen,Prioritas,Qty,Aging (Hari),Tgl Mulai,Tgl Selesai,Referensi,PIC,Status");
+    RequisitionLists.attachHeader("#rspan,#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#select_filter");
+    RequisitionLists.setInitWidths("65,50,145,150,150,150,150,110,90,55,85,95,95,100,100,110");
+    RequisitionLists.setColAlign("center,center,left,left,left,left,left,center,center,center,center,center,center,center,left,center");
     RequisitionLists.setColTypes("ch,ro,ro,ro,ro,ro,ro,ro,coro,ro,ro,ro,ro,ro,combo,ro");
-    RequisitionLists.setColSorting("int,int,str,str,str,str,str,str,str,str,str");
+    RequisitionLists.setColSorting("int,int,str,str,str,str,str,str,str,int,int,str,str,str,str,str");
     RequisitionLists.setEditable(true);
+    RequisitionLists.setSkin("dhx_skyblue");
+
     PRequisitionLists = new dataProcessor("requisition-approval-update");
     PRequisitionLists.setTransactionMode({
         mode: "POST",
         total: true,
         headers: {
             'X-CSRF-TOKEN': "{{ csrf_token() }}"
-        },
-
-    })
+        }
+    });
     PRequisitionLists.setUpdateMode("Off");
     PRequisitionLists.init(RequisitionLists);
-    RequisitionLists.setSkin("dhx_skyblue");
+
     RequisitionLists.init();
+
     PRequisitionLists.attachEvent("onBeforeDataSending", function(id, state, data) {
-        // Modify or add payload data here
-        let notes = $('#txtRequisitionListsDet').val();
+        var notes = $('#txtRequisitionListsDet').val();
         data.customPayload = {
             notes: notes
         };
-        console.log(data); // For debugging purposes
-        return true; // Return true to continue processing
+        return true;
     });
+
     PRequisitionLists.attachEvent("onAfterUpdateFinish", function(id, state, data) {
-        alert('Data Updated Successfully!');
+        showAppNotification('Berhasil Diproses', 'Keputusan approval PTK berhasil disimpan.', 'success');
+        $('#txtRequisitionListsDet').val('');
+        $('#divlistRequisition').html('');
         setTimeout(function() {
             refreshdata();
-        }, 1000);
+        }, 800);
     });
-    RequisitionLists.getCombo(7).put("NORMAL", "NORMAL");
-    RequisitionLists.getCombo(7).put("HIGH", "HIGH");
-    RequisitionLists.getCombo(7).put("URGENT", "URGENT");
-    combocurr = RequisitionLists.getColumnCombo(13);
-    combocurr.enableFilteringMode(true);
-    combocurr.load("xml-load-pic-production");
+
+    RequisitionLists.getCombo(8).put("NORMAL", "NORMAL");
+    RequisitionLists.getCombo(8).put("HIGH", "HIGH");
+    RequisitionLists.getCombo(8).put("URGENT", "URGENT");
+
+    var combocurr = RequisitionLists.getColumnCombo(14);
+    if (combocurr) {
+        combocurr.enableFilteringMode(true);
+        combocurr.load("xml-load-pic-production");
+    }
+
+    RequisitionLists.attachEvent("onCheck", function(rId, cInd, state) {
+        updateCheckedCounter();
+        return true;
+    });
+
+    // Klik biasa hanya memilih baris & mengaktifkan tombol "Lihat Detail PTK" (tidak otomatis membuka panel bawah agar tidak ramai)
+    RequisitionLists.attachEvent("onRowSelect", function(id, ind) {
+        currentApprovalRowId = id;
+        var btnDetail = document.getElementById('btnActionDetail');
+        if (btnDetail) btnDetail.disabled = false;
+    });
+
+    // Double click baru membuka panel detail
+    RequisitionLists.attachEvent("onRowDblClicked", function(id, ind) {
+        currentApprovalRowId = id;
+        showApprovalDetail(id, true);
+        return true;
+    });
+
+    RequisitionLists.attachEvent("onXLE", function() {
+        var totalRows = RequisitionLists.getRowsNum();
+        var badgeQueue = document.getElementById('badgeQueueCount');
+        if (badgeQueue) badgeQueue.innerText = totalRows;
+        updateCheckedCounter();
+    });
+
     refreshdata();
+}
 
-    function refreshdata() {
+function refreshdata() {
+    if (RequisitionLists) {
         RequisitionLists.clearAndLoad('xml-recruitment-requisition-approval');
+    }
+}
 
+function showApprovalDetail(explicitId, autoScroll) {
+    var id = explicitId || (RequisitionLists ? RequisitionLists.getSelectedId() : null) || currentApprovalRowId;
+    if (!id) {
+        showAppNotification('Pilih Baris', 'Silakan klik salah satu baris PTK pada tabel terlebih dahulu.', 'warning');
+        return false;
     }
 
-    function closereq() {
-        let checkedRows = RequisitionLists.getCheckedRows(0);
-        if (!checkedRows) {
-            alert('Please select at least one requisition to approve.');
-            return;
-        }
-        dhtmlx.confirm('Approve this Requisition?', 'Requisition', function(r) {
-            if (r == true) {
-                // Modify or add payload data here
-                let notes = $('#txtRequisitionListsDet').val();
-                if (!notes && notes.length <= 3) {
-                    alert('Please enter notes before approving.');
-                    return false; // Prevent data from being sent
-                }
-                PRequisitionLists.sendData();
+    currentApprovalRowId = id;
+
+    var container = document.getElementById('divlistRequisition');
+    container.innerHTML = '<div class="card shadow-sm border p-3 text-center my-2">' +
+        '<div class="spinner-border spinner-border-sm text-primary mx-auto mb-1" role="status"></div>' +
+        '<div class="text-muted small">Memuat detail PTK...</div>' +
+    '</div>';
+
+    LoadM('divlistRequisition', 'recruitment-requisition-detail?id=' + encodeURIComponent(id));
+
+    if (autoScroll) {
+        setTimeout(function () {
+            var detailEl = document.getElementById('divlistRequisition');
+            if (detailEl) {
+                detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-        })
+        }, 250);
     }
 
-    function closereqdir() {
-        let checkedRows = RequisitionLists.getCheckedRows(0);
-        if (!checkedRows) {
-            alert('Please select at least one requisition to cancel.');
-            return;
-        }
-        dhtmlx.confirm('Cancel this Requisition?', 'Requisition', function(r) {
-            if (r == true) {
-                // Modify or add payload data here
-                let notes = $('#txtRequisitionListsDet').val();
-                if (!notes && notes.length <= 3) {
-                    alert('Please enter notes before approving.');
-                    return false; // Prevent data from being sent
-                }
+    return false;
+}
+
+function closereq() {
+    var checkedRows = RequisitionLists.getCheckedRows(0);
+    if (!checkedRows) {
+        showAppNotification('Checklist Kosong', 'Silakan centang minimal satu dokumen PTK pada kolom Checklist untuk di-Approve.', 'warning');
+        return;
+    }
+
+    var notes = ($('#txtRequisitionListsDet').val() || '').trim();
+    if (notes.length <= 3) {
+        $('#txtRequisitionListsDet').addClass('is-invalid').focus();
+        showAppNotification('Catatan Wajib Diisi', 'Mohon isi catatan persetujuan (minimal 4 karakter) sebelum melakukan Approve.', 'warning');
+        return;
+    }
+    $('#txtRequisitionListsDet').removeClass('is-invalid');
+
+    dhtmlx.confirm({
+        title: "Konfirmasi Approve PTK",
+        type: "confirm-warning",
+        text: "Setujui (APPROVE) dokumen PTK yang telah dicentang?",
+        callback: function(r) {
+            if (r === true) {
                 checkedRows.split(',').forEach(function(rowId) {
-                    PRequisitionLists.setUpdated(rowId, true, "updated-dir");
+                    if (rowId) {
+                        PRequisitionLists.setUpdated(rowId, true, "updated");
+                    }
                 });
                 PRequisitionLists.sendData();
             }
-        })
+        }
+    });
+}
+
+function delsRequisition() {
+    var checkedRows = RequisitionLists.getCheckedRows(0);
+    if (!checkedRows) {
+        showAppNotification('Checklist Kosong', 'Silakan centang minimal satu dokumen PTK pada kolom Checklist yang ingin ditolak/dibatalkan.', 'warning');
+        return;
     }
 
-    function delsRequisition() {
-        let checkedRows = RequisitionLists.getCheckedRows(0);
-        if (!checkedRows) {
-            alert('Please select at least one requisition to cancel.');
-            return;
-        }
-        dhtmlx.confirm('Cancel this Requisition?', 'Requisition', function(r) {
-            if (r == true) {
-                // Modify or add payload data here
-                let notes = $('#txtRequisitionListsDet').val();
-                if (!notes && notes.length <= 3) {
-                    alert('Please enter notes before approving.');
-                    return false; // Prevent data from being sent
-                }
+    var notes = ($('#txtRequisitionListsDet').val() || '').trim();
+    if (notes.length <= 3) {
+        $('#txtRequisitionListsDet').addClass('is-invalid').focus();
+        showAppNotification('Alasan Penolakan Wajib Diisi', 'Mohon isi alasan penolakan/pembatalan (minimal 4 karakter) pada kolom Catatan.', 'warning');
+        return;
+    }
+    $('#txtRequisitionListsDet').removeClass('is-invalid');
+
+    dhtmlx.confirm({
+        title: "Konfirmasi Reject / Cancel PTK",
+        type: "confirm-error",
+        text: "Tolak / Batalkan (REJECT) dokumen PTK yang telah dicentang?",
+        callback: function(r) {
+            if (r === true) {
                 checkedRows.split(',').forEach(function(rowId) {
-                    PRequisitionLists.setUpdated(rowId, true, "deleted");
+                    if (rowId) {
+                        PRequisitionLists.setUpdated(rowId, true, "deleted");
+                    }
                 });
                 PRequisitionLists.sendData();
             }
-        })
-    }
-
-
-    function UpdateGrid_Requisition() {
-        var out = 0;
-        for (var i = 0; i < RequisitionLists.getRowsNum(); i++) {
-            rowIdMov = RequisitionLists.getRowId(i);
-            RequisitionListsProc.setUpdated(rowIdMov, true);
         }
-        return out;
-    }
-
-    function SubmitGrid_Requisition() {
-        RequisitionListsProc.sendData();
-        alert('Data Successfully Updated!');
-        RequisitionLists.clearAll();
-        refreshdata();
-    }
+    });
+}
 </script>
 @endsection

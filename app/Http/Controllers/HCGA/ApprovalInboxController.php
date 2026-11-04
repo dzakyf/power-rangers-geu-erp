@@ -25,11 +25,173 @@ class ApprovalInboxController extends Controller
     public function index()
     {
         $isAdmin = $this->authorization->isWildcardAdmin(Auth::user());
+        $userId = (int) Auth::id();
 
-        return view('humanresources.approval.index', compact('isAdmin'));
+        $policyCategoryRows = DB::table('approval_policy')
+            ->select(
+                'Request_Type',
+                DB::raw('COUNT(*) as Total_Policies'),
+                DB::raw("SUM(CASE WHEN Status = 'ACTIVE' THEN 1 ELSE 0 END) as Active_Policies")
+            )
+            ->whereNotNull('Request_Type')
+            ->where('Request_Type', '!=', '')
+            ->groupBy('Request_Type')
+            ->orderBy('Request_Type', 'ASC')
+            ->get();
+
+        $policiesByType = DB::table('approval_policy')
+            ->select('ID', 'Policy_Code', 'Policy_Name', 'Request_Type', 'Status')
+            ->whereNotNull('Request_Type')
+            ->where('Request_Type', '!=', '')
+            ->orderBy('Status', 'ASC')
+            ->orderBy('ID', 'ASC')
+            ->get()
+            ->groupBy('Request_Type');
+
+        $stepsByPolicy = DB::table('approval_policy_step as s')
+            ->leftJoin('master_position as mp', 'mp.ID', '=', 's.Position_ID')
+            ->select(
+                's.ID',
+                's.Policy_ID',
+                's.Stage_Order',
+                's.Level_Number',
+                's.Position_ID',
+                's.Position_Code',
+                's.Department',
+                's.Approval_Mode',
+                's.Quorum',
+                's.Is_Required',
+                's.Label',
+                'mp.Position as Master_Position_Name'
+            )
+            ->orderBy('s.Policy_ID', 'ASC')
+            ->orderBy('s.Stage_Order', 'ASC')
+            ->orderBy('s.Level_Number', 'ASC')
+            ->orderBy('s.ID', 'ASC')
+            ->get()
+            ->groupBy('Policy_ID');
+
+        $taskCountsQuery = $this->inboxBaseQuery($userId, $isAdmin)
+            ->select('r.Request_Type', DB::raw('COUNT(*) as Total_Tasks'))
+            ->groupBy('r.Request_Type')
+            ->pluck('Total_Tasks', 'r.Request_Type')
+            ->toArray();
+
+        $totalAllTasks = array_sum($taskCountsQuery);
+
+        $categoryMeta = [
+            'REQUISITION' => [
+                'label' => 'PTK / Requisition',
+                'icon' => 'fa-user-plus',
+                'badge_color' => 'primary',
+            ],
+            'STATUS_CHANGE' => [
+                'label' => 'Perubahan Status Karyawan',
+                'icon' => 'fa-user-Gear',
+                'badge_color' => 'info',
+            ],
+            'PROCUREMENT' => [
+                'label' => 'Procurement (PR)',
+                'icon' => 'fa-cart-shopping',
+                'badge_color' => 'success',
+            ],
+            'GA_WORK_ORDER' => [
+                'label' => 'GA Work Order',
+                'icon' => 'fa-screwdriver-wrench',
+                'badge_color' => 'warning',
+            ],
+            'GENERAL' => [
+                'label' => 'General Approval',
+                'icon' => 'fa-file-signature',
+                'badge_color' => 'secondary',
+            ],
+        ];
+
+        $policyTabs = [];
+        $registeredTypes = [];
+
+        foreach ($policyCategoryRows as $row) {
+            $type = strtoupper(trim((string) $row->Request_Type));
+            if ($type === '') {
+                continue;
+            }
+            $registeredTypes[$type] = true;
+            $meta = $categoryMeta[$type] ?? [
+                'label' => ucwords(strtolower(str_replace(['_', '-'], ' ', $type))),
+                'icon' => 'fa-folder-open',
+                'badge_color' => 'primary',
+            ];
+
+            $policiesList = $policiesByType->get($row->Request_Type, collect());
+
+            $policyTabs[] = [
+                'key' => $type,
+                'label' => $meta['label'],
+                'icon' => $meta['icon'] === 'fa-user-Gear' ? 'fa-user-pen' : $meta['icon'],
+                'badge_color' => $meta['badge_color'],
+                'total_policies' => (int) $row->Total_Policies,
+                'active_policies' => (int) $row->Active_Policies,
+                'task_count' => (int) ($taskCountsQuery[$type] ?? $taskCountsQuery[$row->Request_Type] ?? 0),
+                'policies' => $policiesList->map(function ($p) use ($stepsByPolicy) {
+                    $rawSteps = $stepsByPolicy->get($p->ID, collect());
+                    return [
+                        'id' => (int) $p->ID,
+                        'code' => (string) $p->Policy_Code,
+                        'name' => (string) $p->Policy_Name,
+                        'status' => (string) $p->Status,
+                        'steps' => $rawSteps->map(function ($s) {
+                            $targetLabel = (string) ($s->Label ?: '');
+                            if ($targetLabel === '') {
+                                if (!empty($s->Position_Code)) {
+                                    $targetLabel = $s->Position_Code . ($s->Master_Position_Name ? ' - ' . $s->Master_Position_Name : '');
+                                } else {
+                                    $targetLabel = 'Level ' . (int) $s->Level_Number . ($s->Department ? ' (' . $s->Department . ')' : '');
+                                }
+                            }
+                            return [
+                                'id' => (int) $s->ID,
+                                'stage' => (int) $s->Stage_Order,
+                                'level' => (int) $s->Level_Number,
+                                'position_code' => (string) ($s->Position_Code ?: ''),
+                                'department' => (string) ($s->Department ?: ''),
+                                'mode' => (string) ($s->Approval_Mode ?: 'ALL'),
+                                'quorum' => $s->Quorum ? (int) $s->Quorum : null,
+                                'required' => (bool) $s->Is_Required,
+                                'label' => $targetLabel,
+                            ];
+                        })->values()->all(),
+                    ];
+                })->values()->all(),
+            ];
+        }
+
+        // Sertakan juga kategori yang memiliki antrean task aktif walaupun belum terdaftar di tabel approval_policy
+        foreach ($taskCountsQuery as $reqType => $count) {
+            $type = strtoupper(trim((string) $reqType));
+            if ($type === '' || isset($registeredTypes[$type])) {
+                continue;
+            }
+            $meta = $categoryMeta[$type] ?? [
+                'label' => ucwords(strtolower(str_replace(['_', '-'], ' ', $type))),
+                'icon' => 'fa-folder-open',
+                'badge_color' => 'secondary',
+            ];
+            $policyTabs[] = [
+                'key' => $type,
+                'label' => $meta['label'],
+                'icon' => $meta['icon'],
+                'badge_color' => $meta['badge_color'],
+                'total_policies' => 0,
+                'active_policies' => 0,
+                'task_count' => (int) $count,
+                'policies' => [],
+            ];
+        }
+
+        return view('humanresources.approval.index', compact('isAdmin', 'policyTabs', 'totalAllTasks'));
     }
 
-    public function data()
+    public function data(Request $request)
     {
         if (!headers_sent()) {
             header('Content-type: text/xml; charset=UTF-8');
@@ -37,10 +199,16 @@ class ApprovalInboxController extends Controller
 
         $userId = (int) Auth::id();
         $isAdmin = $this->authorization->isWildcardAdmin(Auth::user());
+        $requestTypeFilter = strtoupper(trim((string) $request->input('request_type', '')));
+        $policyIdFilter = (int) $request->input('policy_id', 0);
+        $stageFilter = (int) $request->input('stage_order', 0);
 
-        $query = DB::table('approval_request_task as t')
-            ->join('approval_request as r', 'r.ID', '=', 't.Request_ID')
-            ->join('users as u', 'u.id', '=', 'r.Requester_Id')
+        $query = $this->inboxBaseQuery($userId, $isAdmin)
+            ->leftJoin('approval_policy as p', 'p.ID', '=', 'r.Policy_ID')
+            ->leftJoin('approval_policy_step as ps', function ($join) {
+                $join->on('ps.Policy_ID', '=', 'r.Policy_ID')
+                     ->on('ps.Stage_Order', '=', 't.Stage_Order');
+            })
             ->select(
                 't.ID',
                 't.Request_ID',
@@ -56,31 +224,28 @@ class ApprovalInboxController extends Controller
                 't.Held_Reason',
                 'r.Request_No',
                 'r.Request_Type',
+                'r.Policy_ID',
+                'p.Policy_Code',
+                'p.Policy_Name',
+                'ps.Label as Step_Label',
+                DB::raw('(SELECT COUNT(DISTINCT s2.Stage_Order) FROM approval_policy_step s2 WHERE s2.Policy_ID = r.Policy_ID) as Total_Policy_Stages'),
                 'r.Status as Request_Status',
                 'r.Submitted_At',
                 'r.Location',
                 'r.Company_ID',
                 'u.Name as Requester_Name'
-            )
-            ->whereNotIn('r.Status', ['APPROVED', 'REJECTED', 'RETURNED', 'CANCELLED']);
+            );
 
-        if ($isAdmin) {
-            // Wildcard admin needs visibility of claimed tasks to release
-            // claims manually. Normal approvers only see their own work.
-            $query->whereIn('t.Status', ['PENDING', 'HELD', 'CLAIMED']);
-        } else {
-            $query->where(function ($subQuery) use ($userId) {
-                $subQuery->whereIn('t.Status', ['PENDING', 'HELD'])
-                    ->orWhere(function ($sub) use ($userId) {
-                        $sub->where('t.Status', 'CLAIMED')->where('t.Claimed_By', $userId);
-                    });
-            })->whereExists(function ($candidateQuery) use ($userId) {
-                $candidateQuery->select(DB::raw(1))
-                    ->from('approval_task_candidate as c')
-                    ->whereColumn('c.Task_ID', 't.ID')
-                    ->where('c.User_Id', $userId)
-                    ->where('c.Status', 'ACTIVE');
-            });
+        if ($requestTypeFilter !== '' && $requestTypeFilter !== 'ALL') {
+            $query->where('r.Request_Type', $requestTypeFilter);
+        }
+
+        if ($policyIdFilter > 0) {
+            $query->where('r.Policy_ID', $policyIdFilter);
+        }
+
+        if ($stageFilter > 0) {
+            $query->where('t.Stage_Order', $stageFilter);
         }
 
         $tasks = $query->orderBy('r.Submitted_At', 'ASC')
@@ -98,10 +263,19 @@ class ApprovalInboxController extends Controller
                 $taskStatus = 'CLAIMED BY YOU';
             }
 
+            $totalStages = (int) $task->Total_Policy_Stages;
+            $stageInfo = 'Stage ' . (int) $task->Stage_Order . ($totalStages > 0 ? '/' . $totalStages : '');
+            $stepLabel = trim((string) $task->Step_Label);
+            if ($stepLabel === '') {
+                $stepLabel = trim($task->Position_Code . ' - ' . $task->Position_Name, ' -');
+            }
+            $policyStepDisplay = ($task->Policy_Code ? '[' . $task->Policy_Code . '] ' : '') . $stageInfo . ': ' . $stepLabel;
+
             echo '<row id="' . (int) $task->ID . '">';
             echo '<cell>' . $no . '</cell>';
             echo '<cell>' . $this->xml($task->Request_No) . '</cell>';
             echo '<cell>' . $this->xml($task->Request_Type) . '</cell>';
+            echo '<cell>' . $this->xml($policyStepDisplay) . '</cell>';
             echo '<cell>' . $this->xml($task->Position_Code . ' - ' . $task->Position_Name) . '</cell>';
             echo '<cell>' . (int) $task->Stage_Order . '</cell>';
             echo '<cell>' . (int) $task->Level_Number . '</cell>';
@@ -110,11 +284,71 @@ class ApprovalInboxController extends Controller
             echo '<cell>' . $this->xml($task->Requester_Name) . '</cell>';
             echo '<cell>' . $this->xml($task->Location) . '</cell>';
             echo '<cell>' . $this->xml($task->Submitted_At) . '</cell>';
+            echo '<userdata name="request_type">' . $this->xml(strtoupper(trim((string) $task->Request_Type))) . '</userdata>';
+            echo '<userdata name="policy_id">' . (int) $task->Policy_ID . '</userdata>';
+            echo '<userdata name="policy_code">' . $this->xml($task->Policy_Code ?: '-') . '</userdata>';
+            echo '<userdata name="policy_name">' . $this->xml($task->Policy_Name ?: '-') . '</userdata>';
+            echo '<userdata name="stage_order">' . (int) $task->Stage_Order . '</userdata>';
+            echo '<userdata name="step_label">' . $this->xml($stepLabel) . '</userdata>';
             echo '</row>';
             $no++;
         }
 
         echo '</rows>';
+    }
+
+    private function inboxBaseQuery(int $userId, bool $isAdmin)
+    {
+        $query = DB::table('approval_request_task as t')
+            ->join('approval_request as r', 'r.ID', '=', 't.Request_ID')
+            ->join('users as u', 'u.id', '=', 'r.Requester_Id')
+            ->whereNotIn('r.Status', ['APPROVED', 'REJECTED', 'RETURNED', 'CANCELLED']);
+
+        if ($isAdmin) {
+            // Wildcard admin needs visibility of claimed tasks to release
+            // claims manually.
+            $query->whereIn('t.Status', ['PENDING', 'HELD', 'CLAIMED']);
+        } else {
+            $now = \Illuminate\Support\Carbon::now();
+
+            $query->where(function ($subQuery) use ($userId) {
+                // Hanya task PENDING/HELD yang belum di-claim siapapun, ATAU CLAIMED yang sedang dipegang oleh user ini
+                $subQuery->where(function ($pendingSub) {
+                    $pendingSub->whereIn('t.Status', ['PENDING', 'HELD'])
+                        ->whereNull('t.Claimed_By');
+                })->orWhere(function ($claimedSub) use ($userId) {
+                    $claimedSub->where('t.Status', 'CLAIMED')
+                        ->where('t.Claimed_By', $userId);
+                });
+            })
+            // Harus terdaftar sebagai kandidat aktif (holder, acting, delegate, atau atasan karena hierarki/vacant)
+            ->whereExists(function ($candidateQuery) use ($userId) {
+                $candidateQuery->select(DB::raw(1))
+                    ->from('approval_task_candidate as c')
+                    ->whereColumn('c.Task_ID', 't.ID')
+                    ->where('c.User_Id', $userId)
+                    ->where('c.Status', 'ACTIVE');
+            })
+            // Anti self-approval: Jika user adalah pemohon, sembunyikan kecuali ada izin pengecualian aktif
+            ->where(function ($selfGuard) use ($userId, $now) {
+                $selfGuard->where('r.Requester_Id', '!=', $userId)
+                    ->orWhereExists(function ($exceptionQuery) use ($userId, $now) {
+                        $exceptionQuery->select(DB::raw(1))
+                            ->from('approval_self_exception as ex')
+                            ->whereColumn('ex.Request_ID', 'r.ID')
+                            ->where('ex.User_Id', $userId)
+                            ->whereNull('ex.Revoked_At')
+                            ->where(function ($q) {
+                                $q->whereNull('ex.Task_ID')->orWhereColumn('ex.Task_ID', 't.ID');
+                            })
+                            ->where(function ($q) use ($now) {
+                                $q->whereNull('ex.Expires_At')->orWhere('ex.Expires_At', '>', $now);
+                            });
+                    });
+            });
+        }
+
+        return $query;
     }
 
     public function detail(Request $request)
@@ -153,8 +387,26 @@ class ApprovalInboxController extends Controller
             ->where('Status', 'ACTIVE')
             ->exists();
 
-        $canAct = ($isMyClaim || ($isPending && $isCandidate) || $isAdmin);
-        $canClaim = ($isPending && ($isCandidate || $isAdmin));
+        // Cek self-approval jika pemohon adalah user yang sedang login
+        $isRequester = ((int) $task->Requester_Id === $userId);
+        $hasSelfException = true;
+        if ($isRequester) {
+            $now = \Illuminate\Support\Carbon::now();
+            $hasSelfException = DB::table('approval_self_exception')
+                ->where('Request_ID', (int) $task->Request_ID)
+                ->where('User_Id', $userId)
+                ->whereNull('Revoked_At')
+                ->where(function ($q) use ($taskId) {
+                    $q->whereNull('Task_ID')->orWhere('Task_ID', $taskId);
+                })
+                ->where(function ($q) use ($now) {
+                    $q->whereNull('Expires_At')->orWhere('Expires_At', '>', $now);
+                })
+                ->exists();
+        }
+
+        $canClaim = ($isPending && ($isCandidate || $isAdmin) && (!$isRequester || $hasSelfException));
+        $canAct = ($isMyClaim || $canClaim || $isAdmin);
         $canRelease = ($isAdmin && strtoupper((string) $task->Task_Status) === 'CLAIMED');
 
         return view('humanresources.approval.detail', compact(
