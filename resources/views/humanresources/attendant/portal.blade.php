@@ -5,23 +5,36 @@
 @endpush
 
 @section('content-wrapper')
-    <!-- Main Content Header -->
-    <div class="main-content-header mb-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-                <h4 class="fw-bold mb-1 text-primary"><i class="fe fe-monitor me-2"></i>Portal Absensi & Pengajuan Karyawan</h4>
+    <!-- Main Content Header (Adminor V3 Responsive Hero Header) -->
+    <div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+        <div class="mb-2 mb-md-0">
+            <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+                <i class="fe fe-monitor me-2"></i>Portal Absensi &amp; Pengajuan Karyawan
+            </h4>
+            <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="/dashboard1">Human Resources</a></li>
-                    <li class="breadcrumb-item active">Employee Portal</li>
+                    <li class="breadcrumb-item"><a href="/dashboard1" style="color: rgba(255, 255, 255, 0.8) !important;">Human Resources</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Employee Portal</li>
                 </ol>
-            </div>
-            <div class="d-flex gap-2">
-                <a href="{{ route('attendance.mobile.index') }}" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm">
-                    <i class="fe fe-smartphone me-1"></i> Buka Tampilan Mobile Webview
-                </a>
-            </div>
+            </nav>
         </div>
-    </div> 
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            @if(isset($cutoffRange))
+                <a href="{{ route('attendance.cutoff.index') }}" class="badge rounded-pill px-3 py-2 text-white shadow-sm text-decoration-none" style="background: rgba(255, 255, 255, 0.25); border: 1px solid rgba(255, 255, 255, 0.4); font-size: 11px;" title="Klik untuk mengelola Aturan Cutoff">
+                    <i class="fe fe-calendar me-1"></i> Cutoff Periode: <strong>{{ $cutoffRange['formatted_label'] }}</strong> ({{ date('F Y', strtotime($activePeriodeYm . '-01')) }}) <i class="fe fe-external-link ms-1"></i>
+                </a>
+            @endif
+            <a href="{{ route('attendance.cutoff.index') }}" class="btn btn-sm rounded-pill shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
+                <i class="fe fe-sliders me-1"></i> Atur Cutoff
+            </a>
+            <a href="{{ url('/attendant-data') }}" class="btn btn-sm rounded-pill shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
+                <i class="fe fe-users me-1"></i> Rekap Semua Karyawan
+            </a>
+            <a href="{{ route('attendance.mobile.index') }}" target="_blank" class="btn btn-warning btn-sm rounded-pill shadow-sm px-3 fw-semibold">
+                <i class="fe fe-smartphone me-1"></i> Tampilan Mobile
+            </a>
+        </div>
+    </div>
     <!-- End Main Content Header -->
 
     <div class="row g-3">
@@ -44,6 +57,13 @@
                                 @if($todayEntry && $todayEntry->Clock_In_Status)
                                     <span class="badge bg-success d-block mt-1">{{ $todayEntry->Clock_In_Status }}</span>
                                 @endif
+                                @if($todayEntry && !empty($todayEntry->Clock_In_Photo))
+                                    <div class="mt-2 pt-1 border-top">
+                                        <a href="javascript:void(0)" onclick="previewDesktopSelfie('{{ asset($todayEntry->Clock_In_Photo) }}', 'Foto Selfie Clock-In')" class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill" style="font-size: 10px;">
+                                            <i class="fe fe-camera me-1"></i>Lihat Foto
+                                        </a>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                         <div class="col-6">
@@ -52,6 +72,13 @@
                                 <span class="fw-bold text-danger fs-5">{{ $todayEntry->End_Time ?? '--:--' }}</span>
                                 @if($todayEntry && $todayEntry->End_Time && $todayEntry->Clock_Out_Status)
                                     <span class="badge bg-secondary d-block mt-1">{{ $todayEntry->Clock_Out_Status }}</span>
+                                @endif
+                                @if($todayEntry && !empty($todayEntry->Clock_Out_Photo))
+                                    <div class="mt-2 pt-1 border-top">
+                                        <a href="javascript:void(0)" onclick="previewDesktopSelfie('{{ asset($todayEntry->Clock_Out_Photo) }}', 'Foto Selfie Clock-Out')" class="btn btn-sm btn-outline-danger py-0 px-2 rounded-pill" style="font-size: 10px;">
+                                            <i class="fe fe-camera me-1"></i>Lihat Foto
+                                        </a>
+                                    </div>
                                 @endif
                             </div>
                         </div>
@@ -88,6 +115,45 @@
                     @endif
                 </div>
             </div>
+
+            <!-- Mini Widget Ringkasan Siklus Cutoff Payroll Berjalan -->
+            @if(isset($cutoffRange) && isset($cutoffStats))
+                <div class="card border-0 shadow-sm rounded-4 mb-3">
+                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0 text-dark"><i class="fe fe-pie-chart text-success me-2"></i>Akumulasi Siklus Payroll Anda</h6>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">{{ date('F Y', strtotime($activePeriodeYm . '-01')) }}</span>
+                    </div>
+                    <div class="card-body p-3">
+                        <small class="text-muted d-block mb-2" style="font-size: 11px;">
+                            Rentang Cutoff: <strong>{{ $cutoffRange['formatted_label'] }}</strong> ({{ $cutoffRule->name ?? 'Cutoff Standar' }})
+                        </small>
+                        <div class="row g-2 text-center">
+                            <div class="col-4">
+                                <div class="p-2 border rounded-3 bg-light">
+                                    <small class="text-muted d-block" style="font-size: 10px;">Total Hadir</small>
+                                    <span class="fw-bold text-success fs-6">{{ (int)($cutoffStats->total_present ?? 0) }} Hari</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 border rounded-3 bg-light">
+                                    <small class="text-muted d-block" style="font-size: 10px;">Terlambat</small>
+                                    <span class="fw-bold {{ ($cutoffStats->total_late ?? 0) > 0 ? 'text-warning' : 'text-muted' }} fs-6">
+                                        {{ (int)($cutoffStats->total_late ?? 0) }}x
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 border rounded-3 bg-light">
+                                    <small class="text-muted d-block" style="font-size: 10px;">Jam Lembur</small>
+                                    <span class="fw-bold text-danger fs-6">
+                                        {{ round(($cutoffStats->total_overtime_minutes ?? 0) / 60, 1) }} Jam
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- Kolom Kanan: Pengajuan Terpisah (Request Izin/Cuti & Koreksi Absensi) -->
@@ -412,6 +478,21 @@
         </div>
     </div>
 
+    <!-- MODAL POPUP PREVIEW FOTO SELFIE DESKTOP -->
+    <div class="modal fade" id="previewDesktopSelfieModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 pb-1">
+                    <h6 class="modal-title fw-bold" id="previewDesktopSelfieTitle">Foto Bukti Kehadiran</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3 text-center">
+                    <img id="previewDesktopSelfieImg" src="" class="img-fluid rounded-3 shadow-sm border" alt="Selfie" style="max-height: 380px; width: 100%; object-fit: cover;">
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
 let deskLat = -6.1440;
 let deskLng = 106.8990;
@@ -436,13 +517,23 @@ if (navigator.geolocation) {
     );
 }
 
+// Modal Preview Foto Selfie Desktop
+function previewDesktopSelfie(url, title) {
+    document.getElementById('previewDesktopSelfieTitle').innerText = title || 'Foto Bukti Kehadiran';
+    document.getElementById('previewDesktopSelfieImg').src = url;
+    const modal = new bootstrap.Modal(document.getElementById('previewDesktopSelfieModal'));
+    modal.show();
+}
+
 // Eksekusi Presensi dari Web Desktop
 function doDesktopAttendance(action) {
     if(!confirm(`Apakah Anda yakin ingin melakukan ${action.toUpperCase()} sekarang?`)) return;
 
     const url = action === 'clock-in' ? "{{ route('attendance.mobile.clockin') }}" : "{{ route('attendance.mobile.clockout') }}";
     
-    $.blockUI({ message: '<h6><span class="spinner-border spinner-border-sm me-2"></span>Memproses Presensi Desktop...</h6>' });
+    if (typeof $ !== 'undefined' && typeof $.blockUI === 'function') {
+        $.blockUI({ message: '<h6><span class="spinner-border spinner-border-sm me-2"></span>Memproses Presensi Desktop...</h6>' });
+    }
 
     fetch(url, {
         method: 'POST',
@@ -460,7 +551,9 @@ function doDesktopAttendance(action) {
     })
     .then(res => res.json().then(data => ({ status: res.status, ok: res.ok, body: data })))
     .then(({ status, ok, body }) => {
-        $.unblockUI();
+        if (typeof $ !== 'undefined' && typeof $.unblockUI === 'function') {
+            $.unblockUI();
+        }
         if(ok && body.status === 'success') {
             alert(body.message);
             window.location.reload();
@@ -469,7 +562,9 @@ function doDesktopAttendance(action) {
         }
     })
     .catch(err => {
-        $.unblockUI();
+        if (typeof $ !== 'undefined' && typeof $.unblockUI === 'function') {
+            $.unblockUI();
+        }
         alert('Terjadi kesalahan koneksi.');
     });
 }
@@ -808,7 +903,9 @@ function resetAttendanceDev(type) {
 
     if(!confirm(confirmMsg)) return;
 
-    $.blockUI({ message: '<h6><span class="spinner-border spinner-border-sm me-2"></span>Mereset Log Absensi...</h6>' });
+    if (typeof $ !== 'undefined' && typeof $.blockUI === 'function') {
+        $.blockUI({ message: '<h6><span class="spinner-border spinner-border-sm me-2"></span>Mereset Log Absensi...</h6>' });
+    }
 
     fetch("{{ route('attendance.admin.reset') }}", {
         method: 'POST',
@@ -821,7 +918,9 @@ function resetAttendanceDev(type) {
     })
     .then(res => res.json())
     .then(data => {
-        $.unblockUI();
+        if (typeof $ !== 'undefined' && typeof $.unblockUI === 'function') {
+            $.unblockUI();
+        }
         if(data.status === 'success') {
             alert(data.message);
             window.location.reload();
@@ -830,7 +929,9 @@ function resetAttendanceDev(type) {
         }
     })
     .catch(err => {
-        $.unblockUI();
+        if (typeof $ !== 'undefined' && typeof $.unblockUI === 'function') {
+            $.unblockUI();
+        }
         alert('Terjadi kesalahan koneksi.');
     });
 }

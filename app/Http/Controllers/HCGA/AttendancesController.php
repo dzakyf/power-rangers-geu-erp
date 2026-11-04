@@ -21,11 +21,299 @@ class AttendancesController extends Controller
         $this->attendanceService = $attendanceService;
     }
     /**
-     * Web: daftar periode absensi utama (halaman grid utama)
+     * Web: Pusat Monitoring & Rekap Data Presensi Seluruh Karyawan
      */
-    public function index()
+    public function index(Request $request)
     {
-        return view('humanresources.attendant.data');
+        $user = Auth::user();
+        $filters = [
+            'date'           => $request->input('date', date('Y-m-d')),
+            'department'     => $request->input('department', 'ALL'),
+            'periode'        => $request->input('periode', date('Y-m')),
+            'employee_nik'   => $request->input('employee_nik', 'ALL'),
+            'cutoff_rule_id' => $request->input('cutoff_rule_id', null),
+        ];
+
+        $data = $this->attendanceService->getAttendanceMonitoringData($user, $filters);
+
+        return view('humanresources.attendant.data', compact('data', 'user'));
+    }
+
+    /**
+     * AJAX: Ambil data presensi & metrik tanpa reload seluruh halaman (ringan & instan)
+     */
+    public function getMonitoringDataAjax(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthenticated'], 401);
+        }
+
+        $filters = [
+            'date'           => $request->input('date', date('Y-m-d')),
+            'department'     => $request->input('department', 'ALL'),
+            'periode'        => $request->input('periode', date('Y-m')),
+            'employee_nik'   => $request->input('employee_nik', 'ALL'),
+            'cutoff_rule_id' => $request->input('cutoff_rule_id', null),
+        ];
+
+        $data = $this->attendanceService->getAttendanceMonitoringData($user, $filters);
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $data,
+        ]);
+    }
+
+    /**
+     * Export Excel (.xlsx) Laporan Presensi Karyawan dengan Hyperlink Foto & Google Maps
+     */
+    public function exportExcel(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            abort(401);
+        }
+
+        $type = $request->input('type', 'daily'); // 'daily' atau 'monthly'
+        $filters = [
+            'date'           => $request->input('date', date('Y-m-d')),
+            'department'     => $request->input('department', 'ALL'),
+            'periode'        => $request->input('periode', date('Y-m')),
+            'employee_nik'   => $request->input('employee_nik', 'ALL'),
+            'cutoff_rule_id' => $request->input('cutoff_rule_id', null),
+        ];
+
+        $data = $this->attendanceService->getAttendanceMonitoringData($user, $filters);
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setShowGridLines(true);
+
+        $baseUrl = url('/');
+        $isEmpDetail = !empty($data['isEmployeeDetailMode']) && !empty($data['selectedEmployee']);
+
+        if ($isEmpDetail && $type === 'daily') {
+            // EXPORT KHUSUS: Rincian Presensi Harian Karyawan Tertentu Selama 1 Bulan Penuh
+            $emp = $data['selectedEmployee'];
+            $sheet->setTitle('Rincian Presensi Bulanan');
+
+            // Header Judul & Info Karyawan
+            $sheet->setCellValue('A1', 'LAPORAN RINCIAN PRESENSI BULANAN KARYAWAN');
+            $sheet->setCellValue('A2', 'Nama: ' . ($emp->Name ?: $emp->username) . ' | NIK: ' . $emp->Emp_ID . ' | Dept: ' . ($emp->Department ?: '-') . ' | Jabatan: ' . ($emp->Position ?: '-'));
+            $sheet->setCellValue('A3', 'Periode Payroll: ' . date('F Y', strtotime($data['filterPeriode'] . '-01')) . ' (' . ($data['cutoffRange']['formatted_label'] ?? '') . ')');
+            $sheet->getStyle('A1:A3')->getFont()->setBold(true);
+
+            // Table Head
+            $headers = [
+                'No', 'Tanggal', 'Hari', 'Jam Masuk', 'Jam Pulang',
+                'Status Kehadiran', 'Menit Telat', 'Jam Lembur',
+                'Keterangan', 'Koordinat GPS', 'Link Peta (Google Maps)',
+                'Foto Masuk (Link)', 'Foto Pulang (Link)'
+            ];
+            $sheet->fromArray($headers, null, 'A5');
+            $sheet->getStyle('A5:M5')->getFont()->setBold(true);
+            $sheet->getStyle('A5:M5')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFE0EBF5');
+
+            $rowIdx = 6;
+            foreach ($data['dailyList'] as $i => $row) {
+                $otHours = floor($row['overtime_minutes'] / 60);
+                $otMins = $row['overtime_minutes'] % 60;
+                $otText = $row['overtime_minutes'] > 0 ? "{$otHours} Jam {$otMins} Mnt" : '-';
+
+                $latLngText = (!empty($row['clock_in_lat']) && !empty($row['clock_in_lng'])) 
+                    ? "{$row['clock_in_lat']}, {$row['clock_in_lng']}" 
+                    : '-';
+
+                $mapsUrl = (!empty($row['clock_in_lat']) && !empty($row['clock_in_lng'])) 
+                    ? "https://maps.google.com/?q={$row['clock_in_lat']},{$row['clock_in_lng']}" 
+                    : null;
+
+                $photoInUrl = !empty($row['clock_in_photo']) ? "{$baseUrl}/{$row['clock_in_photo']}" : null;
+                $photoOutUrl = !empty($row['clock_out_photo']) ? "{$baseUrl}/{$row['clock_out_photo']}" : null;
+
+                $sheet->setCellValue('A' . $rowIdx, $i + 1);
+                $sheet->setCellValue('B' . $rowIdx, date('d/m/Y', strtotime($row['date'])));
+                $sheet->setCellValue('C' . $rowIdx, $row['day_name']);
+                $sheet->setCellValue('D' . $rowIdx, $row['clock_in']);
+                $sheet->setCellValue('E' . $rowIdx, $row['clock_out']);
+                $sheet->setCellValue('F' . $rowIdx, $row['status_kehadiran']);
+                $sheet->setCellValue('G' . $rowIdx, $row['late_minutes'] > 0 ? $row['late_minutes'] : 0);
+                $sheet->setCellValue('H' . $rowIdx, $otText);
+                $sheet->setCellValue('I' . $rowIdx, $row['notes'] ?: '-');
+                $sheet->setCellValue('J' . $rowIdx, $latLngText);
+
+                // Hyperlink Google Maps
+                if ($mapsUrl) {
+                    $sheet->setCellValue('K' . $rowIdx, 'Buka Peta Lokasi');
+                    $sheet->getCell('K' . $rowIdx)->getHyperlink()->setUrl($mapsUrl);
+                    $sheet->getStyle('K' . $rowIdx)->getFont()->getColor()->setARGB(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_BLUE);
+                    $sheet->getStyle('K' . $rowIdx)->getFont()->setUnderline(true);
+                } else {
+                    $sheet->setCellValue('K' . $rowIdx, '-');
+                }
+
+                // Hyperlink Foto Masuk
+                if ($photoInUrl) {
+                    $sheet->setCellValue('L' . $rowIdx, 'Lihat Foto Masuk');
+                    $sheet->getCell('L' . $rowIdx)->getHyperlink()->setUrl($photoInUrl);
+                    $sheet->getStyle('L' . $rowIdx)->getFont()->getColor()->setARGB(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_BLUE);
+                    $sheet->getStyle('L' . $rowIdx)->getFont()->setUnderline(true);
+                } else {
+                    $sheet->setCellValue('L' . $rowIdx, '-');
+                }
+
+                // Hyperlink Foto Pulang
+                if ($photoOutUrl) {
+                    $sheet->setCellValue('M' . $rowIdx, 'Lihat Foto Pulang');
+                    $sheet->getCell('M' . $rowIdx)->getHyperlink()->setUrl($photoOutUrl);
+                    $sheet->getStyle('M' . $rowIdx)->getFont()->getColor()->setARGB(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_BLUE);
+                    $sheet->getStyle('M' . $rowIdx)->getFont()->setUnderline(true);
+                } else {
+                    $sheet->setCellValue('M' . $rowIdx, '-');
+                }
+
+                $rowIdx++;
+            }
+
+            foreach (range('A', 'M') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+
+            $safeEmpName = preg_replace('/[^A-Za-z0-9_-]/', '_', $emp->Name ?: $emp->username);
+            $filename = 'Rincian_Presensi_' . $safeEmpName . '_' . $data['filterPeriode'] . '.xlsx';
+        } elseif ($type === 'monthly') {
+            $sheet->setTitle('Rekap Bulanan');
+
+            // Header Judul
+            $sheet->setCellValue('A1', 'LAPORAN REKAPITULASI PRESENSI BULANAN KARYAWAN (SIKLUS CUTOFF)');
+            $sheet->setCellValue('A2', 'Periode Payroll: ' . date('F Y', strtotime($data['filterPeriode'] . '-01')) . ' | Rentang Cutoff: ' . ($data['cutoffRange']['formatted_label'] ?? '-') . ' | Departemen: ' . $data['filterDept']);
+            $sheet->getStyle('A1:A2')->getFont()->setBold(true);
+
+            // Table Head
+            $headers = ['No', 'NIK', 'Nama Karyawan', 'Departemen', 'Total Hadir (Hari)', 'Total Telat (Kali)', 'Akumulasi Menit Telat', 'Akumulasi Jam Lembur'];
+            $sheet->fromArray($headers, null, 'A4');
+            $sheet->getStyle('A4:H4')->getFont()->setBold(true);
+            $sheet->getStyle('A4:H4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFE0EBF5');
+
+            $rowIdx = 5;
+            foreach ($data['monthlyList'] as $i => $row) {
+                $otHours = floor($row['total_overtime_minutes'] / 60);
+                $otMins = $row['total_overtime_minutes'] % 60;
+                $otText = $row['total_overtime_minutes'] > 0 ? "{$otHours} Jam {$otMins} Mnt" : '-';
+
+                $sheet->setCellValue('A' . $rowIdx, $i + 1);
+                $sheet->setCellValueExplicit('B' . $rowIdx, $row['nik'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                $sheet->setCellValue('C' . $rowIdx, $row['name']);
+                $sheet->setCellValue('D' . $rowIdx, $row['department']);
+                $sheet->setCellValue('E' . $rowIdx, $row['total_present']);
+                $sheet->setCellValue('F' . $rowIdx, $row['total_late']);
+                $sheet->setCellValue('G' . $rowIdx, $row['total_late_minutes']);
+                $sheet->setCellValue('H' . $rowIdx, $otText);
+                $rowIdx++;
+            }
+
+            foreach (range('A', 'H') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+
+            $filename = 'Laporan_Presensi_Bulanan_' . $data['filterPeriode'] . '.xlsx';
+        } else {
+            // Daily Export (Default)
+            $sheet->setTitle('Monitoring Harian');
+
+            // Header Judul
+            $sheet->setCellValue('A1', 'LAPORAN MONITORING PRESENSI HARIAN KARYAWAN');
+            $sheet->setCellValue('A2', 'Tanggal: ' . date('d F Y', strtotime($data['filterDate'])) . ' | Departemen: ' . $data['filterDept']);
+            $sheet->getStyle('A1:A2')->getFont()->setBold(true);
+
+            // Table Head
+            $headers = [
+                'No', 'NIK', 'Nama Karyawan', 'Departemen', 'Jabatan',
+                'Jam Masuk', 'Jam Pulang', 'Status Kehadiran', 'Menit Telat',
+                'Jam Lembur', 'Keterangan', 'Koordinat GPS', 'Link Peta (Google Maps)',
+                'Foto Masuk (Link)', 'Foto Pulang (Link)'
+            ];
+            $sheet->fromArray($headers, null, 'A4');
+            $sheet->getStyle('A4:O4')->getFont()->setBold(true);
+            $sheet->getStyle('A4:O4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFE0EBF5');
+
+            $rowIdx = 5;
+            foreach ($data['dailyList'] as $i => $row) {
+                $otHours = floor($row['overtime_minutes'] / 60);
+                $otMins = $row['overtime_minutes'] % 60;
+                $otText = $row['overtime_minutes'] > 0 ? "{$otHours} Jam {$otMins} Mnt" : '-';
+
+                $latLngText = (!empty($row['clock_in_lat']) && !empty($row['clock_in_lng'])) 
+                    ? "{$row['clock_in_lat']}, {$row['clock_in_lng']}" 
+                    : '-';
+
+                $mapsUrl = (!empty($row['clock_in_lat']) && !empty($row['clock_in_lng'])) 
+                    ? "https://maps.google.com/?q={$row['clock_in_lat']},{$row['clock_in_lng']}" 
+                    : null;
+
+                $photoInUrl = !empty($row['clock_in_photo']) ? "{$baseUrl}/{$row['clock_in_photo']}" : null;
+                $photoOutUrl = !empty($row['clock_out_photo']) ? "{$baseUrl}/{$row['clock_out_photo']}" : null;
+
+                $sheet->setCellValue('A' . $rowIdx, $i + 1);
+                $sheet->setCellValueExplicit('B' . $rowIdx, $row['nik'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                $sheet->setCellValue('C' . $rowIdx, $row['name']);
+                $sheet->setCellValue('D' . $rowIdx, $row['department']);
+                $sheet->setCellValue('E' . $rowIdx, $row['position']);
+                $sheet->setCellValue('F' . $rowIdx, $row['clock_in']);
+                $sheet->setCellValue('G' . $rowIdx, $row['clock_out']);
+                $sheet->setCellValue('H' . $rowIdx, $row['status_kehadiran']);
+                $sheet->setCellValue('I' . $rowIdx, $row['late_minutes'] > 0 ? $row['late_minutes'] : 0);
+                $sheet->setCellValue('J' . $rowIdx, $otText);
+                $sheet->setCellValue('K' . $rowIdx, $row['notes'] ?: '-');
+                $sheet->setCellValue('L' . $rowIdx, $latLngText);
+
+                // Hyperlink Google Maps
+                if ($mapsUrl) {
+                    $sheet->setCellValue('M' . $rowIdx, 'Buka Peta Lokasi');
+                    $sheet->getCell('M' . $rowIdx)->getHyperlink()->setUrl($mapsUrl);
+                    $sheet->getStyle('M' . $rowIdx)->getFont()->getColor()->setARGB(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_BLUE);
+                    $sheet->getStyle('M' . $rowIdx)->getFont()->setUnderline(true);
+                } else {
+                    $sheet->setCellValue('M' . $rowIdx, '-');
+                }
+
+                // Hyperlink Foto Masuk
+                if ($photoInUrl) {
+                    $sheet->setCellValue('N' . $rowIdx, 'Lihat Foto Masuk');
+                    $sheet->getCell('N' . $rowIdx)->getHyperlink()->setUrl($photoInUrl);
+                    $sheet->getStyle('N' . $rowIdx)->getFont()->getColor()->setARGB(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_BLUE);
+                    $sheet->getStyle('N' . $rowIdx)->getFont()->setUnderline(true);
+                } else {
+                    $sheet->setCellValue('N' . $rowIdx, '-');
+                }
+
+                // Hyperlink Foto Pulang
+                if ($photoOutUrl) {
+                    $sheet->setCellValue('O' . $rowIdx, 'Lihat Foto Pulang');
+                    $sheet->getCell('O' . $rowIdx)->getHyperlink()->setUrl($photoOutUrl);
+                    $sheet->getStyle('O' . $rowIdx)->getFont()->getColor()->setARGB(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_BLUE);
+                    $sheet->getStyle('O' . $rowIdx)->getFont()->setUnderline(true);
+                } else {
+                    $sheet->setCellValue('O' . $rowIdx, '-');
+                }
+
+                $rowIdx++;
+            }
+
+            foreach (range('A', 'O') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+
+            $filename = 'Laporan_Presensi_Harian_' . $data['filterDate'] . '.xlsx';
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit;
     }
 
     /**
@@ -69,9 +357,14 @@ class AttendancesController extends Controller
     {
         $user = Auth::user();
         $today = date('Y-m-d');
-        $periode = (int) date('Ym');
 
-        // Pastikan periode bulan ini ada
+        // Resolusi Aturan Cutoff Karyawan
+        $cutoffRule = app(\App\Services\Attendance\AttendanceCutoffService::class)->resolveCutoffRule($user->Emp_ID, $user->Department ?? null);
+        $activePeriodeYm = app(\App\Services\Attendance\AttendanceCutoffService::class)->getPeriodeByDate($today, $cutoffRule);
+        $cutoffRange = app(\App\Services\Attendance\AttendanceCutoffService::class)->getCutoffPeriodRange($activePeriodeYm, $cutoffRule);
+        $periode = (int) str_replace('-', '', $activePeriodeYm);
+
+        // Pastikan record periode bulan ini ada
         AttendanceMain::firstOrCreate(
             ['NIK' => $user->Emp_ID, 'Periode' => $periode],
             [
@@ -84,6 +377,18 @@ class AttendancesController extends Controller
 
         $todayEntry = Attendance::where('NIK', $user->Emp_ID)->where('Scan_Date', $today)->first();
         $schedule = $this->attendanceService->getWorkScheduleForDate($user->Emp_ID, $today);
+
+        // Ringkasan Kehadiran Karyawan dalam Siklus Cutoff Berjalan
+        $cutoffStats = DB::table('attendant_log')
+            ->where('NIK', $user->Emp_ID)
+            ->whereBetween('Scan_Date', [$cutoffRange['start_date'], $cutoffRange['end_date']])
+            ->select(
+                DB::raw('COUNT(CASE WHEN Start_Time IS NOT NULL THEN 1 END) as total_present'),
+                DB::raw('COUNT(CASE WHEN Late_Minutes > 0 OR Clock_In_Status = "LATE" THEN 1 END) as total_late'),
+                DB::raw('SUM(Late_Minutes) as total_late_minutes'),
+                DB::raw('SUM(Overtime_Minutes) as total_overtime_minutes')
+            )
+            ->first();
 
         // Riwayat Pengajuan Cuti & Izin
         $leaveRequests = DB::table('attendance_leave_requests')
@@ -101,7 +406,7 @@ class AttendancesController extends Controller
 
         $kategoriList = DB::table('kategori_izin')->where('status', 'ACTIVE')->orderBy('izin_jenis_id', 'asc')->get();
 
-        return view('humanresources.attendant.portal', compact('user', 'todayEntry', 'schedule', 'leaveRequests', 'corrections', 'kategoriList'));
+        return view('humanresources.attendant.portal', compact('user', 'todayEntry', 'schedule', 'leaveRequests', 'corrections', 'kategoriList', 'cutoffRule', 'cutoffRange', 'cutoffStats', 'activePeriodeYm'));
     }
 
     /**

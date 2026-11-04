@@ -16,12 +16,222 @@ class RequisitionController extends Controller
 {
     public function index()
     {
-        //
+        $user = Auth::user();
+        $location = $user->Location;
+        $priv = $user->Priv_ID;
+        $username = $user->username;
+
+        $baseQuery = DB::table('requisition')->where('Location', $location);
+        if ($priv != 'HCGA' && $priv != 'ADM') {
+            $baseQuery->where('Created_By', $username);
+        }
+
+        $allActive = (clone $baseQuery)
+            ->whereNotIn('Status', ['CLOSED', 'CANCELED'])
+            ->get();
+
+        $totalActive = $allActive->count();
+        $totalOnProgress = $allActive->whereIn('Status', ['CREATED', 'ON_PROGRESS', 'WAITING_APPROVAL', 'PENDING'])->count();
+        $totalApproved = $allActive->where('Status', 'APPROVED')->count();
+        $totalRejected = $allActive->where('Status', 'REJECTED')->count();
+        $totalHeadcount = $allActive->sum('Qty');
+        $urgentCount = $allActive->where('Priority', 'URGENT')->count();
+
+        // Ambil daftar policy dan step approval REQUISITION dari tabel approval_policy & approval_policy_step
+        $requisitionPolicies = DB::table('approval_policy')
+            ->where('Request_Type', 'REQUISITION')
+            ->orderByRaw("CASE WHEN Status = 'ACTIVE' THEN 0 ELSE 1 END")
+            ->orderBy('ID', 'asc')
+            ->get();
+
+        foreach ($requisitionPolicies as $pol) {
+            $pol->steps = DB::table('approval_policy_step')
+                ->where('Policy_ID', $pol->ID)
+                ->orderBy('Stage_Order', 'asc')
+                ->orderBy('Level_Number', 'asc')
+                ->orderBy('ID', 'asc')
+                ->get();
+        }
+
+        return view('humanresources.recruitment.requisition', compact(
+            'location',
+            'username',
+            'totalActive',
+            'totalOnProgress',
+            'totalApproved',
+            'totalRejected',
+            'totalHeadcount',
+            'urgentCount',
+            'requisitionPolicies'
+        ));
     }
 
     public function indexXml()
     {
         //
+    }
+
+    /**
+     * Tampilkan form pengajuan PTK baru (partial view)
+     */
+    public function create()
+    {
+        $user = Auth::user();
+        $location = $user->Location;
+        $username = $user->username;
+
+        $positions = DB::table('master_position')->orderBy('Position', 'asc')->get();
+        $workCalendar = DB::table('work_calendars')->get();
+        $reqCount = DB::table('requisition')->where('Created_Date', 'LIKE', date('Y') . '%')->count() + 1;
+        $taskId = 'REQ/' . $location . '/' . date('Ymdhis') . '-' . sprintf('%02d', $reqCount);
+        $locations = DB::table('location')->get();
+
+        $policies = DB::table('approval_policy')
+            ->where('Request_Type', 'REQUISITION')
+            ->orderByRaw("CASE WHEN Status = 'ACTIVE' THEN 0 ELSE 1 END")
+            ->orderBy('ID', 'asc')
+            ->get();
+
+        foreach ($policies as $pol) {
+            $pol->steps = DB::table('approval_policy_step')
+                ->where('Policy_ID', $pol->ID)
+                ->orderBy('Stage_Order', 'asc')
+                ->orderBy('Level_Number', 'asc')
+                ->orderBy('ID', 'asc')
+                ->get();
+        }
+
+        return view('humanresources.recruitment.requisition-new', compact(
+            'location',
+            'username',
+            'positions',
+            'workCalendar',
+            'taskId',
+            'locations',
+            'policies'
+        ));
+    }
+
+    /**
+     * Tampilkan detail PTK (partial view modal/container)
+     */
+    public function detail(Request $request)
+    {
+        $id = $request->get('ID') ?? $request->get('id');
+        $taskId = $request->get('Task_ID') ?? $request->get('Task');
+
+        $query = DB::table('requisition');
+        if (!empty($id)) {
+            $query->where('ID', $id);
+        } elseif (!empty($taskId)) {
+            $query->where('Task_ID', $taskId);
+        } else {
+            abort(404, 'Data PTK tidak ditemukan');
+        }
+
+        $ptk = $query->first();
+        if (!$ptk) {
+            return response('<div class="alert alert-danger m-3"><i class="fa fa-exclamation-triangle me-2"></i> Data PTK tidak ditemukan.</div>', 404);
+        }
+
+        // Master Position
+        $position = DB::table('master_position')
+            ->where('Position', $ptk->Job_Position)
+            ->where('Department', $ptk->Department)
+            ->first();
+
+        // Work Calendar
+        $workCalendar = DB::table('work_calendars')->where('ID', $ptk->Work_Schedule)->first();
+
+        // Approval timeline/tasks
+        $approvalTasks = [];
+        $approvalRequest = null;
+        $policySteps = [];
+        $matchedPolicy = null;
+
+        if (!empty($ptk->Approval_Request_ID)) {
+            $approvalRequest = DB::table('approval_request')->where('ID', $ptk->Approval_Request_ID)->first();
+            $approvalTasks = DB::table('approval_request_task as t')
+                ->leftJoin('users as u_act', 'u_act.id', '=', 't.Acted_By')
+                ->where('t.Request_ID', $ptk->Approval_Request_ID)
+                ->select('t.*', 'u_act.username as Acted_By_Username', 'u_act.Name as Acted_By_Name')
+                ->orderBy('t.Stage_Order', 'asc')
+                ->orderBy('t.ID', 'asc')
+                ->get();
+
+            foreach ($approvalTasks as $task) {
+                $candidates = DB::table('approval_task_candidate as c')
+                    ->join('users as u', 'u.id', '=', 'c.User_Id')
+                    ->where('c.Task_ID', $task->ID)
+                    ->where('c.Status', 'ACTIVE')
+                    ->pluck('u.username')
+                    ->toArray();
+                $task->Candidate_Usernames = !empty($candidates) ? implode(', ', $candidates) : '-';
+            }
+
+            if ($approvalRequest && !empty($approvalRequest->Policy_ID)) {
+                $matchedPolicy = DB::table('approval_policy')->where('ID', $approvalRequest->Policy_ID)->first();
+                $policySteps = DB::table('approval_policy_step')
+                    ->where('Policy_ID', $approvalRequest->Policy_ID)
+                    ->orderBy('Stage_Order', 'asc')
+                    ->orderBy('Level_Number', 'asc')
+                    ->get();
+            }
+        }
+
+        // Jika belum punya Policy_ID dari request, cari policy REQUISITION dari tabel approval_policy
+        if (empty($policySteps)) {
+            $posLevel = $position ? (int) $position->Level : 4;
+            $dept = $ptk->Department ?? '';
+            $policies = DB::table('approval_policy')
+                ->where('Request_Type', 'REQUISITION')
+                ->orderByRaw("CASE WHEN Status = 'ACTIVE' THEN 0 ELSE 1 END")
+                ->get();
+
+            foreach ($policies as $pol) {
+                if (!empty($pol->Department) && strcasecmp($pol->Department, $dept) !== 0) {
+                    continue;
+                }
+                $conds = !empty($pol->Conditions) ? json_decode($pol->Conditions, true) : [];
+                $isMatch = true;
+                if (is_array($conds)) {
+                    foreach ($conds as $c) {
+                        if (($c['field'] ?? '') === 'Position_Level') {
+                            $vals = (array) ($c['value'] ?? []);
+                            $op = strtolower($c['operator'] ?? 'in');
+                            if ($op === 'in' && !in_array($posLevel, $vals)) $isMatch = false;
+                            if ($op === 'not_in' && in_array($posLevel, $vals)) $isMatch = false;
+                        }
+                    }
+                }
+                if ($isMatch) {
+                    $matchedPolicy = $pol;
+                    $policySteps = DB::table('approval_policy_step')
+                        ->where('Policy_ID', $pol->ID)
+                        ->orderBy('Stage_Order', 'asc')
+                        ->orderBy('Level_Number', 'asc')
+                        ->get();
+                    break;
+                }
+            }
+        }
+
+        // Legacy logs jika ada
+        $legacyLogs = DB::table('requisition_approval')
+            ->where('Task_ID', $ptk->Task_ID)
+            ->orderBy('ID', 'asc')
+            ->get();
+
+        return view('humanresources.recruitment.requisition-detail', compact(
+            'ptk',
+            'position',
+            'workCalendar',
+            'approvalRequest',
+            'approvalTasks',
+            'legacyLogs',
+            'matchedPolicy',
+            'policySteps'
+        ));
     }
 
     public function print(Request $request)

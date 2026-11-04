@@ -28,6 +28,7 @@ class Kernel extends ConsoleKernel
         //          ->hourly();
 
         $schedule->command('permits:send-expiry-reminders')->dailyAt('07:00');
+        $schedule->command('roster:generate-schedules --days=30')->dailyAt('01:00');
     }
 
     /**

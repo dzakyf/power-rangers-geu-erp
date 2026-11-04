@@ -15,10 +15,12 @@ use InvalidArgumentException;
 class AttendanceService
 {
     protected $workflowService;
+    protected $cutoffService;
 
-    public function __construct(ApprovalWorkflowService $workflowService)
+    public function __construct(ApprovalWorkflowService $workflowService, AttendanceCutoffService $cutoffService)
     {
         $this->workflowService = $workflowService;
+        $this->cutoffService = $cutoffService;
     }
 
     /**
@@ -96,7 +98,7 @@ class AttendanceService
     }
 
     /**
-     * Dapatkan jadwal kerja harian karyawan dari MasterWorkCalendar.
+     * Dapatkan jadwal kerja harian karyawan dari MasterWorkCalendar atau EmployeeSchedule (Roster/Shift).
      */
     public function getWorkScheduleForDate(string $nik, string $date): array
     {
@@ -104,7 +106,83 @@ class AttendanceService
         $carbonDate = Carbon::parse($date);
         $isWeekend = in_array($dayOfWeek, ['Saturday', 'Sunday']);
 
-        // Ambil penugasan kalender kerja pengguna (atau default kalender pertama)
+        // 1. Prioritaskan pengecekan dari tabel employee_schedules (Roster Shift / Manual Override)
+        if (Schema::hasTable('employee_schedules')) {
+            $user = DB::table('users')->where('Emp_ID', $nik)->orWhere('username', $nik)->first();
+            $userIdMatch = $user ? $user->username : $nik;
+
+            $empSched = DB::table('employee_schedules')
+                ->join('master_shifts', 'employee_schedules.shift_id', '=', 'master_shifts.id')
+                ->where(function ($q) use ($nik, $userIdMatch) {
+                    $q->where('employee_schedules.user_id', $nik)
+                      ->orWhere('employee_schedules.user_id', $userIdMatch);
+                })
+                ->where('employee_schedules.work_date', $date)
+                ->select(
+                    'employee_schedules.shift_id',
+                    'employee_schedules.source_type',
+                    'master_shifts.shift_code',
+                    'master_shifts.shift_name',
+                    'master_shifts.start_time',
+                    'master_shifts.end_time',
+                    'master_shifts.break_minutes',
+                    'master_shifts.is_cross_day',
+                    'master_shifts.is_off'
+                )
+                ->first();
+
+            if ($empSched) {
+                // Cek hari libur nasional
+                $isHoliday = false;
+                $holidayName = null;
+                if (Schema::hasTable('master_holiday')) {
+                    $mHoliday = DB::table('master_holiday')->whereDate('Holiday_Date', $date)->first();
+                    if ($mHoliday && $mHoliday->Is_Holiday === 'YES') {
+                        $isHoliday = true;
+                        $holidayName = $mHoliday->Description ?? 'Hari Libur';
+                    }
+                }
+
+                // Cek Cuti / Izin yang telah di-APPROVED
+                $isLeave = false;
+                $leaveType = null;
+                if (Schema::hasTable('attendance_leave_requests')) {
+                    $approvedLeave = DB::table('attendance_leave_requests')
+                        ->where(function ($q) use ($nik, $userIdMatch) {
+                            $q->where('nik', $nik)->orWhere('created_by', $userIdMatch);
+                        })
+                        ->where('status', 'APPROVED')
+                        ->where('start_date', '<=', $date)
+                        ->where('end_date', '>=', $date)
+                        ->first();
+
+                    if ($approvedLeave) {
+                        $isLeave = true;
+                        $leaveType = $approvedLeave->leave_type ?? 'LEAVE';
+                    }
+                }
+
+                return [
+                    'calendar_id'   => null,
+                    'shift_id'      => $empSched->shift_id,
+                    'shift_code'    => $empSched->shift_code,
+                    'shift_name'    => $empSched->shift_name,
+                    'is_working'    => ($empSched->is_off || $isLeave) ? 0 : 1,
+                    'default_start' => $empSched->start_time,
+                    'default_end'   => $empSched->end_time,
+                    'break_minutes' => (int) $empSched->break_minutes,
+                    'is_cross_day'  => (bool) $empSched->is_cross_day,
+                    'day_of_week'   => $dayOfWeek,
+                    'source_type'   => $isLeave ? 'LEAVE' : $empSched->source_type,
+                    'is_holiday'    => $isHoliday,
+                    'holiday_name'  => $holidayName,
+                    'is_leave'      => $isLeave,
+                    'leave_type'    => $leaveType,
+                ];
+            }
+        }
+
+        // 2. Fallback: Ambil dari work_calendars statis mingguan (Office default)
         $user = DB::table('users')->where('Emp_ID', $nik)->first();
         $calendarId = $user->Work_Calendar_ID ?? null;
 
@@ -119,11 +197,15 @@ class AttendanceService
         $schedule = [
             'calendar_id'   => $calendarId,
             'shift_id'      => null,
-            'is_working'    => $isWeekend ? 0 : 1, // Fallback cerdas untuk akhir pekan jika detail belum disetup
+            'shift_code'    => 'OFFICE',
+            'shift_name'    => 'Regular Office',
+            'is_working'    => $isWeekend ? 0 : 1,
             'default_start' => '08:00:00',
             'default_end'   => '17:00:00',
             'break_minutes' => 60,
+            'is_cross_day'  => false,
             'day_of_week'   => $dayOfWeek,
+            'source_type'   => 'CALENDAR_DEFAULT',
         ];
 
         if ($calendarId) {
@@ -173,14 +255,22 @@ class AttendanceService
         $nik = $user->Emp_ID;
         $today = Carbon::now()->toDateString();
         $nowTime = Carbon::now()->toTimeString();
-        $periode = (int) Carbon::now()->format('Ym');
+
+        // Hitung Periode berdasarkan aturan Cutoff aktif
+        $cutoffRule = $this->cutoffService->resolveCutoffRule($nik, $user->Department ?? null);
+        $periodeYm = $this->cutoffService->getPeriodeByDate($today, $cutoffRule);
+        $periode = (int) str_replace('-', '', $periodeYm);
 
         $lat = (float) ($params['latitude'] ?? 0);
         $lng = (float) ($params['longitude'] ?? 0);
         $photo = $params['photo'] ?? null;
         $notes = $params['notes'] ?? null;
 
-        // Kompresi & simpan foto selfie ke file storage (mencegah overflow VARCHAR 255 DB)
+        // Validasi Wajib Foto Selfie untuk Clock-In dari perangkat Mobile
+        $isMobileClient = !empty($params['is_mobile']) || (!empty($params['client']) && $params['client'] === 'mobile');
+        if ($isMobileClient && empty($photo)) {
+            throw new InvalidArgumentException('Foto selfie kamera depan wajib diambil saat melakukan Clock-In via mobile.');
+        }
         $photoPath = $this->saveAttachmentFile($photo, 'attendance_photos');
 
         // Validasi Geofencing
@@ -210,9 +300,15 @@ class AttendanceService
             ]
         );
 
-        $existing = Attendance::where('Task_ID', $main->Task_ID)
+        $existing = Attendance::where('NIK', $nik)
             ->where('Scan_Date', $today)
             ->first();
+
+        if (!$existing) {
+            $existing = Attendance::where('Task_ID', $main->Task_ID)
+                ->where('Scan_Date', $today)
+                ->first();
+        }
 
         if ($existing && !empty($existing->Start_Time)) {
             throw new InvalidArgumentException('Anda sudah melakukan Clock-In hari ini pukul ' . $existing->Start_Time);
@@ -270,7 +366,11 @@ class AttendanceService
         $photo = $params['photo'] ?? null;
         $notes = $params['notes'] ?? null;
 
-        // Kompresi & simpan foto selfie ke file storage (mencegah overflow VARCHAR 255 DB)
+        // Validasi Wajib Foto Selfie untuk Clock-Out dari perangkat Mobile
+        $isMobileClient = !empty($params['is_mobile']) || (!empty($params['client']) && $params['client'] === 'mobile');
+        if ($isMobileClient && empty($photo)) {
+            throw new InvalidArgumentException('Foto selfie kamera depan wajib diambil saat melakukan Clock-Out via mobile.');
+        }
         $photoPath = $this->saveAttachmentFile($photo, 'attendance_photos');
 
         // Validasi Geofencing
@@ -579,6 +679,344 @@ class AttendanceService
                 'message'             => 'Pengajuan koreksi absensi berhasil dikirimkan.',
             ];
         });
+    }
+
+    /**
+     * Dapatkan ringkasan KPI dan query kehadiran seluruh karyawan (dengan hierarki akses).
+     */
+    public function getAttendanceMonitoringData($user, array $filters = []): array
+    {
+        $date = !empty($filters['date']) ? $filters['date'] : date('Y-m-d');
+        $dept = !empty($filters['department']) ? $filters['department'] : null;
+        $periodeStr = !empty($filters['periode']) ? $filters['periode'] : date('Y-m');
+        $employeeNik = !empty($filters['employee_nik']) ? trim($filters['employee_nik']) : 'ALL';
+        $cutoffRuleId = !empty($filters['cutoff_rule_id']) ? $filters['cutoff_rule_id'] : null;
+
+        // Resolusi Aturan Cutoff dan Rentang Tanggal Siklus Periode
+        $cutoffRule = $this->cutoffService->resolveCutoffRule(
+            ($employeeNik !== 'ALL' ? $employeeNik : null),
+            ($dept !== 'ALL' ? $dept : null)
+        );
+        if ($cutoffRuleId) {
+            $specificRule = DB::table('master_attendance_cutoff')->where('id', $cutoffRuleId)->first();
+            if ($specificRule) {
+                $cutoffRule = $specificRule;
+            }
+        }
+
+        $cutoffRange = $this->cutoffService->getCutoffPeriodRange($periodeStr, $cutoffRule);
+        $startDate = $cutoffRange['start_date'];
+        $endDate = $cutoffRange['end_date'];
+        $periode = (int) str_replace('-', '', $periodeStr);
+
+        $userDept = $user->Department;
+        $isAdminOrHcga = in_array(strtolower($user->username), ['admin', 'manager.hcga', 'vp.geu'])
+            || in_array(strtoupper($userDept ?? ''), ['HCGA', 'DIR', 'OPERATION', 'MANAGEMENT']);
+
+        // 1. Base Query Karyawan Aktif
+        $employeeQuery = DB::table('users as u')
+            ->whereNotNull('u.Emp_ID')
+            ->where('u.Status', 'ACTIVE');
+
+        if (!$isAdminOrHcga) {
+            // Manager/Supervisor hanya melihat departemennya sendiri
+            $employeeQuery->where('u.Department', $userDept);
+        } elseif (!empty($dept) && $dept !== 'ALL') {
+            $employeeQuery->where('u.Department', $dept);
+        }
+
+        // Ambil seluruh daftar karyawan yang berhak diakses (untuk dropdown select filter karyawan)
+        $allAccessibleEmployees = (clone $employeeQuery)
+            ->select('u.id', 'u.username', 'u.Emp_ID', 'u.Name', 'u.Department', 'u.Position')
+            ->orderBy('u.Name', 'asc')
+            ->get();
+
+        $selectedEmployee = null;
+        if (!empty($employeeNik) && $employeeNik !== 'ALL') {
+            $employeeQuery->where('u.Emp_ID', $employeeNik);
+            $selectedEmployee = $allAccessibleEmployees->firstWhere('Emp_ID', $employeeNik);
+            if (!$selectedEmployee) {
+                $selectedEmployee = DB::table('users')->where('Emp_ID', $employeeNik)->first();
+            }
+        }
+
+        $employees = $employeeQuery->select('u.id', 'u.username', 'u.Emp_ID', 'u.Name', 'u.Department', 'u.Position')->get();
+        $totalEmployees = $employees->count();
+
+        // 2. Data Kehadiran Harian / Periode Bulan Sesuai Cutoff
+        $dailyList = [];
+        $presentCount = 0;
+        $lateCount = 0;
+        $onTimeCount = 0;
+        $overtimeCount = 0;
+        $leaveCount = 0;
+
+        // MODE KHUSUS: Filter Spesifik 1 Karyawan -> Tampilkan Rincian Harian Karyawan tersebut sepanjang rentang Cutoff (start_date s/d end_date)
+        if (!empty($employeeNik) && $employeeNik !== 'ALL' && $selectedEmployee) {
+            $dtStart = Carbon::parse($startDate);
+            $dtEnd = Carbon::parse($endDate);
+            $totalDaysInRange = $dtEnd->diffInDays($dtStart) + 1;
+
+            // Ambil semua log absensi karyawan ini di rentang tanggal cutoff
+            $empLogs = DB::table('attendant_log')
+                ->where('NIK', $selectedEmployee->Emp_ID)
+                ->whereBetween('Scan_Date', [$startDate, $endDate])
+                ->get()
+                ->keyBy('Scan_Date');
+
+            // Ambil semua permohonan cuti/izin approved karyawan ini di rentang tanggal cutoff
+            $empLeaves = DB::table('attendance_leave_requests')
+                ->where('nik', $selectedEmployee->Emp_ID)
+                ->where('status', 'APPROVED')
+                ->where('start_date', '<=', $endDate)
+                ->where('end_date', '>=', $startDate)
+                ->get();
+
+            $currDateCarbon = $dtStart->copy();
+            while ($currDateCarbon->lte($dtEnd)) {
+                $currDate = $currDateCarbon->toDateString();
+                $dayNameIndo = [
+                    'Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa',
+                    'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
+                ][date('l', strtotime($currDate))];
+
+                $log = $empLogs->get($currDate);
+
+                // Cek cuti yang match tanggal ini
+                $matchingLeave = null;
+                foreach ($empLeaves as $lReq) {
+                    if ($currDate >= $lReq->start_date && $currDate <= $lReq->end_date) {
+                        $matchingLeave = $lReq;
+                        break;
+                    }
+                }
+
+                $schedule = $this->getWorkScheduleForDate($selectedEmployee->Emp_ID, $currDate);
+                $isWorkingDay = ($schedule['is_working'] == 1);
+
+                $statusKehadiran = $isWorkingDay ? 'ALPHA' : 'LIBUR / OFF';
+                $jamMasuk = '--:--';
+                $jamPulang = '--:--';
+                $lateness = 0;
+                $overtime = 0;
+                $statusClockIn = '-';
+                $notes = '';
+
+                if ($log && !empty($log->Start_Time)) {
+                    $presentCount++;
+                    $jamMasuk = $log->Start_Time;
+                    $jamPulang = $log->End_Time ?: '--:--';
+                    $lateness = (int) ($log->Late_Minutes ?? 0);
+                    $overtime = (int) ($log->Overtime_Minutes ?? 0);
+                    $statusClockIn = $log->Clock_In_Status ?: 'ON_TIME';
+
+                    if ($lateness > 0 || $statusClockIn === 'LATE') {
+                        $lateCount++;
+                        $statusKehadiran = 'TERLAMBAT';
+                    } else {
+                        $onTimeCount++;
+                        $statusKehadiran = 'HADIR';
+                    }
+
+                    if ($overtime > 0) {
+                        $overtimeCount++;
+                    }
+                    $notes = $log->Notes ?? '';
+                } elseif ($matchingLeave) {
+                    $leaveCount++;
+                    $statusKehadiran = 'IZIN/CUTI (' . $matchingLeave->leave_type . ')';
+                    $notes = $matchingLeave->reason;
+                }
+
+                $dailyList[] = [
+                    'date'             => $currDate,
+                    'day_name'         => $dayNameIndo,
+                    'date_formatted'   => date('d/m/Y', strtotime($currDate)) . " ({$dayNameIndo})",
+                    'nik'              => $selectedEmployee->Emp_ID,
+                    'name'             => $selectedEmployee->Name ?: $selectedEmployee->username,
+                    'department'       => $selectedEmployee->Department ?: '-',
+                    'position'         => $selectedEmployee->Position ?: '-',
+                    'status_kehadiran' => $statusKehadiran,
+                    'clock_in'         => $jamMasuk,
+                    'clock_out'        => $jamPulang,
+                    'late_minutes'     => $lateness,
+                    'overtime_minutes' => $overtime,
+                    'clock_in_status'  => $statusClockIn,
+                    'notes'            => $notes,
+                    'clock_in_lat'     => $log->Clock_In_Lat ?? null,
+                    'clock_in_lng'     => $log->Clock_In_Lng ?? null,
+                    'clock_in_photo'   => $log->Clock_In_Photo ?? null,
+                    'clock_out_photo'  => $log->Clock_Out_Photo ?? null,
+                ];
+
+                $currDateCarbon->addDay();
+            }
+
+            $absentCount = max(0, $totalDaysInRange - $presentCount - $leaveCount);
+        } else {
+            // MODE NORMAL: Monitoring Seluruh Karyawan pada Tanggal ($date) yang dipilih
+            $dailyLogsQuery = DB::table('attendant_log as l')
+                ->join('users as u', 'u.Emp_ID', '=', 'l.NIK')
+                ->where('l.Scan_Date', $date);
+
+            if (!$isAdminOrHcga) {
+                $dailyLogsQuery->where('u.Department', $userDept);
+            } elseif (!empty($dept) && $dept !== 'ALL') {
+                $dailyLogsQuery->where('u.Department', $dept);
+            }
+
+            $dailyLogs = $dailyLogsQuery->select(
+                'l.*',
+                'u.Name as Employee_Name',
+                'u.username',
+                'u.Department',
+                'u.Position'
+            )->get()->keyBy('NIK');
+
+            // Data Izin / Cuti Hari Ini
+            $leavesToday = DB::table('attendance_leave_requests as r')
+                ->join('users as u', 'u.Emp_ID', '=', 'r.nik')
+                ->where('r.status', 'APPROVED')
+                ->where('r.start_date', '<=', $date)
+                ->where('r.end_date', '>=', $date)
+                ->select('r.*', 'u.Name as Employee_Name')
+                ->get()->keyBy('nik');
+
+            $leaveCount = $leavesToday->count();
+
+            foreach ($employees as $emp) {
+                $log = $dailyLogs->get($emp->Emp_ID);
+                $leave = $leavesToday->get($emp->Emp_ID);
+
+                $statusKehadiran = 'ALPHA';
+                $jamMasuk = '--:--';
+                $jamPulang = '--:--';
+                $lateness = 0;
+                $overtime = 0;
+                $statusClockIn = '-';
+                $notes = '';
+
+                if ($log && !empty($log->Start_Time)) {
+                    $presentCount++;
+                    $jamMasuk = $log->Start_Time;
+                    $jamPulang = $log->End_Time ?: '--:--';
+                    $lateness = (int) ($log->Late_Minutes ?? 0);
+                    $overtime = (int) ($log->Overtime_Minutes ?? 0);
+                    $statusClockIn = $log->Clock_In_Status ?: 'ON_TIME';
+
+                    if ($lateness > 0 || $statusClockIn === 'LATE') {
+                        $lateCount++;
+                        $statusKehadiran = 'TERLAMBAT';
+                    } else {
+                        $onTimeCount++;
+                        $statusKehadiran = 'HADIR';
+                    }
+
+                    if ($overtime > 0) {
+                        $overtimeCount++;
+                    }
+                } elseif ($leave) {
+                    $statusKehadiran = 'IZIN/CUTI (' . $leave->leave_type . ')';
+                    $notes = $leave->reason;
+                }
+
+                $dailyList[] = [
+                    'date'             => $date,
+                    'day_name'         => date('l', strtotime($date)),
+                    'date_formatted'   => date('d/m/Y', strtotime($date)),
+                    'nik'              => $emp->Emp_ID,
+                    'name'             => $emp->Name ?: $emp->username,
+                    'department'       => $emp->Department ?: '-',
+                    'position'         => $emp->Position ?: '-',
+                    'status_kehadiran' => $statusKehadiran,
+                    'clock_in'         => $jamMasuk,
+                    'clock_out'        => $jamPulang,
+                    'late_minutes'     => $lateness,
+                    'overtime_minutes' => $overtime,
+                    'clock_in_status'  => $statusClockIn,
+                    'notes'            => $notes ?: ($log->Notes ?? ''),
+                    'clock_in_lat'     => $log->Clock_In_Lat ?? null,
+                    'clock_in_lng'     => $log->Clock_In_Lng ?? null,
+                    'clock_in_photo'   => $log->Clock_In_Photo ?? null,
+                    'clock_out_photo'  => $log->Clock_Out_Photo ?? null,
+                ];
+            }
+
+            $absentCount = max(0, $totalEmployees - $presentCount - $leaveCount);
+        }
+
+        // 5. Rekap Bulanan Periode Sesuai Rentang Cutoff (start_date s/d end_date)
+        $monthlyAggregatesQuery = DB::table('attendant_log as l')
+            ->join('users as u', 'u.Emp_ID', '=', 'l.NIK')
+            ->whereBetween('l.Scan_Date', [$startDate, $endDate])
+            ->where('u.Status', 'ACTIVE');
+
+        if (!empty($employeeNik) && $employeeNik !== 'ALL') {
+            $monthlyAggregatesQuery->where('l.NIK', $employeeNik);
+        } elseif (!empty($dept) && $dept !== 'ALL') {
+            $monthlyAggregatesQuery->where('u.Department', $dept);
+        }
+
+        $monthlyAggregates = $monthlyAggregatesQuery->groupBy('l.NIK')
+            ->select(
+                'l.NIK',
+                DB::raw('COUNT(CASE WHEN l.Start_Time IS NOT NULL THEN 1 END) as total_present'),
+                DB::raw('COUNT(CASE WHEN l.Late_Minutes > 0 OR l.Clock_In_Status = "LATE" THEN 1 END) as total_late'),
+                DB::raw('SUM(l.Late_Minutes) as total_late_minutes'),
+                DB::raw('SUM(l.Overtime_Minutes) as total_overtime_minutes')
+            )
+            ->get()->keyBy('NIK');
+
+        $monthlyList = [];
+        foreach ($employees as $emp) {
+            $m = $monthlyAggregates->get($emp->Emp_ID);
+            $monthlyList[] = [
+                'nik'                   => $emp->Emp_ID,
+                'name'                  => $emp->Name ?: $emp->username,
+                'department'            => $emp->Department ?: '-',
+                'total_present'         => $m ? (int)$m->total_present : 0,
+                'total_late'            => $m ? (int)$m->total_late : 0,
+                'total_late_minutes'    => $m ? (int)$m->total_late_minutes : 0,
+                'total_overtime_minutes'=> $m ? (int)$m->total_overtime_minutes : 0,
+            ];
+        }
+
+        // Ambil daftar departemen unik untuk filter
+        $departments = DB::table('users')
+            ->whereNotNull('Department')
+            ->where('Department', '!=', '')
+            ->distinct()
+            ->orderBy('Department', 'asc')
+            ->pluck('Department');
+
+        $allCutoffRules = $this->cutoffService->getAllActiveRules();
+
+        return [
+            'metrics' => [
+                'total_employees' => $totalEmployees,
+                'present'         => $presentCount,
+                'on_time'         => $onTimeCount,
+                'late'            => $lateCount,
+                'overtime'        => $overtimeCount,
+                'leave'           => $leaveCount,
+                'absent'          => $absentCount,
+            ],
+            'dailyList'              => $dailyList,
+            'monthlyList'            => $monthlyList,
+            'departments'            => $departments,
+            'allAccessibleEmployees' => $allAccessibleEmployees,
+            'selectedEmployee'       => $selectedEmployee,
+            'isEmployeeDetailMode'   => (!empty($employeeNik) && $employeeNik !== 'ALL'),
+            'userDept'               => $userDept,
+            'isAdminOrHcga'          => $isAdminOrHcga,
+            'filterDate'             => $date,
+            'filterDept'             => $dept ?: ($isAdminOrHcga ? 'ALL' : $userDept),
+            'filterPeriode'          => $periodeStr,
+            'filterEmployeeNik'      => $employeeNik,
+            'cutoffRule'             => $cutoffRule,
+            'cutoffRange'            => $cutoffRange,
+            'allCutoffRules'         => $allCutoffRules,
+        ];
     }
 }
 

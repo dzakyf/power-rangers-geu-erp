@@ -1,502 +1,619 @@
-<?php
-/**
- * recruitment-verify-document.blade.php
- * Halaman verifikasi dokumen kandidat - tahap 2 dari alur recruitment
- * 
- * Alur: Input Candidate → Verifikasi Dokumen → Psikotest → Interview HR → ...
- * 
- * Halaman ini menampilkan:
- * - Informasi dasar kandidat
- * - Daftar dokumen yang diupload
- * - Form catatan verifikasi
- * - Tombol Approve (lanjut ke Psikotest) / Reject
- */
-?>
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
 <style>
     .verify-card {
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: all 0.2s ease-in-out;
     }
-    .status-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
+    .document-box {
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 8px;
+        padding: 1rem;
+        background: #fff;
+        height: 100%;
+        transition: all 0.2s;
+        border-left: 4px solid #dee2e6;
     }
-    .status-created {
-        background-color: #e2e3e5;
-        color: #383d41;
+    .document-box.has-file {
+        border-left-color: #0f9d58;
     }
-    .document-item {
-        border-left: 3px solid #ddd;
-        padding-left: 12px;
-        margin-bottom: 12px;
-        transition: border-color 0.2s;
+    .document-box.no-file {
+        border-left-color: #dc3545;
+        background-color: #fffbfa;
     }
-    .document-item:hover {
-        border-left-color: #699;
+    .document-box:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
-    .document-item.has-file {
-        border-left-color: #28a745;
+    .recruitment-stepper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
     }
-    .action-btn {
-        padding: 10px 24px;
-        border-radius: 4px;
-        font-weight: 600;
+    .recruitment-stepper::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 40px;
+        right: 40px;
+        height: 3px;
+        background: #e9ecef;
+        z-index: 1;
+    }
+    .recruitment-step-item {
+        position: relative;
+        z-index: 2;
+        background: #fff;
+        text-align: center;
+        padding: 0 10px;
+    }
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 8px;
+        font-weight: 700;
+        font-size: 14px;
+        border: 3px solid #dee2e6;
+        background: #fff;
+        color: #6c757d;
+        transition: all 0.2s;
+    }
+    .step-circle.completed {
+        background: #198754;
+        border-color: #198754;
+        color: #fff;
+    }
+    .step-circle.active {
+        background: #0d6efd;
+        border-color: #0d6efd;
+        color: #fff;
+        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.2);
     }
 </style>
 
-<div class="container-fluid p-4">
-    {{-- Page Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="text-dark">📋 Verifikasi Dokumen Kandidat</h3>
-            <p class="text-muted mb-0">Tahap 2 dari alur recruitment - Review dokumen sebelum lanjut ke Psikotest</p>
-        </div>
-        <a href="{{ url('hrd-recruitment-management') }}" class="btn btn-secondary">
-            <i class="fa fa-arrow-left"></i> Kembali ke Management
+{{-- Hero Header Adminor V3 --}}
+<div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+    <div>
+        <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+            <i class="fa fa-file-circle-check me-2"></i>Verifikasi Dokumen Kandidat
+        </h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Human Capital &amp; GA</a></li>
+                <li class="breadcrumb-item"><a href="{{ url('hrd-recruitment-management') }}" style="color: rgba(255, 255, 255, 0.8) !important;">Recruitment</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('hrd-recruitment-verify-document-list') }}" style="color: rgba(255, 255, 255, 0.8) !important;">Antrean Verifikasi</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">{{ $recruitment->Name }}</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ route('hrd-recruitment-verify-document-list') }}" class="btn btn-sm text-white shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+            <i class="fa fa-list me-1"></i> Antrean Verifikasi
+        </a>
+        <a href="{{ url('hrd-recruitment-management') }}" class="btn btn-sm text-white shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+            <i class="fa fa-arrow-left me-1"></i> Dashboard Management
         </a>
     </div>
+</div>
 
-    {{-- Progress Indicator --}}
-    <div class="card mb-4">
-        <div class="card-body p-3">
-            <div class="row align-items-center">
-                <div class="col-md-12">
-                    <div class="progress" style="height: 20px;">
-                        <div class="progress-bar bg-warning" style="width: 25%;">
-                            <small>Tahap 1: Input Candidate (Selesai)</small>
+{{-- Stepper Progress --}}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body py-4 px-3">
+        <div class="recruitment-stepper">
+            <div class="recruitment-step-item">
+                <div class="step-circle completed"><i class="fa fa-check"></i></div>
+                <div class="fw-bold small text-dark">Tahap 1</div>
+                <div class="text-muted" style="font-size: 11px;">Input Candidate</div>
+            </div>
+            <div class="recruitment-step-item">
+                <div class="step-circle active"><i class="fa fa-file-circle-check"></i></div>
+                <div class="fw-bold small text-primary">Tahap 2 (Current)</div>
+                <div class="text-primary fw-semibold" style="font-size: 11px;">Verifikasi Dokumen</div>
+            </div>
+            <div class="recruitment-step-item">
+                <div class="step-circle">3</div>
+                <div class="fw-bold small text-muted">Tahap 3</div>
+                <div class="text-muted" style="font-size: 11px;">Psikotest</div>
+            </div>
+            <div class="recruitment-step-item">
+                <div class="step-circle">4</div>
+                <div class="fw-bold small text-muted">Tahap 4</div>
+                <div class="text-muted" style="font-size: 11px;">Interview HR &amp; User</div>
+            </div>
+            <div class="recruitment-step-item">
+                <div class="step-circle">5</div>
+                <div class="fw-bold small text-muted">Tahap 5+</div>
+                <div class="text-muted" style="font-size: 11px;">MCU &amp; Offering</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="resultAlert" class="alert alert-dismissible fade show shadow-sm mb-4" style="display: none;"></div>
+
+<div class="row g-4 mb-4">
+    {{-- Left: Candidate Profile Card --}}
+    <div class="col-lg-5">
+        <div class="card shadow-sm border h-100 verify-card">
+            <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-dark fs-14">
+                    <i class="fa fa-user-circle text-primary me-2"></i>Informasi Kandidat
+                </span>
+                <span class="badge bg-primary text-white px-2 py-1 fs-12">
+                    {{ $recruitment->Status }}
+                </span>
+            </div>
+            <div class="card-body p-3">
+                <div class="text-center py-2 mb-3 border-bottom pb-3">
+                    @php
+                        $fotoPath = $recruitment->Foto ?? $documents->Foto ?? null;
+                    @endphp
+                    @if($fotoPath)
+                        <img src="{{ asset($fotoPath) }}" alt="Foto {{ $recruitment->Name }}" 
+                             class="rounded-circle shadow-sm border border-3 border-white mb-2" 
+                             style="width: 100px; height: 100px; object-fit: cover;">
+                    @else
+                        <div class="avatar avatar-xxl bg-primary-transparent text-primary rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                            <i class="fa fa-user fs-36"></i>
                         </div>
-                        <div class="progress-bar bg-primary" style="width: 25%; margin-left: 25%;">
-                            <small>Tahap 2: Verifikasi Dokumen (Current)</small>
-                        </div>
-                        <div class="progress-bar bg-light" style="width: 25%; margin-left: 50%;">
-                            <small>Tahap 3: Psikotest</small>
-                        </div>
-                        <div class="progress-bar bg-light" style="width: 25%; margin-left: 75%;">
-                            <small>Tahap 4+: Interview & Lebih Lanjut</small>
-                        </div>
-                    </div>
+                    @endif
+                    <h5 class="fw-bold mb-0 text-dark">{{ $recruitment->Name }}</h5>
+                    <span class="badge bg-light text-muted border mt-1">Task ID: {{ $recruitment->Task_ID }}</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless mb-0 fs-13">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted ps-0" width="130"><i class="fa fa-briefcase text-secondary me-2"></i>Posisi / PTK</td>
+                                <td class="fw-semibold text-dark">{{ $recruitment->Position ?? '-' }} <span class="text-muted fw-normal">({{ $recruitment->Requisition_ID ?? '-' }})</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0"><i class="fa fa-venus-mars text-secondary me-2"></i>Gender</td>
+                                <td>
+                                    <span class="badge {{ $recruitment->Gender === 'MALE' ? 'bg-info text-white' : 'bg-danger text-white' }} px-2 py-1">
+                                        {{ $recruitment->Gender ?? '-' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0"><i class="fa fa-calendar-day text-secondary me-2"></i>Lahir</td>
+                                <td>{{ $recruitment->Birth_Place ?? '-' }}, {{ $recruitment->Birth_Date ?? '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0"><i class="fa fa-envelope text-secondary me-2"></i>Email</td>
+                                <td>
+                                    @if($recruitment->Email)
+                                        <a href="mailto:{{ $recruitment->Email }}" class="text-primary text-decoration-none">{{ $recruitment->Email }}</a>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0"><i class="fa fa-phone text-secondary me-2"></i>No. Telepon</td>
+                                <td>{{ $recruitment->Phone ?? $recruitment->Handphone ?? '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0"><i class="fa fa-graduation-cap text-secondary me-2"></i>Pendidikan</td>
+                                <td>{{ $recruitment->Last_Education ?? '-' }} <span class="text-muted">({{ $recruitment->Last_Education_From ?? '-' }})</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0"><i class="fa fa-location-dot text-secondary me-2"></i>Alamat</td>
+                                <td>{{ $recruitment->Address ?? '-' }}, {{ $recruitment->City ?? '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0"><i class="fa fa-clock text-secondary me-2"></i>Tgl Dibuat</td>
+                                <td>{{ !empty($recruitment->Created_Date) ? \Carbon\Carbon::parse($recruitment->Created_Date)->format('d M Y H:i') : '-' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Info Candidate Card --}}
-    <div class="card mb-4 verify-card">
-        <div class="card-header bg-primary text-white">
-            <h5 class="card-title mb-0">
-                <i class="fa fa-user-circle mr-2"></i> Informasi Kandidat
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <table class="table table-bordered mb-0">
-                        <tr>
-                            <th style="width: 150px;">Task ID</th>
-                            <td class="font-weight-bold font-monospace">{{ $recruitment->Task_ID }}</td>
-                        </tr>
-                        <tr>
-                            <th>Name</th>
-                            <td>{{ $recruitment->Name }}</td>
-                        </tr>
-                        <tr>
-                            <th>Gender</th>
-                            <td>
-                                <span class="status-badge {{ $recruitment->Gender === 'MALE' ? 'bg-info' : 'bgpink' }}">
-                                    {{ $recruitment->Gender }}
-                                </span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Birth Date</th>
-                            <td>{{ $recruitment->Birth_Date ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Birth Place</th>
-                            <td>{{ $recruitment->Birth_Place ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Citizenship</th>
-                            <td>{{ $recruitment->kewarganegaraan ?? '-' }}</td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="col-md-6">
-                    <table class="table table-bordered mb-0">
-                        <tr>
-                            <th style="width: 150px;">Status</th>
-                            <td>
-                                <span class="status-badge status-cancelled">
-                                    {{ $recruitment->Status }}
-                                </span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Document Status</th>
-                            <td>
-                                @if($recruitment->Document_Status === 'ACCEPT')
-                                    <span class="status-badge bg-success text-white">ACCEPT</span>
-                                @elseif($recruitment->Document_Status === 'PENDING')
-                                    <span class="status-badge bg-warning text-dark">PENDING</span>
+    {{-- Right: Documents & Decision Panel --}}
+    <div class="col-lg-7">
+        @php
+            $cvPath = $recruitment->CV_File ?? $recruitment->CV ?? $documents->CV ?? null;
+            $ijazahPath = $recruitment->Education_Certificate_File ?? $documents->Ijazah ?? null;
+            $sertifikatPath = $recruitment->Certificate_File ?? $documents->Sertifikat ?? null;
+            $ktpPath = $recruitment->KTP_File ?? $recruitment->KTP ?? $documents->KTP ?? null;
+            $npwpPath = $recruitment->NPWP ?? $documents->NPWP ?? null;
+        @endphp
+
+        <div class="card shadow-sm border mb-4 verify-card">
+            <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-dark fs-14">
+                    <i class="fa fa-folder-closed text-primary me-2"></i>Kelengkapan Dokumen Pelamar
+                </span>
+                <span class="badge bg-light text-muted border">Review Fisik / PDF</span>
+            </div>
+            <div class="card-body p-3">
+                <div class="row g-3">
+                    {{-- CV --}}
+                    <div class="col-sm-6">
+                        <div class="document-box {{ $cvPath ? 'has-file' : 'no-file' }}">
+                            <div class="d-flex align-items-start justify-content-between mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-file-pdf text-danger fs-24 me-2"></i>
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">CV / Resume</h6>
+                                        <small class="text-muted">Riwayat Hidup</small>
+                                    </div>
+                                </div>
+                                @if($cvPath)
+                                    <span class="badge bg-success text-white"><i class="fa fa-check me-1"></i>Ada</span>
                                 @else
-                                    <span class="status-badge bg-secondary">{{ $recruitment->Document_Status }}</span>
+                                    <span class="badge bg-danger text-white"><i class="fa fa-xmark me-1"></i>Kosong</span>
                                 @endif
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Requisition ID</th>
-                            <td class="font-monospace">{{ $recruitment->Requisition_ID }}</td>
-                        </tr>
-                        <tr>
-                            <th>Created By</th>
-                            <td>{{ $recruitment->Created_By }}</td>
-                        </tr>
-                        <tr>
-                            <th>Created Date</th>
-                            <td>{{ $recruitment->Created_Date }}</td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="col-md-12 mt-3">
-                    <table class="table table-bordered mb-0">
-                        <tr>
-                            <th style="width: 150px;">Address</th>
-                            <td>{{ $recruitment->Address ?? '-' }}, {{ $recruitment->City ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Phone</th>
-                            <td>{{ $recruitment->Phone ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>WhatsApp</th>
-                            <td>{{ $recruitment->Handphone ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Email</th>
-                            <td>
-                                @if($recruitment->Email)
-                                    <a href="mailto:{{ $recruitment->Email }}" class="text-decoration-none">
-                                        {{ $recruitment->Email }}
-                                    </a>
+                            </div>
+                            @if($cvPath)
+                                <a href="{{ asset($cvPath) }}" target="_blank" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                                    <i class="fa fa-arrow-up-right-from-square me-1"></i> Buka CV
+                                </a>
+                            @else
+                                <div class="small text-danger mt-2 fst-italic">Kandidat belum mengunggah file CV</div>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Ijazah --}}
+                    <div class="col-sm-6">
+                        <div class="document-box {{ $ijazahPath ? 'has-file' : 'no-file' }}">
+                            <div class="d-flex align-items-start justify-content-between mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-graduation-cap text-primary fs-24 me-2"></i>
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">Ijazah Terakhir</h6>
+                                        <small class="text-muted">Bukti Kelulusan</small>
+                                    </div>
+                                </div>
+                                @if($ijazahPath)
+                                    <span class="badge bg-success text-white"><i class="fa fa-check me-1"></i>Ada</span>
                                 @else
-                                    -
+                                    <span class="badge bg-danger text-white"><i class="fa fa-xmark me-1"></i>Kosong</span>
                                 @endif
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Last Education</th>
-                            <td>{{ $recruitment->Last_Education ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Education From</th>
-                            <td>{{ $recruitment->Last_Education_From ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Marital Status</th>
-                            <td>{{ $recruitment->Marital_Status ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Religion</th>
-                            <td>{{ $recruitment->Religion ?? '-' }}</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Dokumen Card --}}
-    <div class="card mb-4 verify-card">
-        <div class="card-header bg-info text-white">
-            <h5 class="card-title mb-0">
-                <i class="fa fa-file-pdf mr-2"></i> Dokumen Kandidat
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <h6 class="font-weight-bold mb-2">📷 Foto</h6>
-                    <div class="document-item {{ $recruitment->Foto ? 'has-file' : '' }}">
-                        @if($recruitment->Foto)
-                            <img src="{{ asset($recruitment->Foto) }}" alt="Foto Kandidat" 
-                                 class="img-thumbnail" style="width: 200px; height: auto; object-fit: cover;">
-                            <small class="text-success mt-1 d-block">
-                                <i class="fa fa-check-circle"></i> Dokumen tersedia
-                            </small>
-                        @else
-                            <span class="text-danger"><i class="fa fa-exclamation-circle"></i> Dokumen tidak tersedia</span>
-                        @endif
-                    </div>
-                    
-                    <h6 class="font-weight-bold mb-2 mt-4">📄 CV / Resume</h6>
-                    <div class="document-item {{ $recruitment->CV_File ? 'has-file' : '' }}">
-                        @if($recruitment->CV_File)
-                            <div>
-                                <i class="fa fa-file-pdf text-danger fa-2x d-block"></i>
-                                <a href="{{ asset($recruitment->CV_File) }}" target="_blank" class="text-decoration-none">
-                                    Lihat CV ({{ basename($recruitment->CV_File) }})
-                                </a>
-                                <small class="text-success mt-1 d-block">
-                                    <i class="fa fa-check-circle"></i> Dokumen tersedia
-                                </small>
                             </div>
-                        @else
-                            <span class="text-danger"><i class="fa fa-exclamation-circle"></i> Dokumen tidak tersedia</span>
-                        @endif
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <h6 class="font-weight-bold mb-2">🎓 Ijazah</h6>
-                    <div class="document-item {{ $recruitment->Education_Certificate_File ? 'has-file' : '' }}">
-                        @if(isset($recruitment->Education_Certificate_File) && $recruitment->Education_Certificate_File)
-                            <div>
-                                <i class="fa fa-file-pdf text-danger fa-2x d-block"></i>
-                                <a href="{{ asset($recruitment->Education_Certificate_File) }}" target="_blank" class="text-decoration-none">
-                                    Lihat Ijazah ({{ basename($recruitment->Education_Certificate_File) }})
+                            @if($ijazahPath)
+                                <a href="{{ asset($ijazahPath) }}" target="_blank" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                                    <i class="fa fa-arrow-up-right-from-square me-1"></i> Buka Ijazah
                                 </a>
-                                <small class="text-success mt-1 d-block">
-                                    <i class="fa fa-check-circle"></i> Dokumen tersedia
-                                </small>
-                            </div>
-                        @else
-                            <span class="text-danger"><i class="fa fa-exclamation-circle"></i> Dokumen tidak tersedia</span>
-                        @endif
-                    </div>
-                    
-                    <h6 class="font-weight-bold mb-2 mt-4">📜 Sertifikat</h6>
-                    <div class="document-item {{ $recruitment->Certificate_File ? 'has-file' : '' }}">
-                        @if(isset($recruitment->Certificate_File) && $recruitment->Certificate_File)
-                            <div>
-                                <i class="fa fa-file-pdf text-danger fa-2x d-block"></i>
-                                <a href="{{ asset($recruitment->Certificate_File) }}" target="_blank" class="text-decoration-none">
-                                    Lihat Sertifikat ({{ basename($recruitment->Certificate_File) }})
-                                </a>
-                                <small class="text-success mt-1 d-block">
-                                    <i class="fa fa-check-circle"></i> Dokumen tersedia
-                                </small>
-                            </div>
-                        @else
-                            <span class="text-danger"><i class="fa fa-exclamation-circle"></i> Dokumen tidak tersedia</span>
-                        @endif
-                    </div>
-
-                    <h6 class="font-weight-bold mb-2 mt-4">🪪 KTP / Identitas</h6>
-                    <div class="document-item {{ $recruitment->KTP_File ? 'has-file' : '' }}">
-                        @if(isset($recruitment->KTP_File) && $recruitment->KTP_File)
-                            <div>
-                                <i class="fa fa-file-pdf text-danger fa-2x d-block"></i>
-                                <a href="{{ asset($recruitment->KTP_File) }}" target="_blank" class="text-decoration-none">
-                                    Lihat KTP ({{ basename($recruitment->KTP_File) }})
-                                </a>
-                                <small class="text-success mt-1 d-block">
-                                    <i class="fa fa-check-circle"></i> Dokumen tersedia
-                                </small>
-                            </div>
-                        @else
-                            <span class="text-danger"><i class="fa fa-exclamation-circle"></i> Dokumen tidak tersedia</span>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Form Verifikasi --}}
-    <div class="card mb-4 verify-card">
-        <div class="card-header bg-success text-white">
-            <h5 class="card-title mb-0">
-                <i class="fa fa-edit mr-2"></i> Verifikasi & Catatan
-            </h5>
-        </div>
-        <div class="card-body">
-            <form id="verifyDocumentForm">
-                {{ csrf_field() }}
-                <input type="hidden" id="candidate_id" name="id" value="{{ $recruitment->ID }}">
-                
-                <div class="form-group">
-                    <label for="note">Catatan Verifikasi (opsional)</label>
-                    <textarea id="note" name="note" class="form-control" rows="3" 
-                              placeholder="Tambahkan catatan jika perlu..."></textarea>
-                    <small class="text-muted">Catatan akan disimpan sebagai Document_Note</small>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {{-- Action Buttons --}}
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card verify-card">
-                <div class="card-body">
-                    <h5 class="font-weight-bold mb-3">
-                        <i class="fa fa-cog mr-2"></i> Tindakan
-                    </h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <button type="button" id="btnApprove" class="btn btn-success btn-lg btn-block action-btn">
-                                <i class="fa fa-check-circle mr-2"></i> Approve & Lanjut ke Psikotest
-                            </button>
-                            <small class="text-muted d-block mt-2">
-                                <i class="fa fa-info-circle"></i> Kandidat akan dipindahkan ke tahap Psikotest setelah verifikasi
-                            </small>
+                            @else
+                                <div class="small text-danger mt-2 fst-italic">Kandidat belum mengunggah Ijazah</div>
+                            @endif
                         </div>
-                        <div class="col-md-6">
-                            <button type="button" id="btnReject" class="btn btn-danger btn-lg btn-block action-btn">
-                                <i class="fa fa-times-circle mr-2"></i> Tolak Kandidat
-                            </button>
-                            <small class="text-muted d-block mt-2">
-                                <i class="fa fa-info-circle"></i> Kandidat akan ditolak dengan alasan yang diberikan
-                            </small>
+                    </div>
+
+                    {{-- KTP --}}
+                    <div class="col-sm-6">
+                        <div class="document-box {{ $ktpPath ? 'has-file' : 'no-file' }}">
+                            <div class="d-flex align-items-start justify-content-between mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-id-card text-info fs-24 me-2"></i>
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">KTP / Identitas</h6>
+                                        <small class="text-muted">Identitas Kependudukan</small>
+                                    </div>
+                                </div>
+                                @if($ktpPath)
+                                    <span class="badge bg-success text-white"><i class="fa fa-check me-1"></i>Ada</span>
+                                @else
+                                    <span class="badge bg-danger text-white"><i class="fa fa-xmark me-1"></i>Kosong</span>
+                                @endif
+                            </div>
+                            @if($ktpPath)
+                                <a href="{{ asset($ktpPath) }}" target="_blank" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                                    <i class="fa fa-arrow-up-right-from-square me-1"></i> Buka KTP
+                                </a>
+                            @else
+                                <div class="small text-danger mt-2 fst-italic">Kandidat belum mengunggah KTP</div>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Sertifikat --}}
+                    <div class="col-sm-6">
+                        <div class="document-box {{ $sertifikatPath ? 'has-file' : 'no-file' }}">
+                            <div class="d-flex align-items-start justify-content-between mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-certificate text-warning fs-24 me-2"></i>
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">Sertifikat Pendukung</h6>
+                                        <small class="text-muted">Pelatihan &amp; Kompetensi</small>
+                                    </div>
+                                </div>
+                                @if($sertifikatPath)
+                                    <span class="badge bg-success text-white"><i class="fa fa-check me-1"></i>Ada</span>
+                                @else
+                                    <span class="badge bg-secondary text-white">Opsional</span>
+                                @endif
+                            </div>
+                            @if($sertifikatPath)
+                                <a href="{{ asset($sertifikatPath) }}" target="_blank" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                                    <i class="fa fa-arrow-up-right-from-square me-1"></i> Buka Sertifikat
+                                </a>
+                            @else
+                                <div class="small text-muted mt-2 fst-italic">Tidak ada file sertifikat (opsional)</div>
+                            @endif
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    {{-- Loading Indicator --}}
-    <div id="processingModal" class="modal fade" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content">
-                <div class="modal-body text-center">
-                    <i class="fa fa-spinner fa-spin fa-3x text-primary"></i>
-                    <p class="mt-2 mb-0">Memproses...</p>
-                </div>
+        {{-- Verification Decision Form Card --}}
+        <div class="card shadow-sm border verify-card">
+            <div class="card-header bg-white py-3 px-3 border-bottom">
+                <span class="fw-bold text-dark fs-14">
+                    <i class="fa fa-gavel text-primary me-2"></i>Keputusan Verifikasi
+                </span>
+            </div>
+            <div class="card-body p-3">
+                <form id="verifyDocumentForm">
+                    @csrf
+                    <input type="hidden" id="candidate_id" name="id" value="{{ $recruitment->ID }}">
+                    
+                    <div class="mb-3">
+                        <label for="note" class="form-label fw-semibold small text-muted">
+                            Catatan Verifikasi (Opsional untuk Approve):
+                        </label>
+                        <textarea id="note" name="note" class="form-control" rows="3" 
+                                  placeholder="Tuliskan catatan kelayakan dokumen, kekurangan yang perlu disusulkan, atau instruksi lain..."></textarea>
+                        <div class="form-text small text-muted">
+                            <i class="fa fa-circle-info me-1"></i> Catatan verifikasi dokumen kandidat.
+                        </div>
+                    </div>
+
+                    <div class="row g-2 pt-2 border-top">
+                        <div class="col-sm-6">
+                            <button type="button" id="btnApprove" class="btn btn-success btn-lg w-100 text-white shadow-sm py-2">
+                                <i class="fa fa-circle-check me-2"></i> Setujui &amp; Lanjut Psikotest
+                            </button>
+                            <small class="text-muted d-block mt-1 text-center" style="font-size: 11px;">
+                                Meloloskan berkas ke antrean penjadwalan Psikotest
+                            </small>
+                        </div>
+                        <div class="col-sm-6">
+                            <button type="button" id="btnReject" class="btn btn-danger btn-lg w-100 text-white shadow-sm py-2">
+                                <i class="fa fa-circle-xmark me-2"></i> Tolak Dokumen / Berkas
+                            </button>
+                            <small class="text-muted d-block mt-1 text-center" style="font-size: 11px;">
+                                Menghentikan alur rekrutmen kandidat ini
+                            </small>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
-    {{-- Result Alert --}}
-    <div id="resultAlert" class="alert alert-dismissible fade show" style="display: none;"></div>
+{{-- Reject Confirmation Modal --}}
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header py-3 bg-danger-transparent">
+                <h5 class="modal-title fw-bold text-danger" id="rejectModalLabel">
+                    <i class="fa fa-triangle-exclamation me-2"></i>Konfirmasi Penolakan Berkas
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="fs-14 mb-3">
+                    Apakah Anda yakin ingin menolak berkas kandidat <strong>{{ $recruitment->Name }}</strong>?
+                </p>
+                <div class="mb-3">
+                    <label for="rejectReasonInput" class="form-label fw-semibold small text-danger">
+                        Alasan Penolakan <span class="text-danger">*</span>:
+                    </label>
+                    <textarea class="form-control" id="rejectReasonInput" rows="3" placeholder="Tulis alasan penolakan secara jelas (misal: kualifikasi tidak cocok, dokumen tidak valid)..."></textarea>
+                    <div class="invalid-feedback" id="rejectReasonFeedback">
+                        Alasan penolakan wajib diisi.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2 px-3">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger btn-sm text-white shadow-sm" id="btnSubmitReject">
+                    <i class="fa fa-trash me-1"></i> Ya, Tolak Kandidat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    {{-- JavaScript --}}
-    <script>
-        $(function() {
-            // Handle Approve
-            $('#btnApprove').click(function() {
-                var id = $('#candidate_id').val();
-                var note = $('#note').val();
-                
-                if (!id) {
-                    alert('Error: ID kandidat tidak ditemukan');
-                    return;
-                }
-                
-                $('#processingModal').modal('show');
-                
-                $.ajax({
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    url: "{{ url('hrd-recruitment-verify-document') }}",
-                    type: "POST",
-                    data: { id: id, note: note },
-                    success: function(data) {
-                        $('#processingModal').modal('hide');
-                        var response = JSON.parse(data);
-                        if (response.status === 'success') {
-                            showAlert('success', response.message);
-                            // Redirect ke halaman recruitment-psikotest setelah delay
-                            setTimeout(function() {
-                                window.location.href = "{{ url('hrd-recruitment-psikotest') }}";
-                            }, 2000);
-                        } else {
-                            showAlert('error', response.message || 'Gagal memverifikasi dokumen');
-                        }
-                    },
-                    error: function(jqXHR, textStatus, errorThrown) {
-                        $('#processingModal').modal('hide');
-                        var response = jqXHR.responseJSON;
-                        if (response && response.message) {
-                            showAlert('error', response.message);
-                        } else {
-                            showAlert('error', 'Terjadi kesalahan: ' + textStatus);
-                        }
-                    }
-                });
+{{-- Loading / Processing Modal --}}
+<div id="processingModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content shadow text-center p-4 border-0">
+            <div class="spinner-border text-primary mx-auto mb-3" role="status"></div>
+            <h6 class="fw-bold mb-1">Memproses Data</h6>
+            <p class="text-muted small mb-0">Mohon tunggu sebentar...</p>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+    var bsRejectModal = null;
+    var bsProcessingModal = null;
+
+    function hideProcessingLoader() {
+        if (bsProcessingModal) {
+            try {
+                bsProcessingModal.hide();
+            } catch (e) {
+                console.warn('Error hiding processing modal instance:', e);
+            }
+        }
+        // Force cleanup modal-backdrop & styles in case bootstrap animation was in-flight
+        setTimeout(function() {
+            var el = document.getElementById('processingModal');
+            if (el) {
+                el.classList.remove('show');
+                el.style.display = 'none';
+                el.setAttribute('aria-hidden', 'true');
+            }
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open').css({
+                'overflow': '',
+                'padding-right': ''
             });
+        }, 150);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var rejectEl = document.getElementById('rejectModal');
+        if (rejectEl) {
+            bsRejectModal = new bootstrap.Modal(rejectEl);
+        }
+        var procEl = document.getElementById('processingModal');
+        if (procEl) {
+            bsProcessingModal = new bootstrap.Modal(procEl);
+        }
+
+        // Handle Approve
+        $('#btnApprove').click(function() {
+            var id = $('#candidate_id').val();
+            var note = $('#note').val();
             
-            // Handle Reject
-            $('#btnReject').click(function() {
-                var id = $('#candidate_id').val();
-                var reason = prompt('Alasan menolak kandidat:');
-                
-                if (!reason || reason.trim() === '') {
-                    alert('Alasan harus diisi untuk menolak kandidat');
-                    return;
-                }
-                
-                if (!id) {
-                    alert('Error: ID kandidat tidak ditemukan');
-                    return;
-                }
-                
-                $('#processingModal').modal('show');
-                
-                $.ajax({
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    url: "{{ url('hrd-recruitment-reject-document') }}",
-                    type: "POST",
-                    data: { id: id, reason: reason },
-                    success: function(data) {
-                        $('#processingModal').modal('hide');
-                        var response = JSON.parse(data);
-                        if (response.status === 'success') {
-                            showAlert('warning', response.message);
-                            setTimeout(function() {
-                                window.location.href = "{{ url('hrd-recruitment-management') }}";
-                            }, 2000);
-                        } else {
-                            showAlert('error', response.message || 'Gagal menolak kandidat');
-                        }
-                    },
-                    error: function(jqXHR, textStatus, errorThrown) {
-                        $('#processingModal').modal('hide');
-                        var response = jqXHR.responseJSON;
-                        if (response && response.message) {
-                            showAlert('error', response.message);
-                        } else {
-                            showAlert('error', 'Terjadi kesalahan: ' + textStatus);
-                        }
+            if (!id) {
+                showAlert('danger', 'ID kandidat tidak ditemukan.');
+                return;
+            }
+
+            if (!confirm('Apakah Anda yakin ingin menyetujui dokumen kandidat ini dan melanjutkan ke tahap Psikotest?')) {
+                return;
+            }
+            
+            if (bsProcessingModal) {
+                bsProcessingModal.show();
+            }
+            
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                url: "{{ url('hrd-recruitment-verify-document') }}",
+                type: "POST",
+                data: { id: id, note: note },
+                success: function(data) {
+                    var response = (typeof data === 'string') ? JSON.parse(data) : data;
+                    if (response.status === 'success') {
+                        showAlert('success', response.message);
+                        setTimeout(function() {
+                            window.location.href = "{{ url('hrd-recruitment-psikotest') }}";
+                        }, 1200);
+                    } else {
+                        hideProcessingLoader();
+                        showAlert('danger', response.message || 'Gagal memverifikasi dokumen.');
                     }
-                });
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    hideProcessingLoader();
+                    var response = jqXHR.responseJSON;
+                    if (response && response.message) {
+                        showAlert('danger', response.message);
+                    } else if (jqXHR.responseText) {
+                        try {
+                            var parsed = JSON.parse(jqXHR.responseText);
+                            showAlert('danger', parsed.message || ('Terjadi kesalahan: ' + textStatus));
+                        } catch (e) {
+                            showAlert('danger', 'Terjadi kesalahan sistem (' + jqXHR.status + '): ' + errorThrown);
+                        }
+                    } else {
+                        showAlert('danger', 'Terjadi kesalahan sistem: ' + textStatus);
+                    }
+                }
             });
         });
         
-        function showAlert(type, message) {
-            var alertHtml = '';
-            var alertClass = '';
-            
-            if (type === 'success') {
-                alertClass = 'alert-success';
-            } else if (type === 'warning') {
-                alertClass = 'alert-warning';
-            } else {
-                alertClass = 'alert-danger';
+        // Handle Trigger Reject Modal
+        $('#btnReject').click(function() {
+            $('#rejectReasonInput').val('').removeClass('is-invalid');
+            if (bsRejectModal) {
+                bsRejectModal.show();
+            }
+        });
+
+        // Submit Reject from Modal
+        $('#btnSubmitReject').click(function() {
+            var id = $('#candidate_id').val();
+            var reasonInput = $('#rejectReasonInput');
+            var reason = reasonInput.val().trim();
+
+            if (reason === '') {
+                reasonInput.addClass('is-invalid');
+                reasonInput.focus();
+                return;
+            }
+            reasonInput.removeClass('is-invalid');
+
+            if (bsRejectModal) {
+                bsRejectModal.hide();
+            }
+            if (bsProcessingModal) {
+                bsProcessingModal.show();
             }
             
-            alertHtml = '<i class="fa fa-' + (type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-circle' : 'exclamation-circle') + ' mr-2"></i> ' + message;
-            
-            var alertDiv = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
-                          alertHtml + 
-                          '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
-                          '</div>';
-            
-            $('#resultAlert').html(alertDiv).show();
-            
-            // Auto hide after 5 seconds
-            setTimeout(function() {
-                $('#resultAlert').alert('close');
-            }, 5000);
-        }
-    </script>
-</div>
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                url: "{{ url('hrd-recruitment-reject-document') }}",
+                type: "POST",
+                data: { id: id, reason: reason },
+                success: function(data) {
+                    var response = (typeof data === 'string') ? JSON.parse(data) : data;
+                    if (response.status === 'success') {
+                        showAlert('warning', response.message);
+                        setTimeout(function() {
+                            window.location.href = "{{ route('hrd-recruitment-verify-document-list') }}";
+                        }, 1200);
+                    } else {
+                        hideProcessingLoader();
+                        showAlert('danger', response.message || 'Gagal menolak kandidat.');
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    hideProcessingLoader();
+                    var response = jqXHR.responseJSON;
+                    if (response && response.message) {
+                        showAlert('danger', response.message);
+                    } else if (jqXHR.responseText) {
+                        try {
+                            var parsed = JSON.parse(jqXHR.responseText);
+                            showAlert('danger', parsed.message || ('Terjadi kesalahan: ' + textStatus));
+                        } catch (e) {
+                            showAlert('danger', 'Terjadi kesalahan sistem (' + jqXHR.status + '): ' + errorThrown);
+                        }
+                    } else {
+                        showAlert('danger', 'Terjadi kesalahan sistem: ' + textStatus);
+                    }
+                }
+            });
+        });
+    });
+    
+    function showAlert(type, message) {
+        var alertClass = (type === 'success') ? 'alert-success' : ((type === 'warning') ? 'alert-warning' : 'alert-danger');
+        var icon = (type === 'success') ? 'fa-circle-check' : ((type === 'warning') ? 'fa-triangle-exclamation' : 'fa-circle-xmark');
+        
+        var alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show shadow-sm" role="alert">' +
+                        '<i class="fa ' + icon + ' me-2"></i>' + message +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                        '</div>';
+        
+        $('#resultAlert').html(alertHtml).show();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+@endpush
 @endsection

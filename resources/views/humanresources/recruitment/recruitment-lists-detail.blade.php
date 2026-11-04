@@ -1,5 +1,5 @@
 <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">RECRUITMENT DETAIL</div>
-<div id="a_recruitmentTab" style="width:100%; height:1500px;"></div>
+<div id="a_recruitmentTab" style="width:100%; height:1700px;"></div>
 <script>
 
 var myTabbar = new dhtmlXTabBar({

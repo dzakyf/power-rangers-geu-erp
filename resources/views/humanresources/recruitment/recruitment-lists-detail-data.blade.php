@@ -24,6 +24,15 @@ if ($jumlah > 0) {
 		} else {
 			if ($datahasil->$kolom != 'ID') {
 				$dataForm = $datahasil->$kolom;
+				// Mapping normalisasi nilai legacy ke format standar baru
+				if ($kolom == 'Gender') {
+					if ($dataForm == 'L') $dataForm = 'MALE';
+					if ($dataForm == 'P') $dataForm = 'FEMALE';
+				} elseif ($kolom == 'Marital_Status') {
+					if ($dataForm == 'WIDOW' || $dataForm == 'WIDOWER') $dataForm = 'WIDOWED';
+				} elseif ($kolom == 'Religion') {
+					if ($dataForm == 'KRISTEN KATHOLIK') $dataForm = 'KATOLIK';
+				}
 				echo "$('#$kolom').val('$dataForm');\n";
 			}
 		}
@@ -130,19 +139,19 @@ $ptkNo = $datahasil->Requisition_ID ?? '-';
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted" for="Religion">Religion</label>
                     <select id="Religion" class="form-select form-select-sm">
-                        <option>ISLAM</option>
-                        <option>KRISTEN PROTESTAN</option>
-                        <option>KRISTEN KATHOLIK</option>
-                        <option>HINDU</option>
-                        <option>BUDHA</option>
-                        <option>KONGHUCU</option>
+                        <option value="ISLAM">Islam</option>
+                        <option value="KRISTEN PROTESTAN">Kristen Protestan</option>
+                        <option value="KATOLIK">Katolik</option>
+                        <option value="HINDU">Hindu</option>
+                        <option value="BUDHA">Budha</option>
+                        <option value="KONGHUCU">Konghucu</option>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted" for="Gender">Gender</label>
                     <select id="Gender" class="form-select form-select-sm">
-                        <option value="L">MALE</option>
-                        <option value="P">FEMALE</option>
+                        <option value="MALE">MALE (Laki-laki)</option>
+                        <option value="FEMALE">FEMALE (Perempuan)</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -160,15 +169,18 @@ $ptkNo = $datahasil->Requisition_ID ?? '-';
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted" for="kewarganegaraan">Citizenship</label>
-                    <input type="text" id="kewarganegaraan" class="form-control form-control-sm" value="<?php echo $datahasil->kewarganegaraan;?>">
+                    <select id="kewarganegaraan" class="form-select form-select-sm">
+                        <option value="WNI">WNI (Indonesian)</option>
+                        <option value="WNA">WNA (Foreign National)</option>
+                    </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted" for="Marital_Status">Marital Status</label>
                     <select id="Marital_Status" class="form-select form-select-sm">
-                        <option>SINGLE</option>
-                        <option>MARRIED</option>
-                        <option>WIDOW</option>
-                        <option>WIDOWER</option>
+                        <option value="SINGLE">Single (Lajang)</option>
+                        <option value="MARRIED">Married (Menikah)</option>
+                        <option value="DIVORCED">Divorced (Cerai)</option>
+                        <option value="WIDOWED">Widowed (Janda/Duda)</option>
                     </select>
                 </div>
                 <div class="col-md-3">

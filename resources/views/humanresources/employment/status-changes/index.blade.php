@@ -46,7 +46,10 @@ if (!in_array($jenisQ, ['MUTATION', 'PROMOTION'])) {
                     <i class="fas fa-plus me-1"></i> New Data
                 </button>
                 <button type="button" id="STCH_Detail" class="btn btn-info me-2">
-                    <i class="fas fa-eye me-1"></i> Detail Data
+                    <i class="fas fa-eye me-1"></i> Detail / Approval
+                </button>
+                <button type="button" id="STCH_SubmitApproval" class="btn btn-outline-success me-2">
+                    <i class="fas fa-paper-plane me-1"></i> Submit Approval
                 </button>
                 <button type="button" id="STCH_Edit" class="btn btn-warning me-2">
                     <i class="fas fa-edit me-1"></i> Edit Data
@@ -82,26 +85,26 @@ if (!in_array($jenisQ, ['MUTATION', 'PROMOTION'])) {
         STATUSCHANGE.enableSmartRendering(true, 150);
 
         STATUSCHANGE.setHeader(
-            "No.,Nomor Form,Jenis,Nama,NIK,Tanggal Join,Jabatan Sekarang," +
+            "No.,Nomor Form,Jenis,Status,Nama,NIK,Tanggal Join,Jabatan Sekarang," +
             "Status Sekarang,Jabatan Usulan,Status Usulan,Gaji Usulan (Rp)," +
             "Tanggal Efektif,Tanggal Dibuat"
         );
         STATUSCHANGE.attachHeader(
-            "&nbsp;,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter," +
+            "&nbsp;,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter," +
             "#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"
         );
 
         STATUSCHANGE.setInitWidths(
-            "60,150,110,180,110,105,160,150,160,150,120,120,110"
+            "60,150,100,110,180,110,105,160,150,160,150,120,120,110"
         );
         STATUSCHANGE.setColAlign(
-            "center,center,center,left,center,center,left,left,left,left,right,center,center"
+            "center,center,center,center,left,center,center,left,left,left,left,right,center,center"
         );
         STATUSCHANGE.setColSorting(
-            "int,str,str,str,str,str,str,str,str,str,str,str,str"
+            "int,str,str,str,str,str,str,str,str,str,str,str,str,str"
         );
         STATUSCHANGE.setColTypes(
-            "ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro"
+            "ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro"
         );
 
         STATUSCHANGE.init();
@@ -145,6 +148,38 @@ if (!in_array($jenisQ, ['MUTATION', 'PROMOTION'])) {
             var id = STCHSelectedId();
             if (id === null) return;
             LoadM('STCH_DTL', 'hrd-status-change-detail?ID=' + id);
+        });
+
+        $('#STCH_SubmitApproval').on('click', function() {
+            var id = STCHSelectedId();
+            if (id === null) return;
+
+            if (!confirm('Ajukan form perubahan status ini ke Approval Engine?')) return;
+
+            $.blockUI({ message: '<div class="small">Mengajukan form ke approval...</div>' });
+
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                },
+                url: 'hrd-status-change-submit-approval',
+                type: 'POST',
+                data: { ID: id },
+                success: function(data) {
+                    $.unblockUI();
+                    if (data.status == 'success') {
+                        alert(data.message || 'Form berhasil diajukan ke Approval!');
+                        STCHLoad();
+                        LoadM('STCH_DTL', 'hrd-status-change-detail?ID=' + id);
+                    } else {
+                        alert(data.message || 'Gagal mengajukan approval.');
+                    }
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                    $.unblockUI();
+                    alert('Error: ' + (xhr.responseText || errorThrown));
+                }
+            });
         });
 
         $('#STCH_Edit').on('click', function() {

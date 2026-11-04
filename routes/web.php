@@ -47,6 +47,12 @@ use App\Http\Controllers\HCGA\TrainingController as HCGATrainingController;
 use App\Http\Controllers\HCGA\RequisitionController as HCGARequisitionController;
 use App\Http\Controllers\HCGA\RecruitmentController as HCGARecruitmentController;
 use App\Http\Controllers\HCGA\RecruitmentStageController as HCGARecruitmentStageController;
+use App\Http\Controllers\HCGA\PsikotestController as HCGAPsikotestController;
+use App\Http\Controllers\HCGA\TechnicalTestController as HCGATechnicalTestController;
+use App\Http\Controllers\HCGA\McuController as HCGAMcuController;
+use App\Http\Controllers\HCGA\OfferingController as HCGAOfferingController;
+use App\Http\Controllers\HCGA\InterviewController as HCGAInterviewController;
+use App\Http\Controllers\HCGA\CandidateAnalysisController as HCGACandidateAnalysisController;
 use App\Http\Controllers\HCGA\RecruitmentNewSubmitController as HCGARecruitmentNewSubmitController;
 use App\Http\Controllers\HCGA\RecruitmentManagementController as HCGARecruitmentManagementController;
 use App\Http\Controllers\HCGA\RecruitmentCandidateBatchController as HCGARecruitmentCandidateBatchController;
@@ -2705,9 +2711,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-hr-report-outstanding-recruitment', function () {
         return view('humanresources.report.xml.outstanding-recruitment');
     });
-    Route::get('/recruitment-requisition', function () {
-        return view('humanresources.recruitment.requisition');
-    });
+    Route::get('/recruitment-requisition', [HCGARequisitionController::class, 'index'])->name('hrd-recruitment-requisition');
+    Route::get('/recruitment-requisition-detail', [HCGARequisitionController::class, 'detail'])->name('hrd-recruitment-requisition-detail');
+    Route::get('/requisition-lists-detail', [HCGARequisitionController::class, 'detail']);
     Route::post('/requisition-submit', function () {
         return view('humanresources.recruitment.requisition-submit');
     });
@@ -2717,9 +2723,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-requisition-lists', function () {
         return view('humanresources.recruitment.xml.requisition');
     });
-    Route::get('/requisition-new', function () {
-        return view('humanresources.recruitment.requisition-new');
-    });
+    Route::get('/requisition-new', [HCGARequisitionController::class, 'create'])->name('hrd-requisition-new');
     Route::post('/recruitment-requisition-new-submit', [HCGARequisitionController::class, 'store']);
     Route::get('/requisition-new-po', function () {
         return view('humanresources.recruitment.requisition-new-po');
@@ -2727,9 +2731,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post('/requisition-new-po-submit', function () {
         return view('humanresources.recruitment.requisition-new-po-submit');
     });
-    Route::get('/recruitment-requisition-approval', function () {
-        return view('humanresources.recruitment.requisition-approval');
-    });
+    Route::get('/recruitment-requisition-approval', [App\Http\Controllers\HCGA\RequisitionApprovalController::class, 'index'])->name('hrd-recruitment-requisition-approval');
     Route::get('/xml-recruitment-requisition-approval', [App\Http\Controllers\HCGA\RequisitionApprovalController::class, 'data']);
     Route::post('/requisition-approval-update', [App\Http\Controllers\HCGA\RequisitionApprovalController::class, 'update']);
     Route::get('/xml-sales-po-lists-detail', function () {
@@ -2815,18 +2817,11 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-recruitment-pending', function () {
         return view('humanresources.recruitment.xml.recruitment-pending');
     });
-    Route::get('/recruitment-candidate-analisys', function () {
-        return view('humanresources.recruitment.recruitment-candidate-analysis');
-    });
-    Route::get('/xml-recruitment-candidate-analysis', function () {
-        return view('humanresources.recruitment.xml.recruitment-candidate-analysis');
-    });
-    Route::get('/recruitment-candidate-analysis-detail', function () {
-        return view('humanresources.recruitment.recruitment-candidate-analysis-detail');
-    });
-    Route::post('/recruitment-candidate-analysis-detail-submit', function () {
-        return view('humanresources.recruitment.recruitment-candidate-analysis-detail-submit');
-    });
+    Route::get('/recruitment-candidate-analisys', [HCGACandidateAnalysisController::class, 'index']);
+    Route::get('/recruitment-candidate-analysis', [HCGACandidateAnalysisController::class, 'index']);
+    Route::get('/xml-recruitment-candidate-analysis', [HCGACandidateAnalysisController::class, 'data']);
+    Route::get('/recruitment-candidate-analysis-detail', [HCGACandidateAnalysisController::class, 'detail']);
+    Route::post('/recruitment-candidate-analysis-detail-submit', [HCGACandidateAnalysisController::class, 'store']);
     Route::post('/recruitment-data-submit', function () {
         return view('humanresources.recruitment.recruitment-data-submit');
     });
@@ -2861,18 +2856,10 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-recruitment-notification', function () {
         return view('humanresources.recruitment.xml.recruitment-notification');
     });
-    Route::get('/recruitment-interview', function () {
-        return view('humanresources.recruitment.recruitment-interview');
-    });
-    Route::get('/xml-recruitment-interview', function () {
-        return view('humanresources.recruitment.xml.recruitment-interview');
-    });
-    Route::get('/recruitment-interview-detail', function () {
-        return view('humanresources.recruitment.recruitment-interview-detail');
-    });
-    Route::post('/recruitment-interview-detail-submit', function () {
-        return view('humanresources.recruitment.recruitment-interview-detail-submit');
-    });
+    Route::get('/recruitment-interview', [HCGAInterviewController::class, 'index']);
+    Route::get('/xml-recruitment-interview', [HCGAInterviewController::class, 'data']);
+    Route::get('/recruitment-interview-detail', [HCGAInterviewController::class, 'detail']);
+    Route::post('/recruitment-interview-detail-submit', [HCGAInterviewController::class, 'store']);
     Route::get('/sales-proforma-ba', function () {
         return view('sales.proforma-ba');
     });
@@ -3656,7 +3643,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-permission-all', function () {
         return view('humanresources.permission.xml.all');
     });
-    Route::get('/attendant-data', [\App\Http\Controllers\HCGA\AttendancesController::class, 'index']);
+    Route::get('/attendant-data', [\App\Http\Controllers\HCGA\AttendancesController::class, 'index'])->name('attendance.data');
+    Route::get('/attendant-data/ajax', [\App\Http\Controllers\HCGA\AttendancesController::class, 'getMonitoringDataAjax'])->name('attendance.data.ajax');
+    Route::get('/attendant-data/export-excel', [\App\Http\Controllers\HCGA\AttendancesController::class, 'exportExcel'])->name('attendance.data.export');
     Route::get('/xml-attendant-data', [\App\Http\Controllers\HCGA\AttendancesController::class, 'indexXml']);
 
     // Web Desktop Portal Attendance, Leave & Approval Tracking
@@ -3665,6 +3654,14 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/attendance/approval-progress/{id}', [\App\Http\Controllers\HCGA\AttendancesController::class, 'getApprovalProgress'])->name('attendance.approval.progress');
     Route::post('/attendance/admin/reset', [\App\Http\Controllers\HCGA\AttendancesController::class, 'resetAttendance'])->name('attendance.admin.reset');
     Route::post('/attendance/request/correction', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiSubmitCorrection'])->name('attendance.request.correction');
+
+    // Master Attendance Cutoff & Period Cycles
+    Route::get('/hrd-master-attendance-cutoff', [\App\Http\Controllers\HCGA\MasterAttendanceCutoffController::class, 'index'])->name('attendance.cutoff.index');
+    Route::get('/xml-hrd-master-attendance-cutoff', [\App\Http\Controllers\HCGA\MasterAttendanceCutoffController::class, 'dataXml'])->name('attendance.cutoff.xml');
+    Route::post('/hrd-master-attendance-cutoff-store', [\App\Http\Controllers\HCGA\MasterAttendanceCutoffController::class, 'store'])->name('attendance.cutoff.store');
+    Route::post('/hrd-master-attendance-cutoff/{id}/update', [\App\Http\Controllers\HCGA\MasterAttendanceCutoffController::class, 'update'])->name('attendance.cutoff.update');
+    Route::delete('/hrd-master-attendance-cutoff/{id}', [\App\Http\Controllers\HCGA\MasterAttendanceCutoffController::class, 'destroy'])->name('attendance.cutoff.destroy');
+    Route::get('/hrd-master-attendance-cutoff-preview', [\App\Http\Controllers\HCGA\MasterAttendanceCutoffController::class, 'previewRange'])->name('attendance.cutoff.preview');
 
     // Mobile Webview Attendance & Timesheet
     Route::get('/attendance/mobile', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileIndex'])->name('attendance.mobile.index');
@@ -5636,6 +5633,21 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcPref-master-work-calendar-edit-submit", [HCGAMasterWorkCalendarController::class, 'update']);
     Route::get("$hcPref-master-work-calendar-detail", [HCGAMasterWorkCalendarController::class, 'detail']);
     Route::get("xml-$hcPref-master-work-calendar-detail", [HCGAMasterWorkCalendarController::class, 'detailXml']);
+    Route::get("$hcPref-master-work-calendar-detail-shift", [HCGAMasterWorkCalendarController::class, 'shift']);
+    Route::get("xml-$hcPref-master-work-calendar-shift", [HCGAMasterWorkCalendarController::class, 'shiftXml']);
+    Route::post("master-work-calendar-detail-update", [HCGAMasterWorkCalendarController::class, 'detailUpdate']);
+    Route::post("master-work-calendar-shift-update", [HCGAMasterWorkCalendarController::class, 'shiftUpdate']);
+    
+    // Master Shift & Roster Patterns
+    Route::get("xml-$hcPref-master-shifts", [\App\Http\Controllers\HCGA\MasterShiftController::class, 'xmlShifts']);
+    Route::get("xml-$hcPref-master-roster-patterns", [\App\Http\Controllers\HCGA\MasterShiftController::class, 'xmlRosterPatterns']);
+    Route::post("$hcPref-master-shifts-store", [\App\Http\Controllers\HCGA\MasterShiftController::class, 'storeShift']);
+    Route::post("$hcPref-master-roster-patterns-store", [\App\Http\Controllers\HCGA\MasterShiftController::class, 'storeRosterPattern']);
+
+    // Roster Matrix Grid & Schedule Management
+    Route::get("$hcPref-roster-schedule-matrix", [\App\Http\Controllers\HCGA\RosterScheduleMatrixController::class, 'index']);
+    Route::post("$hcPref-roster-schedule-matrix-update", [\App\Http\Controllers\HCGA\RosterScheduleMatrixController::class, 'updateManualSchedule']);
+    Route::post("$hcPref-roster-schedule-matrix-assign", [\App\Http\Controllers\HCGA\RosterScheduleMatrixController::class, 'assignPattern']);
 
     Route::get("$hcPref-recruitment-management", [HCGARecruitmentManagementController::class, 'index'])
         ->name('hrd-recruitment-management');
@@ -5676,11 +5688,48 @@ Route::group(['middleware' => 'log.access'], function () {
 
     // === Recruitment Stage Transition Routes ===
     // Verifikasi dokumen & transisi stage
+    Route::get("$hcPref-recruitment-verify-document-list", [HCGARecruitmentStageController::class, 'verifyDocumentList'])
+        ->name('hrd-recruitment-verify-document-list');
     Route::get("$hcPref-recruitment-verify-document/{id}", [HCGARecruitmentStageController::class, 'verifyDocumentPage'])
         ->name('hrd-recruitment-verify-document-page');
     Route::post("$hcPref-recruitment-verify-document", [HCGARecruitmentStageController::class, 'verifyDocument'])
         ->name('hrd-recruitment-verify-document');
     Route::post("$hcPref-recruitment-reject-document", [HCGARecruitmentStageController::class, 'rejectDocument']);
+    
+    // Psikotest Management Routes
+    Route::get("$hcPref-recruitment-psikotest", [HCGAPsikotestController::class, 'index'])
+        ->name('hrd-recruitment-psikotest');
+    Route::get("xml-$hcPref-recruitment-psikotest", [HCGAPsikotestController::class, 'data'])
+        ->name('xml-hrd-recruitment-psikotest');
+    Route::get("$hcPref-recruitment-psikotest-detail", [HCGAPsikotestController::class, 'detail'])
+        ->name('hrd-recruitment-psikotest-detail');
+    Route::post("$hcPref-recruitment-psikotest-detail-submit", [HCGAPsikotestController::class, 'store'])
+        ->name('hrd-recruitment-psikotest-detail-submit');
+
+    // Technical Test Management Routes
+    Route::get("$hcPref-recruitment-technical-test", [HCGATechnicalTestController::class, 'index'])
+        ->name('hrd-recruitment-technical-test');
+    Route::get("xml-$hcPref-recruitment-technical-test", [HCGATechnicalTestController::class, 'data'])
+        ->name('xml-hrd-recruitment-technical-test');
+    Route::get("$hcPref-recruitment-technical-test-detail", [HCGATechnicalTestController::class, 'detail'])
+        ->name('hrd-recruitment-technical-test-detail');
+
+    // MCU Management Routes
+    Route::get("$hcPref-recruitment-mcu", [HCGAMcuController::class, 'index'])
+        ->name('hrd-recruitment-mcu');
+    Route::get("xml-$hcPref-recruitment-mcu", [HCGAMcuController::class, 'data'])
+        ->name('xml-hrd-recruitment-mcu');
+    Route::get("$hcPref-recruitment-mcu-detail", [HCGAMcuController::class, 'detail'])
+        ->name('hrd-recruitment-mcu-detail');
+
+    // Offering Letter Management Routes
+    Route::get("$hcPref-recruitment-offering", [HCGAOfferingController::class, 'index'])
+        ->name('hrd-recruitment-offering');
+    Route::get("xml-$hcPref-recruitment-offering", [HCGAOfferingController::class, 'data'])
+        ->name('xml-hrd-recruitment-offering');
+    Route::get("$hcPref-recruitment-offering-detail", [HCGAOfferingController::class, 'detail'])
+        ->name('hrd-recruitment-offering-detail');
+    
     Route::post("$hcPref-recruitment-approve-psikotest", [HCGARecruitmentStageController::class, 'approvePsikotest']);
     Route::post("$hcPref-recruitment-reject-psikotest", [HCGARecruitmentStageController::class, 'rejectPsikotest']);
     Route::post("$hcPref-recruitment-approve-interview-hr", [HCGARecruitmentStageController::class, 'approveInterviewHR']);
@@ -5892,6 +5941,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcStatusChangePref-edit", [HCGAStatusChangeController::class, 'edit']);
     Route::post("$hcStatusChangePref-edit-submit", [HCGAStatusChangeController::class, 'update']);
     Route::post("$hcStatusChangePref-delete", [HCGAStatusChangeController::class, 'delete']);
+    Route::post("$hcStatusChangePref-submit-approval", [HCGAStatusChangeController::class, 'submitApproval']);
+    Route::post("$hcStatusChangePref-action", [HCGAStatusChangeController::class, 'actApproval']);
     Route::get("$hcStatusChangePref-print", [HCGAStatusChangeController::class, 'printForm']);
     Route::get("$hcStatusChangePref-employee-search", [HCGAStatusChangeController::class, 'employeeSearch']);
     Route::get("$hcStatusChangePref-proposer-search", [HCGAStatusChangeController::class, 'proposerSearch']);

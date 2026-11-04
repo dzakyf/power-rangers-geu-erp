@@ -1,12 +1,23 @@
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
-<div class="main-content-header">
-    <h1>Human Capital and General Affairs</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="hrd-approval-inbox">Approval</a></li>
-        <li class="breadcrumb-item active"><span class="active">Escalation Queue</span></li>
-    </ol>
+<div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+    <div>
+        <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+            Approval Escalation Queue
+        </h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="hrd-approval-inbox" style="color: rgba(255, 255, 255, 0.8) !important;">Approval Inbox</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Escalation Queue</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-none d-sm-flex align-items-center gap-2">
+        <span class="badge px-3 py-2 fs-12 shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+            <i class="fa fa-triangle-exclamation me-1"></i> Held &amp; Escalation Monitoring
+        </span>
+    </div>
 </div>
 
 @if(session('success'))

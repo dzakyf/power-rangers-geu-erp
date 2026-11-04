@@ -1,0 +1,465 @@
+@extends('layout.mainlayout-hrd')
+
+@section('content-wrapper')
+    <style>
+        /* Custom Offering Letter UX styling (Reference: Candidate Analysis UI) */
+        .approval-metric-card {
+            transition: all 0.2s ease-in-out;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .approval-metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .status-pill-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.25rem 0.6rem;
+            border-radius: 50rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .quick-action-btn {
+            transition: all 0.15s ease;
+            font-weight: 500;
+        }
+
+        .quick-action-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .quick-action-btn:disabled {
+            opacity: 0.45 !important;
+            cursor: not-allowed;
+        }
+
+        #RecruitmentLists {
+            border-radius: 4px;
+        }
+    </style>
+
+    {{-- Modern Breadcrumb Header --}}
+    <div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+        <div>
+            <h4 class="content-title text-white fw-bold mb-1"
+                style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+                Offering Letter (Surat Penawaran Kerja)
+            </h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Human
+                            Capital</a></li>
+                    <li class="breadcrumb-item"><a href="#"
+                            style="color: rgba(255, 255, 255, 0.8) !important;">Recruitment</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page"
+                        style="color: #ffffff !important; font-weight: 600;">Offering Letter</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="d-none d-sm-flex align-items-center gap-2">
+            <span class="badge px-3 py-2 fs-12 shadow-sm"
+                style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+                <i class="fa fa-file-contract me-1"></i> Stage: OFFERING Active
+            </span>
+        </div>
+    </div>
+
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa fa-exclamation-circle me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    {{-- Quick Status Metrics --}}
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-md-3">
+            <div class="card shadow-sm border-0 approval-metric-card bg-white h-100">
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="avatar avatar-md bg-info-transparent text-info rounded-3 me-3">
+                        <i class="fa fa-users fs-20"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted text-uppercase fs-11 fw-bold mb-1">Total Antrean Offering</h6>
+                        <h4 class="fw-bold mb-0 text-dark" id="metricCountTotal">-</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card shadow-sm border-0 approval-metric-card bg-white h-100">
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="avatar avatar-md bg-warning-transparent text-warning rounded-3 me-3">
+                        <i class="fa fa-clock fs-20"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted text-uppercase fs-11 fw-bold mb-1">Menunggu Penawaran</h6>
+                        <h4 class="fw-bold mb-0 text-dark" id="metricCountPending">-</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card shadow-sm border-0 approval-metric-card bg-white h-100">
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="avatar avatar-md bg-success-transparent text-success rounded-3 me-3">
+                        <i class="fa fa-handshake fs-20"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted text-uppercase fs-11 fw-bold mb-1">Sudah Diterbitkan</h6>
+                        <h4 class="fw-bold mb-0 text-dark" id="metricCountDone">-</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card shadow-sm border-0 approval-metric-card bg-white h-100">
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="avatar avatar-md bg-primary-transparent text-primary rounded-3 me-3">
+                        <i class="fa fa-arrow-pointer fs-20"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h6 class="text-muted text-uppercase fs-11 fw-bold mb-1">Kandidat Terpilih</h6>
+                        <div id="metricSelectedCandidate" class="fw-bold text-dark text-truncate fs-13"
+                            title="Belum dipilih">Belum dipilih</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Main Actions Toolbar Card --}}
+    <div class="card shadow-sm border mb-3">
+        <div class="card-body py-2 px-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                {{-- Action Buttons --}}
+                <div class="d-flex flex-wrap align-items-center gap-1">
+                    <button type="button" class="btn btn-outline-secondary btn-sm quick-action-btn"
+                        onclick="RecruitmentListsRefresh();" title="Refresh Daftar Kandidat">
+                        <i class="fa fa-rotate me-1"></i> Refresh
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm quick-action-btn" id="btnActionDetail"
+                        onclick="RecruitmentListsDetail(null, true);" title="Buka Detail &amp; Penerbitan Offering Letter"
+                        disabled>
+                        <i class="fa fa-eye me-1"></i> Buka Offering Letter
+                    </button>
+                    <div class="vr my-1 mx-1 text-muted opacity-50"></div>
+                    <button type="button" id="ekselRecruitmentListsDet" name="ekselRecruitmentListsDet"
+                        class="btn btn-success btn-sm text-white quick-action-btn"
+                        onclick="RecruitmentLists.toExcel('./export/generate.php');"
+                        title="Export data tabel ke file Excel">
+                        <i class="fa fa-file-excel me-1"></i> Export Excel
+                    </button>
+                </div>
+
+                {{-- Candidate Selection Indicator Bar --}}
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small d-none d-md-inline">Status Pilihan:</span>
+                    <span id="selectedCandidateIndicator" class="badge bg-light text-dark border px-3 py-2 fs-12 fw-normal">
+                        <i class="fa fa-arrow-pointer text-muted me-1"></i> Belum ada kandidat dipilih
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- dhtmlXGrid Container --}}
+    <div class="card shadow-sm border mb-3">
+        <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+            <span class="fw-semibold text-dark fs-13">
+                <i class="fa fa-list text-primary me-1"></i> Daftar Antrean Kandidat Tahap Offering Letter
+            </span>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-light text-muted border fw-normal" id="gridFilterHelper">
+                    <i class="fa fa-filter me-1"></i> Ketik pada kolom tabel untuk memfilter
+                </span>
+                <small class="text-muted" id="offeringRowCountLabel">Memuat data...</small>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div id="RecruitmentLists" style="width:100%;height:380px;background-color:white;overflow:hidden"></div>
+        </div>
+        <div class="card-footer bg-light py-2 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <small class="text-muted">
+                <i class="fa fa-circle-info text-info me-1"></i> <strong>Tips UX:</strong> Klik pada baris tabel untuk
+                melihat profil kandidat &amp; form penerbitan Offering Letter di bawah, atau klik <strong>Buka Offering
+                    Letter</strong>.
+            </small>
+            <small class="text-muted">
+                Double-click pada baris untuk scroll langsung ke panel formulir.
+            </small>
+        </div>
+    </div>
+
+    {{-- Detail Container --}}
+    <div id="divlistRecruitment" class="mb-4"></div>
+
+    {{-- Modal Notifikasi Interaktif --}}
+    <div class="modal fade" id="modalOfferingAlert" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content shadow border-0 text-center p-3">
+                <div class="modal-body py-2">
+                    <div id="modalOfferingAlertIconContainer" class="mb-3"></div>
+                    <h5 class="fw-bold mb-2 text-dark" id="modalOfferingAlertTitle">Notifikasi</h5>
+                    <p class="text-muted small mb-0" id="modalOfferingAlertMessage"></p>
+                </div>
+                <div class="modal-footer justify-content-center border-0 pt-0">
+                    <button type="button" class="btn btn-primary btn-sm px-4" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var currentRecruitmentId = null;
+        var bsModalOfferingAlert = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var modalEl = document.getElementById('modalOfferingAlert');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                bsModalOfferingAlert = new bootstrap.Modal(modalEl);
+            }
+            updateActionButtonState(null);
+        });
+
+        function showAppNotification(title, message, type) {
+            type = type || 'info';
+            var iconHtml = '';
+
+            if (type === 'success') {
+                iconHtml =
+                    '<div class="avatar avatar-xl bg-success-transparent text-success rounded-circle mx-auto"><i class="fa fa-check fs-24"></i></div>';
+            } else if (type === 'danger' || type === 'error') {
+                iconHtml =
+                    '<div class="avatar avatar-xl bg-danger-transparent text-danger rounded-circle mx-auto"><i class="fa fa-exclamation-circle fs-24"></i></div>';
+            } else if (type === 'warning') {
+                iconHtml =
+                    '<div class="avatar avatar-xl bg-warning-transparent text-warning rounded-circle mx-auto"><i class="fa fa-triangle-exclamation fs-24"></i></div>';
+            } else {
+                iconHtml =
+                    '<div class="avatar avatar-xl bg-info-transparent text-info rounded-circle mx-auto"><i class="fa fa-circle-info fs-24"></i></div>';
+            }
+
+            var iconContainer = document.getElementById('modalOfferingAlertIconContainer');
+            var titleEl = document.getElementById('modalOfferingAlertTitle');
+            var msgEl = document.getElementById('modalOfferingAlertMessage');
+
+            if (iconContainer) iconContainer.innerHTML = iconHtml;
+            if (titleEl) titleEl.innerText = title;
+            if (msgEl) msgEl.innerText = message;
+
+            if (bsModalOfferingAlert) {
+                bsModalOfferingAlert.show();
+            } else {
+                alert(message);
+            }
+        }
+
+        function updateActionButtonState(id) {
+            var hasSelection = (id !== null && id !== undefined && id !== '');
+            var btnDetail = document.getElementById('btnActionDetail');
+            if (btnDetail) btnDetail.disabled = !hasSelection;
+        }
+
+        function RecruitmentListsRefresh() {
+            var rowCountLabel = document.getElementById('offeringRowCountLabel');
+            if (rowCountLabel) {
+                rowCountLabel.innerHTML =
+                    '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Menyinkronkan...';
+            }
+            RecruitmentLists.clearAndLoad("{{ url('xml-hrd-recruitment-offering') }}");
+        }
+
+        function refreshdata() {
+            RecruitmentListsRefresh();
+        }
+
+        function calculateOfferingMetrics() {
+            var totalRows = RecruitmentLists.getRowsNum();
+            var pendingCount = 0;
+            var doneCount = 0;
+
+            for (var i = 0; i < totalRows; i++) {
+                var rowId = RecruitmentLists.getRowId(i);
+                var status = (RecruitmentLists.cells(rowId, 10).getValue() || '').toUpperCase();
+                if (status.indexOf('HIRED') !== -1 || status.indexOf('ACCEPT') !== -1 || status.indexOf('DECLINE') !== -1 ||
+                    status.indexOf('REJECT') !== -1) {
+                    doneCount++;
+                } else {
+                    pendingCount++;
+                }
+            }
+
+            var elTotal = document.getElementById('metricCountTotal');
+            var elPending = document.getElementById('metricCountPending');
+            var elDone = document.getElementById('metricCountDone');
+            var rowCountLabel = document.getElementById('offeringRowCountLabel');
+
+            if (elTotal) elTotal.innerText = totalRows;
+            if (elPending) elPending.innerText = pendingCount;
+            if (elDone) elDone.innerText = doneCount;
+            if (rowCountLabel) rowCountLabel.innerText = 'Total ' + totalRows + ' antrean kandidat';
+        }
+
+        function RecruitmentListsSelectedId(explicitId) {
+            if (explicitId) {
+                currentRecruitmentId = explicitId;
+                return explicitId;
+            }
+
+            var id = RecruitmentLists.getSelectedId();
+            if (id) {
+                currentRecruitmentId = id;
+                return id;
+            }
+
+            if (currentRecruitmentId) {
+                return currentRecruitmentId;
+            }
+
+            var detailCard = document.getElementById('OfferingDetailCard');
+            if (detailCard && detailCard.dataset.candidateId) {
+                currentRecruitmentId = detailCard.dataset.candidateId;
+                return currentRecruitmentId;
+            }
+
+            showAppNotification('Pilih Baris', 'Silakan klik salah satu baris kandidat pada tabel terlebih dahulu.',
+                'warning');
+            return null;
+        }
+
+        function updateSelectedCandidateIndicator(id) {
+            var indicator = document.getElementById('selectedCandidateIndicator');
+            var metricSelected = document.getElementById('metricSelectedCandidate');
+
+            updateActionButtonState(id);
+
+            if (!id) {
+                if (indicator) {
+                    indicator.className = 'badge bg-light text-dark border px-3 py-2 fs-12 fw-normal shadow-none';
+                    indicator.innerHTML = '<i class="fa fa-arrow-pointer text-muted me-1"></i> Belum ada kandidat dipilih';
+                }
+                if (metricSelected) {
+                    metricSelected.innerText = 'Belum dipilih';
+                    metricSelected.title = 'Belum dipilih';
+                }
+                return;
+            }
+
+            var taskId = '#' + id;
+            var candName = '';
+            var jobPos = '';
+            try {
+                if (RecruitmentLists.getRowIndex(id) !== -1) {
+                    taskId = RecruitmentLists.cells(id, 1).getValue() || taskId;
+                    candName = RecruitmentLists.cells(id, 2).getValue() || '';
+                    jobPos = RecruitmentLists.cells(id, 5).getValue() || '';
+                }
+            } catch (e) {}
+
+            if (indicator) {
+                indicator.className = 'badge bg-primary text-white px-3 py-2 fs-12 fw-normal shadow-sm';
+                indicator.innerHTML = '<i class="fa fa-user-check me-1"></i> ' + (candName ? candName : taskId) + ' (' +
+                    taskId + ')';
+            }
+            if (metricSelected) {
+                metricSelected.innerText = candName ? (candName + ' (' + taskId + ')') : taskId;
+                metricSelected.title = candName ? (candName + ' - ' + jobPos) : taskId;
+            }
+        }
+
+        function RecruitmentListsDetail(explicitId, autoScroll) {
+            var id = RecruitmentListsSelectedId(explicitId);
+            if (id == null) return false;
+
+            updateSelectedCandidateIndicator(id);
+
+            var container = document.getElementById('divlistRecruitment');
+            container.innerHTML = '<div class="card shadow-sm border p-4 text-center my-3">' +
+                '<div class="spinner-border text-primary mx-auto mb-2" role="status"></div>' +
+                '<div class="text-muted small">Memuat rincian profil kandidat &amp; formulir Offering Letter...</div>' +
+                '</div>';
+
+            LoadM('divlistRecruitment', "{{ url('hrd-recruitment-offering-detail') }}?ID=" + encodeURIComponent(id));
+
+            if (autoScroll) {
+                setTimeout(function() {
+                    var detailEl = document.getElementById('divlistRecruitment');
+                    if (detailEl) {
+                        detailEl.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }, 300);
+            }
+
+            return false;
+        }
+
+        function RecruitmentListsCloseDetail() {
+            document.getElementById('divlistRecruitment').innerHTML = '';
+        }
+
+        var RecruitmentLists = new dhtmlXGridObject('RecruitmentLists');
+        RecruitmentLists.setImagePath("{{ asset('dhtmlx/imgs/') }}/");
+        RecruitmentLists.setHeader(
+            "No.,Task ID,Nama Kandidat,Gender,Tgl Lahir,Posisi Dilamar,Pendidikan,Ekspektasi Gaji,No. Referensi,Keterangan Referensi,Status,Sisa Waktu (Hari)"
+            );
+        RecruitmentLists.attachHeader(
+            "#rspan,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#select_filter,#text_filter"
+            );
+        RecruitmentLists.setInitWidths("45,130,185,95,100,165,110,115,120,160,125,95");
+        RecruitmentLists.setColAlign("center,left,left,center,center,left,center,right,left,left,center,center");
+        RecruitmentLists.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+        RecruitmentLists.setColSorting("int,str,str,str,date,str,str,str,str,str,str,int");
+        RecruitmentLists.enableSmartRendering(true, 150);
+        RecruitmentLists.enableKeyboardSupport(true);
+        RecruitmentLists.setSkin("dhx_skyblue");
+        RecruitmentLists.init();
+
+        RecruitmentLists.attachEvent("onRowSelect", function(id, ind) {
+            currentRecruitmentId = id;
+            updateSelectedCandidateIndicator(id);
+            RecruitmentListsDetail(id, false);
+        });
+
+        RecruitmentLists.attachEvent("onRowDblClicked", function(id, ind) {
+            currentRecruitmentId = id;
+            updateSelectedCandidateIndicator(id);
+            RecruitmentListsDetail(id, true);
+            return true;
+        });
+
+        RecruitmentLists.attachEvent("onXLE", function() {
+            calculateOfferingMetrics();
+
+            if (currentRecruitmentId) {
+                try {
+                    if (RecruitmentLists.getRowIndex(currentRecruitmentId) !== -1) {
+                        RecruitmentLists.selectRowById(currentRecruitmentId);
+                        updateSelectedCandidateIndicator(currentRecruitmentId);
+                    } else {
+                        currentRecruitmentId = null;
+                        updateSelectedCandidateIndicator(null);
+                    }
+                } catch (e) {}
+            } else {
+                updateSelectedCandidateIndicator(null);
+            }
+        });
+
+        RecruitmentListsRefresh();
+    </script>
+@endsection

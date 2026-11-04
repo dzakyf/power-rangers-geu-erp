@@ -20,6 +20,44 @@ class RequisitionApprovalController extends Controller
     }
 
     /**
+     * Halaman utama persetujuan PTK (Requisition Approval).
+     */
+    public function index()
+    {
+        $user = Auth::user();
+        $location = $user->Location;
+        $username = $user->username;
+
+        $cekLevel = DB::table('master_hr_approval')
+            ->where('Location', $location)
+            ->whereIn('Level', [2, 3])
+            ->where('username', $username)
+            ->first();
+
+        $requisitionPolicies = DB::table('approval_policy')
+            ->where('Request_Type', 'REQUISITION')
+            ->orderByRaw("CASE WHEN Status = 'ACTIVE' THEN 0 ELSE 1 END")
+            ->orderBy('ID', 'asc')
+            ->get();
+
+        foreach ($requisitionPolicies as $pol) {
+            $pol->steps = DB::table('approval_policy_step')
+                ->where('Policy_ID', $pol->ID)
+                ->orderBy('Stage_Order', 'asc')
+                ->orderBy('Level_Number', 'asc')
+                ->orderBy('ID', 'asc')
+                ->get();
+        }
+
+        return view('humanresources.recruitment.requisition-approval', compact(
+            'location',
+            'username',
+            'cekLevel',
+            'requisitionPolicies'
+        ));
+    }
+
+    /**
      * Data grid approval PTK.
      *
      * Requisition baru dibaca dari approval_request_task (policy engine).

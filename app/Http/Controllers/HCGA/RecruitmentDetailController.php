@@ -14,7 +14,7 @@ class RecruitmentDetailController extends Controller
             'ID' => 'required|integer|exists:recruitment,ID',
             'Initial' => 'nullable|string|max:50',
             'Religion' => 'nullable|string|max:50',
-            'Gender' => 'nullable|in:L,P',
+            'Gender' => 'nullable|in:MALE,FEMALE,L,P',
             'Birth_Date' => 'nullable|date',
             'Birth_Place' => 'nullable|string|max:255',
             'KTP' => 'nullable|digits:16',

@@ -1,21 +1,23 @@
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
-    <!-- Main Content Header -->
-    <div class="main-content-header mb-3">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h4 class="fw-bold mb-1 text-primary"><i class="fa fa-fingerprint me-2"></i>Attendance & Timesheet Entry</h4>
+    <!-- Main Content Header (Adminor V3 Responsive Hero Header) -->
+    <div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+        <div>
+            <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+                <i class="fa fa-fingerprint me-2"></i>Attendance &amp; Timesheet Entry
+            </h4>
+            <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="/dashboard1">Human Resources</a></li>
-                    <li class="breadcrumb-item active">Attendance Log</li>
+                    <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Human Resources</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Attendance Log</li>
                 </ol>
-            </div>
-            <div>
-                <a href="{{ route('attendance.mobile.index') }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill shadow-sm me-2">
-                    <i class="fa fa-mobile-screen-button me-1"></i> Preview Mobile Webview
-                </a>
-            </div>
+            </nav>
+        </div>
+        <div class="d-none d-sm-flex align-items-center gap-2">
+            <a href="{{ route('attendance.mobile.index') }}" target="_blank" class="btn btn-sm rounded-pill shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+                <i class="fa fa-mobile-screen-button me-1"></i> Preview Mobile Webview
+            </a>
         </div>
     </div> 
     <!-- End Main Content Header -->
