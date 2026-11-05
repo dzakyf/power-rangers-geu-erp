@@ -145,7 +145,8 @@
 				},
 				{
 					data: 'price',
-					className: 'text-right'
+					className: 'text-right',
+					visible: false
 				},
 				{
 					data: 'total_price',

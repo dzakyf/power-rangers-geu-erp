@@ -149,6 +149,11 @@ class TraceabilityApiFetcher
                 'gudang' => $sj['gudang_name'] ?? null,
                 'pickup_id' => $sj['pickup_id'] ?? ($detail['header']['pickup_id'] ?? null),
                 'kode_pickup' => $sj['kode_pickup'] ?? null,
+                'supplier_name' => $sj['supplier_name'] ?? null,
+                'qty_real' => $sj['qty_real'] ?? null,
+                'qty_real_kg' => $sj['qty_real_kg'] ?? null,
+                'satuan_name' => $sj['satuan_name'] ?? null,
+                'total_supplier' => $sj['total_supplier'] ?? null,
                 'detail' => $detail,
             ], JSON_UNESCAPED_SLASHES) . "\n");
 
