@@ -96,11 +96,11 @@
                             @if($section['prefix'] == 'proposed' && $field == 'position')
                             <select class="form-control form-control-sm" id="proposed_position">
                                 <option value="">-- Pilih Jabatan (master_position) --</option>
-                                @if(!empty($sc->proposed_position) && !collect($positions)->firstWhere('Position', (string) $sc->proposed_position))
+                                @if(!empty($sc->proposed_position) && !collect($positions)->firstWhere('Initial', (string) $sc->proposed_position))
                                 <option value="{{ $sc->proposed_position }}" selected>{{ $sc->proposed_position }} (nilai tersimpan — tidak ada di master)</option>
                                 @endif
                                 @foreach($positions as $mp)
-                                <option value="{{ $mp->Position }}" data-department="{{ $mp->Department }}" data-division="{{ $mp->Directorat }}" {{ $sc->proposed_position == $mp->Position ? 'selected' : '' }}>{{ $mp->Department }} · {{ $mp->Position }} ({{ $mp->Initial }})</option>
+                                <option value="{{ $mp->Initial }}" data-department="{{ $mp->Department }}" data-division="{{ $mp->Directorat }}" {{ $sc->proposed_position == $mp->Initial ? 'selected' : '' }}>{{ $mp->Department }} · {{ $mp->Position }} ({{ $mp->Initial }})</option>
                                 @endforeach
                             </select>
                             @elseif($section['prefix'] == 'proposed' && $field == 'division')

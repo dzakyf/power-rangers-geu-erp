@@ -109,12 +109,16 @@ class StatusChangeController extends Controller
         }
 
         $getSc = $getSc->orderBy('id', 'DESC')->get();
+        $masterPositions = DB::table('master_position')->get()->pluck('Position', 'Initial');
 
         $nomor = 1;
         echo "<rows>";
 
         foreach ($getSc as $value) {
             $statusVal = strtoupper(trim((string) ($value->status ?: 'DRAFT')));
+            $curPos = $value->current_position ? ($masterPositions[$value->current_position] ?? $value->current_position) : '';
+            $propPos = $value->proposed_position ? ($masterPositions[$value->proposed_position] ?? $value->proposed_position) : '';
+
             echo "<row id='{$value->id}'>";
             echo "<cell>{$nomor}</cell>";
             echo "<cell>" . htmlspecialchars((string) ($value->form_number ?: '')) . "</cell>";
@@ -123,9 +127,9 @@ class StatusChangeController extends Controller
             echo "<cell>" . htmlspecialchars((string) ($value->employee_name ?: '')) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) ($value->nik ?: '')) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) ($value->join_date ?: '')) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) ($value->current_position ?: '')) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $curPos) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) ($value->current_employment_status ?: '')) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) ($value->proposed_position ?: '')) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $propPos) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) ($value->proposed_employment_status ?: '')) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) number_format((float) $value->proposed_salary, 0, ',', '.')) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) ($value->effective_date ?: '')) . "</cell>";
@@ -274,11 +278,13 @@ class StatusChangeController extends Controller
 
             if ($mp) {
                 $jabatan = $mp->Position;
+                $jabatanCode = $mp->Initial;
                 $divisi = $mp->Directorat ?: ($r->Directorat ?? '');
                 $departemen = $mp->Department ?: ($r->Department ?? '');
                 $resolusi = 'MASTER';
             } else {
                 $jabatan = $r->Position ?? '';
+                $jabatanCode = $r->Position ?? '';
                 $divisi = $r->Directorat ?? '';
                 $departemen = $r->Department ?? '';
                 $resolusi = 'EMPLOYMENT';
@@ -291,6 +297,7 @@ class StatusChangeController extends Controller
                 'join_date'          => $r->Date_in ? date('Y-m-d', strtotime($r->Date_in)) : '',
                 'Marital_Status'     => $marital,
                 'Position'           => $jabatan,
+                'Position_Code'      => $jabatanCode,
                 'Division'           => $divisi,
                 'Department'         => $departemen,
                 'Subsection'         => $r->Subsection ?? '',
@@ -362,11 +369,12 @@ class StatusChangeController extends Controller
         $this->approvalService->syncApprovalStatus($id, Auth::user()->username ?? 'system');
 
         $sc = DB::table('status_changes')->where('id', $id)->first();
-
+        
         if (!$sc) {
             return redirect('hrd-status-change-index');
         }
-
+        
+        $masterPositions = DB::table('master_position')->get()->pluck('Position', 'Initial');
         $approvalDetails = $this->approvalService->getApprovalDetails($id);
         $pendingTask = $this->approvalService->pendingTaskForUser($id, $userId);
         $claimedByOther = $pendingTask ? null : $this->approvalService->claimedByOtherForUser($id, $userId);
@@ -375,6 +383,7 @@ class StatusChangeController extends Controller
             'sc'             => $sc,
             'pendingTask'    => $pendingTask,
             'claimedByOther' => $claimedByOther,
+            'masterPositions' => $masterPositions
         ], $approvalDetails));
     }
 
@@ -386,10 +395,13 @@ class StatusChangeController extends Controller
             return redirect('hrd-status-change-index');
         }
 
+        $masterPositions = DB::table('master_position')->get()->pluck('Position', 'Initial');
+
         return view('humanresources.employment.status-changes.edit', array_merge($this->masterOptions(), [
             'sc'             => $sc,
             'maritalOptions' => self::MARITAL_OPTIONS,
             'proposerDefault' => $sc->proposed_by ?: $this->currentProposer(),
+            'masterPositions' => $masterPositions
         ]));
     }
 
@@ -598,13 +610,15 @@ class StatusChangeController extends Controller
         $proposerDate = $sc->created_at ? date('d/m/Y', strtotime($sc->created_at)) : date('d/m/Y');
         $proposerQrData = "PROPOSED BY\nName: {$proposerName}\nForm: {$sc->form_number}\nDate: {$proposerDate}";
         $proposerQrUri = $this->qrDataUri($proposerQrData);
+        $masterPositions = DB::table('master_position')->get()->pluck('Position', 'Initial');
 
         $html = view('humanresources.employment.status-changes.print', [
-            'statusChange'  => $sc,
-            'logo'          => $logo,
-            'signatures'    => $signatures,
-            'proposerName'  => $proposerName,
-            'proposerQrUri' => $proposerQrUri,
+            'statusChange'    => $sc,
+            'logo'            => $logo,
+            'signatures'      => $signatures,
+            'proposerName'    => $proposerName,
+            'proposerQrUri'   => $proposerQrUri,
+            'masterPositions' => $masterPositions,
         ])->render();
 
         // Folder temp mPDF di storage agar tidak bermasalah permission di vendor/

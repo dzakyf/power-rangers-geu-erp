@@ -16,11 +16,16 @@ class AttendanceService
 {
     protected $workflowService;
     protected $cutoffService;
+    protected $overtimeMatrixService;
 
-    public function __construct(ApprovalWorkflowService $workflowService, AttendanceCutoffService $cutoffService)
-    {
+    public function __construct(
+        ApprovalWorkflowService $workflowService,
+        AttendanceCutoffService $cutoffService,
+        OvertimeMatrixService $overtimeMatrixService
+    ) {
         $this->workflowService = $workflowService;
         $this->cutoffService = $cutoffService;
+        $this->overtimeMatrixService = $overtimeMatrixService;
     }
 
     /**
@@ -406,7 +411,21 @@ class AttendanceService
             $earlyLeaveMinutes = $expectedEnd->diffInMinutes($actualEnd);
             $outStatus = 'EARLY_LEAVE';
         } elseif ($actualEnd->gt($expectedEnd)) {
-            $overtimeMinutes = $actualEnd->diffInMinutes($expectedEnd);
+            // Cek apakah ada pengajuan lembur yang telah diapprove untuk hari ini
+            $approvedOt = DB::table('attendance_overtime_requests')
+                ->where('nik', $nik)
+                ->where('overtime_date', $today)
+                ->where('status', 'APPROVED')
+                ->first();
+
+            if ($approvedOt) {
+                // Diakui maksimal sebesar durasi pengajuan yang diapprove
+                $rawOvertime = $actualEnd->diffInMinutes($expectedEnd);
+                $overtimeMinutes = min($rawOvertime, (int) $approvedOt->duration_minutes);
+            } else {
+                // Tanpa pengajuan lembur yang di-approve, lembur tidak diakui otomatis untuk mencegah pembengkakan
+                $overtimeMinutes = 0;
+            }
         }
 
         $entryUpdate = [
@@ -1017,6 +1036,114 @@ class AttendanceService
             'cutoffRange'            => $cutoffRange,
             'allCutoffRules'         => $allCutoffRules,
         ];
+    }
+
+    /**
+     * Pengajuan Lembur Terpisah (Overtime Request) dengan Kalkulasi Matriks & Dynamic Approval
+     */
+    public function submitOvertimeRequest($user, array $data, $uploadedHardcopy = null): array
+    {
+        $nik = $user->Emp_ID;
+        $date = $data['overtime_date'] ?? Carbon::now()->toDateString();
+        $overtimeType = strtoupper(trim($data['overtime_type'] ?? 'AFTER_SHIFT')); // BEFORE_SHIFT | AFTER_SHIFT
+        $startTime = $data['start_time'];
+        $endTime = $data['end_time'];
+        $compensationType = strtoupper(trim($data['compensation_type'] ?? 'PAID')); // PAID | TIME_OFF
+        $taskDescription = $data['task_description'] ?? '';
+        $locationId = !empty($data['location_id']) ? (int) $data['location_id'] : null;
+        $zipcode = !empty($data['zipcode']) ? trim($data['zipcode']) : null;
+
+        // Validasi wajib upload formulir lembur hardcopy fisik
+        $hardcopyFile = $uploadedHardcopy ?: ($data['hardcopy_file'] ?? null);
+        if (empty($hardcopyFile)) {
+            throw new InvalidArgumentException('Upload dokumen fisik / hardcopy pengajuan lembur wajib dilampirkan.');
+        }
+
+        $hardcopyPath = $this->saveAttachmentFile($hardcopyFile, 'overtime_hardcopies');
+
+        // Resolving Wilayah & Matriks Lembur
+        $region = $this->overtimeMatrixService->resolveRegion($zipcode, $locationId);
+        $matrix = $this->overtimeMatrixService->resolveMatrix($user, $region);
+
+        // Kalkulasi Durasi & Nominal Lembur
+        $calc = $this->overtimeMatrixService->calculateOvertime($startTime, $endTime, $matrix, $compensationType);
+
+        $requestNo = 'OT/' . date('Ymd') . '/' . sprintf('%04d', mt_rand(1, 9999));
+
+        return DB::transaction(function () use ($user, $nik, $date, $overtimeType, $startTime, $endTime, $calc, $compensationType, $taskDescription, $hardcopyPath, $locationId, $zipcode, $requestNo, $region) {
+            $overtimeId = DB::table('attendance_overtime_requests')->insertGetId([
+                'overtime_no'       => $requestNo,
+                'nik'               => $nik,
+                'location_id'       => $locationId,
+                'zipcode'           => $zipcode,
+                'overtime_date'     => $date,
+                'overtime_type'     => $overtimeType,
+                'start_time'        => $startTime,
+                'end_time'          => $endTime,
+                'duration_minutes'  => $calc['duration_minutes'],
+                'compensation_type' => $compensationType,
+                'matrix_id'         => $calc['matrix'] ? $calc['matrix']->id : null,
+                'calculated_amount' => $calc['calculated_amount'],
+                'hardcopy_file'     => $hardcopyPath,
+                'task_description'  => $taskDescription,
+                'status'            => 'SUBMITTED',
+                'created_by'        => $user->username,
+                'created_at'        => Carbon::now(),
+                'updated_at'        => Carbon::now(),
+            ]);
+
+            // Submit ke Dynamic Approval Engine
+            $approvalRequestId = null;
+            $context = [
+                'Request_Type' => 'ATTENDANCE_OVERTIME',
+                'Location'     => $user->Location ?? 'HEAD_OFFICE',
+                'Company_ID'   => (int) ($user->Company_ID ?? 1),
+                'Department'   => $user->Department ?? 'ALL',
+            ];
+
+            $typeLabel = ($overtimeType === 'BEFORE_SHIFT') ? 'Lembur Pra-Shift (Sebelum Jam Masuk)' : 'Lembur Pasca-Shift (Setelah Jam Pulang)';
+            $compLabel = ($compensationType === 'TIME_OFF') ? 'Kompensasi: Day Off' : 'Kompensasi: Uang (' . $calc['formatted_amount'] . ')';
+
+            try {
+                $apprResult = $this->workflowService->submit([
+                    'Request_No'  => $requestNo,
+                    'Description' => "Pengajuan {$typeLabel} - {$calc['duration_hours']} Jam. {$compLabel}. Deskripsi: {$taskDescription}",
+                ], $context, (int) $user->id);
+
+                $approvalRequestId = is_object($apprResult) ? ($apprResult->ID ?? null) : ($apprResult['ID'] ?? ($apprResult['request_id'] ?? null));
+            } catch (\Throwable $e) {
+                try {
+                    $context['Location'] = null;
+                    $context['Department'] = null;
+                    $apprResult = $this->workflowService->submit([
+                        'Request_No'  => $requestNo,
+                        'Description' => "Pengajuan {$typeLabel} - {$calc['duration_hours']} Jam. {$compLabel}. Deskripsi: {$taskDescription}",
+                    ], $context, (int) $user->id);
+
+                    $approvalRequestId = is_object($apprResult) ? ($apprResult->ID ?? null) : ($apprResult['ID'] ?? ($apprResult['request_id'] ?? null));
+                } catch (\Throwable $ex) {
+                    Log::warning("Approval Engine fallback untuk {$requestNo}: " . $ex->getMessage());
+                }
+            }
+
+            if ($approvalRequestId) {
+                DB::table('attendance_overtime_requests')
+                    ->where('id', $overtimeId)
+                    ->update(['approval_request_id' => $approvalRequestId]);
+            }
+
+            return [
+                'overtime_id'         => $overtimeId,
+                'overtime_no'         => $requestNo,
+                'approval_request_id' => $approvalRequestId,
+                'duration_hours'      => $calc['duration_hours'],
+                'calculated_amount'   => $calc['calculated_amount'],
+                'formatted_amount'    => $calc['formatted_amount'],
+                'breakdown'           => $calc['breakdown'],
+                'hardcopy_path'       => $hardcopyPath,
+                'message'             => 'Pengajuan lembur berhasil dikirimkan.',
+            ];
+        });
     }
 }
 

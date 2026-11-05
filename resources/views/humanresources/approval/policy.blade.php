@@ -14,8 +14,8 @@
         </nav>
     </div>
     <div class="d-none d-sm-flex align-items-center gap-2">
-        <span class="badge px-3 py-2 fs-12 shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
-            <i class="fa fa-sliders me-1"></i> Workflow Policy Configuration
+        <span class="badge px-3 py-2 fs-12" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+            <i class="fa fa-sliders me-1"></i> Atur alur &amp; langkah persetujuan per tipe request
         </span>
     </div>
 </div>
@@ -36,17 +36,43 @@
 </div>
 @endif
 
-<div class="card mt-3">
-    <div class="card-body">
-        <input type="button" class="btn btn-info mt-2 mr-2 me-2" value="Refresh" onclick="ApprovalPolicyRefresh();" />
-        <input type="button" class="btn btn-success mt-2 mr-2 me-2" value="New Policy" onclick="ApprovalPolicyNew();" />
-        <input type="button" class="btn btn-primary mt-2 mr-2 me-2" value="Edit" onclick="ApprovalPolicyEdit();" />
-        <input type="button" class="btn btn-warning mt-2 mr-2 me-2" value="Toggle Active" onclick="ApprovalPolicyToggle();" />
-        <a class="btn btn-secondary mt-2 mr-2 me-2" href="hrd-approval-inbox">Back to Inbox</a>
+<style>
+.ap-card{border:0;border-radius:12px;box-shadow:0 1px 4px rgba(16,24,40,.08);overflow:hidden}
+.ap-card .card-body{border-bottom:1px solid #eef0f3}
+.ap-toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between}
+.ap-toolbar .btn{border-radius:8px;font-weight:500;display:inline-flex;align-items:center;gap:.4rem}
+.ap-sep{width:1px;height:26px;background:#e5e7eb;margin:0 .25rem}
+.ap-hint{font-size:.8rem;color:#6b7280}
+.ap-sel{font-size:.8rem;padding:.25rem .6rem;border-radius:20px;background:#f3f4f6;color:#6b7280}
+.ap-sel.on{background:#e0f2fe;color:#0369a1}
+.ap-legend span{font-size:.75rem;color:#6b7280;margin-right:.9rem}
+.ap-legend i{margin-right:.25rem}
+.ap-grid-wrap{background:#fff;padding:0 .75rem .75rem}
+.ap-grid-wrap .objbox,.ap-grid-wrap .xhdr,.ap-grid-wrap .gridbox{border-left:0!important;border-right:0!important}
+</style>
+
+<div class="card ap-card mt-3">
+    <div class="card-body py-3">
+        <div class="ap-toolbar">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <button type="button" class="btn btn-success" onclick="ApprovalPolicyNew();" title="Buat policy baru"><i class="fa fa-plus"></i> New Policy</button>
+                <span class="ap-sep"></span>
+                <button type="button" class="btn btn-outline-primary" onclick="ApprovalPolicyEdit();" title="Edit policy terpilih"><i class="fa fa-pencil"></i> Edit</button>
+                <button type="button" class="btn btn-outline-warning" onclick="ApprovalPolicyToggle();" title="Aktif/nonaktifkan policy terpilih"><i class="fa fa-power-off"></i> Toggle Active</button>
+                <span class="ap-sep"></span>
+                <button type="button" class="btn btn-outline-secondary" onclick="ApprovalPolicyRefresh();" title="Muat ulang data"><i class="fa fa-refresh"></i> Refresh</button>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span id="ApprovalPolicySel" class="ap-sel"><i class="fa fa-info-circle me-1"></i>Belum ada policy dipilih</span>
+                <a class="btn btn-light border" href="hrd-approval-inbox"><i class="fa fa-arrow-left"></i> Inbox</a>
+            </div>
+        </div>
+        <div class="ap-hint mt-2"><i class="fa fa-lightbulb-o me-1"></i>Klik baris pada tabel untuk memilih policy, lalu gunakan <b>Edit</b> atau <b>Toggle Active</b>. Double-click untuk langsung mengedit. Gunakan filter di bawah header kolom untuk mencari.</div>
+    </div>
+    <div class="ap-grid-wrap">
+        <div id="ApprovalPolicyGrid" style="width:100%;height:380px;background-color:white;overflow:hidden"></div>
     </div>
 </div>
-
-<div id="ApprovalPolicyGrid" style="width:auto;height:350px;background-color:white;overflow:hidden"></div>
 <div id="ApprovalPolicyDetail" class="mt-3"></div>
 
 <form id="ApprovalPolicyToggleForm" method="POST" action="{{ url('hrd-approval-policy-toggle') }}" style="display:none;">
@@ -99,6 +125,15 @@ ApprovalPolicy.setColSorting("int,str,str,str,str,str,str,int,str,str,str,int,st
 ApprovalPolicy.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 ApprovalPolicy.enableSmartRendering(true, 150);
 ApprovalPolicy.setSkin("dhx_skyblue");
+ApprovalPolicy.attachEvent("onRowSelect", function(id) {
+    var name = ApprovalPolicy.cells(id, 2).getValue();
+    var el = document.getElementById('ApprovalPolicySel');
+    el.className = 'ap-sel on';
+    el.innerHTML = '<i class="fa fa-check-circle me-1"></i>Dipilih: ' + $('<div>').text(name).html();
+});
+ApprovalPolicy.attachEvent("onRowDblClicked", function(id) {
+    LoadM('ApprovalPolicyDetail', 'hrd-approval-policy-detail?ID=' + encodeURIComponent(id));
+});
 ApprovalPolicy.init();
 ApprovalPolicy.clearAndLoad('hrd-approval-policy-data');
 </script>

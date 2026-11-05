@@ -1,378 +1,419 @@
 {{--
-    View ini di-render oleh Controller terkait dan di-pass ke mPDF.
-    TIDAK perlu <html>, <head>, <body> — mPDF handle sendiri.
+    View cetak Permintaan Tenaga Kerja (PTK) - FR/HCGA/19-15 (untuk mPDF).
 
-    PENTING: mPDF tidak support CSS border pada <div> dengan baik.
-    Semua box/border HARUS menggunakan <table> agar tampil konsisten.
-
-    Variabel yang diharapkan (sesuaikan dengan controller):
-    $noPtk, $jumlahPermintaan, $mulaiTanggal, $site,
-    $isStaff, $isNonStaff, $isKaryawanBaru, $isPenggantiKaryawan,
-    $isPeningkatanVolume, $isPenggantiKeluar,
-    $namaJabatan, $bertanggungJawabKepada, $membawahi,
-    $tugasList (array baris tugas & tanggung jawab),
-    $pendidikan, $pengalaman, $syaratKhusus,
-    $docId, $revision, $effectiveDate
+    Catatan struktur (margin halaman tetap diatur dari controller mPDF, view ini tidak mengubahnya):
+    - Seluruh form = 1 tabel pembungkus "doc" dengan 1 kolom.
+        * Header (logo + judul + Doc ID) ada di file terpisah requisition_header.blade.php dan
+          dipasang controller via $mpdf->SetHTMLHeader() -> tampil di setiap halaman.
+        * <tbody> : tiap seksi = 1 baris; baris "Tugas dan Tanggung Jawab" = 1 <tr> per tugas
+                    sehingga bisa lanjut ke halaman berikutnya.
+        * Baris tanda tangan memakai page-break-inside: avoid -> judul Disiapkan/Diketahui/Disetujui
+          tidak pernah terpisah dari penanda tangannya.
+    - Padding hanya diberikan lewat <td> (mPDF tidak membaca padding pada <table>).
+    - Kolom tanda tangan dinamis (1 s/d N step approval policy REQUISITION):
+        Disiapkan oleh  : 1 kolom (Pemohon)
+        Diketahui oleh  : N kolom (step intermediate)
+        Disetujui oleh  : N kolom (step final)
 --}}
+@php
+  // ---------------------------------------------------------------
+  // Fallback data (jika view hanya dipanggil dengan $ptk)
+  // ---------------------------------------------------------------
+  $noPtk                  = $noPtk ?? ($ptk->Task_ID ?? '');
+  $jumlahPermintaan       = $jumlahPermintaan ?? (!empty($ptk->Qty) ? $ptk->Qty . ' Orang' : '');
+  $mulaiTanggal           = $mulaiTanggal ?? (!empty($ptk->Start_Date) ? date('d M Y', strtotime($ptk->Start_Date)) : '');
+  $site                   = $site ?? ($ptk->Placement ?? ($ptk->Location ?? ''));
+  $namaJabatan            = $namaJabatan ?? ($ptk->Job_Position ?? '');
+  $bertanggungJawabKepada = $bertanggungJawabKepada ?? '';
+  $membawahi              = $membawahi ?? '';
+  $revision               = $revision ?? '#00';
+  $effectiveDate          = $effectiveDate ?? '04-02-2025';
+  $docId                  = $docId ?? 'FR/HCGA/19-15';
+
+  // Baris "Tugas dan Tanggung Jawab": minimal 5 baris
+  $tugasRows = array_values($tugasList ?? []);
+  if (count($tugasRows) < 5) {
+      $tugasRows = array_pad($tugasRows, 5, '');
+  }
+
+  // ---------------------------------------------------------------
+  // Data tanda tangan
+  // ---------------------------------------------------------------
+  $prepared = $signatureColumns['prepared'] ?? [
+      'step_label' => 'Pemohon',
+      'name'       => $ptk->Created_By ?? '',
+      'date'       => !empty($ptk->Created_Date) ? date('d/m/Y', strtotime($ptk->Created_Date)) : '',
+      'status'     => 'SUBMITTED',
+  ];
+  $acknowledgedList = array_values($signatureColumns['acknowledged'] ?? []);
+  $approvedList     = array_values($signatureColumns['approved'] ?? []);
+
+  // Placeholder agar format tetap proporsional bila policy belum punya step
+  if (empty($acknowledgedList)) {
+      $acknowledgedList = [['step_label' => 'Atasan / Dept', 'name' => '', 'date' => '', 'status' => 'PENDING']];
+  }
+  if (empty($approvedList)) {
+      $approvedList = [['step_label' => 'Manager HCGA', 'name' => '', 'date' => '', 'status' => 'PENDING']];
+  }
+
+  $ackCount = count($acknowledgedList);
+  $appCount = count($approvedList);
+
+  // Satu daftar datar: semua kolom tanda tangan berlebar sama
+  $sigCols = [array_merge($prepared, ['group' => 'prepared'])];
+  foreach ($acknowledgedList as $c) { $sigCols[] = array_merge($c, ['group' => 'ack']); }
+  foreach ($approvedList as $c)     { $sigCols[] = array_merge($c, ['group' => 'app']); }
+  $sigColW = round(100 / count($sigCols), 2);
+
+  // ---------------------------------------------------------------
+  // Helper kecil
+  // ---------------------------------------------------------------
+  // Kotak centang (X bila terpilih)
+  $box = function ($checked = false) {
+      return '<table align="center" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">'
+           . '<tr><td class="cb">' . ($checked ? 'X' : '&nbsp;') . '</td></tr></table>';
+  };
+
+  // Tanda "( X )" untuk Staff / Non Staff
+  $paren = function ($checked = false) {
+      return '(&nbsp;' . ($checked ? 'X' : '&nbsp;&nbsp;') . '&nbsp;)';
+  };
+
+  // Stempel di atas nama: QR / badge status / kosong
+  $stamp = function ($c) {
+      if (!empty($c['qr_uri'])) {
+          return '<img src="' . e($c['qr_uri']) . '" width="46" height="46" alt="QR" />';
+      }
+      $status = strtoupper($c['status'] ?? '');
+      if (($c['group'] ?? '') === 'prepared' && !empty($c['name'])) {
+          return '<span class="badge badge-ok">SUBMITTED</span>';
+      }
+      if (in_array($status, ['APPROVED', 'AUTO_APPROVED'], true)) {
+          return '<span class="badge badge-ok">APPROVED</span>';
+      }
+      if ($status === 'REJECTED') {
+          return '<span class="badge badge-no">REJECTED</span>';
+      }
+      return '&nbsp;';
+  };
+@endphp
 
 <style>
-  * { margin: 0; padding: 0; }
-
   body {
-    font-family: Arial, sans-serif;
-    font-size: 9pt;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8.5pt;
     color: #000;
   }
 
-  /* =============================================
-     TITLE BLOCK
-     ============================================= */
-  .title-heading {
-    text-align: center;
-    font-weight: bold;
-    font-size: 10pt;
-    padding: 4px;
+  /* ---------- Tabel pembungkus (1 kolom) ---------- */
+  table.doc {
+    width: 100%;
+    border-collapse: collapse;
   }
+  table.doc tr { page-break-inside: avoid; }
 
-  .meta-cell {
-    font-size: 7pt;
-    font-weight: bold;
-    padding: 3px 5px;
+  /* Sel pembungkus: border kiri/kanan = bingkai luar form, tanpa padding */
+  table.doc td.o {
+    padding: 0;
+    border-left: 1.2pt solid #000;
+    border-right: 1.2pt solid #000;
     vertical-align: top;
   }
+  table.doc td.last { border-bottom: 1.2pt solid #000; }
 
-  /* =============================================
-     FIELD LABEL / VALUE
-     ============================================= */
-  .flbl {
-    font-size: 8pt;
-    padding: 2px 4px;
-    vertical-align: bottom;
-    white-space: nowrap;
+  /* ---------- Tabel isi di dalam sel pembungkus ---------- */
+  table.inner {
+    width: 100%;
+    border-collapse: collapse;
   }
-  .fval {
-    font-size: 8pt;
-    padding: 2px 4px;
-    vertical-align: bottom;
-    border-bottom: 1px solid #000;
+  table.inner td {
+    padding: 1.2mm 2mm;
+    vertical-align: middle;
+    font-size: 8.5pt;
   }
-  .chk {
+
+  /* Header */
+  table.head { border-top: 1.2pt solid #000; border-bottom: 0.75pt solid #000; }
+  table.head td.logo   { text-align: center; border-right: 0.75pt solid #000; padding: 2mm; }
+  table.head td.title  { text-align: center; font-size: 9.5pt; border-bottom: 0.75pt solid #000; padding: 1.2mm 2mm; }
+  table.head td.meta   { font-size: 7.5pt; line-height: 1.3; vertical-align: top; padding: 1.2mm 2mm; border-right: 0.75pt solid #000; }
+  table.head td.meta-last { font-size: 8.5pt; text-align: center; vertical-align: middle; border-right: 0; }
+
+  /* Garis isian */
+  td.ul { border-bottom: 0.75pt solid #000; }
+
+  /* Spasi antar blok */
+  tr.gap td { height: 2.5mm; padding: 0; font-size: 2pt; line-height: 2pt; }
+
+  /* Judul seksi */
+  td.sec-title { font-weight: bold; padding-top: 2mm; padding-bottom: 1mm; }
+
+  /* Kotak centang */
+  td.cb {
+    width: 4mm;
+    height: 4mm;
+    border: 0.75pt solid #000;
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
     font-size: 8pt;
-    padding: 1px 4px;
+    font-weight: bold;
+  }
+
+  /* Baris tugas: 1 <tr> per tugas, garis penuh dari tepi ke tepi */
+  table.doc td.tg {
+    border-top: 0.75pt solid #000;
+    height: 5.5mm;
+    padding: 0.8mm 2mm;
+    font-size: 8.5pt;
     vertical-align: middle;
   }
-  .chkbox {
-    width: 10px;
-    height: 10px;
-    border: 1px solid #000;
-    display: inline-block;
-    text-align: center;
-    font-weight: bold;
-    font-size: 7pt;
-    line-height: 10px;
-  }
 
-  /* =============================================
-     SECTION HEADER
-     ============================================= */
-  .section-title {
-    font-weight: bold;
-    font-size: 8.5pt;
-    padding: 4px 2px 2px 2px;
-  }
-
-  /* =============================================
-     TUGAS TABLE (garis-garis kosong)
-     ============================================= */
-  .tugas-row td {
-    border-bottom: 1px solid #000;
-    height: 14px;
+  /* Kotak pemberitahuan merah muda */
+  table.doc td.nt {
+    background-color: #ea9999;
+    border-top: 0.75pt solid #000;
     font-size: 8pt;
-    padding: 1px 4px;
+    line-height: 1.35;
+    padding: 1mm 2mm;
   }
 
-  /* =============================================
-     NOTICE BOX (merah)
-     ============================================= */
-  .notice-box {
-    background-color: #f4b6b1;
-    font-size: 7.5pt;
-    padding: 4px 6px;
-    line-height: 1.5;
+  /* Tanda tangan */
+  table.sig {
+    page-break-inside: avoid;
+    border-collapse: separate;
+    border-spacing: 2.5mm 0;
   }
+  table.sig td { padding: 0.6mm 1mm; }
+  td.sig-head  { text-align: center; padding-top: 2mm; }
+  td.sig-label { text-align: center; font-size: 7pt; color: #333; }
+  td.sig-stamp { text-align: center; vertical-align: middle; height: 20mm; }
+  td.sig-name  { text-align: center; font-weight: bold; font-size: 8pt; padding-top: 1mm; }
+  td.sig-date  { border-top: 0.75pt solid #000; font-size: 7.5pt; text-align: left; padding-bottom: 2mm; }
 
-  /* =============================================
-     SIGNATURE
-     ============================================= */
-  .sig-head {
-    text-align: center;
-    font-size: 8pt;
-    font-weight: bold;
-    padding: 4px;
-  }
-  .sig-paren {
-    text-align: center;
-    font-size: 9pt;
-    padding: 4px;
-  }
-  .sig-line {
-    border-bottom: 1px solid #000;
-  }
-  .sig-tgl {
-    font-size: 7.5pt;
-    padding: 4px;
-  }
+  span.badge    { font-size: 6.5pt; font-weight: bold; padding: 0.6mm 1.5mm; }
+  span.badge-ok { border: 0.75pt solid #166534; color: #166534; }
+  span.badge-no { border: 0.75pt solid #991b1b; color: #991b1b; }
 </style>
 
-{{-- =====================================================
-     WRAPPER
-     ===================================================== --}}
-<div style="border:1px solid black;">
+{{-- Header hanya disisipkan untuk preview browser (?view=html).
+     Untuk PDF, header dipasang oleh controller lewat $mpdf->SetHTMLHeader() agar tampil di SETIAP halaman. --}}
+@if(!empty($inlineHeader))
+  @include('humanresources.recruitment.prints.requisition_header')
+@endif
 
-  {{-- =====================================================
-       1. TITLE BLOCK
-       ===================================================== --}}
-  <table width="100%" cellspacing="0" cellpadding="0" style="border-bottom:1px solid #000;">
+<table class="doc" cellspacing="0" cellpadding="0">
+
+  <tbody>
+
+    {{-- =====================================================
+         2. NO. PTK, STAFF/NON STAFF, SITE, KET, JUMLAH, TANGGAL, KAITAN PERMINTAAN
+         ===================================================== --}}
     <tr>
-      {{-- Logo --}}
-      <td width="18%" style="border-right:1px solid #000;padding:6px;text-align:center;vertical-align:middle;">
-        <img src="{{ 'assets/images/large-logo.png' }}" alt="Logo" width="70px">
-      </td>
-      {{-- Heading + Meta --}}
-      <td style="vertical-align:top;">
-        <table width="100%" cellspacing="0" cellpadding="0">
+      <td class="o">
+        <table class="inner" cellspacing="0" cellpadding="0">
+          {{-- No. PTK --}}
           <tr>
-            <td colspan="4" class="title-heading" style="border-bottom:1px solid #000;">
-              Permintaan Tenaga Kerja
+            <td width="15%">&nbsp;</td>
+            <td width="9%">&nbsp;</td>
+            <td width="31%" class="ul">No. PTK : <strong>{{ $noPtk }}</strong></td>
+            <td colspan="2" width="45%">
+              @if(!empty($ptk->Department))
+                &nbsp;&nbsp;Departemen : <strong>{{ $ptk->Department }}</strong>
+              @else
+                &nbsp;
+              @endif
             </td>
           </tr>
+          <tr class="gap"><td colspan="5">&nbsp;</td></tr>
+
+          {{-- Staff + Jumlah Permintaan --}}
           <tr>
-            <td width="22%" class="meta-cell" style="border-right:1px solid #000;">Process Owner : HCGA</td>
-            <td width="16%" class="meta-cell" style="border-right:1px solid #000;">Revision :<br>{{ $revision ?? '#00' }}</td>
-            <td width="20%" class="meta-cell" style="border-right:1px solid #000;">Effective Date :<br>{{ $effectiveDate ?? '' }}</td>
-            <td width="42%" class="meta-cell">Doc ID :<br>{{ $docId ?? 'FR/HCGA/19-15' }}</td>
+            <td width="15%">Staff</td>
+            <td width="9%" align="center">{!! $paren(!empty($isStaff)) !!}</td>
+            <td width="31%">&nbsp;</td>
+            <td width="25%" align="right">Jumlah Permintaan :&nbsp;</td>
+            <td width="20%" class="ul">{{ $jumlahPermintaan }}</td>
+          </tr>
+
+          {{-- Non Staff --}}
+          <tr>
+            <td>Non Staff</td>
+            <td align="center">{!! $paren(!empty($isNonStaff)) !!}</td>
+            <td colspan="3">&nbsp;</td>
+          </tr>
+
+          {{-- Site + Mulai Tanggal --}}
+          <tr>
+            <td>Site :</td>
+            <td colspan="2"><strong>{{ $site }}</strong></td>
+            <td align="right">Mulai Tanggal / Join Date :&nbsp;</td>
+            <td class="ul">{{ $mulaiTanggal }}</td>
+          </tr>
+
+          {{-- Ket --}}
+          <tr>
+            <td>Ket :</td>
+            <td>{!! $box(!empty($isKaryawanBaru)) !!}</td>
+            <td colspan="3">Karyawan Baru</td>
+          </tr>
+          <tr>
+            <td>&nbsp;</td>
+            <td>{!! $box(!empty($isPenggantiKaryawan)) !!}</td>
+            <td colspan="3">Pengganti Karyawan</td>
+          </tr>
+          <tr class="gap"><td colspan="5">&nbsp;</td></tr>
+
+          {{-- Permintaan kerja berkaitan dengan --}}
+          <tr>
+            <td colspan="5" style="padding-left:15mm;">Permintaan kerja ini berkaitan dengan :</td>
+          </tr>
+          <tr>
+            <td>&nbsp;</td>
+            <td>{!! $box(!empty($isPeningkatanVolume)) !!}</td>
+            <td colspan="3">Ada peningkatan volume kerja</td>
+          </tr>
+          <tr>
+            <td>&nbsp;</td>
+            <td>{!! $box(!empty($isPenggantiKeluar)) !!}</td>
+            <td colspan="3">Pengganti tenaga kerja keluar</td>
+          </tr>
+          @if(empty($isPeningkatanVolume) && empty($isPenggantiKeluar) && !empty($ptk->Request_Desc))
+            <tr>
+              <td>&nbsp;</td>
+              <td>{!! $box(true) !!}</td>
+              <td colspan="3">Lainnya : {{ $ptk->Request_Desc }}</td>
+            </tr>
+          @endif
+          <tr class="gap"><td colspan="5">&nbsp;</td></tr>
+        </table>
+      </td>
+    </tr>
+
+    {{-- =====================================================
+         3. URAIAN TUGAS DAN JABATAN
+         ===================================================== --}}
+    <tr>
+      <td class="o">
+        <table class="inner" cellspacing="0" cellpadding="0">
+          <tr>
+            <td class="sec-title" colspan="3">URAIAN TUGAS DAN JABATAN</td>
+          </tr>
+          <tr>
+            <td width="30%">Nama Jabatan</td>
+            <td width="40%" class="ul">: {{ $namaJabatan }}</td>
+            <td width="30%">&nbsp;</td>
+          </tr>
+          <tr>
+            <td>Bertanggung jawab kepada</td>
+            <td class="ul">: {{ $bertanggungJawabKepada }}</td>
+            <td>&nbsp;</td>
+          </tr>
+          <tr>
+            <td>Membawahi langsung/ tak langsung</td>
+            <td class="ul">: {{ $membawahi }}</td>
+            <td>&nbsp;</td>
+          </tr>
+          <tr>
+            <td class="sec-title" colspan="3" style="padding-top:4mm;">Tugas dan Tanggung Jawab</td>
           </tr>
         </table>
       </td>
     </tr>
-  </table>
 
-  {{-- =====================================================
-       2. NO. PTK
-       ===================================================== --}}
-  <table width="100%" cellspacing="0" cellpadding="0" style="border-bottom:1px solid #000;">
-    <tr>
-      <td class="flbl" style="padding:3px 6px;">No. PTK : {{ $noPtk ?? '' }}</td>
-    </tr>
-  </table>
-
-  {{-- =====================================================
-       3. STAFF / NON STAFF / SITE / JUMLAH / TANGGAL
-       ===================================================== --}}
-  <table width="100%" cellspacing="0" cellpadding="0" style="padding:4px 6px;">
-    <tr>
-      <td width="55%" style="padding:2px 6px;">
-        <table width="100%" cellspacing="0" cellpadding="0">
-          <tr>
-            <td class="chk" width="18%">Staff</td>
-            <td class="chk" width="10%">({{ !empty($isStaff) ? 'X' : '' }})</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td class="chk">Non Staff</td>
-            <td class="chk">({{ !empty($isNonStaff) ? 'X' : '' }})</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td class="flbl">Site :</td>
-            <td colspan="2" class="fval" style="border-bottom: 0;">&nbsp;{{ $site ?? '' }}</td>
-          </tr>
-          <tr>
-            <td class="flbl" style="vertical-align:top;">Ket :</td>
-            <td colspan="2">
-              <table cellspacing="0" cellpadding="0">
-                <tr>
-                  <td class="chk"><span class="chkbox">{{ !empty($isKaryawanBaru) ? 'X' : '' }}</span></td>
-                  <td class="chk">Karyawan Baru</td>
-                </tr>
-                <tr>
-                  <td class="chk"><span class="chkbox">{{ !empty($isPenggantiKaryawan) ? 'X' : '' }}</span></td>
-                  <td class="chk">Pengganti Karyawan</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </td>
-      <td width="45%" style="padding:2px 6px;vertical-align:top;">
-        <table width="100%" cellspacing="0" cellpadding="0">
-          <tr>
-            <td class="flbl">Jumlah Permintaan : <span class="fval">{!! $jumlahPermintaan ?? "&nbsp;" !!}</span></td>
-          </tr>
-          <tr>
-            <td class="flbl">Mulai Tanggal / Join Date : <span class="fval">{!! $mulaiTanggal ?? "&nbsp;" !!}</span></td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-
-  {{-- =====================================================
-       4. PERMINTAAN KERJA BERKAITAN DENGAN
-       ===================================================== --}}
-  <table width="100%" cellspacing="0" cellpadding="0" style="padding:2px 6px;">
-    <tr>
-      <td class="chk" colspan="2">Permintaan kerja ini berkaitan dengan :</td>
-    </tr>
-    <tr>
-      <td class="chk" width="4%"><span class="chkbox">{{ !empty($isPeningkatanVolume) ? 'X' : '' }}</span></td>
-      <td class="chk">Ada peningkatan volume kerja</td>
-    </tr>
-    <tr>
-      <td class="chk"><span class="chkbox">{{ !empty($isPenggantiKeluar) ? 'X' : '' }}</span></td>
-      <td class="chk">Pengganti tenaga kerja keluar</td>
-    </tr>
-  </table>
-
-  {{-- =====================================================
-       5. URAIAN TUGAS DAN JABATAN
-       ===================================================== --}}
-  <table width="100%" cellspacing="0" cellpadding="0" style="padding:2px 6px;">
-    <tr>
-      <td class="section-title" colspan="2">URAIAN TUGAS DAN JABATAN</td>
-    </tr>
-    <tr>
-      <td class="flbl" width="30%">Nama Jabatan</td>
-      <td class="fval">&nbsp;{{ $namaJabatan ?? '' }}</td>
-    </tr>
-    <tr>
-      <td class="flbl">Bertanggung jawab kepada</td>
-      <td class="fval">&nbsp;{{ $bertanggungJawabKepada ?? '' }}</td>
-    </tr>
-    <tr>
-      <td class="flbl">Membawahi langsung/ tak langsung</td>
-      <td class="fval">&nbsp;{{ $membawahi ?? '' }}</td>
-    </tr>
-  </table>
-
-  {{-- =====================================================
-       6. TUGAS DAN TANGGUNG JAWAB (garis kosong)
-       ===================================================== --}}
-  <table width="100%" cellspacing="0" cellpadding="0" style="padding:4px 6px 0 6px;">
-    <tr>
-      <td class="section-title">Tugas dan Tanggung Jawab</td>
-    </tr>
-  </table>
-  <table width="100%" cellspacing="0" cellpadding="0" style="padding:0 6px;">
-    @php
-      // Jumlah baris kosong yang ditampilkan mengikuti template asli (± 8 baris).
-      $tugasRows = $tugasList ?? array_fill(0, 8, '');
-    @endphp
+    {{-- Baris tugas: 1 <tr> per tugas (bisa lanjut ke halaman berikutnya) --}}
     @foreach ($tugasRows as $tugas)
-      <tr class="tugas-row">
-        <td>{{ $tugas ?: '' }}</td>
+      <tr>
+        <td class="o tg">{!! $tugas !== '' ? e($tugas) : '&nbsp;' !!}</td>
       </tr>
     @endforeach
-  </table>
 
-  {{-- =====================================================
-       7. NOTICE BOX (merah)
-       ===================================================== --}}
-  <table width="100%" cellspacing="0" cellpadding="0" style="margin-top:6px;">
+    {{-- =====================================================
+         4. NOTICE (merah muda)
+         ===================================================== --}}
     <tr>
-      <td class="notice-box">
+      <td class="o nt">
         Mohon jika mengisi form PTK, lampirkan juga hal-hal berikut ini:<br>
         1. Penggantian kary : melampirkan jobdesc dan target<br>
-        2. Penambahan kary : melampirkan struktur dept, jobdesc, target ybs, target dept before after<br>
-        Struktur organisasi boleh berbentuk tulis tangan.
+        2. Penambahan kary : melampirkan struktur dept, jobdesc, target ybs, target dept before after
       </td>
     </tr>
-  </table>
+    <tr>
+      <td class="o nt">Struktur organisasi boleh berbentuk tulis tangan.</td>
+    </tr>
 
-  {{-- =====================================================
-       8. PERSYARATAN KHUSUS
-       ===================================================== --}}
-  <table width="100%" cellspacing="0" cellpadding="0" style="padding:4px 6px;">
+    {{-- =====================================================
+         5. PERSYARATAN KHUSUS
+         ===================================================== --}}
     <tr>
-      <td class="section-title">PERSYARATAN KHUSUS</td>
-    </tr>
-    <tr>
-      <td class="flbl" style="width:20%;">Pendidikan :</td>
-      <td class="fval">&nbsp;{{ $pendidikan ?? '' }}</td>
-    </tr>
-    <tr>
-      <td class="flbl">Pengalaman :</td>
-      <td class="fval">&nbsp;{{ $pengalaman ?? '' }}</td>
-    </tr>
-    <tr>
-      <td class="flbl">Syarat Khusus :</td>
-      <td class="fval">&nbsp;{{ $syaratKhusus ?? '' }}</td>
-    </tr>
-  </table>
-
-  {{-- spacer supaya tanda tangan tidak terlalu mepet --}}
-  <table width="100%" cellspacing="0" cellpadding="0">
-    <tr><td style="height:40px;">&nbsp;</td></tr>
-  </table>
-
-  {{-- =====================================================
-       9. SIGNATURES
-       ===================================================== --}}
-  <table width="100%" cellspacing="0" cellpadding="0" style="padding:4px 6px 10px 6px;">
-    <tr>
-      <td width="33%" class="sig-head">Disiapkan oleh</td>
-      <td width="34%" class="sig-head">Diketahui oleh</td>
-      <td width="33%" class="sig-head">Disetujui oleh</td>
-    </tr>
-    <tr>
-      <td style="height:22mm;">&nbsp;</td>
-      <td style="height:22mm;">&nbsp;</td>
-      <td style="height:22mm;">&nbsp;</td>
-    </tr>
-    <tr>
-      <td class="sig-paren">
-        <table width="100%" cellspacing="0" cellpadding="0">
+      <td class="o">
+        <table class="inner" cellspacing="0" cellpadding="0">
+          <tr class="gap"><td colspan="2">&nbsp;</td></tr>
           <tr>
-            <td width="15%">(</td>
-            <td class="sig-line">&nbsp;</td>
-            <td width="15%">)</td>
+            <td colspan="2">PERSYARATAN KHUSUS</td>
           </tr>
-        </table>
-      </td>
-      <td class="sig-paren">
-        <table width="100%" cellspacing="0" cellpadding="0">
           <tr>
-            <td width="12%">(</td>
-            <td class="sig-line">&nbsp;</td>
-            <td width="6%">)</td>
-            <td width="6%">(</td>
-            <td class="sig-line">&nbsp;</td>
-            <td width="12%">)</td>
+            <td width="16%">Pendidikan :</td>
+            <td width="84%">{{ $pendidikan ?? '' }}</td>
           </tr>
-        </table>
-      </td>
-      <td class="sig-paren">
-        <table width="100%" cellspacing="0" cellpadding="0">
           <tr>
-            <td width="15%">(</td>
-            <td class="sig-line">&nbsp;</td>
-            <td width="15%">)</td>
+            <td>Pengalaman :</td>
+            <td>{{ $pengalaman ?? '' }}</td>
+          </tr>
+          <tr>
+            <td style="vertical-align:top;">Syarat Khusus :</td>
+            <td style="vertical-align:top; height:22mm;">{!! nl2br(e($syaratKhusus ?? '')) !!}</td>
           </tr>
         </table>
       </td>
     </tr>
-    <tr>
-      <td class="sig-tgl">Tanggal: <span class="sig-line" style="display:inline-block;width:60%;">&nbsp;</span></td>
-      <td class="sig-tgl">
-        <table width="100%" cellspacing="0" cellpadding="0">
+
+    {{-- =====================================================
+         6. TANDA TANGAN DINAMIS (mengikuti approval policy REQUISITION)
+            Satu baris, page-break-inside: avoid -> judul & penanda tangan selalu 1 kesatuan.
+         ===================================================== --}}
+    <tr style="page-break-inside: avoid;">
+      <td class="o last">
+        <table class="inner sig" cellspacing="0" cellpadding="0" style="page-break-inside: avoid;">
+          {{-- Judul kelompok --}}
           <tr>
-            <td width="50%">Tanggal: <span class="sig-line" style="display:inline-block;width:55%;">&nbsp;</span></td>
-            <td width="50%">Tanggal: <span class="sig-line" style="display:inline-block;width:55%;">&nbsp;</span></td>
+            <td class="sig-head" colspan="1">Disiapkan oleh</td>
+            <td class="sig-head" colspan="{{ $ackCount }}">Diketahui oleh</td>
+            <td class="sig-head" colspan="{{ $appCount }}">Disetujui oleh</td>
+          </tr>
+
+          {{-- Label step --}}
+          <tr>
+            @foreach ($sigCols as $col)
+              <td class="sig-label" width="{{ $sigColW }}%">{{ $col['step_label'] ?? '' }}</td>
+            @endforeach
+          </tr>
+
+          {{-- QR / badge status --}}
+          <tr>
+            @foreach ($sigCols as $col)
+              <td class="sig-stamp">{!! $stamp($col) !!}</td>
+            @endforeach
+          </tr>
+
+          {{-- ( Nama ) --}}
+          <tr>
+            @foreach ($sigCols as $col)
+              <td class="sig-name">
+                (&nbsp;{!! !empty($col['name']) ? e($col['name']) : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' !!}&nbsp;)
+              </td>
+            @endforeach
+          </tr>
+
+          {{-- Tanggal --}}
+          <tr>
+            @foreach ($sigCols as $col)
+              <td class="sig-date">Tanggal: {{ $col['date'] ?? '' }}</td>
+            @endforeach
           </tr>
         </table>
       </td>
-      <td class="sig-tgl">Tanggal: <span class="sig-line" style="display:inline-block;width:60%;">&nbsp;</span></td>
     </tr>
-  </table>
 
-</div>
+  </tbody>
+</table>

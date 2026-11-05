@@ -21,7 +21,11 @@
     align-items: center;
     gap: 0.3rem;
 }
+.ap-sep{width:1px;height:26px;background:#e5e7eb;margin:0 .25rem;display:inline-block}
 .quick-action-btn {
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
     transition: all 0.15s ease;
     font-weight: 500;
 }
@@ -242,34 +246,34 @@
     <div class="card-body py-2 px-3">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
             {{-- Action Buttons --}}
-            <div class="d-flex flex-wrap align-items-center gap-1">
-                <button type="button" class="btn btn-outline-secondary btn-sm quick-action-btn" onclick="ApprovalInboxRefresh();" title="Refresh Daftar Task">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <button type="button" class="btn btn-outline-secondary quick-action-btn" onclick="ApprovalInboxRefresh();" title="Refresh Daftar Task">
                     <i class="fa fa-rotate me-1"></i> Refresh
                 </button>
-                <button type="button" class="btn btn-outline-primary btn-sm quick-action-btn" id="btnActionDetail" onclick="ApprovalInboxDetail();" title="Buka Detail Task">
+                <button type="button" class="btn btn-outline-primary quick-action-btn" id="btnActionDetail" onclick="ApprovalInboxDetail();" title="Buka Detail Task">
                     <i class="fa fa-eye me-1"></i> Detail
                 </button>
 
-                <div class="vr my-1 mx-1 text-muted opacity-50"></div>
+                <span class="ap-sep"></span>
 
                 {{-- Direct Decision Action Buttons --}}
-                <button type="button" class="btn btn-success btn-sm text-white quick-action-btn" id="btnActionApprove" onclick="ApprovalInboxAct('APPROVE');" title="Setujui Permohonan">
+                <button type="button" class="btn btn-success text-white quick-action-btn" id="btnActionApprove" onclick="ApprovalInboxAct('APPROVE');" title="Setujui Permohonan">
                     <i class="fa fa-check me-1"></i> Approve
                 </button>
-                <button type="button" class="btn btn-danger btn-sm text-white quick-action-btn" id="btnActionReject" onclick="ApprovalInboxAct('REJECT');" title="Tolak Permohonan">
+                <button type="button" class="btn btn-outline-danger quick-action-btn" id="btnActionReject" onclick="ApprovalInboxAct('REJECT');" title="Tolak Permohonan">
                     <i class="fa fa-xmark me-1"></i> Reject
                 </button>
-                <button type="button" class="btn btn-primary btn-sm text-white quick-action-btn" id="btnActionClaim" onclick="ApprovalInboxClaim();" title="Claim Task agar Tidak Diambil Approver Lain">
+                <button type="button" class="btn btn-outline-primary quick-action-btn" id="btnActionClaim" onclick="ApprovalInboxClaim();" title="Claim Task agar Tidak Diambil Approver Lain">
                     <i class="fa fa-user-check me-1"></i> Claim
                 </button>
 
                 @if($isAdmin)
-                <button type="button" class="btn btn-warning btn-sm text-dark quick-action-btn" id="btnActionRelease" onclick="ApprovalInboxRelease();" title="Release Claim (Admin)">
+                <button type="button" class="btn btn-outline-warning quick-action-btn" id="btnActionRelease" onclick="ApprovalInboxRelease();" title="Release Claim (Admin)">
                     <i class="fa fa-lock-open me-1"></i> Release
                 </button>
-                <div class="vr my-1 mx-1 text-muted opacity-50"></div>
+                <span class="ap-sep"></span>
                 <div class="dropdown d-inline-block">
-                    <button class="btn btn-outline-dark btn-sm dropdown-toggle quick-action-btn" type="button" id="adminApprovalMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-outline-dark dropdown-toggle quick-action-btn" type="button" id="adminApprovalMenu" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fa fa-gear me-1"></i> Admin Tools
                     </button>
                     <ul class="dropdown-menu shadow border-0 fs-13" aria-labelledby="adminApprovalMenu">
@@ -382,7 +386,7 @@
         @foreach($policyTabs ?? [] as $tab)
         <div class="tab-pane fade" id="tab-pane-{{ $tab['key'] }}" role="tabpanel" aria-labelledby="tab-btn-{{ $tab['key'] }}">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                <div class="d-flex flex-wrap align-items-center gap-1">
+                <div class="d-flex flex-wrap align-items-center gap-2">
                     <span class="text-muted small fw-semibold me-1">
                         <i class="fa fa-sliders text-{{ $tab['badge_color'] }} me-1"></i> Filter Policy ({{ $tab['key'] }}):
                     </span>
@@ -422,7 +426,7 @@
                 <div class="policy-step-flow-card d-flex flex-wrap align-items-center justify-content-between gap-2"
                      id="policyStepRow_{{ $tab['key'] }}_{{ $pol['id'] }}"
                      data-policy-step-row="{{ $pol['id'] }}">
-                    <div class="d-flex flex-wrap align-items-center gap-1">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
                         <span class="badge bg-light text-dark border fw-bold me-1" title="{{ $pol['name'] }}">
                             <i class="fa fa-route text-{{ $tab['badge_color'] }} me-1"></i>{{ $pol['code'] }}:
                         </span>

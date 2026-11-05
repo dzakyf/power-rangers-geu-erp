@@ -86,7 +86,7 @@
                             <select class="form-control form-control-sm" id="proposed_position">
                                 <option value="">-- Pilih Jabatan (master_position) --</option>
                                 @foreach($positions as $mp)
-                                <option value="{{ $mp->Position }}" data-department="{{ $mp->Department }}" data-division="{{ $mp->Directorat }}">{{ $mp->Department }} · {{ $mp->Position }} ({{ $mp->Initial }})</option>
+                                <option value="{{ $mp->Initial }}" data-department="{{ $mp->Department }}" data-division="{{ $mp->Directorat }}" data-grade="{{ $mp->Level }}">{{ $mp->Department }} · {{ $mp->Position }} ({{ $mp->Initial }})</option>
                                 @endforeach
                             </select>
                             @elseif($section['prefix'] == 'proposed' && $field == 'division')
@@ -261,6 +261,7 @@
         $('#employee_name').val(e.Name || '');
         $('#nik').val(e.NIK || '');
         $('#join_date').val(e.join_date || '');
+        
         $('#current_position').val(e.Position || '');
         $('#current_division').val(e.Division || '');
         $('#current_department').val(e.Department || '');
@@ -269,6 +270,15 @@
         $('#current_marital_dependents').val(e.Marital_Status || '').change();
         $('#current_employment_status').val(e.Employment_Class || e.Employment_Status || '');
         $('#current_salary').val(e.Salary === 0 ? '' : (e.Salary || ''));
+
+        $('#proposed_position').val(e.Position_Code || '');
+        $('#proposed_division').val(e.Division || '');
+        $('#proposed_department').val(e.Department || '');
+        $('#proposed_grade').val(e.Employment_Grade || '');
+        $('#proposed_work_location').val(e.Location || '');
+        $('#proposed_marital_dependents').val(e.Marital_Status || '').change();
+        $('#proposed_employment_status').val(e.Employment_Class || e.Employment_Status || '');
+        $('#proposed_salary').val(e.Salary === 0 ? '' : (e.Salary || ''));
     }
 
     // -- Pengusul: dipilih dari users/employment (bukan teks bebas), nilai "Nama (username)" --
@@ -323,6 +333,7 @@
         var $opt = $(this).find('option:selected');
         $('#proposed_department').val($opt.data('department') || '');
         $('#proposed_division').val($opt.data('division') || '');
+        $('#proposed_grade').val($opt.data('grade') || '');
     });
 
     function doSubmitStatusChange(isDirectSubmit) {
