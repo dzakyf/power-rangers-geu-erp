@@ -571,6 +571,58 @@ class ApprovalInboxController extends Controller
         }
     }
 
+    /**
+     * Daftar user aktif (users + employment) yang boleh ditugaskan pada task HELD.
+     * Mengecualikan requester dan kandidat yang sudah aktif pada task tersebut.
+     */
+    public function candidateOptions(Request $request)
+    {
+        if (!Gate::allows('approval.policy.manage')) {
+            return response()->json(['status' => 'error', 'message' => 'Tidak berwenang.'], 403);
+        }
+
+        $taskId = (int) $request->input('task_id');
+        $task = DB::table('approval_request_task as t')
+            ->join('approval_request as r', 'r.ID', '=', 't.Request_ID')
+            ->where('t.ID', $taskId)
+            ->select('r.Requester_Id')
+            ->first();
+        if (!$task) {
+            return response()->json(['status' => 'error', 'message' => 'Task tidak ditemukan.'], 404);
+        }
+
+        $existing = DB::table('approval_task_candidate')
+            ->where('Task_ID', $taskId)->where('Status', 'ACTIVE')->pluck('User_Id')->all();
+        $today = date('Y-m-d');
+
+        $rows = DB::table('users as u')
+            ->leftJoin('employment as e', function ($join) {
+                $join->on('e.NIK', '=', 'u.Emp_ID');
+            })
+            ->where('u.Status', 'ACTIVE')
+            ->where('u.id', '!=', (int) $task->Requester_Id)
+            ->when(!empty($existing), function ($q) use ($existing) {
+                $q->whereNotIn('u.id', $existing);
+            })
+            ->where(function ($q) use ($today) {
+                $q->whereNull('e.NIK')
+                    ->orWhere(function ($s) use ($today) {
+                        $s->where(function ($a) {
+                            $a->whereNull('e.Status')->orWhere('e.Status', 'ACTIVE');
+                        })->where(function ($a) use ($today) {
+                            $a->whereNull('e.End_Date')->orWhere('e.End_Date', '')
+                                ->orWhere('e.End_Date', '0000-00-00')->orWhere('e.End_Date', '>=', $today);
+                        });
+                    });
+            })
+            ->select('u.id', 'u.Name', 'u.Emp_ID', 'e.Position', 'e.Department')
+            ->orderBy('u.Name')
+            ->limit(1000)
+            ->get();
+
+        return response()->json(['status' => 'ok', 'data' => $rows]);
+    }
+
     public function escalation()
     {
         if (!Gate::allows('approval.policy.manage')) {

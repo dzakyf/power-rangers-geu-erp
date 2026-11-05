@@ -236,74 +236,437 @@ class RequisitionController extends Controller
 
     public function print(Request $request)
     {
-        // ── Ambil data (sesuaikan dengan model Anda) ──────────────────────
-        $ptk = DB::table('requisition')->where("Task_ID", $request->Task)->first();
-        $position = DB::table('master_position')->where('Position', $ptk->Job_Position)->where('Department', $ptk->Department)->orderBy('Position', 'asc')->get();
-        $workCalendar = DB::table('work_calendars')->get();
+        $taskParam = $request->get('Task') ?? $request->get('Task_ID');
+        $idParam = $request->get('ID') ?? $request->get('id');
 
-        return view('humanresources.recruitment.prints.requisition', compact(
-            'ptk', 'position', 'workCalendar'
-        ));
- 
-        // ── Render HTML dari Blade view ───────────────────────────────────
-        $html = view('humanresources.recruitment.prints.requisition', compact(
-            'ptk', 'position', 'workCalendar'
-        ))->render();
- 
-        // ── Header & Footer HTML ──────────────────────────────────────────
-        // $letterhead = public_path('assets/images/large-logo.png');
-        // $footerImg  = public_path($companies[$shipment->Shipper]->Footer);
- 
-        // Konversi ke base64 agar mPDF bisa render gambar
-        // $headerB64 = base64_encode(file_get_contents($letterhead));
-        // $footerB64 = base64_encode(file_get_contents($footerImg));
-        // $headerExt = strtolower(pathinfo($letterhead, PATHINFO_EXTENSION));
-        // $footerExt = strtolower(pathinfo($footerImg,  PATHINFO_EXTENSION));
- 
-        // $headerHtml = '
-        //     <div style="margin:0;padding:0;line-height:0;">
-        //         <img src="data:image/' . $headerExt . ';base64,' . $headerB64 . '"
-        //              style="width:100%;display:block;">
-        //     </div>';
- 
-        // $footerHtml = '
-        //     <div style="margin:0;padding:0;line-height:0;">
-        //         <img src="data:image/' . $footerExt . ';base64,' . $footerB64 . '"
-        //              style="width:100%;display:block;">
-        //     </div>';
- 
-        // ── Inisialisasi mPDF ─────────────────────────────────────────────
+        $query = DB::table('requisition');
+        if (!empty($taskParam)) {
+            $query->where('Task_ID', $taskParam);
+        } elseif (!empty($idParam)) {
+            $query->where('ID', $idParam);
+        } else {
+            abort(404, 'Parameter Task atau ID PTK wajib diisi.');
+        }
+
+        $ptk = $query->first();
+        if (!$ptk) {
+            abort(404, 'Data PTK tidak ditemukan.');
+        }
+
+        // 1. Master Position & Hierarki Jabatan
+        $position = DB::table('master_position')
+            ->where('Position', $ptk->Job_Position)
+            ->where('Department', $ptk->Department)
+            ->first();
+        if (!$position) {
+            $position = DB::table('master_position')->where('Position', $ptk->Job_Position)->first();
+        }
+
+        $posLevel = $position ? (int) $position->Level : 4;
+        $isStaff = $posLevel <= 4;
+        $isNonStaff = $posLevel > 4;
+
+        // Cari atasan langsung (Bertanggung jawab kepada) & bawahan (Membawahi)
+        $bertanggungJawabKepada = '';
+        $membawahi = '';
+        if ($position) {
+            if (!empty($position->Parent_Position_ID)) {
+                $parentPos = DB::table('master_position')->where('ID', $position->Parent_Position_ID)->first();
+                if ($parentPos) {
+                    $bertanggungJawabKepada = $parentPos->Position;
+                }
+            }
+            if ($bertanggungJawabKepada === '') {
+                $parentUpper = DB::table('master_position')
+                    ->where('Department', $ptk->Department)
+                    ->where('Level', '<', $posLevel)
+                    ->orderBy('Level', 'desc')
+                    ->first();
+                if ($parentUpper) {
+                    $bertanggungJawabKepada = $parentUpper->Position;
+                }
+            }
+
+            $subordinates = DB::table('master_position')
+                ->where('Parent_Position_ID', $position->ID)
+                ->pluck('Position')
+                ->toArray();
+            if (!empty($subordinates)) {
+                $membawahi = implode(', ', $subordinates);
+            }
+        }
+
+        // 2. Site / Penempatan
+        $siteCode = $ptk->Placement ?: ($ptk->Location ?: '');
+        $locRow = $siteCode ? DB::table('location')->where('Location_ID', $siteCode)->first() : null;
+        $site = $locRow ? ($locRow->Name . ' (' . $locRow->Location_ID . ')') : $siteCode;
+
+        // 3. Field PTK dasar
+        $noPtk = $ptk->Task_ID ?? '';
+        $jumlahPermintaan = !empty($ptk->Qty) ? ($ptk->Qty . ' Orang') : '';
+        $mulaiTanggal = !empty($ptk->Start_Date) ? date('d M Y', strtotime($ptk->Start_Date)) : '';
+
+        $allocation = strtoupper((string) ($ptk->Allocation ?? ''));
+        $isKaryawanBaru = ($allocation === 'NEW');
+        $isPenggantiKaryawan = ($allocation === 'REPLACEMENT');
+
+        $reqType = (string) ($ptk->Request_Type ?? '');
+        $reqDesc = strtolower((string) ($ptk->Request_Desc ?? ''));
+        $isPeningkatanVolume = ($reqType === '1' || strpos($reqDesc, 'volume') !== false);
+        $isPenggantiKeluar = ($reqType === '2' || strpos($reqDesc, 'pengganti') !== false || strpos($reqDesc, 'keluar') !== false);
+
+        $namaJabatan = $ptk->Job_Position ?? '';
+
+        // 4. Uraian Tugas (5 baris minimal)
+        $rawDesc = trim((string) ($ptk->Description ?? ''));
+        $lines = $rawDesc !== '' ? preg_split('/\r\n|\r|\n/', $rawDesc) : [];
+        $lines = array_values(array_filter(array_map('trim', $lines), function ($v) { return $v !== ''; }));
+        $tugasList = array_pad($lines, 5, '');
+
+        // 5. Persyaratan Khusus (parsing pintar atau fallback)
+        $pendidikan = '';
+        $pengalaman = '';
+        $syaratKhusus = '';
+        $rawReq = trim((string) ($ptk->Requirement ?? ''));
+        if ($rawReq !== '') {
+            $reqLines = preg_split('/\r\n|\r|\n/', $rawReq);
+            $otherReqs = [];
+            foreach ($reqLines as $rLine) {
+                $rTrim = trim($rLine);
+                if ($rTrim === '') continue;
+                if (preg_match('/^(?:[-*\d.]+\s*)?pendidikan\s*[:\-]\s*(.+)$/i', $rTrim, $m)) {
+                    $pendidikan = trim($m[1]);
+                } elseif (preg_match('/^(?:[-*\d.]+\s*)?pengalaman\s*[:\-]\s*(.+)$/i', $rTrim, $m)) {
+                    $pengalaman = trim($m[1]);
+                } elseif (preg_match('/^(?:[-*\d.]+\s*)?(?:syarat\s*khusus|kualifikasi|keahlian)\s*[:\-]\s*(.+)$/i', $rTrim, $m)) {
+                    $otherReqs[] = trim($m[1]);
+                } else {
+                    $otherReqs[] = $rTrim;
+                }
+            }
+            $syaratKhusus = implode('; ', $otherReqs);
+        }
+
+        // 6. Resolusi Approval Policy & Step untuk Blok Tanda Tangan Dinamis
+        $creatorUser = !empty($ptk->Created_By)
+            ? DB::table('users')->where('username', $ptk->Created_By)->first()
+            : null;
+        $creatorDisplayName = $creatorUser ? ($creatorUser->Name ?: $creatorUser->username) : ($ptk->Created_By ?? '');
+        $creatorEmp = ($creatorUser && !empty($creatorUser->Emp_ID))
+            ? DB::table('employment')->where('NIK', $creatorUser->Emp_ID)->first()
+            : null;
+        $creatorPositionLabel = $creatorEmp && !empty($creatorEmp->Position)
+            ? $creatorEmp->Position
+            : ('Pemohon (' . ($ptk->Department ?? 'Dept') . ')');
+
+        $preparedDate = !empty($ptk->Created_Date) ? date('d/m/Y', strtotime($ptk->Created_Date)) : '';
+        $preparedQrUri = !empty($creatorDisplayName)
+            ? $this->qrDataUri("PREPARED BY\nName: {$creatorDisplayName}\nPTK: {$noPtk}\nDate: {$preparedDate}")
+            : null;
+
+        $preparedBy = [
+            'role_header'    => 'Disiapkan oleh',
+            'step_label'     => $creatorPositionLabel,
+            'name'           => $creatorDisplayName,
+            'date'           => $preparedDate,
+            'status'         => 'SUBMITTED',
+            'position_code'  => '',
+            'qr_uri'         => $preparedQrUri,
+        ];
+
+        $approvalTasks = collect();
+        $approvalRequest = null;
+        $policySteps = collect();
+        $matchedPolicy = null;
+
+        if (!empty($ptk->Approval_Request_ID)) {
+            $approvalRequest = DB::table('approval_request')->where('ID', $ptk->Approval_Request_ID)->first();
+            $approvalTasks = DB::table('approval_request_task as t')
+                ->leftJoin('users as u_act', 'u_act.id', '=', 't.Acted_By')
+                ->where('t.Request_ID', $ptk->Approval_Request_ID)
+                ->select('t.*', 'u_act.username as Acted_By_Username', 'u_act.Name as Acted_By_Name')
+                ->orderBy('t.Stage_Order', 'asc')
+                ->orderBy('t.ID', 'asc')
+                ->get();
+
+            foreach ($approvalTasks as $task) {
+                $cands = DB::table('approval_task_candidate as c')
+                    ->join('users as u', 'u.id', '=', 'c.User_Id')
+                    ->where('c.Task_ID', $task->ID)
+                    ->where('c.Status', 'ACTIVE')
+                    ->select('u.Name', 'u.username')
+                    ->orderBy('c.ID', 'asc')
+                    ->get();
+                $task->Candidate_Names = $cands->map(function ($u) {
+                    return $u->Name ?: $u->username;
+                })->toArray();
+            }
+
+            if ($approvalRequest && !empty($approvalRequest->Policy_ID)) {
+                $matchedPolicy = DB::table('approval_policy')->where('ID', $approvalRequest->Policy_ID)->first();
+                $policySteps = DB::table('approval_policy_step')
+                    ->where('Policy_ID', $approvalRequest->Policy_ID)
+                    ->orderBy('Stage_Order', 'asc')
+                    ->orderBy('Level_Number', 'asc')
+                    ->get();
+            }
+        }
+
+        // Jika belum punya Policy_ID dari request, cari policy REQUISITION yang cocok dengan posisi & departemen
+        if ($policySteps->isEmpty()) {
+            $dept = $ptk->Department ?? '';
+            $policies = DB::table('approval_policy')
+                ->where('Request_Type', 'REQUISITION')
+                ->orderByRaw("CASE WHEN Status = 'ACTIVE' THEN 0 ELSE 1 END")
+                ->orderBy('ID', 'asc')
+                ->get();
+
+            foreach ($policies as $pol) {
+                if (!empty($pol->Department) && strcasecmp($pol->Department, $dept) !== 0) {
+                    continue;
+                }
+                $conds = !empty($pol->Conditions) ? json_decode($pol->Conditions, true) : [];
+                $isMatch = true;
+                if (is_array($conds)) {
+                    foreach ($conds as $c) {
+                        if (($c['field'] ?? '') === 'Position_Level') {
+                            $vals = (array) ($c['value'] ?? []);
+                            $op = strtolower($c['operator'] ?? 'in');
+                            if ($op === 'in' && !in_array($posLevel, $vals)) $isMatch = false;
+                            if ($op === 'not_in' && in_array($posLevel, $vals)) $isMatch = false;
+                        }
+                    }
+                }
+                if ($isMatch) {
+                    $matchedPolicy = $pol;
+                    $policySteps = DB::table('approval_policy_step')
+                        ->where('Policy_ID', $pol->ID)
+                        ->orderBy('Stage_Order', 'asc')
+                        ->orderBy('Level_Number', 'asc')
+                        ->get();
+                    break;
+                }
+            }
+        }
+
+        // Legacy fallback dari requisition_approval jika ada
+        $legacyByLevel = [];
+        $legacyRows = DB::table('requisition_approval')
+            ->where('Task_ID', $ptk->Task_ID)
+            ->orderBy('ID', 'asc')
+            ->get();
+        foreach ($legacyRows as $lr) {
+            $lvl = (int) ($lr->Level ?? 0);
+            $legacyByLevel[$lvl] = $lr;
+        }
+
+        $taskByStage = [];
+        foreach ($approvalTasks as $t) {
+            $taskByStage[(int) $t->Stage_Order] = $t;
+        }
+
+        // Susun list step approval dari policySteps (atau langsung dari approvalTasks jika policySteps kosong)
+        $stepSigners = [];
+        $stepsSource = $policySteps->isNotEmpty() ? $policySteps : $approvalTasks;
+        foreach ($stepsSource as $idx => $stepObj) {
+            $stg = (int) ($stepObj->Stage_Order ?? ($idx + 1));
+            $tRow = $taskByStage[$stg] ?? null;
+            $legRow = $legacyByLevel[$stg] ?? null;
+
+            $label = $stepObj->Label
+                ?? ($tRow->Position_Name ?? ($stepObj->Position_Code ?? ('Tahap ' . $stg)));
+            $posCode = $stepObj->Position_Code ?? ($tRow->Position_Code ?? '');
+
+            $signerName = '';
+            $signedDate = '';
+            $stepStatus = 'PENDING';
+
+            if ($tRow) {
+                $stepStatus = strtoupper((string) ($tRow->Status ?? 'PENDING'));
+                if ($stepStatus === 'APPROVED' || $stepStatus === 'AUTO_APPROVED') {
+                    $signerName = $tRow->Acted_By_Name ?: ($tRow->Acted_By_Username ?: '');
+                    if ($signerName === '' && !empty($tRow->Candidate_Names)) {
+                        $signerName = $tRow->Candidate_Names[0];
+                    }
+                    $signedDate = !empty($tRow->Acted_At) ? date('d/m/Y', strtotime($tRow->Acted_At)) : '';
+                } elseif ($stepStatus === 'REJECTED') {
+                    $signerName = $tRow->Acted_By_Name ?: ($tRow->Acted_By_Username ?: '');
+                    $signedDate = !empty($tRow->Acted_At) ? date('d/m/Y', strtotime($tRow->Acted_At)) : '';
+                }
+            } elseif ($legRow && (int) ($legRow->Approved_Status ?? 0) === 1) {
+                $stepStatus = 'APPROVED';
+                $legUser = !empty($legRow->Approved_By)
+                    ? DB::table('users')->where('username', $legRow->Approved_By)->first()
+                    : null;
+                $signerName = $legUser ? ($legUser->Name ?: $legUser->username) : ($legRow->Approved_By ?? '');
+                $signedDate = !empty($legRow->Approved_Date) ? date('d/m/Y', strtotime($legRow->Approved_Date)) : '';
+            }
+
+            $qrUri = null;
+            if (in_array($stepStatus, ['APPROVED', 'AUTO_APPROVED'], true) && $signerName !== '') {
+                $qrUri = $this->qrDataUri("APPROVED BY\nStage: {$stg} ({$label})\nName: {$signerName}\nPTK: {$noPtk}\nDate: {$signedDate}");
+            }
+
+            $stepSigners[] = [
+                'stage'         => $stg,
+                'step_label'    => $label,
+                'position_code' => $posCode,
+                'name'          => $signerName,
+                'date'          => $signedDate,
+                'status'        => $stepStatus,
+                'qr_uri'        => $qrUri,
+            ];
+        }
+
+        // Kelompokkan ke dalam 3 grup kolom cetak:
+        // 1. Disiapkan oleh (Pemohon PTK)
+        // 2. Diketahui oleh (Step intermediate: Stage 1 .. N-1 jika N >= 2)
+        // 3. Disetujui oleh (Step final: Stage N, atau kosong jika hanya 0 step)
+        // Jika policy memiliki >= 2 step, step sebelum terakhir masuk ke "Diketahui oleh" dan step terakhir ke "Disetujui oleh".
+        // Jika policy hanya memiliki 1 step (misal PTK-HCGA-STAFF: Manager HCGA saja), step tersebut menjadi "Disetujui oleh" dan "Diketahui oleh" tetap ditampilkan sebagai "-" / opsional.
+        $acknowledgedBy = [];
+        $approvedBy = [];
+        $totalSteps = count($stepSigners);
+
+        if ($totalSteps === 1) {
+            $approvedBy[] = $stepSigners[0];
+        } elseif ($totalSteps >= 2) {
+            // Untuk policy 4 step (mis. Manager Dept, VP Dept, Manager HCGA, VP Director):
+            // Jika step terakhir adalah VPD / Director dan step sebelumnya adalah MHCGA, maka:
+            // Diketahui oleh = Stage 1 .. N-1 (atau Manager Dept, VP Dept, Manager HCGA)
+            // Disetujui oleh = Stage terakhir (VP Director / Manager HCGA)
+            $acknowledgedBy = array_slice($stepSigners, 0, $totalSteps - 1);
+            $approvedBy[] = $stepSigners[$totalSteps - 1];
+        }
+
+        $signatureColumns = [
+            'prepared'     => $preparedBy,
+            'acknowledged' => $acknowledgedBy,
+            'approved'     => $approvedBy,
+            'policy_code'  => $matchedPolicy->Policy_Code ?? '',
+            'policy_name'  => $matchedPolicy->Policy_Name ?? '',
+            'all_steps'    => $stepSigners,
+        ];
+
+        // 7. Logo Base64 (diratakan ke latar putih agar transparansi tidak hitam di mPDF)
+        $logoSrc = $this->logoDataUri(public_path('assets/images/large-logo.png')) ?? '';
+
+        $docId = 'FR/HCGA/19-15';
+        $revision = '#00';
+        // $effectiveDate = !empty($ptk->Created_Date) ? date('d/m/Y', strtotime($ptk->Created_Date)) : date('d/m/Y');
+        $effectiveDate = "04-02-2025";
+
+        $viewData = compact(
+            'ptk',
+            'position',
+            'noPtk',
+            'jumlahPermintaan',
+            'mulaiTanggal',
+            'site',
+            'isStaff',
+            'isNonStaff',
+            'isKaryawanBaru',
+            'isPenggantiKaryawan',
+            'isPeningkatanVolume',
+            'isPenggantiKeluar',
+            'namaJabatan',
+            'bertanggungJawabKepada',
+            'membawahi',
+            'tugasList',
+            'pendidikan',
+            'pengalaman',
+            'syaratKhusus',
+            'docId',
+            'revision',
+            'effectiveDate',
+            'logoSrc',
+            'signatureColumns',
+            'matchedPolicy'
+        );
+
+        // Preview HTML murni (?view=html): sisipkan header langsung di body
+        if ($request->get('view') === 'html') {
+            return view('humanresources.recruitment.prints.requisition', $viewData + ['inlineHeader' => true]);
+        }
+
+        // Body + header dirender terpisah
+        $html       = view('humanresources.recruitment.prints.requisition', $viewData)->render();
+        $headerHtml = view('humanresources.recruitment.prints.requisition-header', $viewData)->render();
+
+        $tempDir = storage_path('app/mpdf');
+        if (!is_dir($tempDir)) {
+            @mkdir($tempDir, 0775, true);
+        }
+
         $mpdf = new Mpdf([
+            'mode'          => 'utf-8',
             'format'        => 'A4',
-            'tempDir'       => storage_path('app/mpdf'),
-            'margin_top'    => 5,   // ← sesuaikan dengan tinggi header image (mm)
-            'margin_bottom' => 0,   // ← sesuaikan dengan tinggi footer image (mm)
-            'margin_left'   => 5,
-            'margin_right'  => 5,
-            // penting
-            'margin_header' => 0,
+            'tempDir'       => $tempDir,
+            'margin_top'    => 7,
+            'margin_bottom' => 7,
+            'margin_left'   => 7,
+            'margin_right'  => 7,
+            'margin_header' => 7,
             'margin_footer' => 0,
-            // penting
-            'setAutoTopMargin'    => 'stretch',
-            'setAutoBottomMargin' => 'stretch',
         ]);
-        
+
         $mpdf->splitTableBorderWidth = 1;
- 
-        // $mpdf->SetHTMLHeader($headerHtml);
-        // $mpdf->SetHTMLFooter($footerHtml);
- 
-        $mpdf->WriteHTML($html);
- 
-        // ── Output ────────────────────────────────────────────────────────
-        $filename = 'PTK_' . ($ptk->Task_ID);
+        $mpdf->setAutoTopMargin   = 'stretch'; // margin atas otomatis mengikuti tinggi header
+        $mpdf->autoMarginPadding  = 0;         // tanpa celah antara header dan isi
+        $mpdf->SetHTMLHeader($headerHtml);     // wajib dipanggil SEBELUM WriteHTML
+
+        $safeTaskId = preg_replace('/[^A-Za-z0-9_\-]/', '_', (string) $ptk->Task_ID);
+        $filename = 'PTK_' . $safeTaskId;
         $mpdf->SetTitle($filename);
- 
-        // 'I' = tampil di browser, 'D' = download, 'F' = simpan ke file
+        $mpdf->WriteHTML($html);
+
         return response($mpdf->Output($filename . '.pdf', 'S'), 200, [
             'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+            'Content-Disposition' => 'inline; filename="' . $filename . '.pdf"',
         ]);
+    }
+
+    /**
+     * Ubah file logo menjadi PNG opaque (latar putih) dalam bentuk data URI
+     * agar transparansi tidak berubah hitam di mPDF.
+     */
+    private function logoDataUri(string $path, int $scale = 2): ?string
+    {
+        if (!is_file($path)) {
+            return null;
+        }
+        if (function_exists('imagecreatefromstring')) {
+            $src = @imagecreatefromstring(file_get_contents($path));
+            if ($src) {
+                $w = imagesx($src);
+                $h = imagesy($src);
+                $dst = imagecreatetruecolor($w * $scale, $h * $scale);
+                imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
+                imagecopyresampled($dst, $src, 0, 0, 0, 0, $w * $scale, $h * $scale, $w, $h);
+                ob_start();
+                imagepng($dst);
+                $png = ob_get_clean();
+                imagedestroy($src);
+                imagedestroy($dst);
+                return 'data:image/png;base64,' . base64_encode($png);
+            }
+        }
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION)) ?: 'png';
+        return 'data:image/' . $ext . ';base64,' . base64_encode(file_get_contents($path));
+    }
+
+    /**
+     * Hasilkan QR Code Data URI (SVG base64 bersih dari deklarasi XML) agar aman dirender di mPDF.
+     */
+    private function qrDataUri(string $text): ?string
+    {
+        try {
+            $svg = (string) \SimpleSoftwareIO\QrCode\Facade::format('svg')->size(110)->margin(1)->generate($text);
+            $svg = preg_replace('/<\?xml[^\?]*\?>\s*/i', '', $svg);
+            return 'data:image/svg+xml;base64,' . base64_encode($svg);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     protected $approval;

@@ -400,6 +400,11 @@ class ApprovalWorkflowService
 
             $this->cancelRemainingTasks($requestId);
             $this->log($requestId, $userId, 'CANCELLED', 0, null, null, null, null, ['Reason' => $reason]);
+
+            $fresh = $this->getRequest($requestId);
+            if ($fresh) {
+                event(new \App\Events\Approval\ApprovalRequestUpdated($fresh, 'CANCELLED', $reason));
+            }
         });
     }
 
@@ -417,22 +422,34 @@ class ApprovalWorkflowService
                 throw new ApprovalWorkflowException('Kandidat hanya dapat ditambahkan pada task PENDING/HELD.', 'TASK_NOT_ASSIGNABLE', 422);
             }
 
+            $targetUser = DB::table('users')->where('id', $userId)->first();
+            if (!$targetUser || strtoupper((string) $targetUser->Status) !== 'ACTIVE') {
+                throw new ApprovalWorkflowException('User tidak ditemukan atau tidak aktif.', 'CANDIDATE_INVALID', 422);
+            }
+
+            $taskRequest = DB::table('approval_request')->where('ID', (int) $task->Request_ID)->first();
+            if ($taskRequest && (int) $taskRequest->Requester_Id === $userId) {
+                throw new ApprovalWorkflowException('Requester tidak dapat ditugaskan sebagai approver permohonannya sendiri.', 'CANDIDATE_IS_REQUESTER', 422);
+            }
+
             $exists = DB::table('approval_task_candidate')
                 ->where('Task_ID', $taskId)
                 ->where('User_Id', $userId)
-                ->where('Candidate_Type', 'ADMIN')
+                ->where('Status', 'ACTIVE')
                 ->exists();
 
-            if (!$exists) {
-                DB::table('approval_task_candidate')->insert([
-                    'Task_ID' => $taskId,
-                    'User_Id' => $userId,
-                    'Position_ID' => (int) $task->Position_ID,
-                    'Candidate_Type' => 'ADMIN',
-                    'Status' => 'ACTIVE',
-                    'Created_At' => Carbon::now(),
-                ]);
+            if ($exists) {
+                throw new ApprovalWorkflowException('User sudah menjadi kandidat pada task ini.', 'CANDIDATE_EXISTS', 422);
             }
+
+            DB::table('approval_task_candidate')->insert([
+                'Task_ID' => $taskId,
+                'User_Id' => $userId,
+                'Position_ID' => (int) $task->Position_ID,
+                'Candidate_Type' => 'ADMIN',
+                'Status' => 'ACTIVE',
+                'Created_At' => Carbon::now(),
+            ]);
 
             $request = $this->getRequest((int) $task->Request_ID);
             $this->notifications->notifyTaskCandidates(
@@ -798,6 +815,11 @@ class ApprovalWorkflowService
         ], true);
 
         $this->notifications->notifyReturned($request, (int) $request->Requester_Id, $reason);
+
+        $fresh = $this->getRequest($requestId);
+        if ($fresh) {
+            event(new \App\Events\Approval\ApprovalRequestUpdated($fresh, 'RETURNED', $reason));
+        }
     }
 
     protected function rejectRequest(int $requestId, string $reason): void
@@ -819,6 +841,11 @@ class ApprovalWorkflowService
         ], true);
 
         $this->notifications->notifyRejected($request, (int) $request->Requester_Id, $reason);
+
+        $fresh = $this->getRequest($requestId);
+        if ($fresh) {
+            event(new \App\Events\Approval\ApprovalRequestUpdated($fresh, 'REJECTED', $reason));
+        }
     }
 
     protected function completeRequest(int $requestId, string $reason): void
@@ -832,6 +859,11 @@ class ApprovalWorkflowService
         $this->log($requestId, 0, 'APPROVED', 0, null, null, null, null, [
             'Reason' => $reason,
         ], true);
+
+        $fresh = $this->getRequest($requestId);
+        if ($fresh) {
+            event(new \App\Events\Approval\ApprovalRequestUpdated($fresh, 'APPROVED', $reason));
+        }
     }
 
     protected function cancelRemainingTasks(int $requestId, int $stageOrder = null): void

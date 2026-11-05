@@ -165,14 +165,43 @@ class OrganizationChartController extends Controller
                 ->where('ID', $id)
                 ->update(['Reports_To_Position_ID' => $parentId]);
 
-            // Jaga agar fallback approval mengikuti hierarki bagan.
+            // Jika satu posisi diisi oleh lebih dari satu karyawan (misal SGAF ada beberapa orang),
+            // perbarui juga rekan satu posisi di departemen yang sama agar hierarki tetap seragam secara otomatis
+            if (!empty($child->Position)) {
+                $siblingUpdate = DB::table('organization_structure')
+                    ->where('Position', $child->Position)
+                    ->where('ID', '<>', $id);
+
+                if (!empty($child->Department)) {
+                    $siblingUpdate->where('Department', $child->Department);
+                }
+
+                $siblingUpdate->update(['Reports_To_Position_ID' => $parentId]);
+            }
+
+            // Jaga agar fallback approval mengikuti hierarki bagan (master_position).
             if (!empty($child->Position_ID)) {
+                $parentPositionId = null;
+                if ($parent) {
+                    if (!empty($parent->Position_ID)) {
+                        $parentPositionId = (int) $parent->Position_ID;
+                    } elseif (!empty($parent->Position)) {
+                        $parentMp = DB::table('master_position')
+                            ->where('Initial', $parent->Position)
+                            ->orWhere('Position', $parent->Position)
+                            ->first();
+                        if ($parentMp) {
+                            $parentPositionId = (int) $parentMp->ID;
+                        }
+                    }
+                }
+
                 DB::table('master_position')
                     ->where('ID', (int) $child->Position_ID)
                     ->update([
-                        'Parent_Position_ID' => ($parent && !empty($parent->Position_ID)) ? (int) $parent->Position_ID : null,
-                        'Updated_By' => 'organization-chart',
-                        'Updated_Date' => now(),
+                        'Parent_Position_ID' => $parentPositionId,
+                        'Updated_By'         => 'organization-chart',
+                        'Updated_Date'       => now(),
                     ]);
             }
         });

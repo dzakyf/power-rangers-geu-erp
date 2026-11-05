@@ -135,8 +135,10 @@ class StatusChangeApprovalService
             return;
         }
 
-        $emp = DB::table('employment')->where('NIK', $sc->nik)->orderBy('ID', 'ASC')->first();
+        $nik = trim((string) $sc->nik);
+        $emp = DB::table('employment')->where('NIK', $nik)->orderBy('ID', 'ASC')->first();
         if (!$emp) {
+            Log::warning("StatusChange applyApprovedChanges: Employment record with NIK '{$nik}' not found for status change ID {$statusChangeId}");
             return;
         }
 
@@ -144,7 +146,7 @@ class StatusChangeApprovalService
 
         // 1. Cek apakah riwayat untuk form_number ini sudah ada (idempotensi)
         $existingHistory = DB::table('employment_history')
-            ->where('NIK', $sc->nik)
+            ->where('NIK', $nik)
             ->where('Reference', $sc->form_number)
             ->first();
 
@@ -165,7 +167,7 @@ class StatusChangeApprovalService
 
             DB::table('employment_history')->insert([
                 'Task_ID'      => $emp->Task_ID ?? '',
-                'NIK'          => $sc->nik,
+                'NIK'          => $nik,
                 'Date_Process' => $now,
                 'Activity'     => 'PERUBAHAN STATUS (' . ($sc->jenis ?: 'MUTATION') . ')',
                 'Reference'    => $sc->form_number,
@@ -206,9 +208,273 @@ class StatusChangeApprovalService
         }
 
         if (!empty($empUpdates)) {
-            $empUpdates['Date_Trx'] = $now;
-            $empUpdates['User_Trx'] = $actorUsername;
+            $existingNotes = (string) ($emp->Notes ?? '');
+            $empUpdates['Conversion_Date'] = $now;
+            $empUpdates['Notes'] = trim($existingNotes . ' Status change approved by [User: ' . $actorUsername . ']');
             DB::table('employment')->where('ID', $emp->ID)->update($empUpdates);
+        }
+
+        // 3. Perbarui profil user pada tabel users yang terhubung via Emp_ID / NIK
+        $userUpdates = [];
+        if (!empty($sc->proposed_position)) {
+            $userUpdates['Position'] = $sc->proposed_position;
+        }
+        if (!empty($sc->proposed_department)) {
+            $userUpdates['Department'] = $sc->proposed_department;
+        }
+        if (!empty($sc->proposed_work_location)) {
+            $userUpdates['Location'] = $sc->proposed_work_location;
+        }
+
+        if (!empty($userUpdates)) {
+            $userUpdates['update_at'] = $now;
+            DB::table('users')->where('Emp_ID', $nik)->update($userUpdates);
+        }
+
+        // 4. Perbarui atau sinkronkan ke tabel organization_structure (Bagan Organisasi)
+        $this->syncOrganizationStructure($emp, $sc, $nik, $actorUsername);
+
+        Log::info("StatusChange applyApprovedChanges success for NIK '{$nik}' [Form: {$sc->form_number}]");
+    }
+
+    /**
+     * Sinkronkan perubahan posisi dan data karyawan ke tabel organization_structure.
+     */
+    protected function syncOrganizationStructure($emp, $sc, string $nik, string $actorUsername = 'system'): void
+    {
+        if (empty($nik)) {
+            return;
+        }
+
+        $proposedPos  = trim((string) ($sc->proposed_position ?: ''));
+        $proposedDept = trim((string) ($sc->proposed_department ?: ($emp->Department ?? '')));
+        $proposedDiv  = trim((string) ($sc->proposed_division ?: ($emp->Directorat ?? '')));
+
+        // Cek data lama karyawan di tabel organization_structure (sebelum update)
+        $existingOrg = DB::table('organization_structure')->where('NIK', $nik)->first();
+        $oldPos  = $existingOrg ? trim((string) $existingOrg->Position) : trim((string) ($sc->current_position ?: ($emp->Position ?? '')));
+        $oldDept = $existingOrg ? trim((string) $existingOrg->Department) : trim((string) ($sc->current_department ?: ($emp->Department ?? '')));
+
+        // Ambil data master_position untuk mengetahui Position_ID, Level, dan Nama Lengkap Jabatan
+        $mp = null;
+        if ($proposedPos !== '') {
+            $mpQuery = DB::table('master_position')->where(function ($sub) use ($proposedPos) {
+                $sub->where('Initial', $proposedPos)
+                    ->orWhere('Position', $proposedPos);
+            });
+
+            if ($proposedDept !== '') {
+                $mpExact = (clone $mpQuery)->where('Department', $proposedDept)->first();
+                if ($mpExact) {
+                    $mp = $mpExact;
+                }
+            }
+
+            if (!$mp) {
+                $mp = $mpQuery->first();
+            }
+        }
+
+        $empName = trim((string) ($emp->Name ?? ($sc->employee_name ?? '')));
+        $posId   = $mp ? (int) $mp->ID : null;
+        $level   = $mp && !empty($mp->Level) ? (int) $mp->Level : 4;
+        $posCode = $mp && !empty($mp->Initial_Code) ? (string) $mp->Initial_Code : $proposedPos;
+
+        // Tentukan atasan (Reports_To_Position_ID) secara dinamis berdasarkan hierarki posisi
+        $reportsToOrgId = null;
+
+        // 1. Prioritas 1: Jika posisi baru sama dengan posisi karyawan lain di departemen yang sama di organization_structure
+        if ($proposedPos !== '') {
+            $siblingOrgQuery = DB::table('organization_structure')
+                ->where('Position', $proposedPos)
+                ->where('NIK', '<>', $nik)
+                ->whereNotNull('Reports_To_Position_ID')
+                ->where('Reports_To_Position_ID', '>', 0);
+
+            if ($proposedDept !== '') {
+                $siblingSameDept = (clone $siblingOrgQuery)->where('Department', $proposedDept)->first();
+                if ($siblingSameDept) {
+                    $reportsToOrgId = (int) $siblingSameDept->Reports_To_Position_ID;
+                }
+            }
+
+            if (!$reportsToOrgId) {
+                $siblingAny = $siblingOrgQuery->first();
+                if ($siblingAny) {
+                    $reportsToOrgId = (int) $siblingAny->Reports_To_Position_ID;
+                }
+            }
+        }
+
+        // 2. Prioritas 2: Jika belum dapat, cari lewat master_position.Parent_Position_ID
+        if (!$reportsToOrgId && $mp && !empty($mp->Parent_Position_ID)) {
+            $parentMp = DB::table('master_position')->where('ID', (int) $mp->Parent_Position_ID)->first();
+            if ($parentMp) {
+                // Cari node atasan di organization_structure
+                $parentOrgQuery = DB::table('organization_structure')->where(function ($sub) use ($parentMp) {
+                    $sub->where('Position_ID', (int) $parentMp->ID)
+                        ->orWhere('Position', $parentMp->Initial)
+                        ->orWhere('Position', $parentMp->Position);
+                });
+
+                if ($proposedDept !== '') {
+                    $parentOrgSameDept = (clone $parentOrgQuery)->where('Department', $proposedDept)->first();
+                    if ($parentOrgSameDept) {
+                        $reportsToOrgId = (int) $parentOrgSameDept->ID;
+                    }
+                }
+
+                if (!$reportsToOrgId) {
+                    $parentOrgAny = $parentOrgQuery->first();
+                    if ($parentOrgAny) {
+                        $reportsToOrgId = (int) $parentOrgAny->ID;
+                    }
+                }
+            }
+        }
+
+        // Cek apakah ada posisi tujuan yang berstatus VACANT pada departemen/posisi yang sama
+        $vacantTarget = null;
+        if ($proposedPos !== '') {
+            $vacantQuery = DB::table('organization_structure')
+                ->where('Position', $proposedPos)
+                ->where(function ($q) {
+                    $q->whereNull('NIK')
+                      ->orWhere('NIK', '')
+                      ->orWhere('Name', 'like', '%VACANT%');
+                });
+
+            if ($proposedDept !== '') {
+                $vacantTarget = (clone $vacantQuery)->where('Department', $proposedDept)->first();
+            }
+            if (!$vacantTarget) {
+                $vacantTarget = $vacantQuery->first();
+            }
+        }
+
+        // Siapkan data organisasi yang akan diperbarui
+        $orgData = [
+            'NIK'        => $nik,
+            'Name'       => $empName,
+            'Department' => $proposedDept,
+            'Dept_Name'  => $proposedDept,
+            'Directorat' => $proposedDiv,
+            'Level'      => $level,
+            'Is_System'  => 0,
+        ];
+
+        if ($posId) {
+            $orgData['Position_ID'] = $posId;
+        }
+        if ($proposedPos !== '') {
+            $orgData['Position']      = $proposedPos;
+            $orgData['Position_Code'] = $posCode;
+        }
+
+        // Tentukan Reports_To_Position_ID
+        if ($reportsToOrgId) {
+            $orgData['Reports_To_Position_ID'] = $reportsToOrgId;
+        } elseif ($vacantTarget && !empty($vacantTarget->Reports_To_Position_ID)) {
+            $orgData['Reports_To_Position_ID'] = (int) $vacantTarget->Reports_To_Position_ID;
+        }
+
+        // --- SKENARIO 1: POSISI TUJUAN ADA YANG BERSTATUS VACANT ---
+        if ($vacantTarget) {
+            if ($existingOrg && (int) $existingOrg->ID === (int) $vacantTarget->ID) {
+                // Karyawan sudah berada di baris tersebut
+                DB::table('organization_structure')->where('ID', $existingOrg->ID)->update($orgData);
+            } else {
+                // Isi slot VACANT dengan profil karyawan ini
+                DB::table('organization_structure')->where('ID', $vacantTarget->ID)->update($orgData);
+                Log::info("OrganizationStructure vacant slot filled [Org ID: {$vacantTarget->ID}] by NIK '{$nik}'");
+
+                // Jika karyawan sebelumnya punya baris lain di organization_structure, kelola baris lama tersebut
+                if ($existingOrg && (int) $existingOrg->ID !== (int) $vacantTarget->ID) {
+                    $this->handleVacatedOrgRow($existingOrg, $nik);
+                }
+            }
+        }
+        // --- SKENARIO 2: KARYAWAN SUDAH TERDAFTAR SEBELUMNYA DI TABEL ---
+        elseif ($existingOrg) {
+            // Cek apakah posisi karyawan berpindah (mutasi posisi)
+            $isPositionChanged = ($oldPos !== '' && $proposedPos !== '' && $oldPos !== $proposedPos);
+
+            if ($isPositionChanged) {
+                // Cek apakah masih ada rekan lain yang menempati posisi lama di departemen lama
+                $remainingCount = DB::table('organization_structure')
+                    ->where('Position', $oldPos)
+                    ->where('NIK', '<>', $nik)
+                    ->whereNotNull('NIK')
+                    ->where('NIK', '<>', '')
+                    ->where('Name', 'not like', '%VACANT%')
+                    ->when($oldDept !== '', function ($q) use ($oldDept) {
+                        return $q->where('Department', $oldDept);
+                    })
+                    ->count();
+
+                if ($remainingCount === 0) {
+                    // Tidak ada karyawan lain di posisi lama -> Posisi lama harus tetap ada sebagai VACANT,
+                    // dan karyawan menempati baris baru untuk posisi barunya.
+                    DB::table('organization_structure')->where('ID', $existingOrg->ID)->update([
+                        'NIK'   => '',
+                        'Name'  => 'VACANT',
+                        'Email' => '',
+                    ]);
+                    Log::info("OrganizationStructure position '{$oldPos}' [Org ID: {$existingOrg->ID}] set to VACANT as last employee NIK '{$nik}' moved out");
+
+                    // Buat baris baru untuk karyawan pada posisi baru
+                    $newOrgId = DB::table('organization_structure')->insertGetId($orgData);
+                    Log::info("OrganizationStructure inserted for NIK '{$nik}' [Org ID: {$newOrgId}] on new position '{$proposedPos}'");
+                } else {
+                    // Masih ada 1 atau lebih karyawan di posisi lama -> Baris eksisting karyawan langsung diupdate ke posisi baru
+                    DB::table('organization_structure')->where('ID', $existingOrg->ID)->update($orgData);
+                    Log::info("OrganizationStructure updated for NIK '{$nik}' [Org ID: {$existingOrg->ID}] to position '{$proposedPos}' (old position still staffed by {$remainingCount} employees)");
+                }
+            } else {
+                // Posisi tidak berubah, cukup update detail data (nama, departemen, dsb)
+                DB::table('organization_structure')->where('ID', $existingOrg->ID)->update($orgData);
+                Log::info("OrganizationStructure updated for NIK '{$nik}' [Org ID: {$existingOrg->ID}]");
+            }
+        }
+        // --- SKENARIO 3: KARYAWAN BARU BELUM PUNYA BARIS DI ORGANISASI ---
+        else {
+            $newOrgId = DB::table('organization_structure')->insertGetId($orgData);
+            Log::info("OrganizationStructure inserted for NIK '{$nik}' [Org ID: {$newOrgId}]");
+        }
+    }
+
+    /**
+     * Tangani baris organisasi lama saat karyawan mengisi slot VACANT di posisi lain.
+     */
+    protected function handleVacatedOrgRow($oldOrgRow, string $nik): void
+    {
+        $oldPos  = trim((string) $oldOrgRow->Position);
+        $oldDept = trim((string) $oldOrgRow->Department);
+
+        $remainingCount = DB::table('organization_structure')
+            ->where('Position', $oldPos)
+            ->where('ID', '<>', $oldOrgRow->ID)
+            ->where('NIK', '<>', $nik)
+            ->whereNotNull('NIK')
+            ->where('NIK', '<>', '')
+            ->where('Name', 'not like', '%VACANT%')
+            ->when($oldDept !== '', function ($q) use ($oldDept) {
+                return $q->where('Department', $oldDept);
+            })
+            ->count();
+
+        if ($remainingCount === 0) {
+            // Posisi lama menjadi VACANT agar slot jabatan tidak hilang dari bagan
+            DB::table('organization_structure')->where('ID', $oldOrgRow->ID)->update([
+                'NIK'   => '',
+                'Name'  => 'VACANT',
+                'Email' => '',
+            ]);
+            Log::info("OrganizationStructure old row [Org ID: {$oldOrgRow->ID}] set to VACANT");
+        } else {
+            // Posisi lama masih memiliki rekan lain, hapus duplikat baris lama agar tidak ada baris menggantung
+            DB::table('organization_structure')->where('ID', $oldOrgRow->ID)->delete();
+            Log::info("OrganizationStructure redundant old row [Org ID: {$oldOrgRow->ID}] deleted because {$remainingCount} employees remain in position '{$oldPos}'");
         }
     }
 

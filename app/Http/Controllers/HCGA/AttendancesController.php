@@ -404,9 +404,21 @@ class AttendancesController extends Controller
             ->limit(10)
             ->get();
 
+        // Riwayat Pengajuan Lembur (Overtime)
+        $overtimeRequests = DB::table('attendance_overtime_requests as ot')
+            ->leftJoin('overtime_rate_matrices as m', 'm.id', '=', 'ot.matrix_id')
+            ->where('ot.nik', $user->Emp_ID)
+            ->select('ot.*', 'm.matrix_name')
+            ->orderBy('ot.id', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Lokasi Kantor untuk penentuan Zipcode & Wilayah
+        $locations = DB::table('attendance_locations')->where('status', 'ACTIVE')->get();
+
         $kategoriList = DB::table('kategori_izin')->where('status', 'ACTIVE')->orderBy('izin_jenis_id', 'asc')->get();
 
-        return view('humanresources.attendant.portal', compact('user', 'todayEntry', 'schedule', 'leaveRequests', 'corrections', 'kategoriList', 'cutoffRule', 'cutoffRange', 'cutoffStats', 'activePeriodeYm'));
+        return view('humanresources.attendant.portal', compact('user', 'todayEntry', 'schedule', 'leaveRequests', 'corrections', 'overtimeRequests', 'locations', 'kategoriList', 'cutoffRule', 'cutoffRange', 'cutoffStats', 'activePeriodeYm'));
     }
 
     /**

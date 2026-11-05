@@ -145,12 +145,19 @@
             <th class="head" width="37.5%">Saat ini</th>
             <th class="head" width="37.5%">Usulan</th>
         </tr>
-
         @foreach($rows as $field => $label)
+            @php
+                $curVal = $statusChange->{'current_' . $field};
+                $propVal = $statusChange->{'proposed_' . $field};
+                if ($field === 'position' && !empty($masterPositions)) {
+                    $curVal = $masterPositions[$curVal] ?? $curVal;
+                    $propVal = $masterPositions[$propVal] ?? $propVal;
+                }
+            @endphp
             <tr>
                 <th class="lbl">{{ $label }}</th>
-                <td>{{ $statusChange->{'current_' . $field} }}</td>
-                <td>{{ $statusChange->{'proposed_' . $field} }}</td>
+                <td>{{ $curVal }}</td>
+                <td>{{ $propVal }}</td>
             </tr>
         @endforeach
 

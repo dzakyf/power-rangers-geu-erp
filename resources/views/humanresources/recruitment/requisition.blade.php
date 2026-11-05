@@ -266,6 +266,9 @@ if (!isset($requisitionPolicies)) {
                 <button type="button" class="btn btn-outline-primary btn-sm quick-action-btn" id="btnActionDetail" onclick="showDetailRequisition(null, true);" title="Buka Detail &amp; Progress Approval PTK" disabled>
                     <i class="fa fa-eye me-1"></i> Buka Detail
                 </button>
+                <button type="button" class="btn btn-outline-dark btn-sm quick-action-btn" id="btnActionPrint" onclick="printSelectedRequisition();" title="Cetak PDF Form PTK Terpilih" disabled>
+                    <i class="fa fa-print me-1"></i> Cetak PDF
+                </button>
                 <button type="button" class="btn btn-primary btn-sm quick-action-btn" onclick="newreq();" title="Buat Pengajuan Form PTK Baru">
                     <i class="fa fa-plus me-1"></i> Form PTK Baru
                 </button>
@@ -404,12 +407,30 @@ function showAppNotification(title, message, type) {
 function updateActionButtonState(id) {
     var hasSelection = (id !== null && id !== undefined && id !== '');
     var btnDetail = document.getElementById('btnActionDetail');
+    var btnPrint = document.getElementById('btnActionPrint');
     var btnCancel = document.getElementById('btnActionCancel');
     var btnClose = document.getElementById('btnActionClose');
 
     if (btnDetail) btnDetail.disabled = !hasSelection;
+    if (btnPrint) btnPrint.disabled = !hasSelection;
     if (btnCancel) btnCancel.disabled = !hasSelection;
     if (btnClose) btnClose.disabled = !hasSelection;
+}
+
+function printSelectedRequisition() {
+    var rowId = currentRequisitionId || RequisitionLists.getSelectedRowId();
+    if (!rowId) {
+        showAppNotification('Pilih PTK', 'Silakan pilih dokumen PTK pada tabel terlebih dahulu.', 'warning');
+        return;
+    }
+    var ptkNo = '';
+    try {
+        ptkNo = RequisitionLists.cells(rowId, 1).getValue() || '';
+    } catch (e) {}
+    var url = ptkNo
+        ? ('hrd-requisition-prints?Task=' + encodeURIComponent(ptkNo))
+        : ('hrd-requisition-prints?ID=' + encodeURIComponent(rowId));
+    window.open(url, '_blank');
 }
 
 /**

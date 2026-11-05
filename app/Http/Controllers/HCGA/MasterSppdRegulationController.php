@@ -12,14 +12,54 @@ use Illuminate\Support\Facades\DB;
 
 class MasterSppdRegulationController extends Controller
 {
+    /**
+     * Relasi Komponen Tunjangan (master_sppd_components.code) -> kolom master_sppd_allowances.
+     * format: list (JSON array), text, money (Rp), star (bintang hotel).
+     * Hanya komponen dengan code di sini yang tampil pada Matriks Plafon dan form edit plafon.
+     */
+    public static function componentMap()
+    {
+        return [
+            'transport_land'              => ['column' => 'transport_land', 'format' => 'list', 'category' => 'Transportasi', 'type' => 'Teks / List Pilihan', 'name' => 'Transport Darat'],
+            'transport_air'               => ['column' => 'transport_air', 'format' => 'text', 'category' => 'Transportasi', 'type' => 'Teks', 'name' => 'Transport Udara'],
+            'ticket_max'                  => ['column' => 'ticket_max', 'format' => 'money', 'category' => 'Transportasi', 'type' => 'Nominal (Rp)', 'name' => 'Max Harga Tiket'],
+            'reimburse_max_per_night'     => ['column' => 'reimburse_max_per_night', 'format' => 'money', 'category' => 'Akomodasi', 'type' => 'Nominal (Rp)', 'name' => 'Max Hotel / Malam'],
+            'hotel_star'                  => ['column' => 'hotel_star', 'format' => 'star', 'category' => 'Akomodasi', 'type' => 'Angka (Star)', 'name' => 'Bintang Hotel'],
+            'daily_meal'                  => ['column' => 'daily_meal', 'format' => 'money', 'category' => 'Uang Saku', 'type' => 'Nominal (Rp)', 'name' => 'Uang Makan / Hari'],
+            'daily_pocket'                => ['column' => 'daily_pocket', 'format' => 'money', 'category' => 'Uang Saku', 'type' => 'Nominal (Rp)', 'name' => 'Uang Saku / Hari'],
+            'kos_per_month'               => ['column' => 'kos_per_month', 'format' => 'money', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'name' => 'Bantuan Kos / Bulan'],
+            'relocation_one_time_payment' => ['column' => 'relocation_one_time_payment', 'format' => 'money', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'name' => 'Bantuan Relokasi (1x)'],
+            'mobilization_cost_per_week'  => ['column' => 'mobilization_cost_per_week', 'format' => 'money', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'name' => 'Uang Perbantuan / Minggu'],
+        ];
+    }
+
+    /** Pastikan komponen standar tersedia (tidak menimpa data yang sudah ada). */
+    protected function ensureDefaultComponents()
+    {
+        foreach (self::componentMap() as $code => $def) {
+            MasterSppdComponent::firstOrCreate(
+                ['code' => $code],
+                [
+                    'name' => $def['name'],
+                    'category' => $def['category'],
+                    'type' => $def['type'],
+                    'description' => 'Komponen standar matriks regulasi SPPD',
+                ]
+            );
+        }
+    }
+
     public function index()
     {
+        $this->ensureDefaultComponents();
+
         $jobLevels = MasterSppdJobLevel::orderBy('id', 'asc')->get();
         $tripTypes = MasterSppdTripType::orderBy('id', 'asc')->get();
         $allowances = MasterSppdAllowance::orderBy('id', 'asc')->get();
         $components = MasterSppdComponent::orderBy('id', 'asc')->get();
+        $componentMap = self::componentMap();
 
-        return view('humanresources.sppd.master', compact('jobLevels', 'tripTypes', 'allowances', 'components'));
+        return view('humanresources.sppd.master', compact('jobLevels', 'tripTypes', 'allowances', 'components', 'componentMap'));
     }
 
     // --- JOB LEVELS CRUD ---
@@ -143,12 +183,12 @@ class MasterSppdRegulationController extends Controller
     public function storeComponent(Request $request)
     {
         $request->validate([
-            'code'        => 'required|string|max:100|unique:master_sppd_components,code',
+            'code'        => 'required|string|max:100|unique:master_sppd_components,code|in:' . implode(',', array_keys(self::componentMap())),
             'name'        => 'required|string|max:150',
             'category'    => 'required|string|max:100',
             'type'        => 'required|string|max:100',
             'description' => 'nullable|string',
-        ]);
+        ], ['code.in' => 'Kode komponen harus salah satu kolom plafon yang tersedia agar terhubung ke matriks.']);
 
         $item = MasterSppdComponent::create([
             'code'        => strtolower(str_replace(' ', '_', trim($request->code))),
@@ -217,6 +257,9 @@ class MasterSppdRegulationController extends Controller
             $transportLand = null;
         }
 
+        $existing = MasterSppdAllowance::where('trip_type_key', $request->trip_type_key)
+            ->where('job_level_key', $request->job_level_key)->first();
+
         $allowance = MasterSppdAllowance::updateOrCreate(
             [
                 'trip_type_key' => $request->trip_type_key,
@@ -231,9 +274,9 @@ class MasterSppdRegulationController extends Controller
                 'daily_meal'                  => $request->daily_meal !== null && $request->daily_meal !== '' ? (float)$request->daily_meal : null,
                 'daily_pocket'                => $request->daily_pocket !== null && $request->daily_pocket !== '' ? (float)$request->daily_pocket : null,
                 'kos_per_month'               => $request->kos_per_month !== null && $request->kos_per_month !== '' ? (float)$request->kos_per_month : null,
-                'assistance_note'             => $request->assistance_note ?: null,
+                'assistance_note'             => $request->has('assistance_note') ? ($request->assistance_note ?: null) : ($existing ? $existing->assistance_note : null),
                 'relocation_one_time_payment' => $request->relocation_one_time_payment !== null && $request->relocation_one_time_payment !== '' ? (float)$request->relocation_one_time_payment : null,
-                'relocation_note'             => $request->relocation_note ?: null,
+                'relocation_note'             => $request->has('relocation_note') ? ($request->relocation_note ?: null) : ($existing ? $existing->relocation_note : null),
                 'mobilization_cost_per_week'  => $request->mobilization_cost_per_week !== null && $request->mobilization_cost_per_week !== '' ? (float)$request->mobilization_cost_per_week : null,
                 'mobilization_note'           => $request->mobilization_note ?: null,
             ]
@@ -248,13 +291,15 @@ class MasterSppdRegulationController extends Controller
     {
         try {
             DB::beginTransaction();
-            MasterSppdAllowance::truncate();
-            MasterSppdTripType::truncate();
-            MasterSppdJobLevel::truncate();
-            MasterSppdComponent::truncate();
+            // delete() (bukan truncate) agar tetap dalam transaksi; truncate memicu implicit commit di MySQL.
+            MasterSppdAllowance::query()->delete();
+            MasterSppdTripType::query()->delete();
+            MasterSppdJobLevel::query()->delete();
 
             $seeder = new \MasterSppdRegulationSeeder();
             $seeder->run();
+            // Komponen tunjangan dipertahankan (seeder tidak mengisinya); lengkapi komponen standar yang hilang.
+            $this->ensureDefaultComponents();
             DB::commit();
 
             return response()->json(['status' => 'success', 'message' => 'Data regulasi berhasil disinkronkan ulang dari matric.json!']);

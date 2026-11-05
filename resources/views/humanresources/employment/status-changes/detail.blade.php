@@ -79,8 +79,13 @@
                     @foreach($comparerFields as $field => $label)
                     <tr>
                         <th>{{ $label }}</th>
+                        @if($field == 'position') 
+                        <td>{{ $masterPositions[$sc->{'current_' . $field}] ?? ($sc->{'current_' . $field} ?: '-') }}</td>
+                        <td>{{ $masterPositions[$sc->{'proposed_' . $field}] ?? ($sc->{'proposed_' . $field} ?: '-') }}</td>
+                        @else
                         <td>{{ $sc->{'current_' . $field} ?: '-' }}</td>
                         <td>{{ $sc->{'proposed_' . $field} ?: '-' }}</td>
+                        @endif
                     </tr>
                     @endforeach
                 </tbody>

@@ -3663,6 +3663,23 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::delete('/hrd-master-attendance-cutoff/{id}', [\App\Http\Controllers\HCGA\MasterAttendanceCutoffController::class, 'destroy'])->name('attendance.cutoff.destroy');
     Route::get('/hrd-master-attendance-cutoff-preview', [\App\Http\Controllers\HCGA\MasterAttendanceCutoffController::class, 'previewRange'])->name('attendance.cutoff.preview');
 
+    // Overtime (Lembur) Matrix & Requests
+    Route::get('/hrd-overtime-matrix', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'indexMatrix'])->name('attendance.overtime.matrix');
+    Route::get('/hrd-overtime-matrix/{id}/detail', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'getMatrixDetail'])->name('attendance.overtime.matrix.detail');
+    Route::post('/hrd-overtime-matrix/store', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'storeMatrix'])->name('attendance.overtime.matrix.store');
+    Route::post('/hrd-overtime-matrix/{id}/update', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'updateMatrix'])->name('attendance.overtime.matrix.update');
+    Route::delete('/hrd-overtime-matrix/{id}', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'destroyMatrix'])->name('attendance.overtime.matrix.destroy');
+
+    // Overtime Regions (Master Wilayah Lembur Dinamis)
+    Route::get('/hrd-overtime-regions', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'indexRegions'])->name('attendance.overtime.regions');
+    Route::get('/hrd-overtime-regions/{id}/detail', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'getRegionDetail'])->name('attendance.overtime.region.detail');
+    Route::post('/hrd-overtime-regions/store', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'storeRegion'])->name('attendance.overtime.region.store');
+    Route::post('/hrd-overtime-regions/{id}/update', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'updateRegion'])->name('attendance.overtime.region.update');
+    Route::delete('/hrd-overtime-regions/{id}', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'destroyRegion'])->name('attendance.overtime.region.destroy');
+
+    Route::post('/attendance/overtime/calculate-preview', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'apiCalculatePreview'])->name('attendance.overtime.preview');
+    Route::post('/attendance/request/overtime', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'storeOvertimeRequest'])->name('attendance.request.overtime');
+
     // Mobile Webview Attendance & Timesheet
     Route::get('/attendance/mobile', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileIndex'])->name('attendance.mobile.index');
     Route::get('/attendance/mobile/timesheet', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileTimesheet'])->name('attendance.mobile.timesheet');
@@ -5917,6 +5934,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcApprovalPref-release", [HCGAApprovalInboxController::class, 'release']);
     Route::post("$hcApprovalPref-self-exception", [HCGAApprovalInboxController::class, 'grantSelfException']);
     Route::post("$hcApprovalPref-add-candidate", [HCGAApprovalInboxController::class, 'addCandidate']);
+    Route::get("$hcApprovalPref-candidate-options", [HCGAApprovalInboxController::class, 'candidateOptions']);
     Route::get("$hcApprovalPref-escalation", [HCGAApprovalInboxController::class, 'escalation']);
     Route::get("$hcApprovalPref-escalation-data", [HCGAApprovalInboxController::class, 'escalationData']);
     Route::get("$hcApprovalPref-policy", [HCGAApprovalPolicyController::class, 'index']);
