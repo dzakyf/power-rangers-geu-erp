@@ -345,11 +345,9 @@ class QualityController extends Controller
             $headerUpdate = [
                 'updated_at' => $this->now,
             ];
-            if ($r->filled('Contract_ID')) {
-                $headerUpdate['Contract_ID'] = $r->Contract_ID;
-            }
-            if ($r->filled('Booking_ID')) {
-                $headerUpdate['Booking_ID'] = $r->Booking_ID;
+            if (strtoupper($r->input('QC_Type', '')) === 'OUTBOUND') {
+                $headerUpdate['Contract_ID'] = $r->filled('Contract_ID') ? $r->Contract_ID : null;
+                $headerUpdate['Booking_ID'] = $r->filled('Booking_ID') ? $r->Booking_ID : null;
             }
             DB::table('cns_quality_controls')->where('id', $headerId)->update($headerUpdate);
 

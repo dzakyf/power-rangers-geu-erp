@@ -179,20 +179,22 @@
     function initProjectionGrid() {
         $('#ProjectionSection').show();
 
-        // 38 visible columns:
+        // 41 columns (38 visible + 3 hidden):
         // 0: No, 1: Kode QC, 2: Tanggal, 3: Jenis QC, 4: Lab
         // 5..12: Top (8 cols)
         // 13..20: Middle (8 cols)
         // 21..28: Bottom (8 cols)
         // 29..36: Average (8 cols)
         // 37: Attachment
+        // 38: Contract_ID (hidden), 39: Booking_ID (hidden), 40: QC_Category (hidden)
         let tHeader = [
             'No', 'Kode QC', 'Tanggal', 'Jenis QC', 'Lab',
             'Top', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
             'Middle', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
             'Bottom', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
             'Average', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
-            'Attachment'
+            'Attachment',
+            'Contract_ID', 'Booking_ID', 'QC_Category'
         ];
 
         let tGroupHeader = [
@@ -201,7 +203,8 @@
             'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
             'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
             'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
-            '#rspan'
+            '#rspan',
+            '#rspan', '#rspan', '#rspan'
         ];
 
         let tTopHeader = [
@@ -210,7 +213,8 @@
             '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
             '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
             '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
-            '#rspan'
+            '#rspan',
+            '#rspan', '#rspan', '#rspan'
         ];
 
         let tWidth = [
@@ -219,11 +223,12 @@
             '85', '85', '75', '75', '75', '75', '80', '80',
             '85', '85', '75', '75', '75', '75', '80', '80',
             '85', '85', '75', '75', '75', '75', '80', '80',
-            '110'
+            '110',
+            '50', '50', '50'
         ];
 
         let tColType = tHeader.map(() => 'ro');
-        let tColAlign = tHeader.map((e, i) => (i < 5 ? 'left' : (i === 37 ? 'center' : 'right')));
+        let tColAlign = tHeader.map((e, i) => (i < 5 ? 'left' : (i === 37 ? 'center' : (i >= 38 ? 'left' : 'right'))));
         let tColSort = tHeader.map((e, i) => (i === 0 ? 'int' : (i === 2 ? 'date' : 'str')));
 
         ProjectionGrid = new dhtmlXGridObject('ProjectionGrid');
@@ -237,6 +242,10 @@
         ProjectionGrid.setColTypes(tColType.join(','));
         ProjectionGrid.setSkin("dhx_skyblue");
         ProjectionGrid.init();
+
+        ProjectionGrid.setColumnHidden(38, true);
+        ProjectionGrid.setColumnHidden(39, true);
+        ProjectionGrid.setColumnHidden(40, true);
 
         loadQualityGrid();
 
