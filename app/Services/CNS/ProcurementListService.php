@@ -82,6 +82,7 @@ class ProcurementListService
                 'outstanding'    => '',
                 'status'         => $contract->statusLabel(),
                 'file'           => $contract->Contract_File,
+                'contract_id'    => $contract->ID,
             ];
         }
 

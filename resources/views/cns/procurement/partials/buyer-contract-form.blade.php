@@ -176,7 +176,7 @@
                             <small class="text-danger d-block mt-1">Kontrak yang di upload harus sudah ditandatangani.</small>
                             <small class="text-muted d-block">Maksimal 5 MB (PDF/DOC/DOCX).</small>
                             @if($isEdit && !empty($contract->Contract_File))
-                                <a href="{{ asset($contract->Contract_File) }}" target="_blank" class="d-inline-block mt-1">Lihat file kontrak saat ini</a>
+                                <a href="{{ route('cns-procurement-buyer-contract.file', ['ID' => $contract->ID], false) }}" target="_blank" class="d-inline-block mt-1">Lihat file kontrak saat ini</a>
                             @endif
                         </div>
                     </div>

@@ -15,6 +15,21 @@ class SupplierContractTest extends TestCase
     /** @var User|null */
     private $user;
 
+    /** @var array<int, string> */
+    private $tempFiles = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->tempFiles as $path) {
+            $fullPath = public_path($path);
+            if (is_file($fullPath)) {
+                @unlink($fullPath);
+            }
+        }
+
+        parent::tearDown();
+    }
+
     private function testUser(): User
     {
         if ($this->user) {
@@ -132,7 +147,7 @@ class SupplierContractTest extends TestCase
 
         $row = DB::table('cns_buyer_contract_bookings')
             ->where('Contract_ID', $contractId)
-            ->where('Label', 'A')
+            ->where('Label', '00001')
             ->first();
 
         $this->assertNotNull($row, 'Booking row must be stored');
@@ -286,13 +301,13 @@ class SupplierContractTest extends TestCase
     }
 
     /** @test */
-    public function booking_label_must_be_unique_per_contract(): void
+    public function booking_labels_are_generated_incrementally_per_contract(): void
     {
-        $contractId = $this->makeContract('UJI-CTR-DUPLABEL');
+        $contractId = $this->makeContract('UJI-CTR-SEQUENCE');
 
         $payload = [
             'Contract_ID'  => $contractId,
-            'Label'        => '1',
+            'Label'        => 'ignored',
             'Booking_No'   => 'EGLV000000000001',
             'Booking_File' => UploadedFile::fake()->create('booking.pdf', 100, 'application/pdf'),
         ];
@@ -301,11 +316,103 @@ class SupplierContractTest extends TestCase
             ->post('/cns-procurement-buyer-contract-booking-submit', $payload)
             ->assertOk();
 
-        $second = $this->actingAs($this->testUser())
-            ->post('/cns-procurement-buyer-contract-booking-submit', $payload);
+        $this->assertSame(
+            '00001',
+            DB::table('cns_buyer_contract_bookings')->where('Contract_ID', $contractId)->value('Label')
+        );
 
-        $second->assertStatus(422);
-        $this->assertSame(1, DB::table('cns_buyer_contract_bookings')->where('Contract_ID', $contractId)->count());
+        $payload['Booking_No'] = 'EGLV000000000002';
+        $payload['Booking_File'] = UploadedFile::fake()->create('booking-2.pdf', 100, 'application/pdf');
+        $this->actingAs($this->testUser())
+            ->post('/cns-procurement-buyer-contract-booking-submit', $payload)
+            ->assertOk();
+
+        $labels = DB::table('cns_buyer_contract_bookings')
+            ->where('Contract_ID', $contractId)
+            ->orderBy('ID')
+            ->pluck('Label')
+            ->all();
+
+        $this->assertSame(['00001', '00002'], $labels);
+    }
+
+    /** @test */
+    public function existing_numeric_prefix_is_used_for_the_next_booking_label(): void
+    {
+        $contractId = $this->makeContract('UJI-CTR-EXISTING-LABEL');
+
+        DB::table('cns_buyer_contract_bookings')->insert([
+            'Contract_ID' => $contractId,
+            'Label' => '1/A',
+            'Booking_No' => 'OLD-BOOKING-001',
+            'Booking_File' => '',
+            'Created_By' => $this->testUser()->username,
+            'Created_Date' => now(),
+        ]);
+
+        $response = $this->actingAs($this->testUser())
+            ->post('/cns-procurement-buyer-contract-booking-submit', [
+                'Contract_ID' => $contractId,
+                'Label' => 'ignored',
+                'Booking_No' => 'NEW-BOOKING-002',
+                'Booking_File' => UploadedFile::fake()->create('booking.pdf', 100, 'application/pdf'),
+            ]);
+
+        $response->assertOk();
+
+        $this->assertSame(
+            '00002',
+            DB::table('cns_buyer_contract_bookings')
+                ->where('Contract_ID', $contractId)
+                ->where('Booking_No', 'NEW-BOOKING-002')
+                ->value('Label')
+        );
+
+        $detail = $this->actingAs($this->testUser())
+            ->get('/cns-procurement-buyer-contract-detail?ID=' . $contractId);
+
+        $detail->assertSee('id="Booking_Label"', false);
+        $detail->assertSee('value="00003"', false);
+        $detail->assertSee('readonly', false);
+    }
+
+    /** @test */
+    public function contract_and_booking_files_are_served_by_file_routes(): void
+    {
+        $contractId = $this->makeContract('UJI-CTR-FILE-ROUTE');
+        $contractFile = 'filescontract/contracts/route-test-' . uniqid() . '.pdf';
+        file_put_contents(public_path($contractFile), 'contract test file');
+        $this->tempFiles[] = $contractFile;
+
+        DB::table('cns_buyer_contracts')->where('ID', $contractId)->update([
+            'Contract_File' => $contractFile,
+            'Contract_File_Name' => 'contract-test.pdf',
+        ]);
+
+        $this->actingAs($this->testUser())
+            ->get('/cns-procurement-buyer-contract-file?ID=' . $contractId)
+            ->assertOk();
+
+        $bookingFile = 'filescontract/bookings/route-test-' . uniqid() . '.pdf';
+        file_put_contents(public_path($bookingFile), 'booking test file');
+        $this->tempFiles[] = $bookingFile;
+
+        $bookingId = DB::table('cns_buyer_contract_bookings')->insertGetId([
+            'Contract_ID' => $contractId,
+            'Label' => '00001',
+            'Booking_No' => 'BOOK-FILE-ROUTE',
+            'Booking_File' => $bookingFile,
+            'Booking_File_Name' => 'booking-test.pdf',
+            'Created_By' => $this->testUser()->username,
+            'Created_Date' => now(),
+        ]);
+
+        $this->actingAs($this->testUser())
+            ->get('/cns-procurement-buyer-contract-booking-file?ID=' . $bookingId)
+            ->assertOk();
+
+        $xml = $this->xmlContent();
+        $this->assertStringContainsString('/cns-procurement-buyer-contract-file?ID=' . $contractId . '^Lihat^_blank', $xml);
     }
 
     private function contractPayload(string $contractNo): array

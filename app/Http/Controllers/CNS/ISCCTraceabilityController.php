@@ -160,7 +160,7 @@ class ISCCTraceabilityController extends Controller
                 'tep.quantity_kg as quantity_kg',
                 'tep.unit as unit',
                 'tep.price as price',
-                DB::raw('tep.price * tep.quantity_kg as total_price'),
+                DB::raw('COALESCE(tep.total_price, tep.price * tep.quantity_kg) as total_price'),
                 'tep.wo_code as wo_code',
                 'tep.wo_date as wo_date',
                 'tep.wo_status as wo_status',
@@ -284,7 +284,7 @@ class ISCCTraceabilityController extends Controller
                 'tep.quantity_kg as quantity_kg',
                 'tep.unit as unit',
                 'tep.price as price',
-                DB::raw('tep.price * tep.quantity_kg as total_price'),
+                DB::raw('COALESCE(tep.total_price, tep.price * tep.quantity_kg) as total_price'),
                 'tep.wo_code as wo_code',
                 'tep.wo_date as wo_date',
                 'tep.wo_status as wo_status',
@@ -443,11 +443,18 @@ class ISCCTraceabilityController extends Controller
             'full_address' => 'nullable|string',
         ]);
 
+        $quantity = $request->input('quantity_kg');
+        $totalPrice = null;
+        if ($quantity !== null && $fragment->price !== null) {
+            $totalPrice = round((float) $fragment->price * (float) $quantity, 2);
+        }
+
         DB::table('traceability_external_poo_fragments')
             ->where('id', $fragmentId)
             ->update([
-                'quantity_kg' => $request->input('quantity_kg'),
-                'po_qty' => $request->input('quantity_kg'),
+                'quantity_kg' => $quantity,
+                'po_qty' => $quantity,
+                'total_price' => $totalPrice,
                 'oil_documentation' => $request->input('oil_documentation'),
                 'lat' => $request->input('lat'),
                 'lng' => $request->input('lng'),
@@ -560,7 +567,9 @@ class ISCCTraceabilityController extends Controller
 
         $qty   = (float) $fragment->quantity_kg;
         $price = (float) ($fragment->price ?? 0);
-        $total = $price * $qty;
+        $total = isset($fragment->total_price) && $fragment->total_price !== null
+            ? (float) $fragment->total_price
+            : $price * $qty;
 
         $templatePath = public_path('template_iscc.docx');
         if (!is_file($templatePath)) {
