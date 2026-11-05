@@ -25,7 +25,13 @@ class DeliveryNoteController extends Controller
 
         echo "<rows>";
 
-        $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        $companies = [];
+        $supplierQuery = DB::table('supplier');
+        if (auth()->check() && !empty(auth()->user()->Location)) {
+            $company = $supplierQuery->where("Location", auth()->user()->Location)->get();
+        } else {
+            $company = $supplierQuery->get();
+        }
         foreach ($company as $value) {
             $companies[$value->Supplier_ID] = $value->Company_Name;
         }
@@ -33,10 +39,12 @@ class DeliveryNoteController extends Controller
         $nomor = 1;
         $dns = DeliveryNote::get();
         foreach ($dns as $value) {
+            $issuerName = $companies[$value->Shipper] ?? $value->Shipper;
             $consigneeName = $companies[$value->Consignee] ?? $value->Consignee;
             echo "<row id=\"$value->ID\">";
                 echo "<cell>$nomor</cell>";
                 echo "<cell>".htmlspecialchars($value->DN_No)."</cell>";
+                echo "<cell>".htmlspecialchars($issuerName ?: '-')."</cell>";
                 echo "<cell>".htmlspecialchars($value->Delivery_Date)."</cell>";
                 echo "<cell>".htmlspecialchars($consigneeName)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Contract_No)."</cell>";
@@ -54,17 +62,56 @@ class DeliveryNoteController extends Controller
 
     public function printDeliveryNote(Request $request)
     {
-        $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
-        foreach ($company as $value) {
+        $task = trim((string) $request->input('Task', ''));
+        $dn = DeliveryNote::where('DN_No', $task)->first();
+        if (!$dn && is_numeric($task)) {
+            $dn = DeliveryNote::find($task);
+        }
+
+        if (!$dn) {
+            abort(404, 'Delivery Note tidak ditemukan');
+        }
+
+        $companies = [];
+        $supplierQuery = DB::table('supplier');
+        if (auth()->check() && !empty(auth()->user()->Location)) {
+            $suppliers = $supplierQuery->where("Location", auth()->user()->Location)->get();
+        } else {
+            $suppliers = $supplierQuery->get();
+        }
+        foreach ($suppliers as $value) {
             $companies[$value->Supplier_ID] = $value;
         }
-        $dn = DeliveryNote::where('DN_No', $request->Task)->first();
-        return view('cns.export.print.dn', compact('dn', 'companies'));
+
+        if (!empty($dn->Shipper) && !isset($companies[$dn->Shipper])) {
+            $shipperRow = DB::table('supplier')->where('Supplier_ID', $dn->Shipper)->first();
+            if ($shipperRow) {
+                $companies[$dn->Shipper] = $shipperRow;
+            }
+        }
+        if (!empty($dn->Consignee) && !isset($companies[$dn->Consignee])) {
+            $consigneeRow = DB::table('supplier')->where('Supplier_ID', $dn->Consignee)->first();
+            if ($consigneeRow) {
+                $companies[$dn->Consignee] = $consigneeRow;
+            }
+        }
+
+        $issuer = $companies[$dn->Shipper] ?? null;
+        if (!$issuer) {
+            $issuer = DB::table('supplier')->where('Is_Company', 1)->first() ?? DB::table('supplier')->first();
+        }
+
+        return view('cns.export.print.dn', compact('dn', 'companies', 'issuer'));
     }
 
     public function newDeliveryNote()
     {
-        $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        $query = DB::table('supplier');
+        if (auth()->check() && !empty(auth()->user()->Location)) {
+            $companies = $query->where("Location", auth()->user()->Location)->orderBy('Company_Name')->get();
+        } else {
+            $companies = $query->orderBy('Company_Name')->get();
+        }
 
         $counter = DeliveryNote::whereYear('Delivery_Date', date('Y'))
             ->whereMonth('Delivery_Date', date('m'))
@@ -91,8 +138,32 @@ class DeliveryNoteController extends Controller
 
     public function detailDeliveryNote(Request $request)
     {
-        $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
-        $dn = DeliveryNote::where('DN_No', $request->Task)->first();
+        $query = DB::table('supplier');
+        if (auth()->check() && !empty(auth()->user()->Location)) {
+            $companies = $query->where("Location", auth()->user()->Location)->orderBy('Company_Name')->get();
+        } else {
+            $companies = $query->orderBy('Company_Name')->get();
+        }
+
+        $task = trim((string) $request->input('Task', ''));
+        $dn = DeliveryNote::where('DN_No', $task)->first();
+        if (!$dn && is_numeric($task)) {
+            $dn = DeliveryNote::find($task);
+        }
+
+        if ($dn && !empty($dn->Shipper) && !$companies->contains('Supplier_ID', $dn->Shipper)) {
+            $extra = DB::table('supplier')->where('Supplier_ID', $dn->Shipper)->first();
+            if ($extra) {
+                $companies->push($extra);
+            }
+        }
+        if ($dn && !empty($dn->Consignee) && !$companies->contains('Supplier_ID', $dn->Consignee)) {
+            $extra = DB::table('supplier')->where('Supplier_ID', $dn->Consignee)->first();
+            if ($extra) {
+                $companies->push($extra);
+            }
+        }
+
         return view('cns.export.dn-detail', compact('companies', 'dn'));
     }
 

@@ -112,13 +112,8 @@ use Illuminate\Database\Eloquent\Builder;
                         </div>
                         <div class="col-3">
                             <div class="form-group">
-                                <label for="Destination_Letter">Destination Letter</label>
-                                <select name="Destination_Letter" id="Destination_Letter" class="form-control shadow-sm" required>
-                                    <option value="">-- Pilih Destination Letter --</option>
-                                    @foreach ($companies as $destination_Letter)
-                                        <option value="{{ $destination_Letter->Supplier_ID }}">{{ $destination_Letter->Company_Name }}</option>
-                                    @endforeach
-                                </select>
+                                <label for="Destination_Port">Destination Port</label>
+                                <input type="text" id="Destination_Port" name="Destination_Port" class="form-control" value="" />
                             </div>
                         </div>
                         <div class="col-4">

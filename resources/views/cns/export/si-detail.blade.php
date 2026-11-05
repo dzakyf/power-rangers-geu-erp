@@ -1,16 +1,21 @@
-@php
+<?php
     $containerIds = $containers->pluck('ID')->map(function ($id) {
         return (string) $id;
     })->all();
     $assignedIds = array_values(array_intersect($containerIds, array_map('strval', $assigned)));
     $slotCount = max((int) $si->Qty1, $containers->count());
-@endphp
+    $companiesKeyed = $companies->keyBy('Supplier_ID');
+    $shipperAddr = !empty($si->Shipper_Address) ? $si->Shipper_Address : ($companiesKeyed->get($si->Shipper)->Address ?? '');
+    $consigneeAddr = !empty($si->Consignee_Address) ? $si->Consignee_Address : ($companiesKeyed->get($si->Consignee)->Address ?? '');
+    $notifyAddr = !empty($si->Notify_Address) ? $si->Notify_Address : ($companiesKeyed->get($si->Notify)->Address ?? '');
+?>
 <div class="mt-3">
     <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION</div>
     <div class="card">
         <div class="card-body">
             <div id="ContentPages">
                 <div class="FormInput_Form_Content">
+                    <input type="hidden" name="id" id="id" value="{{ $si->id }}" />
                     <div class="row">
                         <div class="col-md-4 col-12">
                             <div class="form-group">
@@ -46,58 +51,65 @@
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
-                                <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
-                                    <option value="">-- Pilih Consignee --</option>
-                                    @foreach ($companies as $consignee)
-                                        <option value="{{ $consignee->Supplier_ID }}" {{ $si->Consignee == $consignee->Supplier_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4 col-12">
-                            <div class="form-group">
                                 <label for="Delivery_Terms">Delivery Terms</label>
                                 <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="{{ $si->Delivery_Terms }}" class="form-control shadow-sm" required />
                             </div>
                         </div>
-                        <div class="col-md-3 col-12">
+                        <div class="col-md-4 col-12">
+                            <div class="form-group">
+                                <label for="Voyage">Voyage / Vessel</label>
+                                <input type="text" name="Voyage" id="Voyage" value="{{ $si->Voyage }}" class="form-control shadow-sm" required />
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Shipper">Shipper</label>
                                 <select name="Shipper" id="Shipper" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
-                                        <option value="{{ $shipper->Supplier_ID }}" {{ $si->Shipper == $shipper->Supplier_ID ? 'selected' : '' }}>{{ $shipper->Company_Name }}</option>
+                                        <option value="{{ $shipper->Supplier_ID }}" data-address="{{ $shipper->Address }}" {{ $si->Shipper == $shipper->Supplier_ID ? 'selected' : '' }}>{{ $shipper->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label for="Shipper_Address">Shipper Address</label>
+                                <textarea name="Shipper_Address" id="Shipper_Address" rows="2" class="form-control" placeholder="Alamat Shipper">{{ $shipperAddr }}</textarea>
+                            </div>
                         </div>
-                        <div class="col-md-3 col-12">
+                        <div class="col-md-4 col-12">
+                            <div class="form-group">
+                                <label for="Consignee">Consignee</label>
+                                <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
+                                    <option value="">-- Pilih Consignee --</option>
+                                    @foreach ($companies as $consignee)
+                                        <option value="{{ $consignee->Supplier_ID }}" data-address="{{ $consignee->Address }}" {{ $si->Consignee == $consignee->Supplier_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="Consignee_Address">Consignee Address</label>
+                                <textarea name="Consignee_Address" id="Consignee_Address" rows="2" class="form-control" placeholder="Alamat Consignee">{{ $consigneeAddr }}</textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Notify">Notify Party</label>
                                 <select name="Notify" id="Notify" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Notify --</option>
                                     @foreach ($companies as $notify)
-                                        <option value="{{ $notify->Supplier_ID }}" {{ $si->Notify == $notify->Supplier_ID ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
+                                        <option value="{{ $notify->Supplier_ID }}" data-address="{{ $notify->Address }}" {{ $si->Notify == $notify->Supplier_ID ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                        </div>
-                        <div class="col-md-3 col-12">
                             <div class="form-group">
-                                <label for="Destination_Letter">Destination Letter</label>
-                                <select name="Destination_Letter" id="Destination_Letter" class="form-control shadow-sm" required>
-                                    <option value="">-- Pilih Destination Letter --</option>
-                                    @foreach ($companies as $destinationLetter)
-                                        <option value="{{ $destinationLetter->Supplier_ID }}" {{ $si->Destination_Letter == $destinationLetter->Supplier_ID ? 'selected' : '' }}>{{ $destinationLetter->Company_Name }}</option>
-                                    @endforeach
-                                </select>
+                                <label for="Notify_Address">Notify Party Address</label>
+                                <textarea name="Notify_Address" id="Notify_Address" rows="2" class="form-control" placeholder="Alamat Notify Party">{{ $notifyAddr }}</textarea>
                             </div>
                         </div>
-                        <div class="col-md-3 col-12">
+                        <div class="col-md-12 col-12">
                             <div class="form-group">
-                                <label for="Voyage">Voyage / Vessel</label>
-                                <input type="text" name="Voyage" id="Voyage" value="{{ $si->Voyage }}" class="form-control shadow-sm" required />
+                                <label for="Destination_Port">Destination Port</label>
+                                <input type="text" id="Destination_Port" name="Destination_Port" class="form-control" value="{{ $si->Destination_Port }}" />
                             </div>
                         </div>
                         <div class="col-12">
@@ -177,12 +189,7 @@
                         <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Product_Name">Product Name</label>
-                                <select name="Product_Name" id="Product_Name" class="form-control shadow-sm">
-                                    <option value="">-- Pilih Product --</option>
-                                    @foreach ($masProducts as $item)
-                                        <option value="{{ $item->description }}" {{ $item->description == $si->Product_Name ? 'selected' : '' }}>{{ $item->description }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" name="Product_Name" id="Product_Name" value="{{ $si->Product_Name }}" class="form-control" />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
@@ -231,7 +238,7 @@
 
     function initShipmentInstructionSelect2(selector) {
         $(selector).each(function() {
-            if ($(this).hasClass('select2-hidden-accessible')) {
+            if (!$(this).is('select') || $(this).hasClass('select2-hidden-accessible')) {
                 return;
             }
 
@@ -284,8 +291,28 @@
         initShipmentInstructionSelect2('#containerList select');
     }
 
+    function updateAddressFromSelectedCompany(selectSelector, addressSelector) {
+        var selectedOpt = $(selectSelector).find('option:selected');
+        var addr = selectedOpt.data('address');
+        if (typeof addr !== 'undefined') {
+            $(addressSelector).val(addr || '');
+        }
+    }
+
+    $('#Shipper').on('change', function() {
+        updateAddressFromSelectedCompany('#Shipper', '#Shipper_Address');
+    });
+
+    $('#Consignee').on('change', function() {
+        updateAddressFromSelectedCompany('#Consignee', '#Consignee_Address');
+    });
+
+    $('#Notify').on('change', function() {
+        updateAddressFromSelectedCompany('#Notify', '#Notify_Address');
+    });
+
     $(function() {
-        initShipmentInstructionSelect2('#Order_No, #Qty1, #Qty2, #Shipper, #Consignee, #Notify, #Destination_Letter, #Product_Name, #HS_Code');
+        initShipmentInstructionSelect2('#Order_No, #Qty1, #Qty2, #Shipper, #Consignee, #Notify, #Destination_Port, #HS_Code');
         initShipmentInstructionSelect2('#containerList select');
     });
 

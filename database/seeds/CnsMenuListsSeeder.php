@@ -5,7 +5,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Seed ONLY the CNS rows of menu_lists (standalone; does not truncate and
- * does not touch other modules). Idempotent via Menu_ID upserts.
+ * does not touch other modules). Idempotent via Menu_ID upserts, then removes
+ * stale CNS rows that are no longer present in the local snapshot.
+ * Also synchronizes user Sub_Menu for CNS users so new menus appear immediately.
  */
 class CnsMenuListsSeeder extends Seeder
 {
@@ -29,9 +31,12 @@ class CnsMenuListsSeeder extends Seeder
             $count++;
         }
 
-        // The unified procurement entry replaces the old separate Non-UCO menu.
-        DB::table('menu_lists')->where('Menu_ID', 'SI00336')->delete();
+        // Exact CNS-only sync: remove CNS rows not present in the local snapshot.
+        $deleted = DB::table('menu_lists')
+            ->where('Modules', 'CNS')
+            ->whereNotIn('Menu_ID', array_keys($rows))
+            ->delete();
 
-        $this->command->info("CNS menu_lists seeded/updated: {$count} rows");
+        $this->command->info("CNS menu_lists seeded/updated: {$count} rows; removed {$deleted} stale CNS rows");
     }
 }

@@ -351,8 +351,8 @@
                 <tr>
                   <td class="flbl" style="vertical-align:top; padding-top:8px;">To</td>
                   <td class="fval" style="min-height:40px;">
-                    {{ $companies[$shipment->Destination_Letter]->Company_Name }} <br>
-                    {{ $companies[$shipment->Destination_Letter]->Address }}
+                    {{ $companies[$shipment->Destination_Port]->Company_Name }} <br>
+                    {{ $companies[$shipment->Destination_Port]->Address }}
                   </td>
                 </tr>
                 <tr>

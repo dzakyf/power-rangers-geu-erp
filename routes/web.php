@@ -5457,6 +5457,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$siPref-detail", [ShipmentInstructionController::class, 'detailShipmentInstruction']);
     Route::post("$siPref-detail-get-order", [ShipmentInstructionController::class, 'getOrderDetail']);
     Route::post("$siPref-detail-submit", [ShipmentInstructionController::class, 'detailShipmentInstructionSubmit']);
+    Route::post("$siPref-delete", [ShipmentInstructionController::class, 'deleteShipmentInstruction']);
 
     $fsiPref = "cns-export-final-shipment-instruction";
     Route::get("$fsiPref", [FinalShipmentInstructionController::class, 'indexFinalShipmentInstruction']);
@@ -5466,6 +5467,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$fsiPref-new-get-si", [FinalShipmentInstructionController::class, 'getSI']);
     Route::post("$fsiPref-new-submit", [FinalShipmentInstructionController::class, 'newFinalShipmentInstructionSubmit']);
     Route::get("$fsiPref-detail", [FinalShipmentInstructionController::class, 'detailFinalShipmentInstruction']);
+    Route::post("$fsiPref-detail-submit", [FinalShipmentInstructionController::class, 'detailFinalShipmentInstructionSubmit']);
     Route::get("$fsiPref-create-pl", [FinalShipmentInstructionController::class, 'generatePackingList']);
     Route::get("$fsiPref-create-ci", [FinalShipmentInstructionController::class, 'generateCommercialInvoice']);
 
@@ -5540,6 +5542,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::delete("$cnsInventoryPref-delete", [UCOLogisticController::class, 'deleteExportedStock'])->name($cnsInventoryPref . '.delete');
 
     $cnsQualityPref = "cns-quality";
+    Route::get("$cnsQualityPref-external-index", [QualityController::class, 'externalIndexPage'])->name($cnsQualityPref . '.external-index');
+    Route::get("$cnsQualityPref-internal-index", [QualityController::class, 'internalIndexPage'])->name($cnsQualityPref . '.internal-index');
     Route::get("$cnsQualityPref-index", [QualityController::class, 'qualityControlIndexPage'])->name($cnsQualityPref . '.index');
     Route::get("$cnsQualityPref-create", [QualityController::class, 'insertQualityControlPage'])->name($cnsQualityPref . '.create');
     Route::get("$cnsQualityPref-data", [QualityController::class, 'getQualityControlData'])->name($cnsQualityPref . '.data');
@@ -5547,6 +5551,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$cnsQualityPref-submit-edit", [QualityController::class, 'editQualityControl'])->name($cnsQualityPref . '.submit-edit');
     Route::delete("$cnsQualityPref-delete", [QualityController::class, 'deleteQualityControl'])->name($cnsQualityPref . '.delete');
     Route::get("$cnsQualityPref-print", [QualityController::class, 'printQualityControl']);
+    Route::get("$cnsQualityPref-bookings", [QualityController::class, 'bookings'])->name($cnsQualityPref . '.bookings');
 
     $salesOrderCNSPref = "cns-sales-order";
     Route::get("$salesOrderCNSPref", [CNSSalesOrderController::class, 'indexSalesOrder']);

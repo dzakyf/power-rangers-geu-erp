@@ -7,12 +7,16 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call(MenuListsSeeder::class);
+        $this->call(UserSeeder::class);
         $this->call(RbacSeeder::class);
         $this->call(HcgaPermissionSeeder::class);
         $this->call(MasterBankSeeder::class);
         $this->call(ApprovalLevelSeeder::class);
         $this->call(ApprovalDemoDataSeeder::class);
         $this->call(ConfigSystemSeeder::class);
+        $this->call(CnsMenuSampleDataSeeder::class);
+        $this->call(CnsQualityControlSeeder::class);
+        $this->call(CnsFlowSeeder::class);
 
         DB::table('users')->insert([
             'username' => "nirone",

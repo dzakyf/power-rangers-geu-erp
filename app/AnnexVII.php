@@ -15,7 +15,7 @@ class AnnexVII extends Model
         'Shipper', 'arranger_address', 'arranger_contact', 'arranger_tel', 'arranger_email',
         'Consignee', 'consignee_email', 'consignee_telp', 'actual_quantity',
         'ETD', 'ETA', 'Stuffing', 'POL', 'POD', 'PEB_Date', 'PEB_No', 'BL_No', 'HS_Code',
-        'Contract_No', 'Delivery_Terms', 'Voyage', 'Destination_Letter', 'Notify',
+        'Contract_No', 'Delivery_Terms', 'Voyage', 'Destination_Port', 'Notify',
         'carrier1_name','carrier1_address','carrier1_phone','carrier1_email','carrier1_date','carrier1_licence',
         'carrier2_name','carrier2_address','carrier2_contact','carrier2_tel','carrier2_fax','carrier2_email','carrier2_date','carrier2_licence',
         'carrier3_name','carrier3_address','carrier3_contact','carrier3_tel','carrier3_fax','carrier3_email','carrier3_transport','carrier3_date','carrier3_licence',

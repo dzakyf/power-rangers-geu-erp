@@ -198,6 +198,65 @@ class FinalShipmentInstructionController extends Controller
         return view('cns.export.fsi-detail', compact('vss', 'sis', 'companies', 'masProducts', 'shipment'));
     }
 
+    public function detailFinalShipmentInstructionSubmit(Request $request)
+    {
+        $id = $request->input('id');
+        $si = null;
+        if ($id) {
+            $si = ShipmentInstruction::where('id', $id)->first();
+        }
+        if (!$si && $request->filled('SI_No')) {
+            $si = ShipmentInstruction::where('SI_No', $request->input('SI_No'))->first();
+        }
+
+        if (!$si) {
+            return response()->json(['error' => 'Shipment Instruction not found'], 404);
+        }
+
+        $updateData = [
+            'Updated_Date' => now(),
+            'Updated_By' => auth()->user()->username,
+        ];
+
+        if ($request->filled('Shipper')) {
+            $updateData['Shipper'] = $request->Shipper;
+        }
+        if ($request->has('Shipper_Address')) {
+            $updateData['Shipper_Address'] = $request->Shipper_Address;
+        }
+        if ($request->filled('Consignee')) {
+            $updateData['Consignee'] = $request->Consignee;
+        }
+        if ($request->has('Consignee_Address')) {
+            $updateData['Consignee_Address'] = $request->Consignee_Address;
+        }
+        if ($request->filled('Notify')) {
+            $updateData['Notify'] = $request->Notify;
+        }
+        if ($request->has('Notify_Address')) {
+            $updateData['Notify_Address'] = $request->Notify_Address;
+        }
+        if ($request->has('PEB_No')) {
+            $updateData['PEB_No'] = $request->PEB_No;
+        }
+        if ($request->has('PEB_Date')) {
+            $updateData['PEB_Date'] = $request->PEB_Date;
+        }
+        if ($request->has('BL_No')) {
+            $updateData['BL_No'] = $request->BL_No;
+        }
+        if ($request->has('POL')) {
+            $updateData['POL'] = $request->POL;
+        }
+        if ($request->has('POD')) {
+            $updateData['POD'] = $request->POD;
+        }
+
+        $si->update($updateData);
+
+        return response("success:Done Update Final SI");
+    }
+
     public function generatePackingList(Request $request)
     {
         $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();

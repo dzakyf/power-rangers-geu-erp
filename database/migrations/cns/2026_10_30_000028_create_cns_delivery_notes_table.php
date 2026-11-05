@@ -15,7 +15,9 @@ class CreateCnsDeliveryNotesTable extends Migration
         Schema::create('delivery_notes', function (Blueprint $table) {
             $table->increments('ID');
             $table->string('DN_No', 100);
+            $table->string('Shipper', 100)->nullable();
             $table->string('Consignee', 100)->nullable();
+            $table->text('Consignee_Address')->nullable();
             $table->string('Supplier_ISCC_Ref', 200)->nullable();
             $table->string('Contract_No', 100)->nullable();
             $table->string('Product', 255)->default('Used Cooking Oil (UCO) entirely of Vege-Oil Origin');

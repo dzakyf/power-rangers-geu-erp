@@ -142,8 +142,8 @@ $Saya =  Auth::user()->username;
 							<input type="text" id="Voyage" name="Voyage" class="form-control" value="{{ old('Voyage', $shipment->Voyage ?? '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
-							<label for="Destination_Letter">Destination Letter</label>
-							<input type="text" id="Destination_Letter" name="Destination_Letter" class="form-control" value="{{ old('Destination_Letter', $shipment->Destination_Letter ?? '') }}" />
+							<label for="Destination_Port">Destination Port</label>
+							<input type="text" id="Destination_Port" name="Destination_Port" class="form-control" value="{{ old('Destination_Port', $shipment->Destination_Port ?? '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="Notify">Notify</label>

@@ -30,7 +30,7 @@ class ShippingInstructionPrintService
         $consigneeRow = $this->companyByCode($shipment->Consignee)
             ?: $buyerSupplier;
         $notifyRow = $this->companyByCode($shipment->Notify);
-        $destinationRow = $this->companyByCode($shipment->Destination_Letter);
+        $destinationRow = $this->companyByCode($shipment->Destination_Port);
 
         $consignee = $consigneeRow
             ? $this->companyArray($consigneeRow)
@@ -42,6 +42,11 @@ class ShippingInstructionPrintService
 
         $notify = $notifyRow ? $this->companyArray($notifyRow) : $consignee;
         $destination = $destinationRow ? $this->companyArray($destinationRow) : $consignee;
+
+        $shipper = $this->withShipmentAddress($shipper, $shipment->Shipper_Address ?? null);
+        $consignee = $this->withShipmentAddress($consignee, $shipment->Consignee_Address ?? null);
+        $notify = $this->withShipmentAddress($notify, $shipment->Notify_Address ?? null);
+        $destination = $this->withShipmentAddress($destination, $shipment->Destination_Letter_Address ?? null);
 
         $contractQuantity = $this->contractQuantity($contract);
         $quantity = $this->first([
@@ -207,6 +212,17 @@ class ShippingInstructionPrintService
         }
 
         return $this->companyCache[$code];
+    }
+
+    private function withShipmentAddress(array $company, $address): array
+    {
+        $address = trim((string) $address);
+
+        if ($address !== '') {
+            $company['address'] = $address;
+        }
+
+        return $company;
     }
 
     private function companyArray($row): array

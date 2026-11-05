@@ -44,10 +44,10 @@ class ShipmentInstructionSearchTest extends TestCase
         $this->assertStringContainsString('id="Shipper"', $html);
         $this->assertStringContainsString('id="Consignee"', $html);
         $this->assertStringContainsString('id="Notify"', $html);
-        $this->assertStringContainsString('id="Destination_Letter"', $html);
+        $this->assertStringContainsString('id="Destination_Port"', $html);
 
         $this->assertStringContainsString(
-            "initShipmentInstructionSelect2('#Contract_ID, #Shipper, #Consignee, #Notify, #Destination_Letter, #Product_Name, #HS_Code')",
+            "initShipmentInstructionSelect2('#Contract_ID, #Shipper, #Consignee, #Notify, #Destination_Port, #HS_Code')",
             $html
         );
         $this->assertStringContainsString("trigger('change.select2')", $html);

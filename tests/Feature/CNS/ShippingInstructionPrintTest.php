@@ -56,7 +56,7 @@ class ShippingInstructionPrintTest extends TestCase
             'Contract_No' => '',
             'Consignee' => '',
             'Notify' => '',
-            'Destination_Letter' => '',
+            'Destination_Port' => '',
             'Qty' => '',
         ]);
 
@@ -308,7 +308,7 @@ class ShippingInstructionPrintTest extends TestCase
             'Shipper' => '',
             'Consignee' => '',
             'Notify' => '',
-            'Destination_Letter' => '',
+            'Destination_Port' => '',
             'Delivery_Terms' => '',
             'Contract_No' => '',
             'Contract_ID' => $contractId,

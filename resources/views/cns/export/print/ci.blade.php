@@ -168,7 +168,7 @@
                     </div>
                 </td>
                 <td style="text-align:right;margin-top:0">
-                    <img src="{{ $buyer ? $companies[$invoice->Shipper]->Logo ?? asset('/assets/images/large-logo.png') : '' }}" alt="Logo" class="large-logo" height="70" align="center">
+                    <img src="{{ $companies[$invoice->Shipper]->Logo ?? asset('/assets/images/large-logo.png') }}" alt="Logo" class="large-logo" height="70" align="center">
                 </td>
             </tr>
         </table>
