@@ -30,6 +30,7 @@ class CommercialInvoiceController extends Controller
         echo "<rows>";
 
         $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        $companies = [];
         foreach ($company as $key => $value) {
             $companies[$value->Supplier_ID] = $value->Company_Name;
         }
@@ -37,15 +38,16 @@ class CommercialInvoiceController extends Controller
         $nomor = 1;
         $cis = CommercialInvoice::whereBetween('Inv_Date', [$request->tgl1, $request->tgl2])->get();
         foreach ($cis as $key => $value) {
+            $unitPrice = (!empty($value->Qty) && (float)$value->Qty != 0) ? ($value->Amount / $value->Qty) : 0;
             echo "<row id=\"$value->ID\">";
                 echo "<cell>$nomor</cell>";
                 echo "<cell>".htmlspecialchars($value->SI_No)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Inv_No)."</cell>";
                 echo "<cell>".htmlspecialchars(date("d F Y", strtotime($value->Inv_Date)))."</cell>";
-                echo "<cell>".htmlspecialchars($companies[$value->Consignee])."</cell>";
+                echo "<cell>".htmlspecialchars($companies[$value->Consignee] ?? '')."</cell>";
                 echo "<cell>".htmlspecialchars($value->Description)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Qty)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Amount / $value->Qty)."</cell>";
+                echo "<cell>".htmlspecialchars($unitPrice)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Amount)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Amount)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Advance_Payment)."</cell>";
