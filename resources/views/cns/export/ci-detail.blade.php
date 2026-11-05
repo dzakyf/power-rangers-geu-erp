@@ -63,7 +63,7 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Unit_Price">Unit Price (MT)</label>
-                                <input type="text" name="Unit_Price" id="Unit_Price" value="{{ $ci->Amount/$ci->Qty }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required {{ $ro['input'] }} />
+                                <input type="text" name="Unit_Price" id="Unit_Price" value="{{ (!empty($ci->Qty) && (float)$ci->Qty != 0) ? ($ci->Amount / $ci->Qty) : 0 }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
