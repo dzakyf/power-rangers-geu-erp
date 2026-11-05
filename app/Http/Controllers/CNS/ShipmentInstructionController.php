@@ -203,9 +203,12 @@ class ShipmentInstructionController extends Controller
             'Contract_No' => $request->input('Contract_No') ?: $contract->Contract_No,
             'Delivery_Terms' => $request->input('Delivery_Terms') ?: $contract->Incoterms,
             'Consignee' => $consignee,
+            'Consignee_Address' => (string) $request->input('Consignee_Address', ''),
             'Shipper' => (string) $request->input('Shipper', ''),
+            'Shipper_Address' => (string) $request->input('Shipper_Address', ''),
             'Notify' => (string) $request->input('Notify', ''),
-            'Destination_Letter' => (string) $request->input('Destination_Letter', ''),
+            'Notify_Address' => (string) $request->input('Notify_Address', ''),
+            'Destination_Port' => (string) $request->input('Destination_Port', ''),
             'Shipped_By' => '',
             'Voyage' => '',
             'ETD' => null,
@@ -224,6 +227,55 @@ class ShipmentInstructionController extends Controller
         ]);
 
         return response()->json(['status' => 'success', 'message' => 'Draft Shipping Instruction created successfully']);
+    }
+
+    public function deleteShipmentInstruction(Request $request)
+    {
+        $id = $request->input('id') ?? $request->input('Task');
+
+        if (!$id) {
+            return response()->json(['status' => 'error', 'message' => 'ID Shipping Instruction tidak ditemukan.'], 400);
+        }
+
+        $si = ShipmentInstruction::where('id', $id)
+            ->orWhere('SI_No', $id)
+            ->first();
+
+        if (!$si) {
+            return response()->json(['status' => 'error', 'message' => 'Shipping Instruction tidak ditemukan.'], 404);
+        }
+
+        if ($si->Status === 'FINAL' || !empty($si->Final_SI_No)) {
+            return response()->json(['status' => 'error', 'message' => 'Shipping Instruction yang sudah menjadi Final SI tidak dapat dihapus.'], 422);
+        }
+
+        if (!empty($si->SI_No)) {
+            $hasPl = DB::table('packing_lists')->where('SI_No', $si->SI_No)->exists();
+            $hasInv = DB::table('commercial_invoices')->where('SI_No', $si->SI_No)->exists();
+            $hasWbt = DB::table('weight_bridge_ticket')->where('SI_No', $si->SI_No)->exists();
+            $hasAnnex = DB::table('annex_vii')->where('SI_No', $si->SI_No)->exists();
+
+            if ($hasPl || $hasInv || $hasWbt || $hasAnnex) {
+                return response()->json(['status' => 'error', 'message' => 'Shipping Instruction tidak dapat dihapus karena sudah memiliki dokumen turunan.'], 422);
+            }
+        }
+
+        DB::transaction(function () use ($si) {
+            if ($si->SI_No) {
+                $assignedContainerIds = VesselScheduleDtl::active()->where('SI_No', $si->SI_No)->pluck('ID')->all();
+                if (!empty($assignedContainerIds) && $si->Order_No) {
+                    $order = VesselSchedule::where('Order_No', $si->Order_No)->orderBy('id')->first();
+                    if ($order) {
+                        $this->writeSiScheduleLog($order, 'DELETE SI', $assignedContainerIds);
+                    }
+                }
+                VesselScheduleDtl::active()->where('SI_No', $si->SI_No)->update(['SI_No' => null]);
+            }
+
+            $si->delete();
+        });
+
+        return response()->json(['status' => 'success', 'message' => 'Shipping Instruction berhasil dihapus.']);
     }
 
     public function generateFinalShipmentInstruction(Request $request)
@@ -358,9 +410,12 @@ class ShipmentInstructionController extends Controller
 
         $si->SI_Date = $request->input('SI_Date');
         $si->Shipper = (string) $request->input('Shipper', '');
+        $si->Shipper_Address = (string) $request->input('Shipper_Address', '');
         $si->Consignee = (string) $request->input('Consignee', '');
+        $si->Consignee_Address = (string) $request->input('Consignee_Address', '');
         $si->Notify = (string) $request->input('Notify', '');
-        $si->Destination_Letter = (string) $request->input('Destination_Letter', '');
+        $si->Notify_Address = (string) $request->input('Notify_Address', '');
+        $si->Destination_Port = (string) $request->input('Destination_Port', '');
         $si->Delivery_Terms = (string) $request->input('Delivery_Terms', '');
         $si->Contract_No = (string) $request->input('Contract_No', '');
         $si->PEB_No = (string) $request->input('PEB_No', '');

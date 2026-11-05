@@ -49,7 +49,7 @@ class CreateAnnexViiTable extends Migration
             $table->string('Contract_No', 100)->nullable();
             $table->string('Delivery_Terms', 100)->nullable();
             $table->string('Voyage', 100)->nullable();
-            $table->string('Destination_Letter', 100)->nullable();
+            $table->string('Destination_Port', 100)->nullable();
             $table->string('Notify', 200)->nullable();
             $table->string('carrier', 200)->nullable();
 

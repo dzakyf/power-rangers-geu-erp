@@ -9,32 +9,125 @@
     $bpSubMenu = $bpUser->Sub_Menu ?? '';
     $bpCurrent = trim(request()->path(), '/');
 
-    // Helper untuk mengecek apakah path tertentu adalah menu yang sedang aktif
-    $bpActive = function ($path) use ($bpCurrent) {
-        $p = trim((string) $path, '/');
-        if ($p === '' || $p === '#' || strpos($p, 'javascript:') === 0) {
-            return false;
-        }
-        return $bpCurrent === $p || strpos($bpCurrent, $p . '/') === 0 || strpos($bpCurrent, $p) === 0;
-    };
-
     // Build an absolute URL for a menu Path_Loc; keep '#' and full URLs as-is.
     $bpUrl = function ($path) {
         $p = trim((string) $path);
-        if ($p === '') {
+        if ($p === '' || $p === '#' || strpos($p, 'javascript:') === 0) {
             return 'javascript:void(0);';
         }
-        if ($p === '#' || strpos($p, 'http') === 0 || strpos($p, 'javascript:') === 0) {
+        if (strpos($p, 'http://') === 0 || strpos($p, 'https://') === 0) {
             return $p;
         }
         return url($p);
     };
 
-    $bpTop = DB::table('menu_lists')
+    $normalizePath = function ($path) {
+        $p = trim((string) $path);
+        if ($p === '' || $p === '#' || strpos($p, 'javascript:') === 0) {
+            return '';
+        }
+        if (strpos($p, 'http://') === 0 || strpos($p, 'https://') === 0) {
+            $p = parse_url($p, PHP_URL_PATH);
+        }
+        return trim(explode('?', (string) $p)[0], '/');
+    };
+
+    $allMenus = DB::table('menu_lists')
         ->where('Modules', $adminorMenuModule)
-        ->where('Position', 2)
         ->orderBy('Urutan', 'ASC')
         ->get();
+
+    $exactMatchExists = false;
+    $bestPrefixMatchPath = null;
+    $bestPrefixMatchLen = 0;
+
+    foreach ($allMenus as $m) {
+        $norm = $normalizePath($m->Path_Loc);
+        if ($norm === '') {
+            continue;
+        }
+        if ($bpCurrent === $norm || request()->is($norm)) {
+            $exactMatchExists = true;
+            break;
+        }
+        if (strpos($bpCurrent, $norm . '-') === 0 || strpos($bpCurrent, $norm . '/') === 0 || request()->is($norm . '/*')) {
+            $len = strlen($norm);
+            if ($len > $bestPrefixMatchLen) {
+                $bestPrefixMatchLen = $len;
+                $bestPrefixMatchPath = $norm;
+            }
+        }
+    }
+
+    $bpActive = function ($path) use ($bpCurrent, $normalizePath, $exactMatchExists, $bestPrefixMatchPath) {
+        $norm = $normalizePath($path);
+        if ($norm === '') {
+            return false;
+        }
+        if ($exactMatchExists) {
+            return $bpCurrent === $norm || request()->is($norm);
+        }
+        return $norm === $bestPrefixMatchPath;
+    };
+
+    $canAccess = function ($menuId) use ($bpSubMenu) {
+        if ($bpSubMenu === '' || $bpSubMenu === null) {
+            return true;
+        }
+        return strpos($bpSubMenu, $menuId) !== false;
+    };
+
+    $bpTop = $allMenus->where('Position', 2);
+    $menuTree = [];
+
+    foreach ($bpTop as $bpDm) {
+        if (!$canAccess($bpDm->Menu_ID)) {
+            continue;
+        }
+
+        $bpSecond = $allMenus->where('Parent_Menu', $bpDm->Menu_ID)->where('Position', 3);
+        $dmActive = $bpActive($bpDm->Path_Loc);
+        $secondTree = [];
+
+        foreach ($bpSecond as $bpSb) {
+            if (!$canAccess($bpSb->Menu_ID)) {
+                continue;
+            }
+
+            $bpThird = $allMenus->where('Parent_Menu', $bpSb->Menu_ID)->where('Position', 4);
+            $sbActive = $bpActive($bpSb->Path_Loc);
+            $thirdTree = [];
+
+            foreach ($bpThird as $bpSm) {
+                if ($canAccess($bpSm->Menu_ID)) {
+                    $smActive = $bpActive($bpSm->Path_Loc);
+                    if ($smActive) {
+                        $sbActive = true;
+                    }
+                    $thirdTree[] = [
+                        'item' => $bpSm,
+                        'active' => $smActive,
+                    ];
+                }
+            }
+
+            if ($sbActive) {
+                $dmActive = true;
+            }
+
+            $secondTree[] = [
+                'item' => $bpSb,
+                'active' => $sbActive,
+                'children' => $thirdTree,
+            ];
+        }
+
+        $menuTree[] = [
+            'item' => $bpDm,
+            'active' => $dmActive,
+            'children' => $secondTree,
+        ];
+    }
 @endphp
 
 <div class="main-sidebar-header active">
@@ -68,106 +161,55 @@
     </div>
 
     <ul class="side-menu">
-        @foreach ($bpTop as $bpDm)
-            @if (strpos($bpSubMenu, $bpDm->Menu_ID) !== false)
-                @php
-                    $bpSecond = DB::table('menu_lists')
-                        ->where('Modules', $adminorMenuModule)
-                        ->where('Parent_Menu', $bpDm->Menu_ID)
-                        ->where('Position', 3)
-                        ->orderBy('Urutan', 'ASC')
-                        ->get();
-
-                    // Cek apakah ada menu turunan di Level 2 atau Level 3 yang aktif
-                    $topHasActiveChild = false;
-                    $level2Data = [];
-
-                    foreach ($bpSecond as $bpSb) {
-                        if (strpos($bpSubMenu, $bpSb->Menu_ID) === false) {
-                            continue;
-                        }
-
-                        $bpThird = DB::table('menu_lists')
-                            ->where('Modules', $adminorMenuModule)
-                            ->where('Parent_Menu', $bpSb->Menu_ID)
-                            ->where('Position', 4)
-                            ->orderBy('Urutan', 'ASC')
-                            ->get();
-
-                        $secondIsDirectActive = $bpActive($bpSb->Path_Loc);
-                        $secondHasActiveChild = false;
-
-                        foreach ($bpThird as $bpSm) {
-                            if (strpos($bpSubMenu, $bpSm->Menu_ID) !== false && $bpActive($bpSm->Path_Loc)) {
-                                $secondHasActiveChild = true;
-                                break;
-                            }
-                        }
-
-                        $subExpanded = ($secondIsDirectActive || $secondHasActiveChild);
-                        if ($subExpanded) {
-                            $topHasActiveChild = true;
-                        }
-
-                        $level2Data[] = [
-                            'item' => $bpSb,
-                            'third' => $bpThird,
-                            'isDirectActive' => $secondIsDirectActive,
-                            'hasActiveChild' => $secondHasActiveChild,
-                            'isExpanded' => $subExpanded,
-                        ];
-                    }
-
-                    $topIsDirectActive = $bpActive($bpDm->Path_Loc);
-                    $topExpanded = ($topIsDirectActive || $topHasActiveChild);
-                @endphp
-                <li class="slide {{ $topExpanded ? 'active is-expanded' : '' }}">
-                    <a class="side-menu__item {{ $topExpanded ? 'active' : '' }}"
-                       data-bs-toggle="slide"
-                       href="{{ $bpUrl($bpDm->Path_Loc) }}">
-                        <i class="side-menu__icon bx bx-cube-alt"></i>
-                        <span class="side-menu__label">{{ $bpDm->Name }}</span>
+        @foreach ($menuTree as $dm)
+            @php
+                $hasSecond = count($dm['children']) > 0;
+            @endphp
+            <li class="slide {{ $dm['active'] ? 'active is-expanded' : '' }}">
+                <a class="side-menu__item {{ $dm['active'] ? 'active' : '' }}"
+                   @if ($hasSecond) data-bs-toggle="slide" @endif
+                   href="{{ $bpUrl($dm['item']->Path_Loc) }}">
+                    <i class="side-menu__icon bx bx-cube-alt"></i>
+                    <span class="side-menu__label">{{ $dm['item']->Name }}</span>
+                    @if ($hasSecond)
                         <i class="angle fe fe-chevron-down"></i>
-                    </a>
-                    @if (count($level2Data) > 0)
-                        <ul class="slide-menu {{ $topExpanded ? 'open' : '' }}" style="{{ $topExpanded ? 'display: block;' : '' }}">
-                            @foreach ($level2Data as $l2)
-                                @php
-                                    $bpSb = $l2['item'];
-                                    $bpThird = $l2['third'];
-                                    $subExpanded = $l2['isExpanded'];
-                                    $hasThird = count($bpThird) > 0;
-                                @endphp
-                                <li class="{{ $hasThird ? 'sub-slide' : 'slide' }} {{ $subExpanded ? 'is-expanded' : '' }}">
-                                    <a class="{{ $hasThird ? 'sub-side-menu__item' : 'slide-item' }} {{ $subExpanded ? 'active' : '' }}"
-                                       @if ($hasThird) data-bs-toggle="sub-slide" @endif
-                                       href="{{ $bpUrl($bpSb->Path_Loc) }}">
-                                        <span class="sub-side-menu__label">{{ $bpSb->Name }}</span>
-                                        @if ($hasThird)
-                                            <i class="sub-angle fe fe-chevron-down"></i>
-                                        @endif
-                                    </a>
-                                    @if ($hasThird)
-                                        <ul class="sub-slide-menu {{ $subExpanded ? 'open' : '' }}" style="{{ $subExpanded ? 'display: block;' : '' }}">
-                                            @foreach ($bpThird as $bpSm)
-                                                @if (strpos($bpSubMenu, $bpSm->Menu_ID) !== false)
-                                                    @php
-                                                        $thirdActive = $bpActive($bpSm->Path_Loc);
-                                                    @endphp
-                                                    <li class="{{ $thirdActive ? 'active' : '' }}">
-                                                        <a class="sub-side-menu__item {{ $thirdActive ? 'active' : '' }}"
-                                                           href="{{ $bpUrl($bpSm->Path_Loc) }}">{{ $bpSm->Name }}</a>
-                                                    </li>
-                                                @endif
-                                            @endforeach
-                                        </ul>
-                                    @endif
-                                </li>
-                            @endforeach
-                        </ul>
                     @endif
-                </li>
-            @endif
+                </a>
+                @if ($hasSecond)
+                    <ul class="slide-menu {{ $dm['active'] ? 'open' : '' }}" style="{{ $dm['active'] ? 'display: block;' : '' }}">
+                        @foreach ($dm['children'] as $sb)
+                            @php
+                                $hasThird = count($sb['children']) > 0;
+                            @endphp
+                            @if ($hasThird)
+                                <li class="sub-slide {{ $sb['active'] ? 'active is-expanded' : '' }}">
+                                    <a class="slide-item {{ $sb['active'] ? 'active' : '' }}"
+                                       data-bs-toggle="sub-slide"
+                                       href="{{ $bpUrl($sb['item']->Path_Loc) }}">
+                                        <span class="sub-side-menu__label">{{ $sb['item']->Name }}</span>
+                                        <i class="sub-angle fe fe-chevron-down"></i>
+                                    </a>
+                                    <ul class="sub-slide-menu {{ $sb['active'] ? 'open' : '' }}" style="{{ $sb['active'] ? 'display: block;' : '' }}">
+                                        @foreach ($sb['children'] as $sm)
+                                            <li>
+                                                <a class="sub-side-menu__item {{ $sm['active'] ? 'active' : '' }}"
+                                                   href="{{ $bpUrl($sm['item']->Path_Loc) }}">{{ $sm['item']->Name }}</a>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </li>
+                            @else
+                                <li class="slide {{ $sb['active'] ? 'active' : '' }}">
+                                    <a class="slide-item {{ $sb['active'] ? 'active' : '' }}"
+                                       href="{{ $bpUrl($sb['item']->Path_Loc) }}">
+                                        <span class="sub-side-menu__label">{{ $sb['item']->Name }}</span>
+                                    </a>
+                                </li>
+                            @endif
+                        @endforeach
+                    </ul>
+                @endif
+            </li>
         @endforeach
     </ul>
 
@@ -177,30 +219,38 @@
 </div>
 
 <script>
-    // Memastikan menu aktif dan seluruh parent tree terbuka otomatis saat DOM siap
-    document.addEventListener("DOMContentLoaded", function() {
-        try {
-            var activeItems = document.querySelectorAll(".app-sidebar .sub-side-menu__item.active, .app-sidebar .slide-item.active, .app-sidebar .side-menu__item.active");
-            activeItems.forEach(function(el) {
-                // Buka semua parent UL dan tambahkan kelas is-expanded pada LI
-                var parent = el.parentElement;
-                while (parent && !parent.classList.contains("side-menu")) {
-                    if (parent.tagName === "UL" && (parent.classList.contains("slide-menu") || parent.classList.contains("sub-slide-menu"))) {
-                        parent.style.display = "block";
-                        parent.classList.add("open");
+    (function () {
+        function keepActiveMenuOpen() {
+            var activeItems = document.querySelectorAll('.main-sidemenu .sub-side-menu__item.active, .main-sidemenu .slide-item.active');
+            activeItems.forEach(function (el) {
+                var subSlide = el.closest('.sub-slide');
+                if (subSlide) {
+                    subSlide.classList.add('is-expanded', 'active');
+                    var subSlideA = subSlide.querySelector('a.slide-item');
+                    if (subSlideA) subSlideA.classList.add('active');
+                    var subMenu = subSlide.querySelector('.sub-slide-menu');
+                    if (subMenu) {
+                        subMenu.classList.add('open');
+                        subMenu.style.display = 'block';
                     }
-                    if (parent.tagName === "LI" && (parent.classList.contains("slide") || parent.classList.contains("sub-slide"))) {
-                        parent.classList.add("is-expanded");
-                        var link = parent.querySelector(":scope > a");
-                        if (link) {
-                            link.classList.add("active");
-                        }
+                }
+                var slide = el.closest('.slide');
+                if (slide) {
+                    slide.classList.add('is-expanded', 'active');
+                    var slideA = slide.querySelector('a.side-menu__item');
+                    if (slideA) slideA.classList.add('active');
+                    var slideMenu = slide.querySelector('.slide-menu');
+                    if (slideMenu) {
+                        slideMenu.classList.add('open');
+                        slideMenu.style.display = 'block';
                     }
-                    parent = parent.parentElement;
                 }
             });
-        } catch (e) {
-            console.warn("Sidebar auto-expand handler:", e);
         }
-    });
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', keepActiveMenuOpen);
+        } else {
+            keepActiveMenuOpen();
+        }
+    })();
 </script>

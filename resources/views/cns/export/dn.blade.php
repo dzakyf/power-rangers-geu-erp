@@ -66,12 +66,12 @@ $Saya = Auth::user()->username;
     }
     DeliveryNote = new dhtmlXGridObject('DeliveryNote');
     DeliveryNote.setImagePath("./dhtmlx/imgs/");
-    DeliveryNote.setHeader("No,DN No,Delivery Date,Consignee,Contract No,Product,Total Tonnage (MT),Country of Origin,Status");
-    DeliveryNote.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-    DeliveryNote.setInitWidths("50,180,120,180,150,250,130,130,100");
-    DeliveryNote.setColAlign("center,left,left,left,left,left,right,left,center");
-    DeliveryNote.setColSorting("int,str,str,str,str,str,str,str,str");
-    DeliveryNote.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro");
+    DeliveryNote.setHeader("No,DN No,Entitas Penerbit,Delivery Date,Consignee,Contract No,Product,Total Tonnage (MT),Country of Origin,Status");
+    DeliveryNote.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+    DeliveryNote.setInitWidths("50,160,180,100,160,140,220,120,120,90");
+    DeliveryNote.setColAlign("center,left,left,left,left,left,left,right,left,center");
+    DeliveryNote.setColSorting("int,str,str,str,str,str,str,str,str,str");
+    DeliveryNote.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro");
     DeliveryNote.enableSmartRendering(true, 150);
     DeliveryNote.attachEvent("onRowDblClicked", DeliveryNoteKlik);
     DeliveryNote.setSkin("dhx_skyblue");

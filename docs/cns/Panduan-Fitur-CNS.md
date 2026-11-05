@@ -30,7 +30,7 @@ Seluruh penjelasan ditulis dengan bahasa formal yang mudah dipahami, termasuk pe
 11. Menu Master Data
 12. Glosarium
 
-> Catatan: Setelah dokumen dibuka pada Microsoft Word, silakan klik kanan pada area daftar isi lalu pilih *Update Field* agar nomor halaman tampil dengan benar.
+> Catatan: Setelah dokumen dibuka pada Microsoft Word, silakan klik kanan pada area daftar isi lalu pilih _Update Field_ agar nomor halaman tampil dengan benar.
 
 ---
 
@@ -82,17 +82,17 @@ Sebagian besar dokumen pada modul CNS dibuat secara berjenjang. Alur pembuatan d
 6. **Annex VII** dibuat berdasarkan **FSI** sebagai dokumen pergerakan lintas batas.
 7. **Sustainability Declaration** dan **Delivery Note** merupakan dokumen mandiri yang tidak dihasilkan dari dokumen lain.
 
-| Dokumen | Dihasilkan dari | Keterangan |
-| --- | --- | --- |
-| Shipment Instruction (SI) | Boking / Jadwal Kapal | Nomor SI dibuat otomatis |
-| Final Shipment Instruction (FSI) | SI | Menjadi kunci dokumen hilir |
-| Packing List (PL) | FSI | Terdapat varian cetak untuk pembeli |
-| Commercial Invoice (CI) | FSI | Berstatus draf hingga difinalisasi |
-| Weight Bridge Ticket (WBT) | Packing List | Memuat unggahan tiket timbangan |
-| Certificate of Origin (COO) | Weight Bridge Ticket | Rincian kontainer dan segel |
-| Annex VII | FSI | Dokumen pergerakan lintas batas |
-| Sustainability Declaration | Mandiri | Tidak terhubung dokumen lain |
-| Delivery Note | Mandiri | Tidak terhubung dokumen lain |
+| Dokumen                          | Dihasilkan dari       | Keterangan                          |
+| -------------------------------- | --------------------- | ----------------------------------- |
+| Shipment Instruction (SI)        | Boking / Jadwal Kapal | Nomor SI dibuat otomatis            |
+| Final Shipment Instruction (FSI) | SI                    | Menjadi kunci dokumen hilir         |
+| Packing List (PL)                | FSI                   | Terdapat varian cetak untuk pembeli |
+| Commercial Invoice (CI)          | FSI                   | Berstatus draf hingga difinalisasi  |
+| Weight Bridge Ticket (WBT)       | Packing List          | Memuat unggahan tiket timbangan     |
+| Certificate of Origin (COO)      | Weight Bridge Ticket  | Rincian kontainer dan segel         |
+| Annex VII                        | FSI                   | Dokumen pergerakan lintas batas     |
+| Sustainability Declaration       | Mandiri               | Tidak terhubung dokumen lain        |
+| Delivery Note                    | Mandiri               | Tidak terhubung dokumen lain        |
 
 [Sisipkan tangkapan layar: Bagan alur pembuatan dokumen ekspor]
 
@@ -103,7 +103,7 @@ Menu utama modul CNS dan sub-menunya adalah sebagai berikut:
 1. **Vessel Schedule** — jadwal dan boking kapal.
 2. **Stuffing** — pencatatan pengisian kontainer, dengan sub-menu **Stuffing Monitoring**.
 3. **Export Management** — kumpulan dokumen ekspor: Shipment Instruction, Final Shipment Instruction, Packing List, Commercial Invoice, Weight Bridge Ticket, Certificate of Origin, Sustainability Declaration, Delivery Note, dan Annex VII.
-4. **Quality Control** — pengendalian mutu produk (Quality Control Reguler).
+4. **Quality Control** — pengendalian mutu produk UCO, terdiri dari sub-menu **Quality Control External** dan **Quality Control Internal** yang masing-masing melayani pengujian **Inbound** dan **Outbound**.
 5. **Sales & Commercial** — pesanan penjualan (Sales Order).
 6. **ISCC Sustainability** — keterlacakan dan sertifikasi keberlanjutan (Traceability).
 7. **Procurement** — Purchase Request, Outstanding Purchase Request, dan Purchase Order.
@@ -120,19 +120,19 @@ Menu ini mengelola jadwal dan boking kapal ekspor. Setiap baris data merupakan b
 
 Kolom yang ditampilkan pada daftar antara lain:
 
-| Nama Kolom | Keterangan |
-| --- | --- |
-| Order (DO)/Booking Confirmation (BC) | Nomor boking pengiriman |
-| Qty | Jumlah kontainer serta tipe kontainer (20 FT atau 20 ISOTANK) |
-| Kapal | Nama kapal |
-| POL / POD | Pelabuhan muat / pelabuhan bongkar |
-| Stuffing | Tanggal rencana pengisian kontainer |
-| Checking | Tanggal pemeriksaan bea cukai (Checking BC) |
-| Closing CY | Tanggal penutupan container yard |
-| ETD / ATD | Estimasi / aktual keberangkatan kapal |
-| ETA / ATA | Estimasi / aktual kedatangan kapal |
-| Estimated Day(s) / Actual Day(s) | Lama pelayaran estimasi / aktual dalam hari |
-| Note | Catatan |
+| Nama Kolom                           | Keterangan                                                    |
+| ------------------------------------ | ------------------------------------------------------------- |
+| Order (DO)/Booking Confirmation (BC) | Nomor boking pengiriman                                       |
+| Qty                                  | Jumlah kontainer serta tipe kontainer (20 FT atau 20 ISOTANK) |
+| Kapal                                | Nama kapal                                                    |
+| POL / POD                            | Pelabuhan muat / pelabuhan bongkar                            |
+| Stuffing                             | Tanggal rencana pengisian kontainer                           |
+| Checking                             | Tanggal pemeriksaan bea cukai (Checking BC)                   |
+| Closing CY                           | Tanggal penutupan container yard                              |
+| ETD / ATD                            | Estimasi / aktual keberangkatan kapal                         |
+| ETA / ATA                            | Estimasi / aktual kedatangan kapal                            |
+| Estimated Day(s) / Actual Day(s)     | Lama pelayaran estimasi / aktual dalam hari                   |
+| Note                                 | Catatan                                                       |
 
 Daftar dapat difilter berdasarkan periode tanggal stuffing dan diekspor ke Excel.
 
@@ -168,15 +168,15 @@ Daftar dapat difilter berdasarkan periode tanggal stuffing dan diekspor ke Excel
 
 Pada halaman detail, pengguna dapat menambah, mengubah, dan menghapus catatan kontainer. Kolom yang tersedia antara lain:
 
-| Nama Kolom | Keterangan |
-| --- | --- |
-| Jam Awal / Jam Akhir | Waktu pengisian (format HH:MM) |
-| Tanggal | Tanggal pengisian |
-| Nopol | Nomor polisi truk pengangkut |
-| Kontainer | Nomor kontainer |
-| Seal | Nomor segel kontainer |
+| Nama Kolom           | Keterangan                                    |
+| -------------------- | --------------------------------------------- |
+| Jam Awal / Jam Akhir | Waktu pengisian (format HH:MM)                |
+| Tanggal              | Tanggal pengisian                             |
+| Nopol                | Nomor polisi truk pengangkut                  |
+| Kontainer            | Nomor kontainer                               |
+| Seal                 | Nomor segel kontainer                         |
 | Tare / Netto / Gross | Berat dalam kilogram (Kg) dan metrik ton (MT) |
-| Note | Catatan |
+| Note                 | Catatan                                       |
 
 Sistem menghitung beberapa nilai secara otomatis:
 
@@ -268,23 +268,34 @@ Dokumen pergerakan lintas batas (Annex VII) sesuai ketentuan peraturan pengangku
 
 ## 6. Menu Quality Control
 
-Menu ini mengelola hasil analisis laboratorium kualitas produk UCO. Melalui **Quality Control Reguler**, pengguna mencatat hasil pengujian harian dengan pengambilan sampel pada tiga posisi tangki, yaitu **Top**, **Middle**, dan **Bottom**, untuk parameter:
+Menu ini mengelola hasil analisis laboratorium kualitas produk UCO. Modul Quality Control terbagi menjadi dua sub-menu utama:
+1. **Quality Control External** — mencatat pengujian mutu pada transaksi/sampel pihak eksternal.
+2. **Quality Control Internal** — mencatat pengujian mutu pada fasilitas/tangki internal.
 
-- **FFA As Palmitic** (kandungan asam lemak bebas sebagai asam palmitat).
-- **FFA As Oleic** (kandungan asam lemak bebas sebagai asam oleat).
-- **MC (%)** — kadar air.
-- **IMP (%)** — kadar kotoran.
+Pada masing-masing sub-menu di atas, pengguna dapat membuat dua jenis pemeriksaan mutu (**Jenis QC**):
+- **Inbound (Pemeriksaan Barang Masuk)**: menguji 4 parameter standar:
+  - **FFA As Palmitic (%)** — kandungan asam lemak bebas sebagai asam palmitat.
+  - **FFA As Oleic (%)** — kandungan asam lemak bebas sebagai asam oleat.
+  - **MC (%)** — Moisture Content / kadar air.
+  - **IMP (%)** — Impurities / kadar kotoran.
+- **Outbound (Pemeriksaan Barang Keluar / Ekspor)**: menguji 9 parameter lengkap (4 parameter standar ditambah 5 parameter ekspor):
+  - **IV (g I2/100g)** — Iodine Value / bilangan iodium.
+  - **Sulphur (ppm)** — kandungan belerang.
+  - **Phosphorus (ppm)** — kandungan fosfor.
+  - **Total Chlorides (ppm)** — kadar klorida total.
+  - **Total Metals (ppm)** — kadar logam total.
 
-Daftar disusun per tanggal dengan ringkasan rata-rata ketiga posisi serta tautan berkas lampiran. Aksi yang tersedia antara lain:
+Pengambilan sampel dilakukan pada tiga level tangki, yaitu **Top**, **Middle**, dan **Bottom**, di mana sistem secara otomatis menghitung nilai rata-rata (**Average**) untuk seluruh parameter.
 
-- **Create** — membuat catatan kualitas baru beserta lampiran.
-- **Detail** — memperbarui hasil pengujian pada tanggal terpilih.
-- **Delete** — menghapus catatan kualitas pada tanggal terpilih.
-- **Print** — mencetak dokumen hasil pengujian berformat Word.
+Daftar disusun per tanggal dan jenis QC dengan filter aktivitas (**Semua / Inbound / Outbound**). Aksi yang tersedia antara lain:
+- **Create** — membuat catatan kualitas baru (Inbound atau Outbound) beserta lampiran CoA/lab.
+- **Detail** — melihat rincian dan memperbarui hasil pengujian.
+- **Delete** — menghapus catatan kualitas terpilih.
+- **Print** — mencetak formulir laporan pengujian berformat Word (`template-form-qc.docx` untuk Inbound dan `template-form-qc-outbound.docx` untuk Outbound).
 
-> Catatan: Catatan kualitas yang dibuat melalui menu **Inventory Pelindo** tidak ditampilkan pada daftar Quality Control Reguler, karena keduanya menggunakan satu tabel penyimpanan yang sama namun dipisahkan berdasarkan sumber pembuatannya.
+> Catatan: Catatan kualitas yang dibuat melalui menu **Inventory Pelindo** tidak ditampilkan pada daftar Quality Control, karena keduanya menggunakan satu tabel penyimpanan yang sama namun dipisahkan berdasarkan sumber pembuatannya.
 
-[Sisipkan tangkapan layar: Daftar Quality Control Reguler]
+[Sisipkan tangkapan layar: Daftar Quality Control External & Internal]
 
 ---
 
@@ -372,16 +383,16 @@ dengan **mid** adalah titik tengah rentang (min + maks) / 2, **min** batas bawah
 
 Jumlah seluruh fragment **selalu sama dengan total kuantitas** pengiriman (keseimbangan massa). Rentang kuantitas per jenis:
 
-| Jenis | Rentang (kg) |
-| --- | --- |
-| Restoran | 150 – 750 |
-| Hotel | 300 – 750 |
-| IRT | 5 – 200 |
-| Kafe | 15 – 100 |
-| Warung | 50 – 500 |
-| Lembaga | 25 – 300 |
-| SPPG | 150 – 1.000 |
-| Pabrik / Lainnya | 300 – 1.000 |
+| Jenis            | Rentang (kg) |
+| ---------------- | ------------ |
+| Restoran         | 150 – 750    |
+| Hotel            | 300 – 750    |
+| IRT              | 5 – 200      |
+| Kafe             | 15 – 100     |
+| Warung           | 50 – 500     |
+| Lembaga          | 25 – 300     |
+| SPPG             | 150 – 1.000  |
+| Pabrik / Lainnya | 300 – 1.000  |
 
 **b. Penyebaran Tanggal Surat Jalan**
 
@@ -395,12 +406,12 @@ Penyebaran tanggal hanya diterapkan pada pengiriman berjenis **SUPPLIER**, dalam
 Sebaran bersifat simetris di sekitar tanggal surat jalan asli, contoh:
 
 | Jumlah Kelompok (n) | Selisih Hari terhadap Tanggal Surat Jalan |
-| --- | --- |
-| 1 | 0 |
-| 2 | −1, 0 |
-| 3 | −1, 0, +1 |
-| 4 | −2, −1, 0, +1 |
-| 5 | −2, −1, 0, +1, +2 |
+| ------------------- | ----------------------------------------- |
+| 1                   | 0                                         |
+| 2                   | −1, 0                                     |
+| 3                   | −1, 0, +1                                 |
+| 4                   | −2, −1, 0, +1                             |
+| 5                   | −2, −1, 0, +1, +2                         |
 
 **c. Penentuan Nama POO (Randomisasi)**
 
@@ -415,32 +426,32 @@ Pemilihan bersifat deterministik (hasilnya sama untuk data yang sama). Nama yang
 
 Hasil pemeriksaan data aktual pada modul ISCC Traceability adalah sebagai berikut:
 
-| Uraian | Jumlah |
-| --- | --- |
-| Total pengiriman eksternal | 10.090 |
-| Pengiriman berjenis SUPPLIER | 593 |
-| Pengiriman berjenis lain (POO RETAIL 7.842, POO B2B CONTRACT 1.068, POO COMDEV 587) | 9.497 |
-| Total fragment | 16.195 |
-| Pengiriman SUPPLIER yang dipecah (lebih dari satu fragment) | 519 |
-| Fragment hasil pecahan dengan nama acak | 6.624 |
+| Uraian                                                                              | Jumlah |
+| ----------------------------------------------------------------------------------- | ------ |
+| Total pengiriman eksternal                                                          | 10.090 |
+| Pengiriman berjenis SUPPLIER                                                        | 593    |
+| Pengiriman berjenis lain (POO RETAIL 7.842, POO B2B CONTRACT 1.068, POO COMDEV 587) | 9.497  |
+| Total fragment                                                                      | 16.195 |
+| Pengiriman SUPPLIER yang dipecah (lebih dari satu fragment)                         | 519    |
+| Fragment hasil pecahan dengan nama acak                                             | 6.624  |
 
 Asal nama POO acak (6.278 dari 6.624 nama berhasil dicocokkan ke data induk pemasok; seluruhnya berjenis selain SUPPLIER):
 
-| Asal Nama | Jumlah | Persentase |
-| --- | --- | --- |
-| Kota/kabupaten sama | 4.904 | 78,1% |
-| Provinsi sama, kota/kabupaten berbeda | 1.374 | 21,9% |
-| Provinsi berbeda | 0 | 0,0% |
+| Asal Nama                             | Jumlah | Persentase |
+| ------------------------------------- | ------ | ---------- |
+| Kota/kabupaten sama                   | 4.904  | 78,1%      |
+| Provinsi sama, kota/kabupaten berbeda | 1.374  | 21,9%      |
+| Provinsi berbeda                      | 0      | 0,0%       |
 
 Seluruh nama acak berasal dari pemasok berjenis **selain SUPPLIER**, dengan rincian: POO RETAIL 5.130, POO B2B CONTRACT 1.056, POO COMDEV 82, dan Prospect 10. Tidak ada nama yang diambil dari pemasok berjenis SUPPLIER.
 
 Sebaran selisih hari tanggal surat jalan fragment terhadap tanggal surat jalan asli:
 
-| Selisih Hari | Jumlah Fragment | Persentase |
-| --- | --- | --- |
-| Hari yang sama (0) | 10.593 | 65,4% |
-| Sebelum tanggal surat jalan (−1 s.d. −63) | 3.097 | 19,1% |
-| Setelah tanggal surat jalan (+1 s.d. +63) | 2.505 | 15,5% |
+| Selisih Hari                              | Jumlah Fragment | Persentase |
+| ----------------------------------------- | --------------- | ---------- |
+| Hari yang sama (0)                        | 10.593          | 65,4%      |
+| Sebelum tanggal surat jalan (−1 s.d. −63) | 3.097           | 19,1%      |
+| Setelah tanggal surat jalan (+1 s.d. +63) | 2.505           | 15,5%      |
 
 Kesimpulan: sebaran tanggal tidak terbatas pada kisaran −1 hingga +1 hari, melainkan menyesuaikan ukuran pengiriman. Dengan batas kelompok harian 1.200 kg, rentang selisih hari menjadi lebih lebar dibandingkan batas sebelumnya (5.000 kg).
 
@@ -510,47 +521,47 @@ Menu ini menampilkan perusahaan yang berperan sebagai **penerima barang (consign
 
 ## 12. Glosarium
 
-| Istilah | Arti |
-| --- | --- |
-| UCO | Used Cooking Oil atau minyak jelantah, komoditas utama rantai pasok |
-| ISCC | International Sustainability and Carbon Certification, skema sertifikasi keberlanjutan |
-| SI | Shipment Instruction, perintah pengiriman ekspor |
-| FSI | Final Shipment Instruction, finalisasi SI dan kunci dokumen hilir |
-| PL | Packing List, daftar kemasan/kontainer pengiriman |
-| CI | Commercial Invoice, faktur komersial ekspor |
-| WBT | Weight Bridge Ticket, tiket timbangan pengiriman |
-| COO | Certificate of Origin, sertifikat asal barang |
-| SD | Sustainability Declaration, deklarasi keberlanjutan |
-| DN | Delivery Note, surat pengantaran |
-| Annex VII | Dokumen pergerakan lintas batas sesuai ketentuan pengangkutan limbah |
-| DO / BC | Delivery Order / Booking Confirmation, nomor boking pengiriman |
-| POL / POD | Port of Loading / Port of Discharge, pelabuhan muat / bongkar |
-| ETD / ATD | Estimated / Actual Time of Departure, estimasi / aktual keberangkatan |
-| ETA / ATA | Estimated / Actual Time of Arrival, estimasi / aktual kedatangan |
-| Stuffing | Kegiatan pengisian kontainer |
-| Nopol | Nomor polisi kendaraan/truk pengangkut |
-| Tare | Berat kosong kontainer/kendaraan |
-| Netto | Berat bersih muatan |
-| Gross | Berat kotor (tare + netto) |
-| MT | Metrik ton (1.000 kg) |
-| BC | Bea Cukai |
-| CY | Container Yard, area penumpukan kontainer |
-| FFA | Free Fatty Acid, kadar asam lemak bebas |
-| MC | Moisture Content, kadar air |
-| IMP | Impurity, kadar kotoran |
-| Pelindo | PT Pelabuhan Indonesia, operator fasilitas pelabuhan |
-| POO | Point of Origin, titik pengumpulan UCO |
-| WO / PO / DO | Work Order / Pickup Order / Delivery Order (surat jalan) |
-| Fragment | Bagian hasil pemecahan satu pengiriman menjadi titik pengumpulan |
-| NATURAL | Sumber data riil dari proses operasional (master POO) |
-| EXTERNAL | Sumber data pengiriman pemasok eksternal hasil impor/simulasi |
-| PR | Purchase Request, permintaan pembelian |
-| PO | Purchase Order, pesanan pembelian |
-| PS | Purchase Summary, ringkasan pembelian/penawaran |
-| V1 – V5 | Perbandingan penawaran pemasok pertama hingga kelima |
-| Keseimbangan Massa | Prinsip jumlah seluruh fragment sama dengan total kuantitas pengiriman |
-| Traceability | Keterlacakan, kemampuan menelusuri asal-usul dan pergerakan komoditas |
+| Istilah            | Arti                                                                                   |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| UCO                | Used Cooking Oil atau minyak jelantah, komoditas utama rantai pasok                    |
+| ISCC               | International Sustainability and Carbon Certification, skema sertifikasi keberlanjutan |
+| SI                 | Shipment Instruction, perintah pengiriman ekspor                                       |
+| FSI                | Final Shipment Instruction, finalisasi SI dan kunci dokumen hilir                      |
+| PL                 | Packing List, daftar kemasan/kontainer pengiriman                                      |
+| CI                 | Commercial Invoice, faktur komersial ekspor                                            |
+| WBT                | Weight Bridge Ticket, tiket timbangan pengiriman                                       |
+| COO                | Certificate of Origin, sertifikat asal barang                                          |
+| SD                 | Sustainability Declaration, deklarasi keberlanjutan                                    |
+| DN                 | Delivery Note, surat pengantaran                                                       |
+| Annex VII          | Dokumen pergerakan lintas batas sesuai ketentuan pengangkutan limbah                   |
+| DO / BC            | Delivery Order / Booking Confirmation, nomor boking pengiriman                         |
+| POL / POD          | Port of Loading / Port of Discharge, pelabuhan muat / bongkar                          |
+| ETD / ATD          | Estimated / Actual Time of Departure, estimasi / aktual keberangkatan                  |
+| ETA / ATA          | Estimated / Actual Time of Arrival, estimasi / aktual kedatangan                       |
+| Stuffing           | Kegiatan pengisian kontainer                                                           |
+| Nopol              | Nomor polisi kendaraan/truk pengangkut                                                 |
+| Tare               | Berat kosong kontainer/kendaraan                                                       |
+| Netto              | Berat bersih muatan                                                                    |
+| Gross              | Berat kotor (tare + netto)                                                             |
+| MT                 | Metrik ton (1.000 kg)                                                                  |
+| BC                 | Bea Cukai                                                                              |
+| CY                 | Container Yard, area penumpukan kontainer                                              |
+| FFA                | Free Fatty Acid, kadar asam lemak bebas                                                |
+| MC                 | Moisture Content, kadar air                                                            |
+| IMP                | Impurity, kadar kotoran                                                                |
+| Pelindo            | PT Pelabuhan Indonesia, operator fasilitas pelabuhan                                   |
+| POO                | Point of Origin, titik pengumpulan UCO                                                 |
+| WO / PO / DO       | Work Order / Pickup Order / Delivery Order (surat jalan)                               |
+| Fragment           | Bagian hasil pemecahan satu pengiriman menjadi titik pengumpulan                       |
+| NATURAL            | Sumber data riil dari proses operasional (master POO)                                  |
+| EXTERNAL           | Sumber data pengiriman pemasok eksternal hasil impor/simulasi                          |
+| PR                 | Purchase Request, permintaan pembelian                                                 |
+| PO                 | Purchase Order, pesanan pembelian                                                      |
+| PS                 | Purchase Summary, ringkasan pembelian/penawaran                                        |
+| V1 – V5            | Perbandingan penawaran pemasok pertama hingga kelima                                   |
+| Keseimbangan Massa | Prinsip jumlah seluruh fragment sama dengan total kuantitas pengiriman                 |
+| Traceability       | Keterlacakan, kemampuan menelusuri asal-usul dan pergerakan komoditas                  |
 
 ---
 
-*Akhir dokumen. Panduan ini akan diperbarui secara berkala mengikuti perkembangan fitur aplikasi.*
+_Akhir dokumen. Panduan ini akan diperbarui secara berkala mengikuti perkembangan fitur aplikasi._

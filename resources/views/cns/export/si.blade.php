@@ -40,6 +40,7 @@ $Saya =  Auth::user()->username;
 			<div>
 				<input type="button" id="newSchedule" name="newSchedule" value="New SI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail SI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
+				<input type="button" id="DeleteSI" name="DeleteSI" value="Delete SI" class="btn btn-danger mt-2 mr-2" onclick="DeleteSI()" />
 				<input type="button" id="printSI" name="printSI" value="Print SI" class="btn btn-secondary mt-2 mr-2" onclick="PrintSI()" />
 				<div id="divFSIDate" style="display:none;">
 					<input type="text" name="FSI_Date" id="FSI_Date" class="form-control mt-2 mr-2 bg-white" placeholder="FSI Date" value="{{ date('Y-m-d') }}" style="width:110px;display:inline-block;" readonly />
@@ -58,6 +59,48 @@ $Saya =  Auth::user()->username;
 	var myCalendarMain;
 	myCalendarMain = new dhtmlXCalendarObject(["FSI_Date"]);
 	myCalendarMain.setDateFormat("%Y-%m-%d");
+	function DeleteSI()
+	{
+		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
+		if (ShipmentInstructionID != null) {
+			let siNo = ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue();
+			if (!confirm("Apakah Anda yakin ingin menghapus Shipping Instruction " + siNo + "?")) {
+				return false;
+			}
+
+			$.ajax({
+				headers: {
+					'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+				},
+				url: "cns-export-shipment-instruction-delete",
+				type: "POST",
+				data: {
+					_token: "{{ csrf_token() }}",
+					id: ShipmentInstructionID,
+					Task: siNo
+				},
+				success: function(response) {
+					if (response.status === 'success') {
+						alert(response.message || "Shipping Instruction berhasil dihapus.");
+						$('#divlistOpportunity').html('');
+						refreshdata();
+					} else {
+						alert(response.message || "Gagal menghapus Shipping Instruction.");
+					}
+				},
+				error: function(xhr) {
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						alert(xhr.responseJSON.message);
+					} else {
+						alert("Gagal menghapus Shipping Instruction. Silakan coba lagi.");
+					}
+				}
+			});
+		} else {
+			alert("Pilih baris data");
+		}
+		return true;
+	}
 	function PrintSI()
 	{
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();

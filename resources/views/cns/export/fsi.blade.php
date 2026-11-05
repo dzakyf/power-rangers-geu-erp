@@ -101,16 +101,21 @@ $Saya =  Auth::user()->username;
 		return true;
 	 }
 	function PrintSI()
-	 {
+	{
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			window.open('cns-export-final-shipment-instruction-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
-			// window.open('assets/export_fsi.docx', '_blank');
-		}else {
+			var selectedId = ShipmentInstructionID.toString().split(',')[0];
+			var finalSiNo = '';
+			try {
+				finalSiNo = ShipmentInstruction.cells(selectedId, 1).getValue();
+			} catch (e) {}
+			var task = (finalSiNo && finalSiNo.trim() !== '') ? finalSiNo.trim() : selectedId;
+			window.open('{{ url("cns-export-final-shipment-instruction-print") }}?Task=' + encodeURIComponent(task), '_blank');
+		} else {
 			alert("Pilih baris data");
 		}
 		return true;
-	 }
+	}
 	function ShipmentInstructionNewBtn() {
 
 		LoadM('divlistOpportunity', 'cns-export-final-shipment-instruction-new');

@@ -1,8 +1,15 @@
 <?php
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
-$LSP = Auth::user()->Location;
-$Saya = Auth::user()->username;
+$LSP = Auth::user()->Location ?? '';
+$Saya = Auth::user()->username ?? '';
+$issuer = $issuer ?? ($companies[$dn->Shipper] ?? null);
+if (!$issuer) {
+    $issuer = DB::table('supplier')->where('Is_Company', 1)->first()
+        ?? DB::table('supplier')->first();
+}
+$consignee = $companies[$dn->Consignee] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -96,23 +103,27 @@ $Saya = Auth::user()->username;
 <div class="sheet padding-10mm">
 
     <!-- Header with letterhead -->
-    @if(isset($companies[$dn->Consignee]) && $companies[$dn->Consignee]->Letterhead)
+    @if(!empty($issuer->Letterhead))
     <div style="margin:-1cm;margin-bottom:.5cm;margin-top:0">
-        <img src="{{ $companies[$dn->Consignee]->Letterhead ?? '' }}" alt="Header" width="100%" style="display:none;">
+        <img src="{{ asset($issuer->Letterhead) }}" alt="Header" width="100%">
     </div>
-    @endif
-
+    @else
     <table style="width:100%;margin-bottom:20px;">
         <tr>
             <td style="vertical-align:top;">
-                <strong style="font-size:15px;color:#333;">PT. GREEN ENERGI UTAMA</strong><br>
-                <span style="font-size:11px;">A2 Pergudangan Tanrise K-Walk<br>65153 Malang, East Java, Indonesia</span>
+                <strong style="font-size:15px;color:#333;">{{ $issuer->Company_Name ?? 'PT. GREEN ENERGI UTAMA' }}</strong><br>
+                <span style="font-size:11px;">{!! nl2br(e($issuer->Address ?? "A2 Pergudangan Tanrise K-Walk\n65153 Malang, East Java, Indonesia")) !!}</span>
             </td>
             <td style="text-align:right;vertical-align:top;">
-                <img src="{{ asset('/assets/images/large-logo.png') }}" alt="Logo" height="60">
+                @if(!empty($issuer->Logo))
+                    <img src="{{ asset($issuer->Logo) }}" alt="Logo" height="60">
+                @else
+                    <img src="{{ asset('/assets/images/large-logo.png') }}" alt="Logo" height="60">
+                @endif
             </td>
         </tr>
     </table>
+    @endif
 
     <hr>
 
@@ -122,12 +133,12 @@ $Saya = Auth::user()->username;
         <tr>
             <td class="label-col">Receipt</td>
             <td class="sep-col">:</td>
-            <td>PT GREEN ENERGI UTAMA</td>
+            <td>{{ $issuer->Company_Name ?? 'PT GREEN ENERGI UTAMA' }}</td>
         </tr>
         <tr>
             <td class="label-col">Receipt Address</td>
             <td class="sep-col">:</td>
-            <td>PERGUDANGAN TANRISE K WALK A2 NO 69 65153, SINGOSARI, MALANG, EAST JAVA, INDONESIA</td>
+            <td>{{ $issuer->Address ?? 'PERGUDANGAN TANRISE K WALK A2 NO 69 65153, SINGOSARI, MALANG, EAST JAVA, INDONESIA' }}</td>
         </tr>
         <tr>
             <td class="label-col">Supplier ISCC Reference</td>
@@ -168,7 +179,7 @@ $Saya = Auth::user()->username;
 
     <div class="declaration-box">
         We hereby declare that the material. Delivered to
-        <strong>{{ isset($companies[$dn->Consignee]) ? strtoupper($companies[$dn->Consignee]->Company_Name) : '...............' }}</strong>,
+        <strong>{{ $consignee ? strtoupper($consignee->Company_Name) : (isset($companies[$dn->Consignee]) ? strtoupper($companies[$dn->Consignee]->Company_Name) : '...............') }}</strong>,
         against the above contract has been collected in accordance with ISCC EU Waste and Residues rules.
         The material has not been stored in tanks with products other than UCO.
         The waste or residues supplied consist only of biomass defined as the biodegradable fraction of product,
@@ -178,12 +189,18 @@ $Saya = Auth::user()->username;
     </div>
 
     <div class="signature-block">
-        <div class="city-date">Surabaya, {{ $dn->Delivery_Date ? date('d F Y', strtotime($dn->Delivery_Date)) : date('d F Y') }}</div>
-        <div class="company">PT GREEN ENERGI UTAMA</div>
+        <div class="city-date">{{ $issuer->City ?? 'Surabaya' }}, {{ $dn->Delivery_Date ? date('d F Y', strtotime($dn->Delivery_Date)) : date('d F Y') }}</div>
+        <div class="company">{{ $issuer->Company_Name ?? 'PT GREEN ENERGI UTAMA' }}</div>
         <br><br><br>
-        <div class="signer-name">Puput Deni Iswara</div>
-        <div>CMO</div>
+        <div class="signer-name">{{ !empty($issuer->Contact_Person) ? $issuer->Contact_Person : 'Puput Deni Iswara' }}</div>
+        <div>{{ !empty($issuer->Sales_Name) ? $issuer->Sales_Name : 'CMO' }}</div>
     </div>
+
+    @if(!empty($issuer->Footer))
+    <div style="margin-top:20px;">
+        <img src="{{ asset($issuer->Footer) }}" alt="Footer" width="100%">
+    </div>
+    @endif
 
 </div>
 </body>

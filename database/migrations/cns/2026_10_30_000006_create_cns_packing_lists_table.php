@@ -27,7 +27,7 @@ class CreateCnsPackingListsTable extends Migration
             $table->string('Shipper', 50);
             $table->string('Consignee', 50);
             $table->string('Notify', 50);
-            $table->string('Destination_Letter', 50);
+            $table->string('Destination_Port', 50);
             $table->string('Delivery_Terms', 255);
             $table->string('Contract_No', 150);
             $table->string('Voyage', 150);

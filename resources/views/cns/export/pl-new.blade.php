@@ -112,13 +112,8 @@ use Illuminate\Database\Eloquent\Builder;
                         </div>
                         <div class="col-3">
                             <div class="form-group">
-                                <label for="Destination_Letter">Destination Letter</label>
-                                <select name="Destination_Letter" id="Destination_Letter" class="form-control shadow-sm" required>
-                                    <option value="">-- Pilih Destination Letter --</option>
-                                    @foreach ($companies as $destination_Letter)
-                                        <option value="{{ $destination_Letter->Supplier_ID }}">{{ $destination_Letter->Company_Name }}</option>
-                                    @endforeach
-                                </select>
+                                <label for="Destination_Port">Destination Port</label>
+                                <input type="text" id="Destination_Port" name="Destination_Port" class="form-control" value="" />
                             </div>
                         </div>
                         <div class="col-4">
@@ -194,12 +189,7 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-6">
                             <div class="form-group">
                                 <label for="Product_Name">Product Name</label>
-                                <select name="Product_Name" id="Product_Name" class="form-control shadow-sm">
-                                    <option value="">-- Pilih Product --</option>
-                                    @foreach ($masProducts as $item)
-                                    <option value="{{ $item->description }}">{{ $item->description }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" name="Product_Name" id="Product_Name" value="" class="text-black form-control" />
                             </div>
                         </div>
                         <div class="col-6">

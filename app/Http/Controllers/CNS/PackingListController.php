@@ -81,53 +81,71 @@ class PackingListController extends Controller
 
     public function printPackingList(Request $request)
     {
-        // $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
-        // foreach ($company as $key => $value) {
-        //     $companies[$value->Supplier_ID] = $value;
-        // }
-        // $shipment = PackingList::where('Packing_List_No', $request->Task)->first();
-        // $vsds = VesselScheduleDtl::active()->where('SI_No', $shipment->SI_No)->get();
-        // return view('cns.export.print.pl', compact('shipment', 'vsds','companies'));
+        $shipment = PackingList::where('Packing_List_No', $request->Task)->first();
+        if (!$shipment) {
+            abort(404, 'Packing List tidak ditemukan');
+        }
+
         // ── Ambil data (sesuaikan dengan model Anda) ──────────────────────
         $companies = [];
         $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         foreach ($company as $key => $value) {
             $companies[$value->Supplier_ID] = $value;
         }
-        $shipment = PackingList::where('Packing_List_No', $request->Task)->first();
+
+        // Fallback jika ada supplier yang tidak cocok dengan Location user
+        foreach (['Shipper', 'Consignee', 'Notify', 'Destination_Port'] as $partyField) {
+            $suppId = $shipment->{$partyField};
+            if ($suppId && !isset($companies[$suppId])) {
+                $supp = DB::table('supplier')->where('Supplier_ID', $suppId)->first();
+                if ($supp) {
+                    $companies[$suppId] = $supp;
+                }
+            }
+        }
+
         $vsds = VesselScheduleDtl::active()->where('SI_No', $shipment->SI_No)->get();
- 
+
         // ── Hitung total ──────────────────────────────────────────────────
-        $gross = $vsds->sum('Gross_KG');
-        $netto = $vsds->sum('Netto_KG');
+        $gross = (float) $vsds->sum('Gross_KG');
+        $netto = (float) $vsds->sum('Netto_KG');
         $mt    = round($netto / 1000, 2);
- 
+
         // ── Render HTML dari Blade view ───────────────────────────────────
         $html = view('cns.export.print.pl', compact(
             'shipment', 'vsds', 'companies', 'gross', 'netto', 'mt'
         ))->render();
- 
+
         // ── Header & Footer HTML ──────────────────────────────────────────
-        $letterhead = public_path($companies[$shipment->Shipper]->Letterhead);
-        $footerImg  = public_path($companies[$shipment->Shipper]->Footer);
- 
-        // Konversi ke base64 agar mPDF bisa render gambar
-        $headerB64 = base64_encode(file_get_contents($letterhead));
-        $footerB64 = base64_encode(file_get_contents($footerImg));
-        $headerExt = strtolower(pathinfo($letterhead, PATHINFO_EXTENSION));
-        $footerExt = strtolower(pathinfo($footerImg,  PATHINFO_EXTENSION));
- 
-        $headerHtml = '
-            <div style="margin:0;padding:0;line-height:0;">
-                <img src="data:image/' . $headerExt . ';base64,' . $headerB64 . '"
-                     style="width:100%;display:block;">
-            </div>';
- 
-        $footerHtml = '
-            <div style="margin:0;padding:0;line-height:0;">
-                <img src="data:image/' . $footerExt . ';base64,' . $footerB64 . '"
-                     style="width:100%;display:block;">
-            </div>';
+        $headerHtml = '';
+        $footerHtml = '';
+        $shipper = $companies[$shipment->Shipper] ?? null;
+
+        if ($shipper && !empty($shipper->Letterhead)) {
+            $letterhead = public_path($shipper->Letterhead);
+            if (is_file($letterhead) && file_exists($letterhead)) {
+                $headerB64 = base64_encode(file_get_contents($letterhead));
+                $headerExt = strtolower(pathinfo($letterhead, PATHINFO_EXTENSION)) ?: 'jpg';
+                $headerHtml = '
+                    <div style="margin:0;padding:0;line-height:0;">
+                        <img src="data:image/' . $headerExt . ';base64,' . $headerB64 . '"
+                             style="width:100%;display:block;">
+                    </div>';
+            }
+        }
+
+        if ($shipper && !empty($shipper->Footer)) {
+            $footerImg = public_path($shipper->Footer);
+            if (is_file($footerImg) && file_exists($footerImg)) {
+                $footerB64 = base64_encode(file_get_contents($footerImg));
+                $footerExt = strtolower(pathinfo($footerImg, PATHINFO_EXTENSION)) ?: 'jpg';
+                $footerHtml = '
+                    <div style="margin:0;padding:0;line-height:0;">
+                        <img src="data:image/' . $footerExt . ';base64,' . $footerB64 . '"
+                             style="width:100%;display:block;">
+                    </div>';
+            }
+        }
  
         // ── Inisialisasi mPDF ─────────────────────────────────────────────
         $mpdf = new Mpdf([
@@ -242,7 +260,7 @@ class PackingListController extends Controller
         $pl->Shipper = $request->input('Shipper') ?? '';
         $pl->Consignee = $request->input('Consignee') ?? '';
         $pl->Notify = $request->input('Notify') ?? '';
-        $pl->Destination_Letter = $request->input('Destination_Letter') ?? '';
+        $pl->Destination_Port = $request->input('Destination_Port') ?? '';
         $pl->Delivery_Terms = $request->input('Delivery_Terms') ?? '';
         $pl->Contract_No = $request->input('Contract_No') ?? '';
         $pl->Voyage = $request->input('Voyage') ?? '';
