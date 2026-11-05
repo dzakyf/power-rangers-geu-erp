@@ -124,6 +124,33 @@
 </div>
 
 <script>
+    if (typeof loadQualityBookings !== 'function') {
+        window.loadQualityBookings = function(contractId, targetSelector, selectedId) {
+            var select = $(targetSelector);
+            select.empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+
+            if (!contractId) {
+                return;
+            }
+
+            $.get('cns-quality-bookings?contract_id=' + encodeURIComponent(contractId), function(data) {
+                if (Array.isArray(data)) {
+                    data.forEach(function(booking) {
+                        var text = (booking.label ? booking.label + ' - ' : '') + (booking.booking_no || '');
+                        var option = $('<option></option>').val(booking.id).text(text);
+                        if (selectedId && String(selectedId) === String(booking.id)) {
+                            option.prop('selected', true);
+                        }
+                        select.append(option);
+                    });
+                    if (selectedId) {
+                        select.val(String(selectedId));
+                    }
+                }
+            });
+        };
+    }
+
     $(document).ready(function() {
         $('#edit_Contract_ID').on('change', function() {
             var contractId = $(this).val();

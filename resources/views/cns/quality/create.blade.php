@@ -210,6 +210,9 @@
                     }
                     select.append(option);
                 });
+                if (selectedId) {
+                    select.val(String(selectedId));
+                }
             }
         });
     }
