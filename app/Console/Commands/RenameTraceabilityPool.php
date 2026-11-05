@@ -41,23 +41,37 @@ class RenameTraceabilityPool extends Command
         $suppliers = json_decode((string) @file_get_contents($dir . '/suppliers.json'), true) ?: [];
         $details   = json_decode((string) (@file_get_contents($dir . '/supplier_details.json') ?: '[]'), true) ?: [];
 
-        // build eligible pool (jenis != SUPPLIER)
+        // Only suppliers that appear in SJ for the selected range may be used.
+        $rangeStart = $from . '-01';
+        $rangeEnd = date('Y-m-t', strtotime($to . '-01'));
+        $sjNames = DB::table('traceability_external_deliveries')
+            ->whereDate('delivery_date', '>=', $rangeStart)
+            ->whereDate('delivery_date', '<=', $rangeEnd)
+            ->distinct()->pluck('supplier_name')
+            ->map(function ($name) { return $this->normName((string) $name); })
+            ->filter()->flip()->all();
+
+        // build eligible pool (jenis != SUPPLIER, SJ-only, active flag ignored)
         $byId = []; $cityPool = []; $provPool = []; $national = [];
         $nameById = []; $idByName = [];
         foreach ($suppliers as $s) {
-            if ((string) ($s['active'] ?? '1') !== '1') { continue; }
             if (strtoupper(trim((string) ($s['jenis'] ?? ''))) === 'SUPPLIER') { continue; }
             $id = $s['id'] ?? null;
             if (!$id) { continue; }
-            $byId[$id] = $s;
             $nm = $this->normName($s['name'] ?? '');
+            if ($nm === '' || !isset($sjNames[$nm])) { continue; }
+            $byId[$id] = $s;
             $nameById[$id] = $nm;
             $idByName[$nm][] = $id;
             $national[] = $id;
             if (!empty($s['kota_name']))     { $cityPool[$s['kota_name']][] = $id; }
             if (!empty($s['provinsi_name'])) { $provPool[$s['provinsi_name']][] = $id; }
         }
-        $this->info('Eligible pool (non-SUPPLIER, active): ' . count($byId));
+        $this->info('Eligible pool (non-SUPPLIER, SJ-only): ' . count($byId));
+        if (!$byId) {
+            $this->error('No eligible SJ suppliers found for the selected range.');
+            return 1;
+        }
 
         $months = $this->monthsBetween($from, $to);
         $dry = (bool) $this->option('dry-run');

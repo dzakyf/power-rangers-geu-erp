@@ -271,6 +271,7 @@ class ImportTraceabilityCsv extends Command
                     'poo_name' => $pooName,
                     'poo_type' => $pooType,
                     'quantity_kg' => $qty,
+                    'unit' => 'Kg',
                     'city' => $cityName,
                     'province' => $provName,
                     'full_address' => $nameSrc['alamat'] ?: $sup['alamat'],
