@@ -5593,6 +5593,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$buyerContractPref-new-submit", [BuyerContractController::class, 'newBuyerContractSubmit']);
     Route::get("$buyerContractPref-detail", [BuyerContractController::class, 'detailBuyerContract']);
     Route::post("$buyerContractPref-detail-submit", [BuyerContractController::class, 'detailBuyerContractSubmit']);
+    Route::get("$buyerContractPref-file", [BuyerContractController::class, 'contractFile'])->name('cns-procurement-buyer-contract.file');
+    Route::get("$buyerContractPref-booking-file", [BuyerContractController::class, 'bookingFile'])->name('cns-procurement-buyer-contract.booking-file');
     Route::post("$buyerContractPref-booking-submit", [BuyerContractController::class, 'addBooking']);
     Route::post("$buyerContractPref-booking-delete", [BuyerContractController::class, 'deleteBooking']);
     Route::get("$buyerContractPref-buyers", [BuyerContractController::class, 'buyers']);

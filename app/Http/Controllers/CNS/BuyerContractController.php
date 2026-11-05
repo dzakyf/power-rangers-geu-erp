@@ -46,8 +46,8 @@ class BuyerContractController extends Controller
         foreach ($rows as $row) {
             $file = '';
 
-            if (!empty($row['file'])) {
-                $file = htmlspecialchars(asset($row['file'])) . '^Lihat^_blank';
+            if (!empty($row['file']) && !empty($row['contract_id'])) {
+                $file = htmlspecialchars(route('cns-procurement-buyer-contract.file', ['ID' => $row['contract_id']], false)) . '^Lihat^_blank';
             }
 
             echo '<row id="' . htmlspecialchars($row['id']) . '">';
@@ -145,9 +145,11 @@ class BuyerContractController extends Controller
             ->orderBy('ID')
             ->get();
 
+        $nextBookingLabel = $this->nextBookingLabel($contract->ID);
+
         return view('cns.procurement.buyer-contract-detail', array_merge(
             $this->formData(),
-            compact('contract', 'bookings')
+            compact('contract', 'bookings', 'nextBookingLabel')
         ));
     }
 
@@ -233,7 +235,7 @@ class BuyerContractController extends Controller
     {
         $data = $request->validate([
             'Contract_ID'  => 'required|integer|exists:cns_buyer_contracts,ID',
-            'Label'        => 'required|string|max:20',
+            'Label'        => 'nullable|string|max:20',
             'Booking_No'   => 'required|string|max:100',
             'Booking_File' => 'required|file|mimes:pdf,doc,docx|max:5120',
         ]);
@@ -246,18 +248,11 @@ class BuyerContractController extends Controller
             return response()->json(['message' => 'Kontrak tidak ditemukan.'], 422);
         }
 
-        $exists = DB::table('cns_buyer_contract_bookings')
-            ->where('Contract_ID', $data['Contract_ID'])
-            ->where('Label', $data['Label'])
-            ->exists();
-
-        if ($exists) {
-            return response()->json(['message' => 'Label booking sudah dipakai pada kontrak ini.'], 422);
-        }
+        $label = $this->nextBookingLabel($contract->ID);
 
         $file = $request->file('Booking_File');
         $safeNo = preg_replace('/[^A-Za-z0-9_-]/', '_', $contract->Contract_No);
-        $safeLabel = preg_replace('/[^A-Za-z0-9_-]/', '_', $data['Label']);
+        $safeLabel = preg_replace('/[^A-Za-z0-9_-]/', '_', $label);
         $dir = public_path('filescontract/bookings');
         if (!is_dir($dir)) {
             mkdir($dir, 0775, true);
@@ -268,7 +263,7 @@ class BuyerContractController extends Controller
 
         DB::table('cns_buyer_contract_bookings')->insert([
             'Contract_ID'       => $data['Contract_ID'],
-            'Label'             => $data['Label'],
+            'Label'             => $label,
             'Booking_No'        => $data['Booking_No'],
             'Booking_File'      => 'filescontract/bookings/' . $filename,
             'Booking_File_Name' => $file->getClientOriginalName(),
@@ -277,6 +272,31 @@ class BuyerContractController extends Controller
         ]);
 
         return 'success';
+    }
+
+    public function contractFile(Request $request)
+    {
+        $contract = BuyerContract::where('ID', $request->query('ID'))
+            ->where('Location', Auth::user()->Location)
+            ->first();
+
+        abort_if(!$contract || empty($contract->Contract_File), 404);
+
+        return $this->publicFileResponse($contract->Contract_File);
+    }
+
+    public function bookingFile(Request $request)
+    {
+        $booking = DB::table('cns_buyer_contract_bookings as booking')
+            ->join('cns_buyer_contracts as contract', 'contract.ID', '=', 'booking.Contract_ID')
+            ->where('booking.ID', $request->query('ID'))
+            ->where('contract.Location', Auth::user()->Location)
+            ->select('booking.Booking_File')
+            ->first();
+
+        abort_if(!$booking || empty($booking->Booking_File), 404);
+
+        return $this->publicFileResponse($booking->Booking_File);
     }
 
     public function deleteBooking(Request $request)
@@ -440,6 +460,39 @@ class BuyerContractController extends Controller
         $file->move($dir, $filename);
 
         return $filename;
+    }
+
+    private function nextBookingLabel(int $contractId): string
+    {
+        $labels = DB::table('cns_buyer_contract_bookings')
+            ->where('Contract_ID', $contractId)
+            ->pluck('Label');
+
+        $highest = 0;
+
+        foreach ($labels as $label) {
+            if (preg_match('/^(\d+)/', trim((string) $label), $matches)) {
+                $highest = max($highest, (int) $matches[1]);
+            }
+        }
+
+        return str_pad((string) ($highest + 1), 5, '0', STR_PAD_LEFT);
+    }
+
+    private function publicFileResponse(string $relativePath)
+    {
+        $root = realpath(public_path('filescontract'));
+        $path = realpath(public_path(ltrim($relativePath, '/')));
+
+        abort_if(
+            !$root
+            || !$path
+            || strpos($path, $root . DIRECTORY_SEPARATOR) !== 0
+            || !is_file($path),
+            404
+        );
+
+        return response()->file($path);
     }
 
     private function deletePublicFile($path): void

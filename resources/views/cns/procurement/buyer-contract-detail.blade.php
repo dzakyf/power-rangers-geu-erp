@@ -28,7 +28,7 @@
                             <td>{{ $booking->Booking_No }}</td>
                             <td>
                                 @if($booking->Booking_File)
-                                    <a href="{{ asset($booking->Booking_File) }}" target="_blank">{{ $booking->Booking_File_Name ?: 'Download' }}</a>
+                                    <a href="{{ route('cns-procurement-buyer-contract.booking-file', ['ID' => $booking->ID], false) }}" target="_blank">{{ $booking->Booking_File_Name ?: 'Download' }}</a>
                                 @else
                                     -
                                 @endif
@@ -53,7 +53,8 @@
             <div class="col-md-2">
                 <div class="form-group">
                     <label>Label</label>
-                    <input type="text" id="Booking_Label" class="form-control shadow-sm" placeholder="1 / A" />
+                    <input type="text" id="Booking_Label" class="form-control shadow-sm" value="{{ $nextBookingLabel }}" readonly />
+                    <small class="text-muted">Terisi otomatis.</small>
                 </div>
             </div>
             <div class="col-md-4">
