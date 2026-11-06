@@ -82,9 +82,6 @@ if ($candidateId) {
                 <i class="fa {{ in_array($statusUpper, ['ACCEPT', 'INTERVIEWED']) ? 'fa-check-circle' : (in_array($statusUpper, ['REJECT']) ? 'fa-times-circle' : 'fa-clock') }} me-1"></i>
                 {{ $datahasil->Status ?: 'STAGE INTERVIEW' }}
             </span>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="RecruitmentListsCloseDetail();" title="Tutup Formulir Detail">
-                <i class="fa fa-xmark"></i>
-            </button>
         </div>
     </div>
 
@@ -225,7 +222,7 @@ if ($candidateId) {
                 </div>
                 <div class="card-body p-3">
                     {{-- Nav Tabs Kuesioner --}}
-                    <ul class="nav nav-tabs nav-tabs-bordered mb-3" id="kuesionerTab" role="tablist">
+                    <ul class="nav nav-tabs nav-tabs-bordered mb-3" style="gap: 16px" id="kuesionerTab" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active fw-semibold" id="tab-motivasi" data-bs-toggle="tab" data-bs-target="#content-motivasi" type="button" role="tab" aria-controls="content-motivasi" aria-selected="true">
                                 <i class="fa fa-compass me-1"></i> Motivasi &amp; Pengalaman

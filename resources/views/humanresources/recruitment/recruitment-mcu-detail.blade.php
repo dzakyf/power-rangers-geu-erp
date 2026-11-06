@@ -71,10 +71,6 @@ $mcuFile = $recruitment->MCU_File ?? '';
                 <span class="badge {{ $statusBadgeClass }} px-3 py-2 fs-12">
                     <i class="fa fa-heart-pulse me-1"></i> {{ $recruitment->Status ?: 'STAGE MCU' }}
                 </span>
-                <button type="button" class="btn btn-sm btn-outline-secondary"
-                    onclick="$('#divlistRecruitment').html('');" title="Tutup Formulir Detail">
-                    <i class="fa fa-xmark"></i>
-                </button>
             </div>
         </div>
 

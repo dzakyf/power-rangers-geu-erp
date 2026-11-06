@@ -101,32 +101,28 @@ var myTabbar = new dhtmlXTabBar({
 });
 myTabbar.tabs("a1").attachURL("employee-lists-detail-data?ID=<?php echo $_GET['ID']?>");
 
-setTimeout(function(){
-	myTabbar.tabs("a2").attachURL("employee-lists-detail-other?ID=<?php echo $_GET['ID']?>");
-},1000);
-setTimeout(function(){
-	myTabbar.tabs("a3").attachURL("employee-lists-detail-family?ID=<?php echo $_GET['ID']?>");
-},2000);
-setTimeout(function(){
-	myTabbar.tabs("a5").attachURL("employee-lists-detail-education?ID=<?php echo $_GET['ID']?>");
-},3000);
-setTimeout(function(){
-	myTabbar.tabs("a4").attachURL("employee-lists-detail-skill?ID=<?php echo $_GET['ID']?>");
-},4000);
-setTimeout(function(){
-	myTabbar.tabs("a6").attachURL("employee-lists-detail-insurance?ID=<?php echo $_GET['ID']?>");
-},5000);
-setTimeout(function(){
-	myTabbar.tabs("a7").attachURL("employee-lists-detail-kjk?ID=<?php echo $_GET['ID']?>");
-},6000);
-setTimeout(function(){
-	myTabbar.tabs("a8").attachURL("employee-lists-detail-document?ID=<?php echo $_GET['ID']?>");
-},7000);
-setTimeout(function(){
-	myTabbar.tabs("a9").attachURL("employee-lists-detail-history?ID=<?php echo $_GET['ID']?>");
-},8000);
-setTimeout(function(){
-	myTabbar.tabs("a10").attachURL("employee-lists-detail-recruitment?ID=<?php echo $_GET['ID']?>");
-},9000);
+var tabUrls = {
+    "a1": "employee-lists-detail-data?ID=<?php echo $_GET['ID']?>",
+    "a2": "employee-lists-detail-other?ID=<?php echo $_GET['ID']?>",
+    "a3": "employee-lists-detail-family?ID=<?php echo $_GET['ID']?>",
+    "a4": "employee-lists-detail-skill?ID=<?php echo $_GET['ID']?>",
+    "a5": "employee-lists-detail-education?ID=<?php echo $_GET['ID']?>",
+    "a6": "employee-lists-detail-insurance?ID=<?php echo $_GET['ID']?>",
+    "a7": "employee-lists-detail-kjk?ID=<?php echo $_GET['ID']?>",
+    "a8": "employee-lists-detail-document?ID=<?php echo $_GET['ID']?>",
+    "a9": "employee-lists-detail-history?ID=<?php echo $_GET['ID']?>",
+    "a10": "employee-lists-detail-recruitment?ID=<?php echo $_GET['ID']?>"
+};
 
+var loadedTabs = {
+    "a1": true
+};
+
+myTabbar.attachEvent("onSelect", function(id, lastId){
+    if (tabUrls[id] && !loadedTabs[id]) {
+        myTabbar.tabs(id).attachURL(tabUrls[id]);
+        loadedTabs[id] = true;
+    }
+    return true;
+});
 </script>
