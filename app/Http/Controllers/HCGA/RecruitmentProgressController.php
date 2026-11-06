@@ -19,7 +19,20 @@ class RecruitmentProgressController extends Controller
             abort(404, 'Recruitment not found');
         }
 
-        return view('humanresources.recruitment.recruitment-lists-detail-progress', compact('recruitment'));
+        $requisition = null;
+        if (!empty($recruitment->Requisition_ID)) {
+            $requisition = DB::table('requisition')->where('Task_ID', $recruitment->Requisition_ID)->first();
+        }
+
+        $recruitmentDetail = null;
+        if (\Illuminate\Support\Facades\Schema::hasTable('recruitment_detail')) {
+            $recruitmentDetail = DB::table('recruitment_detail')
+                ->where('ID', $recruitment->ID)
+                ->orWhere('Task_ID', $recruitment->Task_ID)
+                ->first();
+        }
+
+        return view('humanresources.recruitment.recruitment-lists-detail-progress', compact('recruitment', 'requisition', 'recruitmentDetail'));
     }
 
     public function update(Request $request)
@@ -34,6 +47,16 @@ class RecruitmentProgressController extends Controller
             'Technical_Score' => 'nullable|numeric|min:0|max:100',
             'Technical_Note' => 'nullable|string|max:500',
             'Technical_File' => 'nullable|string|max:500',
+            'Psikotest_Score' => 'nullable|numeric|min:0|max:100',
+            'Psikotest_Note' => 'nullable|string|max:500',
+            'Psikotest_File' => 'nullable|string|max:500',
+            'User_Interview_Schedule' => 'nullable|date',
+            'User_Interview_Result' => 'nullable|numeric|min:0|max:100',
+            'User_Interview_Note' => 'nullable|string|max:500',
+            'MCU_Note' => 'nullable|string|max:500',
+            'Offering_Salary' => 'nullable|numeric',
+            'Offering_Start_Date' => 'nullable|date',
+            'Offering_Note' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -61,14 +84,65 @@ class RecruitmentProgressController extends Controller
             'Technical_Score' => $request->input('Technical_Score'),
             'Technical_Note' => $request->input('Technical_Note'),
             'Technical_File' => $request->input('Technical_File'),
+            'Psikotest_Score' => $request->input('Psikotest_Score'),
+            'Psikotest_Note' => $request->input('Psikotest_Note'),
+            'Psikotest_File' => $request->input('Psikotest_File'),
+            'User_Interview_Schedule' => $request->input('User_Interview_Schedule'),
+            'User_Interview_Result' => $request->input('User_Interview_Result'),
+            'User_Interview_Note' => $request->input('User_Interview_Note'),
+            'MCU_Note' => $request->input('MCU_Note'),
+            'Salary_Accepted' => $request->input('Offering_Salary'),
+            'Start_Date' => $request->input('Offering_Start_Date'),
+            'Offering_Note' => $request->input('Offering_Note'),
         ];
 
-        // Hapus field yang null/empty kecuali string kosong yang valid
-        $updateData = array_filter($updateData, function($value) {
-            return $value !== null;
-        });
+        // Hanya sertakan kolom yang ada di tabel recruitment agar aman
+        $existingColumns = \Illuminate\Support\Facades\Schema::getColumnListing('recruitment');
+        $filteredData = [];
+        foreach ($updateData as $col => $val) {
+            if ($val !== null && in_array($col, $existingColumns)) {
+                $filteredData[$col] = $val;
+            }
+        }
 
-        DB::table('recruitment')->where('ID', $id)->update($updateData);
+        if (!empty($filteredData)) {
+            DB::table('recruitment')->where('ID', $id)->update($filteredData);
+        }
+
+        // Kolom kuesioner pelamar (recruitment_detail)
+        $detailFields = [
+            'Describe_Self', 'Left_Job', 'Previous_Boss', 'Describe_Know',
+            'Describe_Improve', 'Describe_Looking', 'Describe_Interest',
+            'Describe_Long', 'Describe_Target', 'Salary_Expectation',
+            'Facility_Expectation', 'Environment', 'Free_Time',
+            'Describe_Strong', 'Describe_Weak', 'Overtime', 'Holiday',
+            'Shift_Work', 'Out_Town', 'Computer', 'Questions_Us'
+        ];
+
+        $detailUpdate = [];
+        foreach ($detailFields as $df) {
+            if ($request->has($df)) {
+                $detailUpdate[$df] = $request->input($df);
+            }
+        }
+
+        if (!empty($detailUpdate) && \Illuminate\Support\Facades\Schema::hasTable('recruitment_detail')) {
+            $candidate = DB::table('recruitment')->where('ID', $id)->first();
+            if ($candidate) {
+                $existingDetail = DB::table('recruitment_detail')
+                    ->where('ID', $candidate->ID)
+                    ->orWhere('Task_ID', $candidate->Task_ID)
+                    ->first();
+
+                if ($existingDetail) {
+                    DB::table('recruitment_detail')->where('ID', $existingDetail->ID)->update($detailUpdate);
+                } else {
+                    $detailUpdate['ID'] = $candidate->ID;
+                    $detailUpdate['Task_ID'] = $candidate->Task_ID;
+                    DB::table('recruitment_detail')->insert($detailUpdate);
+                }
+            }
+        }
 
         return response()->json([
             'status' => 'success',

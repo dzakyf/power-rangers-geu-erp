@@ -3243,6 +3243,7 @@ Route::group(['middleware' => 'log.access'], function () {
 
     Route::get('/recruitment-lists-detail-progress', [App\Http\Controllers\HCGA\RecruitmentProgressController::class, 'detail']);
     Route::post('/recruitment-lists-detail-progress-update', [App\Http\Controllers\HCGA\RecruitmentProgressController::class, 'update']);
+    Route::post('/recruitment-lists-detail-progress-stage', [App\Http\Controllers\HCGA\RecruitmentProgressController::class, 'progress']);
     Route::post('/recruitment-lists-detail-data-submit', [App\Http\Controllers\HCGA\RecruitmentDetailController::class, 'updateDetailData']);
     Route::get('/xml-recruitment-lists-detail-document', function () {
         return view('humanresources.recruitment.xml.recruitment-lists-detail-document');

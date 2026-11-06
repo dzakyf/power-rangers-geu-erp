@@ -81,10 +81,6 @@ $defaultNote = $recruitment->Offering_Note ?? '';
                 <span class="badge {{ $statusBadgeClass }} px-3 py-2 fs-12">
                     <i class="fa fa-file-contract me-1"></i> {{ $recruitment->Status ?: 'STAGE OFFERING' }}
                 </span>
-                <button type="button" class="btn btn-sm btn-outline-secondary"
-                    onclick="$('#divlistRecruitment').html('');" title="Tutup Formulir Detail">
-                    <i class="fa fa-xmark"></i>
-                </button>
             </div>
         </div>
 

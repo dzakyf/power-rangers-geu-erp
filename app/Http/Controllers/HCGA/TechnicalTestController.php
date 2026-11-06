@@ -46,7 +46,6 @@ class TechnicalTestController extends Controller
             })
             ->where(function ($q) {
                 $q->where('Status', 'TECHNICAL_TEST')
-                  ->orWhere('Status', 'TEST_TEKNIK')
                   ->orWhere('Technical_Test_Status', 'PENDING');
             })
             ->orderBy("ID", "DESC")

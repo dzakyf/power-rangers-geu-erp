@@ -85,30 +85,26 @@ var myTabbar = new dhtmlXTabBar({
 });
 myTabbar.tabs("a1").attachURL("recruitment-lists-detail-data?ID=<?php echo $_GET['ID']?>");
 
-setTimeout(function(){
-	myTabbar.tabs("a2").attachURL("recruitment-lists-detail-other?ID=<?php echo $_GET['ID']?>");
-},1000);
-setTimeout(function(){
-	myTabbar.tabs("a3").attachURL("recruitment-lists-detail-family?ID=<?php echo $_GET['ID']?>");
-},2000);
-setTimeout(function(){
-	myTabbar.tabs("a5").attachURL("recruitment-lists-detail-education?ID=<?php echo $_GET['ID']?>");
-},3000);
-setTimeout(function(){
-	myTabbar.tabs("a4").attachURL("recruitment-lists-detail-skill?ID=<?php echo $_GET['ID']?>");
-},4000);
-setTimeout(function(){
-	myTabbar.tabs("a6").attachURL("recruitment-lists-detail-insurance?ID=<?php echo $_GET['ID']?>");
-},5000);
-// setTimeout(function(){
-// 	myTabbar.tabs("a7").attachURL("recruitment-lists-detail-kjk?ID=<?php echo $_GET['ID']?>");
-// },6000);
-setTimeout(function(){
-	myTabbar.tabs("a8").attachURL("recruitment-lists-detail-document?ID=<?php echo $_GET['ID']?>");
-},7000);
-setTimeout(function(){
-	myTabbar.tabs("a9").attachURL("recruitment-lists-detail-progress?ID=<?php echo $_GET['ID']?>");
-},8000);
+var tabUrls = {
+    "a1": "recruitment-lists-detail-data?ID=<?php echo $_GET['ID']?>",
+    "a2": "recruitment-lists-detail-other?ID=<?php echo $_GET['ID']?>",
+    "a3": "recruitment-lists-detail-family?ID=<?php echo $_GET['ID']?>",
+    "a4": "recruitment-lists-detail-skill?ID=<?php echo $_GET['ID']?>",
+    "a5": "recruitment-lists-detail-education?ID=<?php echo $_GET['ID']?>",
+    "a6": "recruitment-lists-detail-insurance?ID=<?php echo $_GET['ID']?>",
+    "a8": "recruitment-lists-detail-document?ID=<?php echo $_GET['ID']?>",
+    "a9": "recruitment-lists-detail-progress?ID=<?php echo $_GET['ID']?>"
+};
 
+var loadedTabs = {
+    "a1": true
+};
 
+myTabbar.attachEvent("onSelect", function(id, lastId){
+    if (tabUrls[id] && !loadedTabs[id]) {
+        myTabbar.tabs(id).attachURL(tabUrls[id]);
+        loadedTabs[id] = true;
+    }
+    return true;
+});
 </script>

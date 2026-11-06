@@ -65,9 +65,6 @@ if (!empty($recruitment->Birth_Date) && $recruitment->Birth_Date !== '0000-00-00
             <span class="badge bg-info text-white px-3 py-2 fs-12">
                 <i class="fa fa-code-branch me-1"></i> Status: {{ $technicalStatus }}
             </span>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="RecruitmentListsCloseDetail();" title="Tutup Formulir Evaluasi">
-                <i class="fa fa-xmark"></i>
-            </button>
         </div>
     </div>
 

@@ -55,9 +55,6 @@
                 <i class="fa {{ in_array($statusUpper, ['ACCEPT', 'BUSINESS_REVIEW', 'TECHNICAL_TEST']) ? 'fa-check-circle' : (in_array($statusUpper, ['REJECT']) ? 'fa-times-circle' : 'fa-clock') }} me-1"></i>
                 {{ $datahasil->Status ?: 'INTERVIEW USER' }}
             </span>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="RecruitmentListsCloseDetail();" title="Tutup Formulir Detail">
-                <i class="fa fa-xmark"></i>
-            </button>
         </div>
     </div>
 
@@ -189,7 +186,7 @@
                     </span>
                 </div>
                 <div class="card-body p-3">
-                    <ul class="nav nav-tabs nav-tabs-bordered mb-3" id="kuesionerUserTab" role="tablist">
+                    <ul class="nav nav-tabs nav-tabs-bordered mb-3" style="gap: 16px" id="kuesionerUserTab" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active fw-semibold" id="tab-user-motivasi" data-bs-toggle="tab" data-bs-target="#content-user-motivasi" type="button" role="tab" aria-controls="content-user-motivasi" aria-selected="true">
                                 <i class="fa fa-compass me-1"></i> Motivasi &amp; Pengalaman

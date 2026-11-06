@@ -44,7 +44,7 @@ if ($recruitment) {
         </div>
         <div>
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="$('#divlistRecruitment').html('');">
-                <i class="fa fa-xmark me-1"></i> Tutup Form
+                <i class="fa fa-xmark me-1"></i> Tutup
             </button>
         </div>
     </div>

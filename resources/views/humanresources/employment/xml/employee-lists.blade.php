@@ -31,7 +31,7 @@ $nomor = 1;
 
 echo "<rows>";
 
-$Query = DB::table("employment")->where("Location",$LSP)->where("Status","=","ACTIVE")->where("Category","=","INTERNAL")->orderBy("Name","ASC")->get();
+$Query = DB::table("employment")->where("Location",$LSP)->where("Status","=","ACTIVE")->orderBy("Name","ASC")->get();
 
 foreach($Query as $Fetch){
 	echo "<row id=\"$Fetch->Task_ID\">";
