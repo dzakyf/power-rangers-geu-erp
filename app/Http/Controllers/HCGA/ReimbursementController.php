@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
+use App\Services\UploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -10,6 +11,12 @@ use Illuminate\Support\Facades\Log;
 
 class ReimbursementController extends Controller
 {
+    protected $uploadService;
+
+    public function __construct(UploadService $uploadService)
+    {
+        $this->uploadService = $uploadService;
+    }
     public function index()
     {
         return view('humanresources.reimbursement.index');
@@ -146,12 +153,19 @@ class ReimbursementController extends Controller
         $Reimbursement_No = 'RMB/' . $LSP . '/' . date('ymd') . '-' . date('His');
         $linkkey = md5(date('Ym') . '789213123122122');
 
+        $attachmentId = null;
+        if ($request->hasFile('Attachment_File')) {
+            $file = $request->file('Attachment_File');
+            $attachmentId = $this->uploadService->storeFile($file, 'file', 'reimbursement', $user->id, 'Bukti Nota / Kwitansi Reimbursement');
+        }
+
         DB::beginTransaction();
         try {
-            DB::table('reimbursement')->insert([
+            $rmbId = DB::table('reimbursement')->insertGetId([
                 'Location'                  => $LSP,
                 'Reimbursement_No'          => $Reimbursement_No,
                 'Reference_No'              => trim($request->input('Reference_No', '')),
+                'Attachment_File'           => $attachmentId,
                 'User_Responsibility_ID'    => $nik,
                 'User_Responsibility_Name'  => trim($request->User_Responsibility_Name),
                 'User_Reference'            => $user->username,
@@ -187,6 +201,15 @@ class ReimbursementController extends Controller
                 'Created_Date'  => now(),
                 'Created_By'    => $user->username,
             ]);
+
+            // Daftarkan ke Dynamic Approval Engine (ApprovalWorkflowService)
+            try {
+                $rmbRow = DB::table('reimbursement')->where('ID', $rmbId)->first();
+                $rmbApprovalService = app(\App\Services\Approval\ReimbursementApprovalService::class);
+                $rmbApprovalService->submit($rmbRow, $user);
+            } catch (\Exception $apprEx) {
+                Log::warning('ApprovalWorkflowService submission fallback for Reimbursement #' . $rmbId . ': ' . $apprEx->getMessage());
+            }
 
             $subjek = "IMPORTANT : APPROVAL PERMINTAAN REIMBURSEMENT $Reimbursement_No # , Request By : $nama";
             $approvalUrl = url($link) . "?ID=$Reimbursement_No&linkkey=$linkkey&saya=$user->username";
@@ -250,7 +273,34 @@ class ReimbursementController extends Controller
             ->where('Cash_No', $reimbursement->Reimbursement_No)
             ->orderBy('ID', 'ASC')
             ->get();
+        $attachment = $reimbursement->Attachment_File ? DB::table('meta_files')->where('ID', $reimbursement->Attachment_File)->first() : null;
 
-        return view('humanresources.reimbursement.detail', compact('reimbursement', 'dtls', 'logs'));
+        return view('humanresources.reimbursement.detail', compact('reimbursement', 'dtls', 'logs', 'attachment'));
+    }
+
+    public function downloadAttachment(Request $request)
+    {
+        $reimbursement = DB::table('reimbursement')->where('ID', $request->ID)->first();
+        if (!$reimbursement || !$reimbursement->Attachment_File) {
+            abort(404, 'Berkas lampiran tidak ditemukan');
+        }
+
+        $user = Auth::user();
+        $isOwner = $reimbursement->User_Responsibility_ID == $user->Emp_ID || $reimbursement->Created_By == $user->username;
+        if (!$isOwner && !SettlementController::isHcgaVerifier() && !ReimbursementApprovalController::isApprover($user)) {
+            abort(403, 'Anda tidak berhak mengakses berkas ini');
+        }
+
+        $meta = DB::table('meta_files')->where('ID', $reimbursement->Attachment_File)->first();
+        if (!$meta) {
+            abort(404, 'Data berkas tidak ditemukan di sistem');
+        }
+
+        $path = public_path('filevendor/' . $meta->Path);
+        if (!file_exists($path)) {
+            abort(404, 'File fisik tidak ditemukan pada storage server');
+        }
+
+        return response()->download($path, $meta->Filename);
     }
 }

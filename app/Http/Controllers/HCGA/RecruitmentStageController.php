@@ -719,30 +719,121 @@ class RecruitmentStageController extends Controller
         }
         $offeringNumber = "OF-{$year}-{$newNo}";
 
-        $this->updateRecruitmentSafe($id, [
-            'Status'                  => 'HIRED',
-            'Registration_Status'     => 'HIRED',
-            'Offering_Status'         => 'ACCEPT',
-            'Offering_Number'         => $offeringNumber,
-            'Salary_Accepted'         => $salary,
-            'Position'                => $position,
-            'Start_Date'              => $startDate,
-            'Offering_Note'           => $note,
-            'Employment_Status'       => 'ACTIVE',
-            'Employment_Status_Date'  => now(),
-            'Modified_By'             => Auth::user()->username ?? 'SYSTEM',
-            'Modified_Date'           => now(),
+        // Jalankan transaksi onboarding resmi (employment, organization_structure, users & RBAC)
+        $onboardingService = app(\App\Services\HCGA\RecruitmentOnboardingService::class);
+        $onboardResult = $onboardingService->processOnboardingToEmployee($id, [
+            'offering_number'     => $offeringNumber,
+            'offering_file'       => $request->input('offering_file'),
+            'salary'              => $salary,
+            'salary_base'         => $request->input('salary_base', $salary),
+            'salary_cola'         => $request->input('salary_cola', 0),
+            'salary_allowance'    => $request->input('salary_allowance', 0),
+            'grading'             => $request->input('grading'),
+            'work_location'       => $request->input('work_location'),
+            'contract_type'       => $request->input('contract_type'),
+            'direct_supervisor'   => $request->input('direct_supervisor'),
+            'working_schedule'    => $request->input('working_schedule'),
+            'benefit_description' => $request->input('benefit_description'),
+            'offering_terms'      => $request->input('offering_terms'),
+            'position'            => $position,
+            'start_date'          => $startDate,
+            'note'                => $note,
+            'nik'                 => $request->input('nik'),
+            'priv_id'             => $request->input('priv_id'),
+            'role'                => $request->input('role'),
+            'department'          => $request->input('department'),
+            'directorat'          => $request->input('directorat'),
         ]);
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Offering Letter berhasil diterbitkan. Kandidat resmi diterima (HIRED).',
+            'message' => 'Offering Letter berhasil diterbitkan! Kandidat resmi diterima (HIRED) dan telah didaftarkan ke data Karyawan (Employment), Bagan Organisasi, serta akun login (Users).',
             'data'    => [
-                'recruitment_id'        => $id,
-                'status'                => 'HIRED',
+                'recruitment_id'         => $id,
+                'status'                 => 'HIRED',
                 'offering_letter_number' => $offeringNumber,
-                'salary'                => $salary,
-                'start_date'            => $startDate,
+                'nik'                    => $onboardResult['nik'] ?? null,
+                'username'               => $onboardResult['username'] ?? null,
+                'salary'                 => $salary,
+                'start_date'             => $startDate,
+                'priv_id'                => $onboardResult['priv_id'] ?? null,
+                'role'                   => $onboardResult['role'] ?? null,
+            ],
+        ]);
+    }
+
+    /**
+     * Simpan Draft Form Offering Letter (tanpa mengubah status menjadi HIRED)
+     * POST /hrd-recruitment-save-draft-offering
+     */
+    public function saveDraftOffering(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:recruitment,ID',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $id = $request->input('id');
+        $salary = (float) $request->input('salary', 0);
+        $salaryBase = (float) $request->input('salary_base', $salary);
+        $salaryCola = (float) $request->input('salary_cola', 0);
+        $salaryAllowance = (float) $request->input('salary_allowance', 0);
+
+        // Komponen rincian gaji dinamis (array)
+        $salaryDetails = $request->input('salary_details');
+        $salaryDetailsJson = null;
+        if (is_array($salaryDetails)) {
+            $salaryDetailsJson = json_encode($salaryDetails);
+        } elseif (is_string($salaryDetails)) {
+            $salaryDetailsJson = $salaryDetails;
+        }
+
+        $dataToUpdate = [
+            'Position'            => $request->input('position'),
+            'Grading'             => $request->input('grading'),
+            'Work_Location'       => $request->input('work_location'),
+            'Contract_Type'       => $request->input('contract_type'),
+            'Direct_Supervisor'   => $request->input('direct_supervisor'),
+            'Working_Schedule'    => $request->input('working_schedule'),
+            'Salary_Period_Note'  => $request->input('salary_period_note'),
+            'Salary_Accepted'     => $salary,
+            'Salary_Base'         => $salaryBase,
+            'Salary_Cola'         => $salaryCola,
+            'Salary_Allowance'    => $salaryAllowance,
+            'Salary_Details_Json' => $salaryDetailsJson,
+            'Benefit_Description' => $request->input('benefit_description'),
+            'Offering_Terms'      => $request->input('offering_terms'),
+            'Offering_Note'       => $request->input('note'),
+            'Start_Date'          => $request->input('start_date'),
+            'NIK'                 => $request->input('nik'),
+            'Modified_By'         => Auth::user()->username ?? 'SYSTEM',
+            'Modified_Date'       => now(),
+        ];
+
+        if ($request->filled('offering_number')) {
+            $dataToUpdate['Offering_Number'] = $request->input('offering_number');
+        }
+
+        if ($request->filled('offering_file')) {
+            $dataToUpdate['Offering_File'] = $request->input('offering_file');
+            $dataToUpdate['Offering_Signed_Date'] = now();
+        }
+
+        $this->updateRecruitmentSafe($id, $dataToUpdate);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Draft Offering Letter berhasil disimpan.',
+            'data'    => [
+                'recruitment_id' => $id,
+                'offering_file'  => $request->input('offering_file'),
+                'salary'         => $salary,
             ],
         ]);
     }

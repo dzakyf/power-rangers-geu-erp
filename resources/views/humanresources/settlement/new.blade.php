@@ -1,234 +1,526 @@
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
-@csrf
-    <div class="main-content-header">
-        <h1>Human Capital and General Affairs</h1>
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="hrd-settlement-index">Request Settlement</a></li>
-            <li class="breadcrumb-item active"><span class="active">New Request Settlement</span></li>
-        </ol>
-    </div>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
+    @csrf
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="card-title m-0">Form Request Settlement</h4>
+    <style>
+        .settlement-page-wrapper {
+            margin-bottom: 2.5rem;
+        }
+
+
+        .settlement-card {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            background: #ffffff;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .settlement-section-header {
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.9rem 1.25rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .settlement-section-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: #ffffff;
+            margin-bottom: 1.25rem;
+            overflow: hidden;
+        }
+
+        .settlement-btn {
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.55rem 1.25rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            transition: all 0.2s ease;
+        }
+
+        .settlement-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .form-label-custom {
+            font-size: 0.825rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.35rem;
+        }
+
+        .table-expense th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .total-summary-card {
+            background: #f8fafc;
+            border-left: 4px solid #0d6efd;
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+        }
+    </style>
+
+                <div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+                    <div>
+                        <h4 class="content-title fw-bold mb-1" style="font-size: 1.35rem; letter-spacing: 0.3px;">
+                            Travel, Expense & Settlement
+                        </h4>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0">
+                                <li class="breadcrumb-item"><a href="{{ url('hrd-settlement-index') }}">Settlement</a></li>
+                                <li class="breadcrumb-item active" aria-current="page" style="font-weight: 600;">Buat
+                                    Pengajuan Settlement</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="{{ url('hrd-settlement-index') }}" class="btn btn-outline-secondary settlement-btn">
+                            <i class="fa fa-arrow-left"></i> Kembali ke List
+                        </a>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
 
-                        <div class="col-md-6 col-12">
-                            <div class="form-group">
-                                <label for="STTL_No">No Settlement</label>
-                                <input type="text" id="STTL_No" class="form-control shadow-sm" name="STTL_No" value="{{ $STTL_No }}" readonly />
-                            </div>
-                        </div>
+                <div class="settlement-page-wrapper">
+                    <div class="card settlement-card">
+                        <div class="card-body p-4">
+                            <form id="settlementForm" enctype="multipart/form-data">
 
-                        <div class="col-md-6 col-12">
-                            <div class="form-group">
-                                <label for="Requester_NIK">NIK Karyawan Pengaju</label>
-                                <input type="text" id="Requester_NIK" class="form-control shadow-sm" name="Requester_NIK" value="{{ $user->Emp_ID ?: '' }}" readonly />
-                            </div>
-                        </div>
+                                <!-- Section 1: Informasi Dasar -->
+                                <div class="settlement-section-card">
+                                    <div class="settlement-section-header">
+                                        <i class="fa fa-id-card text-primary"></i> Data Pokok & Referensi Pengajuan
+                                    </div>
+                                    <div class="p-3">
+                                        <div class="row g-3">
+                                            <div class="col-md-6 col-12">
+                                                <label for="STTL_No" class="form-label-custom">No. Settlement</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-light text-muted"><i
+                                                            class="fa fa-barcode"></i></span>
+                                                    <input type="text" id="STTL_No"
+                                                        class="form-control bg-light font-weight-bold" name="STTL_No"
+                                                        value="{{ $STTL_No }}" readonly />
+                                                </div>
+                                            </div>
 
-                        <div class="col-md-6 col-12">
-                            <div class="form-group">
-                                <label for="Department">Nama Departemen</label>
-                                <select id="Department" class="form-control shadow-sm" name="Department">
-                                    <option value="">-- Pilih Departemen --</option>
-                                    @foreach ($departments as $d)
-                                        <option value="{{ $d->Department }}">{{ $d->Department }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
+                                            <div class="col-md-6 col-12">
+                                                <label for="Requester_NIK" class="form-label-custom">NIK Pemohon</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-light text-muted"><i
+                                                            class="fa fa-id-badge"></i></span>
+                                                    <input type="text" id="Requester_NIK" class="form-control bg-light"
+                                                        name="Requester_NIK" value="{{ $user->Emp_ID ?: '-' }}" readonly />
+                                                </div>
+                                            </div>
 
-                        <div class="col-md-6 col-12">
-                            <div class="form-group">
-                                <label for="Requester_Name">Nama Karyawan Pengaju</label>
-                                <input type="text" id="Requester_Name" class="form-control shadow-sm" name="Requester_Name" value="{{ $user->Name ?: $user->username }}" />
-                            </div>
-                        </div>
+                                            <div class="col-md-6 col-12">
+                                                <label for="Requester_Name" class="form-label-custom">Nama Karyawan Pemohon
+                                                    <span class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-light text-muted"><i
+                                                            class="fa fa-user"></i></span>
+                                                    <input type="text" id="Requester_Name" class="form-control"
+                                                        name="Requester_Name" value="{{ $user->Name ?: $user->username }}"
+                                                        required />
+                                                </div>
+                                            </div>
 
-                        <div class="col-md-6 col-12">
-                            <div class="form-group">
-                                <label for="SPPD_ID">Referensi SPPD (opsional)</label>
-                                <select id="SPPD_ID" class="form-control shadow-sm">
-                                    <option value="">-- Tanpa Referensi SPPD --</option>
-                                    @foreach (($sppdList ?? collect()) as $sp)
-                                        <option value="{{ $sp->ID }}">{{ $sp->SPPD_No }} — {{ $sp->Destination }}</option>
-                                    @endforeach
-                                </select>
-                                <small class="form-text text-muted" id="sppdInfo"></small>
-                            </div>
-                        </div>
+                                            <div class="col-md-6 col-12">
+                                                <label for="Department" class="form-label-custom">Departemen <span
+                                                        class="text-danger">*</span></label>
+                                                <select id="Department" class="form-control select2" name="Department"
+                                                    required>
+                                                    <option value="">-- Pilih Departemen --</option>
+                                                    @foreach ($departments as $d)
+                                                        <option value="{{ $d->Department }}">{{ $d->Department }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
 
-                        <div class="col-md-12 col-12">
-                            <div class="form-group">
-                                <label>Rincian Penggunaan Biaya</label>
-                                <table id="tblExpense" class="table table-bordered">
-                                    <thead class="thead-light">
-                                        <tr>
-                                            <th width="220">Pengeluaran</th>
-                                            <th width="180">Jumlah (Rp)</th>
-                                            <th>Keterangan</th>
-                                            <th width="50"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td><input type="text" id="Expense_0" class="form-control" /></td>
-                                            <td><input type="text" id="Cost_0" class="form-control" onkeyup="hitungTotal();" /></td>
-                                            <td><input type="text" id="Desc_0" class="form-control" /></td>
-                                            <td><button type="button" class="btn btn-success btn-sm" onclick="tambahRow();">+</button></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                                <div class="font-weight-bold">
-                                    Total Pengeluaran : Rp <span id="TotalCost">0</span>
+                                            <div class="col-md-12 col-12">
+                                                <label for="SPPD_ID" class="form-label-custom">Referensi SPPD
+                                                    (Opsional)</label>
+                                                <select id="SPPD_ID" class="form-control select2">
+                                                    <option value="">-- Tanpa Referensi SPPD --</option>
+                                                    @foreach ($sppdList ?? collect() as $sp)
+                                                        <option value="{{ $sp->ID }}">{{ $sp->SPPD_No }} —
+                                                            {{ $sp->Destination }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <small class="text-primary mt-1 d-block fw-semibold" id="sppdInfo"></small>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+
+                                <!-- Section 2: Rincian Pengeluaran -->
+                                <div class="settlement-section-card">
+                                    <div class="settlement-section-header justify-content-between">
+                                        <span><i class="fa fa-receipt text-primary"></i> Rincian Penggunaan Biaya
+                                            Real</span>
+                                        <button type="button" class="btn btn-primary btn-sm settlement-btn"
+                                            onclick="tambahRow();">
+                                            <i class="fa fa-plus"></i> Tambah Item Biaya
+                                        </button>
+                                    </div>
+                                    <div class="p-3">
+                                        <div class="table-responsive">
+                                            <table id="tblExpense"
+                                                class="table table-bordered table-expense align-middle mb-2">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="min-width: 220px;">Jenis Pengeluaran <span
+                                                                class="text-danger">*</span></th>
+                                                        <th style="width: 200px;">Jumlah (Rp) <span
+                                                                class="text-danger">*</span></th>
+                                                        <th>Keterangan / Keperluan</th>
+                                                        <th style="width: 60px;" class="text-center">Aksi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            <input type="text" id="Expense_0" class="form-control"
+                                                                placeholder="Contoh: Tiket, Penginapan, Makan" required />
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group">
+                                                                <span
+                                                                    class="input-group-text bg-light text-muted">Rp</span>
+                                                                <input type="text" id="Cost_0"
+                                                                    class="form-control text-end cost-input"
+                                                                    placeholder="0" onkeyup="hitungTotal();" required />
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" id="Desc_0" class="form-control"
+                                                                placeholder="Catatan tambahan keperluan pengeluaran" />
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <button type="button" class="btn btn-outline-danger btn-sm"
+                                                                onclick="hapusRow(this);" title="Hapus baris">
+                                                                <i class="fa fa-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div
+                                            class="total-summary-card mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                            <div>
+                                                <span class="text-muted small text-uppercase fw-bold">Ringkasan Total
+                                                    Pengeluaran:</span>
+                                                <div class="h4 mb-0 fw-bold text-primary">
+                                                    Rp <span id="TotalCost">0</span>
+                                                </div>
+                                            </div>
+                                            <div class="text-end" id="SelisihBox" style="display: none;">
+                                                <span class="text-muted small text-uppercase fw-bold"
+                                                    id="SelisihLabel">Reimburse / Lebih Bayar:</span>
+                                                <div class="h5 mb-0 fw-bold" id="SelisihNominal">Rp 0</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Section 3: Advance & Pencairan / Dokumen -->
+                                <div class="settlement-section-card">
+                                    <div class="settlement-section-header">
+                                        <i class="fa fa-money-check-alt text-primary"></i> Advance, Rekening & Bukti
+                                        Struk/Invoice
+                                    </div>
+                                    <div class="p-3">
+                                        <div class="row g-3">
+                                            <div class="col-md-6 col-12">
+                                                <label for="Advance_Nominal" class="form-label-custom">Biaya Uang Muka /
+                                                    Advance yang Diterima</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-light text-muted">Rp</span>
+                                                    <input type="text" id="Advance_Nominal" class="form-control"
+                                                        name="Advance_Nominal"
+                                                        placeholder="0 (Kosongkan jika reimbursement murni)"
+                                                        onkeyup="hitungTotal();" />
+                                                </div>
+                                                <small class="text-muted">Isi nominal dana awal yang telah ditransfer
+                                                    sebelumnya jika ada.</small>
+                                            </div>
+
+                                            <div class="col-md-6 col-12">
+                                                <label for="Bank" class="form-label-custom">Rekening Bank untuk
+                                                    Pencairan / Pengembalian</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-light text-muted"><i
+                                                            class="fa fa-university"></i></span>
+                                                    <input type="text" id="Bank" class="form-control"
+                                                        name="Bank"
+                                                        placeholder="Contoh: BCA 1234567890 a.n. Nama Karyawan" />
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-12 col-12">
+                                                <label for="Invoice_File" class="form-label-custom">Berkas Bukti / Invoice
+                                                    / Struk Pengeluaran <span class="text-danger">*</span></label>
+                                                <input type="file" id="Invoice_File" name="Invoice_File"
+                                                    class="form-control" accept=".pdf,.jpg,.jpeg,.png" required />
+                                                <small class="text-muted"><i class="fa fa-info-circle me-1"></i> Format
+                                                    berkas yang didukung: <strong>PDF, JPG, JPEG, PNG</strong> (Ukuran
+                                                    maksimal 5MB). Lampirkan rekapan atau kwitansi resmi.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-end gap-2 mt-4">
+                                    <a href="{{ url('hrd-settlement-index') }}" class="btn btn-secondary settlement-btn">
+                                        <i class="fa fa-times"></i> Batal
+                                    </a>
+                                    <button type="button" class="btn btn-success settlement-btn" id="submitBtn">
+                                        <i class="fa fa-paper-plane"></i> Submit Request Settlement
+                                    </button>
+                                </div>
+
+                            </form>
                         </div>
-
-                        <div class="col-md-6 col-12">
-                            <div class="form-group">
-                                <label for="Advance_Nominal">Biaya Advance yang Diterima (opsional)</label>
-                                <input type="text" id="Advance_Nominal" class="form-control shadow-sm" name="Advance_Nominal" placeholder="contoh: 500000" onkeyup="hitungTotal();" />
-                            </div>
-                        </div>
-
-                        <div class="col-md-6 col-12">
-                            <div class="form-group">
-                                <label for="Bank">Bank Transfer (opsional)</label>
-                                <input type="text" id="Bank" class="form-control shadow-sm" name="Bank" placeholder="contoh: BCA 123456789 a.n. Nama" />
-                            </div>
-                        </div>
-
-                        <div class="col-md-6 col-12">
-                            <div class="form-group">
-                                <label for="Invoice_File">Berkas Invoice <span class="text-danger">*</span></label>
-                                <input type="file" id="Invoice_File" name="Invoice_File" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png" required />
-                                <small class="form-text text-muted">Format PDF/JPG/PNG, maksimal 5MB</small>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div class="col-12 mt-2">
-                        <button class="btn btn-success" id="submitBtn">Submit</button>
-                        <a href="hrd-settlement-index" class="btn btn-secondary">Kembali</a>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-@php
-    $sppdMap = collect($sppdList ?? [])->mapWithKeys(function ($s) {
-        return [$s->ID => ['no' => $s->SPPD_No, 'dept' => $s->Department, 'dest' => $s->Destination, 'cost' => (float) $s->Estimated_Cost]];
-    });
-@endphp
-<script>
-var SPPD_MAP = {!! json_encode($sppdMap) !!};
+                @php
+                    $sppdMap = collect($sppdList ?? [])->mapWithKeys(function ($s) use ($sppdCosts) {
+                        return [
+                            $s->ID => [
+                                'no'    => $s->SPPD_No,
+                                'dept'  => $s->Department,
+                                'dest'  => $s->Destination,
+                                'cost'  => (float) $s->Estimated_Cost,
+                                'items' => $sppdCosts[$s->ID] ?? []
+                            ],
+                        ];
+                    });
+                @endphp
 
-$(function () {
-    $('#SPPD_ID').select2({ width: '100%', placeholder: '-- Tanpa Referensi SPPD --', allowClear: true });
-    $('#Department').select2({ width: '100%', placeholder: '-- Pilih Departemen --', allowClear: true });
+                <script>
+                    var SPPD_MAP = {!! json_encode($sppdMap) !!};
 
-    $('#SPPD_ID').on('change', function () {
-        var s = SPPD_MAP[$(this).val()];
-        if (s) {
-            if (s.dept) { $('#Department').val(s.dept).trigger('change.select2'); }
-            if (s.cost) { $('#Advance_Nominal').val(s.cost); hitungTotal(); }
-            $('#sppdInfo').text('Tujuan: ' + (s.dest || '-') + ' | Estimasi SPPD: ' + Number(s.cost || 0).toLocaleString('id-ID'));
-        } else {
-            $('#sppdInfo').text('');
-        }
-    });
-});
+                    $(function() {
+                        $('#SPPD_ID').select2({
+                            width: '100%',
+                            placeholder: '-- Tanpa Referensi SPPD --',
+                            allowClear: true
+                        });
+                        $('#Department').select2({
+                            width: '100%',
+                            placeholder: '-- Pilih Departemen --',
+                            allowClear: true
+                        });
 
-var rowExpense = 1;
+                        $('#SPPD_ID').on('change', function() {
+                            var s = SPPD_MAP[$(this).val()];
+                            if (s) {
+                                if (s.dept) {
+                                    $('#Department').val(s.dept).trigger('change');
+                                }
+                                if (s.cost) {
+                                    $('#Advance_Nominal').val(s.cost);
+                                }
+                                $('#sppdInfo').html('<i class="fa fa-info-circle me-1"></i> Ref SPPD: ' + s.no +
+                                    ' | Tujuan: ' + (s.dest || '-') + ' | Estimasi Biaya SPPD: Rp ' + Number(s
+                                        .cost || 0).toLocaleString('id-ID'));
 
-function tambahRow() {
-    var html = "<tr>"
-        + "<td><input type='text' id='Expense_" + rowExpense + "' class='form-control' /></td>"
-        + "<td><input type='text' id='Cost_" + rowExpense + "' class='form-control' onkeyup='hitungTotal();' /></td>"
-        + "<td><input type='text' id='Desc_" + rowExpense + "' class='form-control' /></td>"
-        + "<td><button type='button' class='btn btn-danger btn-sm' onclick='hapusRow(this);'>-</button></td>"
-        + "</tr>";
-    $("#tblExpense tbody").append(html);
-    rowExpense++;
-}
+                                // Tarik detail rincian pengeluaran dari SPPD jika tersedia
+                                if (s.items && s.items.length > 0) {
+                                    populateExpensesFromSppd(s.items);
+                                } else {
+                                    hitungTotal();
+                                }
+                            } else {
+                                $('#sppdInfo').text('');
+                                hitungTotal();
+                            }
+                        });
+                    });
 
-function hapusRow(btn) {
-    $(btn).closest("tr").remove();
-    hitungTotal();
-}
+                    function populateExpensesFromSppd(items) {
+                        var $tbody = $("#tblExpense tbody");
+                        $tbody.empty();
+                        rowExpense = 0;
 
-function hitungTotal() {
-    var total = 0;
-    $("[id^='Cost_']").each(function () {
-        var v = parseFloat($(this).val().replace(/\./g, "").replace(/,/g, "."));
-        if (!isNaN(v)) total += v;
-    });
-    $("#TotalCost").text(total.toLocaleString("id-ID"));
-}
+                        items.forEach(function(item, idx) {
+                            var costVal = Number(item.Cost || 0);
+                            var html = "<tr>" +
+                                "<td><input type='text' id='Expense_" + rowExpense +
+                                "' class='form-control' value='" + (item.Expense || '') + "' placeholder='Contoh: Tiket, Hotel, BBM' required /></td>" +
+                                "<td><div class='input-group'><span class='input-group-text bg-light text-muted'>Rp</span><input type='text' id='Cost_" +
+                                rowExpense +
+                                "' class='form-control text-end cost-input' value='" + costVal + "' placeholder='0' onkeyup='hitungTotal();' required /></div></td>" +
+                                "<td><input type='text' id='Desc_" + rowExpense +
+                                "' class='form-control' value='" + (item.Description || '') + "' placeholder='Keterangan keperluan' /></td>" +
+                                "<td class='text-center'><button type='button' class='btn btn-outline-danger btn-sm' onclick='hapusRow(this);' title='Hapus baris'><i class='fa fa-trash'></i></button></td>" +
+                                "</tr>";
+                            $tbody.append(html);
+                            rowExpense++;
+                        });
 
-$('#submitBtn').click(function (e) {
-    e.preventDefault();
+                        hitungTotal();
+                    }
 
-    if ($.trim($("#Department").val()) === "") { alert("Field Department wajib diisi!"); return; }
-    if ($.trim($("#Requester_Name").val()) === "") { alert("Field Requester Name wajib diisi!"); return; }
-    if ($("#Invoice_File")[0].files.length === 0) { alert("Berkas Invoice wajib diupload!"); return; }
+                    var rowExpense = 1;
 
-    var hasRow = false;
-    $("[id^='Cost_']").each(function () {
-        var v = parseFloat($(this).val().replace(/\./g, "").replace(/,/g, "."));
-        if (!isNaN(v) && v > 0) hasRow = true;
-    });
-    if (!hasRow) { alert("Rincian penggunaan biaya wajib diisi minimal satu baris!"); return; }
+                    function tambahRow() {
+                        var html = "<tr>" +
+                            "<td><input type='text' id='Expense_" + rowExpense +
+                            "' class='form-control' placeholder='Contoh: Tiket, Hotel, BBM' required /></td>" +
+                            "<td><div class='input-group'><span class='input-group-text bg-light text-muted'>Rp</span><input type='text' id='Cost_" +
+                            rowExpense +
+                            "' class='form-control text-end cost-input' placeholder='0' onkeyup='hitungTotal();' required /></div></td>" +
+                            "<td><input type='text' id='Desc_" + rowExpense +
+                            "' class='form-control' placeholder='Keterangan keperluan' /></td>" +
+                            "<td class='text-center'><button type='button' class='btn btn-outline-danger btn-sm' onclick='hapusRow(this);' title='Hapus baris'><i class='fa fa-trash'></i></button></td>" +
+                            "</tr>";
+                        $("#tblExpense tbody").append(html);
+                        rowExpense++;
+                    }
 
-    var formData = new FormData();
-    formData.append('STTL_No', $('#STTL_No').val());
-    formData.append('Requester_NIK', $('#Requester_NIK').val());
-    formData.append('Department', $('#Department').val());
-    formData.append('Requester_Name', $('#Requester_Name').val());
-    formData.append('SPPD_ID', $('#SPPD_ID').val());
-    formData.append('Advance_Nominal', $('#Advance_Nominal').val());
-    formData.append('Bank', $('#Bank').val());
-    formData.append('Invoice_File', $('#Invoice_File')[0].files[0]);
-    $("[id^='Expense_']").each(function () {
-        var idx = $(this).attr('id').replace('Expense_', '');
-        formData.append('Expense_' + idx, $(this).val());
-        formData.append('Cost_' + idx, $('#Cost_' + idx).val());
-        formData.append('Desc_' + idx, $('#Desc_' + idx).val());
-    });
+                    function hapusRow(btn) {
+                        if ($("#tblExpense tbody tr").length <= 1) {
+                            alert("Minimal harus ada satu baris rincian biaya!");
+                            return;
+                        }
+                        $(btn).closest("tr").remove();
+                        hitungTotal();
+                    }
 
-    $.ajax({
-        url: 'hrd-settlement-new-submit',
-        type: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': "{{ csrf_token() }}"
-        },
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (data) {
-            if (data.status === 'success') {
-                alert('Request Settlement Submitted!');
-                location.href = 'hrd-settlement-index';
-            } else {
-                alert('Gagal submit! ' + data.message);
-            }
-        },
-        error: function (xhr) {
-            var msg = 'Terjadi kesalahan server';
-            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-            alert(msg);
-        }
-    });
-});
-</script>
-@endsection
+                    function hitungTotal() {
+                        var total = 0;
+                        $("[id^='Cost_']").each(function() {
+                            var raw = $(this).val().replace(/\./g, "").replace(/,/g, ".");
+                            var v = parseFloat(raw);
+                            if (!isNaN(v)) total += v;
+                        });
+                        $("#TotalCost").text(total.toLocaleString("id-ID"));
+
+                        // Kalkulasi selisih dengan advance
+                        var advanceRaw = $("#Advance_Nominal").val().replace(/\./g, "").replace(/,/g, ".");
+                        var advanceVal = parseFloat(advanceRaw) || 0;
+
+                        if (advanceVal > 0) {
+                            $("#SelisihBox").show();
+                            var selisih = total - advanceVal;
+                            if (selisih > 0) {
+                                $("#SelisihLabel").text("Kurang Bayar (Reimbursement Karyawan):");
+                                $("#SelisihNominal").html("<span class='text-danger'>Rp " + selisih.toLocaleString("id-ID") +
+                                "</span>");
+                            } else if (selisih < 0) {
+                                $("#SelisihLabel").text("Lebih Bayar (Pengembalian ke Perusahaan):");
+                                $("#SelisihNominal").html("<span class='text-success'>Rp " + Math.abs(selisih).toLocaleString("id-ID") +
+                                    "</span>");
+                            } else {
+                                $("#SelisihLabel").text("Status Biaya:");
+                                $("#SelisihNominal").html("<span class='text-primary'>Pas (Sesuai Advance)</span>");
+                            }
+                        } else {
+                            $("#SelisihBox").hide();
+                        }
+                    }
+
+                    $('#submitBtn').click(function(e) {
+                        e.preventDefault();
+
+                        if ($.trim($("#Department").val()) === "") {
+                            alert("Field Departemen wajib dipilih!");
+                            $("#Department").focus();
+                            return;
+                        }
+                        if ($.trim($("#Requester_Name").val()) === "") {
+                            alert("Nama Karyawan Pemohon wajib diisi!");
+                            $("#Requester_Name").focus();
+                            return;
+                        }
+                        if ($("#Invoice_File")[0].files.length === 0) {
+                            alert("Berkas Invoice / Kwitansi pengeluaran wajib diupload!");
+                            $("#Invoice_File").focus();
+                            return;
+                        }
+
+                        var hasRow = false;
+                        $("[id^='Cost_']").each(function() {
+                            var v = parseFloat($(this).val().replace(/\./g, "").replace(/,/g, "."));
+                            if (!isNaN(v) && v > 0) hasRow = true;
+                        });
+                        if (!hasRow) {
+                            alert("Rincian penggunaan biaya wajib diisi minimal satu baris dengan nilai lebih dari 0!");
+                            return;
+                        }
+
+                        var formData = new FormData();
+                        formData.append('STTL_No', $('#STTL_No').val());
+                        formData.append('Requester_NIK', $('#Requester_NIK').val());
+                        formData.append('Department', $('#Department').val());
+                        formData.append('Requester_Name', $('#Requester_Name').val());
+                        formData.append('SPPD_ID', $('#SPPD_ID').val());
+                        formData.append('Advance_Nominal', $('#Advance_Nominal').val());
+                        formData.append('Bank', $('#Bank').val());
+                        formData.append('Invoice_File', $('#Invoice_File')[0].files[0]);
+
+                        $("[id^='Expense_']").each(function() {
+                            var idx = $(this).attr('id').replace('Expense_', '');
+                            formData.append('Expense_' + idx, $(this).val());
+                            formData.append('Cost_' + idx, $('#Cost_' + idx).val());
+                            formData.append('Desc_' + idx, $('#Desc_' + idx).val());
+                        });
+
+                        var $btn = $('#submitBtn');
+                        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Menyimpan...');
+
+                        $.ajax({
+                            url: 'hrd-settlement-new-submit',
+                            type: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                            },
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success: function(data) {
+                                $btn.prop('disabled', false).html(
+                                    '<i class="fa fa-paper-plane"></i> Submit Request Settlement');
+                                if (data.status === 'success') {
+                                    alert('Request Settlement Berhasil Dikirim!');
+                                    location.href = 'hrd-settlement-index';
+                                } else {
+                                    alert('Gagal submit pengajuan: ' + data.message);
+                                }
+                            },
+                            error: function(xhr) {
+                                $btn.prop('disabled', false).html(
+                                    '<i class="fa fa-paper-plane"></i> Submit Request Settlement');
+                                var msg = 'Terjadi kesalahan sistem saat mengirim data.';
+                                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                alert(msg);
+                            }
+                        });
+                    });
+                </script>
+            @endsection

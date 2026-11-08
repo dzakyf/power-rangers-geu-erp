@@ -4,312 +4,390 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
 @csrf
-<div class="main-content-header">
-    <h1>Human Capital and General Affairs</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="hrd-sppd-index">Perjalanan Dinas</a></li>
-        <li class="breadcrumb-item active"><span class="active">New Request SPPD</span></li>
-    </ol>
+<style>
+    .sppd-page-wrapper {
+        margin-bottom: 2rem;
+    }
+    .sppd-hero-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        border-radius: 14px;
+        padding: 1.5rem 1.75rem;
+        box-shadow: 0 4px 14px rgba(30, 58, 138, 0.15);
+        color: #fff;
+        margin-top: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .sppd-hero-header h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+    .sppd-hero-header p {
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 0.875rem;
+        margin-bottom: 0;
+    }
+    .sppd-breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin-bottom: 0.5rem;
+        font-size: 0.8rem;
+    }
+    .sppd-breadcrumb .breadcrumb-item, .sppd-breadcrumb .breadcrumb-item a {
+        color: rgba(255, 255, 255, 0.75);
+        text-decoration: none;
+    }
+    .sppd-breadcrumb .breadcrumb-item.active {
+        color: #fff;
+        font-weight: 600;
+    }
+    .sppd-card {
+        border: none;
+        border-radius: 14px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        background: #ffffff;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    .sppd-section-header {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 0.9rem 1.25rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-radius: 10px 10px 0 0;
+    }
+    .sppd-section-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #ffffff;
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+    }
+    .sppd-btn {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0.55rem 1.25rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        transition: all 0.2s ease;
+    }
+    .sppd-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+    .form-label-custom {
+        font-size: 0.825rem;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 0.35rem;
+    }
+    .total-cost-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 0.75rem 1.25rem;
+        color: #166534;
+        font-size: 1.05rem;
+    }
+</style>
+
+<div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+    <div>
+        <h4 class="content-title fw-bold mb-1" style="font-size: 1.35rem; letter-spacing: 0.3px;">
+            Permohonan Perjalanan Dinas (SPPD)
+        </h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="#">Human Capital</a></li>
+                <li class="breadcrumb-item"><a href="hrd-sppd-index">Perjalanan Dinas</a></li>
+                <li class="breadcrumb-item active" aria-current="page" style="font-weight: 600;">New Request SPPD</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="hrd-sppd-index" class="btn btn-outline-secondary sppd-btn">
+            <i class="fa fa-arrow-left"></i> Kembali ke Daftar
+        </a>
+    </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-primary text-white p-2">
-                <h4 class="card-title m-0 d-inline-block">Form Request Perjalanan Dinas</h4>
-                <button type="button" class="float-right btn btn-secondary" onclick="history.back();"><i class="fa fa-times"></i> Close</button>
-            </div>
-            <div class="card-body">
-                <div class="row">
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="SPPD_No">No SPPD</label>
-                            <input type="text" id="SPPD_No" class="form-control shadow-sm" name="SPPD_No" value="{{ $SPPD_No }}" readonly />
+<div class="sppd-page-wrapper">
+    <div class="card sppd-card">
+        <div class="card-body p-4">
+            
+            <!-- Section 1: Profil & Identitas SPPD -->
+            <div class="sppd-section-card">
+                <div class="sppd-section-header">
+                    <i class="fa fa-id-card text-primary"></i> 1. Identitas Dokumen & Pemohon
+                </div>
+                <div class="p-3">
+                    <div class="row g-3">
+                        <div class="col-md-3 col-12">
+                            <label for="SPPD_No" class="form-label-custom">No SPPD</label>
+                            <input type="text" id="SPPD_No" class="form-control bg-light fw-bold text-primary" name="SPPD_No" value="{{ $SPPD_No }}" readonly />
                         </div>
-                    </div>
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Requester_NIK">NIK Karyawan Pengaju</label>
-                            <input type="text" id="Requester_NIK" class="form-control shadow-sm" name="Requester_NIK" value="{{ $user->Emp_ID ?: '' }}" readonly />
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Sppd_Type">Jenis SPPD</label>
-                            <select id="Sppd_Type" class="form-control shadow-sm" onchange="toggleType();">
+                        <div class="col-md-3 col-12">
+                            <label for="Sppd_Type" class="form-label-custom">Jenis SPPD</label>
+                            <select id="Sppd_Type" class="form-control" onchange="toggleType();">
                                 <option value="NORMAL">Regular SPPD</option>
                                 <option value="PERBANTUAN">Perbantuan Sementara</option>
                                 <option value="RELOKASI" disabled>Relokasi/Mutasi (belum tersedia)</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Date_Start">Tanggal Mulai</label>
-                            <input type="text" id="Date_Start" class="form-control shadow-sm" onblur="updateAllowanceInfo()" onchange="updateAllowanceInfo()" />
+                        <div class="col-md-3 col-12">
+                            <label for="Requester_NIK" class="form-label-custom">NIK Pemohon</label>
+                            <input type="text" id="Requester_NIK" class="form-control bg-light" name="Requester_NIK" value="{{ $user->Emp_ID ?: '' }}" readonly />
                         </div>
-                    </div>
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Date_Finish">Tanggal Selesai</label>
-                            <input type="text" id="Date_Finish" class="form-control shadow-sm" onblur="updateAllowanceInfo()" onchange="updateAllowanceInfo()" />
+                        <div class="col-md-3 col-12">
+                            <label for="Requester_Name" class="form-label-custom">Nama Karyawan Pemohon</label>
+                            <input type="text" id="Requester_Name" class="form-control" name="Requester_Name" value="{{ $user->Name ?: $user->username }}" />
                         </div>
-                    </div>
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Department">Nama Departemen</label>
-                            <select id="Department" class="form-control shadow-sm" name="Department">
+                        <div class="col-md-6 col-12">
+                            <label for="Department" class="form-label-custom">Departemen <span class="text-danger">*</span></label>
+                            <select id="Department" class="form-control" name="Department">
                                 <option value="">-- Pilih Departemen --</option>
                                 @foreach ($departments as $d)
                                 <option value="{{ $d->Department }}">{{ $d->Department }}</option>
                                 @endforeach
                             </select>
                         </div>
-                    </div>
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Requester_Name">Nama Karyawan Pengaju</label>
-                            <input type="text" id="Requester_Name" class="form-control shadow-sm" name="Requester_Name" value="{{ $user->Name ?: $user->username }}" />
+                        <div class="col-md-3 col-12">
+                            <label for="Date_Start" class="form-label-custom">Tanggal Mulai SPPD</label>
+                            <input type="text" id="Date_Start" class="form-control" placeholder="YYYY-MM-DD" onblur="updateAllowanceInfo()" onchange="updateAllowanceInfo()" />
+                        </div>
+                        <div class="col-md-3 col-12">
+                            <label for="Date_Finish" class="form-label-custom">Tanggal Selesai SPPD</label>
+                            <input type="text" id="Date_Finish" class="form-control" placeholder="YYYY-MM-DD" onblur="updateAllowanceInfo()" onchange="updateAllowanceInfo()" />
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Route_Start">Rute (Asal)</label>
-                            <select id="Route_Start" class="form-control shadow-sm">
+            <!-- Section 2: Rute & Lokasi Tujuan -->
+            <div class="sppd-section-card">
+                <div class="sppd-section-header">
+                    <i class="fa fa-route text-primary"></i> 2. Rute & Detail Lokasi Tujuan
+                </div>
+                <div class="p-3">
+                    <div class="row g-3">
+                        <div class="col-md-4 col-12">
+                            <label for="Route_Start" class="form-label-custom">Lokasi Asal (Rute Start) <span class="text-danger">*</span></label>
+                            <select id="Route_Start" class="form-control">
                                 <option value="">-- Pilih Lokasi --</option>
                                 @foreach (($locations ?? collect()) as $loc)
                                 <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
                                 @endforeach
                             </select>
                         </div>
-                    </div>
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Rute_Mode">Rute (Tujuan)</label>
-                            <select id="Rute_Mode" class="form-control shadow-sm" onchange="updateRuteMode();">
-                                <option value="KANTOR">Kantor</option>
-                                <option value="TITIK">Pilih Titik Tujuan</option>
-                                <option value="KOORDINAT">Koordinat (Latitude/Longitude)</option>
+                        <div class="col-md-4 col-12">
+                            <label for="Rute_Mode" class="form-label-custom">Metode Rute Tujuan</label>
+                            <select id="Rute_Mode" class="form-control" onchange="updateRuteMode();">
+                                <option value="KANTOR">Lokasi Kantor Internal</option>
+                                <option value="TITIK">Pilih Titik Nama Tujuan</option>
+                                <option value="KOORDINAT">Koordinat Spesifik (Lat / Long)</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div class="col-md-6 col-12" id="ruteKantor">
-                        <div class="form-group">
-                            <label for="Route_Finish">Lokasi Kantor (Tujuan)</label>
-                            <select id="Route_Finish" class="form-control shadow-sm">
+                        <div class="col-md-4 col-12" id="ruteKantor">
+                            <label for="Route_Finish" class="form-label-custom">Lokasi Kantor (Tujuan)</label>
+                            <select id="Route_Finish" class="form-control">
                                 <option value="">-- Pilih Lokasi --</option>
                                 @foreach (($locations ?? collect()) as $loc)
                                 <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
                                 @endforeach
                             </select>
                         </div>
-                    </div>
 
-                    <div class="col-md-6 col-12" id="ruteTitik" style="display:none;">
-                        <div class="form-group">
-                            <label for="Destination">Tujuan Perjalanan Dinas</label>
-                            <input type="text" id="Destination" class="form-control shadow-sm" name="Destination" placeholder="contoh: Jakarta" />
-                            <button type="button" class="btn btn-outline-primary btn-sm mt-1" id="btnPickDestPoint">
-                                <i class="fa fa-map-marker-alt"></i> Pilih Titik Tujuan
-                            </button>
-                            <div class="small mt-1" id="destPointInfo"></div>
+                        <div class="col-md-4 col-12" id="ruteTitik" style="display:none;">
+                            <label for="Destination" class="form-label-custom">Tujuan Perjalanan Dinas</label>
+                            <div class="input-group">
+                                <input type="text" id="Destination" class="form-control" name="Destination" placeholder="contoh: Jakarta Pusat" />
+                                <button type="button" class="btn btn-outline-primary" id="btnPickDestPoint">
+                                    <i class="fa fa-map-marker-alt"></i> Titik Peta
+                                </button>
+                            </div>
+                            <div class="small mt-1 text-muted" id="destPointInfo"></div>
                             <input type="hidden" id="Dest_Lat" />
                             <input type="hidden" id="Dest_Lng" />
                         </div>
-                    </div>
 
-                    <div class="col-md-6 col-12" id="ruteKoordinat" style="display:none;">
-                        <div class="form-group">
-                            <label>Titik Koordinat Tujuan</label>
-                            <div class="row">
-                                <div class="col-6">
-                                    <input type="text" id="Coord_Lat" class="form-control shadow-sm" placeholder="Latitude cth: -6.200000" />
-                                </div>
-                                <div class="col-6">
-                                    <input type="text" id="Coord_Lng" class="form-control shadow-sm" placeholder="Longitude cth: 106.816666" />
-                                </div>
+                        <div class="col-md-4 col-12" id="ruteKoordinat" style="display:none;">
+                            <label class="form-label-custom">Titik Koordinat Tujuan</label>
+                            <div class="input-group">
+                                <input type="text" id="Coord_Lat" class="form-control" placeholder="Latitude" />
+                                <input type="text" id="Coord_Lng" class="form-control" placeholder="Longitude" />
+                                <button type="button" class="btn btn-outline-primary" id="btnPickCoordPoint">
+                                    <i class="fa fa-map-marker-alt"></i> Peta
+                                </button>
                             </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm mt-1" id="btnPickCoordPoint">
-                                <i class="fa fa-map-marker-alt"></i> Pilih di Peta
-                            </button>
-                            <div class="small mt-1" id="coordPointInfo"></div>
+                            <div class="small mt-1 text-muted" id="coordPointInfo"></div>
+                        </div>
+
+                        <div class="col-md-4 col-12">
+                            <label for="Schedule_Date" class="form-label-custom">Tanggal Kegiatan <span class="text-danger">*</span></label>
+                            <input type="text" id="Schedule_Date" class="form-control" placeholder="YYYY-MM-DD" name="Schedule_Date" />
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label for="Departure_Time" class="form-label-custom">Jam Berangkat <span class="text-danger">*</span></label>
+                            <input type="time" id="Departure_Time" class="form-control" name="Departure_Time" />
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label for="Return_Time" class="form-label-custom">Jam Kembali <span class="text-danger">*</span></label>
+                            <input type="time" id="Return_Time" class="form-control" name="Return_Time" />
+                        </div>
+
+                        <div class="col-md-6 col-12">
+                            <label for="Program_Name" class="form-label-custom">Nama Kegiatan / Agenda <span class="text-danger">*</span></label>
+                            <input type="text" id="Program_Name" class="form-control" name="Program_Name" placeholder="contoh: Koordinasi Tender & Meeting Mitra" />
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <label for="Description" class="form-label-custom">Keterangan Tambahan</label>
+                            <input type="text" id="Description" class="form-control" name="Description" placeholder="Uraian ringkas tujuan penugasan..." />
+                        </div>
+
+                        <div class="col-12">
+                            <div id="routeScopeInfo"></div>
+                        </div>
+                        <div class="col-12">
+                            <div id="allowanceInfo"></div>
                         </div>
                     </div>
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Schedule_Date">Tanggal Kegiatan</label>
-                            <input type="text" id="Schedule_Date" class="form-control shadow-sm" name="Schedule_Date" />
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Departure_Time">Jam Berangkat <span class="text-danger">*</span></label>
-                            <input type="time" id="Departure_Time" class="form-control shadow-sm" name="Departure_Time" />
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Return_Time">Jam Kembali <span class="text-danger">*</span></label>
-                            <input type="time" id="Return_Time" class="form-control shadow-sm" name="Return_Time" />
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 col-12">
-                        <div class="form-group">
-                            <label for="Program_Name">Kegiatan</label>
-                            <input type="text" id="Program_Name" class="form-control shadow-sm" name="Program_Name" placeholder="contoh: Koordinasi dengan Mitra" />
-                        </div>
-                    </div>
-
-                    <div class="col-md-12 col-12">
-                        <div id="routeScopeInfo"></div>
-                    </div>
-
-                    <div class="col-md-12 col-12">
-                        <div id="allowanceInfo"></div>
-                    </div>
-
-                    <div class="col-md-12 col-12">
-                        <div class="form-group">
-                            <label>Rincian Biaya yang Timbul</label>
-                            <table id="tblCost" class="table table-bordered">
-                                <thead class="thead-light">
-                                    <tr>
-                                        <th width="180">Biaya (Rp)</th>
-                                        <th>Keterangan</th>
-                                        <th width="50"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td><input type="text" id="Cost_0" class="form-control" onkeyup="hitungTotal();" /></td>
-                                        <td><input type="text" id="Desc_0" class="form-control" /></td>
-                                        <td><button type="button" class="btn btn-success btn-sm" onclick="tambahRow();">+</button></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <div class="font-weight-bold">
-                                Total Estimasi : Rp <span id="TotalCost">0</span>
-                            </div>
-                            <input type="hidden" id="Estimated_Cost" value="0" />
-                        </div>
-                    </div>
-
-                    <div class="col-md-12 col-12">
-                        <div class="form-group">
-                            <label for="Description">Keterangan</label>
-                            <textarea id="Description" class="form-control shadow-sm" name="Description" rows="3"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12 col-12" id="pbSection" style="display:none;">
-                        <div class="card border-warning mt-2">
-                            <div class="card-header bg-warning text-dark p-2">
-                                <h6 class="m-0 font-weight-bold">Perbantuan Sementara</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6 col-12">
-                                        <div class="form-group">
-                                            <label for="Origin_Site">Asal Site</label>
-                                            <select id="Origin_Site" class="form-control shadow-sm">
-                                                <option value="">-- Pilih Lokasi --</option>
-                                                @foreach (($locations ?? collect()) as $loc)
-                                                <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 col-12">
-                                        <div class="form-group">
-                                            <label for="Target_Site">Lokasi Perbantuan</label>
-                                            <select id="Target_Site" class="form-control shadow-sm">
-                                                <option value="">-- Pilih Lokasi --</option>
-                                                @foreach (($locations ?? collect()) as $loc)
-                                                <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-12 col-12">
-                                        <div class="form-group">
-                                            <label for="Reason">Alasan Perbantuan</label>
-                                            <textarea id="Reason" class="form-control shadow-sm" rows="2"></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12 col-12">
-                        <div class="card border-info mt-2">
-                            <div class="card-header bg-info text-white p-2">
-                                <label class="m-0 font-weight-bold"><input type="checkbox" id="Need_Car" value="1" /> Butuh Mobil Operasional (otomatis booking saat SPPD disetujui)</label>
-                            </div>
-                            <div class="card-body" id="NeedCarBody" style="display:none;">
-                                <div class="row">
-                                    <div class="col-md-6 col-12">
-                                        <div class="form-group">
-                                            <label for="Car_Jenis_Mobil">Jenis Mobil</label>
-                                            <select id="Car_Jenis_Mobil" class="form-control shadow-sm">
-                                                <option value="">-- Pilih Jenis Mobil --</option>
-                                                @foreach(($fleetList ?? ['Rush','Avanza','Innova','Pajero','Alphard','Hiace','Other']) as $m)
-                                                <option value="{{ $m }}">{{ ($m == 'Other') ? 'Lainnya' : $m }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-12">
-                                        <div class="form-group">
-                                            <label for="Car_Tgl_Pinjam">Tgl Pinjam</label>
-                                            <input type="text" id="Car_Tgl_Pinjam" class="form-control shadow-sm" />
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-12">
-                                        <div class="form-group">
-                                            <label for="Car_Tgl_Kembali">Tgl Kembali</label>
-                                            <input type="text" id="Car_Tgl_Kembali" class="form-control shadow-sm" />
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-12">
-                                        <div class="form-group">
-                                            <label for="Car_Jam_Pinjam">Jam Pinjam</label>
-                                            <input type="text" id="Car_Jam_Pinjam" class="form-control shadow-sm" value="08:00" />
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-12">
-                                        <div class="form-group">
-                                            <label for="Car_Jam_Kembali">Jam Kembali</label>
-                                            <input type="text" id="Car_Jam_Kembali" class="form-control shadow-sm" value="17:00" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <small class="text-muted">Tanggal default mengikuti Tanggal Kegiatan. Booking dibuat otomatis saat status jadi ACCEPTED; bila gagal (misal mobil bentrok) buat manual via menu Car Rent.</small>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="col-12 mt-2">
-                    <button class="btn btn-success" id="submitBtn">Submit</button>
-                    <a href="hrd-sppd-index" class="btn btn-secondary">Kembali</a>
                 </div>
             </div>
+
+            <!-- Section Khusus: Perbantuan Sementara -->
+            <div class="sppd-section-card border-warning" id="pbSection" style="display:none;">
+                <div class="sppd-section-header bg-warning bg-opacity-10 text-dark">
+                    <i class="fa fa-people-carry text-warning"></i> Detail Penugasan Perbantuan Sementara
+                </div>
+                <div class="p-3">
+                    <div class="row g-3">
+                        <div class="col-md-6 col-12">
+                            <label for="Origin_Site" class="form-label-custom">Asal Site (Homebase)</label>
+                            <select id="Origin_Site" class="form-control">
+                                <option value="">-- Pilih Lokasi --</option>
+                                @foreach (($locations ?? collect()) as $loc)
+                                <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <label for="Target_Site" class="form-label-custom">Lokasi Perbantuan (Tujuan Penugasan)</label>
+                            <select id="Target_Site" class="form-control">
+                                <option value="">-- Pilih Lokasi --</option>
+                                @foreach (($locations ?? collect()) as $loc)
+                                <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="Reason" class="form-label-custom">Alasan & Urgensi Perbantuan</label>
+                            <textarea id="Reason" class="form-control" rows="2" placeholder="Jelaskan kebutuhan penugasan perbantuan sementara..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Rincian Estimasi Biaya -->
+            <div class="sppd-section-card">
+                <div class="sppd-section-header">
+                    <i class="fa fa-coins text-success"></i> 3. Rincian Estimasi Biaya
+                </div>
+                <div class="p-3">
+                    <div class="table-responsive">
+                        <table id="tblCost" class="table table-bordered table-hover align-middle mb-3">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="220">Biaya (Rp)</th>
+                                    <th>Keterangan Komponen Biaya</th>
+                                    <th width="60" class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="input-group">
+                                            <span class="input-group-text">Rp</span>
+                                            <input type="text" id="Cost_0" class="form-control text-end fw-bold" onkeyup="hitungTotal();" placeholder="0" />
+                                        </div>
+                                    </td>
+                                    <td><input type="text" id="Desc_0" class="form-control" placeholder="contoh: Uang saku / tiket transportasi / penginapan" /></td>
+                                    <td class="text-center"><button type="button" class="btn btn-success btn-sm rounded-circle" onclick="tambahRow();" title="Tambah Komponen Biaya"><i class="fa fa-plus"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="total-cost-box fw-bold">
+                            Total Estimasi Biaya: <span class="ms-2">Rp <span id="TotalCost">0</span></span>
+                        </div>
+                        <small class="text-muted"><i class="fa fa-info-circle me-1"></i> Biaya dapat disesuaikan otomatis mengikuti regulasi tabel tunjangan.</small>
+                    </div>
+                    <input type="hidden" id="Estimated_Cost" value="0" />
+                </div>
+            </div>
+
+            <!-- Section 4: Kebutuhan Mobil Operasional -->
+            <div class="sppd-section-card border-info">
+                <div class="sppd-section-header bg-info bg-opacity-10 text-dark d-flex justify-content-between">
+                    <div>
+                        <i class="fa fa-car text-info"></i> 4. Kebutuhan Mobil Operasional Kantor
+                    </div>
+                    <div class="form-check form-switch m-0">
+                        <input class="form-check-input" type="checkbox" id="Need_Car" value="1" style="cursor:pointer;">
+                        <label class="form-check-label fw-bold ms-1" for="Need_Car" style="cursor:pointer;">Perlu Mobil Operasional</label>
+                    </div>
+                </div>
+                <div class="p-3" id="NeedCarBody" style="display:none;">
+                    <div class="row g-3">
+                        <div class="col-md-4 col-12">
+                            <label for="Car_Jenis_Mobil" class="form-label-custom">Preferensi Jenis Mobil</label>
+                            <select id="Car_Jenis_Mobil" class="form-control">
+                                <option value="">-- Pilih Jenis Mobil --</option>
+                                @foreach(($fleetList ?? ['Rush','Avanza','Innova','Pajero','Alphard','Hiace','Other']) as $m)
+                                <option value="{{ $m }}">{{ ($m == 'Other') ? 'Lainnya' : $m }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-sm-6">
+                            <label for="Car_Tgl_Pinjam" class="form-label-custom">Tanggal Pinjam</label>
+                            <input type="text" id="Car_Tgl_Pinjam" class="form-control" placeholder="YYYY-MM-DD" />
+                        </div>
+                        <div class="col-md-4 col-sm-6">
+                            <label for="Car_Tgl_Kembali" class="form-label-custom">Tanggal Kembali</label>
+                            <input type="text" id="Car_Tgl_Kembali" class="form-control" placeholder="YYYY-MM-DD" />
+                        </div>
+                        <div class="col-md-6 col-sm-6">
+                            <label for="Car_Jam_Pinjam" class="form-label-custom">Jam Pinjam</label>
+                            <input type="time" id="Car_Jam_Pinjam" class="form-control" value="08:00" />
+                        </div>
+                        <div class="col-md-6 col-sm-6">
+                            <label for="Car_Jam_Kembali" class="form-label-custom">Jam Kembali</label>
+                            <input type="time" id="Car_Jam_Kembali" class="form-control" value="17:00" />
+                        </div>
+                    </div>
+                    <div class="alert alert-light border py-2 mt-3 mb-0">
+                        <small class="text-muted"><i class="fa fa-info-circle me-1"></i> Tanggal default mengikuti Tanggal Kegiatan. Booking dibuat otomatis saat SPPD berstatus disetujui (ACCEPTED).</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button Bar -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
+                <button class="btn btn-success sppd-btn px-4 shadow-sm" id="submitBtn">
+                    <i class="fa fa-paper-plane"></i> Kirim Pengajuan SPPD
+                </button>
+                <a href="hrd-sppd-index" class="btn btn-secondary sppd-btn">
+                    <i class="fa fa-arrow-left"></i> Batal & Kembali
+                </a>
+            </div>
+
         </div>
     </div>
 </div>

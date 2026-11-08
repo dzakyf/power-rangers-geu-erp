@@ -11,11 +11,16 @@ class ApprovalNotificationService
 {
     protected $notifications;
     protected $authorization;
+    protected $mailService;
 
-    public function __construct(NotificationService $notifications, ApprovalAuthorizationService $authorization)
-    {
+    public function __construct(
+        NotificationService $notifications,
+        ApprovalAuthorizationService $authorization,
+        ApprovalMailService $mailService
+    ) {
         $this->notifications = $notifications;
         $this->authorization = $authorization;
+        $this->mailService = $mailService;
     }
 
     public function notifyTaskCandidates($task, $request, array $candidates): void
@@ -42,6 +47,13 @@ class ApprovalNotificationService
                 ->where('User_Id', (int) $candidate['User_Id'])
                 ->where('Candidate_Type', $candidate['Type'])
                 ->update(['Notified_At' => Carbon::now()]);
+        }
+
+        // Kirimkan notifikasi Email Real-Time modern ke semua kandidat approver
+        try {
+            $this->mailService->sendTaskNotification($task, $request, $candidates);
+        } catch (\Throwable $mailEx) {
+            Log::warning('ApprovalNotificationService email candidate error: ' . $mailEx->getMessage());
         }
     }
 
@@ -114,6 +126,12 @@ class ApprovalNotificationService
                 'Revision_No' => (int) $request->Revision_No,
             ]
         );
+
+        try {
+            $this->mailService->sendStatusDecisionNotification($request, 'RETURNED', $notes);
+        } catch (\Throwable $mailEx) {
+            Log::warning('ApprovalNotificationService email returned error: ' . $mailEx->getMessage());
+        }
     }
 
     public function notifyRejected($request, int $requesterId, string $reason = ''): void
@@ -129,6 +147,33 @@ class ApprovalNotificationService
                 'Reason' => $reason,
             ]
         );
+
+        try {
+            $this->mailService->sendStatusDecisionNotification($request, 'REJECTED', $reason);
+        } catch (\Throwable $mailEx) {
+            Log::warning('ApprovalNotificationService email rejected error: ' . $mailEx->getMessage());
+        }
+    }
+
+    public function notifyApproved($request, int $requesterId, string $reason = ''): void
+    {
+        $this->safeNotify(
+            'Approval Approved #' . ($request->Request_No ?: $request->ID),
+            'Selamat, pengajuan Anda telah disetujui sepenuhnya.',
+            'APPROVAL_APPROVED',
+            $requesterId,
+            [
+                'Request_ID' => (int) $request->ID,
+                'Revision_No' => (int) $request->Revision_No,
+                'Reason' => $reason,
+            ]
+        );
+
+        try {
+            $this->mailService->sendStatusDecisionNotification($request, 'APPROVED', $reason);
+        } catch (\Throwable $mailEx) {
+            Log::warning('ApprovalNotificationService email approved error: ' . $mailEx->getMessage());
+        }
     }
 
     public function notifyAutoApproved($task, $request, string $reason): void

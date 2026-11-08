@@ -89,7 +89,21 @@ class SettlementController extends Controller
         }
         $sppdList = $sppdQuery->get(['ID', 'SPPD_No', 'Destination', 'Sppd_Type', 'Estimated_Cost', 'Department', 'Route_Start', 'Route_Finish']);
 
-        return view('humanresources.settlement.new', compact('user', 'departments', 'STTL_No', 'sppdList'));
+        // Load detail rincian biaya masing-masing SPPD
+        $sppdIds = $sppdList->pluck('ID')->all();
+        $sppdCosts = [];
+        if (!empty($sppdIds)) {
+            $costs = DB::table('sppd_cost')->whereIn('SPPD_ID', $sppdIds)->get();
+            foreach ($costs as $c) {
+                $sppdCosts[$c->SPPD_ID][] = [
+                    'Expense'     => $c->Description,
+                    'Cost'        => (float) $c->Cost,
+                    'Description' => 'Biaya sesuai pengajuan SPPD (' . $c->Description . ')'
+                ];
+            }
+        }
+
+        return view('humanresources.settlement.new', compact('user', 'departments', 'STTL_No', 'sppdList', 'sppdCosts'));
     }
 
     public function store(Request $request)

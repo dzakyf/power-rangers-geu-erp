@@ -272,6 +272,19 @@ foreach ($Query1 as $Fetch1) {
                     <input type="text" id="Position" class="form-control form-control-sm" value="<?php echo $datahasil->Position ?? ''; ?>">
                 </div>
                 <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted" for="overtime_compensation">
+                        <i class="fa fa-clock-o text-primary me-1"></i>Kompensasi Lembur
+                    </label>
+                    <select id="overtime_compensation" class="form-select form-select-sm">
+                        <option value="" <?php echo empty($datahasil->overtime_compensation) ? 'selected' : ''; ?>>-- Ikuti Aturan Posisi (Default) --</option>
+                        <option value="PAID" <?php echo (($datahasil->overtime_compensation ?? '') === 'PAID') ? 'selected' : ''; ?>>PAID (Uang Lembur Sesuai Matriks)</option>
+                        <option value="TIME_OFF" <?php echo (($datahasil->overtime_compensation ?? '') === 'TIME_OFF') ? 'selected' : ''; ?>>TIME_OFF (Tukar Cuti / Day Off)</option>
+                    </select>
+                    <small class="text-muted d-block" style="font-size: 11px;">
+                        Pilih untuk memberikan override hak kompensasi khusus karyawan ini.
+                    </small>
+                </div>
+                <div class="col-md-4">
                     <label class="form-label small fw-bold text-muted" for="Location">Branch Office / Location</label>
                     <select id="Location" class="form-select form-select-sm" style="width:100%">
                         <option value="">-- Pilih Branch Office --</option>

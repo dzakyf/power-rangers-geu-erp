@@ -61,6 +61,7 @@
             'name' => 'Role Management',
             'items' => [
                 ['name' => 'Role Management', 'path' => 'credential-role'],
+                ['name' => 'Privilege Mapping', 'path' => 'credential-privilege-mapping'],
             ],
         ],
     ];

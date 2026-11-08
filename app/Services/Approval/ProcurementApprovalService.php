@@ -19,11 +19,16 @@ class ProcurementApprovalService
 
     protected $workflow;
     protected $policyResolver;
+    protected $authorizationService;
 
-    public function __construct(ApprovalWorkflowService $workflow, ApprovalPolicyResolver $policyResolver)
-    {
+    public function __construct(
+        ApprovalWorkflowService $workflow,
+        ApprovalPolicyResolver $policyResolver,
+        ApprovalAuthorizationService $authorizationService
+    ) {
         $this->workflow = $workflow;
         $this->policyResolver = $policyResolver;
+        $this->authorizationService = $authorizationService;
     }
 
     /**
@@ -86,23 +91,30 @@ class ProcurementApprovalService
             return [];
         }
 
-        return DB::table('approval_request_task as t')
-            ->join('approval_task_candidate as c', function ($join) use ($userId) {
+        $user = \App\User::find($userId);
+        $isWildcard = $user ? $this->authorizationService->isWildcardAdmin($user) : false;
+
+        $query = DB::table('approval_request_task as t')
+            ->where('t.Request_ID', $requestId)
+            ->where('t.Stage_Order', (int) $request->Current_Stage)
+            ->whereIn('t.Status', ['PENDING', 'CLAIMED']);
+
+        if (!$isWildcard) {
+            $query->join('approval_task_candidate as c', function ($join) use ($userId) {
                 $join->on('c.Task_ID', '=', 't.ID')
                     ->where('c.User_Id', '=', $userId)
                     ->where('c.Status', '=', 'ACTIVE');
             })
-            ->where('t.Request_ID', $requestId)
-            ->where('t.Stage_Order', (int) $request->Current_Stage)
-            ->whereIn('t.Status', ['PENDING', 'CLAIMED'])
             ->where(function ($task) use ($userId) {
                 $task->where('t.Status', 'PENDING')
                     ->orWhere(function ($claimed) use ($userId) {
                         $claimed->where('t.Status', 'CLAIMED')
                             ->where('t.Claimed_By', $userId);
                     });
-            })
-            ->select('t.*')
+            });
+        }
+
+        return $query->select('t.*')
             ->orderBy('t.ID', 'ASC')
             ->get()
             ->all();

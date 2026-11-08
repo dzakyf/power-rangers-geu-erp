@@ -377,7 +377,10 @@ class OvertimeRequestController extends Controller
 
             $locationId = $request->input('location_id');
             $zipcode = $request->input('zipcode');
-            $compensationType = $request->input('compensation_type', 'PAID');
+
+            // Resolusi kompensasi langsung dari backend berdasarkan hierarki posisi/karyawan
+            $compensationInfo = $this->overtimeMatrixService->resolveCompensationType($user);
+            $compensationType = $compensationInfo['type'];
 
             $region = $this->overtimeMatrixService->resolveRegion($zipcode, $locationId);
             $matrix = $this->overtimeMatrixService->resolveMatrix($user, $region);
@@ -390,9 +393,10 @@ class OvertimeRequestController extends Controller
             );
 
             return response()->json([
-                'status' => 'success',
-                'region' => $region,
-                'data'   => $result,
+                'status'            => 'success',
+                'region'            => $region,
+                'compensation_info' => $compensationInfo,
+                'data'              => $result,
             ], 200);
         } catch (\Throwable $e) {
             return response()->json([
@@ -409,10 +413,11 @@ class OvertimeRequestController extends Controller
     {
         $request->validate([
             'overtime_date'     => 'required|date_format:Y-m-d',
+            'day_type'          => 'nullable|in:WORKDAY,HOLIDAY',
             'overtime_type'     => 'required|in:BEFORE_SHIFT,AFTER_SHIFT',
             'start_time'        => 'required|string',
             'end_time'          => 'required|string',
-            'compensation_type' => 'required|in:PAID,TIME_OFF',
+            'compensation_type' => 'nullable|in:PAID,TIME_OFF',
             'task_description'  => 'required|string|max:1000',
             'location_id'       => 'nullable|integer',
             'zipcode'           => 'nullable|string',

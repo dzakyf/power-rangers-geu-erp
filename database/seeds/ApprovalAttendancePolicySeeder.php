@@ -42,6 +42,17 @@ class ApprovalAttendancePolicySeeder extends Seeder
                 ['Stage_Order' => 2, 'Level_Number' => 3, 'Department' => 'HCGA', 'Position_Code' => 'MHCGA', 'Label' => 'Manager HCGA'],
             ]
         );
+
+        $this->createPolicy(
+            'ATT-CS-POLICY',
+            'Approval Pengajuan Perubahan & Tukar Shift (Manager Dept + Manager HCGA)',
+            'ATTENDANCE_CHANGE_SHIFT',
+            [],
+            [
+                ['Stage_Order' => 1, 'Level_Number' => 3, 'Department' => null, 'Position_Code' => null, 'Label' => 'Manager Departemen Pemohon'],
+                ['Stage_Order' => 2, 'Level_Number' => 3, 'Department' => 'HCGA', 'Position_Code' => 'MHCGA', 'Label' => 'Manager HCGA'],
+            ]
+        );
     }
 
     protected function createPolicy(string $code, string $name, string $requestType, array $conditions, array $steps, string $department = null): void
