@@ -862,6 +862,7 @@ class ApprovalWorkflowService
 
         $fresh = $this->getRequest($requestId);
         if ($fresh) {
+            $this->notifications->notifyApproved($fresh, (int) $fresh->Requester_Id, $reason);
             event(new \App\Events\Approval\ApprovalRequestUpdated($fresh, 'APPROVED', $reason));
         }
     }

@@ -53,6 +53,18 @@ class SyncModuleApprovalStatus
                     $this->handleAttendanceCorrection($requestId, $request->Status);
                     break;
 
+                case 'ATTENDANCE_CHANGE_SHIFT':
+                    $this->handleAttendanceChangeShift($requestId, $request->Status);
+                    break;
+
+                case 'SPPD':
+                    $this->handleSppd($requestId);
+                    break;
+
+                case 'REIMBURSEMENT':
+                    $this->handleReimbursement($requestId, $request->Status);
+                    break;
+
                 default:
                     // Request_Type lain dapat didaftarkan di sini
                     break;
@@ -111,6 +123,15 @@ class SyncModuleApprovalStatus
                     'status'     => $targetStatus,
                     'updated_at' => now(),
                 ]);
+
+            // Selaraskan juga status ke tabel legacy overtime_lists
+            $legacySync = app(\App\Services\Attendance\OvertimeLegacySyncService::class);
+            $submitApproval = ($targetStatus === 'APPROVED') ? 1 : 0;
+            DB::table('overtime_lists')
+                ->where('approval_request_id', $requestId)
+                ->update([
+                    'Submit_Approval' => $submitApproval,
+                ]);
         }
     }
 
@@ -129,6 +150,41 @@ class SyncModuleApprovalStatus
                     'status'     => $targetStatus,
                     'updated_at' => now(),
                 ]);
+
+            // Jika status pengajuan disetujui (APPROVED), lakukan pemotongan saldo cuti otomatis
+            if ($targetStatus === 'APPROVED') {
+                $leave = DB::table('attendance_leave_requests')
+                    ->where('approval_request_id', $requestId)
+                    ->first();
+
+                if ($leave) {
+                    try {
+                        app(\App\Services\Attendance\LeaveEntitlementService::class)->deductLeaveBalance(
+                            $leave->nik,
+                            (int) $leave->total_days,
+                            $leave->request_no,
+                            $leave->leave_type,
+                            'SYSTEM_APPROVAL'
+                        );
+                    } catch (\Throwable $e) {
+                        Log::warning("Gagal memotong saldo cuti untuk request {$leave->request_no}: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Selaraskan status ke tabel legacy izin
+            try {
+                $leaveItem = DB::table('attendance_leave_requests')
+                    ->where('approval_request_id', $requestId)
+                    ->first();
+                app(\App\Services\Attendance\LeaveLegacySyncService::class)->syncApprovalStatusToLegacy(
+                    $requestId,
+                    $targetStatus,
+                    $leaveItem ? (int) $leaveItem->id : null
+                );
+            } catch (\Throwable $e) {
+                Log::warning("Sync status ke legacy izin gagal untuk approval_request_id {$requestId}: " . $e->getMessage());
+            }
         }
     }
 
@@ -147,6 +203,56 @@ class SyncModuleApprovalStatus
                     'status'     => $targetStatus,
                     'updated_at' => now(),
                 ]);
+        }
+    }
+
+    protected function handleAttendanceChangeShift(int $requestId, ?string $status): void
+    {
+        $statusUpper = strtoupper((string) $status);
+        if ($statusUpper === 'APPROVED') {
+            app(\App\Services\Attendance\ShiftExchangeService::class)->applyApprovedChangeShift($requestId);
+        } elseif (in_array($statusUpper, ['REJECTED', 'CANCELLED'])) {
+            DB::table('attendance_change_shifts')
+                ->where('approval_request_id', $requestId)
+                ->update([
+                    'status'     => $statusUpper === 'CANCELLED' ? 'CANCELLED' : 'REJECTED',
+                    'updated_at' => now(),
+                ]);
+        }
+    }
+
+    protected function handleSppd(int $requestId): void
+    {
+        $sppd = DB::table('sppd')->where('Approval_Request_ID', $requestId)->first();
+        if (!$sppd) {
+            $sppd = DB::table('sppd')->where('ID', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+
+        if ($sppd) {
+            app(\App\Services\Approval\SppdApprovalService::class)->syncApprovalStatus((int) $sppd->ID, 'system');
+        }
+    }
+
+    protected function handleReimbursement(int $requestId, ?string $status): void
+    {
+        $rmb = DB::table('reimbursement')->where('Approval_Request_ID', $requestId)->first();
+        if (!$rmb) {
+            $rmb = DB::table('reimbursement')->where('ID', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+
+        if ($rmb) {
+            $rmbService = app(\App\Services\Approval\ReimbursementApprovalService::class);
+            $rmbService->syncApprovalStatus((int) $rmb->ID, 'system');
+
+            // Jika masih dalam proses approval (misal naik stage / belum final), kirim notifikasi email ke approver stage aktif
+            $statusUpper = strtoupper((string) $status);
+            if (!in_array($statusUpper, ['APPROVED', 'COMPLETED', 'REJECTED', 'CANCELLED'])) {
+                $rmbService->notifyCurrentStageApprovers((int) $rmb->ID, 'Update Tahap Approval Reimbursement');
+            }
         }
     }
 }

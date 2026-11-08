@@ -17,15 +17,18 @@ class AttendanceService
     protected $workflowService;
     protected $cutoffService;
     protected $overtimeMatrixService;
+    protected $leaveEntitlementService;
 
     public function __construct(
         ApprovalWorkflowService $workflowService,
         AttendanceCutoffService $cutoffService,
-        OvertimeMatrixService $overtimeMatrixService
+        OvertimeMatrixService $overtimeMatrixService,
+        LeaveEntitlementService $leaveEntitlementService
     ) {
         $this->workflowService = $workflowService;
         $this->cutoffService = $cutoffService;
         $this->overtimeMatrixService = $overtimeMatrixService;
+        $this->leaveEntitlementService = $leaveEntitlementService;
     }
 
     /**
@@ -286,6 +289,12 @@ class AttendanceService
 
         // Dapatkan jadwal kerja
         $schedule = $this->getWorkScheduleForDate($nik, $today);
+
+        // Kunci absensi reguler jika pada tanggal ini karyawan sedang dalam status Cuti/Izin/Sakit yang telah disetujui (APPROVED)
+        if (!empty($schedule['is_leave'])) {
+            throw new InvalidArgumentException('Anda tidak dapat melakukan clock-in karena tanggal hari ini terdaftar dalam status Cuti/Sakit (' . ($schedule['shift_name'] ?? 'Cuti') . ').');
+        }
+
         $expectedStart = Carbon::parse($today . ' ' . $schedule['default_start']);
         $actualTime = Carbon::parse($today . ' ' . $nowTime);
 
@@ -475,6 +484,38 @@ class AttendanceService
                 throw new InvalidArgumentException('Ukuran file melebihi batas maksimal 5MB.');
             }
             $ext = strtolower($fileOrBase64->getClientOriginalExtension());
+            $realPath = $fileOrBase64->getRealPath();
+
+            // Jika berupa gambar (JPG/PNG), lakukan resize & kompresi otomatis via GD
+            if (in_array($ext, ['jpeg', 'jpg', 'png']) && function_exists('imagecreatefromstring')) {
+                $imgContent = @file_get_contents($realPath);
+                if ($imgContent !== false) {
+                    $img = @imagecreatefromstring($imgContent);
+                    if ($img !== false) {
+                        $origWidth = imagesx($img);
+                        $origHeight = imagesy($img);
+                        $maxWidth = 1600; // Standar resolusi dokumen jelas & hemat storage
+
+                        if ($origWidth > $maxWidth) {
+                            $newWidth = $maxWidth;
+                            $newHeight = (int) (($origHeight / $origWidth) * $maxWidth);
+                            $resized = imagecreatetruecolor($newWidth, $newHeight);
+                            imagealphablending($resized, false);
+                            imagesavealpha($resized, true);
+                            imagecopyresampled($resized, $img, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+                            imagedestroy($img);
+                            $img = $resized;
+                        }
+
+                        $fullName = "{$filename}.jpg";
+                        $targetPath = "{$destDir}/{$fullName}";
+                        imagejpeg($img, $targetPath, 75); // Kualitas 75% optimal
+                        imagedestroy($img);
+                        return "uploads/{$subfolder}/{$fullName}";
+                    }
+                }
+            }
+
             $fullName = "{$filename}.{$ext}";
             $fileOrBase64->move($destDir, $fullName);
             return "uploads/{$subfolder}/{$fullName}";
@@ -491,10 +532,25 @@ class AttendanceService
                 throw new InvalidArgumentException('Ukuran dokumen base64 melebihi batas maksimal 5MB.');
             }
 
-            // Jika file berupa gambar, lakukan kompresi otomatis via GD jika tersedia
-            if (in_array($ext, ['jpeg', 'jpg', 'png'])) {
+            // Jika file berupa gambar, lakukan resize & kompresi otomatis via GD jika tersedia
+            if (in_array($ext, ['jpeg', 'jpg', 'png']) && function_exists('imagecreatefromstring')) {
                 $img = @imagecreatefromstring($decoded);
                 if ($img !== false) {
+                    $origWidth = imagesx($img);
+                    $origHeight = imagesy($img);
+                    $maxWidth = 1600;
+
+                    if ($origWidth > $maxWidth) {
+                        $newWidth = $maxWidth;
+                        $newHeight = (int) (($origHeight / $origWidth) * $maxWidth);
+                        $resized = imagecreatetruecolor($newWidth, $newHeight);
+                        imagealphablending($resized, false);
+                        imagesavealpha($resized, true);
+                        imagecopyresampled($resized, $img, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+                        imagedestroy($img);
+                        $img = $resized;
+                    }
+
                     $fullName = "{$filename}.jpg";
                     $targetPath = "{$destDir}/{$fullName}";
                     imagejpeg($img, $targetPath, 75); // Kompresi kualitas 75%
@@ -530,6 +586,41 @@ class AttendanceService
             throw new InvalidArgumentException('Tanggal akhir tidak boleh sebelum tanggal mulai.');
         }
         $totalDays = $end->diffInDays($start) + 1;
+
+        // Validasi Kuota Saldo Cuti Karyawan
+        $category = DB::table('kategori_izin')
+            ->where('kat_izin_code', $leaveType)
+            ->orWhere('kat_izin_nama', $leaveType)
+            ->first();
+
+        if ($category && $category->is_deduct_annual_leave === 'YES') {
+            $year = (int) $start->year;
+            $leaveBalance = $this->leaveEntitlementService->getOrCreateUserBalance($nik, $year);
+            if ($leaveBalance->remaining_total < $totalDays) {
+                throw new InvalidArgumentException("Kuota saldo cuti Anda tidak mencukupi (Sisa Kuota: {$leaveBalance->remaining_total} hari, Pengajuan: {$totalDays} hari). Pengajuan diblokir otomatis.");
+            }
+        }
+
+        // Validasi Dokumen Pendukung Wajib
+        if ($category && $category->is_need_attachment === 'YES' && empty($attachmentPath)) {
+            throw new InvalidArgumentException("Pengajuan izin {$category->kat_izin_nama} wajib mengunggah dokumen pendukung (misal: Surat Dokter).");
+        }
+
+        // Perlindungan Double Booking Cuti / Overlapping Leave:
+        // Cek apakah tanggal yang diajukan bertabrakan dengan permohonan yang aktif (SUBMITTED / IN_PROGRESS / APPROVED)
+        $conflictingLeave = DB::table('attendance_leave_requests')
+            ->where('nik', $nik)
+            ->whereIn('status', ['SUBMITTED', 'IN_PROGRESS', 'APPROVED'])
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->where('start_date', '<=', $endDate)
+                  ->where('end_date', '>=', $startDate);
+            })
+            ->first();
+
+        if ($conflictingLeave) {
+            $existingPeriod = date('d/m/Y', strtotime($conflictingLeave->start_date)) . ' s/d ' . date('d/m/Y', strtotime($conflictingLeave->end_date));
+            throw new InvalidArgumentException("Tanggal yang diajukan bertabrakan dengan pengajuan {$conflictingLeave->leave_type} sebelumnya ({$existingPeriod}, No: {$conflictingLeave->request_no}) dengan status: {$conflictingLeave->status}.");
+        }
 
         $requestNo = 'LV/' . date('Ymd') . '/' . sprintf('%04d', mt_rand(1, 9999));
 
@@ -591,12 +682,97 @@ class AttendanceService
                     ->update(['approval_request_id' => $approvalRequestId]);
             }
 
-            return [
-                'leave_id'            => $leaveId,
+            // Dual-write ke legacy table `izin` untuk menjamin keselarasan antara portal modern dan form legacy
+            $legacySyncService = app(\App\Services\Attendance\LeaveLegacySyncService::class);
+            $legacyIzinId = $legacySyncService->syncToLegacy([
+                'id'                  => $leaveId,
                 'request_no'          => $requestNo,
-                'approval_request_id' => $approvalRequestId,
+                'nik'                 => $nik,
+                'leave_type'          => $leaveType,
+                'start_date'          => $startDate,
+                'end_date'            => $endDate,
+                'clock_in_time'       => $clockInTime,
+                'clock_out_time'      => $clockOutTime,
+                'reason'              => $reason,
                 'attachment_path'     => $attachmentPath,
-                'message'             => 'Pengajuan izin/cuti berhasil dikirimkan.',
+                'status'              => 'SUBMITTED',
+                'approval_request_id' => $approvalRequestId,
+            ], $user);
+
+            if ($legacyIzinId) {
+                DB::table('attendance_leave_requests')
+                    ->where('id', $leaveId)
+                    ->update(['legacy_permission_id' => $legacyIzinId]);
+            }
+
+            return [
+                'leave_id'               => $leaveId,
+                'legacy_permission_id'   => $legacyIzinId,
+                'request_no'             => $requestNo,
+                'approval_request_id'    => $approvalRequestId,
+                'attachment_path'        => $attachmentPath,
+                'message'                => 'Pengajuan izin/cuti berhasil dikirimkan.',
+            ];
+        });
+    }
+
+    /**
+     * Pembatalan Permohonan Izin / Cuti Mandiri oleh Karyawan.
+     * Mengubah status menjadi CANCELLED dan membatalkan tiket approval workflow aktif.
+     */
+    public function cancelLeaveRequest($user, int $leaveId, string $cancelReason = ''): array
+    {
+        $nik = $user->Emp_ID;
+        $leave = DB::table('attendance_leave_requests')
+            ->where('id', $leaveId)
+            ->where('nik', $nik)
+            ->first();
+
+        if (!$leave) {
+            throw new InvalidArgumentException('Data pengajuan izin/cuti tidak ditemukan atau Anda tidak berwenang.');
+        }
+
+        if (in_array(strtoupper($leave->status), ['CANCELLED', 'REJECTED'])) {
+            throw new InvalidArgumentException("Pengajuan ini sudah berstatus {$leave->status} sebelumnya.");
+        }
+
+        if (strtoupper($leave->status) === 'APPROVED') {
+            throw new InvalidArgumentException('Pengajuan yang telah disetujui (APPROVED) tidak dapat dibatalkan secara mandiri. Silakan hubungi bagian HCGA.');
+        }
+
+        return DB::transaction(function () use ($leave, $user, $cancelReason) {
+            // Update status izin menjadi CANCELLED
+            DB::table('attendance_leave_requests')
+                ->where('id', $leave->id)
+                ->update([
+                    'status'     => 'CANCELLED',
+                    'updated_at' => Carbon::now(),
+                ]);
+
+            // Batalkan tiket pada Approval Workflow Engine jika ada
+            if (!empty($leave->approval_request_id)) {
+                try {
+                    $this->workflowService->cancel(
+                        (int) $leave->approval_request_id,
+                        (int) $user->id,
+                        $cancelReason ?: 'Dibatalkan oleh pemohon'
+                    );
+                } catch (\Throwable $e) {
+                    Log::warning("Approval cancel notice untuk {$leave->request_no}: " . $e->getMessage());
+                }
+            }
+
+            // Sinkronkan pembatalan ke tabel legacy izin
+            app(\App\Services\Attendance\LeaveLegacySyncService::class)->syncApprovalStatusToLegacy(
+                $leave->approval_request_id ? (int) $leave->approval_request_id : null,
+                'CANCELLED',
+                (int) $leave->id
+            );
+
+            return [
+                'status'     => 'success',
+                'request_no' => $leave->request_no,
+                'message'    => "Pengajuan {$leave->request_no} berhasil dibatalkan.",
             ];
         });
     }
@@ -1046,9 +1222,17 @@ class AttendanceService
         $nik = $user->Emp_ID;
         $date = $data['overtime_date'] ?? Carbon::now()->toDateString();
         $overtimeType = strtoupper(trim($data['overtime_type'] ?? 'AFTER_SHIFT')); // BEFORE_SHIFT | AFTER_SHIFT
+        $dayType = strtoupper(trim($data['day_type'] ?? 'WORKDAY')); // WORKDAY | HOLIDAY
+        if (!in_array($dayType, ['WORKDAY', 'HOLIDAY'])) {
+            $dayType = 'WORKDAY';
+        }
         $startTime = $data['start_time'];
         $endTime = $data['end_time'];
-        $compensationType = strtoupper(trim($data['compensation_type'] ?? 'PAID')); // PAID | TIME_OFF
+
+        // Kompensasi ditentukan secara otomatis dari master_position / org / employment / users via Service
+        $resolvedCompensation = $this->overtimeMatrixService->resolveCompensationType($user);
+        $compensationType = $resolvedCompensation['type']; // Force override dari backend
+
         $taskDescription = $data['task_description'] ?? '';
         $locationId = !empty($data['location_id']) ? (int) $data['location_id'] : null;
         $zipcode = !empty($data['zipcode']) ? trim($data['zipcode']) : null;
@@ -1070,13 +1254,14 @@ class AttendanceService
 
         $requestNo = 'OT/' . date('Ymd') . '/' . sprintf('%04d', mt_rand(1, 9999));
 
-        return DB::transaction(function () use ($user, $nik, $date, $overtimeType, $startTime, $endTime, $calc, $compensationType, $taskDescription, $hardcopyPath, $locationId, $zipcode, $requestNo, $region) {
+        return DB::transaction(function () use ($user, $nik, $date, $overtimeType, $dayType, $startTime, $endTime, $calc, $compensationType, $taskDescription, $hardcopyPath, $locationId, $zipcode, $requestNo, $region) {
             $overtimeId = DB::table('attendance_overtime_requests')->insertGetId([
                 'overtime_no'       => $requestNo,
                 'nik'               => $nik,
                 'location_id'       => $locationId,
                 'zipcode'           => $zipcode,
                 'overtime_date'     => $date,
+                'day_type'          => $dayType,
                 'overtime_type'     => $overtimeType,
                 'start_time'        => $startTime,
                 'end_time'          => $endTime,
@@ -1132,8 +1317,33 @@ class AttendanceService
                     ->update(['approval_request_id' => $approvalRequestId]);
             }
 
+            // Dual-write ke legacy overtime_lists untuk menjamin integritas modul payroll & approval legacy
+            $legacySyncService = app(\App\Services\Attendance\OvertimeLegacySyncService::class);
+            $legacyId = $legacySyncService->syncToLegacy([
+                'overtime_no'         => $requestNo,
+                'nik'                 => $nik,
+                'overtime_date'       => $date,
+                'day_type'            => $dayType,
+                'overtime_type'       => $overtimeType,
+                'start_time'          => $startTime,
+                'end_time'            => $endTime,
+                'duration_minutes'    => $calc['duration_minutes'],
+                'calculated_amount'   => $calc['calculated_amount'],
+                'hardcopy_file'       => $hardcopyPath,
+                'task_description'    => $taskDescription,
+                'reference_note'      => $taskDescription,
+                'approval_request_id' => $approvalRequestId,
+            ], $user);
+
+            if ($legacyId) {
+                DB::table('attendance_overtime_requests')
+                    ->where('id', $overtimeId)
+                    ->update(['legacy_overtime_id' => $legacyId]);
+            }
+
             return [
                 'overtime_id'         => $overtimeId,
+                'legacy_overtime_id'  => $legacyId,
                 'overtime_no'         => $requestNo,
                 'approval_request_id' => $approvalRequestId,
                 'duration_hours'      => $calc['duration_hours'],

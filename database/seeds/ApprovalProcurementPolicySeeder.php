@@ -44,7 +44,7 @@ class ApprovalProcurementPolicySeeder extends Seeder
             ],
             [
                 ['Stage_Order' => 1, 'Level_Number' => 3, 'Department' => null, 'Position_Code' => null, 'Label' => 'Manager Departemen Pemohon'],
-                ['Stage_Order' => 2, 'Level_Number' => 2, 'Department' => null, 'Position_Code' => null, 'Label' => 'VP Departemen Pemohon'],
+                ['Stage_Order' => 2, 'Level_Number' => 1, 'Department' => 'DIR', 'Position_Code' => 'VPD', 'Label' => 'VP Director / Atasan'],
                 ['Stage_Order' => 3, 'Level_Number' => 3, 'Department' => 'HCGA', 'Position_Code' => 'MHCGA', 'Label' => 'Manager HCGA'],
             ]
         );

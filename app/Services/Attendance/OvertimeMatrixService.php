@@ -9,6 +9,108 @@ use Exception;
 class OvertimeMatrixService
 {
     /**
+     * Resolusi Kompensasi Lembur Karyawan (PAID atau TIME_OFF)
+     * Mengikuti hierarki prioritas:
+     * 1. users.overtime_compensation
+     * 2. employment.overtime_compensation (berdasarkan NIK / Emp_ID)
+     * 3. organization_structure.overtime_compensation (berdasarkan NIK karyawan)
+     * 4. master_position.overtime_compensation (berdasarkan pencocokan posisi)
+     * 5. Default fallback: PAID
+     *
+     * @param object $user
+     * @return array ['type' => 'PAID'|'TIME_OFF', 'label' => string, 'source' => string]
+     */
+    public function resolveCompensationType($user): array
+    {
+        $nik = $user->Emp_ID ?? null;
+
+        // 1. Cek users.overtime_compensation
+        if (!empty($user->overtime_compensation)) {
+            $type = strtoupper(trim($user->overtime_compensation));
+            if (in_array($type, ['PAID', 'TIME_OFF'])) {
+                return [
+                    'type'   => $type,
+                    'label'  => $type === 'TIME_OFF' ? 'Tukar Cuti / Hari Libur Pengganti (Day Off)' : 'Uang Lembur (Sesuai Matriks Tarif)',
+                    'source' => 'users'
+                ];
+            }
+        }
+
+        // Cek database user langsung jika properti belum termuat di objek $user
+        if (!empty($user->id)) {
+            $uRow = DB::table('users')->where('id', $user->id)->first();
+            if ($uRow && !empty($uRow->overtime_compensation)) {
+                $type = strtoupper(trim($uRow->overtime_compensation));
+                if (in_array($type, ['PAID', 'TIME_OFF'])) {
+                    return [
+                        'type'   => $type,
+                        'label'  => $type === 'TIME_OFF' ? 'Tukar Cuti / Hari Libur Pengganti (Day Off)' : 'Uang Lembur (Sesuai Matriks Tarif)',
+                        'source' => 'users'
+                    ];
+                }
+            }
+        }
+
+        // 2. Cek employment.overtime_compensation
+        if (!empty($nik)) {
+            $emp = DB::table('employment')->where('NIK', $nik)->first();
+            if ($emp && !empty($emp->overtime_compensation)) {
+                $type = strtoupper(trim($emp->overtime_compensation));
+                if (in_array($type, ['PAID', 'TIME_OFF'])) {
+                    return [
+                        'type'   => $type,
+                        'label'  => $type === 'TIME_OFF' ? 'Tukar Cuti / Hari Libur Pengganti (Day Off)' : 'Uang Lembur (Sesuai Matriks Tarif)',
+                        'source' => 'employment'
+                    ];
+                }
+            }
+        }
+
+        // 3. Cek organization_structure.overtime_compensation
+        if (!empty($nik)) {
+            $org = DB::table('organization_structure')->where('NIK', $nik)->first();
+            if ($org && !empty($org->overtime_compensation)) {
+                $type = strtoupper(trim($org->overtime_compensation));
+                if (in_array($type, ['PAID', 'TIME_OFF'])) {
+                    return [
+                        'type'   => $type,
+                        'label'  => $type === 'TIME_OFF' ? 'Tukar Cuti / Hari Libur Pengganti (Day Off)' : 'Uang Lembur (Sesuai Matriks Tarif)',
+                        'source' => 'organization_structure'
+                    ];
+                }
+            }
+        }
+
+        // 4. Cek master_position.overtime_compensation
+        $posIdentifier = trim($user->Position ?? '');
+        if (!empty($posIdentifier)) {
+            $pos = DB::table('master_position')
+                ->where('Initial', $posIdentifier)
+                ->orWhere('Position', $posIdentifier)
+                ->orWhere('Initial_Code', $posIdentifier)
+                ->first();
+
+            if ($pos && !empty($pos->overtime_compensation)) {
+                $type = strtoupper(trim($pos->overtime_compensation));
+                if (in_array($type, ['PAID', 'TIME_OFF'])) {
+                    return [
+                        'type'   => $type,
+                        'label'  => $type === 'TIME_OFF' ? 'Tukar Cuti / Hari Libur Pengganti (Day Off)' : 'Uang Lembur (Sesuai Matriks Tarif)',
+                        'source' => 'master_position'
+                    ];
+                }
+            }
+        }
+
+        // 5. Default Fallback
+        return [
+            'type'   => 'PAID',
+            'label'  => 'Uang Lembur (Sesuai Matriks Tarif)',
+            'source' => 'default'
+        ];
+    }
+
+    /**
      * Tentukan Wilayah (WILAYAH_1 atau WILAYAH_2) berdasarkan Zipcode lokasi kerja
      * Menggunakan tabel master_kodepos
      *

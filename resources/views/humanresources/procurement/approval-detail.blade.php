@@ -1,172 +1,267 @@
-<div class="mt-3">
+<div class="mt-3 animate__animated animate__fadeIn">
     <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-info text-white py-3 px-2">
-            <h5 class="card-title mb-0 font-weight-bold d-inline-block" style="color: azure">Approval Request</h5>
-            <button type="button" class="float-right btn btn-secondary" onclick="$('#PurchaseManagementDiv').html('')"><i class="fa fa-times"></i> Close</button>
+        <!-- Header -->
+        <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <span class="badge bg-warning text-dark p-2 me-2 rounded-circle">
+                    <i class="fa fa-check-square-o fa-lg"></i>
+                </span>
+                <div>
+                    <h5 class="card-title mb-0 font-weight-bold text-dark">Form Evaluasi &amp; Persetujuan PR</h5>
+                    <small class="text-muted">Nomor Dokumen: <strong class="text-primary">{{ $pr->PR_No }}</strong>
+                        &bull; Status: <span
+                            class="badge bg-warning text-dark px-2 py-0.5 rounded-pill">{{ $pr->Status }}</span></small>
+                </div>
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                onclick="$('#PurchaseManagementDiv').html('')">
+                <i class="fa fa-times me-1"></i> Tutup
+            </button>
         </div>
-        <div class="card-body">
+
+        <div class="card-body p-4">
             <div id="ContentPages">
                 <input type="hidden" id="ID" name="ID" value="{{ $pr->ID }}" />
 
-                <!-- Row 1: Informasi Dokumen & Vendor -->
-                <div class="row mt-3">
-                    <div class="col-md-3">
-                        <label class="font-weight-bold">PR No</label>
-                        <input type="text" id="PR_No" name="PR_No" class="form-control form-control-sm bg-light" readonly value="{{ $pr->PR_No }}" />
-                    </div>
-                    <div class="col-md-3">
-                        <label class="font-weight-bold">Date Request</label>
-                        <input type="text" id="PR_Date" name="PR_Date" class="form-control form-control-sm bg-light" readonly value="{{ date('Y-m-d', strtotime($pr->PR_Date)) }}" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="font-weight-bold">User Request</label>
-                        <div class="input-group input-group-sm">
-                            <input type="text" class="form-control form-control-sm col-md-4 bg-light" id="User_Request" name="User_Request" value="{{ $pr->User_Request }}" readonly />
-                            <input type="text" class="form-control form-control-sm col-md-8 bg-light" id="User_Request_Name" name="User_Request_Name" value="{{ $pr->User_Request_Name }}" readonly />
+                <!-- Section 1: Dokumen & User Pemohon -->
+                <div class="p-3 mb-3 bg-light rounded-3 border">
+                    <h6 class="font-weight-bold text-dark mb-3"><i
+                            class="fa fa-id-card-o me-2 text-primary"></i>Informasi Dokumen &amp; Pemohon</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label font-weight-semibold small text-muted">Nomor PR</label>
+                            <input type="text" id="PR_No" name="PR_No"
+                                class="form-control form-control-sm bg-white font-weight-bold text-primary" readonly
+                                value="{{ $pr->PR_No }}" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label font-weight-semibold small text-muted">Tanggal Pengajuan</label>
+                            <input type="text" id="PR_Date" name="PR_Date"
+                                class="form-control form-control-sm bg-white" readonly
+                                value="{{ date('Y-m-d', strtotime($pr->PR_Date)) }}" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-weight-semibold small text-muted">User Pemohon (NIK &amp;
+                                Nama)</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control bg-white font-weight-semibold"
+                                    style="max-width:140px;" id="User_Request" name="User_Request"
+                                    value="{{ $pr->User_Request }}" readonly />
+                                <input type="text" class="form-control bg-white font-weight-semibold"
+                                    id="User_Request_Name" name="User_Request_Name" value="{{ $pr->User_Request_Name }}"
+                                    readonly />
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Row 2: User Request & Budgeting -->
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <label class="font-weight-bold">Dept. (Budgeting)</label>
-                        <select id="Department" name="Department" class="form-control form-control-sm">
-                            @foreach ($Department as $Data)
-                                <option value="{{ $Data->Initial }}" {{ $pr->Department == $Data->Initial ? 'selected' : '' }}>
-                                    {{ $Data->Department }} - {{ $Data->Initial_Code }} - {{ $Data->Initial }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="font-weight-bold">Vendor</label>
-                        <select name="Supplier_ID" id="Supplier_ID" class="form-control form-control-sm">
-                            <option value="">-- Pilih Vendor --</option>
-                            @foreach ($company as $item)
-                                <option value="{{ $item->Supplier_ID }}" {{ $pr->Supplier_ID == $item->Supplier_ID ? 'selected' : '' }}>
-                                    {{ $item->Supplier_ID }} - {{ $item->Company_Name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Row 3: Detail PIC -->
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <label class="font-weight-bold">PIC to Receive</label>
-                        <input type="text" id="PIC" name="PIC" class="form-control form-control-sm" required placeholder="Nama penerima" value="{{ $pr->PIC }}" />
-                    </div>
-                    <div class="col-md-3">
-                        <label class="font-weight-bold">PIC Phone</label>
-                        <input type="text" id="PIC_Phone" name="PIC_Phone" class="form-control form-control-sm" required placeholder="Nomor telepon" value="{{ $pr->PIC_Phone }}" />
-                    </div>
-                    <div class="col-md-3">
-                        <label class="font-weight-bold">PIC Address</label>
-                        <input type="text" id="PIC_Address" name="PIC_Address" class="form-control form-control-sm" required placeholder="Alamat" value="{{ $pr->PIC_Address }}" />
-                    </div>
-                </div>
-
-                <!-- Row 4: Kategori & Parameter Request -->
-                <div class="row mt-3">
-                    <div class="col-md-3">
-                        <label class="font-weight-bold">Category</label>
-                        <select id="Category" name="Category" class="form-control form-control-sm">
-                            <option value="">Select Category</option>
-                            <option {{ $pr->Category == 'ASSET' ? 'selected' : '' }}>ASSET</option>
-                            <option {{ $pr->Category == 'NON ASSET' ? 'selected' : '' }}>NON ASSET</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="font-weight-bold">Jenis</label>
-                        <select id="Sub_Category" name="Sub_Category" class="form-control form-control-sm">
-                            <option value="">Select Sub Category</option>
-                            <option {{ $pr->Sub_Category == 'BARANG' ? 'selected' : '' }}>BARANG</option>
-                            <option {{ $pr->Sub_Category == 'JASA' ? 'selected' : '' }}>JASA</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="font-weight-bold">Priority</label>
-                        <select name="Priority_Status" id="Priority_Status" class="form-control form-control-sm">
-                            <option {{ $pr->Priority_Status == 'NORMAL' ? 'selected' : '' }}>NORMAL</option>
-                            <option {{ $pr->Priority_Status == 'URGENT' ? 'selected' : '' }}>URGENT</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="font-weight-bold">Estimated Budget</label>
-                        <input type="number" id="Estimated_Budget" name="Estimated_Budget" class="form-control form-control-sm" value="{{ (float)$pr->Estimated_Budget }}" min="0" required />
+                <!-- Section 2: Budgeting, Vendor, & Parameter -->
+                <div class="p-3 mb-3 bg-light rounded-3 border">
+                    <h6 class="font-weight-bold text-dark mb-3"><i
+                            class="fa fa-building-o me-2 text-primary"></i>Budgeting, Vendor &amp; Klasifikasi</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label font-weight-semibold small text-muted">Departemen (Pembebanan
+                                Budget)</label>
+                            <select id="Department" name="Department" class="form-control form-control-sm">
+                                @foreach ($Department as $Data)
+                                    <option value="{{ $Data->Initial }}"
+                                        {{ $pr->Department == $Data->Initial ? 'selected' : '' }}>
+                                        {{ $Data->Department }} - {{ $Data->Initial_Code }} - {{ $Data->Initial }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-weight-semibold small text-muted">Pilihan Vendor / Supplier
+                                Rekanan</label>
+                            <select name="Supplier_ID" id="Supplier_ID" class="form-control form-control-sm">
+                                <option value="">-- Pilih Vendor --</option>
+                                @foreach ($company as $item)
+                                    <option value="{{ $item->Supplier_ID }}"
+                                        {{ $pr->Supplier_ID == $item->Supplier_ID ? 'selected' : '' }}>
+                                        {{ $item->Supplier_ID }} - {{ $item->Company_Name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label font-weight-semibold small text-muted">Kategori</label>
+                            <select id="Category" name="Category" class="form-control form-control-sm">
+                                <option value="">Pilih Kategori</option>
+                                <option {{ $pr->Category == 'ASSET' ? 'selected' : '' }}>ASSET</option>
+                                <option {{ $pr->Category == 'NON ASSET' ? 'selected' : '' }}>NON ASSET</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label font-weight-semibold small text-muted">Jenis Pengadaan</label>
+                            <select id="Sub_Category" name="Sub_Category" class="form-control form-control-sm">
+                                <option value="">Pilih Jenis</option>
+                                <option {{ $pr->Sub_Category == 'BARANG' ? 'selected' : '' }}>BARANG</option>
+                                <option {{ $pr->Sub_Category == 'JASA' ? 'selected' : '' }}>JASA</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label font-weight-semibold small text-muted">Tingkat Prioritas</label>
+                            <select name="Priority_Status" id="Priority_Status" class="form-control form-control-sm">
+                                <option {{ $pr->Priority_Status == 'NORMAL' ? 'selected' : '' }}>NORMAL</option>
+                                <option {{ $pr->Priority_Status == 'URGENT' ? 'selected' : '' }}>URGENT</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label font-weight-semibold small text-muted">Total Estimasi Budget
+                                (Rp)</label>
+                            <input type="number" id="Estimated_Budget" name="Estimated_Budget"
+                                class="form-control form-control-sm font-weight-bold text-success"
+                                value="{{ (float) $pr->Estimated_Budget }}" min="0" required />
+                        </div>
                     </div>
                 </div>
 
-                <!-- Row 4b: Approval Note (Remark) -->
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <label for="Remark" class="font-weight-bold">Approval Note / Keterangan</label>
-                        <textarea id="Remark" name="Remark" class="form-control form-control-sm" rows="3" placeholder="Catatan approval / perubahan..."></textarea>
-                        @if(!empty($pr->Note))
-                            <small class="text-muted d-block mt-1">History Note: <br>{!! nl2br(e($pr->Note)) !!}</small>
-                        @endif
+                <!-- Section 3: PIC & Pengiriman -->
+                <div class="p-3 mb-3 bg-light rounded-3 border">
+                    <h6 class="font-weight-bold text-dark mb-3"><i class="fa fa-map-marker me-2 text-primary"></i>PIC
+                        Penerima &amp; Lokasi Pengiriman</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label font-weight-semibold small text-muted">Nama PIC Penerima</label>
+                            <input type="text" id="PIC" name="PIC" class="form-control form-control-sm"
+                                required placeholder="Nama penerima" value="{{ $pr->PIC }}" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label font-weight-semibold small text-muted">Nomor Telepon PIC</label>
+                            <input type="text" id="PIC_Phone" name="PIC_Phone"
+                                class="form-control form-control-sm" required placeholder="Nomor telepon"
+                                value="{{ $pr->PIC_Phone }}" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label font-weight-semibold small text-muted">Alamat Pengiriman</label>
+                            <input type="text" id="PIC_Address" name="PIC_Address"
+                                class="form-control form-control-sm" required placeholder="Alamat lengkap"
+                                value="{{ $pr->PIC_Address }}" />
+                        </div>
                     </div>
                 </div>
 
-                <!-- Row 5: Multi Product Table (Persis Create) -->
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <label class="font-weight-bold">Product List</label>
-                        <p class="text-muted small">Periksa item barang yang diajukan. Approver dapat mengubah/menambah item bila diperlukan.</p>
+                <!-- Section 4: Catatan & Approval Remark -->
+                <div class="p-3 mb-3 bg-light rounded-3 border">
+                    <label for="Remark" class="form-label font-weight-semibold text-dark"><i
+                            class="fa fa-commenting-o me-2 text-primary"></i>Catatan Approver / Review Remark</label>
+                    <textarea id="Remark" name="Remark" class="form-control form-control-sm" rows="3"
+                        placeholder="Tuliskan catatan alasan persetujuan, penyesuaian data, atau penolakan..."></textarea>
+                    @if (!empty($pr->Note))
+                        <div class="alert alert-secondary py-2 px-3 mt-2 mb-0 small">
+                            <strong><i class="fa fa-history me-1"></i> Riwayat Catatan Sebelumnya:</strong><br>
+                            {!! nl2br(e($pr->Note)) !!}
+                        </div>
+                    @endif
+                </div>
 
-                        <table class="table table-sm table-bordered" id="productTable">
-                            <thead>
+                <!-- Section 5: Tabel Rincian Produk -->
+                <div class="p-3 mb-3 bg-white rounded-3 border">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                        <div>
+                            <h6 class="font-weight-bold text-dark mb-0"><i
+                                    class="fa fa-cubes me-2 text-primary"></i>Verifikasi Daftar Rincian Barang / Jasa
+                            </h6>
+                            <small class="text-muted">Approver dapat menyesuaikan kuantitas atau estimasi harga sebelum
+                                memberikan persetujuan</small>
+                        </div>
+                        <button type="button" id="addProductRow" class="btn btn-outline-primary btn-sm">
+                            <i class="fa fa-plus me-1"></i> Tambah Item Baris
+                        </button>
+                    </div>
+
+                    <div class="table-responsive border rounded-3 overflow-hidden shadow-xs mt-3">
+                        <table class="table table-bordered table-hover align-middle mb-0" id="productTable">
+                            <thead class="table-light">
                                 <tr>
-                                    <th style="width:3%">No</th>
-                                    <th style="width:15%">Product Description</th>
-                                    <th style="width:8%">Qty</th>
-                                    <th style="width:22%">Specification</th>
-                                    <th style="width:8%">Unit</th>
-                                    <th style="width:10%">Price</th>
-                                    <th style="width:10%">Total</th>
-                                    <th style="width:10%">Reference</th>
-                                    <th style="width:10%">Upload File</th>
-                                    <th style="width:7%">Action</th>
+                                    <th class="text-center" style="width:40px;">No</th>
+                                    <th style="width:220px;">Deskripsi Item <span class="text-danger">*</span></th>
+                                    <th class="text-center" style="width:90px;">Qty <span
+                                            class="text-danger">*</span></th>
+                                    <th style="width:250px;">Spesifikasi Lengkap</th>
+                                    <th class="text-center" style="width:90px;">Satuan</th>
+                                    <th style="width:130px;">Harga Satuan</th>
+                                    <th style="width:140px;">Subtotal (Rp)</th>
+                                    <th style="width:140px;">Referensi / Ket</th>
+                                    <th style="width:140px;">Lampiran</th>
+                                    <th class="text-center" style="width:50px;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="productTableBody">
                                 @forelse($pr->details as $index => $dtl)
                                     <tr class="product-row">
-                                        <td>{{ $index + 1 }}</td>
-                                        <td><input type="text" name="Product_Desc[]" class="form-control form-control-sm product-desc" placeholder="Deskripsi" value="{{ $dtl->Product_Desc }}" /></td>
-                                        <td><input type="number" name="Qty[]" class="form-control form-control-sm qty" value="{{ $dtl->Qty }}" min="1" /></td>
-                                        <td><textarea name="Specification[]" class="form-control form-control-sm specification">{{ $dtl->Specification }}</textarea></td>
-                                        <td><input type="text" name="Unit[]" class="form-control form-control-sm unit" value="{{ $dtl->Unit ?: 'PCS' }}" /></td>
-                                        <td><input type="number" name="Price[]" class="form-control form-control-sm price" value="{{ (float)($dtl->Default_Price ?: 0) }}" min="0" step="1000" /></td>
-                                        <td><input type="text" name="Total[]" class="form-control form-control-sm total bg-light text-right" value="{{ (float)($dtl->Qty * ($dtl->Default_Price ?: 0)) }}" readonly /></td>
-                                        <td><input type="text" name="Reference[]" class="form-control form-control-sm reference bg-light text-right" value="{{ $dtl->Reference }}" /></td>
+                                        <td class="text-center text-muted">{{ $index + 1 }}</td>
+                                        <td><input type="text" name="Product_Desc[]"
+                                                class="form-control form-control-sm product-desc"
+                                                placeholder="Deskripsi" value="{{ $dtl->Product_Desc }}" /></td>
+                                        <td><input type="number" name="Qty[]"
+                                                class="form-control form-control-sm qty text-center"
+                                                value="{{ $dtl->Qty }}" min="1" /></td>
                                         <td>
-                                            @if(!empty($dtl->Attachment))
-                                                <a href="{{ asset('storage/'.$dtl->Attachment) }}" target="_blank" class="btn btn-xs btn-outline-info mb-1"><i class="fa fa-download"></i> View</a>
-                                            @endif
-                                            <input type="file" name="Image[]" class="form-control form-control-sm image bg-light text-right" />
+                                            <textarea name="Specification[]" class="form-control form-control-sm specification" rows="1">{{ $dtl->Specification }}</textarea>
                                         </td>
+                                        <td><input type="text" name="Unit[]"
+                                                class="form-control form-control-sm unit text-center"
+                                                value="{{ $dtl->Unit ?: 'PCS' }}" /></td>
+                                        <td><input type="number" name="Price[]"
+                                                class="form-control form-control-sm price text-end"
+                                                value="{{ (float) ($dtl->Default_Price ?: 0) }}" min="0"
+                                                step="1000" /></td>
+                                        <td><input type="text" name="Total[]"
+                                                class="form-control form-control-sm total text-end bg-light font-weight-bold"
+                                                value="{{ (float) ($dtl->Qty * ($dtl->Default_Price ?: 0)) }}"
+                                                readonly /></td>
+                                        <td><input type="text" name="Reference[]"
+                                                class="form-control form-control-sm reference"
+                                                value="{{ $dtl->Reference }}" /></td>
                                         <td>
-                                            <button type="button" class="btn btn-danger btn-sm remove-row" title="Remove">
+                                            @if (!empty($dtl->Attachment))
+                                                <a href="{{ asset('storage/' . $dtl->Attachment) }}" target="_blank"
+                                                    class="btn btn-xs btn-outline-info mb-1 w-100"><i
+                                                        class="fa fa-download me-1"></i> Unduh</a>
+                                            @endif
+                                            <input type="file" name="Image[]"
+                                                class="form-control form-control-sm image" />
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button"
+                                                class="btn btn-outline-danger btn-sm remove-row p-1"
+                                                title="Hapus baris">
                                                 <i class="fa fa-times"></i>
                                             </button>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr class="product-row">
-                                        <td>1</td>
-                                        <td><input type="text" name="Product_Desc[]" class="form-control form-control-sm product-desc" placeholder="Deskripsi" /></td>
-                                        <td><input type="number" name="Qty[]" class="form-control form-control-sm qty" value="1" min="1" /></td>
-                                        <td><textarea name="Specification[]" class="form-control form-control-sm specification"></textarea></td>
-                                        <td><input type="text" name="Unit[]" class="form-control form-control-sm unit" value="PCS" /></td>
-                                        <td><input type="number" name="Price[]" class="form-control form-control-sm price" value="0" min="0" step="1000" /></td>
-                                        <td><input type="text" name="Total[]" class="form-control form-control-sm total bg-light text-right" value="0" readonly /></td>
-                                        <td><input type="text" name="Reference[]" class="form-control form-control-sm reference bg-light text-right" value="" /></td>
-                                        <td><input type="file" name="Image[]" class="form-control form-control-sm image bg-light text-right" /></td>
+                                        <td class="text-center text-muted">1</td>
+                                        <td><input type="text" name="Product_Desc[]"
+                                                class="form-control form-control-sm product-desc"
+                                                placeholder="Deskripsi" /></td>
+                                        <td><input type="number" name="Qty[]"
+                                                class="form-control form-control-sm qty text-center" value="1"
+                                                min="1" /></td>
                                         <td>
-                                            <button type="button" class="btn btn-danger btn-sm remove-row" title="Remove">
+                                            <textarea name="Specification[]" class="form-control form-control-sm specification" rows="1"></textarea>
+                                        </td>
+                                        <td><input type="text" name="Unit[]"
+                                                class="form-control form-control-sm unit text-center"
+                                                value="PCS" /></td>
+                                        <td><input type="number" name="Price[]"
+                                                class="form-control form-control-sm price text-end" value="0"
+                                                min="0" step="1000" /></td>
+                                        <td><input type="text" name="Total[]"
+                                                class="form-control form-control-sm total text-end bg-light font-weight-bold"
+                                                value="0" readonly /></td>
+                                        <td><input type="text" name="Reference[]"
+                                                class="form-control form-control-sm reference" value="" /></td>
+                                        <td><input type="file" name="Image[]"
+                                                class="form-control form-control-sm image" /></td>
+                                        <td class="text-center">
+                                            <button type="button"
+                                                class="btn btn-outline-danger btn-sm remove-row p-1"
+                                                title="Hapus baris">
                                                 <i class="fa fa-times"></i>
                                             </button>
                                         </td>
@@ -174,46 +269,61 @@
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
 
-                        <div class="float-right mt-2">
-                            <button type="button" id="addProductRow" class="btn btn-info btn-sm">
-                                <i class="fa fa-plus"></i> Add Product
-                            </button>
-                            <span class="text-muted ml-2">Total: <span id="totalProducts">{{ count($pr->details) ?: 1 }}</span> products</span>
-                            <span class="text-muted ml-2">Estimate: <span id="totalEstimate">Rp 0</span></span>
+                    <!-- Summary Cards -->
+                    <div class="d-flex flex-wrap justify-content-end align-items-center gap-3 mt-3 pt-2">
+                        <div class="px-3 py-2 bg-light rounded border text-muted small">
+                            Total Item: <strong id="totalProducts"
+                                class="text-dark">{{ count($pr->details) ?: 1 }}</strong> Produk
+                        </div>
+                        <div class="px-3 py-2 bg-light rounded border text-muted small">
+                            Total Estimasi: <strong id="totalEstimate"
+                                class="text-success font-weight-bold h6 mb-0 ms-1">Rp 0</strong>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Action Buttons -->
-            <div id="divtom" class="d-flex justify-content-end mt-3">
-                @if($pr->Status == 'CHANGES_REVIEWED_BY_CREATOR')
-                    <button type="button" id="SubmitPRDetailApproveChanges" onclick="approvalFunc(3)" class="btn btn-warning btn-sm mx-2">
-                        <i class="fa fa-check-circle"></i> Approve Changes
+                <!-- Action Footer Buttons -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top mt-4">
+                    <button type="button" class="btn btn-outline-secondary"
+                        onclick="$('#PurchaseManagementDiv').html('')">
+                        <i class="fa fa-arrow-left me-1"></i> Batal &amp; Kembali
                     </button>
-                    <button type="button" id="SubmitPRDetailReject" onclick="approvalFunc(2)" class="btn btn-danger btn-sm mx-2">
-                        <i class="fa fa-times"></i> Reject
-                    </button>
-                @else
-                    <button type="button" id="SubmitPRDetailReject" onclick="approvalFunc(2)" class="btn btn-danger btn-sm mx-2">
-                        <i class="fa fa-times"></i> Reject
-                    </button>
-                    <button type="button" id="SubmitPRDetail" onclick="approvalFunc(1)" class="btn btn-success btn-sm mx-2">
-                        <i class="fa fa-check"></i> Approve
-                    </button>
-                @endif
+                    <div class="d-flex gap-2">
+                        <button type="button" id="SubmitPRDetailReject" onclick="approvalFunc(2)"
+                            class="btn btn-outline-danger px-4">
+                            <i class="fa fa-times-circle me-1"></i> Tolak (Reject)
+                        </button>
+                        @if ($pr->Status == 'CHANGES_REVIEWED_BY_CREATOR')
+                            <button type="button" id="SubmitPRDetailApproveChanges" onclick="approvalFunc(3)"
+                                class="btn btn-warning text-dark px-4 shadow-xs">
+                                <i class="fa fa-check-circle me-1"></i> Setujui Perubahan
+                            </button>
+                        @else
+                            <button type="button" id="SubmitPRDetail" onclick="approvalFunc(1)"
+                                class="btn btn-success px-4 text-white shadow-xs">
+                                <i class="fa fa-check me-1"></i> Setujui (Approve)
+                            </button>
+                        @endif
+                    </div>
+                </div>
             </div>
-
-            <div id="WinCOA"></div>
         </div>
     </div>
 </div>
 
 <script>
     $(document).ready(function() {
-        $('#Supplier_ID').select2();
-        $('#Department').select2();
+        $.unblockUI();
+        if ($.fn.select2) {
+            $('#Supplier_ID').select2({
+                width: '100%'
+            });
+            $('#Department').select2({
+                width: '100%'
+            });
+        }
 
         var productCount = $('#productTableBody tr.product-row').length || 1;
 
@@ -234,6 +344,7 @@
                 total += parseFloat($(this).val()) || 0;
             });
             $('#totalEstimate').text('Rp ' + new Intl.NumberFormat('id-ID').format(total));
+            $('#Estimated_Budget').val(total);
         }
 
         updateTotalEstimate();
@@ -242,17 +353,17 @@
             productCount++;
             var newRow = `
                 <tr class="product-row">
-                    <td>${productCount}</td>
+                    <td class="text-center text-muted">${productCount}</td>
                     <td><input type="text" name="Product_Desc[]" class="form-control form-control-sm product-desc" placeholder="Deskripsi" /></td>
-                    <td><input type="number" name="Qty[]" class="form-control form-control-sm qty" value="1" min="1" /></td>
-                    <td><textarea name="Specification[]" class="form-control form-control-sm specification" placeholder="Spesifikasi"></textarea></td>
-                    <td><input type="text" name="Unit[]" class="form-control form-control-sm unit" value="PCS" /></td>
-                    <td><input type="number" name="Price[]" class="form-control form-control-sm price" value="0" min="0" step="1000" /></td>
-                    <td><input type="text" name="Total[]" class="form-control form-control-sm total bg-light text-right" value="0" readonly /></td>
-                    <td><input type="text" name="Reference[]" class="form-control form-control-sm reference bg-light text-right" value="" /></td>
-                    <td><input type="file" name="Image[]" class="form-control form-control-sm image bg-light text-right" /></td>
-                    <td>
-                        <button type="button" class="btn btn-danger btn-sm remove-row" title="Remove">
+                    <td><input type="number" name="Qty[]" class="form-control form-control-sm qty text-center" value="1" min="1" /></td>
+                    <td><textarea name="Specification[]" class="form-control form-control-sm specification" rows="1" placeholder="Spesifikasi"></textarea></td>
+                    <td><input type="text" name="Unit[]" class="form-control form-control-sm unit text-center" value="PCS" /></td>
+                    <td><input type="number" name="Price[]" class="form-control form-control-sm price text-end" value="0" min="0" step="1000" /></td>
+                    <td><input type="text" name="Total[]" class="form-control form-control-sm total text-end bg-light font-weight-bold" value="0" readonly /></td>
+                    <td><input type="text" name="Reference[]" class="form-control form-control-sm reference" value="" /></td>
+                    <td><input type="file" name="Image[]" class="form-control form-control-sm image" /></td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-row p-1" title="Hapus baris">
                             <i class="fa fa-times"></i>
                         </button>
                     </td>
@@ -270,7 +381,7 @@
                 renumberRows();
                 updateTotalEstimate();
             } else {
-                alert('Minimal harus ada 1 produk!');
+                alert('Minimal harus ada 1 item produk!');
             }
         });
 
@@ -307,34 +418,44 @@
         var PIC_Phone = $("#PIC_Phone").val();
         var PIC_Address = $("#PIC_Address").val();
         var Estimated_Budget = $("#Estimated_Budget").val();
+        var Remark = $("#Remark").val();
 
-        if (PIC == '') {
+        if (stat == 2 && (!Remark || Remark.trim() === '')) {
+            alert("Harap berikan catatan alasan penolakan pada kolom 'Approval Note / Keterangan'!");
+            $("#Remark").focus();
+            return false;
+        }
+
+        if (!PIC) {
             alert("Kolom Penerima Barang (PIC to Receive) Harus Diisi!");
             $("#PIC").focus();
             return false;
         }
-        if (PIC_Address == '') {
-            alert("Kolom alamat PIC (PIC Address) Harus Diisi!");
+        if (!PIC_Address || PIC_Address.length < 3) {
+            alert("Kolom alamat PIC Minimal 3 Karakter!");
             $("#PIC_Address").focus();
             return false;
         }
-        if (PIC_Address.length < 3) {
-            alert("Kolom alamat PIC (PIC Address) Minimal 3 Karakter!");
-            $("#PIC_Address").focus();
-            return false;
-        }
-        if (PIC_Phone == '') {
-            alert("Kolom nomor telepon (PIC Phone) Harus Diisi!");
+        if (!PIC_Phone) {
+            alert("Kolom nomor telepon PIC Harus Diisi!");
             $("#PIC_Phone").focus();
             return false;
         }
-        if (Estimated_Budget == '' || parseFloat(Estimated_Budget) <= 0) {
+        if (!Estimated_Budget || parseFloat(Estimated_Budget) <= 0) {
             alert("Kolom Estimated Budget Harus Diisi!");
             $("#Estimated_Budget").focus();
             return false;
         }
 
-        $.blockUI();
+        var confirmMsg = (stat == 2) ? 'Apakah Anda yakin ingin menolak PR ini?' :
+            'Apakah Anda yakin ingin menyetujui PR ini?';
+        if (!confirm(confirmMsg)) {
+            return false;
+        }
+
+        $.blockUI({
+            message: '<h4><i class="fa fa-spinner fa-spin"></i> Memproses Approval...</h4>'
+        });
 
         var dapat = getAllValues();
         dapat['stat'] = stat;
@@ -356,35 +477,33 @@
         dapat['RowCount'] = gridData.length;
 
         $.ajax({
-            headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+            headers: {
+                'X-CSRF-TOKEN': "{{ csrf_token() }}"
+            },
             url: "hrd-procurement-approval-detail-submit?_token={{ csrf_token() }}",
             type: "POST",
             data: dapat,
             success: function(data) {
+                $.unblockUI();
                 if (data == 'success') {
                     if (stat == 3) {
-                        alert('Perubahan data PR No <?php echo $pr->PR_No ?> telah disetujui. PR akan kembali ke tahap approval berikutnya.');
+                        alert(
+                            'Perubahan data PR No {{ $pr->PR_No }} telah disetujui. PR akan kembali ke alur approval.');
                     } else if (stat == 2) {
                         alert('Purchase Request REJECTED!');
                     } else {
-                        alert('Purchase Request Approved! PR No <?php echo $pr->PR_No ?>');
+                        alert('Purchase Request APPROVED! PR No: {{ $pr->PR_No }}');
                     }
-                    setTimeout(function() {
-                        $.unblockUI();
-                        if (typeof refreshData === 'function') refreshData();
-                        $('#PurchaseManagementDiv').html("");
-                    }, 1000);
+                    if (typeof refreshData === 'function') refreshData();
+                    $('#PurchaseManagementDiv').html("");
                 } else {
                     alert('Gagal: ' + data);
-                    $.unblockUI();
                 }
             },
             error: function(jqXHR, textStatus, errorThrown) {
-                alert("Error: " + errorThrown);
                 $.unblockUI();
+                alert("Terjadi kesalahan sistem: " + errorThrown);
             }
         });
     }
 </script>
-
-<div id="PRSupplierDet"></div>

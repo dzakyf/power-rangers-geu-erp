@@ -43,10 +43,20 @@ $kueri = "UPDATE employment set $MX WHERE ID=$_POST[ID]";
 DB::update(DB::raw($kueri));
 
 // Sync the employee's branch office to users.Location (matched by users.Emp_ID = employment.NIK)
-if (isset($_POST['Location'])) {
+if (isset($_POST['Location']) || isset($_POST['overtime_compensation'])) {
 	$empRow = DB::table('employment')->where('ID', $_POST['ID'])->first();
 	if ($empRow) {
-		DB::table('users')->where('Emp_ID', $empRow->NIK)->update(['Location' => $_POST['Location']]);
+		$usersUpdate = [];
+		if (isset($_POST['Location'])) {
+			$usersUpdate['Location'] = $_POST['Location'];
+		}
+		if (isset($_POST['overtime_compensation'])) {
+			$compVal = trim($_POST['overtime_compensation']);
+			$usersUpdate['overtime_compensation'] = in_array($compVal, ['PAID', 'TIME_OFF']) ? $compVal : null;
+		}
+		if (!empty($usersUpdate)) {
+			DB::table('users')->where('Emp_ID', $empRow->NIK)->update($usersUpdate);
+		}
 	}
 }
 

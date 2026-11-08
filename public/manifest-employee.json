@@ -1,0 +1,22 @@
+{
+  "name": "HCGA Mobile Portal",
+  "short_name": "HCGA Mobile",
+  "description": "Human Capital & General Affairs Mobile Self-Service Portal",
+  "start_url": "/employee/profile",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/adminor/assets/img/brand/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/adminor/assets/img/brand/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -34,5 +34,12 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/attendance/timesheet', [AttendancesController::class, 'apiTimesheet']);
     Route::post('/attendance/request/leave', [AttendancesController::class, 'apiSubmitLeave']);
     Route::post('/attendance/request/correction', [AttendancesController::class, 'apiSubmitCorrection']);
+
+    // SPPD Mobile REST APIs (Native / Webview mobile)
+    Route::get('/sppd/list', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiList']);
+    Route::get('/sppd/approval/queue', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiApprovalQueue']);
+    Route::get('/sppd/{id}', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiDetail']);
+    Route::post('/sppd/submit', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiSubmit']);
+    Route::post('/sppd/approval/process', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiProcessApproval']);
 });
 

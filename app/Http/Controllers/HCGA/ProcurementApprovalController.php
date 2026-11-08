@@ -41,21 +41,42 @@ class ProcurementApprovalController extends Controller
         echo "<rows>";
 
         // 1. Ambil PR yang terhubung ke Approval Workflow Policy Engine
-        $pendingTasks = DB::table('approval_request_task as art')
-            ->join('approval_request as ar', 'art.Request_ID', '=', 'ar.ID')
-            ->join('approval_task_candidate as atc', 'art.ID', '=', 'atc.Task_ID')
-            ->where('ar.Request_Type', 'PROCUREMENT')
-            ->where('art.Status', 'PENDING')
-            ->where('atc.User_ID', $userId)
-            ->select('ar.Map_To as PR_ID', 'art.ID as Task_ID', 'art.Stage_Order')
-            ->get();
+        $isWildcard = $this->authorizationService->isWildcardAdmin($user);
+
+        if ($isWildcard) {
+            $pendingTasks = DB::table('approval_request_task as art')
+                ->join('approval_request as ar', 'art.Request_ID', '=', 'ar.ID')
+                ->where('ar.Request_Type', 'PROCUREMENT')
+                ->whereIn('art.Status', ['PENDING', 'CLAIMED'])
+                ->select('ar.Map_To as PR_ID', 'art.ID as Task_ID', 'art.Stage_Order')
+                ->get();
+        } else {
+            $pendingTasks = DB::table('approval_request_task as art')
+                ->join('approval_request as ar', 'art.Request_ID', '=', 'ar.ID')
+                ->join('approval_task_candidate as atc', 'art.ID', '=', 'atc.Task_ID')
+                ->where('ar.Request_Type', 'PROCUREMENT')
+                ->whereIn('art.Status', ['PENDING', 'CLAIMED'])
+                ->where('atc.User_ID', $userId)
+                ->select('ar.Map_To as PR_ID', 'art.ID as Task_ID', 'art.Stage_Order')
+                ->get();
+        }
 
         $prIdsFromPolicy = $pendingTasks->pluck('PR_ID')->filter()->all();
 
         // 2. Query data PR (dukung PR baru via Approval Policy + PR legacy yang masih in progress)
         $kueri = DB::table('purchase_request')->where("Location", $LSP)->orderBy('ID', "DESC");
 
-        if (!empty($prIdsFromPolicy)) {
+        if ($isWildcard) {
+            $kueri->where(function ($q) use ($prIdsFromPolicy) {
+                if (!empty($prIdsFromPolicy)) {
+                    $q->whereIn('ID', $prIdsFromPolicy);
+                }
+                $q->orWhere(function ($sub) {
+                    $sub->whereNull('Approval_Request_ID')
+                        ->whereIn('Status', ['APPROVAL_UPPER', 'APPROVAL_DEPT', 'APPROVAL_GA']);
+                });
+            });
+        } elseif (!empty($prIdsFromPolicy)) {
             $kueri->where(function ($q) use ($prIdsFromPolicy, $user) {
                 $q->whereIn('ID', $prIdsFromPolicy)
                   ->orWhere(function ($sub) use ($user) {
@@ -193,47 +214,47 @@ class ProcurementApprovalController extends Controller
         if ($statReq == 1) {
             if ($request->has('Reference') && $newReference !== $oldReference) {
                 $changesDetected = true;
-                $changedFields[] = "Reference: '{$oldReference}' → '{$newReference}'";
+                $changedFields[] = "Reference: '{$oldReference}' -> '{$newReference}'";
             }
             if ($request->has('Category') && $newCategory !== $oldCategory) {
                 $changesDetected = true;
-                $changedFields[] = "Category: '{$oldCategory}' → '{$newCategory}'";
+                $changedFields[] = "Category: '{$oldCategory}' -> '{$newCategory}'";
             }
             if ($request->has('Sub_Category') && $newSubCategory !== $oldSubCategory) {
                 $changesDetected = true;
-                $changedFields[] = "Sub_Category: '{$oldSubCategory}' → '{$newSubCategory}'";
+                $changedFields[] = "Sub_Category: '{$oldSubCategory}' -> '{$newSubCategory}'";
             }
             if (($request->has('Supplies_Type') || $request->has('Purchase_Type')) && $newSuppliesType !== '' && $newSuppliesType !== $oldSuppliesType) {
                 $changesDetected = true;
-                $changedFields[] = "Supplies_Type: '{$oldSuppliesType}' → '{$newSuppliesType}'";
+                $changedFields[] = "Supplies_Type: '{$oldSuppliesType}' -> '{$newSuppliesType}'";
             }
             if ($request->has('PIC') && $newPIC !== $oldPIC) {
                 $changesDetected = true;
-                $changedFields[] = "PIC: '{$oldPIC}' → '{$newPIC}'";
+                $changedFields[] = "PIC: '{$oldPIC}' -> '{$newPIC}'";
             }
             if ($request->has('PIC_Phone') && $newPICPhone !== $oldPICPhone) {
                 $changesDetected = true;
-                $changedFields[] = "PIC_Phone: '{$oldPICPhone}' → '{$newPICPhone}'";
+                $changedFields[] = "PIC_Phone: '{$oldPICPhone}' -> '{$newPICPhone}'";
             }
             if ($request->has('PIC_Address') && $newPICAddress !== $oldPICAddress) {
                 $changesDetected = true;
-                $changedFields[] = "PIC_Address: '{$oldPICAddress}' → '{$newPICAddress}'";
+                $changedFields[] = "PIC_Address: '{$oldPICAddress}' -> '{$newPICAddress}'";
             }
             if ($request->has('Estimated_Budget') && abs($newEstimatedBudget - $oldEstimatedBudget) > 0.01) {
                 $changesDetected = true;
-                $changedFields[] = "Estimated_Budget: {$oldEstimatedBudget} → {$newEstimatedBudget}";
+                $changedFields[] = "Estimated_Budget: {$oldEstimatedBudget} -> {$newEstimatedBudget}";
             }
             if ($request->has('Department') && $newDepartment !== '' && $newDepartment !== $oldDepartment) {
                 $changesDetected = true;
-                $changedFields[] = "Department: '{$oldDepartment}' → '{$newDepartment}'";
+                $changedFields[] = "Department: '{$oldDepartment}' -> '{$newDepartment}'";
             }
             if ($request->has('Supplier_ID') && $newSupplierID !== '' && $newSupplierID !== $oldSupplierID) {
                 $changesDetected = true;
-                $changedFields[] = "Supplier_ID: '{$oldSupplierID}' → '{$newSupplierID}'";
+                $changedFields[] = "Supplier_ID: '{$oldSupplierID}' -> '{$newSupplierID}'";
             }
             if ($request->has('Priority_Status') && $newPriorityStatus !== $oldPriorityStatus) {
                 $changesDetected = true;
-                $changedFields[] = "Priority_Status: '{$oldPriorityStatus}' → '{$newPriorityStatus}'";
+                $changedFields[] = "Priority_Status: '{$oldPriorityStatus}' -> '{$newPriorityStatus}'";
             }
 
             // Cek detail produk jika dikirim via GridData JSON
@@ -244,7 +265,7 @@ class ProcurementApprovalController extends Controller
                     $dtlOld = DB::table('purchase_request_dtl')->where("PR_No", $cek->PR_No)->orderBy('ID')->get();
                     if (count($gridData) != count($dtlOld)) {
                         $changesDetected = true;
-                        $changedFields[] = "Jumlah item produk berubah: " . count($dtlOld) . " item → " . count($gridData) . " item";
+                        $changedFields[] = "Jumlah item produk berubah: " . count($dtlOld) . " item -> " . count($gridData) . " item";
                     } else {
                         foreach ($gridData as $idx => $row) {
                             $oldRow = $dtlOld[$idx] ?? null;
@@ -255,11 +276,11 @@ class ProcurementApprovalController extends Controller
                             }
                             if ($this->normalizeStr($row['Product_Desc'] ?? '') !== $this->normalizeStr($oldRow->Product_Desc)) {
                                 $changesDetected = true;
-                                $changedFields[] = "Item #" . ($idx + 1) . " Deskripsi: '{$oldRow->Product_Desc}' → '" . ($row['Product_Desc'] ?? '') . "'";
+                                $changedFields[] = "Item #" . ($idx + 1) . " Deskripsi: '{$oldRow->Product_Desc}' -> '" . ($row['Product_Desc'] ?? '') . "'";
                             }
                             if ($this->normalizeNum($row['Qty'] ?? 0) != $this->normalizeNum($oldRow->Qty)) {
                                 $changesDetected = true;
-                                $changedFields[] = "Item #" . ($idx + 1) . " Qty: {$oldRow->Qty} → " . ($row['Qty'] ?? 0);
+                                $changedFields[] = "Item #" . ($idx + 1) . " Qty: {$oldRow->Qty} -> " . ($row['Qty'] ?? 0);
                             }
                             if ($this->normalizeStr($row['Specification'] ?? '') !== $this->normalizeStr($oldRow->Specification)) {
                                 $changesDetected = true;
@@ -267,11 +288,11 @@ class ProcurementApprovalController extends Controller
                             }
                             if ($this->normalizeStr($row['Unit'] ?? '') !== $this->normalizeStr($oldRow->Unit)) {
                                 $changesDetected = true;
-                                $changedFields[] = "Item #" . ($idx + 1) . " Unit: '{$oldRow->Unit}' → '" . ($row['Unit'] ?? '') . "'";
+                                $changedFields[] = "Item #" . ($idx + 1) . " Unit: '{$oldRow->Unit}' -> '" . ($row['Unit'] ?? '') . "'";
                             }
                             if ($this->normalizeNum($row['Price'] ?? 0) != $this->normalizeNum($oldRow->Default_Price)) {
                                 $changesDetected = true;
-                                $changedFields[] = "Item #" . ($idx + 1) . " Price: {$oldRow->Default_Price} → " . ($row['Price'] ?? 0);
+                                $changedFields[] = "Item #" . ($idx + 1) . " Price: {$oldRow->Default_Price} -> " . ($row['Price'] ?? 0);
                             }
                         }
                     }
@@ -282,11 +303,11 @@ class ProcurementApprovalController extends Controller
                 if ($firstDtl) {
                     if ($this->normalizeStr($request->Product_Desc) !== $this->normalizeStr($firstDtl->Product_Desc)) {
                         $changesDetected = true;
-                        $changedFields[] = "Product_Desc: '{$firstDtl->Product_Desc}' → '" . $request->Product_Desc . "'";
+                        $changedFields[] = "Product_Desc: '{$firstDtl->Product_Desc}' -> '" . $request->Product_Desc . "'";
                     }
                     if ($this->normalizeNum($request->Qty) != $this->normalizeNum($firstDtl->Qty)) {
                         $changesDetected = true;
-                        $changedFields[] = "Qty: {$firstDtl->Qty} → " . $request->Qty;
+                        $changedFields[] = "Qty: {$firstDtl->Qty} -> " . $request->Qty;
                     }
                     if ($this->normalizeStr($request->Specification) !== $this->normalizeStr($firstDtl->Specification)) {
                         $changesDetected = true;
@@ -294,7 +315,7 @@ class ProcurementApprovalController extends Controller
                     }
                     if ($this->normalizeStr($request->Unit) !== $this->normalizeStr($firstDtl->Unit)) {
                         $changesDetected = true;
-                        $changedFields[] = "Unit: '{$firstDtl->Unit}' → '" . $request->Unit . "'";
+                        $changedFields[] = "Unit: '{$firstDtl->Unit}' -> '" . $request->Unit . "'";
                     }
                 }
             }
@@ -376,7 +397,7 @@ class ProcurementApprovalController extends Controller
         } else {
             // === APPROVE ===
             if ($changesDetected) {
-                // Ada perubahan data → kembalikan ke creator untuk konfirmasi
+                // Ada perubahan data -> kembalikan ke creator untuk konfirmasi
                 $nstatus = "CHANGES_REVIEWED_BY_CREATOR";
 
                 $creatorUser = DB::table('users')->where('username', $cek->Created_By)->select('Emp_ID', 'Name', 'Email')->first();
@@ -400,7 +421,7 @@ class ProcurementApprovalController extends Controller
                     'Reference' => $newReference ?: $cek->Reference,
                 ]);
             } else {
-                // Tidak ada perubahan → approval normal
+                // Tidak ada perubahan -> approval normal
                 switch ($cek->Status) {
                     case "CREATED":
                         $nstatus = "PROPOSED";
@@ -816,3 +837,4 @@ class ProcurementApprovalController extends Controller
         return $PONO;
     }
 }
+

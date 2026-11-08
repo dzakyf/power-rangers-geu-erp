@@ -33,8 +33,7 @@ class SppdApprovalController extends Controller
         } else {
             header("Content-type: text/xml");
         }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>
-");
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>");
 
         if (!$this->canViewApprovalPage()) {
             echo "<rows></rows>";
@@ -195,6 +194,23 @@ class SppdApprovalController extends Controller
         DB::beginTransaction();
         try {
             if ($approvalType == 2) {
+                // Eksekusi penolakan pada ApprovalWorkflowService bila terhubung
+                if (!empty($sppd->Approval_Request_ID)) {
+                    try {
+                        $workflow = app(\App\Services\Approval\ApprovalWorkflowService::class);
+                        $currentTask = DB::table('approval_request_task')
+                            ->where('Request_ID', (int) $sppd->Approval_Request_ID)
+                            ->where('Status', 'PENDING')
+                            ->orderBy('Stage_Order', 'ASC')
+                            ->first();
+                        if ($currentTask) {
+                            $workflow->reject((int) $currentTask->ID, $note ?: 'Request ditolak', (int) $user->id);
+                        }
+                    } catch (\Exception $wfEx) {
+                        Log::warning('ApprovalWorkflowService reject error: ' . $wfEx->getMessage());
+                    }
+                }
+
                 $newNote = $existingNote . "$timestamp REJECTED by $user->username :: $note";
                 DB::table('sppd')->where('ID', $sppd->ID)->update([
                     'Status'        => 'REJECTED',
@@ -248,6 +264,23 @@ class SppdApprovalController extends Controller
                     'Created_At' => now(),
                 ]);
             } else {
+                // Eksekusi persetujuan pada ApprovalWorkflowService bila terhubung
+                if (!empty($sppd->Approval_Request_ID)) {
+                    try {
+                        $workflow = app(\App\Services\Approval\ApprovalWorkflowService::class);
+                        $currentTask = DB::table('approval_request_task')
+                            ->where('Request_ID', (int) $sppd->Approval_Request_ID)
+                            ->where('Status', 'PENDING')
+                            ->orderBy('Stage_Order', 'ASC')
+                            ->first();
+                        if ($currentTask) {
+                            $workflow->approve((int) $currentTask->ID, $note ?: 'Request disetujui', (int) $user->id);
+                        }
+                    } catch (\Exception $wfEx) {
+                        Log::warning('ApprovalWorkflowService approve error: ' . $wfEx->getMessage());
+                    }
+                }
+
                 $newStatus = 'ACCEPTED';
                 $newNote = $existingNote . "$timestamp ACCEPTED by $user->username :: $note";
                 DB::table('sppd')->where('ID', $sppd->ID)->update([

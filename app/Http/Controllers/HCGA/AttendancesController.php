@@ -413,12 +413,58 @@ class AttendancesController extends Controller
             ->limit(10)
             ->get();
 
+        // Riwayat Pengajuan Change Shift / Tukar Shift
+        $changeShiftRequests = DB::table('attendance_change_shifts as cs')
+            ->leftJoin('master_shifts as s_curr', 's_curr.id', '=', 'cs.current_shift_id')
+            ->leftJoin('master_shifts as s_tgt', 's_tgt.id', '=', 'cs.target_shift_id')
+            ->leftJoin('users as u_peer', 'u_peer.Emp_ID', '=', 'cs.peer_nik')
+            ->where('cs.nik', $user->Emp_ID)
+            ->select(
+                'cs.*',
+                's_curr.shift_name as current_shift_name',
+                's_curr.start_time as current_shift_start',
+                's_curr.end_time as current_shift_end',
+                's_tgt.shift_name as target_shift_name',
+                's_tgt.start_time as target_shift_start',
+                's_tgt.end_time as target_shift_end',
+                'u_peer.Name as peer_name'
+            )
+            ->orderBy('cs.id', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Master Shift Aktif untuk Pilihan Ganti Shift
+        $availableShifts = DB::table('master_shifts')->where('status', 'ACTIVE')->orderBy('id', 'asc')->get();
+
+        // Rekan Kerja Satu Departemen untuk Opsi Tukar Shift (Peer Exchange)
+        $colleagues = DB::table('users')
+            ->where('Status', 'ACTIVE')
+            ->where('Emp_ID', '!=', $user->Emp_ID)
+            ->whereNotNull('Emp_ID')
+            ->when(!empty($user->Department), function ($q) use ($user) {
+                return $q->where('Department', $user->Department);
+            })
+            ->select('Emp_ID', 'Name', 'Department', 'Position')
+            ->orderBy('Name', 'asc')
+            ->get();
+
         // Lokasi Kantor untuk penentuan Zipcode & Wilayah
         $locations = DB::table('attendance_locations')->where('status', 'ACTIVE')->get();
 
-        $kategoriList = DB::table('kategori_izin')->where('status', 'ACTIVE')->orderBy('izin_jenis_id', 'asc')->get();
+        $kategoriList = DB::table('kategori_izin')
+            ->where('status', 'ACTIVE')
+            ->whereNotNull('kat_izin_code')
+            ->orderBy('izin_jenis_id', 'asc')
+            ->orderBy('kat_izin_id', 'asc')
+            ->get();
 
-        return view('humanresources.attendant.portal', compact('user', 'todayEntry', 'schedule', 'leaveRequests', 'corrections', 'overtimeRequests', 'locations', 'kategoriList', 'cutoffRule', 'cutoffRange', 'cutoffStats', 'activePeriodeYm'));
+        // Saldo Cuti Karyawan Berjalan
+        $leaveBalance = app(\App\Services\Attendance\LeaveEntitlementService::class)->getOrCreateUserBalance($user->Emp_ID);
+
+        // Resolusi Kompensasi Lembur Default Karyawan Berdasarkan Posisi / Org / Employment / Users
+        $overtimeCompensation = app(\App\Services\Attendance\OvertimeMatrixService::class)->resolveCompensationType($user);
+
+        return view('humanresources.attendant.portal', compact('user', 'todayEntry', 'schedule', 'leaveRequests', 'corrections', 'overtimeRequests', 'changeShiftRequests', 'availableShifts', 'colleagues', 'locations', 'kategoriList', 'cutoffRule', 'cutoffRange', 'cutoffStats', 'activePeriodeYm', 'overtimeCompensation', 'leaveBalance'));
     }
 
     /**
@@ -1516,6 +1562,40 @@ class AttendancesController extends Controller
                 'message' => $result['message'],
                 'data'    => $result,
             ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * API / Web: Batalkan Pengajuan Izin / Cuti Karyawan Mandiri
+     */
+    public function apiCancelLeave(Request $request)
+    {
+        $request->validate([
+            'leave_id'      => 'required|integer',
+            'cancel_reason' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $user = $request->user() ?: Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Sesi login telah berakhir.',
+                ], 401);
+            }
+
+            $result = $this->attendanceService->cancelLeaveRequest(
+                $user,
+                (int) $request->input('leave_id'),
+                (string) $request->input('cancel_reason', '')
+            );
+
+            return response()->json($result, 200);
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => 'error',

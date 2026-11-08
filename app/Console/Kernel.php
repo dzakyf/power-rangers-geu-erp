@@ -29,6 +29,7 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('permits:send-expiry-reminders')->dailyAt('07:00');
         $schedule->command('roster:generate-schedules --days=30')->dailyAt('01:00');
+        $schedule->command('performance:send-pip-reminders')->weeklyOn(1, '08:00'); // Setiap Senin Pukul 08:00
     }
 
     /**
