@@ -32,7 +32,7 @@ use Illuminate\Database\Eloquent\Builder;
         </div>
 		<div class="FormInput_right" style="height:80px;">
         
-				<select id="Message_Type"><option>EMAIL</option><option>SMS</option></select>        	
+				<select id="Message_Type"><option>EMAIL</option><option>WHATSAPP</option></select>        	
          
          </div>
    		<div class="FormInput_left"  style="height:380px;">

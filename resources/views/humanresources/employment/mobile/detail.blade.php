@@ -141,6 +141,9 @@
                 <a href="{{ route('employee.mobile.directory') }}" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1" style="font-size: 12px;">
                     <i class="fa fa-arrow-left me-1"></i> Direktori
                 </a>
+                <a href="{{ route('company-guideline.mobile.index') }}" class="btn btn-sm btn-light rounded-pill px-3 py-1 text-primary fw-bold" style="font-size: 12px;">
+                    <i class="fa fa-compass me-1"></i> Budaya & Peraturan
+                </a>
                 <span class="badge bg-primary bg-opacity-25 border border-primary border-opacity-50 text-white rounded-pill px-2 py-1" style="font-size: 11px;">
                     <i class="fa fa-id-badge me-1"></i> {{ $employee->NIK ?? '-' }}
                 </span>

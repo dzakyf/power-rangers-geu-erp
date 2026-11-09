@@ -425,7 +425,7 @@
                                         <label class="form-label small fw-semibold">Pilihan Kompensasi <span
                                                 class="text-danger">*</span></label>
                                         <select name="compensation_type" id="ot_compensation"
-                                            class="form-select rounded-3" required onchange="calculateOvertimePreview()">
+                                            class="form-select rounded-3" required onchange="calculateOvertimePreview()" readonly>
                                             <option value="PAID" selected>Uang Lembur (Matriks Tarif / Depnaker)</option>
                                             <option value="TIME_OFF">Tukar Cuti / Hari Libur Pengganti (Day Off)</option>
                                         </select>

@@ -27,6 +27,127 @@ class ApprovalInboxController extends Controller
         $isAdmin = $this->authorization->isWildcardAdmin(Auth::user());
         $userId = (int) Auth::id();
 
+        $policyTabsData = $this->getPolicyTabsData($userId, $isAdmin);
+        $policyTabs = $policyTabsData['policyTabs'];
+        $totalAllTasks = $policyTabsData['totalAllTasks'];
+
+        return view('humanresources.approval.index', compact('isAdmin', 'policyTabs', 'totalAllTasks'));
+    }
+
+    /**
+     * Mobile Webview Approval Inbox
+     */
+    public function mobileIndex(Request $request)
+    {
+        $isAdmin = $this->authorization->isWildcardAdmin(Auth::user());
+        $userId = (int) Auth::id();
+        $selectedCategory = strtoupper(trim((string) $request->input('category', 'ALL')));
+        $selectedPolicyId = (int) $request->input('policy_id', 0);
+        $selectedStage = (int) $request->input('stage_order', 0);
+        $search = trim((string) $request->input('q', ''));
+
+        $policyTabsData = $this->getPolicyTabsData($userId, $isAdmin);
+        $policyTabs = $policyTabsData['policyTabs'];
+        $totalAllTasks = $policyTabsData['totalAllTasks'];
+
+        $query = $this->inboxBaseQuery($userId, $isAdmin)
+            ->leftJoin('approval_policy as p', 'p.ID', '=', 'r.Policy_ID')
+            ->leftJoin('approval_policy_step as ps', function ($join) {
+                $join->on('ps.Policy_ID', '=', 'r.Policy_ID')
+                     ->on('ps.Stage_Order', '=', 't.Stage_Order');
+            })
+            ->select(
+                't.ID',
+                't.Request_ID',
+                't.Stage_Order',
+                't.Level_Number',
+                't.Position_Code',
+                't.Position_Name',
+                't.Approval_Mode',
+                't.Quorum',
+                't.Status as Task_Status',
+                't.Claimed_By',
+                't.Claimed_At',
+                't.Held_Reason',
+                'r.Request_No',
+                'r.Request_Type',
+                'r.Policy_ID',
+                'r.Description',
+                'r.Amount',
+                'r.Status as Request_Status',
+                'r.Submitted_At',
+                'r.Location',
+                'r.Department',
+                'p.Policy_Code',
+                'p.Policy_Name',
+                'ps.Label as Step_Label',
+                'u.Name as Requester_Name'
+            );
+
+        if ($selectedCategory !== '' && $selectedCategory !== 'ALL') {
+            $query->where('r.Request_Type', $selectedCategory);
+        }
+
+        if ($selectedPolicyId > 0) {
+            $query->where('r.Policy_ID', $selectedPolicyId);
+        }
+
+        if ($selectedStage > 0) {
+            $query->where('t.Stage_Order', $selectedStage);
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('r.Request_No', 'LIKE', "%{$search}%")
+                  ->orWhere('u.Name', 'LIKE', "%{$search}%")
+                  ->orWhere('r.Description', 'LIKE', "%{$search}%")
+                  ->orWhere('t.Position_Name', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $tasks = $query->orderBy('r.Submitted_At', 'DESC')
+            ->orderBy('t.Stage_Order', 'ASC')
+            ->orderBy('t.ID', 'DESC')
+            ->paginate(15);
+
+        // Kategori count untuk pill filter
+        $categoryCounts = $this->inboxBaseQuery($userId, $isAdmin)
+            ->select('r.Request_Type', DB::raw('COUNT(*) as total'))
+            ->groupBy('r.Request_Type')
+            ->pluck('total', 'r.Request_Type')
+            ->toArray();
+
+        // Cari active category tab data jika category != ALL
+        $activeTabInfo = null;
+        if ($selectedCategory !== 'ALL') {
+            foreach ($policyTabs as $tab) {
+                if ($tab['key'] === $selectedCategory) {
+                    $activeTabInfo = $tab;
+                    break;
+                }
+            }
+        }
+
+        return view('humanresources.approval.mobile.index', compact(
+            'tasks',
+            'isAdmin',
+            'userId',
+            'selectedCategory',
+            'selectedPolicyId',
+            'selectedStage',
+            'search',
+            'categoryCounts',
+            'policyTabs',
+            'activeTabInfo',
+            'totalAllTasks'
+        ));
+    }
+
+    /**
+     * Dapatkan data Policy Tabs dan Alur Step untuk Desktop & Mobile
+     */
+    private function getPolicyTabsData(int $userId, bool $isAdmin): array
+    {
         $policyCategoryRows = DB::table('approval_policy')
             ->select(
                 'Request_Type',
@@ -188,7 +309,10 @@ class ApprovalInboxController extends Controller
             ];
         }
 
-        return view('humanresources.approval.index', compact('isAdmin', 'policyTabs', 'totalAllTasks'));
+        return [
+            'policyTabs' => $policyTabs,
+            'totalAllTasks' => $totalAllTasks,
+        ];
     }
 
     public function data(Request $request)

@@ -214,7 +214,7 @@ if ($candidateId) {
             <div class="card border shadow-sm mb-4">
                 <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
                     <span class="fw-bold text-dark fs-13">
-                        <i class="fa fa-clipboard-question text-primary me-2"></i>Kuesioner Pra-Wawancara &amp; Profil Mendalam Pelamar
+                        <i class="fa fa-clipboard-question text-primary me-2"></i>Kuesioner Wajib &amp; Profil Mendalam Pelamar
                     </span>
                     <span class="badge bg-light text-muted border">
                         Data Isian Pelamar
@@ -329,7 +329,16 @@ if ($candidateId) {
                         {{-- Tab 3: Preferensi Kerja & Ekspektasi --}}
                         <div class="tab-pane fade" id="content-preferensi" role="tabpanel" aria-labelledby="tab-preferensi">
                             <div class="row g-3">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
+                                    <label for="Last_Salary" class="form-label small fw-semibold text-dark">
+                                        Gaji Terakhir (Last Salary)
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light fw-bold">Rp</span>
+                                        <input type="text" class="form-control" id="Last_Salary" name="Last_Salary" value="{{ $datahasil2->Last_Salary ?? '' }}" placeholder="Contoh: 5.000.000" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
                                     <label for="Salary_Expectation" class="form-label small fw-semibold text-dark">
                                         Ekspektasi Gaji (Salary Expectation)
                                     </label>
@@ -338,7 +347,7 @@ if ($candidateId) {
                                         <input type="text" class="form-control" id="Salary_Expectation" name="Salary_Expectation" value="{{ $datahasil2->Salary_Expectation ?? '' }}" placeholder="Contoh: 5.000.000" />
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label for="Facility_Expectation" class="form-label small fw-semibold text-dark">
                                         Ekspektasi Fasilitas Lainnya
                                     </label>

@@ -522,7 +522,14 @@ function initRequisitionGrid() {
     RequisitionLists.setSkin("dhx_skyblue");
 
     PRequisitionLists = new dataProcessor("requisition-submit");
-    PRequisitionLists.setTransactionMode("POST", true);
+    PRequisitionLists.setTransactionMode({
+		mode: "POST",
+		total: true,
+		headers: {
+			'X-CSRF-TOKEN': "{{ csrf_token() }}"
+		},
+
+	});
     PRequisitionLists.init(RequisitionLists);
 
     RequisitionLists.init();

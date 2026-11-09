@@ -154,8 +154,12 @@
             </ol>
         </nav>
     </div>
-    <div class="d-none d-sm-flex align-items-center gap-2">
-        <span class="badge px-3 py-2 fs-12 shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ url('hrd-approval-mobile') }}" class="btn btn-outline-light btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center gap-2" title="Buka Mode Tampilan Mobile">
+            <i class="fa fa-mobile-screen"></i>
+            <span>Mode Mobile</span>
+        </a>
+        <span class="badge px-3 py-2 fs-12 shadow-sm d-none d-sm-inline-flex" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
             <i class="fa fa-layer-group me-1"></i> Position &amp; Policy-Based Engine
         </span>
     </div>

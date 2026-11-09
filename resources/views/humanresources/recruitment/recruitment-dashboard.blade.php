@@ -15,7 +15,7 @@ $getRecruit = DB::table('requisition')
 
 ?>
 
-@extends('layout.mainlayout-hrd')
+@extends('layout.mainlayout')
 
 @section('content-wrapper')
 @csrf
