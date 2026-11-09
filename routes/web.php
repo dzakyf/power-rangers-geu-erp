@@ -78,6 +78,15 @@ use App\Http\Controllers\HCGA\VehicleMaintenanceController as HCGAVehicleMainten
 use App\Http\Controllers\HCGA\VehicleMaintenanceApprovalController as HCGAVehicleMaintenanceApprovalController;
 use App\Http\Controllers\HCGA\PermitLicenseController as HCGAPermitLicenseController;
 use App\Http\Controllers\HCGA\EmailSettingsController as HCGAEmailSettingsController;
+use App\Http\Controllers\HCGA\AnnouncementCmsController as HCGAAnnouncementCmsController;
+use App\Http\Controllers\HCGA\AnnouncementMobileController as HCGAAnnouncementMobileController;
+use App\Http\Controllers\HCGA\CompanyGuidelineCmsController as HCGACompanyGuidelineCmsController;
+use App\Http\Controllers\HCGA\CompanyGuidelineMobileController as HCGACompanyGuidelineMobileController;
+use App\Http\Controllers\HCGA\Performance\PerformanceKpiController as HCGAPerformanceKpiController;
+use App\Http\Controllers\HCGA\Performance\PerformancePeriodController as HCGAPerformancePeriodController;
+use App\Http\Controllers\HCGA\Performance\PerformanceReviewController as HCGAPerformanceReviewController;
+use App\Http\Controllers\HCGA\Performance\PerformanceCompetencyController as HCGAPerformanceCompetencyController;
+use App\Http\Controllers\HCGA\Performance\PerformancePipController as HCGAPerformancePipController;
 
 use App\Http\Controllers\HCGA\GA\TicketController as HCGAGaTicketController;
 use App\Http\Controllers\HCGA\GA\WorkOrderController as HCGAGaWorkOrderController;
@@ -3796,29 +3805,27 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/print-salary', function () {
         return view('humanresources.payroll.prints.salary');
     });
-    Route::get('/payroll-lists', function () {
-        return view('humanresources.payroll.payroll-lists');
-    });
+    Route::get('/payroll-lists', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollListsIndex'])->name('payroll.lists.index');
     Route::post('/payroll-lists-update', function () {
         return view('humanresources.payroll.payroll-lists-update');
     });
-    Route::get('/xml-payroll-lists', function () {
-        return view('humanresources.payroll.xml.payroll-lists');
-    });
+    Route::get('/xml-payroll-lists', [\App\Http\Controllers\HCGA\PayrollController::class, 'xmlPayrollLists'])->name('payroll.lists.xml');
 
     Route::get('/xml-payroll-ap-salary', function () {
         return view('humanresources.payroll.xml.payroll-ap-salary');
     });
 
-    Route::get('/payroll-tax', function () {
-        return view('humanresources.payroll.payroll-tax');
-    });
-    Route::post('/payroll-tax-update', function () {
-        return view('humanresources.payroll.payroll-tax-update');
-    });
-    Route::get('/xml-payroll-tax', function () {
-        return view('humanresources.payroll.xml.payroll-tax');
-    });
+    Route::get('/payroll-tax', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollTaxIndex'])->name('payroll.tax.index');
+    Route::post('/payroll-tax-update', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollTaxUpdate'])->name('payroll.tax.update');
+    Route::get('/xml-payroll-tax', [\App\Http\Controllers\HCGA\PayrollController::class, 'xmlPayrollTax'])->name('payroll.tax.xml');
+
+    // API Konfigurasi Tarif PPh 21 TER, Progresif UU HPP & Parameter Deductions Dinamis
+    Route::get('/api/payroll/tax-ter-rates', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiGetTaxTerRates']);
+    Route::post('/api/payroll/tax-ter-rates/update', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiUpdateTaxTerRate']);
+    Route::get('/api/payroll/tax-brackets', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiGetTaxBrackets']);
+    Route::post('/api/payroll/tax-brackets/update', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiUpdateTaxBracket']);
+    Route::get('/api/payroll/deduction-configs', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiGetDeductionConfigs']);
+    Route::post('/api/payroll/deduction-configs/update', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiUpdateDeductionConfig']);
 
 
     Route::get('/payroll-group', function () {
@@ -3889,15 +3896,12 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-payroll-group-lists-add', function () {
         return view('humanresources.payroll.xml.payroll-group-lists-add');
     });
-    Route::get('/payroll-employee', function () {
-        return view('humanresources.payroll.payroll-employee');
-    });
+    Route::get('/payroll-employee', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollEmployeeIndex'])->name('payroll.employee.index');
     Route::post('/payroll-employee-update', function () {
         return view('humanresources.payroll.payroll-employee-update');
     });
-    Route::get('/xml-payroll-employee', function () {
-        return view('humanresources.payroll.xml.payroll-employee');
-    });
+    Route::get('/xml-payroll-employee', [\App\Http\Controllers\HCGA\PayrollController::class, 'xmlPayrollEmployee'])->name('payroll.employee.xml');
+    Route::post('/payroll-recounting-ajax', [\App\Http\Controllers\HCGA\PayrollController::class, 'recountingAjax'])->name('payroll.recounting.ajax');
     Route::get('/search-employee', function () {
         return view('humanresources.overtime.search-employee');
     });
@@ -3960,15 +3964,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/load-pegawai', function () {
         return view('humanresources.overtime.load-pegawai');
     });
-    Route::get('/payroll-approval', function () {
-        return view('humanresources.payroll.payroll-approval');
-    });
-    Route::get('/payroll-approval-cancel', function () {
-        return view('humanresources.payroll.payroll-approval-cancel');
-    });
-    Route::get('/payroll-approval-approve', function () {
-        return view('humanresources.payroll.payroll-approval-approve');
-    });
+    Route::get('/payroll-approval', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovalIndex'])->name('payroll.approval.index');
+    Route::get('/payroll-approval-cancel', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovalCancel'])->name('payroll.approval.cancel');
+    Route::get('/payroll-approval-approve', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovalApprove'])->name('payroll.approval.approve');
     Route::get('/xml-payroll-approval', function () {
         return view('humanresources.payroll.xml.payroll-approval');
     });
@@ -3981,9 +3979,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-payroll-approval-detail', function () {
         return view('humanresources.payroll.xml.payroll-approval-detail');
     });
-    Route::get('/payroll-approved', function () {
-        return view('humanresources.payroll.payroll-approved');
-    });
+    Route::get('/payroll-approved', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovedIndex'])->name('payroll.approved.index');
     Route::get('/xml-payroll-approved', function () {
         return view('humanresources.payroll.xml.payroll-approved');
     });
@@ -3997,12 +3993,8 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('humanresources.payroll.xml.payroll-approved-detail');
     });
 
-    Route::get('/payroll-generator', function () {
-        return view('humanresources.payroll.payroll-generator');
-    });
-    Route::post('/payroll-generator-submit', function () {
-        return view('humanresources.payroll.payroll-generator-submit');
-    });
+    Route::get('/payroll-generator', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollGeneratorIndex'])->name('payroll.generator.index');
+    Route::post('/payroll-generator-submit', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollGeneratorSubmit'])->name('payroll.generator.submit');
     Route::get('/payroll-generator-detail', function () {
         return view('humanresources.payroll.payroll-generator-detail');
     });
@@ -5920,6 +5912,7 @@ Route::group(['middleware' => 'log.access'], function () {
     $hcApprovalPref = "$hcPref-approval";
     Route::get("$hcApprovalPref-inbox", [HCGAApprovalInboxController::class, 'index']);
     Route::get("$hcApprovalPref-inbox-data", [HCGAApprovalInboxController::class, 'data']);
+    Route::get("$hcApprovalPref-mobile", [HCGAApprovalInboxController::class, 'mobileIndex'])->name('approval.mobile.index');
     Route::get("$hcApprovalPref-detail", [HCGAApprovalInboxController::class, 'detail']);
     Route::post("$hcApprovalPref-claim", [HCGAApprovalInboxController::class, 'claim']);
     Route::post("$hcApprovalPref-act", [HCGAApprovalInboxController::class, 'act']);
@@ -6071,6 +6064,79 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/employee/mobile/tab-content', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'loadTabContent'])->name('employee.mobile.tab-content');
     Route::post('/employee/mobile/submit-update', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'submitUpdate'])->name('employee.mobile.submit-update');
     Route::post('/employee/mobile/request-approval/{id}', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'approveRequest'])->name('employee.mobile.approve-request');
+
+    // News & Announcement (CMS Web & Mobile Feed)
+    $hcAnnouncementPref = "$hcPref-announcement";
+    Route::get("$hcAnnouncementPref-index", [HCGAAnnouncementCmsController::class, 'index'])->name('hrd.announcement.index');
+    Route::get("$hcAnnouncementPref-data", [HCGAAnnouncementCmsController::class, 'data'])->name('hrd.announcement.data');
+    Route::get("$hcAnnouncementPref-create", [HCGAAnnouncementCmsController::class, 'create'])->name('hrd.announcement.create');
+    Route::post("$hcAnnouncementPref-store", [HCGAAnnouncementCmsController::class, 'store'])->name('hrd.announcement.store');
+    Route::get("$hcAnnouncementPref-edit", [HCGAAnnouncementCmsController::class, 'edit'])->name('hrd.announcement.edit');
+    Route::post("$hcAnnouncementPref-update", [HCGAAnnouncementCmsController::class, 'update'])->name('hrd.announcement.update');
+    Route::get("$hcAnnouncementPref-detail", [HCGAAnnouncementCmsController::class, 'detail'])->name('hrd.announcement.detail');
+    Route::post("$hcAnnouncementPref-delete", [HCGAAnnouncementCmsController::class, 'destroy'])->name('hrd.announcement.delete');
+
+    // Mobile News & Announcement
+    Route::get('/announcement/mobile', [HCGAAnnouncementMobileController::class, 'mobileIndex'])->name('announcement.mobile.index');
+    Route::get('/announcement/mobile/create', [HCGAAnnouncementMobileController::class, 'mobileForm'])->name('announcement.mobile.create');
+    Route::get('/announcement/mobile/edit/{id}', [HCGAAnnouncementMobileController::class, 'mobileForm'])->name('announcement.mobile.edit');
+    Route::get('/announcement/mobile/detail/{id}', [HCGAAnnouncementMobileController::class, 'mobileDetail'])->name('announcement.mobile.detail');
+    Route::post('/announcement/mobile/submit', [HCGAAnnouncementMobileController::class, 'mobileSubmit'])->name('announcement.mobile.submit');
+    Route::post('/announcement/mobile/delete/{id}', [HCGAAnnouncementMobileController::class, 'mobileDelete'])->name('announcement.mobile.delete');
+
+    // Corporate Culture & Regulation (Visi Misi, Core Value, Peraturan Perusahaan)
+    $hcGuidelinePref = "$hcPref-company-guideline";
+    Route::get("$hcGuidelinePref-index", [HCGACompanyGuidelineCmsController::class, 'index'])->name('hrd.company-guideline.index');
+    Route::get("$hcGuidelinePref-data", [HCGACompanyGuidelineCmsController::class, 'data'])->name('hrd.company-guideline.data');
+    Route::get("$hcGuidelinePref-create", [HCGACompanyGuidelineCmsController::class, 'create'])->name('hrd.company-guideline.create');
+    Route::post("$hcGuidelinePref-store", [HCGACompanyGuidelineCmsController::class, 'store'])->name('hrd.company-guideline.store');
+    Route::get("$hcGuidelinePref-edit", [HCGACompanyGuidelineCmsController::class, 'edit'])->name('hrd.company-guideline.edit');
+    Route::post("$hcGuidelinePref-update", [HCGACompanyGuidelineCmsController::class, 'update'])->name('hrd.company-guideline.update');
+    Route::get("$hcGuidelinePref-detail", [HCGACompanyGuidelineCmsController::class, 'detail'])->name('hrd.company-guideline.detail');
+    Route::post("$hcGuidelinePref-delete", [HCGACompanyGuidelineCmsController::class, 'destroy'])->name('hrd.company-guideline.delete');
+
+    // Mobile Corporate Culture & Regulation
+    Route::get('/company-guideline/mobile', [HCGACompanyGuidelineMobileController::class, 'mobileIndex'])->name('company-guideline.mobile.index');
+    Route::get('/company-guideline/mobile/detail/{id}', [HCGACompanyGuidelineMobileController::class, 'mobileDetail'])->name('company-guideline.mobile.detail');
+
+    // Performance Management (KPI, OKR, Period, Review, Competency, PIP)
+    $hcPerfPref = "$hcPref-performance";
+
+    // 1. Master Periode
+    Route::get("$hcPerfPref-period-index", [HCGAPerformancePeriodController::class, 'index'])->name('hrd.performance.period.index');
+    Route::post("$hcPerfPref-period-store", [HCGAPerformancePeriodController::class, 'store'])->name('hrd.performance.period.store');
+    Route::post("$hcPerfPref-period-update-status/{id}", [HCGAPerformancePeriodController::class, 'updateStatus'])->name('hrd.performance.period.update-status');
+
+    // 2. Goal Sheet (KPI & OKR)
+    Route::get("$hcPerfPref-kpi-index", [HCGAPerformanceKpiController::class, 'index'])->name('hrd.performance.kpi.index');
+    Route::get("$hcPerfPref-kpi-data", [HCGAPerformanceKpiController::class, 'data'])->name('hrd.performance.kpi.data');
+    Route::get("$hcPerfPref-kpi-new", [HCGAPerformanceKpiController::class, 'create'])->name('hrd.performance.kpi.new');
+    Route::post("$hcPerfPref-kpi-new-submit", [HCGAPerformanceKpiController::class, 'store'])->name('hrd.performance.kpi.new-submit');
+    Route::get("$hcPerfPref-kpi-detail/{id?}", [HCGAPerformanceKpiController::class, 'detail'])->name('hrd.performance.kpi.detail');
+    Route::post("$hcPerfPref-kpi-submit-approval/{id}", [HCGAPerformanceKpiController::class, 'submitApproval'])->name('hrd.performance.kpi.submit-approval');
+    Route::post("$hcPerfPref-kpi-record-progress/{id}", [HCGAPerformanceKpiController::class, 'recordProgress'])->name('hrd.performance.kpi.record-progress');
+
+    // 3. Performance Review & Appraisal Cycles
+    Route::get("$hcPerfPref-review-index", [HCGAPerformanceReviewController::class, 'index'])->name('hrd.performance.review.index');
+    Route::get("$hcPerfPref-review-data", [HCGAPerformanceReviewController::class, 'data'])->name('hrd.performance.review.data');
+    Route::get("$hcPerfPref-review-cycle-new", [HCGAPerformanceReviewController::class, 'createCycle'])->name('hrd.performance.review.cycle-new');
+    Route::post("$hcPerfPref-review-cycle-store", [HCGAPerformanceReviewController::class, 'storeCycle'])->name('hrd.performance.review.cycle-store');
+    Route::post("$hcPerfPref-review-generate/{id}", [HCGAPerformanceReviewController::class, 'generateReviews'])->name('hrd.performance.review.generate');
+    Route::get("$hcPerfPref-review-detail/{id?}", [HCGAPerformanceReviewController::class, 'detail'])->name('hrd.performance.review.detail');
+    Route::post("$hcPerfPref-review-feedback/{id}", [HCGAPerformanceReviewController::class, 'submitFeedback'])->name('hrd.performance.review.feedback');
+    Route::post("$hcPerfPref-review-finalize/{id}", [HCGAPerformanceReviewController::class, 'finalize'])->name('hrd.performance.review.finalize');
+
+    // 4. Performance Competency
+    Route::get("$hcPerfPref-competency-index", [HCGAPerformanceCompetencyController::class, 'index'])->name('hrd.performance.competency.index');
+    Route::post("$hcPerfPref-competency-store", [HCGAPerformanceCompetencyController::class, 'store'])->name('hrd.performance.competency.store');
+
+    // 5. Performance Improvement Plan (PIP)
+    Route::get("$hcPerfPref-pip-index", [HCGAPerformancePipController::class, 'index'])->name('hrd.performance.pip.index');
+    Route::get("$hcPerfPref-pip-data", [HCGAPerformancePipController::class, 'data'])->name('hrd.performance.pip.data');
+    Route::get("$hcPerfPref-pip-detail/{id?}", [HCGAPerformancePipController::class, 'detail'])->name('hrd.performance.pip.detail');
+    Route::post("$hcPerfPref-pip-checkin/{id}", [HCGAPerformancePipController::class, 'recordCheckin'])->name('hrd.performance.pip.checkin');
+    Route::post("$hcPerfPref-pip-training/{id}", [HCGAPerformancePipController::class, 'assignTraining'])->name('hrd.performance.pip.training');
+    Route::post("$hcPerfPref-pip-evaluate/{id}", [HCGAPerformancePipController::class, 'evaluate'])->name('hrd.performance.pip.evaluate');
 
     $hcAssetPref = "$hcPref-asset";
     Route::post("$hcAssetPref-lists-new-from-po", [HCGAAssetListController::class, 'getDataFromPO']);

@@ -231,13 +231,13 @@ $locationList = $locations ?? [];
 
                             <div class="col-sm-6">
                                 <label class="form-label fw-semibold small text-dark mb-1">
-                                    Tanggal Dibuka Lowongan <span class="text-danger">*</span>
+                                    Join Date <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text bg-light"><i
                                             class="fa fa-calendar text-muted"></i></span>
                                     <input type="text" id="Start_Date"
-                                        class="form-control form-control-sm bg-white" value="<?php echo date('d M Y'); ?>"
+                                        class="form-control form-control-sm bg-white" value="<?php echo date('d M Y', strtotime('+1 month')); ?>"
                                         readonly required />
                                 </div>
                             </div>
@@ -338,6 +338,9 @@ $locationList = $locations ?? [];
     if (typeof dhtmlXCalendarObject !== 'undefined') {
         var myCalendar = new dhtmlXCalendarObject(["Start_Date"]);
         myCalendar.setDateFormat("%d %M %Y");
+        var minDate = new Date();
+        minDate.setMonth(minDate.getMonth() + 1);
+        myCalendar.setSensitiveRange(minDate, null);
     }
 
     function notifyUser(title, msg, type) {

@@ -1,4 +1,4 @@
-@extends('layout.mainlayout-asset')
+@extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
 @csrf

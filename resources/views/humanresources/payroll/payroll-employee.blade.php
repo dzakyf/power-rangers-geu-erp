@@ -80,10 +80,41 @@ $Priv = Auth::user()->Priv_ID;
 	}
 
 	function recounting() {
+		var mainId = $("#Main_ID").val();
+		if (!mainId) {
+			alert('Pilih Salary Group terlebih dahulu.');
+			return;
+		}
 
-		$.blockUI();
-		LoadM('divlistProjectOrg', 'payroll-employee-recounting?Main_ID=' + $("#Main_ID").val());
+		if (typeof $.blockUI === 'function') {
+			$.blockUI({ message: '<h5><i class="fa fa-spinner fa-spin me-2"></i> Sedang melakukan kalkulasi ulang (TER, Pasal 17 & Presensi)...</h5>' });
+		}
 
+		$.ajax({
+			url: '/payroll-recounting-ajax',
+			type: 'POST',
+			data: {
+				_token: '{{ csrf_token() }}',
+				Main_ID: mainId
+			},
+			success: function(res) {
+				if (typeof $.unblockUI === 'function') {
+					$.unblockUI();
+				}
+				if (res.success) {
+					alert('Recounting Berhasil!\nTotal Karyawan: ' + res.data.total_employees + '\nTotal THP: Rp ' + Number(res.data.total_thp).toLocaleString('id-ID'));
+					refreshdata();
+				} else {
+					alert('Gagal: ' + res.message);
+				}
+			},
+			error: function(err) {
+				if (typeof $.unblockUI === 'function') {
+					$.unblockUI();
+				}
+				alert('Terjadi kesalahan saat memproses kalkulasi ulang.');
+			}
+		});
 	}
 	EmployeeSalary = new dhtmlXGridObject('EmployeeSalary');
 	EmployeeSalary.setImagePath("./dhtmlx/imgs/");

@@ -31,7 +31,13 @@ function updatekan($rowId,$param) {
 	$o = $param[$rowId."_c15"]; // lead time
 	$p = $param[$rowId."_c16"]; // lead time
 
+	if ($m == 'CLOSED') {
+		DB::table('requisition')->where("ID", $rowId)->update([
+			'Status' => $m,
+		]);
+	}else {
 		DB::update(DB::raw("UPDATE requisition SET Priority='$g' ,Status='CREATED' ,PIC_Production='$m' where ID=$rowId")); 
+	}
 
 		
 	

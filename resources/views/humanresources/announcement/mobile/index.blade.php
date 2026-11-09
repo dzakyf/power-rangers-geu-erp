@@ -291,6 +291,10 @@
             <i class="fa fa-newspaper"></i>
             <span>Berita</span>
         </a>
+        <a href="{{ route('company-guideline.mobile.index') }}" class="nav-bottom-item">
+            <i class="fa fa-compass"></i>
+            <span>Budaya</span>
+        </a>
         <a href="{{ route('employee.mobile.directory') }}" class="nav-bottom-item">
             <i class="fa fa-address-book"></i>
             <span>Direktori</span>
