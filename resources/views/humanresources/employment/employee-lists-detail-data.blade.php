@@ -353,8 +353,11 @@ foreach ($Query1 as $Fetch1) {
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small fw-bold text-muted">Tax Gross Up</label>
-                    <input type="text" class="form-control form-control-sm bg-light" value="<?php echo (($datahasil->PPH_Allowance ?? 0) == 1) ? 'YES' : 'NO'; ?>" readonly>
+                    <label class="form-label small fw-bold text-muted">Tax Gross Up (Ditanggung Perusahaan)</label>
+                    <select id="PPH_Allowance" class="form-select form-select-sm">
+                        <option value="0" <?php echo (($datahasil->PPH_Allowance ?? 0) == 0) ? 'selected' : ''; ?>>NO (Gross - Potong Gaji Karyawan)</option>
+                        <option value="1" <?php echo (($datahasil->PPH_Allowance ?? 0) == 1) ? 'selected' : ''; ?>>YES (Gross Up - Ditanggung Perusahaan)</option>
+                    </select>
                 </div>
 
                 <div class="col-md-3">

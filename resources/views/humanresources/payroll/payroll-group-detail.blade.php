@@ -30,83 +30,107 @@ use Illuminate\Database\Eloquent\Builder;
 	
 	
 	?>
-			<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LIST OF EMPLOYEES IN GROUP <?php echo $_GET['ID']?></div>
-
-		<div id="Employee_Lists" style="width:auto;height:350px; background-color:white;overflow:hidden"></div>
+<div class="card border-0 shadow-sm rounded-4 mt-3">
+	<div class="card-header bg-white border-0 pt-3 pb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
 		<div>
-			<input type="button" id="ekselEmployee_ListsDet" name="ekselEmployee_ListsDet" value="Export Excel" class="btn btn-info mt-2 mr-2" onclick="Employee_Lists.toExcel('./export/generate.php');"  />
-			<input type="button" id="delets" name="delets" value="Remove Employee" onclick="DelGroupPayroll_Lists()"  class="btn btn-danger mt-2 mr-2" />
-			<input type="button" id="deletsaa" name="deletsaaa" value="Add New" onclick="TambahGroupPayroll_Lists()" class="btn btn-success mt-2 mr-2"  />
-			<input type="button" id="idgrupss" name="idgrupss" value="Update Data" onclick="UpdateGroupPayroll_Lists()" class="btn btn-success mt-2 mr-2"  />
-
+			<h6 class="fw-bold mb-0 text-primary">
+				<i class="fe fe-users me-1"></i> Daftar Pegawai dalam Group: <span class="badge bg-primary text-white"><?php echo htmlspecialchars($_GET['ID'])?></span>
+			</h6>
+			<small class="text-muted">Kelola pegawai yang tergabung ke kelompok payroll ini serta nominal gaji spesifik tiap komponen.</small>
 		</div>
-		<div id="Div_Payroll_Group"></div>
+		<div class="d-flex align-items-center gap-2">
+			<button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="$('#Payroll_GroupDiv').html('');">
+				<i class="fe fe-x me-1"></i> Tutup
+			</button>
+		</div>
+	</div>
+	<div class="card-body p-3">
+		<div id="Employee_Lists" style="width:100%;height:350px; background-color:white;overflow:hidden"></div>
+		<div class="d-flex flex-wrap gap-2 mt-3">
+			<button type="button" id="deletsaa" class="btn btn-primary rounded-pill px-3 shadow-sm" onclick="TambahGroupPayroll_Lists()">
+				<i class="fe fe-user-plus me-1"></i> Tambah Pegawai ke Group
+			</button>
+			<button type="button" id="idgrupss" class="btn btn-success rounded-pill px-3 text-white shadow-sm" onclick="UpdateGroupPayroll_Lists()">
+				<i class="fe fe-save me-1"></i> Simpan Nilai Komponen
+			</button>
+			<button type="button" id="delets" class="btn btn-outline-danger rounded-pill px-3" onclick="DelGroupPayroll_Lists()">
+				<i class="fe fe-user-minus me-1"></i> Keluarkan Pegawai
+			</button>
+			<button type="button" class="btn btn-outline-secondary rounded-pill px-3" onclick="refreshdatagroupdetail()">
+				<i class="fe fe-rotate-cw me-1"></i> Refresh
+			</button>
+			<button type="button" id="ekselEmployee_ListsDet" class="btn btn-outline-warning rounded-pill px-3 text-dark" onclick="Employee_Lists.toExcel('{{ asset('export/generate.php') }}');">
+				<i class="fe fe-file-text me-1"></i> Export Excel
+			</button>
+		</div>
+	</div>
+</div>
+
+<div id="Div_Payroll_Group"></div>
 <script>
 function TambahGroupPayroll_Lists() {
-
-LoadM('Div_Payroll_Group','payroll-group-detail-add?ID=<?php echo $_GET['ID']?>');
+    LoadM('Div_Payroll_Group', '{{ url('payroll-group-detail-add') }}?ID=<?php echo $_GET['ID']?>');
 }
-function UpdateGroupPayroll_Lists() {
 
-	PEmployee_Lists.sendData();
-		alert('Data Successfully Updated!');
-		setTimeout(function(){
-			refreshdatagroupdetail();
-		},1000);
+function UpdateGroupPayroll_Lists() {
+    PEmployee_Lists.sendData();
+    alert('Nilai komponen gaji pegawai berhasil disimpan!');
+    setTimeout(function() {
+        refreshdatagroupdetail();
+    }, 1000);
 }
 
 Employee_Lists = new dhtmlXGridObject('Employee_Lists');
-Employee_Lists.setImagePath("./dhtmlx/imgs/");
-Employee_Lists.setHeader("No,NIK,Name,Gender,Position,Work Area,Payment Method,Payment Reference,Payment Reference2,Gross Up<?php echo $dx?>");
-Employee_Lists.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter<?php echo $dx2?>");
+Employee_Lists.setImagePath("{{ asset('dhtmlx/imgs/') }}/");
+Employee_Lists.setHeader("No,NIK,Nama Karyawan,Gender,Jabatan,Work Area,Payment Method,No Rekening,Nama Bank,Gross Up<?php echo $dx?>");
+Employee_Lists.attachHeader("#rspan,#text_filter,#text_filter,#combo_filter,#text_filter,#text_filter,#combo_filter,#text_filter,#text_filter,#combo_filter<?php echo $dx2?>");
 
-Employee_Lists.setInitWidths("60,150,100,100,200,120,120,100,100,100<?php echo $width?>");
-Employee_Lists.setColAlign("center,left,left,left,left,left,left,center,center,center<?php echo $align?>");
+Employee_Lists.setInitWidths("60,110,180,80,180,120,120,120,100,90<?php echo $width?>");
+Employee_Lists.setColAlign("center,left,left,center,left,left,center,left,center,center<?php echo $align?>");
 Employee_Lists.setColSorting("int,str,str,str,str,str,str,str,str,str<?php echo $sort?>");
 Employee_Lists.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,coro<?php echo $ro?>");
 Employee_Lists.setEditable(true);
-Employee_Lists.enableEditEvents(true,false,true);
+Employee_Lists.enableEditEvents(true, false, true);
 
-PEmployee_Lists = new dataProcessor("payroll-group-detail-update");
+PEmployee_Lists = new dataProcessor("{{ url('payroll-group-detail-update') }}");
 PEmployee_Lists.setTransactionMode({
-     mode: "POST",
-	  total:true,
-      headers:{
+    mode: "POST",
+    total: true,
+    headers: {
         'X-CSRF-TOKEN': "{{ csrf_token() }}"
-      }	,
-	    payload: {"ID":"<?php echo $_GET['ID'] ?>"}
-
-    })
+    },
+    payload: {"ID": "<?php echo $_GET['ID'] ?>"}
+});
 <?php echo $numbring?>	
 PEmployee_Lists.setTransactionMode("POST", true);
 PEmployee_Lists.setUpdateMode("Off");
 PEmployee_Lists.init(Employee_Lists);
 Employee_Lists.setSkin("dhx_skyblue");
 Employee_Lists.init();
-Employee_Lists.getCombo(9).put("1","YES");
-Employee_Lists.getCombo(9).put("0","NO");
+Employee_Lists.getCombo(9).put("1", "YES");
+Employee_Lists.getCombo(9).put("0", "NO");
 refreshdatagroupdetail();
 
-function refreshdatagroupdetail(){
-	$.blockUI();
-	Employee_Lists.clearAndLoad('xml-payroll-group-detail?ID=<?php echo $_GET['ID']?>',bukagelap);
-
-}
-function bukagelap(){
-	$.unblockUI();
-}
-function DelGroupPayroll_Lists(){
-	dhtmlx.confirm('Remove this Employee?', 'Employee Salary Group', function(r) {
-			
-			if (r==true){
-				Employee_Lists.deleteSelectedRows();
-				PEmployee_Lists.sendData();
-					alert('Data Successfully Deleted!');
-					setTimeout(function(){
-						refreshdatagroupdetail();
-					},1000);
-			}
-	})
+function refreshdatagroupdetail() {
+    if (typeof $.blockUI === 'function') $.blockUI({ message: '<div class="p-2"><h6>Memuat data pegawai...</h6></div>' });
+    Employee_Lists.clearAndLoad("{{ url('xml-payroll-group-detail') }}?ID=<?php echo $_GET['ID']?>", function() {
+        if (typeof $.unblockUI === 'function') $.unblockUI();
+    });
 }
 
+function DelGroupPayroll_Lists() {
+    var selId = Employee_Lists.getSelectedId();
+    if (!selId) {
+        alert("Pilih baris pegawai yang ingin dikeluarkan dari group terlebih dahulu.");
+        return;
+    }
+    if (confirm("Keluarkan pegawai ini dari Salary Group <?php echo htmlspecialchars($_GET['ID'])?>?")) {
+        Employee_Lists.deleteSelectedRows();
+        PEmployee_Lists.sendData();
+        alert('Pegawai berhasil dikeluarkan dari group.');
+        setTimeout(function() {
+            refreshdatagroupdetail();
+        }, 1000);
+    }
+}
 </script>

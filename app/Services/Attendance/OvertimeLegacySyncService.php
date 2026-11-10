@@ -54,8 +54,9 @@ class OvertimeLegacySyncService
             }
 
             $isHoliday = ($dayType === 'HOLIDAY') ? 1 : 0;
-            // Di legacy, Submit_Approval = 1 berarti Submitted (muncul di list)
-            $submitApproval = 1;
+            // Di legacy: 2 = Pending Approval (muncul di xmlOvertimeApproval), 1 = Approved (siap dihitung di Payroll)
+            $reqStatus = strtoupper(trim((string) ($req->status ?? 'SUBMITTED')));
+            $submitApproval = ($reqStatus === 'APPROVED') ? 1 : 2;
 
             $taskId = $req->overtime_no ?? ('OV/' . ($user->Location ?? 'HO') . '/' . date('ymd') . '/' . sprintf('%04d', mt_rand(1, 9999)));
 
@@ -106,9 +107,9 @@ class OvertimeLegacySyncService
     public function updateLegacyStatusByOvertimeNo(string $overtimeNo, string $status): void
     {
         try {
-            // Jika APPROVED, status legacy dipertahankan Submit_Approval = 1 (layak hitung gaji)
-            // Jika REJECTED, kita update Submit_Approval = 0 agar tidak dihitung di payroll
-            $submitApproval = ($status === 'APPROVED') ? 1 : 0;
+            // Jika APPROVED, status legacy Submit_Approval = 1 (layak hitung gaji)
+            // Jika REJECTED, kita update Submit_Approval = -1 agar tidak dihitung di payroll maupun antrean approval
+            $submitApproval = ($status === 'APPROVED') ? 1 : -1;
 
             DB::table('overtime_lists')
                 ->where('Reference', $overtimeNo)

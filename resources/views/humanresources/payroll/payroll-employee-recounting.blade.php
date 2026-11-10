@@ -1,29 +1,53 @@
 <?php
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Services\Payroll\PayrollCalculationService;
 
-$mainId = isset($_GET['Main_ID']) ? $_GET['Main_ID'] : null;
+$mainId = isset($_GET['Main_ID']) ? trim((string)$_GET['Main_ID']) : '';
+$periodeYm = isset($_GET['periode']) ? trim((string)$_GET['periode']) : date('Y-m');
 $currentUser = Auth::user() ? Auth::user()->username : 'SYSTEM';
-
-if (!$mainId) {
-    echo "<div class='alert alert-warning'>Parameter Main_ID tidak ditemukan.</div>";
-    return;
-}
 
 try {
     $calcService = app(PayrollCalculationService::class);
-    $result = $calcService->recountSalaryGroup($mainId, date('Y-m'), $currentUser);
+    if (!empty($mainId)) {
+        $result = $calcService->recountSalaryGroup($mainId, $periodeYm, $currentUser);
+    } else {
+        $activeGroups = DB::table('payrol_master_group as pmg')
+            ->join('employment as e', 'e.NIK', '=', 'pmg.Group_ID')
+            ->distinct()
+            ->pluck('pmg.Main_ID')
+            ->toArray();
+
+        $allEmps = [];
+        $totalThp = 0.0;
+        $totalTax = 0.0;
+        foreach ($activeGroups as $gId) {
+            $sub = $calcService->recountSalaryGroup($gId, $periodeYm, $currentUser);
+            $totalThp += $sub['total_thp'];
+            $totalTax += $sub['total_tax'];
+            $allEmps = array_merge($allEmps, $sub['employees']);
+        }
+
+        $result = [
+            'main_id'         => 'ALL',
+            'periode'         => $periodeYm,
+            'total_employees' => count($allEmps),
+            'total_thp'       => $totalThp,
+            'total_tax'       => $totalTax,
+            'employees'       => $allEmps,
+        ];
+    }
 ?>
     <div class="alert alert-success border-0 rounded-4 shadow-sm p-4 mt-3">
         <h5 class="fw-bold text-success mb-2">
             <i class="fa fa-check-circle me-1"></i> Recounting Payroll Berhasil Selesai
         </h5>
-        <p class="mb-2 text-muted">Kalkulasi telah disinkronkan dengan data presensi terkini (Alpha/Unpaid, Keterlambatan), BPJS TK (2%), BPJS Kesehatan (1% basis UMK & cap 120k), serta PPh 21 skema TER (PP 58/2023) / Pasal 17 UU HPP.</p>
+        <p class="mb-2 text-muted">Kalkulasi telah disinkronkan dengan data presensi terkini (Alpha/Unpaid, Keterlambatan, Izin/Cuti Master Permission), Lembur (Overtime Matrix &amp; Batch), KJK, BPJS TK (2%), BPJS Kesehatan (1% basis UMK &amp; cap 120k), serta PPh 21 skema TER (PP 58/2023) / Pasal 17 UU HPP.</p>
         <div class="row g-2 mt-2">
             <div class="col-md-3">
                 <div class="card p-2 bg-white border-0 shadow-sm text-center">
-                    <small class="text-muted">Total Karyawan</small>
+                    <small class="text-muted">Total Karyawan (Employment)</small>
                     <span class="fw-bold fs-5 text-dark"><?= count($result['employees']) ?></span>
                 </div>
             </div>
@@ -44,6 +68,9 @@ try {
     <script>
         if (typeof refreshdata === 'function') {
             refreshdata();
+        }
+        if (typeof $ !== 'undefined' && typeof $.unblockUI === 'function') {
+            $.unblockUI();
         }
     </script>
 <?php

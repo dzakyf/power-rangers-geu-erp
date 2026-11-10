@@ -1,156 +1,137 @@
 <div class="contact-information">
     <div class="section-title">
-        <i class="fas fa-address-book"></i> Contact Information
+        <i class="fas fa-address-book mr-2 me-2"></i> Kontak & Referensi Kandidat
     </div>
 
     <div class="info-box">
-        <i class="fas fa-info-circle"></i>
-        <strong>Information:</strong> Provide valid contact details for communication purposes
+        <i class="fas fa-info-circle mr-1 me-1"></i>
+        <strong>Informasi:</strong> Masukkan nomor WhatsApp dan email aktif yang dapat dihubungi, serta data kontak referensi profesional Anda.
     </div>
 
     <div class="row">
-        {{-- Phone Number --}}
-        <div class="col-md-6">
-            <div class="form-group">
-                <label for="Phone">
-                    Phone Number <span class="required">*</span>
-                </label>
-                <div class="input-group">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                    </div>
-                    <input type="tel" id="Phone" name="Phone" class="form-control" 
-                           placeholder="e.g. 02112345678" required maxlength="15">
-                </div>
-                <small class="form-text text-muted">Home or office phone number</small>
-                <div class="invalid-feedback">Please enter valid phone number</div>
-            </div>
-        </div>
-
-        {{-- Mobile/WhatsApp Number --}}
+        {{-- 5. Nomor WhatsApp --}}
         <div class="col-md-6">
             <div class="form-group">
                 <label for="Handphone">
-                    Mobile / WhatsApp Number <span class="required">*</span>
+                    Nomor WhatsApp Aktif <span class="required">*</span>
                 </label>
                 <div class="input-group">
                     <div class="input-group-prepend">
-                        <span class="input-group-text"><i class="fab fa-whatsapp"></i></span>
+                        <span class="input-group-text"><i class="fab fa-whatsapp text-success"></i></span>
                     </div>
                     <input type="tel" id="Handphone" name="Handphone" class="form-control" 
-                           placeholder="e.g. 081234567890" required maxlength="15" 
+                           placeholder="Contoh: 081234567890" required maxlength="15" 
                            pattern="[0-9]{10,15}">
                 </div>
-                <small class="form-text text-muted">Active WhatsApp number</small>
-                <div class="invalid-feedback">Please enter valid mobile number (10-15 digits)</div>
+                <small class="form-text text-muted">Pastikan nomor terhubung dengan WhatsApp aktif (10-15 digit)</small>
+                <div class="invalid-feedback">Harap isi nomor WhatsApp yang valid (10-15 digit angka)</div>
             </div>
         </div>
 
-        {{-- Email Address --}}
+        {{-- 8. Email --}}
         <div class="col-md-6">
             <div class="form-group">
                 <label for="Email">
-                    Email Address <span class="required">*</span>
+                    Alamat Email Aktif <span class="required">*</span>
                 </label>
                 <div class="input-group">
                     <div class="input-group-prepend">
-                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                        <span class="input-group-text"><i class="fas fa-envelope text-secondary"></i></span>
                     </div>
                     <input type="email" id="Email" name="Email" class="form-control" 
-                           placeholder="e.g. candidate@email.com" required maxlength="100">
+                           placeholder="Contoh: kandidat@email.com" required maxlength="100">
                 </div>
-                <small class="form-text text-muted">We will send important updates to this email</small>
-                <div class="invalid-feedback">Please enter valid email address</div>
+                <small class="form-text text-muted">Informasi undangan seleksi akan dikirimkan ke email ini</small>
+                <div class="invalid-feedback">Harap isi alamat email yang valid</div>
             </div>
         </div>
 
-        {{-- Personal Email (Optional) --}}
-        <div class="col-md-6">
-            <div class="form-group">
-                <label for="Email_Individual">
-                    Personal Email (Optional)
-                </label>
-                <div class="input-group">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text"><i class="fas fa-envelope-open"></i></span>
-                    </div>
-                    <input type="email" id="Email_Individual" name="Email_Individual" class="form-control" 
-                           placeholder="Alternative email address" maxlength="100">
-                </div>
-                <small class="form-text text-muted">Alternative email if different from primary</small>
-            </div>
-        </div>
+        {{-- Hidden legacy phone --}}
+        <input type="hidden" id="Phone" name="Phone" value="">
     </div>
 
     <hr class="my-4">
 
-    {{-- Emergency Contact Section --}}
+    {{-- 11. Kontak Referensi --}}
     <div class="section-title">
-        <i class="fas fa-user-shield"></i> Emergency Contact
+        <i class="fas fa-user-check mr-2 me-2"></i> Kontak Referensi
+    </div>
+
+    <div class="alert alert-light border py-2 px-3 small text-muted mb-3">
+        <i class="fas fa-info-circle text-success mr-1 me-1"></i>
+        Cantumkan kontak referensi (atasan sebelumnya, rekan kerja, dosen/pembimbing, atau kerabat profesional) yang dapat dikonfirmasi.
     </div>
 
     <div class="row">
-        {{-- Emergency Contact Name --}}
+        {{-- Nama Kontak Referensi --}}
         <div class="col-md-6">
             <div class="form-group">
                 <label for="Emergency_Contact_Name">
-                    Emergency Contact Name
-                </label>
-                <input type="text" id="Emergency_Contact_Name" name="Emergency_Contact_Name" 
-                       class="form-control" placeholder="e.g. John Doe" maxlength="100">
-                <small class="form-text text-muted">Person to contact in case of emergency</small>
-            </div>
-        </div>
-
-        {{-- Emergency Contact Relation --}}
-        <div class="col-md-6">
-            <div class="form-group">
-                <label for="Emergency_Relation">
-                    Relationship
-                </label>
-                <select id="Emergency_Relation" name="Emergency_Relation" class="form-control">
-                    <option value="">-- Select Relationship --</option>
-                    <option value="PARENT">Parent</option>
-                    <option value="SPOUSE">Spouse</option>
-                    <option value="SIBLING">Sibling</option>
-                    <option value="CHILD">Child</option>
-                    <option value="FRIEND">Friend</option>
-                    <option value="OTHER">Other</option>
-                </select>
-            </div>
-        </div>
-
-        {{-- Emergency Contact Number --}}
-        <div class="col-md-6">
-            <div class="form-group">
-                <label for="Emergency_Contact_No">
-                    Emergency Contact Number
+                    Nama Kontak Referensi <span class="required">*</span>
                 </label>
                 <div class="input-group">
                     <div class="input-group-prepend">
-                        <span class="input-group-text"><i class="fas fa-phone-alt"></i></span>
+                        <span class="input-group-text"><i class="fas fa-user text-secondary"></i></span>
                     </div>
-                    <input type="tel" id="Emergency_Contact_No" name="Emergency_Contact_No" 
-                           class="form-control" placeholder="e.g. 081234567890" maxlength="15">
+                    <input type="text" id="Emergency_Contact_Name" name="Emergency_Contact_Name" 
+                           class="form-control" placeholder="Contoh: Bpk. Budi Santoso" required maxlength="100">
                 </div>
+                <div class="invalid-feedback">Harap isi nama kontak referensi</div>
             </div>
         </div>
 
-        {{-- Emergency Contact Address --}}
+        {{-- Hubungan dengan Kandidat --}}
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="Emergency_Relation">
+                    Hubungan dengan Kandidat <span class="required">*</span>
+                </label>
+                <select id="Emergency_Relation" name="Emergency_Relation" class="form-control" required>
+                    <option value="">-- Pilih Hubungan --</option>
+                    <option value="Mantan Atasan / Supervisor">Mantan Atasan / Supervisor</option>
+                    <option value="Rekan Kerja">Rekan Kerja (Colleague)</option>
+                    <option value="Dosen / Pembimbing">Dosen / Guru / Pembimbing</option>
+                    <option value="Kerabat / Keluarga">Kerabat / Keluarga</option>
+                    <option value="Lainnya">Lainnya</option>
+                </select>
+                <div class="invalid-feedback">Harap pilih hubungan dengan kandidat</div>
+            </div>
+        </div>
+
+        {{-- Nomor Kontak Referensi --}}
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="Emergency_Contact_No">
+                    Nomor Kontak / HP Referensi <span class="required">*</span>
+                </label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fas fa-phone-alt text-secondary"></i></span>
+                    </div>
+                    <input type="tel" id="Emergency_Contact_No" name="Emergency_Contact_No" 
+                           class="form-control" placeholder="Contoh: 081298765432" required maxlength="15"
+                           pattern="[0-9]{10,15}">
+                </div>
+                <div class="invalid-feedback">Harap isi nomor telepon referensi yang valid (10-15 digit)</div>
+            </div>
+        </div>
+
+        {{-- Perusahaan Referensi --}}
         <div class="col-md-6">
             <div class="form-group">
                 <label for="Emergency_Address">
-                    Emergency Contact Address
+                    Perusahaan / Instansi Referensi <span class="required">*</span>
                 </label>
-                <textarea id="Emergency_Address" name="Emergency_Address" 
-                          class="form-control" rows="2" placeholder="Complete address" 
-                          maxlength="200"></textarea>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fas fa-building text-secondary"></i></span>
+                    </div>
+                    <input type="text" id="Emergency_Address" name="Emergency_Address" 
+                           class="form-control" placeholder="Contoh: PT. Graha Energi Usahatama" 
+                           required maxlength="150">
+                </div>
+                <div class="invalid-feedback">Harap isi nama perusahaan atau instansi referensi</div>
             </div>
         </div>
-    </div>
-
-    <div class="alert alert-info mt-3" role="alert">
-        <i class="fas fa-shield-alt"></i>
-        <strong>Privacy Notice:</strong> All contact information will be kept confidential and used only for recruitment and employment purposes.
     </div>
 </div>

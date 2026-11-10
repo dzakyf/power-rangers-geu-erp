@@ -3806,14 +3806,19 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/print-pph', function () {
         return view('humanresources.payroll.prints.tax');
     });
-    Route::get('/print-salary', function () {
+    Route::get('/print-salary', [\App\Http\Controllers\HCGA\PayrollController::class, 'showDigitalPayslip'])->name('payroll.payslip.digital');
+    Route::get('/payslip-digital', [\App\Http\Controllers\HCGA\PayrollController::class, 'showDigitalPayslip'])->name('payroll.payslip.show');
+    Route::post('/api/payroll/send-payslip-email', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiSendPayslipEmail']);
+    Route::get('/print-salary-legacy', function () {
         return view('humanresources.payroll.prints.salary');
     });
     Route::get('/payroll-lists', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollListsIndex'])->name('payroll.lists.index');
+    Route::get('/payroll-list', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollListsIndex']);
     Route::post('/payroll-lists-update', function () {
         return view('humanresources.payroll.payroll-lists-update');
     });
     Route::get('/xml-payroll-lists', [\App\Http\Controllers\HCGA\PayrollController::class, 'xmlPayrollLists'])->name('payroll.lists.xml');
+    Route::get('/xml-payroll-list', [\App\Http\Controllers\HCGA\PayrollController::class, 'xmlPayrollList'])->name('payroll.list.xml');
 
     Route::get('/xml-payroll-ap-salary', function () {
         return view('humanresources.payroll.xml.payroll-ap-salary');
@@ -3830,6 +3835,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post('/api/payroll/tax-brackets/update', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiUpdateTaxBracket']);
     Route::get('/api/payroll/deduction-configs', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiGetDeductionConfigs']);
     Route::post('/api/payroll/deduction-configs/update', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiUpdateDeductionConfig']);
+    Route::get('/api/payroll/employee-salary-detail', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiGetEmployeeSalarySlipDetail']);
 
 
     Route::get('/payroll-group', function () {
@@ -3970,21 +3976,17 @@ Route::group(['middleware' => 'log.access'], function () {
     });
     Route::get('/payroll-approval', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovalIndex'])->name('payroll.approval.index');
     Route::get('/payroll-approval-cancel', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovalCancel'])->name('payroll.approval.cancel');
+    Route::get('/payroll-approval-reject', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovalReject'])->name('payroll.approval.reject');
     Route::get('/payroll-approval-approve', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovalApprove'])->name('payroll.approval.approve');
-    Route::get('/xml-payroll-approval', function () {
-        return view('humanresources.payroll.xml.payroll-approval');
-    });
-    Route::get('/payroll-approval-detail', function () {
-        return view('humanresources.payroll.payroll-approval-detail');
-    });
-    Route::get('/payroll-approval-detail-detail', function () {
-        return view('humanresources.payroll.payroll-approval-detail-detail');
-    });
-    Route::get('/xml-payroll-approval-detail', function () {
-        return view('humanresources.payroll.xml.payroll-approval-detail');
-    });
+    Route::get('/xml-payroll-approval', [\App\Http\Controllers\HCGA\PayrollController::class, 'xmlPayrollApproval'])->name('payroll.approval.xml');
+    Route::get('/payroll-approval-detail', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovalDetail'])->name('payroll.approval.detail');
+    Route::get('/xml-payroll-approval-detail', [\App\Http\Controllers\HCGA\PayrollController::class, 'xmlPayrollApprovalDetail'])->name('payroll.approval.detail.xml');
     Route::get('/payroll-approved', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovedIndex'])->name('payroll.approved.index');
+    Route::get('/approved-payroll', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovedIndex']);
     Route::get('/xml-payroll-approved', function () {
+        return view('humanresources.payroll.xml.payroll-approved');
+    });
+    Route::get('/xml-approved-payroll', function () {
         return view('humanresources.payroll.xml.payroll-approved');
     });
     Route::get('/payroll-approved-detail', function () {
@@ -3999,20 +4001,16 @@ Route::group(['middleware' => 'log.access'], function () {
 
     Route::get('/payroll-generator', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollGeneratorIndex'])->name('payroll.generator.index');
     Route::post('/payroll-generator-submit', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollGeneratorSubmit'])->name('payroll.generator.submit');
-    Route::get('/payroll-generator-detail', function () {
-        return view('humanresources.payroll.payroll-generator-detail');
-    });
-    Route::get('/xml-payroll-generator-employee', function () {
-        return view('humanresources.payroll.xml.payroll-generator-employee');
-    });
+    Route::get('/payroll-generator-detail', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollGeneratorDetail'])->name('payroll.generator.detail');
+    Route::get('/xml-payroll-generator-employee', [\App\Http\Controllers\HCGA\PayrollController::class, 'xmlPayrollGeneratorEmployee'])->name('payroll.generator.employee.xml');
+    Route::post('/payroll-generator-detail-update', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollGeneratorDetailUpdate'])->name('payroll.generator.detail.update');
+    Route::get('/payroll-generator-template', [\App\Http\Controllers\HCGA\PayrollController::class, 'downloadGeneratorTemplate'])->name('payroll.generator.template');
+    Route::post('/payroll-generator-upload-excel', [\App\Http\Controllers\HCGA\PayrollController::class, 'uploadGeneratorExcel'])->name('payroll.generator.upload.excel');
     Route::get('/payroll-generator-upload', function () {
         return view('humanresources.payroll.payroll-generator-upload');
     });
     Route::get('/payroll-generator-upload-process', function () {
         return view('humanresources.payroll.payroll-generator-upload-process');
-    });
-    Route::post('/payroll-generator-detail-update', function () {
-        return view('humanresources.payroll.payroll-generator-detail-update');
     });
     Route::get('/payroll-template-master-lists', function () {
         return view('humanresources.payroll.payroll-template-master-lists');
@@ -5722,9 +5720,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("xml-$hcPref-recruitment-pivot", [HCGARecruitmentManagementController::class, 'pivotXml'])
         ->name('xml-hrd-recruitment-pivot');
 
-    Route::get("$hcPref-recruitment-dashboard", function () {
-        return view('humanresources.recruitment.recruitment-dashboard');
-    });
+    Route::get("$hcPref-recruitment-dashboard", [HCGARequisitionController::class, 'dashboard'])
+        ->name('hrd-recruitment-dashboard');
 
     Route::get("$hcPref-employee-form", function () {
         return view('humanresources.employment.employee-form');
