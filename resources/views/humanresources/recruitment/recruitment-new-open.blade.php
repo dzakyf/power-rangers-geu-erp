@@ -290,8 +290,8 @@
                 </div>
                 <div class="d-flex justify-content-between text-muted small mt-2 px-1">
                     <span id="step-label-0" class="step-label active">1. Data Pribadi</span>
-                    <span id="step-label-1" class="step-label">2. Kontak & Alamat</span>
-                    <span id="step-label-2" class="step-label">3. Riwayat Pendidikan</span>
+                    <span id="step-label-1" class="step-label">2. Kontak & Referensi</span>
+                    <span id="step-label-2" class="step-label">3. Pendidikan</span>
                     <span id="step-label-3" class="step-label">4. Unggah Dokumen</span>
                     <span id="step-label-4" class="step-label">5. Review & Kirim</span>
                 </div>
@@ -306,12 +306,12 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" id="contact-tab" href="#contact" role="tab" aria-selected="false">
-                        <i class="fas fa-address-book mr-1"></i> <span class="d-none d-md-inline">2. Kontak & Alamat</span>
+                        <i class="fas fa-address-book mr-1"></i> <span class="d-none d-md-inline">2. Kontak & Referensi</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" id="education-tab" href="#education" role="tab" aria-selected="false">
-                        <i class="fas fa-graduation-cap mr-1"></i> <span class="d-none d-md-inline">3. Pendidikan</span>
+                        <i class="fas fa-graduation-cap mr-1"></i> <span class="d-none d-md-inline">3. Pendidikan Terakhir</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -418,10 +418,6 @@
                             <div class="card-body p-3 small">
                                 <ul class="list-group list-group-flush mb-0">
                                     <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
-                                        <span><strong>Pas Foto Formal</strong> (Format JPG/PNG, maks 2 MB)</span>
-                                        <span class="badge badge-danger text-white">Wajib</span>
-                                    </li>
-                                    <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
                                         <span><strong>Curriculum Vitae (CV)</strong> (PDF/Word, maks 5 MB)</span>
                                         <span class="badge badge-danger text-white">Wajib</span>
                                     </li>
@@ -430,8 +426,12 @@
                                         <span class="badge badge-danger text-white">Wajib</span>
                                     </li>
                                     <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+                                        <span><strong>Pas Foto Formal</strong> (Format JPG/PNG, maks 2 MB)</span>
+                                        <span class="badge badge-secondary text-white">Opsional</span>
+                                    </li>
+                                    <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
                                         <span><strong>Ijazah / SKL</strong> (PDF/Scan, maks 5 MB)</span>
-                                        <span class="badge badge-danger text-white">Wajib</span>
+                                        <span class="badge badge-secondary text-white">Opsional</span>
                                     </li>
                                     <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
                                         <span><strong>Transkrip Nilai</strong> (PDF/Scan, maks 5 MB)</span>
@@ -457,135 +457,19 @@
                                 <i class="fas fa-edit text-primary mr-1"></i> 2. Informasi yang Diperlukan
                             </div>
                             <div class="card-body p-3 small">
-                                <h6 class="font-weight-bold text-success mb-1">A. Data Personal</h6>
+                                <h6 class="font-weight-bold text-success mb-1">A. Data Pribadi & Posisi</h6>
                                 <p class="text-muted mb-2">
-                                    Posisi Jabatan Dilamar, Nama Lengkap (KTP), No. KTP (16 digit), Tempat & Tgl Lahir (min. 17 thn), Jenis Kelamin, Agama, dan Status Pernikahan.
+                                    Posisi yang dilamar, Nama Lengkap, Tanggal Lahir & Usia, Jenis Kelamin, Status Pernikahan, dan Alamat Domisili saat ini.
                                 </p>
 
-                                <h6 class="font-weight-bold text-success mb-1">B. Kontak & Alamat</h6>
+                                <h6 class="font-weight-bold text-success mb-1">B. Kontak & Referensi</h6>
                                 <p class="text-muted mb-2">
-                                    No. Handphone / WhatsApp aktif (10-15 digit), Email aktif, Alamat KTP, Alamat Domisili saat ini, dan Kontak Darurat.
+                                    Nomor WhatsApp aktif, Email aktif, dan Kontak Referensi (Nama, Hubungan, Nomor Kontak, dan Perusahaan).
                                 </p>
 
-                                <h6 class="font-weight-bold text-success mb-1">C. Riwayat Pendidikan</h6>
+                                <h6 class="font-weight-bold text-success mb-1">C. Pendidikan Terakhir</h6>
                                 <p class="text-muted mb-0">
-                                    Jenjang Terakhir (SD s/d S3), Nama Institusi/Universitas, Jurusan/Program Studi, Tahun Lulus, dan Nilai Akhir / IPK.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer bg-light py-2 px-4">
-                <button type="button" class="btn btn-success btn-sm px-4 font-weight-bold" data-dismiss="modal">
-                    <i class="fas fa-check mr-1"></i> Mengerti & Mulai Pengisian
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-@include('humanresources.recruitment.partials._scripts-public')
-</body>
-</html>
-
-    {{-- Alert Sukses Pengiriman Lamaran --}}
-    <div class="card shadow main-card mt-3" id="publicSuccess" style="display:none;">
-        <div class="card-body text-center py-5">
-            <i class="fas fa-check-circle text-success" style="font-size:3.5rem;"></i>
-            <h3 class="mt-3 font-weight-bold text-dark">Lamaran Berhasil Terkirim!</h3>
-            <p class="text-muted mt-2">
-                Terima kasih telah mendaftar. Tim Human Capital kami akan segera memverifikasi kelengkapan berkas Anda.<br>
-                Nomor Registrasi / Task ID Anda: <strong class="text-success h5" id="successTaskId">-</strong>
-            </p>
-            <div class="mt-4">
-                <a href="{{ url('open-recruitment-employee') }}" class="btn btn-outline-success px-4">
-                    <i class="fas fa-redo mr-1"></i> Daftar Lowongan Lain
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Panduan & Checklist Berkas Persiapan Kandidat -->
-<div class="modal fade" id="modalPreparationGuide" tabindex="-1" role="dialog" aria-labelledby="modalPreparationGuideLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content shadow border-0">
-            <div class="modal-header bg-success text-white py-3 px-4">
-                <h5 class="modal-title font-weight-bold" id="modalPreparationGuideLabel">
-                    <i class="fas fa-clipboard-check mr-2"></i> Checklist Berkas & Panduan Pelamar
-                </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body p-4">
-                <div class="alert alert-info py-2 px-3 small mb-3">
-                    <i class="fas fa-info-circle mr-1"></i> Siapkan dokumen dan informasi berikut sebelum mulai mengisi formulir:
-                </div>
-
-                <div class="row">
-                    {{-- 1. Dokumen Berkas --}}
-                    <div class="col-md-6 mb-3">
-                        <div class="card h-100 border">
-                            <div class="card-header bg-light py-2 px-3 font-weight-bold text-dark">
-                                <i class="fas fa-file-pdf text-danger mr-1"></i> 1. Berkas Lampiran (File)
-                            </div>
-                            <div class="card-body p-3 small">
-                                <ul class="list-group list-group-flush mb-0">
-                                    <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
-                                        <span><strong>Pas Foto Formal</strong> (Format JPG/PNG, maks 2 MB)</span>
-                                        <span class="badge badge-danger text-white">Wajib</span>
-                                    </li>
-                                    <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
-                                        <span><strong>Curriculum Vitae (CV)</strong> (PDF/Word, maks 5 MB)</span>
-                                        <span class="badge badge-danger text-white">Wajib</span>
-                                    </li>
-                                    <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
-                                        <span><strong>KTP / Identitas</strong> (Scan/Foto jelas, maks 5 MB)</span>
-                                        <span class="badge badge-danger text-white">Wajib</span>
-                                    </li>
-                                    <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
-                                        <span><strong>Ijazah / SKL</strong> (PDF/Scan, maks 5 MB)</span>
-                                        <span class="badge badge-danger text-white">Wajib</span>
-                                    </li>
-                                    <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
-                                        <span><strong>Transkrip Nilai</strong> (PDF/Scan, maks 5 MB)</span>
-                                        <span class="badge badge-secondary text-white">Opsional</span>
-                                    </li>
-                                    <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
-                                        <span><strong>Sertifikat Pelatihan</strong></span>
-                                        <span class="badge badge-secondary text-white">Opsional</span>
-                                    </li>
-                                    <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
-                                        <span><strong>NPWP</strong></span>
-                                        <span class="badge badge-secondary text-white">Opsional</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- 2. Data Teks Isian --}}
-                    <div class="col-md-6 mb-3">
-                        <div class="card h-100 border">
-                            <div class="card-header bg-light py-2 px-3 font-weight-bold text-dark">
-                                <i class="fas fa-edit text-primary mr-1"></i> 2. Informasi yang Diperlukan
-                            </div>
-                            <div class="card-body p-3 small">
-                                <h6 class="font-weight-bold text-success mb-1">A. Data Personal</h6>
-                                <p class="text-muted mb-2">
-                                    Posisi Jabatan Dilamar, Nama Lengkap (KTP), No. KTP (16 digit), Tempat & Tgl Lahir (min. 17 thn), Jenis Kelamin, Agama, dan Status Pernikahan.
-                                </p>
-
-                                <h6 class="font-weight-bold text-success mb-1">B. Kontak & Alamat</h6>
-                                <p class="text-muted mb-2">
-                                    No. Handphone / WhatsApp aktif (10-15 digit), Email aktif, Alamat KTP, Alamat Domisili saat ini, dan Kontak Darurat.
-                                </p>
-
-                                <h6 class="font-weight-bold text-success mb-1">C. Riwayat Pendidikan</h6>
-                                <p class="text-muted mb-0">
-                                    Jenjang Terakhir (SD s/d S3), Nama Institusi/Universitas, Jurusan/Program Studi, Tahun Lulus, dan Nilai Akhir / IPK.
+                                    Jenjang Pendidikan, Nama Instansi/Sekolah/Universitas, dan Tahun Kelulusan.
                                 </p>
                             </div>
                         </div>

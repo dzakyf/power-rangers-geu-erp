@@ -37,7 +37,7 @@ function updatekan($rowId,$param) {
 	
 	DB::update(DB::raw("UPDATE employment set Salary_Group='$_GET[ID]' where ID=$rowId"));
 	
-	DB::insert(DB::raw("INSERT INTO payrol_master_group(Main_ID,Group_ID,Group_Name,Category,Use_For,Created_By,Created_Date) SELECT Main_ID,'$a','$b',Category,Use_For,'$Saya',NOW() FROM payrol_main_group WHERE Main_ID='$_GET[ID]'"));
+	DB::insert(DB::raw("INSERT INTO payrol_master_group(Main_ID,Group_ID,Group_Name,Category,Use_For,Status_Salary,Created_By,Created_Date) SELECT Main_ID,'$a','$b',Category,Use_For,'ACTIVE','$Saya',NOW() FROM payrol_main_group WHERE Main_ID='$_GET[ID]'"));
 	
 	return "update";
 }

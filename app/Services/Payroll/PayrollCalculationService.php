@@ -87,27 +87,36 @@ class PayrollCalculationService
 
     /**
      * Kalkulasi Penggajian Lengkap untuk Seorang Karyawan pada Periode Tertentu
+     * Wajib terdaftar di tabel employment.
      *
      * @param string $nik NIK Karyawan
      * @param string $periodeYm Format YYYY-MM
-     * @param array $options Opsi override (main_id, is_month_end, dll.)
+     * @param array $options Opsi override (main_id, is_year_end, dll.)
      * @return array
      */
     public function calculateEmployeeSalary($nik, $periodeYm, $options = [])
     {
-        // 1. Ambil Profil Kepegawaian Karyawan
+        // 1. Ambil Profil Kepegawaian Karyawan (Wajib ada di tabel employment)
         $employee = DB::table('employment')->where('NIK', $nik)->first();
-        $user = DB::table('users')->where('Emp_ID', $nik)->first();
-
-        if (!$employee && !$user) {
-            throw new \InvalidArgumentException("Data karyawan dengan NIK {$nik} tidak ditemukan.");
+        if (!$employee) {
+            throw new \InvalidArgumentException("Data karyawan dengan NIK {$nik} tidak ditemukan pada tabel employment.");
         }
 
-        $mainId = isset($options['main_id']) ? $options['main_id'] : ($employee ? $employee->Salary_Group : null);
-        $ptkpStatus = $employee ? ($employee->PTKP_Status ?: 'TK/0') : 'TK/0';
-        $isGrossUp = ($employee && $employee->PPH_Allowance == 1);
-        $userDept = $employee ? $employee->Department : ($user ? $user->Department : 'HO');
-        $location = $user ? ($user->Location ?: 'HO') : 'HO';
+        $user = DB::table('users')->where('Emp_ID', $nik)->first();
+
+        $mainId = isset($options['main_id']) ? $options['main_id'] : $employee->Salary_Group;
+        $ptkpStatus = $employee->PTKP_Status ?: ($employee->Marital_Status ?: 'TK/0');
+        $isGrossUp = ($employee->PPH_Allowance == 1);
+        $userDept = $employee->Department ?: ($user ? $user->Department : 'HO');
+        $empDisplayName = $employee->Name ?: $nik;
+
+        // Preload formula master lists untuk membedakan komponen dinamis OVERTIME (PY000045) & KJK (PY000044)
+        $masterFormulas = [];
+        if (Schema::hasTable('payrol_master_lists')) {
+            foreach (DB::table('payrol_master_lists')->get(['Payroll_ID', 'Formula_Desc']) as $ml) {
+                $masterFormulas[strtoupper(trim($ml->Payroll_ID))] = strtoupper(trim((string)$ml->Formula_Desc));
+            }
+        }
 
         // 2. Ambil Komponen Master Gaji Karyawan dari payrol_group_lists
         $itemsQuery = DB::table('payrol_group_lists')
@@ -125,19 +134,25 @@ class PayrollCalculationService
         $activeComponents = [];
 
         foreach ($salaryItems as $item) {
-            $val = (float)$item->Amounts;
-            $type = strtoupper(trim($item->Type_Payroll));
+            $val = (isset($item->Prorate) && (float)$item->Prorate > 0) ? (float)$item->Prorate : (float)$item->Amounts;
+            $type = strtoupper(trim((string)$item->Type_Payroll));
+            $pId = strtoupper(trim((string)$item->Payroll_ID));
+            $formula = isset($masterFormulas[$pId]) ? $masterFormulas[$pId] : '';
 
             if ($type === 'BASIC') {
                 $gajiPokok += $val;
             } elseif ($type === 'ALLOWANCE') {
-                // Abaikan tunjangan pajak sistem (PYH00001) yang akan dihitung ulang secara dinamis
-                if ($item->Payroll_ID !== 'PYH00001') {
+                // Abaikan tunjangan pajak sistem (PYH00001/PYH00000) serta komponen dinamis OVERTIME (PY000045) & KJK (PY000044)
+                // karena ketiganya dihitung secara dinamis dari modul terkait
+                if (
+                    !in_array($pId, ['PYH00001', 'PYH00000', 'PY000045', 'PY000044'], true)
+                    && !in_array($formula, ['OVERTIME', 'KJK'], true)
+                ) {
                     $totalTunjangan += $val;
                 }
             } elseif ($type === 'DEDUCTION') {
                 // Abaikan komponen deduction standar yang akan dihitung formula baru
-                if (!in_array($item->Payroll_ID, ['PY000000', 'DED_UNPAID', 'DED_LATE', 'DED_BPJS_TK', 'DED_BPJS_KES'])) {
+                if (!in_array($pId, ['PY000000', 'PY000037', 'PY000032', 'DED_UNPAID', 'DED_LATE', 'DED_BPJS_TK', 'DED_BPJS_KES'], true)) {
                     $customDeductions += abs($val);
                 }
             }
@@ -152,14 +167,15 @@ class PayrollCalculationService
             ];
         }
 
-        // 3. Tarik Rekapitulasi Presensi Karyawan dari Modul Attendant
+        // 3. Tarik Rekapitulasi Presensi, Izin/Cuti (Master Permission), Overtime (Matrix + Legacy), & KJK
         $attendance = $this->attendanceSyncService->getEmployeeAttendanceForPeriod($nik, $periodeYm, [
             'department' => $userDept,
         ]);
 
-        $absentDays = (int)$attendance['total_absent_days']; // Termasuk Alpha & Absensi Tidak Lengkap
-        $lateCount = (int)$attendance['total_late_days'];    // Frekuensi Terlambat
+        $absentDays = (int)$attendance['total_absent_days']; // Alpha + Unpaid Leave + Absensi Tidak Lengkap
+        $lateCount = (int)$attendance['total_late_days'];    // Frekuensi Terlambat (setelah dikurangi dispensasi Datang Telat)
         $overtimeAmount = (float)$attendance['approved_overtime_amount'];
+        $kjkAmount = (float)($attendance['approved_kjk_amount'] ?? 0.0);
 
         // 4. Kalkulasi Komponen Deductions Dinamis Sesuai Aturan Klien
         $baseTotalSalary = $gajiPokok + $totalTunjangan;
@@ -201,10 +217,9 @@ class PayrollCalculationService
 
         // 5. Kalkulasi PPh 21 (TER Bulanan PP 58/2023 atau Tahunan Pasal 17 UU HPP)
         $monthNum = (int)date('m', strtotime($periodeYm . '-01'));
-        $isYearEnd = ($monthNum == 12 || !empty($options['is_year_end']));
 
-        // Bruto Kena Pajak Sebulan = Pokok + Tunjangan + Lembur
-        $grossTaxable = $baseTotalSalary + $overtimeAmount;
+        // Bruto Kena Pajak Sebulan = Pokok + Tunjangan + Lembur + KJK
+        $grossTaxable = $baseTotalSalary + $overtimeAmount + $kjkAmount;
 
         $taxResult = $this->taxService->calculateMonthlyTax(
             $grossTaxable,
@@ -213,10 +228,10 @@ class PayrollCalculationService
             $grossTaxable * $monthNum, // Estimasi YTD
             0.0,
             [
-                'is_gross_up'        => $isGrossUp,
-                'nik'                => $nik,
-                'npwp'               => $employee ? $employee->NPWP : '',
-                'jht_employee_yearly'=> $bpjsTkAmount * 12,
+                'is_gross_up'         => $isGrossUp,
+                'nik'                 => $nik,
+                'npwp'                => $employee->NPWP ?? '',
+                'jht_employee_yearly' => $bpjsTkAmount * 12,
             ]
         );
 
@@ -224,15 +239,15 @@ class PayrollCalculationService
         $tunjanganPph = (float)$taxResult['tax_allowance'];
 
         // 6. Kalkulasi Take Home Pay (THP)
-        // THP = (Pokok + Tunjangan + Lembur + Tunjangan PPh) - (Total Potongan + PPh 21)
-        $totalIncome = $gajiPokok + $totalTunjangan + $overtimeAmount + $tunjanganPph;
+        // THP = (Pokok + Tunjangan + Lembur + KJK + Tunjangan PPh) - (Total Potongan + PPh 21)
+        $totalIncome = $gajiPokok + $totalTunjangan + $overtimeAmount + $kjkAmount + $tunjanganPph;
         $totalDeductions = $totalNonTaxDeductions + $pph21Amount;
         $thp = max(0.0, $totalIncome - $totalDeductions);
 
         // 7. Bentuk Audit Metadata (JSON) Lengkap
         $calculationMetadata = [
             'nik'                 => $nik,
-            'name'                => $employee ? $employee->Name : ($user ? $user->username : ''),
+            'name'                => $empDisplayName,
             'periode'             => $periodeYm,
             'ptkp_status'         => $ptkpStatus,
             'is_gross_up'         => $isGrossUp,
@@ -240,18 +255,27 @@ class PayrollCalculationService
                 'pokok'           => $gajiPokok,
                 'tunjangan'       => $totalTunjangan,
                 'overtime'        => $overtimeAmount,
+                'kjk'             => $kjkAmount,
                 'total_base'      => $baseTotalSalary,
             ],
             'attendance_metrics'  => [
-                'cutoff_start'    => $attendance['cutoff_start_date'],
-                'cutoff_end'      => $attendance['cutoff_end_date'],
-                'cutoff_label'    => $attendance['cutoff_label'],
-                'scheduled_days'  => $attendance['total_scheduled_days'],
-                'present_days'    => $attendance['total_present_days'],
-                'absent_days'     => $absentDays,
-                'late_count'      => $lateCount,
-                'late_minutes'    => $attendance['total_late_minutes'],
-                'incomplete_logs' => $attendance['incomplete_logs_count'],
+                'cutoff_start'      => $attendance['cutoff_start_date'],
+                'cutoff_end'        => $attendance['cutoff_end_date'],
+                'cutoff_label'      => $attendance['cutoff_label'],
+                'scheduled_days'    => $attendance['total_scheduled_days'],
+                'present_days'      => $attendance['total_present_days'],
+                'paid_leave_days'   => $attendance['total_leave_paid_days'],
+                'unpaid_leave_days' => $attendance['total_leave_unpaid_days'],
+                'alpha_days'        => $attendance['total_alpha_days'],
+                'absent_days'       => $absentDays,
+                'late_count'        => $lateCount,
+                'late_minutes'      => $attendance['total_late_minutes'],
+                'incomplete_logs'   => $attendance['incomplete_logs_count'],
+                'change_shift_days' => $attendance['change_shift_days'] ?? 0,
+                'corrections_count' => $attendance['approved_corrections_count'] ?? 0,
+                'overtime_hours'    => $attendance['approved_overtime_hours'],
+                'overtime_tasks'    => $attendance['overtime_task_ids'] ?? [],
+                'kjk_tasks'         => $attendance['kjk_task_ids'] ?? [],
             ],
             'deduction_breakdown' => [
                 'unpaid_leave'    => [
@@ -282,21 +306,22 @@ class PayrollCalculationService
             ],
             'tax_details'         => $taxResult,
             'final_summary'       => [
-                'gross_income'    => $totalIncome,
-                'total_deductions'=> $totalDeductions,
-                'pph21'           => $pph21Amount,
-                'thp'             => $thp,
+                'gross_income'     => $totalIncome,
+                'total_deductions' => $totalDeductions,
+                'pph21'            => $pph21Amount,
+                'thp'              => $thp,
             ],
             'calculated_at'       => Carbon::now()->toDateTimeString(),
         ];
 
         return [
             'nik'                   => $nik,
-            'name'                  => $employee ? $employee->Name : ($user ? $user->username : ''),
+            'name'                  => $empDisplayName,
             'periode'               => $periodeYm,
             'pokok'                 => $gajiPokok,
             'tunjangan'             => $totalTunjangan,
             'overtime'              => $overtimeAmount,
+            'kjk'                   => $kjkAmount,
             'tunjangan_pph'         => $tunjanganPph,
             'deduction'             => $totalNonTaxDeductions,
             'pph'                   => $pph21Amount,
@@ -307,6 +332,8 @@ class PayrollCalculationService
             'late_penalty_amount'   => $latePenaltyAmount,
             'bpjs_tk_amount'        => $bpjsTkAmount,
             'bpjs_kes_amount'       => $bpjsKesAmount,
+            'overtime_task_ids'     => $attendance['overtime_task_ids'] ?? [],
+            'kjk_task_ids'          => $attendance['kjk_task_ids'] ?? [],
             'metadata'              => $calculationMetadata,
             'active_components'     => $activeComponents,
         ];
@@ -314,6 +341,7 @@ class PayrollCalculationService
 
     /**
      * Recount dan Simpan Hasil Kalkulasi ke Database untuk Suatu Group
+     * HANYA memproses karyawan yang terdaftar di tabel employment.
      *
      * @param string $mainId
      * @param string $periodeYm
@@ -322,16 +350,26 @@ class PayrollCalculationService
      */
     public function recountSalaryGroup($mainId, $periodeYm, $operatorUsername = 'SYSTEM')
     {
-        $employees = DB::table('payrol_master_group')
-            ->where('Main_ID', $mainId)
+        // Wajib INNER JOIN dengan tabel employment agar hanya karyawan valid di employment yang diproses
+        $employees = DB::table('payrol_master_group as pmg')
+            ->join('employment as e', 'e.NIK', '=', 'pmg.Group_ID')
+            ->where('pmg.Main_ID', $mainId)
+            ->select('pmg.*', 'e.Name as Emp_Name')
+            ->orderBy('e.Name', 'ASC')
             ->get();
 
         $results = [];
         $totalGroupThp = 0.0;
         $totalGroupTax = 0.0;
+        $seenNiks = [];
 
         foreach ($employees as $emp) {
-            $nik = $emp->Group_ID;
+            $nik = trim((string)$emp->Group_ID);
+            if ($nik === '' || isset($seenNiks[$nik])) {
+                continue;
+            }
+            $seenNiks[$nik] = true;
+
             $calc = $this->calculateEmployeeSalary($nik, $periodeYm, ['main_id' => $mainId]);
 
             // Sinkronkan ke payrol_group_lists
@@ -354,6 +392,7 @@ class PayrollCalculationService
 
     /**
      * Update / Insert Komponen Dinamis ke Tabel payrol_group_lists
+     * Meliputi PPh 21, Tunjangan PPh (Gross-Up), Overtime (PY000045), KJK (PY000044), dan Deductions Dinamis.
      */
     protected function syncGroupListsComponents($mainId, $nik, array $calc, $operatorUsername)
     {
@@ -363,20 +402,31 @@ class PayrollCalculationService
         $pajakRow = DB::table('payrol_group_lists')
             ->where('Main_ID', $mainId)
             ->where('Group_ID', $nik)
-            ->where('Payroll_ID', 'PY000000')
+            ->where(function ($q) {
+                $q->where('Payroll_ID', 'PY000000')
+                  ->orWhere('Name', 'LIKE', '%PPH%')
+                  ->orWhere('Name', 'LIKE', '%PAJAK%');
+            })
+            ->where('Type_Payroll', 'DEDUCTION')
             ->first();
 
         $taxNote = json_encode($calc['metadata']['tax_details']);
 
         if ($pajakRow) {
+            $updateData = [
+                'Amounts' => -$calc['pph'],
+                'Note'    => $taxNote,
+            ];
+            if (Schema::hasColumn('payrol_group_lists', 'Modified_By')) {
+                $updateData['Modified_By'] = $operatorUsername;
+            }
+            if (Schema::hasColumn('payrol_group_lists', 'Modified_Date')) {
+                $updateData['Modified_Date'] = $now;
+            }
+
             DB::table('payrol_group_lists')
                 ->where('ID', $pajakRow->ID)
-                ->update([
-                    'Amounts'       => -$calc['pph'],
-                    'Note'          => $taxNote,
-                    'Modified_By'   => $operatorUsername,
-                    'Modified_Date' => $now,
-                ]);
+                ->update($updateData);
         } else {
             DB::table('payrol_group_lists')->insert([
                 'Main_ID'       => $mainId,
@@ -394,33 +444,160 @@ class PayrollCalculationService
         }
 
         // 2. Jika Gross-Up, Update / Insert Tunjangan Pajak (PYH00001)
-        if ($calc['tunjangan_pph'] > 0) {
-            $tunjRow = DB::table('payrol_group_lists')
+        $tunjRow = DB::table('payrol_group_lists')
+            ->where('Main_ID', $mainId)
+            ->where('Group_ID', $nik)
+            ->where(function ($q) {
+                $q->whereIn('Payroll_ID', ['PYH00001', 'PYH00000'])
+                  ->orWhere('Name', 'LIKE', '%TUNJANGAN PAJAK%')
+                  ->orWhere('Name', 'LIKE', '%TUNJANGAN PPH%');
+            })
+            ->where('Type_Payroll', 'ALLOWANCE')
+            ->first();
+
+        if ($tunjRow) {
+            $updateTunjData = [
+                'Amounts' => $calc['tunjangan_pph'],
+                'Note'    => 'Tunjangan PPh 21 (Gross-Up)',
+            ];
+            if (Schema::hasColumn('payrol_group_lists', 'Modified_By')) {
+                $updateTunjData['Modified_By'] = $operatorUsername;
+            }
+            if (Schema::hasColumn('payrol_group_lists', 'Modified_Date')) {
+                $updateTunjData['Modified_Date'] = $now;
+            }
+
+            DB::table('payrol_group_lists')
+                ->where('ID', $tunjRow->ID)
+                ->update($updateTunjData);
+        } elseif ($calc['tunjangan_pph'] > 0) {
+            DB::table('payrol_group_lists')->insert([
+                'Main_ID'       => $mainId,
+                'Group_ID'      => $nik,
+                'Payroll_ID'    => 'PYH00001',
+                'Name'          => 'TUNJANGAN PAJAK PPH',
+                'Kena_Potongan' => 0,
+                'Default_PPH'   => 0,
+                'Type_Payroll'  => 'ALLOWANCE',
+                'Amounts'       => $calc['tunjangan_pph'],
+                'Note'          => 'Tunjangan PPh 21 (Gross-Up)',
+                'Created_By'    => $operatorUsername,
+                'Created_Date'  => $now,
+            ]);
+        }
+
+        // 3. Sinkronkan Komponen Dinamis OVERTIME (PY000045) & KJK (PY000044)
+        $otTasks = isset($calc['overtime_task_ids']) ? $calc['overtime_task_ids'] : [];
+        $kjkTasks = isset($calc['kjk_task_ids']) ? $calc['kjk_task_ids'] : [];
+
+        $dynamicAllowances = [
+            'PY000045' => [
+                'name'   => 'OVERTIME',
+                'amount' => (float)($calc['overtime'] ?? 0.0),
+                'note'   => 'Number of Overtime: ' . count($otTasks) . '; Task LIST = ' . implode(',', $otTasks),
+            ],
+            'PY000044' => [
+                'name'   => 'KJK',
+                'amount' => (float)($calc['kjk'] ?? 0.0),
+                'note'   => 'Number of KJK: ' . count($kjkTasks) . '; Task LIST = ' . implode(',', $kjkTasks),
+            ],
+        ];
+
+        foreach ($dynamicAllowances as $alwCode => $alwInfo) {
+            $alwRow = DB::table('payrol_group_lists')
                 ->where('Main_ID', $mainId)
                 ->where('Group_ID', $nik)
-                ->where('Payroll_ID', 'PYH00001')
+                ->where(function ($q) use ($alwCode, $alwInfo) {
+                    $q->where('Payroll_ID', $alwCode)
+                      ->orWhere('Name', $alwInfo['name']);
+                })
                 ->first();
 
-            if ($tunjRow) {
-                DB::table('payrol_group_lists')
-                    ->where('ID', $tunjRow->ID)
-                    ->update([
-                        'Amounts'       => $calc['tunjangan_pph'],
-                        'Note'          => 'Tunjangan PPh 21 (Gross-Up)',
-                        'Modified_By'   => $operatorUsername,
-                        'Modified_Date' => $now,
-                    ]);
-            } else {
+            if ($alwRow) {
+                $upAlw = [
+                    'Amounts' => $alwInfo['amount'],
+                    'Note'    => $alwInfo['note'],
+                ];
+                if (Schema::hasColumn('payrol_group_lists', 'Modified_By')) {
+                    $upAlw['Modified_By'] = $operatorUsername;
+                }
+                if (Schema::hasColumn('payrol_group_lists', 'Modified_Date')) {
+                    $upAlw['Modified_Date'] = $now;
+                }
+                DB::table('payrol_group_lists')->where('ID', $alwRow->ID)->update($upAlw);
+            } elseif ($alwInfo['amount'] > 0) {
                 DB::table('payrol_group_lists')->insert([
                     'Main_ID'       => $mainId,
                     'Group_ID'      => $nik,
-                    'Payroll_ID'    => 'PYH00001',
-                    'Name'          => 'TUNJANGAN PAJAK PPH',
+                    'Payroll_ID'    => $alwCode,
+                    'Name'          => $alwInfo['name'],
+                    'Kena_Potongan' => 0,
+                    'Default_PPH'   => 1,
+                    'Type_Payroll'  => 'ALLOWANCE',
+                    'Amounts'       => $alwInfo['amount'],
+                    'Note'          => $alwInfo['note'],
+                    'Created_By'    => $operatorUsername,
+                    'Created_Date'  => $now,
+                ]);
+            }
+        }
+
+        // 4. Sinkronkan Deductions Dinamis (BPJS TK, BPJS KES, Late Penalty, Unpaid Leave)
+        $dynamicDeductions = [
+            'PY000037' => [
+                'name'    => 'IURAN JHT (BPJS TK)',
+                'amount'  => -$calc['bpjs_tk_amount'],
+                'aliases' => ['JHT', 'BPJS TK', 'KETENAGAKERJAAN'],
+            ],
+            'PY000032' => [
+                'name'    => 'IURAN BPJS KESEHATAN',
+                'amount'  => -$calc['bpjs_kes_amount'],
+                'aliases' => ['BPJS KESEHATAN', 'BPJS KES', 'KESEHATAN'],
+            ],
+            'DED_LATE' => [
+                'name'    => 'POTONGAN KETERLAMBATAN',
+                'amount'  => -$calc['late_penalty_amount'],
+                'aliases' => ['LATE', 'KETERLAMBATAN', 'TERLAMBAT'],
+            ],
+            'DED_UNPAID' => [
+                'name'    => 'POTONGAN UNPAID LEAVE (ALPHA)',
+                'amount'  => -$calc['unpaid_leave_amount'],
+                'aliases' => ['UNPAID', 'ALPHA', 'ABSENSI'],
+            ],
+        ];
+
+        foreach ($dynamicDeductions as $dedCode => $dedInfo) {
+            $dedRow = DB::table('payrol_group_lists')
+                ->where('Main_ID', $mainId)
+                ->where('Group_ID', $nik)
+                ->where(function ($q) use ($dedCode, $dedInfo) {
+                    $q->where('Payroll_ID', $dedCode);
+                    foreach ($dedInfo['aliases'] as $alias) {
+                        $q->orWhere('Name', 'LIKE', "%{$alias}%");
+                    }
+                })
+                ->first();
+
+            if ($dedRow) {
+                $upData = ['Amounts' => $dedInfo['amount']];
+                if (Schema::hasColumn('payrol_group_lists', 'Modified_By')) {
+                    $upData['Modified_By'] = $operatorUsername;
+                }
+                if (Schema::hasColumn('payrol_group_lists', 'Modified_Date')) {
+                    $upData['Modified_Date'] = $now;
+                }
+                DB::table('payrol_group_lists')->where('ID', $dedRow->ID)->update($upData);
+            } elseif (abs($dedInfo['amount']) > 0) {
+                DB::table('payrol_group_lists')->insert([
+                    'Main_ID'       => $mainId,
+                    'Group_ID'      => $nik,
+                    'Payroll_ID'    => $dedCode,
+                    'Name'          => $dedInfo['name'],
                     'Kena_Potongan' => 0,
                     'Default_PPH'   => 0,
-                    'Type_Payroll'  => 'ALLOWANCE',
-                    'Amounts'       => $calc['tunjangan_pph'],
-                    'Note'          => 'Tunjangan PPh 21 (Gross-Up)',
+                    'Type_Payroll'  => 'DEDUCTION',
+                    'Amounts'       => $dedInfo['amount'],
+                    'Note'          => 'Kalkulasi Otomatis',
                     'Created_By'    => $operatorUsername,
                     'Created_Date'  => $now,
                 ]);
@@ -428,4 +605,3 @@ class PayrollCalculationService
         }
     }
 }
-

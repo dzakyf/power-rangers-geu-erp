@@ -250,7 +250,61 @@ class ShiftExchangeService
                     );
                 }
             }
+
+            // 3. Sinkronkan ulang log kehadiran (attendant_log) jika sudah ada scan pada tanggal terkait
+            $this->recalculateAttendanceLogForShift($changeShift->nik, $changeShift->original_date, (int) $changeShift->target_shift_id);
+            if ($changeShift->request_mode === 'EXCHANGE' && !empty($changeShift->peer_nik) && !empty($changeShift->peer_target_shift_id)) {
+                $peerDate = $changeShift->target_date ?: $changeShift->original_date;
+                $this->recalculateAttendanceLogForShift($changeShift->peer_nik, $peerDate, (int) $changeShift->peer_target_shift_id);
+            }
         });
+    }
+
+    /**
+     * Hitung ulang status keterlambatan pada attendant_log apabila Change Shift disetujui setelah karyawan melakukan scan.
+     */
+    protected function recalculateAttendanceLogForShift(string $nik, string $date, int $shiftId): void
+    {
+        if (!Schema::hasTable('attendant_log') || !Schema::hasTable('master_shifts')) {
+            return;
+        }
+
+        $log = DB::table('attendant_log')
+            ->where('NIK', $nik)
+            ->where('Scan_Date', $date)
+            ->first();
+
+        $shift = DB::table('master_shifts')->where('id', $shiftId)->first();
+        if (!$log || !$shift) {
+            return;
+        }
+
+        if (!empty($shift->is_off)) {
+            DB::table('attendant_log')->where('ID', $log->ID)->update([
+                'Category'        => 'LIBUR SHIFT',
+                'Clock_In_Status' => 'ON_TIME',
+                'Late_Minutes'    => 0,
+            ]);
+            return;
+        }
+
+        if (!empty($log->Start_Time) && $log->Start_Time !== '00:00:00') {
+            $expectedStart = Carbon::parse($date . ' ' . ($shift->start_time ?: '08:00:00'));
+            $actualStart = Carbon::parse($date . ' ' . $log->Start_Time);
+            $lateMinutes = 0;
+            $status = 'ON_TIME';
+
+            if ($actualStart->gt($expectedStart)) {
+                $diff = $actualStart->diffInMinutes($expectedStart);
+                $lateMinutes = $diff > 15 ? $diff : 0;
+                $status = $diff > 15 ? 'LATE' : 'ON_TIME';
+            }
+
+            DB::table('attendant_log')->where('ID', $log->ID)->update([
+                'Clock_In_Status' => $status,
+                'Late_Minutes'    => $lateMinutes,
+            ]);
+        }
     }
 }
 

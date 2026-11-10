@@ -23,17 +23,18 @@ $saya = Auth::user()->username;
 $nomor = 1;
 
 echo "<rows>";
-$mx = DB::table("payrol_group_lists")->where("Group_ID",$_GET['ID'])->get();
-if ($mx){
-	foreach($mx as $px){
-		$ada[$px->Payroll_ID] = 1;
-	}
-}
+// Ambil komponen yang SUDAH ADA di payrol_main_group_lists untuk Main_ID ini agar tidak muncul lagi (mencegah duplikasi)
+$existingComponents = DB::table("payrol_main_group_lists")
+    ->where("Main_ID", $_GET['ID'])
+    ->pluck("Payroll_ID")
+    ->toArray();
+
+$ada = array_flip($existingComponents);
+
 $Query = DB::table("payrol_master_lists")->orderBy("Payroll_ID","asc")->get();
 
 foreach($Query as $Fetch){
-	if ($ada[$Fetch->Payroll_ID] != 1){
-		
+	if (!isset($ada[$Fetch->Payroll_ID])){
 		echo "<row id=\"$Fetch->ID\">";
 			echo "<cell>0</cell>";
 			echo "<cell>".htmlspecialchars($Fetch->Payroll_ID)."</cell>";

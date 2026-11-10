@@ -65,6 +65,11 @@ class SyncModuleApprovalStatus
                     $this->handleReimbursement($requestId, $request->Status);
                     break;
 
+                case 'PAYROLL':
+                case 'SALARY':
+                    $this->handlePayroll($requestId, $request->Status);
+                    break;
+
                 default:
                     // Request_Type lain dapat didaftarkan di sini
                     break;
@@ -125,8 +130,7 @@ class SyncModuleApprovalStatus
                 ]);
 
             // Selaraskan juga status ke tabel legacy overtime_lists
-            $legacySync = app(\App\Services\Attendance\OvertimeLegacySyncService::class);
-            $submitApproval = ($targetStatus === 'APPROVED') ? 1 : 0;
+            $submitApproval = ($targetStatus === 'APPROVED') ? 1 : -1;
             DB::table('overtime_lists')
                 ->where('approval_request_id', $requestId)
                 ->update([
@@ -203,6 +207,96 @@ class SyncModuleApprovalStatus
                     'status'     => $targetStatus,
                     'updated_at' => now(),
                 ]);
+
+            // Jika disetujui (APPROVED), sinkronkan langsung jam masuk/pulang ke attendant_log
+            if ($targetStatus === 'APPROVED') {
+                $corr = DB::table('attendance_corrections')
+                    ->where('approval_request_id', $requestId)
+                    ->first();
+
+                if ($corr && !empty($corr->nik) && !empty($corr->attendance_date)) {
+                    $this->applyApprovedCorrectionToLog($corr);
+                }
+            }
+        }
+    }
+
+    protected function applyApprovedCorrectionToLog($corr): void
+    {
+        try {
+            $nik = $corr->nik;
+            $date = $corr->attendance_date;
+            $corrType = strtoupper(trim((string) ($corr->correction_type ?? 'BOTH')));
+            $schedule = app(\App\Services\Attendance\AttendanceService::class)->getWorkScheduleForDate($nik, $date);
+            $expectedStartStr = $schedule['default_start'] ?? '08:00:00';
+
+            $existing = DB::table('attendant_log')
+                ->where('NIK', $nik)
+                ->where('Scan_Date', $date)
+                ->first();
+
+            $newStart = $existing ? $existing->Start_Time : null;
+            $newEnd = $existing ? $existing->End_Time : null;
+
+            if ($corrType !== 'OUT' && !empty($corr->corrected_clock_in)) {
+                $newStart = $corr->corrected_clock_in;
+            }
+            if ($corrType !== 'IN' && !empty($corr->corrected_clock_out)) {
+                $newEnd = $corr->corrected_clock_out;
+            }
+
+            $lateMinutes = 0;
+            $clockInStatus = 'ON_TIME';
+            if (!empty($newStart) && !empty($schedule['is_working'])) {
+                $expectedCarbon = \Carbon\Carbon::parse($date . ' ' . $expectedStartStr);
+                $actualCarbon = \Carbon\Carbon::parse($date . ' ' . $newStart);
+                if ($actualCarbon->gt($expectedCarbon)) {
+                    $diff = $actualCarbon->diffInMinutes($expectedCarbon);
+                    $lateMinutes = $diff > 15 ? $diff : 0;
+                    $clockInStatus = $diff > 15 ? 'LATE' : 'ON_TIME';
+                }
+            }
+
+            if ($existing) {
+                DB::table('attendant_log')->where('ID', $existing->ID)->update([
+                    'Start_Time'      => $newStart,
+                    'End_Time'        => $newEnd,
+                    'Clock_In_Status' => $clockInStatus,
+                    'Late_Minutes'    => $lateMinutes,
+                    'Notes'           => 'Koreksi Absensi Approved (' . ($corr->correction_no ?? '') . ')',
+                ]);
+            } else {
+                $periode = (int) date('Ym', strtotime($date));
+                $main = \App\AttendanceMain::firstOrCreate(
+                    ['NIK' => $nik, 'Periode' => $periode],
+                    [
+                        'Task_ID'      => 'ATT-' . $nik . '-' . $periode . '-000001',
+                        'Status'       => 'CREATED',
+                        'Created_By'   => $corr->created_by ?? 'SYSTEM',
+                        'Created_Date' => now(),
+                    ]
+                );
+
+                DB::table('attendant_log')->insert([
+                    'Task_ID'         => $main->Task_ID,
+                    'NIK'             => $nik,
+                    'Periode'         => $periode,
+                    'Scan_Date'       => $date,
+                    'Category'        => 'KERJA',
+                    'Start_Time'      => $newStart,
+                    'End_Time'        => $newEnd,
+                    'Shift_1'         => 1,
+                    'Shift_2'         => 0,
+                    'Shift_3'         => 0,
+                    'Clock_In_Status' => $clockInStatus,
+                    'Late_Minutes'    => $lateMinutes,
+                    'Notes'           => 'Koreksi Absensi Approved (' . ($corr->correction_no ?? '') . ')',
+                    'Created_By'      => $corr->created_by ?? 'SYSTEM',
+                    'Created_Date'    => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Gagal menyinkronkan koreksi absensi ke attendant_log: " . $e->getMessage());
         }
     }
 
@@ -254,6 +348,48 @@ class SyncModuleApprovalStatus
                 $rmbService->notifyCurrentStageApprovers((int) $rmb->ID, 'Update Tahap Approval Reimbursement');
             }
         }
+    }
+
+    protected function handlePayroll(int $requestId, ?string $approvalStatus): void
+    {
+        $sm = DB::table('salary_main')->where('approval_request_id', $requestId)->first();
+        if (!$sm) {
+            $sm = DB::table('salary_main')->where('Task_ID', function ($query) use ($requestId) {
+                $query->select('Request_No')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+
+        if (!$sm) {
+            return;
+        }
+
+        if (class_exists(\App\Services\Payroll\PayrollApprovalService::class)) {
+            app(\App\Services\Payroll\PayrollApprovalService::class)
+                ->syncSalaryMainStatus((string)$sm->Task_ID, 'APPROVAL_ENGINE');
+            return;
+        }
+
+        $statusUpper = strtoupper((string) $approvalStatus);
+        $newSalaryStatus = 'PROPOSED';
+        if (in_array($statusUpper, ['APPROVED', 'COMPLETED'])) {
+            $newSalaryStatus = 'APPROVED';
+            if (class_exists(\App\Services\Payroll\PayrollAttendanceSyncService::class)) {
+                try {
+                    app(\App\Services\Payroll\PayrollAttendanceSyncService::class)->lockAttendancePeriod($sm->Salary_Period, 'LOCKED', 'APPROVAL_ENGINE');
+                } catch (\Exception $e) {
+                    Log::warning("Gagal mengunci presensi untuk payroll {$sm->Task_ID}: " . $e->getMessage());
+                }
+            }
+        } elseif (in_array($statusUpper, ['REJECTED', 'RETURNED'])) {
+            $newSalaryStatus = 'REJECTED';
+        } elseif ($statusUpper === 'CANCELLED') {
+            $newSalaryStatus = 'CANCELLED';
+        }
+
+        DB::table('salary_main')->where('Task_ID', $sm->Task_ID)->update([
+            'Status'     => $newSalaryStatus,
+            'Posting_By' => 'APPROVAL_ENGINE',
+        ]);
     }
 }
 

@@ -13,37 +13,33 @@ echo('<?xml version="1.0" encoding="iso-8859-1"?>');
 
 
 function updatekan($rowId,$param) {
-	
-	$a = $param[$rowId."_c1"]; // origin
-	$b = $param[$rowId."_c2"]; // destination
-	$c = $param[$rowId."_c3"]; // destination name
-	$d = $param[$rowId."_c4"]; // transport
-	$e = $param[$rowId."_c5"]; // service
-	$f = $param[$rowId."_c6"]; // treshold
-	$g = $param[$rowId."_c7"]; // unit price
-	$h = $param[$rowId."_c8"]; // additional
-	$ix = $param[$rowId."_c9"]; // lead time
-	$j = $param[$rowId."_c10"]; // lead time
-	$k = $param[$rowId."_c11"]; // lead time
-	$l = $param[$rowId."_c12"]; // lead time
-	$m = $param[$rowId."_c13"]; // lead time
-	$n = $param[$rowId."_c14"]; // lead time
-	$o = $param[$rowId."_c15"]; // lead time
-	$p = $param[$rowId."_c16"]; // lead time
+	$mainId = $_GET['ID'] ?? '';
+	$Saya = Auth::user()->username ?? 'SYSTEM';
 
-$Saya = Auth::user()->username;
-$LSP = Auth::user()->Location;
+	// Cek apakah komponen ini sudah ada di payrol_main_group_lists untuk Main_ID ini
+	$master = DB::table('payrol_master_lists')->where('ID', $rowId)->first();
+	if ($master) {
+		$exists = DB::table('payrol_main_group_lists')
+			->where('Main_ID', $mainId)
+			->where('Payroll_ID', $master->Payroll_ID)
+			->exists();
 
-	DB::insert(DB::raw("
-	
-	INSERT INTO payrol_main_group_lists (Main_ID,Urutan,Group_ID, Payroll_ID, Name, Kena_Potongan, Default_PPH, Type_Payroll,  Created_Date, Created_By)
-	SELECT '$_GET[ID]',Urutan,'$_GET[ID]',Payroll_ID, Name, Kena_Potongan, Default_PPH, Type_Payroll, NOW(), '$Saya'
-	from payrol_master_lists
-	where ID=$rowId"));
+		if (!$exists) {
+			DB::table('payrol_main_group_lists')->insert([
+				'Main_ID'       => $mainId,
+				'Urutan'        => $master->Urutan ?? 1,
+				'Group_ID'      => $mainId,
+				'Payroll_ID'    => $master->Payroll_ID,
+				'Name'          => $master->Name,
+				'Kena_Potongan' => $master->Kena_Potongan,
+				'Default_PPH'   => $master->Default_PPH,
+				'Type_Payroll'  => $master->Type_Payroll,
+				'Created_Date'  => Carbon\Carbon::now()->toDateTimeString(),
+				'Created_By'    => $Saya,
+			]);
+		}
+	}
 
-
-	
-	
 	return "update";
 }
 function deletekan($rowId,$param){

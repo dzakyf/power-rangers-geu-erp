@@ -222,7 +222,7 @@ class AttendanceService
                 ->where('Day_Of_Week', $dayOfWeek)
                 ->first();
 
-            if ($detail) {
+            if ($detail && (!empty($detail->Default_Start) || (int) $detail->Is_Working === 1)) {
                 $schedule['is_working'] = (int) $detail->Is_Working;
                 $schedule['default_start'] = $detail->Default_Start ?: '08:00:00';
                 $schedule['default_end'] = $detail->Default_End ?: '17:00:00';

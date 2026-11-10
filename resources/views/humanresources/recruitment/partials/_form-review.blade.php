@@ -1,351 +1,175 @@
 <div class="review-information">
     <div class="section-title">
-        <i class="fas fa-clipboard-check"></i> Review & Submit
+        <i class="fas fa-clipboard-check mr-2 me-2"></i> Tinjau & Kirim Lamaran
     </div>
 
-    <div class="alert alert-success" role="alert">
-        <i class="fas fa-check-circle"></i>
-        <strong>Almost Done!</strong> Please review all information before submitting your application.
+    <div class="info-box">
+        <i class="fas fa-check-circle mr-1 me-1"></i>
+        <strong>Hampir Selesai!</strong> Silakan periksa kembali ringkasan data Anda di bawah ini sebelum mengirim lamaran.
     </div>
 
-    {{-- Personal Information Review --}}
-    <div class="review-section mb-4">
-        <h6 class="review-section-title">
-            <i class="fas fa-user"></i> Personal Information
-            <button type="button" class="btn btn-sm btn-link float-right" onclick="switchToTab('personal-tab')">
-                <i class="fas fa-edit"></i> Edit
+    {{-- 1. Posisi & Data Pribadi Review --}}
+    <div class="review-section mb-3 p-3 border rounded bg-white">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+            <h6 class="mb-0 font-weight-bold fw-bold text-success">
+                <i class="fas fa-user mr-1 me-1"></i> 1. Data Pribadi & Posisi Lamaran
+            </h6>
+            <button type="button" class="btn btn-sm btn-outline-success py-1 px-3" onclick="switchToTab('personal-tab')">
+                <i class="fas fa-edit mr-1 me-1"></i> Ubah
             </button>
-        </h6>
-        <div class="card">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-5">Full Name:</dt>
-                            <dd class="col-sm-7" id="review-Name">-</dd>
-                            
-                            <dt class="col-sm-5">Gender:</dt>
-                            <dd class="col-sm-7" id="review-Gender">-</dd>
-                            
-                            <dt class="col-sm-5">Birth Place:</dt>
-                            <dd class="col-sm-7" id="review-Birth_Place">-</dd>
-                            
-                            <dt class="col-sm-5">Birth Date:</dt>
-                            <dd class="col-sm-7" id="review-Birth_Date">-</dd>
-                            
-                            <dt class="col-sm-5">ID Card (KTP):</dt>
-                            <dd class="col-sm-7" id="review-KTP">-</dd>
-                        </dl>
-                    </div>
-                    <div class="col-md-6">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-5">Citizenship:</dt>
-                            <dd class="col-sm-7" id="review-kewarganegaraan">-</dd>
-                            
-                            <dt class="col-sm-5">Religion:</dt>
-                            <dd class="col-sm-7" id="review-Religion">-</dd>
-                            
-                            <dt class="col-sm-5">Marital Status:</dt>
-                            <dd class="col-sm-7" id="review-Marital_Status">-</dd>
-                            
-                            <dt class="col-sm-5">Address:</dt>
-                            <dd class="col-sm-7" id="review-Address">-</dd>
-                            
-                            <dt class="col-sm-5">City / Regency:</dt>
-                            <dd class="col-sm-7" id="review-City">-</dd>
+        </div>
+        <div class="row small">
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted mb-2">Posisi Dilamar:</dt>
+                    <dd class="col-sm-7 font-weight-bold fw-bold text-dark mb-2" id="review-Position">-</dd>
 
-                            <dt class="col-sm-5">Province:</dt>
-                            <dd class="col-sm-7" id="review-Province">-</dd>
+                    <dt class="col-sm-5 text-muted mb-2">Nama Lengkap:</dt>
+                    <dd class="col-sm-7 font-weight-bold fw-bold text-dark mb-2" id="review-Name">-</dd>
 
-                            <dt class="col-sm-5">District (Kecamatan):</dt>
-                            <dd class="col-sm-7" id="review-District">-</dd>
+                    <dt class="col-sm-5 text-muted mb-2">Jenis Kelamin:</dt>
+                    <dd class="col-sm-7 text-dark mb-2" id="review-Gender">-</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted mb-2">Tanggal Lahir:</dt>
+                    <dd class="col-sm-7 text-dark mb-2" id="review-Birth_Date">-</dd>
 
-                            <dt class="col-sm-5">Sub-District (Kelurahan):</dt>
-                            <dd class="col-sm-7" id="review-Sub_District">-</dd>
+                    <dt class="col-sm-5 text-muted mb-2">Usia:</dt>
+                    <dd class="col-sm-7 text-dark mb-2"><span id="review-Candidate_Age">-</span> Tahun</dd>
 
-                            <dt class="col-sm-5">Postal Code (Kode Pos):</dt>
-                            <dd class="col-sm-7" id="review-ZipCode">-</dd>
-                        </dl>
-                    </div>
-                </div>
+                    <dt class="col-sm-5 text-muted mb-2">Status Pernikahan:</dt>
+                    <dd class="col-sm-7 text-dark mb-2" id="review-Marital_Status">-</dd>
+
+                    <dt class="col-sm-5 text-muted mb-0">Alamat Domisili:</dt>
+                    <dd class="col-sm-7 text-dark mb-0" id="review-Address">-</dd>
+                </dl>
             </div>
         </div>
     </div>
 
-    {{-- Contact Information Review --}}
-    <div class="review-section mb-4">
-        <h6 class="review-section-title">
-            <i class="fas fa-address-book"></i> Contact Information
-            <button type="button" class="btn btn-sm btn-link float-right" onclick="switchToTab('contact-tab')">
-                <i class="fas fa-edit"></i> Edit
+    {{-- 2. Kontak & Referensi Review --}}
+    <div class="review-section mb-3 p-3 border rounded bg-white">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+            <h6 class="mb-0 font-weight-bold fw-bold text-success">
+                <i class="fas fa-address-book mr-1 me-1"></i> 2. Kontak & Referensi Kandidat
+            </h6>
+            <button type="button" class="btn btn-sm btn-outline-success py-1 px-3" onclick="switchToTab('contact-tab')">
+                <i class="fas fa-edit mr-1 me-1"></i> Ubah
             </button>
-        </h6>
-        <div class="card">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-5">Phone:</dt>
-                            <dd class="col-sm-7" id="review-Phone">-</dd>
-                            
-                            <dt class="col-sm-5">Mobile/WhatsApp:</dt>
-                            <dd class="col-sm-7" id="review-Handphone">-</dd>
-                        </dl>
-                    </div>
-                    <div class="col-md-6">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-5">Email:</dt>
-                            <dd class="col-sm-7" id="review-Email">-</dd>
-                            
-                            <dt class="col-sm-5">Emergency Contact:</dt>
-                            <dd class="col-sm-7" id="review-Emergency_Contact_Name">-</dd>
-                        </dl>
-                    </div>
-                </div>
+        </div>
+        <div class="row small">
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted mb-2">Nomor WhatsApp:</dt>
+                    <dd class="col-sm-7 font-weight-bold fw-bold text-success mb-2" id="review-Handphone">-</dd>
+
+                    <dt class="col-sm-5 text-muted mb-0">Alamat Email:</dt>
+                    <dd class="col-sm-7 text-dark mb-0" id="review-Email">-</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted mb-2">Nama Referensi:</dt>
+                    <dd class="col-sm-7 font-weight-bold fw-bold text-dark mb-2" id="review-Emergency_Contact_Name">-</dd>
+
+                    <dt class="col-sm-5 text-muted mb-2">Hubungan:</dt>
+                    <dd class="col-sm-7 text-dark mb-2" id="review-Emergency_Relation">-</dd>
+
+                    <dt class="col-sm-5 text-muted mb-2">No. Kontak Ref:</dt>
+                    <dd class="col-sm-7 text-dark mb-2" id="review-Emergency_Contact_No">-</dd>
+
+                    <dt class="col-sm-5 text-muted mb-0">Perusahaan Ref:</dt>
+                    <dd class="col-sm-7 text-dark mb-0" id="review-Emergency_Address">-</dd>
+                </dl>
             </div>
         </div>
     </div>
 
-    {{-- Education Review --}}
-    <div class="review-section mb-4">
-        <h6 class="review-section-title">
-            <i class="fas fa-graduation-cap"></i> Education Background
-            <button type="button" class="btn btn-sm btn-link float-right" onclick="switchToTab('education-tab')">
-                <i class="fas fa-edit"></i> Edit
+    {{-- 3. Pendidikan Terakhir Review --}}
+    <div class="review-section mb-3 p-3 border rounded bg-white">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+            <h6 class="mb-0 font-weight-bold fw-bold text-success">
+                <i class="fas fa-graduation-cap mr-1 me-1"></i> 3. Pendidikan Terakhir
+            </h6>
+            <button type="button" class="btn btn-sm btn-outline-success py-1 px-3" onclick="switchToTab('education-tab')">
+                <i class="fas fa-edit mr-1 me-1"></i> Ubah
             </button>
-        </h6>
-        <div class="card">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-5">Education Level:</dt>
-                            <dd class="col-sm-7" id="review-Last_Education">-</dd>
-                            
-                            <dt class="col-sm-5">Institution:</dt>
-                            <dd class="col-sm-7" id="review-Last_Education_From">-</dd>
-                        </dl>
-                    </div>
-                    <div class="col-md-6">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-5">Major:</dt>
-                            <dd class="col-sm-7" id="review-Education_Major">-</dd>
-                            
-                            <dt class="col-sm-5">GPA:</dt>
-                            <dd class="col-sm-7" id="review-GPA">-</dd>
-                        </dl>
-                    </div>
-                </div>
+        </div>
+        <div class="row small">
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted mb-2">Jenjang Pendidikan:</dt>
+                    <dd class="col-sm-7 font-weight-bold fw-bold text-dark mb-2" id="review-Last_Education">-</dd>
+
+                    <dt class="col-sm-5 text-muted mb-0">Nama Instansi:</dt>
+                    <dd class="col-sm-7 font-weight-bold fw-bold text-dark mb-0" id="review-Last_Education_From">-</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted mb-0">Tahun Lulus:</dt>
+                    <dd class="col-sm-7 font-weight-bold fw-bold text-dark mb-0" id="review-Graduation_Year">-</dd>
+                </dl>
             </div>
         </div>
     </div>
 
-    {{-- Documents Review --}}
-    <div class="review-section mb-4">
-        <h6 class="review-section-title">
-            <i class="fas fa-file-upload"></i> Uploaded Documents
-            <button type="button" class="btn btn-sm btn-link float-right" onclick="switchToTab('documents-tab')">
-                <i class="fas fa-edit"></i> Edit
+    {{-- 4. Dokumen Review --}}
+    <div class="review-section mb-3 p-3 border rounded bg-white">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+            <h6 class="mb-0 font-weight-bold fw-bold text-success">
+                <i class="fas fa-file-upload mr-1 me-1"></i> 4. Berkas Lampiran
+            </h6>
+            <button type="button" class="btn btn-sm btn-outline-success py-1 px-3" onclick="switchToTab('documents-tab')">
+                <i class="fas fa-edit mr-1 me-1"></i> Ubah
             </button>
-        </h6>
-        <div class="card">
-            <div class="card-body">
-                <ul class="list-unstyled mb-0" id="review-documents">
-                    <li class="mb-2">
-                        <i class="fas fa-times-circle text-danger"></i>
-                        <span class="text-muted">No documents uploaded yet</span>
-                    </li>
-                </ul>
-            </div>
         </div>
+        <ul class="list-unstyled mb-0 small" id="review-documents">
+            <li class="mb-1 text-muted">
+                <i class="fas fa-times-circle text-danger mr-2 me-2"></i> Belum ada berkas yang diunggah
+            </li>
+        </ul>
     </div>
 
-    {{-- Terms & Conditions --}}
-    <div class="terms-section mb-4">
-        <h6 class="review-section-title">
-            <i class="fas fa-file-contract"></i> Terms & Conditions
+    {{-- 5. Pernyataan & Persetujuan --}}
+    <div class="review-section mb-3 p-3 border rounded bg-light">
+        <h6 class="font-weight-bold fw-bold text-dark border-bottom pb-2 mb-3">
+            <i class="fas fa-file-contract text-success mr-1 me-1"></i> Pernyataan & Persetujuan Kandidat
         </h6>
-        <div class="card">
-            <div class="card-body">
-                <div class="custom-control custom-checkbox mb-3">
-                    <input type="checkbox" class="custom-control-input" id="agree_terms" name="agree_terms" required>
-                    <label class="custom-control-label" for="agree_terms">
-                        <strong>I hereby declare that:</strong>
+        <div class="mb-2 d-flex align-items-start">
+            <input type="checkbox" id="agree_terms" name="agree_terms" class="mt-1 mr-2 me-2" style="width: 16px; height: 16px; cursor: pointer;" required>
+            <label for="agree_terms" class="small mb-0" style="cursor: pointer;">
+                <strong>Saya menyatakan bahwa</strong> seluruh informasi dan dokumen yang saya lampirkan adalah benar, akurat, dan dapat dipertanggungjawabkan.
+            </label>
+        </div>
+        <div class="mb-3 d-flex align-items-start">
+            <input type="checkbox" id="agree_privacy" name="agree_privacy" class="mt-1 mr-2 me-2" style="width: 16px; height: 16px; cursor: pointer;" required>
+            <label for="agree_privacy" class="small mb-0 text-muted" style="cursor: pointer;">
+                Saya memberikan persetujuan kepada perusahaan untuk memproses data pribadi dan menghubungi kontak referensi saya untuk keperluan seleksi rekrutmen.
+            </label>
+        </div>
+
+        <div class="row pt-2 border-top">
+            <div class="col-md-6">
+                <div class="form-group mb-2 mb-md-0">
+                    <label for="declaration_name" class="small font-weight-bold fw-bold">
+                        Nama Lengkap (Tanda Tangan Elektronik) <span class="required">*</span>
                     </label>
+                    <input type="text" id="declaration_name" name="declaration_name" 
+                           class="form-control" placeholder="Ketik ulang nama lengkap Anda" required>
                 </div>
-                <ul class="small">
-                    <li>All information provided in this application is true, accurate, and complete to the best of my knowledge.</li>
-                    <li>I understand that any false information or misrepresentation may result in disqualification or termination.</li>
-                    <li>I authorize the company to verify the information provided and contact my references.</li>
-                    <li>I agree to comply with company policies and procedures if selected for employment.</li>
-                    <li>I understand that this application does not guarantee employment.</li>
-                </ul>
-                
-                <div class="custom-control custom-checkbox mt-3">
-                    <input type="checkbox" class="custom-control-input" id="agree_privacy" name="agree_privacy" required>
-                    <label class="custom-control-label" for="agree_privacy">
-                        I have read and agree to the <a href="#" data-toggle="modal" data-bs-toggle="modal" data-target="#privacyModal" data-bs-target="#privacyModal">Privacy Policy</a> and consent to the processing of my personal data for recruitment purposes.
+            </div>
+            <div class="col-md-6">
+                <div class="form-group mb-0">
+                    <label for="declaration_date" class="small font-weight-bold fw-bold">
+                        Tanggal Pengajuan <span class="required">*</span>
                     </label>
+                    <input type="text" id="declaration_date" name="declaration_date" 
+                           class="form-control bg-white" readonly required>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Declaration --}}
-    <div class="declaration-section mb-4">
-        <div class="card bg-light">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="declaration_name">Full Name <span class="required">*</span></label>
-                            <input type="text" id="declaration_name" name="declaration_name" 
-                                   class="form-control" placeholder="Type your full name" required>
-                            <small class="form-text text-muted">Type your name as electronic signature</small>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="declaration_date">Date <span class="required">*</span></label>
-                            <input type="text" id="declaration_date" name="declaration_date" 
-                                   class="form-control" readonly required>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="alert alert-warning" role="alert">
-        <i class="fas fa-exclamation-triangle"></i>
-        <strong>Important:</strong> After submission, you will receive a confirmation email. Please check your inbox and spam folder.
-    </div>
-</div>
-
-{{-- Privacy Policy Modal --}}
-<div class="modal fade" id="privacyModal" tabindex="-1" role="dialog" aria-labelledby="privacyModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title font-weight-bold" id="privacyModalLabel">
-                    <i class="fas fa-shield-alt me-2"></i> Privacy Policy
-                </h5>
-                <button type="button" class="close btn-close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <h6>Data Collection and Usage</h6>
-                <p>We collect personal information for recruitment and employment purposes only. Your data will be:</p>
-                <ul>
-                    <li>Used solely for recruitment evaluation and selection process</li>
-                    <li>Stored securely in our HR database</li>
-                    <li>Accessible only to authorized HR personnel</li>
-                    <li>Retained for [specified period] as per company policy</li>
-                    <li>Not shared with third parties without your consent</li>
-                </ul>
-                
-                <h6 class="mt-3">Your Rights</h6>
-                <p>You have the right to:</p>
-                <ul>
-                    <li>Access your personal data</li>
-                    <li>Request corrections to your data</li>
-                    <li>Withdraw your application at any time</li>
-                    <li>Request deletion of your data (subject to legal requirements)</li>
-                </ul>
-                
-                <h6 class="mt-3">Contact</h6>
-                <p>For questions about data privacy, contact our HR department at: <strong>hr@company.com</strong></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-    .review-section-title {
-        font-weight: 600;
-        color: #28a745;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #e9ecef;
-        margin-bottom: 15px;
-    }
-    
-    .review-section .card {
-        border: 1px solid #e9ecef;
-        box-shadow: none;
-    }
-    
-    .review-section dl dt {
-        font-weight: 600;
-        color: #6c757d;
-    }
-    
-    .review-section dl dd {
-        color: #212529;
-    }
-</style>
-
-<script>
-$(document).ready(function() {
-    // Set current date
-    $('#declaration_date').val(new Date().toLocaleDateString('id-ID'));
-    
-    // Populate review section when tab is shown
-    $('a[href="#review"]').on('shown.bs.tab', function() {
-        populateReviewData();
-    });
-});
-
-function populateReviewData() {
-    // Personal Information
-    $('#review-Name').text($('#Name').val() || '-');
-    $('#review-Gender').text($('#Gender').val() || '-');
-    $('#review-Birth_Place').text($('#Birth_Place').val() || '-');
-    $('#review-Birth_Date').text($('#Birth_Date').val() || '-');
-    $('#review-KTP').text($('#KTP').val() || '-');
-    $('#review-kewarganegaraan').text($('#kewarganegaraan').val() || '-');
-    $('#review-Religion').text($('#Religion').val() || '-');
-    $('#review-Marital_Status').text($('#Marital_Status').val() || '-');
-    $('#review-Address').text($('#Address').val() || '-');
-    $('#review-City').text($('#City').val() || '-');
-    
-    // Contact Information
-    $('#review-Phone').text($('#Phone').val() || '-');
-    $('#review-Handphone').text($('#Handphone').val() || '-');
-    $('#review-Email').text($('#Email').val() || '-');
-    $('#review-Emergency_Contact_Name').text($('#Emergency_Contact_Name').val() || '-');
-    
-    // Education
-    $('#review-Last_Education').text($('#Last_Education').val() || '-');
-    $('#review-Last_Education_From').text($('#Last_Education_From').val() || '-');
-    $('#review-Education_Major').text($('#Education_Major').val() || '-');
-    $('#review-GPA').text($('#GPA').val() || '-');
-    
-    // Documents
-    var docList = '';
-    var hasDocuments = false;
-    
-    $('input[type="file"]').each(function() {
-        var fileInput = $(this);
-        if (fileInput[0].files.length > 0) {
-            hasDocuments = true;
-            var fileName = fileInput[0].files[0].name;
-            var label = fileInput.closest('.form-group').find('label').first().text().replace('*', '').trim();
-            docList += '<li class="mb-2"><i class="fas fa-check-circle text-success"></i> ' + label + ': <strong>' + fileName + '</strong></li>';
-        }
-    });
-    
-    if (hasDocuments) {
-        $('#review-documents').html(docList);
-    } else {
-        $('#review-documents').html('<li class="mb-2"><i class="fas fa-times-circle text-danger"></i> <span class="text-muted">No documents uploaded yet</span></li>');
-    }
-}
-
-function switchToTab(tabId) {
-    $('#' + tabId).tab('show');
-}
-</script>

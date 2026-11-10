@@ -113,16 +113,28 @@ class RecruitmentNewSubmitController extends Controller
         // Generate Task_ID (format: RECR/<Location>/<YYYYMMDDHHIISS>/<random>)
         $taskId = 'RECR/' . $location . '/' . date('Ymdhis') . '/' . substr(md5($createdBy . time()), 0, 6);
 
-        // Handle file uploads (CV dan Foto)
+        // File uploads (CV_File, KTP_File, Foto, dll)
         $cvPath   = null;
         $fotoPath = null;
+        $ktpPath  = null;
         
-        if ($request->hasFile('Attachment_CV')) {
+        if ($request->hasFile('CV_File')) {
+            $cvFile = $request->file('CV_File');
+            $cvPath = $this->uploadFile($cvFile, 'recruitment/cv', $taskId);
+        } elseif ($request->hasFile('Attachment_CV')) {
             $cvFile = $request->file('Attachment_CV');
             $cvPath = $this->uploadFile($cvFile, 'recruitment/cv', $taskId);
         }
         
-        if ($request->hasFile('Attachment_Foto')) {
+        if ($request->hasFile('KTP_File')) {
+            $ktpFile = $request->file('KTP_File');
+            $ktpPath = $this->uploadFile($ktpFile, 'recruitment/ktp', $taskId);
+        }
+
+        if ($request->hasFile('Foto')) {
+            $fotoFile = $request->file('Foto');
+            $fotoPath = $this->uploadFile($fotoFile, 'recruitment/foto', $taskId);
+        } elseif ($request->hasFile('Attachment_Foto')) {
             $fotoFile = $request->file('Attachment_Foto');
             $fotoPath = $this->uploadFile($fotoFile, 'recruitment/foto', $taskId);
         }
@@ -132,11 +144,11 @@ class RecruitmentNewSubmitController extends Controller
             'Task_ID'                    => $taskId,
             'Requisition_ID'             => $requisitionId,
             'Position'                   => $positionName,
-            'Recruitment_Type'           => 'GENERAL',
+            'Recruitment_Type'           => $request->input('Recruitment_Type', 'EXTERNAL'),
             'Name'                       => $request->input('Name'),
             'Gender'                     => $request->input('Gender'),
             'Birth_Date'                 => $request->input('Birth_Date'),
-            'Birth_Place'                => $request->input('Birth_Place', ''),
+            'Birth_Place'                => $request->input('Birth_Place', '-'),
             'KTP'                        => $request->input('KTP', ''),
             'Address'                    => $request->input('Address', ''),
             'Province'                   => $request->input('Province', ''),
@@ -144,17 +156,17 @@ class RecruitmentNewSubmitController extends Controller
             'District'                   => $request->input('District', ''),
             'Sub_District'               => $request->input('Sub_District', ''),
             'ZipCode'                    => $request->input('ZipCode', ''),
-            'Phone'                      => $request->input('Phone', ''),
+            'Phone'                      => $request->input('Phone', $request->input('Handphone', '')),
             'Handphone'                  => $request->input('Handphone', ''),
             'Marital_Status'             => $request->input('Marital_Status', 'SINGLE'),
             'Last_Education'             => $request->input('Last_Education', ''),
             'Last_Education_From'        => $request->input('Last_Education_From', ''),
             'Email'                      => $request->input('Email', ''),
-            'Religion'                   => $request->input('Religion', ''),
-            'kewarganegaraan'            => $request->input('kewarganegaraan', ''),
+            'Religion'                   => $request->input('Religion', 'ISLAM'),
+            'kewarganegaraan'            => $request->input('kewarganegaraan', 'WNI'),
             // File attachments
             'CV_File'                    => $cvPath,
-            'Foto'                      => $fotoPath,
+            'Foto'                       => $fotoPath,
             // Lokasi dan audit
             'Location'                   => $location,
             'Created_By'                 => $createdBy,
@@ -225,13 +237,18 @@ class RecruitmentNewSubmitController extends Controller
 
         $id = DB::table('recruitment')->insertGetId($insertData);
 
-        // Jika CV diupload dan tabel recruitment_document punya kolom CV / CV_File, catat juga
-        if ($cvPath || $fotoPath) {
+        // Jika CV atau KTP atau Foto diupload dan tabel recruitment_document punya kolom terkait, catat juga
+        if ($cvPath || $ktpPath || $fotoPath) {
             $docUpdate = [];
             if ($cvPath && Schema::hasColumn('recruitment_document', 'CV')) {
                 $docUpdate['CV'] = $cvPath;
             } elseif ($cvPath && Schema::hasColumn('recruitment_document', 'CV_File')) {
                 $docUpdate['CV_File'] = $cvPath;
+            }
+            if ($ktpPath && Schema::hasColumn('recruitment_document', 'KTP')) {
+                $docUpdate['KTP'] = $ktpPath;
+            } elseif ($ktpPath && Schema::hasColumn('recruitment_document', 'KTP_File')) {
+                $docUpdate['KTP_File'] = $ktpPath;
             }
             if ($fotoPath && Schema::hasColumn('recruitment_document', 'Foto')) {
                 $docUpdate['Foto'] = $fotoPath;
@@ -239,6 +256,24 @@ class RecruitmentNewSubmitController extends Controller
             if (!empty($docUpdate)) {
                 DB::table('recruitment_document')->where('Task_ID', $taskId)->update($docUpdate);
             }
+        }
+
+        // Simpan data kontak referensi ke recruitment_contact_point
+        $refName    = $request->input('Emergency_Contact_Name');
+        $refContact = $request->input('Emergency_Contact_No');
+        $refCompany = $request->input('Emergency_Address');
+        $refRel     = $request->input('Emergency_Relation');
+
+        if (!empty($refName) || !empty($refContact)) {
+            $this->safeInsert('recruitment_contact_point', [
+                'Task_ID'             => $taskId,
+                'Name'                => $refName,
+                'Contact_No'          => $refContact,
+                'Phone_No'            => $refContact,
+                'Employee_Department' => $refRel,
+                'Position'            => $refRel,
+                'Email'               => $refCompany,
+            ]);
         }
 
         // Insert ke tabel pendukung

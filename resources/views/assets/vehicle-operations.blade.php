@@ -2,36 +2,38 @@
 
 @section('content-wrapper')
 @csrf
-<div class="main-content-header mb-3">
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
+<div class="main-content-header mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
-            <h1 class="h3 font-weight-bold mb-1 text-dark">
-                <i class="feather icon-truck text-primary mr-2"></i>Operasional Kendaraan: Logbook & Fuel Tracking
+            <h1 class="h3 fw-bold mb-1 text-dark d-flex align-items-center">
+                <i class="fe fe-truck text-primary me-2"></i>Operasional Kendaraan: Logbook & Fuel Tracking
             </h1>
-            <ol class="breadcrumb bg-transparent p-0 mb-0">
-                <li class="breadcrumb-item"><a href="home-asset">Asset</a></li>
-                <li class="breadcrumb-item"><a href="asset-lists">Data Assets</a></li>
-                <li class="breadcrumb-item active text-primary">Operasional Kendaraan</li>
-            </ol>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0 mb-0 small">
+                    <li class="breadcrumb-item"><a href="home-asset" class="text-decoration-none">Asset</a></li>
+                    <li class="breadcrumb-item"><a href="asset-lists" class="text-decoration-none">Data Assets</a></li>
+                    <li class="breadcrumb-item active text-primary" aria-current="page">Operasional Kendaraan</li>
+                </ol>
+            </nav>
         </div>
-        <div class="mt-2 mt-sm-0">
-            <a href="asset-lists" class="btn btn-outline-secondary btn-sm mr-1">
-                <i class="feather icon-arrow-left mr-1"></i>Kembali ke Asset Lists
+        <div class="d-flex align-items-center gap-2">
+            <a href="asset-lists" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+                <i class="fe fe-arrow-left me-1"></i>Kembali ke Asset Lists
             </a>
-            <button class="btn btn-primary btn-sm" onclick="refreshAllData()">
-                <i class="feather icon-refresh-cw mr-1"></i>Refresh Data
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" onclick="refreshAllData()">
+                <i class="fe fe-refresh-cw me-1"></i>Refresh Data
             </button>
         </div>
     </div>
 </div>
 
 <!-- FILTER BAR -->
-<div class="card shadow-sm border-0 mb-3" style="border-radius: 10px;">
-    <div class="card-body py-2 px-3">
-        <div class="form-row align-items-center">
-            <div class="col-md-4 col-sm-6 mb-2 mb-md-0">
-                <label class="small font-weight-bold text-muted mb-1">Pilih Kendaraan:</label>
-                <select id="filter_asset_no" class="form-control form-control-sm" onchange="applyFilter()">
+<div class="card shadow-sm border-0 mb-4 rounded-3">
+    <div class="card-body p-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4 col-sm-6">
+                <label class="form-label small fw-bold text-muted mb-1">Pilih Kendaraan:</label>
+                <select id="filter_asset_no" class="form-select form-select-sm" onchange="applyFilter()">
                     <option value="ALL">-- Semua Kendaraan Armada --</option>
                     @foreach($vehicles as $v)
                         <option value="{{ $v->Asset_No }}">
@@ -40,21 +42,21 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
-                <label class="small font-weight-bold text-muted mb-1">Periode Bulan:</label>
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label small fw-bold text-muted mb-1">Periode Bulan:</label>
                 <input type="month" id="filter_month" class="form-control form-control-sm" value="{{ date('Y-m') }}" onchange="applyFilter()">
             </div>
-            <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
-                <label class="small font-weight-bold text-muted mb-1">Status Trip:</label>
-                <select id="filter_status" class="form-control form-control-sm" onchange="applyFilter()">
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label small fw-bold text-muted mb-1">Status Trip:</label>
+                <select id="filter_status" class="form-select form-select-sm" onchange="applyFilter()">
                     <option value="ALL">Semua Status</option>
                     <option value="ON_GOING">Sedang Berjalan (Check-Out)</option>
                     <option value="COMPLETED">Selesai (Check-In)</option>
                 </select>
             </div>
-            <div class="col-md-2 col-sm-6 text-right mt-md-4">
-                <button type="button" class="btn btn-outline-secondary btn-sm btn-block" onclick="resetFilter()">
-                    <i class="feather icon-rotate-ccw mr-1"></i>Reset
+            <div class="col-md-2 col-sm-6">
+                <button type="button" class="btn btn-outline-secondary btn-sm w-100 rounded-pill" onclick="resetFilter()">
+                    <i class="fe fe-rotate-ccw me-1"></i>Reset
                 </button>
             </div>
         </div>
@@ -62,66 +64,66 @@
 </div>
 
 <!-- KPI SUMMARY METRIC CARDS -->
-<div class="row mb-3">
+<div class="row g-3 mb-4">
     <!-- Card 1: Total Jarak Tempuh -->
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white;">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 rounded-3 text-white" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
             <div class="card-body p-3 d-flex align-items-center justify-content-between">
                 <div>
-                    <span class="text-uppercase small font-weight-bold text-light opacity-75">Jarak Tempuh</span>
-                    <h3 class="font-weight-bold my-1 text-white" id="kpi_total_km">0 KM</h3>
+                    <span class="text-uppercase small fw-bold text-light opacity-75">Jarak Tempuh</span>
+                    <h3 class="fw-bold my-1 text-white" id="kpi_total_km">0 KM</h3>
                     <small class="text-light" id="kpi_trips_sub">0 trip selesai • 0 berjalan</small>
                 </div>
-                <div class="p-3 bg-white text-primary rounded-circle shadow-sm" style="opacity: 0.95;">
-                    <i class="feather icon-navigation" style="font-size: 24px;"></i>
+                <div class="p-3 bg-white text-primary rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                    <i class="fe fe-navigation" style="font-size: 24px;"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Card 2: Pengeluaran BBM -->
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; background: linear-gradient(135deg, #f857a6 0%, #ff5858 100%); color: white;">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 rounded-3 text-white" style="background: linear-gradient(135deg, #f857a6 0%, #ff5858 100%);">
             <div class="card-body p-3 d-flex align-items-center justify-content-between">
                 <div>
-                    <span class="text-uppercase small font-weight-bold text-light opacity-75">Biaya BBM</span>
-                    <h3 class="font-weight-bold my-1 text-white" id="kpi_fuel_cost">Rp 0</h3>
+                    <span class="text-uppercase small fw-bold text-light opacity-75">Biaya BBM</span>
+                    <h3 class="fw-bold my-1 text-white" id="kpi_fuel_cost">Rp 0</h3>
                     <small class="text-light" id="kpi_cost_per_km">Rata-rata: Rp 0 / KM</small>
                 </div>
-                <div class="p-3 bg-white text-danger rounded-circle shadow-sm" style="opacity: 0.95;">
-                    <i class="feather icon-credit-card" style="font-size: 24px;"></i>
+                <div class="p-3 bg-white text-danger rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                    <i class="fe fe-credit-card" style="font-size: 24px;"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Card 3: Konsumsi Volume BBM -->
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 rounded-3 text-white" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
             <div class="card-body p-3 d-flex align-items-center justify-content-between">
                 <div>
-                    <span class="text-uppercase small font-weight-bold text-light opacity-75">Konsumsi BBM</span>
-                    <h3 class="font-weight-bold my-1 text-white" id="kpi_total_liters">0 L</h3>
+                    <span class="text-uppercase small fw-bold text-light opacity-75">Konsumsi BBM</span>
+                    <h3 class="fw-bold my-1 text-white" id="kpi_total_liters">0 L</h3>
                     <small class="text-light" id="kpi_fuel_fills">0 kali pengisian</small>
                 </div>
-                <div class="p-3 bg-white text-success rounded-circle shadow-sm" style="opacity: 0.95;">
-                    <i class="feather icon-droplet" style="font-size: 24px;"></i>
+                <div class="p-3 bg-white text-success rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                    <i class="fe fe-droplet" style="font-size: 24px;"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Card 4: Efisiensi Armada (KM/L) -->
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; background: linear-gradient(135deg, #7F00FF 0%, #E100FF 100%); color: white;">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 rounded-3 text-white" style="background: linear-gradient(135deg, #7F00FF 0%, #E100FF 100%);">
             <div class="card-body p-3 d-flex align-items-center justify-content-between">
                 <div>
-                    <span class="text-uppercase small font-weight-bold text-light opacity-75">Efisiensi Armada</span>
-                    <h3 class="font-weight-bold my-1 text-white" id="kpi_avg_efficiency">0 KM/L</h3>
+                    <span class="text-uppercase small fw-bold text-light opacity-75">Efisiensi Armada</span>
+                    <h3 class="fw-bold my-1 text-white" id="kpi_avg_efficiency">0 KM/L</h3>
                     <small class="text-light" id="kpi_efficiency_status">Status: Belum ada data</small>
                 </div>
-                <div class="p-3 bg-white text-purple rounded-circle shadow-sm" style="opacity: 0.95;">
-                    <i class="feather icon-activity" style="font-size: 24px; color: #7F00FF;"></i>
+                <div class="p-3 bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                    <i class="fe fe-activity" style="font-size: 24px; color: #7F00FF;"></i>
                 </div>
             </div>
         </div>
@@ -129,23 +131,23 @@
 </div>
 
 <!-- MAIN TABS CONTAINER -->
-<div class="card shadow-sm border-0" style="border-radius: 12px;">
+<div class="card shadow-sm border-0 rounded-3">
     <div class="card-header bg-white border-bottom-0 pb-0 pt-3">
         <ul class="nav nav-pills" id="operationsTabs" role="tablist">
-            <li class="nav-item mr-2">
-                <a class="nav-link active font-weight-bold px-3 py-2" id="tab-logbook-btn" data-toggle="pill" href="#tab-logbook" role="tab" style="border-radius: 8px;">
-                    <i class="feather icon-book mr-1"></i> Logbook Perjalanan (Trip Logs)
-                </a>
+            <li class="nav-item me-2" role="presentation">
+                <button type="button" class="nav-link active fw-bold px-3 py-2 rounded-3" id="tab-logbook-btn" data-bs-toggle="pill" data-bs-target="#tab-logbook" role="tab" aria-controls="tab-logbook" aria-selected="true">
+                    <i class="fe fe-book me-1"></i> Logbook Perjalanan (Trip Logs)
+                </button>
             </li>
-            <li class="nav-item mr-2">
-                <a class="nav-link font-weight-bold px-3 py-2" id="tab-fuel-btn" data-toggle="pill" href="#tab-fuel" role="tab" style="border-radius: 8px;">
-                    <i class="feather icon-droplet mr-1"></i> Fuel Tracking (Pencatatan BBM)
-                </a>
+            <li class="nav-item me-2" role="presentation">
+                <button type="button" class="nav-link fw-bold px-3 py-2 rounded-3" id="tab-fuel-btn" data-bs-toggle="pill" data-bs-target="#tab-fuel" role="tab" aria-controls="tab-fuel" aria-selected="false">
+                    <i class="fe fe-droplet me-1"></i> Fuel Tracking (Pencatatan BBM)
+                </button>
             </li>
-            <li class="nav-item">
-                <a class="nav-link font-weight-bold px-3 py-2" id="tab-analytics-btn" data-toggle="pill" href="#tab-analytics" role="tab" style="border-radius: 8px;">
-                    <i class="feather icon-pie-chart mr-1"></i> Analytics & Visualisasi Efisiensi
-                </a>
+            <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link fw-bold px-3 py-2 rounded-3" id="tab-analytics-btn" data-bs-toggle="pill" data-bs-target="#tab-analytics" role="tab" aria-controls="tab-analytics" aria-selected="false">
+                    <i class="fe fe-pie-chart me-1"></i> Analytics & Visualisasi Efisiensi
+                </button>
             </li>
         </ul>
     </div>
@@ -154,62 +156,62 @@
         <div class="tab-content" id="operationsTabsContent">
 
             <!-- TAB 1: LOGBOOK PERJALANAN -->
-            <div class="tab-pane fade show active" id="tab-logbook" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                    <div class="mb-2 mb-sm-0">
-                        <button type="button" class="btn btn-primary font-weight-bold mr-2" onclick="openNewTripModal()">
-                            <i class="feather icon-plus-circle mr-1"></i> Catat Perjalanan Baru (Check-Out)
+            <div class="tab-pane fade show active" id="tab-logbook" role="tabpanel" aria-labelledby="tab-logbook-btn">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" class="btn btn-primary btn-sm fw-bold rounded-pill px-3 shadow-sm" onclick="openNewTripModal()">
+                            <i class="fe fe-plus-circle me-1 text-white"></i> Catat Perjalanan Baru (Check-Out)
                         </button>
-                        <button type="button" class="btn btn-outline-info mr-2" onclick="refreshLogbookGrid()">
-                            <i class="feather icon-refresh-cw mr-1"></i> Refresh
+                        <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-3" onclick="refreshLogbookGrid()">
+                            <i class="fe fe-refresh-cw me-1"></i> Refresh
                         </button>
-                        <button type="button" class="btn btn-outline-success" onclick="GRID_LOGBOOK.toExcel('./export/generate.php')">
-                            <i class="feather icon-download mr-1"></i> Export Excel (CSV)
+                        <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="exportLogbook()">
+                            <i class="fe fe-download me-1"></i> Export Excel
                         </button>
                     </div>
                     <div>
-                        <span class="badge badge-light p-2 font-weight-normal border text-muted">
-                            <i class="feather icon-info text-primary mr-1"></i> Double click baris untuk melihat detail
+                        <span class="badge bg-light text-secondary p-2 fw-normal border">
+                            <i class="fe fe-info text-primary me-1"></i> Double click baris untuk melihat detail
                         </span>
                     </div>
                 </div>
 
-                <div id="GRID_LOGBOOK_CONTAINER" style="width:100%; height:450px; background-color:white; overflow:hidden; border: 1px solid #e0e0e0; border-radius: 6px;"></div>
+                <div id="GRID_LOGBOOK_CONTAINER" style="width:100%; height:460px; background-color:white; overflow:hidden; border: 1px solid #e0e0e0; border-radius: 8px;"></div>
             </div>
 
             <!-- TAB 2: FUEL TRACKING -->
-            <div class="tab-pane fade" id="tab-fuel" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                    <div class="mb-2 mb-sm-0">
-                        <button type="button" class="btn btn-primary font-weight-bold mr-2" onclick="openNewFuelModal()">
-                            <i class="feather icon-plus-circle mr-1"></i> Catat Pengisian BBM
+            <div class="tab-pane fade" id="tab-fuel" role="tabpanel" aria-labelledby="tab-fuel-btn">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" class="btn btn-primary btn-sm fw-bold rounded-pill px-3 shadow-sm" onclick="openNewFuelModal()">
+                            <i class="fe fe-plus-circle me-1 text-white"></i> Catat Pengisian BBM
                         </button>
-                        <button type="button" class="btn btn-outline-info mr-2" onclick="refreshFuelGrid()">
-                            <i class="feather icon-refresh-cw mr-1"></i> Refresh
+                        <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-3" onclick="refreshFuelGrid()">
+                            <i class="fe fe-refresh-cw me-1"></i> Refresh
                         </button>
-                        <button type="button" class="btn btn-outline-success" onclick="GRID_FUEL.toExcel('./export/generate.php')">
-                            <i class="feather icon-download mr-1"></i> Export Excel (CSV)
+                        <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="exportFuel()">
+                            <i class="fe fe-download me-1"></i> Export Excel
                         </button>
                     </div>
                     <div>
-                        <span class="badge badge-light p-2 font-weight-normal border text-muted">
-                            <i class="feather icon-check-circle text-success mr-1"></i> Kalkulasi Rasio KM/L & Biaya/KM Otomatis
+                        <span class="badge bg-light text-secondary p-2 fw-normal border">
+                            <i class="fe fe-check-circle text-success me-1"></i> Kalkulasi Rasio KM/L & Biaya/KM Otomatis
                         </span>
                     </div>
                 </div>
 
-                <div id="GRID_FUEL_CONTAINER" style="width:100%; height:450px; background-color:white; overflow:hidden; border: 1px solid #e0e0e0; border-radius: 6px;"></div>
+                <div id="GRID_FUEL_CONTAINER" style="width:100%; height:460px; background-color:white; overflow:hidden; border: 1px solid #e0e0e0; border-radius: 8px;"></div>
             </div>
 
             <!-- TAB 3: ANALYTICS & VISUALISASI -->
-            <div class="tab-pane fade" id="tab-analytics" role="tabpanel">
-                <div class="row">
+            <div class="tab-pane fade" id="tab-analytics" role="tabpanel" aria-labelledby="tab-analytics-btn">
+                <div class="row g-3 mb-4">
                     <!-- Chart 1: Tren Bulanan Jarak Tempuh vs Liter BBM -->
-                    <div class="col-lg-7 mb-4">
-                        <div class="card border shadow-sm h-100" style="border-radius: 8px;">
-                            <div class="card-header bg-white py-2">
-                                <h6 class="font-weight-bold text-dark m-0">
-                                    <i class="feather icon-trending-up text-primary mr-1"></i> Tren Bulanan Jarak Tempuh (KM) & Konsumsi BBM (Liter)
+                    <div class="col-lg-7">
+                        <div class="card border-0 shadow-sm h-100 rounded-3">
+                            <div class="card-header bg-white py-2 border-bottom">
+                                <h6 class="fw-bold text-dark m-0 d-flex align-items-center">
+                                    <i class="fe fe-trending-up text-primary me-2"></i> Tren Bulanan Jarak Tempuh (KM) & Konsumsi BBM (Liter)
                                 </h6>
                             </div>
                             <div class="card-body p-3">
@@ -219,11 +221,11 @@
                     </div>
 
                     <!-- Chart 2: Perbandingan Efisiensi Armada (KM/L) -->
-                    <div class="col-lg-5 mb-4">
-                        <div class="card border shadow-sm h-100" style="border-radius: 8px;">
-                            <div class="card-header bg-white py-2">
-                                <h6 class="font-weight-bold text-dark m-0">
-                                    <i class="feather icon-bar-chart text-success mr-1"></i> Rasio Efisiensi BBM per Armada (KM/Liter)
+                    <div class="col-lg-5">
+                        <div class="card border-0 shadow-sm h-100 rounded-3">
+                            <div class="card-header bg-white py-2 border-bottom">
+                                <h6 class="fw-bold text-dark m-0 d-flex align-items-center">
+                                    <i class="fe fe-bar-chart text-success me-2"></i> Rasio Efisiensi BBM per Armada (KM/Liter)
                                 </h6>
                             </div>
                             <div class="card-body p-3">
@@ -234,20 +236,20 @@
                 </div>
 
                 <!-- Tabel Ringkasan Armada -->
-                <div class="card border shadow-sm" style="border-radius: 8px;">
-                    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-                        <h6 class="font-weight-bold text-dark m-0">
-                            <i class="feather icon-list text-info mr-1"></i> Ringkasan Konsumsi & Efisiensi Tiap Kendaraan
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold text-dark m-0 d-flex align-items-center">
+                            <i class="fe fe-list text-info me-2"></i> Ringkasan Konsumsi & Efisiensi Tiap Kendaraan
                         </h6>
-                        <span class="small text-muted" id="analytics_period_badge">Periode: Bulan Ini</span>
+                        <span class="badge bg-light text-secondary border" id="analytics_period_badge">Periode: Bulan Ini</span>
                     </div>
                     <div class="card-body p-0 table-responsive">
-                        <table class="table table-hover table-striped mb-0 text-center" id="tableVehicleSummary">
-                            <thead class="thead-light">
+                        <table class="table table-hover align-middle mb-0 text-center" id="tableVehicleSummary">
+                            <thead class="table-light">
                                 <tr>
                                     <th>No</th>
                                     <th>Plat Nomor</th>
-                                    <th class="text-left">Nama Kendaraan</th>
+                                    <th class="text-start">Nama Kendaraan</th>
                                     <th>Total Jarak (KM)</th>
                                     <th>Total BBM (Liter)</th>
                                     <th>Total Biaya (Rp)</th>
@@ -258,7 +260,7 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td colspan="9" class="py-3 text-muted">Memuat data ringkasan armada...</td>
+                                    <td colspan="9" class="py-4 text-muted">Memuat data ringkasan armada...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -270,27 +272,25 @@
     </div>
 </div>
 
-<!-- ================= MODALS ================= -->
+<!-- ================= MODALS (BOOTSTRAP 5) ================= -->
 
 <!-- MODAL 1: CATAT PERJALANAN BARU (CHECK-OUT) -->
-<div class="modal fade" id="modalNewTrip" tabindex="-1" role="dialog" aria-labelledby="modalNewTripLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="modalNewTrip" tabindex="-1" aria-labelledby="modalNewTripLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <form id="formNewTrip" onsubmit="submitNewTrip(event)" enctype="multipart/form-data">
             @csrf
-            <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+            <div class="modal-content border-0 shadow-lg rounded-3">
                 <div class="modal-header bg-primary text-white py-3">
-                    <h5 class="modal-title font-weight-bold" id="modalNewTripLabel">
-                        <i class="feather icon-play-circle mr-2"></i>Catat Perjalanan Baru (Check-Out Kendaraan)
+                    <h5 class="modal-title fw-bold d-flex align-items-center" id="modalNewTripLabel">
+                        <i class="fe fe-play-circle me-2"></i>Catat Perjalanan Baru (Check-Out Kendaraan)
                     </h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Pilih Kendaraan <span class="text-danger">*</span></label>
-                            <select name="Asset_No" id="trip_asset_no" class="form-control" required onchange="onTripVehicleChange()">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Pilih Kendaraan <span class="text-danger">*</span></label>
+                            <select name="Asset_No" id="trip_asset_no" class="form-select" required onchange="onTripVehicleChange()">
                                 <option value="">-- Pilih Kendaraan --</option>
                                 @foreach($vehicles as $v)
                                     <option value="{{ $v->Asset_No }}">
@@ -298,68 +298,62 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <small class="text-muted" id="trip_vehicle_status"></small>
+                            <small class="text-muted d-block mt-1" id="trip_vehicle_status"></small>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Pengemudi / Driver <span class="text-danger">*</span></label>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Pengemudi / Driver <span class="text-danger">*</span></label>
                             <input type="text" name="Driver_Name" id="trip_driver_name" class="form-control" placeholder="Nama Driver / Pemakai" required>
                         </div>
-                    </div>
 
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold">Waktu Berangkat <span class="text-danger">*</span></label>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Waktu Berangkat <span class="text-danger">*</span></label>
                             <input type="datetime-local" name="Start_Date" id="trip_start_date" class="form-control" required value="{{ date('Y-m-d\TH:i') }}">
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold">Odometer Awal (KM) <span class="text-danger">*</span></label>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Odometer Awal (KM) <span class="text-danger">*</span></label>
                             <input type="number" step="0.1" name="Start_KM" id="trip_start_km" class="form-control" placeholder="0" required>
                             <small class="text-muted">Terisi otomatis dari Odometer terakhir</small>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold">Departemen</label>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Departemen</label>
                             <input type="text" name="Department" id="trip_department" class="form-control" placeholder="HCGA / Ops / dll">
                         </div>
-                    </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Tujuan Perjalanan <span class="text-danger">*</span></label>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tujuan Perjalanan <span class="text-danger">*</span></label>
                             <input type="text" name="Destination" class="form-control" placeholder="Contoh: Kantor Cabang, Gudang, Bandara" required>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Kondisi Kendaraan (Keluar)</label>
-                            <select name="Vehicle_Condition_Out" class="form-control">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Kondisi Kendaraan (Keluar)</label>
+                            <select name="Vehicle_Condition_Out" class="form-select">
                                 <option value="Baik & Prima">Baik & Prima</option>
                                 <option value="Normal / Cukup">Normal / Cukup</option>
                                 <option value="Perlu Perhatian (AC/Ban)">Perlu Perhatian (AC/Ban)</option>
                             </select>
                         </div>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="font-weight-bold">Keperluan / Keterangan Perjalanan</label>
-                        <textarea name="Purpose" class="form-control" rows="2" placeholder="Jelaskan agenda / tujuan tugas perjalanan..."></textarea>
-                    </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Keperluan / Keterangan Perjalanan</label>
+                            <textarea name="Purpose" class="form-control" rows="2" placeholder="Jelaskan agenda / tujuan tugas perjalanan..."></textarea>
+                        </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Foto Odometer Awal (Opsional)</label>
-                            <input type="file" name="Photo_Odometer_Start" class="form-control-file" accept="image/*" onchange="previewImage(this, 'preview_odo_start')">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Foto Odometer Awal (Opsional)</label>
+                            <input type="file" name="Photo_Odometer_Start" class="form-control" accept="image/*" onchange="previewImage(this, 'preview_odo_start')">
                             <div class="mt-2">
                                 <img id="preview_odo_start" src="" style="max-height: 100px; display: none; border-radius: 6px; border: 1px solid #ccc;">
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Catatan Tambahan</label>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Catatan Tambahan</label>
                             <input type="text" name="Notes" class="form-control" placeholder="Catatan opsional...">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light py-2">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                    <button type="submit" id="btnSubmitNewTrip" class="btn btn-primary font-weight-bold">
-                        <i class="feather icon-check mr-1"></i> Simpan & Check-Out
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" id="btnSubmitNewTrip" class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm">
+                        <i class="fe fe-check me-1"></i> Simpan & Check-Out
                     </button>
                 </div>
             </div>
@@ -368,49 +362,47 @@
 </div>
 
 <!-- MODAL 2: SELESAIKAN PERJALANAN (CHECK-IN) -->
-<div class="modal fade" id="modalFinishTrip" tabindex="-1" role="dialog" aria-labelledby="modalFinishTripLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+<div class="modal fade" id="modalFinishTrip" tabindex="-1" aria-labelledby="modalFinishTripLabel" aria-hidden="true">
+    <div class="modal-dialog">
         <form id="formFinishTrip" onsubmit="submitFinishTrip(event)" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="id" id="finish_trip_id">
-            <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+            <div class="modal-content border-0 shadow-lg rounded-3">
                 <div class="modal-header bg-success text-white py-3">
-                    <h5 class="modal-title font-weight-bold" id="modalFinishTripLabel">
-                        <i class="feather icon-check-circle mr-2"></i>Selesaikan Perjalanan (Check-In)
+                    <h5 class="modal-title fw-bold d-flex align-items-center" id="modalFinishTripLabel">
+                        <i class="fe fe-check-circle me-2"></i>Selesaikan Perjalanan (Check-In)
                     </h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="alert alert-info py-2 px-3 mb-3" style="border-radius: 8px;">
-                        <div class="d-flex justify-content-between">
-                            <span class="font-weight-bold" id="finish_log_no">-</span>
-                            <span class="badge badge-warning text-dark font-weight-bold" id="finish_reg_no">-</span>
+                    <div class="alert alert-info py-2 px-3 mb-3 rounded-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold" id="finish_log_no">-</span>
+                            <span class="badge bg-warning text-dark fw-bold" id="finish_reg_no">-</span>
                         </div>
                         <div class="small mt-1 text-muted">
                             KM Awal: <strong id="finish_start_km_label">0</strong> KM
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label class="font-weight-bold">Waktu Kembali <span class="text-danger">*</span></label>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Waktu Kembali <span class="text-danger">*</span></label>
                         <input type="datetime-local" name="End_Date" class="form-control" required value="{{ date('Y-m-d\TH:i') }}">
                     </div>
 
-                    <div class="form-group">
-                        <label class="font-weight-bold">Odometer Akhir (KM) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.1" name="End_KM" id="finish_end_km" class="form-control form-control-lg font-weight-bold text-primary" placeholder="0" required oninput="calculateTripTotalKM()">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Odometer Akhir (KM) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.1" name="End_KM" id="finish_end_km" class="form-control form-control-lg fw-bold text-primary" placeholder="0" required oninput="calculateTripTotalKM()">
                         <div class="d-flex justify-content-between align-items-center mt-2">
                             <small class="text-muted">Total Jarak Tempuh:</small>
-                            <span class="badge badge-success px-2 py-1" style="font-size: 14px;" id="badge_calculated_km">0 KM</span>
+                            <span class="badge bg-success text-white px-2 py-1" style="font-size: 14px;" id="badge_calculated_km">0 KM</span>
                         </div>
-                        <small class="text-danger" id="finish_km_error" style="display: none;">KM Akhir harus lebih besar atau sama dengan KM Awal!</small>
+                        <small class="text-danger mt-1 d-block" id="finish_km_error" style="display: none;">KM Akhir harus lebih besar atau sama dengan KM Awal!</small>
                     </div>
 
-                    <div class="form-group">
-                        <label class="font-weight-bold">Kondisi Kendaraan Saat Kembali</label>
-                        <select name="Vehicle_Condition_In" class="form-control">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kondisi Kendaraan Saat Kembali</label>
+                        <select name="Vehicle_Condition_In" class="form-select">
                             <option value="Baik & Bersih">Baik & Bersih</option>
                             <option value="Normal">Normal</option>
                             <option value="Kotor Perlu Cuci">Kotor Perlu Cuci</option>
@@ -418,23 +410,23 @@
                         </select>
                     </div>
 
-                    <div class="form-group">
-                        <label class="font-weight-bold">Foto Odometer Akhir (Opsional)</label>
-                        <input type="file" name="Photo_Odometer_End" class="form-control-file" accept="image/*" onchange="previewImage(this, 'preview_odo_end')">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Foto Odometer Akhir (Opsional)</label>
+                        <input type="file" name="Photo_Odometer_End" class="form-control" accept="image/*" onchange="previewImage(this, 'preview_odo_end')">
                         <div class="mt-2">
                             <img id="preview_odo_end" src="" style="max-height: 90px; display: none; border-radius: 6px; border: 1px solid #ccc;">
                         </div>
                     </div>
 
-                    <div class="form-group mb-0">
-                        <label class="font-weight-bold">Catatan Pengembalian</label>
+                    <div class="mb-0">
+                        <label class="form-label fw-bold">Catatan Pengembalian</label>
                         <input type="text" name="Notes" class="form-control" placeholder="Contoh: BBM tersisa separuh, ban baru dipompa">
                     </div>
                 </div>
                 <div class="modal-footer bg-light py-2">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                    <button type="submit" id="btnSubmitFinishTrip" class="btn btn-success font-weight-bold">
-                        <i class="feather icon-check mr-1"></i> Simpan & Selesaikan
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" id="btnSubmitFinishTrip" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm">
+                        <i class="fe fe-check me-1"></i> Simpan & Selesaikan
                     </button>
                 </div>
             </div>
@@ -443,24 +435,22 @@
 </div>
 
 <!-- MODAL 3: CATAT PENGISIAN BBM (FUEL TRACKING) -->
-<div class="modal fade" id="modalNewFuel" tabindex="-1" role="dialog" aria-labelledby="modalNewFuelLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="modalNewFuel" tabindex="-1" aria-labelledby="modalNewFuelLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <form id="formNewFuel" onsubmit="submitNewFuel(event)" enctype="multipart/form-data">
             @csrf
-            <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+            <div class="modal-content border-0 shadow-lg rounded-3">
                 <div class="modal-header bg-success text-white py-3">
-                    <h5 class="modal-title font-weight-bold" id="modalNewFuelLabel">
-                        <i class="feather icon-droplet mr-2"></i>Catat Pengisian Bahan Bakar (BBM)
+                    <h5 class="modal-title fw-bold d-flex align-items-center" id="modalNewFuelLabel">
+                        <i class="fe fe-droplet me-2"></i>Catat Pengisian Bahan Bakar (BBM)
                     </h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Pilih Kendaraan <span class="text-danger">*</span></label>
-                            <select name="Asset_No" id="fuel_asset_no" class="form-control" required onchange="onFuelVehicleChange()">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Pilih Kendaraan <span class="text-danger">*</span></label>
+                            <select name="Asset_No" id="fuel_asset_no" class="form-select" required onchange="onFuelVehicleChange()">
                                 <option value="">-- Pilih Kendaraan --</option>
                                 @foreach($vehicles as $v)
                                     <option value="{{ $v->Asset_No }}">
@@ -468,27 +458,25 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <small class="text-muted" id="fuel_last_km_info"></small>
+                            <small class="text-muted d-block mt-1" id="fuel_last_km_info"></small>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Driver / Petugas Pengisi <span class="text-danger">*</span></label>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Driver / Petugas Pengisi <span class="text-danger">*</span></label>
                             <input type="text" name="Driver_Name" id="fuel_driver_name" class="form-control" placeholder="Nama Petugas / Driver" required>
                         </div>
-                    </div>
 
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold">Tanggal & Waktu Pengisian <span class="text-danger">*</span></label>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Tanggal & Waktu Pengisian <span class="text-danger">*</span></label>
                             <input type="datetime-local" name="Fill_Date" class="form-control" required value="{{ date('Y-m-d\TH:i') }}">
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold">Odometer Saat Pengisian (KM) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.1" name="Current_KM" id="fuel_current_km" class="form-control font-weight-bold" placeholder="0" required oninput="calculateFuelMetrics()">
-                            <small class="text-muted" id="fuel_distance_calc">Jarak dari isi sebelumnya: 0 KM</small>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Odometer Saat Pengisian (KM) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.1" name="Current_KM" id="fuel_current_km" class="form-control fw-bold" placeholder="0" required oninput="calculateFuelMetrics()">
+                            <small class="text-muted d-block mt-1" id="fuel_distance_calc">Jarak dari isi sebelumnya: 0 KM</small>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold">Jenis BBM <span class="text-danger">*</span></label>
-                            <select name="Fuel_Type" id="fuel_type_select" class="form-control" required>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Jenis BBM <span class="text-danger">*</span></label>
+                            <select name="Fuel_Type" id="fuel_type_select" class="form-select" required>
                                 <option value="Pertalite">Pertalite (RON 90)</option>
                                 <option value="Pertamax">Pertamax (RON 92)</option>
                                 <option value="Pertamax Turbo">Pertamax Turbo (RON 98)</option>
@@ -498,20 +486,18 @@
                                 <option value="Shell / BP / Lainnya">Shell / BP / Lainnya</option>
                             </select>
                         </div>
-                    </div>
 
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold">Volume Liter <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="Liters" id="fuel_liters" class="form-control form-control-lg font-weight-bold" placeholder="0.00" required oninput="calculateFuelMetrics()">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Volume Liter <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="Liters" id="fuel_liters" class="form-control form-control-lg fw-bold" placeholder="0.00" required oninput="calculateFuelMetrics()">
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold">Total Biaya (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" step="1" name="Total_Cost" id="fuel_total_cost" class="form-control form-control-lg font-weight-bold text-success" placeholder="0" required oninput="calculateFuelMetrics()">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Total Biaya (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" step="1" name="Total_Cost" id="fuel_total_cost" class="form-control form-control-lg fw-bold text-success" placeholder="0" required oninput="calculateFuelMetrics()">
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="font-weight-bold text-muted">Kalkulasi Otomatis</label>
-                            <div class="p-2 bg-light border rounded">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-muted">Kalkulasi Otomatis</label>
+                            <div class="p-2 bg-light border rounded-3">
                                 <div class="small d-flex justify-content-between mb-1">
                                     <span>Rp / Liter:</span>
                                     <strong id="calc_price_per_liter">-</strong>
@@ -526,57 +512,55 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Lokasi SPBU / Nama SPBU</label>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Lokasi SPBU / Nama SPBU</label>
                             <input type="text" name="Gas_Station" class="form-control" placeholder="Contoh: SPBU Pertamina 31.xxx / Jl. Sudirman">
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Metode Pembayaran</label>
-                            <select name="Payment_Method" class="form-control">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Metode Pembayaran</label>
+                            <select name="Payment_Method" class="form-select">
                                 <option value="MyPertamina">MyPertamina / QRIS</option>
                                 <option value="Reimburse">Reimburse Karyawan</option>
                                 <option value="Kasbon Operasional">Kasbon Operasional (GA/Finance)</option>
                                 <option value="Kartu Armada (Corporate Card)">Kartu Armada (Corporate Card)</option>
                             </select>
                         </div>
-                    </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Upload Foto Struk / Nota BBM</label>
-                            <input type="file" name="Receipt_Photo" class="form-control-file" accept="image/*" onchange="previewImage(this, 'preview_receipt')">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Upload Foto Struk / Nota BBM</label>
+                            <input type="file" name="Receipt_Photo" class="form-control" accept="image/*" onchange="previewImage(this, 'preview_receipt')">
                             <div class="mt-2">
                                 <img id="preview_receipt" src="" style="max-height: 100px; display: none; border-radius: 6px; border: 1px solid #ccc;">
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold">Upload Foto Odometer (Opsional)</label>
-                            <input type="file" name="Odometer_Photo" class="form-control-file" accept="image/*" onchange="previewImage(this, 'preview_fuel_odo')">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Upload Foto Odometer (Opsional)</label>
+                            <input type="file" name="Odometer_Photo" class="form-control" accept="image/*" onchange="previewImage(this, 'preview_fuel_odo')">
                             <div class="mt-2">
                                 <img id="preview_fuel_odo" src="" style="max-height: 100px; display: none; border-radius: 6px; border: 1px solid #ccc;">
                             </div>
                         </div>
-                    </div>
 
-                    <div class="custom-control custom-checkbox mb-2">
-                        <input type="checkbox" class="custom-control-input" id="check_full_tank" name="Full_Tank" value="1" checked>
-                        <label class="custom-control-label small font-weight-bold text-muted" for="check_full_tank">
-                            Pengisian Full Tank (Disarankan dicentang agar rasio efisiensi KM/L akurat)
-                        </label>
-                    </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="check_full_tank" name="Full_Tank" value="1" checked>
+                                <label class="form-check-label small fw-bold text-muted" for="check_full_tank">
+                                    Pengisian Full Tank (Disarankan dicentang agar rasio efisiensi KM/L akurat)
+                                </label>
+                            </div>
+                        </div>
 
-                    <div class="form-group mb-0">
-                        <label class="font-weight-bold">Catatan</label>
-                        <input type="text" name="Notes" class="form-control" placeholder="Catatan tambahan...">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Catatan</label>
+                            <input type="text" name="Notes" class="form-control" placeholder="Catatan tambahan...">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light py-2">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                    <button type="submit" id="btnSubmitNewFuel" class="btn btn-success font-weight-bold">
-                        <i class="feather icon-check mr-1"></i> Simpan Catatan BBM
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" id="btnSubmitNewFuel" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm">
+                        <i class="fe fe-check me-1"></i> Simpan Catatan BBM
                     </button>
                 </div>
             </div>
@@ -584,7 +568,7 @@
     </div>
 </div>
 
-<!-- SCRIPTS: DHTMLX + CHART.JS + CONTROLLER LOGIC -->
+<!-- SCRIPTS: DHTMLX + CHART.JS + BOOTSTRAP 5 CONTROLLER LOGIC -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
@@ -596,20 +580,30 @@ var CHART_EFFICIENCY = null;
 var CURRENT_VEHICLE_INFO = null;
 var FINISH_START_KM = 0;
 
+// Modal instances helper
+function getBsModal(id) {
+    var el = document.getElementById(id);
+    if (!el) return null;
+    return bootstrap.Modal.getOrCreateInstance(el);
+}
+
 $(document).ready(function() {
     initLogbookGrid();
     initFuelGrid();
     loadKPIData();
 
-    // Trigger tab resize bila berpindah tab agar grid dhtmlx menyesuaikan lebar
-    $('a[data-toggle="pill"]').on('shown.bs.tab', function (e) {
-        if (e.target.id === 'tab-logbook-btn' && GRID_LOGBOOK) {
-            GRID_LOGBOOK.setSizes();
-        } else if (e.target.id === 'tab-fuel-btn' && GRID_FUEL) {
-            GRID_FUEL.setSizes();
-        } else if (e.target.id === 'tab-analytics-btn') {
-            loadKPIData();
-        }
+    // Trigger tab resize bila berpindah tab agar grid dhtmlx menyesuaikan lebar (Bootstrap 5 event)
+    var tabEls = document.querySelectorAll('button[data-bs-toggle="pill"]');
+    tabEls.forEach(function(tabEl) {
+        tabEl.addEventListener('shown.bs.tab', function(event) {
+            if (event.target.id === 'tab-logbook-btn' && GRID_LOGBOOK) {
+                GRID_LOGBOOK.setSizes();
+            } else if (event.target.id === 'tab-fuel-btn' && GRID_FUEL) {
+                GRID_FUEL.setSizes();
+            } else if (event.target.id === 'tab-analytics-btn') {
+                loadKPIData();
+            }
+        });
     });
 });
 
@@ -695,11 +689,11 @@ function loadKPIData() {
             $('#kpi_avg_efficiency').text(Number(sum.avg_km_per_liter).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' KM/L');
 
             if (sum.avg_km_per_liter >= 10) {
-                $('#kpi_efficiency_status').html('<span class="badge badge-success">Efisiensi Sangat Baik</span>');
+                $('#kpi_efficiency_status').html('<span class="badge bg-success text-white">Efisiensi Sangat Baik</span>');
             } else if (sum.avg_km_per_liter >= 7) {
-                $('#kpi_efficiency_status').html('<span class="badge badge-warning text-dark">Efisiensi Cukup</span>');
+                $('#kpi_efficiency_status').html('<span class="badge bg-warning text-dark">Efisiensi Cukup</span>');
             } else if (sum.avg_km_per_liter > 0) {
-                $('#kpi_efficiency_status').html('<span class="badge badge-danger">Perlu Pengecekan</span>');
+                $('#kpi_efficiency_status').html('<span class="badge bg-danger text-white">Perlu Pengecekan</span>');
             } else {
                 $('#kpi_efficiency_status').text('Status: Belum ada data');
             }
@@ -711,7 +705,6 @@ function loadKPIData() {
 }
 
 function renderCharts(trendData, comparisonData) {
-    // 1. Chart Monthly Trend (KM & Liters)
     var ctxTrend = document.getElementById('chartMonthlyTrend');
     if (ctxTrend) {
         if (CHART_TREND) CHART_TREND.destroy();
@@ -763,7 +756,6 @@ function renderCharts(trendData, comparisonData) {
         });
     }
 
-    // 2. Chart Efficiency Comparison
     var ctxEff = document.getElementById('chartEfficiency');
     if (ctxEff) {
         if (CHART_EFFICIENCY) CHART_EFFICIENCY.destroy();
@@ -811,27 +803,27 @@ function renderVehicleSummaryTable(list) {
     $tbody.empty();
 
     if (!list || list.length === 0) {
-        $tbody.append('<tr><td colspan="9" class="py-3 text-muted">Tidak ada transaksi kendaraan pada filter yang dipilih.</td></tr>');
+        $tbody.append('<tr><td colspan="9" class="py-4 text-muted">Tidak ada transaksi kendaraan pada filter yang dipilih.</td></tr>');
         return;
     }
 
     list.forEach(function(item, idx) {
         var statusBadge = item.KmPerLiter >= 10 
-            ? '<span class="badge badge-success px-2 py-1">Sangat Hemat</span>'
+            ? '<span class="badge bg-success text-white px-2 py-1">Sangat Hemat</span>'
             : (item.KmPerLiter >= 7 
-                ? '<span class="badge badge-warning text-dark px-2 py-1">Normal / Cukup</span>'
+                ? '<span class="badge bg-warning text-dark px-2 py-1">Normal / Cukup</span>'
                 : (item.KmPerLiter > 0 
-                    ? '<span class="badge badge-danger px-2 py-1">Boros / Cek Servis</span>'
-                    : '<span class="badge badge-secondary px-2 py-1">-</span>'));
+                    ? '<span class="badge bg-danger text-white px-2 py-1">Boros / Cek Servis</span>'
+                    : '<span class="badge bg-secondary text-white px-2 py-1">-</span>'));
 
         var html = '<tr>' +
             '<td>' + (idx + 1) + '</td>' +
-            '<td class="font-weight-bold text-primary">' + item.Plate + '</td>' +
-            '<td class="text-left">' + item.Name + '</td>' +
+            '<td class="fw-bold text-primary">' + item.Plate + '</td>' +
+            '<td class="text-start">' + item.Name + '</td>' +
             '<td>' + Number(item.KM).toLocaleString('id-ID', { minimumFractionDigits: 1 }) + ' KM</td>' +
             '<td>' + Number(item.Liters).toLocaleString('id-ID', { minimumFractionDigits: 1 }) + ' L</td>' +
             '<td>Rp ' + Number(item.Cost).toLocaleString('id-ID') + '</td>' +
-            '<td class="font-weight-bold">' + (item.KmPerLiter > 0 ? Number(item.KmPerLiter).toFixed(2) + ' KM/L' : '-') + '</td>' +
+            '<td class="fw-bold">' + (item.KmPerLiter > 0 ? Number(item.KmPerLiter).toFixed(2) + ' KM/L' : '-') + '</td>' +
             '<td>' + (item.CostPerKM > 0 ? 'Rp ' + Number(item.CostPerKM).toLocaleString('id-ID') : '-') + '</td>' +
             '<td>' + statusBadge + '</td>' +
         '</tr>';
@@ -868,7 +860,7 @@ function openNewTripModal() {
         $('#trip_asset_no').val(selected);
         onTripVehicleChange();
     }
-    $('#modalNewTrip').modal('show');
+    getBsModal('modalNewTrip').show();
 }
 
 function onTripVehicleChange() {
@@ -891,10 +883,10 @@ function onTripVehicleChange() {
             }
 
             if (res.data.Is_On_Trip) {
-                $('#trip_vehicle_status').html('<span class="text-danger font-weight-bold"><i class="feather icon-alert-triangle mr-1"></i>Peringatan: Kendaraan ini sedang dalam perjalanan aktif (' + res.data.Active_Trip.Log_No + ')</span>');
+                $('#trip_vehicle_status').html('<span class="text-danger fw-bold"><i class="fe fe-alert-triangle me-1"></i>Peringatan: Kendaraan ini sedang dalam perjalanan aktif (' + res.data.Active_Trip.Log_No + ')</span>');
                 $('#btnSubmitNewTrip').prop('disabled', true);
             } else {
-                $('#trip_vehicle_status').html('<span class="text-success"><i class="feather icon-check mr-1"></i>Siap digunakan • Odometer terakhir: ' + res.data.Current_KM + ' KM</span>');
+                $('#trip_vehicle_status').html('<span class="text-success"><i class="fe fe-check me-1"></i>Siap digunakan • Odometer terakhir: ' + res.data.Current_KM + ' KM</span>');
                 $('#btnSubmitNewTrip').prop('disabled', false);
             }
         }
@@ -906,7 +898,7 @@ function submitNewTrip(e) {
     var form = document.getElementById('formNewTrip');
     var formData = new FormData(form);
 
-    $('#btnSubmitNewTrip').prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span>Menyimpan...');
+    $('#btnSubmitNewTrip').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...');
 
     $.ajax({
         url: BASE_OPS_URL + '-logbook-submit',
@@ -915,7 +907,7 @@ function submitNewTrip(e) {
         contentType: false,
         processData: false,
         success: function(res) {
-            $('#modalNewTrip').modal('hide');
+            getBsModal('modalNewTrip').hide();
             alert(res.message);
             refreshLogbookGrid();
             loadKPIData();
@@ -925,7 +917,7 @@ function submitNewTrip(e) {
             alert('Error: ' + msg);
         },
         complete: function() {
-            $('#btnSubmitNewTrip').prop('disabled', false).html('<i class="feather icon-check mr-1"></i> Simpan & Check-Out');
+            $('#btnSubmitNewTrip').prop('disabled', false).html('<i class="fe fe-check me-1"></i> Simpan & Check-Out');
         }
     });
 }
@@ -941,7 +933,7 @@ function finishLogbook(id, logNo, regNo, startKM) {
     $('#preview_odo_end').hide().attr('src', '');
     $('#finish_km_error').hide();
     calculateTripTotalKM();
-    $('#modalFinishTrip').modal('show');
+    getBsModal('modalFinishTrip').show();
 }
 
 function calculateTripTotalKM() {
@@ -949,12 +941,12 @@ function calculateTripTotalKM() {
     if (endKM < FINISH_START_KM) {
         $('#finish_km_error').show();
         $('#btnSubmitFinishTrip').prop('disabled', true);
-        $('#badge_calculated_km').removeClass('badge-success').addClass('badge-danger').text('Error: KM Akhir < Awal');
+        $('#badge_calculated_km').removeClass('bg-success').addClass('bg-danger').text('Error: KM Akhir < Awal');
     } else {
         $('#finish_km_error').hide();
         $('#btnSubmitFinishTrip').prop('disabled', false);
         var total = (endKM - FINISH_START_KM).toFixed(1);
-        $('#badge_calculated_km').removeClass('badge-danger').addClass('badge-success').text(Number(total).toLocaleString('id-ID') + ' KM');
+        $('#badge_calculated_km').removeClass('bg-danger').addClass('bg-success').text(Number(total).toLocaleString('id-ID') + ' KM');
     }
 }
 
@@ -963,7 +955,7 @@ function submitFinishTrip(e) {
     var form = document.getElementById('formFinishTrip');
     var formData = new FormData(form);
 
-    $('#btnSubmitFinishTrip').prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span>Menyimpan...');
+    $('#btnSubmitFinishTrip').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...');
 
     $.ajax({
         url: BASE_OPS_URL + '-logbook-finish',
@@ -972,7 +964,7 @@ function submitFinishTrip(e) {
         contentType: false,
         processData: false,
         success: function(res) {
-            $('#modalFinishTrip').modal('hide');
+            getBsModal('modalFinishTrip').hide();
             alert(res.message);
             refreshLogbookGrid();
             loadKPIData();
@@ -982,7 +974,7 @@ function submitFinishTrip(e) {
             alert('Error: ' + msg);
         },
         complete: function() {
-            $('#btnSubmitFinishTrip').prop('disabled', false).html('<i class="feather icon-check mr-1"></i> Simpan & Selesaikan');
+            $('#btnSubmitFinishTrip').prop('disabled', false).html('<i class="fe fe-check me-1"></i> Simpan & Selesaikan');
         }
     });
 }
@@ -1010,7 +1002,7 @@ function openNewFuelModal() {
         onFuelVehicleChange();
     }
     calculateFuelMetrics();
-    $('#modalNewFuel').modal('show');
+    getBsModal('modalNewFuel').show();
 }
 
 var LAST_FUEL_KM = 0;
@@ -1075,7 +1067,7 @@ function submitNewFuel(e) {
     var form = document.getElementById('formNewFuel');
     var formData = new FormData(form);
 
-    $('#btnSubmitNewFuel').prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span>Menyimpan...');
+    $('#btnSubmitNewFuel').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...');
 
     $.ajax({
         url: BASE_OPS_URL + '-fuel-submit',
@@ -1084,7 +1076,7 @@ function submitNewFuel(e) {
         contentType: false,
         processData: false,
         success: function(res) {
-            $('#modalNewFuel').modal('hide');
+            getBsModal('modalNewFuel').hide();
             alert(res.message);
             refreshFuelGrid();
             loadKPIData();
@@ -1094,7 +1086,7 @@ function submitNewFuel(e) {
             alert('Error: ' + msg);
         },
         complete: function() {
-            $('#btnSubmitNewFuel').prop('disabled', false).html('<i class="feather icon-check mr-1"></i> Simpan Catatan BBM');
+            $('#btnSubmitNewFuel').prop('disabled', false).html('<i class="fe fe-check me-1"></i> Simpan Catatan BBM');
         }
     });
 }
