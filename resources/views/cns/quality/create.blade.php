@@ -1,5 +1,6 @@
 @php
     $contracts = $contracts ?? collect();
+    $tanks = $tanks ?? collect();
     $category = $category ?? 'EXTERNAL';
 @endphp
 <div id="FormQualityControl" class="row m-1" style="display:none;">
@@ -27,6 +28,7 @@
                             <select name="QC_Type" id="create_QC_Type" class="form-control" required onchange="onQcTypeChange(this.value)">
                                 <option value="INBOUND">Inbound (Barang Masuk)</option>
                                 <option value="OUTBOUND">Outbound (Barang Keluar)</option>
+                                <option value="DAILY_QC">Daily QC</option>
                             </select>
                         </div>
                     </div>
@@ -65,6 +67,17 @@
                             <label for="create_Booking_ID" class="font-weight-bold">Nomor Booking Confirmation</label>
                             <select name="Booking_ID" id="create_Booking_ID" class="form-control">
                                 <option value="">-- Pilih Booking Confirmation --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3 daily-tank-group" style="display:none;">
+                        <div class="form-group">
+                            <label for="create_Tank_ID" class="font-weight-bold">Nama Tangki <span style="color:red;">*</span></label>
+                            <select name="Tank_ID" id="create_Tank_ID" class="form-control">
+                                <option value="">-- Pilih Tangki --</option>
+                                @foreach($tanks as $tank)
+                                    <option value="{{ $tank->id }}">{{ $tank->name }}</option>
+                                @endforeach
                             </select>
                         </div>
                     </div>
@@ -175,10 +188,19 @@
     function onQcTypeChange(val) {
         if (val === 'OUTBOUND') {
             $('.outbound-contract-group').show();
-        } else {
+            $('.daily-tank-group').hide();
+            $('#create_Tank_ID').val('');
+        } else if (val === 'DAILY_QC') {
+            $('.daily-tank-group').show();
             $('.outbound-contract-group').hide();
             $('#create_Contract_ID').val('');
             $('#create_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+        } else {
+            $('.outbound-contract-group').hide();
+            $('.daily-tank-group').hide();
+            $('#create_Contract_ID').val('');
+            $('#create_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+            $('#create_Tank_ID').val('');
         }
     }
 
@@ -186,6 +208,7 @@
         $('#FormQualityControl').hide();
         $('#QualityControlForm')[0].reset();
         $('#create_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+        $('#create_Tank_ID').val('');
         qcParamKeys.forEach(function(key) {
             $('#create_avg_' + key).val('-');
         });
@@ -232,6 +255,11 @@
 
         if (!createdAt) {
             alert('Tanggal Pemeriksaan wajib diisi');
+            return;
+        }
+
+        if (qcType === 'DAILY_QC' && !form.Tank_ID.value) {
+            alert('Nama Tangki wajib dipilih untuk Daily QC');
             return;
         }
 

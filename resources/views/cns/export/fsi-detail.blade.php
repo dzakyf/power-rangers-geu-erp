@@ -197,13 +197,13 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                                 <input type="text" name="POD" id="POD" value="{{ $shipment->POD }}" class="form-control bg-white" />
                             </div>
                         </div>
-                        <div class="col-md-6 col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Product_Name">Product Name</label>
                                 <input type="text" name="Product_Name" id="Product_Name" value="{{ $shipment->Product_Name }}" class="form-control" />
                             </div>
                         </div>
-                        <div class="col-md-6 col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="HS_Code">HS Code</label>
                                 <select name="HS_Code" id="HS_Code" class="form-control bg-white" disabled>
@@ -361,7 +361,13 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
+				if (jqXHR.responseJSON && jqXHR.responseJSON.errors) {
+					alert(Object.values(jqXHR.responseJSON.errors).flat().join('\n'));
+				} else if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+					alert(jqXHR.responseJSON.message);
+				} else {
+					alert("Error Internal! Please Try again!");
+				}
 			}
 		});
 	})

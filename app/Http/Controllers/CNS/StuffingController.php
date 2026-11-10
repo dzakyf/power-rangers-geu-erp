@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CNS\StuffingContainerRequest;
+use App\Services\CNS\FlexibagInventoryService;
 use App\Services\CNS\StuffingContainerService;
 use App\Services\CNS\StuffingDeliveryOrderService;
 use App\Services\CNS\StuffingNoteService;
@@ -22,19 +23,22 @@ class StuffingController extends Controller
     protected $photos;
     protected $deliveryOrders;
     protected $reports;
+    protected $flexibag;
 
     public function __construct(
         StuffingContainerService $containers,
         StuffingNoteService $notes,
         StuffingPhotoService $photos,
         StuffingDeliveryOrderService $deliveryOrders,
-        StuffingReportService $reports
+        StuffingReportService $reports,
+        FlexibagInventoryService $flexibag
     ) {
         $this->containers = $containers;
         $this->notes = $notes;
         $this->photos = $photos;
         $this->deliveryOrders = $deliveryOrders;
         $this->reports = $reports;
+        $this->flexibag = $flexibag;
     }
 
     public function indexStuffing()
@@ -398,6 +402,16 @@ class StuffingController extends Controller
 
         abort_if(!$schedule, 404);
 
+        if ((int) $schedule->Checklist_Done_Kapal_Berangkat === 1) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Status pengiriman sudah final (Done/Kapal Berangkat). Checklist terkunci dan tidak dapat diubah lagi.',
+            ], 422);
+        }
+
+        $wasDone = (bool) $schedule->Checklist_Done_Kapal_Berangkat;
+        $isDoneNow = (bool) $request->input('Checklist_Done_Kapal_Berangkat');
+
         $fields = [
             'Checklist_Pickup_Container',
             'Checklist_Stuffing_Process',
@@ -413,6 +427,10 @@ class StuffingController extends Controller
         $schedule->Checklist_Updated_By = auth()->check() ? auth()->user()->username : 'system';
         $schedule->Checklist_Updated_Date = now();
         $schedule->save();
+
+        if (!$wasDone && $isDoneNow) {
+            $this->flexibag->recordStuffingDeduction($schedule, $schedule->Checklist_Updated_By);
+        }
 
         $this->containers->writeScheduleLog($schedule, 'CHECKLIST UPDATED');
 

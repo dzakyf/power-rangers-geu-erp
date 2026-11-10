@@ -23,32 +23,36 @@ class QualityController extends Controller
     {
         $category = 'EXTERNAL';
         $contracts = $this->getContracts();
+        $tanks = $this->getTanks();
 
-        return view('cns.quality.index', compact('contracts', 'category'));
+        return view('cns.quality.index', compact('contracts', 'category', 'tanks'));
     }
 
     public function internalIndexPage()
     {
         $category = 'INTERNAL';
         $contracts = $this->getContracts();
+        $tanks = $this->getTanks();
 
-        return view('cns.quality.index', compact('contracts', 'category'));
+        return view('cns.quality.index', compact('contracts', 'category', 'tanks'));
     }
 
     public function qualityControlIndexPage()
     {
         $category = 'ALL';
         $contracts = $this->getContracts();
+        $tanks = $this->getTanks();
 
-        return view('cns.quality.index', compact('contracts', 'category'));
+        return view('cns.quality.index', compact('contracts', 'category', 'tanks'));
     }
 
     public function insertQualityControlPage()
     {
         $contracts = $this->getContracts();
+        $tanks = $this->getTanks();
         $category = request()->query('category', 'EXTERNAL');
 
-        return view('cns.quality.create', compact('contracts', 'category'));
+        return view('cns.quality.create', compact('contracts', 'category', 'tanks'));
     }
 
     public function bookings(Request $request)
@@ -93,17 +97,44 @@ class QualityController extends Controller
         return $contracts;
     }
 
+    private function getTanks()
+    {
+        if (!Schema::hasTable('cns_master_tanks')) {
+            return collect();
+        }
+
+        $query = DB::table('cns_master_tanks')
+            ->where('status', 'ACTIVE');
+
+        if (Schema::hasColumn('cns_master_tanks', 'deleted_at')) {
+            $query->whereNull('deleted_at');
+        }
+
+        return $query->orderBy('name', 'asc')->get();
+    }
+
     public function insertQualityControl(Request $r)
     {
         $date = Carbon::parse($r->Created_At ?? $this->now)->toDateString();
         $qcCategory = strtoupper($r->input('QC_Category', 'EXTERNAL'));
         $qcType = strtoupper($r->input('QC_Type', 'INBOUND'));
-        $contractId = $r->filled('Contract_ID') ? $r->Contract_ID : null;
-        $bookingId = $r->filled('Booking_ID') ? $r->Booking_ID : null;
+        $contractId = ($qcType === 'OUTBOUND' && $r->filled('Contract_ID')) ? $r->Contract_ID : null;
+        $bookingId = ($qcType === 'OUTBOUND' && $r->filled('Booking_ID')) ? $r->Booking_ID : null;
+        $tankId = ($qcType === 'DAILY_QC' && $r->filled('Tank_ID')) ? $r->Tank_ID : null;
+
+        if ($qcType === 'DAILY_QC' && empty($tankId)) {
+            return response()->json(['status' => 'error', 'message' => 'Nama Tangki wajib dipilih untuk Daily QC'], 422);
+        }
 
         $kodeQc = $r->input('Kode_QC');
         if (empty($kodeQc)) {
-            $prefixType = ($qcType === 'OUTBOUND') ? 'OUT' : 'IN';
+            if ($qcType === 'DAILY_QC') {
+                $prefixType = 'DLY';
+            } elseif ($qcType === 'OUTBOUND') {
+                $prefixType = 'OUT';
+            } else {
+                $prefixType = 'IN';
+            }
             $prefixCat = ($qcCategory === 'INTERNAL') ? 'INT' : 'EXT';
             $datePart = Carbon::parse($date)->format('Ymd');
             $existingCount = DB::table('cns_quality_controls')
@@ -131,13 +162,14 @@ class QualityController extends Controller
             $attachmentPath = "filevendor/{$year}/{$month}/{$filename}";
         }
 
-        DB::transaction(function () use ($r, $date, $qcType, $qcCategory, $contractId, $bookingId, $kodeQc, $attachmentPath) {
+        DB::transaction(function () use ($r, $date, $qcType, $qcCategory, $contractId, $bookingId, $tankId, $kodeQc, $attachmentPath) {
             $headerPayload = [
                 'Inspection_Date' => $date,
                 'QC_Type'         => $qcType,
                 'QC_Category'     => $qcCategory,
                 'Contract_ID'     => $contractId,
                 'Booking_ID'      => $bookingId,
+                'Tank_ID'         => $tankId,
                 'Notes'           => $r->Description,
                 'Is_Deleted'      => 0,
                 'updated_at'      => $this->now,
@@ -275,6 +307,7 @@ class QualityController extends Controller
             $item->addChild('cell', $header->Inspection_Date ? Carbon::parse($header->Inspection_Date)->format('d-M-Y') : '-');
             $item->addChild('cell', $header->QC_Type);
             $item->addChild('cell', $header->QC_Category);
+            $item->addChild('cell', $header->SOURCE);
 
             // TOP (5..12)
             $item->addChild('cell', $top ? $top->FFA_As_Palmitic : null);
@@ -316,11 +349,12 @@ class QualityController extends Controller
             $item->addChild('cell', $avg ? $avg->Phosphorus      : null);
             $item->addChild('cell', $avg ? $avg->Total_Metals    : null);
 
-            // 37: Attachment, 38: Contract_ID, 39: Booking_ID, 40: QC_Category
+            // 37: Attachment, 38: Contract_ID, 39: Booking_ID, 40: QC_Category, 41: Tank_ID
             $item->addChild('cell', $attachmentLink);
             $item->addChild('cell', $header->Contract_ID);
             $item->addChild('cell', $header->Booking_ID);
             $item->addChild('cell', $header->QC_Category);
+            $item->addChild('cell', $header->Tank_ID ?? null);
 
             $counter++;
         }
@@ -340,14 +374,25 @@ class QualityController extends Controller
         }
 
         $headerId = $header->id;
+        $qcType = strtoupper($r->input('QC_Type', $header->QC_Type ?? 'INBOUND'));
+        $tankId = ($qcType === 'DAILY_QC' && $r->filled('Tank_ID')) ? $r->Tank_ID : null;
 
-        DB::transaction(function () use ($r, $headerId) {
+        if ($qcType === 'DAILY_QC' && empty($tankId)) {
+            return response()->json(['status' => 'error', 'message' => 'Nama Tangki wajib dipilih untuk Daily QC'], 422);
+        }
+
+        DB::transaction(function () use ($r, $headerId, $qcType, $tankId) {
             $headerUpdate = [
+                'QC_Type'    => $qcType,
+                'Tank_ID'    => $tankId,
                 'updated_at' => $this->now,
             ];
-            if (strtoupper($r->input('QC_Type', '')) === 'OUTBOUND') {
+            if ($qcType === 'OUTBOUND') {
                 $headerUpdate['Contract_ID'] = $r->filled('Contract_ID') ? $r->Contract_ID : null;
                 $headerUpdate['Booking_ID'] = $r->filled('Booking_ID') ? $r->Booking_ID : null;
+            } else {
+                $headerUpdate['Contract_ID'] = null;
+                $headerUpdate['Booking_ID'] = null;
             }
             DB::table('cns_quality_controls')->where('id', $headerId)->update($headerUpdate);
 
@@ -533,5 +578,118 @@ class QualityController extends Controller
         return response()->download($tempPath, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ])->deleteFileAfterSend(true);
+    }
+
+    public function getMonthlyStats(Request $r)
+    {
+        $month = $r->input('month', Carbon::now()->format('Y-m'));
+        try {
+            $startDate = Carbon::createFromFormat('Y-m', $month)->startOfMonth()->toDateString();
+            $endDate = Carbon::createFromFormat('Y-m', $month)->endOfMonth()->toDateString();
+        } catch (\Exception $e) {
+            $startDate = Carbon::now()->startOfMonth()->toDateString();
+            $endDate = Carbon::now()->endOfMonth()->toDateString();
+            $month = Carbon::now()->format('Y-m');
+        }
+
+        $query = DB::table('cns_quality_controls as qc')
+            ->join('cns_quality_control_details as d', 'd.Quality_Control_ID', '=', 'qc.id')
+            ->where('qc.Is_Deleted', 0)
+            ->where('d.Sample_Level', 'AVERAGE')
+            ->whereBetween('qc.Inspection_Date', [$startDate, $endDate]);
+
+        if ($r->filled('category') && strtoupper($r->category) !== 'ALL') {
+            $query->where('qc.QC_Category', strtoupper($r->category));
+        }
+
+        if ($r->filled('type') && strtoupper($r->type) !== 'ALL') {
+            $query->where('qc.QC_Type', strtoupper($r->type));
+        }
+
+        $raw = $query->selectRaw('
+            MIN(d.FFA_As_Palmitic) as min_ffa_palmitic,
+            MAX(d.FFA_As_Palmitic) as max_ffa_palmitic,
+            MIN(d.FFA_As_Oleic) as min_ffa_oleic,
+            MAX(d.FFA_As_Oleic) as max_ffa_oleic,
+            MIN(d.MIU) as min_miu,
+            MAX(d.MIU) as max_miu,
+            MIN(d.Sulphur) as min_sulphur,
+            MAX(d.Sulphur) as max_sulphur,
+            MIN(d.IV) as min_iv,
+            MAX(d.IV) as max_iv,
+            MIN(d.Total_Chlorides) as min_chlorides,
+            MAX(d.Total_Chlorides) as max_chlorides,
+            MIN(d.Phosphorus) as min_phosphorus,
+            MAX(d.Phosphorus) as max_phosphorus,
+            MIN(d.Total_Metals) as min_metals,
+            MAX(d.Total_Metals) as max_metals,
+            COUNT(DISTINCT qc.id) as total_tests
+        ')->first();
+
+        $params = [
+            [
+                'key'   => 'ffa_palmitic',
+                'name'  => 'FFA Palmitic',
+                'unit'  => '%',
+                'min'   => $raw && $raw->min_ffa_palmitic !== null ? (float) $raw->min_ffa_palmitic : null,
+                'max'   => $raw && $raw->max_ffa_palmitic !== null ? (float) $raw->max_ffa_palmitic : null,
+            ],
+            [
+                'key'   => 'ffa_oleic',
+                'name'  => 'FFA Oleic',
+                'unit'  => '%',
+                'min'   => $raw && $raw->min_ffa_oleic !== null ? (float) $raw->min_ffa_oleic : null,
+                'max'   => $raw && $raw->max_ffa_oleic !== null ? (float) $raw->max_ffa_oleic : null,
+            ],
+            [
+                'key'   => 'miu',
+                'name'  => 'MIU',
+                'unit'  => '%',
+                'min'   => $raw && $raw->min_miu !== null ? (float) $raw->min_miu : null,
+                'max'   => $raw && $raw->max_miu !== null ? (float) $raw->max_miu : null,
+            ],
+            [
+                'key'   => 'sulphur',
+                'name'  => 'Sulfur',
+                'unit'  => 'ppm',
+                'min'   => $raw && $raw->min_sulphur !== null ? (float) $raw->min_sulphur : null,
+                'max'   => $raw && $raw->max_sulphur !== null ? (float) $raw->max_sulphur : null,
+            ],
+            [
+                'key'   => 'iv',
+                'name'  => 'IV',
+                'unit'  => 'g I2',
+                'min'   => $raw && $raw->min_iv !== null ? (float) $raw->min_iv : null,
+                'max'   => $raw && $raw->max_iv !== null ? (float) $raw->max_iv : null,
+            ],
+            [
+                'key'   => 'chlorides',
+                'name'  => 'Chlorides',
+                'unit'  => 'ppm',
+                'min'   => $raw && $raw->min_chlorides !== null ? (float) $raw->min_chlorides : null,
+                'max'   => $raw && $raw->max_chlorides !== null ? (float) $raw->max_chlorides : null,
+            ],
+            [
+                'key'   => 'phosphorus',
+                'name'  => 'Phosphorus',
+                'unit'  => 'ppm',
+                'min'   => $raw && $raw->min_phosphorus !== null ? (float) $raw->min_phosphorus : null,
+                'max'   => $raw && $raw->max_phosphorus !== null ? (float) $raw->max_phosphorus : null,
+            ],
+            [
+                'key'   => 'metals',
+                'name'  => 'Metals',
+                'unit'  => 'ppm',
+                'min'   => $raw && $raw->min_metals !== null ? (float) $raw->min_metals : null,
+                'max'   => $raw && $raw->max_metals !== null ? (float) $raw->max_metals : null,
+            ],
+        ];
+
+        return response()->json([
+            'status'      => 'success',
+            'month'       => $month,
+            'total_tests' => $raw ? (int) $raw->total_tests : 0,
+            'parameters'  => $params,
+        ]);
     }
 }

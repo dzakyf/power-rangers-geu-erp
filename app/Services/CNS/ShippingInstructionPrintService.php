@@ -3,6 +3,7 @@
 namespace App\Services\CNS;
 
 use App\ShipmentInstruction;
+use App\User;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
 use Illuminate\Support\Facades\DB;
@@ -66,8 +67,22 @@ class ShippingInstructionPrintService
             ? $shipment->Final_SI_Date
             : $shipment->SI_Date;
 
+        $approver = $shipment->approved_by
+            ? User::find($shipment->approved_by)
+            : null;
+
+        $approverSignature = null;
+        if ($approver) {
+            $sigPath = user_signature_path($approver->id);
+            if ($sigPath && file_exists($sigPath)) {
+                $approverSignature = $this->imageFileToDataUri($sigPath);
+            }
+        }
+
         return [
             'shipment' => $shipment,
+            'approver' => $approver,
+            'approver_signature' => $approverSignature,
             'contract' => $contract,
             'schedule' => $schedule,
             'shipper' => $shipper,
@@ -76,7 +91,7 @@ class ShippingInstructionPrintService
             'destination' => $destination,
             'is_final' => $isFinal,
             'values' => [
-                'status_label' => $shipment->Status === 'FINAL' ? 'FINAL' : 'DRAFT',
+                'status_label' => in_array($shipment->Status, ['APPROVED', 'FINAL']) ? $shipment->Status : 'DRAFT',
                 'si_no' => $isFinal ? $shipment->Final_SI_No : $shipment->SI_No,
                 'si_date' => $this->formatDate($siDate),
                 'contract_no' => $this->first([
@@ -309,7 +324,12 @@ class ShippingInstructionPrintService
     {
         $file = $this->publicFile($path);
 
-        if (!$file) {
+        return $this->imageFileToDataUri($file);
+    }
+
+    private function imageFileToDataUri(?string $file): ?string
+    {
+        if (!$file || !is_file($file)) {
             return null;
         }
 

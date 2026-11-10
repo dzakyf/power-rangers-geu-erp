@@ -102,7 +102,9 @@
           $shipperLogo = $companies[$shipment->Shipper]->Logo ?? null;
           $logoPath = $shipperLogo ? public_path($shipperLogo) : null;
         @endphp
-        @if ($logoPath && is_file($logoPath) && file_exists($logoPath))
+        @if (!empty($logoDataUri))
+          <img src="{{ $logoDataUri }}" alt="Logo" width="130px" height="55px">
+        @elseif ($logoPath && is_file($logoPath) && file_exists($logoPath))
           <img src="{{ $logoPath }}" alt="Logo" width="130px" height="55px">
         @endif
       </td>
@@ -202,26 +204,25 @@
               style="border:1px solid #000;border-collapse:collapse;margin-bottom:4px;">
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">
-              {{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? 'Final ' : '' }}SI No.
+              {{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? 'Final ' : '' }}Packing List No.
             </td>
             <td class="fval" style="border-bottom:1px solid #000;">
-              {{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? $shipment->Final_SI_No : $shipment->SI_No }}
+              {{ $shipment->Packing_List_No }}
             </td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Date</td>
-            <td class="fval" style="border-bottom:1px solid #000;">{{ $shipment->SI_Date ? date('F, d Y', strtotime($shipment->SI_Date)) : '-' }}</td>
+            <td class="fval" style="border-bottom:1px solid #000;">{{ $shipment->PL_Date ? date('F, d Y', strtotime($shipment->PL_Date)) : '-' }}</td>
           </tr>
-          <tr>
-            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;vertical-align:top;padding-top:3px;">To</td>
+          <!-- <tr>
             <td class="fval" style="border-bottom:1px solid #000;vertical-align:top;padding-top:3px;height:10mm;line-height:1.35;">
               {{ $companies[$shipment->Destination_Port]->Company_Name ?? '' }}<br>
               {{ $companies[$shipment->Destination_Port]->Address ?? '' }}
             </td>
-          </tr>
+          </tr> -->
           <tr>
-            <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;">Terms of Delivery</td>
-            <td class="fval" style="border-bottom:1px solid #000;">{{ $shipment->Delivery_Terms }}</td>
+            <td class="flbl" style="border-top:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000;">Terms of Delivery</td>
+            <td class="fval" style="border-top:1px solid #000;border-bottom:1px solid #000;">{{ $shipment->Delivery_Terms }}</td>
           </tr>
           <tr>
             <td class="flbl" style="border-right:1px solid #000;">Contract No</td>
@@ -275,7 +276,7 @@
           </tr>
           <tr>
             <td style="font-size:7.5pt;padding:1px 0;">
-              Container condition: A.&nbsp;&nbsp;&nbsp;{{ Str::contains($shipment->Qty2, 'FT') ? 'Good, Clean and Suitable for Flexibag' : 'Good and Clean' }}
+              -
             </td>
           </tr>
         </table>
@@ -387,12 +388,18 @@
       <td style="padding:2px 4px;font-size:7.5pt;text-align:center;">Best Regards,</td>
     </tr>
     <tr>
-      <td style="height:12mm;padding:2px 4px;">&nbsp;</td>
+      <td style="height:15mm;padding:2px 4px;text-align:center;vertical-align:middle;">
+        @if(!empty($approverSignature) && $shipment->Status === 'APPROVED')
+          <img src="{{ $approverSignature }}" alt="Signature" style="max-height:14mm;max-width:45mm;">
+        @else
+          &nbsp;
+        @endif
+      </td>
     </tr>
     <tr>
       <td style="padding:2px 4px;font-size:7.5pt;text-align:center;">
-        <span class="sig-name">Hani Septyana</span><br>
-        <span class="sig-title">Commercial and Sustainability Manager</span>
+        <span class="sig-name">{{ $approver->Name ?? 'Hani Septyana' }}</span><br>
+        <span class="sig-title">{{ !empty($approver->Position) ? $approver->Position : 'Commercial and Sustainability Manager' }}</span>
       </td>
     </tr>
   </table>

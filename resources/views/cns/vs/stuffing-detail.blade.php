@@ -140,42 +140,45 @@
 			<div class="row">
 				<div class="col-md-4 col-12">
 					<div class="form-check">
-						<input type="checkbox" class="form-check-input" id="Checklist_Pickup_Container" {{ $vs->Checklist_Pickup_Container ? 'checked' : '' }} />
+						<input type="checkbox" class="form-check-input" id="Checklist_Pickup_Container" {{ $vs->Checklist_Pickup_Container ? 'checked' : '' }} {{ $vs->Checklist_Done_Kapal_Berangkat ? 'disabled' : '' }} />
 						<label class="form-check-label" for="Checklist_Pickup_Container">Pickup Container</label>
 					</div>
 				</div>
 				<div class="col-md-4 col-12">
 					<div class="form-check">
-						<input type="checkbox" class="form-check-input" id="Checklist_Stuffing_Process" {{ $vs->Checklist_Stuffing_Process ? 'checked' : '' }} />
+						<input type="checkbox" class="form-check-input" id="Checklist_Stuffing_Process" {{ $vs->Checklist_Stuffing_Process ? 'checked' : '' }} {{ $vs->Checklist_Done_Kapal_Berangkat ? 'disabled' : '' }} />
 						<label class="form-check-label" for="Checklist_Stuffing_Process">Stuffing Process</label>
 					</div>
 				</div>
 				<div class="col-md-4 col-12">
 					<div class="form-check">
-						<input type="checkbox" class="form-check-input" id="Checklist_Rilis_NPE" {{ $vs->Checklist_Rilis_NPE ? 'checked' : '' }} />
+						<input type="checkbox" class="form-check-input" id="Checklist_Rilis_NPE" {{ $vs->Checklist_Rilis_NPE ? 'checked' : '' }} {{ $vs->Checklist_Done_Kapal_Berangkat ? 'disabled' : '' }} />
 						<label class="form-check-label" for="Checklist_Rilis_NPE">Rilis NPE</label>
 					</div>
 				</div>
 				<div class="col-md-4 col-12">
 					<div class="form-check">
-						<input type="checkbox" class="form-check-input" id="Checklist_Get_In_CY" {{ $vs->Checklist_Get_In_CY ? 'checked' : '' }} />
+						<input type="checkbox" class="form-check-input" id="Checklist_Get_In_CY" {{ $vs->Checklist_Get_In_CY ? 'checked' : '' }} {{ $vs->Checklist_Done_Kapal_Berangkat ? 'disabled' : '' }} />
 						<label class="form-check-label" for="Checklist_Get_In_CY">Proses Get In CY</label>
 					</div>
 				</div>
 				<div class="col-md-4 col-12">
 					<div class="form-check">
-						<input type="checkbox" class="form-check-input" id="Checklist_Done_Kapal_Berangkat" {{ $vs->Checklist_Done_Kapal_Berangkat ? 'checked' : '' }} />
+						<input type="checkbox" class="form-check-input" id="Checklist_Done_Kapal_Berangkat" {{ $vs->Checklist_Done_Kapal_Berangkat ? 'checked' : '' }} {{ $vs->Checklist_Done_Kapal_Berangkat ? 'disabled' : '' }} />
 						<label class="form-check-label" for="Checklist_Done_Kapal_Berangkat">Done/Kapal Berangkat</label>
 					</div>
 				</div>
 			</div>
 			<div class="mt-3">
-				<button type="button" class="btn btn-success" id="SaveStuffingChecklist">Simpan Checklist</button>
+				<button type="button" class="btn btn-success" id="SaveStuffingChecklist" {{ $vs->Checklist_Done_Kapal_Berangkat ? 'disabled' : '' }}>Simpan Checklist</button>
 				<small class="text-muted ml-2">
 					Terakhir diubah:
 					{{ $vs->Checklist_Updated_By ?: '-' }}
 					{{ $vs->Checklist_Updated_Date ? ' / ' . date('d F Y H:i', strtotime($vs->Checklist_Updated_Date)) : '' }}
 				</small>
+				@if($vs->Checklist_Done_Kapal_Berangkat)
+					<div class="text-info mt-1"><small>Status pengiriman sudah final (Done/Kapal Berangkat). Checklist terkunci dan stok Flexi Bag otomatis terpotong.</small></div>
+				@endif
 			</div>
 		</div>
 	</div>
@@ -733,6 +736,10 @@
 			headers: {'Accept': 'application/json'},
 			success: function(response) {
 				alert(response.message || 'Checklist berhasil disimpan.');
+				if ($('#Checklist_Done_Kapal_Berangkat').is(':checked')) {
+					location.reload();
+					return;
+				}
 				refreshdataDataLog();
 				if (typeof refreshdata === 'function') {
 					refreshdata();

@@ -40,6 +40,10 @@ use App\Http\Controllers\CNS\BuyerContractController;
 use App\Http\Controllers\CNS\NonUcoSupplierController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\CNS\ISCCTraceabilityController;
+use App\Http\Controllers\CNS\MasterTankController;
+use App\Http\Controllers\CNS\FlexibagInventoryController as CNSFlexibagInventoryController;
+use App\Http\Controllers\CNS\GoodsReceiptController;
+use App\Http\Controllers\CNS\NonUcoInventoryController;
 use App\Http\Controllers\HCGA\MasterApprovalController as HCGAMasterApprovalController;
 use App\Http\Controllers\HCGA\MasterWorkCalendarController as HCGAMasterWorkCalendarController;
 use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormController;
@@ -5443,6 +5447,19 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$masterConsigneePref-detail", [MasterConsigneeController::class, "detailMasterConsignee"]);
     Route::post("$masterConsigneePref-detail-submit", [MasterConsigneeController::class, "detailMasterConsigneeSubmit"]);
 
+    $masterTankPref = "cns-master-tank";
+    Route::get("$masterTankPref", [MasterTankController::class, 'index'])->name($masterTankPref . '.index');
+    Route::get("xml-$masterTankPref", [MasterTankController::class, 'xmlData'])->name($masterTankPref . '.xml');
+    Route::get("$masterTankPref-new", [MasterTankController::class, 'newTank'])->name($masterTankPref . '.new');
+    Route::get("$masterTankPref-detail", [MasterTankController::class, 'detailTank'])->name($masterTankPref . '.detail');
+    Route::post("$masterTankPref-store", [MasterTankController::class, 'store'])->name($masterTankPref . '.store');
+    Route::get("$masterTankPref-show/{id}", [MasterTankController::class, 'show'])->name($masterTankPref . '.show');
+    Route::post("$masterTankPref-update/{id}", [MasterTankController::class, 'update'])->name($masterTankPref . '.update');
+    Route::post("$masterTankPref-delete/{id}", [MasterTankController::class, 'destroy'])->name($masterTankPref . '.delete');
+    Route::get("$masterTankPref-options", [MasterTankController::class, 'options'])->name($masterTankPref . '.options');
+    Route::get("$masterTankPref-balances", [MasterTankController::class, 'tankBalances'])->name($masterTankPref . '.balances');
+    Route::get("$masterTankPref-logs/{id}", [MasterTankController::class, 'logs'])->name($masterTankPref . '.logs');
+
     $siPref = "cns-export-shipment-instruction";
     Route::get("$siPref", [ShipmentInstructionController::class, 'indexShipmentInstruction']);
     Route::get("xml-$siPref", [ShipmentInstructionController::class, 'indexShipmentInstructionXml']);
@@ -5456,6 +5473,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$siPref-detail-get-order", [ShipmentInstructionController::class, 'getOrderDetail']);
     Route::post("$siPref-detail-submit", [ShipmentInstructionController::class, 'detailShipmentInstructionSubmit']);
     Route::post("$siPref-delete", [ShipmentInstructionController::class, 'deleteShipmentInstruction']);
+    Route::post("$siPref-approve", [ShipmentInstructionController::class, 'approveShipmentInstruction']);
 
     $fsiPref = "cns-export-final-shipment-instruction";
     Route::get("$fsiPref", [FinalShipmentInstructionController::class, 'indexFinalShipmentInstruction']);
@@ -5466,6 +5484,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$fsiPref-new-submit", [FinalShipmentInstructionController::class, 'newFinalShipmentInstructionSubmit']);
     Route::get("$fsiPref-detail", [FinalShipmentInstructionController::class, 'detailFinalShipmentInstruction']);
     Route::post("$fsiPref-detail-submit", [FinalShipmentInstructionController::class, 'detailFinalShipmentInstructionSubmit']);
+    Route::post("$fsiPref-approve", [FinalShipmentInstructionController::class, 'approveFinalShipmentInstruction']);
     Route::get("$fsiPref-create-pl", [FinalShipmentInstructionController::class, 'generatePackingList']);
     Route::get("$fsiPref-create-ci", [FinalShipmentInstructionController::class, 'generateCommercialInvoice']);
 
@@ -5478,6 +5497,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$packingListPref-new-submit", [CNSPackingListController::class, 'newPackingListSubmit']);
     Route::get("$packingListPref-detail", [CNSPackingListController::class, 'detailPackingList']);
     Route::post("$packingListPref-detail-submit", [CNSPackingListController::class, 'detailPackingListSubmit']);
+    Route::post("$packingListPref-approve", [CNSPackingListController::class, 'approvePackingList']);
 
 
 
@@ -5535,9 +5555,21 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$cnsInventoryPref-create", [UCOLogisticController::class, 'trackExportedStockCreatePage'])->name($cnsInventoryPref . '.create');
     Route::get("$cnsInventoryPref-data", [UCOLogisticController::class, 'trackStoragePelindoData'])->name($cnsInventoryPref . '.data');
     Route::get("$cnsInventoryPref-data-json", [UCOLogisticController::class, 'trackExportedStockDataJSON'])->name($cnsInventoryPref . '.data-json');
+    Route::get("$cnsInventoryPref-filter-options", [UCOLogisticController::class, 'getInventoryFilterOptions'])->name($cnsInventoryPref . '.filter-options');
     Route::post("$cnsInventoryPref-submit", [UCOLogisticController::class, 'submitStoragePelindo'])->name($cnsInventoryPref . '.submit');
     Route::post("$cnsInventoryPref-submit-edit", [UCOLogisticController::class, 'updateExportedStock'])->name($cnsInventoryPref . '.submit-edit');
     Route::delete("$cnsInventoryPref-delete", [UCOLogisticController::class, 'deleteExportedStock'])->name($cnsInventoryPref . '.delete');
+
+    $cnsFlexiPref = "cns-inventory-flexibag";
+    Route::get("$cnsFlexiPref", [CNSFlexibagInventoryController::class, 'index'])->name($cnsFlexiPref . '.index');
+    Route::get("xml-$cnsFlexiPref", [CNSFlexibagInventoryController::class, 'xmlData'])->name($cnsFlexiPref . '.xml');
+    Route::get("$cnsFlexiPref-balance", [CNSFlexibagInventoryController::class, 'balanceJson'])->name($cnsFlexiPref . '.balance');
+
+    $cnsNonUcoPref = "cns-inventory-non-uco";
+    Route::get("$cnsNonUcoPref", [NonUcoInventoryController::class, 'index'])->name($cnsNonUcoPref . '.index');
+    Route::get("xml-$cnsNonUcoPref", [NonUcoInventoryController::class, 'xmlData'])->name($cnsNonUcoPref . '.xml');
+    Route::get("$cnsNonUcoPref-balance", [NonUcoInventoryController::class, 'balanceJson'])->name($cnsNonUcoPref . '.balance');
+    Route::post("$cnsNonUcoPref-manual-mutation", [NonUcoInventoryController::class, 'manualMutation'])->name($cnsNonUcoPref . '.manual-mutation');
 
     $cnsQualityPref = "cns-quality";
     Route::get("$cnsQualityPref-external-index", [QualityController::class, 'externalIndexPage'])->name($cnsQualityPref . '.external-index');
@@ -5550,6 +5582,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::delete("$cnsQualityPref-delete", [QualityController::class, 'deleteQualityControl'])->name($cnsQualityPref . '.delete');
     Route::get("$cnsQualityPref-print", [QualityController::class, 'printQualityControl']);
     Route::get("$cnsQualityPref-bookings", [QualityController::class, 'bookings'])->name($cnsQualityPref . '.bookings');
+    Route::get("$cnsQualityPref-monthly-stats", [QualityController::class, 'getMonthlyStats'])->name($cnsQualityPref . '.monthly-stats');
 
     $salesOrderCNSPref = "cns-sales-order";
     Route::get("$salesOrderCNSPref", [CNSSalesOrderController::class, 'indexSalesOrder']);
@@ -5589,6 +5622,17 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("xml-$poPref-detail", [CNSPurchaseOrderController::class, 'detailPurchaseOrderXml']);
     Route::get("$poPref-print", [CNSPurchaseOrderController::class, 'printPurchaseOrder']);
 
+    $grPref = "$procPref-goods-receipt";
+    Route::get("$grPref", [GoodsReceiptController::class, 'index'])->name($grPref . '.index');
+    Route::get("xml-$grPref", [GoodsReceiptController::class, 'xmlData'])->name($grPref . '.xml');
+    Route::get("$grPref-create", [GoodsReceiptController::class, 'create'])->name($grPref . '.create');
+    Route::post("$grPref-store", [GoodsReceiptController::class, 'store'])->name($grPref . '.store');
+    Route::get("$grPref-po-items", [GoodsReceiptController::class, 'poItems'])->name($grPref . '.po-items');
+    Route::get("$grPref-detail/{id}", [GoodsReceiptController::class, 'detail'])->name($grPref . '.detail');
+    Route::post("$grPref-approve/{id}", [GoodsReceiptController::class, 'approve'])->name($grPref . '.approve');
+    Route::post("$grPref-void/{id}", [GoodsReceiptController::class, 'void'])->name($grPref . '.void');
+    Route::get("$grPref-print/{id}", [GoodsReceiptController::class, 'print'])->name($grPref . '.print');
+
     $buyerContractPref = "$procPref-buyer-contract";
     Route::get("$buyerContractPref", [BuyerContractController::class, 'indexBuyerContract']);
     Route::get("xml-$buyerContractPref", [BuyerContractController::class, 'indexBuyerContractXml']);
@@ -5617,6 +5661,21 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$exportAnnexPref-get-si", [CNSAnnexVIIController::class, 'getSI']);
     Route::get("$exportAnnexPref-print", [CNSAnnexVIIController::class, 'printAnnex']);
     Route::get("$exportAnnexPref-print-sample", [CNSAnnexVIIController::class, 'printAnnexSample']);
+
+    $isccTraceabilityPref = "cns-iscc-traceability";
+    Route::get("$isccTraceabilityPref-index", [ISCCTraceabilityController::class, 'index'])->name($isccTraceabilityPref . '.index');
+    Route::get("$isccTraceabilityPref-utama", [ISCCTraceabilityController::class, 'utama'])->name($isccTraceabilityPref . '.utama');
+    Route::get("$isccTraceabilityPref-utama-detail", [ISCCTraceabilityController::class, 'utamaDetail'])->name($isccTraceabilityPref . '.utama-detail');
+    Route::get("$isccTraceabilityPref-fragment-data", [ISCCTraceabilityController::class, 'fragmentData'])->name($isccTraceabilityPref . '.fragment-data');
+    Route::get("$isccTraceabilityPref-delivery-data", [ISCCTraceabilityController::class, 'deliveryData'])->name($isccTraceabilityPref . '.delivery-data');
+    Route::get("$isccTraceabilityPref-delivery-fragment-data", [ISCCTraceabilityController::class, 'deliveryFragmentData'])->name($isccTraceabilityPref . '.delivery-fragment-data');
+    Route::get("$isccTraceabilityPref-fragment-export", [ISCCTraceabilityController::class, 'exportFragments'])->name($isccTraceabilityPref . '.fragment-export');
+    Route::get("$isccTraceabilityPref-edit/{fragmentId}", [ISCCTraceabilityController::class, 'edit'])->name($isccTraceabilityPref . '.edit');
+    Route::post("$isccTraceabilityPref-update", [ISCCTraceabilityController::class, 'update'])->name($isccTraceabilityPref . '.update');
+    Route::post("$isccTraceabilityPref-photo-upload", [ISCCTraceabilityController::class, 'uploadPhoto'])->name($isccTraceabilityPref . '.photo-upload');
+    Route::post("$isccTraceabilityPref-photo-delete", [ISCCTraceabilityController::class, 'deletePhoto'])->name($isccTraceabilityPref . '.photo-delete');
+    Route::post("$isccTraceabilityPref-mark-audited", [ISCCTraceabilityController::class, 'markAudited'])->name($isccTraceabilityPref . '.mark-audited');
+    Route::get("$isccTraceabilityPref-print/{fragmentId}", [ISCCTraceabilityController::class, 'printDoc'])->name($isccTraceabilityPref . '.print');
 
     $sustainabilityPref = "cns-sustainability";
 
@@ -5779,21 +5838,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcProcurementApprovalPref-data", [HCGAProcurementApprovalController::class, 'data']);
     Route::get("$hcProcurementApprovalPref-detail", [HCGAProcurementApprovalController::class, 'detail']);
     Route::post("$hcProcurementApprovalPref-detail-submit", [HCGAProcurementApprovalController::class, 'approval']);
-
-    $isccTraceabilityPref = "cns-iscc-traceability";
-    Route::get("$isccTraceabilityPref-index", [ISCCTraceabilityController::class, 'index'])->name($isccTraceabilityPref . '.index');
-    Route::get("$isccTraceabilityPref-utama", [ISCCTraceabilityController::class, 'utama'])->name($isccTraceabilityPref . '.utama');
-    Route::get("$isccTraceabilityPref-utama-detail", [ISCCTraceabilityController::class, 'utamaDetail'])->name($isccTraceabilityPref . '.utama-detail');
-    Route::get("$isccTraceabilityPref-fragment-data", [ISCCTraceabilityController::class, 'fragmentData'])->name($isccTraceabilityPref . '.fragment-data');
-    Route::get("$isccTraceabilityPref-delivery-data", [ISCCTraceabilityController::class, 'deliveryData'])->name($isccTraceabilityPref . '.delivery-data');
-    Route::get("$isccTraceabilityPref-delivery-fragment-data", [ISCCTraceabilityController::class, 'deliveryFragmentData'])->name($isccTraceabilityPref . '.delivery-fragment-data');
-    Route::get("$isccTraceabilityPref-fragment-export", [ISCCTraceabilityController::class, 'exportFragments'])->name($isccTraceabilityPref . '.fragment-export');
-    Route::get("$isccTraceabilityPref-edit/{fragmentId}", [ISCCTraceabilityController::class, 'edit'])->name($isccTraceabilityPref . '.edit');
-    Route::post("$isccTraceabilityPref-update", [ISCCTraceabilityController::class, 'update'])->name($isccTraceabilityPref . '.update');
-    Route::post("$isccTraceabilityPref-photo-upload", [ISCCTraceabilityController::class, 'uploadPhoto'])->name($isccTraceabilityPref . '.photo-upload');
-    Route::post("$isccTraceabilityPref-photo-delete", [ISCCTraceabilityController::class, 'deletePhoto'])->name($isccTraceabilityPref . '.photo-delete');
-    Route::post("$isccTraceabilityPref-mark-audited", [ISCCTraceabilityController::class, 'markAudited'])->name($isccTraceabilityPref . '.mark-audited');
-    Route::get("$isccTraceabilityPref-print/{fragmentId}", [ISCCTraceabilityController::class, 'printDoc'])->name($isccTraceabilityPref . '.print');
 
     $hcAssetMovingPref = "$hcPref-asset-moving";
     Route::get("$hcAssetMovingPref-index", [HCGAAssetMovingController::class, 'index']);
