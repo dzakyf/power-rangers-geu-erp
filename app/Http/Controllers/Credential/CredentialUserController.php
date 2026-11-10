@@ -65,6 +65,7 @@ class CredentialUserController extends Controller
                 'posisi' => $u->Priv_ID,
                 'status' => $u->Status,
                 'priv_id' => $u->Priv_ID,
+                'signature' => !empty($u->signature) ? asset('filevendor/' . $u->signature) : null,
             ];
             $index++;
         }
@@ -208,6 +209,21 @@ class CredentialUserController extends Controller
             }
         }
 
+        if ($request->hasFile('signature')) {
+            $file = $request->file('signature');
+            $fileId = app(\App\Services\UploadService::class)->storeFile(
+                $file,
+                'file',
+                'user-signature',
+                (string) $userId,
+                'Signature'
+            );
+            $path = DB::table('meta_files')->where('ID', $fileId)->value('Path');
+            if ($path) {
+                DB::table('users')->where('id', $userId)->update(['signature' => $path]);
+            }
+        }
+
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         return 'success';
@@ -237,6 +253,21 @@ class CredentialUserController extends Controller
         $allRoles = array_unique(array_merge([$primaryRole], $additionalRoles));
         $roleModels = SpatieRole::whereIn('name', $allRoles)->get();
         $user->syncRoles($roleModels);
+
+        if ($request->hasFile('signature')) {
+            $file = $request->file('signature');
+            $fileId = app(\App\Services\UploadService::class)->storeFile(
+                $file,
+                'file',
+                'user-signature',
+                (string) $userId,
+                'Signature'
+            );
+            $path = DB::table('meta_files')->where('ID', $fileId)->value('Path');
+            if ($path) {
+                DB::table('users')->where('id', $userId)->update(['signature' => $path]);
+            }
+        }
 
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         RbacService::rebuildSubMenu($user);

@@ -120,6 +120,10 @@ class UserController extends Controller
 
         $path = DB::table('meta_files')->where('ID', $fileId)->value('Path');
 
+        if ($path) {
+            DB::table('users')->where('id', $session->id)->update(['signature' => $path]);
+        }
+
         return response()->json([
             'message' => 'success',
             'url' => asset('filevendor/' . $path),

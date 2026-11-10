@@ -49,6 +49,7 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
                         <th>Location</th>
                         <th>Posisi</th>
                         <th>Status</th>
+                        <th>Signature</th>
                     </tr>
                 </thead>
             </table>
@@ -121,7 +122,7 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                         <label for="Position">Position</label>
                     <select id="Position" name="Position" class="form-control">
                         @foreach($roles as $roleName)
@@ -129,7 +130,7 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <label for="Location">Location</label>
                     <select id="Location" name="Location" class="form-control">
                         @foreach($locations as $loc)
@@ -137,7 +138,11 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4 mb-3 d-flex align-items-end">
+                <div class="col-md-3 mb-3">
+                    <label for="createSignature">Signature (Optional)</label>
+                    <input type="file" id="createSignature" name="signature" class="form-control" accept="image/png,image/jpeg,image/jpg">
+                </div>
+                <div class="col-md-3 mb-3 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary w-100">Create User</button>
                 </div>
             </div>
@@ -214,6 +219,17 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
                             <small class="text-muted">Role tambahan (Secondary Role)</small>
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label>Signature (Upload Tanda Tangan)</label>
+                            <input type="file" id="editSignature" name="signature" class="form-control" accept="image/png,image/jpeg,image/jpg">
+                            <small class="text-muted">Format: PNG, JPG (Maks. 2MB). Upload file baru untuk mengganti.</small>
+                            <div id="editSignaturePreviewWrapper" class="mt-2" style="display:none;">
+                                <div class="text-muted small mb-1">Tanda Tangan Saat Ini:</div>
+                                <img id="editSignaturePreview" src="" alt="Current Signature" style="max-height: 80px; max-width: 200px; border: 1px solid #ced4da; padding: 4px; border-radius: 4px; background: #fff;">
+                            </div>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -256,6 +272,17 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
             },
             {
                 data: 'status'
+            },
+            {
+                data: 'signature',
+                orderable: false,
+                searchable: false,
+                render: function(val) {
+                    if (val) {
+                        return '<img src="' + val + '" alt="Signature" style="max-height: 28px; max-width: 65px; background: #fff; border: 1px solid #ddd; padding: 2px; border-radius: 3px;">';
+                    }
+                    return '<span class="text-muted small">-</span>';
+                }
             }
         ],
         ordering: true,
@@ -294,6 +321,15 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
             });
         }
 
+        $('#editSignature').val('');
+        if (data.signature) {
+            $('#editSignaturePreview').attr('src', data.signature);
+            $('#editSignaturePreviewWrapper').show();
+        } else {
+            $('#editSignaturePreview').attr('src', '');
+            $('#editSignaturePreviewWrapper').hide();
+        }
+
         $('#editStatusMsg').hide().text('');
         $('#editUserModal').modal('show');
     }
@@ -323,19 +359,29 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
 
         $('#editStatusMsg').text('Saving...').css('color', 'blue').show();
 
+        var formData = new FormData();
+        formData.append('_token', '{{ csrf_token() }}');
+        formData.append('user_id', userId);
+        formData.append('name', name);
+        formData.append('email', email);
+        formData.append('location', location);
+        formData.append('status', status);
+        formData.append('primary_role', primaryRole);
+        additionalRoles.forEach(function(r) {
+            formData.append('additional_roles[]', r);
+        });
+
+        var sigFile = $('#editSignature')[0].files[0];
+        if (sigFile) {
+            formData.append('signature', sigFile);
+        }
+
         $.ajax({
             url: '{{ url("/master-credential-user-update") }}',
             method: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                user_id: userId,
-                name: name,
-                email: email,
-                location: location,
-                status: status,
-                primary_role: primaryRole,
-                additional_roles: additionalRoles
-            },
+            data: formData,
+            processData: false,
+            contentType: false,
             success: function(response) {
                 if (response.success) {
                     $('#editStatusMsg').text('Saved successfully!').css('color', 'green').show();
@@ -486,10 +532,13 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
 
     $('#createUserForm').submit(function(e) {
         e.preventDefault();
+        var formData = new FormData(this);
         $.ajax({
             url: '{{ url("/credential-create-user-submit") }}',
             type: 'POST',
-            data: $(this).serialize(),
+            data: formData,
+            processData: false,
+            contentType: false,
             success: function(res) {
                 if (res.indexOf('success') !== -1) {
                     alert('User created!');

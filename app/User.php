@@ -10,6 +10,9 @@ class User extends Authenticatable
 {
     use HasRoles, Notifiable;
 
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = 'update_at';
+
     protected $fillable = [
         'username', 'password', 'signature',
     ];

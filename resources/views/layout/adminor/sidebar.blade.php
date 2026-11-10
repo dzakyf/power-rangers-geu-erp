@@ -218,8 +218,180 @@
     </div>
 </div>
 
+<style>
+    :root {
+        --app-sidebar-width: 270px;
+    }
+
+    .app-sidebar {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        overflow: hidden !important;
+    }
+
+    .main-sidebar-header {
+        flex-shrink: 0 !important;
+    }
+
+    .main-sidemenu {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    }
+
+    .main-sidemenu::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .main-sidemenu::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .main-sidemenu::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 4px;
+    }
+
+    .main-sidemenu:hover::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Keep flyout submenus visible when sidebar is collapsed to icons */
+    @media (min-width: 992px) {
+        body.app.sidebar-mini.sidenav-toggled:not(.sidenav-toggled-open) .app-sidebar,
+        body.app.sidebar-mini.sidenav-toggled:not(.sidenav-toggled-open) .main-sidemenu {
+            overflow: visible !important;
+        }
+
+        body.app.sidebar-mini:not(.sidenav-toggled) .app-sidebar {
+            width: var(--app-sidebar-width, 270px) !important;
+            min-width: 240px;
+            max-width: 340px;
+            transition: width 0.2s ease;
+        }
+
+        body.app.sidebar-mini:not(.sidenav-toggled) .main-sidebar-header {
+            width: var(--app-sidebar-width, 270px) !important;
+            min-width: 240px;
+            max-width: 340px;
+            transition: width 0.2s ease;
+        }
+
+        body.app.sidebar-mini:not(.sidenav-toggled) .main-content.app-content {
+            margin-inline-start: var(--app-sidebar-width, 270px) !important;
+            transition: margin-inline-start 0.2s ease;
+        }
+
+        body.app.sidebar-mini:not(.sidenav-toggled) .side-header {
+            padding-inline-start: var(--app-sidebar-width, 270px) !important;
+            transition: padding-inline-start 0.2s ease;
+        }
+    }
+
+    .main-sidemenu .side-menu__label {
+        white-space: normal !important;
+        word-break: break-word;
+        line-height: 1.35;
+        padding-right: 8px;
+    }
+
+    .main-sidemenu .slide-item {
+        height: auto !important;
+        min-height: 34px;
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+        padding-right: 15px !important;
+        line-height: 1.35;
+    }
+
+    .main-sidemenu .sub-side-menu__label {
+        white-space: normal !important;
+        word-break: break-word;
+        line-height: 1.35;
+        padding-right: 6px;
+    }
+
+    .main-sidemenu .slide-menu .sub-side-menu__item {
+        white-space: normal !important;
+        word-break: break-word;
+        line-height: 1.35;
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+        padding-right: 15px !important;
+    }
+
+    .main-sidemenu .side-menu__item {
+        display: flex;
+        align-items: center;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+    }
+
+    .main-sidemenu .angle,
+    .main-sidemenu .sub-angle {
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+</style>
+
 <script>
     (function () {
+        function syncSidebarWidth() {
+            if (window.innerWidth < 992 || document.body.classList.contains('sidenav-toggled')) {
+                return;
+            }
+            var labels = document.querySelectorAll(
+                '.main-sidemenu .side-menu__label, .main-sidemenu .sub-side-menu__label, .main-sidemenu .sub-side-menu__item'
+            );
+            if (!labels.length) return;
+
+            var tester = document.createElement('span');
+            tester.style.position = 'absolute';
+            tester.style.visibility = 'hidden';
+            tester.style.whiteSpace = 'nowrap';
+            tester.style.font = window.getComputedStyle(labels[0]).font;
+            document.body.appendChild(tester);
+
+            var maxNeeded = 250;
+            labels.forEach(function (el) {
+                var txt = (el.textContent || '').trim();
+                if (!txt) return;
+                tester.innerText = txt;
+                var w = tester.offsetWidth;
+
+                var extra = 95;
+                if (el.classList.contains('sub-side-menu__item')) {
+                    extra = 90;
+                } else if (el.classList.contains('sub-side-menu__label')) {
+                    extra = 100;
+                } else if (el.classList.contains('side-menu__label')) {
+                    extra = 100;
+                }
+                var total = w + extra;
+                if (total > maxNeeded) {
+                    maxNeeded = total;
+                }
+            });
+            document.body.removeChild(tester);
+
+            var target = Math.max(250, Math.min(Math.ceil(maxNeeded), 320));
+            document.documentElement.style.setProperty('--app-sidebar-width', target + 'px');
+        }
+
+        function scrollToActiveMenu() {
+            var activeItem = document.querySelector(
+                '.main-sidemenu .sub-side-menu__item.active, .main-sidemenu .slide-item.active, .main-sidemenu .side-menu__item.active'
+            );
+            if (activeItem) {
+                activeItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+        }
+
         function keepActiveMenuOpen() {
             var activeItems = document.querySelectorAll('.main-sidemenu .sub-side-menu__item.active, .main-sidemenu .slide-item.active');
             activeItems.forEach(function (el) {
@@ -247,10 +419,19 @@
                 }
             });
         }
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', keepActiveMenuOpen);
-        } else {
+
+        function initSidebar() {
             keepActiveMenuOpen();
+            syncSidebarWidth();
+            setTimeout(scrollToActiveMenu, 150);
         }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSidebar);
+        } else {
+            initSidebar();
+        }
+
+        window.addEventListener('resize', syncSidebarWidth);
     })();
 </script>
