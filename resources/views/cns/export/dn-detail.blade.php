@@ -2,8 +2,10 @@
 
 use Illuminate\Support\Facades\Auth;
 
-$LSP = Auth::user()->Location;
-$Saya = Auth::user()->username;
+$LSP = Auth::user()->Location ?? '';
+$Saya = Auth::user()->username ?? '';
+$companiesKeyed = collect($companies)->keyBy('Supplier_ID');
+$consigneeAddr = !empty($dn->Consignee_Address) ? $dn->Consignee_Address : ($companiesKeyed->get($dn->Consignee)->Address ?? '');
 
 ?>
 <div class="mt-3">
@@ -21,6 +23,17 @@ $Saya = Auth::user()->username;
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
+                                <label for="Shipper">Entitas Penerbit</label>
+                                <select name="Shipper" id="Shipper" class="form-control shadow-sm" required>
+                                    <option value="">-- Pilih Entitas Penerbit --</option>
+                                    @foreach ($companies as $c)
+                                        <option value="{{ $c->Supplier_ID }}" {{ ($dn->Shipper ?? '') == $c->Supplier_ID ? 'selected' : '' }}>{{ $c->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
                                 <label for="Delivery_Date">Date of Delivery / Issue</label>
                                 <input type="text" name="Delivery_Date" id="Delivery_Date" value="{{ $dn->Delivery_Date }}" class="form-control shadow-sm" required />
                             </div>
@@ -31,9 +44,13 @@ $Saya = Auth::user()->username;
                                 <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $c)
-                                        <option value="{{ $c->Supplier_ID }}" {{ $dn->Consignee == $c->Supplier_ID ? 'selected' : '' }}>{{ $c->Company_Name }}</option>
+                                        <option value="{{ $c->Supplier_ID }}" data-address="{{ $c->Address }}" {{ $dn->Consignee == $c->Supplier_ID ? 'selected' : '' }}>{{ $c->Company_Name }}</option>
                                     @endforeach
                                 </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="Consignee_Address">Consignee Address</label>
+                                <textarea name="Consignee_Address" id="Consignee_Address" rows="2" class="text-black form-control" placeholder="Alamat Consignee">{{ $consigneeAddr }}</textarea>
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -93,6 +110,18 @@ $Saya = Auth::user()->username;
     var myCalendarDNDtl;
     myCalendarDNDtl = new dhtmlXCalendarObject(["Delivery_Date"]);
     myCalendarDNDtl.setDateFormat("%Y-%m-%d");
+
+    function updateAddressFromSelectedCompany(selectSelector, addressSelector) {
+        var selectedOpt = $(selectSelector).find('option:selected');
+        var addr = selectedOpt.data('address');
+        if (typeof addr !== 'undefined') {
+            $(addressSelector).val(addr || '');
+        }
+    }
+
+    $('#Consignee').on('change', function () {
+        updateAddressFromSelectedCompany('#Consignee', '#Consignee_Address');
+    });
 
     $('#UpdateDN').click(function () {
         var inputValues = [];

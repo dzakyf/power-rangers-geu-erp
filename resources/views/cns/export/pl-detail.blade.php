@@ -6,6 +6,20 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 
 ?>
+@php
+    $selectedSi = $selectedSi ?? ($fsis->firstWhere('Final_SI_No', $pl->Final_SI_No) ?? null);
+    if (!$selectedSi && !empty($pl->Final_SI_No)) {
+        $selectedSi = \App\ShipmentInstruction::where('Final_SI_No', $pl->Final_SI_No)->first();
+    }
+    if (!$selectedSi && !empty($pl->SI_No)) {
+        $selectedSi = \App\ShipmentInstruction::where('SI_No', $pl->SI_No)->first();
+    }
+    $productName = !empty($pl->Product_Name) ? $pl->Product_Name : ($selectedSi->Product_Name ?? '');
+    $approvedByVal = $pl->approved_by ?: ($selectedSi->approved_by ?? null);
+    $containers = $containers ?? ($selectedSi ? \App\VesselScheduleDtl::active()->where('SI_No', $selectedSi->SI_No)->get() : collect());
+    $qty1 = (int) ($pl->Qty1 ?: ($selectedSi->Qty1 ?? ($containers->isNotEmpty() ? $containers->count() : 1)));
+    $users = $users ?? \App\User::where('Status', 'ACTIVE')->orderBy('Name')->get();
+@endphp
 <div class="mt-3">
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">DETAIL PACKING LIST</div>
 	<div class="card">
@@ -112,13 +126,8 @@ use Illuminate\Database\Eloquent\Builder;
                         </div>
                         <div class="col-3">
                             <div class="form-group">
-                                <label for="Destination_Letter">Destination Letter</label>
-                                <select name="Destination_Letter" id="Destination_Letter" class="form-control shadow-sm" required>
-                                    <option value="">-- Pilih Destination Letter --</option>
-                                    @foreach ($companies as $destination_Letter)
-                                        <option value="{{ $destination_Letter->Supplier_ID }}" {{ $pl->Destination_Letter ? 'selected' : '' }}>{{ $destination_Letter->Company_Name }}</option>
-                                    @endforeach
-                                </select>
+                                <label for="Destination_Port">Destination Port</label>
+                                <input type="text" id="Destination_Port" name="Destination_Port" class="form-control" value="{{ $pl->Destination_Port }}" />
                             </div>
                         </div>
                         <div class="col-4">
@@ -191,18 +200,13 @@ use Illuminate\Database\Eloquent\Builder;
                                 <input type="text" name="POD" id="POD" value="{{ $pl->POD }}" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Product_Name">Product Name</label>
-                                <select name="Product_Name" id="Product_Name" class="form-control shadow-sm">
-                                    <option value="">-- Pilih Product --</option>
-                                    @foreach ($masProducts as $item)
-                                    <option value="{{ $item->description }}" {{ $pl->Product_Name == $item->description ? 'selected' : '' }}>{{ $item->description }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" name="Product_Name" id="Product_Name" value="{{ $productName }}" class="text-black form-control" />
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="HS_Code">HS Code</label>
                                 <select name="HS_Code" id="HS_Code" class="form-control shadow-sm">
@@ -214,10 +218,32 @@ use Illuminate\Database\Eloquent\Builder;
                         </div>
                         <div class="col-12">
                             <div class="row no-gutters" id="containerList">
-                                <label for="Container1">Container</label>
-                                <select name="Container1" id="Container1" class="form-control shadow-sm">
-                                    <option value="">-- Pilih Container --</option>
-                                </select>
+                                @if ($containers->isNotEmpty())
+                                    @for ($counter = 1; $counter <= $qty1; $counter++)
+                                        <div class="col-12 mb-2">
+                                            <div class="form-group">
+                                                <label for="Container{{ $counter }}">Container {{ $counter }}</label>
+                                                <select name="Container{{ $counter }}" id="Container{{ $counter }}" class="form-control shadow-sm">
+                                                    <option value="">-- Pilih Container --</option>
+                                                    @foreach ($containers as $cIdx => $container)
+                                                        <option value="{{ $container->ID }}" {{ ($cIdx + 1) == $counter ? 'selected' : '' }}>
+                                                            {{ $container->Container }} ({{ $container->Seal }})
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                    @endfor
+                                @else
+                                    <div class="col-12 mb-2">
+                                        <div class="form-group">
+                                            <label for="Container1">Container 1</label>
+                                            <select name="Container1" id="Container1" class="form-control shadow-sm">
+                                                <option value="">-- Pilih Container --</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                         <div class="col-12">
@@ -227,7 +253,7 @@ use Illuminate\Database\Eloquent\Builder;
 				</div>
 			</div>
 			<div id="divtom" class="mt-3">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit SI" class="btn btn-success mt-2 mr-2" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Save Packing List" class="btn btn-success mt-2 mr-2" />
 			</div>
 		</div>
 	</div>
@@ -266,8 +292,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 	// }
 
-    $('#Final_SI_No').on('change', function() {
-        // refreshdata();  
+    function populateSiData(siNo) {
+        if (!siNo) return;
         $.blockUI();
         $.ajax({
 			headers: {
@@ -277,7 +303,7 @@ use Illuminate\Database\Eloquent\Builder;
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
-                SI_No: $('#Final_SI_No').find('option:selected').val()
+                SI_No: siNo
             },
             success: function(response) {
                 Object.keys(response).forEach(function(key) {
@@ -288,10 +314,13 @@ use Illuminate\Database\Eloquent\Builder;
                 $('#containerList').html('');
                 let counter = 1;
                 let string = "";
-                response.orderDetails.forEach(function(container, index) {
-                    string += `<option value="${container.ID}">${container.Container} (${container.Seal})</option>`;
-                });
-                while (counter <= response.Qty1) {
+                if (response.orderDetails && response.orderDetails.length > 0) {
+                    response.orderDetails.forEach(function(container, index) {
+                        string += `<option value="${container.ID}">${container.Container} (${container.Seal})</option>`;
+                    });
+                }
+                let maxQty = parseInt(response.Qty1, 10) || (response.orderDetails ? response.orderDetails.length : 1);
+                while (counter <= maxQty) {
                     $('#containerList').append(`
                     <div class="col-12 mb-2">
                         <div class="form-group">
@@ -306,7 +335,7 @@ use Illuminate\Database\Eloquent\Builder;
                     counter++;
                 }
                 for (let i = 1; i < counter; i++) {
-                    $('#Container' + i).find("option:nth-child("+ (i+1) +")").attr('selected', 'selected')
+                    $('#Container' + i).find("option:nth-child("+ (i+1) +")").attr('selected', 'selected');
                 }
                 $.unblockUI();
             },
@@ -315,7 +344,15 @@ use Illuminate\Database\Eloquent\Builder;
                 $.unblockUI();
             }
         });
+    }
+
+    $('#Final_SI_No').on('change', function() {
+        populateSiData($(this).val());
     });
+
+    if ($('#Final_SI_No').val() && (!$('#Product_Name').val() || $('#containerList select option').length <= 1)) {
+        populateSiData($('#Final_SI_No').val());
+    }
 
 	var myCalendar;
 	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "ETD", "ETA", "SI_Date"]);
@@ -329,25 +366,27 @@ use Illuminate\Database\Eloquent\Builder;
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "cns-export-packing-list-new-submit?_token={{ csrf_token() }}",
+			url: "cns-export-packing-list-detail-submit?_token={{ csrf_token() }}&id={{ $pl->id }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {
-				var dataPos = data.indexOf("success");
-				if (dataPos != '-1') {
-					var cariAWB = data.split(":");
-					alert('Data Announcement Submitted!');
-
-					// location.href = "partner-announcement";
+				var dataPos = (typeof data === 'string') ? data.indexOf("success") : -1;
+				if (dataPos != '-1' || (data && data.success)) {
+					alert('Data Packing List berhasil disimpan!');
                     refreshdata();
-                    $('#divlistOpportunity').html('')
+                    $('#divlistOpportunity').html('');
 				} else {
-					alert('Announcement Failed to Submit!');
+					alert('Packing List gagal disimpan!');
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
-
+				if (jqXHR.responseJSON && jqXHR.responseJSON.errors) {
+					alert(Object.values(jqXHR.responseJSON.errors).flat().join('\n'));
+				} else if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+					alert(jqXHR.responseJSON.message);
+				} else {
+					alert("Error Internal! Please Try again!");
+				}
 			}
 		});
 	})

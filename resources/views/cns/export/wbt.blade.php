@@ -55,8 +55,7 @@ $Saya =  Auth::user()->username;
 	 {
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			window.open('cns-export-weight-bridge-ticket-print?Task=' + ShipmentInstructionID, '_blank');
-			// window.open('assets/export_fsi.docx', '_blank');
+			window.open("{{ url('cns-export-weight-bridge-ticket-print') }}?Task=" + encodeURIComponent(ShipmentInstructionID), '_blank');
 		}else {
 			alert("Pilih baris data");
 		}
@@ -71,7 +70,7 @@ $Saya =  Auth::user()->username;
 
 		ShipmentInstructionID = ShipmentInstruction.getSelectedId();
 		if (ShipmentInstructionID != null) {
-			LoadM('divlistOpportunity', 'cns-export-weight-bridge-ticket-detail?Task=' + ShipmentInstructionID);
+			LoadM('divlistOpportunity', 'cns-export-weight-bridge-ticket-detail?Task=' + encodeURIComponent(ShipmentInstructionID));
 		}else {
 			alert("Pilih baris data");
 		}

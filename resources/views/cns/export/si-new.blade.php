@@ -1,434 +1,255 @@
-<?php
-
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Builder;
-
-function getRomawi($bln)
-{
-	switch ($bln) {
-		case 1:
-			return "I";
-			break;
-		case 2:
-			return "II";
-			break;
-		case 3:
-			return "III";
-			break;
-		case 4:
-			return "IV";
-			break;
-		case 5:
-			return "V";
-			break;
-		case 6:
-			return "VI";
-			break;
-		case 7:
-			return "VII";
-			break;
-		case 8:
-			return "VIII";
-			break;
-		case 9:
-			return "IX";
-			break;
-		case 10:
-			return "X";
-			break;
-		case 11:
-			return "XI";
-			break;
-		case 12:
-			return "XII";
-			break;
-	}
-}
-
-$LSP = Auth::user()->Location;
-$Saya =  Auth::user()->username;
-$counter = DB::table("shipment_instructions")->where('SI_Date', "LIKE", date("Y-m"). "%")->count();
-
-$SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . "/" . date("Y");
-
-?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION</div>
-	<div class="card">
-		<div class="card-body">
-			<div id="ContentPages">
-				<div class="FormInput_Form_Content">
-					<div class="row">
-						<div class="col-md-4 col-12">
-							<div class="form-group">
-								<label for="Order_No">Order No</label>
-                                <select name="Order_No" id="Order_No" class="form-control shadow-sm" required>
-                                    <option value="">-- Pilih Order No --</option>
-                                    @foreach ($vss as $vs)
-                                        <option value="{{ $vs->Order_No }}">{{ $vs->Order_No }}</option>
-                                    @endforeach
-                                </select>
-							</div>
-						</div>
-						<div class="col-md-4 col-12">
-							<div class="form-group">
-								<label for="SI_No">SI No</label>
-                                <input type="text" name="SI_No" id="SI_No" value="{{ $SINo }}" class="form-control shadow-sm" required readonly />
-							</div>
-						</div>
-						<div class="col-md-4 col-12">
-							<div class="form-group">
-								<label for="SI_Date">SI Date</label>
-                                <input type="text" name="SI_Date" id="SI_Date" class="form-control bg-white shadow-sm" value="{{ date('Y-m-d') }}" required readonly/>
-							</div>
-						</div>
-						<div class="col-12">
-							<div class="form-group">
-								<label for="Qty1">Qty</label>
-								<div class="row">
-									<div class="col">
-										<select name="Qty1" id="Qty1" class="form-control shadow-sm" required>
-											<option value="">-- Pilih Qty --</option>
-											@foreach (range(1,1000) as $item)
-											<option value="{{$item}}">{{$item}}</option>
-											@endforeach
-										</select>
-									</div>
-									<div class="col">
-										<select name="Qty2" id="Qty2" class="form-control shadow-sm" required>
-											<option value="">-- Pilih Qty --</option>
-											<option value="20 FT">20 FT</option>
-											<option value="20 ISOTANK">20 ISOTANK</option>
-										</select>
-									</div>
-								</div>
-							</div>
-						</div>
-                        {{-- <div class="col-12">
+    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION</div>
+    <div class="card">
+        <div class="card-body">
+            <div id="ContentPages">
+                <div class="FormInput_Form_Content">
+                    <div class="row">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
-                                <label for="Jam">Jam</label>
-                                <div class="row">
-                                    <div class="col-6">
-                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="form-control shadow-sm" required readonly />
-                                    </div>
-                                    <div class="col-6">
-                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="form-control shadow-sm" required readonly />
-                                    </div>
-                                </div>
-                            </div>
-                        </div> --}}
-                        <div class="col-md-3 col-12">
-                            <div class="form-group">
-                                <label for="Shipper">Shipper</label>
-                                <select name="Shipper" id="Shipper" class="form-control shadow-sm" required>
-                                    <option value="">-- Pilih Shipper --</option>
-                                    @foreach ($companies as $shipper)
-                                        <option value="{{ $shipper->Supplier_ID }}">{{ $shipper->Company_Name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-12">
-                            <div class="form-group">
-                                <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
-                                    <option value="">-- Pilih Consignee --</option>
-                                    @foreach ($companies as $consignee)
-                                        <option value="{{ $consignee->Supplier_ID }}">{{ $consignee->Company_Name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-12">
-                            <div class="form-group">
-                                <label for="Notify">Notify Party</label>
-                                <select name="Notify" id="Notify" class="form-control shadow-sm" required>
-                                    <option value="">-- Pilih Notify --</option>
-                                    @foreach ($companies as $notify)
-                                        <option value="{{ $notify->Supplier_ID }}">{{ $notify->Company_Name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-12">
-                            <div class="form-group">
-                                <label for="Destination_Letter">Destination Letter</label>
-                                <select name="Destination_Letter" id="Destination_Letter" class="form-control shadow-sm" required>
-                                    <option value="">-- Pilih Destination Letter --</option>
-                                    @foreach ($companies as $destination_Letter)
-                                        <option value="{{ $destination_Letter->Supplier_ID }}">{{ $destination_Letter->Company_Name }}</option>
+                                <label for="Contract_ID">Kontrak Buyer</label>
+                                <select name="Contract_ID" id="Contract_ID" class=" text-black form-control shadow-sm" required>
+                                    <option value="">-- Pilih Kontrak --</option>
+                                    @foreach ($contracts as $contract)
+                                        <option value="{{ $contract->ID }}"
+                                            data-contract-no="{{ $contract->Contract_No }}"
+                                            data-delivery-terms="{{ $contract->Incoterms }}"
+                                            data-consignee="{{ $contract->Consignee_Code }}">
+                                            {{ $contract->Contract_No }} - {{ $contract->Buyer_Name }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
-                                <label for="Delivery_Terms">Delivery Terms</label>
-                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="" class="form-control shadow-sm" required />
+                                <label for="SI_No">SI No</label>
+                                <input type="text" name="SI_No" id="SI_No" value="{{ $SINo }}" class="text-black form-control shadow-sm" required readonly />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
+                            <div class="form-group">
+                                <label for="SI_Date">SI Date</label>
+                                <input type="date" name="SI_Date" id="SI_Date" value="{{ date('Y-m-d') }}" class="text-black form-control shadow-sm" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="Contract_No">Contract No</label>
-                                <input type="text" name="Contract_No" id="Contract_No" value="" class="form-control shadow-sm" required />
-                            </div>
-                        </div>
-                        <div class="col-md-4 col-12">
-                            <div class="form-group">
-                                <label for="Voyage">Voyage</label>
-                                <input type="text" name="Voyage" id="Voyage" value="" class="form-control shadow-sm" required />
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="ETD">ETD</label>
-                                        <input type="text" name="ETD" id="ETD" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="ETA">ETA</label>
-                                        <input type="text" name="ETA" id="ETA" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="Stuffing">Stuffing</label>
-                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
-                                    </div>
-                                </div>
+                                <input type="text" name="Contract_No" id="Contract_No" value="" class="text-black form-control shadow-sm" required />
                             </div>
                         </div>
                         <div class="col-md-6 col-12">
                             <div class="form-group">
-                                <label for="PEB_No">PEB No</label>
-                                <input type="text" name="PEB_No" id="PEB_No" value="" class="form-control shadow-sm" />
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-12">
-                            <div class="form-group">
-                                <label for="PEB_Date">PEB Date</label>
-                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ date("Y-m-d") }}" class="form-control shadow-sm" />
+                                <label for="Delivery_Terms">Delivery Terms</label>
+                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="" class="text-black form-control shadow-sm" required />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
-                                <label for="BL_No">B/L No</label>
-                                <input type="text" name="BL_No" id="BL_No" value="" class="form-control shadow-sm" />
-                            </div>
-                        </div>
-                        <div class="col-md-4 col-12">
-                            <div class="form-group">
-                                <label for="POL">Port of Loading</label>
-                                <input type="text" name="POL" id="POL" value="" class="form-control shadow-sm" />
-                            </div>
-                        </div>
-                        <div class="col-md-4 col-12">
-                            <div class="form-group">
-                                <label for="POD">Port of Discharge</label>
-                                <input type="text" name="POD" id="POD" value="" class="form-control shadow-sm" />
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-12">
-                            <div class="form-group">
-                                <label for="Product_Name">Product Name</label>
-                                <select name="Product_Name" id="Product_Name" class="form-control shadow-sm">
-                                    <option value="">-- Pilih Product --</option>
-                                    @foreach ($masProducts as $item)
-                                    <option value="{{ $item->description }}">{{ $item->description }}</option>
+                                <label for="Shipper">Shipper</label>
+                                <select name="Shipper" id="Shipper" class="text-black form-control" required>
+                                    <option value="">-- Pilih Shipper --</option>
+                                    @foreach ($companies as $shipper)
+                                        <option value="{{ $shipper->Supplier_ID }}" data-address="{{ $shipper->Address }}">{{ $shipper->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label for="Shipper_Address">Shipper Address</label>
+                                <textarea name="Shipper_Address" id="Shipper_Address" rows="2" class="text-black form-control" placeholder="Alamat Shipper"></textarea>
+                            </div>
                         </div>
-                        <div class="col-md-6 col-12">
+                        <div class="col-md-4 col-12">
+                            <div class="form-group">
+                                <label for="Consignee">Consignee</label>
+                                <select name="Consignee" id="Consignee" class="text-black form-control" required>
+                                    <option value="">-- Pilih Consignee --</option>
+                                    @foreach ($companies as $consignee)
+                                        <option value="{{ $consignee->Supplier_ID }}" data-address="{{ $consignee->Address }}">{{ $consignee->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="Consignee_Address">Consignee Address</label>
+                                <textarea name="Consignee_Address" id="Consignee_Address" rows="2" class="text-black form-control" placeholder="Alamat Consignee" value=""></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <div class="form-group">
+                                <label for="Notify">Notify Party</label>
+                                <select name="Notify" id="Notify" class="text-black form-control" required>
+                                    <option value="">-- Pilih Notify --</option>
+                                    @foreach ($companies as $notify)
+                                        <option value="{{ $notify->Supplier_ID }}" data-address="{{ $notify->Address }}">{{ $notify->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="Notify_Address">Notify Party Address</label>
+                                <textarea name="Notify_Address" id="Notify_Address" rows="2" class="text-black form-control" placeholder="Alamat Notify Party"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-12">
+                            <div class="form-group">
+                                <label for="Destination_Port">Destination Port</label>
+                                <input type="text" id="Destination_Port" name="Destination_Port" class="text-black form-control" value="" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-12">
+                            <div class="form-group">
+                                <label for="PEB_Date">PEB Date</label>
+                                <input type="date" name="PEB_Date" id="PEB_Date" value="" class="text-black form-control shadow-sm" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-12">
+                            <div class="form-group">
+                                <label for="PEB_No">PEB No</label>
+                                <input type="text" name="PEB_No" id="PEB_No" value="" class="text-black form-control shadow-sm" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-12">
+                            <div class="form-group">
+                                <label for="BL_No">B/L No</label>
+                                <input type="text" name="BL_No" id="BL_No" value="" class="text-black form-control shadow-sm" />
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <div class="form-group">
+                                <label for="Product_Name">Product Name</label>
+                                <input type="text" name="Product_Name" id="Product_Name" value="" class="text-black form-control" />
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="HS_Code">HS Code</label>
-                                <select name="HS_Code" id="HS_Code" class="form-control shadow-sm">
+                                <select name="HS_Code" id="HS_Code" class="text-black form-control shadow-sm">
                                     <option value="">-- Pilih HS Code --</option>
                                     <option value="15180090">15180090</option>
                                     <option value="15119020">15119020</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="col-12">
-                            <div class="row no-gutters" id="containerList">
-                                <label for="Container1">Container 1</label>
-                                <select name="Container1" id="Container1" class="form-control shadow-sm">
-                                    <option value="">-- Pilih Container --</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-12">
-			                {{-- <div id="ShipmentInstructionNew" style="width:auto;height:320px; background-color:white;overflow:hidden"></div> --}}
-                        </div>
-					</div>
-				</div>
-			</div>
-			<div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit SI" class="btn btn-success mt-2 mr-2" />
-			</div>
-		</div>
-	</div>
-	<div id="DivProcess"></div>
-
+                    </div>
+                </div>
+            </div>
+            <div id="divtom">
+                <input type="button" id="SubmitCustDetail" name="SubmitCustDetail" value="Create Draft SI" class="btn btn-success mt-2 mr-2" />
+            </div>
+        </div>
+    </div>
+    <div id="DivProcess"></div>
 </div>
 
 <script>
-    
-	var myCalendar;
-	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "ETD", "ETA"]);
-	myCalendar.setDateFormat("%Y-%m-%d");
+    function initShipmentInstructionSelect2(selector) {
+        $(selector).each(function() {
+            if (!$(this).is('select') || $(this).hasClass('select2-hidden-accessible')) {
+                return;
+            }
 
-    var myCalendarSIDate;
-    myCalendarSIDate = new dhtmlXCalendarObject(['SI_Date']);
-    myCalendarSIDate.setDateFormat("%Y-%m-%d");
-    myCalendarSIDate.attachEvent("onChange", function(date, state) {
-        console.log(state);
-        console.log(date);
-		if(state) {
-			date = new Date(date);
-			let year = date.getFullYear();
-			let month = date.getMonth() + 1;
-			let datenow = date.getDate();
-			date = year + "-" + String(month).padStart(2, '0') + "-" + String(datenow).padStart(2, "0");
-			$.ajax({
-				url:"cns-export-shipment-instruction-new-get-si-no",
-				type:"POST",
-				data:{_token: "{{ csrf_token() }}",date},
-				success:function(res){
-					// let data = JSON.parse(res);
-                    $('#SI_No').val(res);
-				}
-			})
-		}
-	});
+            let placeholder = $(this).find('option[value=""]').first().text() || 'Cari...';
 
-	// ShipmentInstructionNew = new dhtmlXGridObject('ShipmentInstructionNew');
-	// ShipmentInstructionNew.setImagePath("./dhtmlx/imgs/");
-	// ShipmentInstructionNew.setHeader("No, Dari Jam, Hingga Jam, Nopol, Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross (Kg), Gross (MT), Qty (Kgs) Note");
-	// ShipmentInstructionNew.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	// // ShipmentInstructionNew.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	// ShipmentInstructionNew.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,100,auto");
-	// ShipmentInstructionNew.setColAlign("center,left,left,left,left,left,right,right,right,right,right,right,left");
-	// ShipmentInstructionNew.setColSorting("int,str,str,str,str,str,int,int,int,int,int,int,str");
-	// ShipmentInstructionNew.setColTypes("ro,ed,ed,ed,ed,ed,edn,edn,edn,edn,edn,edn,ed");
-	// ShipmentInstructionNew.enableSmartRendering(true, 150);
-	// ShipmentInstructionNew.setNumberFormat("0,000", 6, ".", ",");
-	// ShipmentInstructionNew.setNumberFormat("0,000", 7, ".", ",");
-	// ShipmentInstructionNew.setNumberFormat("0,000", 8, ".", ",");
-	// ShipmentInstructionNew.setNumberFormat("0,000", 9, ".", ",");
-	// ShipmentInstructionNew.setNumberFormat("0,000", 10, ".", ",");
-	// ShipmentInstructionNew.setNumberFormat("0,000", 11, ".", ",");
-	// // ShipmentInstructionNew.attachEvent("onRowDblClicked", ShipmentInstructionNewKlik);
-	// ShipmentInstructionNew.setSkin("dhx_skyblue");
-	// ShipmentInstructionNew.init();
+            $(this).select2({
+                width: '100%',
+                placeholder: placeholder,
+                allowClear: true
+            });
+        });
+    }
 
-	// function refreshdata() {
-	// 	ShipmentInstructionNew.clearAndLoad('xml-cns-export-shipment-instruction-new?Order_No=' + $('#Order_No').find('option:selected').val());
+    function updateAddressFromSelectedCompany(selectSelector, addressSelector) {
+        var selectedOpt = $(selectSelector).find('option:selected');
+        var addr = selectedOpt.data('address');
+        if (typeof addr !== 'undefined') {
+            $(addressSelector).val(addr || '');
+        }
+    }
 
-	// }
+    $('#Shipper').on('change', function() {
+        updateAddressFromSelectedCompany('#Shipper', '#Shipper_Address');
+    });
 
-    $('#Order_No').on('change', function() {
-        // refreshdata();  
-        $.blockUI();
+    $('#Consignee').on('change', function() {
+        updateAddressFromSelectedCompany('#Consignee', '#Consignee_Address');
+    });
+
+    $('#Notify').on('change', function() {
+        updateAddressFromSelectedCompany('#Notify', '#Notify_Address');
+    });
+
+    function applyContractToSiForm() {
+        let selected = $('#Contract_ID').find('option:selected');
+
+        $('#Contract_No').val(selected.data('contract-no') || '');
+        $('#Delivery_Terms').val(selected.data('delivery-terms') || '');
+        $('#Consignee').val(selected.data('consignee') || '').trigger('change').trigger('change.select2');
+    }
+
+    $(function() {
+        initShipmentInstructionSelect2('#Contract_ID, #Shipper, #Consignee, #Notify, #Destination_Port, #HS_Code');
+    });
+
+    $('#Contract_ID').on('change', function() {
+        applyContractToSiForm();
+    });
+
+    $('#SI_Date').on('change', function() {
         $.ajax({
-			headers: {
-				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-			},
-            url: "cns-export-shipment-instruction-new-get-order",
+            url: "cns-export-shipment-instruction-new-get-si-no",
             type: "POST",
-            data: {
-                _token: "{{ csrf_token() }}",
-                Order_No: $('#Order_No').find('option:selected').val()
-            },
-            success: function(response) {
-                $('#ETA').val(response.ETA);
-                $('#ETD').val(response.ETD);
-                $('#Stuffing').val(response.Stuffing);
-                $('#POL').val(response.POL);
-                $('#POD').val(response.POD);
-                $('#Voyage').val(response.Vessel);
-                $('#Qty1').val(response.Qty1);
-                $('#Qty2').val(response.Qty2);
-                $('#containerList').html('');
-                let counter = 1;
-                let string = "";
-                response.orderDetails.forEach(function(container, index) {
-                    string += `<option value="${container.ID}">${container.Container} (${container.Seal})</option>`;
-                });
-                while (counter <= response.Qty1) {
-                    $('#containerList').append(`
-                    <div class="col-6">
-                        <div class="form-group">
-                            <label for="Container${counter}">Container ${counter}</label>
-                            <select name="Container${counter}" id="Container${counter}" class="form-control shadow-sm">
-                                <option value="">-- Pilih Container --</option>
-                        `+ string + `
-                                    </select>
-                                </div>
-                            </div>
-                    `);
-                    counter++;
-                }
-                for (let i = 1; i < counter; i++) {
-                    $('#Container' + i).find("option:nth-child("+ (i+1) +")").attr('selected', 'selected')
-                }
-                $.unblockUI();
-            },
-            error:function() {
-                alert('Error fetching order details. Please try again.');
-                $.unblockUI();
+            data: {_token: "{{ csrf_token() }}", date: $(this).val()},
+            success: function(res) {
+                $('#SI_No').val(res);
             }
         });
     });
 
-	$('#SubmitCustDetail').click(function() {
+    $('#SubmitCustDetail').click(function() {
+        let gettingVars = getAllValues();
 
-		gettingVars = getAllValues();
+        $.ajax({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            url: "cns-export-shipment-instruction-new-submit?_token={{ csrf_token() }}",
+            type: "POST",
+            data: gettingVars,
+            success: function(data) {
+                if (data.status === 'success') {
+                    alert('Draft Shipping Instruction berhasil dibuat.');
+                    if (typeof refreshdata === 'function') {
+                        refreshdata();
+                    }
+                    $('#divlistOpportunity').html('');
+                } else {
+                    alert('Draft Shipping Instruction gagal dibuat.');
+                }
+            },
+            error: function(xhr) {
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    alert(Object.values(xhr.responseJSON.errors).flat().join('\n'));
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    alert(xhr.responseJSON.message);
+                } else {
+                    alert('Error Internal! Please Try again!');
+                }
+            }
+        });
+    });
 
-		$.ajax({
-			headers: {
-				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-			},
-			url: "cns-export-shipment-instruction-new-submit?_token={{ csrf_token() }}",
-			type: "POST",
-			data: gettingVars,
-			success: function(data, textStatus, jqXHR) {
-				// var dataPos = data.indexOf("success");
-                if (data.status == 'success') {
-					var cariAWB = data.split(":");
-					alert('Data Announcement Submitted!');
-
-					// location.href = "partner-announcement";
-                    refreshdata();
-                    $('#divlistOpportunity').html('')
-				} else {
-					alert('Announcement Failed to Submit!');
-				}
-			},
-			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
-
-			}
-		});
-	})
-
-	function getAllValues() {
-		var inputValues = [];
-		$('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
-			var type = $(this).attr("type");
-			if ((type == "checkbox" || type == "radio") && this.checked) {
-				inputValues.push($(this).attr("name") + "=" + $(this).val());
-			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			} else if ($(this).is("textarea")) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			}
-		})
-		return inputValues.join('&');
-	}
+    function getAllValues() {
+        var inputValues = [];
+        $('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
+            var type = $(this).attr("type");
+            if ((type == "checkbox" || type == "radio") && this.checked) {
+                inputValues.push($(this).attr("name") + "=" + $(this).val());
+            } else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
+                inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val() ?? ''));
+            } else if ($(this).is("textarea")) {
+                inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val() ?? ''));
+            }
+        })
+        return inputValues.join('&');
+    }
 </script>

@@ -151,9 +151,9 @@ $Saya =  Auth::user()->username;
 							<input type="text" id="Voyage" name="Voyage" class="form-control" value="{{ old('Voyage', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
-							<label for="Destination_Letter">Destination Letter</label>
-							<select name="Destination_Letter" id="Destination_Letter" class="form-control">
-								<option value="">-- Select Destination Letter --</option>
+							<label for="Destination_Port">Destination Port</label>
+							<select name="Destination_Port" id="Destination_Port" class="form-control">
+								<option value="">-- Select Destination Port --</option>
 								@foreach($comps as $comp)
 									<option value="{{ $comp->Supplier_ID }}">{{ $comp->Company_Name }}</option>
 								@endforeach

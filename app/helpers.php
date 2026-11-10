@@ -43,6 +43,21 @@ if (!function_exists('user_signature_path')) {
             return null;
         }
 
+        $user = \App\User::find($userId);
+        if ($user && !empty($user->signature)) {
+            $candidates = [
+                public_path($user->signature),
+                public_path('filevendor/' . ltrim($user->signature, '/')),
+                public_path('uploads/' . ltrim($user->signature, '/')),
+                $user->signature,
+            ];
+            foreach ($candidates as $cand) {
+                if (file_exists($cand) && is_file($cand)) {
+                    return $cand;
+                }
+            }
+        }
+
         $meta = \Illuminate\Support\Facades\DB::table('meta_files')
             ->where('Topic', 'user-signature')
             ->where('Map_To', (string) $userId)
@@ -642,6 +657,32 @@ if (!function_exists('org_chart_directorats')) {
                 ->all();
         } catch (\Throwable $e) {
             return [];
+        }
+    }
+}
+
+if (!function_exists('cns_eligible_approvers')) {
+    /**
+     * Active users eligible to approve CNS export documents (SI, FSI, PL)
+     * who have a valid signature on file.
+     */
+    function cns_eligible_approvers()
+    {
+        try {
+            return \App\User::where('Status', 'ACTIVE')
+                ->orderBy('Name')
+                ->get()
+                ->filter(function ($u) {
+                    $isApproverRole = $u->username === 'admin'
+                        || (method_exists($u, 'hasRole') && ($u->hasRole('ADM') || $u->hasRole('super-admin')))
+                        || in_array($u->Priv_ID ?? '', ['ADM', 'CNS', 'SPV', 'MANAGER'])
+                        || (method_exists($u, 'can') && ($u->can('menu.SI00307.approve') || $u->can('cns.shipment_instruction.approve')));
+
+                    return $isApproverRole && !empty(user_signature_path($u->id));
+                })
+                ->values();
+        } catch (\Throwable $e) {
+            return collect();
         }
     }
 }

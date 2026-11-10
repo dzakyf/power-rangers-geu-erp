@@ -4,9 +4,8 @@
     use Illuminate\Support\Facades\Auth;
     use Illuminate\Database\Eloquent\Builder;
 
-    
-    $LSP = Auth::user()->Location;
-    $Saya =  Auth::user()->username;
+    $LSP = Auth::user()->Location ?? '';
+    $Saya =  Auth::user()->username ?? '';
 ?>
 
 <!DOCTYPE html>
@@ -146,65 +145,108 @@
         color: #555;
     }
 </style>
-<link rel="stylesheet" href="paper.css" />
+<link rel="stylesheet" href="{{ asset('paper.css') }}" />
 </head>
 <body class="A4 landscape">
-  @for($i = 0; $i < ceil(count($wbt->Details) / 2); $i++)
+@php
+    $details = $wbt->Details ?? collect();
+    $totalDetails = count($details);
+    $totalPages = max(1, (int) ceil($totalDetails / 2));
+    $shipper = $companies[$wbt->Shipper] ?? null;
+@endphp
+
+@for($i = 0; $i < $totalPages; $i++)
     <div class="sheet padding-10mm" style="padding-top:0;">
         <!-- Header -->
         <div style="margin:-1cm;margin-bottom:.1cm;margin-top:0">
-          <img src="{{$companies[$wbt->Shipper]->Letterhead}}" alt="Header" width="100%">
+            @if(!empty($shipper->Letterhead))
+                <img src="{{ asset($shipper->Letterhead) }}" alt="Header" width="100%">
+            @endif
         </div>
 
         <div class="header">
             <div class="title">WEIGHT BRIDGE TICKET</div>
+            <div style="font-size: 14px; font-weight: normal; margin-top: 4px;">{{ $wbt->WBT_No }}</div>
         </div>
         
         <table style="width:50%">
           <tr>
-            <td>Contract No</td>
-            <td>: {{ $wbt->Contract_No }}</td>
+            <td style="width: 150px;">Contract No</td>
+            <td>: {{ $wbt->Contract_No ?: '-' }}</td>
           </tr>
           <tr>
             <td>Vessel / Voyage</td>
-            <td>: {{ $wbt->Voyage }}</td>
+            <td>: {{ $wbt->Voyage ?: '-' }}</td>
           </tr>
           <tr>
             <td>Date of Departure</td>
-            <td>: {{ $wbt->Departure_Date }}</td>
+            <td>: {{ !empty($wbt->Departure_Date) ? date('d F Y', strtotime($wbt->Departure_Date)) : '-' }}</td>
           </tr>
           <tr>
             <td>B/L No</td>
-            <td>: {{ $wbt->BL_No }}</td>
+            <td>: {{ $wbt->BL_No ?: '-' }}</td>
           </tr>
         </table>
 
-        <table style="width:100%">
-          <tr>
-            <td style="text-align:center">Container ({{ $wbt->Details[$i * 2]->Container }})</td>
-            @if (isset($wbt->Details[($i * 2) + 1]))
-              <td style="text-align:center">Container ({{ $wbt->Details[($i * 2) + 1]->Container }})</td>
-            @else
-              <td style="text-align:center">&nbsp;</td>
-            @endif
-          </tr>
-          <tr>
-            <td style="text-align:center"><img src="{{ $wbt->Details[$i * 2]->Path_Loc }}" alt="" height="200px"></td>
-            @if (isset($wbt->Details[($i * 2) + 1]))
-              <td style="text-align:center"><img src="{{ $wbt->Details[($i * 2) + 1]->Path_Loc }}" alt="" height="200px"></td>
-            @else
-              <td style="text-align:center">&nbsp;</td>
-            @endif
-          </tr>
-        </table>
+        @if($totalDetails > 0)
+            <table style="width:100%">
+              <tr>
+                <td style="text-align:center; width: 50%;">
+                    <strong>Container ({{ $details[$i * 2]->Container ?? '-' }})</strong>
+                    @if(!empty($details[$i * 2]->Seal))
+                        <br><span style="font-size: 12px; color: #555;">Seal: {{ $details[$i * 2]->Seal }}</span>
+                    @endif
+                </td>
+                @if (isset($details[($i * 2) + 1]))
+                  <td style="text-align:center; width: 50%;">
+                    <strong>Container ({{ $details[($i * 2) + 1]->Container ?? '-' }})</strong>
+                    @if(!empty($details[($i * 2) + 1]->Seal))
+                        <br><span style="font-size: 12px; color: #555;">Seal: {{ $details[($i * 2) + 1]->Seal }}</span>
+                    @endif
+                  </td>
+                @else
+                  <td style="text-align:center; width: 50%;">&nbsp;</td>
+                @endif
+              </tr>
+              <tr>
+                <td style="text-align:center; vertical-align: middle;">
+                    @if(!empty($details[$i * 2]->Path_Loc))
+                        <img src="{{ asset($details[$i * 2]->Path_Loc) }}" alt="" style="max-height: 220px; max-width: 95%;">
+                    @else
+                        <div style="height: 180px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; color: #888;">
+                            No photo attached
+                        </div>
+                    @endif
+                </td>
+                @if (isset($details[($i * 2) + 1]))
+                  <td style="text-align:center; vertical-align: middle;">
+                    @if(!empty($details[($i * 2) + 1]->Path_Loc))
+                        <img src="{{ asset($details[($i * 2) + 1]->Path_Loc) }}" alt="" style="max-height: 220px; max-width: 95%;">
+                    @else
+                        <div style="height: 180px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; color: #888;">
+                            No photo attached
+                        </div>
+                    @endif
+                  </td>
+                @else
+                  <td style="text-align:center">&nbsp;</td>
+                @endif
+              </tr>
+            </table>
+        @else
+            <div style="padding: 40px; text-align: center; border: 1px dashed #ccc; color: #888; margin-top: 20px;">
+                Tidak ada foto timbangan kontainer yang terlampir.
+            </div>
+        @endif
+
         <div>
-          <table>
+          <table style="width:100%;">
             <tr>
               <td>
                 <!-- Footer -->
                 <div class="footer-fixed" style="margin-left:-1.3cm;margin-bottom:0;">
-                    @if ($companies[$wbt->Shipper]->Footer != '')
-                        <img src="{{$companies[$wbt->Shipper]->Footer}}" alt="Footer" style="width: 100%">
+                    @if (!empty($shipper->Footer))
+                        <img src="{{ asset($shipper->Footer) }}" alt="Footer" style="width: 100%">
                     @endif
                 </div>
               </td>
@@ -212,6 +254,6 @@
           </table>
         </div>
     </div>
-  @endfor
+@endfor
 </body>
 </html>
