@@ -336,76 +336,287 @@ class UCOController extends Controller
         return view('cns.inventory.create');
     }
 
+    public function getInventoryFilterOptions()
+    {
+        $warehouses = UCOStoragePelindo::whereNotNull('Asal_Warehouse')
+            ->where('Asal_Warehouse', '!=', '')
+            ->distinct()
+            ->pluck('Asal_Warehouse')
+            ->toArray();
+
+        // if (!in_array('PELINDO', $warehouses)) {
+        //     $warehouses[] = 'PELINDO';
+        // }
+        sort($warehouses);
+
+        $masterTanks = \App\MasterTank::active()->orderBy('name')->pluck('name')->toArray();
+        $legacyTanks = UCOStoragePelindo::whereNotNull('Nama_Tangki')
+            ->where('Nama_Tangki', '!=', '')
+            ->distinct()
+            ->orderBy('Nama_Tangki')
+            ->pluck('Nama_Tangki')
+            ->toArray();
+
+        $allTanks = array_values(array_unique(array_merge($masterTanks, $legacyTanks)));
+        sort($allTanks);
+
+        return response()->json([
+            'warehouses' => array_values($warehouses),
+            'tanks'      => $allTanks,
+        ]);
+    }
+
     public function trackStoragePelindoData(Request $r)
     {
-        $month = $r->query('month');
+        $startDate = $r->query('start_date');
+        $endDate   = $r->query('end_date');
+        $month     = $r->query('month');
+        $warehouse = $r->query('warehouse');
+        $tank      = $r->query('tank');
 
-        // if ($r->filled('ID')) {
-        //     return $this->trackExportedStockDataById($r);
-        // }
+        // Backward compatibility if month provided
+        if (!$startDate && !$endDate && $month) {
+            $monthCarbon = Carbon::createFromFormat('Y-m', $month);
+            $startDate = $monthCarbon->copy()->startOfMonth()->toDateString();
+            $endDate   = $monthCarbon->copy()->endOfMonth()->toDateString();
+        }
 
-        $rows = UCOStoragePelindo::when(
-            $month,
-            fn($q) =>
-            $q->whereRaw("DATE_FORMAT(Transaction_Date, '%Y-%m') = ?", [$month])
-        )
-            ->leftJoin('meta_files as mf', function ($join) {
+        $query = UCOStoragePelindo::query();
+
+        if ($startDate) {
+            $query->where('Transaction_Date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->where('Transaction_Date', '<=', $endDate);
+        }
+        if ($warehouse) {
+            $query->where(function ($q) use ($warehouse) {
+                if (strtoupper($warehouse) === 'PELINDO') {
+                    $q->where('Asal_Warehouse', 'PELINDO')
+                      ->orWhere(function ($sub) {
+                          $sub->where('Type', 'outbound')
+                              ->where(function ($s) {
+                                  $s->whereNull('Asal_Warehouse')->orWhere('Asal_Warehouse', '');
+                              });
+                      });
+                } else {
+                    $q->where('Asal_Warehouse', $warehouse);
+                }
+            });
+        }
+        if ($tank) {
+            $query->where('Nama_Tangki', $tank);
+        }
+
+        $rows = $query->leftJoin('meta_files as mf', function ($join) {
                 $join->on('uco_storage_pelindo.ID', '=', 'mf.Map_To')
                     ->where('mf.Topic', '=', 'uco-storage-pelindo');
             })
-            ->select('uco_storage_pelindo.*', 'uco_storage_pelindo.ID as Storage_Pelindo_Id', 'mf.Path as Attachment_Path')
-            ->orderBy('Transaction_Date')->get();
+            ->select(
+                'uco_storage_pelindo.*',
+                'uco_storage_pelindo.ID as Storage_Pelindo_Id',
+                DB::raw('COALESCE(uco_storage_pelindo.Notim_Path, mf.Path) as Notim_Path')
+            )
+            ->orderBy('Transaction_Date')
+            ->orderBy('ID')
+            ->get();
 
         $opening = 0;
-        if ($month) {
-            $cutoff = Carbon::createFromFormat('Y-m', $month)->startOfMonth()->toDateString();
-            $opening = UCOStoragePelindo::balanceAsOf(
-                Carbon::createFromFormat('Y-m', $month)->startOfMonth()->subDay()->toDateString()
-            );
+        if ($startDate) {
+            $opening = UCOStoragePelindo::balanceAsOf($startDate, $warehouse, $tank);
+        }
+
+        // Fetch QC for rows
+        $storageIds = $rows->pluck('Storage_Pelindo_Id')->filter()->all();
+        $qcMap = [];
+        if (!empty($storageIds)) {
+            $cnsQcHeaders = DB::table('cns_quality_controls')
+                ->where('SOURCE', 'INV')
+                ->whereIn('SOURCE_ID', $storageIds)
+                ->where('Is_Deleted', 0)
+                ->get()
+                ->keyBy('SOURCE_ID');
+
+            $cnsQcIds = $cnsQcHeaders->pluck('id')->all();
+            $cnsQcDetails = collect();
+            if (!empty($cnsQcIds)) {
+                $cnsQcDetails = DB::table('cns_quality_control_details')
+                    ->whereIn('Quality_Control_ID', $cnsQcIds)
+                    ->where('Sample_Level', 'AVERAGE')
+                    ->get()
+                    ->keyBy('Quality_Control_ID');
+            }
+
+            // Legacy fallback from uco_quality_control for rows not in cns_quality_controls
+            $missingStorageIds = array_values(array_diff($storageIds, $cnsQcHeaders->keys()->all()));
+            $legacyQcGroup = collect();
+            if (!empty($missingStorageIds)) {
+                $legacyQcGroup = DB::table('uco_quality_control as qc')
+                    ->leftJoin('meta_files as mf_qc', function ($join) {
+                        $join->on('qc.ID', '=', 'mf_qc.Map_To')
+                            ->where('mf_qc.Topic', '=', 'uco-quality-control');
+                    })
+                    ->whereIn('qc.Source_ID', $missingStorageIds)
+                    ->where('qc.Is_Deleted', '!=', 1)
+                    ->select('qc.*', 'mf_qc.Path as Meta_QC_Path')
+                    ->get()
+                    ->groupBy('Source_ID');
+            }
+
+            foreach ($storageIds as $sId) {
+                if (isset($cnsQcHeaders[$sId])) {
+                    $header = $cnsQcHeaders[$sId];
+                    $dtl = $cnsQcDetails->get($header->id);
+                    $qcMap[$sId] = [
+                        'ffa_palmitic' => ($dtl && $dtl->FFA_As_Palmitic !== null) ? number_format((float) $dtl->FFA_As_Palmitic, 2, ',', '.') . '%' : '-',
+                        'ffa_oleic'    => ($dtl && $dtl->FFA_As_Oleic !== null) ? number_format((float) $dtl->FFA_As_Oleic, 2, ',', '.') . '%' : '-',
+                        'miu'          => ($dtl && $dtl->MIU !== null) ? number_format((float) $dtl->MIU, 2, ',', '.') . '%' : '-',
+                        'sulphur'      => ($dtl && $dtl->Sulphur !== null) ? number_format((float) $dtl->Sulphur, 2, ',', '.') : '-',
+                        'iv'           => ($dtl && $dtl->IV !== null) ? number_format((float) $dtl->IV, 2, ',', '.') : '-',
+                        'chlorides'    => ($dtl && $dtl->Total_Chlorides !== null) ? number_format((float) $dtl->Total_Chlorides, 2, ',', '.') : '-',
+                        'phosphorus'   => ($dtl && $dtl->Phosphorus !== null) ? number_format((float) $dtl->Phosphorus, 2, ',', '.') : '-',
+                        'metals'       => ($dtl && $dtl->Total_Metals !== null) ? number_format((float) $dtl->Total_Metals, 2, ',', '.') : '-',
+                        'qc_path'      => $header->Attachment_Path ? preg_replace('#^filevendor/#', '', $header->Attachment_Path) : null,
+                    ];
+                } elseif (isset($legacyQcGroup[$sId])) {
+                    $group = $legacyQcGroup[$sId];
+                    $avgRow = $group->firstWhere('Type', 'AVERAGE');
+                    $ffaP = $avgRow ? $avgRow->FFA_As_Palmitic : ($group->avg('FFA_As_Palmitic'));
+                    $ffaO = $avgRow ? $avgRow->FFA_As_Oleic : ($group->avg('FFA_As_Oleic'));
+                    $mc = $avgRow ? $avgRow->MC : ($group->avg('MC'));
+                    $imp = $avgRow ? $avgRow->IMP : ($group->avg('IMP'));
+                    $miu = ($mc !== null || $imp !== null) ? ((float)($mc ?? 0) + (float)($imp ?? 0)) : null;
+                    $metaQc = $group->pluck('Meta_QC_Path')->filter()->first();
+
+                    $qcMap[$sId] = [
+                        'ffa_palmitic' => $ffaP !== null ? number_format((float) $ffaP, 2, ',', '.') . '%' : '-',
+                        'ffa_oleic'    => $ffaO !== null ? number_format((float) $ffaO, 2, ',', '.') . '%' : '-',
+                        'miu'          => $miu !== null ? number_format((float) $miu, 2, ',', '.') . '%' : '-',
+                        'sulphur'      => '-',
+                        'iv'           => '-',
+                        'chlorides'    => '-',
+                        'phosphorus'   => '-',
+                        'metals'       => '-',
+                        'qc_path'      => $metaQc,
+                    ];
+                } else {
+                    $qcMap[$sId] = [
+                        'ffa_palmitic' => '-',
+                        'ffa_oleic'    => '-',
+                        'miu'          => '-',
+                        'sulphur'      => '-',
+                        'iv'           => '-',
+                        'chlorides'    => '-',
+                        'phosphorus'   => '-',
+                        'metals'       => '-',
+                        'qc_path'      => null,
+                    ];
+                }
+            }
+        }
+
+        $monthNamesUpper = [
+            1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL',
+            5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS',
+            9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER'
+        ];
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+
+        if ($startDate) {
+            $sDate = Carbon::parse($startDate);
+            $openingLabel = 'OPENING STOCK ' . $sDate->day . ' ' . ($monthNamesUpper[$sDate->month] ?? strtoupper($sDate->format('F'))) . ' ' . $sDate->year;
+        } else {
+            $firstDate = $rows->first() ? Carbon::parse($rows->first()->Transaction_Date) : now();
+            $openingLabel = 'OPENING STOCK ' . $firstDate->day . ' ' . ($monthNamesUpper[$firstDate->month] ?? strtoupper($firstDate->format('F'))) . ' ' . $firstDate->year;
         }
 
         $xml = new SimpleXMLElement('<rows/>');
 
-        // First row: opening balance (accumulation from months before)
+        // Opening Stock row
         $r = $xml->addChild('row');
-        $r->addChild('cell', '');
-        $r->addChild('cell', 'Opening Stock');
-        $r->addChild('cell', '');
-        $r->addChild('cell', '');
-        $r->addChild('cell', '');
-        $r->addChild('cell', '');
-        $r->addChild('cell', '');
-        $r->addChild('cell', $opening);
-        $r->addChild('cell', '');
-        $r->addChild('cell', '');
-        $r->addChild('cell', '');
+        $r->addAttribute('id', 'row_opening');
+        $r->addAttribute('style', 'background-color:#FFF2CC;font-weight:bold;');
+        $cell0 = $r->addChild('cell', $openingLabel);
+        $cell0->addAttribute('colspan', '9');
+        for ($i = 0; $i < 8; $i++) {
+            $r->addChild('cell', '');
+        }
+        $r->addChild('cell', number_format($opening, 0, ',', '.'));
+        for ($i = 0; $i < 11; $i++) {
+            $r->addChild('cell', '');
+        }
 
         // Data rows — running balance starts from $opening
         $counter = 1;
         $running = $opening;
 
-
         foreach ($rows as $row) {
-            $inbound  = $row->Type === 'inbound'  ? $row->Quantity : 0;
-            $outbound = $row->Type === 'outbound' ? $row->Quantity : 0;
+            $inbound  = strtolower($row->Type) === 'inbound'  ? (float) $row->Quantity : 0;
+            $outbound = strtolower($row->Type) === 'outbound' ? (float) $row->Quantity : 0;
             $running  = $running + $inbound - $outbound;
 
+            $date = Carbon::parse($row->Transaction_Date);
+            $bulan = $monthNames[$date->month] ?? $date->format('F');
+            $tanggal = $date->format('d/m/Y');
+
+            $asalWarehouse = $row->Asal_Warehouse ?: (strtolower($row->Type) === 'outbound' ? 'PELINDO' : '-');
+            $namaTangki = $row->Nama_Tangki ?: '-';
+            $nopol = $row->Reference_Number ?? '-';
+            $qtySj = ($row->Quantity_PTU && (float) $row->Quantity_PTU > 0) ? number_format((float) $row->Quantity_PTU, 0, ',', '.') : '';
+            $inKg = $inbound > 0 ? number_format($inbound, 0, ',', '.') : '';
+            $outKg = $outbound > 0 ? number_format($outbound, 0, ',', '.') : '';
+            $stokPelindo = number_format($running, 0, ',', '.');
+            $remarks = $row->Notes ?? '';
+
+            if ($row->Notim_Path) {
+                $fileUrl = asset("filevendor/{$row->Notim_Path}");
+                $notimBadge = "<span class='badge badge-light border text-danger' style='background:#f8f9fa;border:1px solid #dee2e6!important;padding:2px 5px;border-radius:3px;'><i class='fa fa-file-pdf text-danger'></i> " . $counter . ". NOTI...</span>^" . $fileUrl . "^_blank";
+            } else {
+                $notimBadge = '-';
+            }
+
+            $qc = $qcMap[$row->Storage_Pelindo_Id] ?? [
+                'ffa_palmitic' => '-', 'ffa_oleic' => '-', 'miu' => '-',
+                'sulphur' => '-', 'iv' => '-', 'chlorides' => '-',
+                'phosphorus' => '-', 'metals' => '-', 'qc_path' => null,
+            ];
+
+            $qcPath = $row->QC_Path ?: $qc['qc_path'];
+            if ($qcPath) {
+                $qcUrl = asset("filevendor/{$qcPath}");
+                $qcBadge = "<span class='badge badge-light border text-primary' style='background:#f8f9fa;border:1px solid #dee2e6!important;padding:2px 5px;border-radius:3px;'><i class='fa fa-file-pdf text-primary'></i> QC</span>^" . $qcUrl . "^_blank";
+            } else {
+                $qcBadge = '-';
+            }
+
             $r = $xml->addChild('row');
-            $r->addAttribute('ID', $row->Storage_Pelindo_Id);
+            $r->addAttribute('id', (string) $row->Storage_Pelindo_Id);
+            $r->addAttribute('ID', (string) $row->Storage_Pelindo_Id);
             $r->addChild('cell', $counter++);
-            $r->addChild('cell', Carbon::parse($row->Transaction_Date)->format('F'));
-            $r->addChild('cell', Carbon::parse($row->Transaction_Date)->format('d-M-Y'));
-            $r->addChild('cell', 'Pelindo');
-            $r->addChild('cell', $row->Quantity_PTU);
-            $r->addChild('cell', $inbound);
-            $r->addChild('cell', $outbound);
-            $r->addChild('cell', $running);
-            $r->addChild('cell', $row->Quantity_Sounding);
-            $r->addChild('cell', $row->Notes);
-            $r->addChild('cell', $row->Created_At);
-            $r->addChild('cell', $row->Attachment_Path
-                ? 'Link^ ' . asset("filevendor/{$row->Attachment_Path}")
-                : 'Belum ada attachment');
+            $r->addChild('cell', $bulan);
+            $r->addChild('cell', $tanggal);
+            $r->addChild('cell', $asalWarehouse);
+            $r->addChild('cell', $namaTangki);
+            $r->addChild('cell', $nopol);
+            $r->addChild('cell', $qtySj);
+            $r->addChild('cell', $inKg);
+            $r->addChild('cell', $outKg);
+            $r->addChild('cell', $stokPelindo);
+            $r->addChild('cell', $remarks);
+            $r->addChild('cell', $notimBadge);
+            $r->addChild('cell', $qc['ffa_palmitic']);
+            $r->addChild('cell', $qc['ffa_oleic']);
+            $r->addChild('cell', $qc['miu']);
+            $r->addChild('cell', $qc['sulphur']);
+            $r->addChild('cell', $qc['iv']);
+            $r->addChild('cell', $qc['chlorides']);
+            $r->addChild('cell', $qc['phosphorus']);
+            $r->addChild('cell', $qc['metals']);
+            $r->addChild('cell', $qcBadge);
         }
 
         return response($xml->asXML(), 200)->header('Content-Type', 'application/xml');
@@ -465,17 +676,38 @@ class UCOController extends Controller
             $join->on('uco_storage_pelindo.ID', '=', 'mf.Map_To')
                 ->where('mf.Topic', '=', 'uco-storage-pelindo');
         })
-            ->select('uco_storage_pelindo.*', 'mf.Path as Attachment_Path')
+            ->select(
+                'uco_storage_pelindo.*',
+                DB::raw('COALESCE(uco_storage_pelindo.Notim_Path, mf.Path) as Notim_Path')
+            )
             ->where('uco_storage_pelindo.ID', '=', $r->query('ID'))
             ->first();
 
         if ($row) {
-            $qc = DB::table('uco_quality_control')
-                ->where('Source_ID', $r->query('ID'))
-                ->where('Is_Deleted', '!=', 1)
-                ->get()
-                ->keyBy(fn($q) => strtolower($q->Type));
-            $row->qc = $qc;
+            $cnsQc = DB::table('cns_quality_controls')
+                ->where('SOURCE', 'INV')
+                ->where('SOURCE_ID', $r->query('ID'))
+                ->where('Is_Deleted', 0)
+                ->first();
+
+            if ($cnsQc) {
+                $details = DB::table('cns_quality_control_details')
+                    ->where('Quality_Control_ID', $cnsQc->id)
+                    ->get()
+                    ->keyBy(fn($q) => strtolower($q->Sample_Level));
+                $row->qc = $details;
+                $row->cns_qc = $cnsQc;
+                if ($cnsQc->Attachment_Path) {
+                    $row->QC_Path = preg_replace('#^filevendor/#', '', $cnsQc->Attachment_Path);
+                }
+            } else {
+                $qc = DB::table('uco_quality_control')
+                    ->where('Source_ID', $r->query('ID'))
+                    ->where('Is_Deleted', '!=', 1)
+                    ->get()
+                    ->keyBy(fn($q) => strtolower($q->Type));
+                $row->qc = $qc;
+            }
         }
 
         return response()->json($row ? [$row] : []);
@@ -485,36 +717,110 @@ class UCOController extends Controller
     {
         DB::beginTransaction();
         try {
-            $model = UCOStoragePelindo::create($r->only([
-                'Type',
-                'Quantity',
-                'Quantity_PTU',
-                'Quantity_Sounding',
-                'Created_By',
-                'Transaction_Date',
-                'Reference_Number',
-                'Notes',
-            ]));
-
+            // 1. Upload Nota Timbang
+            $notimPath = null;
+            $notimFilename = null;
+            $notimExt = null;
             if ($r->hasFile('Attachment') && $r->file('Attachment')->isValid()) {
                 $file = $r->file('Attachment');
-                $ext = $file->getClientOriginalExtension();
+                $notimExt = $file->getClientOriginalExtension();
                 $year = now()->format('Y');
                 $month = now()->format('m');
                 $uuid = \Ramsey\Uuid\Uuid::uuid4()->toString();
-                $filename = $uuid . '.' . $ext;
-                $path = "{$year}/{$month}/{$filename}";
+                $notimFilename = $uuid . '.' . $notimExt;
+                $notimPath = "{$year}/{$month}/{$notimFilename}";
 
                 $dir = public_path("filevendor/{$year}/{$month}");
                 if (!is_dir($dir)) {
                     mkdir($dir, 0777, true);
                 }
-                $file->move($dir, $filename);
+                $file->move($dir, $notimFilename);
+            }
 
+            // 2. Upload QC Attachment
+            $qcPath = null;
+            $qcFilename = null;
+            $qcExt = null;
+            if ($r->hasFile('QC_Attachment') && $r->file('QC_Attachment')->isValid()) {
+                $qcFile = $r->file('QC_Attachment');
+                $qcExt = $qcFile->getClientOriginalExtension();
+                $year = now()->format('Y');
+                $month = now()->format('m');
+                $qcFilename = \Ramsey\Uuid\Uuid::uuid4()->toString() . '.' . $qcExt;
+                $qcPath = "{$year}/{$month}/{$qcFilename}";
+
+                $dir = public_path("filevendor/{$year}/{$month}");
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0777, true);
+                }
+                $qcFile->move($dir, $qcFilename);
+            }
+
+            // 3. Compute FFA, MC, IMP from QC parameters (top, middle, bottom)
+            $ffa = $r->input('FFA');
+            if ($ffa === null || $ffa === '') {
+                $ffaVals = [];
+                foreach (['top_', 'middle_', 'bottom_'] as $p) {
+                    $v = $r->input($p . 'FFA_As_Palmitic');
+                    if ($v === null || $v === '') {
+                        $v = $r->input($p . 'FFA_As_Oleic');
+                    }
+                    if ($v !== null && $v !== '') {
+                        $ffaVals[] = (float) $v;
+                    }
+                }
+                $ffa = !empty($ffaVals) ? round(array_sum($ffaVals) / count($ffaVals), 2) : null;
+            }
+
+            $mc = $r->input('MC');
+            if ($mc === null || $mc === '') {
+                $mcVals = [];
+                foreach (['top_', 'middle_', 'bottom_'] as $p) {
+                    $v = $r->input($p . 'MC');
+                    if ($v !== null && $v !== '') {
+                        $mcVals[] = (float) $v;
+                    }
+                }
+                $mc = !empty($mcVals) ? round(array_sum($mcVals) / count($mcVals), 2) : null;
+            }
+
+            $imp = $r->input('IMP');
+            if ($imp === null || $imp === '') {
+                $impVals = [];
+                foreach (['top_', 'middle_', 'bottom_'] as $p) {
+                    $v = $r->input($p . 'IMP');
+                    if ($v !== null && $v !== '') {
+                        $impVals[] = (float) $v;
+                    }
+                }
+                $imp = !empty($impVals) ? round(array_sum($impVals) / count($impVals), 2) : null;
+            }
+
+            // 4. Create model
+            $model = UCOStoragePelindo::create([
+                'Type'              => $r->input('Type'),
+                'Quantity'          => $r->input('Quantity'),
+                'Asal_Warehouse'    => $r->input('Asal_Warehouse'),
+                'Nama_Tangki'       => $r->input('Nama_Tangki'),
+                'Quantity_PTU'      => $r->input('Quantity_PTU'),
+                'Quantity_Sounding' => $r->input('Quantity_Sounding'),
+                'Created_By'        => $r->input('Created_By') ?? (auth()->check() ? auth()->user()->name : null) ?? 'System',
+                'Transaction_Date'  => $r->input('Transaction_Date'),
+                'Reference_Number'  => $r->input('Reference_Number'),
+                'Notim_Path'        => $notimPath,
+                'QC_Path'           => $qcPath,
+                'FFA'               => $ffa,
+                'MC'                => $mc,
+                'IMP'               => $imp,
+                'Notes'             => $r->input('Notes'),
+            ]);
+
+            // 5. Meta files for Nota Timbang
+            if ($notimPath) {
                 DB::table('meta_files')->insert([
-                    'Filename'    => $filename,
-                    'Path'        => $path,
-                    'Extension'   => $ext,
+                    'Filename'    => $notimFilename,
+                    'Path'        => $notimPath,
+                    'Extension'   => $notimExt,
                     'Description' => 'Attachment',
                     'Topic'       => 'uco-storage-pelindo',
                     'Map_To'      => $model->ID,
@@ -522,7 +828,8 @@ class UCOController extends Controller
                 ]);
             }
 
-            $this->upsertInventoryQC($r, $model->ID);
+            // 6. Upsert detail QC rows
+            $this->upsertInventoryQC($r, $model->ID, $qcPath, $qcFilename, $qcExt);
 
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Record created successfully']);
@@ -532,83 +839,160 @@ class UCOController extends Controller
         }
     }
 
-    private function upsertInventoryQC(Request $r, $sourceId)
+    private function upsertInventoryQC(Request $r, $sourceId, $qcPath = null, $qcFilename = null, $qcExt = null)
     {
         $date = Carbon::parse($r->input('Transaction_Date'))->toDateString();
-        $types = ['TOP' => 'top_', 'MIDDLE' => 'middle_', 'BOTTOM' => 'bottom_'];
+        $type = strtoupper($r->input('Type', 'inbound')) === 'OUTBOUND' ? 'OUTBOUND' : 'INBOUND';
+        $category = ($type === 'OUTBOUND') ? 'INTERNAL' : 'EXTERNAL';
+        $now = now();
 
-        $attachmentPath = null;
-        $filename = null;
-        $extension = null;
-        if ($r->hasFile('QC_Attachment') && $r->file('QC_Attachment')->isValid()) {
+        if (!$qcPath && $r->hasFile('QC_Attachment') && $r->file('QC_Attachment')->isValid()) {
             $file = $r->file('QC_Attachment');
-            $ext = $file->getClientOriginalExtension();
+            $qcExt = $file->getClientOriginalExtension();
             $year = now()->format('Y');
             $month = now()->format('m');
-            $filename = \Ramsey\Uuid\Uuid::uuid4()->toString() . '.' . $ext;
-            $attachmentPath = "{$year}/{$month}/{$filename}";
+            $qcFilename = \Ramsey\Uuid\Uuid::uuid4()->toString() . '.' . $qcExt;
+            $qcPath = "{$year}/{$month}/{$qcFilename}";
 
             $dir = public_path("filevendor/{$year}/{$month}");
             if (!is_dir($dir)) {
                 mkdir($dir, 0777, true);
             }
-            $file->move($dir, $filename);
-            $extension = $ext;
+            $file->move($dir, $qcFilename);
+
+            UCOStoragePelindo::where('ID', $sourceId)->update(['QC_Path' => $qcPath]);
         }
 
-        foreach ($types as $type => $prefix) {
-            $values = [
-                'FFA_As_Palmitic' => $r->input($prefix . 'FFA_As_Palmitic'),
-                'FFA_As_Oleic'    => $r->input($prefix . 'FFA_As_Oleic'),
-                'MC'              => $r->input($prefix . 'MC'),
-                'IMP'             => $r->input($prefix . 'IMP'),
+        // 1. Find or generate Kode_QC
+        $header = DB::table('cns_quality_controls')
+            ->where('SOURCE', 'INV')
+            ->where('SOURCE_ID', $sourceId)
+            ->first();
+
+        if ($header && $header->Kode_QC) {
+            $kodeQc = $header->Kode_QC;
+        } else {
+            $prefixType = ($type === 'OUTBOUND') ? 'OUT' : 'IN';
+            $prefixCat = ($category === 'INTERNAL') ? 'INT' : 'EXT';
+            $datePart = Carbon::parse($date)->format('Ymd');
+            $existingCount = DB::table('cns_quality_controls')
+                ->whereDate('Inspection_Date', $date)
+                ->whereNotNull('Kode_QC')
+                ->count();
+            $nextSeq = str_pad($existingCount + 1, 3, '0', STR_PAD_LEFT);
+            $kodeQc = "QC/{$prefixType}/{$prefixCat}/{$datePart}/{$nextSeq}";
+        }
+
+        $headerPayload = [
+            'SOURCE'          => 'INV',
+            'SOURCE_ID'       => $sourceId,
+            'Inspection_Date' => $date,
+            'QC_Type'         => $type,
+            'QC_Category'     => $category,
+            'Contract_ID'     => null,
+            'Booking_ID'      => null,
+            'Notes'           => $r->input('Notes'),
+            'Is_Deleted'      => 0,
+            'updated_at'      => $now,
+        ];
+
+        if ($qcPath) {
+            $headerPayload['Attachment_Path'] = "filevendor/{$qcPath}";
+        }
+
+        if ($header) {
+            DB::table('cns_quality_controls')
+                ->where('id', $header->id)
+                ->update($headerPayload);
+            $headerId = $header->id;
+        } else {
+            $headerId = DB::table('cns_quality_controls')->insertGetId(array_merge($headerPayload, [
+                'Kode_QC'    => $kodeQc,
+                'created_at' => $now,
+                'Created_By' => auth()->check() ? (auth()->user()->Username ?? auth()->user()->name) : 'System',
+            ]));
+        }
+
+        // 2. Upsert details: TOP, MIDDLE, BOTTOM, AVERAGE
+        $levelsMap = ['top' => 'TOP', 'middle' => 'MIDDLE', 'bottom' => 'BOTTOM'];
+        $paramKeys = [
+            'FFA_As_Palmitic', 'FFA_As_Oleic', 'MIU', 'Sulphur',
+            'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'
+        ];
+
+        $paramVals = [];
+        foreach ($paramKeys as $pk) {
+            $paramVals[$pk] = [];
+        }
+
+        foreach ($levelsMap as $prefix => $level) {
+            $detailPayload = [
+                'updated_at' => $now,
             ];
 
-            $values = array_map(fn($v) => ($v === '' ? null : $v), $values);
-
-            $hasValue = array_filter($values, fn($v) => $v !== null);
-
-            $existing = DB::table('uco_quality_control')
-                ->where('Source_ID', $sourceId)
-                ->where('Type', $type)
-                ->first();
-
-            if (empty($hasValue)) {
-                if ($existing) {
-                    DB::table('uco_quality_control')->where('ID', $existing->ID)->update($values);
+            foreach ($paramKeys as $pk) {
+                $fld = "{$prefix}_{$pk}";
+                $val = $r->filled($fld) ? $r->input($fld) : null;
+                // Fallback for MIU if MC + IMP provided
+                if ($pk === 'MIU' && $val === null) {
+                    $mc = $r->input("{$prefix}_MC");
+                    $imp = $r->input("{$prefix}_IMP");
+                    if ($mc !== null && $imp !== null && $mc !== '' && $imp !== '') {
+                        $val = round((float)$mc + (float)$imp, 2);
+                    }
                 }
-                continue;
+                $detailPayload[$pk] = ($val === '' ? null : $val);
+                if ($val !== null && $val !== '') {
+                    $paramVals[$pk][] = (float)$val;
+                }
             }
 
-            $payload = $values + ['Is_Deleted' => 0];
+            DB::table('cns_quality_control_details')->updateOrInsert(
+                [
+                    'Quality_Control_ID' => $headerId,
+                    'Sample_Level'       => $level,
+                ],
+                array_merge($detailPayload, [
+                    'created_at' => $now,
+                ])
+            );
+        }
 
-            if ($existing) {
-                DB::table('uco_quality_control')->where('ID', $existing->ID)->update($payload);
-                $qcId = $existing->ID;
-            } else {
-                $qcId = DB::table('uco_quality_control')->insertGetId($payload + [
-                    'Created_At' => $date,
-                    'Type'       => $type,
-                    'Source_ID'  => $sourceId,
-                ]);
-            }
+        // AVERAGE row
+        $avgPayload = [
+            'updated_at' => $now,
+        ];
+        foreach ($paramKeys as $pk) {
+            $avgPayload[$pk] = count($paramVals[$pk]) > 0
+                ? round(array_sum($paramVals[$pk]) / count($paramVals[$pk]), 2)
+                : null;
+        }
 
-            if ($attachmentPath) {
-                DB::table('meta_files')
-                    ->where('Map_To', $qcId)
-                    ->where('Topic', 'uco-quality-control')
-                    ->delete();
+        DB::table('cns_quality_control_details')->updateOrInsert(
+            [
+                'Quality_Control_ID' => $headerId,
+                'Sample_Level'       => 'AVERAGE',
+            ],
+            array_merge($avgPayload, [
+                'created_at' => $now,
+            ])
+        );
 
-                DB::table('meta_files')->insert([
-                    'Filename'    => $filename,
-                    'Path'        => $attachmentPath,
-                    'Extension'   => $extension,
-                    'Description' => 'QC Attachment',
-                    'Created_At'  => now(),
-                    'Topic'       => 'uco-quality-control',
-                    'Map_To'      => $qcId,
-                ]);
-            }
+        if ($qcPath) {
+            DB::table('meta_files')
+                ->where('Map_To', $headerId)
+                ->where('Topic', 'cns-quality-control')
+                ->delete();
+
+            DB::table('meta_files')->insert([
+                'Filename'    => $qcFilename ?? basename($qcPath),
+                'Path'        => "filevendor/{$qcPath}",
+                'Extension'   => $qcExt ?? pathinfo($qcPath, PATHINFO_EXTENSION),
+                'Description' => 'QC Attachment',
+                'Created_At'  => now(),
+                'Topic'       => 'cns-quality-control',
+                'Map_To'      => $headerId,
+            ]);
         }
     }
 
@@ -616,17 +1000,100 @@ class UCOController extends Controller
     {
         DB::beginTransaction();
         try {
-            UCOStoragePelindo::where('ID', $r->id)
-                ->update($r->only([
-                    'Type',
-                    'Quantity',
-                    'Quantity_PTU',
-                    'Quantity_Sounding',
-                    'Created_By',
-                    'Transaction_Date',
-                    'Reference_Number',
-                    'Notes',
-                ]));
+            $updateData = $r->only([
+                'Type',
+                'Quantity',
+                'Asal_Warehouse',
+                'Nama_Tangki',
+                'Quantity_PTU',
+                'Quantity_Sounding',
+                'Created_By',
+                'Transaction_Date',
+                'Reference_Number',
+                'Notes',
+            ]);
+
+            // Handle Attachment if new one uploaded
+            if ($r->hasFile('Attachment') && $r->file('Attachment')->isValid()) {
+                $file = $r->file('Attachment');
+                $ext = $file->getClientOriginalExtension();
+                $year = now()->format('Y');
+                $month = now()->format('m');
+                $uuid = \Ramsey\Uuid\Uuid::uuid4()->toString();
+                $filename = $uuid . '.' . $ext;
+                $notimPath = "{$year}/{$month}/{$filename}";
+
+                $dir = public_path("filevendor/{$year}/{$month}");
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0777, true);
+                }
+                $file->move($dir, $filename);
+
+                $updateData['Notim_Path'] = $notimPath;
+
+                DB::table('meta_files')
+                    ->where('Map_To', $r->id)
+                    ->where('Topic', 'uco-storage-pelindo')
+                    ->delete();
+
+                DB::table('meta_files')->insert([
+                    'Filename'    => $filename,
+                    'Path'        => $notimPath,
+                    'Extension'   => $ext,
+                    'Description' => 'Attachment',
+                    'Topic'       => 'uco-storage-pelindo',
+                    'Map_To'      => $r->id,
+                    'Created_At'  => now(),
+                ]);
+            }
+
+            // Recompute FFA, MC, IMP
+            $ffa = $r->input('FFA');
+            if ($ffa === null || $ffa === '') {
+                $ffaVals = [];
+                foreach (['top_', 'middle_', 'bottom_'] as $p) {
+                    $val = $r->input($p . 'FFA_As_Palmitic') ?: $r->input($p . 'FFA_As_Oleic');
+                    if ($val !== null && $val !== '') {
+                        $ffaVals[] = (float) $val;
+                    }
+                }
+                $ffa = !empty($ffaVals) ? round(array_sum($ffaVals) / count($ffaVals), 2) : null;
+            }
+            if ($ffa !== null) {
+                $updateData['FFA'] = $ffa;
+            }
+
+            $mc = $r->input('MC');
+            if ($mc === null || $mc === '') {
+                $mcVals = [];
+                foreach (['top_', 'middle_', 'bottom_'] as $p) {
+                    $val = $r->input($p . 'MC');
+                    if ($val !== null && $val !== '') {
+                        $mcVals[] = (float) $val;
+                    }
+                }
+                $mc = !empty($mcVals) ? round(array_sum($mcVals) / count($mcVals), 2) : null;
+            }
+            if ($mc !== null) {
+                $updateData['MC'] = $mc;
+            }
+
+            $imp = $r->input('IMP');
+            if ($imp === null || $imp === '') {
+                $impVals = [];
+                foreach (['top_', 'middle_', 'bottom_'] as $p) {
+                    $val = $r->input($p . 'IMP');
+                    if ($val !== null && $val !== '') {
+                        $impVals[] = (float) $val;
+                    }
+                }
+                $imp = !empty($impVals) ? round(array_sum($impVals) / count($impVals), 2) : null;
+            }
+            if ($imp !== null) {
+                $updateData['IMP'] = $imp;
+            }
+
+            UCOStoragePelindo::where('ID', $r->id)->update($updateData);
 
             $this->upsertInventoryQC($r, $r->id);
 
@@ -640,11 +1107,17 @@ class UCOController extends Controller
 
     public function deleteExportedStock(Request $r)
     {
-        DB::table('vessel_schedules')
-            ->where('id', $r->id)
-            ->delete();
+        UCOStoragePelindo::where('ID', $r->id)->delete();
 
-        return response()->json(['success' => true, 'message' => 'Record updated successfully']);
+        DB::table('cns_quality_controls')
+            ->where('SOURCE', 'INV')
+            ->where('SOURCE_ID', $r->id)
+            ->update([
+                'Is_Deleted' => 1,
+                'updated_at' => now(),
+            ]);
+
+        return response()->json(['success' => true, 'message' => 'Record deleted successfully']);
     }
 
     public function getPoliceLicenseNumber()

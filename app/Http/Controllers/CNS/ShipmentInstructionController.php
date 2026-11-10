@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\ShipmentInstruction;
 use App\Services\CNS\ShippingInstructionPdfService;
+use App\User;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
 use App\VesselScheduleDtlLog;
@@ -23,7 +24,9 @@ class ShipmentInstructionController extends Controller
 
     public function indexShipmentInstruction()
     {
-        return view('cns.export.si');
+        $approvers = cns_eligible_approvers();
+
+        return view('cns.export.si', compact('approvers'));
     }
 
     public function indexShipmentInstructionXml(Request $request)
@@ -58,7 +61,7 @@ class ShipmentInstructionController extends Controller
             $vsdData[$vsd->SI_No]['gross_mt'] += $vsd->Gross_MT;
         }
 
-        $shipments = ShipmentInstruction::whereBetween('SI_Date', [$request->tgl1, $request->tgl2])->whereIn('Status', ['DRAFT', 'CREATED'])->get();
+        $shipments = ShipmentInstruction::whereBetween('SI_Date', [$request->tgl1, $request->tgl2])->whereIn('Status', ['DRAFT', 'CREATED', 'APPROVED'])->get();
         foreach ($shipments as $key => $shipment) {
             echo "<row id=\"$shipment->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
@@ -280,10 +283,10 @@ class ShipmentInstructionController extends Controller
 
     public function generateFinalShipmentInstruction(Request $request)
     {
-        $si = ShipmentInstruction::where('SI_No', $request->Task)->where('Status', 'CREATED')->first();
+        $si = ShipmentInstruction::where('SI_No', $request->Task)->where('Status', 'APPROVED')->first();
 
         if (!$si) {
-            echo "<script>alert('SI harus berstatus CREATED sebelum finalisasi. Lengkapi container terlebih dahulu.')</script>";
+            echo "<script>alert('Shipping Instruction harus berstatus APPROVED sebelum dibuatkan Final SI.')</script>";
             return;
         }
 
@@ -362,7 +365,7 @@ class ShipmentInstructionController extends Controller
         if ($si->Contract_ID) {
             $usedOrderNos = ShipmentInstruction::whereNotNull('Order_No')
                 ->where('id', '!=', $si->id)
-                ->whereIn('Status', ['DRAFT', 'CREATED'])
+                ->whereIn('Status', ['DRAFT', 'CREATED', 'APPROVED'])
                 ->pluck('Order_No')
                 ->all();
 
@@ -391,8 +394,9 @@ class ShipmentInstructionController extends Controller
             ->where("Location", auth()->user()->Location)
             ->orderBy('Company_Name')
             ->get();
+        $users = User::where('Status', 'ACTIVE')->orderBy('Name')->get();
 
-        return view('cns.export.si-detail', compact('si', 'orders', 'containers', 'assigned', 'masProducts', 'companies', 'contract'));
+        return view('cns.export.si-detail', compact('si', 'orders', 'containers', 'assigned', 'masProducts', 'companies', 'contract', 'users'));
     }
 
     public function detailShipmentInstructionSubmit(Request $request)
@@ -406,9 +410,13 @@ class ShipmentInstructionController extends Controller
         $request->validate([
             'SI_Date' => 'required|date',
             'PEB_Date' => 'nullable|date',
+            'approved_by' => 'nullable|exists:users,id',
         ]);
 
         $si->SI_Date = $request->input('SI_Date');
+        if ($request->filled('approved_by')) {
+            $si->approved_by = $request->input('approved_by');
+        }
         $si->Shipper = (string) $request->input('Shipper', '');
         $si->Shipper_Address = (string) $request->input('Shipper_Address', '');
         $si->Consignee = (string) $request->input('Consignee', '');
@@ -444,7 +452,7 @@ class ShipmentInstructionController extends Controller
 
             $usedByOtherSi = ShipmentInstruction::where('Order_No', $orderNo)
                 ->where('id', '!=', $si->id)
-                ->whereIn('Status', ['DRAFT', 'CREATED'])
+                ->whereIn('Status', ['DRAFT', 'CREATED', 'APPROVED'])
                 ->exists();
 
             if ($usedByOtherSi) {
@@ -505,7 +513,9 @@ class ShipmentInstructionController extends Controller
                 VesselScheduleDtl::active()->whereIn('ID', $selected)->update(['SI_No' => $si->SI_No]);
             }
 
-            $si->Status = !empty($selected) ? 'CREATED' : 'DRAFT';
+            if ($si->Status !== 'APPROVED') {
+                $si->Status = !empty($selected) ? 'CREATED' : 'DRAFT';
+            }
 
             if (!empty($selected)) {
                 $this->writeSiScheduleLog($order, 'UPDATE SI', $selected);
@@ -515,6 +525,90 @@ class ShipmentInstructionController extends Controller
         $si->save();
 
         return response()->json(['success' => true, 'message' => 'Shipping Instruction updated successfully', 'status' => $si->Status]);
+    }
+
+    public function approveShipmentInstruction(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $id = $request->input('id');
+        $siNo = $request->input('Task') ?: $request->input('SI_No');
+
+        $query = ShipmentInstruction::query();
+        if ($id) {
+            $query->where('id', $id);
+        } elseif ($siNo) {
+            $query->where('SI_No', $siNo);
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'Parameter ID atau SI_No tidak ditemukan.'], 422);
+        }
+
+        $si = $query->first();
+        if (!$si) {
+            return response()->json(['status' => 'error', 'message' => 'Shipment Instruction tidak ditemukan.'], 404);
+        }
+
+        $approvedBy = $request->input('approved_by') ?: $si->approved_by;
+
+        $canApprove = $user->username === 'admin'
+            || $user->hasRole('ADM')
+            || $user->hasRole('super-admin')
+            || in_array(($user->Priv_ID ?? ''), ['ADM', 'CNS', 'SPV', 'MANAGER'])
+            || $user->can('menu.SI00307.approve')
+            || $user->can('cns.shipment_instruction.approve')
+            || (!empty($approvedBy) && (int) $user->id === (int) $approvedBy);
+
+        if (!$canApprove) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Anda tidak memiliki hak akses untuk menyetujui (approve) Shipment Instruction.'
+            ], 403);
+        }
+
+        if ($si->Status === 'APPROVED') {
+            return response()->json(['status' => 'error', 'message' => 'Shipment Instruction ini sudah berstatus APPROVED.'], 422);
+        }
+
+        if (empty($approvedBy)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Silakan pilih user Approved By terlebih dahulu.'
+            ], 422);
+        }
+
+        $approver = User::find($approvedBy);
+        if (!$approver) {
+            return response()->json(['status' => 'error', 'message' => 'User approver tidak ditemukan.'], 422);
+        }
+
+        $sigPath = user_signature_path($approver->id);
+        if (!$sigPath) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "User approver ({$approver->Name}) belum memiliki file signature (tanda tangan) di profilnya."
+            ], 422);
+        }
+
+        if (empty($approver->signature) && file_exists($sigPath)) {
+            $relPath = str_replace(public_path('filevendor/'), '', $sigPath);
+            $approver->signature = $relPath;
+            $approver->save();
+        }
+
+        $si->approved_by = $approver->id;
+        $si->Status = 'APPROVED';
+        $si->Updated_Date = now();
+        $si->Updated_By = $user->username;
+        $si->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Shipment Instruction {$si->SI_No} berhasil disetujui (APPROVED).",
+            'si_status' => $si->Status,
+        ]);
     }
 
     private function activeSiContracts()

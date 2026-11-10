@@ -37,6 +37,32 @@ class CnsMenuListsSeeder extends Seeder
             ->whereNotIn('Menu_ID', array_keys($rows))
             ->delete();
 
+        // Ensure user admin and CNS users have all CNS menus in Sub_Menu
+        if (\Illuminate\Support\Facades\Schema::hasTable('users')) {
+            $cnsMenuIds = DB::table('menu_lists')
+                ->where('Modules', 'CNS')
+                ->orderBy('Position')
+                ->orderBy('Urutan')
+                ->pluck('Menu_ID')
+                ->toArray();
+
+            $users = DB::table('users')
+                ->where(function ($q) {
+                    $q->where('Main_Menu', 'CNS')
+                        ->orWhere('username', 'admin')
+                        ->orWhere('Priv_ID', 'ADM');
+                })
+                ->get();
+
+            foreach ($users as $u) {
+                $existing = array_filter(explode(',', (string) $u->Sub_Menu));
+                $merged = array_unique(array_merge($existing, $cnsMenuIds));
+                DB::table('users')->where('id', $u->id)->update([
+                    'Sub_Menu' => implode(',', $merged),
+                ]);
+            }
+        }
+
         $this->command->info("CNS menu_lists seeded/updated: {$count} rows; removed {$deleted} stale CNS rows");
     }
 }

@@ -102,7 +102,9 @@
           $shipperLogo = $companies[$shipment->Shipper]->Logo ?? null;
           $logoPath = $shipperLogo ? public_path($shipperLogo) : null;
         @endphp
-        @if ($logoPath && is_file($logoPath) && file_exists($logoPath))
+        @if (!empty($logoDataUri))
+          <img src="{{ $logoDataUri }}" alt="Logo" width="130px" height="55px">
+        @elseif ($logoPath && is_file($logoPath) && file_exists($logoPath))
           <img src="{{ $logoPath }}" alt="Logo" width="130px" height="55px">
         @endif
       </td>
@@ -332,7 +334,7 @@
           PACKING: {{ $packageSingle }}<br>
           GW: {{ number_format($gross, 2, '.', ',') }} KGS<br>
           NW: {{ number_format($netto, 2, '.', ',') }} KGS<br>
-          HS CODE: {{ $shipment->HS_Code ?: '15119020' }}<br>
+          HS CODE: {{ $shipment->HS_Code ?: '-' }}<br>
           COUNTRY OF ORIGIN: INDONESIA
         </td>
         <td class="td-data" style="border-right:1px solid #000;text-align:center;">&nbsp;</td>
@@ -386,12 +388,18 @@
       <td style="padding:2px 4px;font-size:7.5pt;text-align:center;">Best Regards,</td>
     </tr>
     <tr>
-      <td style="height:12mm;padding:2px 4px;">&nbsp;</td>
+      <td style="height:15mm;padding:2px 4px;text-align:center;vertical-align:middle;">
+        @if(!empty($approverSignature) && in_array($shipment->Status, ['APPROVED', 'FINAL']))
+          <img src="{{ $approverSignature }}" alt="Signature" style="max-height:14mm;max-width:45mm;">
+        @else
+          &nbsp;
+        @endif
+      </td>
     </tr>
     <tr>
       <td style="padding:2px 4px;font-size:7.5pt;text-align:center;">
-        <span class="sig-name">Hani Septyana</span><br>
-        <span class="sig-title">Commercial and Sustainability Manager</span>
+        <span class="sig-name">{{ $approver->Name ?? 'Hani Septyana' }}</span><br>
+        <span class="sig-title">{{ !empty($approver->Position) ? $approver->Position : 'Commercial and Sustainability Manager' }}</span>
       </td>
     </tr>
   </table>

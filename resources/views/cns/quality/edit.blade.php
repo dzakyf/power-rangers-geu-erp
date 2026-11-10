@@ -1,5 +1,6 @@
 @php
     $contracts = $contracts ?? collect();
+    $tanks = $tanks ?? collect();
     $category = $category ?? 'EXTERNAL';
 @endphp
 <div id="FormEditQualityControl" class="row m-1" style="display:none;">
@@ -23,8 +24,12 @@
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label for="edit_QC_Type" class="font-weight-bold">Jenis Quality Control</label>
-                            <input type="text" name="QC_Type" id="edit_QC_Type" class="form-control" readonly />
+                            <label for="edit_QC_Type" class="font-weight-bold">Jenis Quality Control <span style="color:red;">*</span></label>
+                            <select name="QC_Type" id="edit_QC_Type" class="form-control" required onchange="onEditQcTypeChange(this.value)">
+                                <option value="INBOUND">Inbound (Barang Masuk)</option>
+                                <option value="OUTBOUND">Outbound (Barang Keluar)</option>
+                                <option value="DAILY_QC">Daily QC</option>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -52,6 +57,20 @@
                             <label for="edit_Booking_ID" class="font-weight-bold">Nomor Booking Confirmation</label>
                             <select name="Booking_ID" id="edit_Booking_ID" class="form-control">
                                 <option value="">-- Pilih Booking Confirmation --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3 edit-daily-tank-group" style="display:none;">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="edit_Tank_ID" class="font-weight-bold">Nama Tangki <span style="color:red;">*</span></label>
+                            <select name="Tank_ID" id="edit_Tank_ID" class="form-control">
+                                <option value="">-- Pilih Tangki --</option>
+                                @foreach($tanks as $tank)
+                                    <option value="{{ $tank->id }}">{{ $tank->name }}</option>
+                                @endforeach
                             </select>
                         </div>
                     </div>
@@ -165,13 +184,34 @@
         return String(val).replace('%', '').trim();
     }
 
+    function onEditQcTypeChange(val) {
+        if (val === 'OUTBOUND') {
+            $('.edit-outbound-contract-group').show();
+            $('.edit-daily-tank-group').hide();
+            $('#edit_Tank_ID').val('');
+        } else if (val === 'DAILY_QC') {
+            $('.edit-daily-tank-group').show();
+            $('.edit-outbound-contract-group').hide();
+            $('#edit_Contract_ID').val('');
+            $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+        } else {
+            $('.edit-outbound-contract-group').hide();
+            $('.edit-daily-tank-group').hide();
+            $('#edit_Contract_ID').val('');
+            $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+            $('#edit_Tank_ID').val('');
+        }
+    }
+
     function cancelEditQC() {
         $('#FormEditQualityControl').hide();
         $('#QualityControlEditForm')[0].reset();
         $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+        $('#edit_Tank_ID').val('');
         qcParamKeys.forEach(function(key) {
             $('#edit_avg_' + key).val('-');
         });
+        onEditQcTypeChange('INBOUND');
     }
 
     function prefillEditQC(rowId) {
@@ -194,17 +234,15 @@
         var qcCat = grid.cells(rowId, 4).getValue() || 'EXTERNAL';
         document.getElementById('edit_QC_Category').value = qcCat;
 
-        if (qcType === 'OUTBOUND') {
-            $('.edit-outbound-contract-group').show();
-        } else {
-            $('.edit-outbound-contract-group').hide();
-        }
+        onEditQcTypeChange(qcType);
 
         var contractId = '';
         var bookingId = '';
+        var tankId = '';
         try {
             contractId = grid.cells(rowId, 38) ? grid.cells(rowId, 38).getValue() : '';
             bookingId  = grid.cells(rowId, 39) ? grid.cells(rowId, 39).getValue() : '';
+            tankId     = grid.cells(rowId, 41) ? grid.cells(rowId, 41).getValue() : '';
         } catch (e) {}
 
         $('#edit_Contract_ID').val(contractId);
@@ -213,6 +251,8 @@
         } else {
             $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
         }
+
+        $('#edit_Tank_ID').val(tankId);
 
         // TOP indices: 5..12, MIDDLE: 13..20, BOTTOM: 21..28
         // Keys: FFA_As_Palmitic(5), FFA_As_Oleic(6), MIU(7), Sulphur(8), IV(9), Total_Chlorides(10), Phosphorus(11), Total_Metals(12)
@@ -240,6 +280,11 @@
 
         if (!createdAt) {
             alert('Tanggal Pemeriksaan wajib diisi');
+            return;
+        }
+
+        if (qcType === 'DAILY_QC' && !form.Tank_ID.value) {
+            alert('Nama Tangki wajib dipilih untuk Daily QC');
             return;
         }
 

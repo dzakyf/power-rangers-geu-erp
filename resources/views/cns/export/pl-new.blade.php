@@ -186,13 +186,13 @@ use Illuminate\Database\Eloquent\Builder;
                                 <input type="text" name="POD" id="POD" value="" class="form-control shadow-sm" />
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Product_Name">Product Name</label>
                                 <input type="text" name="Product_Name" id="Product_Name" value="" class="text-black form-control" />
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="HS_Code">HS Code</label>
                                 <select name="HS_Code" id="HS_Code" class="form-control shadow-sm">
@@ -217,7 +217,7 @@ use Illuminate\Database\Eloquent\Builder;
 				</div>
 			</div>
 			<div id="divtom" class="mt-3">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit SI" class="btn btn-success mt-2 mr-2" />
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit PL" class="btn btn-success mt-2 mr-2" />
 			</div>
 		</div>
 	</div>

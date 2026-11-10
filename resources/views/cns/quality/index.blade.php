@@ -49,6 +49,7 @@
                         <option value="ALL">-- Semua Jenis QC --</option>
                         <option value="INBOUND">INBOUND</option>
                         <option value="OUTBOUND">OUTBOUND</option>
+                        <option value="DAILY_QC">DAILY QC</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -56,7 +57,84 @@
                     <input type="date" id="filter_date" class="form-control" onchange="loadQualityGrid()" />
                 </div>
                 <div class="col-md-3">
-                    <button type="button" class="btn btn-secondary" onclick="$('#filter_qc_category').val('{{ $category }}'); $('#filter_qc_type').val('ALL'); $('#filter_date').val(''); loadQualityGrid();">Reset Filter</button>
+                    <button type="button" class="btn btn-secondary" onclick="$('#filter_qc_category').val('{{ $category }}'); $('#filter_qc_type').val('ALL'); $('#filter_date').val(''); $('#filter_stat_month').val('{{ date('Y-m') }}'); loadQualityGrid();">Reset Filter</button>
+                </div>
+            </div>
+
+            <!-- Monthly Min/Max Parameter Summary Table (Collapsible) -->
+            <div class="card mb-3 border shadow-sm">
+                <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center py-2" style="cursor: pointer;" onclick="toggleMonthlyStats()">
+                    <div class="d-flex align-items-center">
+                        <strong class="text-dark">
+                            <i class="fa fa-chart-line text-primary mr-1"></i> Nilai Minimum & Maksimum Parameter (1 Bulan)
+                        </strong>
+                        <span class="badge badge-info ml-2" id="qcMonthlyTotalBadge">0 Data Pengujian</span>
+                    </div>
+                    <div class="d-flex align-items-center mt-1 mt-md-0" onclick="event.stopPropagation();">
+                        <label for="filter_stat_month" class="mb-0 mr-2 font-weight-bold text-secondary" style="font-size: 0.85rem;">Periode:</label>
+                        @php
+                            $curMonthVal = date('Y-m');
+                            $monthNames = [
+                                '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
+                                '04' => 'April', '05' => 'Mei', '06' => 'Juni',
+                                '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
+                                '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+                            ];
+                        @endphp
+                        <select id="filter_stat_month" class="form-control form-control-sm mr-1" style="width: 170px;" onchange="loadMonthlyStats()">
+                            @for ($i = 3; $i >= -24; $i--)
+                                @php
+                                    $dt = \Carbon\Carbon::now()->addMonths($i);
+                                    $val = $dt->format('Y-m');
+                                    $label = $monthNames[$dt->format('m')] . ' ' . $dt->format('Y');
+                                @endphp
+                                <option value="{{ $val }}" {{ $val === $curMonthVal ? 'selected' : '' }}>{{ $label }}</option>
+                            @endfor
+                        </select>
+                        <button type="button" class="btn btn-sm btn-outline-secondary ml-1" onclick="toggleMonthlyStats()" title="Buka/Tutup Ringkasan">
+                            <i id="qcStatsToggleIcon" class="fa fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="qcMonthlyStatsCollapse" style="display: none;">
+                    <div class="card-body p-2">
+                        <div class="row">
+                            <div class="col-md-6 mb-2 mb-md-0">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm table-striped mb-0 text-center" style="font-size: 0.88rem;">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th style="width: 35%; text-align: left;">Parameter</th>
+                                                <th style="width: 20%; color: #000;">Satuan</th>
+                                                <th style="width: 22%; color: #28a745;">Min</th>
+                                                <th style="width: 23%; color: #dc3545;">Max</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="qcMonthlyStatsBodyLeft">
+                                            <tr><td colspan="4" class="text-muted text-center">Memuat data...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm table-striped mb-0 text-center" style="font-size: 0.88rem;">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th style="width: 35%; text-align: left;">Parameter</th>
+                                                <th style="width: 20%; color: #000;">Satuan</th>
+                                                <th style="width: 22%; color: #28a745;">Min</th>
+                                                <th style="width: 23%; color: #dc3545;">Max</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="qcMonthlyStatsBodyRight">
+                                            <tr><td colspan="4" class="text-muted text-center">Memuat data...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -71,8 +149,8 @@
     </div>
 </div>
 
-@include('cns.quality.create', ['category' => $category, 'contracts' => $contracts])
-@include('cns.quality.edit', ['category' => $category, 'contracts' => $contracts])
+@include('cns.quality.create', ['category' => $category, 'contracts' => $contracts, 'tanks' => $tanks ?? collect()])
+@include('cns.quality.edit', ['category' => $category, 'contracts' => $contracts, 'tanks' => $tanks ?? collect()])
 
 <script>
     var currentCategory = "{{ $category }}";
@@ -83,14 +161,74 @@
     });
 
     function loadQualityGrid() {
-        if (!ProjectionGrid) return;
-        var category = $('#filter_qc_category').val() || 'ALL';
+        if (ProjectionGrid) {
+            var category = $('#filter_qc_category').val() || 'ALL';
+            var type = $('#filter_qc_type').val() || 'ALL';
+            var date = $('#filter_date').val() || '';
+            var url = 'cns-quality-data?category=' + encodeURIComponent(category) +
+                      '&type=' + encodeURIComponent(type) +
+                      '&Date=' + encodeURIComponent(date);
+            ProjectionGrid.clearAndLoad(url);
+        }
+        loadMonthlyStats();
+    }
+
+    function loadMonthlyStats() {
+        var category = $('#filter_qc_category').val() || currentCategory || 'ALL';
         var type = $('#filter_qc_type').val() || 'ALL';
-        var date = $('#filter_date').val() || '';
-        var url = 'cns-quality-data?category=' + encodeURIComponent(category) +
-                  '&type=' + encodeURIComponent(type) +
-                  '&Date=' + encodeURIComponent(date);
-        ProjectionGrid.clearAndLoad(url);
+        var month = $('#filter_stat_month').val() || '{{ date('Y-m') }}';
+
+        $.ajax({
+            url: 'cns-quality-monthly-stats',
+            type: 'GET',
+            data: {
+                category: category,
+                type: type,
+                month: month
+            },
+            success: function(res) {
+                if (res.status === 'success') {
+                    renderMonthlyStats(res);
+                }
+            },
+            error: function() {
+                console.error('Gagal memuat statistik bulanan QC');
+            }
+        });
+    }
+
+    function renderMonthlyStats(res) {
+        var count = res.total_tests || 0;
+        $('#qcMonthlyTotalBadge').text(count + ' Data Pengujian');
+
+        var leftTbody = $('#qcMonthlyStatsBodyLeft');
+        var rightTbody = $('#qcMonthlyStatsBodyRight');
+        leftTbody.empty();
+        rightTbody.empty();
+
+        var params = res.parameters || [];
+        params.forEach(function(p, idx) {
+            var minVal = (p.min !== null && p.min !== undefined) ? Number(p.min).toFixed(2) : '-';
+            var maxVal = (p.max !== null && p.max !== undefined) ? Number(p.max).toFixed(2) : '-';
+            var rowHtml = '<tr>' +
+                '<td class="text-left font-weight-bold">' + p.name + '</td>' +
+                '<td style="color: #000; font-weight: 600;">' + p.unit + '</td>' +
+                '<td class="text-right text-success font-weight-bold">' + minVal + '</td>' +
+                '<td class="text-right text-danger font-weight-bold">' + maxVal + '</td>' +
+                '</tr>';
+            if (idx < 4) {
+                leftTbody.append(rowHtml);
+            } else {
+                rightTbody.append(rowHtml);
+            }
+        });
+    }
+
+    function toggleMonthlyStats() {
+        $('#qcMonthlyStatsCollapse').slideToggle(200, function() {
+            var isVisible = $(this).is(':visible');
+            $('#qcStatsToggleIcon').attr('class', isVisible ? 'fa fa-chevron-up' : 'fa fa-chevron-down');
+        });
     }
 
     function createQC() {
@@ -179,56 +317,56 @@
     function initProjectionGrid() {
         $('#ProjectionSection').show();
 
-        // 41 columns (38 visible + 3 hidden):
+        // 42 columns (38 visible + 4 hidden):
         // 0: No, 1: Kode QC, 2: Tanggal, 3: Jenis QC, 4: Lab
         // 5..12: Top (8 cols)
         // 13..20: Middle (8 cols)
         // 21..28: Bottom (8 cols)
         // 29..36: Average (8 cols)
         // 37: Attachment
-        // 38: Contract_ID (hidden), 39: Booking_ID (hidden), 40: QC_Category (hidden)
+        // 38: Contract_ID (hidden), 39: Booking_ID (hidden), 40: QC_Category (hidden), 41: Tank_ID (hidden)
         let tHeader = [
-            'No', 'Kode QC', 'Tanggal', 'Jenis QC', 'Lab',
+            'No', 'Kode QC', 'Tanggal', 'Jenis QC', 'Lab', 'Source',
             'Top', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
             'Middle', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
             'Bottom', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
             'Average', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
             'Attachment',
-            'Contract_ID', 'Booking_ID', 'QC_Category'
+            'Contract_ID', 'Booking_ID', 'QC_Category', 'Tank_ID'
         ];
 
         let tGroupHeader = [
-            '#rspan', '#text_filter', '#text_filter', '#select_filter', '#select_filter',
+            '#rspan', '#text_filter', '#text_filter', '#select_filter', '#select_filter', '#select_filter',
             'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
             'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
             'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
             'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
             '#rspan',
-            '#rspan', '#rspan', '#rspan'
+            '#rspan', '#rspan', '#rspan', '#rspan'
         ];
 
         let tTopHeader = [
-            '#rspan', '#rspan', '#rspan', '#rspan', '#rspan',
+            '#rspan', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan',
             '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
             '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
             '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
             '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
             '#rspan',
-            '#rspan', '#rspan', '#rspan'
+            '#rspan', '#rspan', '#rspan', '#rspan'
         ];
 
         let tWidth = [
-            '45', '140', '95', '85', '85',
+            '45', '140', '95', '85', '85', '85',
             '85', '85', '75', '75', '75', '75', '80', '80',
             '85', '85', '75', '75', '75', '75', '80', '80',
             '85', '85', '75', '75', '75', '75', '80', '80',
             '85', '85', '75', '75', '75', '75', '80', '80',
             '110',
-            '50', '50', '50'
+            '50', '50', '50', '50'
         ];
 
         let tColType = tHeader.map(() => 'ro');
-        let tColAlign = tHeader.map((e, i) => (i < 5 ? 'left' : (i === 37 ? 'center' : (i >= 38 ? 'left' : 'right'))));
+        let tColAlign = tHeader.map((e, i) => (i < 6 ? 'center' : (i === 37 ? 'center' : (i >= 38 ? 'left' : 'right'))));
         let tColSort = tHeader.map((e, i) => (i === 0 ? 'int' : (i === 2 ? 'date' : 'str')));
 
         ProjectionGrid = new dhtmlXGridObject('ProjectionGrid');
@@ -246,6 +384,7 @@
         ProjectionGrid.setColumnHidden(38, true);
         ProjectionGrid.setColumnHidden(39, true);
         ProjectionGrid.setColumnHidden(40, true);
+        ProjectionGrid.setColumnHidden(41, true);
 
         loadQualityGrid();
 
