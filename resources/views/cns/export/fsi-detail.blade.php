@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Builder;
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
 
+$companiesKeyed = $companies->keyBy('Supplier_ID');
+$shipperAddr = !empty($shipment->Shipper_Address) ? $shipment->Shipper_Address : ($companiesKeyed->get($shipment->Shipper)->Address ?? '');
+$consigneeAddr = !empty($shipment->Consignee_Address) ? $shipment->Consignee_Address : ($companiesKeyed->get($shipment->Consignee)->Address ?? '');
+$notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($companiesKeyed->get($shipment->Notify)->Address ?? '');
 ?>
 <div class="mt-3">
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">NEW FINAL SHIPMENT INSTRUCTION</div>
@@ -71,63 +75,71 @@ $Saya =  Auth::user()->username;
                                 </div>
                             </div>
                         </div> --}}
-                        <div class="col-md-3 col-12">
+                        <input type="hidden" name="id" id="id" value="{{ $shipment->id }}" />
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Shipper">Shipper</label>
-                                <select name="Shipper" id="Shipper" class="form-control bg-white" disabled>
+                                <select name="Shipper" id="Shipper" class="form-control">
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
-                                        <option value="{{ $shipper->Supplier_ID }}" {{ $shipment->Shipper == $shipper->Supplier_ID ? 'selected' : '' }}>{{ $shipper->Company_Name }}</option>
+                                        <option value="{{ $shipper->Supplier_ID }}" data-address="{{ $shipper->Address }}" {{ $shipment->Shipper == $shipper->Supplier_ID ? 'selected' : '' }}>{{ $shipper->Company_Name }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                        </div>
-                        <div class="col-md-3 col-12">
                             <div class="form-group">
-                                <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control bg-white" disabled>
-                                    <option value="">-- Pilih Consignee --</option>
-                                    @foreach ($companies as $consignee)
-                                        <option value="{{ $consignee->Supplier_ID }}" {{ $shipment->Consignee == $consignee->Supplier_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-12">
-                            <div class="form-group">
-                                <label for="Notify">Notify Party</label>
-                                <select name="Notify" id="Notify" class="form-control bg-white" disabled>
-                                    <option value="">-- Pilih Notify --</option>
-                                    @foreach ($companies as $notify)
-                                        <option value="{{ $notify->Supplier_ID }}" {{ $shipment->Notify == $notify->Supplier_ID ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-12">
-                            <div class="form-group">
-                                <label for="Destination_Letter">Destination Letter</label>
-                                <select name="Destination_Letter" id="Destination_Letter" class="form-control bg-white" disabled>
-                                    <option value="">-- Pilih Destination Letter --</option>
-                                    @foreach ($companies as $destination_Letter)
-                                        <option value="{{ $destination_Letter->Supplier_ID }}" {{ $shipment->Destination_Letter == $destination_Letter->Supplier_ID ? 'selected' : '' }}>{{ $destination_Letter->Company_Name }}</option>
-                                    @endforeach
-                                </select>
+                                <label for="Shipper_Address">Shipper Address</label>
+                                <textarea name="Shipper_Address" id="Shipper_Address" rows="2" class="form-control" placeholder="Alamat Shipper">{{ $shipperAddr }}</textarea>
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
+                            <div class="form-group">
+                                <label for="Consignee">Consignee</label>
+                                <select name="Consignee" id="Consignee" class="form-control">
+                                    <option value="">-- Pilih Consignee --</option>
+                                    @foreach ($companies as $consignee)
+                                        <option value="{{ $consignee->Supplier_ID }}" data-address="{{ $consignee->Address }}" {{ $shipment->Consignee == $consignee->Supplier_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="Consignee_Address">Consignee Address</label>
+                                <textarea name="Consignee_Address" id="Consignee_Address" rows="2" class="form-control" placeholder="Alamat Consignee">{{ $consigneeAddr }}</textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <div class="form-group">
+                                <label for="Notify">Notify Party</label>
+                                <select name="Notify" id="Notify" class="form-control">
+                                    <option value="">-- Pilih Notify --</option>
+                                    @foreach ($companies as $notify)
+                                        <option value="{{ $notify->Supplier_ID }}" data-address="{{ $notify->Address }}" {{ $shipment->Notify == $notify->Supplier_ID ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="Notify_Address">Notify Party Address</label>
+                                <textarea name="Notify_Address" id="Notify_Address" rows="2" class="form-control" placeholder="Alamat Notify Party">{{ $notifyAddr }}</textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-12">
+                            <div class="form-group">
+                                <label for="Destination_Port">Destination Port</label>
+                                <input type="text" id="Destination_Port" name="Destination_Port" class="form-control" value="{{ $shipment->Destination_Port }}" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Delivery_Terms">Delivery Terms</label>
                                 <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="{{ $shipment->Delivery_Terms }}" class="form-control bg-white" readonly />
                             </div>
                         </div>
-                        <div class="col-md-4 col-12">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Contract_No">Contract No</label>
                                 <input type="text" name="Contract_No" id="Contract_No" value="{{ $shipment->Contract_No }}" class="form-control bg-white" readonly />
                             </div>
                         </div>
-                        <div class="col-md-4 col-12">
+                        <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Voyage">Voyage</label>
                                 <input type="text" name="Voyage" id="Voyage" value="{{ $shipment->Voyage }}" class="form-control bg-white" readonly />
@@ -185,18 +197,13 @@ $Saya =  Auth::user()->username;
                                 <input type="text" name="POD" id="POD" value="{{ $shipment->POD }}" class="form-control bg-white" />
                             </div>
                         </div>
-                        <div class="col-md-6 col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Product_Name">Product Name</label>
-                                <select name="Product_Name" id="Product_Name" class="form-control bg-white" disabled>
-                                    <option value="">-- Pilih Product --</option>
-                                    @foreach ($masProducts as $item)
-                                    <option value="{{ $item->description }}" {{ $item->description == $shipment->Product_Name ? 'selected' : '' }}>{{ $item->description }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" name="Product_Name" id="Product_Name" value="{{ $shipment->Product_Name }}" class="form-control" />
                             </div>
                         </div>
-                        <div class="col-md-6 col-12">
+                        <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="HS_Code">HS Code</label>
                                 <select name="HS_Code" id="HS_Code" class="form-control bg-white" disabled>
@@ -223,7 +230,7 @@ $Saya =  Auth::user()->username;
 				</div>
 			</div>
 			<div id="divtom">
-				{{-- <input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Submit Final SI" class="btn btn-success mt-2 mr-2" /> --}}
+				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Save Final SI" class="btn btn-success mt-2 mr-2" />
 			</div>
 		</div>
 	</div>
@@ -308,6 +315,30 @@ $Saya =  Auth::user()->username;
         });
     });
 
+	function refreshdata() {
+		ShipmentInstruction.clearAndLoad('xml-cns-export-final-shipment-instruction?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
+	}
+
+    function updateAddressFromSelectedCompany(selectSelector, addressSelector) {
+        var selectedOpt = $(selectSelector).find('option:selected');
+        var addr = selectedOpt.data('address');
+        if (typeof addr !== 'undefined') {
+            $(addressSelector).val(addr || '');
+        }
+    }
+
+    $('#Shipper').on('change', function() {
+        updateAddressFromSelectedCompany('#Shipper', '#Shipper_Address');
+    });
+
+    $('#Consignee').on('change', function() {
+        updateAddressFromSelectedCompany('#Consignee', '#Consignee_Address');
+    });
+
+    $('#Notify').on('change', function() {
+        updateAddressFromSelectedCompany('#Notify', '#Notify_Address');
+    });
+
 	$('#SubmitCustDetail').click(function() {
 
 		gettingVars = getAllValues();
@@ -316,25 +347,27 @@ $Saya =  Auth::user()->username;
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "cns-export-shipment-instruction-detail-submit?_token={{ csrf_token() }}",
+			url: "cns-export-final-shipment-instruction-detail-submit?_token={{ csrf_token() }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
-					var cariAWB = data.split(":");
-					alert('Data Announcement Submitted!');
-
-					// location.href = "partner-announcement";
+					alert('Data Final SI Updated!');
                     refreshdata();
-                    $('#divlistOpportunity').html('')
+                    $('#divlistOpportunity').html('');
 				} else {
-					alert('Announcement Failed to Submit!');
+					alert('Final SI Failed to Update!');
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
-
+				if (jqXHR.responseJSON && jqXHR.responseJSON.errors) {
+					alert(Object.values(jqXHR.responseJSON.errors).flat().join('\n'));
+				} else if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+					alert(jqXHR.responseJSON.message);
+				} else {
+					alert("Error Internal! Please Try again!");
+				}
 			}
 		});
 	})

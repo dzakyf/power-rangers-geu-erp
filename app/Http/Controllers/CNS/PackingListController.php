@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\PackingList;
 use App\ShipmentInstruction;
+use App\User;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
 use App\VesselScheduleLog;
@@ -16,7 +17,9 @@ class PackingListController extends Controller
 {
     public function indexPackingList()
     {
-        return view('cns.export.pl');
+        $approvers = cns_eligible_approvers();
+
+        return view('cns.export.pl', compact('approvers'));
     }
 
     public function indexPackingListXml(Request $request)
@@ -31,7 +34,7 @@ class PackingListController extends Controller
         echo "<rows>";
 
         $vsdData = [];
-        $vsds = VesselScheduleDtl::whereNotNull('SI_No')->get();
+        $vsds = VesselScheduleDtl::active()->whereNotNull('SI_No')->get();
         foreach ($vsds as $key => $vsd) {
             if (!isset($vsdData[$vsd->SI_No])) {
                 $vsdData[$vsd->SI_No] = [
@@ -51,7 +54,7 @@ class PackingListController extends Controller
             $vsdData[$vsd->SI_No]['gross_mt'] += $vsd->Gross_MT;
         }
 
-        $shipments = PackingList::whereBetween('PL_Date',[$request->tgl1, $request->tgl2])->where('Status', "CREATED")->get();
+        $shipments = PackingList::whereBetween('PL_Date',[$request->tgl1, $request->tgl2])->whereIn('Status', ["CREATED", "APPROVED"])->get();
         foreach ($shipments as $key => $shipment) {
             echo "<row id=\"$shipment->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
@@ -73,6 +76,7 @@ class PackingListController extends Controller
                 echo "<cell></cell>";
                 echo "<cell></cell>";
             }
+            echo "<cell>" . htmlspecialchars($shipment->Status ?? 'CREATED') . "</cell>";
             echo "</row>";
         }
 
@@ -81,72 +85,139 @@ class PackingListController extends Controller
 
     public function printPackingList(Request $request)
     {
-        // $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
-        // foreach ($company as $key => $value) {
-        //     $companies[$value->Supplier_ID] = $value;
-        // }
-        // $shipment = PackingList::where('Packing_List_No', $request->Task)->first();
-        // $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
-        // return view('cns.export.print.pl', compact('shipment', 'vsds','companies'));
+        $shipment = PackingList::where('Packing_List_No', $request->Task)
+            ->orWhere('id', $request->Task)
+            ->first();
+        if (!$shipment) {
+            abort(404, 'Packing List tidak ditemukan');
+        }
+
         // ── Ambil data (sesuaikan dengan model Anda) ──────────────────────
         $companies = [];
         $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         foreach ($company as $key => $value) {
             $companies[$value->Supplier_ID] = $value;
         }
-        $shipment = PackingList::where('Packing_List_No', $request->Task)->first();
-        $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
- 
+
+        // Fallback jika ada supplier yang tidak cocok dengan Location user
+        foreach (['Shipper', 'Consignee', 'Notify', 'Destination_Port'] as $partyField) {
+            $suppId = $shipment->{$partyField};
+            if ($suppId && !isset($companies[$suppId])) {
+                $supp = DB::table('supplier')
+                    ->where('Supplier_ID', $suppId)
+                    ->orWhere('ID', $suppId)
+                    ->first();
+                if ($supp) {
+                    $companies[$suppId] = $supp;
+                }
+            }
+        }
+
+        // Resolusi perusahaan untuk Header, Footer, Logo (prioritaskan Shipper, fallback ke Master Company)
+        $companyProfile = null;
+        if (!empty($shipment->Shipper)) {
+            $companyProfile = $companies[$shipment->Shipper] ?? null;
+            if (!$companyProfile) {
+                $companyProfile = DB::table('supplier')
+                    ->where('Supplier_ID', $shipment->Shipper)
+                    ->orWhere('ID', $shipment->Shipper)
+                    ->first();
+            }
+        }
+
+        if (!$companyProfile) {
+            $companyProfile = DB::table('supplier')
+                ->where('Is_Company', 1)
+                ->when(auth()->check() && !empty(auth()->user()->Location), function ($q) {
+                    $q->where('Location', auth()->user()->Location);
+                })
+                ->first()
+                ?? DB::table('supplier')->where('Is_Company', 1)->first()
+                ?? DB::table('supplier')->first();
+        }
+
+        // ── Header, Footer & Logo Data URI ────────────────────────────────
+        $headerHtml = '';
+        $footerHtml = '';
+        $logoDataUri = null;
+
+        if ($companyProfile) {
+            $letterheadPath = $companyProfile->Letterhead ?? $companyProfile->LetterHead ?? null;
+            $headerDataUri = $this->imageToDataUri($letterheadPath);
+            if ($headerDataUri) {
+                $headerHtml = '
+                    <div style="margin:0;padding:0;line-height:0;">
+                        <img src="' . $headerDataUri . '"
+                             style="width:100%;display:block;">
+                    </div>';
+            }
+
+            $footerPath = $companyProfile->Footer ?? null;
+            $footerDataUri = $this->imageToDataUri($footerPath);
+            if ($footerDataUri) {
+                $footerHtml = '
+                    <div style="margin:0;padding:0;line-height:0;">
+                        <img src="' . $footerDataUri . '"
+                             style="width:100%;display:block;">
+                    </div>';
+            }
+
+            $logoPath = $companyProfile->Logo ?? null;
+            $logoDataUri = $this->imageToDataUri($logoPath);
+        }
+
+        $vsds = VesselScheduleDtl::active()->where('SI_No', $shipment->SI_No)->get();
+
         // ── Hitung total ──────────────────────────────────────────────────
-        $gross = $vsds->sum('Gross_KG');
-        $netto = $vsds->sum('Netto_KG');
+        $gross = (float) $vsds->sum('Gross_KG');
+        $netto = (float) $vsds->sum('Netto_KG');
         $mt    = round($netto / 1000, 2);
- 
+
+        $approver = $shipment->approved_by
+            ? User::find($shipment->approved_by)
+            : null;
+
+        $approverSignature = null;
+        if ($approver) {
+            $sigPath = user_signature_path($approver->id);
+            if ($sigPath && file_exists($sigPath)) {
+                $approverSignature = $this->imageToDataUri($sigPath);
+            }
+        }
+
         // ── Render HTML dari Blade view ───────────────────────────────────
         $html = view('cns.export.print.pl', compact(
-            'shipment', 'vsds', 'companies', 'gross', 'netto', 'mt'
+            'shipment', 'vsds', 'companies', 'gross', 'netto', 'mt', 'logoDataUri', 'approver', 'approverSignature'
         ))->render();
- 
-        // ── Header & Footer HTML ──────────────────────────────────────────
-        $letterhead = public_path($companies[$shipment->Shipper]->Letterhead);
-        $footerImg  = public_path($companies[$shipment->Shipper]->Footer);
- 
-        // Konversi ke base64 agar mPDF bisa render gambar
-        $headerB64 = base64_encode(file_get_contents($letterhead));
-        $footerB64 = base64_encode(file_get_contents($footerImg));
-        $headerExt = strtolower(pathinfo($letterhead, PATHINFO_EXTENSION));
-        $footerExt = strtolower(pathinfo($footerImg,  PATHINFO_EXTENSION));
- 
-        $headerHtml = '
-            <div style="margin:0;padding:0;line-height:0;">
-                <img src="data:image/' . $headerExt . ';base64,' . $headerB64 . '"
-                     style="width:100%;display:block;">
-            </div>';
- 
-        $footerHtml = '
-            <div style="margin:0;padding:0;line-height:0;">
-                <img src="data:image/' . $footerExt . ';base64,' . $footerB64 . '"
-                     style="width:100%;display:block;">
-            </div>';
- 
+
         // ── Inisialisasi mPDF ─────────────────────────────────────────────
+        $tempDir = storage_path('app/mpdf');
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0775, true);
+        }
+
         $mpdf = new Mpdf([
-            'format'        => 'A4',
-            'tempDir'       => storage_path('app/mpdf'),
-            'margin_top'    => 0,   // ← sesuaikan dengan tinggi header image (mm)
-            'margin_bottom' => 0,   // ← sesuaikan dengan tinggi footer image (mm)
-            'margin_left'   => 0,
-            'margin_right'  => 0,
-            // penting
-            'margin_header' => 0,
-            'margin_footer' => 0,
-            // penting
-            'setAutoTopMargin'    => 'stretch',
-            'setAutoBottomMargin' => 'stretch',
+            'format'              => 'A4',
+            'tempDir'             => $tempDir,
+            'margin_top'          => $headerHtml !== '' ? 0 : 10,
+            'margin_bottom'       => $footerHtml !== '' ? 0 : 10,
+            'margin_left'         => 0,
+            'margin_right'        => 0,
+            'margin_header'       => 0,
+            'margin_footer'       => 0,
+            'setAutoTopMargin'    => $headerHtml !== '' ? 'stretch' : false,
+            'setAutoBottomMargin' => $footerHtml !== '' ? 'stretch' : false,
         ]);
- 
-        $mpdf->SetHTMLHeader($headerHtml);
-        $mpdf->SetHTMLFooter($footerHtml);
+
+        $mpdf->splitTableBorderWidth = 1;
+
+        if ($headerHtml !== '') {
+            $mpdf->SetHTMLHeader($headerHtml);
+        }
+
+        if ($footerHtml !== '') {
+            $mpdf->SetHTMLFooter($footerHtml);
+        }
  
         $mpdf->WriteHTML($html);
  
@@ -216,7 +287,9 @@ class PackingListController extends Controller
 
         $masProducts = DB::table('master_product_cns')->get();
 
-        return view('cns.export.pl-new', compact('plno','fsis', 'companies', 'masProducts'));
+        $users = User::where('Status', 'ACTIVE')->orderBy('Name')->get();
+
+        return view('cns.export.pl-new', compact('plno','fsis', 'companies', 'masProducts', 'users'));
     }
 
     public function newPackingListSubmit(Request $request)
@@ -242,7 +315,7 @@ class PackingListController extends Controller
         $pl->Shipper = $request->input('Shipper') ?? '';
         $pl->Consignee = $request->input('Consignee') ?? '';
         $pl->Notify = $request->input('Notify') ?? '';
-        $pl->Destination_Letter = $request->input('Destination_Letter') ?? '';
+        $pl->Destination_Port = $request->input('Destination_Port') ?? '';
         $pl->Delivery_Terms = $request->input('Delivery_Terms') ?? '';
         $pl->Contract_No = $request->input('Contract_No') ?? '';
         $pl->Voyage = $request->input('Voyage') ?? '';
@@ -256,13 +329,14 @@ class PackingListController extends Controller
         $pl->BL_No = $request->input('BL_No') ?? '';
         $pl->HS_Code = $request->input('HS_Code');
         $pl->Product_Name = $request->input('Product_Name');
+        $pl->approved_by = $request->input('approved_by');
         $pl->Status = "CREATED";
         $pl->Created_Date = now();
         $pl->Created_By = auth()->user()->username;
         $pl->save();
 
         $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
-        $vsd = VesselScheduleDtl::where('Task_ID', $vs->Task_ID)
+        $vsd = VesselScheduleDtl::active()->where('Task_ID', $vs->Task_ID)
             ->get()
             ->map(function ($item) {
                 return $item->Container . ' (' . $item->Seal . ')';
@@ -288,7 +362,7 @@ class PackingListController extends Controller
         $SINo = $request->input('SI_No');
         $shipment = ShipmentInstruction::where('Final_SI_No', $SINo)->first();
         if ($shipment) {
-            $shipment->orderDetails = VesselScheduleDtl::where("SI_No", $shipment->SI_No)->get();
+            $shipment->orderDetails = VesselScheduleDtl::active()->where("SI_No", $shipment->SI_No)->get();
             return response()->json($shipment);
         } else {
             return response()->json(['error' => 'Shipping Instruction not found'], 404);
@@ -309,6 +383,208 @@ class PackingListController extends Controller
 
         $pl = PackingList::where("ID", $request->Task)->first();
 
-        return view('cns.export.pl-detail', compact('plno','fsis', 'companies', 'masProducts', 'pl'));
+        $selectedSi = null;
+        $containers = collect();
+        if ($pl) {
+            if (!empty($pl->Final_SI_No)) {
+                $selectedSi = ShipmentInstruction::where('Final_SI_No', $pl->Final_SI_No)->first();
+            }
+            if (!$selectedSi && !empty($pl->SI_No)) {
+                $selectedSi = ShipmentInstruction::where('SI_No', $pl->SI_No)->first();
+            }
+            if ($selectedSi) {
+                $containers = VesselScheduleDtl::active()->where('SI_No', $selectedSi->SI_No)->get();
+            }
+        }
+
+        $users = User::where('Status', 'ACTIVE')->orderBy('Name')->get();
+
+        return view('cns.export.pl-detail', compact('plno','fsis', 'companies', 'masProducts', 'pl', 'selectedSi', 'containers', 'users'));
+    }
+
+    public function detailPackingListSubmit(Request $request)
+    {
+        $id = $request->input('id');
+        $pl = null;
+        if ($id) {
+            $pl = PackingList::where('id', $id)->first();
+        }
+        if (!$pl && $request->filled('Packing_List_No')) {
+            $pl = PackingList::where('Packing_List_No', $request->input('Packing_List_No'))->first();
+        }
+
+        if (!$pl) {
+            return response()->json(['error' => 'Packing List not found'], 404);
+        }
+
+        $pl->Final_SI_No = $request->input('Final_SI_No', $pl->Final_SI_No);
+        $pl->Order_No = $request->input('Order_No', $pl->Order_No);
+        $pl->PL_Date = $request->input('PL_Date', $pl->PL_Date);
+        if ($request->filled('Qty1') && $request->filled('Qty2')) {
+            $pl->Qty = $request->input('Qty1') . " x " . $request->input('Qty2');
+            $pl->Qty1 = $request->input('Qty1');
+            $pl->Qty2 = $request->input('Qty2');
+        }
+        $pl->Shipper = $request->input('Shipper', $pl->Shipper);
+        $pl->Consignee = $request->input('Consignee', $pl->Consignee);
+        $pl->Notify = $request->input('Notify', $pl->Notify);
+        $pl->Destination_Port = $request->input('Destination_Port', $pl->Destination_Port);
+        $pl->Delivery_Terms = $request->input('Delivery_Terms', $pl->Delivery_Terms);
+        $pl->Contract_No = $request->input('Contract_No', $pl->Contract_No);
+        $pl->Voyage = $request->input('Voyage', $pl->Voyage);
+        $pl->ETD = $request->input('ETD', $pl->ETD);
+        $pl->ETA = $request->input('ETA', $pl->ETA);
+        $pl->Stuffing = $request->input('Stuffing', $pl->Stuffing);
+        $pl->POL = $request->input('POL', $pl->POL);
+        $pl->POD = $request->input('POD', $pl->POD);
+        $pl->PEB_Date = $request->input('PEB_Date', $pl->PEB_Date);
+        $pl->PEB_No = $request->input('PEB_No', $pl->PEB_No);
+        $pl->BL_No = $request->input('BL_No', $pl->BL_No);
+        $pl->HS_Code = $request->input('HS_Code', $pl->HS_Code);
+        $pl->Product_Name = $request->input('Product_Name', $pl->Product_Name);
+        if ($request->has('approved_by')) {
+            $pl->approved_by = $request->input('approved_by');
+        }
+        $pl->Updated_Date = now();
+        $pl->Updated_By = auth()->user()->username;
+        $pl->save();
+
+        return response("success:Done Update Packing List");
+    }
+
+    public function approvePackingList(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $id = $request->input('id');
+        $plNo = $request->input('Task') ?: $request->input('Packing_List_No');
+
+        $query = PackingList::query();
+        if ($id) {
+            $query->where('id', $id);
+        } elseif ($plNo) {
+            $query->where('Packing_List_No', $plNo);
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'Parameter ID atau nomor Packing List tidak ditemukan.'], 422);
+        }
+
+        $pl = $query->first();
+        if (!$pl) {
+            return response()->json(['status' => 'error', 'message' => 'Packing List tidak ditemukan.'], 404);
+        }
+
+        $approvedBy = $request->input('approved_by') ?: $pl->approved_by;
+
+        $canApprove = $user->username === 'admin'
+            || $user->hasRole('ADM')
+            || $user->hasRole('super-admin')
+            || in_array(($user->Priv_ID ?? ''), ['ADM', 'CNS', 'SPV', 'MANAGER'])
+            || $user->can('menu.SI00309.approve')
+            || $user->can('cns.packing_list.approve')
+            || (!empty($approvedBy) && (int) $user->id === (int) $approvedBy);
+
+        if (!$canApprove) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Anda tidak memiliki hak akses untuk menyetujui (approve) Packing List.'
+            ], 403);
+        }
+
+        if ($pl->Status === 'APPROVED') {
+            return response()->json(['status' => 'error', 'message' => 'Packing List ini sudah berstatus APPROVED.'], 422);
+        }
+
+        if (empty($approvedBy)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Silakan pilih user Approved By terlebih dahulu.'
+            ], 422);
+        }
+
+        $approver = User::find($approvedBy);
+        if (!$approver) {
+            return response()->json(['status' => 'error', 'message' => 'User approver tidak ditemukan.'], 422);
+        }
+
+        $sigPath = user_signature_path($approver->id);
+        if (!$sigPath) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "User approver ({$approver->Name}) belum memiliki file signature (tanda tangan) di profilnya."
+            ], 422);
+        }
+
+        if (empty($approver->signature) && file_exists($sigPath)) {
+            $relPath = str_replace(public_path('filevendor/'), '', $sigPath);
+            $approver->signature = $relPath;
+            $approver->save();
+        }
+
+        $pl->approved_by = $approver->id;
+        $pl->Status = 'APPROVED';
+        $pl->Updated_Date = now();
+        $pl->Updated_By = $user->username;
+        $pl->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Packing List {$pl->Packing_List_No} berhasil disetujui (APPROVED).",
+            'pl_status' => $pl->Status,
+        ]);
+    }
+
+    private function imageToDataUri($path): ?string
+    {
+        $path = trim((string) $path);
+        if ($path === '' || preg_match('#^https?://#i', $path)) {
+            return null;
+        }
+
+        $fullPath = is_file($path) ? $path : public_path(ltrim($path, '/'));
+        if (!is_file($fullPath) || !file_exists($fullPath)) {
+            return null;
+        }
+
+        $extension = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+
+        if ($extension === 'png') {
+            if (class_exists('\\Imagick')) {
+                try {
+                    $image = new \Imagick($fullPath);
+                    $image->setImageFormat('png');
+                    $image->setInterlaceScheme(\Imagick::INTERLACE_NO);
+                    $binary = $image->getImageBlob();
+                    $image->clear();
+                    $image->destroy();
+                    if ($binary !== null && $binary !== '') {
+                        return 'data:image/png;base64,' . base64_encode($binary);
+                    }
+                } catch (\Throwable $e) {
+                }
+            }
+
+            $image = @imagecreatefrompng($fullPath);
+            if ($image !== false) {
+                imageinterlace($image, false);
+                ob_start();
+                imagepng($image);
+                $binary = ob_get_clean();
+                imagedestroy($image);
+                if ($binary !== false) {
+                    return 'data:image/png;base64,' . base64_encode($binary);
+                }
+            }
+        }
+
+        $mime = $extension === 'jpg' ? 'jpeg' : $extension;
+        $binary = @file_get_contents($fullPath);
+        if ($binary === false) {
+            return null;
+        }
+
+        return 'data:image/' . $mime . ';base64,' . base64_encode($binary);
     }
 }

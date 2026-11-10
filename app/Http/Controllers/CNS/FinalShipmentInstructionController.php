@@ -6,18 +6,28 @@ use App\CommercialInvoice;
 use App\Http\Controllers\Controller;
 use App\PackingList;
 use App\ShipmentInstruction;
+use App\Services\CNS\ShippingInstructionPdfService;
+use App\User;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
 use App\VesselScheduleLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Mpdf\Mpdf;
 
 class FinalShipmentInstructionController extends Controller
 {
+    protected $pdfService;
+
+    public function __construct(ShippingInstructionPdfService $pdfService)
+    {
+        $this->pdfService = $pdfService;
+    }
+
     public function indexFinalShipmentInstruction()
     {
-        return view('cns.export.fsi');
+        $approvers = cns_eligible_approvers();
+
+        return view('cns.export.fsi', compact('approvers'));
     }
 
     public function indexFinalShipmentInstructionXml(Request $request)
@@ -32,7 +42,7 @@ class FinalShipmentInstructionController extends Controller
         echo "<rows>";
 
         $vsdData = [];
-        $vsds = VesselScheduleDtl::whereNotNull('SI_No')->get();
+        $vsds = VesselScheduleDtl::active()->whereNotNull('SI_No')->get();
         foreach ($vsds as $key => $vsd) {
             if (!isset($vsdData[$vsd->SI_No])) {
                 $vsdData[$vsd->SI_No] = [
@@ -52,7 +62,7 @@ class FinalShipmentInstructionController extends Controller
             $vsdData[$vsd->SI_No]['gross_mt'] += $vsd->Gross_MT;
         }
 
-        $shipments = ShipmentInstruction::whereBetween("Final_SI_Date", [$request->tgl1, $request->tgl2])->where('Status', "FINAL")->get();
+        $shipments = ShipmentInstruction::whereBetween("Final_SI_Date", [$request->tgl1, $request->tgl2])->whereIn('Status', ["FINAL", "APPROVED"])->get();
         foreach ($shipments as $key => $shipment) {
             echo "<row id=\"$shipment->id\" >";
             echo "<cell>" . ($key + 1) . "</cell>";
@@ -74,6 +84,7 @@ class FinalShipmentInstructionController extends Controller
                 echo "<cell></cell>";
                 echo "<cell></cell>";
             }
+            echo "<cell>" . htmlspecialchars((string) $shipment->Status) . "</cell>";
             echo "</row>";
         }
 
@@ -82,93 +93,22 @@ class FinalShipmentInstructionController extends Controller
 
     public function printFinalShipmentInstruction(Request $request)
     {
-        // $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
-        // foreach ($company as $key => $value) {
-        //     $companies[$value->Supplier_ID] = $value;
-        // }
-        // $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
-        // $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
-        // return view('cns.export.print.fsi', compact('shipment', 'vsds','companies'));
-        
-        // ── Ambil data (sesuaikan dengan model Anda) ──────────────────────
-        $companies = [];
-        $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
-        foreach ($company as $key => $value) {
-            $companies[$value->Supplier_ID] = $value;
-        }
         $shipment = ShipmentInstruction::where('Final_SI_No', $request->Task)->first();
-        $vsds = VesselScheduleDtl::where('SI_No', $shipment->SI_No)->get();
- 
-        // ── Hitung total ──────────────────────────────────────────────────
-        $gross = $vsds->sum('Gross_KG');
-        $netto = $vsds->sum('Netto_KG');
-        $mt    = round($netto / 1000, 2);
- 
-        // ── Render HTML dari Blade view ───────────────────────────────────
-        $html = view('cns.export.print.fsi', compact(
-            'shipment', 'vsds', 'companies', 'gross', 'netto', 'mt'
-        ))->render();
- 
-        // ── Header & Footer HTML ──────────────────────────────────────────
-        $letterhead = public_path($companies[$shipment->Shipper]->Letterhead);
-        $footerImg  = public_path($companies[$shipment->Shipper]->Footer);
- 
-        // Konversi ke base64 agar mPDF bisa render gambar
-        $headerB64 = base64_encode(file_get_contents($letterhead));
-        $footerB64 = base64_encode(file_get_contents($footerImg));
-        $headerExt = strtolower(pathinfo($letterhead, PATHINFO_EXTENSION));
-        $footerExt = strtolower(pathinfo($footerImg,  PATHINFO_EXTENSION));
- 
-        $headerHtml = '
-            <div style="margin:0;padding:0;line-height:0;">
-                <img src="data:image/' . $headerExt . ';base64,' . $headerB64 . '"
-                     style="width:100%;display:block;">
-            </div>';
- 
-        $footerHtml = '
-            <div style="margin:0;padding:0;line-height:0;">
-                <img src="data:image/' . $footerExt . ';base64,' . $footerB64 . '"
-                     style="width:100%;display:block;">
-            </div>';
- 
-        // ── Inisialisasi mPDF ─────────────────────────────────────────────
-        $mpdf = new Mpdf([
-            'format'        => 'A4',
-            'tempDir'       => storage_path('app/mpdf'),
-            'margin_top'    => 0,   // ← sesuaikan dengan tinggi header image (mm)
-            'margin_bottom' => 0,   // ← sesuaikan dengan tinggi footer image (mm)
-            'margin_left'   => 0,
-            'margin_right'  => 0,
-            // penting
-            'margin_header' => 0,
-            'margin_footer' => 0,
-            // penting
-            'setAutoTopMargin'    => 'stretch',
-            'setAutoBottomMargin' => 'stretch',
-        ]);
-        
-        $mpdf->splitTableBorderWidth = 1;
- 
-        $mpdf->SetHTMLHeader($headerHtml);
-        $mpdf->SetHTMLFooter($footerHtml);
- 
-        $mpdf->WriteHTML($html);
- 
-        // ── Output ────────────────────────────────────────────────────────
-        $filename = 'FSI_' . ($shipment->Final_SI_No ?? $shipment->SI_No);
-        $mpdf->SetTitle($filename);
- 
-        // 'I' = tampil di browser, 'D' = download, 'F' = simpan ke file
-        return response($mpdf->Output($filename . '.pdf', 'S'), 200, [
+
+        abort_if(!$shipment, 404);
+
+        $pdf = $this->pdfService->render($shipment, 'FSI');
+
+        return response($pdf['content'], 200, [
             'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+            'Content-Disposition' => 'inline; filename="' . $pdf['filename'] . '"',
         ]);
     }
 
     public function newFinalShipmentInstruction()
     {
         $vss = VesselSchedule::get();
-        $sis = ShipmentInstruction::where('Status', "CREATED")->get();
+        $sis = ShipmentInstruction::where('Status', "APPROVED")->get();
         $masProducts = DB::table('master_product_cns')->get();
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         return view('cns.export.fsi-new', compact('vss', 'sis', 'companies', 'masProducts'));
@@ -177,6 +117,12 @@ class FinalShipmentInstructionController extends Controller
     
     public function newFinalShipmentInstructionSubmit(Request $request)
     {
+        $si = ShipmentInstruction::where("SI_No", $request->SI_No)->first();
+        if (!$si || $si->Status !== 'APPROVED') {
+            echo "<script>alert('Shipping Instruction harus berstatus APPROVED sebelum dibuatkan Final SI.')</script>";
+            return;
+        }
+
         $counter = DB::table("shipment_instructions")->where('SI_Date', "LIKE", date("Y-m"). "%")->where('Status', "FINAL")->count();
 
         $SINo = "FINALSI/EXP/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
@@ -197,7 +143,7 @@ class FinalShipmentInstructionController extends Controller
         $SINo = $request->input('SI_No');
         $shipment = ShipmentInstruction::where('SI_No', $SINo)->first();
         if ($shipment) {
-            $vsd = VesselScheduleDtl::where("SI_No", $SINo)->get();
+            $vsd = VesselScheduleDtl::active()->where("SI_No", $SINo)->get();
             $shipment->orderDetails = $vsd;
             unset($shipment->id);
             return response()->json($shipment);
@@ -256,10 +202,164 @@ class FinalShipmentInstructionController extends Controller
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         $shipment = ShipmentInstruction::where('ID', request()->query('Task'))->first();
         if ($shipment) {
-            $vsd = VesselScheduleDtl::where("SI_No", $shipment->SI_No)->get();
+            $vsd = VesselScheduleDtl::active()->where("SI_No", $shipment->SI_No)->get();
             $shipment->orderDetails = $vsd;
         }
-        return view('cns.export.fsi-detail', compact('vss', 'sis', 'companies', 'masProducts', 'shipment'));
+        $users = User::where('Status', 'ACTIVE')->orderBy('Name')->get();
+        return view('cns.export.fsi-detail', compact('vss', 'sis', 'companies', 'masProducts', 'shipment', 'users'));
+    }
+
+    public function detailFinalShipmentInstructionSubmit(Request $request)
+    {
+        $id = $request->input('id');
+        $si = null;
+        if ($id) {
+            $si = ShipmentInstruction::where('id', $id)->first();
+        }
+        if (!$si && $request->filled('SI_No')) {
+            $si = ShipmentInstruction::where('SI_No', $request->input('SI_No'))->first();
+        }
+
+        if (!$si) {
+            return response()->json(['error' => 'Shipment Instruction not found'], 404);
+        }
+
+        $request->validate([
+            'approved_by' => 'nullable|exists:users,id',
+        ]);
+
+        $updateData = [
+            'Updated_Date' => now(),
+            'Updated_By' => auth()->user()->username,
+        ];
+
+        if ($request->has('approved_by')) {
+            $updateData['approved_by'] = $request->approved_by;
+        }
+
+        if ($request->filled('Shipper')) {
+            $updateData['Shipper'] = $request->Shipper;
+        }
+        if ($request->has('Shipper_Address')) {
+            $updateData['Shipper_Address'] = $request->Shipper_Address;
+        }
+        if ($request->filled('Consignee')) {
+            $updateData['Consignee'] = $request->Consignee;
+        }
+        if ($request->has('Consignee_Address')) {
+            $updateData['Consignee_Address'] = $request->Consignee_Address;
+        }
+        if ($request->filled('Notify')) {
+            $updateData['Notify'] = $request->Notify;
+        }
+        if ($request->has('Notify_Address')) {
+            $updateData['Notify_Address'] = $request->Notify_Address;
+        }
+        if ($request->has('PEB_No')) {
+            $updateData['PEB_No'] = $request->PEB_No;
+        }
+        if ($request->has('PEB_Date')) {
+            $updateData['PEB_Date'] = $request->PEB_Date;
+        }
+        if ($request->has('BL_No')) {
+            $updateData['BL_No'] = $request->BL_No;
+        }
+        if ($request->has('POL')) {
+            $updateData['POL'] = $request->POL;
+        }
+        if ($request->has('POD')) {
+            $updateData['POD'] = $request->POD;
+        }
+
+        $si->update($updateData);
+
+        return response("success:Done Update Final SI");
+    }
+
+    public function approveFinalShipmentInstruction(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $id = $request->input('id');
+        $fsiNo = $request->input('Task') ?: $request->input('Final_SI_No') ?: $request->input('SI_No');
+
+        $query = ShipmentInstruction::query();
+        if ($id) {
+            $query->where('id', $id);
+        } elseif ($fsiNo) {
+            $query->where(function ($q) use ($fsiNo) {
+                $q->where('Final_SI_No', $fsiNo)->orWhere('SI_No', $fsiNo);
+            });
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'Parameter ID atau nomor Final SI tidak ditemukan.'], 422);
+        }
+
+        $si = $query->first();
+        if (!$si) {
+            return response()->json(['status' => 'error', 'message' => 'Final Shipping Instruction tidak ditemukan.'], 404);
+        }
+
+        $approvedBy = $request->input('approved_by') ?: $si->approved_by;
+
+        $canApprove = $user->username === 'admin'
+            || $user->hasRole('ADM')
+            || $user->hasRole('super-admin')
+            || in_array(($user->Priv_ID ?? ''), ['ADM', 'CNS', 'SPV', 'MANAGER'])
+            || $user->can('menu.SI00308.approve')
+            || $user->can('cns.final_shipment_instruction.approve')
+            || (!empty($approvedBy) && (int) $user->id === (int) $approvedBy);
+
+        if (!$canApprove) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Anda tidak memiliki hak akses untuk menyetujui (approve) Final Shipping Instruction.'
+            ], 403);
+        }
+
+        if ($si->Status === 'APPROVED') {
+            return response()->json(['status' => 'error', 'message' => 'Final Shipping Instruction ini sudah berstatus APPROVED.'], 422);
+        }
+
+        if (empty($approvedBy)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Silakan pilih user Approved By terlebih dahulu.'
+            ], 422);
+        }
+
+        $approver = User::find($approvedBy);
+        if (!$approver) {
+            return response()->json(['status' => 'error', 'message' => 'User approver tidak ditemukan.'], 422);
+        }
+
+        $sigPath = user_signature_path($approver->id);
+        if (!$sigPath) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "User approver ({$approver->Name}) belum memiliki file signature (tanda tangan) di profilnya."
+            ], 422);
+        }
+
+        if (empty($approver->signature) && file_exists($sigPath)) {
+            $relPath = str_replace(public_path('filevendor/'), '', $sigPath);
+            $approver->signature = $relPath;
+            $approver->save();
+        }
+
+        $si->approved_by = $approver->id;
+        $si->Status = 'APPROVED';
+        $si->Updated_Date = now();
+        $si->Updated_By = $user->username;
+        $si->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Final Shipping Instruction " . ($si->Final_SI_No ?: $si->SI_No) . " berhasil disetujui (APPROVED).",
+            'si_status' => $si->Status,
+        ]);
     }
 
     public function generatePackingList(Request $request)
@@ -274,7 +374,7 @@ class FinalShipmentInstructionController extends Controller
         $ci = PackingList::where('Final_SI_No', $request->Task)->first();
         if ($ci) {
             // return response()->json(['error' => 'Commercial Invoice already generated for this Shipping Instruction'], 400);
-            echo "<script>alert('Commercial Invoice already generated for this Shipping Instruction');</script>";
+            echo "<script>alert('Packing List already generated for this Shipping Instruction');</script>";
             return;
         }
 
@@ -282,7 +382,7 @@ class FinalShipmentInstructionController extends Controller
         // $shipment->save();
 
         $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
-        $vsd = VesselScheduleDtl::where('Task_ID', $vs->Task_ID)
+        $vsd = VesselScheduleDtl::active()->where('Task_ID', $vs->Task_ID)
             ->get()
             ->map(function ($item) {
                 return $item->Container . ' (' . $item->Seal . ')';
@@ -300,15 +400,17 @@ class FinalShipmentInstructionController extends Controller
 
         $counter = PackingList::where('PL_Date', "LIKE", date("Y-m") . "%")->count();
         
-        $shipment = json_decode(json_encode($shipment), true);
-        $shipment["Packing_List_No"] = "PL-GEU/EXP-BC/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
-        $shipment['PL_Date'] = $request->PL_Date;
-        $shipment['Created_By'] = auth()->user()->username;
-        $shipment['Created_Date'] = now();
-        $shipment['Updated_By'] = null;
-        $shipment['Updated_Date'] = null;
-        $shipment['Status'] = "CREATED";
-        PackingList::create($shipment);
+        $shipmentData = json_decode(json_encode($shipment), true);
+        unset($shipmentData['id']);
+        $shipmentData["Packing_List_No"] = "PL-GEU/EXP-BC/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
+        $shipmentData['PL_Date'] = $request->PL_Date;
+        $shipmentData['approved_by'] = $shipment->approved_by ?? ($shipmentData['approved_by'] ?? null);
+        $shipmentData['Created_By'] = auth()->user()->username;
+        $shipmentData['Created_Date'] = now();
+        $shipmentData['Updated_By'] = null;
+        $shipmentData['Updated_Date'] = null;
+        $shipmentData['Status'] = "CREATED";
+        PackingList::create($shipmentData);
 
         echo "<script>alert('Packing List generated successfully');</script>";
 
@@ -332,7 +434,7 @@ class FinalShipmentInstructionController extends Controller
         }
 
         $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
-        $vsd = VesselScheduleDtl::where('Task_ID', $vs->Task_ID)
+        $vsd = VesselScheduleDtl::active()->where('Task_ID', $vs->Task_ID)
             ->get()
             ->map(function ($item) {
                 return $item->Container . ' (' . $item->Seal . ')';
@@ -348,7 +450,7 @@ class FinalShipmentInstructionController extends Controller
         unset($vs['id']);
         VesselScheduleLog::create($vs);
 
-        $getVSD = VesselScheduleDtl::where("Order_No", $vs['Order_No'])->where("SI_No", $shipment->SI_No)->sum('Netto_MT');
+        $getVSD = VesselScheduleDtl::active()->where("Order_No", $vs['Order_No'])->where("SI_No", $shipment->SI_No)->sum('Netto_MT');
     
         $counter = CommercialInvoice::where('Inv_Date', "LIKE", date("Y-m") . "%")->count();
         

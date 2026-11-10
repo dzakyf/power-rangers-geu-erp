@@ -73,7 +73,7 @@
 				{ data: 'driver_name' },
 				{ data: 'quantity_kg', className: 'text-right' },
 				{ data: 'unit' },
-				{ data: 'price', className: 'text-right' },
+				{ data: 'price', className: 'text-right', visible: false },
 				{ data: 'total_price', className: 'text-right' },
 				{ data: 'wo_code' },
 				{ data: 'wo_date' },

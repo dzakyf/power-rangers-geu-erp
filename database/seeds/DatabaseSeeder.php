@@ -7,6 +7,7 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call(MenuListsSeeder::class);
+        $this->call(CnsMenuListsSeeder::class);
         $this->call(RbacSeeder::class);
         $this->call(HcgaPermissionSeeder::class);
         $this->call(MasterBankSeeder::class);

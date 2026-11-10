@@ -100,40 +100,14 @@ class BackfillTraceability2026 extends Command
         $this->info("  deleted fragments: {$frag} | deliveries: {$del}");
     }
 
-    /** unit from cached SJ details (satuan_name) */
+    /** All external fragment units are stored in Kg. */
     protected function stepUnit(): void
     {
         $this->info('== step: unit ==');
-        $dir = rtrim(config('services.apipi.cache_path') ?: storage_path('app/apipi/cache'), '/');
-        $nd = $dir . '/surat_jalan_details.ndjson';
-        if (!is_file($nd)) { $this->error('  cache ndjson missing'); return; }
-
-        $map = []; // sj kode => satuan_name (first non-empty)
-        $fh = fopen($nd, 'r');
-        while (($line = fgets($fh)) !== false) {
-            $rec = json_decode($line, true);
-            if (!$rec) { continue; }
-            $kode = $rec['kode'] ?? ($rec['detail']['header']['kode'] ?? null);
-            if (!$kode || isset($map[$kode])) { continue; }
-            foreach (($rec['detail']['details'] ?? []) as $ln) {
-                $u = $ln['satuan_name'] ?? null;
-                if ($u) { $map[$kode] = $u; break; }
-            }
-        }
-        fclose($fh);
-
-        $updated = 0; $n = 0;
-        foreach ($map as $kode => $unit) {
-            $n++;
-            $updated += DB::table('traceability_external_poo_fragments')
-                ->whereIn('traceability_external_delivery_id', function ($q) use ($kode) {
-                    $q->select('id')->from('traceability_external_deliveries')
-                      ->where('api_reference', 'like', $kode . '-%')
-                      ->whereBetween('delivery_date', [$this->yearStart(), $this->yearEnd()]);
-                })
-                ->update(['unit' => $unit]);
-        }
-        $this->info("  SJ units mapped: {$n} | fragments updated: {$updated}");
+        $updated = DB::table('traceability_external_poo_fragments')
+            ->whereBetween('do_date', [$this->yearStart(), $this->yearEnd()])
+            ->update(['unit' => 'Kg']);
+        $this->info("  fragments updated to Kg: {$updated}");
     }
 
     /** price from pickup API items[].harga */

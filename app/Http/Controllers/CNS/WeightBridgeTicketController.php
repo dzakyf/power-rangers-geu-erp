@@ -32,7 +32,7 @@ class WeightBridgeTicketController extends Controller
         $nomor = 1;
         $wbt = WeightBridgeTicket::whereBetween('Departure_Date', [$request->tgl1, $request->tgl2])->get();
         foreach ($wbt as $key => $value) {
-            $vsd = VesselScheduleDtl::where("SI_No", $value->SI_No)->get();
+            $vsd = VesselScheduleDtl::active()->where("SI_No", $value->SI_No)->get();
             foreach ($vsd as $k => $v) {
                 $value->Container .= $v->Container . " (" . $v->Seal . "),";
             }
@@ -59,18 +59,96 @@ class WeightBridgeTicketController extends Controller
 
     public function printWeightBridgeTicket(Request $request)
     {
-        $wbt = WeightBridgeTicket::where("WBT_No", $request->Task)->first();
+        $task = trim((string) $request->input('Task', ''));
+        $wbt = null;
+        if ($task !== '') {
+            $wbt = WeightBridgeTicket::where("WBT_No", $task)->first();
+            if (!$wbt && is_numeric($task)) {
+                $wbt = WeightBridgeTicket::find($task);
+            }
+        }
+
         if (!$wbt) {
-            return redirect()->back()->with('error', 'Data not found');
+            abort(404, 'Weight Bridge Ticket tidak ditemukan');
         }
-        if ($wbt->Shipper == null) {
-            $wbt->Shipper = 'SUP10001';
+
+        // Lengkapi data yang mungkin belum tersimpan di WBT dari ShipmentInstruction / PackingList
+        $si = ShipmentInstruction::where('SI_No', $wbt->SI_No)
+            ->orWhere('Final_SI_No', $wbt->Final_SI_No)
+            ->first();
+        if ($si) {
+            if (empty($wbt->BL_No)) {
+                $wbt->BL_No = $si->BL_No ?? '';
+            }
+            if (empty($wbt->Departure_Date)) {
+                $wbt->Departure_Date = $si->Departure_Date ?? '';
+            }
+            if (empty($wbt->Voyage)) {
+                $wbt->Voyage = $si->Voyage ?? '';
+            }
+            if (empty($wbt->Contract_No)) {
+                $wbt->Contract_No = $si->Contract_No ?? '';
+            }
+            if (empty($wbt->Shipper)) {
+                $wbt->Shipper = $si->Shipper ?? '';
+            }
         }
-        $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
-        foreach ($company as $key => $value) {
+
+        if (empty($wbt->Shipper)) {
+            $pl = PackingList::where('Packing_List_No', $wbt->Packing_List_No)->first();
+            if ($pl && !empty($pl->Shipper)) {
+                $wbt->Shipper = $pl->Shipper;
+            }
+        }
+
+        $companies = [];
+        $supplierQuery = DB::table('supplier');
+        if (auth()->check() && !empty(auth()->user()->Location)) {
+            $suppliers = $supplierQuery->where("Location", auth()->user()->Location)->get();
+        } else {
+            $suppliers = $supplierQuery->get();
+        }
+        foreach ($suppliers as $value) {
             $companies[$value->Supplier_ID] = $value;
         }
-        $wbt->Details = WeightBridgeTicketDtl::where("WBT_No", $wbt->WBT_No)->join('vessel_schedule_dtls', 'weight_bridge_ticket_dtl.VSD_ID', '=', 'vessel_schedule_dtls.id')->select('weight_bridge_ticket_dtl.*', 'vessel_schedule_dtls.Container as Container', 'vessel_schedule_dtls.Seal as Seal')->get();
+
+        if (!empty($wbt->Shipper) && !isset($companies[$wbt->Shipper])) {
+            $shipperRow = DB::table('supplier')->where('Supplier_ID', $wbt->Shipper)->first();
+            if ($shipperRow) {
+                $companies[$wbt->Shipper] = $shipperRow;
+            }
+        }
+
+        if (empty($wbt->Shipper) || !isset($companies[$wbt->Shipper])) {
+            $fallback = DB::table('supplier')->where('Is_Company', 1)->first() ?? DB::table('supplier')->first();
+            if ($fallback) {
+                $wbt->Shipper = $fallback->Supplier_ID;
+                $companies[$fallback->Supplier_ID] = $fallback;
+            }
+        }
+
+        // Ambil detail foto timbangan kontainer
+        $details = WeightBridgeTicketDtl::where("WBT_No", $wbt->WBT_No)
+            ->leftJoin('vessel_schedule_dtls', 'weight_bridge_ticket_dtl.VSD_ID', '=', 'vessel_schedule_dtls.id')
+            ->select('weight_bridge_ticket_dtl.*', 'vessel_schedule_dtls.Container as Container', 'vessel_schedule_dtls.Seal as Seal')
+            ->get();
+
+        // Jika belum ada foto di weight_bridge_ticket_dtl, fallback ke daftar kontainer dari vessel_schedule_dtls
+        if ($details->isEmpty() && !empty($wbt->SI_No)) {
+            $vsds = VesselScheduleDtl::active()->where("SI_No", $wbt->SI_No)->get();
+            $synthetic = collect();
+            foreach ($vsds as $v) {
+                $synthetic->push((object)[
+                    'Container' => $v->Container,
+                    'Seal' => $v->Seal,
+                    'Path_Loc' => '',
+                ]);
+            }
+            $details = $synthetic;
+        }
+
+        $wbt->Details = $details;
+
         return view('cns.export.print.wbt', compact('wbt', 'companies'));
     }
 
@@ -84,7 +162,7 @@ class WeightBridgeTicketController extends Controller
     {
         $pl = PackingList::where("Packing_List_No", $request->input("Packing_List_No"))->first();
         if ($pl) {
-            $si = VesselScheduleDtl::where('SI_No', $pl->SI_No)->get();
+            $si = VesselScheduleDtl::active()->where('SI_No', $pl->SI_No)->get();
             $pl->orderDetails = $si;
             return response()->json($pl);
         } else {
@@ -169,7 +247,7 @@ class WeightBridgeTicketController extends Controller
         ]);
 
         foreach ($getContainId as $key => $value) {
-            $vsd = VesselScheduleDtl::where("id", $value)->first();
+            $vsd = VesselScheduleDtl::active()->where("id", $value)->first();
             $name = "";
             $ext = "";
             if ($r['Container' . $value] != 'undefined') {
@@ -238,7 +316,7 @@ class WeightBridgeTicketController extends Controller
         $wbt->save();
 
         foreach ($getContainId as $key => $value) {
-            $vsd = VesselScheduleDtl::where("id", $value)->first();
+            $vsd = VesselScheduleDtl::active()->where("id", $value)->first();
             $name = "";
             $ext = "";
             if ($r['Container' . $value] != 'undefined') {

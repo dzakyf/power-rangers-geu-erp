@@ -1,127 +1,17 @@
-<?php
+@include('cns.vs.partials.vessel-schedule-form', [
+    'vs' => $vs,
+    'contracts' => $contracts,
+    'vendors' => $vendors,
+    'bookings' => $bookings,
+    'q88' => $q88,
+    'isEdit' => true,
+])
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Builder;
-
-$LSP = Auth::user()->Location;
-$Saya =  Auth::user()->username;
-
-?>
-<div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">VESSEL SCHEDULE</div>
-	<div class="card">
-		<div class="card-body">
-			<div id="ContentPages">
-				<div class="FormInput_Form_Content">
-					<div class="row">
-						<div class="col-12">
-							<div class="form-group">
-								<label for="Order_No">Order No</label>
-								<input type="hidden" name="id" id="id" value="{{ $vs->id }}" />
-								<input type="text" name="Order_No" id="Order_No" class="form-control" required value="{{ $vs->Order_No }}" />
-							</div>
-						</div>
-						<div class="col-12">
-							<div class="form-group">
-								<label for="Qty1">Qty</label>
-								<div class="row">
-									<div class="col">
-										<select name="Qty1" id="Qty1" class="form-control" required>
-											<option value="">-- Pilih Qty --</option>
-											@foreach (range(1,1000) as $item)
-											<option value="{{$item}}" {{ $vs->Qty1 == $item ? 'selected' : '' }}>{{$item}}</option>
-											@endforeach
-										</select>
-									</div>
-									<div class="col">
-										<select name="Qty2" id="Qty2" class="form-control" required>
-											<option value="">-- Pilih Qty --</option>
-											<option value="20 FT" {{ $vs->Qty2 == '20 FT' ? 'selected' : '' }}>20 FT</option>
-											<option value="20 ISOTANK" {{ $vs->Qty2 == '20 ISOTANK' ? 'selected' : ''}}>20 ISOTANK</option>
-										</select>
-									</div>
-								</div>
-							</div>
-						</div>
-						<div class="col-md-4">
-							<div class="form-group">
-								<label for="Vessel">Vessel</label>
-								<input type="text" name="Vessel" id="Vessel" value="{{ $vs->Vessel }}" class="form-control" required />
-							</div>
-						</div>
-						<div class="col-md-4">
-							<div class="form-group">
-								<label for="POL">POL</label>
-								<input type="text" name="POL" id="POL" value="{{ $vs->POL }}" class="form-control" required />
-							</div>
-						</div>
-						<div class="col-md-4">
-							<div class="form-group">
-								<label for="POD">POD</label>
-								<input type="text" name="POD" id="POD" value="{{ $vs->POD }}" class="form-control" required />
-							</div>
-						</div>
-						<div class="col-md-2">
-							<div class="form-group">
-								<label for="Stuffing">Stuffing</label>
-								<input type="text" name="Stuffing" id="Stuffing" value="{{ $vs->Stuffing }}" class="form-control bg-white" required readonly />
-							</div>
-						</div>
-						<div class="col-md-2">
-							<div class="form-group">
-								<label for="Checking_BC">Checking BC</label>
-								<input type="text" name="Checking_BC" id="Checking_BC" value="{{ $vs->Checking_BC }}" class="form-control bg-white" required readonly />
-							</div>
-						</div>
-						<div class="col-md-2">
-							<div class="form-group">
-								<label for="Closing_CY">Closing CY</label>
-								<input type="text" name="Closing_CY" id="Closing_CY" value="{{ $vs->Closing_CY }}" class="form-control bg-white" required readonly />
-							</div>
-						</div>
-						<div class="col-md-2">
-							<div class="form-group">
-								<label for="ETD">ETD</label>
-								<input type="text" name="ETD" id="ETD" value="{{ $vs->ETD }}" class="form-control bg-white" required readonly />
-							</div>
-						</div>
-						<div class="col-md-2">
-							<div class="form-group">
-								<label for="ATD">ATD</label>
-								<input type="text" name="ATD" id="ATD" value="{{ $vs->ATD ?? "" }}" class="form-control bg-white" required readonly />
-							</div>
-						</div>
-						<div class="col-md-2">
-							<div class="form-group">
-								<label for="ETA">ETA</label>
-								<input type="text" name="ETA" id="ETA" value="{{ $vs->ETA }}" class="form-control bg-white" required readonly />
-							</div>
-						</div>
-						<div class="col-md-2">
-							<div class="form-group">
-								<label for="ATA">ATA</label>
-								<input type="text" name="ATA" id="ATA" value="{{ $vs->ATA ?? "" }}" class="form-control bg-white" required readonly />
-							</div>
-						</div>
-						<div class="col-12">
-							<div class="form-group">
-								<label for="Note">Note</label>
-								<textarea name="Note" id="Note" rows="5" class="form-control">{{ $vs->Note }}</textarea>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div id="divtom">
-				<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Update Data" class="btn btn-success mt-2 mr-2" />
-			</div>
-		</div>
-	</div>
-	<div id="DivProcess"></div>
-
-</div>
+@include('cns.vs.partials.vessel-schedule-form-script', [
+    'submitUrl' => 'cns-vessel-schedule-detail-submit',
+    'isEdit' => true,
+    'vs' => $vs,
+])
 
 <div class="mt-3">
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">VESSEL SCHEDULE LOG</div>
@@ -186,14 +76,14 @@ $Saya =  Auth::user()->username;
 
 	StuffingDetailLog = new dhtmlXGridObject('StuffingDetailLog');
 	StuffingDetailLog.setImagePath("./dhtmlx/imgs/");
-	StuffingDetailLog.setHeader("No, Action By, Action Date, Action Status, Order (DO)/Booking Confirmation (BC),Qty,Kapal,POL,POD,Stuffing,Checking,Closing CY,ETD,ATD,ETA,ATA,Estimated Day(s), Actual Day(s), Note, Container (Seal)");
-	StuffingDetailLog.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	StuffingDetailLog.setHeader("No, Action By, Action Date, Action Status, Kontrak, Shipping Method, Qty, Vessel/Truck, PoL, PoD, Stuffing Date, Closing CY, ETD, ETA");
+	StuffingDetailLog.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// StuffingDetailLog.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	StuffingDetailLog.setInitWidths("60,100,100,200,150,100,200,150,150,100,100,100,100,100,100,100,100,100,100,800");
-	StuffingDetailLog.setColAlign("center,center,center,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
+	StuffingDetailLog.setInitWidths("60,120,140,140,150,120,100,180,150,150,130,120,110,110");
+	StuffingDetailLog.setColAlign("center,left,center,left,left,left,left,left,left,left,center,center,center,center");
 	StuffingDetailLog.setDateFormat("%d %F %Y");
-	StuffingDetailLog.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	StuffingDetailLog.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	StuffingDetailLog.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
+	StuffingDetailLog.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	StuffingDetailLog.enableSmartRendering(true, 150);
 	StuffingDetailLog.setSkin("dhx_skyblue");
 	StuffingDetailLog.init();

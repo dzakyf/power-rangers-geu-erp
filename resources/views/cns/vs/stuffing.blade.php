@@ -34,7 +34,7 @@ $Saya =  Auth::user()->username;
 			<div>
 				<span style='background-color: #ffccccff' class="p-2 border"></span> : Stuffing Not Started<br>
 				<span style='background-color: #feffccff' class="p-2 border"></span> : Stuffing Yet Complete<br>
-				<span style='background-color: #ccffcfff' class="p-2 border"></span> : Stuffing Complete<br>
+				<span style='background-color: #ccffcfff' class="p-2 border"></span> : Stuffing Complete (Done/Kapal Berangkat checked)<br>
 			</div>
 			<div class="mb-2">
 				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
@@ -45,6 +45,7 @@ $Saya =  Auth::user()->username;
 			<div>
 				<input type="button" id="DetailStuffing" name="DetailStuffing" value="Detail Stuffing" class="btn btn-primary mt-2 mr-2" onclick="StuffingVesselKlik()" />
 				<input type="button" id="openShipmentLink" name="openShipmentLink" value="Open ShipmentLink" class="btn btn-secondary mt-2 mr-2" onclick="openShipmentLink()" />
+				<input type="button" id="generateStuffingReport" name="generateStuffingReport" value="Generate Stuffing Report" class="btn btn-success mt-2 mr-2" onclick="generateStuffingReport()" />
 				<input type="button" id="ekselStuffingVesselDet" name="ekselStuffingVesselDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="StuffingVessel.toExcel('./export/generate.php');" />
 			</div>
 		</div>
@@ -59,6 +60,18 @@ $Saya =  Auth::user()->username;
 	 {
 		window.open("https://www.shipmentlink.com","_blank");
 	 }
+
+	function generateStuffingReport()
+	{
+		let selectedId = StuffingVessel.getSelectedId();
+
+		if (!selectedId) {
+			alert("Pilih baris data");
+			return;
+		}
+
+		window.open('cns-stuffing-report?task=' + selectedId, '_blank');
+	}
 
 	function StuffingVesselKlik() {
 

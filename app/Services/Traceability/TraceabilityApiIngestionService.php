@@ -31,9 +31,10 @@ class TraceabilityApiIngestionService
     protected $split;
 
     protected $supplierById = [];
-    protected $supPoolByCity = [];
-    protected $supPoolByProvince = [];
-    protected $anyPoolByCity = [];
+    protected $sjPoolByIdentity = [];
+    protected $sjPoolByCity = [];
+    protected $sjPoolByProvince = [];
+    protected $sjPoolNational = [];
 
     public function __construct(ISCCTraceabilityService $split)
     {
@@ -42,36 +43,41 @@ class TraceabilityApiIngestionService
 
     /**
      * @param array $suppliers   records: id,name,jenis,kota_name,provinsi_name,gps,alamat,phone,nama_rek,nomor_rek,price
-     * @param array $collections records: supplier_id,sj_kode,sj_date,qty_real,wo_code,po_code,plat,ttd,photo
+     * @param array $collections records: supplier_id,supplier_name,supplier_alamat,supplier_phone,supplier_gps,supplier_jenis,sj_kode,sj_date,qty_real_kg,wo_code,po_code,plat,ttd,photo
      */
-    public function ingest(array $suppliers, array $collections, bool $purge = false, bool $skipExisting = false): array
+    public function ingest(array $suppliers, array $collections, bool $purge = false, bool $skipExisting = false, bool $bulk = false): array
     {
-        $this->indexSuppliers($suppliers);
+        $this->indexSuppliers($suppliers, $collections);
 
         // group by (sj_kode, supplier_id)
         $groups = [];
         foreach ($collections as $c) {
             $sid = $c['supplier_id'] ?? null;
             if ($sid === null || $sid === '') { continue; }
-            $qty = (float) ($c['qty_real'] ?? 0);
+            $qty = (float) ($c['qty_real_kg'] ?? 0);
             if ($qty <= 0) { continue; }
 
             $key = $c['sj_kode'] . '|' . $sid;
             if (!isset($groups[$key])) {
                 $groups[$key] = [
-                    'supplier_id' => $sid,
-                    'sj_kode'     => $c['sj_kode'],
-                    'sj_date'     => $c['sj_date'] ?? null,
-                    'qty'         => 0.0,
-                    'wo_codes'    => [],
-                    'po_code'     => $c['po_code'] ?? null,
-                    'plat'        => $c['plat'] ?? null,
-                    'driver'      => $c['driver'] ?? null,
-                    'gudang'      => $c['gudang'] ?? null,
-                    'pickup_id'   => $c['pickup_id'] ?? null,
-                    'unit'        => $c['unit'] ?? null,
-                    'ttd'         => null,
-                    'photo'       => null,
+                    'supplier_id'     => $sid,
+                    'supplier_name'   => $c['supplier_name'] ?? null,
+                    'supplier_alamat' => $c['supplier_alamat'] ?? null,
+                    'supplier_phone'  => $c['supplier_phone'] ?? null,
+                    'supplier_gps'    => $c['supplier_gps'] ?? null,
+                    'supplier_jenis'  => $c['supplier_jenis'] ?? null,
+                    'sj_kode'         => $c['sj_kode'],
+                    'sj_date'         => $c['sj_date'] ?? null,
+                    'qty'             => 0.0,
+                    'wo_codes'        => [],
+                    'po_code'         => $c['po_code'] ?? null,
+                    'plat'            => $c['plat'] ?? null,
+                    'driver'          => $c['driver'] ?? null,
+                    'gudang'          => $c['gudang'] ?? null,
+                    'pickup_id'       => $c['pickup_id'] ?? null,
+                    'unit'            => 'Kg',
+                    'ttd'             => null,
+                    'photo'           => null,
                 ];
             }
             $groups[$key]['qty'] = round($groups[$key]['qty'] + $qty, 2);
@@ -81,12 +87,18 @@ class TraceabilityApiIngestionService
             if (empty($groups[$key]['driver']) && !empty($c['driver'])) { $groups[$key]['driver'] = $c['driver']; }
             if (empty($groups[$key]['gudang']) && !empty($c['gudang'])) { $groups[$key]['gudang'] = $c['gudang']; }
             if (empty($groups[$key]['pickup_id']) && !empty($c['pickup_id'])) { $groups[$key]['pickup_id'] = $c['pickup_id']; }
-            if (empty($groups[$key]['unit']) && !empty($c['unit'])) { $groups[$key]['unit'] = $c['unit']; }
+            if (empty($groups[$key]['supplier_name']) && !empty($c['supplier_name'])) { $groups[$key]['supplier_name'] = $c['supplier_name']; }
+            if (empty($groups[$key]['supplier_alamat']) && !empty($c['supplier_alamat'])) { $groups[$key]['supplier_alamat'] = $c['supplier_alamat']; }
+            if (empty($groups[$key]['supplier_phone']) && !empty($c['supplier_phone'])) { $groups[$key]['supplier_phone'] = $c['supplier_phone']; }
+            if (empty($groups[$key]['supplier_gps']) && !empty($c['supplier_gps'])) { $groups[$key]['supplier_gps'] = $c['supplier_gps']; }
+            if (empty($groups[$key]['supplier_jenis']) && !empty($c['supplier_jenis'])) { $groups[$key]['supplier_jenis'] = $c['supplier_jenis']; }
             if (empty($groups[$key]['ttd']) && !empty($c['ttd'])) { $groups[$key]['ttd'] = $c['ttd']; }
             if (empty($groups[$key]['photo']) && !empty($c['photo'])) { $groups[$key]['photo'] = $c['photo']; }
         }
 
         $counts = ['collections' => count($collections), 'groups' => count($groups), 'created' => 0, 'updated' => 0, 'skipped' => 0, 'fragments' => 0];
+        $bulkDeliveries = [];
+        $bulkFragments = [];
 
         if ($purge) {
             DB::table('traceability_external_poo_fragments')->delete();
@@ -100,7 +112,7 @@ class TraceabilityApiIngestionService
         }
 
         foreach ($groups as $g) {
-            $sup = $this->supplierById[$g['supplier_id']] ?? null;
+            $sup = $this->sjPoolByIdentity[$g['supplier_id']] ?? $this->supplierById[$g['supplier_id']] ?? null;
             if (!$sup) { continue; }
 
             $total  = $g['qty'];
@@ -115,6 +127,7 @@ class TraceabilityApiIngestionService
                 'city'              => $sup['kota_name'] ?? null,
                 'province'          => $sup['provinsi_name'] ?? null,
                 'delivery_date'     => $sjDate,
+                'site'              => !empty($g['gudang']) ? $g['gudang'] : ($sup['gudang_name'] ?? null),
                 'pickup_id'         => $g['pickup_id'] ?? null,
                 'total_quantity_kg' => $total,
                 'api_reference'     => $apiRef,
@@ -125,7 +138,11 @@ class TraceabilityApiIngestionService
                 'photos'            => $g['photo'] ? json_encode([$g['photo']]) : null,
             ];
 
-            if (isset($existing[$apiRef])) {
+            if ($bulk) {
+                $deliveryId = $apiRef;
+                $bulkDeliveries[$apiRef] = $payload + ['created_at' => now(), 'updated_at' => now()];
+                $counts['created']++;
+            } elseif (isset($existing[$apiRef])) {
                 if ($skipExisting) { $counts['skipped']++; continue; }
                 $ex = $existing[$apiRef];
                 if (abs((float) $ex->total_quantity_kg - $total) < 0.01) { $counts['skipped']++; continue; }
@@ -154,7 +171,7 @@ class TraceabilityApiIngestionService
                 }
             }
 
-            $applyPicks = $isSup && count($pairs) > 1;
+            $applyPicks = $isSup;
             $pickIds    = $applyPicks ? $this->pickNames($sup, count($pairs)) : [];
             $woCodeTxt  = implode(', ', array_keys($g['wo_codes']));
 
@@ -163,8 +180,8 @@ class TraceabilityApiIngestionService
                 list($qty, $date) = $pair;
                 $seq  = $i + 1;
                 $pick = $pickIds[$i] ?? null;
-                $psup = $pick ? ($this->supplierById[$pick] ?? null) : null;
-                $src  = $psup ?: $sup;                       // assigned supplier (doc fields)
+                $psup = $pick ? ($this->sjPoolByIdentity[$pick] ?? null) : null;
+                $src  = $psup ?: $sup;                       // assigned SJ supplier (doc fields)
                 $repeat = $pick && $this->nameRepeated($pickIds, $pick, $i);
 
                 $rows[] = [
@@ -173,10 +190,10 @@ class TraceabilityApiIngestionService
                     'poo_name'                          => trim((string) ($src['name'] ?? '')) . ($repeat ? ' (' . $seq . ')' : ''),
                     'poo_type'                          => $src['jenis'] ? (trim((string) $src['jenis']) ?: $label) : $label,
                     'quantity_kg'                       => $qty,
-                    'unit'                              => $g['unit'] ?? null,
-                    'site'                              => $g['gudang'] ?? null,
-                    'city'                              => $src['kota_name'] ?? null,
-                    'province'                          => $src['provinsi_name'] ?? null,
+                    'unit'                              => 'Kg',
+                    'site'                              => !empty($g['gudang']) ? $g['gudang'] : ($src['gudang_name'] ?? ($sup['gudang_name'] ?? null)),
+                    'city'                              => !empty($src['kota_name']) ? $src['kota_name'] : ($sup['kota_name'] ?? null),
+                    'province'                          => !empty($src['provinsi_name']) ? $src['provinsi_name'] : ($sup['provinsi_name'] ?? null),
                     'full_address'                      => $src['alamat'] ?? null,
                     'lat'                               => $this->parseLat($src['gps'] ?? ''),
                     'lng'                               => $this->parseLng($src['gps'] ?? ''),
@@ -200,36 +217,100 @@ class TraceabilityApiIngestionService
                 ];
             }
 
-            foreach (array_chunk($rows, 500) as $batch) {
-                DB::table('traceability_external_poo_fragments')->insert($batch);
+            if ($bulk) {
+                $bulkFragments[$apiRef] = $rows;
+            } else {
+                foreach (array_chunk($rows, 500) as $batch) {
+                    DB::table('traceability_external_poo_fragments')->insert($batch);
+                }
             }
             $counts['fragments'] += count($rows);
+        }
+
+        if ($bulk) {
+            $this->flushBulk($bulkDeliveries, $bulkFragments);
         }
 
         return $counts;
     }
 
+    protected function flushBulk(array $deliveries, array $fragments): void
+    {
+        foreach (array_chunk($deliveries, 200, true) as $chunk) {
+            DB::table('traceability_external_deliveries')->insert(array_values($chunk));
+
+            $refs = array_keys($chunk);
+            $ids = DB::table('traceability_external_deliveries')
+                ->whereIn('api_reference', $refs)
+                ->pluck('id', 'api_reference');
+
+            $fragmentRows = [];
+            foreach ($refs as $ref) {
+                $deliveryId = $ids[$ref] ?? null;
+                if (!$deliveryId) { continue; }
+                foreach (($fragments[$ref] ?? []) as $row) {
+                    $row['traceability_external_delivery_id'] = $deliveryId;
+                    $fragmentRows[] = $row;
+                }
+            }
+
+            foreach (array_chunk($fragmentRows, 500) as $batch) {
+                DB::table('traceability_external_poo_fragments')->insert($batch);
+            }
+        }
+    }
+
     /* ------------------------------------------------------------- helpers */
 
-    protected function indexSuppliers(array $suppliers): void
+    protected function indexSuppliers(array $suppliers, array $collections = []): void
     {
-        $this->supplierById = $this->supPoolByCity = $this->supPoolByProvince = $this->anyPoolByCity = [];
+        $this->supplierById = [];
+        $this->sjPoolByIdentity = $this->sjPoolByCity = $this->sjPoolByProvince = $this->sjPoolNational = [];
 
         foreach ($suppliers as $s) {
             $id = $s['id'] ?? null;
             if ($id === null) { continue; }
             $this->supplierById[$id] = $s;
+            $this->supplierById[(string) $id] = $s;
+        }
 
-            $city  = $s['kota_name'] ?? null;
-            $prov  = $s['provinsi_name'] ?? null;
-            $isSup = trim((string) ($s['jenis'] ?? '')) === self::SUPPLIER_JENIS;
+        // The randomized POO pool is limited to suppliers that actually appear in SJ.
+        foreach ($collections as $c) {
+            $id = $c['supplier_id'] ?? null;
+            if ($id === null || $id === '') { continue; }
 
-            if ($city) {
-                if ($isSup) { $this->supPoolByCity[$city][] = $id; }
-                $this->anyPoolByCity[$city][] = $id;
+            $identity = (string) $id;
+            if (isset($this->sjPoolByIdentity[$identity])) { continue; }
+
+            $s = $this->supplierById[$id] ?? $this->supplierById[$identity] ?? [];
+            $record = [
+                'id'            => $id,
+                'name'          => $c['supplier_name'] ?? ($s['name'] ?? null),
+                'jenis'         => $c['supplier_jenis'] ?? ($s['jenis'] ?? null),
+                'kota_name'     => $s['kota_name'] ?? ($c['supplier_kota_name'] ?? null),
+                'provinsi_name' => $s['provinsi_name'] ?? ($c['supplier_provinsi_name'] ?? null),
+                'gps'           => $c['supplier_gps'] ?? ($s['gps'] ?? null),
+                'alamat'        => $c['supplier_alamat'] ?? ($s['alamat'] ?? null),
+                'phone'         => $c['supplier_phone'] ?? ($s['phone'] ?? null),
+                'nama_rek'      => $s['nama_rek'] ?? null,
+                'nomor_rek'     => $s['nomor_rek'] ?? null,
+                'price'         => $s['price'] ?? null,
+                'gudang_name'   => $s['gudang_name'] ?? null,
+                'active'        => $s['active'] ?? 1,
+            ];
+
+            $this->sjPoolByIdentity[$identity] = $record;
+
+            if (trim((string) ($record['jenis'] ?? '')) === self::SUPPLIER_JENIS) {
+                continue;
             }
-            if ($isSup && $prov) {
-                $this->supPoolByProvince[$prov][] = $id;
+
+            $this->sjPoolNational[] = $identity;
+            if (!empty($record['kota_name'])) {
+                $this->sjPoolByCity[$record['kota_name']][] = $identity;
+            }
+            if (!empty($record['provinsi_name'])) {
+                $this->sjPoolByProvince[$record['provinsi_name']][] = $identity;
             }
         }
     }
@@ -260,20 +341,18 @@ class TraceabilityApiIngestionService
 
     protected function pickNames(array $sup, int $n): array
     {
-        $self = $sup['id'];
+        $self = (string) $sup['id'];
         $city = $sup['kota_name'] ?? '';
         $prov = $sup['provinsi_name'] ?? '';
 
         $pools = [];
-        if ($city && isset($this->supPoolByCity[$city])) {
-            $pools[] = array_values(array_diff($this->supPoolByCity[$city], [$self]));
+        if ($city && isset($this->sjPoolByCity[$city])) {
+            $pools[] = array_values(array_diff($this->sjPoolByCity[$city], [$self]));
         }
-        if ($prov && isset($this->supPoolByProvince[$prov])) {
-            $pools[] = array_values(array_diff($this->supPoolByProvince[$prov], [$self]));
+        if ($prov && isset($this->sjPoolByProvince[$prov])) {
+            $pools[] = array_values(array_diff($this->sjPoolByProvince[$prov], [$self]));
         }
-        if ($city && isset($this->anyPoolByCity[$city])) {
-            $pools[] = array_values(array_diff($this->anyPoolByCity[$city], [$self]));
-        }
+        $pools[] = array_values(array_diff($this->sjPoolNational, [$self]));
 
         mt_srand(crc32($self . '|' . $city));
         $flat = [];

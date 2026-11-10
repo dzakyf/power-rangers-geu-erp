@@ -1,74 +1,226 @@
+@php
+    $contracts = $contracts ?? collect();
+    $tanks = $tanks ?? collect();
+    $category = $category ?? 'EXTERNAL';
+@endphp
 <div id="FormEditQualityControl" class="row m-1" style="display:none;">
     <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">EDIT QUALITY CONTROL</div>
-    <div class="card w-100">
+    <div class="card w-100 shadow-sm">
         <div class="card-body">
             <form id="QualityControlEditForm" enctype="multipart/form-data">
                 @csrf
                 <div class="row mb-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
-                            <label for="edit_Created_At">Tanggal <span style="color:red;">*</span></label>
+                            <label for="edit_Kode_QC" class="font-weight-bold">Kode QC</label>
+                            <input type="text" name="Kode_QC" id="edit_Kode_QC" class="form-control" readonly />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="edit_Created_At" class="font-weight-bold">Tanggal Pemeriksaan <span style="color:red;">*</span></label>
                             <input type="date" name="Created_At" id="edit_Created_At" class="form-control" required readonly />
                         </div>
                     </div>
-                    <!-- <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
-                            <label for="edit_Attachment">Attachment (kosongkan jika tidak diganti)</label>
-                            <input type="file" name="Attachment" id="edit_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
+                            <label for="edit_QC_Type" class="font-weight-bold">Jenis Quality Control <span style="color:red;">*</span></label>
+                            <select name="QC_Type" id="edit_QC_Type" class="form-control" required onchange="onEditQcTypeChange(this.value)">
+                                <option value="INBOUND">Inbound (Barang Masuk)</option>
+                                <option value="OUTBOUND">Outbound (Barang Keluar)</option>
+                                <option value="DAILY_QC">Daily QC</option>
+                            </select>
                         </div>
-                    </div> -->
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="edit_QC_Category" class="font-weight-bold">Pelaksana Lab</label>
+                            <input type="text" name="QC_Category" id="edit_QC_Category" class="form-control" readonly />
+                        </div>
+                    </div>
                 </div>
 
-                <table class="table table-bordered text-center">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>Type</th>
-                            <th>FFA As Palmitic</th>
-                            <th>FFA As Oleic</th>
-                            <th>MC</th>
-                            <th>IMP</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="align-middle font-weight-bold">Top</td>
-                            <td><input type="number" step="0.01" name="top_FFA_As_Palmitic" id="edit_top_FFA_As_Palmitic" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="top_FFA_As_Oleic" id="edit_top_FFA_As_Oleic" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="top_MC" id="edit_top_MC" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="top_IMP" id="edit_top_IMP" class="form-control" /></td>
-                        </tr>
-                        <tr>
-                            <td class="align-middle font-weight-bold">Middle</td>
-                            <td><input type="number" step="0.01" name="middle_FFA_As_Palmitic" id="edit_middle_FFA_As_Palmitic" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="middle_FFA_As_Oleic" id="edit_middle_FFA_As_Oleic" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="middle_MC" id="edit_middle_MC" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="middle_IMP" id="edit_middle_IMP" class="form-control" /></td>
-                        </tr>
-                        <tr>
-                            <td class="align-middle font-weight-bold">Bottom</td>
-                            <td><input type="number" step="0.01" name="bottom_FFA_As_Palmitic" id="edit_bottom_FFA_As_Palmitic" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="bottom_FFA_As_Oleic" id="edit_bottom_FFA_As_Oleic" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="bottom_MC" id="edit_bottom_MC" class="form-control" /></td>
-                            <td><input type="number" step="0.01" name="bottom_IMP" id="edit_bottom_IMP" class="form-control" /></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="row mb-3 edit-outbound-contract-group" style="display:none;">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="edit_Contract_ID" class="font-weight-bold">Nomor Kontrak</label>
+                            <select name="Contract_ID" id="edit_Contract_ID" class="form-control">
+                                <option value="">-- Pilih Kontrak --</option>
+                                @foreach($contracts as $contract)
+                                    <option value="{{ $contract->ID }}">{{ $contract->Contract_No }}{{ !empty($contract->Buyer_Name) ? ' - ' . $contract->Buyer_Name : '' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="edit_Booking_ID" class="font-weight-bold">Nomor Booking Confirmation</label>
+                            <select name="Booking_ID" id="edit_Booking_ID" class="form-control">
+                                <option value="">-- Pilih Booking Confirmation --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
-                <button type="button" class="btn btn-primary" onclick="submitEditQC()">Update</button>
-                <button type="button" class="btn btn-secondary ml-2" onclick="$('#FormEditQualityControl').hide(); $('#QualityControlEditForm')[0].reset();">Cancel</button>
+                <div class="row mb-3 edit-daily-tank-group" style="display:none;">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="edit_Tank_ID" class="font-weight-bold">Nama Tangki <span style="color:red;">*</span></label>
+                            <select name="Tank_ID" id="edit_Tank_ID" class="form-control">
+                                <option value="">-- Pilih Tangki --</option>
+                                @foreach($tanks as $tank)
+                                    <option value="{{ $tank->id }}">{{ $tank->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 mb-2">
+                    <h5 class="font-weight-bold text-dark mb-1">Hasil Pemeriksaan Lab</h5>
+                    <p class="text-muted small mb-2">Edit nilai parameter hasil pemeriksaan lab.</p>
+                </div>
+
+                @php
+                    $qcParameters = [
+                        ['key' => 'FFA_As_Palmitic', 'label' => '1. FFA (As Palmitic)', 'unit' => '%'],
+                        ['key' => 'FFA_As_Oleic',    'label' => '2. FFA (As Oleic)',    'unit' => '%'],
+                        ['key' => 'MIU',             'label' => '3. MIU (Moisture, Impurities & Unsaponifiables)', 'unit' => '%'],
+                        ['key' => 'Sulphur',         'label' => '4. Total Sulfur',      'unit' => 'ppm'],
+                        ['key' => 'IV',              'label' => '5. Iodine Value (IV)', 'unit' => 'g I2/100g'],
+                        ['key' => 'Total_Chlorides', 'label' => '6. Chlorides',         'unit' => 'ppm'],
+                        ['key' => 'Phosphorus',      'label' => '7. Phosphorus',        'unit' => 'ppm'],
+                        ['key' => 'Total_Metals',    'label' => '8. Total Metals',      'unit' => 'ppm'],
+                    ];
+                @endphp
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped text-center align-middle" style="background-color:#fff;">
+                        <thead class="thead-light">
+                            <tr>
+                                <th style="width:36%;text-align:left;vertical-align:middle;">Parameter QC</th>
+                                <th style="width:16%;vertical-align:middle;">TOP</th>
+                                <th style="width:16%;vertical-align:middle;">MIDDLE</th>
+                                <th style="width:16%;vertical-align:middle;">BOTTOM</th>
+                                <th style="width:16%;vertical-align:middle;background-color:#e8f4f8;">AVERAGE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($qcParameters as $param)
+                            <tr>
+                                <td class="text-left font-weight-bold" style="vertical-align:middle;">
+                                    {{ $param['label'] }} <span class="badge badge-light text-secondary border ml-1">{{ $param['unit'] }}</span>
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" name="top_{{ $param['key'] }}" id="edit_top_{{ $param['key'] }}"
+                                           class="form-control text-right" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" name="middle_{{ $param['key'] }}" id="edit_middle_{{ $param['key'] }}"
+                                           class="form-control text-right" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" name="bottom_{{ $param['key'] }}" id="edit_bottom_{{ $param['key'] }}"
+                                           class="form-control text-right" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
+                                </td>
+                                <td>
+                                    <input type="text" id="edit_avg_{{ $param['key'] }}" class="form-control text-right font-weight-bold"
+                                           readonly style="background-color:#f0f8ff;" placeholder="-" />
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3">
+                    <button type="button" class="btn btn-primary px-4 mr-2" onclick="submitEditQC()">Update</button>
+                    <button type="button" class="btn btn-secondary px-4" onclick="cancelEditQC()">Cancel</button>
+                </div>
             </form>
         </div>
     </div>
 </div>
 
 <script>
+    if (typeof loadQualityBookings !== 'function') {
+        window.loadQualityBookings = function(contractId, targetSelector, selectedId) {
+            var select = $(targetSelector);
+            select.empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+
+            if (!contractId) {
+                return;
+            }
+
+            $.get('cns-quality-bookings?contract_id=' + encodeURIComponent(contractId), function(data) {
+                if (Array.isArray(data)) {
+                    data.forEach(function(booking) {
+                        var text = (booking.label ? booking.label + ' - ' : '') + (booking.booking_no || '');
+                        var option = $('<option></option>').val(booking.id).text(text);
+                        if (selectedId && String(selectedId) === String(booking.id)) {
+                            option.prop('selected', true);
+                        }
+                        select.append(option);
+                    });
+                    if (selectedId) {
+                        select.val(String(selectedId));
+                    }
+                }
+            });
+        };
+    }
+
+    $(document).ready(function() {
+        $('#edit_Contract_ID').on('change', function() {
+            var contractId = $(this).val();
+            if (typeof loadQualityBookings === 'function') {
+                loadQualityBookings(contractId, '#edit_Booking_ID', null);
+            }
+        });
+    });
+
+    function cleanCell(val) {
+        if (!val || val === '-' || val === 'null' || val === 'undefined') return '';
+        return String(val).replace('%', '').trim();
+    }
+
+    function onEditQcTypeChange(val) {
+        if (val === 'OUTBOUND') {
+            $('.edit-outbound-contract-group').show();
+            $('.edit-daily-tank-group').hide();
+            $('#edit_Tank_ID').val('');
+        } else if (val === 'DAILY_QC') {
+            $('.edit-daily-tank-group').show();
+            $('.edit-outbound-contract-group').hide();
+            $('#edit_Contract_ID').val('');
+            $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+        } else {
+            $('.edit-outbound-contract-group').hide();
+            $('.edit-daily-tank-group').hide();
+            $('#edit_Contract_ID').val('');
+            $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+            $('#edit_Tank_ID').val('');
+        }
+    }
+
+    function cancelEditQC() {
+        $('#FormEditQualityControl').hide();
+        $('#QualityControlEditForm')[0].reset();
+        $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+        $('#edit_Tank_ID').val('');
+        qcParamKeys.forEach(function(key) {
+            $('#edit_avg_' + key).val('-');
+        });
+        onEditQcTypeChange('INBOUND');
+    }
+
     function prefillEditQC(rowId) {
         var grid = ProjectionGrid;
 
-        // col: 0=No, 1=Tanggal, 2=TopPalmitic, 3=TopOleic, 4=TopMC, 5=TopIMP,
-        //      6=MidPalmitic, 7=MidOleic, 8=MidMC, 9=MidIMP,
-        //      10=BotPalmitic, 11=BotOleic, 12=BotMC, 13=BotIMP
-        var tanggal = grid.cells(rowId, 1).getValue();
+        var kodeQc = grid.cells(rowId, 1).getValue() || '';
+        document.getElementById('edit_Kode_QC').value = (kodeQc === '-' ? '' : kodeQc);
+
+        var tanggal = grid.cells(rowId, 2).getValue();
         var date = new Date(tanggal);
         var isoDate = date.getFullYear() + '-' +
             String(date.getMonth() + 1).padStart(2, '0') + '-' +
@@ -76,20 +228,45 @@
 
         document.getElementById('edit_Created_At').value = isoDate;
 
-        document.getElementById('edit_top_FFA_As_Palmitic').value = grid.cells(rowId, 2).getValue();
-        document.getElementById('edit_top_FFA_As_Oleic').value = grid.cells(rowId, 3).getValue();
-        document.getElementById('edit_top_MC').value = grid.cells(rowId, 4).getValue().replace('%', '');
-        document.getElementById('edit_top_IMP').value = grid.cells(rowId, 5).getValue().replace('%', '');
+        var qcType = grid.cells(rowId, 3).getValue() || 'INBOUND';
+        document.getElementById('edit_QC_Type').value = qcType;
 
-        document.getElementById('edit_middle_FFA_As_Palmitic').value = grid.cells(rowId, 6).getValue();
-        document.getElementById('edit_middle_FFA_As_Oleic').value = grid.cells(rowId, 7).getValue();
-        document.getElementById('edit_middle_MC').value = grid.cells(rowId, 8).getValue().replace('%', '');
-        document.getElementById('edit_middle_IMP').value = grid.cells(rowId, 9).getValue().replace('%', '');
+        var qcCat = grid.cells(rowId, 4).getValue() || 'EXTERNAL';
+        document.getElementById('edit_QC_Category').value = qcCat;
 
-        document.getElementById('edit_bottom_FFA_As_Palmitic').value = grid.cells(rowId, 10).getValue();
-        document.getElementById('edit_bottom_FFA_As_Oleic').value = grid.cells(rowId, 11).getValue();
-        document.getElementById('edit_bottom_MC').value = grid.cells(rowId, 12).getValue().replace('%', '');
-        document.getElementById('edit_bottom_IMP').value = grid.cells(rowId, 13).getValue().replace('%', '');
+        onEditQcTypeChange(qcType);
+
+        var contractId = '';
+        var bookingId = '';
+        var tankId = '';
+        try {
+            contractId = grid.cells(rowId, 38) ? grid.cells(rowId, 38).getValue() : '';
+            bookingId  = grid.cells(rowId, 39) ? grid.cells(rowId, 39).getValue() : '';
+            tankId     = grid.cells(rowId, 41) ? grid.cells(rowId, 41).getValue() : '';
+        } catch (e) {}
+
+        $('#edit_Contract_ID').val(contractId);
+        if (contractId && typeof loadQualityBookings === 'function') {
+            loadQualityBookings(contractId, '#edit_Booking_ID', bookingId);
+        } else {
+            $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+        }
+
+        $('#edit_Tank_ID').val(tankId);
+
+        // TOP indices: 5..12, MIDDLE: 13..20, BOTTOM: 21..28
+        // Keys: FFA_As_Palmitic(5), FFA_As_Oleic(6), MIU(7), Sulphur(8), IV(9), Total_Chlorides(10), Phosphorus(11), Total_Metals(12)
+        qcParamKeys.forEach(function(key, idx) {
+            var topVal = cleanCell(grid.cells(rowId, 5 + idx).getValue());
+            var midVal = cleanCell(grid.cells(rowId, 13 + idx).getValue());
+            var botVal = cleanCell(grid.cells(rowId, 21 + idx).getValue());
+
+            $('#edit_top_' + key).val(topVal);
+            $('#edit_middle_' + key).val(midVal);
+            $('#edit_bottom_' + key).val(botVal);
+
+            calcQcAverage(key, 'edit');
+        });
 
         $('#FormEditQualityControl').show();
     }
@@ -97,45 +274,41 @@
     function submitEditQC() {
         var form = document.getElementById('QualityControlEditForm');
         var createdAt = form.Created_At.value;
+        var qcType = form.QC_Type.value || 'INBOUND';
+        var qcCategory = form.QC_Category.value || 'EXTERNAL';
+        var kodeQc = form.Kode_QC ? form.Kode_QC.value : '';
 
         if (!createdAt) {
-            alert('Tanggal wajib diisi');
+            alert('Tanggal Pemeriksaan wajib diisi');
             return;
         }
 
-        var types = ['top', 'middle', 'bottom'];
-        var attachmentFile = form.Attachment.files[0];
+        if (qcType === 'DAILY_QC' && !form.Tank_ID.value) {
+            alert('Nama Tangki wajib dipilih untuk Daily QC');
+            return;
+        }
 
-        var requests = types.map(function(type) {
-            var formData = new FormData();
-            formData.append('_token', form._token.value);
-            formData.append('Created_At', createdAt);
-            formData.append('Type', type.charAt(0).toUpperCase() + type.slice(1));
-            formData.append('FFA_As_Palmitic', form[type + '_FFA_As_Palmitic'].value);
-            formData.append('FFA_As_Oleic', form[type + '_FFA_As_Oleic'].value);
-            formData.append('MC', form[type + '_MC'].value);
-            formData.append('IMP', form[type + '_IMP'].value);
+        var formData = new FormData(form);
 
-            if (attachmentFile) {
-                formData.append('Attachment', attachmentFile);
+        $.ajax({
+            url: 'cns-quality-submit-edit',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(res) {
+                if (res.status === 'success') {
+                    alert('Data Quality Control berhasil diperbarui');
+                    cancelEditQC();
+                    loadQualityGrid();
+                } else {
+                    alert(res.message || 'Gagal mengupdate data Quality Control');
+                }
+            },
+            error: function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal mengupdate data Quality Control';
+                alert(msg);
             }
-
-            return $.ajax({
-                url: 'cns-quality-submit-edit',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-            });
-        });
-
-        $.when.apply($, requests).then(function() {
-            alert('Data berhasil diupdate');
-            form.reset();
-            $('#FormEditQualityControl').hide();
-            ProjectionGrid.clearAndLoad('cns-quality-data');
-        }).fail(function() {
-            alert('Gagal mengupdate data');
         });
     }
 </script>

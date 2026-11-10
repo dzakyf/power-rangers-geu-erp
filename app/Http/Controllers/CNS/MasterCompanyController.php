@@ -86,6 +86,8 @@ class MasterCompanyController extends Controller
     public function newMasterCompanySubmit(Request $request)
     {
 
+        $emails = $this->companyEmails($request);
+
         $param = $request->param;
         $param = explode('&', $param);
         $param = array_filter($param, fn($p) => !str_starts_with($p, 'filter_type='));
@@ -156,6 +158,8 @@ class MasterCompanyController extends Controller
             $arr['Stamps'] = "filesupplier/" . $filename;
         }
 
+        $this->applyCompanyEmails($arr, $emails);
+
         $arr['Supplier_ID'] = $Supplier_ID;
         $arr['Status'] = "NORMAL";
         $arr['Created_By'] = $Saya;
@@ -175,6 +179,8 @@ class MasterCompanyController extends Controller
 
     public function detailMasterCompanySubmit(Request $request)
     {
+
+        $emails = $this->companyEmails($request);
 
         $param = $request->param;
         $param = explode('&', $param);
@@ -239,10 +245,36 @@ class MasterCompanyController extends Controller
         $arr['Is_Supplier']  = $request->input('Is_Supplier',  0);
         $arr['Is_Consignee'] = $request->input('Is_Consignee', 0);
 
+        $this->applyCompanyEmails($arr, $emails);
+
         DB::table('supplier')->where('ID', $params['ID'])->update($arr);
 
         // DB::insert(DB::raw("INSERT INTO supplier($ax,Status,Supplier_ID,Created_By,Location) VALUES($isi,'NORMAL','$Supplier_ID','$Saya','$LSP')"));
 
         return "success";
     }
+
+
+    private function companyEmails(Request $request): array
+    {
+        $data = $request->validate([
+            'Emails'   => 'required|array|min:1|max:10',
+            'Emails.*' => 'required|email|max:150',
+        ]);
+
+        return array_values(array_unique(array_map('trim', $data['Emails'])));
+    }
+
+    private function applyCompanyEmails(array &$arr, array $emails): void
+    {
+        $primary = $emails[0] ?? null;
+
+        if ($primary !== null && strlen($primary) > 60) {
+            $primary = null;
+        }
+
+        $arr['Email'] = $primary;
+        $arr['Emails'] = count($emails) > 0 ? json_encode($emails) : null;
+    }
+
 }
