@@ -207,7 +207,24 @@ class ReimbursementApprovalController extends Controller
             $canApprove = false;
         }
 
-        return view('humanresources.reimbursement.approval.detail', compact('reimbursement', 'dtls', 'logs', 'currentTask', 'canApprove', 'attachment'));
+        $bankDetails = ReimbursementController::getEmployeeBankDetails($reimbursement->User_Responsibility_ID);
+        if (!$bankDetails || $bankDetails['bank_name'] === '-') {
+            if ($reimbursement->Payment_Reference_No || $reimbursement->Payment_Acc_No) {
+                $bName = $reimbursement->Payment_Reference_No ?: '-';
+                $bAcc  = $reimbursement->Payment_Acc_No ?: '-';
+                $bUpper = strtoupper($bName);
+                $bankDetails = [
+                    'bank_name'   => $bName,
+                    'bank_acc'    => $bAcc,
+                    'bank_an'     => $reimbursement->User_Responsibility_Name ?: '-',
+                    'bank_branch' => '-',
+                    'is_bca'      => (strpos($bUpper, 'BCA') !== false || strpos($bUpper, 'CENTRAL ASIA') !== false),
+                    'display'     => $bName . ' - ' . $bAcc,
+                ];
+            }
+        }
+
+        return view('humanresources.reimbursement.approval.detail', compact('reimbursement', 'dtls', 'logs', 'currentTask', 'canApprove', 'attachment', 'bankDetails'));
     }
 
     public function approve(Request $request)

@@ -1477,5 +1477,237 @@ class PayrollController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
+
+    // =========================================================================
+    // 9. REPORT PAYROLL (/payroll-report)
+    // =========================================================================
+
+    public function payrollReportIndex(Request $request)
+    {
+        $reportService = app(\App\Services\Payroll\PayrollReportService::class);
+
+        $selectedPeriod = $request->input('period', date('Y-m'));
+        $selectedTaskId = $request->input('task_id');
+        $selectedDept = $request->input('department');
+        $selectedSite = $request->input('site');
+        $selectedBank = $request->input('bank');
+
+        // Daftar Periode yang ada di salary_main
+        $periods = DB::table('salary_main')
+            ->select('Salary_Period')
+            ->distinct()
+            ->orderBy('Salary_Period', 'DESC')
+            ->pluck('Salary_Period');
+
+        // Daftar Task ID Batch Payroll
+        $batches = DB::table('salary_main')
+            ->select('Task_ID', 'Salary_Period', 'Category', 'Total', 'Status')
+            ->orderBy('Created_Date', 'DESC')
+            ->take(50)
+            ->get();
+
+        // Daftar Departemen & Site
+        $departments = DB::table('employment')
+            ->whereNotNull('Department')
+            ->where('Department', '!=', '')
+            ->distinct()
+            ->pluck('Department');
+
+        $sites = DB::table('employment')
+            ->whereNotNull('Location')
+            ->where('Location', '!=', '')
+            ->distinct()
+            ->pluck('Location');
+
+        // Daftar Master Bank dari master_bank
+        $banks = [];
+        if (Schema::hasTable('master_bank')) {
+            $banks = DB::table('master_bank')
+                ->where('Is_Active', 1)
+                ->orderBy('Bank_Name', 'ASC')
+                ->get();
+        }
+
+        $reportData = $reportService->getReportData([
+            'period'     => $selectedPeriod,
+            'task_id'    => $selectedTaskId,
+            'department' => $selectedDept,
+            'site'       => $selectedSite,
+            'bank'       => $selectedBank,
+        ]);
+
+        return view('humanresources.payroll.payroll-report', compact(
+            'selectedPeriod',
+            'selectedTaskId',
+            'selectedDept',
+            'selectedSite',
+            'selectedBank',
+            'periods',
+            'batches',
+            'departments',
+            'sites',
+            'banks',
+            'reportData'
+        ));
+    }
+
+    public function apiPayrollReportData(Request $request)
+    {
+        $reportService = app(\App\Services\Payroll\PayrollReportService::class);
+        $data = $reportService->getReportData($request->all());
+
+        return response()->json([
+            'success' => true,
+            'total'   => count($data),
+            'rows'    => $data,
+        ]);
+    }
+
+    public function exportPayrollReportExcel(Request $request)
+    {
+        $reportService = app(\App\Services\Payroll\PayrollReportService::class);
+        $data = $reportService->getReportData($request->all());
+
+        $period = $request->input('period', date('Y-m'));
+        $filename = 'Report_Payroll_' . str_replace('-', '', $period) . '_' . date('Ymd_His') . '.xlsx';
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Payroll Report');
+
+        // Header Title
+        $sheet->setCellValue('A1', 'REPORT PAYROLL & TRANSFER SUMMARY');
+        $sheet->setCellValue('A2', 'Periode: ' . $period . ' | Export Date: ' . date('d-m-Y H:i:s'));
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(10);
+
+        // Column Headers
+        $headers = [
+            'A4' => 'No',
+            'B4' => 'NIK',
+            'C4' => 'Nama',
+            'D4' => 'Jabatan',
+            'E4' => 'Departemen',
+            'F4' => 'Site',
+            'G4' => 'Gaji Pokok',
+            'H4' => 'Cost of Living Allowance',
+            'I4' => 'Tunjangan',
+            'J4' => 'Tunjangan Kom & Transport',
+            'K4' => 'Tunj. Sourcing',
+            'L4' => 'Total Salary',
+            'M4' => 'Tanggal Join',
+            'N4' => 'Masa Kerja',
+            'O4' => 'Gaji / Day',
+            'P4' => 'Total Hari Kerja',
+            'Q4' => 'Durasi Total Overtime (Jam)',
+            'R4' => 'Nilai Bonus Overtime',
+            'S4' => 'Jml Unpaid Leave',
+            'T4' => 'Unpaid Leave (Rp)',
+            'U4' => 'Jml Keterlambatan',
+            'V4' => 'Keterlambatan (Rp)',
+            'W4' => 'BPJS Ketenagakerjaan',
+            'X4' => 'BPJS Kesehatan',
+            'Y4' => 'PPh21',
+            'Z4' => 'Lain-lain',
+            'AA4' => 'Total Penghasilan',
+            'AB4' => 'Deduksi',
+            'AC4' => 'Nett (THP)',
+            'AD4' => 'Terbilang (Indonesia)',
+            'AE4' => 'Terbilang (English)',
+            'AF4' => 'BCA NOREK',
+            'AG4' => 'Atas Nama (BCA)',
+            'AH4' => 'SELAIN BCA (BANK)',
+            'AI4' => 'SELAIN BCA NOREK #2',
+            'AJ4' => 'Atas Nama #2',
+        ];
+
+        foreach ($headers as $cell => $val) {
+            $sheet->setCellValue($cell, $val);
+        }
+
+        // Header Style
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1E7E34'],
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+            'borders' => [
+                'allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+            ],
+        ];
+        $sheet->getStyle('A4:AJ4')->applyFromArray($headerStyle);
+        $sheet->getRowDimension(4)->setRowHeight(28);
+
+        // Data Rows
+        $rowNum = 5;
+        foreach ($data as $r) {
+            $sheet->setCellValue('A' . $rowNum, $r['no']);
+            $sheet->setCellValueExplicit('B' . $rowNum, (string)$r['nik'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('C' . $rowNum, $r['nama']);
+            $sheet->setCellValue('D' . $rowNum, $r['jabatan']);
+            $sheet->setCellValue('E' . $rowNum, $r['departemen']);
+            $sheet->setCellValue('F' . $rowNum, $r['site']);
+            $sheet->setCellValue('G' . $rowNum, $r['gaji_pokok']);
+            $sheet->setCellValue('H' . $rowNum, $r['cola']);
+            $sheet->setCellValue('I' . $rowNum, $r['tunjangan']);
+            $sheet->setCellValue('J' . $rowNum, $r['tunj_kom_transport']);
+            $sheet->setCellValue('K' . $rowNum, $r['tunj_sourcing']);
+            $sheet->setCellValue('L' . $rowNum, $r['total_salary']);
+            $sheet->setCellValue('M' . $rowNum, $r['tanggal_join']);
+            $sheet->setCellValue('N' . $rowNum, $r['masa_kerja']);
+            $sheet->setCellValue('O' . $rowNum, $r['gaji_per_day']);
+            $sheet->setCellValue('P' . $rowNum, $r['total_hari_kerja']);
+            $sheet->setCellValue('Q' . $rowNum, $r['durasi_total_overtime']);
+            $sheet->setCellValue('R' . $rowNum, $r['nilai_bonus_overtime']);
+            $sheet->setCellValue('S' . $rowNum, $r['jml_unpaid_leave']);
+            $sheet->setCellValue('T' . $rowNum, $r['unpaid_leave']);
+            $sheet->setCellValue('U' . $rowNum, $r['jml_keterlambatan']);
+            $sheet->setCellValue('V' . $rowNum, $r['keterlambatan']);
+            $sheet->setCellValue('W' . $rowNum, $r['bpjs_ketenagakerjaan']);
+            $sheet->setCellValue('X' . $rowNum, $r['bpjs_kesehatan']);
+            $sheet->setCellValue('Y' . $rowNum, $r['pph21']);
+            $sheet->setCellValue('Z' . $rowNum, $r['lain_lain']);
+            $sheet->setCellValue('AA' . $rowNum, $r['total']);
+            $sheet->setCellValue('AB' . $rowNum, $r['deduksi']);
+            $sheet->setCellValue('AC' . $rowNum, $r['nett']);
+            $sheet->setCellValue('AD' . $rowNum, $r['terbilang_id']);
+            $sheet->setCellValue('AE' . $rowNum, $r['terbilang_en']);
+            $sheet->setCellValueExplicit('AF' . $rowNum, (string)$r['bca_norek'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('AG' . $rowNum, $r['bca_atas_nama']);
+            $sheet->setCellValue('AH' . $rowNum, $r['selain_bca_bank']);
+            $sheet->setCellValueExplicit('AI' . $rowNum, (string)$r['selain_bca_norek'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('AJ' . $rowNum, $r['selain_bca_atas_nama']);
+
+            // Format number columns
+            foreach (['G', 'H', 'I', 'J', 'K', 'L', 'O', 'R', 'T', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC'] as $col) {
+                $sheet->getStyle($col . $rowNum)->getNumberFormat()->setFormatCode('#,##0');
+            }
+
+            $rowNum++;
+        }
+
+        // Auto width
+        foreach (range('A', 'Z') as $c) {
+            $sheet->getColumnDimension($c)->setAutoSize(true);
+        }
+        foreach (['AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ'] as $c) {
+            $sheet->getColumnDimension($c)->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit;
+    }
 }
+
 

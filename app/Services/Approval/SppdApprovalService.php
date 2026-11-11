@@ -80,7 +80,8 @@ class SppdApprovalService
      */
     public function buildContext($sppd, $user): array
     {
-        $emp = DB::table('employment')->where('NIK', $user->Emp_ID)->first();
+        $nik = !empty($sppd->Requester_NIK) ? $sppd->Requester_NIK : ($user->Emp_ID ?? null);
+        $emp = DB::table('employment')->where('NIK', $nik)->first();
         $pos = null;
         if ($emp && !empty($emp->Position)) {
             $pos = DB::table('master_position')->where('Initial', $emp->Position)->first();

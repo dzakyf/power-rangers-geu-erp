@@ -17,6 +17,56 @@ class ReimbursementController extends Controller
     {
         $this->uploadService = $uploadService;
     }
+    public static function canChooseEmployee($user = null): bool
+    {
+        $user = $user ?: Auth::user();
+        if (!$user) {
+            return false;
+        }
+        $privilegedUsers = ['admin', 'user.hcga', 'admin.hris'];
+        if (in_array(strtolower($user->username ?? ''), $privilegedUsers)) {
+            return true;
+        }
+        if (method_exists($user, 'hasRole') && $user->hasRole('ADM')) {
+            return true;
+        }
+        if (($user->Position ?? '') === 'Administrator' || ($user->Department ?? '') === 'HCGA') {
+            return true;
+        }
+        return false;
+    }
+
+    public static function getEmployeeBankDetails($nik)
+    {
+        if (empty($nik)) {
+            return null;
+        }
+        $emp = DB::table('employment')
+            ->where('NIK', $nik)
+            ->select('NIK', 'Name', 'Department', 'Payment_Reference', 'Payment_Reference2', 'Payment_Reference3', 'Payment_Reference_Branch')
+            ->first();
+        if (!$emp) {
+            return null;
+        }
+
+        $bankName   = trim($emp->Payment_Reference ?? '');
+        $bankAcc    = trim($emp->Payment_Reference2 ?? '');
+        $bankAn     = trim($emp->Payment_Reference3 ?? '');
+        $bankBranch = trim($emp->Payment_Reference_Branch ?? '');
+
+        $bankUpper = strtoupper($bankName);
+        $isBca = (strpos($bankUpper, 'BCA') !== false || strpos($bankUpper, 'CENTRAL ASIA') !== false);
+
+        return [
+            'bank_name'   => $bankName ?: '-',
+            'bank_acc'    => $bankAcc ?: '-',
+            'bank_an'     => $bankAn ?: ($emp->Name ?: '-'),
+            'bank_branch' => $bankBranch ?: '-',
+            'is_bca'      => $isBca,
+            'display'     => $bankName ? ($bankName . ' - ' . $bankAcc . ($bankAn ? ' a/n ' . $bankAn : '')) : '-',
+        ];
+    }
+
     public function index()
     {
         return view('humanresources.reimbursement.index');
@@ -24,28 +74,53 @@ class ReimbursementController extends Controller
 
     public function data()
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
         }
         echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
-        $nik = Auth::user()->Emp_ID;
+        $user = Auth::user();
+        $nik = $user->Emp_ID;
         $nomor = 1;
 
-        $Query = DB::table('reimbursement')
-            ->where('User_Responsibility_ID', $nik)
-            ->orderBy('ID', 'DESC')
-            ->get();
+
+        $getDepartment = DB::table('master_department')->get()->pluck('Department', 'Initial');
+
+        $canSeeAll = self::canChooseEmployee($user);
+
+        $query = DB::table('reimbursement')->where('Location', $user->Location)->orderBy('ID', 'DESC');
+        if (!$canSeeAll) {
+            $query->where(function ($q) use ($nik, $user) {
+                if ($nik) {
+                    $q->where('User_Responsibility_ID', $nik);
+                }
+                $q->orWhere('Created_By', $user->username);
+            });
+        }
+
+        $Query = $query->get();
 
         echo "<rows>";
         foreach ($Query as $Fetch) {
+            $bankInfo = $Fetch->Payment_Reference_No ? ($Fetch->Payment_Reference_No . ($Fetch->Payment_Acc_No ? ' - ' . $Fetch->Payment_Acc_No : '')) : '-';
+            if ($bankInfo === '-' && $Fetch->User_Responsibility_ID) {
+                $bDetail = self::getEmployeeBankDetails($Fetch->User_Responsibility_ID);
+                if ($bDetail && $bDetail['bank_name'] !== '-') {
+                    $bankInfo = $bDetail['bank_name'] . ($bDetail['bank_acc'] !== '-' ? ' - ' . $bDetail['bank_acc'] : '');
+                }
+            }
+
             echo "<row id=\"" . $Fetch->ID . "\">";
             echo "<cell>$nomor</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Reimbursement_No) . "</cell>";
             echo "<cell>" . ($Fetch->Reimbursement_Date ? date('d-m-Y', strtotime($Fetch->Reimbursement_Date)) : '-') . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->Department) . "</cell>";
+            echo "<cell>" . htmlspecialchars($getDepartment[$Fetch->Department] ?? $Fetch->Department ?? '') . "</cell>";
+            echo "<cell>" . htmlspecialchars($Fetch->User_Responsibility_Name ?: $Fetch->User_Responsibility_ID) . "</cell>";
+            echo "<cell>" . htmlspecialchars($bankInfo) . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Description) . "</cell>";
             echo "<cell>" . number_format((float) $Fetch->Total, 0, ',', '.') . "</cell>";
             echo "<cell>" . htmlspecialchars($Fetch->Status) . "</cell>";
@@ -63,7 +138,35 @@ class ReimbursementController extends Controller
         $departments = DB::table('master_department')->orderBy('Department', 'ASC')->get();
         $Reimbursement_No = 'RMB/' . ($user->Location ?: 'GEU-HO') . '/' . date('ymd') . '-' . date('His');
 
-        return view('humanresources.reimbursement.new', compact('user', 'departments', 'Reimbursement_No'));
+        $canChooseEmployee = self::canChooseEmployee($user);
+        $employees = [];
+        if ($canChooseEmployee) {
+            $employees = DB::table('employment')
+                ->whereIn('Status', ['ACTIVE', 'Active'])
+                ->select(
+                    'NIK',
+                    'Name',
+                    'Department',
+                    'Position',
+                    'Payment_Reference',
+                    'Payment_Reference2',
+                    'Payment_Reference3',
+                    'Payment_Reference_Branch'
+                )
+                ->orderBy('Name', 'ASC')
+                ->get();
+        }
+
+        $defaultBank = self::getEmployeeBankDetails($user->Emp_ID) ?: [
+            'bank_name'   => '',
+            'bank_acc'    => '',
+            'bank_an'     => $user->Name ?: $user->username,
+            'bank_branch' => '',
+            'is_bca'      => false,
+            'display'     => 'Belum diisi',
+        ];
+
+        return view('humanresources.reimbursement.new', compact('user', 'departments', 'Reimbursement_No', 'canChooseEmployee', 'employees', 'defaultBank'));
     }
 
     public function store(Request $request)
@@ -81,6 +184,12 @@ class ReimbursementController extends Controller
         }
         if (trim($request->input('Description', '')) === '') {
             return response()->json(['status' => 'error', 'message' => 'Field Description wajib diisi'], 422);
+        }
+
+        // Tentukan NIK Pemohon
+        $nik = trim($request->input('User_Responsibility_ID', ''));
+        if (empty($nik)) {
+            $nik = $user->Emp_ID ?: $user->username;
         }
 
         $dtls = [];
@@ -105,50 +214,56 @@ class ReimbursementController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Rincian biaya wajib diisi minimal satu baris'], 422);
         }
 
-        $nik = $user->Emp_ID;
-        $getlevelsx = DB::table('organization_structure')->where('NIK', $nik)->first();
-        if (!$getlevelsx) {
-            return response()->json(['status' => 'error', 'message' => 'Profil organisasi tidak ditemukan, hubungi HCGA'], 422);
-        }
-
-        $lepel = 0;
-        foreach (range(1, 8) as $lv) {
-            $col = 'Level' . $lv;
-            if ((int) $getlevelsx->{$col} == 1) {
-                $lepel = $lv;
-                break;
+        // Dapatkan data bank dari input atau dari data master employment
+        $bankName = trim($request->input('Bank_Name', ''));
+        $bankAcc  = trim($request->input('Bank_Account_No', ''));
+        if (empty($bankName) || empty($bankAcc)) {
+            $bInfo = self::getEmployeeBankDetails($nik);
+            if ($bInfo && $bInfo['bank_name'] !== '-') {
+                $bankName = $bankName ?: $bInfo['bank_name'];
+                $bankAcc  = $bankAcc ?: $bInfo['bank_acc'];
             }
         }
-        $upper = $lepel - 1;
 
-        $nama = $user->Name ?: $user->username;
-        $LSP = $user->Location ?: 'GEU-HO';
-
-        if ($upper == 3) {
-            $getupper = DB::table('organization_structure')
-                ->where('Level3', 1)
-                ->where('Department', trim($request->Department))
-                ->where('Alerted', 1)
-                ->first();
-            $status = 'APPROVAL_UPPER';
-            $link = 'approvalreimbursement';
-        } else {
-            $getupper = DB::table('organization_structure')
-                ->where('Level2', 1)
-                ->where('Department', $getlevelsx->divisi)
-                ->where('Alerted', 1)
-                ->first();
-            $status = 'APPROVAL_VP';
-            $link = 'approvalreimbursement2';
+        // Cek struktur organisasi pemohon untuk penentuan approver legacy / fallback
+        $getlevelsx = DB::table('organization_structure')->where('NIK', $nik)->first();
+        if (!$getlevelsx && $user->Emp_ID) {
+            $getlevelsx = DB::table('organization_structure')->where('NIK', $user->Emp_ID)->first();
         }
 
-        // if (!$getupper || !$getupper->Email) {
-        //     return response()->json(['status' => 'error', 'message' => 'Approver (superior) tidak ditemukan, hubungi HCGA'], 422);
-        // }
+        $nama = trim($request->input('User_Responsibility_Name', '')) ?: ($user->Name ?: $user->username);
+        $LSP = $user->Location ?: 'GEU-HO';
+
+        $status = 'APPROVAL_VP';
+        $link = 'approvalreimbursement2';
         $getupper = (object)[
-            'Email' => "test@mail.com",
-            'Name' => "testing approver"
+            'Email' => "hcga@pt-geu.com",
+            'Name'  => "HCGA Approver"
         ];
+
+        if ($getlevelsx) {
+            $userLevel = (int) ($getlevelsx->Level ?? 4);
+            if ($userLevel >= 4) {
+                $findUpper = DB::table('organization_structure')
+                    ->where('Level', 3)
+                    ->where('Department', trim($request->Department))
+                    ->first();
+                if ($findUpper) {
+                    $getupper = $findUpper;
+                }
+                $status = 'APPROVAL_UPPER';
+                $link = 'approvalreimbursement';
+            } else {
+                $findUpper = DB::table('organization_structure')
+                    ->whereIn('Level', [1, 2])
+                    ->first();
+                if ($findUpper) {
+                    $getupper = $findUpper;
+                }
+                $status = 'APPROVAL_VP';
+                $link = 'approvalreimbursement2';
+            }
+        }
 
         $Reimbursement_No = 'RMB/' . $LSP . '/' . date('ymd') . '-' . date('His');
         $linkkey = md5(date('Ym') . '789213123122122');
@@ -177,6 +292,10 @@ class ReimbursementController extends Controller
                 'Total'                     => $total,
                 'Created_By'                => $user->username,
                 'Created_Date'              => now(),
+                'submitted_date'            => now(),
+                'Payment_Type'              => 'TRANSFER',
+                'Payment_Reference_No'      => $bankName ?: null,
+                'Payment_Acc_No'            => $bankAcc ?: null,
             ]);
 
             foreach ($dtls as $d) {
@@ -259,9 +378,10 @@ class ReimbursementController extends Controller
             abort(404);
         }
 
+        $canSeeAll = self::canChooseEmployee($user);
         $isOwner = $reimbursement->User_Responsibility_ID == $user->Emp_ID
             || $reimbursement->Created_By == $user->username;
-        if (!$isOwner && !SettlementController::isHcgaVerifier()) {
+        if (!$isOwner && !$canSeeAll && !SettlementController::isHcgaVerifier() && !ReimbursementApprovalController::isApprover($user)) {
             abort(403, 'Anda tidak berhak mengakses data ini');
         }
 
@@ -273,9 +393,27 @@ class ReimbursementController extends Controller
             ->where('Cash_No', $reimbursement->Reimbursement_No)
             ->orderBy('ID', 'ASC')
             ->get();
+        $department = DB::table('master_department')->where("Initial", $reimbursement->Department)->first();
         $attachment = $reimbursement->Attachment_File ? DB::table('meta_files')->where('ID', $reimbursement->Attachment_File)->first() : null;
 
-        return view('humanresources.reimbursement.detail', compact('reimbursement', 'dtls', 'logs', 'attachment'));
+        $bankDetails = self::getEmployeeBankDetails($reimbursement->User_Responsibility_ID);
+        if (!$bankDetails || $bankDetails['bank_name'] === '-') {
+            if ($reimbursement->Payment_Reference_No || $reimbursement->Payment_Acc_No) {
+                $bName = $reimbursement->Payment_Reference_No ?: '-';
+                $bAcc  = $reimbursement->Payment_Acc_No ?: '-';
+                $bUpper = strtoupper($bName);
+                $bankDetails = [
+                    'bank_name'   => $bName,
+                    'bank_acc'    => $bAcc,
+                    'bank_an'     => $reimbursement->User_Responsibility_Name ?: '-',
+                    'bank_branch' => '-',
+                    'is_bca'      => (strpos($bUpper, 'BCA') !== false || strpos($bUpper, 'CENTRAL ASIA') !== false),
+                    'display'     => $bName . ' - ' . $bAcc,
+                ];
+            }
+        }
+
+        return view('humanresources.reimbursement.detail', compact('reimbursement', 'dtls', 'logs', 'attachment', 'bankDetails', 'department'));
     }
 
     public function downloadAttachment(Request $request)
@@ -286,8 +424,9 @@ class ReimbursementController extends Controller
         }
 
         $user = Auth::user();
+        $canSeeAll = self::canChooseEmployee($user);
         $isOwner = $reimbursement->User_Responsibility_ID == $user->Emp_ID || $reimbursement->Created_By == $user->username;
-        if (!$isOwner && !SettlementController::isHcgaVerifier() && !ReimbursementApprovalController::isApprover($user)) {
+        if (!$isOwner && !$canSeeAll && !SettlementController::isHcgaVerifier() && !ReimbursementApprovalController::isApprover($user)) {
             abort(403, 'Anda tidak berhak mengakses berkas ini');
         }
 

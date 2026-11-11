@@ -180,7 +180,7 @@
 
                             <div class="col-md-4 col-sm-6">
                                 <div class="info-label">Departemen</div>
-                                <div class="info-value">{{ $reimbursement->Department ?: '-' }}</div>
+                                <div class="info-value">{{ $department->Department ?? $reimbursement->Department ?? '-' }}</div>
                             </div>
 
                             <div class="col-md-4 col-sm-6">
@@ -229,6 +229,45 @@
                                 <div class="p-3 bg-light rounded border text-secondary"
                                     style="font-size: 0.92rem; line-height: 1.5;">
                                     {{ $reimbursement->Description ?: '-' }}
+                                </div>
+                            </div>
+
+                            <!-- Informasi Rekening Bank Pemohon (Master Employment / Payroll) -->
+                            <div class="col-12 mt-2">
+                                <div class="card border rounded-3 p-3 shadow-sm" style="background: #f8fafc; border-color: #cbd5e1 !important;">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2 pb-2 border-bottom">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fa fa-university text-primary fs-5"></i>
+                                            <span class="fw-bold text-dark" style="font-size: 0.925rem;">
+                                                Informasi Rekening Bank Pemohon (Data Payroll &amp; Employment)
+                                            </span>
+                                        </div>
+                                        @php
+                                            $isBca = !empty($bankDetails['is_bca']);
+                                            $bName = $bankDetails['bank_name'] ?? '-';
+                                        @endphp
+                                        <span class="badge {{ $isBca ? 'bg-primary' : ($bName !== '-' ? 'bg-secondary' : 'bg-warning text-dark') }} text-white px-2 py-1">
+                                            {{ $isBca ? 'BCA' : ($bName !== '-' ? 'NON-BCA (' . $bName . ')' : 'BELUM TERDAFTAR') }}
+                                        </span>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="info-label mb-1">Nama Bank</div>
+                                            <div class="fw-semibold text-dark">{{ $bankDetails['bank_name'] ?? '-' }}</div>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="info-label mb-1">No. Rekening Transfer</div>
+                                            <div class="fw-bold text-primary font-monospace fs-6">{{ $bankDetails['bank_acc'] ?? '-' }}</div>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="info-label mb-1">Atas Nama Rekening</div>
+                                            <div class="fw-semibold text-dark">{{ $bankDetails['bank_an'] ?? '-' }}</div>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="info-label mb-1">Cabang Bank</div>
+                                            <div class="fw-semibold text-secondary">{{ $bankDetails['bank_branch'] ?? '-' }}</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

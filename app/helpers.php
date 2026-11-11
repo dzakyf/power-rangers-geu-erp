@@ -829,3 +829,123 @@ if (!function_exists('cns_eligible_approvers')) {
         }
     }
 }
+
+if (!function_exists('terbilang_id')) {
+    /**
+     * Konversi angka nominal ke kalimat Terbilang Bahasa Indonesia.
+     *
+     * @param float|int $n
+     * @return string
+     */
+    function terbilang_id($n)
+    {
+        $penyebut = function ($nilai) use (&$penyebut) {
+            $nilai = abs($nilai);
+            $huruf = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
+            $temp = '';
+            if ($nilai < 12) {
+                $temp = ' ' . $huruf[(int)$nilai];
+            } elseif ($nilai < 20) {
+                $temp = $penyebut($nilai - 10) . ' Belas';
+            } elseif ($nilai < 100) {
+                $temp = $penyebut($nilai / 10) . ' Puluh' . $penyebut($nilai % 10);
+            } elseif ($nilai < 200) {
+                $temp = ' Seratus' . $penyebut($nilai - 100);
+            } elseif ($nilai < 1000) {
+                $temp = $penyebut($nilai / 100) . ' Ratus' . $penyebut($nilai % 100);
+            } elseif ($nilai < 2000) {
+                $temp = ' Seribu' . $penyebut($nilai - 1000);
+            } elseif ($nilai < 1000000) {
+                $temp = $penyebut($nilai / 1000) . ' Ribu' . $penyebut($nilai % 1000);
+            } elseif ($nilai < 1000000000) {
+                $temp = $penyebut($nilai / 1000000) . ' Juta' . $penyebut(fmod($nilai, 1000000));
+            } elseif ($nilai < 1000000000000) {
+                $temp = $penyebut($nilai / 1000000000) . ' Miliar' . $penyebut(fmod($nilai, 1000000000));
+            } elseif ($nilai < 1000000000000000) {
+                $temp = $penyebut($nilai / 1000000000000) . ' Triliun' . $penyebut(fmod($nilai, 1000000000000));
+            }
+            return $temp;
+        };
+
+        $teks = trim($penyebut($n));
+        return $teks ? ($teks . ' Rupiah') : 'Nol Rupiah';
+    }
+}
+
+if (!function_exists('terbilang_en')) {
+    /**
+     * Number to English words.
+     *
+     * @param float|int $n
+     * @return string
+     */
+    function terbilang_en($n)
+    {
+        $n = abs($n);
+        if ($n < 10) {
+            switch ((int)$n) {
+                case 0: return 'Zero';
+                case 1: return 'One';
+                case 2: return 'Two';
+                case 3: return 'Three';
+                case 4: return 'Four';
+                case 5: return 'Five';
+                case 6: return 'Six';
+                case 7: return 'Seven';
+                case 8: return 'Eight';
+                case 9: return 'Nine';
+            }
+        } elseif ($n < 100) {
+            $tens = (int)floor($n / 10);
+            $units = (int)($n % 10);
+            $words = [
+                10 => 'Ten', 11 => 'Eleven', 12 => 'Twelve', 13 => 'Thirteen', 14 => 'Fourteen',
+                15 => 'Fifteen', 16 => 'Sixteen', 17 => 'Seventeen', 18 => 'Eighteen', 19 => 'Nineteen'
+            ];
+            if ($tens == 1) {
+                return ($words[(int)$n] ?? 'Ten') . ' Rupiah';
+            }
+            $tensWords = [2 => 'Twenty', 3 => 'Thirty', 4 => 'Forty', 5 => 'Fifty', 6 => 'Sixty', 7 => 'Seventy', 8 => 'Eighty', 9 => 'Ninety'];
+            $res = $tensWords[$tens] ?? '';
+            if ($units > 0) {
+                $res .= ' ' . terbilang_en($units);
+            }
+            return $res;
+        } elseif ($n < 1000) {
+            $hundreds = (int)floor($n / 100);
+            $rem = (int)($n % 100);
+            $res = terbilang_en($hundreds) . ' Hundred';
+            if ($rem > 0) {
+                $res .= ' and ' . terbilang_en($rem);
+            }
+            return $res;
+        } elseif ($n < 1000000) {
+            $thousands = (int)floor($n / 1000);
+            $rem = (int)($n % 1000);
+            $res = terbilang_en($thousands) . ' Thousand';
+            if ($rem > 0) {
+                $res .= ' ' . terbilang_en($rem);
+            }
+            return $res;
+        } elseif ($n < 1000000000) {
+            $millions = (int)floor($n / 1000000);
+            $rem = (int)fmod($n, 1000000);
+            $res = terbilang_en($millions) . ' Million';
+            if ($rem > 0) {
+                $res .= ' ' . terbilang_en($rem);
+            }
+            return $res;
+        } elseif ($n < 1000000000000) {
+            $billions = (int)floor($n / 1000000000);
+            $rem = (int)fmod($n, 1000000000);
+            $res = terbilang_en($billions) . ' Billion';
+            if ($rem > 0) {
+                $res .= ' ' . terbilang_en($rem);
+            }
+            return $res;
+        }
+
+        return (string)$n;
+    }
+}
+

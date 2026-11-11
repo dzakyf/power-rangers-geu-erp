@@ -99,6 +99,28 @@
         align-items: center;
         gap: 0.5rem;
     }
+    .btn-copy-acc {
+        padding: 0.25rem 0.65rem;
+        font-size: 0.75rem;
+        border-radius: 6px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        transition: all 0.15s ease;
+    }
+    .settlement-interactive-card {
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        padding: 1.15rem 1.35rem;
+        height: 100%;
+        transition: all 0.2s ease;
+    }
+    .settlement-interactive-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
 </style>
 
 <div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
@@ -199,32 +221,84 @@
                     </div>
                 </div>
 
+                @php
+                    $calcManualTotal = 0;
+                    foreach ($expenses as $e) {
+                        $calcManualTotal += (float) $e->Cost;
+                    }
+                    $matrixAmt = isset($settlement->Matrix_Amount) ? (float) $settlement->Matrix_Amount : 0;
+                    $calcTotal = $calcManualTotal + $matrixAmt;
+
+                    $advNom = $settlement->Advance_Nominal !== null ? (float)$settlement->Advance_Nominal : 0;
+                    $diffVal = $calcTotal - $advNom;
+                @endphp
+
                 <div class="col-md-4 col-sm-6 col-12">
                     <div class="info-card-box">
                         <div class="info-label"><i class="fa fa-hand-holding-usd me-1"></i> Biaya Advance Diterima</div>
                         <div class="info-value">
                             {{ $settlement->Advance_Nominal !== null ? 'Rp ' . number_format((float) $settlement->Advance_Nominal, 0, ',', '.') : '-' }}
                         </div>
+                        @if ($advNom > 0 && $diffVal < 0)
+                            <div class="mt-1">
+                                <span class="badge bg-success text-white" style="font-size: 0.75rem;">
+                                    <i class="fa fa-undo-alt me-1"></i> Lebih Bayar: Rp {{ number_format(abs($diffVal), 0, ',', '.') }}
+                                </span>
+                            </div>
+                        @elseif ($diffVal > 0)
+                            <div class="mt-1">
+                                <span class="badge bg-danger text-white" style="font-size: 0.75rem;">
+                                    <i class="fa fa-hand-holding-usd me-1"></i> Kurang Bayar: Rp {{ number_format($diffVal, 0, ',', '.') }}
+                                </span>
+                            </div>
+                        @elseif ($advNom > 0 && $diffVal == 0)
+                            <div class="mt-1">
+                                <span class="badge bg-info text-white" style="font-size: 0.75rem;">
+                                    <i class="fa fa-check-circle me-1"></i> Pas Sesuai Advance
+                                </span>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
                 <div class="col-md-4 col-sm-6 col-12">
                     <div class="info-card-box">
-                        <div class="info-label"><i class="fa fa-university me-1"></i> Rekening Bank</div>
-                        <div class="info-value">{{ $settlement->Bank ?: '-' }}</div>
+                        <div class="info-label d-flex justify-content-between align-items-center">
+                            <span><i class="fa fa-university me-1"></i> Rekening Bank Tujuan</span>
+                            @if (!empty($settlement->Bank))
+                                <button type="button" class="btn btn-outline-secondary btn-copy-acc py-0 px-2"
+                                    onclick="salinRekeningDetail('{{ addslashes($settlement->Bank) }}', this);"
+                                    title="Salin keterangan rekening">
+                                    <i class="fa fa-copy"></i> Salin
+                                </button>
+                            @endif
+                        </div>
+                        <div class="info-value font-monospace" style="font-size: 0.9rem;">
+                            {{ $settlement->Bank ?: '-' }}
+                        </div>
+                        <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                            @if ($advNom > 0 && $diffVal < 0)
+                                <i class="fa fa-info-circle text-success me-1"></i> Rekening kantor tujuan pengembalian dana
+                            @elseif ($diffVal > 0)
+                                <i class="fa fa-info-circle text-primary me-1"></i> Rekening karyawan tujuan pencairan reimbursement
+                            @else
+                                <i class="fa fa-info-circle text-muted me-1"></i> Rekening settlement terkonfirmasi
+                            @endif
+                        </small>
                     </div>
                 </div>
 
-                <div class="col-md-6 col-12">
+                <div class="col-md-4 col-sm-6 col-12">
                     <div class="info-card-box">
                         <div class="info-label"><i class="fa fa-paperclip me-1"></i> Berkas Invoice / Bukti Kwitansi</div>
                         <div class="info-value">
                             @if ($invoice)
-                                <a href="{{ url('hrd-settlement-invoice?ID=' . $settlement->ID) }}" class="btn btn-sm btn-outline-primary mt-1" target="_blank">
-                                    <i class="fa fa-file-download me-1"></i> Download {{ $invoice->Filename }}
+                                <a href="{{ url('hrd-settlement-invoice?ID=' . $settlement->ID) }}" class="btn btn-sm btn-outline-primary mt-1 d-inline-flex align-items-center gap-1 shadow-sm" target="_blank">
+                                    <i class="fa fa-file-download text-primary"></i> 
+                                    <span class="text-truncate" style="max-width: 170px;">{{ $invoice->Filename }}</span>
                                 </a>
                             @else
-                                <span class="text-muted">- Tidak ada file terlampir -</span>
+                                <span class="text-muted small">- Tidak ada file terlampir -</span>
                             @endif
                         </div>
                     </div>
@@ -280,14 +354,30 @@
                             </tr>
                         @endforelse
                         <tr class="table-light fw-bold">
-                            <td colspan="2" class="text-end text-uppercase">Total Pengeluaran Real:</td>
+                            <td colspan="2" class="text-end text-uppercase">Total Pengeluaran Real (Manual):</td>
                             <td class="text-end font-monospace text-primary h6 mb-0">Rp {{ number_format($total, 0, ',', '.') }}</td>
                             <td></td>
                         </tr>
+                        @php
+                            $matrixAmt = isset($settlement->Matrix_Amount) ? (float) $settlement->Matrix_Amount : 0;
+                            $grandTotal = $total + $matrixAmt;
+                        @endphp
+                        @if ($matrixAmt > 0)
+                            <tr class="table-light fw-bold">
+                                <td colspan="2" class="text-end text-uppercase">Tunjangan Matriks Regulasi SPPD:</td>
+                                <td class="text-end font-monospace text-info h6 mb-0">+ Rp {{ number_format($matrixAmt, 0, ',', '.') }}</td>
+                                <td><small class="text-muted"><i class="fa fa-info-circle me-1"></i> Uang makan, uang saku, tiket & penginapan otomatis</small></td>
+                            </tr>
+                            <tr class="table-light fw-bold">
+                                <td colspan="2" class="text-end text-uppercase">Total Biaya Diperhitungkan:</td>
+                                <td class="text-end font-monospace text-dark h6 mb-0">Rp {{ number_format($grandTotal, 0, ',', '.') }}</td>
+                                <td></td>
+                            </tr>
+                        @endif
                         @if ($settlement->Advance_Nominal !== null && (float)$settlement->Advance_Nominal > 0)
                             @php 
                                 $adv = (float) $settlement->Advance_Nominal;
-                                $selisih = $total - $adv;
+                                $selisih = $grandTotal - $adv;
                             @endphp
                             <tr class="table-light fw-bold">
                                 <td colspan="2" class="text-end text-uppercase">Advance / Uang Muka Diterima:</td>
@@ -296,9 +386,15 @@
                             </tr>
                             <tr class="table-light fw-bold">
                                 <td colspan="2" class="text-end text-uppercase">
-                                    {{ $selisih >= 0 ? 'Kurang Bayar (Reimbursement ke Karyawan):' : 'Lebih Bayar (Dikembalikan ke Kantor):' }}
+                                    @if ($selisih < 0)
+                                        Lebih Bayar (Pengembalian Sisa Dana ke Perusahaan):
+                                    @elseif ($selisih > 0)
+                                        Kurang Bayar (Reimbursement Pencairan ke Karyawan):
+                                    @else
+                                        Status Selisih (Pas Sesuai Nilai Advance):
+                                    @endif
                                 </td>
-                                <td class="text-end font-monospace {{ $selisih >= 0 ? 'text-danger' : 'text-success' }}">
+                                <td class="text-end font-monospace {{ $selisih > 0 ? 'text-danger' : ($selisih < 0 ? 'text-success' : 'text-primary') }}">
                                     Rp {{ number_format(abs($selisih), 0, ',', '.') }}
                                 </td>
                                 <td></td>
@@ -363,6 +459,44 @@
 </div>
 
 <script>
+function salinRekeningDetail(text, btn) {
+    if (!text) return;
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function() {
+            feedbackSalinDetail(btn);
+        }).catch(function() {
+            fallbackCopyDetail(text, btn);
+        });
+    } else {
+        fallbackCopyDetail(text, btn);
+    }
+}
+
+function fallbackCopyDetail(text, btn) {
+    var temp = document.createElement("input");
+    temp.style.position = "absolute";
+    temp.style.left = "-9999px";
+    temp.value = text;
+    document.body.appendChild(temp);
+    temp.select();
+    try {
+        document.execCommand("copy");
+        feedbackSalinDetail(btn);
+    } catch (e) {
+        alert("Nomor rekening: " + text);
+    }
+    document.body.removeChild(temp);
+}
+
+function feedbackSalinDetail(btn) {
+    var $b = $(btn);
+    var oldHtml = $b.html();
+    $b.html('<i class="fa fa-check text-success"></i> Tersalin!').addClass('btn-success text-white').removeClass('btn-outline-secondary');
+    setTimeout(function() {
+        $b.html(oldHtml).removeClass('btn-success text-white').addClass('btn-outline-secondary');
+    }, 1600);
+}
+
 $('#BtnCloseSettlement').click(function (e) {
     e.preventDefault();
     if (!confirm('Apakah Anda yakin ingin menutup request settlement ini? Status akan menjadi CLOSED.')) return;

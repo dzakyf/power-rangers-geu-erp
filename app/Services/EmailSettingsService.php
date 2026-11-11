@@ -115,10 +115,10 @@ class EmailSettingsService
         return $this->send($email, $subject, $html);
     }
 
-    public function send($to, $subject, $html)
+    public function send($to, $subject, $html, array $attachments = [])
     {
         if ($this->sender) {
-            return call_user_func($this->sender, $to, $subject, $html);
+            return call_user_func($this->sender, $to, $subject, $html, $attachments);
         }
 
         $settings = $this->settings();
@@ -162,6 +162,21 @@ class EmailSettingsService
             $mail->Subject = $subject;
             $mail->Body = $html;
             $mail->AltBody = trim(strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", $html)));
+
+            if (!empty($attachments)) {
+                foreach ($attachments as $att) {
+                    if (is_array($att)) {
+                        if (!empty($att['string']) && !empty($att['filename'])) {
+                            $mail->addStringAttachment($att['string'], $att['filename'], 'base64', $att['type'] ?? 'application/pdf');
+                        } elseif (!empty($att['path']) && is_file($att['path'])) {
+                            $mail->addAttachment($att['path'], $att['filename'] ?? '');
+                        }
+                    } elseif (is_string($att) && is_file($att)) {
+                        $mail->addAttachment($att);
+                    }
+                }
+            }
+
             $mail->send();
 
             return [true, null];

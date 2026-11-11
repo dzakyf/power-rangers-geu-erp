@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <title>Offering Letter - {{ $offeringNumber ?? ($recruitment->Task_ID ?? 'Document') }}</title>
     <style>
-        @page {
-            margin: 15mm 20mm 15mm 20mm;
-        }
         body {
             font-family: 'Calibri', 'Arial', 'Helvetica', sans-serif;
             font-size: 11pt;
@@ -59,6 +56,7 @@
         .signature-table {
             width: 100%;
             margin-top: 25px;
+            margin-bottom: 25px;
             border: none;
         }
         .signature-table td {
@@ -66,15 +64,10 @@
             vertical-align: top;
             font-size: 11pt;
         }
-        .signature-box {
-            height: 60px;
-        }
     </style>
 </head>
 <body>
-
-    <div class="header-title">OFFERING LETTER</div>
-    <div class="header-ref">No. {{ $offeringNumber }}</div>
+<div style="margin: 0 20mm;">
 
     <p style="margin-top: 0; margin-bottom: 12px;">
         Kepada Yth.<br>
@@ -187,22 +180,23 @@
     <table class="signature-table">
         <tr>
             <td style="width: 50%; text-align: left;">
-                {{ $cityDate }}<br>
-                <strong>PT. GREEN ENERGI UTAMA</strong>
-                <div class="signature-box"></div>
-                <strong>( Human Capital Department )</strong>
+                &nbsp;
             </td>
             <td style="width: 50%; text-align: left; padding-left: 20px;">
-                Menyetujui isi surat penawaran ini dan<br>
-                akan join tanggal : <strong>{{ $startDateFormatted }}</strong>
-                <div class="signature-box" style="line-height: 60px; color: #777; font-size: 8.5pt;">
+                <p style="margin: 0;">
+                    Menyetujui isi surat penawaran ini dan<br>
+                    akan join tanggal : <strong>{{ $startDateFormatted }}</strong>
+                </p>
+                <br><br>
+                <div style="line-height: 60px; color: #777; font-size: 8.5pt; margin-bottom: 100px; margin-top: 20px;">
                     <em>[Materai Rp 10.000]</em>
                 </div>
+                <br><br>
                 <strong>{{ $recruitment->Name }}</strong><br>
                 <span>Kandidat</span>
             </td>
         </tr>
     </table>
-
+</div>
 </body>
 </html>

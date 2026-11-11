@@ -69,7 +69,7 @@ class PayrollPayslipService
         $employeeName = $employee ? $employee->Name : ($user ? $user->username : $nik);
         $organization = $employee ? ($employee->Department ?: 'General') : ($user ? $user->Department : 'General');
         $jobPosition = $employee ? ($employee->Position ?: '-') : ($user ? $user->Position : '-');
-        $gradeLevel = $employee ? ($employee->Grade ?: ($employee->Contract ?: '-')) : '-';
+        $gradeLevel = $employee ? (($employee->Employment_Grade ?? null) ?: (($employee->Employment_Class ?? null) ?: '-')) : '-';
         $ptkp = $employee ? ($employee->PTKP_Status ?: 'TK/0') : 'TK/0';
         $npwp = ($employee && !empty($employee->NPWP)) ? $employee->NPWP : '-';
         $joinDateRaw = $employee ? $employee->Date_in : null;
