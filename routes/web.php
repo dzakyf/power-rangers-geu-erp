@@ -3983,6 +3983,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-payroll-approval-detail', [\App\Http\Controllers\HCGA\PayrollController::class, 'xmlPayrollApprovalDetail'])->name('payroll.approval.detail.xml');
     Route::get('/payroll-approved', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovedIndex'])->name('payroll.approved.index');
     Route::get('/approved-payroll', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollApprovedIndex']);
+    Route::get('/payroll-report', [\App\Http\Controllers\HCGA\PayrollController::class, 'payrollReportIndex'])->name('payroll.report.index');
+    Route::get('/api/payroll/report-data', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiPayrollReportData'])->name('payroll.report.data');
+    Route::get('/payroll-report-export-excel', [\App\Http\Controllers\HCGA\PayrollController::class, 'exportPayrollReportExcel'])->name('payroll.report.excel');
     Route::get('/xml-payroll-approved', function () {
         return view('humanresources.payroll.xml.payroll-approved');
     });
@@ -5792,6 +5795,10 @@ Route::group(['middleware' => 'log.access'], function () {
         ->name('hrd-recruitment-offering-detail');
     Route::get("$hcPref-recruitment-offering-letter-pdf", [HCGAOfferingController::class, 'printPdf'])
         ->name('hrd-recruitment-offering-letter-pdf');
+    Route::post("$hcPref-recruitment-offering-send-email", [HCGAOfferingController::class, 'sendEmail'])
+        ->name('hrd-recruitment-offering-send-email');
+    Route::get("$hcPref-recruitment-offering-preview-email", [HCGAOfferingController::class, 'previewEmail'])
+        ->name('hrd-recruitment-offering-preview-email');
     
     Route::post("$hcPref-recruitment-approve-psikotest", [HCGARecruitmentStageController::class, 'approvePsikotest']);
     Route::post("$hcPref-recruitment-reject-psikotest", [HCGARecruitmentStageController::class, 'rejectPsikotest']);

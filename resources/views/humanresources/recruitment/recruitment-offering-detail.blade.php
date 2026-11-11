@@ -16,7 +16,7 @@ if (!isset($requisition) && $recruitment) {
 
 // Normalisasi kolom opsional yang mungkin belum ada di tabel recruitment
 if ($recruitment) {
-    foreach (['MCU_Result', 'MCU_Schedule', 'MCU_Note', 'MCU_File', 'Salary_Expectation', 'Salary_Accepted', 'Position', 'Start_Date', 'Offering_Note', 'Education_Major', 'Major', 'Phone', 'Handphone', 'Birth_Place', 'Birth_Date', 'Gender', 'Last_Education', 'Created_Date', 'Status', 'Offering_Number', 'Offering_File', 'Offering_Signed_Date', 'Grading', 'Work_Location', 'Contract_Type', 'Direct_Supervisor', 'Working_Schedule', 'Salary_Base', 'Salary_Cola', 'Salary_Allowance', 'Salary_Period_Note', 'Salary_Details_Json', 'Benefit_Description', 'Offering_Terms', 'NIK'] as $col) {
+    foreach (['MCU_Result', 'MCU_Schedule', 'MCU_Note', 'MCU_File', 'Salary_Expectation', 'Salary_Accepted', 'Position', 'Start_Date', 'Offering_Note', 'Education_Major', 'Major', 'Phone', 'Handphone', 'Birth_Place', 'Birth_Date', 'Gender', 'Last_Education', 'Created_Date', 'Status', 'Offering_Number', 'Offering_File', 'Offering_Signed_Date', 'Grading', 'Work_Location', 'Contract_Type', 'Direct_Supervisor', 'Working_Schedule', 'Salary_Base', 'Salary_Cola', 'Salary_Allowance', 'Salary_Period_Note', 'Salary_Details_Json', 'Benefit_Description', 'Offering_Terms', 'NIK', 'Email', 'Email_Individual'] as $col) {
         if (!property_exists($recruitment, $col)) {
             $recruitment->$col = null;
         }
@@ -156,6 +156,14 @@ $defaultTerms = $recruitment->Offering_Terms ?? "Dokumen Offering Letter ini ber
                 </span>
             </div>
             <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm quick-action-btn"
+                    onclick="previewOfferingPdf()">
+                    <i class="fa fa-file-pdf me-1"></i> Preview PDF
+                </button>
+                <button type="button" class="btn btn-info btn-sm text-white quick-action-btn fw-semibold"
+                    onclick="openSendOfferingEmailModal()">
+                    <i class="fa fa-paper-plane me-1"></i> Kirim via Email
+                </button>
                 <button type="button" class="btn btn-outline-secondary btn-sm quick-action-btn"
                     onclick="$('#divlistRecruitment').html('');">
                     <i class="fa fa-xmark me-1"></i> Tutup
@@ -203,6 +211,19 @@ $defaultTerms = $recruitment->Offering_Terms ?? "Dokumen Offering Letter ini ber
                                     <th class="text-muted fw-semibold">Kontak HP / Telepon</th>
                                     <td>: <i
                                             class="fa fa-phone text-muted me-1"></i>{{ $recruitment->Handphone ?: ($recruitment->Phone ?: '-') }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted fw-semibold">Email Kandidat</th>
+                                    <td>: 
+                                        @php
+                                            $candEmail = $recruitment->Email ?: ($recruitment->Email_Individual ?? '');
+                                        @endphp
+                                        @if(!empty($candEmail))
+                                            <i class="fa fa-envelope text-primary me-1"></i><a href="mailto:{{ $candEmail }}" class="text-primary fw-semibold">{{ $candEmail }}</a>
+                                        @else
+                                            <span class="text-danger small"><i class="fa fa-triangle-exclamation me-1"></i>Belum terisi</span>
+                                        @endif
                                     </td>
                                 </tr>
                             </tbody>
@@ -651,6 +672,10 @@ $defaultTerms = $recruitment->Offering_Terms ?? "Dokumen Offering Letter ini ber
                                     onclick="previewOfferingPdf()">
                                     <i class="fa fa-file-pdf me-1"></i> Preview PDF Live
                                 </button>
+                                <button type="button" class="btn btn-info btn-sm px-3 text-white shadow-sm fw-semibold"
+                                    onclick="openSendOfferingEmailModal()">
+                                    <i class="fa fa-paper-plane me-1"></i> Kirim via Email
+                                </button>
                                 <button type="button" class="btn btn-outline-secondary btn-sm px-3"
                                     onclick="$('#divlistRecruitment').html('');">
                                     <i class="fa fa-xmark me-1"></i> Batal
@@ -1024,5 +1049,159 @@ $defaultTerms = $recruitment->Offering_Terms ?? "Dokumen Offering Letter ini ber
                 }
             });
         }
+
+        // =========================================================================
+        // PENGIRIMAN OFFERING LETTER VIA EMAIL
+        // =========================================================================
+        function openSendOfferingEmailModal() {
+            var candEmail = "{{ $recruitment->Email ?: ($recruitment->Email_Individual ?? '') }}";
+            if (!$('#send_email_recipient').val()) {
+                $('#send_email_recipient').val(candEmail);
+            }
+
+            var modalEl = document.getElementById('modalSendOfferingEmail');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } else {
+                $('#modalSendOfferingEmail').modal('show');
+            }
+        }
+
+        function previewOfferingEmailTemplate() {
+            calcTotalSalary();
+            var formData = $('#formOfferingLetter').serialize();
+            var recipientEmail = $('#send_email_recipient').val() || '';
+            var url = "{{ url('hrd-recruitment-offering-preview-email') }}?" + formData + "&recipient_email=" + encodeURIComponent(recipientEmail);
+            window.open(url, '_blank');
+        }
+
+        function executeSendOfferingEmail() {
+            var recipient = $.trim($('#send_email_recipient').val());
+            if (!recipient) {
+                alert('Alamat email tujuan wajib diisi!');
+                $('#send_email_recipient').focus();
+                return;
+            }
+
+            var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(recipient)) {
+                alert('Format alamat email tidak valid!');
+                $('#send_email_recipient').focus();
+                return;
+            }
+
+            calcTotalSalary();
+            var dataToSend = $('#formOfferingLetter').serialize() + 
+                '&recipient_email=' + encodeURIComponent(recipient) + 
+                '&email_subject=' + encodeURIComponent($('#send_email_subject').val());
+
+            var $btn = $('#btnSubmitSendEmail');
+            var originalBtnHtml = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Mengirim...');
+
+            ensureSwalOffering(function() {
+                Swal.fire({
+                    title: 'Mengirim Offering Letter...',
+                    text: 'Sedang membuat PDF dan mengirimkan email ke ' + recipient + '...',
+                    allowOutsideClick: false,
+                    didOpen: function() {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: "{{ url('hrd-recruitment-offering-send-email') }}",
+                    type: "POST",
+                    data: dataToSend,
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val()
+                    },
+                    success: function(res) {
+                        Swal.close();
+                        $btn.prop('disabled', false).html(originalBtnHtml);
+
+                        var modalEl = document.getElementById('modalSendOfferingEmail');
+                        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                            var modal = bootstrap.Modal.getInstance(modalEl);
+                            if (modal) modal.hide();
+                        } else {
+                            $('#modalSendOfferingEmail').modal('hide');
+                        }
+
+                        if (res.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Email Berhasil Terkirim!',
+                                text: res.message || ('Offering letter telah berhasil dikirim ke ' + recipient),
+                            });
+                        } else {
+                            Swal.fire('Gagal Mengirim', res.message || 'Terjadi kesalahan saat pengiriman email.', 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        $btn.prop('disabled', false).html(originalBtnHtml);
+                        var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan pada server saat mengirim email.';
+                        Swal.fire('Gagal Mengirim Email', msg, 'error');
+                    }
+                });
+            });
+        }
     </script>
+
+    {{-- MODAL KIRIM OFFERING LETTER VIA EMAIL --}}
+    <div class="modal fade" id="modalSendOfferingEmail" tabindex="-1" aria-labelledby="modalSendOfferingEmailLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);">
+                    <h5 class="modal-title fw-bold" id="modalSendOfferingEmailLabel">
+                        <i class="fa fa-envelope-open-text me-2"></i>Kirim Offering Letter via Email
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 px-3 small d-flex align-items-center mb-3">
+                        <i class="fa fa-paperclip text-primary fs-18 me-2"></i>
+                        <span>Dokumen PDF Offering Letter resmi akan dibuat otomatis dan disertakan sebagai lampiran email (attachment).</span>
+                    </div>
+
+                    <form id="formSendOfferingEmailModal">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted">Nama Kandidat</label>
+                            <input type="text" class="form-control form-control-sm bg-light fw-bold text-dark" value="{{ $recruitment->Name }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-dark">
+                                Alamat Email Tujuan <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="fa fa-at text-muted"></i></span>
+                                <input type="email" class="form-control form-control-sm" id="send_email_recipient"
+                                    value="{{ $recruitment->Email ?: ($recruitment->Email_Individual ?? '') }}"
+                                    placeholder="nama@email.com" required>
+                            </div>
+                            <div class="form-text fs-11 text-muted">Diambil otomatis dari master biodata pelamar. Dapat diedit jika kandidat memiliki email alternatif.</div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold small text-dark">Subjek Email</label>
+                            <input type="text" class="form-control form-control-sm" id="send_email_subject"
+                                value="Offering Letter - PT Green Energi Utama - {{ $recruitment->Name }} ({{ $defaultPosition ?: 'Karyawan' }})">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="previewOfferingEmailTemplate()">
+                        <i class="fa fa-eye me-1"></i> Preview Format Email
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-light btn-sm border" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-primary btn-sm px-3 fw-bold" id="btnSubmitSendEmail" onclick="executeSendOfferingEmail()">
+                            <i class="fa fa-paper-plane me-1"></i> Kirim Email Sekarang
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 @endif

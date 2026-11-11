@@ -39,6 +39,17 @@ use Illuminate\Database\Eloquent\Builder;
 						</div>
                         <div class="col-md-3">
                             <div class="form-group">
+                                <label for="Shipper">Shipper</label>
+                                <select name="Shipper" id="Shipper" class="form-control bg-white shadow-sm" required {{ $ro['select'] }}>
+                                    <option value="">-- Pilih Shipper --</option>
+                                    @foreach ($companies as $shipper)
+                                        <option value="{{ $shipper->Supplier_ID }}" {{ $ci->Shipper == $shipper->Supplier_ID ? 'selected' : '' }}>{{ $shipper->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
                                 <label for="Consignee">Consignee</label>
                                 <select name="Consignee" id="Consignee" class="form-control bg-white shadow-sm" required {{ $ro['select'] }}>
                                     <option value="">-- Pilih Consignee --</option>

@@ -152,7 +152,7 @@
         <!-- Header: Logo, Company & Confidential -->
         <div class="d-flex justify-content-between align-items-start mb-3">
             <div class="d-flex align-items-center gap-2">
-                <img src="{{ asset('kspslogo.png') }}" alt="Logo" style="height: 48px; object-fit: contain;">
+                <img src="{{ asset('assets/images/geu-logo-color.webp') }}" alt="Logo" style="height: 48px; object-fit: contain;">
                 <div>
                     <h5 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.3px;">{{ $payslip['company_name'] }}</h5>
                     <small class="text-muted fw-semibold">GENERAL ENERGY UTAMA GROUP</small>
