@@ -5,6 +5,7 @@ namespace App\Http\Controllers\HCGA;
 use App\Http\Controllers\Controller;
 use App\Services\Approval\ApprovalWorkflowService;
 use App\Services\Attendance\OvertimeLegacySyncService;
+use App\Services\Attendance\OvertimeMatrixService;
 use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
@@ -750,18 +751,66 @@ class OvertimeLegacyController extends Controller
         $jumlahjam = round($jumlahjam, 2);
         $amounts = round($rate * $jumlahjam);
 
+        // Integrasi Overtime Matrix (overtime_matrix_index.blade.php) jika customRate tidak di-override manual
+        $matrixCode = null;
+        $compensationType = 'PAID';
+        if (($customRate === null || (float) $customRate <= 0) && !empty($nik) && $decimalHours > 0) {
+            try {
+                /** @var OvertimeMatrixService $matrixService */
+                $matrixService = app(OvertimeMatrixService::class);
+                $empRow = DB::table('employment')->where('NIK', $nik)->first();
+                $userRow = DB::table('users')->where('Emp_ID', $nik)->first();
+
+                $actorObj = (object) [
+                    'id'                    => $userRow->id ?? null,
+                    'Emp_ID'                => $nik,
+                    'NIK'                   => $nik,
+                    'Position'              => $empRow->Position ?? ($userRow->Position ?? ''),
+                    'Department'            => $empRow->Department ?? ($userRow->Department ?? ''),
+                    'overtime_compensation' => $userRow->overtime_compensation ?? ($empRow->overtime_compensation ?? null),
+                ];
+
+                $compInfo = $matrixService->resolveCompensationType($actorObj);
+                $compensationType = $compInfo['type'] ?? 'PAID';
+
+                if ($compensationType === 'TIME_OFF') {
+                    $amounts = 0;
+                } else {
+                    $zipcode = $empRow->ZipCode ?? ($userRow->ZipCode ?? null);
+                    $region = $matrixService->resolveRegion($zipcode, null);
+                    $matrix = $matrixService->resolveMatrix($actorObj, $region);
+
+                    if ($matrix) {
+                        $matrixCode = $matrix->matrix_code ?? null;
+                        // Hitung berdasarkan total durasi lembur terhadap tier matriks
+                        $startSim = '00:00:00';
+                        $totalMinutes = (int) round($decimalHours * 60);
+                        $endSim = Carbon::parse('2000-01-01 00:00:00')->addMinutes($totalMinutes)->format('H:i:s');
+                        $matrixCalc = $matrixService->calculateOvertime($startSim, $endSim, $matrix, $compensationType);
+                        if (isset($matrixCalc['calculated_amount']) && $matrixCalc['calculated_amount'] > 0) {
+                            $amounts = round((float) $matrixCalc['calculated_amount']);
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Fallback ke perhitungan PP 35/2021 (1/173) jika tabel matriks belum tersedia
+            }
+        }
+
         return [
-            'holiday'        => $holiday,
-            'decimal_hours'  => $decimalHours,
-            'jumlah_jam'     => $jumlahjam,
-            'rate'           => $rate,
-            'basic_salary'   => $basicSalary,
-            'amounts'        => $amounts,
-            'jam1'           => $jam1,
-            'jam2'           => $jam2,
-            'jam3'           => $jam3,
-            'jam4'           => $jam4,
-            'salary_group'   => $salgroup,
+            'holiday'           => $holiday,
+            'decimal_hours'     => $decimalHours,
+            'jumlah_jam'        => $jumlahjam,
+            'rate'              => $rate,
+            'basic_salary'      => $basicSalary,
+            'amounts'           => $amounts,
+            'jam1'              => $jam1,
+            'jam2'              => $jam2,
+            'jam3'              => $jam3,
+            'jam4'              => $jam4,
+            'salary_group'      => $salgroup,
+            'matrix_code'       => $matrixCode,
+            'compensation_type' => $compensationType,
         ];
     }
 }

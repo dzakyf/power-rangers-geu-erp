@@ -137,15 +137,15 @@
         ReimbursementGrid = new dhtmlXGridObject('ReimbursementGrid');
         ReimbursementGrid.setImagePath("./dhtmlx/imgs/");
         ReimbursementGrid.setHeader(
-            "No,No Reimbursement,Tanggal,Departemen,Keterangan / Keperluan,Total Biaya (Rp),Status,Tanggal Submit,Dibuat Oleh"
+            "No,No Reimbursement,Tanggal,Departemen,Pemohon,Bank Transfer,Keterangan / Keperluan,Total Biaya (Rp),Status,Tanggal Submit,Dibuat Oleh"
         );
         ReimbursementGrid.attachHeader(
-            "#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"
+            "#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"
         );
-        ReimbursementGrid.setInitWidths("45,180,105,150,260,140,130,140,110");
-        ReimbursementGrid.setColAlign("center,left,center,left,left,right,center,center,center");
-        ReimbursementGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");
-        ReimbursementGrid.setColSorting("int,str,str,str,str,int,str,str,str");
+        ReimbursementGrid.setInitWidths("45,170,95,120,150,170,220,130,120,125,100");
+        ReimbursementGrid.setColAlign("center,left,center,left,left,left,left,right,center,center,center");
+        ReimbursementGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+        ReimbursementGrid.setColSorting("int,str,str,str,str,str,str,int,str,str,str");
         ReimbursementGrid.setSkin("dhx_skyblue");
         ReimbursementGrid.init();
         ReimbursementGrid.clearAndLoad('hrd-reimbursement-data');

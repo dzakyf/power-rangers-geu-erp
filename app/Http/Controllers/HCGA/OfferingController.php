@@ -117,11 +117,146 @@ class OfferingController extends Controller
      */
     public function printPdf(Request $request)
     {
-        $id = $request->input('ID') ?? $request->input('id');
-        $recruitment = DB::table('recruitment')->where('ID', $id)->first();
-
-        if (!$recruitment) {
+        $pdfData = $this->buildPdf($request);
+        if (!$pdfData) {
             abort(404, 'Data kandidat Offering Letter tidak ditemukan.');
+        }
+
+        return response($pdfData['content'], 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $pdfData['filename'] . '"',
+        ]);
+    }
+
+    /**
+     * Kirimkan dokumen Offering Letter resmi ke email kandidat via SMTP PHPMailer
+     * POST /hrd-recruitment-offering-send-email
+     */
+    public function sendEmail(Request $request)
+    {
+        $id = $request->input('id') ?: $request->input('ID');
+        $recruitment = DB::table('recruitment')->where('ID', $id)->first();
+        if (!$recruitment) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Data kandidat tidak ditemukan.',
+            ], 404);
+        }
+
+        $recipientEmail = trim((string)($request->input('recipient_email') ?: ($recruitment->Email ?: ($recruitment->Email_Individual ?? ''))));
+
+        if (empty($recipientEmail) || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Alamat email kandidat tidak valid atau belum diisi pada data recruitment.',
+            ], 422);
+        }
+
+        // Simpan / update email ke tabel recruitment jika sebelumnya kosong
+        if (!empty($recipientEmail) && empty($recruitment->Email)) {
+            DB::table('recruitment')->where('ID', $id)->update(['Email' => $recipientEmail]);
+            $recruitment->Email = $recipientEmail;
+        }
+
+        // Generate PDF Dokumen Offering Letter
+        $pdfData = $this->buildPdf($request, $recruitment);
+        if (!$pdfData) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal membuat dokumen PDF Offering Letter.',
+            ], 500);
+        }
+
+        $viewData = $pdfData['viewData'];
+        $subject = $request->input('email_subject')
+            ?: ('Offering Letter - PT Green Energi Utama - ' . $recruitment->Name . ' (' . ($viewData['position'] ?? 'Karyawan') . ')');
+
+        $mailBody = view('humanresources.recruitment.emails.offering-letter-mail', array_merge($viewData, [
+            'candidateName'  => $recruitment->Name,
+            'recipientEmail' => $recipientEmail,
+            'filename'       => $pdfData['filename'],
+            'companyName'    => 'PT Green Energi Utama',
+            'senderUser'     => Auth::user() ? (Auth::user()->Name ?: Auth::user()->username) : 'Human Capital Department',
+        ]))->render();
+
+        $attachments = [
+            [
+                'string'   => $pdfData['content'],
+                'filename' => $pdfData['filename'],
+                'type'     => 'application/pdf',
+            ]
+        ];
+
+        /** @var \App\Services\EmailSettingsService $emailService */
+        $emailService = app(\App\Services\EmailSettingsService::class);
+        list($isSent, $errorMsg) = $emailService->send($recipientEmail, $subject, $mailBody, $attachments);
+
+        if (!$isSent) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal mengirim email: ' . ($errorMsg ?: 'Kesalahan koneksi SMTP server.'),
+            ], 500);
+        }
+
+        // Catat aktivitas pengiriman ke mail_logs jika tabel tersedia
+        try {
+            DB::table('mail_logs')->insert([
+                'Email_To'      => $recipientEmail,
+                'Subject'       => $subject,
+                'Contents'      => 'Offering Letter ' . ($viewData['offeringNumber'] ?? '') . ' dikirimkan ke ' . $recipientEmail . ' beserta lampiran ' . $pdfData['filename'],
+                'Status'        => 'SENT',
+                'Inserted_Date' => now(),
+                'Send_Date'     => now(),
+            ]);
+        } catch (\Throwable $t) {
+            // Abaikan kegagalan logging jika skema tabel berbeda
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Offering Letter berhasil dikirimkan ke email kandidat: ' . $recipientEmail,
+            'email'   => $recipientEmail,
+        ]);
+    }
+
+    /**
+     * Preview format email penawaran kerja (HTML murni)
+     * GET /hrd-recruitment-offering-preview-email?id={id}
+     */
+    public function previewEmail(Request $request)
+    {
+        $id = $request->input('id') ?: $request->input('ID');
+        $recruitment = DB::table('recruitment')->where('ID', $id)->first();
+        if (!$recruitment) {
+            return response('<div class="alert alert-danger m-3">Data kandidat tidak ditemukan.</div>', 404);
+        }
+
+        $recipientEmail = trim((string)($request->input('recipient_email') ?: ($recruitment->Email ?: ($recruitment->Email_Individual ?? 'candidate@example.com'))));
+
+        $pdfData = $this->buildPdf($request, $recruitment);
+        $viewData = $pdfData ? $pdfData['viewData'] : [];
+        $filename = $pdfData ? $pdfData['filename'] : 'Offering-Letter.pdf';
+
+        return view('humanresources.recruitment.emails.offering-letter-mail', array_merge($viewData, [
+            'candidateName'  => $recruitment->Name,
+            'recipientEmail' => $recipientEmail,
+            'filename'       => $filename,
+            'companyName'    => 'PT Green Energi Utama',
+            'senderUser'     => Auth::user() ? (Auth::user()->Name ?: Auth::user()->username) : 'Human Capital Department',
+        ]));
+    }
+
+    /**
+     * Builder helper untuk menghasilkan binary string PDF Offering Letter dan metadatanya
+     */
+    public function buildPdf(Request $request, $recruitment = null)
+    {
+        if (!$recruitment) {
+            $id = $request->input('ID') ?? $request->input('id');
+            $recruitment = DB::table('recruitment')->where('ID', $id)->first();
+            if (!$recruitment) {
+                return null;
+            }
         }
 
         $requisition = null;
@@ -227,24 +362,68 @@ class OfferingController extends Controller
             mkdir($tempDir, 0755, true);
         }
 
+        // ── Header & Footer images (base64) ─────────────────────────────────
+        $headerPath = public_path('assets/images/surat/header_geu.jpg');
+        $footerPath = public_path('assets/images/surat/footer_geu.png');
+
+        $headerHtml = '';
+        if (is_file($headerPath)) {
+            $headerB64 = base64_encode(file_get_contents($headerPath));
+            $headerExt = strtolower(pathinfo($headerPath, PATHINFO_EXTENSION));
+            $headerHtml = '
+                <div style="margin:0;padding:0;line-height:0;">
+                    <img src="data:image/' . $headerExt . ';base64,' . $headerB64 . '"
+                         style="width:100%;display:block;">
+                </div>
+                
+                <div class="header-title">OFFERING LETTER</div>
+                <div class="header-ref">No. '. $offeringNumber .'</div>';
+        }
+
+        $footerHtml = '';
+        if (is_file($footerPath)) {
+            $footerB64 = base64_encode(file_get_contents($footerPath));
+            $footerExt = strtolower(pathinfo($footerPath, PATHINFO_EXTENSION));
+            $footerHtml = '
+                <div style="margin:0;padding:0;line-height:0;">
+                    <img src="data:image/' . $footerExt . ';base64,' . $footerB64 . '"
+                         style="width:100%;display:block;">
+                </div>';
+        }
+
         $mpdf = new \Mpdf\Mpdf([
-            'tempDir'       => $tempDir,
-            'mode'          => 'utf-8',
-            'format'        => 'A4',
-            'margin_left'   => 18,
-            'margin_right'  => 18,
-            'margin_top'    => 18,
-            'margin_bottom' => 18,
+            'tempDir'             => $tempDir,
+            'mode'                => 'utf-8',
+            'format'              => 'A4',
+            'margin_top'          => 0,
+            'margin_bottom'       => 0,
+            'margin_left'         => 0,
+            'margin_right'        => 0,
+            'margin_header'       => 0,
+            'margin_footer'       => 0,
+            'setAutoTopMargin'    => $headerHtml !== '' ? 'stretch' : false,
+            'setAutoBottomMargin' => $footerHtml !== '' ? 'stretch' : false,
+            'autoMarginPadding'   => 4,
         ]);
+        
+        $mpdf->splitTableBorderWidth = 1;
+        
+        if ($headerHtml !== '') {
+            $mpdf->SetHTMLHeader($headerHtml);
+        }
+        if ($footerHtml !== '') {
+            $mpdf->SetHTMLFooter($footerHtml);
+        }
 
         $mpdf->SetTitle('Offering Letter - ' . $recruitment->Name);
         $mpdf->WriteHTML($html);
 
         $filename = 'Offering-Letter-' . preg_replace('/[^A-Za-z0-9\-]/', '_', $recruitment->Name) . '.pdf';
 
-        return response($mpdf->Output($filename, \Mpdf\Output\Destination::STRING_RETURN), 200, [
-            'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $filename . '"',
-        ]);
+        return [
+            'content'  => $mpdf->Output($filename, \Mpdf\Output\Destination::STRING_RETURN),
+            'filename' => $filename,
+            'viewData' => $viewData,
+        ];
     }
 }

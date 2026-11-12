@@ -1,0 +1,14 @@
+RewriteEngine On
+
+# Jangan jalankan rewrite jika file atau folder aslinya benar-benar ada
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Redirect manual .php ke URL bersih
+RewriteRule ^(.*)\.php$ $1 [R=301,L]
+
+# Petakan URL bersih ke file .php di belakang layar
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^(.*)$ $1.php [L]

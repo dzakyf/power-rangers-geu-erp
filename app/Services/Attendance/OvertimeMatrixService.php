@@ -22,7 +22,7 @@ class OvertimeMatrixService
      */
     public function resolveCompensationType($user): array
     {
-        $nik = $user->Emp_ID ?? null;
+        $nik = $user->Emp_ID ?? ($user->NIK ?? null);
 
         // 1. Cek users.overtime_compensation
         if (!empty($user->overtime_compensation)) {
@@ -49,9 +49,22 @@ class OvertimeMatrixService
                     ];
                 }
             }
+        } elseif (!empty($nik)) {
+            $uRow = DB::table('users')->where('Emp_ID', $nik)->first();
+            if ($uRow && !empty($uRow->overtime_compensation)) {
+                $type = strtoupper(trim($uRow->overtime_compensation));
+                if (in_array($type, ['PAID', 'TIME_OFF'])) {
+                    return [
+                        'type'   => $type,
+                        'label'  => $type === 'TIME_OFF' ? 'Tukar Cuti / Hari Libur Pengganti (Day Off)' : 'Uang Lembur (Sesuai Matriks Tarif)',
+                        'source' => 'users'
+                    ];
+                }
+            }
         }
 
         // 2. Cek employment.overtime_compensation
+        $emp = null;
         if (!empty($nik)) {
             $emp = DB::table('employment')->where('NIK', $nik)->first();
             if ($emp && !empty($emp->overtime_compensation)) {
@@ -82,7 +95,7 @@ class OvertimeMatrixService
         }
 
         // 4. Cek master_position.overtime_compensation
-        $posIdentifier = trim($user->Position ?? '');
+        $posIdentifier = trim($user->Position ?? ($emp ? ($emp->Position ?? '') : ''));
         if (!empty($posIdentifier)) {
             $pos = DB::table('master_position')
                 ->where('Initial', $posIdentifier)

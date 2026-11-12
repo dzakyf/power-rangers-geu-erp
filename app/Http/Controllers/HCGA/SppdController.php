@@ -24,6 +24,48 @@ class SppdController extends Controller
         $this->generatorService = $g;
     }
 
+    public static function canChooseEmployee($user = null): bool
+    {
+        $user = $user ?: Auth::user();
+        if (!$user) {
+            return false;
+        }
+        $privilegedUsers = ['admin', 'user.hcga', 'admin.hris'];
+        if (in_array(strtolower($user->username ?? ''), $privilegedUsers)) {
+            return true;
+        }
+        if (method_exists($user, 'hasRole') && $user->hasRole('ADM')) {
+            return true;
+        }
+        if (($user->Position ?? '') === 'Administrator' || ($user->Department ?? '') === 'HCGA') {
+            return true;
+        }
+        return false;
+    }
+
+    public static function getJobLevelForNik($nik)
+    {
+        $jobLevel = 'pelaksana';
+        if (empty($nik)) {
+            return $jobLevel;
+        }
+        $empData = DB::table('employment')->where('NIK', $nik)->first();
+        if ($empData && !empty($empData->Position)) {
+            $pos = DB::table('master_position')->where("Initial", $empData->Position)->first();
+            $grade = $pos->Level ?? 0;
+            if ($grade >= 1 && $grade <= 3) {
+                $jobLevel = 'management';
+            } elseif ($grade >= 4 && $grade <= 6) {
+                $jobLevel = 'senior_middle';
+            } elseif ($grade >= 7 && $grade <= 8) {
+                $jobLevel = 'junior_middle';
+            } else {
+                $jobLevel = 'pelaksana';
+            }
+        }
+        return $jobLevel;
+    }
+
     public function index()
     {
         return view('humanresources.sppd.index');
@@ -38,7 +80,7 @@ class SppdController extends Controller
         }
         echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
-        $canSeeAll = self::isApprover() || self::isHcgaVerifier() || self::isAdministrator();
+        $canSeeAll = self::isApprover() || self::isHcgaVerifier() || self::isAdministrator() || self::canChooseEmployee(Auth::user());
         $nomor = 1;
 
         $Query = DB::table('sppd')->orderBy('ID', 'DESC');
@@ -91,24 +133,39 @@ class SppdController extends Controller
         $fleetList = \App\Http\Controllers\HCGA\CarRentController::fleetOptions();
         $locations = DB::table('location')->orderBy('Name', 'ASC')->get();
 
-        // Get job level from employment
-        $jobLevel = 'pelaksana'; // default
-        $empData = DB::table('employment')->where('NIK', $user->Emp_ID)->first();
-        if ($empData && !empty($empData->Position)) {
-            $pos = DB::table('master_position')->where("Initial", $empData->Position)->first();
-            $grade = $pos->Level ?? 0;
-            if ($grade >= 1 && $grade <= 3) {
-                $jobLevel = 'management';
-            } elseif ($grade >= 4 && $grade <= 6) {
-                $jobLevel = 'senior_middle';
-            } elseif ($grade >= 7 && $grade <= 8) {
-                $jobLevel = 'junior_middle';
-            } else {
-                $jobLevel = 'pelaksana';
+        $canChooseEmployee = self::canChooseEmployee($user);
+        $employees = [];
+        if ($canChooseEmployee) {
+            $employees = DB::table('employment')
+                ->whereIn('Status', ['ACTIVE', 'Active'])
+                ->select(
+                    'NIK',
+                    'Name',
+                    'Department',
+                    'Position'
+                )
+                ->orderBy('Name', 'ASC')
+                ->get();
+
+            $positions = DB::table('master_position')->select('Initial', 'Level')->get()->keyBy('Initial');
+            foreach ($employees as $emp) {
+                $lvl = $positions[$emp->Position]->Level ?? 0;
+                if ($lvl >= 1 && $lvl <= 3) {
+                    $emp->Job_Level = 'management';
+                } elseif ($lvl >= 4 && $lvl <= 6) {
+                    $emp->Job_Level = 'senior_middle';
+                } elseif ($lvl >= 7 && $lvl <= 8) {
+                    $emp->Job_Level = 'junior_middle';
+                } else {
+                    $emp->Job_Level = 'pelaksana';
+                }
             }
         }
 
-        return view('humanresources.sppd.new', compact('user', 'departments', 'SPPD_No', 'fleetList', 'jobLevel', 'locations', 'typeCounts', 'ymd'));
+        // Get job level from employment
+        $jobLevel = self::getJobLevelForNik($user->Emp_ID);
+
+        return view('humanresources.sppd.new', compact('user', 'departments', 'SPPD_No', 'fleetList', 'jobLevel', 'locations', 'typeCounts', 'ymd', 'canChooseEmployee', 'employees'));
     }
 
     public function getMatrixAllowance()
@@ -408,8 +465,20 @@ class SppdController extends Controller
             ], 422);
         }
 
-        $nama = $user->Name ?: $user->username;
-        $nik  = $user->Emp_ID ?: '';
+        $canChoose = self::canChooseEmployee($user);
+        $inputNik = trim($request->input('Requester_NIK', ''));
+        $inputName = trim($request->input('Requester_Name', ''));
+
+        if ($canChoose && !empty($inputNik)) {
+            $nik = $inputNik;
+            $nama = !empty($inputName) ? $inputName : ($user->Name ?: $user->username);
+            $targetUser = DB::table('users')->where('Emp_ID', $nik)->first();
+            $requesterId = $targetUser ? $targetUser->id : $user->id;
+        } else {
+            $nik  = $user->Emp_ID ?: '';
+            $nama = !empty($inputName) ? $inputName : ($user->Name ?: $user->username);
+            $requesterId = $user->id;
+        }
 
         $originSite  = trim($request->input('Origin_Site', ''));
         $targetSite  = trim($request->input('Target_Site', ''));
@@ -487,7 +556,7 @@ class SppdController extends Controller
         try {
             $sppdId = DB::table('sppd')->insertGetId([
                 'SPPD_No'        => $SPPD_No,
-                'Requester_ID'   => $user->id,
+                'Requester_ID'   => $requesterId,
                 'Requester_Name' => $nama,
                 'Requester_NIK'  => $nik,
                 'Department'     => trim($request->Department),
@@ -537,8 +606,8 @@ class SppdController extends Controller
                 'SPPD_ID'    => $sppdId,
                 'Action'     => 'SUBMITTED',
                 'Actor_ID'   => $user->id,
-                'Actor_Name' => $nama,
-                'Note'       => 'Request ' . $sppdType . ' diajukan',
+                'Actor_Name' => $user->Name ?: $user->username,
+                'Note'       => 'Request ' . $sppdType . ' diajukan' . ($canChoose && $requesterId !== $user->id ? ' untuk ' . $nama . ' (' . $nik . ')' : ''),
                 'Created_At' => now(),
             ]);
 
@@ -618,7 +687,8 @@ class SppdController extends Controller
         $user = Auth::user();
         $isRequester = (int) $sppd->Requester_ID === (int) $user->id;
         $isApprover  = (int) $sppd->Approver_ID === (int) $user->id;
-        if (!$isRequester && !$isApprover && !$this->isPerbantuanParticipant($sppd, $user)) {
+        $privilegedUsers = ['admin', 'user.hcga', 'admin.hris'];
+        if (!$isRequester && !$isApprover && !$this->isPerbantuanParticipant($sppd, $user) && !in_array($user->username, $privilegedUsers)) {
             abort(403, 'Anda tidak berhak mengakses data ini');
         }
 
@@ -642,7 +712,8 @@ class SppdController extends Controller
         }
         $isRequester = (int) $sppd->Requester_ID === (int) $user->id;
         $isApprover = (int) $sppd->Approver_ID === (int) $user->id;
-        if (!$isRequester && !$isApprover) {
+        $privilegedUsers = ['admin', 'user.hcga', 'admin.hris'];
+        if (!$isRequester && !$isApprover && !in_array($user->username, $privilegedUsers)) {
             return response()->json(['status' => 'error', 'message' => 'Anda tidak berhak atas SPPD ini'], 403);
         }
         if (!in_array($sppd->Status, ['ACCEPTED', 'APPROVED'])) {
@@ -1103,6 +1174,10 @@ class SppdController extends Controller
             return;
         }
         if ($this->isPerbantuanParticipant($sppd, $user)) {
+            return;
+        }
+        $privilegedUsers = ['admin', 'user.hcga', 'admin.hris'];
+        if (in_array($user->username, $privilegedUsers)) {
             return;
         }
         abort(403, 'Anda tidak berhak mengakses dokumen ini');

@@ -1,43 +1,71 @@
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
-    <!-- Main Content Header -->
-    <div class="main-content-header mb-3">
-        <h1 class="h3 fw-bold text-dark">Master Pajak & Pengurang Gaji (Tax & Deduction Setup)</h1>
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/dashboard1" class="text-decoration-none">Payroll</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <span class="active">Master Tax & Deduction Rules</span>
-            </li>
-        </ol>
-    </div> 
+    <!-- Main Content Header (Adminor V3 Responsive Hero Header seperti di Attendant Portal) -->
+    <div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+        <div class="mb-2 mb-md-0">
+            <h4 class="content-title text-white fw-bold mb-1"
+                style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+                <i class="fe fe-file-text me-2"></i>Master Pajak &amp; Pengurang Gaji
+            </h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url('payroll-tax') }}" style="color: rgba(255, 255, 255, 0.8) !important;">
+                            Payroll
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active text-white" aria-current="page"
+                        style="color: #ffffff !important; font-weight: 600;">
+                        Tax &amp; Deduction Setup
+                    </li>
+                </ol>
+            </nav>
+        </div>
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <span class="badge rounded-pill px-3 py-2 text-white shadow-sm"
+                style="background: rgba(255, 255, 255, 0.25); border: 1px solid rgba(255, 255, 255, 0.4); font-size: 11px;">
+                <i class="fe fe-shield me-1"></i> Regulasi: <strong>PP 58/2023 &amp; UU HPP</strong>
+            </span>
+            <a href="{{ url('payroll-employee') }}" class="btn btn-sm rounded-pill shadow-sm"
+                style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
+                <i class="fe fe-users me-1"></i> Setup Gaji Pegawai
+            </a>
+            <a href="{{ url('payroll-generator') }}" class="btn btn-sm rounded-pill shadow-sm"
+                style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
+                <i class="fe fe-play me-1"></i> Generator Payroll
+            </a>
+        </div>
+    </div>
     <!-- End Main Content Header -->
 
-    <!-- Nav Tabs Konfigurasi Terpadu -->
-    <ul class="nav nav-pills mb-3 gap-2" id="taxDeductionTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active rounded-pill fw-semibold px-4" id="ptkp-tab" data-bs-toggle="pill" data-bs-target="#ptkp-pane" type="button" role="tab">
-                <i class="fa fa-users me-1"></i> PTKP & Kategori TER
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill fw-semibold px-4" id="ter-tab" data-bs-toggle="pill" data-bs-target="#ter-pane" type="button" role="tab" onclick="loadTerRates()">
-                <i class="fa fa-percent me-1"></i> Tarif TER Bulanan (PP 58/2023)
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill fw-semibold px-4" id="pasal17-tab" data-bs-toggle="pill" data-bs-target="#pasal17-pane" type="button" role="tab" onclick="loadTaxBrackets()">
-                <i class="fa fa-balance-scale me-1"></i> Tarif Progresif (UU HPP Ps. 17)
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill fw-semibold px-4" id="deduction-tab" data-bs-toggle="pill" data-bs-target="#deduction-pane" type="button" role="tab" onclick="loadDeductionConfigs()">
-                <i class="fa fa-cogs me-1"></i> Setup Deduction (Unpaid, Late, BPJS)
-            </button>
-        </li>
-    </ul>
+    <!-- Nav Tabs Konfigurasi (Bersih, Rapi & Elegan) -->
+    <div class="card border-0 shadow-sm rounded-4 mb-3 bg-white">
+        <div class="card-body p-2">
+            <ul class="nav nav-pills gap-1" id="taxDeductionTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill fw-semibold px-3 py-2 fs-13" id="ptkp-tab" data-bs-toggle="pill" data-bs-target="#ptkp-pane" type="button" role="tab">
+                        <i class="fa fa-users me-1"></i> PTKP &amp; Kategori TER
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill fw-semibold px-3 py-2 fs-13" id="ter-tab" data-bs-toggle="pill" data-bs-target="#ter-pane" type="button" role="tab" onclick="loadTerRates()">
+                        <i class="fa fa-percent me-1"></i> Tarif TER Bulanan (PP 58/2023)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill fw-semibold px-3 py-2 fs-13" id="pasal17-tab" data-bs-toggle="pill" data-bs-target="#pasal17-pane" type="button" role="tab" onclick="loadTaxBrackets()">
+                        <i class="fa fa-balance-scale me-1"></i> Tarif Progresif Ps. 17 (UU HPP)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill fw-semibold px-3 py-2 fs-13" id="deduction-tab" data-bs-toggle="pill" data-bs-target="#deduction-pane" type="button" role="tab" onclick="loadDeductionConfigs()">
+                        <i class="fa fa-cogs me-1"></i> Setup Deduction (Unpaid, Late, BPJS)
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
 
     <div class="tab-content" id="taxDeductionTabContent">
         <!-- 1. TAB PTKP & TER MAPPING -->
@@ -63,6 +91,9 @@
                         </button>
                         <button type="button" id="RefreshBM" class="btn btn-outline-secondary rounded-pill px-3">
                             <i class="fa fa-sync me-1"></i> Refresh Data
+                        </button>
+                        <button type="button" id="ExportTaxExcel" class="btn btn-warning rounded-pill px-3 text-dark" onclick="TaxList.toExcel('{{ asset('export/generate.php') }}');">
+                            <i class="fa fa-file-excel me-1"></i> Export Excel
                         </button>
                     </div>
                 </div>
@@ -199,7 +230,7 @@
 
 <script>
 var TaxList = new dhtmlXGridObject('TaxList');
-TaxList.setImagePath("./dhtmlx/imgs/");
+TaxList.setImagePath("{{ asset('dhtmlx/imgs/') }}/");
 TaxList.setHeader("No,Status PTKP,Keterangan,Nilai PTKP (Rp),Kategori TER,Status Nikah,Jml Anak,Created By,Created Date,Modified By,Modified Date");
 TaxList.setInitWidths("60,110,220,130,110,110,90,110,120,110,120");
 TaxList.setColAlign("center,center,left,right,center,center,center,left,center,left,center");
@@ -209,7 +240,7 @@ TaxList.setEditable(true);
 TaxList.setNumberFormat("0,000", 3, ".", ",");
 TaxList.setSkin("dhx_skyblue");
 
-var PTaxList = new dataProcessor("payroll-tax-update");
+var PTaxList = new dataProcessor("{{ url('payroll-tax-update') }}");
 PTaxList.setTransactionMode({
     mode: "POST",
     total: true,
@@ -230,7 +261,7 @@ TaxList.getCombo(5).put("0", "NOT MARRIED");
 Reload_TaxList();
 
 function Reload_TaxList() {
-    TaxList.clearAndLoad("xml-payroll-tax");
+    TaxList.clearAndLoad("{{ url('xml-payroll-tax') }}");
 }
 
 $("#SaveBM").click(function(){
@@ -270,30 +301,38 @@ function formatRupiah(num) {
 
 function loadTerRates() {
     var cat = $("#terCategoryFilter").val() || 'A';
-    $("#terRatesBody").html('<tr><td colspan="7" class="text-center py-4 text-muted">Memuat data tarif TER Kategori ' + cat + '...</td></tr>');
+    $("#terRatesBody").html('<tr><td colspan="7" class="text-center py-4 text-muted"><i class="fa fa-spinner fa-spin me-2"></i> Memuat data tarif TER Kategori ' + cat + '...</td></tr>');
 
-    $.get('/api/payroll/tax-ter-rates?category=' + cat, function(res) {
-        if (res.success && res.data.length > 0) {
-            var html = '';
-            $.each(res.data, function(idx, item) {
-                var maxLabel = item.max_gross ? formatRupiah(item.max_gross) : '<span class="badge bg-secondary text-white">Tak Terbatas</span>';
-                html += '<tr>' +
-                    '<td class="text-center">' + (idx + 1) + '</td>' +
-                    '<td><span class="badge bg-primary text-white">Kategori ' + item.category + '</span></td>' +
-                    '<td>Rp ' + formatRupiah(item.min_gross) + '</td>' +
-                    '<td>' + (item.max_gross ? 'Rp ' + maxLabel : maxLabel) + '</td>' +
-                    '<td class="text-center fw-bold text-success">' + Number(item.ter_rate_percent).toFixed(2) + ' %</td>' +
-                    '<td class="small text-muted">' + (item.legal_basis || 'PP 58/2023') + '</td>' +
-                    '<td class="text-center">' +
-                        '<button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0" onclick=\'openEditTer(' + JSON.stringify(item) + ')\'>' +
-                            '<i class="fa fa-edit"></i> Edit' +
-                        '</button>' +
-                    '</td>' +
-                '</tr>';
-            });
-            $("#terRatesBody").html(html);
-        } else {
-            $("#terRatesBody").html('<tr><td colspan="7" class="text-center py-4 text-muted">Belum ada data tarif TER. Silakan jalankan seeder.</td></tr>');
+    $.ajax({
+        url: '{{ url('api/payroll/tax-ter-rates') }}?category=' + cat,
+        type: 'GET',
+        dataType: 'json',
+        success: function(res) {
+            if (res.success && res.data.length > 0) {
+                var html = '';
+                $.each(res.data, function(idx, item) {
+                    var maxLabel = item.max_gross ? formatRupiah(item.max_gross) : '<span class="badge bg-secondary text-white">Tak Terbatas</span>';
+                    html += '<tr>' +
+                        '<td class="text-center">' + (idx + 1) + '</td>' +
+                        '<td><span class="badge bg-primary text-white">Kategori ' + item.category + '</span></td>' +
+                        '<td>Rp ' + formatRupiah(item.min_gross) + '</td>' +
+                        '<td>' + (item.max_gross ? 'Rp ' + maxLabel : maxLabel) + '</td>' +
+                        '<td class="text-center fw-bold text-success">' + Number(item.ter_rate_percent).toFixed(2) + ' %</td>' +
+                        '<td class="small text-muted">' + (item.legal_basis || 'PP 58/2023') + '</td>' +
+                        '<td class="text-center">' +
+                            '<button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0" onclick=\'openEditTer(' + JSON.stringify(item) + ')\'>' +
+                                '<i class="fa fa-edit"></i> Edit' +
+                            '</button>' +
+                        '</td>' +
+                    '</tr>';
+                });
+                $("#terRatesBody").html(html);
+            } else {
+                $("#terRatesBody").html('<tr><td colspan="7" class="text-center py-4 text-muted">Belum ada data tarif TER. Silakan jalankan seeder.</td></tr>');
+            }
+        },
+        error: function(xhr) {
+            $("#terRatesBody").html('<tr><td colspan="7" class="text-center py-4 text-danger"><i class="fa fa-exclamation-triangle me-2"></i> Gagal memuat data tarif TER (' + xhr.status + ').</td></tr>');
         }
     });
 }
@@ -315,7 +354,7 @@ function saveTerRate() {
     var rateVal = $("#edit_ter_rate").val();
 
     $.ajax({
-        url: '/api/payroll/tax-ter-rates/update',
+        url: '{{ url('api/payroll/tax-ter-rates/update') }}',
         type: 'POST',
         data: {
             _token: '{{ csrf_token() }}',
@@ -336,31 +375,39 @@ function saveTerRate() {
 }
 
 function loadTaxBrackets() {
-    $("#bracketsBody").html('<tr><td colspan="6" class="text-center py-4 text-muted">Memuat data lapisan tarif Pasal 17...</td></tr>');
-    $.get('/api/payroll/tax-brackets', function(res) {
-        if (res.success && res.data.length > 0) {
-            var html = '';
-            $.each(res.data, function(idx, item) {
-                var maxLabel = item.max_amount ? 'Rp ' + formatRupiah(item.max_amount) : '<span class="badge bg-secondary text-white">Diatas Batas Lapisan IV</span>';
-                html += '<tr>' +
-                    '<td class="text-center">' + (idx + 1) + '</td>' +
-                    '<td class="fw-bold text-dark">' + item.bracket_name + '</td>' +
-                    '<td>Rp ' + formatRupiah(item.min_amount) + '</td>' +
-                    '<td>' + maxLabel + '</td>' +
-                    '<td class="text-center">' +
-                        '<div class="input-group input-group-sm justify-content-center" style="max-width: 120px; margin: 0 auto;">' +
-                            '<input type="number" id="bracket_rate_' + item.id + '" class="form-control text-center fw-bold" step="0.5" value="' + item.rate_percent + '">' +
-                            '<span class="input-group-text">%</span>' +
-                        '</div>' +
-                    '</td>' +
-                    '<td class="text-center">' +
-                        '<button class="btn btn-sm btn-success rounded-pill px-3 py-1 text-white" onclick="saveBracket(' + item.id + ')">' +
-                            '<i class="fa fa-save"></i> Simpan' +
-                        '</button>' +
-                    '</td>' +
-                '</tr>';
-            });
-            $("#bracketsBody").html(html);
+    $("#bracketsBody").html('<tr><td colspan="6" class="text-center py-4 text-muted"><i class="fa fa-spinner fa-spin me-2"></i> Memuat data lapisan tarif Pasal 17...</td></tr>');
+    $.ajax({
+        url: '{{ url('api/payroll/tax-brackets') }}',
+        type: 'GET',
+        dataType: 'json',
+        success: function(res) {
+            if (res.success && res.data.length > 0) {
+                var html = '';
+                $.each(res.data, function(idx, item) {
+                    var maxLabel = item.max_amount ? 'Rp ' + formatRupiah(item.max_amount) : '<span class="badge bg-secondary text-white">Diatas Batas Lapisan IV</span>';
+                    html += '<tr>' +
+                        '<td class="text-center">' + (idx + 1) + '</td>' +
+                        '<td class="fw-bold text-dark">' + item.bracket_name + '</td>' +
+                        '<td>Rp ' + formatRupiah(item.min_amount) + '</td>' +
+                        '<td>' + maxLabel + '</td>' +
+                        '<td class="text-center">' +
+                            '<div class="input-group input-group-sm justify-content-center" style="max-width: 120px; margin: 0 auto;">' +
+                                '<input type="number" id="bracket_rate_' + item.id + '" class="form-control text-center fw-bold" step="0.5" value="' + item.rate_percent + '">' +
+                                '<span class="input-group-text">%</span>' +
+                            '</div>' +
+                        '</td>' +
+                        '<td class="text-center">' +
+                            '<button class="btn btn-sm btn-success rounded-pill px-3 py-1 text-white" onclick="saveBracket(' + item.id + ')">' +
+                                '<i class="fa fa-save"></i> Simpan' +
+                            '</button>' +
+                        '</td>' +
+                    '</tr>';
+                });
+                $("#bracketsBody").html(html);
+            }
+        },
+        error: function(xhr) {
+            $("#bracketsBody").html('<tr><td colspan="6" class="text-center py-4 text-danger"><i class="fa fa-exclamation-triangle me-2"></i> Gagal memuat data tarif progresif (' + xhr.status + ').</td></tr>');
         }
     });
 }
@@ -368,7 +415,7 @@ function loadTaxBrackets() {
 function saveBracket(id) {
     var rate = $("#bracket_rate_" + id).val();
     $.ajax({
-        url: '/api/payroll/tax-brackets/update',
+        url: '{{ url('api/payroll/tax-brackets/update') }}',
         type: 'POST',
         data: {
             _token: '{{ csrf_token() }}',
@@ -386,29 +433,37 @@ function saveBracket(id) {
 }
 
 function loadDeductionConfigs() {
-    $("#deductionConfigContainer").html('<div class="col-12 text-center py-4 text-muted">Memuat parameter potongan...</div>');
-    $.get('/api/payroll/deduction-configs', function(res) {
-        if (res.success && res.data.length > 0) {
-            var html = '';
-            $.each(res.data, function(idx, item) {
-                html += '<div class="col-md-6">' +
-                    '<div class="card border rounded-3 p-3 bg-light h-100">' +
-                        '<div class="d-flex justify-content-between align-items-center mb-2">' +
-                            '<h6 class="fw-bold mb-0 text-dark">' + item.config_name + '</h6>' +
-                            '<span class="badge bg-primary text-white">' + item.category + '</span>' +
+    $("#deductionConfigContainer").html('<div class="col-12 text-center py-4 text-muted"><i class="fa fa-spinner fa-spin me-2"></i> Memuat parameter potongan...</div>');
+    $.ajax({
+        url: '{{ url('api/payroll/deduction-configs') }}',
+        type: 'GET',
+        dataType: 'json',
+        success: function(res) {
+            if (res.success && res.data.length > 0) {
+                var html = '';
+                $.each(res.data, function(idx, item) {
+                    html += '<div class="col-md-6">' +
+                        '<div class="card border rounded-3 p-3 bg-light h-100 shadow-sm">' +
+                            '<div class="d-flex justify-content-between align-items-center mb-2">' +
+                                '<h6 class="fw-bold mb-0 text-dark">' + item.config_name + '</h6>' +
+                                '<span class="badge bg-primary text-white">' + item.category + '</span>' +
+                            '</div>' +
+                            '<p class="small text-muted mb-3">' + (item.description || '-') + '</p>' +
+                            '<div class="input-group">' +
+                                '<input type="text" id="cfg_' + item.config_key + '" class="form-control" value="' + item.value_data + '">' +
+                                '<span class="input-group-text">' + (item.unit || '') + '</span>' +
+                                '<button class="btn btn-primary" onclick="saveDeductionConfig(\'' + item.config_key + '\')">' +
+                                    '<i class="fa fa-check"></i> Simpan' +
+                                '</button>' +
+                            '</div>' +
                         '</div>' +
-                        '<p class="small text-muted mb-3">' + (item.description || '-') + '</p>' +
-                        '<div class="input-group">' +
-                            '<input type="text" id="cfg_' + item.config_key + '" class="form-control" value="' + item.value_data + '">' +
-                            '<span class="input-group-text">' + (item.unit || '') + '</span>' +
-                            '<button class="btn btn-primary" onclick="saveDeductionConfig(\'' + item.config_key + '\')">' +
-                                '<i class="fa fa-check"></i> Simpan' +
-                            '</button>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-            });
-            $("#deductionConfigContainer").html(html);
+                    '</div>';
+                });
+                $("#deductionConfigContainer").html(html);
+            }
+        },
+        error: function(xhr) {
+            $("#deductionConfigContainer").html('<div class="col-12 text-center py-4 text-danger"><i class="fa fa-exclamation-triangle me-2"></i> Gagal memuat parameter potongan (' + xhr.status + ').</div>');
         }
     });
 }
@@ -416,7 +471,7 @@ function loadDeductionConfigs() {
 function saveDeductionConfig(key) {
     var val = $("#cfg_" + key).val();
     $.ajax({
-        url: '/api/payroll/deduction-configs/update',
+        url: '{{ url('api/payroll/deduction-configs/update') }}',
         type: 'POST',
         data: {
             _token: '{{ csrf_token() }}',

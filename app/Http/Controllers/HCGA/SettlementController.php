@@ -37,7 +37,8 @@ class SettlementController extends Controller
         }
         echo("<?xml version='1.0' encoding='iso-8859-1'?>\n");
 
-        $canSeeAll = self::isHcgaVerifier() || \App\Http\Controllers\HCGA\SppdController::isAdministrator();
+        $canSeeAll = self::isHcgaVerifier() || \App\Http\Controllers\HCGA\SppdController::isAdministrator()
+            || \App\Http\Controllers\HCGA\SppdController::canChooseEmployee(Auth::user());
         $nomor = 1;
 
         $Query = DB::table('settlement_sppd')->orderBy('ID', 'DESC');
@@ -51,6 +52,9 @@ class SettlementController extends Controller
             $total = 0;
             foreach ($expenses as $e) {
                 $total += (float) $e->Cost;
+            }
+            if (isset($Fetch->Matrix_Amount) && (float) $Fetch->Matrix_Amount > 0) {
+                $total += (float) $Fetch->Matrix_Amount;
             }
 
             $linkInvoice = $Fetch->Invoice_File
@@ -75,6 +79,45 @@ class SettlementController extends Controller
         echo "</rows>";
     }
 
+    public static function isMatrixAllowanceItem($desc)
+    {
+        $desc = trim((string) $desc);
+        if ($desc === '') {
+            return false;
+        }
+
+        // Cek pola deskripsi allowance matriks regulasi master SPPD
+        $patterns = [
+            '/^Uang\s+Makan/i',
+            '/^Uang\s+Saku/i',
+            '/^Penginapan(\s+★\d+)?\s*(\(Rp|\s*$)/i',
+            '/^Tiket\s+PP\s*(\(maks\.|\s*$)/i',
+            '/^Uang\s+Perbantuan\s*\/\s*Kos/i',
+            '/^Bantuan\s+Kos/i',
+            '/^Bantuan\s+Relokasi/i',
+            '/^Uang\s+Perbantuan\s*\(Rp/i',
+        ];
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $desc)) {
+                return true;
+            }
+        }
+
+        // Cek kecocokan nama komponen dari master_sppd_components
+        try {
+            $components = DB::table('master_sppd_components')->pluck('name');
+            foreach ($components as $name) {
+                if (strcasecmp($desc, trim($name)) === 0) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {
+            // fallback
+        }
+
+        return false;
+    }
+
     public function create()
     {
         $user = Auth::user();
@@ -82,19 +125,45 @@ class SettlementController extends Controller
         $counter = DB::table('settlement_sppd')->where('Created_Date', 'LIKE', date('Y-m') . '%')->count() + 1;
         $STTL_No = "STTL/GA/" . ($user->Location ?: 'GEU-HO') . "/" . date('ymdhis') . "-" . $counter;
 
-        // Selectable SPPD references: requester's own (excluding REJECTED); administrator sees all.
-        $sppdQuery = DB::table('sppd')->orderBy('ID', 'DESC')->where('Status', '!=', 'REJECTED');
-        if (!\App\Http\Controllers\HCGA\SppdController::isAdministrator()) {
-            $sppdQuery->where('Requester_ID', $user->id);
+        // Selectable SPPD references: requester's own (excluding REJECTED); administrator / HCGA sees all.
+        $canSeeAll = \App\Http\Controllers\HCGA\SppdController::isAdministrator()
+            || \App\Http\Controllers\HCGA\SppdController::canChooseEmployee($user);
+        $sppdQuery = DB::table('sppd')
+            ->leftJoin('users', 'users.id', '=', 'sppd.Requester_ID')
+            ->orderBy('sppd.ID', 'DESC')
+            ->where('sppd.Status', '!=', 'REJECTED');
+        if (!$canSeeAll) {
+            $sppdQuery->where('sppd.Requester_ID', $user->id);
         }
-        $sppdList = $sppdQuery->get(['ID', 'SPPD_No', 'Destination', 'Sppd_Type', 'Estimated_Cost', 'Department', 'Route_Start', 'Route_Finish']);
+        $sppdList = $sppdQuery->get([
+            'sppd.ID',
+            'sppd.SPPD_No',
+            'sppd.Destination',
+            'sppd.Sppd_Type',
+            'sppd.Estimated_Cost',
+            'sppd.Department',
+            'sppd.Route_Start',
+            'sppd.Route_Finish',
+            'sppd.Requester_Name',
+            'sppd.Requester_NIK',
+            'sppd.Requester_ID',
+            'users.Bank_Name as Requester_Bank_Name',
+            'users.Bank_Account_No as Requester_Bank_Account_No',
+            'users.Bank_Account_Name as Requester_Bank_Account_Name',
+        ]);
 
         // Load detail rincian biaya masing-masing SPPD
+        // HANYA memunculkan biaya yang diinputkan manual di luar matriks regulasi master SPPD
         $sppdIds = $sppdList->pluck('ID')->all();
         $sppdCosts = [];
+        $sppdMatrixCosts = [];
         if (!empty($sppdIds)) {
             $costs = DB::table('sppd_cost')->whereIn('SPPD_ID', $sppdIds)->get();
             foreach ($costs as $c) {
+                if (self::isMatrixAllowanceItem($c->Description)) {
+                    $sppdMatrixCosts[$c->SPPD_ID] = ($sppdMatrixCosts[$c->SPPD_ID] ?? 0) + (float) $c->Cost;
+                    continue;
+                }
                 $sppdCosts[$c->SPPD_ID][] = [
                     'Expense'     => $c->Description,
                     'Cost'        => (float) $c->Cost,
@@ -103,7 +172,22 @@ class SettlementController extends Controller
             }
         }
 
-        return view('humanresources.settlement.new', compact('user', 'departments', 'STTL_No', 'sppdList', 'sppdCosts'));
+        // Rekening kantor aktif dari tabel bank_acc untuk pengembalian Lebih Bayar
+        $companyBanks = DB::table('bank_acc')
+            ->where('Status', 'ACTIVE')
+            ->where('Currency', 'RP')
+            ->whereNotIn('Acc_No', ['CASH', 'DUMMY', ''])
+            ->orderBy('ID', 'ASC')
+            ->get(['ID', 'Bank_Name', 'Acc_No', 'Acc_Hold', 'Bank_Branch', 'Remark']);
+
+        // Peta rekening karyawan berdasarkan Emp_ID
+        $userBanksMap = DB::table('users')
+            ->whereNotNull('Emp_ID')
+            ->where('Emp_ID', '!=', '')
+            ->get(['id', 'Emp_ID', 'Name', 'username', 'Bank_Name', 'Bank_Account_No', 'Bank_Account_Name'])
+            ->keyBy('Emp_ID');
+
+        return view('humanresources.settlement.new', compact('user', 'departments', 'STTL_No', 'sppdList', 'sppdCosts', 'sppdMatrixCosts', 'companyBanks', 'userBanksMap'));
     }
 
     public function store(Request $request)
@@ -180,6 +264,17 @@ class SettlementController extends Controller
         $advanceRaw = trim($request->input('Advance_Nominal', ''));
         $advance = $advanceRaw !== '' ? (float) str_replace([',', '.'], ['', '.'], $advanceRaw) : null;
 
+        // Hitung total tunjangan matriks SPPD otomatis jika ada referensi SPPD
+        $matrixAmount = 0;
+        if ($sppdRefId) {
+            $sppdCosts = DB::table('sppd_cost')->where('SPPD_ID', $sppdRefId)->get();
+            foreach ($sppdCosts as $sc) {
+                if (self::isMatrixAllowanceItem($sc->Description)) {
+                    $matrixAmount += (float) $sc->Cost;
+                }
+            }
+        }
+
         DB::beginTransaction();
         try {
             $metaId = $this->uploaderService->storeFile($file, 'file', 'settlement_sppd', $user->id, 'Invoice Settlement SPPD');
@@ -194,6 +289,7 @@ class SettlementController extends Controller
                 'SPPD_No'         => $sppdRefNo,
                 'Invoice_File'    => $metaId,
                 'Advance_Nominal' => $advance,
+                'Matrix_Amount'   => $matrixAmount,
                 'Bank'            => trim($request->input('Bank', '')),
                 'Status'          => 'SUBMITTED',
                 'Validator_ID'    => $validatorId,
@@ -220,20 +316,13 @@ class SettlementController extends Controller
                 'Created_At'         => now(),
             ]);
 
-            if ($validatorId && (int) $validatorId === (int) $user->id) {
-                DB::table('settlement_sppd')->where('ID', $settlementId)->update([
-                    'Status'        => 'APPROVED',
-                    'Approved_At'   => now(),
-                    'Approval_Note' => 'Approve otomatis (pengaju adalah HCGA Dept Head)',
-                ]);
-                DB::table('settlement_sppd_log')->insert([
-                    'Settlement_Sppd_ID' => $settlementId,
-                    'Action'             => 'APPROVED',
-                    'Actor_ID'           => $user->id,
-                    'Actor_Name'         => $nama,
-                    'Note'               => 'Approve otomatis (pengaju adalah HCGA Dept Head)',
-                    'Created_At'         => now(),
-                ]);
+            // Daftarkan ke Dynamic Approval Engine (ApprovalWorkflowService) via SettlementApprovalService
+            try {
+                $approvalService = app(\App\Services\Approval\SettlementApprovalService::class);
+                $sttlRow = DB::table('settlement_sppd')->where('ID', $settlementId)->first();
+                $approvalService->submit($sttlRow, $user);
+            } catch (\Exception $apprEx) {
+                Log::warning('ApprovalWorkflowService submission fallback for Settlement #' . $settlementId . ': ' . $apprEx->getMessage());
             }
 
             DB::commit();
@@ -370,6 +459,10 @@ class SettlementController extends Controller
             $total += (float) $e->Cost;
         }
 
+        // Akumulasikan tunjangan matriks SPPD yang di-carry over dari regulasi matriks
+        $matrixAmount = isset($settlement->Matrix_Amount) ? (float) $settlement->Matrix_Amount : 0;
+        $total += $matrixAmount;
+
         $money = function ($val) {
             return $this->generatorService->rupiahFormatter((float) $val);
         };
@@ -446,7 +539,7 @@ class SettlementController extends Controller
     public static function isHcgaVerifier()
     {
         return Auth::check()
-            && Auth::user()->Department === 'HCGA'
-            && in_array(Auth::user()->Priv_ID, ['MANAGER', 'HCGA', 'HEAD'], true);
+            && (Auth::user()->Department === 'HCGA' || Auth::user()->username === 'admin')
+            && in_array(Auth::user()->Priv_ID, ['MANAGER', 'HCGA', 'HEAD', 'ADMIN'], true);
     }
 }
