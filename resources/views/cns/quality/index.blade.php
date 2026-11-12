@@ -317,14 +317,14 @@
     function initProjectionGrid() {
         $('#ProjectionSection').show();
 
-        // 42 columns (38 visible + 4 hidden):
-        // 0: No, 1: Kode QC, 2: Tanggal, 3: Jenis QC, 4: Lab
-        // 5..12: Top (8 cols)
-        // 13..20: Middle (8 cols)
-        // 21..28: Bottom (8 cols)
-        // 29..36: Average (8 cols)
-        // 37: Attachment
-        // 38: Contract_ID (hidden), 39: Booking_ID (hidden), 40: QC_Category (hidden), 41: Tank_ID (hidden)
+        // 43 columns (39 visible + 4 hidden):
+        // 0: No, 1: Kode QC, 2: Tanggal, 3: Jenis QC, 4: Lab, 5: Source
+        // 6..13: Top (8 cols)
+        // 14..21: Middle (8 cols)
+        // 22..29: Bottom (8 cols)
+        // 30..37: Average (8 cols)
+        // 38: Attachment
+        // 39: Contract_ID (hidden), 40: Booking_ID (hidden), 41: QC_Category (hidden), 42: Tank_ID (hidden)
         let tHeader = [
             'No', 'Kode QC', 'Tanggal', 'Jenis QC', 'Lab', 'Source',
             'Top', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
@@ -366,7 +366,7 @@
         ];
 
         let tColType = tHeader.map(() => 'ro');
-        let tColAlign = tHeader.map((e, i) => (i < 6 ? 'center' : (i === 37 ? 'center' : (i >= 38 ? 'left' : 'right'))));
+        let tColAlign = tHeader.map((e, i) => (i < 6 ? 'center' : (i === 38 ? 'center' : (i >= 39 ? 'left' : 'right'))));
         let tColSort = tHeader.map((e, i) => (i === 0 ? 'int' : (i === 2 ? 'date' : 'str')));
 
         ProjectionGrid = new dhtmlXGridObject('ProjectionGrid');
@@ -381,15 +381,15 @@
         ProjectionGrid.setSkin("dhx_skyblue");
         ProjectionGrid.init();
 
-        ProjectionGrid.setColumnHidden(38, true);
         ProjectionGrid.setColumnHidden(39, true);
         ProjectionGrid.setColumnHidden(40, true);
         ProjectionGrid.setColumnHidden(41, true);
+        ProjectionGrid.setColumnHidden(42, true);
 
         loadQualityGrid();
 
         ProjectionGrid.attachEvent('onRowDblClicked', function(rId, cInd) {
-            if (cInd === 37) {
+            if (cInd === 38) {
                 var url = ProjectionGrid.cells(rId, cInd).getValue();
                 if (url && url !== '-' && url !== '') {
                     window.open(url, '_blank');

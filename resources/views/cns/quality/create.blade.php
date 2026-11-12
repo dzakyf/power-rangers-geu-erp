@@ -122,16 +122,16 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <input type="number" step="0.01" name="top_{{ $param['key'] }}" id="create_top_{{ $param['key'] }}"
-                                           class="form-control text-right qc-input" oninput="calcQcAverage('{{ $param['key'] }}', 'create')" />
+                                    <input type="text" inputmode="decimal" name="top_{{ $param['key'] }}" id="create_top_{{ $param['key'] }}"
+                                           class="form-control text-right qc-input cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'create')" />
                                 </td>
                                 <td>
-                                    <input type="number" step="0.01" name="middle_{{ $param['key'] }}" id="create_middle_{{ $param['key'] }}"
-                                           class="form-control text-right qc-input" oninput="calcQcAverage('{{ $param['key'] }}', 'create')" />
+                                    <input type="text" inputmode="decimal" name="middle_{{ $param['key'] }}" id="create_middle_{{ $param['key'] }}"
+                                           class="form-control text-right qc-input cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'create')" />
                                 </td>
                                 <td>
-                                    <input type="number" step="0.01" name="bottom_{{ $param['key'] }}" id="create_bottom_{{ $param['key'] }}"
-                                           class="form-control text-right qc-input" oninput="calcQcAverage('{{ $param['key'] }}', 'create')" />
+                                    <input type="text" inputmode="decimal" name="bottom_{{ $param['key'] }}" id="create_bottom_{{ $param['key'] }}"
+                                           class="form-control text-right qc-input cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'create')" />
                                 </td>
                                 <td>
                                     <input type="text" id="create_avg_{{ $param['key'] }}" class="form-control text-right font-weight-bold"
@@ -160,9 +160,9 @@
 
     function calcQcAverage(paramKey, prefix) {
         prefix = prefix || 'create';
-        var topVal = parseFloat($('#' + prefix + '_top_' + paramKey).val());
-        var midVal = parseFloat($('#' + prefix + '_middle_' + paramKey).val());
-        var botVal = parseFloat($('#' + prefix + '_bottom_' + paramKey).val());
+        var topVal = cnsParseNumber($('#' + prefix + '_top_' + paramKey).val(), NaN);
+        var midVal = cnsParseNumber($('#' + prefix + '_middle_' + paramKey).val(), NaN);
+        var botVal = cnsParseNumber($('#' + prefix + '_bottom_' + paramKey).val(), NaN);
 
         var vals = [];
         if (!isNaN(topVal)) vals.push(topVal);
@@ -173,7 +173,7 @@
         if (vals.length > 0) {
             var sum = vals.reduce(function(a, b) { return a + b; }, 0);
             var avg = sum / vals.length;
-            avgTarget.val(avg.toFixed(2));
+            avgTarget.val(cnsFormatNumber(avg, 2));
         } else {
             avgTarget.val('-');
         }
@@ -276,7 +276,7 @@
             for (var j = 0; j < mandatoryParams.length; j++) {
                 var pKey = mandatoryParams[j];
                 var val = $('#create_' + lvl + '_' + pKey).val();
-                if (val === '' || val === null || isNaN(parseFloat(val))) {
+                if (val === '' || val === null || isNaN(cnsParseNumber(val, NaN))) {
                     alert('Parameter ' + pKey.replace(/_/g, ' ') + ' pada level ' + lvl.toUpperCase() + ' wajib diisi.');
                     return;
                 }
@@ -284,6 +284,12 @@
         }
 
         var formData = new FormData(form);
+        $(form).find('input.cns-decimal').each(function() {
+            var name = $(this).attr('name');
+            if (name && $.trim($(this).val()) !== '') {
+                formData.set(name, cnsParseNumber($(this).val(), 0));
+            }
+        });
 
         $.ajax({
             url: 'cns-quality-submit',

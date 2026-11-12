@@ -75,7 +75,7 @@
         var size = normalizeContainerSize(option.data('container-size'));
 
         if (count !== undefined && count !== null && count !== '') {
-            $('#Container_Qty1').val(count);
+            $('#Container_Qty1').val(cnsFormatNumber(count, 2));
         }
 
         if (size) {
@@ -117,6 +117,12 @@
 
             var form = document.getElementById('VesselScheduleForm');
             var formData = new FormData(form);
+            $(form).find('input.cns-decimal').each(function () {
+                var name = $(this).attr('name');
+                if (name && $.trim($(this).val()) !== '') {
+                    formData.set(name, cnsParseNumber($(this).val(), 0));
+                }
+            });
             formData.append('_token', '{{ csrf_token() }}');
 
             $.blockUI();

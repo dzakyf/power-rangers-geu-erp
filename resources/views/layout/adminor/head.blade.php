@@ -31,4 +31,5 @@
 <link href="{{ asset('ajaxloader/ajaxloader.css') }}" type="text/css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet">
 <style>.select2-container{width:100%!important;display:inline-block!important}.select2-container .selection,.select2-container .select2-selection,.select2-container .select2-selection--single{width:100%!important;display:block!important}</style>
+<link href="{{ asset('css/font-uniform.css') }}" rel="stylesheet">
 @stack('head')

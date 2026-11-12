@@ -110,7 +110,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Quantity (MT)</label>
-                            <input type="number" step="0.001" min="0.001" name="Quantity_MT" id="Quantity_MT" value="{{ old('Quantity_MT', $contract->Quantity_MT ?? '') }}" class="form-control shadow-sm" required />
+                            <input type="text" inputmode="decimal" name="Quantity_MT" id="Quantity_MT" value="{{ old('Quantity_MT', isset($contract->Quantity_MT) && $contract->Quantity_MT !== '' ? number_format((float) $contract->Quantity_MT, 2, '.', ',') : '') }}" class="form-control shadow-sm cns-decimal" required />
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -163,7 +163,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Harga per MT</label>
-                            <input type="number" step="0.01" min="0.01" name="Price_Per_MT" id="Price_Per_MT" value="{{ old('Price_Per_MT', $contract->Price_Per_MT ?? '') }}" class="form-control shadow-sm" required />
+                            <input type="text" inputmode="decimal" name="Price_Per_MT" id="Price_Per_MT" value="{{ old('Price_Per_MT', isset($contract->Price_Per_MT) && $contract->Price_Per_MT !== '' ? number_format((float) $contract->Price_Per_MT, 2, '.', ',') : '') }}" class="form-control shadow-sm cns-decimal" required />
                         </div>
                     </div>
                 </div>

@@ -309,47 +309,51 @@ class QualityController extends Controller
             $item->addChild('cell', $header->QC_Category);
             $item->addChild('cell', $header->SOURCE);
 
-            // TOP (5..12)
-            $item->addChild('cell', $top ? $top->FFA_As_Palmitic : null);
-            $item->addChild('cell', $top ? $top->FFA_As_Oleic    : null);
-            $item->addChild('cell', ($top && $top->MIU !== null) ? $top->MIU . '%' : null);
-            $item->addChild('cell', $top ? $top->Sulphur         : null);
-            $item->addChild('cell', $top ? $top->IV              : null);
-            $item->addChild('cell', $top ? $top->Total_Chlorides : null);
-            $item->addChild('cell', $top ? $top->Phosphorus      : null);
-            $item->addChild('cell', $top ? $top->Total_Metals    : null);
+            $fmtQc = function ($v, $suffix = '') {
+                return ($v !== null && $v !== '') ? number_format((float) $v, 2, '.', ',') . $suffix : null;
+            };
 
-            // MIDDLE (13..20)
-            $item->addChild('cell', $middle ? $middle->FFA_As_Palmitic : null);
-            $item->addChild('cell', $middle ? $middle->FFA_As_Oleic    : null);
-            $item->addChild('cell', ($middle && $middle->MIU !== null) ? $middle->MIU . '%' : null);
-            $item->addChild('cell', $middle ? $middle->Sulphur         : null);
-            $item->addChild('cell', $middle ? $middle->IV              : null);
-            $item->addChild('cell', $middle ? $middle->Total_Chlorides : null);
-            $item->addChild('cell', $middle ? $middle->Phosphorus      : null);
-            $item->addChild('cell', $middle ? $middle->Total_Metals    : null);
+            // TOP (6..13)
+            $item->addChild('cell', $top ? $fmtQc($top->FFA_As_Palmitic) : null);
+            $item->addChild('cell', $top ? $fmtQc($top->FFA_As_Oleic)    : null);
+            $item->addChild('cell', $top ? $fmtQc($top->MIU, '%')        : null);
+            $item->addChild('cell', $top ? $fmtQc($top->Sulphur)         : null);
+            $item->addChild('cell', $top ? $fmtQc($top->IV)              : null);
+            $item->addChild('cell', $top ? $fmtQc($top->Total_Chlorides) : null);
+            $item->addChild('cell', $top ? $fmtQc($top->Phosphorus)      : null);
+            $item->addChild('cell', $top ? $fmtQc($top->Total_Metals)    : null);
 
-            // BOTTOM (21..28)
-            $item->addChild('cell', $bottom ? $bottom->FFA_As_Palmitic : null);
-            $item->addChild('cell', $bottom ? $bottom->FFA_As_Oleic    : null);
-            $item->addChild('cell', ($bottom && $bottom->MIU !== null) ? $bottom->MIU . '%' : null);
-            $item->addChild('cell', $bottom ? $bottom->Sulphur         : null);
-            $item->addChild('cell', $bottom ? $bottom->IV              : null);
-            $item->addChild('cell', $bottom ? $bottom->Total_Chlorides : null);
-            $item->addChild('cell', $bottom ? $bottom->Phosphorus      : null);
-            $item->addChild('cell', $bottom ? $bottom->Total_Metals    : null);
+            // MIDDLE (14..21)
+            $item->addChild('cell', $middle ? $fmtQc($middle->FFA_As_Palmitic) : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->FFA_As_Oleic)    : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->MIU, '%')        : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->Sulphur)         : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->IV)              : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->Total_Chlorides) : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->Phosphorus)      : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->Total_Metals)    : null);
 
-            // AVERAGE (29..36)
-            $item->addChild('cell', $avg ? $avg->FFA_As_Palmitic : null);
-            $item->addChild('cell', $avg ? $avg->FFA_As_Oleic    : null);
-            $item->addChild('cell', ($avg && $avg->MIU !== null) ? $avg->MIU . '%' : null);
-            $item->addChild('cell', $avg ? $avg->Sulphur         : null);
-            $item->addChild('cell', $avg ? $avg->IV              : null);
-            $item->addChild('cell', $avg ? $avg->Total_Chlorides : null);
-            $item->addChild('cell', $avg ? $avg->Phosphorus      : null);
-            $item->addChild('cell', $avg ? $avg->Total_Metals    : null);
+            // BOTTOM (22..29)
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->FFA_As_Palmitic) : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->FFA_As_Oleic)    : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->MIU, '%')        : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->Sulphur)         : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->IV)              : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->Total_Chlorides) : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->Phosphorus)      : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->Total_Metals)    : null);
 
-            // 37: Attachment, 38: Contract_ID, 39: Booking_ID, 40: QC_Category, 41: Tank_ID
+            // AVERAGE (30..37)
+            $item->addChild('cell', $avg ? $fmtQc($avg->FFA_As_Palmitic) : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->FFA_As_Oleic)    : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->MIU, '%')        : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->Sulphur)         : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->IV)              : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->Total_Chlorides) : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->Phosphorus)      : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->Total_Metals)    : null);
+
+            // 38: Attachment, 39: Contract_ID, 40: Booking_ID, 41: QC_Category, 42: Tank_ID
             $item->addChild('cell', $attachmentLink);
             $item->addChild('cell', $header->Contract_ID);
             $item->addChild('cell', $header->Booking_ID);

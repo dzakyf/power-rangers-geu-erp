@@ -67,8 +67,8 @@ class MasterTankController extends Controller
             echo "<row id=\"{$tank->id}\">\n";
             echo "<cell>{$no}</cell>\n";
             echo "<cell>" . htmlspecialchars($tank->name) . "</cell>\n";
-            echo "<cell>" . number_format($tank->capacity, 2, ',', '.') . " KG</cell>\n";
-            echo "<cell>" . number_format($currentStock, 2, ',', '.') . " KG</cell>\n";
+            echo "<cell>" . number_format((float) $tank->capacity, 2, '.', ',') . " KG</cell>\n";
+            echo "<cell>" . number_format((float) $currentStock, 2, '.', ',') . " KG</cell>\n";
             echo "<cell>{$utilization}%</cell>\n";
             echo "<cell>" . htmlspecialchars($tank->status) . "</cell>\n";
             echo "<cell>" . htmlspecialchars($tank->notes ?? '-') . "</cell>\n";
@@ -112,7 +112,7 @@ class MasterTankController extends Controller
                 'tank_id'      => $tank->id,
                 'tank_name'    => $tank->name,
                 'action'       => 'CREATE',
-                'details'      => "Menambahkan tangki {$tank->name} dengan kapasitas " . number_format($tank->capacity, 0, ',', '.') . " KG",
+                'details'      => "Menambahkan tangki {$tank->name} dengan kapasitas " . number_format((float) $tank->capacity, 2, '.', ',') . " KG",
                 'old_values'   => null,
                 'new_values'   => $tank->toArray(),
                 'performed_by' => $userName,

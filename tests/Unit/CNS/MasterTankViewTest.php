@@ -99,5 +99,19 @@ class MasterTankViewTest extends TestCase
 
         $this->assertStringContainsString('<select name="Nama_Tangki" id="edit_Nama_Tangki"', $html);
         $this->assertStringContainsString('populateEditTankDropdown', $html);
+        $this->assertStringContainsString('id="edit_tank_capacity_info"', $html);
+        $this->assertStringContainsString('cnsEvaluateTankCapacity', $html);
+        $this->assertStringContainsString('editOriginalTankState', $html);
+    }
+
+    /** @test */
+    public function inventory_create_view_includes_tank_capacity_preview_helpers()
+    {
+        $html = view('cns.inventory.create')->render();
+
+        $this->assertStringContainsString('id="create_tank_capacity_info"', $html);
+        $this->assertStringContainsString('cnsLoadTankBalanceDropdown', $html);
+        $this->assertStringContainsString('cnsRenderTankCapacityPreview', $html);
+        $this->assertStringContainsString('cnsEvaluateTankCapacity', $html);
     }
 }

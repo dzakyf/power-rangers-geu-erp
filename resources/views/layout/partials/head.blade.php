@@ -16,4 +16,5 @@
 <link href="{{ asset('assets/css/responsive.css') }}" rel="stylesheet">
 <!-- Favicon -->
 <link rel="shortcut icon" href="{{ asset('assets/images/favicon2.png') }}">
+<link href="{{ asset('css/font-uniform.css') }}" rel="stylesheet">
 @stack('head')

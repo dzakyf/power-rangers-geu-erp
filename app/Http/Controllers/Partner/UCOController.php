@@ -338,16 +338,23 @@ class UCOController extends Controller
 
     public function getInventoryFilterOptions()
     {
-        $warehouses = UCOStoragePelindo::whereNotNull('Asal_Warehouse')
+        $dbWarehouses = UCOStoragePelindo::whereNotNull('Asal_Warehouse')
             ->where('Asal_Warehouse', '!=', '')
             ->distinct()
             ->pluck('Asal_Warehouse')
             ->toArray();
 
-        // if (!in_array('PELINDO', $warehouses)) {
-        //     $warehouses[] = 'PELINDO';
-        // }
-        sort($warehouses);
+        $apiWarehouses = [];
+        try {
+            $apiWarehouses = array_values(array_filter(array_map(function ($w) {
+                return trim((string) ($w['name'] ?? ''));
+            }, app(\App\Services\ExternalApi\ApipiApiClient::class)->cachedWarehouses())));
+        } catch (\Throwable $e) {
+            // Keep DB warehouses if external API fails
+        }
+
+        $warehouses = array_values(array_unique(array_merge($apiWarehouses, $dbWarehouses)));
+        sort($warehouses, SORT_NATURAL | SORT_FLAG_CASE);
 
         $masterTanks = \App\MasterTank::active()->orderBy('name')->pluck('name')->toArray();
         $legacyTanks = UCOStoragePelindo::whereNotNull('Nama_Tangki')
@@ -363,6 +370,119 @@ class UCOController extends Controller
         return response()->json([
             'warehouses' => array_values($warehouses),
             'tanks'      => $allTanks,
+        ]);
+    }
+
+    public function getInboundMovementOptions()
+    {
+        try {
+            $movements = app(\App\Services\ExternalApi\ApipiApiClient::class)->pelindoInboundMovements();
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data movements dari APIPI: ' . $e->getMessage(),
+            ], 502);
+        }
+
+        $usedKodes = [];
+        foreach (UCOStoragePelindo::whereNotNull('Reference_Number')->where('Reference_Number', '!=', '')->pluck('Reference_Number') as $ref) {
+            $usedKodes[strtoupper(trim((string) $ref))] = true;
+        }
+
+        $options = [];
+        foreach ($movements as $m) {
+            $kode = trim((string) ($m['kode'] ?? ''));
+            if ($kode === '' || isset($usedKodes[strtoupper($kode)])) {
+                continue;
+            }
+            if (strtolower(trim((string) ($m['logistics_status'] ?? ''))) !== 'done') {
+                continue;
+            }
+            $options[] = [
+                'id'          => $m['id'] ?? null,
+                'kode'        => $kode,
+                'tgl'         => !empty($m['tgl']) ? Carbon::parse($m['tgl'])->toDateString() : '',
+                'dari_gudang' => trim((string) ($m['dari_gudang'] ?? '')),
+                'total_qty'   => (float) ($m['total_qty'] ?? 0),
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => $options,
+        ]);
+    }
+
+    public function getInboundMovementDetail(Request $r)
+    {
+        $id = trim((string) $r->query('id', ''));
+        if ($id === '') {
+            return response()->json(['success' => false, 'message' => 'ID movement wajib diisi'], 422);
+        }
+
+        try {
+            $payload = app(\App\Services\ExternalApi\ApipiApiClient::class)->movementDetail($id);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil detail movement dari APIPI: ' . $e->getMessage(),
+            ], 502);
+        }
+
+        $mov = isset($payload['movement']) && is_array($payload['movement']) ? $payload['movement'] : $payload;
+        $details = isset($payload['details']) && is_array($payload['details']) ? $payload['details'] : [];
+
+        $kode = trim((string) ($mov['kode'] ?? ''));
+        $tglRaw = null;
+        $tangki = '';
+        $ffaVals = [];
+        $mcVals = [];
+        $impVals = [];
+
+        foreach ($details as $d) {
+            if (!is_array($d)) {
+                continue;
+            }
+            if ($tglRaw === null && !empty($d['tgl_unloading'])) {
+                $tglRaw = $d['tgl_unloading'];
+            }
+            if ($tangki === '' && !empty($d['to_storage_name'])) {
+                $tangki = trim((string) $d['to_storage_name']);
+            }
+            $ffaVal = $d['dest_ffa'] ?? ($d['ffa'] ?? null);
+            $mcVal  = $d['dest_moisture'] ?? ($d['moisture'] ?? null);
+            $impVal = $d['dest_impurities'] ?? ($d['impurities'] ?? null);
+
+            if (is_numeric($ffaVal)) { $ffaVals[] = (float) $ffaVal; }
+            if (is_numeric($mcVal))  { $mcVals[]  = (float) $mcVal; }
+            if (is_numeric($impVal)) { $impVals[] = (float) $impVal; }
+        }
+
+        if ($tglRaw === null && !empty($mov['tgl'])) {
+            $tglRaw = $mov['tgl'];
+        }
+
+        $ffa = !empty($ffaVals) ? round(array_sum($ffaVals) / count($ffaVals), 2) : null;
+        $mc  = !empty($mcVals)  ? round(array_sum($mcVals) / count($mcVals), 2)   : null;
+        $imp = !empty($impVals) ? round(array_sum($impVals) / count($impVals), 2) : null;
+        $miu = ($mc !== null || $imp !== null) ? round((float) ($mc ?? 0) + (float) ($imp ?? 0), 2) : null;
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'id'               => $mov['id'] ?? $id,
+                'kode'             => $kode,
+                'Type'             => 'inbound',
+                'Reference_Number' => $kode,
+                'Transaction_Date' => $tglRaw ? Carbon::parse($tglRaw)->toDateString() : '',
+                'Asal_Warehouse'   => trim((string) ($mov['dari_gudang'] ?? '')),
+                'Nama_Tangki'      => $tangki,
+                'Quantity'         => (float) ($mov['total_qty'] ?? 0),
+                'FFA'              => $ffa,
+                'MC'               => $mc,
+                'IMP'              => $imp,
+                'MIU'              => $miu,
+            ],
         ]);
     }
 
@@ -468,14 +588,14 @@ class UCOController extends Controller
                     $header = $cnsQcHeaders[$sId];
                     $dtl = $cnsQcDetails->get($header->id);
                     $qcMap[$sId] = [
-                        'ffa_palmitic' => ($dtl && $dtl->FFA_As_Palmitic !== null) ? number_format((float) $dtl->FFA_As_Palmitic, 2, ',', '.') . '%' : '-',
-                        'ffa_oleic'    => ($dtl && $dtl->FFA_As_Oleic !== null) ? number_format((float) $dtl->FFA_As_Oleic, 2, ',', '.') . '%' : '-',
-                        'miu'          => ($dtl && $dtl->MIU !== null) ? number_format((float) $dtl->MIU, 2, ',', '.') . '%' : '-',
-                        'sulphur'      => ($dtl && $dtl->Sulphur !== null) ? number_format((float) $dtl->Sulphur, 2, ',', '.') : '-',
-                        'iv'           => ($dtl && $dtl->IV !== null) ? number_format((float) $dtl->IV, 2, ',', '.') : '-',
-                        'chlorides'    => ($dtl && $dtl->Total_Chlorides !== null) ? number_format((float) $dtl->Total_Chlorides, 2, ',', '.') : '-',
-                        'phosphorus'   => ($dtl && $dtl->Phosphorus !== null) ? number_format((float) $dtl->Phosphorus, 2, ',', '.') : '-',
-                        'metals'       => ($dtl && $dtl->Total_Metals !== null) ? number_format((float) $dtl->Total_Metals, 2, ',', '.') : '-',
+                        'ffa_palmitic' => ($dtl && $dtl->FFA_As_Palmitic !== null) ? number_format((float) $dtl->FFA_As_Palmitic, 2, '.', ',') . '%' : '-',
+                        'ffa_oleic'    => ($dtl && $dtl->FFA_As_Oleic !== null) ? number_format((float) $dtl->FFA_As_Oleic, 2, '.', ',') . '%' : '-',
+                        'miu'          => ($dtl && $dtl->MIU !== null) ? number_format((float) $dtl->MIU, 2, '.', ',') . '%' : '-',
+                        'sulphur'      => ($dtl && $dtl->Sulphur !== null) ? number_format((float) $dtl->Sulphur, 2, '.', ',') : '-',
+                        'iv'           => ($dtl && $dtl->IV !== null) ? number_format((float) $dtl->IV, 2, '.', ',') : '-',
+                        'chlorides'    => ($dtl && $dtl->Total_Chlorides !== null) ? number_format((float) $dtl->Total_Chlorides, 2, '.', ',') : '-',
+                        'phosphorus'   => ($dtl && $dtl->Phosphorus !== null) ? number_format((float) $dtl->Phosphorus, 2, '.', ',') : '-',
+                        'metals'       => ($dtl && $dtl->Total_Metals !== null) ? number_format((float) $dtl->Total_Metals, 2, '.', ',') : '-',
                         'qc_path'      => $header->Attachment_Path ? preg_replace('#^filevendor/#', '', $header->Attachment_Path) : null,
                     ];
                 } elseif (isset($legacyQcGroup[$sId])) {
@@ -489,9 +609,9 @@ class UCOController extends Controller
                     $metaQc = $group->pluck('Meta_QC_Path')->filter()->first();
 
                     $qcMap[$sId] = [
-                        'ffa_palmitic' => $ffaP !== null ? number_format((float) $ffaP, 2, ',', '.') . '%' : '-',
-                        'ffa_oleic'    => $ffaO !== null ? number_format((float) $ffaO, 2, ',', '.') . '%' : '-',
-                        'miu'          => $miu !== null ? number_format((float) $miu, 2, ',', '.') . '%' : '-',
+                        'ffa_palmitic' => $ffaP !== null ? number_format((float) $ffaP, 2, '.', ',') . '%' : '-',
+                        'ffa_oleic'    => $ffaO !== null ? number_format((float) $ffaO, 2, '.', ',') . '%' : '-',
+                        'miu'          => $miu !== null ? number_format((float) $miu, 2, '.', ',') . '%' : '-',
                         'sulphur'      => '-',
                         'iv'           => '-',
                         'chlorides'    => '-',
@@ -545,7 +665,7 @@ class UCOController extends Controller
         for ($i = 0; $i < 8; $i++) {
             $r->addChild('cell', '');
         }
-        $r->addChild('cell', number_format($opening, 0, ',', '.'));
+        $r->addChild('cell', number_format((float) $opening, 2, '.', ','));
         for ($i = 0; $i < 11; $i++) {
             $r->addChild('cell', '');
         }
@@ -566,10 +686,10 @@ class UCOController extends Controller
             $asalWarehouse = $row->Asal_Warehouse ?: (strtolower($row->Type) === 'outbound' ? 'PELINDO' : '-');
             $namaTangki = $row->Nama_Tangki ?: '-';
             $nopol = $row->Reference_Number ?? '-';
-            $qtySj = ($row->Quantity_PTU && (float) $row->Quantity_PTU > 0) ? number_format((float) $row->Quantity_PTU, 0, ',', '.') : '';
-            $inKg = $inbound > 0 ? number_format($inbound, 0, ',', '.') : '';
-            $outKg = $outbound > 0 ? number_format($outbound, 0, ',', '.') : '';
-            $stokPelindo = number_format($running, 0, ',', '.');
+            $qtySj = ($row->Quantity_PTU && (float) $row->Quantity_PTU > 0) ? number_format((float) $row->Quantity_PTU, 2, '.', ',') : '';
+            $inKg = $inbound > 0 ? number_format((float) $inbound, 2, '.', ',') : '';
+            $outKg = $outbound > 0 ? number_format((float) $outbound, 2, '.', ',') : '';
+            $stokPelindo = number_format((float) $running, 2, '.', ',');
             $remarks = $row->Notes ?? '';
 
             if ($row->Notim_Path) {
@@ -713,8 +833,67 @@ class UCOController extends Controller
         return response()->json($row ? [$row] : []);
     }
 
+    private function submitInboundFromMovement(Request $r)
+    {
+        $kode = trim((string) $r->input('movement_kode'));
+        if ($kode === '') {
+            return response()->json(['success' => false, 'message' => 'Nomor Movement wajib dipilih'], 422);
+        }
+
+        if (UCOStoragePelindo::whereRaw('UPPER(Reference_Number) = ?', [strtoupper($kode)])->exists()) {
+            return response()->json(['success' => false, 'message' => "Nomor movement {$kode} sudah pernah disimpan"], 422);
+        }
+
+        try {
+            $movements = app(\App\Services\ExternalApi\ApipiApiClient::class)->pelindoInboundMovements();
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil detail movement dari APIPI: ' . $e->getMessage(),
+            ], 502);
+        }
+
+        $matched = null;
+        foreach ($movements as $m) {
+            if (strcasecmp(trim((string) ($m['kode'] ?? '')), $kode) === 0) {
+                $matched = $m;
+                break;
+            }
+        }
+
+        if (!$matched) {
+            return response()->json(['success' => false, 'message' => "Nomor movement {$kode} tidak ditemukan di APIPI"], 422);
+        }
+
+        try {
+            UCOStoragePelindo::create([
+                'Type'             => 'inbound',
+                'Quantity'         => (float) ($matched['total_qty'] ?? 0),
+                'Asal_Warehouse'   => mb_substr(trim((string) ($matched['dari_gudang'] ?? '')), 0, 100) ?: null,
+                'Transaction_Date' => !empty($matched['tgl']) ? Carbon::parse($matched['tgl'])->toDateString() : now()->toDateString(),
+                'Reference_Number' => mb_substr($kode, 0, 50),
+                'Created_By'       => auth()->check() ? auth()->user()->name : 'System',
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Record created successfully']);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function submitStoragePelindo(Request $r)
     {
+        if ($r->has('movement_kode') && !$r->filled('Type')) {
+            return $this->submitInboundFromMovement($r);
+        }
+
+        if ($r->filled('movement_kode')) {
+            $refCheck = trim((string) ($r->input('Reference_Number') ?: $r->input('movement_kode')));
+            if ($refCheck !== '' && UCOStoragePelindo::whereRaw('UPPER(Reference_Number) = ?', [strtoupper($refCheck)])->exists()) {
+                return response()->json(['success' => false, 'message' => "Nomor movement {$refCheck} sudah pernah disimpan"], 422);
+            }
+        }
+
         DB::beginTransaction();
         try {
             // 1. Upload Nota Timbang
@@ -796,17 +975,20 @@ class UCOController extends Controller
                 $imp = !empty($impVals) ? round(array_sum($impVals) / count($impVals), 2) : null;
             }
 
+            $asalWarehouse = trim((string) $r->input('Asal_Warehouse', ''));
+            $refNumber = trim((string) ($r->input('Reference_Number') ?: $r->input('movement_kode', '')));
+
             // 4. Create model
             $model = UCOStoragePelindo::create([
                 'Type'              => $r->input('Type'),
                 'Quantity'          => $r->input('Quantity'),
-                'Asal_Warehouse'    => $r->input('Asal_Warehouse'),
+                'Asal_Warehouse'    => $asalWarehouse !== '' ? mb_substr($asalWarehouse, 0, 100) : null,
                 'Nama_Tangki'       => $r->input('Nama_Tangki'),
                 'Quantity_PTU'      => $r->input('Quantity_PTU'),
                 'Quantity_Sounding' => $r->input('Quantity_Sounding'),
                 'Created_By'        => $r->input('Created_By') ?? (auth()->check() ? auth()->user()->name : null) ?? 'System',
                 'Transaction_Date'  => $r->input('Transaction_Date'),
-                'Reference_Number'  => $r->input('Reference_Number'),
+                'Reference_Number'  => $refNumber !== '' ? mb_substr($refNumber, 0, 50) : null,
                 'Notim_Path'        => $notimPath,
                 'QC_Path'           => $qcPath,
                 'FFA'               => $ffa,

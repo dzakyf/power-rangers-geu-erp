@@ -20,7 +20,6 @@
 
 <link rel="stylesheet" type="text/css" href="{{ asset('form_input.css') }}" />
 <link rel="stylesheet" type="text/css" href="{{ asset('./jquery-confirm.css') }}" />
-<link href="https://fonts.googleapis.com/css?family=Roboto:400,500" rel="stylesheet">
 
 <script src="{{ asset('vault.js?v=3.0.0')}}"></script>
 <link rel="stylesheet" type="text/css" href="{{ asset('vault.css') }}" />
@@ -42,7 +41,6 @@
     height: 30px;
     position: relative;
     vertical-align: middle;
-    font-family: arial;
     font-size: 14px;
     font-weight: bold;
     padding-left: 10px;

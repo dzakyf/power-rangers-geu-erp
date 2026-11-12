@@ -198,33 +198,33 @@
                 <tbody>
                     <tr>
                         <td style="border:1px solid black;">{{ $invoice->Description }}</td>
-                        <td style="border:1px solid black;"><span style="float:right">{{ number_format($invoice->Qty,2,",",".") }}</span></td>
-                        <td style="border:1px solid black;">$<span style="float:right">{{ number_format($invoice->Unit_Price,2,",",".") }}</span></td>
-                        <td style="border:1px solid black;">$<span style="float:right">{{ number_format($invoice->Amount,2,",",".") }}</span></td>
+                        <td style="border:1px solid black;"><span style="float:right">{{ number_format((float) $invoice->Qty, 2, ".", ",") }}</span></td>
+                        <td style="border:1px solid black;">$<span style="float:right">{{ number_format((float) $invoice->Unit_Price, 2, ".", ",") }}</span></td>
+                        <td style="border:1px solid black;">$<span style="float:right">{{ number_format((float) $invoice->Amount, 2, ".", ",") }}</span></td>
                     </tr>
                     <tr>
                         <td>&nbsp;</td>
                         <td>&nbsp;</td>
                         <td>SUBTOTAL</td>
-                        <td>$<span style="float:right">{{ number_format($invoice->Amount,2,",",".") }}</span></td>
+                        <td>$<span style="float:right">{{ number_format((float) $invoice->Amount, 2, ".", ",") }}</span></td>
                     </tr>
                     <tr>
                         <td>&nbsp;</td>
                         <td>&nbsp;</td>
                         <td>ADVANCE PAYMENT</td>
-                        <td>$<span style="float:right">{{ number_format($invoice->Advance_Payment,2,",",".") }}</span></td>
+                        <td>$<span style="float:right">{{ number_format((float) $invoice->Advance_Payment, 2, ".", ",") }}</span></td>
                     </tr>
                     <tr>
                         <td>&nbsp;</td>
                         <td>&nbsp;</td>
                         <td>OTHER</td>
-                        <td>$<span style="float:right">{{ number_format($invoice->Other,2,",",".") }}</span></td>
+                        <td>$<span style="float:right">{{ number_format((float) $invoice->Other, 2, ".", ",") }}</span></td>
                     </tr>
                     <tr>
                         <td>&nbsp;</td>
                         <td>&nbsp;</td>
                         <td style="border-top:1px solid black;border-bottom:1px solid black;font-weight:bold;">AMOUNT TO BE PAID</td>
-                        <td style="border-top:1px solid black;border-bottom:1px solid black;font-weight:bold;">$<span style="float:right">{{ number_format($invoice->Total,2,",",".") }}</span></td>
+                        <td style="border-top:1px solid black;border-bottom:1px solid black;font-weight:bold;">$<span style="float:right">{{ number_format((float) $invoice->Total, 2, ".", ",") }}</span></td>
                     </tr>
                 </tbody>
             </table>

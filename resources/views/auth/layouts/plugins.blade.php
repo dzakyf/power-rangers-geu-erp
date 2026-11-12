@@ -1,6 +1,6 @@
-<!-- Fonts -->
+<!-- Fonts & Uniform Styles -->
 <link rel="dns-prefetch" href="//fonts.gstatic.com">
-<link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet" type="text/css">
+<link href="{{ asset('css/font-uniform.css') }}" rel="stylesheet">
 <script src="{{ asset('assets/plugins/jquery/js/jquery.min.js') }}"></script>
 
 
@@ -70,7 +70,6 @@ function LoadM(DivID,PathID){
         height:30px;
         position:relative;
         vertical-align:middle;
-        font-family:arial;
         font-size:14px;
         font-weight:bold;
         padding-left:10px;

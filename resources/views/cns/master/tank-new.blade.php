@@ -16,7 +16,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="new_tank_capacity" class="font-weight-bold">Kapasitas Maksimal (KG) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" min="0" class="text-black form-control" id="new_tank_capacity" name="capacity" placeholder="Contoh: 1500000" required />
+                            <input type="text" inputmode="decimal" class="text-black form-control cns-decimal" id="new_tank_capacity" name="capacity" placeholder="Contoh: 1,500,000.00" required />
                             <small class="form-text text-muted">Kapasitas total tangki dalam satuan Kilogram (KG).</small>
                         </div>
                     </div>
@@ -60,7 +60,7 @@
             data: {
                 _token: token,
                 name: $('#new_tank_name').val().trim(),
-                capacity: $('#new_tank_capacity').val(),
+                capacity: cnsParseNumber($('#new_tank_capacity').val(), 0),
                 status: $('#new_tank_status').val(),
                 notes: $('#new_tank_notes').val()
             },

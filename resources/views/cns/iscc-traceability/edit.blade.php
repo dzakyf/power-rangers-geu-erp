@@ -15,7 +15,7 @@
 			<input type="hidden" name="fragment_id" value="{{ $fragment->id }}" />
 			<div class="form-group">
 				<label for="quantity_kg">Quantity (Kg)</label>
-				<input type="number" step="0.01" min="0" name="quantity_kg" id="quantity_kg" class="form-control" value="{{ $fragment->quantity_kg }}" />
+				<input type="text" inputmode="decimal" name="quantity_kg" id="quantity_kg" class="form-control cns-decimal" value="{{ number_format((float) $fragment->quantity_kg, 2, '.', ',') }}" />
 			</div>
 			<div class="form-group">
 				<label for="full_address">Full Address</label>
@@ -63,6 +63,7 @@
 <script>
 	function saveFragmentEdit() {
 		var formData = new FormData(document.getElementById('traceEditForm'));
+		formData.set('quantity_kg', cnsParseNumber($('#quantity_kg').val(), 0));
 		$.ajax({
 			url: 'cns-iscc-traceability-update',
 			type: 'POST',

@@ -39,17 +39,6 @@ use Illuminate\Database\Eloquent\Builder;
 						</div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="Shipper">Shipper</label>
-                                <select name="Shipper" id="Shipper" class="form-control bg-white shadow-sm" required {{ $ro['select'] }}>
-                                    <option value="">-- Pilih Shipper --</option>
-                                    @foreach ($companies as $shipper)
-                                        <option value="{{ $shipper->Supplier_ID }}" {{ $ci->Shipper == $shipper->Supplier_ID ? 'selected' : '' }}>{{ $shipper->Company_Name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
                                 <label for="Consignee">Consignee</label>
                                 <select name="Consignee" id="Consignee" class="form-control bg-white shadow-sm" required {{ $ro['select'] }}>
                                     <option value="">-- Pilih Consignee --</option>
@@ -68,37 +57,37 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Qty">Qty (MT)</label>
-                                <input type="text" name="Qty" id="Qty" value="{{ $ci->Qty }}" onchange="calculateTotal()" class="form-control bg-white shadow-sm" required {{ $ro['input'] }} />
+                                <input type="text" inputmode="decimal" name="Qty" id="Qty" value="{{ number_format((float) $ci->Qty, 2, '.', ',') }}" onchange="calculateTotal()" class="form-control bg-white shadow-sm cns-decimal" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Unit_Price">Unit Price (MT)</label>
-                                <input type="text" name="Unit_Price" id="Unit_Price" value="{{ (!empty($ci->Qty) && (float)$ci->Qty != 0) ? ($ci->Amount / $ci->Qty) : 0 }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required {{ $ro['input'] }} />
+                                <input type="text" inputmode="decimal" name="Unit_Price" id="Unit_Price" value="{{ number_format((!empty($ci->Qty) && (float)$ci->Qty != 0) ? ($ci->Amount / $ci->Qty) : 0, 2, '.', ',') }}" class="form-control bg-white shadow-sm cns-decimal" onchange="calculateTotal()" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Amount">Amount</label>
-                                <input type="text" name="Amount" id="Amount" value="{{ $ci->Amount }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required readonly />
+                                <input type="text" name="Amount" id="Amount" value="{{ number_format((float) $ci->Amount, 2, '.', ',') }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required readonly />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Advance_Payment">Advance Payment</label>
-                                <input type="text" name="Advance_Payment" id="Advance_Payment" value="{{ $ci->Advance_Payment }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required {{ $ro['input'] }} />
+                                <input type="text" inputmode="decimal" name="Advance_Payment" id="Advance_Payment" value="{{ number_format((float) $ci->Advance_Payment, 2, '.', ',') }}" class="form-control bg-white shadow-sm cns-decimal" onchange="calculateTotal()" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Other">Other</label>
-                                <input type="text" name="Other" id="Other" value="{{ $ci->Other }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required {{ $ro['input'] }} />
+                                <input type="text" inputmode="decimal" name="Other" id="Other" value="{{ number_format((float) $ci->Other, 2, '.', ',') }}" class="form-control bg-white shadow-sm cns-decimal" onchange="calculateTotal()" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Total">Total</label>
-                                <input type="text" name="Total" id="Total" value="{{ $ci->Total }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required readonly/>
+                                <input type="text" name="Total" id="Total" value="{{ number_format((float) $ci->Total, 2, '.', ',') }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required readonly/>
                             </div>
                         </div>
 					</div>
@@ -118,15 +107,15 @@ use Illuminate\Database\Eloquent\Builder;
 <script>
     function calculateTotal()
     {
-        let qty = parseFloat($('#Qty').val());
-        let unitPrice = parseFloat($('#Unit_Price').val());
-        let advance = parseFloat($('#Advance_Payment').val());
-        let other = parseFloat($('#Other').val());
+        let qty = cnsParseNumber($('#Qty').val()) || 0;
+        let unitPrice = cnsParseNumber($('#Unit_Price').val()) || 0;
+        let advance = cnsParseNumber($('#Advance_Payment').val()) || 0;
+        let other = cnsParseNumber($('#Other').val()) || 0;
         let subs = qty * unitPrice;
 
-        $('#Amount').val(subs)
-        $('#Subtotal').val(subs)
-        $('#Total').val((subs - advance) + other);
+        $('#Amount').val(cnsFormatNumber(subs));
+        $('#Subtotal').val(cnsFormatNumber(subs));
+        $('#Total').val(cnsFormatNumber((subs - advance) + other));
     }
 	var myCalendar;
 	if ("{{$ro['input']}}" == '') {
@@ -173,7 +162,8 @@ use Illuminate\Database\Eloquent\Builder;
                 Final_SI_No: $('#Final_SI_No').find('option:selected').val()
             },
             success: function(response) {
-                $('#Qty').val(response.Netto_MT ?? 0);
+                $('#Qty').val(cnsFormatNumber(response.Netto_MT ?? 0));
+                calculateTotal();
                 $('#Consignee').find('option[value="'+response.Consignee+'"]').attr('selected', true);
                 $.unblockUI();
             },
@@ -227,7 +217,10 @@ use Illuminate\Database\Eloquent\Builder;
 			if ((type == "checkbox" || type == "radio") && this.checked) {
 				inputValues.push($(this).attr("name") + "=" + $(this).val());
 			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
+				var id = $(this).attr("id");
+				var rawIds = ['Qty', 'Unit_Price', 'Amount', 'Advance_Payment', 'Other', 'Total'];
+				var val = ($(this).hasClass('cns-decimal') || rawIds.indexOf(id) !== -1) ? cnsParseNumber($(this).val()) : $(this).val();
+				inputValues.push(id + "=" + encodeURIComponent(val));
 			} else if ($(this).is("textarea")) {
 				inputValues.push($(this).attr("id") + "=" + $(this).val());
 			}

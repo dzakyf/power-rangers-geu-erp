@@ -163,8 +163,8 @@
                     <td style="text-align: center;">{{ $idx + 1 }}</td>
                     <td style="font-weight: bold;">{{ $item->item_name }}</td>
                     <td style="text-align: center;">{{ $item->category ?: 'General' }}</td>
-                    <td style="text-align: right;">{{ number_format($item->qty_ordered, 0, ',', '.') }}</td>
-                    <td style="text-align: right; font-weight: bold;">{{ number_format($item->qty_received, 0, ',', '.') }}</td>
+                    <td style="text-align: right;">{{ number_format((float) $item->qty_ordered, 2, '.', ',') }}</td>
+                    <td style="text-align: right; font-weight: bold;">{{ number_format((float) $item->qty_received, 2, '.', ',') }}</td>
                     <td style="text-align: center;">{{ $item->unit }}</td>
                     <td>{{ $item->notes ?: '-' }}</td>
                 </tr>

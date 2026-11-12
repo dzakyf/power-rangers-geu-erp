@@ -158,7 +158,7 @@ $consignee = $companies[$dn->Consignee] ?? null;
         <tr>
             <td class="label-col">Total Tonnage Delivered</td>
             <td class="sep-col">:</td>
-            <td>{{ $dn->Total_Tonnage ? number_format($dn->Total_Tonnage, 3, '.', ',') . ' MT' : '.......... MT' }}</td>
+            <td>{{ $dn->Total_Tonnage ? number_format((float) $dn->Total_Tonnage, 2, '.', ',') . ' MT' : '.......... MT' }}</td>
         </tr>
         <tr>
             <td class="label-col">Date Of Delivery/Issue</td>

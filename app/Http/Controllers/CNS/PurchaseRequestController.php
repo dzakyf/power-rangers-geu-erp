@@ -121,6 +121,9 @@ class PurchaseRequestController extends Controller
         foreach ($_POST as $key => $value) {
 
             if ($key != 'DelPRNewDetail' && $key != 'SubmitPRNewDetail' && $key != 'AddPRNewDetail' && $key != 'Supplier_Name') {
+                if (in_array($key, ['Subtotal', 'Tax', 'Shipping', 'Other', 'Total'], true)) {
+                    $value = str_replace(',', '', (string) $value);
+                }
                 $ars .= "$key = '$value',";
                 $ax .= "$key,";
                 $isi .= "'$value',";
@@ -294,6 +297,7 @@ class PurchaseRequestController extends Controller
                         echo "<cell $warnanya>".htmlspecialchars(($Fetch->Category))."</cell>";
                         echo "<cell $warnanya>".htmlspecialchars(($Fetch->Purchase_Category))."</cell>";
                         echo "<cell $warnanya>".htmlspecialchars(($Fetch->Default_Price))."</cell>";
+                        echo "<cell $warnanya>".htmlspecialchars(number_format((float) $Fetch->Qty * (float) $Fetch->Default_Price, 2, '.', ''))."</cell>";
                     echo "</row>";	
 
                 $nomor++;
@@ -469,6 +473,12 @@ class PurchaseRequestController extends Controller
             return;
         }
         
+        $subtotal = (float) str_replace(',', '', (string) $request->Subtotal);
+        $tax = (float) str_replace(',', '', (string) $request->Tax);
+        $shipping = (float) str_replace(',', '', (string) $request->Shipping);
+        $other = (float) str_replace(',', '', (string) $request->Other);
+        $total = (float) str_replace(',', '', (string) $request->Total);
+
         $psid = DB::table('purchase_summary_cns')->insertGetId([
             'Task_ID' => $request->PS_No,
             'PR_No' => $request->PR_No,
@@ -479,14 +489,14 @@ class PurchaseRequestController extends Controller
             'Status' => "CLOSED",
             'V1_ID' => $request->Supplier,
             'V1_Cur' => "IDR",
-            'V1_Fee_Mgt' => $request->Other,
-            'V1_VAT' => $request->Tax,
+            'V1_Fee_Mgt' => $other,
+            'V1_VAT' => $tax,
             'V1_Fee_VAT' => 0,
             'V1_PPH' => 0,
-            'V1_DC' => $request->Shipping,
+            'V1_DC' => $shipping,
             'V1_Discount' => 0,
             'V1_Note' => $request->Note,
-            'V1_Total' => $request->Total,
+            'V1_Total' => $total,
             'Created_Date' => now(),
             'Created_By' => auth()->user()->username,
             'Location' => auth()->user()->Location,
@@ -515,14 +525,14 @@ class PurchaseRequestController extends Controller
             'PO_Dest' => NULL,
             'Department' => '',
             'Supplier' => $cek->Supplier,
-            'Subtotal' => $request->Subtotal,
+            'Subtotal' => $subtotal,
             'Discount' => 0,
-            'PPN' => $request->Tax,
+            'PPN' => $tax,
             'PPH' => 0,
-            'Delivery_Fee' => $request->Shipping,
-            'Management_Fee' => $request->Other,
+            'Delivery_Fee' => $shipping,
+            'Management_Fee' => $other,
             'Management_Fee_Exclude_PPN' => 0,
-            'Total' => $request->Total,
+            'Total' => $total,
             'Total_Paid' => 0,
             'Status' => 'CLOSED',
             'Remark' => $request->Note,

@@ -132,7 +132,7 @@ $Saya = Auth::user()->username;
             <td class="bd" style="text-align:center;vertical-align:top;">{{ $coo->Kind_Packages }}</td>
             <td class="bd" style="vertical-align:top;font-weight:bold;">{{ $coo->Good_Description }}</td>
             <td class="bd" style="text-align:center;vertical-align:top;">{{ $coo->HS_Code }}</td>
-            <td class="bd" style="text-align:right;vertical-align:top;">{{ number_format($coo->Net_Weight, 0, '.', ',') }}</td>
+            <td class="bd" style="text-align:right;vertical-align:top;">{{ number_format((float) $coo->Net_Weight, 2, '.', ',') }}</td>
         </tr>
     </table>
 

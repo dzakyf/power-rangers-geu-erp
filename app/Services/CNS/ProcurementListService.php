@@ -150,6 +150,6 @@ class ProcurementListService
             return '';
         }
 
-        return number_format((float) $value, 3, '.', ',');
+        return number_format((float) $value, 2, '.', ',');
     }
 }

@@ -24,7 +24,7 @@ class moneyFormat
 
 	public function rupiah($angka)
 	{
-		$rupiah = number_format($angka, 0, ',', '.');
+		$rupiah = number_format((float) $angka, 2, '.', ',');
 		return $rupiah;
 	}
 }

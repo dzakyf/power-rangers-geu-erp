@@ -46,6 +46,10 @@ class GoodsReceiptTest extends TestCase
         $this->assertStringContainsString('GRGrid', $indexContent);
         $this->assertStringContainsString('filterStatus', $indexContent);
         $this->assertStringContainsString('cns-procurement-goods-receipt.create', $indexContent);
+        $this->assertStringContainsString('approveSelectedGR', $indexContent);
+        $this->assertStringContainsString('btnApproveGR', $indexContent);
+        $this->assertStringContainsString('dhtmlx.confirm', $indexContent);
+        $this->assertStringContainsString('dhtmlx.alert', $indexContent);
 
         // 2. Create View
         $createContent = file_get_contents(resource_path('views/cns/goods-receipt/create.blade.php'));
@@ -58,14 +62,13 @@ class GoodsReceiptTest extends TestCase
         // 3. Detail View
         $detailContent = file_get_contents(resource_path('views/cns/goods-receipt/detail.blade.php'));
         $this->assertStringContainsString('DETAIL GOODS RECEIPT', $detailContent);
-        $this->assertStringContainsString('cns-procurement-goods-receipt.approve', $detailContent);
         $this->assertStringContainsString('modalVoid', $detailContent);
         $this->assertStringContainsString('cns-procurement-goods-receipt.print', $detailContent);
 
         // 4. Print View
         $printContent = file_get_contents(resource_path('views/cns/goods-receipt/print.blade.php'));
         $this->assertStringContainsString('BUKTI PENERIMAAN BARANG (GOODS RECEIPT SLIP)', $printContent);
-        $this->assertStringContainsString('PT. GREEN ENVIRO UTAMA', $printContent);
+        $this->assertStringContainsString('PT. GREEN ENERGI UTAMA', $printContent);
         $this->assertStringContainsString('sign-table', $printContent);
 
         // 5. Non-UCO Inventory View

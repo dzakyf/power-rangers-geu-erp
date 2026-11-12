@@ -267,11 +267,20 @@ PRNewDetail.setColTypes("ron,ed,ed,ed,edn,ed,ed,ed,ro,ro,edn,ron");
 PRNewDetail.setColAlign("center,left,center,left,right,left,center,center,center,center,right,right");
 PRNewDetail.setColSorting("int,str,str,str,str,str,str,str");
 PRNewDetail.setEditable(true);
-PRNewDetail.setNumberFormat("0,000",4,".",",");
-PRNewDetail.setNumberFormat("0,000",10,".",",");
+PRNewDetail.setNumberFormat("0,000.00",4,".",",");
+PRNewDetail.setNumberFormat("0,000.00",10,".",",");
+PRNewDetail.setNumberFormat("0,000.00",11,".",",");
 PRNewDetail.enableKeyboardSupport(true);
 PRNewDetail.setSkin("dhx_skyblue");
 PRNewDetail.enableMultiline(true);
+PRNewDetail.attachEvent('onEditCell', function(stage, rId, cInd) {
+	if (stage == 2 && (cInd == 4 || cInd == 10)) {
+		let qty = parseFloat(PRNewDetail.cells(rId, 4).getValue()) || 0;
+		let prices = parseFloat(PRNewDetail.cells(rId, 10).getValue()) || 0;
+		PRNewDetail.cells(rId, 11).setValue((qty * prices).toFixed(2));
+	}
+	return true;
+});
 PPRNewDetail = new dataProcessor("purchasing-request-approval-detail-update");
 	PPRNewDetail.setTransactionMode({
 	 mode: "POST",

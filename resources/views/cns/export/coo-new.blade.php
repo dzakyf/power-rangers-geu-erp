@@ -122,7 +122,7 @@ $Saya = Auth::user()->username;
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Net Weight (Kg)</label>
-                            <input type="number" step="0.001" name="Net_Weight" id="Net_Weight" value="0" class="form-control shadow-sm" />
+                            <input type="text" inputmode="decimal" name="Net_Weight" id="Net_Weight" value="0.00" class="form-control shadow-sm cns-decimal" />
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -235,7 +235,7 @@ $Saya = Auth::user()->username;
         var formData = new FormData();
         $('#ContentPagesCOO input,#ContentPagesCOO select,#ContentPagesCOO textarea').not(':button').each(function() {
             var name = $(this).attr('name');
-            var val  = $(this).val();
+            var val  = $(this).hasClass('cns-decimal') ? cnsParseNumber($(this).val()) : $(this).val();
             if (name && val !== undefined) {
                 formData.append(name, val);
             }

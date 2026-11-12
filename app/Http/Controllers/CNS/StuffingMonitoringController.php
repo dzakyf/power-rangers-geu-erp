@@ -69,11 +69,11 @@ class StuffingMonitoringController extends Controller
             echo "<cell>" . htmlspecialchars((string) $vessel->Police_No) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) $vessel->Container) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) $vessel->Seal) . "</cell>";
-            echo "<cell>" . htmlspecialchars(number_format($tare, 2, '.', '')) . "</cell>";
-            echo "<cell>" . htmlspecialchars(number_format($nettoKg, 2, '.', '')) . "</cell>";
-            echo "<cell>" . htmlspecialchars(number_format($nettoMt, 2, '.', '')) . "</cell>";
-            echo "<cell>" . htmlspecialchars(number_format($grossKg, 2, '.', '')) . "</cell>";
-            echo "<cell>" . htmlspecialchars(number_format($grossMt, 2, '.', '')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($tare, 2, '.', ',')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($nettoKg, 2, '.', ',')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($nettoMt, 2, '.', ',')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($grossKg, 2, '.', ',')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($grossMt, 2, '.', ',')) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) $vessel->Note) . "</cell>";
             echo "<cell>" . ($hasNote ? 'Ada' : 'Tidak Ada') . "</cell>";
             echo "</row>";

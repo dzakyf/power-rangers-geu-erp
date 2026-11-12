@@ -2,6 +2,9 @@
 
 namespace App\Services\ExternalApi;
 
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+
 /**
  * Typed client for the apipi pickup API data endpoints.
  *
@@ -129,5 +132,142 @@ class ApipiApiClient
     public function detailPhotos($detailId): array
     {
         return $this->get('/api-tms/surat-jalan/detail/' . $detailId . '/photos');
+    }
+
+    /** Page-paginated movement list. */
+    public function movements(int $page = 1, int $limit = 100): array
+    {
+        return $this->get('/api-tms/movements', ['page' => $page, 'limit' => $limit]);
+    }
+
+    public function movementDetail($id): array
+    {
+        return $this->get('/api-tms/movements/' . $id);
+    }
+
+    /**
+     * All non-deleted movements destined for Pelindo (tujuan_gudang contains "Pelindo").
+     */
+    public function pelindoInboundMovements(): array
+    {
+        $matched = [];
+        $page = 1;
+
+        do {
+            $payload = $this->movements($page, 100);
+            $rows = isset($payload['data']) && is_array($payload['data']) ? $payload['data'] : $payload;
+
+            foreach ($rows as $row) {
+                if (
+                    is_array($row)
+                    && trim((string) ($row['deleted_at'] ?? '')) === ''
+                    && stripos((string) ($row['tujuan_gudang'] ?? ''), 'Pelindo') !== false
+                ) {
+                    $matched[] = $row;
+                }
+            }
+
+            $hasNext = !empty($payload['pagination']['has_next']);
+            $page++;
+        } while ($hasNext && $page <= 20);
+
+        return $matched;
+    }
+
+    /** Page-paginated warehouse list. */
+    public function warehouses(int $page = 1, int $limit = 200, ?string $type = null, ?string $search = null): array
+    {
+        $q = ['page' => $page, 'limit' => $limit];
+        if ($type !== null && $type !== '') { $q['type'] = $type; }
+        if ($search !== null && $search !== '') { $q['search'] = $search; }
+
+        return $this->get('/api/warehouses', $q);
+    }
+
+    /**
+     * Active warehouses cached for 15 minutes with stale-cache fallback on API failure.
+     */
+    public function cachedWarehouses(?string $type = null, ?string $search = null): array
+    {
+        $all = Cache::get('apipi.warehouses.all');
+
+        if (!is_array($all)) {
+            try {
+                $all = [];
+                $page = 1;
+                do {
+                    $payload = $this->warehouses($page, 200);
+                    $rows = isset($payload['data']) && is_array($payload['data']) ? $payload['data'] : $payload;
+                    foreach ($rows as $row) {
+                        if (is_array($row) && (!isset($row['active']) || (int) $row['active'] === 1)) {
+                            $all[] = $row;
+                        }
+                    }
+                    $hasNext = !empty($payload['pagination']['has_next']);
+                    $page++;
+                } while ($hasNext && $page <= 20);
+
+                usort($all, function ($a, $b) {
+                    return strnatcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
+                });
+
+                Cache::put('apipi.warehouses.all', $all, now()->addMinutes(15));
+                Cache::put('apipi.warehouses.stale', $all, now()->addDays(7));
+            } catch (\Throwable $e) {
+                Log::warning('Apipi warehouses fetch failed: ' . $e->getMessage());
+                $stale = Cache::get('apipi.warehouses.stale', []);
+                $all = is_array($stale) ? $stale : [];
+                // Short backoff cache so a down upstream does not stall every request
+                Cache::put('apipi.warehouses.all', $all, now()->addSeconds(60));
+            }
+        }
+
+        return $this->filterWarehouses($all, $type, $search);
+    }
+
+    /**
+     * Report warehouse list: active warehouses with type=site plus Surabaya.
+     */
+    public function reportWarehouses(?string $search = null): array
+    {
+        return array_values(array_filter($this->cachedWarehouses(null, $search), function ($row) {
+            $rowType = strtolower(trim((string) ($row['type'] ?? '')));
+            $id = isset($row['id']) ? (int) $row['id'] : 0;
+            $name = trim((string) ($row['name'] ?? ''));
+
+            return $rowType === 'site' || $id === 5 || strcasecmp($name, 'Surabaya') === 0;
+        }));
+    }
+
+    protected function filterWarehouses(array $rows, ?string $type = null, ?string $search = null): array
+    {
+        $allowedTypes = [];
+        if ($type !== null && trim($type) !== '') {
+            $allowedTypes = array_values(array_filter(array_map(function ($t) {
+                return strtolower(trim($t));
+            }, explode(',', $type))));
+        }
+
+        $q = $search !== null ? strtolower(trim($search)) : '';
+
+        if ($allowedTypes === [] && $q === '') {
+            return array_values($rows);
+        }
+
+        return array_values(array_filter($rows, function ($row) use ($allowedTypes, $q) {
+            if ($allowedTypes !== []) {
+                $rowType = strtolower(trim((string) ($row['type'] ?? '')));
+                if (!in_array($rowType, $allowedTypes, true)) {
+                    return false;
+                }
+            }
+            if ($q !== '') {
+                $name = strtolower((string) ($row['name'] ?? ''));
+                if (strpos($name, $q) === false) {
+                    return false;
+                }
+            }
+            return true;
+        }));
     }
 }

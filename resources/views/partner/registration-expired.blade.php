@@ -7,6 +7,7 @@
     <title>Link Registrasi Kadaluarsa - GEU</title>
     <link href="{{ asset('assets/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('assets/css/styles.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/font-uniform.css') }}" rel="stylesheet">
     <link rel="shortcut icon" href="{{ asset('assets/images/favicon2.png') }}">
 </head>
 

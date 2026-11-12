@@ -7,9 +7,13 @@ use Tests\TestCase;
 class InventoryPelindoQCTest extends TestCase
 {
     /** @test */
-    public function create_view_renders_8_qc_parameters_and_average()
+    public function create_view_renders_movement_selector_and_hidden_qc_parameters()
     {
         $html = view('cns.inventory.create')->render();
+
+        $this->assertStringContainsString('Nomor Movement', $html);
+        $this->assertStringContainsString('name="movement_kode"', $html);
+        $this->assertStringContainsString('id="movementFieldsWrapper" style="display:none;"', $html);
 
         $this->assertStringContainsString('FFA (As Palmitic)', $html);
         $this->assertStringContainsString('FFA (As Oleic)', $html);

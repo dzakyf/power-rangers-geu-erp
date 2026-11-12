@@ -387,20 +387,20 @@
       <tr>
         <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ $loop->iteration }}</td>
         <td class="td-data" style="border-right:1px solid #000;padding-left:5px;padding-top:1.5px;padding-bottom:1.5px;">Container No. {{ $item->Container }} / {{ $item->Seal }}</td>
-        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format($item->Netto_KG, 0, ',', '.') }}</td>
-        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format($item->Gross_KG, 0, ',', '.') }}</td>
-        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format($item->Netto_KG, 0, ',', '.') }}</td>
-        <td class="td-data" style="text-align:center;padding:1.5px 3px;">{{ number_format(round($item->Netto_KG / 1000, 2), 2, ',', '.') }}</td>
+        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format((float) $item->Netto_KG, 2, '.', ',') }}</td>
+        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format((float) $item->Gross_KG, 2, '.', ',') }}</td>
+        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format((float) $item->Netto_KG, 2, '.', ',') }}</td>
+        <td class="td-data" style="text-align:center;padding:1.5px 3px;">{{ number_format((float) round($item->Netto_KG / 1000, 2), 2, '.', ',') }}</td>
       </tr>
       @endforeach
   
       {{-- Total row — border-top untuk pemisah dari baris container --}}
       <tr>
         <td colspan="2" class="total-td" style="text-align:center;background-color:#e0e0e0;border-top:1px solid #000;border-right:1px solid #000;font-weight:bold;">TOTAL</td>
-        <td class="total-td" style="text-align:center;background-color:#e0e0e0;border-top:1px solid #000;border-right:1px solid #000;font-weight:bold;">{{ number_format($netto, 0, ',', '.') }}</td>
-        <td class="total-td" style="text-align:center;background-color:#e0e0e0;border-top:1px solid #000;border-right:1px solid #000;font-weight:bold;">{{ number_format($gross, 0, ',', '.') }}</td>
-        <td class="total-td" style="text-align:center;background-color:#e0e0e0;border-top:1px solid #000;border-right:1px solid #000;font-weight:bold;">{{ number_format($netto, 0, ',', '.') }}</td>
-        <td class="total-td" style="text-align:center;background-color:#e0e0e0;border-top:1px solid #000;font-weight:bold;">{{ number_format(round($netto / 1000, 2), 2, ',', '.') }}</td>
+        <td class="total-td" style="text-align:center;background-color:#e0e0e0;border-top:1px solid #000;border-right:1px solid #000;font-weight:bold;">{{ number_format((float) $netto, 2, '.', ',') }}</td>
+        <td class="total-td" style="text-align:center;background-color:#e0e0e0;border-top:1px solid #000;border-right:1px solid #000;font-weight:bold;">{{ number_format((float) $gross, 2, '.', ',') }}</td>
+        <td class="total-td" style="text-align:center;background-color:#e0e0e0;border-top:1px solid #000;border-right:1px solid #000;font-weight:bold;">{{ number_format((float) $netto, 2, '.', ',') }}</td>
+        <td class="total-td" style="text-align:center;background-color:#e0e0e0;border-top:1px solid #000;font-weight:bold;">{{ number_format((float) round($netto / 1000, 2), 2, '.', ',') }}</td>
       </tr>
   
     </tbody>
