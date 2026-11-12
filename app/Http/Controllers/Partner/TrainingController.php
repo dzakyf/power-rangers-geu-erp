@@ -138,10 +138,17 @@ class TrainingController extends Controller
 
     public function applicationTrainingSubmit(Request $request)
     {
+        $train = MasterTraining::where("training_no", $request->training_no)->first();
+
+        if (!$train) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Pelatihan tidak ditemukan.',
+            ], 422);
+        }
+
         try {
             DB::beginTransaction();
-
-            $train = MasterTraining::where("training_no", $request->training_no)->get();
 
             $dateFrom = new DateTime($request->requested_date_from);
             $dateTo = new DateTime($request->requested_date_to);
@@ -153,20 +160,22 @@ class TrainingController extends Controller
             if ($request->requested_time_from == null && $request->requested_time_to == null) {
                 $timeDay = 'allday';
             }
-            $r = $request->all();
 
-            if ($r['training_why'] == null) {
+            $r = $request->except(['_token']);
+
+            if (!isset($r['training_why']) || $r['training_why'] === '') {
                 $r['training_why'] = '';
             }
-            if ($r['training_how'] == null) {
+            if (!isset($r['training_how']) || $r['training_how'] === '') {
                 $r['training_how'] = '';
             }
-            if ($r['note'] == null) {
+            if (!isset($r['note']) || $r['note'] === '') {
                 $r['note'] = '';
             }
-            if ($r['requested_fee'] == null) {
+            if (!isset($r['requested_fee']) || $r['requested_fee'] === '') {
                 $r['requested_fee'] = 0;
             }
+
             $r['training_name'] = $train->training_name;
             $r['requested_date_day'] = $dayDiff;
             $r['requested_time_day'] = $timeDay;
@@ -178,17 +187,18 @@ class TrainingController extends Controller
 
             DB::commit();
 
-            // return response()->json([
-            //     'status'=>'success',
-            //     'message'=>'Pengajuan berhasil disimpan'
-            // ]);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pengajuan berhasil disimpan.',
+            ]);
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error($th);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Pengajuan gagal disimpan'
-            ]);
+                'message' => 'Pengajuan gagal disimpan: ' . $th->getMessage(),
+            ], 500);
         }
     }
 

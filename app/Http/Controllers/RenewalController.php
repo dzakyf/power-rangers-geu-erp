@@ -9,6 +9,7 @@ use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use PhpOffice\PhpWord\TemplateProcessor;
 use Ramsey\Uuid\Uuid;
@@ -162,7 +163,7 @@ class RenewalController extends Controller
             'effective_transfer_at' => $effectiveTransfer,
             'status' => $body['status'] ?? '',
             'fee' => $body['fee'] ?? '',
-            "type{$body['type']}" => '☒',
+            'mitra_fullname' => $partner_name ?? '',
         ]);
 
         for ($i = 1; $i < 4; $i++) {
@@ -170,13 +171,13 @@ class RenewalController extends Controller
 
                 $doc->setValue(
                     "type{$i}",
-                    '☒'
+                    '[X]'
                 );
                 continue;
             }
             $doc->setValue(
                 "type{$i}",
-                '☐'
+                '[ ]'
             );
         }
 
@@ -252,6 +253,11 @@ class RenewalController extends Controller
 
         $path = "filevendor/$year/$month/ptf_$code.docx";
         $outputPath = public_path("$path");
+
+        if (!is_dir(dirname($outputPath))) {
+            mkdir(dirname($outputPath), 0777, true);
+        }
+
         $doc['doc']->saveAs($outputPath);
 
         $user = $this->userService->getCurrentSessionUserInfo();
@@ -275,7 +281,8 @@ class RenewalController extends Controller
             $topic = "transfer-membership";
             $mapTo = $id;
 
-            $this->uploaderService->uploadMetaFile($path, $filename, $desc, 'docx', $topic, $mapTo);
+            $fileId = $this->uploaderService->uploadMetaFile($path, $filename, $desc, 'docx', $topic, $mapTo);
+            DB::table('partner_transfer_membership')->where('ID', $id)->update(['File_Id' => $fileId]);
 
             $levelOneId = DB::table('approval_level')
                 ->where('Request_Type', 'TRANSFER_MEMBERSHIP')
@@ -304,11 +311,90 @@ class RenewalController extends Controller
             ]);
 
             DB::commit();
-            return response()->download($outputPath)->deleteFileAfterSend(true);
+            // Keep the finalized document so it can be downloaded again later.
+            return response()->download($outputPath);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'error', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    public function downloadTransferMembershipApplication(Request $r)
+    {
+        $id = $r->query('ID');
+        $transfer = DB::table('partner_transfer_membership')->where('ID', $id)->first();
+
+        if (!$transfer) {
+            abort(404, 'Data transfer tidak ditemukan');
+        }
+
+        $meta = null;
+        if (!empty($transfer->File_Id)) {
+            $meta = DB::table('meta_files')->where('ID', $transfer->File_Id)->first();
+        }
+
+        if (!$meta) {
+            $meta = DB::table('meta_files')
+                ->where('Topic', 'transfer-membership')
+                ->where('Map_To', $id)
+                ->orderByDesc('ID')
+                ->first();
+        }
+
+        $path = ($meta && !empty($meta->Filename)) ? public_path($meta->Filename) : null;
+
+        if (!$path || !file_exists($path)) {
+            try {
+                $doc = $this->makeTransferMembershipDocs([
+                    'opportunity_id' => $transfer->Opportunity_Id,
+                    'new_mitra_name' => $transfer->New_Mitra_Name ?? '',
+                    'type' => $transfer->Type,
+                    'reason' => $transfer->Reason ?? '',
+                    'effective_transfer_at' => $transfer->Effective_Transfer_At,
+                    'status' => $transfer->Result ?? '',
+                    'fee' => $transfer->Fee ?? '',
+                ]);
+
+                $year = Carbon::now()->year;
+                $month = Carbon::now()->format('m');
+                $relative = "filevendor/$year/$month/ptf_" . Str::uuid()->toString() . '.docx';
+                $path = public_path($relative);
+
+                if (!is_dir(dirname($path))) {
+                    mkdir(dirname($path), 0777, true);
+                }
+
+                $doc['doc']->saveAs($path);
+
+                if ($meta) {
+                    DB::table('meta_files')->where('ID', $meta->ID)->update([
+                        'Filename' => $relative,
+                        'Path' => basename($relative),
+                        'Extension' => 'docx',
+                        'Description' => 'Upload dokumen transfer kemitraan',
+                        'Topic' => 'transfer-membership',
+                        'Map_To' => $id,
+                        'Created_At' => now(),
+                    ]);
+                    DB::table('partner_transfer_membership')->where('ID', $id)->update(['File_Id' => $meta->ID]);
+                } else {
+                    $fileId = $this->uploaderService->uploadMetaFile(
+                        $relative,
+                        basename($relative),
+                        'Upload dokumen transfer kemitraan',
+                        'docx',
+                        'transfer-membership',
+                        $id
+                    );
+                    DB::table('partner_transfer_membership')->where('ID', $id)->update(['File_Id' => $fileId]);
+                }
+            } catch (\Throwable $th) {
+                Log::error($th);
+                abort(404, 'Dokumen transfer tidak ditemukan dan gagal dibuat ulang.');
+            }
+        }
+
+        return response()->download($path);
     }
 
 

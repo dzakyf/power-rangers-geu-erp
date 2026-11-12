@@ -4936,6 +4936,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$masterAuditPref-category-new-submit", [PartnerMasterAuditController::class, 'newMasterAuditCategorySubmit']);
     Route::get("$masterAuditPref-category-detail", [PartnerMasterAuditController::class, 'detailMasterAuditCategory']);
     Route::post("$masterAuditPref-category-detail-submit", [PartnerMasterAuditController::class, 'detailMasterAuditCategorySubmit']);
+    Route::post("$masterAuditPref-category-change-status", [PartnerMasterAuditController::class, 'changeStatusMasterAuditCategory']);
+    Route::post("$masterAuditPref-category-update", [PartnerMasterAuditController::class, 'updateMasterAuditCategory']);
     Route::get("xml-$masterAuditPref-category", [PartnerMasterAuditController::class, 'indexMasterAuditCategoryXml']);
     Route::get("$masterAuditPref-parameter", [PartnerMasterAuditController::class, 'indexMasterAuditParameter']);
     Route::get("xml-$masterAuditPref-parameter", [PartnerMasterAuditController::class, 'indexMasterAuditParameterXml']);
@@ -4949,6 +4951,11 @@ Route::group(['middleware' => 'log.access'], function () {
     /** sop compliance route */
     $sopPref = "partner-master-sop";
     Route::get($sopPref, [PartnerMasterSOPController::class, 'indexSOP']);
+    Route::get("$sopPref-new", [PartnerMasterSOPController::class, 'newSOP']);
+    Route::get("$sopPref-detail", [PartnerMasterSOPController::class, 'detailSOP']);
+    Route::post("$sopPref-new-submit", [PartnerMasterSOPController::class, 'storeSOP']);
+    Route::post("$sopPref-detail-submit", [PartnerMasterSOPController::class, 'updateSOP']);
+    Route::post("$sopPref-delete", [PartnerMasterSOPController::class, 'deleteSOP']);
 
     /** chat route */
     $chatPref = "partner-chat";
@@ -5131,6 +5138,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$partnerTransferPrefs-update-application", [RenewalController::class, 'updateTransferMembershipApplication']);
     Route::post("$partnerTransferPrefs-preview-application", [RenewalController::class, 'previewTransferMembershipApplication']);
     Route::post("$partnerTransferPrefs-finalize-application", [RenewalController::class, 'finalizeTransferMembershipApplication']);
+    Route::get("$partnerTransferPrefs-download", [RenewalController::class, 'downloadTransferMembershipApplication']);
     Route::get("$partnerTransferPrefs-approval-index", [ApprovalController::class, 'indexTransferMembershipApproval']);
     Route::get("$partnerTransferPrefs-approval-create", [ApprovalController::class, 'createTransferMembershipApproval']);
     Route::get("$partnerTransferPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);

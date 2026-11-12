@@ -160,7 +160,7 @@ class MasterAuditController extends Controller
                 
             // }
 
-            $status = $data->status == "NORMAL" ? "INACTIVE" : 'NORMAL';
+            $status = $data->status == "NORMAL" ? "STOP" : 'NORMAL';
 
             $data->status = $status;
             $data->save();
@@ -180,6 +180,72 @@ class MasterAuditController extends Controller
                 'message' => $th->getMessage()
             ]);
         }
+    }
+
+    public function updateMasterAuditCategory(Request $request)
+    {
+        $param = $request->all();
+        $ids = explode(',', (string) ($param['ids'] ?? ''));
+        $result = '<?xml version="1.0" encoding="iso-8859-1"?><data>';
+
+        foreach ($ids as $rawId) {
+            $rowId = trim($rawId);
+            if ($rowId === '' || $rowId === 'customPayload') {
+                continue;
+            }
+
+            $status = $param[$rowId . '_!nativeeditor_status'] ?? '';
+            $newId = $rowId;
+            $action = 'error';
+
+            try {
+                switch ($status) {
+                    case 'updated':
+                        $data = MasterAuditCategory::find($rowId);
+                        if ($data) {
+                            $data->category = $param[$rowId . '_c1'] ?? $data->category;
+                            $data->category_description = $param[$rowId . '_c2'] ?? $data->category_description;
+                            $data->parameter_list = $param[$rowId . '_c3'] ?? $data->parameter_list;
+                            $data->parameter_score = $param[$rowId . '_c4'] ?? $data->parameter_score;
+                            $data->status = $param[$rowId . '_c5'] ?? $data->status;
+                            $data->save();
+                            $action = 'update';
+                        }
+                        break;
+
+                    case 'deleted':
+                        $data = MasterAuditCategory::find($rowId);
+                        if ($data) {
+                            $data->delete();
+                            $action = 'delete';
+                        }
+                        break;
+
+                    case 'inserted':
+                        $data = new MasterAuditCategory();
+                        $data->category = $param[$rowId . '_c1'] ?? '';
+                        $data->category_description = $param[$rowId . '_c2'] ?? '';
+                        $data->parameter_list = $param[$rowId . '_c3'] ?? '';
+                        $data->parameter_score = $param[$rowId . '_c4'] ?? '';
+                        $data->status = $param[$rowId . '_c5'] ?? 'NORMAL';
+                        $data->urutan = (MasterAuditCategory::max('urutan') ?? 0) + 1;
+                        $data->created_by = auth()->user()->username ?? '';
+                        $data->created_date = now();
+                        $data->save();
+                        $newId = $data->id;
+                        $action = 'insert';
+                        break;
+                }
+            } catch (\Throwable $th) {
+                Log::error($th);
+            }
+
+            $result .= "<action type='" . $action . "' sid='" . $rowId . "' tid='" . $newId . "'/>";
+        }
+
+        $result .= '</data>';
+
+        return response($result, 200, ['Content-Type' => 'text/xml']);
     }
 
     public function indexMasterAuditParameter()

@@ -62,7 +62,7 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="Transfer_Doc">Biaya Administrasi<span style="color: red;">*</span></label>
+                            <label for="Transfer_Doc">Bukti Transfer<span style="color: red;">*</span></label>
                             <input type="file" name="Transfer_Doc" id="Transfer_Doc" class="form-control" required />
                         </div>
                     </div>
@@ -121,10 +121,9 @@
     }
 
     function selectMitra(id, cellIdx) {
-        royaltyId = Grid1.getRowAttribute(id, 'ID');
-
-        $('#Application_Id').val(royaltyId)
-        console.log(royaltyId)
+        // The XML row id is the account_payable ID.
+        royaltyId = id;
+        $('#Application_Id').val(royaltyId);
     }
 
     function doubleClickMitra() {
@@ -133,6 +132,11 @@
 
     $('#updateApplicationInfoForm').on('submit', function(e) {
         e.preventDefault();
+
+        if (!royaltyId) {
+            alert('Pilih data terlebih dahulu.');
+            return;
+        }
 
         let formData = new FormData(this);
 
@@ -145,17 +149,20 @@
             processData: false,
             contentType: false,
             cache: false,
-            success: function(response, status, xhr) {
-                alert("Berhasil mengupdate info pengajuan")
-                // $('#updateApplicationInfoForm')[0].reset()
+            success: function(response) {
+                alert("Berhasil mengupdate info pengajuan");
+                $('#updateApplicationInfoForm')[0].reset();
+                $('#Grid1Detail').hide();
+                Grid1.clearAndLoad('partner-profit-sharing-royalty-data');
             },
-            error: function(xhr, status, error) {
-                console.log('Error details:', xhr.responseText);
-
+            error: function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                    ? xhr.responseJSON.message
+                    : 'Gagal mengirim dokumen. Silakan coba lagi.';
+                alert(msg);
             },
             complete: function() {
                 $('#submitBtn').prop('disabled', false).text('Submit');
-                $('#transfer_application_id').val(royaltyId)
             }
         });
 

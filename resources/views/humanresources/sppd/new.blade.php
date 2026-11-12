@@ -135,7 +135,7 @@
                         </div>
                         <div class="col-md-3 col-12">
                             <label for="Sppd_Type" class="form-label-custom">Jenis SPPD</label>
-                            <select id="Sppd_Type" class="form-control" onchange="toggleType();">
+                            <select id="Sppd_Type" class="form-select" onchange="toggleType();">
                                 <option value="NORMAL">Regular SPPD</option>
                                 <option value="PERBANTUAN">Perbantuan Sementara</option>
                                 <option value="RELOKASI" disabled>Relokasi/Mutasi (belum tersedia)</option>
@@ -150,7 +150,7 @@
                                 <span class="text-danger">*</span>
                             </label>
                             @if (!empty($canChooseEmployee))
-                                <select id="Requester_NIK" class="form-control select2" name="Requester_NIK" style="width:100%;">
+                                <select id="Requester_NIK" class="form-select select2" name="Requester_NIK" style="width:100%;">
                                     <option value="">-- Pilih NIK / Karyawan --</option>
                                     @foreach ($employees as $emp)
                                         <option value="{{ $emp->NIK }}"
@@ -177,10 +177,10 @@
                         </div>
                         <div class="col-md-6 col-12">
                             <label for="Department" class="form-label-custom">Departemen <span class="text-danger">*</span></label>
-                            <select id="Department" class="form-control" name="Department">
+                            <select id="Department" class="form-select" name="Department">
                                 <option value="">-- Pilih Departemen --</option>
                                 @foreach ($departments as $d)
-                                <option value="{{ $d->Department }}">{{ $d->Department }}</option>
+                                <option value="{{ $d->Initial }}">{{ $d->Department }} ({{ $d->Initial }})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -205,7 +205,7 @@
                     <div class="row g-3">
                         <div class="col-md-4 col-12">
                             <label for="Route_Start" class="form-label-custom">Lokasi Asal (Rute Start) <span class="text-danger">*</span></label>
-                            <select id="Route_Start" class="form-control">
+                            <select id="Route_Start" class="form-select">
                                 <option value="">-- Pilih Lokasi --</option>
                                 @foreach (($locations ?? collect()) as $loc)
                                 <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
@@ -214,7 +214,7 @@
                         </div>
                         <div class="col-md-4 col-12">
                             <label for="Rute_Mode" class="form-label-custom">Metode Rute Tujuan</label>
-                            <select id="Rute_Mode" class="form-control" onchange="updateRuteMode();">
+                            <select id="Rute_Mode" class="form-select" onchange="updateRuteMode();">
                                 <option value="KANTOR">Lokasi Kantor Internal</option>
                                 <option value="TITIK">Pilih Titik Nama Tujuan</option>
                                 <option value="KOORDINAT">Koordinat Spesifik (Lat / Long)</option>
@@ -222,7 +222,7 @@
                         </div>
                         <div class="col-md-4 col-12" id="ruteKantor">
                             <label for="Route_Finish" class="form-label-custom">Lokasi Kantor (Tujuan)</label>
-                            <select id="Route_Finish" class="form-control">
+                            <select id="Route_Finish" class="form-select">
                                 <option value="">-- Pilih Lokasi --</option>
                                 @foreach (($locations ?? collect()) as $loc)
                                 <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
@@ -296,7 +296,7 @@
                     <div class="row g-3">
                         <div class="col-md-6 col-12">
                             <label for="Origin_Site" class="form-label-custom">Asal Site (Homebase)</label>
-                            <select id="Origin_Site" class="form-control">
+                            <select id="Origin_Site" class="form-select">
                                 <option value="">-- Pilih Lokasi --</option>
                                 @foreach (($locations ?? collect()) as $loc)
                                 <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
@@ -305,7 +305,7 @@
                         </div>
                         <div class="col-md-6 col-12">
                             <label for="Target_Site" class="form-label-custom">Lokasi Perbantuan (Tujuan Penugasan)</label>
-                            <select id="Target_Site" class="form-control">
+                            <select id="Target_Site" class="form-select">
                                 <option value="">-- Pilih Lokasi --</option>
                                 @foreach (($locations ?? collect()) as $loc)
                                 <option value="{{ $loc->Location_ID }}">{{ $loc->Name }} ({{ $loc->Location_ID }})</option>
@@ -374,7 +374,7 @@
                     <div class="row g-3">
                         <div class="col-md-4 col-12">
                             <label for="Car_Jenis_Mobil" class="form-label-custom">Preferensi Jenis Mobil</label>
-                            <select id="Car_Jenis_Mobil" class="form-control">
+                            <select id="Car_Jenis_Mobil" class="form-select">
                                 <option value="">-- Pilih Jenis Mobil --</option>
                                 @foreach(($fleetList ?? ['Rush','Avanza','Innova','Pajero','Alphard','Hiace','Other']) as $m)
                                 <option value="{{ $m }}">{{ ($m == 'Other') ? 'Lainnya' : $m }}</option>
@@ -470,6 +470,7 @@
     var routeDistanceKm = null;
     var routeDurationMin = null;
     var routeResolved = false;
+    var routeIsFallback = false;
 
     var TYPE_CODES = {
         NORMAL: 'RS',
@@ -506,13 +507,14 @@
             },
             success: function(resp) {
                 if (resp.status === 'success' && resp.data) {
-                    cb(true, resp.data.distance_km, resp.data.duration_min);
+                    cb(true, resp.data.distance_km, resp.data.duration_min, !!resp.data.is_fallback);
                 } else {
-                    cb(false);
+                    cb(false, null, null, false, resp.message || null);
                 }
             },
-            error: function() {
-                cb(false);
+            error: function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : null;
+                cb(false, null, null, false, msg);
             }
         });
     }
@@ -527,14 +529,16 @@
             routeResolved = false;
             routeDistanceKm = null;
             routeDurationMin = null;
+            routeIsFallback = false;
             renderScopeBanner();
             updateAllowanceInfo();
             if (origin) {
-                fetchRouteInfo(origin, function(ok, dist, dur) {
+                fetchRouteInfo(origin, function(ok, dist, dur, isFallback) {
                     if (ok) {
                         routeDistanceKm = dist;
                         routeDurationMin = dur;
                         routeResolved = true;
+                        routeIsFallback = isFallback;
                         renderScopeBanner();
                     }
                 });
@@ -547,37 +551,44 @@
             routeResolved = false;
             routeDistanceKm = null;
             routeDurationMin = null;
+            routeIsFallback = false;
             renderScopeBanner();
             updateAllowanceInfo();
             return;
         }
 
-        fetchRouteInfo(origin, function(ok, dist, dur) {
+        fetchRouteInfo(origin, function(ok, dist, dur, isFallback, errMsg) {
             if (!ok) {
                 routeScope = null;
                 routeResolved = false;
                 routeDistanceKm = null;
                 routeDurationMin = null;
+                routeIsFallback = false;
+                renderScopeBanner(errMsg);
             } else {
                 routeDistanceKm = dist;
                 routeDurationMin = dur;
                 routeResolved = true;
+                routeIsFallback = isFallback;
                 routeScope = (dist !== null && dur !== null && dist < 120 && dur < 480) ? 'MEAL_ONLY' : 'FULL';
+                renderScopeBanner();
             }
-            renderScopeBanner();
             updateAllowanceInfo();
         });
     }
 
-    function renderScopeBanner() {
+    function renderScopeBanner(customErr) {
         var sppdType = $('#Sppd_Type').val();
+        var fallbackBadge = routeIsFallback ? ' <span class="badge bg-warning text-dark ms-1" title="Dihitung menggunakan estimasi koordinat"><i class="fa fa-map-pin"></i> Estimasi Jarak</span>' : '';
+
         if (sppdType !== 'NORMAL') {
-            var extra = (routeDistanceKm !== null) ? 'Jarak: ' + routeDistanceKm + ' km &bull; ' : '';
+            var extra = (routeDistanceKm !== null) ? 'Jarak: ' + routeDistanceKm + ' km' + fallbackBadge + ' &bull; ' : '';
             $('#routeScopeInfo').html('<div class="alert alert-success py-2 mb-0"><strong>Perbantuan Sementara:</strong> ' + extra + 'hak penuh (di luar kriteria 120 km / 8 jam).</div>');
             return;
         }
         if (!routeResolved || routeDistanceKm === null) {
-            $('#routeScopeInfo').html('<div class="alert alert-warning py-2 mb-0"><strong>Rute belum dapat dihitung.</strong> Pastikan lokasi asal &amp; tujuan memiliki koordinat (atau pilih titik tujuan pada peta) dan isi Jam Berangkat/Kembali.</div>');
+            var warnText = customErr ? customErr : 'Pastikan lokasi asal &amp; tujuan memiliki koordinat (atau pilih titik tujuan pada peta) dan isi Jam Berangkat/Kembali.';
+            $('#routeScopeInfo').html('<div class="alert alert-warning py-2 mb-0"><strong>Rute belum dapat dihitung.</strong> ' + warnText + '</div>');
             return;
         }
         var isMeal = (routeScope === 'MEAL_ONLY');
@@ -585,7 +596,7 @@
         var label = isMeal
             ? '&lt; 120 km &amp; &lt; 8 jam &rarr; <strong>hanya Uang Makan</strong>'
             : '&ge; 120 km atau &ge; 8 jam &rarr; <strong>hak penuh</strong>';
-        $('#routeScopeInfo').html('<div class="alert ' + css + ' py-2 mb-0">Jarak: <strong>' + routeDistanceKm + ' km</strong> &bull; Durasi: <strong>' + fmtDuration(routeDurationMin) + '</strong> &bull; ' + label + '</div>');
+        $('#routeScopeInfo').html('<div class="alert ' + css + ' py-2 mb-0">Jarak: <strong>' + routeDistanceKm + ' km</strong>' + fallbackBadge + ' &bull; Durasi: <strong>' + fmtDuration(routeDurationMin) + '</strong> &bull; ' + label + '</div>');
     }
 
     function updateRuteMode() {
@@ -735,15 +746,45 @@
         return manuals;
     }
 
+    function collectExistingRegCosts() {
+        var existing = {};
+        $('#tblCost tbody tr.reg-row').each(function() {
+            var key = $(this).data('reg-key');
+            if (key) {
+                var c = $(this).find("input[id^='Cost_']").val();
+                if (c !== '' && c !== undefined && c !== null) {
+                    existing[key] = c;
+                }
+            }
+        });
+        return existing;
+    }
+
+    function isComponentEditable(code) {
+        if (!matrixData) return (code === 'ticket_max' || code === 'reimburse_max_per_night');
+        if (matrixData.editable_components && Array.isArray(matrixData.editable_components)) {
+            return matrixData.editable_components.indexOf(code) !== -1;
+        }
+        if (matrixData.components && Array.isArray(matrixData.components)) {
+            var found = matrixData.components.find(function(c) { return c.code === code; });
+            if (found && typeof found.is_editable !== 'undefined') return !!found.is_editable;
+        }
+        return (code === 'ticket_max' || code === 'reimburse_max_per_night');
+    }
+
     function moneyID(v) {
         return Number(v).toLocaleString('id-ID');
     }
 
     function buildRegulationRows(allowance) {
         var manuals = collectManualRows();
+        var existingRegCosts = collectExistingRegCosts();
 
-        var a = Date.parse($('#Date_Start').val());
-        var b = Date.parse($('#Date_Finish').val());
+        var dateStartVal = $.trim($('#Date_Start').val());
+        var dateFinishVal = $.trim($('#Date_Finish').val());
+
+        var a = Date.parse(dateStartVal);
+        var b = Date.parse(dateFinishVal);
         var hasDates = (!isNaN(a) && !isNaN(b) && b >= a);
         var days = hasDates ? Math.round((b - a) / 86400000) + 1 : 1;
         var nights = Math.max(days - 1, 0);
@@ -759,39 +800,125 @@
         // Normal SPPD within 120 km AND 8 hours: meal allowance only
         if (isTugasKerja && routeScope === 'MEAL_ONLY') {
             if (daily.meal) {
-                reg.push({ cost: daily.meal * days, desc: 'Uang Makan (Rp ' + moneyID(daily.meal) + '/hari' + (hasDates ? ' \u00d7 ' + days + ' hari' : '') + ')' });
+                var mealCost = (existingRegCosts['daily_meal'] !== undefined) ? existingRegCosts['daily_meal'] : (daily.meal * days);
+                reg.push({
+                    key: 'daily_meal',
+                    cost: mealCost,
+                    desc: 'Uang Makan (Rp ' + moneyID(daily.meal) + '/hari' + (hasDates ? ' \u00d7 ' + days + ' hari' : '') + ')',
+                    is_editable: isComponentEditable('daily_meal'),
+                    max_limit: daily.meal * days
+                });
             }
             renderCostRows(reg, manuals);
             return;
         }
 
+        // Tiket Berangkat & Tiket Pulang (dipecah menjadi 2 baris sesuai tanggal berangkat dan pulang)
         if (t.ticket_max) {
-            reg.push({ cost: t.ticket_max, desc: 'Tiket PP (maks. Rp ' + moneyID(t.ticket_max) + ')' });
+            var ticketEditable = isComponentEditable('ticket_max');
+            var departDateLabel = dateStartVal ? ('(' + dateStartVal + ')') : '(Tanggal Mulai SPPD)';
+            var returnDateLabel = dateFinishVal ? ('(' + dateFinishVal + ')') : '(Tanggal Selesai SPPD)';
+
+            var departCost = (existingRegCosts['ticket_depart'] !== undefined) ? existingRegCosts['ticket_depart'] : t.ticket_max;
+            var returnCost = (existingRegCosts['ticket_return'] !== undefined) ? existingRegCosts['ticket_return'] : t.ticket_max;
+
+            reg.push({
+                key: 'ticket_depart',
+                cost: departCost,
+                desc: 'Tiket Berangkat ' + departDateLabel + ' - maks. Rp ' + moneyID(t.ticket_max),
+                is_editable: ticketEditable,
+                max_limit: t.ticket_max
+            });
+            reg.push({
+                key: 'ticket_return',
+                cost: returnCost,
+                desc: 'Tiket Pulang ' + returnDateLabel + ' - maks. Rp ' + moneyID(t.ticket_max),
+                is_editable: ticketEditable,
+                max_limit: t.ticket_max
+            });
         }
+
+        // Penginapan (Hotel)
         if (isTugasKerja && t.reimburse_max_per_night && nights > 0) {
+            var hotelEditable = isComponentEditable('reimburse_max_per_night');
+            var hotelMaxTotal = t.reimburse_max_per_night * nights;
+            var hotelCost = (existingRegCosts['hotel'] !== undefined) ? existingRegCosts['hotel'] : hotelMaxTotal;
+
             var peng = 'Penginapan';
             if (acc.hotel_star) peng += ' \u2605' + acc.hotel_star;
-            peng += ' (Rp ' + moneyID(t.reimburse_max_per_night) + '/malam' + (hasDates ? ' \u00d7 ' + nights + ' malam' : '') + ')';
-            reg.push({ cost: t.reimburse_max_per_night * nights, desc: peng });
+            peng += ' (maks. Rp ' + moneyID(t.reimburse_max_per_night) + '/malam' + (hasDates ? ' \u00d7 ' + nights + ' malam' : '') + ')';
+
+            reg.push({
+                key: 'hotel',
+                cost: hotelCost,
+                desc: peng,
+                is_editable: hotelEditable,
+                max_limit: hotelMaxTotal
+            });
         }
+
+        // Uang Makan
         if (daily.meal) {
-            reg.push({ cost: daily.meal * days, desc: 'Uang Makan (Rp ' + moneyID(daily.meal) + '/hari' + (hasDates ? ' \u00d7 ' + days + ' hari' : '') + ')' });
+            var mealCost = (existingRegCosts['daily_meal'] !== undefined) ? existingRegCosts['daily_meal'] : (daily.meal * days);
+            reg.push({
+                key: 'daily_meal',
+                cost: mealCost,
+                desc: 'Uang Makan (Rp ' + moneyID(daily.meal) + '/hari' + (hasDates ? ' \u00d7 ' + days + ' hari' : '') + ')',
+                is_editable: isComponentEditable('daily_meal'),
+                max_limit: daily.meal * days
+            });
         }
+
+        // Uang Saku
         if (daily.pocket) {
-            reg.push({ cost: daily.pocket * days, desc: 'Uang Saku (Rp ' + moneyID(daily.pocket) + '/hari' + (hasDates ? ' \u00d7 ' + days + ' hari' : '') + ')' });
+            var pocketCost = (existingRegCosts['daily_pocket'] !== undefined) ? existingRegCosts['daily_pocket'] : (daily.pocket * days);
+            reg.push({
+                key: 'daily_pocket',
+                cost: pocketCost,
+                desc: 'Uang Saku (Rp ' + moneyID(daily.pocket) + '/hari' + (hasDates ? ' \u00d7 ' + days + ' hari' : '') + ')',
+                is_editable: isComponentEditable('daily_pocket'),
+                max_limit: daily.pocket * days
+            });
         }
+
+        // Bantuan Kos
         if (allowance.assistance && allowance.assistance.kos_per_month) {
             var kos = allowance.assistance.kos_per_month;
             var kosTotal = kos * months;
-            reg.push({ cost: kosTotal, desc: 'Uang Perbantuan / Kos (Rp ' + moneyID(kos) + '/bulan' + (hasDates ? ' \u00d7 ' + months + ' bulan' : '') + ')' });
+            var kosCost = (existingRegCosts['kos_per_month'] !== undefined) ? existingRegCosts['kos_per_month'] : kosTotal;
+            reg.push({
+                key: 'kos_per_month',
+                cost: kosCost,
+                desc: 'Uang Perbantuan / Kos (Rp ' + moneyID(kos) + '/bulan' + (hasDates ? ' \u00d7 ' + months + ' bulan' : '') + ')',
+                is_editable: isComponentEditable('kos_per_month'),
+                max_limit: kosTotal
+            });
         }
+
+        // Bantuan Relokasi
         if (allowance.relocation && allowance.relocation.one_time_payment) {
-            reg.push({ cost: allowance.relocation.one_time_payment, desc: 'Bantuan Relokasi (sekali bayar)' });
+            var relCost = (existingRegCosts['relocation'] !== undefined) ? existingRegCosts['relocation'] : allowance.relocation.one_time_payment;
+            reg.push({
+                key: 'relocation',
+                cost: relCost,
+                desc: 'Bantuan Relokasi (sekali bayar)',
+                is_editable: isComponentEditable('relocation_one_time_payment'),
+                max_limit: allowance.relocation.one_time_payment
+            });
         }
+
+        // Uang Perbantuan Mobilisasi
         if (allowance.mobilization && allowance.mobilization.cost_per_week) {
             var mob = allowance.mobilization.cost_per_week;
             var mobTotal = mob * weeks;
-            reg.push({ cost: mobTotal, desc: 'Uang Perbantuan (Rp ' + moneyID(mob) + '/minggu' + (hasDates ? ' \u00d7 ' + weeks + ' minggu' : '') + ')' });
+            var mobCost = (existingRegCosts['mobilization'] !== undefined) ? existingRegCosts['mobilization'] : mobTotal;
+            reg.push({
+                key: 'mobilization',
+                cost: mobCost,
+                desc: 'Uang Perbantuan (Rp ' + moneyID(mob) + '/minggu' + (hasDates ? ' \u00d7 ' + weeks + ' minggu' : '') + ')',
+                is_editable: isComponentEditable('mobilization_cost_per_week'),
+                max_limit: mobTotal
+            });
         }
 
         renderCostRows(reg, manuals);
@@ -805,11 +932,26 @@
         var idx = 0;
 
         $.each(regRows, function(_, r) {
+            var isEditable = !!r.is_editable;
+            var regKey = r.key || ('reg_' + idx);
+            var costInput = isEditable
+                ? "<input type='text' id='Cost_" + idx + "' class='form-control text-end fw-bold' onkeyup='hitungTotal();' value='" + escapeAttr(r.cost) + "' placeholder='0' />"
+                : "<input type='text' id='Cost_" + idx + "' class='form-control bg-light text-end fw-bold' value='" + escapeAttr(r.cost) + "' readonly />";
+
+            var iconAction = isEditable
+                ? "<span class='badge bg-success text-white py-1 px-2' style='cursor:default;' title='Nominal dapat disesuaikan kembali (plafon acuan: Rp " + (r.max_limit ? moneyID(r.max_limit) : '-') + ")'><i class='fa fa-pencil-alt me-1'></i>Bisa Diubah</span>"
+                : "<i class='fa fa-lock text-muted' title='Terkunci mengikuti regulasi master SPPD'></i>";
+
             $tb.append(
-                "<tr class='reg-row' data-reg='1'>" +
-                "<td><input type='text' id='Cost_" + idx + "' class='form-control bg-light' value='" + escapeAttr(r.cost) + "' readonly /></td>" +
+                "<tr class='reg-row' data-reg='1' data-reg-key='" + escapeAttr(regKey) + "'>" +
+                "<td>" +
+                    "<div class='input-group'>" +
+                        "<span class='input-group-text'>Rp</span>" +
+                        costInput +
+                    "</div>" +
+                "</td>" +
                 "<td><input type='text' id='Desc_" + idx + "' class='form-control bg-light' value=\"" + escapeAttr(r.desc) + "\" readonly /></td>" +
-                "<td class='text-center'><i class='fa fa-lock text-muted' title='Mengikuti regulasi master SPPD'></i></td>" +
+                "<td class='text-center align-middle'>" + iconAction + "</td>" +
                 "</tr>"
             );
             idx++;
@@ -818,13 +960,18 @@
         if (!manuals.length) manuals.push({ cost: '', desc: '' });
         $.each(manuals, function(i, m) {
             var btn = (i === 0)
-                ? "<button type='button' class='btn btn-success btn-sm' onclick='tambahRow();'>+</button>"
-                : "<button type='button' class='btn btn-danger btn-sm' onclick='hapusRow(this);'>-</button>";
+                ? "<button type='button' class='btn btn-success btn-sm' onclick='tambahRow();' title='Tambah Baris Biaya'>+</button>"
+                : "<button type='button' class='btn btn-danger btn-sm' onclick='hapusRow(this);' title='Hapus Baris Biaya'>-</button>";
             $tb.append(
                 "<tr>" +
-                "<td><input type='text' id='Cost_" + idx + "' class='form-control' onkeyup='hitungTotal();' value='" + escapeAttr(m.cost) + "' /></td>" +
-                "<td><input type='text' id='Desc_" + idx + "' class='form-control' value=\"" + escapeAttr(m.desc) + "\" /></td>" +
-                "<td class='text-center'>" + btn + "</td>" +
+                "<td>" +
+                    "<div class='input-group'>" +
+                        "<span class='input-group-text'>Rp</span>" +
+                        "<input type='text' id='Cost_" + idx + "' class='form-control text-end fw-bold' onkeyup='hitungTotal();' value='" + escapeAttr(m.cost) + "' placeholder='0' />" +
+                    "</div>" +
+                "</td>" +
+                "<td><input type='text' id='Desc_" + idx + "' class='form-control' value=\"" + escapeAttr(m.desc) + "\" placeholder='Keterangan biaya...' /></td>" +
+                "<td class='text-center align-middle'>" + btn + "</td>" +
                 "</tr>"
             );
             idx++;
@@ -836,9 +983,14 @@
 
     function tambahRow() {
         var html = "<tr>" +
-            "<td><input type='text' id='Cost_" + rowCost + "' class='form-control' onkeyup='hitungTotal();' /></td>" +
-            "<td><input type='text' id='Desc_" + rowCost + "' class='form-control' /></td>" +
-            "<td><button type='button' class='btn btn-danger btn-sm' onclick='hapusRow(this);'>-</button></td>" +
+            "<td>" +
+                "<div class='input-group'>" +
+                    "<span class='input-group-text'>Rp</span>" +
+                    "<input type='text' id='Cost_" + rowCost + "' class='form-control text-end fw-bold' onkeyup='hitungTotal();' placeholder='0' />" +
+                "</div>" +
+            "</td>" +
+            "<td><input type='text' id='Desc_" + rowCost + "' class='form-control' placeholder='Keterangan biaya tambahan...' /></td>" +
+            "<td class='text-center align-middle'><button type='button' class='btn btn-danger btn-sm' onclick='hapusRow(this);' title='Hapus Baris Biaya'>-</button></td>" +
             "</tr>";
         $("#tblCost tbody").append(html);
         rowCost++;
@@ -852,7 +1004,9 @@
     function hitungTotal() {
         var total = 0;
         $("[id^='Cost_']").each(function() {
-            var v = parseFloat($(this).val().replace(/\./g, "").replace(/,/g, "."));
+            var raw = $(this).val();
+            if (raw === undefined || raw === null || raw === '') return;
+            var v = parseFloat(String(raw).replace(/\./g, "").replace(/,/g, "."));
             if (!isNaN(v)) total += v;
         });
         $("#TotalCost").text(total.toLocaleString("id-ID"));

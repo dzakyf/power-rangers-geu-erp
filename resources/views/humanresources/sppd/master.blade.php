@@ -251,9 +251,9 @@
                 <a href="hrd-sppd-index" class="btn btn-outline-light sppd-btn shadow-sm">
                     <i class="fa fa-arrow-left text-muted"></i> Kembali
                 </a>
-                <button type="button" class="btn btn-outline-warning sppd-btn text-dark shadow-sm fw-bold" onclick="syncFromJson()" title="Reset data awal dari matric.json">
+                {{-- <button type="button" class="btn btn-outline-warning sppd-btn text-dark shadow-sm fw-bold" onclick="syncFromJson()" title="Reset data awal dari matric.json">
                     <i class="fa fa-rotate me-1"></i> Reset/Sync dari JSON
-                </button>
+                </button> --}}
             </div>
         </div>
     </div>
@@ -418,6 +418,7 @@
                                 <th style="width: 140px;">Kategori</th>
                                 <th style="width: 140px;">Tipe Input</th>
                                 <th style="width: 130px;" class="text-center">Status Matriks</th>
+                                <th style="width: 140px;" class="text-center">Penyesuaian Biaya</th>
                                 <th>Deskripsi Regulasi</th>
                                 <th style="width: 100px;" class="text-center">Aksi</th>
                             </tr>
@@ -437,9 +438,16 @@
                                         <span class="sppd-pill amber" title="Kode tidak terdaftar di skema matriks"><i class="fa fa-triangle-exclamation"></i> Belum link</span>
                                     @endif
                                 </td>
+                                <td class="text-center">
+                                    @if(!empty($comp->is_editable))
+                                        <span class="sppd-pill green" title="Dapat disesuaikan nominalnya saat pengajuan SPPD"><i class="fa fa-pen"></i> Bisa Diubah</span>
+                                    @else
+                                        <span class="sppd-pill gray" title="Terkunci sesuai plafon matriks regulasi"><i class="fa fa-lock"></i> Terkunci</span>
+                                    @endif
+                                </td>
                                 <td class="text-muted small">{{ $comp->description ?: '-' }}</td>
                                 <td class="text-center text-nowrap">
-                                    <button class="btn btn-outline-primary sppd-btn-icon me-1" title="Edit Komponen" onclick="editComponent({{ $comp->id }}, '{{ $comp->code }}', '{{ addslashes($comp->name) }}', '{{ addslashes($comp->category) }}', '{{ addslashes($comp->type) }}', '{{ addslashes($comp->description) }}')">
+                                    <button class="btn btn-outline-primary sppd-btn-icon me-1" title="Edit Komponen" onclick="editComponent({{ $comp->id }}, '{{ $comp->code }}', '{{ addslashes($comp->name) }}', '{{ addslashes($comp->category) }}', '{{ addslashes($comp->type) }}', '{{ addslashes($comp->description) }}', {{ !empty($comp->is_editable) ? 1 : 0 }})">
                                         <i class="fa fa-pen"></i>
                                     </button>
                                     <button class="btn btn-outline-danger sppd-btn-icon" title="Hapus Komponen" onclick="deleteComponent({{ $comp->id }}, '{{ addslashes($comp->name) }}')">
@@ -449,7 +457,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-5">
+                                <td colspan="9" class="text-center text-muted py-5">
                                     <i class="fa fa-folder-open text-muted fs-3 mb-2 d-block"></i> Belum ada komponen tunjangan.
                                 </td>
                             </tr>
@@ -824,9 +832,20 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="mb-1">
+                        <div class="mb-3">
                             <label class="form-label">Keterangan / Deskripsi Regulasi</label>
                             <textarea class="form-control" id="component_description" rows="2" placeholder="Penjelasan mengenai komponen regulasi ini..."></textarea>
+                        </div>
+                        <div class="mb-1 p-2 rounded bg-light border">
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" id="component_is_editable" value="1" style="cursor:pointer;">
+                                <label class="form-check-label fw-bold ms-1 text-dark" for="component_is_editable" style="cursor:pointer;">
+                                    <i class="fa fa-pen text-primary me-1"></i> Dapat Disesuaikan saat Pengajuan (Editable)
+                                </label>
+                            </div>
+                            <div class="form-text fs-11 text-muted ms-4">
+                                Jika diaktifkan, nominal pada rincian biaya dapat diubah/disesuaikan oleh pemohon saat pengajuan SPPD (misal: harga tiket, penginapan). Jika dinonaktifkan, nominal terkunci mengikuti plafon matriks.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1063,6 +1082,7 @@ function addComponent() {
     $('#component_code option').each(function () { $(this).prop('disabled', used.indexOf(this.value) !== -1); });
     var firstFree = $('#component_code option:not(:disabled)').first().val();
     $('#component_code').val(firstFree || '');
+    $('#component_is_editable').prop('checked', false);
     onComponentCodeChange();
     $('#component_description').val('');
     $('#modalComponentTitle').html('<i class="fa fa-list-check me-2"></i>Tambah Komponen Tunjangan Baru');
@@ -1075,9 +1095,10 @@ function onComponentCodeChange() {
     $('#component_name').val(d.name);
     $('#component_category').val(d.category);
     $('#component_type').val(d.type);
+    $('#component_is_editable').prop('checked', !!d.is_editable);
 }
 
-function editComponent(id, code, name, category, type, description) {
+function editComponent(id, code, name, category, type, description, isEditable) {
     $('#component_id').val(id);
     $('#component_code option[data-extra]').remove();
     $('#component_code option').prop('disabled', false);
@@ -1089,6 +1110,7 @@ function editComponent(id, code, name, category, type, description) {
     $('#component_category').val(category);
     $('#component_type').val(type);
     $('#component_description').val(description);
+    $('#component_is_editable').prop('checked', parseInt(isEditable) === 1);
     $('#modalComponentTitle').html('<i class="fa fa-list-check me-2"></i>Edit Komponen Tunjangan');
     $('#modalComponent').modal('show');
 }
@@ -1107,6 +1129,7 @@ function submitComponent(e) {
             category: $('#component_category').val(),
             type: $('#component_type').val(),
             description: $('#component_description').val(),
+            is_editable: $('#component_is_editable').is(':checked') ? 1 : 0,
             _token: '{{ csrf_token() }}'
         },
         success: function(resp) {

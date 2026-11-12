@@ -17,6 +17,18 @@ class CnsMenuListsSeeder extends Seeder
         $count = 0;
 
         foreach ($rows as $menuId => [$name, $path, $module, $position, $parent, $urutan]) {
+            $existing = DB::table('menu_lists')->where('Menu_ID', $menuId)->first();
+
+            // Never overwrite a menu that belongs to another module. The global
+            // MenuListsSeeder can reuse ids (e.g. SI00338 is Credential's
+            // "Role & Permissions"), and a blind upsert would corrupt it.
+            if ($existing && $existing->Modules !== $module && $existing->Modules !== '') {
+                $this->command->warn(
+                    "Skipping {$menuId} ({$name}): id is already used by module {$existing->Modules}"
+                );
+                continue;
+            }
+
             DB::table('menu_lists')->updateOrInsert(
                 ['Menu_ID' => $menuId],
                 [

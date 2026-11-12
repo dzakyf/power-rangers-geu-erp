@@ -129,7 +129,7 @@
         $tr.append('<td><select class="form-control form-control-sm cont-select" data-group="' + i + '"></select></td>');
         $tr.append('<td><input type="number" step="0.01" class="form-control form-control-sm cont-volume" style="display:none;" placeholder="Volume (L)"></td>');
         $tr.append('<td><input type="number" step="0.01" class="form-control form-control-sm cont-qty" value="' + (preset ? preset.qty : '') + '"></td>');
-        $tr.append('<td><input type="number" step="0.01" class="form-control form-control-sm cont-price" value="' + (g.avg_price || 0) + '"></td>');
+        $tr.append('<td><input type="number" step="0.01" class="form-control form-control-sm cont-price" value="' + (g.avg_price || 0) + '" readonly title="Harga dihitung dari PO"></td>');
         $tr.append('<td><button type="button" class="btn btn-sm btn-danger btn-remove-cont">&times;</button></td>');
         items.append($tr);
 
@@ -230,7 +230,7 @@
                 dataType: 'json',
                 delay: 250,
                 data: function(p) {
-                    return { format: 'json', status: 'DONE', q: p.term || '' };
+                    return { format: 'json', status: 'DONE', for_instock: 1, q: p.term || '' };
                 },
                 processResults: function(res) {
                     return { results: (res.data || []).map(function(r) {
@@ -274,7 +274,7 @@
                         if (g.po_details && g.po_details.length) {
                             g.po_details.forEach(function(po) {
                                 tbody.append('<tr class="po-detail-row" data-group="' + i + '" style="display:none;">' +
-                                    '<td colspan="2" style="padding-left:30px;font-size:0.9em;"><strong>' + po.po_code + '</strong> — ' + po.poo_name + '</td>' +
+                                    '<td colspan="2" style="padding-left:30px;font-size:0.9em;"><strong>' + po.po_code + '</strong> — ' + po.poo_name + (po.package ? ' <span class="text-muted">(' + po.package + ')</span>' : '') + '</td>' +
                                     '<td>' + po.qty_plan + '</td>' +
                                     '<td>' + (po.qty_actual || '-') + '</td>' +
                                     '<td>' + po.percentage + '%</td>' +
@@ -344,6 +344,9 @@
                     received_qty: g.received_qty,
                     avg_price: g.avg_price,
                     total: g.total,
+                    po_ids: g.po_ids || [],
+                    do_ids: g.do_ids || [],
+                    wo_ids: g.wo_ids || [],
                     containers: containers
                 };
             });

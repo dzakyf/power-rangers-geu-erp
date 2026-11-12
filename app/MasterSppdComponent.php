@@ -14,5 +14,10 @@ class MasterSppdComponent extends Model
         'category',
         'type',
         'description',
+        'is_editable',
+    ];
+
+    protected $casts = [
+        'is_editable' => 'boolean',
     ];
 }

@@ -62,7 +62,7 @@
                                     <input type="text" class="form-control" id="Site" name="Site">
                                 </div>
                                 <div class="form-group col-md-6">
-                                    <label for="Price">Price (auto from POO)</label>
+                                    <label for="Price">Price <span id="PriceUnitLabel" class="text-muted">(auto from POO)</span></label>
                                     <input type="text" class="form-control" id="Price" name="Price" readonly>
                                 </div>
                             </div>
@@ -81,10 +81,12 @@
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="Package">Package</label>
-                                    <input type="text" class="form-control" id="Package" name="Package">
+                                    <select class="form-control" id="Package" name="Package">
+                                        <option value="">-- Pilih Kemasan --</option>
+                                    </select>
                                 </div>
                                 <div class="form-group col-md-6">
-                                    <label for="Qty">Qty</label>
+                                    <label for="Qty">Qty <span id="QtyUnitLabel" class="text-muted">(Liter)</span></label>
                                     <input type="number" class="form-control" id="Qty" name="Qty" min="0">
                                 </div>
                             </div>
@@ -106,6 +108,27 @@
 </div>
 
 <script>
+    var pooPricePerLiter = null;
+
+    function selectedPackageCapacity() {
+        var capacity = parseFloat($('#Package option:selected').data('capacity'));
+        return capacity > 0 ? capacity : 1;
+    }
+
+    function updatePackagePriceLabel() {
+        var packageName = $('#Package').val();
+        var capacity = selectedPackageCapacity();
+        var isPackage = capacity > 1 && packageName;
+
+        $('#QtyUnitLabel').text(isPackage ? '(' + packageName + ')' : '(Liter)');
+        $('#PriceUnitLabel').text(isPackage ? '(per ' + packageName + ')' : '(auto from POO, per Liter)');
+
+        if (pooPricePerLiter !== null) {
+            var next = isPackage ? pooPricePerLiter * capacity : pooPricePerLiter;
+            $('#Price').val(Math.round(next * 100) / 100);
+        }
+    }
+
     $(document).ready(function() {
         $('#POO_Id').select2({
             placeholder: '-- Pilih POO --',
@@ -144,8 +167,23 @@
             var coverage = data.province ? (data.province + ' - ' + (data.city || '')) : (data.city || '');
             $('#Coverage').val(coverage || '');
             $('#Site').val(data.city || '');
-            $('#Price').val(data.price || '');
+            pooPricePerLiter = data.price != null && data.price !== '' ? parseFloat(data.price) : null;
+            updatePackagePriceLabel();
         });
+
+        $.get('master-packaging-data', function(res) {
+            var $pkg = $('#Package');
+            $.each(res.data, function(_, item) {
+                $pkg.append($('<option>', {
+                    value: item.Name,
+                    text: item.Name,
+                    'data-capacity': item.Capacity
+                }));
+            });
+            updatePackagePriceLabel();
+        });
+
+        $('#Package').on('change', updatePackagePriceLabel);
         $.get('master-work-order-status-data', function(res) {
             var $sel = $('#Status');
             $sel.empty().append($('<option>', {

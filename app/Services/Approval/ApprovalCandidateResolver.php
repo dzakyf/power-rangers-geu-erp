@@ -31,8 +31,14 @@ class ApprovalCandidateResolver
         $fallbackType = null;
 
         if (empty($positions)) {
-            $positions = $this->higherLevelPositions((int) $step->Level_Number, $context);
-            $fallbackType = 'HIGHER_LEVEL';
+            $hierarchyParent = $this->resolveHierarchyParent($step, $context, $requesterId);
+            if ($hierarchyParent) {
+                $positions = [$hierarchyParent];
+                $fallbackType = 'PARENT';
+            } else {
+                $positions = $this->higherLevelPositions((int) $step->Level_Number, $context);
+                $fallbackType = 'HIGHER_LEVEL';
+            }
         }
 
         if (empty($positions)) {
@@ -121,7 +127,18 @@ class ApprovalCandidateResolver
             : (string) ($context['Department'] ?? '');
 
         if ($department !== '') {
-            $query->where('Department', $department);
+            $mDept = DB::table('master_department')
+                ->where('Department', $department)
+                ->orWhere('Initial', $department)
+                ->first();
+            $deptInitial = $mDept ? $mDept->Initial : $department;
+            $deptFullName = $mDept ? $mDept->Department : $department;
+
+            $query->where(function ($dq) use ($department, $deptInitial, $deptFullName) {
+                $dq->where('Department', $department)
+                   ->orWhere('Department', $deptInitial)
+                   ->orWhere('Department', $deptFullName);
+            });
         }
 
         return $query->orderBy('Level', 'ASC')
@@ -539,6 +556,70 @@ class ApprovalCandidateResolver
         }
     }
 
+    protected function resolveHierarchyParent($step, array $context, int $requesterId = null)
+    {
+        $targetLevel = (int) $step->Level_Number;
+
+        // 1. Dapatkan posisi pemohon atau posisi kepala departemen
+        $startingPosition = null;
+        if ($requesterId) {
+            $user = DB::table('users')->where('id', $requesterId)->first();
+            if ($user && !empty($user->Position)) {
+                $startingPosition = DB::table('master_position')
+                    ->where(function ($q) use ($user) {
+                        $q->where('Initial', $user->Position)
+                          ->orWhere('Position', $user->Position);
+                    })
+                    ->first();
+            }
+            if (!$startingPosition && $user && !empty($user->Emp_ID)) {
+                $emp = DB::table('employment')->where('NIK', $user->Emp_ID)->first();
+                if ($emp && !empty($emp->Position)) {
+                    $startingPosition = DB::table('master_position')
+                        ->where(function ($q) use ($emp) {
+                            $q->where('Initial', $emp->Position)
+                              ->orWhere('Position', $emp->Position);
+                        })
+                        ->first();
+                }
+            }
+        }
+
+        if (!$startingPosition && !empty($context['Department'])) {
+            $dept = (string) $context['Department'];
+            $startingPosition = DB::table('master_position')
+                ->where('Department', $dept)
+                ->where('Level', 3)
+                ->first();
+        }
+
+        if (!$startingPosition) {
+            return null;
+        }
+
+        // Telusuri hierarki atasan (Parent_Position_ID atau organization_structure)
+        $current = $startingPosition;
+        for ($i = 0; $i < 5; $i++) {
+            $parent = null;
+            if (!empty($current->Parent_Position_ID)) {
+                $parent = $this->positionById((int) $current->Parent_Position_ID, $context);
+            }
+            if (!$parent) {
+                $parent = $this->organizationParent($current, $context);
+            }
+            if (!$parent) {
+                break;
+            }
+
+            if (isset($parent->Level) && is_numeric($parent->Level) && (int) $parent->Level <= $targetLevel) {
+                return $parent;
+            }
+            $current = $parent;
+        }
+
+        return null;
+    }
+
     public function higherLevelPositions(int $level, array $context, int $excludeId = null): array
     {
         if ($level <= 1) {
@@ -562,10 +643,37 @@ class ApprovalCandidateResolver
                 $query->where('ID', '!=', $excludeId);
             }
 
-            return $query->orderBy('Level', 'DESC')
+            // Jika lintas departemen (fallback), prioritaskan lini manajemen (BOD/DIR) dan kecualikan divisi independen (AUD)
+            if (!$withDepartment) {
+                $query->where(function ($dq) {
+                    $dq->whereIn('Department', ['DIR', 'BOD'])
+                       ->orWhereIn('Directorat', ['BOD', 'DIR'])
+                       ->orWhereNotIn('Department', ['AUD', 'INTERNAL AUDIT']);
+                });
+            }
+
+            $list = $query->orderBy('Level', 'DESC')
                 ->orderBy('ID', 'ASC')
                 ->get()
                 ->all();
+
+            if (empty($list)) {
+                return [];
+            }
+
+            // Ambil hanya level terdekat (misal: jika ada Level 1, jangan campur dengan Level 0)
+            $closestLevel = $list[0]->Level;
+            $filtered = array_values(array_filter($list, function ($p) use ($closestLevel) {
+                return (int) $p->Level === (int) $closestLevel;
+            }));
+
+            // Jika terdapat posisi di Direktorat BOD / Department DIR (seperti VPD), prioritaskan posisi tersebut
+            $dirPositions = array_values(array_filter($filtered, function ($p) {
+                return in_array(strtoupper((string) $p->Department), ['DIR', 'BOD'])
+                    || in_array(strtoupper((string) $p->Directorat), ['BOD', 'DIR']);
+            }));
+
+            return !empty($dirPositions) ? $dirPositions : $filtered;
         };
 
         $positions = $run(true);
