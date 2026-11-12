@@ -44,11 +44,11 @@
                                  aria-valuenow="1" aria-valuemin="1" aria-valuemax="5" id="formProgress"></div>
                         </div>
                         <div class="d-flex justify-content-between text-muted small mt-2 px-1">
-                            <span id="step-label-0" class="step-label active fw-bold text-success">1. Personal</span>
-                            <span id="step-label-1" class="step-label">2. Kontak</span>
+                            <span id="step-label-0" class="step-label active fw-bold font-weight-bold text-success">1. Data Pribadi</span>
+                            <span id="step-label-1" class="step-label">2. Kontak & Referensi</span>
                             <span id="step-label-2" class="step-label">3. Pendidikan</span>
                             <span id="step-label-3" class="step-label">4. Dokumen</span>
-                            <span id="step-label-4" class="step-label">5. Review & Submit</span>
+                            <span id="step-label-4" class="step-label">5. Review & Kirim</span>
                         </div>
                     </div>
 
@@ -56,27 +56,27 @@
                     <ul class="nav nav-pills nav-fill nav-tabs-recruitment mb-4 p-1 bg-light rounded-3" id="recruitmentTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <a class="nav-link active rounded-2" id="personal-tab" href="#personal" role="tab" aria-controls="personal" aria-selected="true">
-                                <i class="fas fa-user me-1"></i> <span class="d-none d-md-inline">1. Data Pribadi</span>
+                                <i class="fas fa-user me-1 mr-1"></i> <span class="d-none d-md-inline">1. Data Pribadi</span>
                             </a>
                         </li>
                         <li class="nav-item" role="presentation">
                             <a class="nav-link rounded-2" id="contact-tab" href="#contact" role="tab" aria-controls="contact" aria-selected="false">
-                                <i class="fas fa-address-book me-1"></i> <span class="d-none d-md-inline">2. Kontak & Alamat</span>
+                                <i class="fas fa-address-book me-1 mr-1"></i> <span class="d-none d-md-inline">2. Kontak & Referensi</span>
                             </a>
                         </li>
                         <li class="nav-item" role="presentation">
                             <a class="nav-link rounded-2" id="education-tab" href="#education" role="tab" aria-controls="education" aria-selected="false">
-                                <i class="fas fa-graduation-cap me-1"></i> <span class="d-none d-md-inline">3. Riwayat Pendidikan</span>
+                                <i class="fas fa-graduation-cap me-1 mr-1"></i> <span class="d-none d-md-inline">3. Pendidikan Terakhir</span>
                             </a>
                         </li>
                         <li class="nav-item" role="presentation">
                             <a class="nav-link rounded-2" id="documents-tab" href="#documents" role="tab" aria-controls="documents" aria-selected="false">
-                                <i class="fas fa-file-upload me-1"></i> <span class="d-none d-md-inline">4. Unggah Dokumen</span>
+                                <i class="fas fa-file-upload me-1 mr-1"></i> <span class="d-none d-md-inline">4. Unggah Dokumen</span>
                             </a>
                         </li>
                         <li class="nav-item" role="presentation">
                             <a class="nav-link rounded-2" id="review-tab" href="#review" role="tab" aria-controls="review" aria-selected="false">
-                                <i class="fas fa-check-circle me-1"></i> <span class="d-none d-md-inline">5. Review Akhir</span>
+                                <i class="fas fa-check-circle me-1 mr-1"></i> <span class="d-none d-md-inline">5. Review Akhir</span>
                             </a>
                         </li>
                     </ul>
@@ -118,19 +118,19 @@
                         <div class="card-footer bg-white border-0 px-0 pt-4 mt-3">
                             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                                 <div>
-                                    <button type="button" class="btn btn-outline-secondary px-4 py-2" id="btnPrevious">
-                                        <i class="fas fa-arrow-left me-1"></i> Sebelumnya
+                                    <button type="button" class="btn btn-outline-secondary px-4 py-2 font-weight-bold fw-bold" id="btnPrevious">
+                                        <i class="fas fa-arrow-left me-1 mr-1"></i> Sebelumnya
                                     </button>
                                 </div>
                                 <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-outline-info px-3 py-2 me-2" id="btnSaveDraft">
-                                        <i class="fas fa-save me-1"></i> Simpan Draft
+                                    <button type="button" class="btn btn-outline-info px-3 py-2 me-2 mr-2" id="btnSaveDraft">
+                                        <i class="fas fa-save me-1 mr-1"></i> Simpan Draft
                                     </button>
-                                    <button type="button" class="btn btn-primary px-4 py-2" id="btnNext">
-                                        Selanjutnya <i class="fas fa-arrow-right ms-1"></i>
+                                    <button type="button" class="btn btn-primary px-4 py-2 font-weight-bold fw-bold" id="btnNext">
+                                        Selanjutnya <i class="fas fa-arrow-right ms-1 ml-1"></i>
                                     </button>
-                                    <button type="button" class="btn btn-success px-4 py-2 font-weight-bold" id="btnSubmit" style="display: none;">
-                                        <i class="fas fa-paper-plane me-1"></i> Kirim Lamaran
+                                    <button type="button" class="btn btn-success px-4 py-2 font-weight-bold fw-bold" id="btnSubmit" style="display: none;">
+                                        <i class="fas fa-paper-plane me-1 mr-1"></i> Kirim Lamaran
                                     </button>
                                 </div>
                             </div>
@@ -147,8 +147,8 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content shadow border-0">
             <div class="modal-header bg-success text-white py-3 px-4">
-                <h5 class="modal-title font-weight-bold" id="modalPreparationGuideLabel">
-                    <i class="fas fa-clipboard-check me-2"></i> Checklist Berkas & Panduan Input Kandidat
+                <h5 class="modal-title font-weight-bold fw-bold" id="modalPreparationGuideLabel">
+                    <i class="fas fa-clipboard-check me-2 mr-2"></i> Checklist Berkas & Panduan Input Kandidat
                 </h5>
                 <button type="button" class="close btn-close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
@@ -156,45 +156,45 @@
             </div>
             <div class="modal-body p-4">
                 <div class="alert alert-info py-2 px-3 small mb-3">
-                    <i class="fas fa-info-circle me-1"></i> Siapkan dokumen dan informasi berikut sebelum mulai menginput formulir rekrutmen:
+                    <i class="fas fa-info-circle me-1 mr-1"></i> Siapkan dokumen dan informasi berikut sebelum mulai menginput formulir rekrutmen:
                 </div>
 
                 <div class="row g-3">
                     {{-- 1. Dokumen Berkas --}}
                     <div class="col-md-6">
                         <div class="card h-100 border">
-                            <div class="card-header bg-light py-2 px-3 font-weight-bold text-dark">
-                                <i class="fas fa-file-pdf text-danger me-1"></i> 1. Berkas Lampiran (File)
+                            <div class="card-header bg-light py-2 px-3 font-weight-bold fw-bold text-dark">
+                                <i class="fas fa-file-pdf text-danger me-1 mr-1"></i> 1. Berkas Lampiran (File)
                             </div>
                             <div class="card-body p-3 small">
                                 <ul class="list-group list-group-flush mb-0">
                                     <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
-                                        <span><strong>Pas Foto Formal</strong> (Format JPG/PNG, maks 2 MB)</span>
-                                        <span class="badge bg-danger text-white">Wajib</span>
-                                    </li>
-                                    <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
                                         <span><strong>Curriculum Vitae (CV)</strong> (PDF/Word, maks 5 MB)</span>
-                                        <span class="badge bg-danger text-white">Wajib</span>
+                                        <span class="badge bg-danger badge-danger text-white">Wajib</span>
                                     </li>
                                     <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
                                         <span><strong>KTP / Identitas</strong> (Scan/Foto jelas, maks 5 MB)</span>
-                                        <span class="badge bg-danger text-white">Wajib</span>
+                                        <span class="badge bg-danger badge-danger text-white">Wajib</span>
+                                    </li>
+                                    <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+                                        <span><strong>Pas Foto Formal</strong> (Format JPG/PNG, maks 2 MB)</span>
+                                        <span class="badge bg-secondary badge-secondary text-white">Opsional</span>
                                     </li>
                                     <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
                                         <span><strong>Ijazah / SKL</strong> (PDF/Scan, maks 5 MB)</span>
-                                        <span class="badge bg-danger text-white">Wajib</span>
+                                        <span class="badge bg-secondary badge-secondary text-white">Opsional</span>
                                     </li>
                                     <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
                                         <span><strong>Transkrip Nilai</strong> (PDF/Scan, maks 5 MB)</span>
-                                        <span class="badge bg-secondary text-white">Opsional</span>
+                                        <span class="badge bg-secondary badge-secondary text-white">Opsional</span>
                                     </li>
                                     <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
                                         <span><strong>Sertifikat Pelatihan / Keahlian</strong></span>
-                                        <span class="badge bg-secondary text-white">Opsional</span>
+                                        <span class="badge bg-secondary badge-secondary text-white">Opsional</span>
                                     </li>
                                     <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
                                         <span><strong>NPWP</strong></span>
-                                        <span class="badge bg-secondary text-white">Opsional</span>
+                                        <span class="badge bg-secondary badge-secondary text-white">Opsional</span>
                                     </li>
                                 </ul>
                             </div>
@@ -204,23 +204,23 @@
                     {{-- 2. Data Teks Isian --}}
                     <div class="col-md-6">
                         <div class="card h-100 border">
-                            <div class="card-header bg-light py-2 px-3 font-weight-bold text-dark">
-                                <i class="fas fa-edit text-primary me-1"></i> 2. Informasi yang Diperlukan
+                            <div class="card-header bg-light py-2 px-3 font-weight-bold fw-bold text-dark">
+                                <i class="fas fa-edit text-primary me-1 mr-1"></i> 2. Informasi yang Diperlukan
                             </div>
                             <div class="card-body p-3 small">
-                                <h6 class="fw-bold text-success mb-1">A. Data Personal & PTK</h6>
+                                <h6 class="fw-bold font-weight-bold text-success mb-1">A. Data Personal & Posisi</h6>
                                 <p class="text-muted mb-2">
-                                    Posisi PTK yang dilamar, Tipe Rekrutmen, Nama Lengkap (sesuai KTP), No. KTP (16 digit), Tempat & Tgl Lahir (min. 17 thn), Jenis Kelamin, Agama, dan Status Pernikahan.
+                                    Posisi yang dilamar, Nama Lengkap, Tanggal Lahir & Usia, Jenis Kelamin, Status Pernikahan, dan Alamat Domisili saat ini.
                                 </p>
 
-                                <h6 class="fw-bold text-success mb-1">B. Kontak & Alamat</h6>
+                                <h6 class="fw-bold font-weight-bold text-success mb-1">B. Kontak & Referensi</h6>
                                 <p class="text-muted mb-2">
-                                    No. Handphone / WhatsApp aktif (10-15 digit), Email aktif, Alamat KTP, Alamat Domisili saat ini, dan Kontak Darurat (Nama & No. Telp).
+                                    Nomor WhatsApp aktif, Email aktif, dan 1 Kontak Referensi (Nama, Hubungan, Nomor Kontak, dan Perusahaan).
                                 </p>
 
-                                <h6 class="fw-bold text-success mb-1">C. Riwayat Pendidikan</h6>
+                                <h6 class="fw-bold font-weight-bold text-success mb-1">C. Pendidikan Terakhir</h6>
                                 <p class="text-muted mb-0">
-                                    Jenjang Terakhir (SD s/d S3), Nama Institusi/Universitas, Jurusan/Program Studi, Tahun Lulus, dan Nilai Akhir / IPK.
+                                    Jenjang Pendidikan, Nama Sekolah/Universitas/Instansi, dan Tahun Kelulusan.
                                 </p>
                             </div>
                         </div>
@@ -228,15 +228,15 @@
                 </div>
             </div>
             <div class="modal-footer bg-light py-2 px-4">
-                <button type="button" class="btn btn-success btn-sm px-4 fw-bold" data-dismiss="modal" data-bs-dismiss="modal">
-                    <i class="fas fa-check me-1"></i> Mengerti & Mulai Pengisian
+                <button type="button" class="btn btn-success btn-sm px-4 fw-bold font-weight-bold" data-dismiss="modal" data-bs-dismiss="modal">
+                    <i class="fas fa-check me-1 mr-1"></i> Mengerti & Mulai Pengisian
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-{{-- Custom Styles & Responsive Fix --}}
+{{-- Custom Styles & Cross-Compatibility Bootstrap 4 & 5 --}}
 <style>
     .nav-tabs-recruitment .nav-link {
         color: #495057;
@@ -253,58 +253,138 @@
     }
     
     .nav-tabs-recruitment .nav-link.active {
-        background-color: #28a745 !important;
+        background-color: #198754 !important;
         color: #ffffff !important;
         font-weight: 600;
-        box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+        box-shadow: 0 2px 6px rgba(25, 135, 84, 0.3);
     }
     
     .section-title {
         font-size: 1.15rem;
         font-weight: 700;
         color: #198754;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
         padding-bottom: 10px;
         border-bottom: 2px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
     
     .info-box {
-        background-color: #e8f4fd;
-        border-left: 4px solid #0d6efd;
+        background-color: #f0fdf4;
+        border-left: 4px solid #198754;
         padding: 12px 16px;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
         border-radius: 6px;
-        font-size: 14px;
+        font-size: 13.5px;
+        color: #14532d;
     }
     
-    .form-group label {
+    .form-group {
+        margin-bottom: 1.15rem;
+    }
+
+    .form-group label, .form-label {
         font-weight: 600;
         color: #343a40;
         margin-bottom: 6px;
         font-size: 13.5px;
+        display: block;
     }
     
-    .form-group label .required {
+    .form-group label .required, .form-label .required {
         color: #dc3545;
         font-weight: bold;
+        margin-left: 2px;
     }
     
     .form-control:focus, .form-select:focus {
-        border-color: #28a745;
-        box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.2);
+        border-color: #198754;
+        box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.2);
+    }
+
+    /* Compatibility fix for BS4 custom-file inside BS5 Adminor */
+    .custom-file {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        height: calc(1.5em + 0.75rem + 4px);
+        margin-bottom: 0;
+    }
+    .custom-file-input {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        height: calc(1.5em + 0.75rem + 4px);
+        margin: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+    .custom-file-label {
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
+        z-index: 1;
+        height: calc(1.5em + 0.75rem + 4px);
+        padding: 0.45rem 0.75rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #495057;
+        background-color: #fff;
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-bottom: 0 !important;
+    }
+    .custom-file-label::after {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 3;
+        display: block;
+        height: 100%;
+        padding: 0.45rem 0.85rem;
+        line-height: 1.5;
+        color: #495057;
+        content: "Pilih File";
+        background-color: #e9ecef;
+        border-left: 1px solid #ced4da;
+        border-radius: 0 0.375rem 0.375rem 0;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    /* Compatibility fix for BS4 input-group-prepend / append inside BS5 */
+    .input-group > .input-group-prepend,
+    .input-group > .input-group-append {
+        display: flex;
+    }
+    .input-group > .input-group-prepend > .input-group-text {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    .input-group > .input-group-append > .input-group-text,
+    .input-group > .input-group-append > .btn {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
     }
     
     .review-section-title {
         font-weight: 700;
         font-size: 1rem;
-        color: #2c3e50;
+        color: #198754;
         padding-bottom: 8px;
         border-bottom: 1px solid #dee2e6;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
     }
     
     .step-label {
-        font-size: 12px;
+        font-size: 12.5px;
         transition: color 0.3s;
     }
 </style>

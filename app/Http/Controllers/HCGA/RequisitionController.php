@@ -803,4 +803,41 @@ class RequisitionController extends Controller
 
         return 'success';
     }
+
+    /**
+     * Tampilkan halaman Dashboard PTK (Requisition Pivot Dashboard)
+     * GET /hrd-recruitment-dashboard
+     */
+    public function dashboard()
+    {
+        $user = Auth::user();
+        $lsp = $user ? $user->Location : null;
+
+        $query = DB::table('requisition')
+            ->select(
+                'Task_ID',
+                'Subject',
+                'Placement',
+                'Job_Position',
+                'Department',
+                'Priority',
+                'Allocation',
+                'Qty',
+                'Status',
+                'Requisition_Type',
+                'PO_No',
+                'PIC_Production',
+                'Work_Area',
+                'Work_Schedule',
+                'Created_By'
+            );
+
+        if (!empty($lsp)) {
+            $query->where('Location', $lsp);
+        }
+
+        $getRecruit = $query->get();
+
+        return view('humanresources.recruitment.recruitment-dashboard', compact('getRecruit'));
+    }
 }

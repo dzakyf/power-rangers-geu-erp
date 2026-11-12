@@ -2,6 +2,29 @@
 @include('layout.adminor.tab-head')
 <script src="{{ asset('blockui.js') }}"></script>
 <link rel="stylesheet" type="text/css" href="{{ asset('blockui.css') }}" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
+<style>
+    .select2-container {
+        width: 100% !important;
+        display: block !important;
+    }
+    .select2-container .select2-selection--single {
+        height: 31px !important;
+        padding: 2px 6px !important;
+        font-size: 0.875rem !important;
+        border: 1px solid #ced4da !important;
+        border-radius: 0.25rem !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 25px !important;
+        color: #495057 !important;
+        padding-left: 0 !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 29px !important;
+    }
+</style>
 <?php
 error_reporting(0);
 
@@ -252,10 +275,13 @@ foreach ($Query1 as $Fetch1) {
                     <select id="Last_Education" class="form-select form-select-sm">
                         <option>SMA</option>
                         <option>SMK</option>
+                        <option>D1</option>
                         <option>D2</option>
                         <option>D3</option>
+                        <option>D4</option>
                         <option>S1</option>
                         <option>S2</option>
+                        <option>S3</option>
                     </select>
                 </div>
                 <div class="col-md-4">
@@ -353,13 +379,42 @@ foreach ($Query1 as $Fetch1) {
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small fw-bold text-muted">Tax Gross Up</label>
-                    <input type="text" class="form-control form-control-sm bg-light" value="<?php echo (($datahasil->PPH_Allowance ?? 0) == 1) ? 'YES' : 'NO'; ?>" readonly>
+                    <label class="form-label small fw-bold text-muted">Tax Gross Up (Ditanggung Perusahaan)</label>
+                    <select id="PPH_Allowance" class="form-select form-select-sm">
+                        <option value="0" <?php echo (($datahasil->PPH_Allowance ?? 0) == 0) ? 'selected' : ''; ?>>NO (Gross - Potong Gaji Karyawan)</option>
+                        <option value="1" <?php echo (($datahasil->PPH_Allowance ?? 0) == 1) ? 'selected' : ''; ?>>YES (Gross Up - Ditanggung Perusahaan)</option>
+                    </select>
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted" for="Payment_Reference">Bank Name</label>
-                    <input type="text" id="Payment_Reference" class="form-control form-control-sm" value="<?php echo $datahasil->Payment_Reference ?? ''; ?>" placeholder="BCA / Mandiri / BNI">
+                    <?php
+                    $masterBanks = [];
+                    if (\Illuminate\Support\Facades\Schema::hasTable('master_bank')) {
+                        $masterBanks = \Illuminate\Support\Facades\DB::table('master_bank')
+                            ->where('Is_Active', 1)
+                            ->orderBy('Bank_Name', 'ASC')
+                            ->get();
+                    }
+                    $currentBank = trim($datahasil->Payment_Reference ?? '');
+                    $bankFound = false;
+                    ?>
+                    <select id="Payment_Reference" class="form-select form-select-sm select2-bank">
+                        <option value="">-- Pilih Bank --</option>
+                        <?php foreach ($masterBanks as $mb): 
+                            $isSelected = (strcasecmp($currentBank, $mb->Bank_Name) === 0 || strcasecmp($currentBank, $mb->Bank_Code) === 0);
+                            if ($isSelected) $bankFound = true;
+                        ?>
+                            <option value="<?php echo htmlspecialchars($mb->Bank_Name); ?>" <?php echo $isSelected ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($mb->Bank_Name); ?>
+                            </option>
+                        <?php endforeach; ?>
+                        <?php if (!empty($currentBank) && !$bankFound): ?>
+                            <option value="<?php echo htmlspecialchars($currentBank); ?>" selected>
+                                <?php echo htmlspecialchars($currentBank); ?> (Custom)
+                            </option>
+                        <?php endif; ?>
+                    </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted" for="Payment_Reference2">Bank Account No</label>
@@ -485,9 +540,35 @@ function formatnpwp(nilai) {
 var myCalendar = new dhtmlXCalendarObject(["Start_Date", "End_Date", "Date_in", "Birth_Date"]);
 myCalendar.setDateFormat("%Y-%m-%d");
 
-if (typeof $ !== 'undefined' && $.fn.select2) {
-    $('#Location').select2({ width: '100%', placeholder: '-- Pilih Branch Office --', allowClear: true });
-}
+$(document).ready(function() {
+    function initSearchableSelects() {
+        if (typeof $ !== 'undefined' && $.fn.select2) {
+            var selects = [
+                { id: '#Payment_Reference', placeholder: '-- Cari & Pilih Bank --' },
+                { id: '#Location', placeholder: '-- Cari & Pilih Branch Office --' },
+                { id: '#Department', placeholder: '-- Cari & Pilih Departemen --' },
+                { id: '#PTKP_Status', placeholder: '-- Pilih Status PTKP --' },
+                { id: '#Last_Education', placeholder: '-- Pilih Pendidikan --' },
+                { id: '#Religion', placeholder: '-- Pilih Agama --' },
+                { id: '#Marital_Status', placeholder: '-- Pilih Status Perkawinan --' }
+            ];
+
+            selects.forEach(function(item) {
+                if ($(item.id).length) {
+                    $(item.id).select2({
+                        width: '100%',
+                        placeholder: item.placeholder,
+                        allowClear: true,
+                        dropdownParent: $('#ContentPages')
+                    });
+                }
+            });
+        }
+    }
+
+    initSearchableSelects();
+    setTimeout(initSearchableSelects, 300);
+});
 
 $('#buttonSimpan').click(function() {
     var gettingVars = getAllValues();

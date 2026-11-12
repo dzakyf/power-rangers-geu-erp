@@ -85,13 +85,21 @@ class ReimbursementApprovalService
      */
     public function buildContext($reimbursement, $user): array
     {
-        $emp = DB::table('employment')->where('NIK', $user->Emp_ID)->first();
+        $nik = !empty($reimbursement->User_Responsibility_ID) ? $reimbursement->User_Responsibility_ID : ($user->Emp_ID ?? null);
+        $emp = null;
+        if ($nik) {
+            $emp = DB::table('employment')->where('NIK', $nik)->first();
+        }
+        if (!$emp && !empty($user->Emp_ID)) {
+            $emp = DB::table('employment')->where('NIK', $user->Emp_ID)->first();
+        }
+
         $pos = null;
         if ($emp && !empty($emp->Position)) {
             $pos = DB::table('master_position')->where('Initial', $emp->Position)->first();
         }
 
-        $department = trim((string) ($reimbursement->Department ?? ($user->Department ?? '')));
+        $department = trim((string) ($reimbursement->Department ?? ($emp->Department ?? ($user->Department ?? ''))));
         $companyId  = $pos->Company_ID ?? ($user->Company_ID ?? 'GEU');
         $location   = $pos->Location ?? ($user->Location ?? 'GEU-HO');
 

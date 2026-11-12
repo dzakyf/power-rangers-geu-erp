@@ -102,20 +102,31 @@
     .verification-box {
         background: #fffdf5;
         border: 1px solid #fef08a;
-        border-radius: 10px;
-        padding: 1.25rem;
+        border-radius: 12px;
+        padding: 1.35rem;
         margin-top: 1.5rem;
+        box-shadow: 0 2px 8px rgba(234, 179, 8, 0.08);
+    }
+    .btn-copy-acc {
+        padding: 0.25rem 0.65rem;
+        font-size: 0.75rem;
+        border-radius: 6px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        transition: all 0.15s ease;
     }
 </style>
 
 <div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
     <div>
         <h4 class="content-title fw-bold mb-1" style="font-size: 1.35rem; letter-spacing: 0.3px;">
-            Verifikasi Request Settlement
+            Verifikasi & Approval Settlement
         </h4>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="{{ url('hrd-settlement-approval-index') }}">Verifikasi Settlement</a></li>
+                <li class="breadcrumb-item"><a href="{{ url('hrd-settlement-approval-index') }}">Approval Settlement</a></li>
                 <li class="breadcrumb-item active" aria-current="page" style="font-weight: 600;">Pemeriksaan Dokumen ({{ $settlement->STTL_No }})</li>
             </ol>
         </nav>
@@ -125,7 +136,7 @@
             <i class="fa fa-print"></i> Cetak Dokumen
         </a>
         <a href="{{ url('hrd-settlement-approval-index') }}" class="btn btn-outline-secondary settlement-btn">
-            <i class="fa fa-arrow-left"></i> Kembali
+            <i class="fa fa-arrow-left"></i> Kembali ke Antrian
         </a>
     </div>
 </div>
@@ -137,9 +148,14 @@
                 <h3 class="settlement-card-title">
                     <i class="fa fa-clipboard-check text-warning"></i> Form Verifikasi Settlement : {{ $settlement->STTL_No }}
                 </h3>
-                <small class="text-muted"><i class="fa fa-user me-1"></i> Diajukan oleh: <strong>{{ $settlement->Requester_Name }}</strong> ({{ $settlement->Department }})</small>
+                <small class="text-muted"><i class="fa fa-calendar-alt me-1"></i> Diajukan pada: {{ $settlement->Created_Date ?? ($settlement->Created_At ?? '-') }}</small>
             </div>
-            <div>
+            <div class="d-flex align-items-center gap-2">
+                @if ($currentTask)
+                    <span class="badge bg-warning text-dark px-3 py-2" style="font-size: 0.8rem; font-weight: 600; border-radius: 20px;">
+                        <i class="fa fa-layer-group me-1"></i> Tahap: {{ $currentTask->Stage_Name ?: ('Step ' . $currentTask->Stage_Order) }}
+                    </span>
+                @endif
                 @php
                     $status = strtoupper($settlement->Status);
                     $badgeClass = 'bg-secondary text-white';
@@ -176,7 +192,7 @@
 
                 <div class="col-md-4 col-sm-6 col-12">
                     <div class="info-card-box">
-                        <div class="info-label"><i class="fa fa-user me-1"></i> Pemohon & NIK</div>
+                        <div class="info-label"><i class="fa fa-user me-1"></i> Karyawan Pemohon</div>
                         <div class="info-value">{{ $settlement->Requester_Name }}</div>
                         <small class="text-muted">NIK: {{ $settlement->Requester_NIK ?: '-' }}</small>
                     </div>
@@ -206,41 +222,112 @@
                     </div>
                 </div>
 
+                @php
+                    $calcManualTotal = 0;
+                    foreach ($expenses as $e) {
+                        $calcManualTotal += (float) $e->Cost;
+                    }
+                    $matrixAmt = isset($settlement->Matrix_Amount) ? (float) $settlement->Matrix_Amount : 0;
+                    $calcTotal = $calcManualTotal + $matrixAmt;
+
+                    $advNom = $settlement->Advance_Nominal !== null ? (float)$settlement->Advance_Nominal : 0;
+                    $diffVal = $calcTotal - $advNom;
+                @endphp
+
                 <div class="col-md-4 col-sm-6 col-12">
                     <div class="info-card-box">
-                        <div class="info-label"><i class="fa fa-hand-holding-usd me-1"></i> Advance / Uang Muka Diterima</div>
+                        <div class="info-label"><i class="fa fa-hand-holding-usd me-1"></i> Biaya Advance Diterima</div>
                         <div class="info-value">
                             {{ $settlement->Advance_Nominal !== null ? 'Rp ' . number_format((float) $settlement->Advance_Nominal, 0, ',', '.') : '-' }}
                         </div>
+                        @if ($advNom > 0 && $diffVal < 0)
+                            <div class="mt-1">
+                                <span class="badge bg-success text-white" style="font-size: 0.75rem;">
+                                    <i class="fa fa-undo-alt me-1"></i> Lebih Bayar: Rp {{ number_format(abs($diffVal), 0, ',', '.') }}
+                                </span>
+                            </div>
+                        @elseif ($diffVal > 0)
+                            <div class="mt-1">
+                                <span class="badge bg-danger text-white" style="font-size: 0.75rem;">
+                                    <i class="fa fa-hand-holding-usd me-1"></i> Kurang Bayar: Rp {{ number_format($diffVal, 0, ',', '.') }}
+                                </span>
+                            </div>
+                        @elseif ($advNom > 0 && $diffVal == 0)
+                            <div class="mt-1">
+                                <span class="badge bg-info text-white" style="font-size: 0.75rem;">
+                                    <i class="fa fa-check-circle me-1"></i> Pas Sesuai Advance
+                                </span>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
                 <div class="col-md-4 col-sm-6 col-12">
                     <div class="info-card-box">
-                        <div class="info-label"><i class="fa fa-university me-1"></i> Rekening Bank Karyawan</div>
-                        <div class="info-value">{{ $settlement->Bank ?: '-' }}</div>
+                        <div class="info-label d-flex justify-content-between align-items-center">
+                            <span><i class="fa fa-university me-1"></i> Rekening Bank Tujuan</span>
+                            @if (!empty($settlement->Bank))
+                                <button type="button" class="btn btn-outline-secondary btn-copy-acc py-0 px-2"
+                                    onclick="salinRekeningDetail('{{ addslashes($settlement->Bank) }}', this);"
+                                    title="Salin keterangan rekening">
+                                    <i class="fa fa-copy"></i> Salin
+                                </button>
+                            @endif
+                        </div>
+                        <div class="info-value font-monospace" style="font-size: 0.9rem;">
+                            {{ $settlement->Bank ?: '-' }}
+                        </div>
+                        <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                            @if ($advNom > 0 && $diffVal < 0)
+                                <i class="fa fa-info-circle text-success me-1"></i> Rekening kantor tujuan pengembalian dana
+                            @elseif ($diffVal > 0)
+                                <i class="fa fa-info-circle text-primary me-1"></i> Rekening karyawan tujuan pencairan reimbursement
+                            @else
+                                <i class="fa fa-info-circle text-muted me-1"></i> Rekening settlement terkonfirmasi
+                            @endif
+                        </small>
                     </div>
                 </div>
 
-                <div class="col-md-12 col-12">
+                <div class="col-md-4 col-sm-6 col-12">
                     <div class="info-card-box">
                         <div class="info-label"><i class="fa fa-paperclip me-1"></i> Berkas Lampiran Invoice / Bukti Kwitansi</div>
                         <div class="info-value">
                             @if ($invoice)
-                                <a href="{{ url('hrd-settlement-invoice?ID=' . $settlement->ID) }}" class="btn btn-sm btn-outline-primary mt-1" target="_blank">
-                                    <i class="fa fa-file-download me-1"></i> Unduh / Buka Dokumen: {{ $invoice->Filename }}
+                                <a href="{{ url('hrd-settlement-invoice?ID=' . $settlement->ID) }}" class="btn btn-sm btn-outline-primary mt-1 d-inline-flex align-items-center gap-1 shadow-sm" target="_blank">
+                                    <i class="fa fa-file-download text-primary"></i> 
+                                    <span class="text-truncate" style="max-width: 170px;">{{ $invoice->Filename }}</span>
                                 </a>
                             @else
-                                <span class="text-muted">- Tidak ada berkas kwitansi terlampir -</span>
+                                <span class="text-muted small">- Tidak ada berkas kwitansi terlampir -</span>
                             @endif
                         </div>
                     </div>
                 </div>
+
+                <div class="col-md-4 col-sm-6 col-12">
+                    <div class="info-card-box">
+                        <div class="info-label"><i class="fa fa-user-check me-1"></i> Validator / HCGA Dept Head</div>
+                        <div class="info-value">{{ $settlement->Validator_Name ?: '-' }}</div>
+                        @if (!empty($settlement->Approved_At))
+                            <small class="text-muted d-block mt-1"><i class="fa fa-clock me-1"></i> Waktu: {{ $settlement->Approved_At }}</small>
+                        @endif
+                    </div>
+                </div>
+
+                @if ($settlement->Approval_Note)
+                <div class="col-12">
+                    <div class="info-card-box bg-light border-warning">
+                        <div class="info-label text-warning"><i class="fa fa-comment-dots me-1"></i> Catatan Verifikasi / Approval</div>
+                        <div class="info-value text-dark" style="font-size: 0.9rem;">{!! nl2br(e($settlement->Approval_Note)) !!}</div>
+                    </div>
+                </div>
+                @endif
             </div>
 
             <!-- Rincian Biaya -->
             <div class="section-title">
-                <i class="fa fa-receipt text-primary"></i> Rincian Pengeluaran yang Diverifikasi
+                <i class="fa fa-receipt text-primary"></i> Rincian Penggunaan Biaya Real
             </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-striped align-middle mb-2">
@@ -264,18 +351,34 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-3 text-muted">Belum ada rincian biaya.</td>
+                                <td colspan="4" class="text-center py-3 text-muted">Belum ada rincian pengeluaran biaya.</td>
                             </tr>
                         @endforelse
                         <tr class="table-light fw-bold">
-                            <td colspan="2" class="text-end text-uppercase">Total Pengeluaran Real:</td>
+                            <td colspan="2" class="text-end text-uppercase">Total Pengeluaran Real (Manual):</td>
                             <td class="text-end font-monospace text-primary h6 mb-0">Rp {{ number_format($total, 0, ',', '.') }}</td>
                             <td></td>
                         </tr>
+                        @php
+                            $matrixAmt = isset($settlement->Matrix_Amount) ? (float) $settlement->Matrix_Amount : 0;
+                            $grandTotal = $total + $matrixAmt;
+                        @endphp
+                        @if ($matrixAmt > 0)
+                            <tr class="table-light fw-bold">
+                                <td colspan="2" class="text-end text-uppercase">Tunjangan Matriks Regulasi SPPD:</td>
+                                <td class="text-end font-monospace text-info h6 mb-0">+ Rp {{ number_format($matrixAmt, 0, ',', '.') }}</td>
+                                <td><small class="text-muted"><i class="fa fa-info-circle me-1"></i> Uang makan, uang saku, tiket & penginapan otomatis</small></td>
+                            </tr>
+                            <tr class="table-light fw-bold">
+                                <td colspan="2" class="text-end text-uppercase">Total Biaya Diperhitungkan:</td>
+                                <td class="text-end font-monospace text-dark h6 mb-0">Rp {{ number_format($grandTotal, 0, ',', '.') }}</td>
+                                <td></td>
+                            </tr>
+                        @endif
                         @if ($settlement->Advance_Nominal !== null && (float)$settlement->Advance_Nominal > 0)
                             @php 
                                 $adv = (float) $settlement->Advance_Nominal;
-                                $selisih = $total - $adv;
+                                $selisih = $grandTotal - $adv;
                             @endphp
                             <tr class="table-light fw-bold">
                                 <td colspan="2" class="text-end text-uppercase">Advance / Uang Muka Diterima:</td>
@@ -284,9 +387,15 @@
                             </tr>
                             <tr class="table-light fw-bold">
                                 <td colspan="2" class="text-end text-uppercase">
-                                    {{ $selisih >= 0 ? 'Kurang Bayar (Reimbursement ke Karyawan):' : 'Lebih Bayar (Dikembalikan ke Kantor):' }}
+                                    @if ($selisih < 0)
+                                        Lebih Bayar (Pengembalian Sisa Dana ke Perusahaan):
+                                    @elseif ($selisih > 0)
+                                        Kurang Bayar (Reimbursement Pencairan ke Karyawan):
+                                    @else
+                                        Status Selisih (Pas Sesuai Nilai Advance):
+                                    @endif
                                 </td>
-                                <td class="text-end font-monospace {{ $selisih >= 0 ? 'text-danger' : 'text-success' }}">
+                                <td class="text-end font-monospace {{ $selisih > 0 ? 'text-danger' : ($selisih < 0 ? 'text-success' : 'text-primary') }}">
                                     Rp {{ number_format(abs($selisih), 0, ',', '.') }}
                                 </td>
                                 <td></td>
@@ -298,16 +407,16 @@
 
             <!-- History Logs -->
             <div class="section-title">
-                <i class="fa fa-history text-primary"></i> Riwayat Aktivitas Pengajuan
+                <i class="fa fa-history text-primary"></i> Riwayat Aktivitas & Perjalanan Dokumen
             </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm align-middle">
                     <thead class="table-custom-header">
                         <tr>
                             <th style="width: 50px;" class="text-center">No</th>
-                            <th style="width: 150px;">Aksi</th>
+                            <th style="width: 150px;">Aksi / Aktivitas</th>
                             <th style="width: 200px;">Pelaksana (Actor)</th>
-                            <th>Catatan</th>
+                            <th>Catatan Log</th>
                             <th style="width: 170px;" class="text-center">Waktu Eksekusi</th>
                         </tr>
                     </thead>
@@ -329,23 +438,30 @@
                 </table>
             </div>
 
-            <!-- Panel Aksi Verifikasi HCGA Dept Head -->
+            <!-- Panel Aksi Verifikasi / Approval Sesuai Approval Engine -->
             @if ($canApprove)
                 <div class="verification-box">
-                    <h5 class="fw-bold text-dark mb-2">
-                        <i class="fa fa-user-check text-warning me-1"></i> Keputusan Verifikasi HCGA Dept Head
-                    </h5>
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="fa fa-user-check text-warning me-1"></i> Keputusan Persetujuan / Approval Settlement
+                        </h5>
+                        @if ($currentTask)
+                            <span class="badge bg-primary text-white px-3 py-2" style="font-size: 0.8rem; font-weight: 600; border-radius: 6px;">
+                                <i class="fa fa-tasks me-1"></i> Task: {{ $currentTask->Stage_Name ?: ('Step ' . $currentTask->Stage_Order) }}
+                            </span>
+                        @endif
+                    </div>
                     <p class="text-muted small mb-3">
-                        Silakan periksa kembali keaslian kwitansi/invoice serta kesesuaian rincian pengeluaran di atas sebelum memberikan keputusan.
+                        Silakan periksa kembali keaslian kwitansi/invoice serta kesesuaian rincian pengeluaran real di atas sebelum memberikan keputusan.
                     </p>
                     <div class="form-group mb-3">
-                        <label for="Note" class="fw-semibold text-dark mb-1">Catatan Verifikasi (Wajib diisi jika menolak / REJECT):</label>
+                        <label for="Note" class="fw-semibold text-dark mb-1">Catatan Persetujuan (Wajib diisi jika menolak / REJECT):</label>
                         <textarea id="Note" class="form-control" rows="3" placeholder="Tuliskan catatan verifikasi, alasan persetujuan, atau alasan penolakan..."></textarea>
                     </div>
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2">
                         <div class="d-flex gap-2">
                             <button type="button" class="btn btn-danger settlement-btn" id="rejectBtn">
-                                <i class="fa fa-times"></i> REJECT PENGATURAN
+                                <i class="fa fa-times"></i> REJECT SETTLEMENT
                             </button>
                             <button type="button" class="btn btn-success settlement-btn" id="approveBtn">
                                 <i class="fa fa-check"></i> APPROVE SETTLEMENT
@@ -357,7 +473,16 @@
                     </div>
                 </div>
             @else
-                <div class="d-flex align-items-center justify-content-end gap-2 mt-4 pt-3 border-top">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-4 pt-3 border-top">
+                    <div>
+                        @if ($status === 'APPROVED')
+                            <span class="text-success fw-semibold"><i class="fa fa-check-circle me-1"></i> Dokumen settlement ini telah selesai disetujui (APPROVED).</span>
+                        @elseif ($status === 'REJECTED')
+                            <span class="text-danger fw-semibold"><i class="fa fa-times-circle me-1"></i> Dokumen settlement ini telah ditolak (REJECTED).</span>
+                        @else
+                            <span class="text-muted small"><i class="fa fa-info-circle me-1"></i> Anda tidak memiliki antrian tugas approval aktif pada tahap dokumen ini.</span>
+                        @endif
+                    </div>
                     <a href="{{ url('hrd-settlement-approval-index') }}" class="btn btn-secondary settlement-btn">
                         <i class="fa fa-arrow-left"></i> Kembali ke Antrian
                     </a>
@@ -369,6 +494,44 @@
 </div>
 
 <script>
+function salinRekeningDetail(text, btn) {
+    if (!text) return;
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function() {
+            feedbackSalinDetail(btn);
+        }).catch(function() {
+            fallbackCopyDetail(text, btn);
+        });
+    } else {
+        fallbackCopyDetail(text, btn);
+    }
+}
+
+function fallbackCopyDetail(text, btn) {
+    var temp = document.createElement("input");
+    temp.style.position = "absolute";
+    temp.style.left = "-9999px";
+    temp.value = text;
+    document.body.appendChild(temp);
+    temp.select();
+    try {
+        document.execCommand("copy");
+        feedbackSalinDetail(btn);
+    } catch (e) {
+        alert("Nomor rekening: " + text);
+    }
+    document.body.removeChild(temp);
+}
+
+function feedbackSalinDetail(btn) {
+    var $b = $(btn);
+    var oldHtml = $b.html();
+    $b.html('<i class="fa fa-check text-success"></i> Tersalin!').addClass('btn-success text-white').removeClass('btn-outline-secondary');
+    setTimeout(function() {
+        $b.html(oldHtml).removeClass('btn-success text-white').addClass('btn-outline-secondary');
+    }, 1600);
+}
+
 $('#approveBtn').click(function (e) {
     e.preventDefault();
     if (!confirm('Apakah Anda yakin menyetujui (APPROVE) pengajuan settlement ini?')) return;
@@ -379,7 +542,7 @@ $('#rejectBtn').click(function (e) {
     e.preventDefault();
     var note = $.trim($('#Note').val());
     if (note === '') {
-        alert('Mohon cantumkan alasan penolakan pada kolom Catatan Verifikasi!');
+        alert('Mohon cantumkan alasan penolakan pada kolom Catatan Persetujuan!');
         $('#Note').focus();
         return;
     }
@@ -408,7 +571,7 @@ function doVerification(stat) {
             $btnApprove.prop('disabled', false);
             $btnReject.prop('disabled', false);
             if (data.status === 'success') {
-                alert('Verifikasi Settlement Berhasil Disimpan!');
+                alert('Persetujuan Settlement Berhasil Disimpan!');
                 location.href = 'hrd-settlement-approval-index';
             } else {
                 alert('Verifikasi Gagal: ' + data.message);

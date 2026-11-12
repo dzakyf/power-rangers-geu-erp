@@ -142,11 +142,37 @@
                             </select>
                         </div>
                         <div class="col-md-3 col-12">
-                            <label for="Requester_NIK" class="form-label-custom">NIK Pemohon</label>
-                            <input type="text" id="Requester_NIK" class="form-control bg-light" name="Requester_NIK" value="{{ $user->Emp_ID ?: '' }}" readonly />
+                            <label for="Requester_NIK" class="form-label-custom">
+                                NIK Pemohon
+                                @if (!empty($canChooseEmployee))
+                                    <span class="badge bg-primary text-white ms-1"><i class="fa fa-user-check me-1"></i>Pilih Karyawan</span>
+                                @endif
+                                <span class="text-danger">*</span>
+                            </label>
+                            @if (!empty($canChooseEmployee))
+                                <select id="Requester_NIK" class="form-control select2" name="Requester_NIK" style="width:100%;">
+                                    <option value="">-- Pilih NIK / Karyawan --</option>
+                                    @foreach ($employees as $emp)
+                                        <option value="{{ $emp->NIK }}"
+                                            data-name="{{ $emp->Name }}"
+                                            data-dept="{{ $emp->Department }}"
+                                            data-position="{{ $emp->Position }}"
+                                            data-joblevel="{{ $emp->Job_Level ?? 'pelaksana' }}"
+                                            {{ ($user->Emp_ID == $emp->NIK) ? 'selected' : '' }}>
+                                            {{ $emp->NIK }} - {{ $emp->Name }} ({{ $emp->Department }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted"><i class="fa fa-info-circle me-1"></i>Hak akses: admin / user.hcga / admin.hris</small>
+                            @else
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted"><i class="fa fa-id-badge"></i></span>
+                                    <input type="text" id="Requester_NIK" class="form-control bg-light" name="Requester_NIK" value="{{ $user->Emp_ID ?: '' }}" readonly />
+                                </div>
+                            @endif
                         </div>
                         <div class="col-md-3 col-12">
-                            <label for="Requester_Name" class="form-label-custom">Nama Karyawan Pemohon</label>
+                            <label for="Requester_Name" class="form-label-custom">Nama Karyawan Pemohon <span class="text-danger">*</span></label>
                             <input type="text" id="Requester_Name" class="form-control" name="Requester_Name" value="{{ $user->Name ?: $user->username }}" />
                         </div>
                         <div class="col-md-6 col-12">
@@ -404,7 +430,7 @@
     carCal.setDateFormat("%Y-%m-%d");
 
     // Searchable dropdowns (select2 is loaded globally in mainlayout)
-    $('#Department, #Route_Start, #Route_Finish, #Origin_Site, #Target_Site').select2({
+    $('#Department, #Route_Start, #Route_Finish, #Origin_Site, #Target_Site, #Requester_NIK').select2({
         width: '100%',
         placeholder: '-- Pilih --',
         allowClear: true
@@ -412,6 +438,34 @@
 
     var matrixData = null;
     var userJobLevel = "{{ $jobLevel ?? 'pelaksana' }}";
+
+    $('#Requester_NIK').on('change', function() {
+        var opt = $(this).find('option:selected');
+        var nik = $(this).val();
+        if (!nik) return;
+
+        var name     = opt.data('name') || '';
+        var dept     = opt.data('dept') || '';
+        var jobLevel = opt.data('joblevel') || 'pelaksana';
+
+        if (name) {
+            $('#Requester_Name').val(name);
+        }
+        if (dept) {
+            $('#Department').val(dept).trigger('change');
+        }
+        if (jobLevel) {
+            userJobLevel = jobLevel;
+            updateAllowanceInfo();
+        }
+    });
+
+    if ($('#Requester_NIK').is('select')) {
+        var initLvl = $('#Requester_NIK').find('option:selected').data('joblevel');
+        if (initLvl) {
+            userJobLevel = initLvl;
+        }
+    }
     var routeScope = null;        // 'MEAL_ONLY' | 'FULL'
     var routeDistanceKm = null;
     var routeDurationMin = null;
@@ -975,7 +1029,7 @@
     $('#submitBtn').click(function(e) {
         e.preventDefault();
 
-        var listId = ['Department', 'Requester_Name', 'Route_Start', 'Schedule_Date', 'Departure_Time', 'Return_Time', 'Program_Name', 'Description'];
+        var listId = ['Requester_NIK', 'Department', 'Requester_Name', 'Route_Start', 'Schedule_Date', 'Departure_Time', 'Return_Time', 'Program_Name', 'Description'];
         for (var i = 0; i < listId.length; i++) {
             if ($.trim($("#" + listId[i]).val()) === "") {
                 alert("Field " + listId[i].replace(/_/g, " ") + " wajib diisi!");
