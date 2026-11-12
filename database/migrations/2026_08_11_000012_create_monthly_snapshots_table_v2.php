@@ -13,6 +13,10 @@ class CreateMonthlySnapshotsTableV2 extends Migration
      */
     public function up()
     {
+        if (Schema::hasTable('monthly_snapshots')) {
+            return;
+        }
+
         Schema::create('monthly_snapshots', function (Blueprint $table) {
             $table->bigIncrements('ID');
             $table->year('Year');
