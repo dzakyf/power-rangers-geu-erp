@@ -30,7 +30,7 @@
 
                 <div class="btn-group mt-2 mr-2" role="group" aria-label="Button group with nested dropdown">
                     <div class="btn-group" role="group">
-                        <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             Action
                         </button>
                         <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
@@ -63,7 +63,7 @@
     <div class="row col-md-12" style="width:auto;height:40px">
         <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
             <div class="btn-group" role="group">
-                <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     Action
                 </button>
                 <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
@@ -87,6 +87,10 @@
     }
 
     function approveClick(action) {
+        if (!apprId) {
+            alert('Pilih data terlebih dahulu.');
+            return;
+        }
 
         let formData = new FormData();
 
@@ -95,19 +99,21 @@
         formData.append('action', action)
 
         $.ajax({
-            url: " partner-branding-approval-submit",
+            url: "partner-branding-approval-submit",
             type: "POST",
             data: formData,
             processData: false,
             contentType: false,
             cache: false,
             success: function(response) {
-                alert("Berhasil approve");
-                // $('#broadcastForm')[0].reset();
+                alert(action === 'REJECTED' ? 'Berhasil reject' : 'Berhasil approve');
+                location.reload();
             },
             error: function(xhr, status, error) {
-                // console.log('Error details:', xhr.responseText);
-                alert("Telah terjadi kesalahan. Silakan coba lagi.");
+                var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                    ? xhr.responseJSON.message
+                    : "Telah terjadi kesalahan. Silakan coba lagi.";
+                alert(msg);
             },
             complete: function() {
                 // $('#submitBtn').prop('disabled', false).text('Submit');
@@ -151,12 +157,12 @@
         let headerAttachment = [
             '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter'
         ]
-        ProjectionGrid = new dhtmlXGridObject('ProjectionGrid');
-        ProjectionGrid.setImagePath("./dhtmlx/imgs/");
-        ProjectionGrid.setHeader(tHeader.join(','));
-        ProjectionGrid.setInitWidths(tWidth.join(','));
+        ApprovalLogGrid = new dhtmlXGridObject('ProjectionGrid');
+        ApprovalLogGrid.setImagePath("./dhtmlx/imgs/");
+        ApprovalLogGrid.setHeader(tHeader.join(','));
+        ApprovalLogGrid.setInitWidths(tWidth.join(','));
         // ProjectionGrid.enableAutoWidth(true);
-        ProjectionGrid.attachHeader(headerAttachment);
+        ApprovalLogGrid.attachHeader(headerAttachment);
         // ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
         // ProjectionGrid.setColAlign("center,left,left,left,left");
         // ProjectionGrid.setColSorting("int,str,str,str,str");
@@ -164,9 +170,9 @@
         // ProjectionGrid.enableSmartRendering(true, 150);
         // ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
         // ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
-        ProjectionGrid.setSkin("dhx_skyblue");
-        ProjectionGrid.init();
-        ProjectionGrid.clearAndLoad(`partner-approval-data-log?appr_id=${apprId}&user_id=&type=BRANDING_PROMOTION`);
+        ApprovalLogGrid.setSkin("dhx_skyblue");
+        ApprovalLogGrid.init();
+        ApprovalLogGrid.clearAndLoad(`partner-approval-data-log?appr_id=${apprId}&user_id=&type=BRANDING_PROMOTION`);
     }
 
     function selectMitra(rowId, cellIdx) {
@@ -174,9 +180,21 @@
         apprId = rowId;
     }
 
-    function doubleClickApproval() {
-        initApprovalLogGrid()
-        $('#ApprovalLog').show()
+    function doubleClickApproval(rowId) {
+        if (rowId) {
+            apprId = rowId;
+        }
+        if (!apprId) {
+            alert('Pilih data terlebih dahulu.');
+            return;
+        }
+        $('#ApprovalLog').show();
+        if (typeof ApprovalLogGrid === 'undefined' || !ApprovalLogGrid) {
+            initApprovalLogGrid();
+        } else {
+            ApprovalLogGrid.clearAndLoad(`partner-approval-data-log?appr_id=${apprId}&user_id=&type=BRANDING_PROMOTION`);
+            ApprovalLogGrid.setSizes();
+        }
     }
 </script>
 @endsection

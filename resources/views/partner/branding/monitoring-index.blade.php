@@ -118,7 +118,7 @@
 
 
     function initTableGrid1() {
-        let tHeader = ['No', 'Code Promosi', 'Tanggal Mulai', 'Tanggal Berakhir', 'Platform', 'Budget Realisasi', 'Status Campaign', 'PIC', 'Total Leads', 'Cost per Lead', 'Total Deals', 'Conversion Rate', 'Cost per Acquisition', 'Price per Deal', 'Revenue', 'RoI']
+        let tHeader = ['No', 'Code Promosi', 'Tanggal Mulai', 'Tanggal Berakhir', 'Platform', 'Materi Marketing', 'Budget Realisasi', 'Status Campaign', 'PIC', 'Total Leads', 'Cost per Lead', 'Total Deals', 'Conversion Rate', 'Cost per Acquisition', 'Price per Deal', 'Revenue', 'RoI']
 
         let tWidth = tHeader.map((e) => '200')
         let headerAttachment = [

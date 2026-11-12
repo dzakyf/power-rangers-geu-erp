@@ -38,14 +38,20 @@ class SppdApprovalService
      */
     public function submit($sppd, $user)
     {
+        $this->ensurePoliciesExist();
+
         $sppdObj = is_array($sppd) ? (object) $sppd : $sppd;
         $sppdId = (int) $sppdObj->ID;
 
-        $context = $this->buildContext($sppdObj, $user);
+        $nik = !empty($sppdObj->Requester_NIK) ? $sppdObj->Requester_NIK : ($user->Emp_ID ?? null);
+        $isOverPlafon = $this->isOverPlafon($sppdObj, $nik);
+
+        $context = $this->buildContext($sppdObj, $user, $isOverPlafon);
 
         $description = sprintf(
-            'SPPD [%s] %s: %s (%s s/d %s) - Estimasi Rp %s',
+            'SPPD [%s%s] %s: %s (%s s/d %s) - Estimasi Rp %s',
             $sppdObj->Sppd_Type ?? 'NORMAL',
+            $isOverPlafon ? ' (DI ATAS PLAFON)' : '',
             $sppdObj->SPPD_No,
             $sppdObj->Destination,
             $sppdObj->Date_Start ?: $sppdObj->Schedule_Date,
@@ -66,9 +72,12 @@ class SppdApprovalService
             'Map_To' => $sppdId,
         ]);
 
-        DB::table('sppd')->where('ID', $sppdId)->update([
-            'Approval_Request_ID' => (int) $approvalReq->ID,
-        ]);
+        $updateData = ['Approval_Request_ID' => (int) $approvalReq->ID];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('sppd', 'Is_Over_Plafon')) {
+            $updateData['Is_Over_Plafon'] = $isOverPlafon ? 1 : 0;
+        }
+
+        DB::table('sppd')->where('ID', $sppdId)->update($updateData);
 
         $this->syncApprovalStatus($sppdId);
 
@@ -78,7 +87,7 @@ class SppdApprovalService
     /**
      * Bangun context policy approval SPPD.
      */
-    public function buildContext($sppd, $user): array
+    public function buildContext($sppd, $user, $isOverPlafon = null): array
     {
         $nik = !empty($sppd->Requester_NIK) ? $sppd->Requester_NIK : ($user->Emp_ID ?? null);
         $emp = DB::table('employment')->where('NIK', $nik)->first();
@@ -87,18 +96,126 @@ class SppdApprovalService
             $pos = DB::table('master_position')->where('Initial', $emp->Position)->first();
         }
 
-        $department = trim((string) ($sppd->Department ?? ($user->Department ?? '')));
+        $rawDept = trim((string) ($sppd->Department ?? ($user->Department ?? '')));
+        $mDept = DB::table('master_department')
+            ->where('Department', $rawDept)
+            ->orWhere('Initial', $rawDept)
+            ->first();
+        $department = $mDept ? $mDept->Initial : ($emp->Department ?? $rawDept);
+
         $companyId  = $pos->Company_ID ?? ($user->Company_ID ?? 'GEU');
         $location   = $pos->Location ?? ($user->Location ?? 'GEU-HO');
 
+        if ($isOverPlafon === null) {
+            $isOverPlafon = $this->isOverPlafon($sppd, $nik);
+        }
+
         return [
-            'Request_Type' => self::REQUEST_TYPE,
-            'Location'     => $location,
-            'Company_ID'   => $companyId,
-            'Department'   => $department,
-            'Amount'       => (float) ($sppd->Estimated_Cost ?? 0),
-            'Sppd_Type'    => strtoupper(trim((string) ($sppd->Sppd_Type ?? 'NORMAL'))),
+            'Request_Type'   => self::REQUEST_TYPE,
+            'Location'       => $location,
+            'Company_ID'     => $companyId,
+            'Department'     => $department,
+            'Amount'         => (float) ($sppd->Estimated_Cost ?? 0),
+            'Sppd_Type'      => strtoupper(trim((string) ($sppd->Sppd_Type ?? 'NORMAL'))),
+            'Is_Over_Plafon' => $isOverPlafon ? 1 : 0,
+            'Over_Plafon'    => $isOverPlafon ? 'YES' : 'NO',
         ];
+    }
+
+    /**
+     * Memeriksa apakah pengajuan SPPD memiliki rincian biaya yang melebihi batas plafon matriks regulasi.
+     *
+     * @param object $sppd
+     * @param string|null $nik
+     * @return bool
+     */
+    public function isOverPlafon($sppd, $nik = null): bool
+    {
+        $sppdType = strtoupper(trim((string) ($sppd->Sppd_Type ?? 'NORMAL')));
+        // Berlaku khusus untuk SPPD jenis Reguler (NORMAL)
+        if ($sppdType !== 'NORMAL') {
+            return false;
+        }
+
+        $nik = $nik ?: (!empty($sppd->Requester_NIK) ? $sppd->Requester_NIK : null);
+        $jobLevelKey = \App\Http\Controllers\HCGA\SppdController::getJobLevelForNik($nik);
+
+        $allowance = DB::table('master_sppd_allowances')
+            ->where('trip_type_key', 'tugas_kerja')
+            ->where('job_level_key', $jobLevelKey)
+            ->first();
+
+        if (!$allowance) {
+            return false;
+        }
+
+        $ticketMax = (float) ($allowance->ticket_max ?? 0);
+        $hotelMaxPerNight = (float) ($allowance->reimburse_max_per_night ?? 0);
+
+        // Hitung durasi hari dan malam
+        $startStr = $sppd->Date_Start ?: $sppd->Schedule_Date;
+        $finishStr = $sppd->Date_Finish ?: $sppd->Schedule_Date;
+        $days = 1;
+        if (!empty($startStr) && !empty($finishStr)) {
+            $timeStart = strtotime($startStr);
+            $timeFinish = strtotime($finishStr);
+            if ($timeStart && $timeFinish && $timeFinish >= $timeStart) {
+                $days = (int) round(($timeFinish - $timeStart) / 86400) + 1;
+            }
+        }
+        $nights = max($days - 1, 0);
+        $hotelMaxTotal = $hotelMaxPerNight * $nights;
+
+        // Ambil rincian biaya dari tabel sppd_cost
+        $costs = DB::table('sppd_cost')->where('SPPD_ID', $sppd->ID)->get();
+
+        foreach ($costs as $c) {
+            $nominal = (float) $c->Cost;
+            $desc = strtolower(trim((string) $c->Description));
+
+            // Cek tiket (tiket berangkat atau tiket pulang)
+            if (strpos($desc, 'tiket') !== false) {
+                if ($ticketMax > 0 && $nominal > $ticketMax) {
+                    return true;
+                }
+            }
+
+            // Cek penginapan / hotel
+            if (strpos($desc, 'penginapan') !== false || strpos($desc, 'hotel') !== false) {
+                if ($hotelMaxTotal > 0 && $nominal > $hotelMaxTotal) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Memastikan policy SPPD standar dan over-plafon terdaftar di tabel approval_policy.
+     */
+    public function ensurePoliciesExist(): void
+    {
+        try {
+            $hasOverPolicy = DB::table('approval_policy')
+                ->where('Policy_Code', 'SPPD-REGULAR-OVER-PLAFON-POLICY')
+                ->exists();
+
+            if (!$hasOverPolicy) {
+                if (!class_exists(\ApprovalSppdPolicySeeder::class)) {
+                    $seederPath = database_path('seeds/ApprovalSppdPolicySeeder.php');
+                    if (file_exists($seederPath)) {
+                        require_once $seederPath;
+                    }
+                }
+                if (class_exists(\ApprovalSppdPolicySeeder::class)) {
+                    $seeder = new \ApprovalSppdPolicySeeder();
+                    $seeder->run();
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('SppdApprovalService::ensurePoliciesExist exception: ' . $e->getMessage());
+        }
     }
 
     /**

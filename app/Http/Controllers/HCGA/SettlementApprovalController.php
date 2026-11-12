@@ -158,6 +158,12 @@ class SettlementApprovalController extends Controller
                 ->whereIn('t.Status', ['PENDING', 'CLAIMED'])
                 ->orderBy('t.Stage_Order', 'ASC')
                 ->first();
+
+            if ($currentTask) {
+                $currentTask->Stage_Name = !empty($currentTask->Position_Name)
+                    ? $currentTask->Position_Name
+                    : ('Step ' . $currentTask->Stage_Order);
+            }
         }
 
         return view('humanresources.settlement.approval.detail', compact('settlement', 'expenses', 'logs', 'invoice', 'canApprove', 'currentTask'));

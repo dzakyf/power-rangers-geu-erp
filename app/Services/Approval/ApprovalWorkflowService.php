@@ -336,6 +336,50 @@ class ApprovalWorkflowService
         });
     }
 
+    /**
+     * Helper praktis untuk claim dan approve task dalam satu pemanggilan.
+     *
+     * @param int $taskId
+     * @param string $notes
+     * @param int|null $userId
+     * @return object
+     */
+    public function approve(int $taskId, string $notes = '', int $userId = null)
+    {
+        $userId = $userId ?: ((int) (auth()->id() ?: 1));
+        $task = DB::table('approval_request_task')->where('ID', $taskId)->first();
+        if ($task && (strtoupper((string) $task->Status) !== 'CLAIMED' || (int) $task->Claimed_By !== $userId)) {
+            try {
+                $this->claim($taskId, $userId);
+            } catch (\Exception $e) {
+                // Ignore jika task sudah di-claim sebelumnya
+            }
+        }
+        return $this->act($taskId, $userId, 'APPROVE', $notes);
+    }
+
+    /**
+     * Helper praktis untuk claim dan reject task dalam satu pemanggilan.
+     *
+     * @param int $taskId
+     * @param string $notes
+     * @param int|null $userId
+     * @return object
+     */
+    public function reject(int $taskId, string $notes = '', int $userId = null)
+    {
+        $userId = $userId ?: ((int) (auth()->id() ?: 1));
+        $task = DB::table('approval_request_task')->where('ID', $taskId)->first();
+        if ($task && (strtoupper((string) $task->Status) !== 'CLAIMED' || (int) $task->Claimed_By !== $userId)) {
+            try {
+                $this->claim($taskId, $userId);
+            } catch (\Exception $e) {
+                // Ignore jika task sudah di-claim sebelumnya
+            }
+        }
+        return $this->act($taskId, $userId, 'REJECT', $notes);
+    }
+
     public function grantSelfApprovalException(int $requestId, int $userId, int $adminId, string $reason, $expiresAt = null)
     {
         if (trim($reason) === '') {

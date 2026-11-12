@@ -100,6 +100,48 @@ class ValuationUsageDurationTest extends TestCase
         return User::query()->findOrFail($id);
     }
 
+    private function internalAdmin(): User
+    {
+        $user = User::where('Position', 'Administrator')->first();
+
+        if (!$user) {
+            $this->markTestSkipped('No Administrator user exists in the test database.');
+        }
+
+        return $user;
+    }
+
+    private function mitraUser(): User
+    {
+        $user = User::where('Position', 'MITRA')
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('opportunity_partner')
+                    ->whereRaw('opportunity_partner.user_row_id = users.id');
+            })
+            ->orderBy('id')
+            ->first();
+
+        if (!$user) {
+            $this->markTestSkipped('No MITRA user without an opportunity_partner row exists in the test database.');
+        }
+
+        return $user;
+    }
+
+    private function seedOpportunityOnly(?int $userRowId, string $leadId): int
+    {
+        return DB::table('opportunity_partner')->insertGetId([
+            'full_name' => 'Valuation Partner ' . $leadId,
+            'company_name' => 'Valuation Co',
+            'status' => 'ACTIVE',
+            'lead_id' => $leadId,
+            'user_row_id' => $userRowId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     private function seedAsset(int $depreciationYear): int
     {
         return DB::table('master_facility')->insertGetId([
@@ -271,7 +313,7 @@ class ValuationUsageDurationTest extends TestCase
     /** @test */
     public function test_aggregate_usage_duration_is_months_since_order_date(): void
     {
-        $user = $this->testUserWithoutOpportunityPartner();
+        $user = $this->mitraUser();
         [$opId, $leadId] = $this->seedPartnerAndWarehouse($user->id);
         $facilityId = $this->seedAsset(10);
         $dtlId = $this->seedFacilityRow($opId, $facilityId, $this->orderDateMonthsAgo(2));
@@ -287,6 +329,60 @@ class ValuationUsageDurationTest extends TestCase
         $cells = $this->rowCells($body, (string) $dtlId);
 
         $this->assertSame('2', $cells[10], 'Aggregate grid must also derive usage duration from Order_Date');
+    }
+
+    /** @test */
+    public function test_aggregate_endpoint_accepts_partner_param_for_internal_users(): void
+    {
+        [$opId, $leadId] = $this->seedPartnerAndWarehouse();
+        $facilityId = $this->seedAsset(10);
+        $dtlId = $this->seedFacilityRow($opId, $facilityId, $this->orderDateMonthsAgo(3));
+
+        $response = $this->actingAs($this->internalAdmin())
+            ->get(self::AGGREGATE_URL . '?partner=' . $opId);
+
+        $response->assertOk();
+
+        $cells = $this->rowCells((string) $response->getContent(), (string) $dtlId);
+        $this->assertSame('3', $cells[10]);
+    }
+
+    /** @test */
+    public function test_aggregate_endpoint_returns_empty_rows_for_internal_user_without_partner(): void
+    {
+        $response = $this->actingAs($this->internalAdmin())->get(self::AGGREGATE_URL);
+
+        $response->assertOk();
+        $body = (string) $response->getContent();
+
+        $this->assertStringContainsString('<rows', $body);
+        $this->assertStringNotContainsString('<row ', $body);
+    }
+
+    /** @test */
+    public function test_aggregate_endpoint_blocks_mitra_from_requesting_another_partner(): void
+    {
+        $mitra = $this->mitraUser();
+        $this->seedOpportunityOnly($mitra->id, 'BP/TEST-VALUATION/OWN');
+        $otherId = $this->seedOpportunityOnly(null, 'BP/TEST-VALUATION/OTHER');
+
+        $response = $this->actingAs($mitra)
+            ->get(self::AGGREGATE_URL . '?partner=' . $otherId);
+
+        $response->assertStatus(403);
+    }
+
+    /** @test */
+    public function test_transfer_form_binds_valuation_grid_to_the_selected_mitra(): void
+    {
+        $response = $this->actingAs($this->internalAdmin())
+            ->get('/partner-transfer-membership-create-application');
+
+        $response->assertOk();
+        $response->assertSee('xml-partner-valuation-detail-aggregate', false);
+        $response->assertSee('loadValuationForPartner', false);
+        $response->assertSee('VALUATION_DETAIL_IS_AGGREGATE', false);
+        $response->assertSee('select2:select', false);
     }
 
     // ------------------------------------------------------------------

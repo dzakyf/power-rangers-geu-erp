@@ -64,7 +64,7 @@
                 </div>
                 <div class="form-group col-md-2">
                     @include('humanresources.approval.partials.help-label', ['label' => 'Status', 'helpKey' => 'Status'])
-                    <select name="Status" class="form-control">
+                    <select name="Status" class="form-select">
                         @foreach(['DRAFT','ACTIVE','INACTIVE'] as $status)
                         <option value="{{ $status }}" {{ old('Status', $policy->Status ?? 'DRAFT') === $status ? 'selected' : '' }}>{{ $status }}</option>
                         @endforeach
@@ -140,7 +140,7 @@
                                 @foreach($conditionRowsView as $row)
                                 <tr>
                                     <td>
-                                        <select name="Condition_Field[]" class="form-control">
+                                        <select name="Condition_Field[]" class="form-select">
                                             <option value="">-- Pilih Field --</option>
                                             @foreach($conditionFields as $fieldValue => $fieldLabel)
                                             <option value="{{ $fieldValue }}" {{ (string) ($row['field'] ?? '') === (string) $fieldValue ? 'selected' : '' }}>{{ $fieldLabel }}</option>
@@ -151,7 +151,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="Condition_Operator[]" class="form-control policy-condition-operator" onchange="PolicyConditionToggleValue(this);">
+                                        <select name="Condition_Operator[]" class="form-select policy-condition-operator" onchange="PolicyConditionToggleValue(this);">
                                             @foreach($conditionOperators as $operatorValue => $operatorLabel)
                                             <option value="{{ $operatorValue }}" {{ (string) ($row['operator'] ?? '=') === (string) $operatorValue ? 'selected' : '' }}>{{ $operatorLabel }}</option>
                                             @endforeach
@@ -181,7 +181,7 @@
             <template id="PolicyConditionTemplate">
                 <tr>
                     <td>
-                        <select name="Condition_Field[]" class="form-control">
+                        <select name="Condition_Field[]" class="form-select">
                             <option value="">-- Pilih Field --</option>
                             @foreach($conditionFields as $fieldValue => $fieldLabel)
                             <option value="{{ $fieldValue }}">{{ $fieldLabel }}</option>
@@ -189,7 +189,7 @@
                         </select>
                     </td>
                     <td>
-                        <select name="Condition_Operator[]" class="form-control policy-condition-operator" onchange="PolicyConditionToggleValue(this);">
+                        <select name="Condition_Operator[]" class="form-select policy-condition-operator" onchange="PolicyConditionToggleValue(this);">
                             @foreach($conditionOperators as $operatorValue => $operatorLabel)
                             <option value="{{ $operatorValue }}">{{ $operatorLabel }}</option>
                             @endforeach
@@ -207,7 +207,7 @@
             <div class="form-row">
                 <div class="form-group col-md-3">
                     @include('humanresources.approval.partials.help-label', ['label' => 'Rejection Mode', 'helpKey' => 'Rejection_Mode'])
-                    <select name="Rejection_Mode" class="form-control">
+                    <select name="Rejection_Mode" class="form-select">
                         @foreach(['RETURN_TO_CREATOR','STOP','WAIT_GROUP'] as $mode)
                         <option value="{{ $mode }}" {{ old('Rejection_Mode', $policy->Rejection_Mode ?? 'RETURN_TO_CREATOR') === $mode ? 'selected' : '' }}>{{ $mode }}</option>
                         @endforeach
@@ -219,7 +219,7 @@
                 </div>
                 <div class="form-group col-md-2">
                     @include('humanresources.approval.partials.help-label', ['label' => 'On Vacancy', 'helpKey' => 'On_Vacancy'])
-                    <select name="On_Vacancy" class="form-control">
+                    <select name="On_Vacancy" class="form-select">
                         @foreach(['FALLBACK','HOLD','BLOCK'] as $value)
                         <option value="{{ $value }}" {{ old('On_Vacancy', $policy->On_Vacancy ?? 'FALLBACK') === $value ? 'selected' : '' }}>{{ $value }}</option>
                         @endforeach
@@ -227,7 +227,7 @@
                 </div>
                 <div class="form-group col-md-3">
                     @include('humanresources.approval.partials.help-label', ['label' => 'On No Higher Level', 'helpKey' => 'On_No_Higher_Level'])
-                    <select name="On_No_Higher_Level" class="form-control">
+                    <select name="On_No_Higher_Level" class="form-select">
                         @foreach(['AUTO_APPROVE','HOLD','BLOCK'] as $value)
                         <option value="{{ $value }}" {{ old('On_No_Higher_Level', $policy->On_No_Higher_Level ?? 'AUTO_APPROVE') === $value ? 'selected' : '' }}>{{ $value }}</option>
                         @endforeach
@@ -492,7 +492,7 @@
                 </div>
                 <div class="form-group col-md-4">
                     @include('humanresources.approval.partials.help-label', ['label' => 'Position (optional)', 'helpKey' => 'Step_Position'])
-                    <select name="Position_ID" id="ApprovalStepPosition" class="form-control">
+                    <select name="Position_ID" id="ApprovalStepPosition" class="form-select">
                         <option value="">-- By Level --</option>
                         @foreach($positions as $position)
                         <option value="{{ $position->ID }}">{{ $position->Initial }} - {{ $position->Position }} (Level {{ $position->Level }})</option>
@@ -505,7 +505,7 @@
                 </div>
                 <div class="form-group col-md-2">
                     @include('humanresources.approval.partials.help-label', ['label' => 'Mode', 'helpKey' => 'Step_Mode'])
-                    <select name="Approval_Mode" id="ApprovalStepMode" class="form-control">
+                    <select name="Approval_Mode" id="ApprovalStepMode" class="form-select">
                         <option value="ALL">ALL</option>
                         <option value="ANY">ANY</option>
                         <option value="QUORUM">QUORUM</option>
@@ -523,7 +523,7 @@
                 </div>
                 <div class="form-group col-md-2">
                     @include('humanresources.approval.partials.help-label', ['label' => 'Required', 'helpKey' => 'Step_Required'])
-                    <select name="Is_Required" id="ApprovalStepRequired" class="form-control">
+                    <select name="Is_Required" id="ApprovalStepRequired" class="form-select">
                         <option value="1">Yes</option>
                         <option value="0">No</option>
                     </select>

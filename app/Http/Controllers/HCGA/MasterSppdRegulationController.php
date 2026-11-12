@@ -20,16 +20,16 @@ class MasterSppdRegulationController extends Controller
     public static function componentMap()
     {
         return [
-            'transport_land'              => ['column' => 'transport_land', 'format' => 'list', 'category' => 'Transportasi', 'type' => 'Teks / List Pilihan', 'name' => 'Transport Darat'],
-            'transport_air'               => ['column' => 'transport_air', 'format' => 'text', 'category' => 'Transportasi', 'type' => 'Teks', 'name' => 'Transport Udara'],
-            'ticket_max'                  => ['column' => 'ticket_max', 'format' => 'money', 'category' => 'Transportasi', 'type' => 'Nominal (Rp)', 'name' => 'Max Harga Tiket'],
-            'reimburse_max_per_night'     => ['column' => 'reimburse_max_per_night', 'format' => 'money', 'category' => 'Akomodasi', 'type' => 'Nominal (Rp)', 'name' => 'Max Hotel / Malam'],
-            'hotel_star'                  => ['column' => 'hotel_star', 'format' => 'star', 'category' => 'Akomodasi', 'type' => 'Angka (Star)', 'name' => 'Bintang Hotel'],
-            'daily_meal'                  => ['column' => 'daily_meal', 'format' => 'money', 'category' => 'Uang Saku', 'type' => 'Nominal (Rp)', 'name' => 'Uang Makan / Hari'],
-            'daily_pocket'                => ['column' => 'daily_pocket', 'format' => 'money', 'category' => 'Uang Saku', 'type' => 'Nominal (Rp)', 'name' => 'Uang Saku / Hari'],
-            'kos_per_month'               => ['column' => 'kos_per_month', 'format' => 'money', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'name' => 'Bantuan Kos / Bulan'],
-            'relocation_one_time_payment' => ['column' => 'relocation_one_time_payment', 'format' => 'money', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'name' => 'Bantuan Relokasi (1x)'],
-            'mobilization_cost_per_week'  => ['column' => 'mobilization_cost_per_week', 'format' => 'money', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'name' => 'Uang Perbantuan / Minggu'],
+            'transport_land'              => ['column' => 'transport_land', 'format' => 'list', 'category' => 'Transportasi', 'type' => 'Teks / List Pilihan', 'name' => 'Transport Darat', 'is_editable' => false],
+            'transport_air'               => ['column' => 'transport_air', 'format' => 'text', 'category' => 'Transportasi', 'type' => 'Teks', 'name' => 'Transport Udara', 'is_editable' => false],
+            'ticket_max'                  => ['column' => 'ticket_max', 'format' => 'money', 'category' => 'Transportasi', 'type' => 'Nominal (Rp)', 'name' => 'Max Harga Tiket', 'is_editable' => true],
+            'reimburse_max_per_night'     => ['column' => 'reimburse_max_per_night', 'format' => 'money', 'category' => 'Akomodasi', 'type' => 'Nominal (Rp)', 'name' => 'Max Hotel / Malam', 'is_editable' => true],
+            'hotel_star'                  => ['column' => 'hotel_star', 'format' => 'star', 'category' => 'Akomodasi', 'type' => 'Angka (Star)', 'name' => 'Bintang Hotel', 'is_editable' => false],
+            'daily_meal'                  => ['column' => 'daily_meal', 'format' => 'money', 'category' => 'Uang Saku', 'type' => 'Nominal (Rp)', 'name' => 'Uang Makan / Hari', 'is_editable' => false],
+            'daily_pocket'                => ['column' => 'daily_pocket', 'format' => 'money', 'category' => 'Uang Saku', 'type' => 'Nominal (Rp)', 'name' => 'Uang Saku / Hari', 'is_editable' => false],
+            'kos_per_month'               => ['column' => 'kos_per_month', 'format' => 'money', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'name' => 'Bantuan Kos / Bulan', 'is_editable' => false],
+            'relocation_one_time_payment' => ['column' => 'relocation_one_time_payment', 'format' => 'money', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'name' => 'Bantuan Relokasi (1x)', 'is_editable' => false],
+            'mobilization_cost_per_week'  => ['column' => 'mobilization_cost_per_week', 'format' => 'money', 'category' => 'Bantuan Khusus', 'type' => 'Nominal (Rp)', 'name' => 'Uang Perbantuan / Minggu', 'is_editable' => false],
         ];
     }
 
@@ -37,15 +37,19 @@ class MasterSppdRegulationController extends Controller
     protected function ensureDefaultComponents()
     {
         foreach (self::componentMap() as $code => $def) {
-            MasterSppdComponent::firstOrCreate(
-                ['code' => $code],
-                [
-                    'name' => $def['name'],
-                    'category' => $def['category'],
-                    'type' => $def['type'],
+            $comp = MasterSppdComponent::where('code', $code)->first();
+            if (!$comp) {
+                MasterSppdComponent::create([
+                    'code'        => $code,
+                    'name'        => $def['name'],
+                    'category'    => $def['category'],
+                    'type'        => $def['type'],
                     'description' => 'Komponen standar matriks regulasi SPPD',
-                ]
-            );
+                    'is_editable' => !empty($def['is_editable']) ? 1 : 0,
+                ]);
+            } elseif ($comp->is_editable === null && isset($def['is_editable'])) {
+                $comp->update(['is_editable' => !empty($def['is_editable']) ? 1 : 0]);
+            }
         }
     }
 
@@ -188,6 +192,7 @@ class MasterSppdRegulationController extends Controller
             'category'    => 'required|string|max:100',
             'type'        => 'required|string|max:100',
             'description' => 'nullable|string',
+            'is_editable' => 'nullable',
         ], ['code.in' => 'Kode komponen harus salah satu kolom plafon yang tersedia agar terhubung ke matriks.']);
 
         $item = MasterSppdComponent::create([
@@ -196,6 +201,7 @@ class MasterSppdRegulationController extends Controller
             'category'    => trim($request->category),
             'type'        => trim($request->type),
             'description' => $request->description ? trim($request->description) : null,
+            'is_editable' => $request->has('is_editable') && (int) $request->is_editable ? 1 : 0,
         ]);
 
         return response()->json(['status' => 'success', 'message' => 'Komponen Tunjangan berhasil ditambahkan', 'data' => $item]);
@@ -211,6 +217,7 @@ class MasterSppdRegulationController extends Controller
             'category'    => 'required|string|max:100',
             'type'        => 'required|string|max:100',
             'description' => 'nullable|string',
+            'is_editable' => 'nullable',
         ]);
 
         $item->update([
@@ -219,6 +226,7 @@ class MasterSppdRegulationController extends Controller
             'category'    => trim($request->category),
             'type'        => trim($request->type),
             'description' => $request->description ? trim($request->description) : null,
+            'is_editable' => $request->has('is_editable') && (int) $request->is_editable ? 1 : 0,
         ]);
 
         return response()->json(['status' => 'success', 'message' => 'Komponen Tunjangan berhasil diperbarui', 'data' => $item]);

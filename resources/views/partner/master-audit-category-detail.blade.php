@@ -50,23 +50,23 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 						</div>
 					</div>
 					@for ($i = 1; $i < $count; $i++)
-						<div class="row" id="divParameter{{ $i + 2 }}">
+						<div class="row" id="divParameter{{ $i + 1 }}">
 						<div class="col-5">
 							<div class="form-group">
-								<label for="parameter{{ $i + 2 }}">Parameter {{ $i + 2 }}</label>
-								<input type="text" name="parameter[]" id="parameter{{ $i + 2 }}" data-id="{{ $i + 2 }}" class="form-control" value="{{ $parameter[$i] }}">
+								<label for="parameter{{ $i + 1 }}">Parameter {{ $i + 1 }}</label>
+								<input type="text" name="parameter[]" id="parameter{{ $i + 1 }}" data-id="{{ $i + 1 }}" class="form-control" value="{{ $parameter[$i] }}">
 							</div>
 						</div>
 						<div class="col-5">
 							<div class="form-group">
-								<label for="score{{ $i + 2 }}">Score {{ $i + 2 }}</label>
-								<input type="text" name="score[]" id="score{{ $i + 2 }}" data-id="{{ $i + 2 }}" class="form-control" value="{{ $score[$i] }}">
+								<label for="score{{ $i + 1 }}">Score {{ $i + 1 }}</label>
+								<input type="text" name="score[]" id="score{{ $i + 1 }}" data-id="{{ $i + 1 }}" class="form-control" value="{{ $score[$i] }}">
 							</div>
 						</div>
 						<div class="col-1">
 							<div class="form-group">
 								<label for="">&nbsp;</label>
-								<button class="btn btn-danger w-100" id="minusParameter" data-id="{{ $i + 2 }}" type="button"><i class="lni lni-minus"></i></button>
+								<button class="btn btn-danger w-100" id="minusParameter" data-id="{{ $i + 1 }}" type="button"><i class="lni lni-minus"></i></button>
 							</div>
 						</div>
 				</div>
@@ -87,7 +87,7 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 </div>
 </div>
 <script>
-	count = 2;
+	count = {{ $count + 1 }};
 
 	// Prevent comma in parameter and score fields
 	$(document).on('keydown', 'input[name="parameter[]"], input[name="score[]"]', function(e) {

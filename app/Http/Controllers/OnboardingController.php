@@ -397,14 +397,18 @@ class OnboardingController extends Controller
         }
 
         $approvalController = app(\App\Http\Controllers\ApprovalController::class);
+        $action = strtoupper((string) ($b['action'] ?? ''));
 
-        // Idempotent: an already-APPROVED request only needs its MITRA
-        // account (re)created - re-running processToNextLevel would only
-        // yield "Approval level not found" and block approve AND reject.
-        if (!$req || $req->Status !== 'APPROVED') {
+        // Idempotent only for a repeated APPROVE: an already-APPROVED request
+        // only needs its MITRA account (re)created. Any other action (notably
+        // REJECTED) must go through processToNextLevel so an already-processed
+        // request returns a real error instead of a silent success.
+        $isIdempotentApprove = $req && $req->Status === 'APPROVED' && $action === 'APPROVED';
+
+        if (!$isIdempotentApprove) {
             $result = $approvalController->processToNextLevel(
                 (int) ($b['id'] ?? 0),
-                $b['action'],
+                $action,
                 $b['notes'] ?? ''
             );
 
@@ -601,6 +605,13 @@ class OnboardingController extends Controller
         $req = DB::table('approval_request')->where('ID', $requestId)->first();
         if (!$req) {
             return response()->json(['success' => false, 'message' => 'Approval request not found'], 404);
+        }
+
+        if ($req->Status !== 'NEED_APPROVAL') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengajuan ini sudah diproses (' . $req->Status . ')',
+            ], 500);
         }
 
         try {

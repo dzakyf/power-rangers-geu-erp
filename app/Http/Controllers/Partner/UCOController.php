@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Partner;
 
 use App\Http\Controllers\Controller;
 use App\Services\GeneratorService;
+use App\Services\Partner\PickupUnitService;
 use App\Services\UploadService;
 use App\Services\UserService;
 use Carbon\Carbon;
@@ -65,7 +66,18 @@ class UCOController extends Controller
         $do = ($po && $po->DO_Id) ? DB::table('delivery_order')->where('ID', $po->DO_Id)->first() : null;
         $locked = ($do && $do->DO_Status === 'DONE');
 
-        return view('partner.delivery-order.update', compact('poId', 'po', 'do', 'locked'));
+        $pooPrice = null;
+        if ($po && $po->WO_Id) {
+            $pooPrice = DB::table('work_order as wo')
+                ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
+                ->where('wo.ID', $po->WO_Id)
+                ->value('mp.Price');
+        }
+        $poUnits = $po
+            ? PickupUnitService::resolve($po, $pooPrice !== null ? (float) $pooPrice : null)
+            : null;
+
+        return view('partner.delivery-order.update', compact('poId', 'po', 'do', 'locked', 'poUnits'));
     }
 
     /**
@@ -100,7 +112,23 @@ class UCOController extends Controller
                 $updateData = [];
 
                 if ($r->filled('Actual_Qty')) {
-                    $updateData['Actual_Qty'] = $r->input('Actual_Qty');
+                    $po = DB::table('pickup_order')->where('ID', $poId)->first();
+                    $pooPrice = null;
+                    if ($po && $po->WO_Id) {
+                        $pooPrice = DB::table('work_order as wo')
+                            ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
+                            ->where('wo.ID', $po->WO_Id)
+                            ->value('mp.Price');
+                    }
+                    $units = $po
+                        ? PickupUnitService::resolve($po, $pooPrice !== null ? (float) $pooPrice : null)
+                        : ['capacity' => 1.0];
+
+                    $updateData['Actual_Qty'] = PickupUnitService::litersFromInput(
+                        (float) $r->input('Actual_Qty'),
+                        $r->input('BeratUnit', PickupUnitService::LITER),
+                        (float) $units['capacity']
+                    );
                 }
 
                 if ($r->filled('Lat')) {
@@ -1354,6 +1382,20 @@ class UCOController extends Controller
             $query->where('wo.Status', $status);
         }
 
+        if ($r->query('available_for_po')) {
+            $query->where(function ($q) {
+                $q->whereNotExists(function ($sub) {
+                    $sub->select(DB::raw(1))
+                        ->from('pickup_order as po_any')
+                        ->whereColumn('po_any.WO_Id', 'wo.ID');
+                })->orWhereExists(function ($sub) {
+                    $sub->select(DB::raw(1))
+                        ->from('pickup_order as po_open')
+                        ->whereColumn('po_open.WO_Id', 'wo.ID')
+                        ->whereNull('po_open.Instock_At');
+                });
+            });
+        }
 
         $rows = $query->get();
 
@@ -1411,25 +1453,43 @@ class UCOController extends Controller
                     throw new \Exception('Delivery Order harus dipilih untuk mode bypass.');
                 }
 
+                if (DB::table('pickup_order')->where('DO_Id', $doId)->whereNotNull('Instock_At')->exists()) {
+                    throw new \Exception('Surat Jalan sudah pernah di-instock dan tidak dapat digunakan lagi.');
+                }
+
                 $poo = DB::table('master_poo')->where('ID', $r->input('POO_Id'))->first();
                 if (!$poo) {
                     throw new \Exception('Point of Origin tidak ditemukan.');
                 }
 
                 $poCount = DB::table('pickup_order')->count();
+                $package = $r->input('Package');
+                $capacity = PickupUnitService::packageCapacity($package);
+                [$qtyUnit, $priceUnit] = PickupUnitService::normalizeUnits(
+                    $r->input('Qty_Unit'),
+                    $r->input('Price_Unit'),
+                    $capacity
+                );
+                $price = (float) ($poo->Price ?? 0);
+                if ($priceUnit === PickupUnitService::PACKAGE) {
+                    $price *= $capacity;
+                }
 
                 DB::table('pickup_order')->insert([
-                    'Code'        => $this->generatorService->generateApplicationCode($poCount, 'PO'),
-                    'Type_Pickup' => $r->input('Type_Pickup'),
-                    'Coverage'    => $r->input('Coverage'),
-                    'Site'        => $r->input('Site', $poo->City),
-                    'Package'     => $r->input('Package'),
-                    'Qty'         => $r->input('Qty'),
-                    'Price'       => $poo->Price,
-                    'Description' => $r->input('Description'),
-                    'WO_Id'       => $woId,
-                    'DO_Id'       => $doId,
-                    'Created_At'  => now(),
+                    'Code'             => $this->generatorService->generateApplicationCode($poCount, 'PO'),
+                    'Type_Pickup'      => $r->input('Type_Pickup'),
+                    'Coverage'         => $r->input('Coverage'),
+                    'Site'             => $r->input('Site', $poo->City),
+                    'Package'          => $package,
+                    'Qty'              => $r->input('Qty'),
+                    'Qty_Unit'         => $qtyUnit,
+                    'Price'            => $price,
+                    'Price_Unit'       => $priceUnit,
+                    'Package_Capacity' => $capacity,
+                    'Description'      => $r->input('Description'),
+                    'WO_Id'            => $woId,
+                    'DO_Id'            => $doId,
+                    'Created_At'       => now(),
                 ]);
             }
 
@@ -1462,7 +1522,7 @@ class UCOController extends Controller
         return $this->pickupOrdersAsJson($rows);
     }
 
-    private function fetchPickupOrders(?string $id, ?string $whid = null, ?string $date_start = null, ?string $date_end = null, ?string $delivery_order_id = null)
+    private function fetchPickupOrders(?string $id, ?string $whid = null, ?string $date_start = null, ?string $date_end = null, ?string $delivery_order_id = null, bool $availableForDo = false)
     {
 
         $query = DB::table('pickup_order as po')
@@ -1489,6 +1549,10 @@ class UCOController extends Controller
 
         if ($delivery_order_id) {
             $query->where('po.DO_Id', $delivery_order_id);
+        }
+
+        if ($availableForDo) {
+            $query->whereNull('po.DO_Id')->whereNull('po.Instock_At');
         }
 
         return $query->orderBy('ID', 'DESC')->get();
@@ -1534,21 +1598,53 @@ class UCOController extends Controller
 
     public function submitCreatePickupRequest(Request $r)
     {
+        $package = $r->input('Package');
+        $capacity = PickupUnitService::packageCapacity($package);
+
+        try {
+            [$qtyUnit, $priceUnit] = PickupUnitService::normalizeUnits(
+                $r->input('Qty_Unit'),
+                $r->input('Price_Unit'),
+                $capacity
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+
+        $woId = $r->input('WO_Id');
+        if ($woId) {
+            $hasPickupOrders = DB::table('pickup_order')->where('WO_Id', $woId)->exists();
+            $hasAvailablePickupOrder = DB::table('pickup_order')
+                ->where('WO_Id', $woId)
+                ->whereNull('Instock_At')
+                ->exists();
+
+            if ($hasPickupOrders && !$hasAvailablePickupOrder) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Work order sudah selesai di-instock dan tidak dapat digunakan untuk PO baru.',
+                ], 422);
+            }
+        }
+
         $count = DB::table('pickup_order')->count();
 
         try {
-            DB::transaction(function () use ($r, $count) {
+            DB::transaction(function () use ($r, $count, $package, $qtyUnit, $priceUnit, $capacity) {
                 DB::table('pickup_order')->insert([
-                    'Code'        => $this->generatorService->generateApplicationCode($count, 'PO'),
-                    'Type_Pickup' => $r->input('Type_Pickup'),
-                    'Coverage'    => $r->input('Coverage'),
-                    'Site'        => $r->input('Site'),
-                    'Package'     => $r->input('Package'),
-                    'Qty'         => $r->input('Qty'),
-                    'Price'       => $r->input('Price'),
-                    'Description' => $r->input('Description'),
-                    'WO_Id'        => $r->input('WO_Id'),
-                    'Created_At'  => now(),
+                    'Code'             => $this->generatorService->generateApplicationCode($count, 'PO'),
+                    'Type_Pickup'      => $r->input('Type_Pickup'),
+                    'Coverage'         => $r->input('Coverage'),
+                    'Site'             => $r->input('Site'),
+                    'Package'          => $package,
+                    'Qty'              => $r->input('Qty'),
+                    'Qty_Unit'         => $qtyUnit,
+                    'Price'            => $r->input('Price'),
+                    'Price_Unit'       => $priceUnit,
+                    'Package_Capacity' => $capacity,
+                    'Description'      => $r->input('Description'),
+                    'WO_Id'            => $woId,
+                    'Created_At'       => now(),
                 ]);
             });
 
@@ -1590,10 +1686,29 @@ class UCOController extends Controller
         if (!is_array($poIds)) {
             $poIds = [$poIds];
         }
+        $poIds = array_values(array_unique(array_map('intval', $poIds)));
 
         $highest = DB::table('delivery_order')->count();
         try {
             DB::transaction(function () use ($r, $poIds, $highest) {
+                $orders = DB::table('pickup_order')
+                    ->whereIn('ID', $poIds)
+                    ->lockForUpdate()
+                    ->get(['ID', 'DO_Id', 'Instock_At']);
+
+                if ($orders->count() !== count($poIds)) {
+                    throw new \InvalidArgumentException('Sebagian PO tidak ditemukan.');
+                }
+
+                foreach ($orders as $order) {
+                    if (!empty($order->DO_Id)) {
+                        throw new \InvalidArgumentException('PO sudah terhubung ke Surat Jalan lain dan tidak dapat dipakai ulang.');
+                    }
+                    if (!empty($order->Instock_At)) {
+                        throw new \InvalidArgumentException('PO sudah pernah di-instock dan tidak dapat dipakai ulang.');
+                    }
+                }
+
                 $doId = DB::table('delivery_order')->insertGetId([
                     'Code'        => $this->generatorService->generateApplicationCode($highest, 'DO'),
                     'DO_Status'   => $r->input('DO_Status'),
@@ -1610,6 +1725,8 @@ class UCOController extends Controller
             });
 
             return response()->json(['status' => 'success', 'message' => 'Delivery order berhasil dibuat.']);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
@@ -1749,6 +1866,14 @@ class UCOController extends Controller
             ->distinct()
             ->when($id, fn($q) => $q->where('do.ID', $id))
             ->when($status, fn($q) => $q->where('do.DO_Status', $status))
+            ->when($r->query('for_instock'), function ($q) {
+                $q->whereExists(function ($sub) {
+                    $sub->select(DB::raw(1))
+                        ->from('pickup_order as po_open')
+                        ->whereColumn('po_open.DO_Id', 'do.ID')
+                        ->whereNull('po_open.Instock_At');
+                });
+            })
             ->get();
 
         if ($r->query('format') === 'xml') {
@@ -1849,7 +1974,14 @@ class UCOController extends Controller
 
     public function getPickupListData(Request $r)
     {
-        $rows = $this->fetchPickupOrders($r->query('id'), $r->query('whid'), $r->query('date_start'), $r->query('date_end'), $r->query('delivery_order_id'));
+        $rows = $this->fetchPickupOrders(
+            $r->query('id'),
+            $r->query('whid'),
+            $r->query('date_start'),
+            $r->query('date_end'),
+            $r->query('delivery_order_id'),
+            (bool) $r->query('available_for_do')
+        );
 
         if ($r->query('format') === 'json') {
             return response()->json(['data' => $rows]);
@@ -2774,12 +2906,42 @@ class UCOController extends Controller
         $data = DB::table('pickup_order as po')
             ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
-            ->select('po.ID', 'po.Code as PO_Code', 'mp.Name as POO_Name', 'po.Qty', 'po.Actual_Qty', 'po.Instock_Recommendation', 'mp.Price as POO_Price', 'mp.Nearest_Warehouse')
+            ->select(
+                'po.ID',
+                'po.Code as PO_Code',
+                'mp.Name as POO_Name',
+                'po.Package',
+                'po.Qty',
+                'po.Qty_Unit',
+                'po.Price',
+                'po.Price_Unit',
+                'po.Package_Capacity',
+                'po.Actual_Qty',
+                'po.Instock_Recommendation',
+                'mp.Price as POO_Price',
+                'mp.Nearest_Warehouse'
+            )
             ->where('po.DO_Id', $doId)
-            ->get();
+            ->get()
+            ->map(function ($row) {
+                $units = PickupUnitService::resolve(
+                    $row,
+                    $row->POO_Price !== null ? (float) $row->POO_Price : null
+                );
 
-        $totalQty = $data->sum('Qty');
-        $totalActual = $data->sum('Actual_Qty');
+                $row->Qty_Plan_Liters = $units['qty_plan_liters'];
+                $row->Qty_Plan_Packages = $units['qty_plan_packages'];
+                $row->Actual_Qty_Liters = $units['actual_liters'];
+                $row->Price_Per_Liter = $units['price_per_liter'];
+                $row->Package_Capacity = $units['capacity'];
+                $row->Qty_Unit = $units['qty_unit'];
+                $row->Price_Unit = $units['price_unit'];
+
+                return $row;
+            });
+
+        $totalQty = $data->sum('Qty_Plan_Liters');
+        $totalActual = $data->sum('Actual_Qty_Liters');
 
         if ($r->query('format') === 'json') {
             return response()->json(['data' => $data]);
@@ -2789,8 +2951,10 @@ class UCOController extends Controller
         $no  = 1;
 
         foreach ($data as $d) {
-            $pct = $totalQty > 0 ? round(($d->Qty / $totalQty) * 100, 2) : 0;
-            $calculatedRec = ($totalQty > 0 && $totalActual > 0) ? round(($d->Qty / $totalQty) * $totalActual, 2) : 0;
+            $pct = $totalQty > 0 ? round(($d->Qty_Plan_Liters / $totalQty) * 100, 2) : 0;
+            $calculatedRec = ($totalQty > 0 && $totalActual > 0)
+                ? round(($d->Qty_Plan_Liters / $totalQty) * $totalActual, 2)
+                : 0;
             $rec = $d->Instock_Recommendation ?? $calculatedRec;
 
             $row = $xml->addChild('row');
@@ -2798,10 +2962,10 @@ class UCOController extends Controller
             $row->addChild('cell', $no);
             $row->addChild('cell', htmlspecialchars((string) $d->PO_Code));
             $row->addChild('cell', htmlspecialchars((string) $d->POO_Name));
-            $row->addChild('cell', (string) ($d->Qty ?? 0));
-            $row->addChild('cell', 'L');
+            $row->addChild('cell', htmlspecialchars((string) ($d->Package ?: '-')));
+            $row->addChild('cell', (string) $d->Qty_Plan_Liters);
+            $row->addChild('cell', (string) $d->Actual_Qty_Liters);
             $row->addChild('cell', (string) $pct);
-            $row->addChild('cell', (string) ($d->Actual_Qty ?? ''));
             $row->addChild('cell', (string) $rec);
             $no++;
         }
@@ -3003,10 +3167,45 @@ class UCOController extends Controller
             ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
             ->leftJoin('delivery_order as d', 'po.DO_Id', '=', 'd.ID')
             ->leftJoin('warehouse_partner as wp', 'mp.Nearest_Warehouse', '=', 'wp.id')
-            ->select('po.ID', 'po.Code as PO_Code', 'po.DO_Id', 'd.Code as DO_Code', 'po.Actual_Qty', 'po.Qty', 'mp.Name as POO_Name', 'mp.Price as POO_Price', 'mp.Nearest_Warehouse', 'wp.warehouse_task_id', 'wp.warehouse_location')
+            ->select(
+                'po.ID',
+                'po.Code as PO_Code',
+                'po.DO_Id',
+                'po.WO_Id',
+                'd.Code as DO_Code',
+                'po.Package',
+                'po.Qty',
+                'po.Qty_Unit',
+                'po.Price',
+                'po.Price_Unit',
+                'po.Package_Capacity',
+                'po.Actual_Qty',
+                'mp.Name as POO_Name',
+                'mp.Price as POO_Price',
+                'mp.Nearest_Warehouse',
+                'wp.warehouse_task_id',
+                'wp.warehouse_location'
+            )
             ->whereIn('po.DO_Id', $doIds)
             ->where('d.DO_Status', 'DONE')
+            ->whereNull('po.Instock_At')
             ->get();
+
+        $foundDoIds = $data->pluck('DO_Id')->map(fn ($id) => (int) $id)->unique()->all();
+        $requestedDoIds = array_values(array_unique(array_map('intval', (array) $doIds)));
+        $unavailableDoIds = array_values(array_diff($requestedDoIds, $foundDoIds));
+
+        if (!empty($unavailableDoIds)) {
+            $codes = DB::table('delivery_order')
+                ->whereIn('ID', $unavailableDoIds)
+                ->pluck('Code')
+                ->all();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Surat Jalan sudah pernah di-instock atau tidak siap: ' . implode(', ', $codes ?: $unavailableDoIds),
+            ], 422);
+        }
 
         $groups = [];
         foreach ($data as $row) {
@@ -3015,37 +3214,74 @@ class UCOController extends Controller
             if ($row->warehouse_task_id) {
                 $display = $row->warehouse_task_id . ' - ' . $display;
             }
-            $qtyPlan = $row->Qty ?? 0;
-            $qtyActual = $row->Actual_Qty ?? 0;
-            $price = $row->POO_Price ?? 0;
+
+            $units = PickupUnitService::resolve(
+                $row,
+                $row->POO_Price !== null ? (float) $row->POO_Price : null
+            );
+
+            $qtyPlan = $units['qty_plan_liters'];
+            $qtyActual = $units['actual_liters'];
+            $price = $units['price_per_liter'];
+
             if (!isset($groups[$wh])) {
-                $groups[$wh] = ['warehouse' => $wh, 'warehouse_display' => $display, 'do_codes' => [], 'qty_plan' => 0, 'qty_actual' => 0, 'total' => 0, 'po_details' => []];
+                $groups[$wh] = [
+                    'warehouse' => $wh,
+                    'warehouse_display' => $display,
+                    'do_codes' => [],
+                    'do_ids' => [],
+                    'wo_ids' => [],
+                    'po_ids' => [],
+                    'qty_plan' => 0,
+                    'qty_actual' => 0,
+                    'total' => 0,
+                    'po_details' => [],
+                ];
             }
+
             $groups[$wh]['do_codes'][] = $row->DO_Code;
+            $groups[$wh]['do_ids'][] = (int) $row->DO_Id;
+            $groups[$wh]['wo_ids'][] = (int) $row->WO_Id;
+            $groups[$wh]['po_ids'][] = (int) $row->ID;
             $groups[$wh]['qty_plan'] += $qtyPlan;
             $groups[$wh]['qty_actual'] += $qtyActual;
             $groups[$wh]['total'] += $qtyActual * $price;
             $groups[$wh]['po_details'][] = [
-                'po_id'          => $row->ID,
-                'po_code'        => $row->PO_Code,
-                'poo_name'       => $row->POO_Name,
-                'do_code'        => $row->DO_Code,
-                'qty_plan'       => $qtyPlan,
-                'qty_actual'     => $qtyActual,
-                'percentage'     => 0,
-                'recommendation' => 0,
+                'po_id'             => $row->ID,
+                'po_code'           => $row->PO_Code,
+                'poo_name'          => $row->POO_Name,
+                'do_code'           => $row->DO_Code,
+                'package'           => $units['package'],
+                'qty_unit'          => $units['qty_unit'],
+                'price_unit'        => $units['price_unit'],
+                'capacity'          => $units['capacity'],
+                'po_price'          => $units['po_price'],
+                'price_per_liter'   => $price,
+                'qty_plan'          => $qtyPlan,
+                'qty_plan_packages' => $units['qty_plan_packages'],
+                'qty_actual'        => $qtyActual,
+                'percentage'        => 0,
+                'recommendation'    => 0,
             ];
         }
+
         foreach ($groups as &$g) {
-            $g['do_codes'] = array_unique(array_filter($g['do_codes']));
+            $g['do_codes'] = array_values(array_unique(array_filter($g['do_codes'])));
+            $g['do_ids'] = array_values(array_unique($g['do_ids']));
+            $g['wo_ids'] = array_values(array_unique($g['wo_ids']));
+            $g['po_ids'] = array_values(array_unique($g['po_ids']));
             $g['received_qty'] = $g['qty_actual'];
             $g['avg_price'] = $g['qty_actual'] > 0 ? round($g['total'] / $g['qty_actual'], 2) : 0;
             $g['containers'] = is_numeric($g['warehouse']) ? $this->getContainersForWarehouse($g['warehouse']) : [];
             foreach ($g['po_details'] as &$po) {
                 $po['percentage'] = $g['qty_plan'] > 0 ? round(($po['qty_plan'] / $g['qty_plan']) * 100, 2) : 0;
-                $po['recommendation'] = ($g['qty_plan'] > 0 && $g['qty_actual'] > 0) ? round(($po['qty_plan'] / $g['qty_plan']) * $g['qty_actual'], 2) : 0;
+                $po['recommendation'] = ($g['qty_plan'] > 0 && $g['qty_actual'] > 0)
+                    ? round(($po['qty_plan'] / $g['qty_plan']) * $g['qty_actual'], 2)
+                    : 0;
             }
+            unset($po);
         }
+        unset($g);
 
         return response()->json(['success' => true, 'data' => array_values($groups)]);
     }
@@ -3056,59 +3292,168 @@ class UCOController extends Controller
         if (is_string($groups)) {
             $groups = json_decode($groups, true) ?? [];
         }
-        if (empty($groups)) {
+        if (empty($groups) || !is_array($groups)) {
             return response()->json(['success' => false, 'message' => 'No data to submit'], 400);
         }
 
         $notes = $r->input('notes');
+        $batchRef = 'INS-' . now()->format('YmdHis') . '-' . strtoupper(substr(uniqid(), -5));
 
         try {
             DB::beginTransaction();
 
+            $allPoIds = [];
             foreach ($groups as $g) {
-                $qty = (float) ($g['received_qty'] ?? 0);
+                foreach ((array) ($g['po_ids'] ?? []) as $poId) {
+                    $poId = (int) $poId;
+                    if ($poId > 0) {
+                        $allPoIds[$poId] = true;
+                    }
+                }
+            }
+            $allPoIds = array_keys($allPoIds);
+
+            if (empty($allPoIds)) {
+                throw new \InvalidArgumentException('Sumber PO wajib dipilih sebelum menyimpan instock.');
+            }
+
+            $orders = DB::table('pickup_order as po')
+                ->join('work_order as wo', 'po.WO_Id', '=', 'wo.ID')
+                ->leftJoin('master_poo as mp', 'wo.POO_Id', '=', 'mp.ID')
+                ->leftJoin('delivery_order as d', 'po.DO_Id', '=', 'd.ID')
+                ->leftJoin('warehouse_partner as wp', 'mp.Nearest_Warehouse', '=', 'wp.id')
+                ->select(
+                    'po.ID',
+                    'po.Code as PO_Code',
+                    'po.DO_Id',
+                    'po.WO_Id',
+                    'po.Package',
+                    'po.Qty',
+                    'po.Qty_Unit',
+                    'po.Price',
+                    'po.Price_Unit',
+                    'po.Package_Capacity',
+                    'po.Actual_Qty',
+                    'po.Instock_At',
+                    'po.Instock_Batch_Ref',
+                    'd.Code as DO_Code',
+                    'd.DO_Status',
+                    'mp.Name as POO_Name',
+                    'mp.Price as POO_Price',
+                    'mp.Nearest_Warehouse',
+                    'wp.warehouse_task_id',
+                    'wp.warehouse_location'
+                )
+                ->whereIn('po.ID', $allPoIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('ID');
+
+            if ($orders->count() !== count($allPoIds)) {
+                throw new \InvalidArgumentException('Sebagian PO sumber tidak ditemukan.');
+            }
+
+            foreach ($orders as $order) {
+                if (!empty($order->Instock_At)) {
+                    throw new \InvalidArgumentException('PO ' . $order->PO_Code . ' sudah pernah di-instock.');
+                }
+                if (($order->DO_Status ?? null) !== 'DONE') {
+                    throw new \InvalidArgumentException('Surat Jalan ' . ($order->DO_Code ?: $order->DO_Id) . ' belum berstatus DONE.');
+                }
+            }
+
+            $usedPoIds = [];
+
+            foreach ($groups as $g) {
                 $whId = $g['warehouse'] ?? null;
                 $warehouseDisplay = $g['warehouse_display'] ?? ($whId ?? 'Unknown');
-                $warehouse_task_id = '';
-                if ($whId && is_numeric($whId)) {
-                    $wp = DB::table('warehouse_partner')->where('id', $whId)->first(['warehouse_task_id']);
-                    $warehouse_task_id = $wp->warehouse_task_id ?? '';
+                $groupPoIds = array_values(array_unique(array_map('intval', (array) ($g['po_ids'] ?? []))));
+
+                if (empty($groupPoIds)) {
+                    throw new \InvalidArgumentException('Sumber PO wajib dipilih untuk warehouse ' . $warehouseDisplay . '.');
+                }
+
+                $totalLiters = 0.0;
+                $totalValue = 0.0;
+                $pooNames = [];
+
+                foreach ($groupPoIds as $poId) {
+                    $order = $orders->get($poId);
+                    if (!$order) {
+                        throw new \InvalidArgumentException('PO sumber tidak ditemukan untuk warehouse ' . $warehouseDisplay . '.');
+                    }
+                    if (!is_numeric($whId) || (int) $order->Nearest_Warehouse !== (int) $whId) {
+                        throw new \InvalidArgumentException('PO ' . $order->PO_Code . ' bukan milik warehouse ' . $warehouseDisplay . '.');
+                    }
+
+                    $units = PickupUnitService::resolve(
+                        $order,
+                        $order->POO_Price !== null ? (float) $order->POO_Price : null
+                    );
+
+                    $liters = $units['actual_liters'] > 0 ? $units['actual_liters'] : $units['qty_plan_liters'];
+                    $totalLiters += $liters;
+                    $totalValue += $liters * $units['price_per_liter'];
+                    $pooNames[] = $order->POO_Name;
+                    $usedPoIds[$poId] = true;
                 }
 
                 $containers = $g['containers'] ?? [];
                 if (empty($containers)) {
-                    throw new \Exception('Alokasi container wajib diisi untuk warehouse ' . $warehouseDisplay);
+                    throw new \InvalidArgumentException('Alokasi container wajib diisi untuk warehouse ' . $warehouseDisplay . '.');
                 }
 
-                $totalQty = 0;
+                $containerQty = 0.0;
                 foreach ($containers as $cont) {
-                    $totalQty += (float) ($cont['qty'] ?? 0);
+                    $containerQty += (float) ($cont['qty'] ?? 0);
                 }
-                if (abs($totalQty - $qty) > 0.001) {
-                    throw new \Exception('Total alokasi container (' . $totalQty . ' L) tidak sama dengan qty diterima (' . $qty . ' L) untuk warehouse ' . $warehouseDisplay);
+                if (abs($containerQty - $totalLiters) > 0.01) {
+                    throw new \InvalidArgumentException('Total alokasi container (' . $containerQty . ' L) tidak sama dengan qty diterima (' . $totalLiters . ' L) untuk warehouse ' . $warehouseDisplay . '.');
                 }
+
+                $warehouseTaskId = '';
+                if (is_numeric($whId)) {
+                    $warehouseTaskId = DB::table('warehouse_partner')->where('id', $whId)->value('warehouse_task_id') ?? '';
+                }
+
+                $pricePerLiter = $totalLiters > 0 ? round($totalValue / $totalLiters, 2) : 0.0;
+                $pooName = implode(', ', array_unique(array_filter($pooNames)));
 
                 foreach ($containers as $cont) {
                     $cQty = (float) ($cont['qty'] ?? 0);
-                    $cPrice = (float) ($cont['price'] ?? ($g['avg_price'] ?? 0));
+                    if ($cQty <= 0) {
+                        throw new \InvalidArgumentException('Qty container harus lebih dari 0 untuk warehouse ' . $warehouseDisplay . '.');
+                    }
+
                     $cid = $this->prepareContainer($cont, is_numeric($whId) ? $whId : null, $cQty);
 
                     DB::table('warehouse_partner_supplies')->insertGetId([
-                        'received_date'    => $r->input('received_date'),
-                        'pickup_type'      => 'PICKUP',
-                        'warehouse_task_id' => $warehouse_task_id,
-                        'Container_ID'     => $cid,
-                        'source'           => $r->input('source') ?? 'MITRA',
-                        'received_qty'     => $cQty,
-                        'price'            => $cPrice,
-                        'total'            => $cQty * $cPrice,
-                        'rejected_qty'     => $g['rejected_qty'] ?? 0,
-                        'notes'            => $notes,
-                        'created_date'     => now(),
-                        'created_by'       => auth()->user()->username ?? 'instock',
+                        'received_date'      => $r->input('received_date'),
+                        'pickup_type'        => 'PICKUP',
+                        'warehouse_task_id'  => $warehouseTaskId,
+                        'Container_ID'       => $cid,
+                        'source'             => $r->input('source') ?? 'MITRA',
+                        'name_poo'           => $pooName,
+                        'coverage'           => $warehouseDisplay,
+                        'received_qty'       => $cQty,
+                        'price'              => $pricePerLiter,
+                        'total'              => round($cQty * $pricePerLiter, 2),
+                        'rejected_qty'       => $g['rejected_qty'] ?? 0,
+                        'notes'              => $notes,
+                        'Instock_Batch_Ref'  => $batchRef,
+                        'created_date'       => now(),
+                        'created_by'         => auth()->user()->username ?? 'instock',
                     ]);
                 }
             }
+
+            DB::table('pickup_order')
+                ->whereIn('ID', array_keys($usedPoIds))
+                ->update([
+                    'Instock_At'         => now(),
+                    'Instock_By'         => auth()->user()->username ?? 'instock',
+                    'Instock_Batch_Ref'  => $batchRef,
+                ]);
 
             foreach ($groups as $g) {
                 if (is_numeric($g['warehouse'] ?? null)) {
@@ -3136,6 +3481,9 @@ class UCOController extends Controller
 
             DB::commit();
             return response()->json(['success' => true, 'message' => count($groups) . ' instock records created.']);
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -3145,22 +3493,47 @@ class UCOController extends Controller
     public function deleteInstockSupply(Request $r)
     {
         try {
+            DB::beginTransaction();
+
             $supply = DB::table('warehouse_partner_supplies')->where('id', $r->input('id'))->first();
+            if (!$supply) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Instock supply not found'], 404);
+            }
+
             DB::table('warehouse_partner_supplies')->where('id', $r->input('id'))->delete();
 
-            if ($supply && $supply->Container_ID) {
+            $batchRef = $supply->Instock_Batch_Ref ?? null;
+            if ($batchRef) {
+                $remaining = DB::table('warehouse_partner_supplies')
+                    ->where('Instock_Batch_Ref', $batchRef)
+                    ->count();
+
+                if ($remaining === 0) {
+                    DB::table('pickup_order')
+                        ->where('Instock_Batch_Ref', $batchRef)
+                        ->update([
+                            'Instock_At'        => null,
+                            'Instock_By'        => null,
+                            'Instock_Batch_Ref' => null,
+                        ]);
+                }
+            }
+
+            if ($supply->Container_ID) {
                 $whId = DB::table('master_container')->where('ID', $supply->Container_ID)->value('Warehouse_ID');
                 if ($whId) {
                     $this->warehouseService->recomputeWarehouseSystemQty($whId);
                 }
             }
 
+            DB::commit();
             return response()->json(['success' => true, 'message' => 'Instock supply deleted.']);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
-
 
     // === Container helpers for instock ===
     private function getContainerFill($containerId)
@@ -3353,6 +3726,8 @@ class UCOController extends Controller
             return redirect('partner-outstock');
         }
 
+        $destinationName = $this->resolveWarehouseDestinationName($outstock->Warehouse_Destination);
+
         $whIds = DB::table('outstock_warehouses')
             ->where('Outstock_ID', $id)
             ->pluck('Warehouse_ID');
@@ -3397,7 +3772,7 @@ class UCOController extends Controller
             $c->system_qty = $this->warehouseService->containerSystemQty($c->ID);
         }
 
-        return view('partner.outstock.edit', compact('outstock', 'warehouses', 'whIds', 'loading', 'handover', 'containers'));
+        return view('partner.outstock.edit', compact('outstock', 'warehouses', 'whIds', 'loading', 'handover', 'containers', 'destinationName'));
     }
 
     public function submitOutstockLoading(Request $r)
@@ -3694,7 +4069,7 @@ class UCOController extends Controller
             'doc_id'                 => 'OPR/FORM/0001',
             'dn_code'                => $outstock->Code,
             'issued_date'            => $outstock->Date,
-            'warehouse_destination'  => '-',
+            'warehouse_destination'  => $this->resolveWarehouseDestinationName($outstock->Warehouse_Destination) ?? '-',
             'vehicle_type'           => '-',
             'vehicle_police_number'  => $outstock->Fleet_Number ?? '-',
             'driver_name'            => '-',
@@ -3714,6 +4089,22 @@ class UCOController extends Controller
     }
 
 
+
+    private function resolveWarehouseDestinationName($id): ?string
+    {
+        if (!$id) {
+            return null;
+        }
+
+        $name = DB::table('master_warehouse')->where('ID', $id)->value('Name');
+        if ($name) {
+            return $name;
+        }
+
+        $legacy = DB::table('warehouse_partner')->where('id', $id)->value('warehouse_location');
+
+        return $legacy ?: null;
+    }
 
     private function getOrderCoordinate($order): ?array
     {

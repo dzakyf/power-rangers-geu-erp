@@ -250,10 +250,10 @@
     function initPickupOrderGrid() {
         PickupOrderGrid = new dhtmlXGridObject('PickupOrderGrid');
         PickupOrderGrid.setImagePath("./dhtmlx/imgs/");
-        PickupOrderGrid.setHeader("No,PO Code,POO Name,Qty,Unit (L),Percentage (%),Actual Qty,Recommendation");
+        PickupOrderGrid.setHeader("No,PO Code,POO Name,Package,Qty Plan (L),Actual Qty (L),Percentage (%),Recommendation");
         PickupOrderGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#rspan,#rspan,#rspan");
-        PickupOrderGrid.setInitWidths("50,120,*,80,60,100,80,120");
-        PickupOrderGrid.setColAlign("center,left,left,right,center,right,right,right");
+        PickupOrderGrid.setInitWidths("50,120,*,150,90,90,90,110");
+        PickupOrderGrid.setColAlign("center,left,left,left,right,right,right,right");
         PickupOrderGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
         PickupOrderGrid.setSkin("dhx_skyblue");
         PickupOrderGrid.attachEvent("onRowSelect", function(id) {
@@ -424,14 +424,15 @@
 
             var bodyHtml = '<form id="rekomForm">';
             bodyHtml += '<table class="table table-sm table-bordered">';
-            bodyHtml += '<thead><tr><th>PO Code</th><th>POO Name</th><th>Qty</th><th>Rekomendasi (Kg)</th></tr></thead>';
+            bodyHtml += '<thead><tr><th>PO Code</th><th>POO Name</th><th>Qty Plan (L)</th><th>Rekomendasi (L)</th></tr></thead>';
             bodyHtml += '<tbody>';
             items.forEach(function(item, idx) {
                 var rec = item.Instock_Recommendation || item.Recommendation || 0;
+                var qtyPlan = item.Qty_Plan_Liters != null ? item.Qty_Plan_Liters : (item.Qty || 0);
                 bodyHtml += '<tr>';
                 bodyHtml += '<td>' + (item.PO_Code || '') + '</td>';
                 bodyHtml += '<td>' + (item.POO_Name || '') + '</td>';
-                bodyHtml += '<td>' + (item.Qty || 0) + '</td>';
+                bodyHtml += '<td>' + qtyPlan + '</td>';
                 bodyHtml += '<td><input type="number" step="0.01" class="form-control form-control-sm rekom-input" name="recommendations[' + idx + '][recommendation]" value="' + rec + '">';
                 bodyHtml += '<input type="hidden" name="recommendations[' + idx + '][po_id]" value="' + item.ID + '"></td>';
                 bodyHtml += '</tr>';

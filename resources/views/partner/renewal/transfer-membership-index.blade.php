@@ -24,6 +24,7 @@
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
 
                 <input type="button" id="pengajuan" name="pengajuan" value="Buat Pengajuan" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
+                <input type="button" id="downloadResult" name="downloadResult" value="Download Result" class="btn btn-info mt-2 mr-2" onclick="downloadResult()" />
                 <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
             </div>
         </div>
@@ -104,6 +105,22 @@
 
     function redirectToCreateApplication() {
         window.location.href = `partner-transfer-membership-create-application`
+    }
+
+    function downloadResult() {
+        var rowId = Grid1.getSelectedId();
+        if (!rowId) {
+            alert('Pilih data terlebih dahulu.');
+            return;
+        }
+
+        var transferId = Grid1.getRowAttribute(rowId, 'Transfer_Application_Id');
+        if (!transferId) {
+            alert('Data transfer tidak ditemukan.');
+            return;
+        }
+
+        window.open('partner-transfer-membership-download?ID=' + transferId, '_blank');
     }
 
     function initTableGrid1() {

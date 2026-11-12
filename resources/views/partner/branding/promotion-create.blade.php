@@ -131,7 +131,6 @@ $Saya =  Auth::user()->username;
     </form>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     $(document).ready(function() {
 
@@ -215,7 +214,7 @@ $Saya =  Auth::user()->username;
 
                         results.push({
                             id: cells.eq(1).text(),
-                            text: cells.eq(2).text(),
+                            text: cells.eq(3).text() || cells.eq(2).text(),
                             cell2: cells.eq(2).text(),
                         });
                     });

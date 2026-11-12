@@ -10,13 +10,15 @@ class ApprovalSppdPolicySeeder extends Seeder
 {
     public function run()
     {
-        // 1. Regular SPPD Policy (Manager Departemen Pemohon -> Manager HCGA)
+        // 1. Regular SPPD Policy - Sesuai Plafon
+        // Manager Departemen Pemohon -> Manager HCGA
         $this->createPolicy(
             'SPPD-REGULAR-POLICY',
-            'Approval Regular SPPD (Manager Dept + Manager HCGA)',
+            'Approval Regular SPPD Sesuai Plafon (Manager Dept + Manager HCGA)',
             'SPPD',
             [
-                'Sppd_Type' => 'NORMAL',
+                ['field' => 'Sppd_Type', 'operator' => '=', 'value' => 'NORMAL'],
+                ['field' => 'Is_Over_Plafon', 'operator' => '=', 'value' => 0],
             ],
             [
                 [
@@ -36,14 +38,15 @@ class ApprovalSppdPolicySeeder extends Seeder
             ]
         );
 
-        // 2. Perbantuan Sementara Policy (> 14 hari)
-        // Manager Departemen Pemohon -> Manager HCGA -> VP Director
+        // 2. Regular SPPD Policy - Di Atas Plafon (Over Plafon)
+        // Manager Departemen Pemohon -> Manager HCGA -> BOD (Direksi)
         $this->createPolicy(
-            'SPPD-PERBANTUAN-POLICY',
-            'Approval Perbantuan Sementara (Manager Dept + Manager HCGA + VP Director)',
+            'SPPD-REGULAR-OVER-PLAFON-POLICY',
+            'Approval Regular SPPD Di Atas Plafon (Manager Dept + Manager HCGA + BOD)',
             'SPPD',
             [
-                'Sppd_Type' => 'PERBANTUAN',
+                ['field' => 'Sppd_Type', 'operator' => '=', 'value' => 'NORMAL'],
+                ['field' => 'Is_Over_Plafon', 'operator' => '=', 'value' => 1],
             ],
             [
                 [
@@ -65,7 +68,41 @@ class ApprovalSppdPolicySeeder extends Seeder
                     'Level_Number' => 2,
                     'Department' => null,
                     'Position_Code' => null,
-                    'Label' => 'VP Director',
+                    'Label' => 'BOD (Board of Directors)',
+                ],
+            ]
+        );
+
+        // 3. Perbantuan Sementara Policy (> 14 hari)
+        // Manager Departemen Pemohon -> Manager HCGA -> VP Director / BOD
+        $this->createPolicy(
+            'SPPD-PERBANTUAN-POLICY',
+            'Approval Perbantuan Sementara (Manager Dept + Manager HCGA + VP Director)',
+            'SPPD',
+            [
+                ['field' => 'Sppd_Type', 'operator' => '=', 'value' => 'PERBANTUAN'],
+            ],
+            [
+                [
+                    'Stage_Order' => 1,
+                    'Level_Number' => 3,
+                    'Department' => null,
+                    'Position_Code' => null,
+                    'Label' => 'Manager Departemen Pemohon',
+                ],
+                [
+                    'Stage_Order' => 2,
+                    'Level_Number' => 3,
+                    'Department' => 'HCGA',
+                    'Position_Code' => 'MHCGA',
+                    'Label' => 'Manager HCGA',
+                ],
+                [
+                    'Stage_Order' => 3,
+                    'Level_Number' => 2,
+                    'Department' => null,
+                    'Position_Code' => null,
+                    'Label' => 'VP Director / BOD',
                 ],
             ]
         );
@@ -85,10 +122,10 @@ class ApprovalSppdPolicySeeder extends Seeder
             'Min_Amount' => null,
             'Max_Amount' => null,
             'Conditions' => !empty($conditions) ? json_encode($conditions) : null,
-            'Rejection_Mode' => 'STOP',
+            'Rejection_Mode' => 'RETURN_TO_CREATOR',
             'Rejection_Quorum' => 1,
-            'On_No_Higher_Level' => 'APPROVE',
-            'On_Vacancy' => 'SKIP',
+            'On_No_Higher_Level' => 'AUTO_APPROVE',
+            'On_Vacancy' => 'FALLBACK',
             'Allow_Self_Approval' => 0,
             'Allow_Delegation' => 1,
             'Status' => 'ACTIVE',

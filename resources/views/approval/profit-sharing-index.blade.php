@@ -31,7 +31,7 @@
 
                 <div class="btn-group mt-2 mr-2" role="group" aria-label="Button group with nested dropdown">
                     <div class="btn-group" role="group">
-                        <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             Action
                         </button>
                         <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
@@ -74,7 +74,7 @@
     <div class="row col-md-12" style="width:auto;height:40px">
         <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
             <div class="btn-group" role="group">
-                <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     Action
                 </button>
                 <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
@@ -98,6 +98,10 @@
     }
 
     function approveClick(action) {
+        if (!apprId) {
+            alert('Pilih data terlebih dahulu.');
+            return;
+        }
 
         let formData = new FormData();
 
@@ -113,12 +117,14 @@
             contentType: false,
             cache: false,
             success: function(response) {
-                alert("Berhasil approve");
-                // $('#broadcastForm')[0].reset();
+                alert(action === 'REJECTED' ? 'Berhasil reject' : 'Berhasil approve');
+                location.reload();
             },
             error: function(xhr, status, error) {
-                // console.log('Error details:', xhr.responseText);
-                alert("Telah terjadi kesalahan. Silakan coba lagi.");
+                var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                    ? xhr.responseJSON.message
+                    : "Telah terjadi kesalahan. Silakan coba lagi.";
+                alert(msg);
             },
             complete: function() {
                 // $('#submitBtn').prop('disabled', false).text('Submit');
@@ -139,12 +145,12 @@
         PartnerGrid.setInitWidths(tWidth.join(','));
         // PartnerGrid.enableAutoWidth(true);
         PartnerGrid.attachHeader(headerAttachment);
-        // ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-        // ProjectionGrid.setColAlign("center,left,left,left,left");
-        // ProjectionGrid.setColSorting("int,str,str,str,str");
-        // ProjectionGrid.setColTypes("ro,ro,ro,ro,ro");
-        // ProjectionGrid.enableSmartRendering(true, 150);
-        // ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
+        // ApprovalLogGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+        // ApprovalLogGrid.setColAlign("center,left,left,left,left");
+        // ApprovalLogGrid.setColSorting("int,str,str,str,str");
+        // ApprovalLogGrid.setColTypes("ro,ro,ro,ro,ro");
+        // ApprovalLogGrid.enableSmartRendering(true, 150);
+        // ApprovalLogGrid.setNumberFormat("0,000", 7, ".", ",");
         // PartnerGrid.enableAutoWidth(true);
         PartnerGrid.attachEvent("onRowDblClicked", doubleClickApproval);
         PartnerGrid.attachEvent("onRowSelect", selectMitra);
@@ -162,22 +168,22 @@
         let headerAttachment = [
             '#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter'
         ]
-        ProjectionGrid = new dhtmlXGridObject('ProjectionGrid');
-        ProjectionGrid.setImagePath("./dhtmlx/imgs/");
-        ProjectionGrid.setHeader(tHeader.join(','));
-        ProjectionGrid.setInitWidths(tWidth.join(','));
-        // ProjectionGrid.enableAutoWidth(true);
-        ProjectionGrid.attachHeader(headerAttachment);
-        // ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-        // ProjectionGrid.setColAlign("center,left,left,left,left");
-        // ProjectionGrid.setColSorting("int,str,str,str,str");
-        // ProjectionGrid.setColTypes("ro,ro,ro,ro,ro");
-        // ProjectionGrid.enableSmartRendering(true, 150);
-        // ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
-        // ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
-        ProjectionGrid.setSkin("dhx_skyblue");
-        ProjectionGrid.init();
-        ProjectionGrid.clearAndLoad(`partner-approval-data-log?appr_id=${apprId}&user_id=&type=PROFIT_SHARING`);
+        ApprovalLogGrid = new dhtmlXGridObject('ProjectionGrid');
+        ApprovalLogGrid.setImagePath("./dhtmlx/imgs/");
+        ApprovalLogGrid.setHeader(tHeader.join(','));
+        ApprovalLogGrid.setInitWidths(tWidth.join(','));
+        // ApprovalLogGrid.enableAutoWidth(true);
+        ApprovalLogGrid.attachHeader(headerAttachment);
+        // ApprovalLogGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+        // ApprovalLogGrid.setColAlign("center,left,left,left,left");
+        // ApprovalLogGrid.setColSorting("int,str,str,str,str");
+        // ApprovalLogGrid.setColTypes("ro,ro,ro,ro,ro");
+        // ApprovalLogGrid.enableSmartRendering(true, 150);
+        // ApprovalLogGrid.setNumberFormat("0,000", 7, ".", ",");
+        // ApprovalLogGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
+        ApprovalLogGrid.setSkin("dhx_skyblue");
+        ApprovalLogGrid.init();
+        ApprovalLogGrid.clearAndLoad(`partner-approval-data-log?appr_id=${apprId}&user_id=&type=PROFIT_SHARING`);
     }
 
     function selectMitra(rowId, cellIdx) {
@@ -185,9 +191,21 @@
         apprId = rowId;
     }
 
-    function doubleClickApproval() {
-        initApprovalLogGrid()
-        $('#ApprovalLog').show()
+    function doubleClickApproval(rowId) {
+        if (rowId) {
+            apprId = rowId;
+        }
+        if (!apprId) {
+            alert('Pilih data terlebih dahulu.');
+            return;
+        }
+        $('#ApprovalLog').show();
+        if (typeof ApprovalLogGrid === 'undefined' || !ApprovalLogGrid) {
+            initApprovalLogGrid();
+        } else {
+            ApprovalLogGrid.clearAndLoad(`partner-approval-data-log?appr_id=${apprId}&user_id=&type=PROFIT_SHARING`);
+            ApprovalLogGrid.setSizes();
+        }
     }
 
     function showDetail() {

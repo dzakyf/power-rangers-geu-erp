@@ -10,6 +10,7 @@ class DatabaseSeeder extends Seeder
         $this->call(UserSeeder::class);
         $this->call(CnsMenuListsSeeder::class);
         $this->call(RbacSeeder::class);
+        $this->call(BpSurveyMasterAccessSeeder::class);
         $this->call(HcgaPermissionSeeder::class);
         $this->call(MasterBankSeeder::class);
         $this->call(ApprovalLevelSeeder::class);
