@@ -11,14 +11,37 @@
 </div>
 
 <style>
-    #NonUcoGrid .hdr tr:first-child td {
-        background-color: #174375 !important;
-        color: #ffffff !important;
+    #NonUcoGrid .xhdr {
+        height: auto !important;
+        min-height: 0 !important;
+    }
+    #NonUcoGrid table.hdr td {
+        color: #000000 !important;
         font-weight: bold !important;
         text-align: center !important;
         vertical-align: middle !important;
-        border-right: 1px solid #ffffff !important;
         font-size: 12px !important;
+        padding: 5px 6px !important;
+        line-height: 1.2 !important;
+        height: auto !important;
+    }
+    #NonUcoGrid table.hdr td.filter {
+        padding: 3px 4px !important;
+        font-weight: normal !important;
+    }
+    #NonUcoGrid table.hdr td div.hdrcell {
+        padding: 0 4px !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+    }
+    #NonUcoGrid table.hdr td.filter input,
+    #NonUcoGrid table.hdr td.filter select {
+        width: 100% !important;
+        height: 22px !important;
+        padding: 1px 4px !important;
+        font-size: 11px !important;
+        line-height: 1.2 !important;
+        box-sizing: border-box !important;
     }
     #NonUcoGrid td {
         font-size: 12px !important;
@@ -72,14 +95,14 @@
                     <span class="badge badge-light border">{{ $sum['category'] }}</span> {{ $sum['item_name'] }}
                 </div>
                 <div class="badge-balance-val">
-                    {{ number_format($sum['current_balance'], 0, ',', '.') }} <small class="text-muted" style="font-size: 13px;">{{ $sum['unit'] }}</small>
+                    {{ number_format((float) $sum['current_balance'], 2, '.', ',') }} <small class="text-muted" style="font-size: 13px;">{{ $sum['unit'] }}</small>
                 </div>
             </div>
         @empty
             <div class="badge-balance-card mr-2 mb-2" style="min-width: 170px;">
                 <div class="badge-balance-title">Flexibag 24KL</div>
                 <div class="badge-balance-val">
-                    {{ number_format($currentBalance, 0, ',', '.') }} <small class="text-muted" style="font-size: 13px;">PCS</small>
+                    {{ number_format((float) $currentBalance, 2, '.', ',') }} <small class="text-muted" style="font-size: 13px;">PCS</small>
                 </div>
             </div>
         @endforelse
@@ -173,7 +196,7 @@
                         </div>
                         <div class="form-group col-md-4">
                             <label class="font-weight-bold">Kuantiti <span class="text-danger">*</span></label>
-                            <input type="number" step="any" min="0.01" name="qty" class="form-control form-control-sm font-weight-bold text-right" required />
+                            <input type="text" inputmode="decimal" name="qty" class="form-control form-control-sm font-weight-bold text-right cns-decimal" required />
                         </div>
                         <div class="form-group col-md-4">
                             <label class="font-weight-bold">Satuan</label>
@@ -208,14 +231,21 @@
     function initNonUcoGrid() {
         NonUcoGrid = new dhtmlXGridObject('NonUcoGrid');
         NonUcoGrid.setImagePath("./dhtmlx/imgs/");
+        NonUcoGrid.setSkin("dhx_skyblue");
         NonUcoGrid.setHeader("No,Tanggal,Kategori,Nama Barang,No. Referensi,Tipe Mutasi,Qty IN,Qty OUT,Saldo Akhir,Satuan,Keterangan,Dicatat Oleh");
         NonUcoGrid.attachHeader("#rspan,#text_filter,#select_filter,#text_filter,#text_filter,#select_filter,#rspan,#rspan,#rspan,#select_filter,#text_filter,#text_filter");
-        NonUcoGrid.setInitWidths("45,100,120,170,180,90,100,100,110,75,*,120");
+        NonUcoGrid.setInitWidths("45,100,120,170,180,105,100,100,110,75,*,120");
         NonUcoGrid.setColAlign("center,center,left,left,left,center,right,right,right,center,left,left");
         NonUcoGrid.setColSorting("int,date,str,str,str,str,int,int,int,str,str,str");
         NonUcoGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
         NonUcoGrid.enableSmartRendering(true);
         NonUcoGrid.init();
+        NonUcoGrid.setSizes();
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(function() {
+                if (NonUcoGrid) NonUcoGrid.setSizes();
+            });
+        }
     }
 
     function loadGridData() {

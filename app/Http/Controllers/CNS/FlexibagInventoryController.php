@@ -78,15 +78,15 @@ class FlexibagInventoryController extends Controller
 
             $initialBalance = $priorRecord ? (float) $priorRecord->current_balance : 0.0;
             $virtualDate = Carbon::parse($startDate)->format('d/m/Y');
-            $formattedInitial = number_format($initialBalance, 0, ',', '.');
+            $formattedInitial = number_format((float) $initialBalance, 2, '.', ',');
 
             echo '<row id="virtual_saldo_awal" style="font-weight:bold; background-color:#e8f4fd;">';
             echo '<cell>' . $no++ . '</cell>';
             echo '<cell>' . htmlspecialchars($virtualDate) . '</cell>';
             echo '<cell>SALDO AWAL PERIODE</cell>';
             echo '<cell>SALDO AWAL</cell>';
-            echo '<cell>0</cell>';
-            echo '<cell>0</cell>';
+            echo '<cell>0.00</cell>';
+            echo '<cell>0.00</cell>';
             echo '<cell>' . htmlspecialchars($formattedInitial) . '</cell>';
             echo '<cell>Saldo akhir bulan sebelumnya</cell>';
             echo '<cell>SYSTEM</cell>';
@@ -97,9 +97,9 @@ class FlexibagInventoryController extends Controller
             $date = $row->transaction_date ? Carbon::parse($row->transaction_date)->format('d/m/Y') : '-';
             $ref = $row->reference_no ?: '-';
             $type = $row->type;
-            $qtyIn = (float) $row->qty_in > 0 ? number_format((float) $row->qty_in, 0, ',', '.') : '0';
-            $qtyOut = (float) $row->qty_out > 0 ? number_format((float) $row->qty_out, 0, ',', '.') : '0';
-            $balance = number_format((float) $row->current_balance, 0, ',', '.');
+            $qtyIn = (float) $row->qty_in > 0 ? number_format((float) $row->qty_in, 2, '.', ',') : '0.00';
+            $qtyOut = (float) $row->qty_out > 0 ? number_format((float) $row->qty_out, 2, '.', ',') : '0.00';
+            $balance = number_format((float) $row->current_balance, 2, '.', ',');
             $notes = $row->notes ?: '-';
             $createdBy = $row->created_by ?: '-';
 

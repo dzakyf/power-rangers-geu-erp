@@ -24,7 +24,7 @@ class moneyFormat
 
 	public function rupiah($angka)
 	{
-		$rupiah = number_format($angka, 0, ',', '.');
+		$rupiah = number_format((float) $angka, 2, '.', ',');
 		return $rupiah;
 	}
 }
@@ -289,7 +289,7 @@ $moneyFormat = new moneyFormat();
 							<tr>
 								<td width="50" height="20" style="vertical-align:top;text-align:center;border-right:1px solid #000;padding:10px"><?php echo $no; ?></td>
 								<td height="20" width="300" style="vertical-align:middle;text-align:left;border-right:1px solid #000;padding:10px"><?php echo $NamaProduk ?></td>
-								<td height="20" width="40" style="vertical-align:middle;text-align:center;border-right:1px solid #000;padding:10px"><?php echo $rowy->Qty . ($rowy->Unit != '' ? ' ' . $rowy->Unit : '') ?></td>
+								<td height="20" width="40" style="vertical-align:middle;text-align:center;border-right:1px solid #000;padding:10px"><?php echo number_format((float) $rowy->Qty, 2, '.', ',') . ($rowy->Unit != '' ? ' ' . $rowy->Unit : '') ?></td>
 								<td height="20" width="100" style="vertical-align:middle;text-align:right;border-right:1px solid #000;padding:10px"><?php echo $moneyFormat->rupiah($rowy->Price) ?></td>
 								<td height="20" style="vertical-align:middle;text-align:right;padding:10px"><?php echo $moneyFormat->rupiah($rowy->Total) ?></td>
 							</tr>

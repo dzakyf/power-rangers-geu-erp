@@ -743,7 +743,7 @@ class ISCCTraceabilityController extends Controller
 
     protected function num($v): string
     {
-        return number_format((float) $v, 2, ',', '.');
+        return number_format((float) $v, 2, '.', ',');
     }
 
     protected function terbilang($number): string

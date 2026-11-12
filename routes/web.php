@@ -40,6 +40,10 @@ use App\Http\Controllers\CNS\BuyerContractController;
 use App\Http\Controllers\CNS\NonUcoSupplierController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\CNS\ISCCTraceabilityController;
+use App\Http\Controllers\CNS\UpcomingInboundController;
+use App\Http\Controllers\CNS\KemasanInventoryController;
+use App\Http\Controllers\CNS\TankDrainingController;
+use App\Http\Controllers\CNS\MasterKemasanController;
 use App\Http\Controllers\CNS\MasterTankController;
 use App\Http\Controllers\CNS\FlexibagInventoryController as CNSFlexibagInventoryController;
 use App\Http\Controllers\CNS\GoodsReceiptController;
@@ -5448,6 +5452,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$masterConsigneePref-detail", [MasterConsigneeController::class, "detailMasterConsignee"]);
     Route::post("$masterConsigneePref-detail-submit", [MasterConsigneeController::class, "detailMasterConsigneeSubmit"]);
 
+    Route::get("cns-master-warehouses", [MasterDataController::class, 'getCnsMasterWarehouses'])->name('cns-master-warehouses');
+
     $masterTankPref = "cns-master-tank";
     Route::get("$masterTankPref", [MasterTankController::class, 'index'])->name($masterTankPref . '.index');
     Route::get("xml-$masterTankPref", [MasterTankController::class, 'xmlData'])->name($masterTankPref . '.xml');
@@ -5460,6 +5466,13 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$masterTankPref-options", [MasterTankController::class, 'options'])->name($masterTankPref . '.options');
     Route::get("$masterTankPref-balances", [MasterTankController::class, 'tankBalances'])->name($masterTankPref . '.balances');
     Route::get("$masterTankPref-logs/{id}", [MasterTankController::class, 'logs'])->name($masterTankPref . '.logs');
+
+    $masterKemasanPref = "cns-master-kemasan";
+    Route::get("$masterKemasanPref", [MasterKemasanController::class, 'index'])->name($masterKemasanPref . '.index');
+    Route::get("xml-$masterKemasanPref", [MasterKemasanController::class, 'xmlData'])->name($masterKemasanPref . '.xml');
+    Route::post("$masterKemasanPref-store", [MasterKemasanController::class, 'store'])->name($masterKemasanPref . '.store');
+    Route::post("$masterKemasanPref-update/{id}", [MasterKemasanController::class, 'update'])->name($masterKemasanPref . '.update');
+    Route::post("$masterKemasanPref-delete/{id}", [MasterKemasanController::class, 'destroy'])->name($masterKemasanPref . '.delete');
 
     $siPref = "cns-export-shipment-instruction";
     Route::get("$siPref", [ShipmentInstructionController::class, 'indexShipmentInstruction']);
@@ -5557,9 +5570,12 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$cnsInventoryPref-data", [UCOLogisticController::class, 'trackStoragePelindoData'])->name($cnsInventoryPref . '.data');
     Route::get("$cnsInventoryPref-data-json", [UCOLogisticController::class, 'trackExportedStockDataJSON'])->name($cnsInventoryPref . '.data-json');
     Route::get("$cnsInventoryPref-filter-options", [UCOLogisticController::class, 'getInventoryFilterOptions'])->name($cnsInventoryPref . '.filter-options');
+    Route::get("$cnsInventoryPref-movements", [UCOLogisticController::class, 'getInboundMovementOptions'])->name($cnsInventoryPref . '.movements');
+    Route::get("$cnsInventoryPref-movement-detail", [UCOLogisticController::class, 'getInboundMovementDetail'])->name($cnsInventoryPref . '.movement-detail');
     Route::post("$cnsInventoryPref-submit", [UCOLogisticController::class, 'submitStoragePelindo'])->name($cnsInventoryPref . '.submit');
     Route::post("$cnsInventoryPref-submit-edit", [UCOLogisticController::class, 'updateExportedStock'])->name($cnsInventoryPref . '.submit-edit');
     Route::delete("$cnsInventoryPref-delete", [UCOLogisticController::class, 'deleteExportedStock'])->name($cnsInventoryPref . '.delete');
+    Route::get("xml-cns-upcoming-inbound", [UpcomingInboundController::class, 'xmlData'])->name('cns-upcoming-inbound.xml');
 
     $cnsFlexiPref = "cns-inventory-flexibag";
     Route::get("$cnsFlexiPref", [CNSFlexibagInventoryController::class, 'index'])->name($cnsFlexiPref . '.index');
@@ -5571,6 +5587,25 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("xml-$cnsNonUcoPref", [NonUcoInventoryController::class, 'xmlData'])->name($cnsNonUcoPref . '.xml');
     Route::get("$cnsNonUcoPref-balance", [NonUcoInventoryController::class, 'balanceJson'])->name($cnsNonUcoPref . '.balance');
     Route::post("$cnsNonUcoPref-manual-mutation", [NonUcoInventoryController::class, 'manualMutation'])->name($cnsNonUcoPref . '.manual-mutation');
+
+    $cnsKemasanPref = "cns-inventory-kemasan";
+    Route::get("$cnsKemasanPref", [KemasanInventoryController::class, 'index'])->name($cnsKemasanPref . '.index');
+    Route::get("xml-$cnsKemasanPref", [KemasanInventoryController::class, 'xmlData'])->name($cnsKemasanPref . '.xml');
+    Route::get("$cnsKemasanPref-balance", [KemasanInventoryController::class, 'balanceJson'])->name($cnsKemasanPref . '.balance');
+    Route::post("$cnsKemasanPref-manual-mutation", [KemasanInventoryController::class, 'manualMutation'])->name($cnsKemasanPref . '.manual-mutation');
+    Route::post("$cnsKemasanPref-site-limits", [KemasanInventoryController::class, 'saveSiteLimits'])->name($cnsKemasanPref . '.site-limits');
+
+    $tankDrainingPref = "cns-tank-draining";
+    Route::get("$tankDrainingPref", [TankDrainingController::class, 'index'])->name($tankDrainingPref . '.index');
+    Route::get("xml-$tankDrainingPref", [TankDrainingController::class, 'xmlData'])->name($tankDrainingPref . '.xml');
+    Route::get("$tankDrainingPref-new", [TankDrainingController::class, 'newDraining'])->name($tankDrainingPref . '.new');
+    Route::get("$tankDrainingPref-detail", [TankDrainingController::class, 'detailDraining'])->name($tankDrainingPref . '.detail');
+    Route::get("$tankDrainingPref-generate-code", [TankDrainingController::class, 'generateCode'])->name($tankDrainingPref . '.generate-code');
+    Route::get("$tankDrainingPref-tank-balance/{id}", [TankDrainingController::class, 'getTankBalance'])->name($tankDrainingPref . '.tank-balance');
+    Route::post("$tankDrainingPref-store", [TankDrainingController::class, 'store'])->name($tankDrainingPref . '.store');
+    Route::post("$tankDrainingPref-update/{id}", [TankDrainingController::class, 'update'])->name($tankDrainingPref . '.update');
+    Route::post("$tankDrainingPref-delete/{id}", [TankDrainingController::class, 'destroy'])->name($tankDrainingPref . '.delete');
+    Route::get("$tankDrainingPref-bast/{id}", [TankDrainingController::class, 'bastDocument'])->name($tankDrainingPref . '.bast');
 
     $cnsQualityPref = "cns-quality";
     Route::get("$cnsQualityPref-external-index", [QualityController::class, 'externalIndexPage'])->name($cnsQualityPref . '.external-index');

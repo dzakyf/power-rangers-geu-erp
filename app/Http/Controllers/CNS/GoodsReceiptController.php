@@ -67,7 +67,7 @@ class GoodsReceiptController extends Controller
             }
 
             $itemSummary = $row->details->map(function ($d) {
-                return $d->item_name . ' (' . number_format($d->qty_received, 0, ',', '.') . ' ' . $d->unit . ')';
+                return $d->item_name . ' (' . number_format((float) $d->qty_received, 2, '.', ',') . ' ' . $d->unit . ')';
             })->implode(', ');
 
             $statusBadge = $row->status;
@@ -186,7 +186,7 @@ class GoodsReceiptController extends Controller
                 Auth::user()->username ?? 'admin'
             );
 
-            return redirect()->route('cns-procurement-goods-receipt.detail', $gr->id)
+            return redirect()->route('cns-procurement-goods-receipt.index')
                 ->with('success', "Draft Goods Receipt {$gr->gr_no} berhasil dibuat.");
         } catch (Exception $e) {
             return back()->withInput()->with('error', 'Gagal membuat Goods Receipt: ' . $e->getMessage());
@@ -213,17 +213,29 @@ class GoodsReceiptController extends Controller
     /**
      * Approve Goods Receipt.
      */
-    public function approve($id)
+    public function approve(Request $request, $id)
     {
         if (!$this->checkCanApprove()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => 'Anda tidak memiliki hak akses untuk menyetujui Goods Receipt.'], 403);
+            }
             return back()->with('error', 'Anda tidak memiliki hak akses untuk menyetujui Goods Receipt.');
         }
 
         try {
             $gr = $this->service->approve((int) $id, Auth::user()->username ?? 'admin');
-            return redirect()->route('cns-procurement-goods-receipt.detail', $gr->id)
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => "Goods Receipt {$gr->gr_no} disetujui. Stok barang Non-UCO telah bertambah."
+                ]);
+            }
+            return redirect()->route('cns-procurement-goods-receipt.index')
                 ->with('success', "Goods Receipt {$gr->gr_no} disetujui. Stok barang Non-UCO telah bertambah.");
         } catch (Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => 'Gagal menyetujui Goods Receipt: ' . $e->getMessage()], 422);
+            }
             return back()->with('error', 'Gagal menyetujui Goods Receipt: ' . $e->getMessage());
         }
     }

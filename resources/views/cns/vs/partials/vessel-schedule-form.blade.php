@@ -83,7 +83,7 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Container_Qty1">Quantity</label>
-                                <input type="number" step="0.001" min="0.001" name="Container_Qty1" id="Container_Qty1" class="form-control shadow-sm" value="{{ $isContainer ? ($vs->Qty1 ?? '') : '' }}" />
+                                <input type="text" inputmode="decimal" name="Container_Qty1" id="Container_Qty1" class="form-control shadow-sm cns-decimal" value="{{ $isContainer && ($vs->Qty1 ?? '') !== '' ? number_format((float) $vs->Qty1, 2, '.', ',') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -148,7 +148,7 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Vessel_Qty1">Quantity (MT)</label>
-                                <input type="number" step="0.001" min="0.001" name="Vessel_Qty1" id="Vessel_Qty1" class="form-control shadow-sm" value="{{ $isVessel ? ($vs->Qty1 ?? '') : '' }}" />
+                                <input type="text" inputmode="decimal" name="Vessel_Qty1" id="Vessel_Qty1" class="form-control shadow-sm cns-decimal" value="{{ $isVessel && ($vs->Qty1 ?? '') !== '' ? number_format((float) $vs->Qty1, 2, '.', ',') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -233,7 +233,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Truck_Qty1">Quantity</label>
-                                <input type="number" step="0.001" min="0.001" name="Truck_Qty1" id="Truck_Qty1" class="form-control shadow-sm" value="{{ $isTruck ? ($vs->Qty1 ?? '') : '' }}" />
+                                <input type="text" inputmode="decimal" name="Truck_Qty1" id="Truck_Qty1" class="form-control shadow-sm cns-decimal" value="{{ $isTruck && ($vs->Qty1 ?? '') !== '' ? number_format((float) $vs->Qty1, 2, '.', ',') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-6">

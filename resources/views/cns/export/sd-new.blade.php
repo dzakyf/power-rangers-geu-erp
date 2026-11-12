@@ -114,7 +114,7 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Quantity</label>
-                            <input type="number" step="0.001" name="Quantity" id="Quantity" value="0" class="form-control shadow-sm" required />
+                            <input type="text" inputmode="decimal" name="Quantity" id="Quantity" value="0.00" class="form-control shadow-sm cns-decimal" required />
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -216,19 +216,19 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Ship (km)</label>
-                            <input type="number" step="0.01" name="Transport_Ship_KM" id="Transport_Ship_KM" value="" class="form-control shadow-sm form-control-sm" />
+                            <input type="text" inputmode="decimal" name="Transport_Ship_KM" id="Transport_Ship_KM" value="" class="form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Train (km)</label>
-                            <input type="number" step="0.01" name="Transport_Train_KM" id="Transport_Train_KM" value="" class="form-control shadow-sm form-control-sm" />
+                            <input type="text" inputmode="decimal" name="Transport_Train_KM" id="Transport_Train_KM" value="" class="form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Road (km)</label>
-                            <input type="number" step="0.01" name="Transport_Road_KM" id="Transport_Road_KM" value="3.3" class="form-control shadow-sm form-control-sm" />
+                            <input type="text" inputmode="decimal" name="Transport_Road_KM" id="Transport_Road_KM" value="3.30" class="form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                 </div>
@@ -319,7 +319,11 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
 
     $('#SubmitSD').click(function () {
         $.blockUI();
+        $('#ContentPagesSD .cns-decimal').each(function () {
+            $(this).val(cnsParseNumber($(this).val()));
+        });
         var formData = $('#ContentPagesSD').find('input, select, textarea').not(':button').serialize();
+        cnsInitDecimalInputs('#ContentPagesSD');
 
         $.ajax({
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },

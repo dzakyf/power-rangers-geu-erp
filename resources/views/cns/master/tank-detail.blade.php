@@ -33,7 +33,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="edit_tank_capacity" class="font-weight-bold">Kapasitas Maksimal (KG) <span class="text-danger">*</span></label>
-                                    <input type="number" step="0.01" min="0" class="form-control" id="edit_tank_capacity" name="capacity" value="{{ $tank->capacity }}" required />
+                                    <input type="text" inputmode="decimal" class="form-control cns-decimal" id="edit_tank_capacity" name="capacity" value="{{ number_format((float) $tank->capacity, 2, '.', ',') }}" required />
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -131,7 +131,7 @@
             data: {
                 _token: token,
                 name: $('#edit_tank_name').val().trim(),
-                capacity: $('#edit_tank_capacity').val(),
+                capacity: cnsParseNumber($('#edit_tank_capacity').val(), 0),
                 status: $('#edit_tank_status').val(),
                 notes: $('#edit_tank_notes').val()
             },

@@ -73,7 +73,7 @@ $Saya = Auth::user()->username ?? '';
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Total_Tonnage">Total Tonnage Delivered (MT)</label>
-                                <input type="number" step="0.001" name="Total_Tonnage" id="Total_Tonnage" value="0" class="form-control shadow-sm" required />
+                                <input type="text" inputmode="decimal" name="Total_Tonnage" id="Total_Tonnage" value="0.00" class="form-control shadow-sm cns-decimal" required />
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -152,7 +152,8 @@ $Saya = Auth::user()->username ?? '';
             if ((type == "checkbox" || type == "radio") && this.checked) {
                 inputValues.push($(this).attr("name") + "=" + $(this).val());
             } else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-                inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val()));
+                var val = $(this).hasClass('cns-decimal') ? cnsParseNumber($(this).val()) : $(this).val();
+                inputValues.push($(this).attr("id") + "=" + encodeURIComponent(val));
             } else if ($(this).is("textarea")) {
                 inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val()));
             }

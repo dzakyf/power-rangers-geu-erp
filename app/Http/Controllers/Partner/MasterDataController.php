@@ -272,6 +272,26 @@ class MasterDataController extends Controller
         return response()->json(['status' => 'success', 'data' => $data]);
     }
 
+    public function getCnsMasterWarehouses(Request $r)
+    {
+        $type = $r->query('type');
+        $q    = $r->query('q');
+
+        $rows = app(\App\Services\ExternalApi\ApipiApiClient::class)->cachedWarehouses($type, $q);
+
+        $data = array_map(function ($w) {
+            return [
+                'id'            => isset($w['id']) ? (int) $w['id'] : null,
+                'name'          => (string) ($w['name'] ?? ''),
+                'type'          => (string) ($w['type'] ?? ''),
+                'kota_name'     => (string) ($w['kota_name'] ?? ''),
+                'provinsi_name' => (string) ($w['provinsi_name'] ?? ''),
+            ];
+        }, $rows);
+
+        return response()->json(['status' => 'success', 'data' => $data]);
+    }
+
     private function queryPOO(Request $r)
     {
         $id = $r->query('id');

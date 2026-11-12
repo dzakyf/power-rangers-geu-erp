@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 
 function Dot_Conversion($Nvalue) {
-    $resval = number_format($Nvalue, 0, '','.');
+    $resval = number_format((float) $Nvalue, 2, '.', ',');
 	return ($resval);
 }
 $ID = $_GET['ID'];

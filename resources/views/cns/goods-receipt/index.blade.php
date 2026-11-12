@@ -12,14 +12,46 @@
 </div>
 
 <style>
-    #GRGrid .hdr tr:first-child td {
-        background-color: #174375 !important;
-        color: #ffffff !important;
+    #GRGridWrapper {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+    }
+    #GRGrid {
+        box-sizing: border-box !important;
+        max-width: 100% !important;
+    }
+    #GRGrid .xhdr {
+        height: auto !important;
+        min-height: 0 !important;
+    }
+    #GRGrid table.hdr td {
+        color: #000000 !important;
         font-weight: bold !important;
         text-align: center !important;
         vertical-align: middle !important;
-        border-right: 1px solid #ffffff !important;
         font-size: 12px !important;
+        padding: 5px 6px !important;
+        line-height: 1.2 !important;
+        height: auto !important;
+    }
+    #GRGrid table.hdr td.filter {
+        padding: 3px 4px !important;
+        font-weight: normal !important;
+    }
+    #GRGrid table.hdr td div.hdrcell {
+        padding: 0 4px !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+    }
+    #GRGrid table.hdr td.filter input,
+    #GRGrid table.hdr td.filter select {
+        width: 100% !important;
+        height: 22px !important;
+        padding: 1px 4px !important;
+        font-size: 11px !important;
+        line-height: 1.2 !important;
+        box-sizing: border-box !important;
     }
     #GRGrid td {
         font-size: 12px !important;
@@ -50,7 +82,7 @@
         </div>
     @endif
 
-    <div class="card w-100">
+    <div class="card w-100 px-0">
         <div class="card-body">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                 <div class="d-flex align-items-end flex-wrap gap-2">
@@ -78,14 +110,21 @@
                 </div>
             </div>
 
-            <div id="GRGrid" style="width:100%;height:450px; background-color:white;overflow:hidden" class="mt-2"></div>
-            <div class="btn btn-primary mt-2 mr-2">
-                <a href="{{ route('cns-procurement-goods-receipt.create') }}">
-                Buat GR
+            <div id="GRGridWrapper" class="mt-2">
+                <div id="GRGrid" style="width:100%;height:450px;background-color:white;overflow:hidden;"></div>
+            </div>
+            <div class="d-flex align-items-center mt-2 flex-wrap gap-2">
+                <a href="{{ route('cns-procurement-goods-receipt.create') }}" class="btn btn-primary mr-2">
+                    Buat GR
                 </a>
+                @if($canApprove)
+                    <button type="button" class="btn btn-success font-weight-bold" id="btnApproveGR" onclick="approveSelectedGR()">
+                        Approve GR
+                    </button>
+                @endif
             </div>
             <div class="mt-2 text-muted small">
-                <i class="fa fa-info-circle"></i> Double-click baris tabel untuk melihat detail, verifikasi/approval, atau cetak Berita Acara Penerimaan Barang.
+                <i class="fa fa-info-circle"></i> Double-click baris tabel untuk melihat detail atau cetak Berita Acara. Untuk menyetujui, pilih baris berstatus DRAFT lalu klik <b>Approve GR</b>.
             </div>
         </div>
     </div>
@@ -93,17 +132,50 @@
 
 <script>
     var GRGrid;
+    var lastGRGridWrapperWidth = 0;
+
     $(document).ready(function() {
         initGRGrid();
         loadGridData();
+
+        $(window).on('resize', function() {
+            resizeGRGrid();
+        });
+
+        var wrapper = document.getElementById('GRGridWrapper');
+        if (wrapper && typeof ResizeObserver !== 'undefined') {
+            var ro = new ResizeObserver(function() {
+                if (wrapper.clientWidth && wrapper.clientWidth !== lastGRGridWrapperWidth) {
+                    lastGRGridWrapperWidth = wrapper.clientWidth;
+                    resizeGRGrid();
+                }
+            });
+            ro.observe(wrapper);
+        }
     });
+
+    function resizeGRGrid() {
+        var wrapper = document.getElementById('GRGridWrapper');
+        if (!GRGrid || !GRGrid.hdr || !GRGrid.hdr.rows[0] || !wrapper || !wrapper.clientWidth) {
+            return;
+        }
+        lastGRGridWrapperWidth = wrapper.clientWidth;
+        GRGrid.initCellWidth[7] = "*";
+        GRGrid.setSizes();
+        if (GRGrid.getColWidth(7) < 180) {
+            GRGrid.initCellWidth[7] = "180";
+            GRGrid.cellWidthPX[7] = 180;
+            GRGrid.setSizes();
+        }
+    }
 
     function initGRGrid() {
         GRGrid = new dhtmlXGridObject('GRGrid');
         GRGrid.setImagePath("./dhtmlx/imgs/");
+        GRGrid.setSkin("dhx_skyblue");
         GRGrid.setHeader("No,No. GR,No. PO,Supplier,Tanggal Terima,No. Surat Jalan,Driver / Plat,Item Diterima,Status,Diterima Oleh,Disetujui Oleh");
         GRGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#text_filter,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter");
-        GRGrid.setInitWidths("45,150,150,180,105,140,150,*,95,110,110");
+        GRGrid.setInitWidths("45,145,145,160,115,130,135,*,95,110,110");
         GRGrid.setColAlign("center,center,center,left,center,left,left,left,center,center,center");
         GRGrid.setColSorting("int,str,str,str,date,str,str,str,str,str,str");
         GRGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
@@ -112,6 +184,12 @@
             window.location.href = "{{ url('cns-procurement-goods-receipt-detail') }}/" + rowId;
         });
         GRGrid.init();
+        resizeGRGrid();
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(function() {
+                resizeGRGrid();
+            });
+        }
     }
 
     function loadGridData() {
@@ -126,7 +204,9 @@
 
         var url = "{{ route('cns-procurement-goods-receipt.xml') }}" + (params.length ? '?' + params.join('&') : '');
         GRGrid.clearAll();
-        GRGrid.load(url);
+        GRGrid.load(url, function() {
+            resizeGRGrid();
+        });
     }
 
     function applyFilters() {
@@ -139,5 +219,131 @@
         $('#filterStatus').val('');
         loadGridData();
     }
+
+    function approveSelectedGR() {
+        var rowId = GRGrid.getSelectedRowId();
+        if (!rowId) {
+            dhtmlx.alert({
+                title: "Peringatan",
+                text: "Pilih baris data terlebih dahulu pada tabel Goods Receipt!",
+                ok: "OK"
+            });
+            return false;
+        }
+
+        var status = "";
+        try {
+            status = GRGrid.cells(rowId, 8).getValue();
+        } catch (cellErr) {
+            console.warn("Gagal membaca status:", cellErr);
+        }
+
+        var grNo = "";
+        try {
+            grNo = GRGrid.cells(rowId, 1).getValue();
+        } catch (cellErr) {
+            console.warn("Gagal membaca grNo:", cellErr);
+        }
+
+        if (status && status.trim().toUpperCase() !== 'DRAFT') {
+            dhtmlx.alert({
+                title: "Peringatan",
+                text: "Goods Receipt " + (grNo || rowId) + " ini sudah berstatus " + status.trim().toUpperCase() + "!",
+                ok: "OK"
+            });
+            return false;
+        }
+
+        dhtmlx.confirm({
+            title: "Konfirmasi Approval",
+            text: "Apakah Anda yakin ingin menyetujui (Approve) Goods Receipt " + (grNo || rowId) + "? Stok barang Non-UCO akan otomatis bertambah.",
+            ok: "Ya, Setujui",
+            cancel: "Batal",
+            callback: function(result) {
+                if (!result) {
+                    return;
+                }
+
+                if (typeof $.blockUI === 'function') {
+                    $.blockUI();
+                }
+
+                var approveBtn = $('#btnApproveGR');
+                approveBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Memproses...');
+
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    url: "{{ url('cns-procurement-goods-receipt-approve') }}/" + rowId,
+                    type: "POST",
+                    dataType: "json",
+                    data: {
+                        _token: "{{ csrf_token() }}"
+                    },
+                    success: function(response) {
+                        if (typeof $.unblockUI === 'function') {
+                            $.unblockUI();
+                        }
+                        approveBtn.prop('disabled', false).html('<i class="fa fa-check-circle mr-1"></i> Approve GR');
+                        if (response && response.status === 'success') {
+                            dhtmlx.alert({
+                                title: "Sukses",
+                                text: response.message || "Goods Receipt berhasil di-approve.",
+                                ok: "OK",
+                                callback: function() {
+                                    loadGridData();
+                                }
+                            });
+                        } else {
+                            dhtmlx.alert({
+                                title: "Peringatan",
+                                text: response.message || "Gagal menyetujui Goods Receipt.",
+                                ok: "OK"
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        if (typeof $.unblockUI === 'function') {
+                            $.unblockUI();
+                        }
+                        approveBtn.prop('disabled', false).html('<i class="fa fa-check-circle mr-1"></i> Approve GR');
+                        var errMsg = "Terjadi kesalahan sistem saat menyetujui Goods Receipt.";
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errMsg = xhr.responseJSON.message;
+                        }
+                        dhtmlx.alert({
+                            title: "Error",
+                            text: errMsg,
+                            ok: "OK"
+                        });
+                    }
+                });
+            }
+        });
+    }
 </script>
+
+@if(session('success'))
+<script>
+    $(document).ready(function() {
+        dhtmlx.alert({
+            title: "Sukses",
+            text: "{{ session('success') }}",
+            ok: "OK"
+        });
+    });
+</script>
+@endif
+@if(session('error'))
+<script>
+    $(document).ready(function() {
+        dhtmlx.alert({
+            title: "Error",
+            text: "{{ session('error') }}",
+            ok: "OK"
+        });
+    });
+</script>
+@endif
 @endsection

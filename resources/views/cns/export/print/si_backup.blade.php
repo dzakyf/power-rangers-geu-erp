@@ -437,10 +437,10 @@
                   <div class="shipping-mark">
                     SHIPPING MARK: FREIGHT PREPAID<br>
                     SHIPPED ON BOARD<br>
-                    <span class="red">{{ number_format($mt, 2, ',', '.') }} MT {{ strtoupper($shipment->Product_Name) }}<br>
+                    <span class="red">{{ number_format((float) $mt, 2, '.', ',') }} MT {{ strtoupper($shipment->Product_Name) }}<br>
                     {{ Str::contains($shipment->Qty2, 'FT') ? 'PACKING IN FLEXIBAG' : '' }}</span><br>
-                    GW {{ number_format($gross, 0, ',', '.') }} KGS<br>
-                    NW {{ number_format($netto, 0, ',', '.') }} KGS<br>
+                    GW {{ number_format((float) $gross, 2, '.', ',') }} KGS<br>
+                    NW {{ number_format((float) $netto, 2, '.', ',') }} KGS<br>
                     HS Code : {{ $shipment->HS_Code }}<br>
                     COUNTRY OF ORIGIN: INDONESIA<br>
                   </div>
@@ -448,10 +448,10 @@
                 <td style="border-bottom:none;vertical-align:middle;">
                   <div class="desc-cell">
                     <span class="bold-red">
-                      {{ number_format($mt, 2, ',', '.') }} MT {{ strtoupper($shipment->Product_Name) }}&nbsp;{{ Str::contains($shipment->Qty2, 'FT') ? 'PACKING IN FLEXIBAG' : '' }}
+                      {{ number_format((float) $mt, 2, '.', ',') }} MT {{ strtoupper($shipment->Product_Name) }}&nbsp;{{ Str::contains($shipment->Qty2, 'FT') ? 'PACKING IN FLEXIBAG' : '' }}
                     </span><br>
-                    GW {{ number_format($gross, 0, ',', '.') }} KGS<br>
-                    NW {{ number_format($netto, 0, ',', '.') }} KGS<br>
+                    GW {{ number_format((float) $gross, 2, '.', ',') }} KGS<br>
+                    NW {{ number_format((float) $netto, 2, '.', ',') }} KGS<br>
                     HS Code : {{ $shipment->HS_Code }}<br>
                     COUNTRY OF ORIGIN: INDONESIA
                   </div>
@@ -467,18 +467,18 @@
                 <td style="border-top:none;border-bottom:none;">
                     Container No. {{$item->Container}} / {{$item->Seal}}
                 </td>
-                <td style="border-top:none;border-bottom:none;" class="center">{{ number_format($item->Netto_KG,0,',','.')}}</td>
-                <td style="border-top:none;border-bottom:none;" class="center"> {{ number_format($item->Gross_KG,0,',','.') }} </td>
-                <td style="border-top:none;border-bottom:none;" class="center">{{ number_format($item->Netto_KG,0,',','.') }}</td>
-                <td style="border-top:none;border-bottom:none;" class="center">{{ number_format(round($item->Netto_KG/1000,2),2,',','.') }}</td>
+                <td style="border-top:none;border-bottom:none;" class="center">{{ number_format((float) $item->Netto_KG, 2, '.', ',') }}</td>
+                <td style="border-top:none;border-bottom:none;" class="center"> {{ number_format((float) $item->Gross_KG, 2, '.', ',') }} </td>
+                <td style="border-top:none;border-bottom:none;" class="center">{{ number_format((float) $item->Netto_KG, 2, '.', ',') }}</td>
+                <td style="border-top:none;border-bottom:none;" class="center">{{ number_format((float) round($item->Netto_KG/1000, 2), 2, '.', ',') }}</td>
               </tr> 
               @endforeach
               <tr class="total-row">
                 <td colspan="2" style="text-align:right; padding-right:8px;">Total</td>
-                <td class="center">{{ number_format($netto,0,',','.')}}</td>
-                <td class="center"> {{ number_format($gross,0,',','.') }} </td>
-                <td class="center">{{ number_format($netto,0,',','.') }}</td>
-                <td class="center">{{ number_format(round($netto/1000,2),2,',','.') }}</td>
+                <td class="center">{{ number_format((float) $netto, 2, '.', ',') }}</td>
+                <td class="center"> {{ number_format((float) $gross, 2, '.', ',') }} </td>
+                <td class="center">{{ number_format((float) $netto, 2, '.', ',') }}</td>
+                <td class="center">{{ number_format((float) round($netto/1000, 2), 2, '.', ',') }}</td>
               </tr>
             </tbody>
           </table>

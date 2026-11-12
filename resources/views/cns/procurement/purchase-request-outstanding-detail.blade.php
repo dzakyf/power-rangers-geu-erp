@@ -200,7 +200,7 @@ use Illuminate\Database\Eloquent\Builder;
                     </div>
                     <div class="FormInput_right">
 
-                        <input type="text" id="Subtotal" size="10" value="0" readonly required />
+                        <input type="text" inputmode="decimal" class="cns-decimal" id="Subtotal" size="10" value="0.00" readonly required />
 
                     </div>
                     <div class="FormInput_left">
@@ -210,7 +210,7 @@ use Illuminate\Database\Eloquent\Builder;
                     </div>
                     <div class="FormInput_right">
 
-                        <input type="text" id="Tax" size="10" value="0" onkeyup="recalc()" required />
+                        <input type="text" inputmode="decimal" class="cns-decimal" id="Tax" size="10" value="0.00" onkeyup="recalc()" required />
 
                     </div>
                     <div class="FormInput_left">
@@ -220,7 +220,7 @@ use Illuminate\Database\Eloquent\Builder;
                     </div>
                     <div class="FormInput_right">
 
-                        <input type="text" id="Shipping" size="10" value="0" onkeyup="recalc()" required />
+                        <input type="text" inputmode="decimal" class="cns-decimal" id="Shipping" size="10" value="0.00" onkeyup="recalc()" required />
 
                     </div>
                     <div class="FormInput_left">
@@ -230,7 +230,7 @@ use Illuminate\Database\Eloquent\Builder;
                     </div>
                     <div class="FormInput_right">
 
-                        <input type="text" id="Other" size="10" value="0" onkeyup="recalc()" required />
+                        <input type="text" inputmode="decimal" class="cns-decimal" id="Other" size="10" value="0.00" onkeyup="recalc()" required />
 
                     </div>
                     <div class="FormInput_left">
@@ -238,7 +238,7 @@ use Illuminate\Database\Eloquent\Builder;
                     </div>
                     <div class="FormInput_right">
 
-                        <input type="text" id="Total" size="10" value="0" required />
+                        <input type="text" inputmode="decimal" class="cns-decimal" id="Total" size="10" value="0.00" required />
 
                     </div>
                     <div class="FormInput_left">
@@ -302,13 +302,14 @@ function getAllValues() {
     var inputValues = [];
     $('#ContentPages input,select,textarea').each(function() {
         var type = $(this).attr("type");
+        var val = $(this).hasClass('cns-decimal') ? cnsParseNumber($(this).val(), 0) : $(this).val();
         if ((type == "checkbox" || type == "radio") && this.checked) {
-            inputValues.push($(this).attr("id") + "=" + $(this).val());
+            inputValues.push($(this).attr("id") + "=" + val);
         }
         else if (type != "button" || type != "submit") {
-            inputValues.push($(this).attr("id") + "=" + $(this).val());
+            inputValues.push($(this).attr("id") + "=" + val);
       	 } else if ($this.is("textarea")) {
-            inputValues.push($(this).attr("id") + "=" + $(this).val());
+            inputValues.push($(this).attr("id") + "=" + val);
         }
     })
 	
@@ -324,12 +325,12 @@ PRNewDetail.setColTypes("ron,ro,ro,ro,ron,edn,ron,ron,ro,ro,ro,ro,ro,edn,ron");
 PRNewDetail.setColAlign("center,left,center,left,right,right,right,right,left,center,center,center,center,right,right");
 PRNewDetail.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
 PRNewDetail.setEditable(true);
-PRNewDetail.setNumberFormat("0,000",4,".",",");
-PRNewDetail.setNumberFormat("0,000",5,".",",");
-PRNewDetail.setNumberFormat("0,000",6,".",",");
-PRNewDetail.setNumberFormat("0,000",7,".",",");
-PRNewDetail.setNumberFormat("0,000",13,".",",");
-PRNewDetail.setNumberFormat("0,000",14,".",",");
+PRNewDetail.setNumberFormat("0,000.00",4,".",",");
+PRNewDetail.setNumberFormat("0,000.00",5,".",",");
+PRNewDetail.setNumberFormat("0,000.00",6,".",",");
+PRNewDetail.setNumberFormat("0,000.00",7,".",",");
+PRNewDetail.setNumberFormat("0,000.00",13,".",",");
+PRNewDetail.setNumberFormat("0,000.00",14,".",",");
 PRNewDetail.enableKeyboardSupport(true);
 PRNewDetail.setSkin("dhx_skyblue");
 PRNewDetail.enableMultiline(true);
@@ -432,26 +433,14 @@ function recalc() {
 		let getIds = PRNewDetail.getAllRowIds().split(',');
 		for (let i = 0; i < getIds.length; i++) {
 			const ele = getIds[i];
-			total += parseFloat(PRNewDetail.cells(ele, 14).getValue());
+			total += cnsParseNumber(PRNewDetail.cells(ele, 14).getValue(), 0);
 		}
 	}
-	let tax = parseFloat($('#Tax').val());
-	if (Number.isNaN(tax)) {
-		tax = 0;
-		$('#Tax').val('0');
-	}
-	let shipping = parseFloat($('#Shipping').val());
-	if (Number.isNaN(shipping)) {
-		shipping = 0;
-		$('#Shipping').val('0');
-	}
-	let other = parseFloat($('#Other').val());
-	if (Number.isNaN(other)) {
-		other = 0;
-		$('#Other').val('0');
-	}
-	$('#Subtotal').val(total.toFixed(2));
-	$('#Total').val(parseFloat(total + tax + shipping + other).toFixed(2));
+	let tax = cnsParseNumber($('#Tax').val(), 0);
+	let shipping = cnsParseNumber($('#Shipping').val(), 0);
+	let other = cnsParseNumber($('#Other').val(), 0);
+	$('#Subtotal').val(cnsFormatNumber(total, 2));
+	$('#Total').val(cnsFormatNumber(total + tax + shipping + other, 2));
 }
 
 $("#AddPRNewDetail").click(function(){

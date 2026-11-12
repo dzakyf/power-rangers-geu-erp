@@ -132,9 +132,9 @@
                                 <td class="text-center">{{ $idx + 1 }}</td>
                                 <td class="font-weight-bold">{{ $item->item_name }}</td>
                                 <td class="text-center">{{ $item->category ?: 'General' }}</td>
-                                <td class="text-right text-muted">{{ number_format($item->qty_ordered, 0, ',', '.') }}</td>
+                                <td class="text-right text-muted">{{ number_format((float) $item->qty_ordered, 2, '.', ',') }}</td>
                                 <td class="text-right font-weight-bold text-success" style="font-size: 14px;">
-                                    {{ number_format($item->qty_received, 0, ',', '.') }}
+                                    {{ number_format((float) $item->qty_received, 2, '.', ',') }}
                                 </td>
                                 <td class="text-center">{{ $item->unit }}</td>
                                 <td>{{ $item->notes ?: '-' }}</td>
@@ -177,8 +177,8 @@
                                     <td class="font-weight-bold">{{ $mut->item_name }}</td>
                                     <td class="text-center">{{ $mut->category }}</td>
                                     <td class="text-center"><span class="badge badge-success">IN</span></td>
-                                    <td class="text-right font-weight-bold text-success">+{{ number_format($mut->qty_in, 0, ',', '.') }} {{ $mut->unit }}</td>
-                                    <td class="text-right font-weight-bold">{{ number_format($mut->current_balance, 0, ',', '.') }} {{ $mut->unit }}</td>
+                                    <td class="text-right font-weight-bold text-success">+{{ number_format((float) $mut->qty_in, 2, '.', ',') }} {{ $mut->unit }}</td>
+                                    <td class="text-right font-weight-bold">{{ number_format((float) $mut->current_balance, 2, '.', ',') }} {{ $mut->unit }}</td>
                                     <td>{{ $mut->notes }}</td>
                                 </tr>
                             @endforeach
@@ -196,15 +196,6 @@
         </a>
 
         <div class="d-flex gap-2">
-            @if($gr->status === 'DRAFT')
-                <form action="{{ route('cns-procurement-goods-receipt.approve', $gr->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin menyetujui penerimaan barang ini?\n\nStok barang Non-UCO akan otomatis bertambah dan akumulasi penerimaan PO akan di-update.');">
-                    @csrf
-                    <button type="submit" class="btn btn-success font-weight-bold px-3">
-                        <i class="fa fa-check-circle mr-1"></i> Verifikasi & Approve (Masuk Stok)
-                    </button>
-                </form>
-            @endif
-
             @if($gr->status === 'APPROVED')
                 <a href="{{ route('cns-procurement-goods-receipt.print', $gr->id) }}" target="_blank" class="btn btn-primary font-weight-bold mr-2">
                     <i class="fa fa-print mr-1"></i> Cetak Berita Acara Penerimaan (Slip)

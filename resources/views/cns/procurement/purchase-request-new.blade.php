@@ -187,7 +187,7 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 			</div>
 			<div class="FormInput_right">
 
-				<input type="text" id="Subtotal" size="10" value="0" readonly required />
+				<input type="text" inputmode="decimal" class="cns-decimal" id="Subtotal" size="10" value="0.00" readonly required />
 
 			</div>
 			<div class="FormInput_left">
@@ -197,7 +197,7 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 			</div>
 			<div class="FormInput_right">
 
-				<input type="text" id="Tax" size="10" value="0" onkeyup="recalc()" required />
+				<input type="text" inputmode="decimal" class="cns-decimal" id="Tax" size="10" value="0.00" onkeyup="recalc()" required />
 
 			</div>
 			<div class="FormInput_left">
@@ -207,7 +207,7 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 			</div>
 			<div class="FormInput_right">
 
-				<input type="text" id="Shipping" size="10" value="0" onkeyup="recalc()" required />
+				<input type="text" inputmode="decimal" class="cns-decimal" id="Shipping" size="10" value="0.00" onkeyup="recalc()" required />
 
 			</div>
 			<div class="FormInput_left">
@@ -217,7 +217,7 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 			</div>
 			<div class="FormInput_right">
 
-				<input type="text" id="Other" size="10" value="0" onkeyup="recalc()" required />
+				<input type="text" inputmode="decimal" class="cns-decimal" id="Other" size="10" value="0.00" onkeyup="recalc()" required />
 
 			</div>
 			<div class="FormInput_left">
@@ -225,7 +225,7 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 			</div>
 			<div class="FormInput_right">
 
-				<input type="text" id="Total" size="10" value="0" required />
+				<input type="text" inputmode="decimal" class="cns-decimal" id="Total" size="10" value="0.00" required />
 
 			</div>
 			<div class="FormInput_left">
@@ -276,12 +276,13 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 			var inputValues = [];
 			$('#ContentPages input,select,textarea').each(function() {
 				var type = $(this).attr("type");
+				var val = $(this).hasClass('cns-decimal') ? cnsParseNumber($(this).val(), 0) : $(this).val();
 				if ((type == "checkbox" || type == "radio") && this.checked) {
-					inputValues.push($(this).attr("id") + "=" + $(this).val());
+					inputValues.push($(this).attr("id") + "=" + val);
 				} else if (type != "button" || type != "submit") {
-					inputValues.push($(this).attr("id") + "=" + $(this).val());
+					inputValues.push($(this).attr("id") + "=" + val);
 				} else if ($this.is("textarea")) {
-					inputValues.push($(this).attr("id") + "=" + $(this).val());
+					inputValues.push($(this).attr("id") + "=" + val);
 				}
 			})
 
@@ -298,6 +299,8 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 		PRNewDetail.setColSorting("int,str,str,str,str,str,str,str");
 		PRNewDetail.setEditable(true);
 		PRNewDetail.setNumberFormat("0,000.00", 4, ".", ",");
+		PRNewDetail.setNumberFormat("0,000.00", 10, ".", ",");
+		PRNewDetail.setNumberFormat("0,000.00", 11, ".", ",");
 		PRNewDetail.enableKeyboardSupport(true);
 		PRNewDetail.setSkin("dhx_skyblue");
 		PRNewDetail.enableMultiline(true);
@@ -343,14 +346,14 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 				let getIds = PRNewDetail.getAllRowIds().split(',');
 				for (let i = 0; i < getIds.length; i++) {
 					const ele = getIds[i];
-					total += parseFloat(PRNewDetail.cells(ele, 11).getValue());
+					total += cnsParseNumber(PRNewDetail.cells(ele, 11).getValue(), 0);
 				}
 			}
-			let tax = parseFloat($('#Tax').val());
-			let shipping = parseFloat($('#Shipping').val());
-			let other = parseFloat($('#Other').val());
-			$('#Subtotal').val(total.toFixed(2));
-			$('#Total').val(parseFloat(total + tax + shipping + other).toFixed(2));
+			let tax = cnsParseNumber($('#Tax').val(), 0);
+			let shipping = cnsParseNumber($('#Shipping').val(), 0);
+			let other = cnsParseNumber($('#Other').val(), 0);
+			$('#Subtotal').val(cnsFormatNumber(total, 2));
+			$('#Total').val(cnsFormatNumber(total + tax + shipping + other, 2));
 		}
 		$("#DelPRNewDetail").click(function() {
 

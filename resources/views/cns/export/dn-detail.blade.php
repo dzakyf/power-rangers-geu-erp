@@ -74,7 +74,7 @@ $consigneeAddr = !empty($dn->Consignee_Address) ? $dn->Consignee_Address : ($com
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Total_Tonnage">Total Tonnage Delivered (MT)</label>
-                                <input type="number" step="0.001" name="Total_Tonnage" id="Total_Tonnage" value="{{ $dn->Total_Tonnage }}" class="form-control shadow-sm" required />
+                                <input type="text" inputmode="decimal" name="Total_Tonnage" id="Total_Tonnage" value="{{ number_format((float) $dn->Total_Tonnage, 2, '.', ',') }}" class="form-control shadow-sm cns-decimal" required />
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -130,7 +130,8 @@ $consigneeAddr = !empty($dn->Consignee_Address) ? $dn->Consignee_Address : ($com
             if ((type == "checkbox" || type == "radio") && this.checked) {
                 inputValues.push($(this).attr("name") + "=" + $(this).val());
             } else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-                inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val()));
+                var val = $(this).hasClass('cns-decimal') ? cnsParseNumber($(this).val()) : $(this).val();
+                inputValues.push($(this).attr("id") + "=" + encodeURIComponent(val));
             } else if ($(this).is("textarea")) {
                 inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val()));
             }

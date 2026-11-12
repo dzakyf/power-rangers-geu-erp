@@ -102,13 +102,13 @@ $Saya =  Auth::user()->username;
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Tare">Tare</label>
-						<input type="number" step="0.01" name="Tare" id="Tare" class="form-control shadow-sm" value="0" />
+						<input type="text" inputmode="decimal" name="Tare" id="Tare" class="form-control shadow-sm cns-decimal" value="0.00" />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Netto_KG">Net (Kg)</label>
-						<input type="number" step="0.01" name="Netto_KG" id="Netto_KG" class="form-control shadow-sm" value="0" />
+						<input type="text" inputmode="decimal" name="Netto_KG" id="Netto_KG" class="form-control shadow-sm cns-decimal" value="0.00" />
 					</div>
 				</div>
 			</div>
@@ -214,14 +214,14 @@ $Saya =  Auth::user()->username;
 	}
 
 	function calculateStuffingMonitoringValues() {
-		let tare = parseFloat($('#Tare').val()) || 0;
-		let netto = parseFloat($('#Netto_KG').val()) || 0;
+		let tare = cnsParseNumber($('#Tare').val()) || 0;
+		let netto = cnsParseNumber($('#Netto_KG').val()) || 0;
 		let nettoMT = netto / 1000;
 		let gross = tare + netto;
 
-		$('#Netto_MT').val(nettoMT.toFixed(2));
-		$('#Gross_KG').val(gross.toFixed(2));
-		$('#Gross_MT').val((gross / 1000).toFixed(2));
+		$('#Netto_MT').val(cnsFormatNumber(nettoMT));
+		$('#Gross_KG').val(cnsFormatNumber(gross));
+		$('#Gross_MT').val(cnsFormatNumber(gross / 1000));
 	}
 
 	$('#Tare, #Netto_KG').on('input change', calculateStuffingMonitoringValues);
@@ -286,8 +286,8 @@ $Saya =  Auth::user()->username;
 				$('#Police_No').val(response.Police_No);
 				$('#Container').val(response.Container);
 				$('#Seal').val(response.Seal);
-				$('#Tare').val(response.Tare);
-				$('#Netto_KG').val(response.Netto_KG);
+				$('#Tare').val(cnsFormatNumber(response.Tare));
+				$('#Netto_KG').val(cnsFormatNumber(response.Netto_KG));
 				$('#Note').val(response.Note);
 				calculateStuffingMonitoringValues();
 				setCurrentWeighbridgeNote(response.Note_Url, response.Note_Name);
@@ -337,6 +337,11 @@ $Saya =  Auth::user()->username;
 		e.preventDefault();
 
 		let formData = new FormData(this);
+		$(this).find('.cns-decimal').each(function() {
+			if (this.name) {
+				formData.set(this.name, cnsParseNumber($(this).val()));
+			}
+		});
 		formData.append('_token', '{{ csrf_token() }}');
 		let button = $('#SaveStuffingMonitoring');
 

@@ -135,7 +135,7 @@ use Illuminate\Database\Eloquent\Builder;
 </tr>
 </table>
 <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">TEST RESULT DOCUMENTS UPLOAD</div>
-<div  id='DocID' style="width:auto;background-color:#cecece;font-family:'Trebuchet MS', Arial, Helvetica, sans-serif">
+<div  id='DocID' style="width:auto;background-color:#cecece;">
 				<input type="text" size="10" ID="ID" value="<?php echo $datahasil->ID;?>" class="form-control">
 
     <div style="font-weight:bold;width:100%;padding-left:40px;height:30px;vertical-align:middle" align="left">.:. 1. PSIKOTEST</div>

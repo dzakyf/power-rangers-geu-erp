@@ -134,7 +134,7 @@ $document = DB::table('recruitment_document')->where("Task_ID", $datahasil->Task
             </tr>
         </table>
         <div class="JudulContent" style="color:#699;background-image:url(./_CSS_/hdr_back.gif);">RECRUITMENT DOCUMENT</div>
-        <div id='DocID' style="width:auto;background-color:#cecece;font-family:'Trebuchet MS', Arial, Helvetica, sans-serif">
+        <div id='DocID' style="width:auto;background-color:#cecece;">
             <div style="font-weight:bold;width:100%;padding-left:40px;height:30px;vertical-align:middle" align="left">.:. 1. Foto</div>
             <div style="padding-top:20px;padding-bottom:20px;padding-left:80px;font-weight:none;background-color:#efefef">
                 <div class="Lihat">

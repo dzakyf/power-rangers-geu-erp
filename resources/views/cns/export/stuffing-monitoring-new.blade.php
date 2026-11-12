@@ -106,10 +106,10 @@ $Saya =  Auth::user()->username;
 	StuffingDetail.setColSorting("int,str,str,str,str,str,str,int,int,int,int,int,int,str");
 	StuffingDetail.setColTypes("ro,ed,ed,dhxCalendar,ed,ed,ed,edn,edn,edn,edn,edn,edn,ed");
 	StuffingDetail.enableSmartRendering(true, 150);
-	StuffingDetail.setNumberFormat("0,000", 7, ".", ",");
-	StuffingDetail.setNumberFormat("0,000", 8, ".", ",");
+	StuffingDetail.setNumberFormat("0,000.00", 7, ".", ",");
+	StuffingDetail.setNumberFormat("0,000.00", 8, ".", ",");
 	StuffingDetail.setNumberFormat("0,000.00", 9, ".", ",");
-	StuffingDetail.setNumberFormat("0,000", 10, ".", ",");
+	StuffingDetail.setNumberFormat("0,000.00", 10, ".", ",");
 	StuffingDetail.setNumberFormat("0,000.00", 11, ".", ",");
 	PStuffingDetail = new dataProcessor("cns-stuffing-detail-update?task={{ $vs->Order_No }}");
 	PStuffingDetail.setTransactionMode({

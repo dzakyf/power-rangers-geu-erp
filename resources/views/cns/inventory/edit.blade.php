@@ -30,7 +30,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Quantity">Quantity (Kg) <span style="color:red;">*</span></label>
-                            <input type="number" step="0.01" name="Quantity" id="edit_Quantity" class="form-control" required />
+                            <input type="text" inputmode="decimal" name="Quantity" id="edit_Quantity" class="form-control cns-decimal" required />
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -44,7 +44,9 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Asal_Warehouse">Asal Warehouse</label>
-                            <input type="text" name="Asal_Warehouse" id="edit_Asal_Warehouse" class="form-control" />
+                            <select name="Asal_Warehouse" id="edit_Asal_Warehouse" class="form-control">
+                                <option value="">-- Pilih Warehouse --</option>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -58,10 +60,11 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Quantity_PTU">Qty Pelindo / SJ</label>
-                            <input type="number" step="0.01" name="Quantity_PTU" id="edit_Quantity_PTU" class="form-control" />
+                            <input type="text" inputmode="decimal" name="Quantity_PTU" id="edit_Quantity_PTU" class="form-control cns-decimal" />
                         </div>
                     </div>
                 </div>
+                <div id="edit_tank_capacity_info" class="mb-3" style="display:none;"></div>
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <div class="form-group">
@@ -117,16 +120,16 @@
                                                 {{ $param['label'] }} <span class="badge badge-light text-secondary border ml-1">{{ $param['unit'] }}</span>
                                             </td>
                                             <td>
-                                                <input type="number" step="0.01" name="top_{{ $param['key'] }}" id="edit_top_{{ $param['key'] }}"
-                                                       class="form-control text-right" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
+                                                <input type="text" inputmode="decimal" name="top_{{ $param['key'] }}" id="edit_top_{{ $param['key'] }}"
+                                                       class="form-control text-right cns-decimal" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
                                             </td>
                                             <td>
-                                                <input type="number" step="0.01" name="middle_{{ $param['key'] }}" id="edit_middle_{{ $param['key'] }}"
-                                                       class="form-control text-right" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
+                                                <input type="text" inputmode="decimal" name="middle_{{ $param['key'] }}" id="edit_middle_{{ $param['key'] }}"
+                                                       class="form-control text-right cns-decimal" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
                                             </td>
                                             <td>
-                                                <input type="number" step="0.01" name="bottom_{{ $param['key'] }}" id="edit_bottom_{{ $param['key'] }}"
-                                                       class="form-control text-right" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
+                                                <input type="text" inputmode="decimal" name="bottom_{{ $param['key'] }}" id="edit_bottom_{{ $param['key'] }}"
+                                                       class="form-control text-right cns-decimal" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
                                             </td>
                                             <td>
                                                 <input type="text" id="edit_avg_{{ $param['key'] }}" class="form-control text-right font-weight-bold"
@@ -142,13 +145,15 @@
                 </div>
 
                 <button type="button" class="btn btn-primary" onclick="submitEditStock()">Update</button>
-                <button type="button" class="btn btn-secondary ml-2" onclick="$('#FormEditStock').hide(); $('#StockEditForm')[0].reset();">Cancel</button>
+                <button type="button" class="btn btn-secondary ml-2" onclick="closeEditStock()">Cancel</button>
             </form>
         </div>
     </div>
 </div>
 
+@include('cns.inventory.partials.tank-capacity-helper')
 <script>
+    var editOriginalTankState = { tank: '', type: 'inbound', qty: 0 };
     var inventoryQcParamKeys = [
         'FFA_As_Palmitic', 'FFA_As_Oleic', 'MIU', 'Sulphur',
         'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'
@@ -156,9 +161,9 @@
 
     function calcInventoryQcAverage(paramKey, prefix) {
         prefix = prefix || 'edit';
-        var topVal = parseFloat($('#' + prefix + '_top_' + paramKey).val());
-        var midVal = parseFloat($('#' + prefix + '_middle_' + paramKey).val());
-        var botVal = parseFloat($('#' + prefix + '_bottom_' + paramKey).val());
+        var topVal = cnsParseNumber($('#' + prefix + '_top_' + paramKey).val(), NaN);
+        var midVal = cnsParseNumber($('#' + prefix + '_middle_' + paramKey).val(), NaN);
+        var botVal = cnsParseNumber($('#' + prefix + '_bottom_' + paramKey).val(), NaN);
 
         var vals = [];
         if (!isNaN(topVal)) vals.push(topVal);
@@ -169,11 +174,46 @@
         if (vals.length > 0) {
             var sum = vals.reduce(function(a, b) { return a + b; }, 0);
             var avg = sum / vals.length;
-            avgTarget.val(avg.toFixed(2));
+            avgTarget.val(cnsFormatNumber(avg, 2));
         } else {
             avgTarget.val('');
         }
     }
+
+    window.populateCnsWarehouseSelect = function($sel, selectedVal) {
+        if (!$sel || !$sel.length) return;
+        if (!window._cnsWarehousesReq) {
+            window._cnsWarehousesReq = $.get('cns-master-warehouses').fail(function() {
+                window._cnsWarehousesReq = null;
+            });
+        }
+        window._cnsWarehousesReq.done(function(res) {
+            $sel.empty().append($('<option>', { value: '', text: '-- Pilih Warehouse --' }));
+            var found = false;
+            $.each((res && res.data) || [], function(_, w) {
+                var name = (w && w.name) ? String(w.name) : '';
+                if (!name) return;
+                var isSelected = (selectedVal && selectedVal === name);
+                if (isSelected) found = true;
+                $sel.append($('<option>', { value: name, text: name, selected: isSelected }));
+            });
+            if (selectedVal && !found) {
+                $sel.append($('<option>', { value: selectedVal, text: selectedVal, selected: true }));
+            }
+            if (typeof $.fn.select2 === 'function') {
+                if ($sel.hasClass('select2-hidden-accessible')) {
+                    $sel.select2('destroy');
+                }
+                $sel.select2({
+                    placeholder: '-- Pilih / Ketik Warehouse --',
+                    allowClear: true,
+                    tags: true,
+                    width: '100%'
+                });
+            }
+            $sel.val(selectedVal || '').trigger('change');
+        });
+    };
 
     function prefillEditQC(rowId) {
         $.get('cns-inventory-tracking-data-json', {
@@ -187,11 +227,20 @@
 
             document.getElementById('edit_id').value = rowId;
             document.getElementById('edit_Type').value = row.Type ?? 'inbound';
-            document.getElementById('edit_Quantity').value = row.Quantity ?? '';
+            document.getElementById('edit_Quantity').value = (row.Quantity !== null && row.Quantity !== undefined && row.Quantity !== '') ? cnsFormatNumber(row.Quantity, 2) : '';
+            editOriginalTankState = {
+                tank: row.Nama_Tangki ?? '',
+                type: row.Type ?? 'inbound',
+                qty: cnsParseNumber(row.Quantity, 0)
+            };
             document.getElementById('edit_Transaction_Date').value = row.Transaction_Date ? row.Transaction_Date.substring(0, 10) : '';
-            document.getElementById('edit_Asal_Warehouse').value = row.Asal_Warehouse ?? '';
+            if (typeof window.populateCnsWarehouseSelect === 'function') {
+                window.populateCnsWarehouseSelect($('#edit_Asal_Warehouse'), row.Asal_Warehouse ?? '');
+            } else {
+                document.getElementById('edit_Asal_Warehouse').value = row.Asal_Warehouse ?? '';
+            }
             populateEditTankDropdown(row.Nama_Tangki);
-            document.getElementById('edit_Quantity_PTU').value = row.Quantity_PTU ?? '';
+            document.getElementById('edit_Quantity_PTU').value = (row.Quantity_PTU !== null && row.Quantity_PTU !== undefined && row.Quantity_PTU !== '') ? cnsFormatNumber(row.Quantity_PTU, 2) : '';
             document.getElementById('edit_Reference_Number').value = row.Reference_Number ?? '';
             document.getElementById('edit_Notes').value = row.Notes ?? '';
 
@@ -214,7 +263,7 @@
                             var imp = parseFloat(item.IMP) || 0;
                             val = (mc + imp > 0) ? (mc + imp).toFixed(2) : '';
                         }
-                        el.value = val;
+                        el.value = (val !== '' && val !== null && val !== undefined) ? cnsFormatNumber(val, 2) : '';
                     }
                 });
             });
@@ -237,7 +286,18 @@
             return;
         }
 
+        var capacityCheck = window.cnsEvaluateTankCapacity(getEditTankCapacityParams());
+        if (capacityCheck && capacityCheck.isWarning && !confirm(capacityCheck.confirmMessage)) {
+            return;
+        }
+
         var formData = new FormData(form);
+        $(form).find('input.cns-decimal').each(function() {
+            var name = $(this).attr('name');
+            if (name && $.trim($(this).val()) !== '') {
+                formData.set(name, cnsParseNumber($(this).val(), 0));
+            }
+        });
 
         $.ajax({
             url: 'cns-inventory-tracking-submit-edit',
@@ -248,8 +308,7 @@
             success: function(res) {
                 if (res.success) {
                     alert('Data berhasil diupdate');
-                    form.reset();
-                    $('#FormEditStock').hide();
+                    closeEditStock();
                     applyFilters();
                     if (typeof loadTankMonitoringCards === 'function') {
                         loadTankMonitoringCards();
@@ -264,22 +323,38 @@
         });
     }
 
+    function getEditTankCapacityParams() {
+        return {
+            tankName: $('#edit_Nama_Tangki').val(),
+            type: $('#edit_Type').val() || 'inbound',
+            qty: cnsParseNumber($('#edit_Quantity').val(), 0),
+            originalTank: editOriginalTankState.tank,
+            originalType: editOriginalTankState.type,
+            originalQty: editOriginalTankState.qty
+        };
+    }
+
+    function updateEditTankCapacityPreview() {
+        return window.cnsRenderTankCapacityPreview($('#edit_tank_capacity_info'), getEditTankCapacityParams());
+    }
+
+    function closeEditStock() {
+        $('#FormEditStock').hide();
+        $('#StockEditForm')[0].reset();
+        $('#edit_Asal_Warehouse').val('').trigger('change');
+        $('#edit_tank_capacity_info').hide().empty();
+        editOriginalTankState = { tank: '', type: 'inbound', qty: 0 };
+    }
+
     function populateEditTankDropdown(selectedVal) {
-        $.get('cns-master-tank-options', function(res) {
-            var $sel = $('#edit_Nama_Tangki');
-            $sel.empty().append($('<option>', { value: '', text: '-- Pilih Tangki --' }));
-            var found = false;
-            if (res.success && res.tanks && res.tanks.length) {
-                $.each(res.tanks, function(_, t) {
-                    var label = t.name + (t.capacity > 0 ? ' (' + Number(t.capacity).toLocaleString('id-ID') + ' KG)' : '');
-                    var isSelected = (selectedVal && selectedVal === t.name);
-                    if (isSelected) found = true;
-                    $sel.append($('<option>', { value: t.name, text: label, selected: isSelected }));
-                });
-            }
-            if (selectedVal && !found) {
-                $sel.append($('<option>', { value: selectedVal, text: selectedVal + ' (Legacy)', selected: true }));
-            }
+        return window.cnsLoadTankBalanceDropdown($('#edit_Nama_Tangki'), selectedVal, {
+            allowLegacy: true,
+            onLoaded: updateEditTankCapacityPreview
         });
     }
+
+    $(document).ready(function() {
+        $('#edit_Nama_Tangki, #edit_Type').on('change', updateEditTankCapacityPreview);
+        $('#edit_Quantity').on('input change', updateEditTankCapacityPreview);
+    });
 </script>

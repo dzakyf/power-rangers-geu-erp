@@ -64,7 +64,7 @@
                         Saldo Awal Periode: <span id="initialBalanceDisplay">0</span> Pcs
                     </span>
                     <span class="badge-balance">
-                        Sisa Stok Saat Ini: <span id="currentBalanceDisplay">{{ number_format($currentBalance, 0, ',', '.') }}</span> Pcs
+                        Sisa Stok Saat Ini: <span id="currentBalanceDisplay">{{ number_format((float) $currentBalance, 2, '.', ',') }}</span> Pcs
                     </span>
                 </div>
             </div>
@@ -124,10 +124,10 @@
             var balanceUrl = 'cns-inventory-flexibag-balance' + (params.length ? '?' + params.join('&') : '');
             $.get(balanceUrl, function(res) {
                 if (res && res.balance !== undefined) {
-                    $('#currentBalanceDisplay').text(Number(res.balance).toLocaleString('id-ID'));
+                    $('#currentBalanceDisplay').text(cnsFormatNumber(res.balance, 2));
                 }
                 if (res && res.initial_balance !== undefined && start) {
-                    $('#initialBalanceDisplay').text(Number(res.initial_balance).toLocaleString('id-ID'));
+                    $('#initialBalanceDisplay').text(cnsFormatNumber(res.initial_balance, 2));
                     $('#initialBalanceWrapper').show();
                 } else {
                     $('#initialBalanceWrapper').hide();

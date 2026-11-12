@@ -167,7 +167,7 @@ $sum_ba = array_sum($ba_total);
                         style: {
                             colors: [],
                             fontSize: '12px',
-                            fontFamily: 'Helvetica, Arial, sans-serif',
+                            fontFamily: 'Inter, sans-serif',
                             fontWeight: 600,
                             cssClass: 'apexcharts-yaxis-label',
                         },

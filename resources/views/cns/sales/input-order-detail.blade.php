@@ -10,8 +10,6 @@ $Saya =  Auth::user()->username;
 
 ?>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap');
-
   :root {
     --geu-green: skyblue;
     --geu-green-dark: #2d6b24;
@@ -56,7 +54,6 @@ $Saya =  Auth::user()->username;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Barlow Condensed', sans-serif;
     font-size: 18px;
     font-weight: 700;
     color: var(--geu-green-dark);
@@ -70,7 +67,6 @@ $Saya =  Auth::user()->username;
   }
 
   .so-header .brand-name h1 {
-    font-family: 'Barlow Condensed', sans-serif;
     font-size: 18px;
     font-weight: 700;
     letter-spacing: 1px;
@@ -103,7 +99,6 @@ $Saya =  Auth::user()->username;
   }
 
   .so-titlebar h2 {
-    font-family: 'Barlow Condensed', sans-serif;
     font-size: 22px;
     font-weight: 700;
     color: var(--geu-green-dark);
@@ -116,7 +111,6 @@ $Saya =  Auth::user()->username;
   .section-header {
     background: var(--geu-green);
     color: #fff;
-    font-family: 'Barlow Condensed', sans-serif;
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 1.5px;
@@ -144,7 +138,6 @@ $Saya =  Auth::user()->username;
   }
 
   .form-control {
-    font-family: 'Barlow', sans-serif;
     font-size: 13.5px;
     border: 1.5px solid #c4dbbf;
     border-radius: 4px;
@@ -180,7 +173,6 @@ $Saya =  Auth::user()->username;
 
   .items-table thead th {
     color: #fff;
-    font-family: 'Barlow Condensed', sans-serif;
     font-size: 12px;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -209,6 +201,10 @@ $Saya =  Auth::user()->username;
 
   .items-table .qty-col {
     width: 80px;
+  }
+
+  .items-table .unit-col {
+    width: 95px;
   }
 
   .items-table .price-col,
@@ -339,7 +335,6 @@ $Saya =  Auth::user()->username;
     background: linear-gradient(135deg, var(--geu-green-dark), var(--geu-green));
     color: #fff;
     border: none;
-    font-family: 'Barlow Condensed', sans-serif;
     font-size: 16px;
     letter-spacing: 1.5px;
     font-weight: 700;
@@ -359,7 +354,6 @@ $Saya =  Auth::user()->username;
     background: #fff;
     color: var(--geu-green-dark);
     border: 2px solid var(--geu-green);
-    font-family: 'Barlow Condensed', sans-serif;
     font-size: 16px;
     letter-spacing: 1.5px;
     font-weight: 700;
@@ -399,6 +393,7 @@ $Saya =  Auth::user()->username;
   <div class="card">
     <div class="card-body">
       <div id="ContentPages">
+        <input type="hidden" id="soId" value="{{ $salesOrder->id }}">
         <div class="FormInput_Form_Content">
           <!-- ── TITLE BAR ── -->
           <div class="so-titlebar">
@@ -481,6 +476,7 @@ $Saya =  Auth::user()->username;
                         <th class="num-col">No.</th>
                         <th>Description</th>
                         <th class="qty-col text-center">QTY</th>
+                        <th class="unit-col text-center">Unit</th>
                         <th class="price-col text-right">Unit Price (IDR)</th>
                         <th class="total-col text-right">Total (IDR)</th>
                         <th class="no-print" style="width:48px;"></th>
@@ -491,34 +487,35 @@ $Saya =  Auth::user()->username;
                     </tbody>
                     <tfoot>
                       <tr class="subtotal-row">
-                        <td colspan="4" class="text-right font-weight-600">SUBTOTAL</td>
-                        <td class="text-right font-weight-600" id="subtotalDisplay">0</td>
+                        <td colspan="5" class="text-right font-weight-600">SUBTOTAL</td>
+                        <td class="text-right font-weight-600" id="subtotalDisplay">{{ number_format((float) $salesOrder->subtotal, 2, '.', ',') }}</td>
                         <td class="no-print"></td>
                       </tr>
                       <tr>
-                        <td colspan="4" class="text-right">TAX</td>
+                        <td colspan="5" class="text-right">TAX</td>
                         <td class="text-right">
-                          <input type="number" class="form-control form-control-sm text-right" id="taxAmount" value="{{ $salesOrder->tax }}" min="0" onchange="recalc()" style="width:110px;margin-left:auto;" />
+                          <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="taxAmount" value="{{ number_format((float) $salesOrder->tax, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                         <td class="no-print"></td>
                       </tr>
                       <tr>
-                        <td colspan="4" class="text-right">SHIPPING</td>
+                        <td colspan="5" class="text-right">SHIPPING</td>
                         <td class="text-right">
-                          <input type="number" class="form-control form-control-sm text-right" id="shippingAmount" value="{{ $salesOrder->shipping }}" min="0" onchange="recalc()" style="width:110px;margin-left:auto;" />
+                          <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="shippingAmount" value="{{ number_format((float) $salesOrder->shipping, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                         <td class="no-print"></td>
                       </tr>
                       <tr>
-                        <td colspan="4" class="text-right">OTHER</td>
+                        <td colspan="5" class="text-right">OTHER</td>
                         <td class="text-right">
-                          <input type="number" class="form-control form-control-sm text-right" id="otherAmount" value="{{ $salesOrder->other }}" min="0" onchange="recalc()" style="width:110px;margin-left:auto;" />
+                          <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="otherAmount" value="{{ number_format((float) $salesOrder->other, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                         <td class="no-print"></td>
                       </tr>
                       <tr class="total-row">
-                        <td colspan="4" class="text-right">TOTAL</td>
-                        <td class="text-right" id="totalDisplay">Rp 0</td>
+                        <td colspan="5" class="text-right">TOTAL</td>
+                        <input type="hidden" name="totalAmount" id="totalAmount" value="{{ $salesOrder->total }}">
+                        <td class="text-right" id="totalDisplay">Rp {{ number_format((float) $salesOrder->total, 2, '.', ',') }}</td>
                         <td class="no-print"></td>
                       </tr>
                     </tfoot>
@@ -553,145 +550,18 @@ $Saya =  Auth::user()->username;
     <div id="DivProcess"></div>
 
   </div>
+  @php
+    $defaultItemsData = collect($details)->map(function ($item) {
+      return [
+        'desc'  => $item->description,
+        'qty'   => $item->qty,
+        'unit'  => $item->unit ?? '',
+        'price' => $item->unit_price,
+      ];
+    })->values();
+  @endphp
   <script>
     // ── Default items ──
-    const defaultItems = @json(
-      collect($details) -> map(function($item) {
-        return [
-          'desc' => $item -> description,
-          'qty' => $item -> qty,
-          'price' => $item -> unit_price
-        ];
-      })
-    );
-    let rowCount = 0;
-
-    function fmt(n) {
-      return Number(n).toLocaleString('id-ID');
-    }
-
-    function addRow(desc = '', qty = 1, price = 0) {
-      rowCount++;
-      const idx = rowCount;
-      const total = qty * price;
-      const tbody = document.getElementById('itemsBody');
-      const tr = document.createElement('tr');
-      tr.id = 'row_' + idx;
-      tr.innerHTML = `
-      <td class="num-col text-center row-num">${tbody.rows.length + 1}</td>
-      <td><input type="text" class="form-control form-control-sm" id='description${idx}' value="${desc}" placeholder="Deskripsi produk"/></td>
-      <td class="qty-col"><input type="number" id="qty${idx}" class="form-control form-control-sm text-center qty-inp" value="${qty}" min="0" onchange="recalc()"/></td>
-      <td class="price-col"><input type="number" id="unit${idx}" class="form-control form-control-sm text-right price-inp" value="${price}" min="0" onchange="recalc()" placeholder="0"/></td>
-      <td class="total-col text-right total-cell" style="font-weight:600;">${fmt(total)}</td>
-      <td class="no-print text-center"><button class="btn btn-danger btn-remove-row" onclick="removeRow('row_${idx}')">X</button></td>
-    `;
-      tbody.appendChild(tr);
-      recalc();
-    }
-
-    function removeRow(id) {
-      const el = document.getElementById(id);
-      if (el) el.remove();
-      renumber();
-      recalc();
-    }
-
-    function renumber() {
-      document.querySelectorAll('#itemsBody tr .row-num').forEach((el, i) => {
-        el.textContent = i + 1;
-      });
-    }
-
-    function recalc() {
-      let subtotal = 0;
-      document.querySelectorAll('#itemsBody tr').forEach(tr => {
-        const qty = parseFloat(tr.querySelector('.qty-inp')?.value || 0);
-        const price = parseFloat(tr.querySelector('.price-inp')?.value || 0);
-        const tot = qty * price;
-        const cell = tr.querySelector('.total-cell');
-        if (cell) cell.textContent = fmt(tot);
-        subtotal += tot;
-      });
-      const tax = parseFloat(document.getElementById('taxAmount').value || 0);
-      const ship = parseFloat(document.getElementById('shippingAmount').value || 0);
-      const other = parseFloat(document.getElementById('otherAmount').value || 0);
-      const total = subtotal + tax + ship + other;
-      document.getElementById('subtotalDisplay').textContent = fmt(subtotal);
-      document.getElementById('totalDisplay').textContent = 'Rp ' + fmt(total);
-    }
-
-    function resetForm() {
-      if (!confirm('Reset semua data form?')) return;
-      document.getElementById('itemsBody').innerHTML = '';
-      rowCount = 0;
-      defaultItems.forEach(i => addRow(i.desc, i.qty, i.price));
-      document.getElementById('taxAmount').value = 0;
-      document.getElementById('shippingAmount').value = 0;
-      document.getElementById('otherAmount').value = 0;
-      recalc();
-    }
-
-    function saveSO() {
-      const soCode = document.getElementById('soCode').value;
-      const soDate = document.getElementById('soDate').value;
-      if (!soCode || !soDate) {
-        alert('SO Code dan tanggal wajib diisi!');
-        return;
-      }
-
-      submitSalesOrder();
-    }
-
-    // ── Init ──
-    defaultItems.forEach(i => addRow(i.desc, i.qty, i.price));
-
-    var myCalendar;
-    myCalendar = new dhtmlXCalendarObject(["Stuffing", "Checking_BC", "Closing_CY", "ETD", "ATD", "ETA", "ATA"]);
-    myCalendar.setDateFormat("%Y-%m-%d");
-
-    function submitSalesOrder() {
-
-      gettingVars = getAllValues();
-
-      $.ajax({
-        headers: {
-          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        },
-        url: "cns-sales-order-detail-submit?_token={{ csrf_token() }}",
-        type: "POST",
-        data: gettingVars,
-        success: function(data, textStatus, jqXHR) {
-          var dataPos = data.indexOf("success");
-          if (dataPos != '-1') {
-            var cariAWB = data.split(":");
-            alert('Data Vessel Schedule Submitted!');
-
-            // location.href = "partner-announcement";
-            refreshdata();
-            $('#divlistOpportunity').html('')
-          } else {
-            alert('Announcement Failed to Submit!');
-          }
-        },
-        error: function(jqXHR, textStatus, errorThrown) {
-          alert("Error Internal! Please Try again!");
-
-        }
-      });
-    }
-
-    function getAllValues() {
-      var inputValues = [];
-      $('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
-        var type = $(this).attr("type");
-        if ((type == "checkbox" || type == "radio") && this.checked) {
-          inputValues.push($(this).attr("name") + "=" + $(this).val());
-        } else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-          inputValues.push($(this).attr("id") + "=" + $(this).val());
-        } else if ($(this).is("textarea")) {
-          inputValues.push($(this).attr("id") + "=" + $(this).val());
-        }
-      })
-      return inputValues.join('&');
-    }
+    var defaultItems = @json($defaultItemsData);
   </script>
+  @include('cns.sales.partials.item-row-script', ['submitUrl' => 'cns-sales-order-detail-submit'])

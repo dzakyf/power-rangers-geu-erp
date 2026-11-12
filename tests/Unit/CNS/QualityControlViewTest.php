@@ -143,5 +143,36 @@ class QualityControlViewTest extends TestCase
         $this->assertStringContainsString('loadMonthlyStats', $content);
         $this->assertStringContainsString('cns-quality-monthly-stats', $content);
     }
+
+    /** @test */
+    public function edit_view_reads_correct_cell_indices_for_contract_booking_tank_and_parameters(): void
+    {
+        $content = file_get_contents(resource_path('views/cns/quality/edit.blade.php'));
+
+        // Contract_ID is index 39, Booking_ID is 40, Tank_ID is 42
+        $this->assertStringContainsString('contractId = grid.cells(rowId, 39) ? grid.cells(rowId, 39).getValue() : \'\';', $content);
+        $this->assertStringContainsString('bookingId  = grid.cells(rowId, 40) ? grid.cells(rowId, 40).getValue() : \'\';', $content);
+        $this->assertStringContainsString('tankId     = grid.cells(rowId, 42) ? grid.cells(rowId, 42).getValue() : \'\';', $content);
+
+        // Parameters start at TOP 6, MIDDLE 14, BOTTOM 22
+        $this->assertStringContainsString('6 + idx', $content);
+        $this->assertStringContainsString('14 + idx', $content);
+        $this->assertStringContainsString('22 + idx', $content);
+    }
+
+    /** @test */
+    public function index_view_hides_correct_columns_and_handles_attachment_click(): void
+    {
+        $content = file_get_contents(resource_path('views/cns/quality/index.blade.php'));
+
+        // Hidden columns 39, 40, 41, 42
+        $this->assertStringContainsString('ProjectionGrid.setColumnHidden(39, true);', $content);
+        $this->assertStringContainsString('ProjectionGrid.setColumnHidden(40, true);', $content);
+        $this->assertStringContainsString('ProjectionGrid.setColumnHidden(41, true);', $content);
+        $this->assertStringContainsString('ProjectionGrid.setColumnHidden(42, true);', $content);
+
+        // Attachment click at index 38
+        $this->assertStringContainsString('if (cInd === 38)', $content);
+    }
 }
 

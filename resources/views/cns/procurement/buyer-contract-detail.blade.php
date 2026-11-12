@@ -103,11 +103,11 @@
     }
 
     function updateQtyPreview() {
-        var mt = $('#Quantity_MT').val();
+        var rawMt = $('#Quantity_MT').val();
         var count = $('#Container_Count').val();
         var size = $('#Container_Size').val();
-        if (mt && count) {
-            $('#QtyPreview').text(mt + ' MT (' + count + ' x ' + size + ')');
+        if (rawMt && count) {
+            $('#QtyPreview').text(cnsFormatNumber(cnsParseNumber(rawMt, 0), 2) + ' MT (' + count + ' x ' + size + ')');
         } else {
             $('#QtyPreview').text('-');
         }
@@ -128,14 +128,14 @@
             }
         });
         formData.append('Contract_No', $('#Contract_No').val());
-        formData.append('Quantity_MT', $('#Quantity_MT').val());
+        formData.append('Quantity_MT', cnsParseNumber($('#Quantity_MT').val(), 0));
         formData.append('Container_Count', $('#Container_Count').val());
         formData.append('Container_Size', $('#Container_Size').val());
         formData.append('Loading_Start', $('#Loading_Start').val());
         formData.append('Loading_End', $('#Loading_End').val());
         formData.append('Incoterms', $('#Incoterms').val());
         formData.append('Price_Currency', $('#Price_Currency').val());
-        formData.append('Price_Per_MT', $('#Price_Per_MT').val());
+        formData.append('Price_Per_MT', cnsParseNumber($('#Price_Per_MT').val(), 0));
         formData.append('Status', $('#Status').val());
         formData.append('Note', $('#Note').val());
 

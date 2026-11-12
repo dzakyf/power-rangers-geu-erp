@@ -156,7 +156,7 @@ $Saya = Auth::user()->username;
     <tr>
         <td class="bd"><span class="lbl">Quantity:</span></td>
         <td class="bd">
-            {{ number_format($sd->Quantity, 3) }} mt
+            {{ number_format((float) $sd->Quantity, 2, '.', ',') }} mt
             <span class="chk chk-yes">&#10003;</span> metric tons
             <span class="chk">&#9633;</span> m³
         </td>

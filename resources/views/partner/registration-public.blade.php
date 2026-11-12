@@ -47,7 +47,7 @@ $province = DB::table('master_kodepos')->select("Province")->groupBy("Province")
 
     <link rel="stylesheet" type="text/css" href="{{ asset('form_input.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ asset('./jquery-confirm.css') }}" />
-    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500" rel="stylesheet">
+    <link href="{{ asset('css/font-uniform.css') }}" rel="stylesheet">
 
     <script src="{{ asset('vault.js?v=3.0.0')}}"></script>
     <link rel="stylesheet" type="text/css" href="{{ asset('vault.css') }}" />

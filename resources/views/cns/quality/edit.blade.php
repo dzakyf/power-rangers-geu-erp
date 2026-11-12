@@ -112,16 +112,16 @@
                                     {{ $param['label'] }} <span class="badge badge-light text-secondary border ml-1">{{ $param['unit'] }}</span>
                                 </td>
                                 <td>
-                                    <input type="number" step="0.01" name="top_{{ $param['key'] }}" id="edit_top_{{ $param['key'] }}"
-                                           class="form-control text-right" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
+                                    <input type="text" inputmode="decimal" name="top_{{ $param['key'] }}" id="edit_top_{{ $param['key'] }}"
+                                           class="form-control text-right cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
                                 </td>
                                 <td>
-                                    <input type="number" step="0.01" name="middle_{{ $param['key'] }}" id="edit_middle_{{ $param['key'] }}"
-                                           class="form-control text-right" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
+                                    <input type="text" inputmode="decimal" name="middle_{{ $param['key'] }}" id="edit_middle_{{ $param['key'] }}"
+                                           class="form-control text-right cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
                                 </td>
                                 <td>
-                                    <input type="number" step="0.01" name="bottom_{{ $param['key'] }}" id="edit_bottom_{{ $param['key'] }}"
-                                           class="form-control text-right" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
+                                    <input type="text" inputmode="decimal" name="bottom_{{ $param['key'] }}" id="edit_bottom_{{ $param['key'] }}"
+                                           class="form-control text-right cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
                                 </td>
                                 <td>
                                     <input type="text" id="edit_avg_{{ $param['key'] }}" class="form-control text-right font-weight-bold"
@@ -240,9 +240,9 @@
         var bookingId = '';
         var tankId = '';
         try {
-            contractId = grid.cells(rowId, 38) ? grid.cells(rowId, 38).getValue() : '';
-            bookingId  = grid.cells(rowId, 39) ? grid.cells(rowId, 39).getValue() : '';
-            tankId     = grid.cells(rowId, 41) ? grid.cells(rowId, 41).getValue() : '';
+            contractId = grid.cells(rowId, 39) ? grid.cells(rowId, 39).getValue() : '';
+            bookingId  = grid.cells(rowId, 40) ? grid.cells(rowId, 40).getValue() : '';
+            tankId     = grid.cells(rowId, 42) ? grid.cells(rowId, 42).getValue() : '';
         } catch (e) {}
 
         $('#edit_Contract_ID').val(contractId);
@@ -254,16 +254,16 @@
 
         $('#edit_Tank_ID').val(tankId);
 
-        // TOP indices: 5..12, MIDDLE: 13..20, BOTTOM: 21..28
-        // Keys: FFA_As_Palmitic(5), FFA_As_Oleic(6), MIU(7), Sulphur(8), IV(9), Total_Chlorides(10), Phosphorus(11), Total_Metals(12)
+        // TOP indices: 6..13, MIDDLE: 14..21, BOTTOM: 22..29
+        // Keys: FFA_As_Palmitic(6), FFA_As_Oleic(7), MIU(8), Sulphur(9), IV(10), Total_Chlorides(11), Phosphorus(12), Total_Metals(13)
         qcParamKeys.forEach(function(key, idx) {
-            var topVal = cleanCell(grid.cells(rowId, 5 + idx).getValue());
-            var midVal = cleanCell(grid.cells(rowId, 13 + idx).getValue());
-            var botVal = cleanCell(grid.cells(rowId, 21 + idx).getValue());
+            var topVal = cleanCell(grid.cells(rowId, 6 + idx).getValue());
+            var midVal = cleanCell(grid.cells(rowId, 14 + idx).getValue());
+            var botVal = cleanCell(grid.cells(rowId, 22 + idx).getValue());
 
-            $('#edit_top_' + key).val(topVal);
-            $('#edit_middle_' + key).val(midVal);
-            $('#edit_bottom_' + key).val(botVal);
+            $('#edit_top_' + key).val(topVal !== '' ? cnsFormatNumber(topVal, 2) : '');
+            $('#edit_middle_' + key).val(midVal !== '' ? cnsFormatNumber(midVal, 2) : '');
+            $('#edit_bottom_' + key).val(botVal !== '' ? cnsFormatNumber(botVal, 2) : '');
 
             calcQcAverage(key, 'edit');
         });
@@ -289,6 +289,12 @@
         }
 
         var formData = new FormData(form);
+        $(form).find('input.cns-decimal').each(function() {
+            var name = $(this).attr('name');
+            if (name && $.trim($(this).val()) !== '') {
+                formData.set(name, cnsParseNumber($(this).val(), 0));
+            }
+        });
 
         $.ajax({
             url: 'cns-quality-submit-edit',

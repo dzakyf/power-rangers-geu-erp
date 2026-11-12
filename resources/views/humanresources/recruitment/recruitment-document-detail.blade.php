@@ -132,7 +132,7 @@ if ($jumlah > 0) {
             </tr>
         </table>
         <div class="JudulContent" style="color:#699;background-image:url(./_CSS_/hdr_back.gif);">RECRUITMENT DOCUMENT</div>
-        <div id='DocID' style="width:auto;background-color:#cecece;font-family:'Trebuchet MS', Arial, Helvetica, sans-serif">
+        <div id='DocID' style="width:auto;background-color:#cecece;">
             <div style="font-weight:bold;width:100%;padding-left:40px;height:30px;vertical-align:middle" align="left">.:. 1. Foto</div>
             <div style="padding-top:20px;padding-bottom:20px;padding-left:80px;font-weight:none;background-color:#efefef">
                 <div id="vault" class="with-header" style='height:150px;margin:0px;width:auto;'></div>

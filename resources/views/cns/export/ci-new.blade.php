@@ -84,17 +84,6 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
                                 <input name="Inv_Date" id="Inv_Date" class="form-control shadow-sm" value="{{ date('Y-m-d') }}" required />
 							</div>
 						</div>
-						<div class="col-md-3">
-                            <div class="form-group">
-                                <label for="Shipper">Shipper</label>
-                                <select name="Shipper" id="Shipper" class="form-control bg-white shadow-sm" required>
-                                    <option value="">-- Pilih Shipper --</option>
-                                    @foreach ($companies as $shipper)
-                                        <option value="{{ $shipper->Supplier_ID }}">{{ $shipper->Company_Name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
@@ -115,37 +104,37 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Qty">Qty (MT)</label>
-                                <input type="text" name="Qty" id="Qty" value="0" onchange="calculateTotal()" class="form-control shadow-sm" required />
+                                <input type="text" inputmode="decimal" name="Qty" id="Qty" value="0.00" onchange="calculateTotal()" class="form-control shadow-sm cns-decimal" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Unit_Price">Unit Price (MT)</label>
-                                <input type="text" name="Unit_Price" id="Unit_Price" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required />
+                                <input type="text" inputmode="decimal" name="Unit_Price" id="Unit_Price" value="0.00" class="form-control shadow-sm cns-decimal" onchange="calculateTotal()" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Amount">Amount</label>
-                                <input type="text" name="Amount" id="Amount" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required readonly />
+                                <input type="text" name="Amount" id="Amount" value="0.00" class="form-control shadow-sm" onchange="calculateTotal()" required readonly />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Advance_Payment">Advance Payment</label>
-                                <input type="text" name="Advance_Payment" id="Advance_Payment" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required />
+                                <input type="text" inputmode="decimal" name="Advance_Payment" id="Advance_Payment" value="0.00" class="form-control shadow-sm cns-decimal" onchange="calculateTotal()" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Other">Other</label>
-                                <input type="text" name="Other" id="Other" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required />
+                                <input type="text" inputmode="decimal" name="Other" id="Other" value="0.00" class="form-control shadow-sm cns-decimal" onchange="calculateTotal()" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Total">Total</label>
-                                <input type="text" name="Total" id="Total" value="0" class="form-control shadow-sm" onchange="calculateTotal()" required readonly />
+                                <input type="text" name="Total" id="Total" value="0.00" class="form-control shadow-sm" onchange="calculateTotal()" required readonly />
                             </div>
                         </div>
 					</div>
@@ -164,16 +153,16 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
 <script>
     function calculateTotal()
     {
-        let qty = parseFloat($('#Qty').val());
-        let unitPrice = parseFloat($('#Unit_Price').val());
-        let advance = parseFloat($('#Advance_Payment').val());
-        let other = parseFloat($('#Other').val());
+        let qty = cnsParseNumber($('#Qty').val()) || 0;
+        let unitPrice = cnsParseNumber($('#Unit_Price').val()) || 0;
+        let advance = cnsParseNumber($('#Advance_Payment').val()) || 0;
+        let other = cnsParseNumber($('#Other').val()) || 0;
 		let factor = Math.pow(10, 2);
         let subs = Math.round((qty * unitPrice + Number.EPSILON) * factor) / factor;
 
-        $('#Amount').val(subs)
-        $('#Subtotal').val(subs)
-        $('#Total').val((subs - advance) + other);
+        $('#Amount').val(cnsFormatNumber(subs));
+        $('#Subtotal').val(cnsFormatNumber(subs));
+        $('#Total').val(cnsFormatNumber((subs - advance) + other));
     }
 	var myCalendar;
 	myCalendar = new dhtmlXCalendarObject(["Inv_Date"]);
@@ -218,10 +207,10 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
                 Final_SI_No: $('#Final_SI_No').find('option:selected').val()
             },
             success: function(response) {
-                $('#Qty').val(response.Netto_MT ?? 0);
+                $('#Qty').val(cnsFormatNumber(response.Netto_MT ?? 0));
+                calculateTotal();
                 $('#Description').val(response.Product_Name ?? "");
                 $('#Consignee').find('option[value="'+response.Consignee+'"]').attr('selected', true);
-                $('#Shipper').find('option[value="'+response.Shipper+'"]').attr('selected', true);
                 $.unblockUI();
             },
             error:function() {
@@ -269,7 +258,10 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
 			if ((type == "checkbox" || type == "radio") && this.checked) {
 				inputValues.push($(this).attr("name") + "=" + $(this).val());
 			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
+				var id = $(this).attr("id");
+				var rawIds = ['Qty', 'Unit_Price', 'Amount', 'Advance_Payment', 'Other', 'Total'];
+				var val = ($(this).hasClass('cns-decimal') || rawIds.indexOf(id) !== -1) ? cnsParseNumber($(this).val()) : $(this).val();
+				inputValues.push(id + "=" + encodeURIComponent(val));
 			} else if ($(this).is("textarea")) {
 				inputValues.push($(this).attr("id") + "=" + $(this).val());
 			}

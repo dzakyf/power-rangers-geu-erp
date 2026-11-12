@@ -310,7 +310,7 @@ class ShippingInstructionPrintService
             return null;
         }
 
-        $quantity = number_format((float) $contract->Quantity_MT, 3, '.', '');
+        $quantity = number_format((float) $contract->Quantity_MT, 2, '.', ',');
         $display = $quantity . ' MT';
 
         if ((int) $contract->Container_Count > 0 && $contract->Container_Size) {

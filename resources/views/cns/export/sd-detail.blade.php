@@ -113,7 +113,7 @@ $Saya = Auth::user()->username;
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Quantity</label>
-                            <input type="number" step="0.001" name="Quantity" id="Quantity" value="{{ $sd->Quantity }}" class="form-control shadow-sm" />
+                            <input type="text" inputmode="decimal" name="Quantity" id="Quantity" value="{{ number_format((float) $sd->Quantity, 2, '.', ',') }}" class="form-control shadow-sm cns-decimal" />
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -214,19 +214,19 @@ $Saya = Auth::user()->username;
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Ship (km)</label>
-                            <input type="number" step="0.01" name="Transport_Ship_KM" id="Transport_Ship_KM" value="{{ $sd->Transport_Ship_KM }}" class="form-control shadow-sm form-control-sm" />
+                            <input type="text" inputmode="decimal" name="Transport_Ship_KM" id="Transport_Ship_KM" value="{{ $sd->Transport_Ship_KM !== null && $sd->Transport_Ship_KM !== '' ? number_format((float) $sd->Transport_Ship_KM, 2, '.', ',') : '' }}" class="form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Train (km)</label>
-                            <input type="number" step="0.01" name="Transport_Train_KM" id="Transport_Train_KM" value="{{ $sd->Transport_Train_KM }}" class="form-control shadow-sm form-control-sm" />
+                            <input type="text" inputmode="decimal" name="Transport_Train_KM" id="Transport_Train_KM" value="{{ $sd->Transport_Train_KM !== null && $sd->Transport_Train_KM !== '' ? number_format((float) $sd->Transport_Train_KM, 2, '.', ',') : '' }}" class="form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Road (km)</label>
-                            <input type="number" step="0.01" name="Transport_Road_KM" id="Transport_Road_KM" value="{{ $sd->Transport_Road_KM }}" class="form-control shadow-sm form-control-sm" />
+                            <input type="text" inputmode="decimal" name="Transport_Road_KM" id="Transport_Road_KM" value="{{ $sd->Transport_Road_KM !== null && $sd->Transport_Road_KM !== '' ? number_format((float) $sd->Transport_Road_KM, 2, '.', ',') : '' }}" class="form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                 </div>
@@ -316,7 +316,11 @@ $Saya = Auth::user()->username;
 
     $('#UpdateSD').click(function () {
         $.blockUI();
+        $('#ContentPagesSDDtl .cns-decimal').each(function () {
+            $(this).val(cnsParseNumber($(this).val()));
+        });
         var formData = $('#ContentPagesSDDtl').find('input, select, textarea').not(':button').serialize();
+        cnsInitDecimalInputs('#ContentPagesSDDtl');
 
         $.ajax({
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
