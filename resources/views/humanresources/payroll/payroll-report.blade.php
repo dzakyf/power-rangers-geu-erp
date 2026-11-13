@@ -134,6 +134,9 @@
                 <small class="text-muted">Total Nett (THP) Terhitung: <strong class="text-success">Rp {{ number_format(collect($reportData)->sum('nett'), 0, ',', '.') }}</strong></small>
             </div>
             <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="openBlastModalReport()">
+                    <i class="fe fe-send me-1"></i> Blasting Email Slip (Final)
+                </button>
                 <input type="text" id="tableSearch" class="form-control form-control-sm rounded-pill" placeholder="Cari NIK / Nama / Dept..." style="width: 220px;" onkeyup="filterTable()">
             </div>
         </div>
@@ -142,7 +145,11 @@
                 <table class="table table-hover table-bordered table-striped align-middle mb-0 text-nowrap" id="reportTable" style="font-size: 0.82rem;">
                     <thead class="table-light sticky-top" style="z-index: 2;">
                         <tr class="text-center align-middle">
+                            <th rowspan="2" class="px-2" style="width: 35px;">
+                                <input type="checkbox" id="checkAllReport" onchange="toggleSelectAllReport(this)" checked title="Pilih Semua Karyawan">
+                            </th>
                             <th rowspan="2" class="px-2" style="width: 40px;">No</th>
+                            <th rowspan="2" class="px-2" style="min-width: 130px;">Aksi Slip Gaji</th>
                             <th rowspan="2" class="px-2">NIK</th>
                             <th rowspan="2" class="px-3 text-start">Nama</th>
                             <th rowspan="2" class="px-2">Jabatan</th>
@@ -204,7 +211,18 @@
                     <tbody>
                         @forelse ($reportData as $row)
                             <tr>
+                                <td class="text-center">
+                                    <input type="checkbox" class="report-row-check" value="{{ $row['nik'] }}" data-task="{{ $row['task_id'] }}" data-period="{{ $row['period'] }}" data-name="{{ $row['nama'] }}" checked>
+                                </td>
                                 <td class="text-center">{{ $row['no'] }}</td>
+                                <td class="text-center text-nowrap">
+                                    <a href="{{ url('payslip-digital') }}?nik={{ urlencode($row['nik']) }}&task_id={{ urlencode($row['task_id']) }}&period={{ urlencode($row['period']) }}&source=final" target="_blank" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-1 shadow-sm" title="Buka Payslip Digital Final">
+                                        <i class="fa fa-file-text-o me-1"></i> Slip Digital
+                                    </a>
+                                    <button type="button" class="btn btn-xs btn-outline-success rounded-pill px-2 py-1 shadow-sm ms-1" onclick="sendSingleSlipEmail('{{ $row['nik'] }}', '{{ $row['period'] }}', '{{ $row['task_id'] }}', '{{ addslashes($row['nama']) }}')" title="Kirim Slip ke Email Karyawan Ini">
+                                        <i class="fa fa-envelope"></i>
+                                    </button>
+                                </td>
                                 <td class="text-center fw-semibold text-primary">{{ $row['nik'] }}</td>
                                 <td class="fw-bold text-dark">{{ $row['nama'] }}</td>
                                 <td>{{ $row['jabatan'] }}</td>
@@ -260,7 +278,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="36" class="text-center py-5 text-muted">
+                                <td colspan="39" class="text-center py-5 text-muted">
                                     <i class="fe fe-info fs-3 d-block mb-2 text-warning"></i>
                                     Tidak ada data payroll yang sesuai dengan filter yang dipilih.
                                 </td>
@@ -271,6 +289,263 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Blasting Email Payslip Final -->
+    <div class="modal fade" id="modalBlastEmailReport" tabindex="-1" aria-labelledby="modalBlastEmailReportLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold text-white" id="modalBlastEmailReportLabel">
+                        <i class="fa fa-paper-plane me-2"></i>Blasting Email Slip Gaji (Final / Official)
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info small rounded-3 mb-3">
+                        <i class="fa fa-info-circle me-1"></i>
+                        Fitur ini mengirimkan payslip digital resmi (Final) secara massal langsung ke email masing-masing karyawan yang dicentang di tabel laporan penggajian.
+                    </div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="p-2 border rounded-3 bg-light">
+                                <small class="text-muted d-block fw-semibold">Filter Periode:</small>
+                                <strong class="text-dark">{{ $selectedPeriod ?: 'Semua Periode' }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-2 border rounded-3 bg-light">
+                                <small class="text-muted d-block fw-semibold">Filter Batch / Task:</small>
+                                <strong class="text-dark">{{ $selectedTaskId ?: 'Semua Batch' }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-2 border rounded-3 bg-light">
+                                <small class="text-muted d-block fw-semibold">Karyawan Tercentang:</small>
+                                <strong id="blastReportCount" class="text-primary fs-6">0 Orang</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar Pengiriman -->
+                    <div id="blastProgressBarWrapperReport" class="mb-3" style="display: none;">
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span id="blastProgressTextReport">Memulai pengiriman email...</span>
+                            <span id="blastProgressPercentReport" class="fw-bold text-primary">0%</span>
+                        </div>
+                        <div class="progress" style="height: 12px; border-radius: 6px;">
+                            <div id="blastProgressBarReport" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Live Results Table -->
+                    <div class="table-responsive border rounded-3" style="max-height: 250px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0" id="blastResultsTableReport">
+                            <thead class="table-light sticky-top">
+                                <tr class="small text-muted">
+                                    <th style="width: 40px;" class="text-center">#</th>
+                                    <th>NIK</th>
+                                    <th>Nama Karyawan</th>
+                                    <th>Email</th>
+                                    <th style="width: 100px;" class="text-center">Status</th>
+                                    <th>Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="blastResultsBodyReport" class="small">
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">Klik tombol "Kirim Blasting Final Sekarang" untuk memulai proses pengiriman email.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal" id="btnCancelBlastReport">Tutup</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" id="btnStartBlastReport" onclick="startBlastingReport()">
+                        <i class="fa fa-paper-plane me-1"></i> Kirim Blasting Final Sekarang
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleSelectAllReport(masterCheckbox) {
+            var isChecked = $(masterCheckbox).is(':checked');
+            $('.report-row-check').prop('checked', isChecked);
+        }
+
+        function sendSingleSlipEmail(nik, period, taskId, name) {
+            if (!confirm('Kirim slip gaji digital resmi ke email karyawan ' + name + ' (' + nik + ')?')) return;
+            
+            var btn = (typeof event !== 'undefined' && event.target) ? (event.target.closest('button') || event.target) : null;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+            }
+
+            $.ajax({
+                url: '{{ url('api/payroll/send-payslip-email') }}',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    nik: nik,
+                    period: period,
+                    task_id: taskId,
+                    source: 'final'
+                },
+                success: function(res) {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-envelope"></i>';
+                    }
+                    if (res && res.success) {
+                        alert('Slip gaji berhasil dikirimkan ke: ' + res.recipient);
+                    } else {
+                        alert('Gagal mengirim: ' + (res.message || 'Unknown error'));
+                    }
+                },
+                error: function(xhr) {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-envelope"></i>';
+                    }
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Terjadi kesalahan saat memproses pengiriman email.';
+                    alert(msg);
+                }
+            });
+        }
+
+        var blastQueueReport = [];
+        var blastIndexReport = 0;
+        var blastSuccessReport = 0;
+        var blastFailedReport = 0;
+        var blastSkippedReport = 0;
+
+        function openBlastModalReport() {
+            blastQueueReport = [];
+            $('.report-row-check:checked').each(function() {
+                blastQueueReport.push({
+                    nik: $(this).val(),
+                    period: $(this).data('period'),
+                    task_id: $(this).data('task'),
+                    name: $(this).data('name')
+                });
+            });
+
+            if (blastQueueReport.length === 0) {
+                alert('Centang minimal 1 karyawan pada tabel untuk melakukan blasting email.');
+                return;
+            }
+
+            $('#blastReportCount').text(blastQueueReport.length + ' Orang');
+            $('#blastProgressBarWrapperReport').hide();
+            $('#blastProgressBarReport').css('width', '0%').removeClass('bg-success').addClass('bg-primary progress-bar-animated');
+            $('#blastProgressPercentReport').text('0%');
+            $('#blastProgressTextReport').text('Menunggu konfirmasi...');
+            $('#blastResultsBodyReport').html('<tr><td colspan="6" class="text-center py-4 text-muted">Klik tombol "Kirim Blasting Final Sekarang" untuk mengirim ke ' + blastQueueReport.length + ' karyawan terpilih.</td></tr>');
+
+            $('#btnStartBlastReport').prop('disabled', false).html('<i class="fa fa-paper-plane me-1"></i> Kirim Blasting Final Sekarang');
+            $('#btnCancelBlastReport').prop('disabled', false);
+
+            var modalEl = document.getElementById('modalBlastEmailReport');
+            var bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+        }
+
+        function startBlastingReport() {
+            if (!blastQueueReport.length) return;
+            if (!confirm('Yakin ingin mengirim email slip gaji digital resmi ke ' + blastQueueReport.length + ' karyawan terpilih?')) return;
+
+            $('#btnStartBlastReport').prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Sedang Mengirim...');
+            $('#btnCancelBlastReport').prop('disabled', true);
+            $('#blastProgressBarWrapperReport').show();
+            $('#blastResultsBodyReport').empty();
+
+            blastIndexReport = 0;
+            blastSuccessReport = 0;
+            blastFailedReport = 0;
+            blastSkippedReport = 0;
+
+            processNextBlastChunkReport();
+        }
+
+        function processNextBlastChunkReport() {
+            if (blastIndexReport >= blastQueueReport.length) {
+                $('#btnStartBlastReport').prop('disabled', false).html('<i class="fa fa-check me-1"></i> Selesai');
+                $('#btnCancelBlastReport').prop('disabled', false);
+                $('#blastProgressBarReport').removeClass('progress-bar-animated').addClass('bg-success');
+                $('#blastProgressTextReport').html('<strong class="text-success">Pengiriman Selesai!</strong> Berhasil: ' + blastSuccessReport + ', Gagal: ' + blastFailedReport + ', Dilewati: ' + blastSkippedReport);
+                return;
+            }
+
+            var chunkSize = 3;
+            var chunkItems = blastQueueReport.slice(blastIndexReport, blastIndexReport + chunkSize);
+            var chunkNiks = chunkItems.map(function(item) { return item.nik; });
+            var samplePeriod = chunkItems[0].period || '{{ $selectedPeriod }}';
+            var sampleTaskId = chunkItems[0].task_id || '{{ $selectedTaskId }}';
+
+            $.ajax({
+                url: '{{ url('api/payroll/blast-payslip-emails') }}',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    niks: chunkNiks,
+                    period: samplePeriod,
+                    task_id: sampleTaskId,
+                    source: 'final'
+                },
+                success: function(res) {
+                    if (res && res.results) {
+                        res.results.forEach(function(item) {
+                            blastIndexReport++;
+                            var badgeHtml = '';
+                            if (item.status === 'SENT') {
+                                blastSuccessReport++;
+                                badgeHtml = '<span class="badge bg-success text-white">Terkirim</span>';
+                            } else if (item.status === 'SKIPPED') {
+                                blastSkippedReport++;
+                                badgeHtml = '<span class="badge bg-warning text-dark">Dilewati</span>';
+                            } else {
+                                blastFailedReport++;
+                                badgeHtml = '<span class="badge bg-danger text-white">Gagal</span>';
+                            }
+
+                            var rowHtml = '<tr>' +
+                                '<td class="text-center">' + blastIndexReport + '</td>' +
+                                '<td class="font-monospace fw-semibold">' + item.nik + '</td>' +
+                                '<td>' + (item.name || '-') + '</td>' +
+                                '<td class="small text-muted">' + (item.email || '-') + '</td>' +
+                                '<td class="text-center">' + badgeHtml + '</td>' +
+                                '<td class="small text-truncate" style="max-width: 200px;" title="' + (item.message || '') + '">' + (item.message || '-') + '</td>' +
+                            '</tr>';
+                            $('#blastResultsBodyReport').append(rowHtml);
+                        });
+                    } else {
+                        blastIndexReport += chunkItems.length;
+                        blastFailedReport += chunkItems.length;
+                    }
+
+                    var pct = Math.min(100, Math.round((blastIndexReport / blastQueueReport.length) * 100));
+                    $('#blastProgressBarReport').css('width', pct + '%');
+                    $('#blastProgressPercentReport').text(pct + '%');
+                    $('#blastProgressTextReport').text('Mengirim ' + blastIndexReport + ' dari ' + blastQueueReport.length + ' karyawan...');
+
+                    var container = $('#blastResultsTableReport').parent();
+                    container.scrollTop(container.prop('scrollHeight'));
+
+                    setTimeout(processNextBlastChunkReport, 200);
+                },
+                error: function() {
+                    blastIndexReport += chunkItems.length;
+                    blastFailedReport += chunkItems.length;
+                    var pct = Math.min(100, Math.round((blastIndexReport / blastQueueReport.length) * 100));
+                    $('#blastProgressBarReport').css('width', pct + '%');
+                    $('#blastProgressPercentReport').text(pct + '%');
+                    setTimeout(processNextBlastChunkReport, 200);
+                }
+            });
+        }
 
     <script>
         function exportExcel() {

@@ -253,6 +253,201 @@ class InstockPriceAndDuplicateGuardTest extends TestCase
     }
 
     /** @test */
+    public function consumed_delivery_orders_are_not_offered_for_instock(): void
+    {
+        $wh = $this->seedWarehouse();
+        $wo = $this->seedWorkOrder($this->seedPoo($wh, 8000));
+        $do = $this->seedDeliveryOrder();
+        $this->seedPickup($wo, $do, ['Instock_At' => now()]);
+
+        $response = $this->actingAs($this->admin())
+            ->get('/partner-delivery-order-data?format=json&status=DONE&for_instock=1')
+            ->assertOk()
+            ->json();
+
+        $ids = array_map('intval', array_column($response['data'], 'ID'));
+        $this->assertNotContains($do, $ids);
+    }
+
+    /** @test */
+    public function pos_that_already_have_a_delivery_order_are_not_offered_when_creating_one(): void
+    {
+        $wh = $this->seedWarehouse();
+        $wo = $this->seedWorkOrder($this->seedPoo($wh, 8000));
+        $do = $this->seedDeliveryOrder();
+        $po = $this->seedPickup($wo, $do);
+
+        $response = $this->actingAs($this->admin())
+            ->get('/partner-pickup-data?format=json&available_for_do=1')
+            ->assertOk()
+            ->json();
+
+        $ids = array_map('intval', array_column($response['data'], 'ID'));
+        $this->assertNotContains($po, $ids);
+    }
+
+    /** @test */
+    public function creating_a_new_po_under_a_consumed_work_order_is_rejected(): void
+    {
+        $wh = $this->seedWarehouse();
+        $wo = $this->seedWorkOrder($this->seedPoo($wh, 8000));
+        $do = $this->seedDeliveryOrder();
+        $this->seedPickup($wo, $do, ['Instock_At' => now()]);
+
+        $this->actingAs($this->admin())->postJson('/partner-pickup-create-submit', [
+            'WO_Id'       => $wo,
+            'Type_Pickup' => 'pickup',
+            'Coverage'    => 'DKI Jakarta - Jakarta Pusat',
+            'Site'        => 'W-INSTOCK',
+            'Package'     => 'UCO (Liter)',
+            'Qty'         => 10,
+            'Price'       => 8000,
+        ])->assertStatus(422)->assertJson(['status' => 'error']);
+    }
+
+    /** @test */
+    public function work_order_with_any_open_po_is_not_offered_for_a_new_po(): void
+    {
+        $wh = $this->seedWarehouse();
+        $wo = $this->seedWorkOrder($this->seedPoo($wh, 8000));
+        $do = $this->seedDeliveryOrder();
+        $this->seedPickup($wo, $do);
+
+        $response = $this->actingAs($this->admin())
+            ->get('/partner-work-order-data?format=json&available_for_po=1')
+            ->assertOk()
+            ->json();
+
+        $ids = array_map('intval', array_column($response['data'], 'ID'));
+        $this->assertNotContains($wo, $ids, 'a WO that already has a PO must not be reusable');
+    }
+
+    /** @test */
+    public function creating_a_second_po_under_the_same_work_order_is_rejected(): void
+    {
+        $wh = $this->seedWarehouse();
+        $wo = $this->seedWorkOrder($this->seedPoo($wh, 8000));
+        $do = $this->seedDeliveryOrder();
+        $this->seedPickup($wo, $do);
+
+        $this->actingAs($this->admin())->postJson('/partner-pickup-create-submit', [
+            'WO_Id'       => $wo,
+            'Type_Pickup' => 'pickup',
+            'Coverage'    => 'DKI Jakarta - Jakarta Pusat',
+            'Site'        => 'W-INSTOCK',
+            'Package'     => 'UCO (Liter)',
+            'Qty'         => 10,
+            'Price'       => 8000,
+        ])->assertStatus(422)->assertJson(['status' => 'error']);
+    }
+
+    /** @test */
+    public function preview_rejects_a_delivery_order_when_any_of_its_pos_was_already_instocked(): void
+    {
+        $wh = $this->seedWarehouse();
+        $wo = $this->seedWorkOrder($this->seedPoo($wh, 8000));
+        $do = $this->seedDeliveryOrder();
+        $this->seedPickup($wo, $do, ['Instock_At' => now()]);
+        $openPo = $this->seedPickup($wo, $do);
+
+        $this->actingAs($this->admin())
+            ->postJson('/partner-uco-instock-preview', ['do_ids' => [$do]])
+            ->assertStatus(422)
+            ->assertJson(['success' => false]);
+
+        $this->assertNotNull(DB::table('pickup_order')->where('ID', $openPo)->value('Actual_Qty'));
+    }
+
+    /** @test */
+    public function submit_rejects_a_delivery_order_when_any_of_its_pos_was_already_instocked(): void
+    {
+        $wh = $this->seedWarehouse();
+        $c = $this->seedContainer($wh);
+        $wo = $this->seedWorkOrder($this->seedPoo($wh, 8000));
+        $do = $this->seedDeliveryOrder();
+        $this->seedPickup($wo, $do, ['Instock_At' => now()]);
+        $openPo = $this->seedPickup($wo, $do);
+
+        $this->actingAs($this->admin())->postJson('/partner-uco-instock-submit-batch', [
+            'received_date' => now()->toDateString(),
+            'source'        => 'MITRA',
+            'groups'        => json_encode([$this->group($wh, $c, $openPo, $do)]),
+        ])->assertStatus(422)->assertJson(['success' => false]);
+    }
+
+    /** @test */
+    public function submit_requires_every_po_in_a_delivery_order_to_be_consumed_together(): void
+    {
+        $wh = $this->seedWarehouse();
+        $c = $this->seedContainer($wh);
+        $wo = $this->seedWorkOrder($this->seedPoo($wh, 8000));
+        $do = $this->seedDeliveryOrder();
+        $poA = $this->seedPickup($wo, $do);
+        $this->seedPickup($wo, $do);
+
+        $this->actingAs($this->admin())->postJson('/partner-uco-instock-submit-batch', [
+            'received_date' => now()->toDateString(),
+            'source'        => 'MITRA',
+            'groups'        => json_encode([$this->group($wh, $c, $poA, $do)]),
+        ])->assertStatus(422)->assertJson(['success' => false]);
+    }
+
+    /** @test */
+    public function partially_instocked_delivery_orders_are_not_offered_for_instock(): void
+    {
+        $wh = $this->seedWarehouse();
+        $wo = $this->seedWorkOrder($this->seedPoo($wh, 8000));
+        $do = $this->seedDeliveryOrder();
+        $this->seedPickup($wo, $do, ['Instock_At' => now()]);
+        $this->seedPickup($wo, $do);
+
+        $response = $this->actingAs($this->admin())
+            ->get('/partner-delivery-order-data?format=json&status=DONE&for_instock=1')
+            ->assertOk()
+            ->json();
+
+        $ids = array_map('intval', array_column($response['data'], 'ID'));
+        $this->assertNotContains($do, $ids, 'a partially instocked DO must be treated as consumed');
+    }
+
+    /** @test */
+    public function reconcile_command_backfills_legacy_supply_price_and_po_marker(): void
+    {
+        $wh = $this->seedWarehouse();
+        $wo = $this->seedWorkOrder($this->seedPoo($wh, 8000));
+        $do = $this->seedDeliveryOrder('DONE');
+        $po = $this->seedPickup($wo, $do);
+
+        $warehouseTaskId = DB::table('warehouse_partner')->where('id', $wh)->value('warehouse_task_id');
+
+        $supplyId = DB::table('warehouse_partner_supplies')->insertGetId([
+            'warehouse_task_id' => $warehouseTaskId,
+            'received_date'     => now()->toDateString(),
+            'pickup_type'       => 'PICKUP',
+            'name_poo'          => 'Legacy POO',
+            'source'            => 'MITRA',
+            'coverage'          => 'Legacy',
+            'received_qty'      => 90,
+            'price'             => 8000,
+            'total'             => 720000,
+            'rejected_qty'      => 0,
+            'created_date'      => now()->addMinute(),
+            'created_by'        => 'legacy',
+        ]);
+
+        $this->artisan('uco:reconcile-instock', ['--apply' => true])->assertExitCode(0);
+
+        $supply = DB::table('warehouse_partner_supplies')->where('id', $supplyId)->first();
+        $this->assertEqualsWithDelta(8888.89, (float) $supply->price, 0.01);
+        $this->assertEqualsWithDelta(800000, (float) $supply->total, 0.5);
+        $this->assertNotNull($supply->Instock_Batch_Ref);
+
+        $poRow = DB::table('pickup_order')->where('ID', $po)->first();
+        $this->assertNotNull($poRow->Instock_At);
+        $this->assertSame($supply->Instock_Batch_Ref, $poRow->Instock_Batch_Ref);
+    }
+
+    /** @test */
     public function pickup_creation_accepts_an_explicit_price_unit_of_liter_for_a_package(): void
     {
         DB::table('master_packaging')->insert([

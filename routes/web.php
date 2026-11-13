@@ -158,6 +158,7 @@ use App\Http\Controllers\RenewalController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\UploaderController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ProcurementController; //tambahan ricko
 
 /*
 |--------------------------------------------------------------------------
@@ -2650,9 +2651,24 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/purchasing-order-cancel', function () {
         return view('procurement.purchasing-order-cancel');
     });
+    Route::get('/purchasing-order-rfq', function () {
+        return view('procurement.purchasing-order-rfq');
+    });
+    Route::get('/xml-purchasing-order-rfq', function () {
+        return view('procurement.xml.purchasing-order-rfq');
+    });
+
+    // Route::get('/qtn-create-detail', function () {
+    //     return view('procurement.qtn-create-detail');
+    // });
+
+    Route::get('/qtn-create-detail', [ProcurementController::class, 'createDetail']);
+    
+
     Route::get('/purchasing-order-approved', function () {
         return view('procurement.purchasing-order-approved');
     });
+
     Route::get('/xml-purchasing-order-approved', function () {
         return view('procurement.xml.purchasing-order-approved');
     });
@@ -3815,6 +3831,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/print-salary', [\App\Http\Controllers\HCGA\PayrollController::class, 'showDigitalPayslip'])->name('payroll.payslip.digital');
     Route::get('/payslip-digital', [\App\Http\Controllers\HCGA\PayrollController::class, 'showDigitalPayslip'])->name('payroll.payslip.show');
     Route::post('/api/payroll/send-payslip-email', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiSendPayslipEmail']);
+    Route::post('/api/payroll/blast-payslip-emails', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiBlastPayslipEmails'])->name('payroll.payslip.blast');
     Route::get('/print-salary-legacy', function () {
         return view('humanresources.payroll.prints.salary');
     });
@@ -6394,6 +6411,32 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$gaPref-cleaning-area-qr-image", [HCGAGaCleaningController::class, 'areaQrImage']);
     Route::get("$gaPref-cleaning-area-print-qr", [HCGAGaCleaningController::class, 'printAreaQr']);
 
+    // -- HCGA Exit Clearance & Resignation Workflow --
+    Route::get("$hcPref-exit-clearance-index", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'index'])->name('hrd-exit-clearance-index');
+    Route::get("$hcPref-exit-clearance-resignation-create", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'createResignation'])->name('hrd-exit-clearance-resignation-create');
+    Route::post("$hcPref-exit-clearance-resignation-store", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'storeResignation'])->name('hrd-exit-clearance-resignation-store');
+    Route::post("$hcPref-exit-clearance-resignation/{id}/approve", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'approveResignation'])->name('hrd-exit-clearance-resignation-approve');
+    Route::post("$hcPref-exit-clearance-resignation/{id}/reject", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'rejectResignation'])->name('hrd-exit-clearance-resignation-reject');
+    Route::get("$hcPref-exit-clearance-form/{id}", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'formClearance'])->name('hrd-exit-clearance-form');
+    Route::post("$hcPref-exit-clearance-form/{id}/submit", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'submitClearance'])->name('hrd-exit-clearance-form-submit');
+    Route::get("$hcPref-exit-clearance-view/{id}", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'viewClearance'])->name('hrd-exit-clearance-view');
+    Route::post("$hcPref-exit-clearance-interview/{id}/save", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'recordInterview'])->name('hrd-exit-clearance-interview-save');
+    Route::post("$hcPref-exit-clearance-manager/{id}/approve", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'approveByManager'])->name('hrd-exit-clearance-manager-approve');
+    Route::post("$hcPref-exit-clearance-hcga/{id}/verify", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'verifyHcga'])->name('hrd-exit-clearance-hcga-verify');
+    Route::get("$hcPref-exit-clearance-pdf/{id}", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'downloadPdf'])->name('hrd-exit-clearance-download-pdf');
+
+    // ==========================================
+    // MODUL SURAT PERINGATAN (DISCIPLINARY SANCTION - FR/HCGA/10-00)
+    // ==========================================
+    Route::get("$hcPref-disciplinary-sanction-index", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'index'])->name('hrd-disciplinary-sanction-index');
+    Route::get("$hcPref-disciplinary-sanction-create", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'create'])->name('hrd-disciplinary-sanction-create');
+    Route::post("$hcPref-disciplinary-sanction-store", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'store'])->name('hrd-disciplinary-sanction-store');
+    Route::get("$hcPref-disciplinary-sanction-detail/{id}", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'detail'])->name('hrd-disciplinary-sanction-detail');
+    Route::get("$hcPref-disciplinary-sanction-review/{id}", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'review'])->name('hrd-disciplinary-sanction-review');
+    Route::post("$hcPref-disciplinary-sanction-review/{id}/process", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'processReview'])->name('hrd-disciplinary-sanction-review-process');
+    Route::post("$hcPref-disciplinary-sanction-commitment/{id}/sign", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'signCommitment'])->name('hrd-disciplinary-sanction-commitment-sign');
+    Route::post("$hcPref-disciplinary-sanction-document/{id}/upload", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'uploadDocument'])->name('hrd-disciplinary-sanction-document-upload');
+    Route::get("$hcPref-disciplinary-sanction-pdf/{id}", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'downloadPdf'])->name('hrd-disciplinary-sanction-download-pdf');
 
 
     // -- General email settings (SMTP, sender, recipients, test, log) --

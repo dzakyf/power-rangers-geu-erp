@@ -191,9 +191,54 @@ class PayrollCalculationService
         $latePenaltyRate = (float)$this->getConfig('late_penalty_per_occurrence', 22000.0);
         $latePenaltyAmount = ceil($latePenaltyRate * $lateCount);
 
+        // ---------------------------------------------------------------------
+        // Pengecekan Kebijakan BPJS: Karyawan Tidak Dipotong & Masa Probation
+        // ---------------------------------------------------------------------
+        $isProbationExempt = false;
+        $probationReason = '';
+
+        // Cek flag pembebasan/penundaan potongan BPJS selama masa probation
+        $flagProbationExempt = isset($employee->bpjs_probation_exempt) ? (int)$employee->bpjs_probation_exempt : 0;
+        if ($flagProbationExempt === 1) {
+            $periodStartDate = $periodeYm . '-01';
+
+            if (!empty($employee->probation_end_date) && $employee->probation_end_date !== '0000-00-00') {
+                $probEndDate = $employee->probation_end_date;
+                // Jika periode penggajian masih berada pada atau sebelum tanggal akhir masa probation
+                if ($periodStartDate <= $probEndDate) {
+                    $isProbationExempt = true;
+                    $probationReason = 'Masa probation hingga ' . date('d M Y', strtotime($probEndDate));
+                }
+            } else {
+                // Fallback jika probation_end_date belum diisi: Cek Employment_Status atau Date_in (+3 bulan)
+                $empStatus = strtoupper(trim((string)($employee->Employment_Status ?? '')));
+                if (strpos($empStatus, 'PROBATION') !== false) {
+                    $isProbationExempt = true;
+                    $probationReason = 'Status kepegawaian PROBATION';
+                } elseif (!empty($employee->Date_in) && $employee->Date_in !== '0000-00-00') {
+                    $estProbEnd = date('Y-m-d', strtotime($employee->Date_in . ' +3 months'));
+                    if ($periodStartDate <= $estProbEnd) {
+                        $isProbationExempt = true;
+                        $probationReason = 'Masa probation (3 bulan sejak ' . date('d M Y', strtotime($employee->Date_in)) . ')';
+                    }
+                }
+            }
+        }
+
         // C. BPJS Ketenagakerjaan: Total Salary * 2%
         $bpjsTkRate = (float)$this->getConfig('bpjs_tk_jht_employee_rate', 2.0);
-        $bpjsTkAmount = ceil(($bpjsTkRate / 100.0) * $baseTotalSalary);
+        $isTkConfigDeducted = !isset($employee->bpjs_tk_deduction) || ((int)$employee->bpjs_tk_deduction === 1);
+
+        $bpjsTkExemptReason = null;
+        if (!$isTkConfigDeducted) {
+            $bpjsTkAmount = 0.0;
+            $bpjsTkExemptReason = 'Setup Karyawan: Bebas/Tidak Dipotong BPJS Ketenagakerjaan';
+        } elseif ($isProbationExempt) {
+            $bpjsTkAmount = 0.0;
+            $bpjsTkExemptReason = 'Bebas Potongan Selama Masa Probation (' . $probationReason . ')';
+        } else {
+            $bpjsTkAmount = ceil(($bpjsTkRate / 100.0) * $baseTotalSalary);
+        }
 
         // D. BPJS Kesehatan (Site HO):
         // Jika Total Salary < UMK HO -> UMK * 1%
@@ -204,12 +249,28 @@ class PayrollCalculationService
         $maxSalaryCap = (float)$this->getConfig('bpjs_kes_max_salary_cap', 12000000.0);
         $maxDeductionCap = (float)$this->getConfig('bpjs_kes_max_deduction_cap', 120000.0);
 
-        if ($baseTotalSalary > $maxSalaryCap) {
-            $bpjsKesAmount = $maxDeductionCap;
-        } elseif ($baseTotalSalary < $umkHO) {
-            $bpjsKesAmount = ceil($umkHO * $bpjsKesRate);
+        $kesDeductionSetting = isset($employee->bpjs_kes_deduction) ? (int)$employee->bpjs_kes_deduction : 1;
+        $isKesConfigDeducted = ($kesDeductionSetting === 1);
+
+        $bpjsKesExemptReason = null;
+        if ($kesDeductionSetting === 2) {
+            // Subsidi Pemerintah berupa Kartu Indonesia Sehat (KIS / PBI)
+            $bpjsKesAmount = 0.0;
+            $bpjsKesExemptReason = 'Tidak Dipotong: Menerima Subsidi Pemerintah (Kartu Indonesia Sehat / KIS PBI)';
+        } elseif ($kesDeductionSetting === 0) {
+            $bpjsKesAmount = 0.0;
+            $bpjsKesExemptReason = 'Setup Karyawan: Bebas/Tidak Dipotong BPJS Kesehatan';
+        } elseif ($isProbationExempt) {
+            $bpjsKesAmount = 0.0;
+            $bpjsKesExemptReason = 'Bebas Potongan Selama Masa Probation (' . $probationReason . ')';
         } else {
-            $bpjsKesAmount = ceil($baseTotalSalary * $bpjsKesRate);
+            if ($baseTotalSalary > $maxSalaryCap) {
+                $bpjsKesAmount = $maxDeductionCap;
+            } elseif ($baseTotalSalary < $umkHO) {
+                $bpjsKesAmount = ceil($umkHO * $bpjsKesRate);
+            } else {
+                $bpjsKesAmount = ceil($baseTotalSalary * $bpjsKesRate);
+            }
         }
 
         // Total Potongan Selain Pajak
@@ -291,18 +352,32 @@ class PayrollCalculationService
                     'formula'     => "{$latePenaltyRate} * {$lateCount}",
                 ],
                 'bpjs_tk'         => [
-                    'rate'        => $bpjsTkRate,
-                    'amount'      => $bpjsTkAmount,
-                    'formula'     => "{$baseTotalSalary} * {$bpjsTkRate}%",
+                    'rate'          => $bpjsTkRate,
+                    'amount'        => $bpjsTkAmount,
+                    'formula'       => $bpjsTkAmount > 0 ? "{$baseTotalSalary} * {$bpjsTkRate}%" : '0 (Bebas / Dikecualikan)',
+                    'is_exempt'     => ($bpjsTkAmount == 0.0),
+                    'exempt_reason' => $bpjsTkExemptReason,
                 ],
                 'bpjs_kes'        => [
-                    'rate'        => $bpjsKesRate * 100,
-                    'umk_ho'      => $umkHO,
-                    'max_cap'     => $maxDeductionCap,
-                    'amount'      => $bpjsKesAmount,
+                    'rate'          => $bpjsKesRate * 100,
+                    'umk_ho'        => $umkHO,
+                    'max_cap'       => $maxDeductionCap,
+                    'amount'        => $bpjsKesAmount,
+                    'formula'       => $bpjsKesAmount > 0 ? "Kalkulasi BPJS Kes HO" : '0 (Bebas / Dikecualikan)',
+                    'is_exempt'     => ($bpjsKesAmount == 0.0),
+                    'exempt_reason' => $bpjsKesExemptReason,
                 ],
                 'custom_ded'      => $customDeductions,
                 'total_deduction' => $totalNonTaxDeductions,
+            ],
+            'bpjs_policy'         => [
+                'bpjs_tk_deduction'     => $isTkConfigDeducted,
+                'bpjs_kes_deduction'    => $isKesConfigDeducted,
+                'bpjs_kes_setting'      => $kesDeductionSetting,
+                'is_kis_subsidized'     => ($kesDeductionSetting === 2),
+                'bpjs_probation_exempt' => (bool)$flagProbationExempt,
+                'is_in_probation'       => $isProbationExempt,
+                'probation_reason'      => $probationReason,
             ],
             'tax_details'         => $taxResult,
             'final_summary'       => [

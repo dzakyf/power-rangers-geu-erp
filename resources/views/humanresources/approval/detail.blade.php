@@ -54,6 +54,16 @@
             <span class="fw-semibold text-secondary small">Aksi Cepat untuk Task ini:</span>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            @if(strtoupper(trim((string) $task->Request_Type)) === 'EXIT_CLEARANCE')
+                @php
+                    $clearanceRecord = DB::table('exit_clearances')->where('Approval_Request_ID', $task->Request_ID)->first();
+                    $clearanceViewUrl = $clearanceRecord ? route('hrd-exit-clearance-view', $clearanceRecord->id) : url('hrd-exit-clearance-index');
+                @endphp
+                <a href="{{ $clearanceViewUrl }}" target="_blank" class="btn btn-info btn-sm text-white shadow-sm">
+                    <i class="fe fe-edit me-1"></i> Buka / Isi Form Exit Interview
+                </a>
+            @endif
+
             @if($canAct)
             <button type="button" class="btn btn-success btn-sm shadow-sm" onclick="ApprovalInboxAct('APPROVE', {{ $task->ID }});">
                 <i class="fe fe-check me-1"></i> Setujui (Approve)

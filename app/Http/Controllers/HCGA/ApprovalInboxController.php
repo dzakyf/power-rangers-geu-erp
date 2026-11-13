@@ -221,6 +221,21 @@ class ApprovalInboxController extends Controller
                 'icon' => 'fa-screwdriver-wrench',
                 'badge_color' => 'warning',
             ],
+            'EMPLOYEE_RESIGNATION' => [
+                'label' => 'Pengajuan Resign',
+                'icon' => 'fa-user-times',
+                'badge_color' => 'danger',
+            ],
+            'EXIT_CLEARANCE' => [
+                'label' => 'Exit Clearance',
+                'icon' => 'fa-clipboard-check',
+                'badge_color' => 'info',
+            ],
+            'DISCIPLINARY_SANCTION' => [
+                'label' => 'Surat Peringatan (SP)',
+                'icon' => 'fa-gavel',
+                'badge_color' => 'dark',
+            ],
             'GENERAL' => [
                 'label' => 'General Approval',
                 'icon' => 'fa-file-signature',

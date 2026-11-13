@@ -25,8 +25,8 @@
                         <li><a href="qtn-create">Quotation</a></li>
                         <li><a href="po-create">PO generation</a></li>
                         
-                        <li><a href="#">Tracking PR</a></li>
-                        <li><a href="#">Confirm PO & BAST</a></li>
+                        <li><a href="tracking">Tracking PR</a></li>
+                        <li><a href="confirm-po">Confirm PO & BAST</a></li>
                     </ul>
                 </li>
             </ul>

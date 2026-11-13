@@ -45,6 +45,17 @@ class WarehouseStockOpnameController extends Controller
 
         $data = $query->get();
 
+        // Open opnames follow the live ledger. CLOSED rows keep their snapshot.
+        foreach ($data as $d) {
+            if ($d->Container_ID && in_array($d->Status, ['DRAFT', 'COUNTED'], true)) {
+                $liveQty = $this->warehouseService->containerSystemQty((int) $d->Container_ID);
+                $d->System_Qty = $liveQty;
+                $d->Difference = $d->Status === 'COUNTED'
+                    ? (float) $d->Physical_Qty - $liveQty
+                    : 0.0;
+            }
+        }
+
         if ($r->query('format') === 'xml') {
             $xml = new SimpleXMLElement('<rows/>');
             foreach ($data as $i => $d) {
@@ -115,6 +126,14 @@ class WarehouseStockOpnameController extends Controller
         $liveSystemQty = $data->Container_ID
             ? $this->warehouseService->containerSystemQty($data->Container_ID)
             : (float) $data->System_Qty;
+
+        if (in_array($data->Status, ['DRAFT', 'COUNTED'], true)) {
+            $data->System_Qty = $liveSystemQty;
+            $data->Difference = $data->Status === 'COUNTED'
+                ? (float) $data->Physical_Qty - $liveSystemQty
+                : 0.0;
+        }
+
         return view('partner.warehouse.stock-opname-detail', compact('data', 'liveSystemQty'));
     }
 
@@ -124,9 +143,13 @@ class WarehouseStockOpnameController extends Controller
         try {
             $opname = WarehouseStockOpname::findOrFail($r->id);
             $physicalQty = $r->physical_qty;
-            $difference = $physicalQty - $opname->System_Qty;
+            $liveSystemQty = $opname->Container_ID
+                ? $this->warehouseService->containerSystemQty($opname->Container_ID)
+                : (float) $opname->System_Qty;
+            $difference = $physicalQty - $liveSystemQty;
 
             $opname->update([
+                'System_Qty'   => $liveSystemQty,
                 'Physical_Qty' => $physicalQty,
                 'Difference'   => $difference,
                 'Status'       => 'COUNTED',

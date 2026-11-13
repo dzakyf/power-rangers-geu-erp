@@ -299,9 +299,17 @@ try {
                                     <td class="text-right font-weight-bold">Rp <?= number_format($total_val, 0, ',', '.'); ?></td>
                                     <td><span class="badge badge-info"><?= htmlspecialchars($qtn['Status']); ?></span></td>
                                     <td>
-                                        <a href="po-create?qtn=<?= urlencode($qtn['QTN_No']); ?>" class="btn btn-sm btn-primary py-1 px-2 font-weight-bold shadow-sm" style="font-size: 10px;">
-                                            <i class="fas fa-check mr-1"></i> Terbitkan PO
-                                        </a>
+                                        
+                                            <?php if (strcasecmp($qtn['Status'], 'SELECTED') === 0): ?>
+                                                <span class="badge badge-success px-2 py-1 font-weight-bold" style="font-size: 10px;">
+                                                    <i class="fas fa-check-circle mr-1"></i> Terpilih / Selesai
+                                                </span>
+                                            <?php else: ?>
+                                                <a href="po-create?qtn=<?= urlencode($qtn['QTN_No']); ?>" class="btn btn-sm btn-primary py-1 px-2 font-weight-bold shadow-sm" style="font-size: 10px;">
+                                                    <i class="fas fa-check mr-1"></i> Terbitkan PO
+                                                </a>
+                                            <?php endif; ?>
+                                        
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

@@ -1,64 +1,13 @@
 <?php
 error_reporting(0);
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Builder;
-	
-	$LSP = Auth::user()->Location;
-	$Saya =  Auth::user()->username;
-	
-$ars = "";
-$ax = "";
-$isi = "";
 
-foreach($_POST as $key=>$value)
-{	
-	
-    	
-			if ($key != 'buttonSimpan' && $key != 'ID' && $key != 'undefined'){
-				
-			
-				$ars 	.="$key,";
-				
-				$isi	.="'$_POST[$key]',";
-				
-				
-				$MX .="$key = '$_POST[$key]',";
-			
-			}					
-			
+use App\Services\HCGA\EmploymentService;
 
-    
-
+try {
+    $service = app(EmploymentService::class);
+    $result = $service->updateEmployeeDetailData($_POST);
+    echo "success";
+} catch (\Exception $e) {
+    echo "Error: " . $e->getMessage();
 }
-
-$MX = substr($MX,0,-1);
-$ars = substr($ars,0,-1);
-$isi = substr($isi,0,-1);
-
-	
- 
-$kueri = "UPDATE employment set $MX WHERE ID=$_POST[ID]";
-DB::update(DB::raw($kueri));
-
-// Sync the employee's branch office to users.Location (matched by users.Emp_ID = employment.NIK)
-if (isset($_POST['Location']) || isset($_POST['overtime_compensation'])) {
-	$empRow = DB::table('employment')->where('ID', $_POST['ID'])->first();
-	if ($empRow) {
-		$usersUpdate = [];
-		if (isset($_POST['Location'])) {
-			$usersUpdate['Location'] = $_POST['Location'];
-		}
-		if (isset($_POST['overtime_compensation'])) {
-			$compVal = trim($_POST['overtime_compensation']);
-			$usersUpdate['overtime_compensation'] = in_array($compVal, ['PAID', 'TIME_OFF']) ? $compVal : null;
-		}
-		if (!empty($usersUpdate)) {
-			DB::table('users')->where('Emp_ID', $empRow->NIK)->update($usersUpdate);
-		}
-	}
-}
-
-echo "success";
 ?>

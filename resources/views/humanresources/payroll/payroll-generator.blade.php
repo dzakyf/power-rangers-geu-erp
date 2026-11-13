@@ -319,6 +319,14 @@
                 </small>
             </div>
             <div class="d-flex align-items-center flex-wrap gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm"
+                    onclick="openSelectedEmployeeSlip()" title="Lihat Payslip Digital untuk baris karyawan terpilih">
+                    <i class="fa fa-file-text-o me-1"></i> Buka Slip Digital
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 shadow-sm"
+                    onclick="openBlastModalGenerator()" title="Kirim email payslip preview ke karyawan terpilih untuk pengecekan">
+                    <i class="fa fa-paper-plane me-1"></i> Blasting Email Slip (Uji Coba)
+                </button>
                 <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
                     onclick="toggleSelectAllRows(true)">
                     <i class="fa fa-check-square-o me-1"></i> Pilih Semua
@@ -415,6 +423,85 @@
                     <button type="button" id="btnProcessUploadExcel"
                         class="btn btn-primary rounded-pill px-4 fw-semibold" onclick="submitExcelUpload()">
                         <i class="fa fa-check me-1"></i> Terapkan ke Tabel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Blasting Email Payslip (Preview Recounting) -->
+    <div class="modal fade" id="modalBlastEmailGenerator" tabindex="-1" aria-labelledby="modalBlastEmailGeneratorLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold text-white" id="modalBlastEmailGeneratorLabel">
+                        <i class="fa fa-paper-plane me-2"></i>Blasting Email Slip Gaji (Preview Recounting)
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info small rounded-3 mb-3">
+                        <i class="fa fa-info-circle me-1"></i>
+                        Fitur ini mengirimkan email slip gaji digital (format preview hasil recounting) ke karyawan yang dicentang di tabel. Sangat berguna agar karyawan atau tim HR dapat memeriksa apakah data presensi, tunjangan, dan potongan sudah sesuai sebelum batch penggajian digenerate secara resmi.
+                    </div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="p-2 border rounded-3 bg-light">
+                                <small class="text-muted d-block fw-semibold">Salary Group:</small>
+                                <strong id="blastGenMainId" class="text-dark">-</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-2 border rounded-3 bg-light">
+                                <small class="text-muted d-block fw-semibold">Periode Penggajian:</small>
+                                <strong id="blastGenPeriod" class="text-dark">-</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-2 border rounded-3 bg-light">
+                                <small class="text-muted d-block fw-semibold">Penerima Tercentang:</small>
+                                <strong id="blastGenCount" class="text-primary fs-6">0 Orang</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar Pengiriman -->
+                    <div id="blastProgressBarWrapper" class="mb-3" style="display: none;">
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span id="blastProgressText">Memulai pengiriman email...</span>
+                            <span id="blastProgressPercent" class="fw-bold text-primary">0%</span>
+                        </div>
+                        <div class="progress" style="height: 12px; border-radius: 6px;">
+                            <div id="blastProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Live Results Table -->
+                    <div class="table-responsive border rounded-3" style="max-height: 250px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0" id="blastResultsTable">
+                            <thead class="table-light sticky-top">
+                                <tr class="small text-muted">
+                                    <th style="width: 40px;" class="text-center">#</th>
+                                    <th>NIK</th>
+                                    <th>Nama Karyawan</th>
+                                    <th>Email</th>
+                                    <th style="width: 100px;" class="text-center">Status</th>
+                                    <th>Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="blastResultsBody" class="small">
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">Klik tombol "Kirim Blasting Sekarang" untuk memulai proses pengiriman email slip.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal" id="btnCancelBlastGen">Tutup</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" id="btnStartBlastGen" onclick="startBlastingGenerator()">
+                        <i class="fa fa-paper-plane me-1"></i> Kirim Blasting Sekarang
                     </button>
                 </div>
             </div>
@@ -890,6 +977,169 @@
                 }
             });
         });
+
+        // =========================================================================
+        // FITUR PREVIEW PAYSLIP DIGITAL & BLASTING EMAIL (PREVIEW RECOUNTING)
+        // =========================================================================
+
+        function openSelectedEmployeeSlip() {
+            var selectedRowId = EmployeeSalary.getSelectedRowId();
+            if (!selectedRowId) {
+                alert('Pilih salah satu baris karyawan pada tabel terlebih dahulu.');
+                return;
+            }
+            var periodVal = $("#Salary_Period").val() || '{{ $defaultPeriod }}';
+            var mainIdVal = $("#Main_ID").val() || '';
+            var url = "{{ url('payslip-digital') }}?nik=" + encodeURIComponent(selectedRowId) +
+                "&period=" + encodeURIComponent(periodVal) +
+                "&main_id=" + encodeURIComponent(mainIdVal) +
+                "&source=generator";
+            window.open(url, '_blank');
+        }
+
+        var blastQueueGen = [];
+        var blastIndexGen = 0;
+        var blastSuccessGen = 0;
+        var blastFailedGen = 0;
+        var blastSkippedGen = 0;
+
+        function openBlastModalGenerator() {
+            var mainId = $("#Main_ID").val();
+            if (!mainId) {
+                alert('Pilih Salary Group terlebih dahulu.');
+                return;
+            }
+
+            blastQueueGen = [];
+            var allIds = EmployeeSalary.getAllRowIds();
+            if (allIds) {
+                var rowIdArr = allIds.split(',');
+                for (var i = 0; i < rowIdArr.length; i++) {
+                    var rId = rowIdArr[i].trim();
+                    if (!rId) continue;
+                    var isChecked = EmployeeSalary.cells(rId, 0).getValue();
+                    if (isChecked == 1 || isChecked == '1' || isChecked === true) {
+                        blastQueueGen.push(rId);
+                    }
+                }
+            }
+
+            if (blastQueueGen.length === 0) {
+                alert('Centang minimal 1 karyawan pada tabel untuk melakukan blasting email slip.');
+                return;
+            }
+
+            $("#blastGenMainId").text(mainId);
+            $("#blastGenPeriod").text($("#Salary_Period").val() || '{{ $defaultPeriod }}');
+            $("#blastGenCount").text(blastQueueGen.length + ' Orang');
+
+            $("#blastProgressBarWrapper").hide();
+            $("#blastProgressBar").css('width', '0%').removeClass('bg-success').addClass('bg-primary progress-bar-animated');
+            $("#blastProgressPercent").text('0%');
+            $("#blastProgressText").text('Menunggu konfirmasi...');
+            $("#blastResultsBody").html('<tr><td colspan="6" class="text-center py-4 text-muted">Klik tombol "Kirim Blasting Sekarang" untuk memulai proses pengiriman ke ' + blastQueueGen.length + ' karyawan terpilih.</td></tr>');
+
+            $("#btnStartBlastGen").prop('disabled', false).html('<i class="fa fa-paper-plane me-1"></i> Kirim Blasting Sekarang');
+            $("#btnCancelBlastGen").prop('disabled', false);
+
+            var modalEl = document.getElementById('modalBlastEmailGenerator');
+            var bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+        }
+
+        function startBlastingGenerator() {
+            if (!blastQueueGen.length) return;
+            if (!confirm('Yakin ingin mengirim email slip gaji preview ke ' + blastQueueGen.length + ' karyawan terpilih?')) return;
+
+            $("#btnStartBlastGen").prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Sedang Mengirim...');
+            $("#btnCancelBlastGen").prop('disabled', true);
+            $("#blastProgressBarWrapper").show();
+            $("#blastResultsBody").empty();
+
+            blastIndexGen = 0;
+            blastSuccessGen = 0;
+            blastFailedGen = 0;
+            blastSkippedGen = 0;
+
+            processNextBlastChunkGen();
+        }
+
+        function processNextBlastChunkGen() {
+            if (blastIndexGen >= blastQueueGen.length) {
+                // Selesai
+                $("#btnStartBlastGen").prop('disabled', false).html('<i class="fa fa-check me-1"></i> Selesai');
+                $("#btnCancelBlastGen").prop('disabled', false);
+                $("#blastProgressBar").removeClass('progress-bar-animated').addClass('bg-success');
+                $("#blastProgressText").html('<strong class="text-success">Pengiriman Selesai!</strong> Berhasil: ' + blastSuccessGen + ', Gagal: ' + blastFailedGen + ', Dilewati: ' + blastSkippedGen);
+                return;
+            }
+
+            var chunkSize = 3;
+            var chunkNiks = blastQueueGen.slice(blastIndexGen, blastIndexGen + chunkSize);
+            var periodVal = $("#Salary_Period").val() || '{{ $defaultPeriod }}';
+            var mainIdVal = $("#Main_ID").val() || '';
+
+            $.ajax({
+                url: '{{ url('api/payroll/blast-payslip-emails') }}',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    niks: chunkNiks,
+                    period: periodVal,
+                    main_id: mainIdVal,
+                    source: 'generator'
+                },
+                success: function(res) {
+                    if (res && res.results) {
+                        res.results.forEach(function(item) {
+                            blastIndexGen++;
+                            var badgeHtml = '';
+                            if (item.status === 'SENT') {
+                                blastSuccessGen++;
+                                badgeHtml = '<span class="badge bg-success text-white">Terkirim</span>';
+                            } else if (item.status === 'SKIPPED') {
+                                blastSkippedGen++;
+                                badgeHtml = '<span class="badge bg-warning text-dark">Dilewati</span>';
+                            } else {
+                                blastFailedGen++;
+                                badgeHtml = '<span class="badge bg-danger text-white">Gagal</span>';
+                            }
+
+                            var rowHtml = '<tr>' +
+                                '<td class="text-center">' + blastIndexGen + '</td>' +
+                                '<td class="font-monospace fw-semibold">' + item.nik + '</td>' +
+                                '<td>' + (item.name || '-') + '</td>' +
+                                '<td class="small text-muted">' + (item.email || '-') + '</td>' +
+                                '<td class="text-center">' + badgeHtml + '</td>' +
+                                '<td class="small text-truncate" style="max-width: 200px;" title="' + (item.message || '') + '">' + (item.message || '-') + '</td>' +
+                            '</tr>';
+                            $("#blastResultsBody").append(rowHtml);
+                        });
+                    } else {
+                        blastIndexGen += chunkNiks.length;
+                        blastFailedGen += chunkNiks.length;
+                    }
+
+                    var pct = Math.min(100, Math.round((blastIndexGen / blastQueueGen.length) * 100));
+                    $("#blastProgressBar").css('width', pct + '%');
+                    $("#blastProgressPercent").text(pct + '%');
+                    $("#blastProgressText").text('Mengirim ' + blastIndexGen + ' dari ' + blastQueueGen.length + ' karyawan...');
+
+                    var container = $("#blastResultsTable").parent();
+                    container.scrollTop(container.prop('scrollHeight'));
+
+                    setTimeout(processNextBlastChunkGen, 200);
+                },
+                error: function() {
+                    blastIndexGen += chunkNiks.length;
+                    blastFailedGen += chunkNiks.length;
+                    var pct = Math.min(100, Math.round((blastIndexGen / blastQueueGen.length) * 100));
+                    $("#blastProgressBar").css('width', pct + '%');
+                    $("#blastProgressPercent").text(pct + '%');
+                    setTimeout(processNextBlastChunkGen, 200);
+                }
+            });
+        }
 
         // Muat data otomatis untuk Salary Group pertama saat halaman dibuka
         $(document).ready(function() {
