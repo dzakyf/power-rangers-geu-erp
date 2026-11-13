@@ -93,7 +93,12 @@
 
                             <div id="editDivTargetExternal" style="{{ $draining->moving_target_type === 'EXTERNAL' ? '' : 'display:none;' }}">
                                 <label for="edit_moving_target_external" class="small font-weight-bold">Nama Lokasi / Gudang Tujuan <span class="text-danger">*</span></label>
-                                <input type="text" class="text-black form-control" id="edit_moving_target_external" name="moving_target_external" value="{{ $draining->moving_target_external }}" placeholder="Contoh: Gudang Penampungan B, Truk Tangki Vendor" maxlength="255" />
+                                <select class="text-black form-control" id="edit_moving_target_external" name="moving_target_external" style="width: 100%;">
+                                    <option value="">-- Pilih Gudang Tujuan --</option>
+                                    @if(!empty($draining->moving_target_external))
+                                        <option value="{{ $draining->moving_target_external }}" selected>{{ $draining->moving_target_external }}</option>
+                                    @endif
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -150,9 +155,18 @@
                     </div>
                 </div>
 
+                <div id="editDrainingPendingWarning" class="alert alert-danger py-2 px-3 mt-2" style="{{ $pendingDrainAdjustment ? '' : 'display:none;' }}">
+                    <i class="fa fa-exclamation-triangle mr-1"></i>
+                    <span id="editDrainingPendingWarningText">
+                        @if($pendingDrainAdjustment)
+                            Tangki ini memiliki Drain Adjustment ({{ $pendingDrainAdjustment->adjustment_code }}) berstatus PENDING (Qty Timbang: {{ number_format((float) $pendingDrainAdjustment->qty_timbang, 2, '.', ',') }} KG). Selesaikan approval terlebih dahulu sebelum memperbarui draining.
+                        @endif
+                    </span>
+                </div>
+
                 <div class="mt-3 d-flex justify-content-between align-items-center">
                     <div>
-                        <button type="submit" class="btn btn-primary" id="btnSubmitEditDraining">Update</button>
+                        <button type="submit" class="btn btn-primary" id="btnSubmitEditDraining" {{ $pendingDrainAdjustment ? 'disabled' : '' }}>Update</button>
                         <button type="button" class="btn btn-secondary ml-1" onclick="cancelEditDrainingForm()">Cancel</button>
                     </div>
                     <div>
@@ -174,6 +188,8 @@
         var tankId = $('#edit_tank_id').val();
         if (!tankId) {
             $('#editSourceTankStockInfo').hide();
+            $('#editDrainingPendingWarning').hide();
+            $('#btnSubmitEditDraining').prop('disabled', false);
             editCurrentSourceStock = 0;
             updateEditTargetTankOptions();
             return;
@@ -187,6 +203,18 @@
                 $('#editSourceTankStockInfo').show();
                 var av = (tankId == editOriginalSourceId) ? (editCurrentSourceStock + editOriginalQty) : editCurrentSourceStock;
                 $('#edit_qty').val(av > 0 ? cnsFormatNumber(av, 2) : '');
+
+                if (res.pending_drain_adjustment) {
+                    var p = res.pending_drain_adjustment;
+                    $('#editDrainingPendingWarningText').text(
+                        'Tangki ini memiliki Drain Adjustment (' + p.adjustment_code + ') berstatus PENDING (Qty Timbang: ' + cnsFormatNumber(p.qty_timbang, 2) + ' KG). Selesaikan approval terlebih dahulu sebelum memperbarui draining.'
+                    );
+                    $('#editDrainingPendingWarning').show();
+                    $('#btnSubmitEditDraining').prop('disabled', true);
+                } else {
+                    $('#editDrainingPendingWarning').hide();
+                    $('#btnSubmitEditDraining').prop('disabled', false);
+                }
             }
         });
 
@@ -223,6 +251,45 @@
         }
     }
 
+    function loadEditMovingExternalWarehouses(selectedVal) {
+        var $sel = $('#edit_moving_target_external');
+        if ($sel.data('loaded')) {
+            return;
+        }
+        selectedVal = selectedVal || $sel.val() || '';
+        if (!window._cnsWarehousesReq) {
+            window._cnsWarehousesReq = $.get('cns-master-warehouses').fail(function() {
+                window._cnsWarehousesReq = null;
+            });
+        }
+        window._cnsWarehousesReq.done(function(res) {
+            $sel.empty().append($('<option>', { value: '', text: '-- Pilih Gudang Tujuan --' }));
+            var found = false;
+            $.each((res && res.data) || [], function(_, w) {
+                var name = (w && w.name) ? String(w.name) : '';
+                if (!name) return;
+                var isSelected = (selectedVal && selectedVal === name);
+                if (isSelected) found = true;
+                $sel.append($('<option>', { value: name, text: name, selected: isSelected }));
+            });
+            if (selectedVal && !found) {
+                $sel.append($('<option>', { value: selectedVal, text: selectedVal, selected: true }));
+            }
+            $sel.data('loaded', true);
+            if (typeof $.fn.select2 === 'function') {
+                if ($sel.hasClass('select2-hidden-accessible')) {
+                    $sel.select2('destroy');
+                }
+                $sel.select2({
+                    placeholder: '-- Pilih Gudang Tujuan --',
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+            $sel.val(selectedVal || '').trigger('change');
+        });
+    }
+
     function onEditMovingTypeChange() {
         var movingType = $('#edit_moving_target_type').val();
         if (movingType === 'TANK') {
@@ -231,6 +298,7 @@
         } else {
             $('#editDivTargetTank').hide();
             $('#editDivTargetExternal').show();
+            loadEditMovingExternalWarehouses();
         }
     }
 
@@ -277,7 +345,7 @@
             } else if (movingType === 'EXTERNAL') {
                 var ext = $.trim($('#edit_moving_target_external').val());
                 if (!ext) {
-                    alert('Masukkan nama lokasi / gudang tujuan.');
+                    alert('Pilih lokasi / gudang tujuan.');
                     return;
                 }
             }
@@ -383,4 +451,7 @@
     }
 
     updateEditTargetTankOptions();
+    if ($('#edit_moving_target_type').val() === 'EXTERNAL') {
+        loadEditMovingExternalWarehouses({!! json_encode($draining->moving_target_external ?? '') !!});
+    }
 </script>

@@ -465,23 +465,58 @@ class UCOController extends Controller
         $ffa = !empty($ffaVals) ? round(array_sum($ffaVals) / count($ffaVals), 2) : null;
         $mc  = !empty($mcVals)  ? round(array_sum($mcVals) / count($mcVals), 2)   : null;
         $imp = !empty($impVals) ? round(array_sum($impVals) / count($impVals), 2) : null;
-        $miu = ($mc !== null || $imp !== null) ? round((float) ($mc ?? 0) + (float) ($imp ?? 0), 2) : null;
+
+        $rawQty = (float) ($mov['total_qty'] ?? 0);
+        $approvedAdj = \App\CNSInboundAdjustment::approved()
+            ->where('movement_kode', $kode)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $pendingAdj = null;
+        if (!$approvedAdj) {
+            $pendingAdj = \App\CNSInboundAdjustment::where('movement_kode', $kode)
+                ->where('approval_status', 'PENDING')
+                ->orderBy('id', 'desc')
+                ->first();
+        }
+
+        $effectiveQty = $approvedAdj ? (float) $approvedAdj->adjusted_qty : $rawQty;
+        if ($approvedAdj && !empty($approvedAdj->tank_name)) {
+            $tangki = $approvedAdj->tank_name;
+        }
 
         return response()->json([
             'success' => true,
             'data'    => [
-                'id'               => $mov['id'] ?? $id,
-                'kode'             => $kode,
-                'Type'             => 'inbound',
-                'Reference_Number' => $kode,
-                'Transaction_Date' => $tglRaw ? Carbon::parse($tglRaw)->toDateString() : '',
-                'Asal_Warehouse'   => trim((string) ($mov['dari_gudang'] ?? '')),
-                'Nama_Tangki'      => $tangki,
-                'Quantity'         => (float) ($mov['total_qty'] ?? 0),
-                'FFA'              => $ffa,
-                'MC'               => $mc,
-                'IMP'              => $imp,
-                'MIU'              => $miu,
+                'id'                        => $mov['id'] ?? $id,
+                'kode'                      => $kode,
+                'Type'                      => 'inbound',
+                'Reference_Number'          => $kode,
+                'Transaction_Date'          => $tglRaw ? Carbon::parse($tglRaw)->toDateString() : '',
+                'Asal_Warehouse'            => trim((string) ($mov['dari_gudang'] ?? '')),
+                'Nama_Tangki'               => $tangki,
+                'fleet_name'                => trim((string) ($mov['fleet_name'] ?? '')),
+                'fleet_plat'                => trim((string) ($mov['fleet_plat'] ?? '')),
+                'driver_name'               => trim((string) ($mov['driver_name'] ?? '')),
+                'Quantity'                  => $effectiveQty,
+                'original_movement_qty'     => $rawQty,
+                'inbound_adjustment'        => $approvedAdj ? [
+                    'id'              => $approvedAdj->id,
+                    'code'            => $approvedAdj->adjustment_code,
+                    'adjusted_qty'    => (float) $approvedAdj->adjusted_qty,
+                    'selisih_qty'     => (float) $approvedAdj->selisih_qty,
+                    'tank_name'       => $approvedAdj->tank_name,
+                    'notes'           => $approvedAdj->notes,
+                ] : null,
+                'pending_inbound_adjustment' => $pendingAdj ? [
+                    'id'              => $pendingAdj->id,
+                    'code'            => $pendingAdj->adjustment_code,
+                    'adjusted_qty'    => (float) $pendingAdj->adjusted_qty,
+                    'tank_name'       => $pendingAdj->tank_name,
+                ] : null,
+                'FFA'                       => $ffa,
+                'MC'                        => $mc,
+                'IMP'                       => $imp,
             ],
         ]);
     }
@@ -588,15 +623,17 @@ class UCOController extends Controller
                     $header = $cnsQcHeaders[$sId];
                     $dtl = $cnsQcDetails->get($header->id);
                     $qcMap[$sId] = [
-                        'ffa_palmitic' => ($dtl && $dtl->FFA_As_Palmitic !== null) ? number_format((float) $dtl->FFA_As_Palmitic, 2, '.', ',') . '%' : '-',
-                        'ffa_oleic'    => ($dtl && $dtl->FFA_As_Oleic !== null) ? number_format((float) $dtl->FFA_As_Oleic, 2, '.', ',') . '%' : '-',
-                        'miu'          => ($dtl && $dtl->MIU !== null) ? number_format((float) $dtl->MIU, 2, '.', ',') . '%' : '-',
-                        'sulphur'      => ($dtl && $dtl->Sulphur !== null) ? number_format((float) $dtl->Sulphur, 2, '.', ',') : '-',
-                        'iv'           => ($dtl && $dtl->IV !== null) ? number_format((float) $dtl->IV, 2, '.', ',') : '-',
-                        'chlorides'    => ($dtl && $dtl->Total_Chlorides !== null) ? number_format((float) $dtl->Total_Chlorides, 2, '.', ',') : '-',
-                        'phosphorus'   => ($dtl && $dtl->Phosphorus !== null) ? number_format((float) $dtl->Phosphorus, 2, '.', ',') : '-',
-                        'metals'       => ($dtl && $dtl->Total_Metals !== null) ? number_format((float) $dtl->Total_Metals, 2, '.', ',') : '-',
-                        'qc_path'      => $header->Attachment_Path ? preg_replace('#^filevendor/#', '', $header->Attachment_Path) : null,
+                        'ffa_palmitic'    => ($dtl && $dtl->FFA_As_Palmitic !== null) ? number_format((float) $dtl->FFA_As_Palmitic, 2, '.', ',') . '%' : '-',
+                        'ffa_oleic'       => ($dtl && $dtl->FFA_As_Oleic !== null) ? number_format((float) $dtl->FFA_As_Oleic, 2, '.', ',') . '%' : '-',
+                        'moisture'        => ($dtl && $dtl->Moisture !== null) ? number_format((float) $dtl->Moisture, 2, '.', ',') . '%' : '-',
+                        'impurities'      => ($dtl && $dtl->Impurities !== null) ? number_format((float) $dtl->Impurities, 2, '.', ',') . '%' : '-',
+                        'unsaponifiables' => ($dtl && $dtl->Unsaponifiables !== null) ? number_format((float) $dtl->Unsaponifiables, 2, '.', ',') . '%' : '-',
+                        'sulphur'         => ($dtl && $dtl->Sulphur !== null) ? number_format((float) $dtl->Sulphur, 2, '.', ',') : '-',
+                        'iv'              => ($dtl && $dtl->IV !== null) ? number_format((float) $dtl->IV, 2, '.', ',') : '-',
+                        'chlorides'       => ($dtl && $dtl->Total_Chlorides !== null) ? number_format((float) $dtl->Total_Chlorides, 2, '.', ',') : '-',
+                        'phosphorus'      => ($dtl && $dtl->Phosphorus !== null) ? number_format((float) $dtl->Phosphorus, 2, '.', ',') : '-',
+                        'metals'          => ($dtl && $dtl->Total_Metals !== null) ? number_format((float) $dtl->Total_Metals, 2, '.', ',') : '-',
+                        'qc_path'         => $header->Attachment_Path ? preg_replace('#^filevendor/#', '', $header->Attachment_Path) : null,
                     ];
                 } elseif (isset($legacyQcGroup[$sId])) {
                     $group = $legacyQcGroup[$sId];
@@ -605,31 +642,34 @@ class UCOController extends Controller
                     $ffaO = $avgRow ? $avgRow->FFA_As_Oleic : ($group->avg('FFA_As_Oleic'));
                     $mc = $avgRow ? $avgRow->MC : ($group->avg('MC'));
                     $imp = $avgRow ? $avgRow->IMP : ($group->avg('IMP'));
-                    $miu = ($mc !== null || $imp !== null) ? ((float)($mc ?? 0) + (float)($imp ?? 0)) : null;
                     $metaQc = $group->pluck('Meta_QC_Path')->filter()->first();
 
                     $qcMap[$sId] = [
-                        'ffa_palmitic' => $ffaP !== null ? number_format((float) $ffaP, 2, '.', ',') . '%' : '-',
-                        'ffa_oleic'    => $ffaO !== null ? number_format((float) $ffaO, 2, '.', ',') . '%' : '-',
-                        'miu'          => $miu !== null ? number_format((float) $miu, 2, '.', ',') . '%' : '-',
-                        'sulphur'      => '-',
-                        'iv'           => '-',
-                        'chlorides'    => '-',
-                        'phosphorus'   => '-',
-                        'metals'       => '-',
-                        'qc_path'      => $metaQc,
+                        'ffa_palmitic'    => $ffaP !== null ? number_format((float) $ffaP, 2, '.', ',') . '%' : '-',
+                        'ffa_oleic'       => $ffaO !== null ? number_format((float) $ffaO, 2, '.', ',') . '%' : '-',
+                        'moisture'        => $mc !== null ? number_format((float) $mc, 2, '.', ',') . '%' : '-',
+                        'impurities'      => $imp !== null ? number_format((float) $imp, 2, '.', ',') . '%' : '-',
+                        'unsaponifiables' => '-',
+                        'sulphur'         => '-',
+                        'iv'              => '-',
+                        'chlorides'       => '-',
+                        'phosphorus'      => '-',
+                        'metals'          => '-',
+                        'qc_path'         => $metaQc,
                     ];
                 } else {
                     $qcMap[$sId] = [
-                        'ffa_palmitic' => '-',
-                        'ffa_oleic'    => '-',
-                        'miu'          => '-',
-                        'sulphur'      => '-',
-                        'iv'           => '-',
-                        'chlorides'    => '-',
-                        'phosphorus'   => '-',
-                        'metals'       => '-',
-                        'qc_path'      => null,
+                        'ffa_palmitic'    => '-',
+                        'ffa_oleic'       => '-',
+                        'moisture'        => '-',
+                        'impurities'      => '-',
+                        'unsaponifiables' => '-',
+                        'sulphur'         => '-',
+                        'iv'              => '-',
+                        'chlorides'       => '-',
+                        'phosphorus'      => '-',
+                        'metals'          => '-',
+                        'qc_path'         => null,
                     ];
                 }
             }
@@ -661,12 +701,12 @@ class UCOController extends Controller
         $r->addAttribute('id', 'row_opening');
         $r->addAttribute('style', 'background-color:#FFF2CC;font-weight:bold;');
         $cell0 = $r->addChild('cell', $openingLabel);
-        $cell0->addAttribute('colspan', '9');
-        for ($i = 0; $i < 8; $i++) {
+        $cell0->addAttribute('colspan', '12');
+        for ($i = 0; $i < 11; $i++) {
             $r->addChild('cell', '');
         }
         $r->addChild('cell', number_format((float) $opening, 2, '.', ','));
-        for ($i = 0; $i < 11; $i++) {
+        for ($i = 0; $i < 15; $i++) {
             $r->addChild('cell', '');
         }
 
@@ -677,7 +717,10 @@ class UCOController extends Controller
         foreach ($rows as $row) {
             $inbound  = strtolower($row->Type) === 'inbound'  ? (float) $row->Quantity : 0;
             $outbound = strtolower($row->Type) === 'outbound' ? (float) $row->Quantity : 0;
-            $running  = $running + $inbound - $outbound;
+            $approvalStatus = $row->Approval_Status !== null ? strtoupper((string) $row->Approval_Status) : 'APPROVED';
+            if ($approvalStatus === 'APPROVED') {
+                $running = $running + $inbound - $outbound;
+            }
 
             $date = Carbon::parse($row->Transaction_Date);
             $bulan = $monthNames[$date->month] ?? $date->format('F');
@@ -686,6 +729,9 @@ class UCOController extends Controller
             $asalWarehouse = $row->Asal_Warehouse ?: (strtolower($row->Type) === 'outbound' ? 'PELINDO' : '-');
             $namaTangki = $row->Nama_Tangki ?: '-';
             $nopol = $row->Reference_Number ?? '-';
+            $fleetName = $row->fleet_name ?: '-';
+            $fleetPlat = $row->fleet_plat ?: '-';
+            $driverName = $row->driver_name ?: '-';
             $qtySj = ($row->Quantity_PTU && (float) $row->Quantity_PTU > 0) ? number_format((float) $row->Quantity_PTU, 2, '.', ',') : '';
             $inKg = $inbound > 0 ? number_format((float) $inbound, 2, '.', ',') : '';
             $outKg = $outbound > 0 ? number_format((float) $outbound, 2, '.', ',') : '';
@@ -699,8 +745,24 @@ class UCOController extends Controller
                 $notimBadge = '-';
             }
 
+            if ($row->BA_Path) {
+                $baUrl = asset("filevendor/{$row->BA_Path}");
+                $baBadge = "<span class='badge badge-light border text-success' style='background:#f8f9fa;border:1px solid #dee2e6!important;padding:2px 5px;border-radius:3px;'><i class='fa fa-file-pdf text-success'></i> BA</span>^" . $baUrl . "^_blank";
+            } else {
+                $baBadge = '-';
+            }
+
+            if ($approvalStatus === 'REJECTED') {
+                $approvalBadge = "<span class='badge badge-danger text-dark' style='color:#000 !important;'>REJECTED</span>";
+            } elseif ($approvalStatus === 'PENDING') {
+                $approvalBadge = "<span class='badge badge-warning text-dark' style='color:#000 !important;'>PENDING</span>";
+            } else {
+                $approvalBadge = "<span class='badge badge-success text-dark' style='color:#000 !important;'>APPROVED</span>";
+            }
+
             $qc = $qcMap[$row->Storage_Pelindo_Id] ?? [
-                'ffa_palmitic' => '-', 'ffa_oleic' => '-', 'miu' => '-',
+                'ffa_palmitic' => '-', 'ffa_oleic' => '-',
+                'moisture' => '-', 'impurities' => '-', 'unsaponifiables' => '-',
                 'sulphur' => '-', 'iv' => '-', 'chlorides' => '-',
                 'phosphorus' => '-', 'metals' => '-', 'qc_path' => null,
             ];
@@ -722,15 +784,22 @@ class UCOController extends Controller
             $r->addChild('cell', $asalWarehouse);
             $r->addChild('cell', $namaTangki);
             $r->addChild('cell', $nopol);
+            $r->addChild('cell', $fleetName);
+            $r->addChild('cell', $fleetPlat);
+            $r->addChild('cell', $driverName);
             $r->addChild('cell', $qtySj);
             $r->addChild('cell', $inKg);
             $r->addChild('cell', $outKg);
             $r->addChild('cell', $stokPelindo);
             $r->addChild('cell', $remarks);
             $r->addChild('cell', $notimBadge);
+            $r->addChild('cell', $baBadge);
+            $r->addChild('cell', $approvalBadge);
             $r->addChild('cell', $qc['ffa_palmitic']);
             $r->addChild('cell', $qc['ffa_oleic']);
-            $r->addChild('cell', $qc['miu']);
+            $r->addChild('cell', $qc['moisture']);
+            $r->addChild('cell', $qc['impurities']);
+            $r->addChild('cell', $qc['unsaponifiables']);
             $r->addChild('cell', $qc['sulphur']);
             $r->addChild('cell', $qc['iv']);
             $r->addChild('cell', $qc['chlorides']);
@@ -881,10 +950,64 @@ class UCOController extends Controller
         }
     }
 
+    private function validateBaAttachment(Request $r)
+    {
+        if (strtolower((string) $r->input('Type', 'inbound')) !== 'inbound') {
+            return null;
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make($r->all(), [
+            'BA_Attachment' => 'required|file|mimes:pdf,jpg,jpeg,png',
+        ], [
+            'BA_Attachment.required' => 'Attachment BA wajib diupload',
+            'BA_Attachment.file'     => 'Attachment BA harus berupa file yang valid',
+            'BA_Attachment.mimes'    => 'Attachment BA harus berformat pdf, jpg, jpeg, atau png',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first('BA_Attachment'),
+            ], 422);
+        }
+
+        return null;
+    }
+
+    private function storeFilevendorAttachment(Request $r, string $inputName): ?array
+    {
+        if (!$r->hasFile($inputName) || !$r->file($inputName)->isValid()) {
+            return null;
+        }
+
+        $file = $r->file($inputName);
+        $ext = $file->getClientOriginalExtension();
+        $year = now()->format('Y');
+        $month = now()->format('m');
+        $filename = \Ramsey\Uuid\Uuid::uuid4()->toString() . '.' . $ext;
+        $path = "{$year}/{$month}/{$filename}";
+
+        $dir = public_path("filevendor/{$year}/{$month}");
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+        $file->move($dir, $filename);
+
+        return [
+            'path'     => $path,
+            'filename' => $filename,
+            'ext'      => $ext,
+        ];
+    }
+
     public function submitStoragePelindo(Request $r)
     {
         if ($r->has('movement_kode') && !$r->filled('Type')) {
             return $this->submitInboundFromMovement($r);
+        }
+
+        if ($baError = $this->validateBaAttachment($r)) {
+            return $baError;
         }
 
         if ($r->filled('movement_kode')) {
@@ -892,6 +1015,11 @@ class UCOController extends Controller
             if ($refCheck !== '' && UCOStoragePelindo::whereRaw('UPPER(Reference_Number) = ?', [strtoupper($refCheck)])->exists()) {
                 return response()->json(['success' => false, 'message' => "Nomor movement {$refCheck} sudah pernah disimpan"], 422);
             }
+        }
+
+        $tankAllocation = $this->validateAndPrepareInboundTankAllocations($r);
+        if ($tankAllocation instanceof \Illuminate\Http\JsonResponse) {
+            return $tankAllocation;
         }
 
         DB::beginTransaction();
@@ -935,6 +1063,10 @@ class UCOController extends Controller
                 $qcFile->move($dir, $qcFilename);
             }
 
+            // 2.5 Upload Attachment BA
+            $baFile = $this->storeFilevendorAttachment($r, 'BA_Attachment');
+            $baPath = $baFile['path'] ?? null;
+
             // 3. Compute FFA, MC, IMP from QC parameters (top, middle, bottom)
             $ffa = $r->input('FFA');
             if ($ffa === null || $ffa === '') {
@@ -955,7 +1087,7 @@ class UCOController extends Controller
             if ($mc === null || $mc === '') {
                 $mcVals = [];
                 foreach (['top_', 'middle_', 'bottom_'] as $p) {
-                    $v = $r->input($p . 'MC');
+                    $v = $r->input($p . 'Moisture') ?? $r->input($p . 'MC');
                     if ($v !== null && $v !== '') {
                         $mcVals[] = (float) $v;
                     }
@@ -967,7 +1099,7 @@ class UCOController extends Controller
             if ($imp === null || $imp === '') {
                 $impVals = [];
                 foreach (['top_', 'middle_', 'bottom_'] as $p) {
-                    $v = $r->input($p . 'IMP');
+                    $v = $r->input($p . 'Impurities') ?? $r->input($p . 'IMP');
                     if ($v !== null && $v !== '') {
                         $impVals[] = (float) $v;
                     }
@@ -977,24 +1109,39 @@ class UCOController extends Controller
 
             $asalWarehouse = trim((string) $r->input('Asal_Warehouse', ''));
             $refNumber = trim((string) ($r->input('Reference_Number') ?: $r->input('movement_kode', '')));
+            $fleetName = trim((string) $r->input('fleet_name', ''));
+            $fleetPlat = trim((string) $r->input('fleet_plat', ''));
+            $driverName = trim((string) $r->input('driver_name', ''));
+
+            $movFfa = $r->input('Movement_FFA');
+            $movMc  = $r->input('Movement_MC');
+            $movImp = $r->input('Movement_IMP');
 
             // 4. Create model
             $model = UCOStoragePelindo::create([
                 'Type'              => $r->input('Type'),
-                'Quantity'          => $r->input('Quantity'),
+                'Quantity'          => $tankAllocation['primary_qty'],
                 'Asal_Warehouse'    => $asalWarehouse !== '' ? mb_substr($asalWarehouse, 0, 100) : null,
-                'Nama_Tangki'       => $r->input('Nama_Tangki'),
+                'Nama_Tangki'       => $tankAllocation['primary_tank'] ?? $r->input('Nama_Tangki'),
                 'Quantity_PTU'      => $r->input('Quantity_PTU'),
                 'Quantity_Sounding' => $r->input('Quantity_Sounding'),
                 'Created_By'        => $r->input('Created_By') ?? (auth()->check() ? auth()->user()->name : null) ?? 'System',
                 'Transaction_Date'  => $r->input('Transaction_Date'),
                 'Reference_Number'  => $refNumber !== '' ? mb_substr($refNumber, 0, 50) : null,
+                'fleet_name'        => $fleetName !== '' ? mb_substr($fleetName, 0, 150) : null,
+                'fleet_plat'        => $fleetPlat !== '' ? mb_substr($fleetPlat, 0, 50) : null,
+                'driver_name'       => $driverName !== '' ? mb_substr($driverName, 0, 150) : null,
                 'Notim_Path'        => $notimPath,
                 'QC_Path'           => $qcPath,
+                'BA_Path'           => $baPath,
                 'FFA'               => $ffa,
                 'MC'                => $mc,
                 'IMP'               => $imp,
+                'Movement_FFA'      => ($movFfa !== null && $movFfa !== '') ? (float) $movFfa : null,
+                'Movement_MC'       => ($movMc !== null && $movMc !== '') ? (float) $movMc : null,
+                'Movement_IMP'      => ($movImp !== null && $movImp !== '') ? (float) $movImp : null,
                 'Notes'             => $r->input('Notes'),
+                'Approval_Status'   => 'PENDING',
             ]);
 
             // 5. Meta files for Nota Timbang
@@ -1012,6 +1159,12 @@ class UCOController extends Controller
 
             // 6. Upsert detail QC rows
             $this->upsertInventoryQC($r, $model->ID, $qcPath, $qcFilename, $qcExt);
+
+            // 7. Create approved overflow inbound records if split across tanks
+            if (!empty($tankAllocation['overflows'])) {
+                $kodeMoving = $refNumber !== '' ? $refNumber : trim((string) $r->input('movement_kode', ''));
+                $this->createOverflowInboundRecords($model, $tankAllocation['overflows'], $kodeMoving, $r);
+            }
 
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Record created successfully']);
@@ -1098,7 +1251,7 @@ class UCOController extends Controller
         // 2. Upsert details: TOP, MIDDLE, BOTTOM, AVERAGE
         $levelsMap = ['top' => 'TOP', 'middle' => 'MIDDLE', 'bottom' => 'BOTTOM'];
         $paramKeys = [
-            'FFA_As_Palmitic', 'FFA_As_Oleic', 'MIU', 'Sulphur',
+            'FFA_As_Palmitic', 'FFA_As_Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulphur',
             'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'
         ];
 
@@ -1115,13 +1268,11 @@ class UCOController extends Controller
             foreach ($paramKeys as $pk) {
                 $fld = "{$prefix}_{$pk}";
                 $val = $r->filled($fld) ? $r->input($fld) : null;
-                // Fallback for MIU if MC + IMP provided
-                if ($pk === 'MIU' && $val === null) {
-                    $mc = $r->input("{$prefix}_MC");
-                    $imp = $r->input("{$prefix}_IMP");
-                    if ($mc !== null && $imp !== null && $mc !== '' && $imp !== '') {
-                        $val = round((float)$mc + (float)$imp, 2);
-                    }
+                if ($pk === 'Moisture' && $val === null && $r->filled("{$prefix}_MC")) {
+                    $val = $r->input("{$prefix}_MC");
+                }
+                if ($pk === 'Impurities' && $val === null && $r->filled("{$prefix}_IMP")) {
+                    $val = $r->input("{$prefix}_IMP");
                 }
                 $detailPayload[$pk] = ($val === '' ? null : $val);
                 if ($val !== null && $val !== '') {
@@ -1180,6 +1331,25 @@ class UCOController extends Controller
 
     public function updateExportedStock(Request $r)
     {
+        if ($baError = $this->validateBaAttachment($r)) {
+            return $baError;
+        }
+
+        $existing = UCOStoragePelindo::find($r->id);
+        if (!$existing) {
+            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
+        }
+
+        $currentStatus = $existing->Approval_Status !== null ? strtoupper((string) $existing->Approval_Status) : 'APPROVED';
+        if ($currentStatus === 'APPROVED') {
+            return response()->json(['success' => false, 'message' => 'Data yang sudah APPROVED tidak dapat diubah'], 422);
+        }
+
+        $tankAllocation = $this->validateAndPrepareInboundTankAllocations($r, $existing);
+        if ($tankAllocation instanceof \Illuminate\Http\JsonResponse) {
+            return $tankAllocation;
+        }
+
         DB::beginTransaction();
         try {
             $updateData = $r->only([
@@ -1194,6 +1364,17 @@ class UCOController extends Controller
                 'Reference_Number',
                 'Notes',
             ]);
+            $updateData['Quantity'] = $tankAllocation['primary_qty'];
+            if (!empty($tankAllocation['primary_tank'])) {
+                $updateData['Nama_Tangki'] = $tankAllocation['primary_tank'];
+            }
+
+            if ($currentStatus === 'REJECTED') {
+                $updateData['Approval_Status'] = 'PENDING';
+                $updateData['Approved_By'] = null;
+                $updateData['Approved_At'] = null;
+                $updateData['Rejection_Reason'] = null;
+            }
 
             // Handle Attachment if new one uploaded
             if ($r->hasFile('Attachment') && $r->file('Attachment')->isValid()) {
@@ -1227,6 +1408,11 @@ class UCOController extends Controller
                     'Map_To'      => $r->id,
                     'Created_At'  => now(),
                 ]);
+            }
+
+            // Handle Attachment BA
+            if ($baFile = $this->storeFilevendorAttachment($r, 'BA_Attachment')) {
+                $updateData['BA_Path'] = $baFile['path'];
             }
 
             // Recompute FFA, MC, IMP
@@ -1279,12 +1465,288 @@ class UCOController extends Controller
 
             $this->upsertInventoryQC($r, $r->id);
 
+            if (!empty($tankAllocation['overflows'])) {
+                $primaryModel = UCOStoragePelindo::find($r->id);
+                $kodeMoving = trim((string) ($primaryModel->Reference_Number ?: $r->input('movement_kode', '')));
+                $this->createOverflowInboundRecords($primaryModel, $tankAllocation['overflows'], $kodeMoving, $r);
+            }
+
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Record updated successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Validate inbound tank capacity and overflow split allocations across multiple tanks.
+     */
+    private function validateAndPrepareInboundTankAllocations(Request $r, ?UCOStoragePelindo $existing = null)
+    {
+        $type = strtolower((string) $r->input('Type', 'inbound'));
+        $totalQty = round((float) $r->input('Quantity', 0), 2);
+        $primaryTankName = trim((string) $r->input('Nama_Tangki', ''));
+
+        if ($type !== 'inbound' || $primaryTankName === '') {
+            return [
+                'primary_tank' => $primaryTankName !== '' ? $primaryTankName : null,
+                'primary_qty'  => $totalQty,
+                'overflows'    => [],
+            ];
+        }
+
+        $primaryTank = \App\MasterTank::active()
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($primaryTankName)])
+            ->first();
+
+        if (!$primaryTank || (float) $primaryTank->capacity <= 0) {
+            return [
+                'primary_tank' => $primaryTank ? $primaryTank->name : $primaryTankName,
+                'primary_qty'  => $totalQty,
+                'overflows'    => [],
+            ];
+        }
+
+        $primaryStock = $this->getTankCurrentBalance($primaryTank->name, $existing);
+        $primaryRemaining = max(0.0, round((float) $primaryTank->capacity - $primaryStock, 2));
+
+        if (round($totalQty - $primaryRemaining, 2) <= 0) {
+            return [
+                'primary_tank' => $primaryTank->name,
+                'primary_qty'  => $totalQty,
+                'overflows'    => [],
+            ];
+        }
+
+        $primaryQty = min($totalQty, $primaryRemaining);
+        $neededOverflow = round($totalQty - $primaryQty, 2);
+
+        $rawOverflows = $r->input('overflow_allocations');
+        if (is_string($rawOverflows)) {
+            $decoded = json_decode($rawOverflows, true);
+            $rawOverflows = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($rawOverflows) || empty($rawOverflows)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Qty inbound (' . number_format($totalQty, 2) . ' KG) melebihi sisa kapasitas tangki ' .
+                    $primaryTank->name . ' (' . number_format($primaryRemaining, 2) . ' KG). Silakan lakukan penyesuaian di menu Inbound Adjustment terlebih dahulu atau alokasikan sisa kuantiti (' .
+                    number_format($neededOverflow, 2) . ' KG) ke tangki lain.',
+            ], 422);
+        }
+
+        $usedTanks = [mb_strtolower($primaryTank->name) => true];
+        $validatedOverflows = [];
+        $allocatedTotal = 0.0;
+
+        foreach ($rawOverflows as $idx => $item) {
+            $ovTankName = trim((string) ($item['tank_name'] ?? ''));
+            $ovQty = round((float) ($item['qty'] ?? 0), 2);
+
+            if ($ovTankName === '' || $ovQty <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tangki tujuan dan qty sisa pada baris #' . ($idx + 1) . ' wajib diisi lebih dari 0.',
+                ], 422);
+            }
+
+            $ovKey = mb_strtolower($ovTankName);
+            if (isset($usedTanks[$ovKey])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Tangki {$ovTankName} tidak boleh dipilih ganda pada alokasi sisa kuantiti.",
+                ], 422);
+            }
+            $usedTanks[$ovKey] = true;
+
+            $ovTank = \App\MasterTank::active()
+                ->whereRaw('LOWER(name) = ?', [$ovKey])
+                ->first();
+
+            if (!$ovTank) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Tangki tujuan {$ovTankName} tidak ditemukan atau tidak aktif.",
+                ], 422);
+            }
+
+            $ovStock = $this->getTankCurrentBalance($ovTank->name);
+            $ovRemaining = max(0.0, round((float) $ovTank->capacity - $ovStock, 2));
+
+            if ((float) $ovTank->capacity > 0 && round($ovQty - $ovRemaining, 2) > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Qty alokasi untuk tangki ' . $ovTank->name . ' (' . number_format($ovQty, 2) .
+                        ' KG) melebihi sisa kapasitas (' . number_format($ovRemaining, 2) . ' KG).',
+                ], 422);
+            }
+
+            $allocatedTotal = round($allocatedTotal + $ovQty, 2);
+            $validatedOverflows[] = [
+                'tank_name' => $ovTank->name,
+                'qty'       => $ovQty,
+            ];
+        }
+
+        if (abs(round($allocatedTotal - $neededOverflow, 2)) > 0.01) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Total alokasi sisa kuantiti (' . number_format($allocatedTotal, 2) .
+                    ' KG) harus sama dengan sisa kuantiti (' . number_format($neededOverflow, 2) . ' KG).',
+            ], 422);
+        }
+
+        return [
+            'primary_tank' => $primaryTank->name,
+            'primary_qty'  => $primaryQty,
+            'overflows'    => $validatedOverflows,
+        ];
+    }
+
+    private function getTankCurrentBalance(string $tankName, ?UCOStoragePelindo $excludeExisting = null): float
+    {
+        $stock = (float) UCOStoragePelindo::approved()
+            ->where('Nama_Tangki', $tankName)
+            ->selectRaw("SUM(CASE WHEN Type = 'inbound' THEN Quantity ELSE -Quantity END) as balance")
+            ->value('balance') ?: 0;
+
+        if ($excludeExisting && $excludeExisting->isApproved() && strcasecmp((string) $excludeExisting->Nama_Tangki, $tankName) === 0) {
+            $origDelta = strtolower((string) $excludeExisting->Type) === 'outbound'
+                ? -(float) $excludeExisting->Quantity
+                : (float) $excludeExisting->Quantity;
+            $stock -= $origDelta;
+        }
+
+        return $stock;
+    }
+
+    private function createOverflowInboundRecords(UCOStoragePelindo $primaryModel, array $overflows, string $kodeMoving, Request $r): void
+    {
+        $actor = auth()->check() ? (auth()->user()->username ?? auth()->user()->name ?? 'admin') : 'admin';
+        $remark = $kodeMoving !== '' ? "sisa kuantiti {$kodeMoving}" : 'sisa kuantiti';
+        $txDate = $primaryModel->Transaction_Date
+            ? $primaryModel->Transaction_Date->toDateString()
+            : $r->input('Transaction_Date');
+
+        foreach ($overflows as $ov) {
+            $ovModel = UCOStoragePelindo::create([
+                'Type'              => 'inbound',
+                'Quantity'          => $ov['qty'],
+                'Asal_Warehouse'    => $primaryModel->Asal_Warehouse,
+                'Nama_Tangki'       => $ov['tank_name'],
+                'Quantity_PTU'      => null,
+                'Quantity_Sounding' => null,
+                'Created_By'        => $primaryModel->Created_By,
+                'Transaction_Date'  => $txDate,
+                'Reference_Number'  => $primaryModel->Reference_Number,
+                'fleet_name'        => $primaryModel->fleet_name,
+                'fleet_plat'        => $primaryModel->fleet_plat,
+                'driver_name'       => $primaryModel->driver_name,
+                'Notim_Path'        => $primaryModel->Notim_Path,
+                'QC_Path'           => $primaryModel->QC_Path,
+                'BA_Path'           => $primaryModel->BA_Path,
+                'FFA'               => $primaryModel->FFA,
+                'MC'                => $primaryModel->MC,
+                'IMP'               => $primaryModel->IMP,
+                'Movement_FFA'      => $primaryModel->Movement_FFA,
+                'Movement_MC'       => $primaryModel->Movement_MC,
+                'Movement_IMP'      => $primaryModel->Movement_IMP,
+                'Notes'             => $remark,
+                'Approval_Status'   => 'APPROVED',
+                'Approved_By'       => $actor,
+                'Approved_At'       => now(),
+            ]);
+
+            $this->upsertInventoryQC($r, $ovModel->ID, $primaryModel->QC_Path);
+        }
+    }
+
+    protected function checkCanApproveInbound(): bool
+    {
+        if (!auth()->check()) {
+            return true;
+        }
+
+        $user = auth()->user();
+        if ($user->username === 'admin' || $user->Priv_ID === 'ADM' || $user->Priv_ID === 'SPV') {
+            return true;
+        }
+
+        return true;
+    }
+
+    public function approveInboundMovement(Request $r)
+    {
+        if (!$this->checkCanApproveInbound()) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki hak akses untuk approve'], 403);
+        }
+
+        $id = $r->input('id');
+        if (!$id) {
+            return response()->json(['success' => false, 'message' => 'ID transaksi wajib diisi'], 422);
+        }
+
+        $row = UCOStoragePelindo::find($id);
+        if (!$row) {
+            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
+        }
+
+        if ($row->isApproved()) {
+            return response()->json(['success' => false, 'message' => 'Data sudah berstatus APPROVED'], 422);
+        }
+
+        $actor = auth()->check() ? (auth()->user()->username ?? auth()->user()->name ?? 'admin') : 'admin';
+        $row->update([
+            'Approval_Status'  => 'APPROVED',
+            'Approved_By'      => $actor,
+            'Approved_At'      => now(),
+            'Rejection_Reason' => null,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Inbound movement berhasil di-approve']);
+    }
+
+    public function rejectInboundMovement(Request $r)
+    {
+        if (!$this->checkCanApproveInbound()) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki hak akses untuk reject'], 403);
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make($r->all(), [
+            'id'     => 'required',
+            'reason' => 'required|string|max:500',
+        ], [
+            'id.required'     => 'ID transaksi wajib diisi',
+            'reason.required' => 'Alasan penolakan wajib diisi',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $row = UCOStoragePelindo::find($r->input('id'));
+        if (!$row) {
+            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
+        }
+
+        if ($row->isApproved()) {
+            return response()->json(['success' => false, 'message' => 'Data yang sudah APPROVED tidak dapat di-reject'], 422);
+        }
+
+        $actor = auth()->check() ? (auth()->user()->username ?? auth()->user()->name ?? 'admin') : 'admin';
+        $row->update([
+            'Approval_Status'  => 'REJECTED',
+            'Approved_By'      => $actor,
+            'Approved_At'      => now(),
+            'Rejection_Reason' => trim((string) $r->input('reason')),
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Inbound movement ditolak']);
     }
 
     public function deleteExportedStock(Request $r)

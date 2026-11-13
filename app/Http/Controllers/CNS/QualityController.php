@@ -196,7 +196,7 @@ class QualityController extends Controller
             }
 
             $levelsMap = ['top' => 'TOP', 'middle' => 'MIDDLE', 'bottom' => 'BOTTOM'];
-            $paramKeys = ['FFA_As_Palmitic', 'FFA_As_Oleic', 'MIU', 'Sulphur', 'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'];
+            $paramKeys = ['FFA_As_Palmitic', 'FFA_As_Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulphur', 'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'];
 
             $paramVals = [];
             foreach ($paramKeys as $pk) {
@@ -211,12 +211,11 @@ class QualityController extends Controller
                 foreach ($paramKeys as $pk) {
                     $fld = "{$prefix}_{$pk}";
                     $val = $r->filled($fld) ? $r->input($fld) : null;
-                    if ($pk === 'MIU' && $val === null) {
-                        $mc = $r->input("{$prefix}_MC");
-                        $imp = $r->input("{$prefix}_IMP");
-                        if ($mc !== null && $imp !== null) {
-                            $val = round((float)$mc + (float)$imp, 2);
-                        }
+                    if ($pk === 'Moisture' && $val === null && $r->filled("{$prefix}_MC")) {
+                        $val = $r->input("{$prefix}_MC");
+                    }
+                    if ($pk === 'Impurities' && $val === null && $r->filled("{$prefix}_IMP")) {
+                        $val = $r->input("{$prefix}_IMP");
                     }
                     $detailPayload[$pk] = $val;
                     if ($val !== null && $val !== '') {
@@ -313,47 +312,55 @@ class QualityController extends Controller
                 return ($v !== null && $v !== '') ? number_format((float) $v, 2, '.', ',') . $suffix : null;
             };
 
-            // TOP (6..13)
-            $item->addChild('cell', $top ? $fmtQc($top->FFA_As_Palmitic) : null);
-            $item->addChild('cell', $top ? $fmtQc($top->FFA_As_Oleic)    : null);
-            $item->addChild('cell', $top ? $fmtQc($top->MIU, '%')        : null);
-            $item->addChild('cell', $top ? $fmtQc($top->Sulphur)         : null);
-            $item->addChild('cell', $top ? $fmtQc($top->IV)              : null);
-            $item->addChild('cell', $top ? $fmtQc($top->Total_Chlorides) : null);
-            $item->addChild('cell', $top ? $fmtQc($top->Phosphorus)      : null);
-            $item->addChild('cell', $top ? $fmtQc($top->Total_Metals)    : null);
+            // TOP (6..15)
+            $item->addChild('cell', $top ? $fmtQc($top->FFA_As_Palmitic)  : null);
+            $item->addChild('cell', $top ? $fmtQc($top->FFA_As_Oleic)     : null);
+            $item->addChild('cell', $top ? $fmtQc($top->Moisture, '%')    : null);
+            $item->addChild('cell', $top ? $fmtQc($top->Impurities, '%')  : null);
+            $item->addChild('cell', $top ? $fmtQc($top->Unsaponifiables, '%') : null);
+            $item->addChild('cell', $top ? $fmtQc($top->Sulphur)          : null);
+            $item->addChild('cell', $top ? $fmtQc($top->IV)               : null);
+            $item->addChild('cell', $top ? $fmtQc($top->Total_Chlorides)  : null);
+            $item->addChild('cell', $top ? $fmtQc($top->Phosphorus)       : null);
+            $item->addChild('cell', $top ? $fmtQc($top->Total_Metals)     : null);
 
-            // MIDDLE (14..21)
-            $item->addChild('cell', $middle ? $fmtQc($middle->FFA_As_Palmitic) : null);
-            $item->addChild('cell', $middle ? $fmtQc($middle->FFA_As_Oleic)    : null);
-            $item->addChild('cell', $middle ? $fmtQc($middle->MIU, '%')        : null);
-            $item->addChild('cell', $middle ? $fmtQc($middle->Sulphur)         : null);
-            $item->addChild('cell', $middle ? $fmtQc($middle->IV)              : null);
-            $item->addChild('cell', $middle ? $fmtQc($middle->Total_Chlorides) : null);
-            $item->addChild('cell', $middle ? $fmtQc($middle->Phosphorus)      : null);
-            $item->addChild('cell', $middle ? $fmtQc($middle->Total_Metals)    : null);
+            // MIDDLE (16..25)
+            $item->addChild('cell', $middle ? $fmtQc($middle->FFA_As_Palmitic)  : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->FFA_As_Oleic)     : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->Moisture, '%')    : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->Impurities, '%')  : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->Unsaponifiables, '%') : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->Sulphur)          : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->IV)               : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->Total_Chlorides)  : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->Phosphorus)       : null);
+            $item->addChild('cell', $middle ? $fmtQc($middle->Total_Metals)     : null);
 
-            // BOTTOM (22..29)
-            $item->addChild('cell', $bottom ? $fmtQc($bottom->FFA_As_Palmitic) : null);
-            $item->addChild('cell', $bottom ? $fmtQc($bottom->FFA_As_Oleic)    : null);
-            $item->addChild('cell', $bottom ? $fmtQc($bottom->MIU, '%')        : null);
-            $item->addChild('cell', $bottom ? $fmtQc($bottom->Sulphur)         : null);
-            $item->addChild('cell', $bottom ? $fmtQc($bottom->IV)              : null);
-            $item->addChild('cell', $bottom ? $fmtQc($bottom->Total_Chlorides) : null);
-            $item->addChild('cell', $bottom ? $fmtQc($bottom->Phosphorus)      : null);
-            $item->addChild('cell', $bottom ? $fmtQc($bottom->Total_Metals)    : null);
+            // BOTTOM (26..35)
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->FFA_As_Palmitic)  : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->FFA_As_Oleic)     : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->Moisture, '%')    : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->Impurities, '%')  : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->Unsaponifiables, '%') : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->Sulphur)          : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->IV)               : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->Total_Chlorides)  : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->Phosphorus)       : null);
+            $item->addChild('cell', $bottom ? $fmtQc($bottom->Total_Metals)     : null);
 
-            // AVERAGE (30..37)
-            $item->addChild('cell', $avg ? $fmtQc($avg->FFA_As_Palmitic) : null);
-            $item->addChild('cell', $avg ? $fmtQc($avg->FFA_As_Oleic)    : null);
-            $item->addChild('cell', $avg ? $fmtQc($avg->MIU, '%')        : null);
-            $item->addChild('cell', $avg ? $fmtQc($avg->Sulphur)         : null);
-            $item->addChild('cell', $avg ? $fmtQc($avg->IV)              : null);
-            $item->addChild('cell', $avg ? $fmtQc($avg->Total_Chlorides) : null);
-            $item->addChild('cell', $avg ? $fmtQc($avg->Phosphorus)      : null);
-            $item->addChild('cell', $avg ? $fmtQc($avg->Total_Metals)    : null);
+            // AVERAGE (36..45)
+            $item->addChild('cell', $avg ? $fmtQc($avg->FFA_As_Palmitic)  : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->FFA_As_Oleic)     : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->Moisture, '%')    : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->Impurities, '%')  : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->Unsaponifiables, '%') : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->Sulphur)          : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->IV)               : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->Total_Chlorides)  : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->Phosphorus)       : null);
+            $item->addChild('cell', $avg ? $fmtQc($avg->Total_Metals)     : null);
 
-            // 38: Attachment, 39: Contract_ID, 40: Booking_ID, 41: QC_Category, 42: Tank_ID
+            // 46: Attachment, 47: Contract_ID, 48: Booking_ID, 49: QC_Category, 50: Tank_ID
             $item->addChild('cell', $attachmentLink);
             $item->addChild('cell', $header->Contract_ID);
             $item->addChild('cell', $header->Booking_ID);
@@ -401,7 +408,7 @@ class QualityController extends Controller
             DB::table('cns_quality_controls')->where('id', $headerId)->update($headerUpdate);
 
             $levelsMap = ['top' => 'TOP', 'middle' => 'MIDDLE', 'bottom' => 'BOTTOM'];
-            $paramKeys = ['FFA_As_Palmitic', 'FFA_As_Oleic', 'MIU', 'Sulphur', 'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'];
+            $paramKeys = ['FFA_As_Palmitic', 'FFA_As_Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulphur', 'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'];
 
             $paramVals = [];
             foreach ($paramKeys as $pk) {
@@ -535,22 +542,22 @@ class QualityController extends Controller
 
         $template->setValue('ffa_top_palmitic',       $top    ? $top->FFA_As_Palmitic    : '-');
         $template->setValue('ffa_top_oleic',          $top    ? $top->FFA_As_Oleic       : '-');
-        $template->setValue('ffa_top_moisture',       '-');
-        $template->setValue('ffa_top_impurities',     '-');
-        $template->setValue('ffa_top_impurities ',    '-');
-        $template->setValue('miu_top',                ($top && $top->MIU !== null) ? $top->MIU : '-');
+        $template->setValue('ffa_top_moisture',       ($top && $top->Moisture !== null) ? $top->Moisture : '-');
+        $template->setValue('ffa_top_impurities',     ($top && $top->Impurities !== null) ? $top->Impurities : '-');
+        $template->setValue('ffa_top_impurities ',    ($top && $top->Impurities !== null) ? $top->Impurities : '-');
+        $template->setValue('miu_top',                '-');
 
         $template->setValue('ffa_mid_palmitic',       $middle ? $middle->FFA_As_Palmitic : '-');
         $template->setValue('ffa_mid_oleic',          $middle ? $middle->FFA_As_Oleic    : '-');
-        $template->setValue('ffa_mid_moisture',       '-');
-        $template->setValue('ffa_mid_impurities',     '-');
-        $template->setValue('miu_mid',                ($middle && $middle->MIU !== null) ? $middle->MIU : '-');
+        $template->setValue('ffa_mid_moisture',       ($middle && $middle->Moisture !== null) ? $middle->Moisture : '-');
+        $template->setValue('ffa_mid_impurities',     ($middle && $middle->Impurities !== null) ? $middle->Impurities : '-');
+        $template->setValue('miu_mid',                '-');
 
         $template->setValue('ffa_bot_palmitic',       $bottom ? $bottom->FFA_As_Palmitic : '-');
         $template->setValue('ffa_bot_oleic',          $bottom ? $bottom->FFA_As_Oleic    : '-');
-        $template->setValue('ffa_bot_moisture',       '-');
-        $template->setValue('ffa_bot _impurities',    '-');
-        $template->setValue('miu_bot',                ($bottom && $bottom->MIU !== null) ? $bottom->MIU : '-');
+        $template->setValue('ffa_bot_moisture',       ($bottom && $bottom->Moisture !== null) ? $bottom->Moisture : '-');
+        $template->setValue('ffa_bot _impurities',    ($bottom && $bottom->Impurities !== null) ? $bottom->Impurities : '-');
+        $template->setValue('miu_bot',                '-');
 
         $template->setValue('iv_top',                 $top    ? ($top->IV ?? '-') : '-');
         $template->setValue('sulphur_top',            $top    ? ($top->Sulphur ?? '-') : '-');
@@ -615,8 +622,12 @@ class QualityController extends Controller
             MAX(d.FFA_As_Palmitic) as max_ffa_palmitic,
             MIN(d.FFA_As_Oleic) as min_ffa_oleic,
             MAX(d.FFA_As_Oleic) as max_ffa_oleic,
-            MIN(d.MIU) as min_miu,
-            MAX(d.MIU) as max_miu,
+            MIN(d.Moisture) as min_moisture,
+            MAX(d.Moisture) as max_moisture,
+            MIN(d.Impurities) as min_impurities,
+            MAX(d.Impurities) as max_impurities,
+            MIN(d.Unsaponifiables) as min_unsaponifiables,
+            MAX(d.Unsaponifiables) as max_unsaponifiables,
             MIN(d.Sulphur) as min_sulphur,
             MAX(d.Sulphur) as max_sulphur,
             MIN(d.IV) as min_iv,
@@ -646,11 +657,25 @@ class QualityController extends Controller
                 'max'   => $raw && $raw->max_ffa_oleic !== null ? (float) $raw->max_ffa_oleic : null,
             ],
             [
-                'key'   => 'miu',
-                'name'  => 'MIU',
+                'key'   => 'moisture',
+                'name'  => 'Moisture',
                 'unit'  => '%',
-                'min'   => $raw && $raw->min_miu !== null ? (float) $raw->min_miu : null,
-                'max'   => $raw && $raw->max_miu !== null ? (float) $raw->max_miu : null,
+                'min'   => $raw && $raw->min_moisture !== null ? (float) $raw->min_moisture : null,
+                'max'   => $raw && $raw->max_moisture !== null ? (float) $raw->max_moisture : null,
+            ],
+            [
+                'key'   => 'impurities',
+                'name'  => 'Impurities',
+                'unit'  => '%',
+                'min'   => $raw && $raw->min_impurities !== null ? (float) $raw->min_impurities : null,
+                'max'   => $raw && $raw->max_impurities !== null ? (float) $raw->max_impurities : null,
+            ],
+            [
+                'key'   => 'unsaponifiables',
+                'name'  => 'Unsaponifiables',
+                'unit'  => '%',
+                'min'   => $raw && $raw->min_unsaponifiables !== null ? (float) $raw->min_unsaponifiables : null,
+                'max'   => $raw && $raw->max_unsaponifiables !== null ? (float) $raw->max_unsaponifiables : null,
             ],
             [
                 'key'   => 'sulphur',

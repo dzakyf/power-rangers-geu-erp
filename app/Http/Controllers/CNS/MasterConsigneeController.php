@@ -18,8 +18,14 @@ class MasterConsigneeController extends Controller
     {
         return DB::table("supplier")
             ->where("Location", auth()->user()->Location)
-            ->when($request->type === 'CONSIGNEE', fn($q) => $q->where('Is_Consignee', 1))
-            ->when($request->type === 'SUPPLIER', fn($q) => $q->where('Is_Supplier', 1))
+            ->where('Is_Consignee', 1)
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = '%' . trim($request->search) . '%';
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('Company_Name', 'like', $term)
+                        ->orWhere('Supplier_ID', 'like', $term);
+                });
+            })
             ->orderBy('Company_Name', 'ASC')
             ->get();
     }
@@ -74,6 +80,7 @@ class MasterConsigneeController extends Controller
 
     public function newMasterConsigneeSubmit(Request $request)
     {
+        $emails = $this->companyEmails($request);
 
         $param = $request->param;
         $param = explode('&', $param);
@@ -97,9 +104,9 @@ class MasterConsigneeController extends Controller
             }
         }
 
-        $arr['Is_Consignee']   = $request->input('Is_Consignee',   1);
+        $arr['Is_Company']   = $request->input('Is_Company',   1);
         $arr['Is_Supplier']  = $request->input('Is_Supplier',  0);
-        $arr['Is_Consignee'] = $request->input('Is_Consignee', 0);
+        $arr['Is_Consignee'] = $request->input('Is_Consignee', 1);
 
         $Saya = Auth::User()->username;
         $LSP = Auth::user()->Location;
@@ -145,6 +152,8 @@ class MasterConsigneeController extends Controller
             $arr['Stamps'] = "filesupplier/" . $filename;
         }
 
+        $this->applyCompanyEmails($arr, $emails);
+
         $arr['Supplier_ID'] = $Supplier_ID;
         $arr['Status'] = "NORMAL";
         $arr['Created_By'] = $Saya;
@@ -164,6 +173,7 @@ class MasterConsigneeController extends Controller
 
     public function detailMasterConsigneeSubmit(Request $request)
     {
+        $emails = $this->companyEmails($request);
 
         $param = $request->param;
         $param = explode('&', $param);
@@ -228,10 +238,34 @@ class MasterConsigneeController extends Controller
         $arr['Is_Supplier']  = $request->input('Is_Supplier',  0);
         $arr['Is_Consignee'] = $request->input('Is_Consignee', 0);
 
+        $this->applyCompanyEmails($arr, $emails);
+
         DB::table('supplier')->where('ID', $params['ID'])->update($arr);
 
         // DB::insert(DB::raw("INSERT INTO supplier($ax,Status,Supplier_ID,Created_By,Location) VALUES($isi,'NORMAL','$Supplier_ID','$Saya','$LSP')"));
 
         return "success";
+    }
+
+    private function companyEmails(Request $request): array
+    {
+        $data = $request->validate([
+            'Emails'   => 'required|array|min:1|max:10',
+            'Emails.*' => 'required|email|max:150',
+        ]);
+
+        return array_values(array_unique(array_map('trim', $data['Emails'])));
+    }
+
+    private function applyCompanyEmails(array &$arr, array $emails): void
+    {
+        $primary = $emails[0] ?? null;
+
+        if ($primary !== null && strlen($primary) > 60) {
+            $primary = null;
+        }
+
+        $arr['Email'] = $primary;
+        $arr['Emails'] = count($emails) > 0 ? json_encode($emails) : null;
     }
 }

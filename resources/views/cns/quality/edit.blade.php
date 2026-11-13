@@ -85,12 +85,14 @@
                     $qcParameters = [
                         ['key' => 'FFA_As_Palmitic', 'label' => '1. FFA (As Palmitic)', 'unit' => '%'],
                         ['key' => 'FFA_As_Oleic',    'label' => '2. FFA (As Oleic)',    'unit' => '%'],
-                        ['key' => 'MIU',             'label' => '3. MIU (Moisture, Impurities & Unsaponifiables)', 'unit' => '%'],
-                        ['key' => 'Sulphur',         'label' => '4. Total Sulfur',      'unit' => 'ppm'],
-                        ['key' => 'IV',              'label' => '5. Iodine Value (IV)', 'unit' => 'g I2/100g'],
-                        ['key' => 'Total_Chlorides', 'label' => '6. Chlorides',         'unit' => 'ppm'],
-                        ['key' => 'Phosphorus',      'label' => '7. Phosphorus',        'unit' => 'ppm'],
-                        ['key' => 'Total_Metals',    'label' => '8. Total Metals',      'unit' => 'ppm'],
+                        ['key' => 'Moisture',        'label' => '3. Moisture',          'unit' => '%'],
+                        ['key' => 'Impurities',      'label' => '4. Impurities',        'unit' => '%'],
+                        ['key' => 'Unsaponifiables', 'label' => '5. Unsaponifiables',   'unit' => '%'],
+                        ['key' => 'Sulphur',         'label' => '6. Total Sulfur',      'unit' => 'ppm'],
+                        ['key' => 'IV',              'label' => '7. Iodine Value (IV)', 'unit' => 'g I2/100g'],
+                        ['key' => 'Total_Chlorides', 'label' => '8. Chlorides',         'unit' => 'ppm'],
+                        ['key' => 'Phosphorus',      'label' => '9. Phosphorus',        'unit' => 'ppm'],
+                        ['key' => 'Total_Metals',    'label' => '10. Total Metals',     'unit' => 'ppm'],
                     ];
                 @endphp
 
@@ -240,9 +242,9 @@
         var bookingId = '';
         var tankId = '';
         try {
-            contractId = grid.cells(rowId, 39) ? grid.cells(rowId, 39).getValue() : '';
-            bookingId  = grid.cells(rowId, 40) ? grid.cells(rowId, 40).getValue() : '';
-            tankId     = grid.cells(rowId, 42) ? grid.cells(rowId, 42).getValue() : '';
+            contractId = grid.cells(rowId, 47) ? grid.cells(rowId, 47).getValue() : '';
+            bookingId  = grid.cells(rowId, 48) ? grid.cells(rowId, 48).getValue() : '';
+            tankId     = grid.cells(rowId, 50) ? grid.cells(rowId, 50).getValue() : '';
         } catch (e) {}
 
         $('#edit_Contract_ID').val(contractId);
@@ -254,12 +256,12 @@
 
         $('#edit_Tank_ID').val(tankId);
 
-        // TOP indices: 6..13, MIDDLE: 14..21, BOTTOM: 22..29
-        // Keys: FFA_As_Palmitic(6), FFA_As_Oleic(7), MIU(8), Sulphur(9), IV(10), Total_Chlorides(11), Phosphorus(12), Total_Metals(13)
+        // TOP indices: 6..15, MIDDLE: 16..25, BOTTOM: 26..35
+        // Keys: FFA_As_Palmitic(6), FFA_As_Oleic(7), Moisture(8), Impurities(9), Unsaponifiables(10), Sulphur(11), IV(12), Total_Chlorides(13), Phosphorus(14), Total_Metals(15)
         qcParamKeys.forEach(function(key, idx) {
             var topVal = cleanCell(grid.cells(rowId, 6 + idx).getValue());
-            var midVal = cleanCell(grid.cells(rowId, 14 + idx).getValue());
-            var botVal = cleanCell(grid.cells(rowId, 22 + idx).getValue());
+            var midVal = cleanCell(grid.cells(rowId, 16 + idx).getValue());
+            var botVal = cleanCell(grid.cells(rowId, 26 + idx).getValue());
 
             $('#edit_top_' + key).val(topVal !== '' ? cnsFormatNumber(topVal, 2) : '');
             $('#edit_middle_' + key).val(midVal !== '' ? cnsFormatNumber(midVal, 2) : '');

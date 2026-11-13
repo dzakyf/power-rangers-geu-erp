@@ -41,6 +41,8 @@ use App\Http\Controllers\CNS\NonUcoSupplierController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\CNS\ISCCTraceabilityController;
 use App\Http\Controllers\CNS\UpcomingInboundController;
+use App\Http\Controllers\CNS\DrainAdjustmentController;
+use App\Http\Controllers\CNS\InboundAdjustmentController;
 use App\Http\Controllers\CNS\KemasanInventoryController;
 use App\Http\Controllers\CNS\TankDrainingController;
 use App\Http\Controllers\CNS\MasterKemasanController;
@@ -5574,6 +5576,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$cnsInventoryPref-movement-detail", [UCOLogisticController::class, 'getInboundMovementDetail'])->name($cnsInventoryPref . '.movement-detail');
     Route::post("$cnsInventoryPref-submit", [UCOLogisticController::class, 'submitStoragePelindo'])->name($cnsInventoryPref . '.submit');
     Route::post("$cnsInventoryPref-submit-edit", [UCOLogisticController::class, 'updateExportedStock'])->name($cnsInventoryPref . '.submit-edit');
+    Route::post("$cnsInventoryPref-approve", [UCOLogisticController::class, 'approveInboundMovement'])->name($cnsInventoryPref . '.approve');
+    Route::post("$cnsInventoryPref-reject", [UCOLogisticController::class, 'rejectInboundMovement'])->name($cnsInventoryPref . '.reject');
     Route::delete("$cnsInventoryPref-delete", [UCOLogisticController::class, 'deleteExportedStock'])->name($cnsInventoryPref . '.delete');
     Route::get("xml-cns-upcoming-inbound", [UpcomingInboundController::class, 'xmlData'])->name('cns-upcoming-inbound.xml');
 
@@ -5606,6 +5610,33 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$tankDrainingPref-update/{id}", [TankDrainingController::class, 'update'])->name($tankDrainingPref . '.update');
     Route::post("$tankDrainingPref-delete/{id}", [TankDrainingController::class, 'destroy'])->name($tankDrainingPref . '.delete');
     Route::get("$tankDrainingPref-bast/{id}", [TankDrainingController::class, 'bastDocument'])->name($tankDrainingPref . '.bast');
+
+    $inboundAdjustmentPref = "cns-inbound-adjustment";
+    Route::get("$inboundAdjustmentPref", [InboundAdjustmentController::class, 'index'])->name($inboundAdjustmentPref . '.index');
+    Route::get("xml-$inboundAdjustmentPref", [InboundAdjustmentController::class, 'xmlData'])->name($inboundAdjustmentPref . '.xml');
+    Route::get("$inboundAdjustmentPref-new", [InboundAdjustmentController::class, 'newAdjustment'])->name($inboundAdjustmentPref . '.new');
+    Route::get("$inboundAdjustmentPref-detail", [InboundAdjustmentController::class, 'detailAdjustment'])->name($inboundAdjustmentPref . '.detail');
+    Route::get("$inboundAdjustmentPref-generate-code", [InboundAdjustmentController::class, 'generateCode'])->name($inboundAdjustmentPref . '.generate-code');
+    Route::get("$inboundAdjustmentPref-active/{kode}", [InboundAdjustmentController::class, 'getActiveAdjustmentByMovement'])->name($inboundAdjustmentPref . '.active-by-movement');
+    Route::post("$inboundAdjustmentPref-store", [InboundAdjustmentController::class, 'store'])->name($inboundAdjustmentPref . '.store');
+    Route::post("$inboundAdjustmentPref-update/{id}", [InboundAdjustmentController::class, 'update'])->name($inboundAdjustmentPref . '.update');
+    Route::post("$inboundAdjustmentPref-delete/{id}", [InboundAdjustmentController::class, 'destroy'])->name($inboundAdjustmentPref . '.delete');
+    Route::post("$inboundAdjustmentPref-approve/{id}", [InboundAdjustmentController::class, 'approve'])->name($inboundAdjustmentPref . '.approve');
+    Route::post("$inboundAdjustmentPref-reject/{id}", [InboundAdjustmentController::class, 'reject'])->name($inboundAdjustmentPref . '.reject');
+    Route::get("$inboundAdjustmentPref-document/{id}", [InboundAdjustmentController::class, 'document'])->name($inboundAdjustmentPref . '.document');
+
+    $drainAdjustmentPref = "cns-drain-adjustment";
+    Route::get("$drainAdjustmentPref", [DrainAdjustmentController::class, 'index'])->name($drainAdjustmentPref . '.index');
+    Route::get("xml-$drainAdjustmentPref", [DrainAdjustmentController::class, 'xmlData'])->name($drainAdjustmentPref . '.xml');
+    Route::get("$drainAdjustmentPref-new", [DrainAdjustmentController::class, 'newAdjustment'])->name($drainAdjustmentPref . '.new');
+    Route::get("$drainAdjustmentPref-detail", [DrainAdjustmentController::class, 'detailAdjustment'])->name($drainAdjustmentPref . '.detail');
+    Route::get("$drainAdjustmentPref-generate-code", [DrainAdjustmentController::class, 'generateCode'])->name($drainAdjustmentPref . '.generate-code');
+    Route::post("$drainAdjustmentPref-store", [DrainAdjustmentController::class, 'store'])->name($drainAdjustmentPref . '.store');
+    Route::post("$drainAdjustmentPref-update/{id}", [DrainAdjustmentController::class, 'update'])->name($drainAdjustmentPref . '.update');
+    Route::post("$drainAdjustmentPref-delete/{id}", [DrainAdjustmentController::class, 'destroy'])->name($drainAdjustmentPref . '.delete');
+    Route::post("$drainAdjustmentPref-approve/{id}", [DrainAdjustmentController::class, 'approve'])->name($drainAdjustmentPref . '.approve');
+    Route::post("$drainAdjustmentPref-reject/{id}", [DrainAdjustmentController::class, 'reject'])->name($drainAdjustmentPref . '.reject');
+    Route::get("$drainAdjustmentPref-document/{id}", [DrainAdjustmentController::class, 'document'])->name($drainAdjustmentPref . '.document');
 
     $cnsQualityPref = "cns-quality";
     Route::get("$cnsQualityPref-external-index", [QualityController::class, 'externalIndexPage'])->name($cnsQualityPref . '.external-index');
