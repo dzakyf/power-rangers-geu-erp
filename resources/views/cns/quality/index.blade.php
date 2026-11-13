@@ -317,56 +317,56 @@
     function initProjectionGrid() {
         $('#ProjectionSection').show();
 
-        // 43 columns (39 visible + 4 hidden):
+        // 51 columns (47 visible + 4 hidden):
         // 0: No, 1: Kode QC, 2: Tanggal, 3: Jenis QC, 4: Lab, 5: Source
-        // 6..13: Top (8 cols)
-        // 14..21: Middle (8 cols)
-        // 22..29: Bottom (8 cols)
-        // 30..37: Average (8 cols)
-        // 38: Attachment
-        // 39: Contract_ID (hidden), 40: Booking_ID (hidden), 41: QC_Category (hidden), 42: Tank_ID (hidden)
+        // 6..15: Top (10 cols)
+        // 16..25: Middle (10 cols)
+        // 26..35: Bottom (10 cols)
+        // 36..45: Average (10 cols)
+        // 46: Attachment
+        // 47: Contract_ID (hidden), 48: Booking_ID (hidden), 49: QC_Category (hidden), 50: Tank_ID (hidden)
         let tHeader = [
             'No', 'Kode QC', 'Tanggal', 'Jenis QC', 'Lab', 'Source',
-            'Top', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
-            'Middle', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
-            'Bottom', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
-            'Average', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
+            'Top', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
+            'Middle', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
+            'Bottom', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
+            'Average', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
             'Attachment',
             'Contract_ID', 'Booking_ID', 'QC_Category', 'Tank_ID'
         ];
 
         let tGroupHeader = [
             '#rspan', '#text_filter', '#text_filter', '#select_filter', '#select_filter', '#select_filter',
-            'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
-            'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
-            'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
-            'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
+            'FFA Palmitic', 'FFA Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
+            'FFA Palmitic', 'FFA Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
+            'FFA Palmitic', 'FFA Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
+            'FFA Palmitic', 'FFA Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
             '#rspan',
             '#rspan', '#rspan', '#rspan', '#rspan'
         ];
 
         let tTopHeader = [
             '#rspan', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan',
-            '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
-            '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
-            '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
-            '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
+            '%', '%', '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
+            '%', '%', '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
+            '%', '%', '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
+            '%', '%', '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
             '#rspan',
             '#rspan', '#rspan', '#rspan', '#rspan'
         ];
 
         let tWidth = [
             '45', '140', '95', '85', '85', '85',
-            '85', '85', '75', '75', '75', '75', '80', '80',
-            '85', '85', '75', '75', '75', '75', '80', '80',
-            '85', '85', '75', '75', '75', '75', '80', '80',
-            '85', '85', '75', '75', '75', '75', '80', '80',
+            '85', '85', '75', '80', '100', '75', '75', '75', '80', '80',
+            '85', '85', '75', '80', '100', '75', '75', '75', '80', '80',
+            '85', '85', '75', '80', '100', '75', '75', '75', '80', '80',
+            '85', '85', '75', '80', '100', '75', '75', '75', '80', '80',
             '110',
             '50', '50', '50', '50'
         ];
 
         let tColType = tHeader.map(() => 'ro');
-        let tColAlign = tHeader.map((e, i) => (i < 6 ? 'center' : (i === 38 ? 'center' : (i >= 39 ? 'left' : 'right'))));
+        let tColAlign = tHeader.map((e, i) => (i < 6 ? 'center' : (i === 46 ? 'center' : (i >= 47 ? 'left' : 'right'))));
         let tColSort = tHeader.map((e, i) => (i === 0 ? 'int' : (i === 2 ? 'date' : 'str')));
 
         ProjectionGrid = new dhtmlXGridObject('ProjectionGrid');
@@ -381,15 +381,15 @@
         ProjectionGrid.setSkin("dhx_skyblue");
         ProjectionGrid.init();
 
-        ProjectionGrid.setColumnHidden(39, true);
-        ProjectionGrid.setColumnHidden(40, true);
-        ProjectionGrid.setColumnHidden(41, true);
-        ProjectionGrid.setColumnHidden(42, true);
+        ProjectionGrid.setColumnHidden(47, true);
+        ProjectionGrid.setColumnHidden(48, true);
+        ProjectionGrid.setColumnHidden(49, true);
+        ProjectionGrid.setColumnHidden(50, true);
 
         loadQualityGrid();
 
         ProjectionGrid.attachEvent('onRowDblClicked', function(rId, cInd) {
-            if (cInd === 38) {
+            if (cInd === 46) {
                 var url = ProjectionGrid.cells(rId, cInd).getValue();
                 if (url && url !== '-' && url !== '') {
                     window.open(url, '_blank');

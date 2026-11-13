@@ -147,7 +147,14 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 			</div>
 			<div class="FormInput_right">
 
-				<input type="text" id="Supplies_Type" size="30" value="Flexibag 24KL TLBD" />
+				<div style="width:250px;display:inline-block;">
+					<select id="Supplies_Type" style="width:100%;">
+						<option value="">-- Pilih Product Specification --</option>
+						@foreach(\App\CnsMasterKemasan::where('product_type', 'Export')->orderBy('Name')->get() as $spec)
+							<option value="{{ $spec->Name }}">{{ $spec->Name }}</option>
+						@endforeach
+					</select>
+				</div>
 
 			</div>
 
@@ -289,6 +296,14 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 			return inputValues.join('&');
 		}
 
+
+		if ($.fn.select2) {
+			$('#Supplies_Type').select2({
+				width: '100%',
+				placeholder: '-- Pilih Product Specification --',
+				allowClear: true
+			});
+		}
 
 		PRNewDetail = new dhtmlXGridObject('gridPRNewDetail');
 		PRNewDetail.setImagePath("dhtmlx/imgs/");

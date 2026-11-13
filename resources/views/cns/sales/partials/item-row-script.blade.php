@@ -47,7 +47,7 @@
       tr.id = 'row_' + idx;
       tr.innerHTML = `
       <td class="num-col text-center row-num">${tbody.rows.length + 1}</td>
-      <td style="min-width:220px;">${buildKemasanSelectHtml(idx, desc)}</td>
+      <td class="desc-col">${buildKemasanSelectHtml(idx, desc)}</td>
       <td class="qty-col"><input type="text" inputmode="decimal" id="qty${idx}" class="form-control form-control-sm text-center qty-inp cns-decimal" value="${cnsFormatNumber(qtyNum, 2)}" onchange="recalc()"/></td>
       <td class="unit-col"><input type="text" id="item_unit${idx}" class="form-control form-control-sm text-center" value="${escapeHtml(unit)}" placeholder="Unit"/></td>
       <td class="price-col"><input type="text" inputmode="decimal" id="unit${idx}" class="form-control form-control-sm text-right price-inp cns-decimal" value="${cnsFormatNumber(priceNum, 2)}" onchange="recalc()" placeholder="0.00"/></td>

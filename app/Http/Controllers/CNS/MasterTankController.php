@@ -307,7 +307,7 @@ class MasterTankController extends Controller
 
     protected function calculateTankBalance(string $tankName): float
     {
-        return (float) UCOStoragePelindo::where('Nama_Tangki', $tankName)
+        return (float) UCOStoragePelindo::approved()->where('Nama_Tangki', $tankName)
             ->selectRaw("SUM(CASE WHEN Type = 'inbound' THEN Quantity ELSE -Quantity END) as balance")
             ->value('balance') ?: 0;
     }
