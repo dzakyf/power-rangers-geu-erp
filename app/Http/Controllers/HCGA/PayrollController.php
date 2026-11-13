@@ -1247,12 +1247,15 @@ class PayrollController extends Controller
 
     /**
      * Tampilan Slip Gaji Digital Modern (Sesuai Layout Talenta / PT GEU)
+     * Mengakomodasi mode Final (Payroll Report) & Preview Recounting (Payroll Generator)
      */
     public function showDigitalPayslip(Request $request)
     {
         $nik = $request->input('NIK') ?: $request->input('nik');
         $taskId = $request->input('Task_ID') ?: $request->input('task_id');
         $period = $request->input('Period') ?: $request->input('period', date('Y-m'));
+        $source = $request->input('source', '');
+        $mainId = $request->input('Main_ID') ?: $request->input('main_id');
 
         if (empty($nik)) {
             // Jika tidak diberikan parameter NIK, ambil NIK user yang sedang login
@@ -1265,7 +1268,8 @@ class PayrollController extends Controller
         }
 
         try {
-            $payslipData = $this->payslipService->getPayslipData($nik, $period, $taskId);
+            $options = ['source' => $source, 'main_id' => $mainId];
+            $payslipData = $this->payslipService->getPayslipData($nik, $period, $taskId, $options);
             return view('humanresources.payroll.prints.payslip-digital', [
                 'payslip' => $payslipData,
             ]);
@@ -1282,13 +1286,16 @@ class PayrollController extends Controller
         $nik = $request->input('nik') ?: $request->input('NIK');
         $period = $request->input('period') ?: $request->input('Period', date('Y-m'));
         $taskId = $request->input('task_id') ?: $request->input('Task_ID');
+        $source = $request->input('source', '');
+        $mainId = $request->input('main_id') ?: $request->input('Main_ID');
 
         if (empty($nik)) {
             return response()->json(['success' => false, 'message' => 'Parameter NIK wajib diisi.'], 400);
         }
 
         try {
-            $payslipData = $this->payslipService->getPayslipData($nik, $period, $taskId);
+            $options = ['source' => $source, 'main_id' => $mainId];
+            $payslipData = $this->payslipService->getPayslipData($nik, $period, $taskId, $options);
             $recipientEmail = $payslipData['email'];
 
             if (empty($recipientEmail) || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
@@ -1303,10 +1310,29 @@ class PayrollController extends Controller
                 'payslip' => $payslipData,
             ])->render();
 
-            $subject = "Payslip Detail - {$payslipData['period']} - {$payslipData['name']}";
+            $subjectSuffix = !empty($payslipData['is_final']) ? '' : ' [PREVIEW RECOUNTING]';
+            $subject = "Payslip Detail - {$payslipData['period']} - {$payslipData['name']}{$subjectSuffix}";
 
             // Kirim via EmailSettingsService (PHPMailer SMTP)
             list($isSent, $errorMsg) = $this->emailSettingsService->send($recipientEmail, $subject, $htmlBody);
+
+            $currentUser = Auth::user() ? Auth::user()->username : 'SYSTEM';
+
+            // Catat log pengiriman jika tabel tersedia
+            if (Schema::hasTable('payroll_payslip_email_logs')) {
+                DB::table('payroll_payslip_email_logs')->insert([
+                    'task_id'         => $payslipData['task_id'],
+                    'salary_period'   => $payslipData['period'],
+                    'nik'             => $nik,
+                    'recipient_email' => $recipientEmail,
+                    'mode'            => !empty($payslipData['is_final']) ? 'FINAL' : 'PREVIEW',
+                    'status'          => $isSent ? 'SENT' : 'FAILED',
+                    'error_message'   => $isSent ? null : $errorMsg,
+                    'sent_by'         => $currentUser,
+                    'created_at'      => Carbon::now()->toDateTimeString(),
+                    'updated_at'      => Carbon::now()->toDateTimeString(),
+                ]);
+            }
 
             if ($isSent) {
                 return response()->json([
@@ -1326,6 +1352,153 @@ class PayrollController extends Controller
                 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * API Blasting Pengiriman Payslip Digital ke Banyak Email Karyawan
+     */
+    public function apiBlastPayslipEmails(Request $request)
+    {
+        $niksInput = $request->input('niks');
+        $period = $request->input('period') ?: date('Y-m');
+        $taskId = $request->input('task_id');
+        $source = $request->input('source', '');
+        $mainId = $request->input('main_id');
+        $currentUser = Auth::user() ? Auth::user()->username : 'SYSTEM';
+
+        $niks = [];
+        if (is_array($niksInput)) {
+            $niks = array_filter(array_map('trim', $niksInput));
+        } elseif (is_string($niksInput) && trim($niksInput) !== '') {
+            $niks = array_filter(array_map('trim', explode(',', $niksInput)));
+        }
+
+        if (empty($niks)) {
+            if (!empty($taskId)) {
+                $niks = DB::table('salary')->where('Task_ID', $taskId)->pluck('Group_ID')->toArray();
+            } elseif (!empty($mainId)) {
+                $niks = DB::table('payrol_master_group')->where('Main_ID', $mainId)->pluck('Group_ID')->toArray();
+            }
+        }
+
+        if (empty($niks)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada NIK karyawan yang dipilih untuk blasting email.',
+            ], 400);
+        }
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(300);
+        }
+
+        $results = [];
+        $sentCount = 0;
+        $failedCount = 0;
+        $skippedCount = 0;
+        $hasLogTable = Schema::hasTable('payroll_payslip_email_logs');
+
+        foreach ($niks as $nik) {
+            $nik = trim((string)$nik);
+            if ($nik === '') continue;
+
+            try {
+                $options = ['source' => $source, 'main_id' => $mainId];
+                $payslipData = $this->payslipService->getPayslipData($nik, $period, $taskId, $options);
+                $recipientEmail = $payslipData['email'];
+                $empName = $payslipData['name'] ?? $nik;
+
+                if (empty($recipientEmail) || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+                    $skippedCount++;
+                    $results[] = [
+                        'nik'     => $nik,
+                        'name'    => $empName,
+                        'email'   => $recipientEmail ?: '-',
+                        'status'  => 'SKIPPED',
+                        'message' => 'Alamat email tidak valid atau belum terdaftar di sistem.',
+                    ];
+
+                    if ($hasLogTable) {
+                        DB::table('payroll_payslip_email_logs')->insert([
+                            'task_id'         => $payslipData['task_id'],
+                            'salary_period'   => $payslipData['period'],
+                            'nik'             => $nik,
+                            'recipient_email' => $recipientEmail ?: '-',
+                            'mode'            => !empty($payslipData['is_final']) ? 'FINAL' : 'PREVIEW',
+                            'status'          => 'SKIPPED',
+                            'error_message'   => 'Email tidak valid atau belum terdaftar.',
+                            'sent_by'         => $currentUser,
+                            'created_at'      => Carbon::now()->toDateTimeString(),
+                            'updated_at'      => Carbon::now()->toDateTimeString(),
+                        ]);
+                    }
+                    continue;
+                }
+
+                $htmlBody = view('humanresources.payroll.prints.payslip-digital', [
+                    'payslip' => $payslipData,
+                ])->render();
+
+                $subjectSuffix = !empty($payslipData['is_final']) ? '' : ' [PREVIEW RECOUNTING]';
+                $subject = "Payslip Detail - {$payslipData['period']} - {$empName}{$subjectSuffix}";
+
+                list($isSent, $errorMsg) = $this->emailSettingsService->send($recipientEmail, $subject, $htmlBody);
+
+                if ($isSent) {
+                    $sentCount++;
+                    $results[] = [
+                        'nik'     => $nik,
+                        'name'    => $empName,
+                        'email'   => $recipientEmail,
+                        'status'  => 'SENT',
+                        'message' => 'Berhasil terkirim.',
+                    ];
+                } else {
+                    $failedCount++;
+                    $results[] = [
+                        'nik'     => $nik,
+                        'name'    => $empName,
+                        'email'   => $recipientEmail,
+                        'status'  => 'FAILED',
+                        'message' => $errorMsg ?: 'Gagal terkirim via SMTP.',
+                    ];
+                }
+
+                if ($hasLogTable) {
+                    DB::table('payroll_payslip_email_logs')->insert([
+                        'task_id'         => $payslipData['task_id'],
+                        'salary_period'   => $payslipData['period'],
+                        'nik'             => $nik,
+                        'recipient_email' => $recipientEmail,
+                        'mode'            => !empty($payslipData['is_final']) ? 'FINAL' : 'PREVIEW',
+                        'status'          => $isSent ? 'SENT' : 'FAILED',
+                        'error_message'   => $isSent ? null : $errorMsg,
+                        'sent_by'         => $currentUser,
+                        'created_at'      => Carbon::now()->toDateTimeString(),
+                        'updated_at'      => Carbon::now()->toDateTimeString(),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                $failedCount++;
+                $results[] = [
+                    'nik'     => $nik,
+                    'name'    => $nik,
+                    'email'   => '-',
+                    'status'  => 'ERROR',
+                    'message' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json([
+            'success'       => true,
+            'message'       => "Blasting payslip selesai: {$sentCount} terkirim, {$failedCount} gagal, {$skippedCount} dilewati.",
+            'total'         => count($niks),
+            'sent'          => $sentCount,
+            'failed'        => $failedCount,
+            'skipped'       => $skippedCount,
+            'results'       => $results,
+        ]);
     }
 
     /**

@@ -46,6 +46,9 @@ class UpcomingInboundTest extends TestCase
         $this->assertStringContainsString('id="upcomingPaginationBar"', $content);
         $this->assertStringContainsString('id="upcomingPerPage"', $content);
         $this->assertStringContainsString('id="upcomingPaginationControls"', $content);
+        $this->assertStringContainsString('id="upcomingEmptyNotice"', $content);
+        $this->assertStringContainsString('id="upcomingErrorNotice"', $content);
+        $this->assertStringContainsString('function renderUpcomingState', $content);
         $this->assertStringNotContainsString('id="filterUpcomingStatus"', $content);
         $this->assertStringNotContainsString('#text_filter', $content);
     }
@@ -116,6 +119,59 @@ class UpcomingInboundTest extends TestCase
     }
 
     /** @test */
+    public function xml_data_exposes_filter_counts_for_empty_state()
+    {
+        Cache::flush();
+
+        $fakeClient = new class($this->createMock(ApipiAuthService::class)) extends ApipiApiClient {
+            public function pelindoInboundMovements(): array
+            {
+                return [];
+            }
+        };
+        $this->app->instance(ApipiApiClient::class, $fakeClient);
+
+        $controller = new UpcomingInboundController();
+        $response = $controller->xmlData(new Request());
+        $this->assertSame(200, $response->getStatusCode());
+
+        $xml = simplexml_load_string($response->getContent());
+        $this->assertSame('0', (string) $xml['total_count']);
+        $this->assertSame('0', (string) $xml['source_count']);
+        $this->assertSame('0', (string) $xml['used_excluded']);
+        $this->assertSame('0', (string) $xml['done_excluded']);
+        $this->assertSame('0', (string) $xml['filtered_count']);
+    }
+
+    /** @test */
+    public function xml_data_counts_done_and_used_movements_for_empty_state()
+    {
+        Cache::flush();
+
+        $fakeClient = new class($this->createMock(ApipiAuthService::class)) extends ApipiApiClient {
+            public function pelindoInboundMovements(): array
+            {
+                return [
+                    ['id' => 901, 'kode' => 'MOV-EMPTY-OPEN', 'tujuan_gudang' => 'Final Storage Pelindo', 'dari_gudang' => 'Malang', 'tgl' => '2026-11-12', 'total_qty' => 100, 'logistics_status' => 'in_transit'],
+                    ['id' => 902, 'kode' => 'MOV-EMPTY-DONE', 'tujuan_gudang' => 'Final Storage Pelindo', 'dari_gudang' => 'Solo', 'tgl' => '2026-11-12', 'total_qty' => 200, 'logistics_status' => 'done'],
+                ];
+            }
+        };
+        $this->app->instance(ApipiApiClient::class, $fakeClient);
+
+        $controller = new UpcomingInboundController();
+        $response = $controller->xmlData(new Request());
+        $this->assertSame(200, $response->getStatusCode());
+
+        $xml = simplexml_load_string($response->getContent());
+        $this->assertSame('1', (string) $xml['total_count']);
+        $this->assertSame('2', (string) $xml['source_count']);
+        $this->assertSame('0', (string) $xml['used_excluded']);
+        $this->assertSame('1', (string) $xml['done_excluded']);
+        $this->assertSame('1', (string) $xml['filtered_count']);
+    }
+
+    /** @test */
     public function xml_data_returns_502_json_when_apipi_fails()
     {
         $failingClient = new class($this->createMock(ApipiAuthService::class)) extends ApipiApiClient {
@@ -173,7 +229,10 @@ class UpcomingInboundTest extends TestCase
 
         $page1 = $controller->xmlData(new Request(['page' => 1, 'per_page' => 10]))->getContent();
         $this->assertSame(1, $fakeClient->calls);
-        $this->assertStringContainsString('<rows total_count="12" page="1" per_page="10" total_pages="2">', $page1);
+        $this->assertStringContainsString('total_count="12"', $page1);
+        $this->assertStringContainsString('page="1"', $page1);
+        $this->assertStringContainsString('per_page="10"', $page1);
+        $this->assertStringContainsString('total_pages="2"', $page1);
         $this->assertStringContainsString('<cell>1</cell><cell>MOV-PG-01</cell>', $page1);
         $this->assertStringContainsString('MOV-PG-10', $page1);
         $this->assertStringNotContainsString('MOV-PG-11', $page1);
@@ -181,7 +240,10 @@ class UpcomingInboundTest extends TestCase
         // Page 2 uses cached movements and continues row numbering at 11
         $page2 = $controller->xmlData(new Request(['page' => 2, 'per_page' => 10]))->getContent();
         $this->assertSame(1, $fakeClient->calls);
-        $this->assertStringContainsString('<rows total_count="12" page="2" per_page="10" total_pages="2">', $page2);
+        $this->assertStringContainsString('total_count="12"', $page2);
+        $this->assertStringContainsString('page="2"', $page2);
+        $this->assertStringContainsString('per_page="10"', $page2);
+        $this->assertStringContainsString('total_pages="2"', $page2);
         $this->assertStringContainsString('<cell>11</cell><cell>MOV-PG-11</cell>', $page2);
         $this->assertStringContainsString('<cell>12</cell><cell>MOV-PG-12</cell>', $page2);
         $this->assertStringNotContainsString('MOV-PG-10', $page2);
@@ -189,12 +251,18 @@ class UpcomingInboundTest extends TestCase
         // Invalid per_page falls back to 25 and clamps out-of-range page to 1
         $invalidPerPage = $controller->xmlData(new Request(['page' => 99, 'per_page' => 999]))->getContent();
         $this->assertSame(1, $fakeClient->calls);
-        $this->assertStringContainsString('<rows total_count="12" page="1" per_page="25" total_pages="1">', $invalidPerPage);
+        $this->assertStringContainsString('total_count="12"', $invalidPerPage);
+        $this->assertStringContainsString('page="1"', $invalidPerPage);
+        $this->assertStringContainsString('per_page="25"', $invalidPerPage);
+        $this->assertStringContainsString('total_pages="1"', $invalidPerPage);
 
         // Refresh=1 clears cache and fetches fresh data
         $refreshed = $controller->xmlData(new Request(['refresh' => '1']))->getContent();
         $this->assertSame(2, $fakeClient->calls);
-        $this->assertStringContainsString('<rows total_count="1" page="1" per_page="25" total_pages="1">', $refreshed);
+        $this->assertStringContainsString('total_count="1"', $refreshed);
+        $this->assertStringContainsString('page="1"', $refreshed);
+        $this->assertStringContainsString('per_page="25"', $refreshed);
+        $this->assertStringContainsString('total_pages="1"', $refreshed);
         $this->assertStringContainsString('MOV-PG-NEW', $refreshed);
         $this->assertStringNotContainsString('MOV-PG-01', $refreshed);
     }

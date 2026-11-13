@@ -121,7 +121,41 @@ class WarehouseService
             'System_Qty_Updated_At' => now(),
         ]);
 
+        // Open opnames are a live view of the ledger, not a creation-time
+        // snapshot. Keep DRAFT/COUNTED rows aligned with the latest movements.
+        $this->refreshOpenOpnamesForWarehouse($warehouseId);
+
         return $total;
+    }
+
+    /**
+     * Refresh System_Qty (and counted Difference) for open opnames.
+     * CLOSED / CLOSED_PENDING rows keep their historical snapshot.
+     */
+    public function refreshOpenOpnamesForWarehouse($warehouseId): int
+    {
+        $opnames = DB::table('warehouse_stock_opnames')
+            ->where('Warehouse_ID', $warehouseId)
+            ->whereIn('Status', ['DRAFT', 'COUNTED'])
+            ->where('Container_ID', '>', 0)
+            ->get(['ID', 'Container_ID', 'Physical_Qty', 'Status']);
+
+        $updated = 0;
+        foreach ($opnames as $opname) {
+            $liveQty = $this->containerSystemQty((int) $opname->Container_ID);
+            $difference = $opname->Status === 'COUNTED'
+                ? (float) $opname->Physical_Qty - $liveQty
+                : 0.0;
+
+            DB::table('warehouse_stock_opnames')->where('ID', $opname->ID)->update([
+                'System_Qty'  => $liveQty,
+                'Difference'  => $difference,
+                'Updated_At'  => now(),
+            ]);
+            $updated++;
+        }
+
+        return $updated;
     }
 
     public function calculateMonthlyFinancialStatement(

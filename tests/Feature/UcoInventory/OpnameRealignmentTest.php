@@ -215,6 +215,38 @@ class OpnameRealignmentTest extends TestCase
         $wh = $this->seedWarehouse('TEST-OP-F');
         $c  = $this->seedContainer($wh);
 
+        $pooId = DB::table('master_poo')->insertGetId([
+            'Name'               => 'Instock Recompute POO '.uniqid(),
+            'Nearest_Warehouse'  => (string) $wh,
+            'Price'              => '1000',
+            'Is_Active'          => 1,
+            'Location_Coordinate' => '-6.2,106.8',
+        ]);
+        $woId = DB::table('work_order')->insertGetId([
+            'POO_Id'          => $pooId,
+            'Code'            => 'WO-OP-F-'.uniqid(),
+            'Status'          => 'OPEN',
+            'Work_Order_Date' => now(),
+        ]);
+        $doId = DB::table('delivery_order')->insertGetId([
+            'Code'       => 'DO-OP-F-'.uniqid(),
+            'DO_Status'  => 'DONE',
+            'DO_Date'    => now()->toDateString(),
+            'Created_At' => now(),
+        ]);
+        $poId = DB::table('pickup_order')->insertGetId([
+            'Code'             => 'PO-OP-F-'.uniqid(),
+            'Qty'              => 40,
+            'Actual_Qty'       => 40,
+            'Qty_Unit'         => 'L',
+            'Price'            => 1000,
+            'Price_Unit'       => 'L',
+            'Package_Capacity' => 1,
+            'WO_Id'            => $woId,
+            'DO_Id'            => $doId,
+            'Created_At'       => now(),
+        ]);
+
         $this->actingAs($this->admin())
             ->postJson('/partner-uco-instock-submit-batch', [
                 'received_date' => now()->toDateString(),
@@ -226,6 +258,8 @@ class OpnameRealignmentTest extends TestCase
                     'received_qty'      => 40,
                     'avg_price'         => 1000,
                     'total'             => 40000,
+                    'po_ids'            => [$poId],
+                    'do_ids'            => [$doId],
                     'containers'        => [['container_id' => $c, 'qty' => 40, 'price' => 1000]],
                 ]]),
             ])

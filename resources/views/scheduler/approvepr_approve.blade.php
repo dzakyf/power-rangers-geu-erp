@@ -29,7 +29,7 @@ if ($cek) {
 		case "APPROVAL_FINANCE":
 
 			$nstatus = "APPROVAL_GA";
-			$getupper = DB::table("organization_structure")->where("Level3", 1)->where("Department", "GEA")->first();
+			$getupper = DB::table("organization_structure")->where("Level3", 1)->where("Directorat", "GEU")->first();
 
 			break;
 		case "APPROVAL_GA":

@@ -10,7 +10,7 @@ $current_username = $_SESSION['username'] ?? $_SESSION['name'] ?? 'ADMIN';
 // Tangkap parameter QTN yang dipilih dari matriks QTN sebelumnya
 $selected_qtn = $_GET['qtn'] ?? '';
 
-// 2. PROSES TERBITKAN PO & SIMPAN KE TABEL ASLI
+// 2. PROSES TERBITKAN PO & SIMPAN SEMUA ITEM KE TABEL DETAIL
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_po'])) {
     $qtn_no      = trim($_POST['qtn_no']);
     $pr_no       = trim($_POST['pr_no']);
@@ -25,30 +25,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_po'])) {
         $stmt_pr->execute([':pr_no' => $pr_no]);
         $pr_data = $stmt_pr->fetch(PDO::FETCH_ASSOC);
 
-        $stmt_qtn = $pdo->prepare("SELECT * FROM quotation WHERE QTN_No = :qtn LIMIT 1");
-        $stmt_qtn->execute([':qtn' => $selected_qtn]);
-        $qtn_data = $stmt_qtn->fetch(PDO::FETCH_ASSOC);
+        // Ambil SEMUA item barang dari quotation berdasarkan QTN_No
+        $stmt_qtn_all = $pdo->prepare("SELECT * FROM quotation WHERE QTN_No = :qtn");
+        $stmt_qtn_all->execute([':qtn' => $selected_qtn]);
+        $qtn_items = $stmt_qtn_all->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!$pr_data || !$qtn_data) {
-            throw new Exception("Data PR atau Quotation tidak ditemukan di database.");
+        if (!$pr_data || empty($qtn_items)) {
+            throw new Exception("Data PR atau item Quotation tidak ditemukan di database.");
         }
 
-        // B. Buat Nomor PO otomatis
+        // B. Buat Nomor PO unik menggunakan mekanisme penguncian/max ID agar tidak kembar
         $bulanRomawi = array("", "I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII");
         $bln = $bulanRomawi[(int) date('m', strtotime($po_date))];
         $thn = date('Y', strtotime($po_date));
 
-        $stmt_count = $pdo->query("SELECT COUNT(*) FROM purchase_order");
-        $next_no = $stmt_count->fetchColumn() + 1;
-        $target_po_no = "PO/" . $bln . "/" . $thn . "/" . sprintf("%03d", $next_no);
+        $stmt_max = $pdo->query("SELECT MAX(ID) FROM purchase_order");
+        $max_id = (int)$stmt_max->fetchColumn() + 1;
+        $target_po_no = "PO/" . $bln . "/" . $thn . "/" . sprintf("%03d", $max_id);
 
-        // C. Hitung Finansial (Subtotal, PPN 11%, PPh 0%, dan Total)
-        $subtotal = $qtn_data['Qty'] * $qtn_data['Offered_Price'];
+        // C. Hitung total finansial dari seluruh item secara akurat
+        $subtotal = 0;
+        foreach ($qtn_items as $qi) {
+            $subtotal += ($qi['Qty'] * $qi['Offered_Price']);
+        }
         $ppn_val  = $subtotal * 0.11; 
-        $pph_val  = 0; // Sesuaikan jika ada tarif PPh tertentu
+        $pph_val  = 0; 
         $total    = $subtotal + $ppn_val - $pph_val;
 
-        // D. Insert ke Header `purchase_order` sesuai kolom asli Anda
+        // D. Insert ke Header `purchase_order`
         $sql_po = "INSERT INTO purchase_order 
                    (PO_No, PR_No, Location, Process_By, Purchase_Type, Purchase_Category, Purchase_Sub_Category, 
                     PO_Date, Department, PIC_Address, PIC_Phone, PIC, Supplier, Subtotal, PPN, PPH, Total, Status, User_Trx, Date_Trx) 
@@ -70,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_po'])) {
             ':pic_address'           => $pr_data['PIC_Address'] ?? '-',
             ':pic_phone'             => $pr_data['PIC_Phone'] ?? '-',
             ':pic'                   => $pr_data['PIC'] ?? 'ADMIN',
-            ':supplier'              => $qtn_data['Supplier_ID'],
+            ':supplier'              => $supplier_id,
             ':subtotal'              => $subtotal,
             ':ppn'                   => $ppn_val,
             ':pph'                   => $pph_val,
@@ -78,30 +82,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_po'])) {
             ':user_trx'              => $current_username
         ]);
 
-        // E. Insert ke Detail `purchase_order_dtl` sesuai struktur asli Anda
+        // E. Insert SEMUA item barang ke Detail `purchase_order_dtl` melalui perulangan (looping)
         $sql_podtl = "INSERT INTO purchase_order_dtl 
                       (PO_No, PR_No, Category, Sub_Category, Purchase_Type, Product_Desc, Specification, Qty, Unit, Price, Subtotal, PPN, Total) 
                       VALUES 
                       (:po_no, :pr_no, :category, :sub_category, :purchase_type, :product_desc, :specification, :qty, :unit, :price, :subtotal, :ppn, :total)";
         
         $stmt_ins_dtl = $pdo->prepare($sql_podtl);
-        $stmt_ins_dtl->execute([
-            ':po_no'         => $target_po_no,
-            ':pr_no'         => $pr_no,
-            ':category'      => $pr_data['Category'] ?? 'GENERAL',
-            ':sub_category'  => $pr_data['Sub_Category'] ?? 'BARANG',
-            ':purchase_type' => $pr_data['Supplies_Type'] ?? 'Non-Ops',
-            ':product_desc'  => $qtn_data['Product_Desc'],
-            ':specification' => $qtn_data['Specification'] ?? '-',
-            ':qty'           => $qtn_data['Qty'],
-            ':unit'          => $qtn_data['Unit'],
-            ':price'         => $qtn_data['Offered_Price'],
-            ':subtotal'      => $subtotal,
-            ':ppn'           => $ppn_val,
-            ':total'         => $total
-        ]);
 
-        // F. Update nomor PO, QTN_No & Status di tabel utama `purchase_request` agar tersinkronisasi sempurna
+        foreach ($qtn_items as $item) {
+            $item_subtotal = $item['Qty'] * $item['Offered_Price'];
+            $item_ppn      = $item_subtotal * 0.11;
+            $item_total    = $item_subtotal + $item_ppn;
+
+            $stmt_ins_dtl->execute([
+                ':po_no'         => $target_po_no,
+                ':pr_no'         => $pr_no,
+                ':category'      => $pr_data['Category'] ?? 'GENERAL',
+                ':sub_category'  => $pr_data['Sub_Category'] ?? 'BARANG',
+                ':purchase_type' => $pr_data['Supplies_Type'] ?? 'Non-Ops',
+                ':product_desc'  => $item['Product_Desc'],
+                ':specification' => $item['Specification'] ?? '-',
+                ':qty'           => $item['Qty'],
+                ':unit'          => $item['Unit'],
+                ':price'         => $item['Offered_Price'],
+                ':subtotal'      => $item_subtotal,
+                ':ppn'           => $item_ppn,
+                ':total'         => $item_total
+            ]);
+        }
+
+        // F. Update nomor PO, QTN_No & Status di tabel utama `purchase_request`
         $stmt_up_pr = $pdo->prepare("UPDATE purchase_request SET PO_No = :po_no, QTN_No = :qtn_no, Status = 'APPROVED' WHERE PR_No = :pr_no");
         $stmt_up_pr->execute([
             ':po_no'  => $target_po_no,
@@ -131,13 +142,11 @@ $last_price_val = 0;
 
 if (!empty($selected_qtn)) {
     try {
-        // Ambil header quotation & supplier
         $stmt_q = $pdo->prepare("SELECT q.*, s.Company_Name FROM quotation q LEFT JOIN supplier s ON q.Supplier_ID = s.Supplier_ID WHERE q.QTN_No = :qtn LIMIT 1");
         $stmt_q->execute([':qtn' => $selected_qtn]);
         $qtn_item = $stmt_q->fetch(PDO::FETCH_ASSOC);
 
         if ($qtn_item) {
-            // Ambil semua item berdasarkan QTN_No atau PR_No yang bersangkutan
             $stmt_items = $pdo->prepare("SELECT * FROM quotation WHERE QTN_No = :qtn");
             $stmt_items->execute([':qtn' => $selected_qtn]);
             $qtn_details = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
@@ -149,7 +158,6 @@ if (!empty($selected_qtn)) {
             $ppn_val = $subtotal_val * 0.11;
             $grand_total = $subtotal_val + $ppn_val;
 
-            // Ambil Last Price (harga dari pembelian item serupa sebelumnya di purchase_request_dtl)
             $stmt_lp = $pdo->prepare("SELECT Default_Price FROM purchase_request_dtl WHERE Product_Desc = :desc AND PR_No != :pr_no ORDER BY ID DESC LIMIT 1");
             $stmt_lp->execute([
                 ':desc'  => $qtn_item['Product_Desc'],
@@ -160,7 +168,7 @@ if (!empty($selected_qtn)) {
     } catch (Exception $e) {}
 }
 
-// 4. Ambil Daftar PO yang sudah diterbitkan untuk ditampilkan pada tabel riwayat
+// 4. Ambil Daftar PO yang sudah diterbitkan
 try {
     $stmt_po_list = $pdo->query("SELECT po.*, s.Company_Name FROM purchase_order po LEFT JOIN supplier s ON po.Supplier = s.Supplier_ID ORDER BY po.ID DESC");
     $list_po = $stmt_po_list->fetchAll(PDO::FETCH_ASSOC);
@@ -188,7 +196,7 @@ try {
                 <h6 class="mb-0 font-weight-bold" style="font-size: 13px;"><i class="fas fa-check-circle mr-2"></i>Konfirmasi Penerbitan PO untuk QTN: <?= htmlspecialchars($selected_qtn); ?></h6>
             </div>
             <div class="card-body bg-light">
-                <form action="po-create?qtn=<?= urlencode($selected_qtn); ?>" method="POST">
+                <form action="po-create?qtn=<?= urlencode($selected_qtn); ?>" method="POST" id="formPoCreate">
                     <input type="hidden" name="submit_po" value="1">
                     <input type="hidden" name="qtn_no" value="<?= htmlspecialchars($qtn_item['QTN_No']); ?>">
                     <input type="hidden" name="pr_no" value="<?= htmlspecialchars($qtn_item['PR_No']); ?>">
@@ -234,7 +242,7 @@ try {
                         </table>
                     </div>
 
-                    <!-- KOTAK PERHITUNGAN FINANSIAL (SUBTOTAL, PPN, PPH, GRAND TOTAL) -->
+                    <!-- KOTAK PERHITUNGAN FINANSIAL -->
                     <div class="bg-white p-3 rounded border mb-3 shadow-sm" style="font-size: 12px; max-width: 400px; margin-left: auto;">
                         <div class="d-flex justify-content-between mb-1 text-secondary">
                             <span>Subtotal:</span>
@@ -261,7 +269,7 @@ try {
                     </div>
 
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch" style="gap: 10px;">
-                        <button type="submit" class="btn btn-success btn-sm font-weight-bold py-2 shadow-sm">
+                        <button type="button" id="btnSubmitPo" class="btn btn-success btn-sm font-weight-bold py-2 shadow-sm">
                             <i class="fas fa-paper-plane mr-1"></i> Terbitkan PO Resmi Sekarang
                         </button>
                         <a href="qtn-create" class="btn btn-secondary btn-sm font-weight-bold py-2 text-center">
@@ -277,7 +285,7 @@ try {
         </div>
     <?php endif; ?>
 
-    <!-- TABEL DAFTAR PO YANG SUDAH TERBIT -->
+    <!-- TABEL DAFTAR PO -->
     <div class="card shadow-sm border-0" style="border-radius: 12px;">
         <div class="card-header bg-white py-2" style="border-top-left-radius: 12px; border-top-right-radius: 12px;">
             <h6 class="mb-0 font-weight-bold text-dark" style="font-size: 13px;"><i class="fas fa-list mr-2 text-success"></i>Daftar Purchase Order (PO) Aktif</h6>
@@ -313,7 +321,7 @@ try {
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-3">Belum ada Purchase Order (PO) yang diterbitkan.</td>
+                                <td colspan="8" class="text-center text-muted py-3">Nilai PO belum tersedia.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -329,7 +337,6 @@ try {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Skrip Sidebar Mobile
     const toggleBtn = document.getElementById('sidebarToggle');
     const closeBtn = document.getElementById('sidebarClose');
     const sidebar = document.getElementById('sidebarDrawer');
@@ -343,6 +350,24 @@ try {
     if(toggleBtn) toggleBtn.addEventListener('click', toggleSidebar);
     if(closeBtn) closeBtn.addEventListener('click', toggleSidebar);
     if(overlay) overlay.addEventListener('click', toggleSidebar);
+
+    // Konfirmasi SweetAlert2 sebelum Terbitkan PO
+    document.getElementById('btnSubmitPo')?.addEventListener('click', function() {
+        Swal.fire({
+            title: 'Terbitkan PO Resmi?',
+            text: 'Apakah Anda yakin ingin menerbitkan Purchase Order ini? Dokumen yang diproses akan dikunci.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Terbitkan!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('formPoCreate').submit();
+            }
+        });
+    });
 
     <?php if (!empty($success_message)): ?>
         Swal.fire({ icon: 'success', title: 'Berhasil!', text: '<?= addslashes($success_message); ?>', confirmButtonColor: '#28a745' }).then(() => { window.location.href = 'po-create'; });

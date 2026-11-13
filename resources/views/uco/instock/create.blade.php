@@ -43,9 +43,9 @@
                 <h6 class="mb-2">Photos & Notes</h6>
                 <div class="text-center mb-3">
                     <div class="border rounded p-2 bg-light">
-                        <video id="webcam" width="100%" autoplay playsinline style="max-height:200px;"></video>
+                        <video id="instockCreateWebcam" width="100%" autoplay playsinline style="max-height:200px;"></video>
                         <div class="mt-2">
-                            <button type="button" class="btn btn-sm btn-primary" id="btnCapture">Capture</button>
+                            <button type="button" class="btn btn-sm btn-primary" id="btnCaptureInstockCreate">Capture</button>
                         </div>
                     </div>
                 </div>
@@ -69,8 +69,8 @@
     var webcamStream = null;
     var previewData = null;
 
-    function startWebcam() {
-        var video = document.getElementById('webcam');
+    function startInstockCreateWebcam() {
+        var video = document.getElementById('instockCreateWebcam');
         if (!video) return;
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: true })
@@ -79,7 +79,7 @@
         }
     }
 
-    function stopWebcam() {
+    function stopInstockCreateWebcam() {
         if (webcamStream) { webcamStream.getTracks().forEach(function(t) { t.stop(); }); webcamStream = null; }
     }
 
@@ -285,7 +285,7 @@
                         renderContainerBlock(tbody, g, i);
                     });
                     $('#previewSection').show();
-                    setTimeout(startWebcam, 300);
+                    setTimeout(startInstockCreateWebcam, 300);
                 },
                 error: function() { alert('Gagal memuat preview'); }
             });
@@ -402,8 +402,9 @@
             renderGallery();
         }
 
-        $(document).on('click', '#btnCapture', function() {
-            var video = document.getElementById('webcam');
+        $(document).on('click', '#btnCaptureInstockCreate', function() {
+            var video = document.getElementById('instockCreateWebcam');
+            if (!video) return;
             var canvas = document.createElement('canvas');
             canvas.width = video.videoWidth || 640;
             canvas.height = video.videoHeight || 480;

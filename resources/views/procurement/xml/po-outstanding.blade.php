@@ -87,7 +87,7 @@ foreach ($kueri as $Fetch) {
 
 	$user = DB::table("users")->where("username", $Fetch->Created_By)->first();
 
-	$getupper = DB::table("organization_structure")->where("Level3", 1)->where("Department", 'GEA')->first();
+	$getupper = DB::table("organization_structure")->where("Level3", 1)->where("Directorat", 'GEU')->first();
 	$cekMail = DB::table("mail_logs")->where('Email_To', 'LIKE', '%' . $getupper->Email . '%')->where('Subject', 'LIKE', '%' . $Fetch->PR_No . '%')->orderBy('ID', 'DESC')->first();
 
 	echo "<row id=\"$Fetch->PR_No\" $warna>";

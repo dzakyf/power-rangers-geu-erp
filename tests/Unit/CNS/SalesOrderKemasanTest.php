@@ -194,7 +194,7 @@ class SalesOrderKemasanTest extends TestCase
     /** @test */
     public function add_price_and_unit_migrations_exist_for_cns_master_kemasan()
     {
-        $pricePath = database_path('migrations/cns/2026_11_12_000001_add_price_and_unit_to_cns_master_kemasan_table.php');
+        $pricePath = database_path('migrations/cns/2026_11_12_000001_add_price_to_cns_master_kemasan_table.php');
         $this->assertFileExists($pricePath);
         $priceContent = file_get_contents($pricePath);
         $this->assertStringContainsString("Schema::hasColumn('cns_master_kemasan', 'Price')", $priceContent);

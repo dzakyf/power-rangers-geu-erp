@@ -133,11 +133,16 @@
             <button onclick="window.history.back()" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
                 <i class="fa fa-arrow-left me-1"></i> Kembali
             </button>
-            <div class="fw-bold text-dark fs-6">
-                Payslip Detail
+            <div class="fw-bold text-dark fs-6 d-flex align-items-center gap-2">
+                <span>Payslip Detail</span>
+                @if(!empty($payslip['is_final']))
+                    <span class="badge bg-success text-white fw-bold rounded-pill px-2 py-1" style="font-size: 0.72rem;">FINAL / RESMI</span>
+                @else
+                    <span class="badge bg-warning text-dark fw-bold rounded-pill px-2 py-1" style="font-size: 0.72rem;">PREVIEW RECOUNTING (DRAFT)</span>
+                @endif
             </div>
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="sendSlipEmail('{{ $payslip['nik'] }}', '{{ $payslip['period'] }}')">
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="sendSlipEmail('{{ $payslip['nik'] }}', '{{ $payslip['period'] }}', '{{ $payslip['task_id'] }}', '{{ $payslip['source'] ?? '' }}', '{{ $payslip['main_id'] ?? '' }}')">
                     <i class="fa fa-envelope me-1"></i> Kirim ke Email
                 </button>
                 <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" onclick="window.print()">
@@ -160,7 +165,14 @@
             </div>
             <div class="text-end">
                 <div class="confidential-tag mb-1">*CONFIDENTIAL</div>
-                <div class="fw-bold text-dark fs-5" style="letter-spacing: 0.5px;">PAYSLIP</div>
+                <div class="d-flex align-items-center justify-content-end gap-2">
+                    <div class="fw-bold text-dark fs-5" style="letter-spacing: 0.5px;">PAYSLIP</div>
+                    @if(!empty($payslip['is_final']))
+                        <span class="badge bg-success text-white fw-bold px-2 py-1" style="font-size: 0.72rem;">FINAL</span>
+                    @else
+                        <span class="badge bg-warning text-dark fw-bold px-2 py-1" style="font-size: 0.72rem;">PREVIEW DRAFT</span>
+                    @endif
+                </div>
             </div>
         </div>
 
@@ -213,6 +225,17 @@
                         <td class="meta-label">Join date</td>
                         <td class="meta-separator">:</td>
                         <td class="meta-val">{{ $payslip['join_date'] }}</td>
+                    </tr>
+                    <tr>
+                        <td class="meta-label">Email</td>
+                        <td class="meta-separator">:</td>
+                        <td class="meta-val">
+                            @if(!empty($payslip['email']))
+                                <span class="text-primary">{{ $payslip['email'] }}</span>
+                            @else
+                                <span class="text-muted fst-italic">Belum diatur</span>
+                            @endif
+                        </td>
                     </tr>
                 </table>
             </div>
@@ -349,12 +372,14 @@
     <!-- Scripts -->
     <script src="{{ asset('adminor/plugins/jquery/jquery.min.js') }}"></script>
     <script>
-        function sendSlipEmail(nik, period) {
-            if (!confirm('Kirim slip gaji digital ini ke email karyawan?')) return;
+        function sendSlipEmail(nik, period, taskId, source, mainId) {
+            if (!confirm('Kirim slip gaji digital ini ke email karyawan (' + nik + ')?')) return;
             
-            var btn = event.target;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Mengirim...';
+            var btn = (typeof event !== 'undefined' && event.target) ? (event.target.closest('button') || event.target) : document.querySelector('button');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Mengirim...';
+            }
 
             $.ajax({
                 url: '{{ url('api/payroll/send-payslip-email') }}',
@@ -362,11 +387,16 @@
                 data: {
                     _token: '{{ csrf_token() }}',
                     nik: nik,
-                    period: period
+                    period: period,
+                    task_id: taskId || '',
+                    source: source || '',
+                    main_id: mainId || ''
                 },
                 success: function(res) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa fa-envelope me-1"></i> Kirim ke Email';
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-envelope me-1"></i> Kirim ke Email';
+                    }
                     if (res.success) {
                         alert('Slip gaji berhasil dikirimkan ke: ' + res.recipient);
                     } else {
@@ -374,9 +404,12 @@
                     }
                 },
                 error: function(xhr) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa fa-envelope me-1"></i> Kirim ke Email';
-                    alert('Terjadi kesalahan saat memproses pengiriman email.');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-envelope me-1"></i> Kirim ke Email';
+                    }
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Terjadi kesalahan saat memproses pengiriman email.';
+                    alert(msg);
                 }
             });
         }

@@ -70,6 +70,18 @@ class SyncModuleApprovalStatus
                     $this->handlePayroll($requestId, $request->Status);
                     break;
 
+                case 'EMPLOYEE_RESIGNATION':
+                    $this->handleEmployeeResignation($requestId, $request->Status);
+                    break;
+
+                case 'EXIT_CLEARANCE':
+                    $this->handleExitClearance($requestId, $request->Status);
+                    break;
+
+                case 'DISCIPLINARY_SANCTION':
+                    $this->handleDisciplinarySanction($requestId, $request->Status);
+                    break;
+
                 default:
                     // Request_Type lain dapat didaftarkan di sini
                     break;
@@ -390,6 +402,94 @@ class SyncModuleApprovalStatus
             'Status'     => $newSalaryStatus,
             'Posting_By' => 'APPROVAL_ENGINE',
         ]);
+    }
+
+    protected function handleEmployeeResignation(int $requestId, ?string $approvalStatus): void
+    {
+        $resignation = DB::table('employee_resignations')->where('Approval_Request_ID', $requestId)->first();
+        if (!$resignation) {
+            $resignation = DB::table('employee_resignations')->where('id', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+
+        if (!$resignation) {
+            return;
+        }
+
+        $statusUpper = strtoupper((string) $approvalStatus);
+        $exitClearanceService = app(\App\Services\HCGA\ExitClearanceService::class);
+
+        if (in_array($statusUpper, ['APPROVED', 'COMPLETED'])) {
+            if ($resignation->Status !== 'APPROVED') {
+                $exitClearanceService->approveResignation((int) $resignation->id, (int) (auth()->id() ?: 1), 'Approved via Approval Inbox');
+            }
+        } elseif (in_array($statusUpper, ['REJECTED', 'RETURNED'])) {
+            if ($resignation->Status !== 'REJECTED') {
+                $exitClearanceService->rejectResignation((int) $resignation->id, (int) (auth()->id() ?: 1), 'Rejected via Approval Inbox');
+            }
+        }
+    }
+
+    protected function handleExitClearance(int $requestId, ?string $approvalStatus): void
+    {
+        $clearance = DB::table('exit_clearances')->where('Approval_Request_ID', $requestId)->first();
+        if (!$clearance) {
+            $clearance = DB::table('exit_clearances')->where('id', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+
+        if (!$clearance) {
+            return;
+        }
+
+        $statusUpper = strtoupper((string) $approvalStatus);
+        $exitClearanceService = app(\App\Services\HCGA\ExitClearanceService::class);
+
+        if (in_array($statusUpper, ['APPROVED', 'COMPLETED'])) {
+            if ($clearance->Status !== 'COMPLETED') {
+                $exitClearanceService->verifyAndApproveByHcga((int) $clearance->id, [
+                    'hcga_notes' => 'Approved and completed via Approval Inbox',
+                ], (int) (auth()->id() ?: 1));
+            }
+        } elseif (in_array($statusUpper, ['REJECTED', 'RETURNED'])) {
+            DB::table('exit_clearances')->where('id', $clearance->id)->update([
+                'Status' => 'REJECTED',
+                'updated_at' => \Carbon\Carbon::now(),
+            ]);
+        }
+    }
+
+    protected function handleDisciplinarySanction(int $requestId, ?string $approvalStatus): void
+    {
+        $sanction = DB::table('disciplinary_sanctions')->where('Approval_Request_ID', $requestId)->first();
+        if (!$sanction) {
+            $sanction = DB::table('disciplinary_sanctions')->where('id', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+
+        if (!$sanction) {
+            return;
+        }
+
+        $statusUpper = strtoupper((string) $approvalStatus);
+
+        if (in_array($statusUpper, ['APPROVED', 'COMPLETED'])) {
+            if ($sanction->Status === 'PENDING_HCGA') {
+                DB::table('disciplinary_sanctions')->where('id', $sanction->id)->update([
+                    'Status' => 'WAITING_EMPLOYEE',
+                    'HCGA_Approved_At' => \Carbon\Carbon::now(),
+                    'updated_at' => \Carbon\Carbon::now(),
+                ]);
+            }
+        } elseif (in_array($statusUpper, ['REJECTED', 'RETURNED'])) {
+            DB::table('disciplinary_sanctions')->where('id', $sanction->id)->update([
+                'Status' => 'REJECTED',
+                'updated_at' => \Carbon\Carbon::now(),
+            ]);
+        }
     }
 }
 

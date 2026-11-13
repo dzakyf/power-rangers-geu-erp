@@ -1845,17 +1845,11 @@ class UCOController extends Controller
         }
 
         if ($r->query('available_for_po')) {
-            $query->where(function ($q) {
-                $q->whereNotExists(function ($sub) {
-                    $sub->select(DB::raw(1))
-                        ->from('pickup_order as po_any')
-                        ->whereColumn('po_any.WO_Id', 'wo.ID');
-                })->orWhereExists(function ($sub) {
-                    $sub->select(DB::raw(1))
-                        ->from('pickup_order as po_open')
-                        ->whereColumn('po_open.WO_Id', 'wo.ID')
-                        ->whereNull('po_open.Instock_At');
-                });
+            // One work order can produce exactly one pickup order.
+            $query->whereNotExists(function ($sub) {
+                $sub->select(DB::raw(1))
+                    ->from('pickup_order as po_any')
+                    ->whereColumn('po_any.WO_Id', 'wo.ID');
             });
         }
 
@@ -2074,25 +2068,17 @@ class UCOController extends Controller
         }
 
         $woId = $r->input('WO_Id');
-        if ($woId) {
-            $hasPickupOrders = DB::table('pickup_order')->where('WO_Id', $woId)->exists();
-            $hasAvailablePickupOrder = DB::table('pickup_order')
-                ->where('WO_Id', $woId)
-                ->whereNull('Instock_At')
-                ->exists();
-
-            if ($hasPickupOrders && !$hasAvailablePickupOrder) {
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => 'Work order sudah selesai di-instock dan tidak dapat digunakan untuk PO baru.',
-                ], 422);
-            }
+        if ($woId && DB::table('pickup_order')->where('WO_Id', $woId)->exists()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Work order sudah memiliki PO dan tidak dapat digunakan lagi.',
+            ], 422);
         }
 
         $count = DB::table('pickup_order')->count();
 
         try {
-            DB::transaction(function () use ($r, $count, $package, $qtyUnit, $priceUnit, $capacity) {
+            DB::transaction(function () use ($r, $count, $package, $qtyUnit, $priceUnit, $capacity, $woId) {
                 DB::table('pickup_order')->insert([
                     'Code'             => $this->generatorService->generateApplicationCode($count, 'PO'),
                     'Type_Pickup'      => $r->input('Type_Pickup'),
@@ -2334,6 +2320,11 @@ class UCOController extends Controller
                         ->from('pickup_order as po_open')
                         ->whereColumn('po_open.DO_Id', 'do.ID')
                         ->whereNull('po_open.Instock_At');
+                })->whereNotExists(function ($sub) {
+                    $sub->select(DB::raw(1))
+                        ->from('pickup_order as po_used')
+                        ->whereColumn('po_used.DO_Id', 'do.ID')
+                        ->whereNotNull('po_used.Instock_At');
                 });
             })
             ->get();
@@ -3602,6 +3593,11 @@ class UCOController extends Controller
 
             DB::table('warehouse_partner_supplies')->insert($data);
 
+            $warehouseId = $whId ?: DB::table('master_container')->where('ID', $cid)->value('Warehouse_ID');
+            if ($warehouseId) {
+                $this->warehouseService->recomputeWarehouseSystemQty($warehouseId);
+            }
+
             if ($r->has('webcam_photos') && is_array($r->input('webcam_photos'))) {
                 $mapTo = $r->input('warehouse_task_id') ?? $r->input('received_date');
                 foreach ($r->input('webcam_photos') as $b64) {
@@ -3657,15 +3653,27 @@ class UCOController extends Controller
         $requestedDoIds = array_values(array_unique(array_map('intval', (array) $doIds)));
         $unavailableDoIds = array_values(array_diff($requestedDoIds, $foundDoIds));
 
-        if (!empty($unavailableDoIds)) {
+        // A Surat Jalan is consumed as a whole. If any PO under it was
+        // already instocked, the remaining PO rows must not be processed.
+        $consumedDoIds = DB::table('pickup_order')
+            ->whereIn('DO_Id', $requestedDoIds)
+            ->whereNotNull('Instock_At')
+            ->distinct()
+            ->pluck('DO_Id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $blockedDoIds = array_values(array_unique(array_merge($unavailableDoIds, $consumedDoIds)));
+
+        if (!empty($blockedDoIds)) {
             $codes = DB::table('delivery_order')
-                ->whereIn('ID', $unavailableDoIds)
+                ->whereIn('ID', $blockedDoIds)
                 ->pluck('Code')
                 ->all();
 
             return response()->json([
                 'success' => false,
-                'message' => 'Surat Jalan sudah pernah di-instock atau tidak siap: ' . implode(', ', $codes ?: $unavailableDoIds),
+                'message' => 'Surat Jalan sudah pernah di-instock atau tidak siap: ' . implode(', ', $codes ?: $blockedDoIds),
             ], 422);
         }
 
@@ -3813,6 +3821,48 @@ class UCOController extends Controller
 
             if ($orders->count() !== count($allPoIds)) {
                 throw new \InvalidArgumentException('Sebagian PO sumber tidak ditemukan.');
+            }
+
+            $selectedDoIds = $orders->pluck('DO_Id')
+                ->filter()
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+
+            if (!empty($selectedDoIds)) {
+                $consumedDoIds = DB::table('pickup_order')
+                    ->whereIn('DO_Id', $selectedDoIds)
+                    ->whereNotNull('Instock_At')
+                    ->distinct()
+                    ->pluck('DO_Id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all();
+
+                if (!empty($consumedDoIds)) {
+                    $codes = DB::table('delivery_order')
+                        ->whereIn('ID', $consumedDoIds)
+                        ->pluck('Code')
+                        ->all();
+
+                    throw new \InvalidArgumentException(
+                        'Surat Jalan sudah pernah di-instock: ' . implode(', ', $codes ?: $consumedDoIds)
+                    );
+                }
+
+                $doPoIds = DB::table('pickup_order')
+                    ->whereIn('DO_Id', $selectedDoIds)
+                    ->pluck('ID')
+                    ->map(fn ($id) => (int) $id)
+                    ->all();
+
+                $missingPoIds = array_values(array_diff($doPoIds, $allPoIds));
+                if (!empty($missingPoIds)) {
+                    throw new \InvalidArgumentException(
+                        'Semua PO dalam Surat Jalan harus di-instock sekaligus. PO belum dipilih: '
+                        . implode(', ', $missingPoIds)
+                    );
+                }
             }
 
             foreach ($orders as $order) {
