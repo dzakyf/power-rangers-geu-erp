@@ -17,7 +17,10 @@ class InventoryPelindoQCTest extends TestCase
 
         $this->assertStringContainsString('FFA (As Palmitic)', $html);
         $this->assertStringContainsString('FFA (As Oleic)', $html);
-        $this->assertStringContainsString('MIU', $html);
+        $this->assertStringContainsString('Moisture', $html);
+        $this->assertStringContainsString('Impurities', $html);
+        $this->assertStringContainsString('Unsaponifiables', $html);
+        $this->assertStringNotContainsString('MIU', $html);
         $this->assertStringContainsString('Total Sulfur', $html);
         $this->assertStringContainsString('Iodine Value', $html);
         $this->assertStringContainsString('Chlorides', $html);
@@ -37,7 +40,10 @@ class InventoryPelindoQCTest extends TestCase
 
         $this->assertStringContainsString('FFA (As Palmitic)', $html);
         $this->assertStringContainsString('FFA (As Oleic)', $html);
-        $this->assertStringContainsString('MIU', $html);
+        $this->assertStringContainsString('Moisture', $html);
+        $this->assertStringContainsString('Impurities', $html);
+        $this->assertStringContainsString('Unsaponifiables', $html);
+        $this->assertStringNotContainsString('MIU', $html);
         $this->assertStringContainsString('Total Sulfur', $html);
         $this->assertStringContainsString('Iodine Value', $html);
         $this->assertStringContainsString('Chlorides', $html);
@@ -56,7 +62,10 @@ class InventoryPelindoQCTest extends TestCase
         $this->assertStringContainsString('Parameter QC', $content);
         $this->assertStringContainsString('FFA Palmitic', $content);
         $this->assertStringContainsString('FFA Oleic', $content);
-        $this->assertStringContainsString('MIU', $content);
+        $this->assertStringContainsString('Moisture', $content);
+        $this->assertStringContainsString('Impurities', $content);
+        $this->assertStringContainsString('Unsaponifiables', $content);
+        $this->assertStringNotContainsString("'MIU'", $content);
         $this->assertStringContainsString('Sulfur', $content);
         $this->assertStringContainsString('IV', $content);
         $this->assertStringContainsString('Chlorides', $content);

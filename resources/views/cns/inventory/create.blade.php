@@ -2,12 +2,14 @@
     $qcParameters = [
         ['key' => 'FFA_As_Palmitic', 'label' => '1. FFA (As Palmitic)', 'unit' => '%', 'required' => false],
         ['key' => 'FFA_As_Oleic',    'label' => '2. FFA (As Oleic)',    'unit' => '%', 'required' => false],
-        ['key' => 'MIU',             'label' => '3. MIU (Moisture, Impurities & Unsaponifiables)', 'unit' => '%', 'required' => false],
-        ['key' => 'Sulphur',         'label' => '4. Total Sulfur',      'unit' => 'ppm', 'required' => false],
-        ['key' => 'IV',              'label' => '5. Iodine Value (IV)', 'unit' => 'g I2/100g', 'required' => false],
-        ['key' => 'Total_Chlorides', 'label' => '6. Chlorides',         'unit' => 'ppm', 'required' => false],
-        ['key' => 'Phosphorus',      'label' => '7. Phosphorus',        'unit' => 'ppm', 'required' => false],
-        ['key' => 'Total_Metals',    'label' => '8. Total Metals',      'unit' => 'ppm', 'required' => false],
+        ['key' => 'Moisture',        'label' => '3. Moisture',          'unit' => '%', 'required' => false],
+        ['key' => 'Impurities',      'label' => '4. Impurities',        'unit' => '%', 'required' => false],
+        ['key' => 'Unsaponifiables', 'label' => '5. Unsaponifiables',   'unit' => '%', 'required' => false],
+        ['key' => 'Sulphur',         'label' => '6. Total Sulfur',      'unit' => 'ppm', 'required' => false],
+        ['key' => 'IV',              'label' => '7. Iodine Value (IV)', 'unit' => 'g I2/100g', 'required' => false],
+        ['key' => 'Total_Chlorides', 'label' => '8. Chlorides',         'unit' => 'ppm', 'required' => false],
+        ['key' => 'Phosphorus',      'label' => '9. Phosphorus',        'unit' => 'ppm', 'required' => false],
+        ['key' => 'Total_Metals',    'label' => '10. Total Metals',     'unit' => 'ppm', 'required' => false],
     ];
 @endphp
 <div id="FormQualityControl" class="row m-1" style="display:none;">
@@ -16,8 +18,6 @@
         <div class="card-body">
             <form id="UCOStorageForm" enctype="multipart/form-data">
                 @csrf
-                <input type="hidden" name="MC" id="create_MC" />
-                <input type="hidden" name="IMP" id="create_IMP" />
 
                 <div class="row mb-3">
                     <div class="col-md-6">
@@ -80,21 +80,49 @@
                             </div>
                         </div>
                     </div>
+                    <div id="create_inbound_adjustment_alert" class="mb-3" style="display:none;"></div>
                     <div id="create_tank_capacity_info" class="mb-3" style="display:none;"></div>
+                    <div id="create_tank_overflow_container" class="mb-3" style="display:none;"></div>
                     <div class="row mb-3">
                         <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="fleet_name">Fleet</label>
+                                <input type="text" name="fleet_name" id="fleet_name" class="form-control" readonly />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="fleet_plat">No. Polisi (Fleet Plat)</label>
+                                <input type="text" name="fleet_plat" id="fleet_plat" class="form-control" readonly />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="driver_name">Driver</label>
+                                <input type="text" name="driver_name" id="driver_name" class="form-control" readonly />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Reference_Number">Reference Number</label>
                                 <input type="text" name="Reference_Number" id="Reference_Number" class="form-control" />
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Attachment">Attachment Nota Timbang</label>
                                 <input type="file" name="Attachment" id="Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="BA_Attachment">Attachment BA <span style="color:red;">*</span></label>
+                                <input type="file" name="BA_Attachment" id="BA_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="QC_Attachment">Attachment QC</label>
                                 <input type="file" name="QC_Attachment" id="QC_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
@@ -111,9 +139,12 @@
                     </div>
 
                     <div class="row mb-3">
-                        <div class="col-md-12">
+                        <div class="col-lg-4 mb-3">
+                            @include('cns.inventory.partials.movement-qc-table', ['prefix' => 'create'])
+                        </div>
+                        <div class="col-lg-8 mb-3">
                             <div class="form-group">
-                                <label class="font-weight-bold">Quality Control</label>
+                                <label class="font-weight-bold">QC Inbound</label>
                                 <p class="text-muted small mb-2">Parameter hasil uji laboratorium (TOP, MIDDLE, BOTTOM, dan AVERAGE).</p>
 
                                 <div class="table-responsive">
@@ -169,7 +200,7 @@
 @include('cns.inventory.partials.tank-capacity-helper')
 <script>
     var createInventoryQcParamKeys = [
-        'FFA_As_Palmitic', 'FFA_As_Oleic', 'MIU', 'Sulphur',
+        'FFA_As_Palmitic', 'FFA_As_Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulphur',
         'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'
     ];
 
@@ -233,8 +264,10 @@
     }
 
     function onCreateQcInput(paramKey) {
-        if (paramKey === 'MIU') {
+        if (paramKey === 'Moisture') {
             $('#create_MC').val('');
+        }
+        if (paramKey === 'Impurities') {
             $('#create_IMP').val('');
         }
         window.calcInventoryQcAverage(paramKey, 'create');
@@ -249,7 +282,11 @@
     }
 
     function updateCreateTankCapacityPreview() {
-        return window.cnsRenderTankCapacityPreview($('#create_tank_capacity_info'), getCreateTankCapacityParams());
+        return window.cnsRenderTankCapacityPreview(
+            $('#create_tank_capacity_info'),
+            getCreateTankCapacityParams(),
+            $('#create_tank_overflow_container')
+        );
     }
 
     function loadCreateTankDropdown(selectedTank) {
@@ -327,13 +364,19 @@
         $('#movementFieldsWrapper').hide();
         $('#btnSubmitUCO').prop('disabled', true);
         $('#Type').val('');
-        $('#Quantity').val('');
+        $('#Quantity').val('').prop('readonly', false).removeClass('bg-light');
         $('#Transaction_Date').val('');
         $('#Nama_Tangki').val('');
+        $('#create_inbound_adjustment_alert').hide().empty();
         $('#create_tank_capacity_info').hide().empty();
+        $('#create_tank_overflow_container').hide().empty();
         $('#Quantity_PTU').val('');
+        $('#fleet_name').val('');
+        $('#fleet_plat').val('');
+        $('#driver_name').val('');
         $('#Reference_Number').val('');
         $('#Attachment').val('');
+        $('#BA_Attachment').val('');
         $('#QC_Attachment').val('');
         $('#Notes').val('');
         if ($('#Asal_Warehouse').hasClass('select2-hidden-accessible')) {
@@ -342,32 +385,57 @@
             $('#Asal_Warehouse').val('');
         }
         resetCreateQcFields();
+        $('#create_mov_ffa, #create_mov_mc, #create_mov_imp, #create_Movement_FFA, #create_Movement_MC, #create_Movement_IMP').val('');
     }
 
     function prefillCreateFromMovement(d) {
         $('#Type').val(d.Type || 'inbound');
         $('#Quantity').val(d.Quantity !== null && d.Quantity !== undefined && d.Quantity !== '' ? cnsFormatNumber(d.Quantity, 2) : '');
         $('#Transaction_Date').val(d.Transaction_Date || '');
+        $('#fleet_name').val(d.fleet_name || '');
+        $('#fleet_plat').val(d.fleet_plat || '');
+        $('#driver_name').val(d.driver_name || '');
         $('#Reference_Number').val(d.Reference_Number || d.kode || '');
         $('#Quantity_PTU').val('');
         $('#Attachment').val('');
+        $('#BA_Attachment').val('');
         $('#QC_Attachment').val('');
         $('#Notes').val('');
+
+        var adj = d.inbound_adjustment || d.drain_adjustment;
+        var pAdj = d.pending_inbound_adjustment || d.pending_drain_adjustment;
+        if (adj) {
+            $('#create_inbound_adjustment_alert').html(
+                '<div class="alert alert-success py-2 px-3 mb-0">' +
+                    '<i class="fa fa-check-circle mr-1"></i> <strong>Kuantiti Movement Digantikan oleh Inbound Adjustment (' + adj.code + ')</strong><br>' +
+                    'Kuantiti Asli Movement: <strong>' + cnsFormatNumber(d.original_movement_qty, 2) + ' KG</strong> &rarr; ' +
+                    'Kuantiti Disesuaikan: <strong>' + cnsFormatNumber(adj.adjusted_qty, 2) + ' KG</strong> ' +
+                    '(Selisih Variansi: <strong>' + cnsFormatNumber(adj.selisih_qty, 2) + ' KG</strong> pada tangki <strong>' + adj.tank_name + '</strong>).' +
+                '</div>'
+            ).show();
+            $('#Quantity').prop('readonly', true).addClass('bg-light');
+        } else if (pAdj) {
+            $('#create_inbound_adjustment_alert').html(
+                '<div class="alert alert-warning py-2 px-3 mb-0">' +
+                    '<i class="fa fa-clock-o mr-1"></i> <strong>Peringatan Inbound Adjustment PENDING:</strong> Terdapat data Inbound Adjustment (' + pAdj.code + ') dengan Qty ' + cnsFormatNumber(pAdj.adjusted_qty, 2) + ' KG yang belum di-approve. Silakan minta supervisor/manager untuk meng-approve terlebih dahulu di menu <strong>Inbound Adjustment</strong>.' +
+                '</div>'
+            ).show();
+            $('#Quantity').prop('readonly', false).removeClass('bg-light');
+        } else {
+            $('#create_inbound_adjustment_alert').hide().empty();
+            $('#Quantity').prop('readonly', false).removeClass('bg-light');
+        }
 
         window.populateCnsWarehouseSelect($('#Asal_Warehouse'), d.Asal_Warehouse || '');
         loadCreateTankDropdown(d.Nama_Tangki || '');
 
         resetCreateQcFields();
-        if (d.FFA !== null && d.FFA !== undefined && d.FFA !== '') {
-            $('#create_top_FFA_As_Palmitic').val(cnsFormatNumber(d.FFA, 2));
-            window.calcInventoryQcAverage('FFA_As_Palmitic', 'create');
-        }
-        if (d.MIU !== null && d.MIU !== undefined && d.MIU !== '') {
-            $('#create_top_MIU').val(cnsFormatNumber(d.MIU, 2));
-            window.calcInventoryQcAverage('MIU', 'create');
-        }
-        $('#create_MC').val(d.MC !== null && d.MC !== undefined ? d.MC : '');
-        $('#create_IMP').val(d.IMP !== null && d.IMP !== undefined ? d.IMP : '');
+        $('#create_mov_ffa').val(d.FFA !== null && d.FFA !== undefined && d.FFA !== '' ? cnsFormatNumber(d.FFA, 2) : '');
+        $('#create_mov_mc').val(d.MC !== null && d.MC !== undefined && d.MC !== '' ? cnsFormatNumber(d.MC, 2) : '');
+        $('#create_mov_imp').val(d.IMP !== null && d.IMP !== undefined && d.IMP !== '' ? cnsFormatNumber(d.IMP, 2) : '');
+        $('#create_Movement_FFA').val(d.FFA !== null && d.FFA !== undefined ? d.FFA : '');
+        $('#create_Movement_MC').val(d.MC !== null && d.MC !== undefined ? d.MC : '');
+        $('#create_Movement_IMP').val(d.IMP !== null && d.IMP !== undefined ? d.IMP : '');
 
         $('#movementFieldsWrapper').show();
         $('#btnSubmitUCO').prop('disabled', false);
@@ -436,13 +504,29 @@
             alert('Transaction Date wajib diisi');
             return;
         }
+        if (!form.BA_Attachment || !form.BA_Attachment.files || form.BA_Attachment.files.length === 0) {
+            alert('Attachment BA wajib diupload');
+            return;
+        }
+
+        var overflowResult = window.cnsValidateAndCollectOverflow(
+            $('#create_tank_overflow_container'),
+            getCreateTankCapacityParams()
+        );
+        if (!overflowResult.ok) {
+            alert(overflowResult.message);
+            return;
+        }
 
         var capacityCheck = window.cnsEvaluateTankCapacity(getCreateTankCapacityParams());
-        if (capacityCheck && capacityCheck.isWarning && !confirm(capacityCheck.confirmMessage)) {
+        if (capacityCheck && capacityCheck.isNegativeStock && !confirm(capacityCheck.confirmMessage)) {
             return;
         }
 
         var formData = new FormData(form);
+        if (overflowResult.allocations && overflowResult.allocations.length > 0) {
+            formData.set('overflow_allocations', JSON.stringify(overflowResult.allocations));
+        }
         $(form).find('input.cns-decimal').each(function() {
             var name = $(this).attr('name');
             if (name && $.trim($(this).val()) !== '') {

@@ -96,12 +96,16 @@ class CnsQualityControlSeeder extends Seeder
 
                 $basePalmitic = 4.10 + ($offset * 0.15);
                 $baseOleic    = 3.60 + ($offset * 0.12);
-                $baseMiu      = 1.10 + ($offset * 0.05);
+                $baseMoisture = 0.55 + ($offset * 0.02);
+                $baseImp      = 0.35 + ($offset * 0.02);
+                $baseUnsap    = 0.20 + ($offset * 0.01);
 
                 $paramSums = [
                     'FFA_As_Palmitic' => [],
                     'FFA_As_Oleic'    => [],
-                    'MIU'             => [],
+                    'Moisture'        => [],
+                    'Impurities'      => [],
+                    'Unsaponifiables' => [],
                     'Sulphur'         => [],
                     'IV'              => [],
                     'Total_Chlorides' => [],
@@ -112,7 +116,9 @@ class CnsQualityControlSeeder extends Seeder
                 foreach ($levels as $level => $adj) {
                     $valPalmitic = round($basePalmitic + $adj['f_adj'], 2);
                     $valOleic    = round($baseOleic + $adj['f_adj'], 2);
-                    $valMiu      = round($baseMiu + $adj['m_adj'], 2);
+                    $valMoisture = round($baseMoisture + ($adj['m_adj'] * 0.5), 2);
+                    $valImp      = round($baseImp + ($adj['m_adj'] * 0.3), 2);
+                    $valUnsap    = round($baseUnsap + ($adj['m_adj'] * 0.2), 2);
                     $valIv       = round(51.50 + $offset + ($adj['f_adj'] * 2), 2);
                     $valSulphur  = round(18.00 + ($offset * 0.5) + $adj['f_adj'], 2);
                     $valPhos     = round(7.50 + ($offset * 0.2) + $adj['f_adj'], 2);
@@ -121,7 +127,9 @@ class CnsQualityControlSeeder extends Seeder
 
                     $paramSums['FFA_As_Palmitic'][] = $valPalmitic;
                     $paramSums['FFA_As_Oleic'][]    = $valOleic;
-                    $paramSums['MIU'][]             = $valMiu;
+                    $paramSums['Moisture'][]        = $valMoisture;
+                    $paramSums['Impurities'][]      = $valImp;
+                    $paramSums['Unsaponifiables'][] = $valUnsap;
                     $paramSums['Sulphur'][]         = $valSulphur;
                     $paramSums['IV'][]              = $valIv;
                     $paramSums['Total_Chlorides'][] = $valChlor;
@@ -136,7 +144,9 @@ class CnsQualityControlSeeder extends Seeder
                         [
                             'FFA_As_Palmitic' => $valPalmitic,
                             'FFA_As_Oleic'    => $valOleic,
-                            'MIU'             => $valMiu,
+                            'Moisture'        => $valMoisture,
+                            'Impurities'      => $valImp,
+                            'Unsaponifiables' => $valUnsap,
                             'Sulphur'         => $valSulphur,
                             'IV'              => $valIv,
                             'Total_Chlorides' => $valChlor,
