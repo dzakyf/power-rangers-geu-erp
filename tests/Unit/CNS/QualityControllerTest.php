@@ -47,11 +47,15 @@ class QualityControllerTest extends TestCase
         $mockQuery->shouldReceive('first')->once()->andReturn((object) [
             'min_ffa_palmitic' => '2.50',
             'max_ffa_palmitic' => '4.80',
-            'min_ffa_oleic'    => '2.40',
-            'max_ffa_oleic'    => '4.60',
-            'min_miu'          => '1.20',
-            'max_miu'          => '2.10',
-            'min_sulphur'      => '15.00',
+            'min_ffa_oleic'       => '2.40',
+            'max_ffa_oleic'       => '4.60',
+            'min_moisture'        => '0.45',
+            'max_moisture'        => '0.90',
+            'min_impurities'      => '0.35',
+            'max_impurities'      => '0.70',
+            'min_unsaponifiables' => '0.20',
+            'max_unsaponifiables' => '0.50',
+            'min_sulphur'         => '15.00',
             'max_sulphur'      => '30.00',
             'min_iv'           => '55.00',
             'max_iv'           => '60.00',
@@ -83,8 +87,12 @@ class QualityControllerTest extends TestCase
         $params = collect($data['parameters'])->keyBy('key');
         $this->assertEquals(2.50, $params['ffa_palmitic']['min']);
         $this->assertEquals(4.80, $params['ffa_palmitic']['max']);
-        $this->assertEquals(1.20, $params['miu']['min']);
-        $this->assertEquals(2.10, $params['miu']['max']);
+        $this->assertEquals(0.45, $params['moisture']['min']);
+        $this->assertEquals(0.90, $params['moisture']['max']);
+        $this->assertEquals(0.35, $params['impurities']['min']);
+        $this->assertEquals(0.70, $params['impurities']['max']);
+        $this->assertEquals(0.20, $params['unsaponifiables']['min']);
+        $this->assertEquals(0.50, $params['unsaponifiables']['max']);
         $this->assertEquals(15.00, $params['sulphur']['min']);
         $this->assertEquals(30.00, $params['sulphur']['max']);
         $this->assertEquals(55.00, $params['iv']['min']);

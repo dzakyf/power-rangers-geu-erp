@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\CNS;
 
+use App\CNSDrainAdjustment;
 use App\Http\Controllers\Controller;
 use App\MasterTank;
 use App\SalesOrderCNS;
@@ -41,8 +42,12 @@ class TankDrainingController extends Controller
         $salesOrders = SalesOrderCNS::orderBy('id', 'desc')->take(100)->get();
 
         $currentStock = $this->calculateTankBalance($draining->tank_name);
+        $pendingDrainAdjustment = CNSDrainAdjustment::pending()
+            ->where('tank_id', $draining->tank_id)
+            ->orderBy('id', 'desc')
+            ->first();
 
-        return view('cns.inventory.tank-draining-detail', compact('draining', 'tanks', 'salesOrders', 'currentStock'));
+        return view('cns.inventory.tank-draining-detail', compact('draining', 'tanks', 'salesOrders', 'currentStock', 'pendingDrainAdjustment'));
     }
 
     public function xmlData(Request $request)
@@ -132,13 +137,24 @@ class TankDrainingController extends Controller
     {
         $tank = MasterTank::findOrFail($id);
         $balance = $this->calculateTankBalance($tank->name);
+        $pending = CNSDrainAdjustment::pending()
+            ->where('tank_id', $tank->id)
+            ->orderBy('id', 'desc')
+            ->first();
 
         return response()->json([
-            'success'  => true,
-            'tank_id'  => $tank->id,
-            'name'     => $tank->name,
-            'capacity' => (float) $tank->capacity,
-            'balance'  => $balance,
+            'success'                  => true,
+            'tank_id'                  => $tank->id,
+            'name'                     => $tank->name,
+            'capacity'                 => (float) $tank->capacity,
+            'balance'                  => $balance,
+            'pending_drain_adjustment' => $pending ? [
+                'id'              => $pending->id,
+                'adjustment_code' => $pending->adjustment_code,
+                'qty_sistem'      => (float) $pending->qty_sistem,
+                'qty_timbang'     => (float) $pending->qty_timbang,
+                'selisih_qty'     => (float) $pending->selisih_qty,
+            ] : null,
         ]);
     }
 
@@ -154,6 +170,14 @@ class TankDrainingController extends Controller
         }
 
         $sourceTank = MasterTank::findOrFail($request->tank_id);
+
+        if ($pendingAdj = CNSDrainAdjustment::pending()->where('tank_id', $sourceTank->id)->orderBy('id', 'desc')->first()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Tangki {$sourceTank->name} masih memiliki Drain Adjustment ({$pendingAdj->adjustment_code}) berstatus PENDING. Harap selesaikan approval terlebih dahulu sebelum melakukan draining.",
+            ], 422);
+        }
+
         $currentStock = $this->calculateTankBalance($sourceTank->name);
 
         if ((float) $request->qty > $currentStock) {
@@ -264,6 +288,13 @@ class TankDrainingController extends Controller
         }
 
         $sourceTank = MasterTank::findOrFail($request->tank_id);
+
+        if ($pendingAdj = CNSDrainAdjustment::pending()->where('tank_id', $sourceTank->id)->orderBy('id', 'desc')->first()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Tangki {$sourceTank->name} masih memiliki Drain Adjustment ({$pendingAdj->adjustment_code}) berstatus PENDING. Harap selesaikan approval terlebih dahulu sebelum melakukan draining.",
+            ], 422);
+        }
 
         // Hitung ketersediaan stok: saldo saat ini ditambah qty draining sebelumnya jika tangki sama
         $currentStock = $this->calculateTankBalance($sourceTank->name);
@@ -490,7 +521,7 @@ class TankDrainingController extends Controller
 
     protected function calculateTankBalance(string $tankName): float
     {
-        return (float) UCOStoragePelindo::where('Nama_Tangki', $tankName)
+        return (float) UCOStoragePelindo::approved()->where('Nama_Tangki', $tankName)
             ->selectRaw("SUM(CASE WHEN Type = 'inbound' THEN Quantity ELSE -Quantity END) as balance")
             ->value('balance') ?: 0;
     }

@@ -282,7 +282,7 @@
 
                 <h6 class="font-weight-bold border-bottom pb-1 mt-3" style="color:#1a56a0;">Type</h6>
                 <div class="form-check mb-1">
-                    <input type="checkbox" class="form-check-input" id="Is_Consignee" {{ $isEdit && $company->Is_Consignee ? 'checked' : '' }} />
+                    <input type="checkbox" class="form-check-input" id="Is_Consignee" {{ ($isEdit ? $company->Is_Consignee : ($defaultIsConsignee ?? false)) ? 'checked' : '' }} />
                     <label class="form-check-label" for="Is_Consignee">Consignee / Buyer</label>
                 </div>
                 <div class="form-check mb-3">

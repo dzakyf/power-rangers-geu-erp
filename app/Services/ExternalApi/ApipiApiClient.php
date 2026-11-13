@@ -199,7 +199,8 @@ class ApipiApiClient
                     $payload = $this->warehouses($page, 200);
                     $rows = isset($payload['data']) && is_array($payload['data']) ? $payload['data'] : $payload;
                     foreach ($rows as $row) {
-                        if (is_array($row) && (!isset($row['active']) || (int) $row['active'] === 1)) {
+                        $isDeleted = !empty($row['deleted_at']) && trim((string) $row['deleted_at']) !== '';
+                        if (is_array($row) && (!isset($row['active']) || (int) $row['active'] === 1) && !$isDeleted) {
                             $all[] = $row;
                         }
                     }

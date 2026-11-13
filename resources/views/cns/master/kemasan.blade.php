@@ -74,7 +74,14 @@
                         <input type="text" name="Name" id="inputKemasanName" class="form-control form-control-sm" maxlength="150" placeholder="Contoh: Flexibag 24KL / Drum 200L" required />
                     </div>
                     <div class="form-group">
-                        <label class="font-weight-bold">Volume (Liter) <span class="text-danger">*</span></label>
+                        <label class="font-weight-bold">Product Type <span class="text-danger">*</span></label>
+                        <select name="product_type" id="inputKemasanProductType" class="form-control form-control-sm" onchange="toggleMaxStockField()" required>
+                            <option value="Kemasan">Kemasan</option>
+                            <option value="Product Specification">Product Specification</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Volume (Liter) <span class="text-danger" id="reqKemasanVolume">*</span></label>
                         <input type="text" inputmode="decimal" name="Volume" id="inputKemasanVolume" class="form-control form-control-sm text-right cns-decimal" placeholder="Contoh: 200.00" required />
                     </div>
                     <div class="form-group form-check">
@@ -110,12 +117,12 @@
 <script>
     var MasterKemasanGrid = new dhtmlXGridObject('MasterKemasanGrid');
     MasterKemasanGrid.setImagePath("./dhtmlx/imgs/");
-    MasterKemasanGrid.setHeader("No.,Kemasan_ID,Name,Volume (L),Jenis,Max Stock,Unit,Price,Created At,Updated At");
-    MasterKemasanGrid.setInitWidths("50,100,*,110,100,110,90,120,145,145");
-    MasterKemasanGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-    MasterKemasanGrid.setColAlign("center,center,left,right,center,right,center,right,center,center");
-    MasterKemasanGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-    MasterKemasanGrid.setColSorting("int,int,str,int,str,int,str,int,str,str");
+    MasterKemasanGrid.setHeader("No.,Kemasan_ID,Name,Product Type,Volume (L),Jenis,Max Stock,Unit,Price,Created At,Updated At");
+    MasterKemasanGrid.setInitWidths("50,90,*,140,100,90,100,80,110,135,135");
+    MasterKemasanGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#select_filter,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+    MasterKemasanGrid.setColAlign("center,center,left,center,right,center,right,center,right,center,center");
+    MasterKemasanGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+    MasterKemasanGrid.setColSorting("int,int,str,str,int,str,int,str,int,str,str");
     MasterKemasanGrid.attachEvent("onRowDblClicked", openEditModal);
     MasterKemasanGrid.enableSmartRendering(true, 50);
     MasterKemasanGrid.setSkin("dhx_skyblue");
@@ -123,7 +130,10 @@
 
     function toggleMaxStockField() {
         var isAmpas = $('#inputKemasanIsAmpas').is(':checked');
-        $('#inputKemasanMaxStock').prop('disabled', isAmpas).prop('required', !isAmpas);
+        var isSpec = $('#inputKemasanProductType').val() === 'Export';
+        $('#inputKemasanVolume').prop('required', !isSpec);
+        $('#reqKemasanVolume').toggle(!isSpec);
+        $('#inputKemasanMaxStock').prop('disabled', isAmpas).prop('required', !isAmpas && !isSpec);
         $('#groupKemasanMaxStock').toggle(!isAmpas);
         if (isAmpas) {
             $('#inputKemasanMaxStock').val('');
@@ -145,6 +155,7 @@
         $('#modalKemasanTitle').text('Tambah Master Kemasan');
         $('#formKemasan').attr('action', "{{ route('cns-master-kemasan.store') }}");
         $('#inputKemasanName').val('');
+        $('#inputKemasanProductType').val('Kemasan');
         $('#inputKemasanVolume').val('');
         $('#inputKemasanIsAmpas').prop('checked', false);
         $('#inputKemasanMaxStock').val('');
@@ -160,15 +171,18 @@
             alert('Pilih data kemasan terlebih dahulu.');
             return;
         }
-        var jenis = MasterKemasanGrid.cells(id, 4).getValue();
-        var maxStock = MasterKemasanGrid.cells(id, 5).getValue();
-        var unit = MasterKemasanGrid.cells(id, 6).getValue();
-        var price = MasterKemasanGrid.cells(id, 7).getValue();
+        var productType = MasterKemasanGrid.cells(id, 3).getValue() || 'Kemasan';
+        var volume = MasterKemasanGrid.cells(id, 4).getValue();
+        var jenis = MasterKemasanGrid.cells(id, 5).getValue();
+        var maxStock = MasterKemasanGrid.cells(id, 6).getValue();
+        var unit = MasterKemasanGrid.cells(id, 7).getValue();
+        var price = MasterKemasanGrid.cells(id, 8).getValue();
 
         $('#modalKemasanTitle').text('Edit Master Kemasan');
         $('#formKemasan').attr('action', "{{ url('cns-master-kemasan-update') }}/" + id);
         $('#inputKemasanName').val(MasterKemasanGrid.cells(id, 2).getValue());
-        $('#inputKemasanVolume').val(cnsFormatNumber(cnsParseNumber(MasterKemasanGrid.cells(id, 3).getValue(), 0), 2));
+        $('#inputKemasanProductType').val(productType);
+        $('#inputKemasanVolume').val(cnsFormatNumber(cnsParseNumber(volume, 0), 2));
         $('#inputKemasanIsAmpas').prop('checked', jenis === 'Ampas');
         $('#inputKemasanMaxStock').val(maxStock === '-' ? '' : cnsFormatNumber(cnsParseNumber(maxStock, 0), 2));
         $('#inputKemasanUnit').val(unit === '-' ? '' : unit);

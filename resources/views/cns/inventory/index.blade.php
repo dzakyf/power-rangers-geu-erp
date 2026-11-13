@@ -167,8 +167,12 @@
                     <div>
                         <input type="button" id="CreateUCO" name="CreateUCO" value="Create" class="btn btn-info mt-2 mr-2" onclick="createUCO()" />
                         <input type="button" id="DetailQC" name="DetailQC" value="Detail/Update" class="btn btn-info mt-2 mr-2" onclick="detailQC()" />
+                        <input type="button" id="ApproveInbound" name="ApproveInbound" value="Approve" class="btn btn-success mt-2 mr-2" onclick="approveSelectedInbound()" />
+                        <input type="button" id="RejectInbound" name="RejectInbound" value="Reject" class="btn btn-danger mt-2 mr-2" onclick="rejectSelectedInbound()" />
                         <input type="button" id="DetailQC" name="DetailQC" value="Log" class="btn btn-info mt-2 mr-2" onclick="alert('under development');" />
                     </div>
+                    @include('cns.inventory.create')
+                    @include('cns.inventory.edit')
                 </div>
 
                 <!-- TAB 2: UPCOMING INBOUND -->
@@ -224,8 +228,6 @@
         </div>
     </div>
 </div>
-@include('cns.inventory.create')
-@include('cns.inventory.edit')
 <script>
     var inventoryId = null;
     $(document).ready(function() {
@@ -374,6 +376,83 @@
         applyFilters();
     }
 
+    function approveSelectedInbound() {
+        var rowId = ProjectionGrid.getSelectedRowId();
+        var targetId = rowId ? (ProjectionGrid.getRowAttribute(rowId, 'ID') || rowId) : inventoryId;
+        if (!targetId || String(targetId) === 'row_opening') {
+            alert('Pilih data transaksi terlebih dahulu');
+            return;
+        }
+        if (!confirm('Approve inbound movement ini? Stok tangki akan bertambah setelah di-approve.')) {
+            return;
+        }
+        $.ajax({
+            url: 'cns-inventory-tracking-approve',
+            type: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                id: targetId
+            },
+            success: function(res) {
+                if (res && res.success) {
+                    alert(res.message || 'Inbound movement berhasil di-approve');
+                    applyFilters();
+                    if (typeof loadTankMonitoringCards === 'function') {
+                        loadTankMonitoringCards();
+                    }
+                } else {
+                    alert((res && res.message) ? res.message : 'Gagal approve data');
+                }
+            },
+            error: function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal approve data';
+                alert(msg);
+            }
+        });
+    }
+
+    function rejectSelectedInbound() {
+        var rowId = ProjectionGrid.getSelectedRowId();
+        var targetId = rowId ? (ProjectionGrid.getRowAttribute(rowId, 'ID') || rowId) : inventoryId;
+        if (!targetId || String(targetId) === 'row_opening') {
+            alert('Pilih data transaksi terlebih dahulu');
+            return;
+        }
+        var reason = prompt('Masukkan alasan penolakan (wajib diisi):');
+        if (reason === null) {
+            return;
+        }
+        reason = $.trim(reason);
+        if (!reason) {
+            alert('Alasan penolakan wajib diisi');
+            return;
+        }
+        $.ajax({
+            url: 'cns-inventory-tracking-reject',
+            type: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                id: targetId,
+                reason: reason
+            },
+            success: function(res) {
+                if (res && res.success) {
+                    alert(res.message || 'Inbound movement ditolak');
+                    applyFilters();
+                    if (typeof loadTankMonitoringCards === 'function') {
+                        loadTankMonitoringCards();
+                    }
+                } else {
+                    alert((res && res.message) ? res.message : 'Gagal reject data');
+                }
+            },
+            error: function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal reject data';
+                alert(msg);
+            }
+        });
+    }
+
     function deleteQC() {
         var rowId = ProjectionGrid.getSelectedRowId();
         if (!rowId) {
@@ -436,18 +515,18 @@
 
         let tHeader = [
             'No', 'Bulan', 'Tanggal',
-            'Asal Warehouse', 'Nama Tangki', 'Nopol / Kontainer', 'QTY SJ',
+            'Asal Warehouse', 'Nama Tangki', 'Nopol / Kontainer', 'Fleet', 'No. Polisi', 'Driver', 'QTY SJ',
             'IN (KG)', 'OUT (KG)', 'Jumlah Stok Pelindo (KG)',
-            'Remarks', 'Link',
-            'Parameter QC', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan'
+            'Remarks', 'Link', 'Attachment BA', 'Status Approval',
+            'Parameter QC', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan'
         ];
 
         let tGroupHeader = [
             '#rspan', '#rspan', '#rspan',
-            '#rspan', '#rspan', '#rspan', '#rspan',
+            '#rspan', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan',
             '#rspan', '#rspan', '#rspan',
-            '#rspan', '#rspan',
-            'FFA Palmitic', 'FFA Oleic', 'MIU', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals', 'Link'
+            '#rspan', '#rspan', '#rspan', '#rspan',
+            'FFA Palmitic', 'FFA Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals', 'Link'
         ];
 
         let tWidth = [
@@ -457,15 +536,22 @@
             '130',  // Asal Warehouse
             '110',  // Nama Tangki
             '130',  // Nopol / Kontainer
+            '130',  // Fleet
+            '110',  // No. Polisi
+            '130',  // Driver
             '85',   // QTY SJ
             '95',   // IN (KG)
             '95',   // OUT (KG)
             '150',  // Jumlah Stok Pelindo (KG)
             '100',  // Remarks
             '110',  // Link (Nota Timbang)
+            '100',  // Attachment BA
+            '110',  // Status Approval
             '85',   // FFA Palmitic
             '85',   // FFA Oleic
-            '75',   // MIU
+            '75',   // Moisture
+            '80',   // Impurities
+            '100',  // Unsaponifiables
             '75',   // Sulfur
             '75',   // IV
             '75',   // Chlorides
@@ -476,26 +562,26 @@
 
         let tColType = [
             'ro', 'ro', 'ro',
-            'ro', 'ro', 'ro', 'ro',
+            'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro',
             'ro', 'ro', 'ro',
-            'ro', 'link',
-            'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'link'
+            'ro', 'link', 'link', 'ro',
+            'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'link'
         ];
 
         let tColAlign = [
             'center', 'center', 'center',
-            'left', 'center', 'center', 'right',
+            'left', 'center', 'center', 'left', 'center', 'left', 'right',
             'right', 'right', 'right',
-            'left', 'center',
-            'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'center'
+            'left', 'center', 'center', 'center',
+            'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'center'
         ];
 
         let tColSort = [
             'int', 'str', 'date',
-            'str', 'str', 'str', 'int',
+            'str', 'str', 'str', 'str', 'str', 'str', 'int',
             'int', 'int', 'int',
-            'str', 'str',
-            'str', 'str', 'str', 'str', 'str', 'str', 'str', 'str', 'str'
+            'str', 'str', 'str', 'str',
+            'str', 'str', 'str', 'str', 'str', 'str', 'str', 'str', 'str', 'str', 'str'
         ];
 
         ProjectionGrid = new dhtmlXGridObject('ProjectionGrid');
@@ -515,10 +601,17 @@
             '#cspan',
             '#cspan',
             '#cspan',
+            '#cspan',
+            '#cspan',
+            '#cspan',
             '#stat_total_indo',
             '#stat_total_indo',
             '#stat_total_indo',
             '#stat_total_indo',
+            '',
+            '',
+            '',
+            '',
             '',
             '',
             '',
@@ -539,10 +632,17 @@
             '',
             '',
             '',
+            '',
+            '',
+            '',
             'text-align:right;font-weight:bold;',
             'text-align:right;font-weight:bold;',
             'text-align:right;font-weight:bold;',
             'text-align:right;font-weight:bold;',
+            '',
+            '',
+            '',
+            '',
             '',
             '',
             '',
@@ -582,12 +682,12 @@
                 var cellVal = ProjectionGrid.cells(rowId, 0).getValue();
                 if (rowId === 'row_opening' || (cellVal && cellVal.indexOf('OPENING STOCK') !== -1)) {
                     var cell = ProjectionGrid.cells(rowId, 0).cell;
-                    if (!cell || cell.colSpan < 9) {
-                        ProjectionGrid.setColspan(rowId, 0, 9);
+                    if (!cell || cell.colSpan < 12) {
+                        ProjectionGrid.setColspan(rowId, 0, 12);
                     }
                     ProjectionGrid.setRowColor(rowId, "#FFF2CC");
                     ProjectionGrid.setRowTextStyle(rowId, "font-weight:bold;text-align:center;cursor:default;");
-                    ProjectionGrid.setCellTextStyle(rowId, 9, "font-weight:bold;text-align:right;cursor:default;");
+                    ProjectionGrid.setCellTextStyle(rowId, 12, "font-weight:bold;text-align:right;cursor:default;");
                 }
             }
         });

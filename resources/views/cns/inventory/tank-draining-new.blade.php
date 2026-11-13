@@ -89,7 +89,9 @@
 
                             <div id="divTargetExternal" style="display:none;">
                                 <label for="new_moving_target_external" class="small font-weight-bold">Nama Lokasi / Gudang Tujuan <span class="text-danger">*</span></label>
-                                <input type="text" class="text-black form-control" id="new_moving_target_external" name="moving_target_external" placeholder="Contoh: Gudang Penampungan B, Truk Tangki Vendor" maxlength="255" />
+                                <select class="text-black form-control" id="new_moving_target_external" name="moving_target_external" style="width: 100%;">
+                                    <option value="">-- Pilih Gudang Tujuan --</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -126,6 +128,11 @@
                     </div>
                 </div>
 
+                <div id="newDrainingPendingWarning" class="alert alert-danger py-2 px-3 mt-2" style="display:none;">
+                    <i class="fa fa-exclamation-triangle mr-1"></i>
+                    <span id="newDrainingPendingWarningText"></span>
+                </div>
+
                 <div class="mt-3">
                     <button type="submit" class="btn btn-primary" id="btnSubmitNewDraining">Submit</button>
                     <button type="button" class="btn btn-secondary ml-1" onclick="cancelDrainingForm()">Cancel</button>
@@ -150,6 +157,8 @@
         var tankId = $('#new_tank_id').val();
         if (!tankId) {
             $('#sourceTankStockInfo').hide();
+            $('#newDrainingPendingWarning').hide();
+            $('#btnSubmitNewDraining').prop('disabled', false);
             currentSourceStock = 0;
             $('#new_qty').val('');
             updateTargetTankOptions();
@@ -163,6 +172,18 @@
                 $('#badgeSourceStock').text('Stok Tersedia: ' + formatted + ' KG');
                 $('#sourceTankStockInfo').show();
                 $('#new_qty').val(currentSourceStock > 0 ? cnsFormatNumber(currentSourceStock, 2) : '');
+
+                if (res.pending_drain_adjustment) {
+                    var p = res.pending_drain_adjustment;
+                    $('#newDrainingPendingWarningText').text(
+                        'Tangki ini memiliki Drain Adjustment (' + p.adjustment_code + ') berstatus PENDING (Qty Timbang: ' + cnsFormatNumber(p.qty_timbang, 2) + ' KG). Selesaikan approval terlebih dahulu sebelum melakukan draining.'
+                    );
+                    $('#newDrainingPendingWarning').show();
+                    $('#btnSubmitNewDraining').prop('disabled', true);
+                } else {
+                    $('#newDrainingPendingWarning').hide();
+                    $('#btnSubmitNewDraining').prop('disabled', false);
+                }
             }
         });
 
@@ -199,6 +220,41 @@
         }
     }
 
+    function loadMovingExternalWarehouses() {
+        var $sel = $('#new_moving_target_external');
+        if ($sel.data('loaded')) {
+            return;
+        }
+        if (!window._cnsWarehousesReq) {
+            window._cnsWarehousesReq = $.get('cns-master-warehouses').fail(function() {
+                window._cnsWarehousesReq = null;
+            });
+        }
+        window._cnsWarehousesReq.done(function(res) {
+            var currentVal = $sel.val();
+            $sel.empty().append($('<option>', { value: '', text: '-- Pilih Gudang Tujuan --' }));
+            $.each((res && res.data) || [], function(_, w) {
+                var name = (w && w.name) ? String(w.name) : '';
+                if (!name) return;
+                $sel.append($('<option>', { value: name, text: name }));
+            });
+            $sel.data('loaded', true);
+            if (typeof $.fn.select2 === 'function') {
+                if ($sel.hasClass('select2-hidden-accessible')) {
+                    $sel.select2('destroy');
+                }
+                $sel.select2({
+                    placeholder: '-- Pilih Gudang Tujuan --',
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+            if (currentVal) {
+                $sel.val(currentVal).trigger('change');
+            }
+        });
+    }
+
     function onMovingTypeChange() {
         var movingType = $('#new_moving_target_type').val();
         if (movingType === 'TANK') {
@@ -207,6 +263,7 @@
         } else {
             $('#divTargetTank').hide();
             $('#divTargetExternal').show();
+            loadMovingExternalWarehouses();
         }
     }
 
@@ -251,7 +308,7 @@
             } else if (movingType === 'EXTERNAL') {
                 var ext = $.trim($('#new_moving_target_external').val());
                 if (!ext) {
-                    alert('Masukkan nama lokasi / gudang tujuan.');
+                    alert('Pilih lokasi / gudang tujuan.');
                     return;
                 }
             }

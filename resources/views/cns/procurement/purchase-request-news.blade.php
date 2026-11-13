@@ -113,27 +113,14 @@
                     </div>
                     <div class="FormInput_right">
 
-                        <input type="text" id="Supplies_Type" size="30" value="Flexibag 24KL TLBD" />
-
-                    </div>
-
-
-                    <div class="FormInput_left">
-
-                        Dept. (Budgeting)
-
-                    </div>
-                    <div class="FormInput_right">
-
-
-                        <select id="Department" class="" style="width:250px;">
-                            <?php
-                            $Query = DB::table("master_department")->get();
-                            foreach ($Query as $Data) {
-                                echo "<option value='$Data->Initial'>$Data->Department - $Data->Initial_Code - $Data->Initial</option>";
-                            }
-                            ?>
-                        </select>
+                        <div style="width:250px;display:inline-block;">
+                            <select id="Supplies_Type" style="width:100%;">
+                                <option value="">-- Pilih Product Specification --</option>
+                                @foreach(\App\CnsMasterKemasan::where('product_type', 'Export')->orderBy('Name')->get() as $spec)
+                                    <option value="{{ $spec->Name }}">{{ $spec->Name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
 
                     </div>
                     <div class="FormInput_left">
@@ -262,6 +249,14 @@
         $('#PR_No').val('PR' + year + month + day + '-' + Math.floor(Math.random() * 1000));
     });
 
+
+    if ($.fn.select2) {
+        $('#Supplies_Type').select2({
+            width: '100%',
+            placeholder: '-- Pilih Product Specification --',
+            allowClear: true
+        });
+    }
 
     PRNewDetail = new dhtmlXGridObject('gridPRNewDetail');
     PRNewDetail.setImagePath("dhtmlx/imgs/");

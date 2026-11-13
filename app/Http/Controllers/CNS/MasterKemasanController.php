@@ -36,6 +36,7 @@ class MasterKemasanController extends Controller
             echo "<cell>{$no}</cell>\n";
             echo "<cell>{$item->Kemasan_ID}</cell>\n";
             echo "<cell>" . htmlspecialchars($item->Name) . "</cell>\n";
+            echo "<cell>" . htmlspecialchars($item->product_type ?: 'Kemasan') . "</cell>\n";
             echo "<cell>" . number_format((float) $item->Volume, 2, '.', ',') . "</cell>\n";
             echo "<cell>" . ($item->isAmpas() ? 'Ampas' : 'Kemasan') . "</cell>\n";
             echo "<cell>" . ($item->isAmpas() || $item->Max_Stock === null ? '-' : number_format((float) $item->Max_Stock, 2, '.', ',')) . "</cell>\n";
@@ -54,24 +55,28 @@ class MasterKemasanController extends Controller
     protected function validatePayload(Request $request): array
     {
         $name = trim((string) $request->input('Name'));
-        $request->merge(['Name' => $name]);
+        $productType = $request->input('product_type', 'Kemasan');
+        $request->merge(['Name' => $name, 'product_type' => $productType]);
         $isAmpas = $request->boolean('Is_Ampas') || stripos($name, 'ampas') !== false;
+        $isProductSpec = $productType === 'Export';
 
         $validated = $request->validate([
-            'Name'      => 'required|string|max:150',
-            'Volume'    => 'required|numeric|min:0',
-            'Max_Stock' => $isAmpas ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
-            'Unit'      => 'nullable|string|max:50',
-            'Price'     => 'nullable|numeric|min:0',
+            'Name'         => 'required|string|max:150',
+            'product_type' => 'required|in:Kemasan,Export',
+            'Volume'       => $isProductSpec ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
+            'Max_Stock'    => ($isAmpas || $isProductSpec) ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
+            'Unit'         => 'nullable|string|max:50',
+            'Price'        => 'nullable|numeric|min:0',
         ]);
 
         return [
-            'Name'      => $validated['Name'],
-            'Volume'    => (float) $validated['Volume'],
-            'Is_Ampas'  => $isAmpas,
-            'Max_Stock' => $isAmpas ? null : (float) $validated['Max_Stock'],
-            'Unit'      => trim((string) ($validated['Unit'] ?? '')),
-            'Price'     => isset($validated['Price']) && $validated['Price'] !== '' ? (float) $validated['Price'] : 0.0,
+            'Name'         => $validated['Name'],
+            'product_type' => $validated['product_type'],
+            'Volume'       => isset($validated['Volume']) && $validated['Volume'] !== '' ? (float) $validated['Volume'] : 0.0,
+            'Is_Ampas'     => $isAmpas,
+            'Max_Stock'    => ($isAmpas || $isProductSpec || !isset($validated['Max_Stock']) || $validated['Max_Stock'] === '') ? null : (float) $validated['Max_Stock'],
+            'Unit'         => trim((string) ($validated['Unit'] ?? '')),
+            'Price'        => isset($validated['Price']) && $validated['Price'] !== '' ? (float) $validated['Price'] : 0.0,
         ];
     }
 

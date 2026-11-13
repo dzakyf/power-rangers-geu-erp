@@ -40,6 +40,7 @@ class ApipiWarehousesTest extends TestCase
                         ['id' => 5, 'name' => 'Surabaya', 'type' => 'hybrid', 'active' => 1],
                         ['id' => 48, 'name' => 'Transit Sidoarjo', 'type' => 'hybrid', 'active' => 1],
                         ['id' => 99, 'name' => 'Inactive Site', 'type' => 'site', 'active' => 0],
+                        ['id' => 101, 'name' => 'Deleted Site', 'type' => 'site', 'active' => 1, 'deleted_at' => '2026-01-01 00:00:00'],
                     ],
                     'pagination' => ['has_next' => false],
                 ];

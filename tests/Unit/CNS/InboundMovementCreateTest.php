@@ -7,6 +7,7 @@ use App\Services\ExternalApi\ApipiApiClient;
 use App\Services\ExternalApi\ApipiAuthService;
 use App\UCOStoragePelindo;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use RuntimeException;
@@ -19,6 +20,8 @@ class InboundMovementCreateTest extends TestCase
     {
         $this->assertTrue(Route::has('cns-inventory-tracking.movements'));
         $this->assertTrue(Route::has('cns-inventory-tracking.movement-detail'));
+        $this->assertTrue(Route::has('cns-inventory-tracking.approve'));
+        $this->assertTrue(Route::has('cns-inventory-tracking.reject'));
     }
 
     /** @test */
@@ -140,6 +143,9 @@ class InboundMovementCreateTest extends TestCase
                         'kode'        => 'GEU-MOV-26-JZG0002',
                         'tgl'         => '2026-11-01',
                         'dari_gudang' => 'Surabaya, Malang',
+                        'fleet_name'  => 'Fuso Tronton',
+                        'fleet_plat'  => 'L 1234 AB',
+                        'driver_name' => 'Budi Santoso',
                         'total_qty'   => 148410,
                     ],
                     'details' => [
@@ -177,11 +183,14 @@ class InboundMovementCreateTest extends TestCase
         $this->assertSame('2026-11-11', $d['Transaction_Date']);
         $this->assertSame('Surabaya, Malang', $d['Asal_Warehouse']);
         $this->assertSame('TK-01', $d['Nama_Tangki']);
+        $this->assertSame('Fuso Tronton', $d['fleet_name']);
+        $this->assertSame('L 1234 AB', $d['fleet_plat']);
+        $this->assertSame('Budi Santoso', $d['driver_name']);
         $this->assertSame(148410, $d['Quantity']);
         $this->assertSame(3.27, $d['FFA']);
         $this->assertSame(0.43, $d['MC']);
         $this->assertSame(0.49, $d['IMP']);
-        $this->assertSame(0.92, $d['MIU']);
+        $this->assertArrayNotHasKey('MIU', $d);
     }
 
     /** @test */
@@ -202,11 +211,20 @@ class InboundMovementCreateTest extends TestCase
                 'Nama_Tangki'         => 'TK-01',
                 'Quantity_PTU'        => 19526,
                 'Reference_Number'    => $kode,
+                'fleet_name'          => 'Fuso Tronton',
+                'fleet_plat'          => 'L 1234 AB',
+                'driver_name'         => 'Budi Santoso',
                 'Notes'               => 'Test inbound movement',
                 'MC'                  => 0.43,
                 'IMP'                 => 0.49,
+                'Movement_FFA'        => 2.50,
+                'Movement_MC'         => 0.35,
+                'Movement_IMP'        => 0.40,
                 'top_FFA_As_Palmitic' => 3.27,
-                'top_MIU'             => 0.92,
+                'top_Moisture'        => 0.43,
+                'top_Impurities'      => 0.49,
+            ], [], [], [], [
+                'BA_Attachment' => UploadedFile::fake()->create('ba.pdf', 100, 'application/pdf'),
             ]));
             $json = json_decode($resp->getContent(), true);
 
@@ -220,10 +238,16 @@ class InboundMovementCreateTest extends TestCase
             $this->assertSame(19526.0, (float) $saved->Quantity_PTU);
             $this->assertSame('Surabaya, Transit Sidoarjo', $saved->Asal_Warehouse);
             $this->assertSame('TK-01', $saved->Nama_Tangki);
+            $this->assertSame('Fuso Tronton', $saved->fleet_name);
+            $this->assertSame('L 1234 AB', $saved->fleet_plat);
+            $this->assertSame('Budi Santoso', $saved->driver_name);
             $this->assertSame('2026-11-11', $saved->Transaction_Date->toDateString());
             $this->assertSame(3.27, (float) $saved->FFA);
             $this->assertSame(0.43, (float) $saved->MC);
             $this->assertSame(0.49, (float) $saved->IMP);
+            $this->assertSame(2.5, (float) $saved->Movement_FFA);
+            $this->assertSame(0.35, (float) $saved->Movement_MC);
+            $this->assertSame(0.4, (float) $saved->Movement_IMP);
 
             // Duplicate submit rejected
             $dupResp = $controller->submitStoragePelindo(new Request([
@@ -232,6 +256,8 @@ class InboundMovementCreateTest extends TestCase
                 'Quantity'         => 19500,
                 'Transaction_Date' => '2026-11-11',
                 'Reference_Number' => $kode,
+            ], [], [], [], [
+                'BA_Attachment' => UploadedFile::fake()->create('ba.pdf', 100, 'application/pdf'),
             ]));
             $dupJson = json_decode($dupResp->getContent(), true);
             $this->assertSame(422, $dupResp->getStatusCode());
@@ -256,10 +282,68 @@ class InboundMovementCreateTest extends TestCase
         $this->assertStringContainsString('id="Nama_Tangki"', $createHtml);
         $this->assertStringContainsString('id="Quantity_PTU"', $createHtml);
         $this->assertStringContainsString('id="Reference_Number"', $createHtml);
+        $this->assertStringContainsString('id="fleet_name"', $createHtml);
+        $this->assertStringContainsString('id="fleet_plat"', $createHtml);
+        $this->assertStringContainsString('id="driver_name"', $createHtml);
+        $this->assertStringContainsString('id="edit_fleet_name"', $editHtml);
+        $this->assertStringContainsString('id="edit_fleet_plat"', $editHtml);
+        $this->assertStringContainsString('id="edit_driver_name"', $editHtml);
         $this->assertStringContainsString('id="Attachment"', $createHtml);
+        $this->assertStringContainsString('id="BA_Attachment"', $createHtml);
         $this->assertStringContainsString('id="QC_Attachment"', $createHtml);
+        $this->assertStringContainsString('id="edit_BA_Attachment"', $editHtml);
+        $this->assertStringContainsString('id="edit_approval_banner"', $editHtml);
+        $this->assertStringContainsString('id="btnUpdateEditStock"', $editHtml);
+        $this->assertStringContainsString('id="create_mov_ffa"', $createHtml);
+        $this->assertStringContainsString('id="create_Movement_FFA"', $createHtml);
+        $this->assertStringContainsString('id="edit_mov_ffa"', $editHtml);
+        $this->assertStringNotContainsString('id="edit_Movement_FFA"', $editHtml);
+        $this->assertStringContainsString('QC Movement', $createHtml);
+        $this->assertStringContainsString('QC Inbound', $createHtml);
+        $this->assertStringContainsString('QC Movement', $editHtml);
+        $this->assertStringContainsString('QC Inbound', $editHtml);
         $this->assertStringContainsString('id="Notes"', $createHtml);
         $this->assertStringNotContainsString('id="Quantity_Sounding"', $createHtml);
         $this->assertStringContainsString('window.populateCnsWarehouseSelect', $editHtml);
+    }
+
+    /** @test */
+    public function inbound_submit_and_edit_require_ba_attachment()
+    {
+        $controller = app(UCOController::class);
+
+        $createResp = $controller->submitStoragePelindo(new Request([
+            'movement_kode'    => 'GEU-MOV-26-NOBA',
+            'Type'             => 'inbound',
+            'Quantity'         => 1000,
+            'Transaction_Date' => '2026-11-12',
+        ]));
+        $this->assertSame(422, $createResp->getStatusCode());
+        $this->assertFalse(json_decode($createResp->getContent(), true)['success']);
+
+        $editResp = $controller->updateExportedStock(new Request([
+            'id'               => 1,
+            'Type'             => 'inbound',
+            'Transaction_Date' => '2026-11-12',
+        ]));
+        $this->assertSame(422, $editResp->getStatusCode());
+        $this->assertFalse(json_decode($editResp->getContent(), true)['success']);
+    }
+
+    /** @test */
+    public function reject_requires_reason_and_index_contains_approval_actions()
+    {
+        $controller = app(UCOController::class);
+
+        $resp = $controller->rejectInboundMovement(new Request([
+            'id' => 1,
+        ]));
+        $this->assertSame(422, $resp->getStatusCode());
+        $this->assertFalse(json_decode($resp->getContent(), true)['success']);
+
+        $indexHtml = file_get_contents(resource_path('views/cns/inventory/index.blade.php'));
+        $this->assertStringContainsString('approveSelectedInbound()', $indexHtml);
+        $this->assertStringContainsString('rejectSelectedInbound()', $indexHtml);
+        $this->assertStringContainsString('Status Approval', $indexHtml);
     }
 }

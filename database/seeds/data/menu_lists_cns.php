@@ -51,6 +51,8 @@ return [
     'SI00326' => ['', '#', 'CNS', 4, 'SS00086', 5],
     'SI00317' => ['Inbound Movement', 'cns-inventory-tracking-index', 'CNS', 4, 'SS00087', 1],
     'SI00340' => ['Tank Draining', 'cns-tank-draining', 'CNS', 4, 'SS00087', 2],
+    'SI00343' => ['Inbound Adjustment', 'cns-inbound-adjustment', 'CNS', 4, 'SS00087', 3],
+    'SI00344' => ['Drain Adjustment', 'cns-drain-adjustment', 'CNS', 4, 'SS00087', 4],
     'SI00341' => ['Inventory Kemasan', 'cns-inventory-kemasan', 'CNS', 4, 'SS00091', 1],
     'SI00336' => ['Inventory Non-UCO', 'cns-inventory-non-uco', 'CNS', 4, 'SS00091', 2],
     'SI00327' => ['Master Company ', 'cns-master-company', 'CNS', 4, 'SS00088', 1],

@@ -145,7 +145,14 @@ use Illuminate\Database\Eloquent\Builder;
 				</div>
 				<div class="FormInput_right">
 	
-					<input type="text" id="Supplies_Type" size="30" value="Flexibag 24KL TLBD"/>
+					<div style="width:250px;display:inline-block;">
+						<select id="Supplies_Type" style="width:100%;">
+							<option value="">-- Pilih Product Specification --</option>
+							@foreach(\App\CnsMasterKemasan::where('product_type', 'Export')->orderBy('Name')->get() as $spec)
+								<option value="{{ $spec->Name }}" {{ ($fetch->Supplies_Type ?? '') === $spec->Name ? 'selected' : '' }}>{{ $spec->Name }}</option>
+							@endforeach
+						</select>
+					</div>
 	
 				</div>
 						
@@ -176,7 +183,7 @@ use Illuminate\Database\Eloquent\Builder;
 					</div>
 					<div class="FormInput_right">
 						<div id="SubCat2">
-							<input type="text" readonly="readonly" id="Supplies_Type" value="" size="30" />           
+							<input type="text" readonly="readonly" id="Supplies_Type_SubCat" value="" size="30" />           
 				
 							</div>
 						
@@ -258,6 +265,14 @@ function getAllValues() {
     return inputValues.join('&');
 }
 
+
+if ($.fn.select2) {
+    $('#Supplies_Type').select2({
+        width: '100%',
+        placeholder: '-- Pilih Product Specification --',
+        allowClear: true
+    }).trigger('change.select2');
+}
 
 PRNewDetail = new dhtmlXGridObject('gridPRNewDetail');
 PRNewDetail.setImagePath("dhtmlx/imgs/");

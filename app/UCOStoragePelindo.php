@@ -22,22 +22,37 @@ class UCOStoragePelindo extends Model
         'Created_By',
         'Transaction_Date',
         'Reference_Number',
+        'fleet_name',
+        'fleet_plat',
+        'driver_name',
         'Notim_Path',
         'FFA',
         'MC',
         'IMP',
+        'Movement_FFA',
+        'Movement_MC',
+        'Movement_IMP',
         'Notes',
-        'QC_Path'
+        'QC_Path',
+        'BA_Path',
+        'Approval_Status',
+        'Approved_By',
+        'Approved_At',
+        'Rejection_Reason'
     ];
 
     protected $casts = [
         'Transaction_Date'  => 'date',
+        'Approved_At'       => 'datetime',
         'Quantity'          => 'decimal:2',
         'Quantity_PTU'      => 'decimal:2',
         'Quantity_Sounding' => 'decimal:2',
         'FFA'               => 'decimal:2',
         'MC'                => 'decimal:2',
         'IMP'               => 'decimal:2',
+        'Movement_FFA'      => 'decimal:2',
+        'Movement_MC'       => 'decimal:2',
+        'Movement_IMP'      => 'decimal:2',
     ];
 
     public function scopeInbound($query)
@@ -50,9 +65,22 @@ class UCOStoragePelindo extends Model
         return $query->where('Type', 'outbound');
     }
 
+    public function scopeApproved($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('Approval_Status', 'APPROVED')
+              ->orWhereNull('Approval_Status');
+        });
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->Approval_Status === null || strtoupper((string) $this->Approval_Status) === 'APPROVED';
+    }
+
     public static function balanceAsOf(string $date, ?string $warehouse = null, ?string $tank = null): float
     {
-        $query = self::where('Transaction_Date', '<', $date);
+        $query = self::approved()->where('Transaction_Date', '<', $date);
 
         if ($warehouse) {
             $query->where(function ($q) use ($warehouse) {

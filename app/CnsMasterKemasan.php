@@ -11,6 +11,7 @@ class CnsMasterKemasan extends Model
 
     protected $fillable = [
         'Name',
+        'product_type',
         'Volume',
         'Is_Ampas',
         'Max_Stock',

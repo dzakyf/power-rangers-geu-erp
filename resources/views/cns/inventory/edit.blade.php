@@ -2,12 +2,14 @@
     $qcParameters = [
         ['key' => 'FFA_As_Palmitic', 'label' => '1. FFA (As Palmitic)', 'unit' => '%', 'required' => false],
         ['key' => 'FFA_As_Oleic',    'label' => '2. FFA (As Oleic)',    'unit' => '%', 'required' => false],
-        ['key' => 'MIU',             'label' => '3. MIU (Moisture, Impurities & Unsaponifiables)', 'unit' => '%', 'required' => false],
-        ['key' => 'Sulphur',         'label' => '4. Total Sulfur',      'unit' => 'ppm', 'required' => false],
-        ['key' => 'IV',              'label' => '5. Iodine Value (IV)', 'unit' => 'g I2/100g', 'required' => false],
-        ['key' => 'Total_Chlorides', 'label' => '6. Chlorides',         'unit' => 'ppm', 'required' => false],
-        ['key' => 'Phosphorus',      'label' => '7. Phosphorus',        'unit' => 'ppm', 'required' => false],
-        ['key' => 'Total_Metals',    'label' => '8. Total Metals',      'unit' => 'ppm', 'required' => false],
+        ['key' => 'Moisture',        'label' => '3. Moisture',          'unit' => '%', 'required' => false],
+        ['key' => 'Impurities',      'label' => '4. Impurities',        'unit' => '%', 'required' => false],
+        ['key' => 'Unsaponifiables', 'label' => '5. Unsaponifiables',   'unit' => '%', 'required' => false],
+        ['key' => 'Sulphur',         'label' => '6. Total Sulfur',      'unit' => 'ppm', 'required' => false],
+        ['key' => 'IV',              'label' => '7. Iodine Value (IV)', 'unit' => 'g I2/100g', 'required' => false],
+        ['key' => 'Total_Chlorides', 'label' => '8. Chlorides',         'unit' => 'ppm', 'required' => false],
+        ['key' => 'Phosphorus',      'label' => '9. Phosphorus',        'unit' => 'ppm', 'required' => false],
+        ['key' => 'Total_Metals',    'label' => '10. Total Metals',     'unit' => 'ppm', 'required' => false],
     ];
 @endphp
 <div id="FormEditStock" class="row m-1" style="display:none;">
@@ -17,6 +19,7 @@
             <form id="StockEditForm" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="id" id="edit_id" />
+                <div id="edit_approval_banner" class="mb-3" style="display:none;"></div>
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <div class="form-group">
@@ -64,22 +67,51 @@
                         </div>
                     </div>
                 </div>
+                <div id="edit_inbound_adjustment_alert" class="mb-3" style="display:none;"></div>
                 <div id="edit_tank_capacity_info" class="mb-3" style="display:none;"></div>
+                <div id="edit_tank_overflow_container" class="mb-3" style="display:none;"></div>
                 <div class="row mb-3">
                     <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="edit_fleet_name">Fleet</label>
+                            <input type="text" id="edit_fleet_name" class="form-control" readonly />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="edit_fleet_plat">No. Polisi (Fleet Plat)</label>
+                            <input type="text" id="edit_fleet_plat" class="form-control" readonly />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="edit_driver_name">Driver</label>
+                            <input type="text" id="edit_driver_name" class="form-control" readonly />
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="edit_Reference_Number">Reference Number</label>
                             <input type="text" name="Reference_Number" id="edit_Reference_Number" class="form-control" />
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="edit_Attachment">Attachment Nota Timbang</label>
                             <input type="file" name="Attachment" id="edit_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
                             <div id="current_notim_link"></div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="edit_BA_Attachment">Attachment BA <span style="color:red;">*</span></label>
+                            <input type="file" name="BA_Attachment" id="edit_BA_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required />
+                            <div id="current_ba_link"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="edit_QC_Attachment">QC Attachment</label>
                             <input type="file" name="QC_Attachment" id="edit_QC_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
@@ -97,9 +129,12 @@
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-md-12">
+                    <div class="col-lg-4 mb-3">
+                        @include('cns.inventory.partials.movement-qc-table', ['prefix' => 'edit'])
+                    </div>
+                    <div class="col-lg-8 mb-3">
                         <div class="form-group">
-                            <label class="font-weight-bold">Quality Control</label>
+                            <label class="font-weight-bold">QC Inbound</label>
                             <p class="text-muted small mb-2">Parameter hasil uji laboratorium (TOP, MIDDLE, BOTTOM, dan AVERAGE).</p>
 
                             <div class="table-responsive">
@@ -144,7 +179,7 @@
                     </div>
                 </div>
 
-                <button type="button" class="btn btn-primary" onclick="submitEditStock()">Update</button>
+                <button type="button" id="btnUpdateEditStock" class="btn btn-primary" onclick="submitEditStock()">Update</button>
                 <button type="button" class="btn btn-secondary ml-2" onclick="closeEditStock()">Cancel</button>
             </form>
         </div>
@@ -155,7 +190,7 @@
 <script>
     var editOriginalTankState = { tank: '', type: 'inbound', qty: 0 };
     var inventoryQcParamKeys = [
-        'FFA_As_Palmitic', 'FFA_As_Oleic', 'MIU', 'Sulphur',
+        'FFA_As_Palmitic', 'FFA_As_Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulphur',
         'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'
     ];
 
@@ -226,6 +261,7 @@
             }
 
             document.getElementById('edit_id').value = rowId;
+            renderEditApprovalBanner(row);
             document.getElementById('edit_Type').value = row.Type ?? 'inbound';
             document.getElementById('edit_Quantity').value = (row.Quantity !== null && row.Quantity !== undefined && row.Quantity !== '') ? cnsFormatNumber(row.Quantity, 2) : '';
             editOriginalTankState = {
@@ -241,14 +277,45 @@
             }
             populateEditTankDropdown(row.Nama_Tangki);
             document.getElementById('edit_Quantity_PTU').value = (row.Quantity_PTU !== null && row.Quantity_PTU !== undefined && row.Quantity_PTU !== '') ? cnsFormatNumber(row.Quantity_PTU, 2) : '';
+            document.getElementById('edit_fleet_name').value = row.fleet_name ?? '';
+            document.getElementById('edit_fleet_plat').value = row.fleet_plat ?? '';
+            document.getElementById('edit_driver_name').value = row.driver_name ?? '';
             document.getElementById('edit_Reference_Number').value = row.Reference_Number ?? '';
             document.getElementById('edit_Notes').value = row.Notes ?? '';
+
+            if (row.Reference_Number) {
+                $.get('cns-inbound-adjustment-active/' + encodeURIComponent(row.Reference_Number), function(adjRes) {
+                    if (adjRes && adjRes.success && adjRes.has_adjustment && adjRes.adjustment) {
+                        var adj = adjRes.adjustment;
+                        $('#edit_inbound_adjustment_alert').html(
+                            '<div class="alert alert-success py-2 px-3 mb-0">' +
+                                '<i class="fa fa-check-circle mr-1"></i> <strong>Kuantiti disesuaikan dari Inbound Adjustment (' + adj.adjustment_code + ')</strong><br>' +
+                                'Kuantiti Asli Movement: <strong>' + cnsFormatNumber(adj.original_qty, 2) + ' KG</strong> &rarr; ' +
+                                'Kuantiti Disesuaikan: <strong>' + cnsFormatNumber(adj.adjusted_qty, 2) + ' KG</strong> ' +
+                                '(Selisih Variansi: <strong>' + cnsFormatNumber(adj.selisih_qty, 2) + ' KG</strong> pada tangki <strong>' + adj.tank_name + '</strong>).' +
+                            '</div>'
+                        ).show();
+                    } else {
+                        $('#edit_inbound_adjustment_alert').hide().empty();
+                    }
+                });
+            } else {
+                $('#edit_inbound_adjustment_alert').hide().empty();
+            }
 
             var notimHtml = row.Notim_Path ? `<a href="filevendor/${row.Notim_Path}" target="_blank" class="small text-danger d-block mt-1"><i class="fa fa-file-pdf"></i> Lihat Nota Timbang saat ini</a>` : '';
             $('#current_notim_link').html(notimHtml);
 
+            $('#edit_BA_Attachment').val('');
+            var baHtml = row.BA_Path ? `<a href="filevendor/${row.BA_Path}" target="_blank" class="small text-success d-block mt-1"><i class="fa fa-file-pdf"></i> Lihat Attachment BA saat ini</a>` : '';
+            $('#current_ba_link').html(baHtml);
+
             var qcHtml = row.QC_Path ? `<a href="filevendor/${row.QC_Path}" target="_blank" class="small text-primary d-block mt-1"><i class="fa fa-file-pdf"></i> Lihat QC Attachment saat ini</a>` : '';
             $('#current_qc_link').html(qcHtml);
+
+            $('#edit_mov_ffa').val(row.Movement_FFA !== null && row.Movement_FFA !== undefined && row.Movement_FFA !== '' ? cnsFormatNumber(row.Movement_FFA, 2) : '');
+            $('#edit_mov_mc').val(row.Movement_MC !== null && row.Movement_MC !== undefined && row.Movement_MC !== '' ? cnsFormatNumber(row.Movement_MC, 2) : '');
+            $('#edit_mov_imp').val(row.Movement_IMP !== null && row.Movement_IMP !== undefined && row.Movement_IMP !== '' ? cnsFormatNumber(row.Movement_IMP, 2) : '');
 
             var qc = row.qc || {};
             ['top', 'middle', 'bottom'].forEach(function(type) {
@@ -257,11 +324,11 @@
                     var el = document.getElementById('edit_' + type + '_' + key);
                     if (el) {
                         var val = item[key] ?? '';
-                        // Legacy fallback for MIU if only MC/IMP exists
-                        if (key === 'MIU' && (val === '' || val === null) && (item.MC !== undefined || item.IMP !== undefined)) {
-                            var mc = parseFloat(item.MC) || 0;
-                            var imp = parseFloat(item.IMP) || 0;
-                            val = (mc + imp > 0) ? (mc + imp).toFixed(2) : '';
+                        if (key === 'Moisture' && (val === '' || val === null) && item.MC !== undefined) {
+                            val = item.MC;
+                        }
+                        if (key === 'Impurities' && (val === '' || val === null) && item.IMP !== undefined) {
+                            val = item.IMP;
                         }
                         el.value = (val !== '' && val !== null && val !== undefined) ? cnsFormatNumber(val, 2) : '';
                     }
@@ -278,6 +345,25 @@
         });
     }
 
+    function renderEditApprovalBanner(row) {
+        var status = row.Approval_Status ? String(row.Approval_Status).toUpperCase() : 'APPROVED';
+        var $banner = $('#edit_approval_banner');
+        var $btn = $('#btnUpdateEditStock');
+
+        if (status === 'APPROVED') {
+            var info = row.Approved_By ? (' oleh ' + $('<div>').text(row.Approved_By).html()) : '';
+            $banner.html('<div class="alert alert-success py-2 mb-0"><strong>Status: APPROVED</strong>' + info + ' — Data sudah terkunci dan tidak dapat diubah.</div>').show();
+            $btn.prop('disabled', true);
+        } else if (status === 'REJECTED') {
+            var reason = row.Rejection_Reason ? $('<div>').text(row.Rejection_Reason).html() : '-';
+            $banner.html('<div class="alert alert-danger py-2 mb-0"><strong>Status: REJECTED</strong> — Alasan: ' + reason + '. Simpan perubahan untuk mengajukan ulang (PENDING).</div>').show();
+            $btn.prop('disabled', false);
+        } else {
+            $banner.html('<div class="alert alert-warning py-2 mb-0"><strong>Status: PENDING</strong> — Menunggu approval.</div>').show();
+            $btn.prop('disabled', false);
+        }
+    }
+
     function submitEditStock() {
         var form = document.getElementById('StockEditForm');
 
@@ -285,13 +371,29 @@
             alert('Transaction Date wajib diisi');
             return;
         }
+        if (!form.BA_Attachment || !form.BA_Attachment.files || form.BA_Attachment.files.length === 0) {
+            alert('Attachment BA wajib diupload');
+            return;
+        }
+
+        var overflowResult = window.cnsValidateAndCollectOverflow(
+            $('#edit_tank_overflow_container'),
+            getEditTankCapacityParams()
+        );
+        if (!overflowResult.ok) {
+            alert(overflowResult.message);
+            return;
+        }
 
         var capacityCheck = window.cnsEvaluateTankCapacity(getEditTankCapacityParams());
-        if (capacityCheck && capacityCheck.isWarning && !confirm(capacityCheck.confirmMessage)) {
+        if (capacityCheck && capacityCheck.isNegativeStock && !confirm(capacityCheck.confirmMessage)) {
             return;
         }
 
         var formData = new FormData(form);
+        if (overflowResult.allocations && overflowResult.allocations.length > 0) {
+            formData.set('overflow_allocations', JSON.stringify(overflowResult.allocations));
+        }
         $(form).find('input.cns-decimal').each(function() {
             var name = $(this).attr('name');
             if (name && $.trim($(this).val()) !== '') {
@@ -317,8 +419,9 @@
                     alert('Gagal mengupdate data: ' + (res.message || 'Unknown error'));
                 }
             },
-            error: function() {
-                alert('Gagal mengupdate data');
+            error: function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal mengupdate data';
+                alert(msg);
             }
         });
     }
@@ -335,14 +438,20 @@
     }
 
     function updateEditTankCapacityPreview() {
-        return window.cnsRenderTankCapacityPreview($('#edit_tank_capacity_info'), getEditTankCapacityParams());
+        return window.cnsRenderTankCapacityPreview(
+            $('#edit_tank_capacity_info'),
+            getEditTankCapacityParams(),
+            $('#edit_tank_overflow_container')
+        );
     }
 
     function closeEditStock() {
         $('#FormEditStock').hide();
         $('#StockEditForm')[0].reset();
         $('#edit_Asal_Warehouse').val('').trigger('change');
+        $('#edit_inbound_adjustment_alert').hide().empty();
         $('#edit_tank_capacity_info').hide().empty();
+        $('#edit_tank_overflow_container').hide().empty();
         editOriginalTankState = { tank: '', type: 'inbound', qty: 0 };
     }
 

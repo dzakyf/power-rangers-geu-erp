@@ -92,12 +92,14 @@
                     $qcParameters = [
                         ['key' => 'FFA_As_Palmitic', 'label' => '1. FFA (As Palmitic)', 'unit' => '%', 'required' => true],
                         ['key' => 'FFA_As_Oleic',    'label' => '2. FFA (As Oleic)',    'unit' => '%', 'required' => true],
-                        ['key' => 'MIU',             'label' => '3. MIU (Moisture, Impurities & Unsaponifiables)', 'unit' => '%', 'required' => true],
-                        ['key' => 'Sulphur',         'label' => '4. Total Sulfur',      'unit' => 'ppm', 'required' => false],
-                        ['key' => 'IV',              'label' => '5. Iodine Value (IV)', 'unit' => 'g I2/100g', 'required' => false],
-                        ['key' => 'Total_Chlorides', 'label' => '6. Chlorides',         'unit' => 'ppm', 'required' => false],
-                        ['key' => 'Phosphorus',      'label' => '7. Phosphorus',        'unit' => 'ppm', 'required' => false],
-                        ['key' => 'Total_Metals',    'label' => '8. Total Metals',      'unit' => 'ppm', 'required' => false],
+                        ['key' => 'Moisture',        'label' => '3. Moisture',          'unit' => '%', 'required' => true],
+                        ['key' => 'Impurities',      'label' => '4. Impurities',        'unit' => '%', 'required' => true],
+                        ['key' => 'Unsaponifiables', 'label' => '5. Unsaponifiables',   'unit' => '%', 'required' => false],
+                        ['key' => 'Sulphur',         'label' => '6. Total Sulfur',      'unit' => 'ppm', 'required' => false],
+                        ['key' => 'IV',              'label' => '7. Iodine Value (IV)', 'unit' => 'g I2/100g', 'required' => false],
+                        ['key' => 'Total_Chlorides', 'label' => '8. Chlorides',         'unit' => 'ppm', 'required' => false],
+                        ['key' => 'Phosphorus',      'label' => '9. Phosphorus',        'unit' => 'ppm', 'required' => false],
+                        ['key' => 'Total_Metals',    'label' => '10. Total Metals',     'unit' => 'ppm', 'required' => false],
                     ];
                 @endphp
 
@@ -154,7 +156,7 @@
 
 <script>
     var qcParamKeys = [
-        'FFA_As_Palmitic', 'FFA_As_Oleic', 'MIU', 'Sulphur',
+        'FFA_As_Palmitic', 'FFA_As_Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulphur',
         'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'
     ];
 
@@ -265,7 +267,7 @@
 
         // Validate mandatory parameters for all 3 levels (Top, Middle, Bottom)
         var levels = ['top', 'middle', 'bottom'];
-        var mandatoryParams = ['FFA_As_Palmitic', 'FFA_As_Oleic', 'MIU'];
+        var mandatoryParams = ['FFA_As_Palmitic', 'FFA_As_Oleic', 'Moisture', 'Impurities'];
 
         if (qcType === 'OUTBOUND') {
             mandatoryParams = qcParamKeys;

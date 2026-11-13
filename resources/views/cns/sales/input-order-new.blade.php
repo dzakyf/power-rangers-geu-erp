@@ -199,17 +199,25 @@ $Saya =  Auth::user()->username;
     text-align: center;
   }
 
+  .items-table .desc-col {
+    width: 38%;
+    min-width: 180px;
+  }
+
   .items-table .qty-col {
-    width: 80px;
+    width: 11%;
+    min-width: 105px;
   }
 
   .items-table .unit-col {
-    width: 95px;
+    width: 11%;
+    min-width: 105px;
   }
 
   .items-table .price-col,
   .items-table .total-col {
-    width: 130px;
+    width: 16%;
+    min-width: 150px;
   }
 
   .items-table tfoot td {
@@ -477,7 +485,7 @@ $Saya =  Auth::user()->username;
                     <thead>
                       <tr>
                         <th class="num-col">No.</th>
-                        <th>Description</th>
+                        <th class="desc-col">Description</th>
                         <th class="qty-col text-center">QTY</th>
                         <th class="unit-col text-center">Unit</th>
                         <th class="price-col text-right">Unit Price (IDR)</th>
