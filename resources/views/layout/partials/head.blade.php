@@ -1,5 +1,11 @@
 <!-- Required meta tags -->
 <meta charset="utf-8">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="notification-list-url" content="{{ url('notification-getall') }}">
+<meta name="notification-stream-url" content="{{ url('notification-stream') }}">
+<meta name="notification-read-url" content="{{ url('notification-read') }}">
+<meta name="notification-sse-enabled" content="{{ config('notifications.sse_enabled', true) ? '1' : '0' }}">
+<meta name="notification-poll-seconds" content="{{ config('notifications.poll_interval', 30) }}">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>GREEN ENERGI UTAMA</title>
 

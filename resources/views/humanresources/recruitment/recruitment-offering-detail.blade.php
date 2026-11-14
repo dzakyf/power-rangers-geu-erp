@@ -52,7 +52,7 @@ $defaultNote = $recruitment->Offering_Note ?? '';
 $onboardingService = app(\App\Services\HCGA\RecruitmentOnboardingService::class);
 $suggestedNik = $recruitment->NIK ?? $onboardingService->generateNik($defaultStartDate);
 $suggestedAccess = $onboardingService->resolvePrivilegeAndRole($defaultPosition, $requisition->Directorat ?? ($recruitment->Directorat ?? null), $requisition->Department ?? ($recruitment->Department ?? null));
-$allRoles = \App\Role::orderBy('name', 'ASC')->pluck('name');
+$allRoles = \App\Role::orderBy('name', 'ASC')->orderBy('department', 'ASC')->get();
 
 // Deteksi Atasan Langsung (Direct Supervisor) otomatis jika belum diisi manual di kolom Direct_Supervisor
 $resolvedSupervisor = $onboardingService->resolveDirectSupervisor($defaultPosition, $requisition->Department ?? ($recruitment->Department ?? null));
@@ -639,12 +639,12 @@ $defaultTerms = $recruitment->Offering_Terms ?? "Dokumen Offering Letter ini ber
                                             <label for="offer_role" class="form-label small fw-semibold text-dark">
                                                 Role Hak Akses Menu
                                             </label>
-                                            <select class="form-select form-select-sm" name="role"
+                                            <select class="form-select form-select-sm" name="role_id"
                                                 id="offer_role">
-                                                @foreach ($allRoles as $r)
-                                                    <option value="{{ $r }}"
-                                                        {{ $r === $suggestedAccess['default_role'] ? 'selected' : '' }}>
-                                                        {{ $r }}
+                                                @foreach ($allRoles as $role)
+                                                    <option value="{{ $role->id }}"
+                                                        {{ (string) $role->id === (string) ($suggestedAccess['default_role_id'] ?? '') ? 'selected' : '' }}>
+                                                        {{ $role->name }}{{ $role->department ? ' - ' . $role->department : '' }}
                                                     </option>
                                                 @endforeach
                                             </select>

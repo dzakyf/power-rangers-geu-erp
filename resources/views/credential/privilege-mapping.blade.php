@@ -92,10 +92,10 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Role Spatie</label>
-                            <select class="form-select form-select-sm" name="default_role" id="default_role">
+                            <select class="form-select form-select-sm" name="default_role_id" id="default_role_id">
                                 <option value="">-- Sama dengan Priv_ID --</option>
-                                @foreach($roles as $r)
-                                    <option value="{{ $r }}">{{ $r }}</option>
+                                @foreach($roles as $role)
+                                    <option value="{{ $role->id }}">{{ $role->name }}{{ $role->department ? ' - ' . $role->department : '' }}</option>
                                 @endforeach
                             </select>
                             <div class="form-text fs-11">Penentu hak akses menu Spatie.</div>
@@ -155,7 +155,7 @@
                 },
                 { data: 'target_key', render: function(d) { return '<strong>' + d + '</strong>'; } },
                 { data: 'priv_id', render: function(d) { return '<span class="badge bg-dark text-white px-2 py-1">' + d + '</span>'; } },
-                { data: 'default_role', render: function(d) { return d ? '<span class="badge bg-secondary text-white px-2 py-1">' + d + '</span>' : '<em class="text-muted">-</em>'; } },
+                { data: 'default_role_label', render: function(d) { return d ? '<span class="badge bg-secondary text-white px-2 py-1">' + d + '</span>' : '<em class="text-muted">-</em>'; } },
                 { data: 'description', render: function(d) { return d ? d : '<em class="text-muted">-</em>'; } },
                 { 
                     data: 'status', 
@@ -213,7 +213,7 @@
         handleTypeChange();
         $('#target_key').val(row.target_key);
         $('#priv_id').val(row.priv_id);
-        $('#default_role').val(row.default_role || '');
+        $('#default_role_id').val(row.default_role_id || '');
         $('#description').val(row.description || '');
         $('#status').val(row.status || 'ACTIVE');
 

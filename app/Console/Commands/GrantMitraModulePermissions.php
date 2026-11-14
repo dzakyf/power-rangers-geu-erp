@@ -15,7 +15,7 @@ class GrantMitraModulePermissions extends Command
 
     public function handle()
     {
-        $role = Role::where('name', 'MITRA')->first();
+        $role = Role::where('name', 'MITRA')->whereNull('department')->first();
 
         if (!$role) {
             $this->error('MITRA role not found.');

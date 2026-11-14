@@ -6,6 +6,7 @@ use App\Role;
 use App\Permission;
 use App\User;
 use App\Services\RbacService;
+use App\Services\Rbac\RoleResolver;
 
 /**
  * Idempotent RBAC seeder.
@@ -83,15 +84,15 @@ class RbacSeeder extends Seeder
             // HCGA staff are scoped to the HRD module via the HRD role
             // (see HcgaPermissionSeeder); keep that exception stable across re-seeds.
             if ($user->Priv_ID === 'STAFF' && $user->Department === 'HCGA') {
-                $role = Role::where('name', 'HRD')->first();
-                if ($role && !$user->hasRole('HRD')) {
+                $role = Role::where('name', 'HRD')->whereNull('department')->first();
+                if ($role && !$user->roles->contains('id', $role->id)) {
                     $user->assignRole($role);
                 }
                 continue;
             }
 
-            $role = Role::where('name', $user->Priv_ID)->first();
-            if ($role && !$user->hasRole($role->name)) {
+            $role = app(RoleResolver::class)->resolve($user->Priv_ID, $user->Department);
+            if ($role && !$user->roles->contains('id', $role->id)) {
                 $user->assignRole($role);
             }
         }

@@ -60,35 +60,3 @@
 </div>
 
 <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">@csrf</form>
-
-@push('rightmenu-script')
-<script>
-    $(function () {
-        function bpLoadNotifications() {
-            var list = $('#bpNotifList');
-            $.ajax({
-                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-                url: "{{ url('notification-getall') }}",
-                type: 'GET',
-                success: function (data) {
-                    list.empty();
-                    if (!data || !data.data || data.data.length < 1) {
-                        list.append('<div class="p-3 text-center text-muted">No notifications</div>');
-                        return;
-                    }
-                    data.data.forEach(function (n) {
-                        list.append('<a class="dropdown-item text-wrap" onclick="bpMarkRead(' + n.ID + ')">' +
-                            '<strong>' + (n.Title || 'Notification') + '</strong><br>' +
-                            '<small class="text-muted">' + (n.Created_At || '') + '</small></a>');
-                    });
-                },
-                error: function () { list.html('<div class="p-3 text-center text-danger">Failed to load</div>'); }
-            });
-        }
-        window.bpMarkRead = function (id) {
-            $.post("{{ url('notification-read') }}?_token={{ csrf_token() }}", { id: id });
-        };
-        bpLoadNotifications();
-    });
-</script>
-@endpush

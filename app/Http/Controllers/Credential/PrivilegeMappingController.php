@@ -31,7 +31,7 @@ class PrivilegeMappingController extends Controller
     {
         abort_unless($this->canManageMapping(), 403, 'Anda tidak memiliki hak akses mengelola Privilege Mapping.');
 
-        $roles = Role::orderBy('name', 'ASC')->pluck('name');
+        $roles = Role::orderBy('name', 'ASC')->orderBy('department', 'ASC')->get();
         
         $directorats = DB::table('master_directorat')
             ->orderBy('Directorat', 'ASC')
@@ -80,7 +80,14 @@ class PrivilegeMappingController extends Controller
             ->orderBy('target_key', 'ASC')
             ->offset($start)
             ->limit($length)
-            ->get();
+            ->get()
+            ->map(function ($row) {
+                $role = $row->default_role_id ? Role::find($row->default_role_id) : null;
+                $row->default_role_label = $role
+                    ? ($role->department ? $role->name . ' - ' . $role->department : $role->name)
+                    : ($row->default_role ?: null);
+                return $row;
+            });
 
         return response()->json([
             'draw'            => (int) $request->input('draw'),
@@ -105,6 +112,7 @@ class PrivilegeMappingController extends Controller
             'target_key'   => 'required|string|max:150',
             'priv_id'      => 'required|string|max:50',
             'default_role' => 'nullable|string|max:100',
+            'default_role_id' => 'nullable|integer|exists:roles,id',
             'description'  => 'nullable|string|max:255',
             'status'       => 'required|in:ACTIVE,INACTIVE',
         ]);
@@ -118,16 +126,30 @@ class PrivilegeMappingController extends Controller
 
         $id = $request->input('id');
         $user = Auth::user()->username ?? 'SYSTEM';
+        $defaultRoleId = $request->input('default_role_id') ?: null;
+        $defaultRoleName = trim((string) $request->input('default_role'));
+
+        if ($defaultRoleId) {
+            $role = Role::find($defaultRoleId);
+            if (!$role) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Role tidak ditemukan.',
+                ], 422);
+            }
+            $defaultRoleName = $role->name;
+        }
 
         $data = [
-            'mapping_type' => $request->input('mapping_type'),
-            'target_key'   => trim($request->input('target_key')),
-            'priv_id'      => strtoupper(trim($request->input('priv_id'))),
-            'default_role' => trim($request->input('default_role')),
-            'description'  => $request->input('description'),
-            'status'       => $request->input('status', 'ACTIVE'),
-            'updated_by'   => $user,
-            'updated_at'   => now(),
+            'mapping_type'    => $request->input('mapping_type'),
+            'target_key'      => trim($request->input('target_key')),
+            'priv_id'         => strtoupper(trim($request->input('priv_id'))),
+            'default_role'    => $defaultRoleName,
+            'default_role_id' => $defaultRoleId,
+            'description'     => $request->input('description'),
+            'status'          => $request->input('status', 'ACTIVE'),
+            'updated_by'      => $user,
+            'updated_at'      => now(),
         ];
 
         if ($id) {
