@@ -99,6 +99,12 @@ $Saya = Auth::user()->username; ?>
         border-top: 1px solid #dee2e6;
     }
 
+    #permission-editor-section,
+    #permission-table-container,
+    #permission-table_wrapper {
+        overflow: visible;
+    }
+
     .filter-row {
         margin-bottom: 18px;
     }
@@ -114,6 +120,7 @@ $Saya = Auth::user()->username; ?>
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
+                            <th>Department</th>
                             <th>Users Count</th>
                         </tr>
                     </thead>
@@ -127,6 +134,9 @@ $Saya = Auth::user()->username; ?>
                     </button>
                     <button type="button" class="btn btn-danger m-1" id="deleteRoleBtn" onclick="deleteRole()" disabled>
                         <i class="fa fa-trash"></i> Delete Role
+                    </button>
+                    <button type="button" class="btn btn-info m-1" id="permissionsBtn" onclick="openPermissions()" disabled>
+                        <i class="fa fa-key"></i> Permissions
                     </button>
                 </div>
             </div>
@@ -156,20 +166,22 @@ $Saya = Auth::user()->username; ?>
                     </select>
                     <button id="toggle-all-btn" class="btn btn-sm btn-outline-primary" style="display:none;">Pilih semua role</button>
                 </div>
-                <table id="permission-table" class="table table-striped table-bordered" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>Menu Name</th>
-                            <th>Module</th>
-                            <th>View</th>
-                            <th>Create</th>
-                            <th>Edit</th>
-                            <th>Delete</th>
-                            <th>Approve</th>
-                        </tr>
-                    </thead>
-                </table>
+                <div class="table-responsive">
+                    <table id="permission-table" class="table table-striped table-bordered" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Menu Name</th>
+                                <th>Module</th>
+                                <th>View</th>
+                                <th>Create</th>
+                                <th>Edit</th>
+                                <th>Delete</th>
+                                <th>Approve</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
                 <div style="margin-top:10px;">
                     <button type="button" class="btn btn-success" id="save-permissions-btn" onclick="triggerSavePermissions()" disabled>
                         <i class="fa fa-save"></i> Save Permissions
@@ -206,6 +218,15 @@ $Saya = Auth::user()->username; ?>
                             <label for="roleName">Role Name</label>
                             <input type="text" id="roleName" class="form-control" required>
                         </div>
+                        <div class="form-group">
+                            <label for="roleDepartment">Department</label>
+                            <select id="roleDepartment" class="form-control">
+                                <option value="">Global (no department)</option>
+                                @foreach($departments as $department)
+                                <option value="{{ $department->Initial }}">{{ $department->Department }} ({{ $department->Initial }})</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -226,6 +247,8 @@ $Saya = Auth::user()->username; ?>
         var selectedMenuName = null;
         var selectedRoleId = null;
         var selectedRoleName = null;
+        var selectedRoleDepartment = null;
+        var permLoadedRoleId = null;
         var permDt = null;
         var permDataCache = {};
         var currentPermState = {};
@@ -241,6 +264,16 @@ $Saya = Auth::user()->username; ?>
                     data: 'name'
                 },
                 {
+                    data: 'department',
+                    render: function(val, type, row) {
+                        if (!val) {
+                            return '<span class="text-muted">Global</span>';
+                        }
+                        var label = row.department_name || val;
+                        return $('<div>').text(label).html() + ' <span class="text-muted">(' + $('<div>').text(val).html() + ')</span>';
+                    }
+                },
+                {
                     data: 'users_count'
                 }
             ],
@@ -254,6 +287,7 @@ $Saya = Auth::user()->username; ?>
                     $(this).addClass('selected');
                     selectedRoleId = data.id;
                     selectedRoleName = data.name;
+                    selectedRoleDepartment = data.department || null;
 
                     var isAdm = (data.name === 'ADM');
                     if (isAdm) {
@@ -263,20 +297,23 @@ $Saya = Auth::user()->username; ?>
                         $('#editRoleBtn').prop('disabled', !canEdit);
                         $('#deleteRoleBtn').prop('disabled', !canEdit);
                     }
+                    $('#permissionsBtn').prop('disabled', false);
 
-                    loadPermissions(data.id, data.name);
+                    loadPermissions(data.id, data.name, data.department || null);
                 });
             }
         });
 
-        function loadPermissions(roleId, roleName) {
+        function loadPermissions(roleId, roleName, roleDepartment) {
             selectedRoleId = roleId;
             selectedRoleName = roleName;
+            selectedRoleDepartment = roleDepartment || null;
             selectedMenuId = null;
             selectedMenuName = null;
             $('#edit-menu-name-btn').prop('disabled', true);
             $('#delete-menu-btn').prop('disabled', true);
-            $('#selected-role-name').text('(' + roleName + ')');
+            var roleLabel = roleName + (roleDepartment ? ' - ' + roleDepartment : '');
+            $('#selected-role-name').text('(' + roleLabel + ')');
             $('#no-role-message').hide();
             $('#permission-table-container').show();
             $('#perm-loading').show();
@@ -288,20 +325,22 @@ $Saya = Auth::user()->username; ?>
             }
 
             if (permDt) {
-                permDt.destroy();
-                $('#permission-table').empty();
+                permLoadedRoleId = roleId;
+                permDt.ajax.reload();
+                return;
             }
 
+            permLoadedRoleId = roleId;
             permDt = $('#permission-table').DataTable({
                 processing: true,
                 serverSide: false,
                 ajax: {
                     url: '{{ route("master.credential.role.permission") }}',
                     data: function(d) {
-                        d.role_id = roleId;
+                        d.role_id = selectedRoleId;
                     },
                     dataSrc: function(json) {
-                        permDataCache[roleId] = json.data;
+                        permDataCache[selectedRoleId] = json.data;
                         currentPermState = {};
                         var allGranted = json.data.length > 0;
                         json.data.forEach(function(row) {
@@ -380,6 +419,7 @@ $Saya = Auth::user()->username; ?>
                     visible: false
                 }],
                 drawCallback: function() {
+                    $('#perm-loading').hide();
                     bindCheckboxEvents();
                 },
                 rowCallback: function(row, data) {
@@ -465,11 +505,21 @@ $Saya = Auth::user()->username; ?>
         });
 
 
+        function openPermissions() {
+            if (!selectedRoleId) return;
+            loadPermissions(selectedRoleId, selectedRoleName, selectedRoleDepartment);
+            var section = document.getElementById('permission-editor-section');
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
         function openCreateRoleModal() {
             $('#roleModalTitle').text('Add Role');
             $('#roleFormMode').val('create');
             $('#editRoleId').val('');
             $('#roleName').val('');
+            $('#roleDepartment').val('');
             $('#roleModalStatus').hide().text('');
             $('#roleModal').modal('show');
         }
@@ -480,6 +530,7 @@ $Saya = Auth::user()->username; ?>
             $('#roleFormMode').val('edit');
             $('#editRoleId').val(selectedRoleId);
             $('#roleName').val(selectedRoleName);
+            $('#roleDepartment').val(selectedRoleDepartment || '');
             $('#roleModalStatus').hide().text('');
             $('#roleModal').modal('show');
         }
@@ -497,14 +548,16 @@ $Saya = Auth::user()->username; ?>
                 url = '{{ url("/master-credential-role-create") }}';
                 data = {
                     _token: '{{ csrf_token() }}',
-                    name: name
+                    name: name,
+                    department: $('#roleDepartment').val()
                 };
             } else {
                 var id = $('#editRoleId').val();
                 url = '{{ url("/master-credential-role-update") }}/' + id;
                 data = {
                     _token: '{{ csrf_token() }}',
-                    name: name
+                    name: name,
+                    department: $('#roleDepartment').val()
                 };
             }
 
@@ -546,6 +599,7 @@ $Saya = Auth::user()->username; ?>
                         selectedRoleName = null;
                         $('#editRoleBtn').prop('disabled', true);
                         $('#deleteRoleBtn').prop('disabled', true);
+                        $('#permissionsBtn').prop('disabled', true);
                         rolesTable.ajax.reload();
                     } else {
                         alert(response.message || 'Error deleting role');

@@ -27,6 +27,7 @@
                     <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
                         <a class="dropdown-item" href="#" onclick="approveClick('APPROVED')">Approve</a>
                         <a class="dropdown-item" href="#" onclick="approveClick('REJECTED')">Reject</a>
+                            @include('approval.partials.force-approve-menu-item', ['idVar' => 'mitraId'])
                     </div>
                 </div>
             </div>
@@ -149,4 +150,5 @@
         });
     }
 </script>
+@include('approval.partials.force-approve-script')
 @endsection

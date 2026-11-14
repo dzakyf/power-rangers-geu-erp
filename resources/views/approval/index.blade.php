@@ -38,7 +38,7 @@
 						<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
 							<a class="dropdown-item" href="#" onclick="approveClick('APPROVED')">Approve</a>
 							<a class="dropdown-item" href="#" onclick="approveClick('REJECTED')">Reject</a>
-					<a class="dropdown-item" href="#" onclick="forceApproveClick()">Force Approve</a>
+					@include('approval.partials.force-approve-menu-item', ['idVar' => 'apprId'])
 						</div>
 					</div>
 				</div>
@@ -256,4 +256,5 @@
 		}, 400);
 	}
 </script>
+@include('approval.partials.force-approve-script')
 @endsection

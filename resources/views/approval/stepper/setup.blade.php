@@ -67,11 +67,19 @@
                 </tr>
                 <tr>
                     <th>Skor</th>
-                    <td>{{ $survey->Total_Score ?? '-' }}</td>
+                    <td>
+                        {{ $survey->Total_Score ?? '-' }}
+                        @if(!is_null($survey->Max_Score))
+                            / {{ $survey->Max_Score }}
+                        @endif
+                        @if(!is_null($survey->Score_Percentage))
+                            ({{ $survey->Score_Percentage }}%)
+                        @endif
+                    </td>
                 </tr>
                 <tr>
                     <th>Rekomendasi</th>
-                    <td>{{ $survey->Recommendation_Type ?? '-' }}</td>
+                    <td>{{ $survey->Recommendation ?: ($survey->Recommendation_Type ?? '-') }}</td>
                 </tr>
                 <tr>
                     <th>Status</th>

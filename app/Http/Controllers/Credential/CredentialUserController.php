@@ -8,18 +8,19 @@ use Illuminate\Support\Facades\DB;
 use App\User;
 use App\Role as SpatieRole;
 use App\Services\RbacService;
+use App\Services\Rbac\RoleResolver;
 
 class CredentialUserController extends Controller
 {
     public function index()
     {
-        $roles = SpatieRole::all()->pluck('name');
+        $roles = SpatieRole::orderBy('name')->orderBy('department')->get();
         return view('credential.user-management', compact('roles'));
     }
 
     public function createUser()
     {
-        $roles = SpatieRole::all()->pluck('name');
+        $roles = SpatieRole::orderBy('name')->orderBy('department')->get();
         return view('credential.user-management', compact('roles'));
     }
 
@@ -65,6 +66,7 @@ class CredentialUserController extends Controller
                 'posisi' => $u->Priv_ID,
                 'status' => $u->Status,
                 'priv_id' => $u->Priv_ID,
+                'department' => $u->Department,
                 'signature' => !empty($u->signature) ? asset('filevendor/' . $u->signature) : null,
             ];
             $index++;
@@ -75,14 +77,33 @@ class CredentialUserController extends Controller
                 ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
                 ->whereIn('model_has_roles.model_id', $userIds)
                 ->where('model_has_roles.model_type', 'App\User')
-                ->select('model_has_roles.model_id', 'roles.name as role_name')
+                ->select('model_has_roles.model_id', 'roles.id as role_id', 'roles.name as role_name', 'roles.department')
                 ->get()
                 ->groupBy('model_id');
 
             foreach ($data as &$row) {
                 $uid = $row['id'];
-                $rNames = isset($userRoles[$uid]) ? $userRoles[$uid]->pluck('role_name')->toArray() : [];
-                $row['roles'] = $rNames;
+                $rRows = isset($userRoles[$uid]) ? $userRoles[$uid] : collect();
+                $primary = $rRows->first(function ($r) use ($row) {
+                    return $r->role_name === $row['priv_id']
+                        && $r->department === ($row['department'] ?? null);
+                });
+
+                if (!$primary) {
+                    $primary = $rRows->first(function ($r) use ($row) {
+                        return $r->role_name === $row['priv_id'] && empty($r->department);
+                    });
+                }
+
+                $row['roles'] = $rRows->pluck('role_name')->toArray();
+                $row['role_ids'] = $rRows->pluck('role_id')->map(function ($id) { return (int) $id; })->values()->all();
+                $row['role_labels'] = $rRows->map(function ($r) {
+                    return $r->department ? $r->role_name . ' - ' . $r->department : $r->role_name;
+                })->values()->all();
+                $row['primary_role_id'] = $primary ? (int) $primary->role_id : ($row['role_ids'][0] ?? null);
+                $row['primary_role_label'] = $primary
+                    ? ($primary->department ? $primary->role_name . ' - ' . $primary->department : $primary->role_name)
+                    : ($row['role_labels'][0] ?? $row['priv_id']);
             }
         }
 
@@ -180,6 +201,18 @@ class CredentialUserController extends Controller
         $password = $request->input('password', '12345678');
         $location = $request->input('Location', 'GEU-HO');
         $position = $request->input('Position', 'EMPLOYEE');
+        $roleId = $request->input('role_id');
+        $resolver = app(RoleResolver::class);
+        $roleModel = $roleId ? $resolver->resolveById((int) $roleId) : null;
+
+        if (!$roleModel) {
+            $roleModel = $resolver->resolve($position, $request->input('Department'));
+        }
+
+        $roleName = $roleModel ? $roleModel->name : $position;
+        $department = $roleModel && $roleModel->department
+            ? $roleModel->department
+            : $request->input('Department');
 
         if (!$email || !$name) {
             return 'error:Email/Username and Name are required';
@@ -195,18 +228,16 @@ class CredentialUserController extends Controller
             'email'    => $email,
             'password' => bcrypt($password),
             'Location' => $location,
-            'Position' => $position,
-            'Priv_ID'  => $position,
+            'Position' => $roleName,
+            'Priv_ID'  => $roleName,
+            'Department' => $department,
             'Status'   => 'ACTIVE',
         ]);
 
         $user = User::find($userId);
-        if ($user && $position) {
-            $roleModel = SpatieRole::where('name', $position)->first();
-            if ($roleModel) {
-                $user->assignRole($roleModel);
-                RbacService::rebuildSubMenu($user);
-            }
+        if ($user && $roleModel) {
+            $user->assignRole($roleModel);
+            RbacService::rebuildSubMenu($user);
         }
 
         if ($request->hasFile('signature')) {
@@ -238,20 +269,48 @@ class CredentialUserController extends Controller
         $email = $request->input('email');
         $location = $request->input('location');
         $status = $request->input('status');
-        $primaryRole = $request->input('primary_role');
-        $additionalRoles = $request->input('additional_roles', []);
+        $primaryRoleId = $request->input('primary_role_id');
+        $additionalRoleIds = $request->input('additional_role_ids', []);
+        $primaryRoleName = $request->input('primary_role');
+        $resolver = app(RoleResolver::class);
+
+        $primaryRoleModel = $primaryRoleId
+            ? $resolver->resolveById((int) $primaryRoleId)
+            : $resolver->resolve($primaryRoleName, $request->input('department', $user->Department));
+
+        $roleModels = collect();
+        if ($primaryRoleModel) {
+            $roleModels->push($primaryRoleModel);
+        }
+
+        if (!empty($additionalRoleIds)) {
+            $roleModels = $roleModels->merge($resolver->resolveManyByIds($additionalRoleIds));
+        } else {
+            $legacyAdditional = $request->input('additional_roles', []);
+            foreach ($legacyAdditional as $legacyName) {
+                $legacyRole = $resolver->resolve($legacyName, $request->input('department', $user->Department));
+                if ($legacyRole) {
+                    $roleModels->push($legacyRole);
+                }
+            }
+        }
+
+        $roleModels = $roleModels->unique('id')->values();
+        $primaryName = $primaryRoleModel ? $primaryRoleModel->name : ($primaryRoleName ?: $user->Priv_ID);
+        $department = $primaryRoleModel && $primaryRoleModel->department
+            ? $primaryRoleModel->department
+            : $request->input('department', $user->Department);
 
         DB::table('users')->where('id', $userId)->update([
             'Name'     => $name,
             'email'    => $email,
             'Location' => $location,
             'Status'   => $status,
-            'Priv_ID'  => $primaryRole,
-            'Position' => $primaryRole,
+            'Priv_ID'  => $primaryName,
+            'Position' => $primaryName,
+            'Department' => $department,
         ]);
 
-        $allRoles = array_unique(array_merge([$primaryRole], $additionalRoles));
-        $roleModels = SpatieRole::whereIn('name', $allRoles)->get();
         $user->syncRoles($roleModels);
 
         if ($request->hasFile('signature')) {

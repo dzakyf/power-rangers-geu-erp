@@ -566,7 +566,7 @@ class ApprovalController extends Controller
      * side effects: the approval itself is already committed, so failures
      * here are logged instead of failing the request.
      */
-    private function applyFlowSideEffects(string $type, int $requestId): void
+    public function applyFlowSideEffects(string $type, int $requestId): void
     {
         try {
             $req = DB::table('approval_request')->where('ID', $requestId)->first();
@@ -830,6 +830,19 @@ class ApprovalController extends Controller
     {
         $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
         return response()->json($result, $result['success'] ? 200 : 500);
+    }
+
+    /**
+     * Force-approve any BDP request, bypassing the configured approval chain.
+     */
+    public function forceApprove(Request $r)
+    {
+        $result = app(\App\Services\Approval\ForceApproveService::class)
+            ->forceApprove((int) $r->input('id'));
+        $status = (int) ($result['status'] ?? 200);
+        unset($result['status']);
+
+        return response()->json($result, $status);
     }
     public function getProfitSharingApprovalDetail(Request $r)
     {

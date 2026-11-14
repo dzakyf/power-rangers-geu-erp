@@ -41,8 +41,6 @@ use App\Http\Controllers\CNS\NonUcoSupplierController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\CNS\ISCCTraceabilityController;
 use App\Http\Controllers\CNS\UpcomingInboundController;
-use App\Http\Controllers\CNS\DrainAdjustmentController;
-use App\Http\Controllers\CNS\InboundAdjustmentController;
 use App\Http\Controllers\CNS\KemasanInventoryController;
 use App\Http\Controllers\CNS\TankDrainingController;
 use App\Http\Controllers\CNS\MasterKemasanController;
@@ -3831,7 +3829,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/print-salary', [\App\Http\Controllers\HCGA\PayrollController::class, 'showDigitalPayslip'])->name('payroll.payslip.digital');
     Route::get('/payslip-digital', [\App\Http\Controllers\HCGA\PayrollController::class, 'showDigitalPayslip'])->name('payroll.payslip.show');
     Route::post('/api/payroll/send-payslip-email', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiSendPayslipEmail']);
-    Route::post('/api/payroll/blast-payslip-emails', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiBlastPayslipEmails'])->name('payroll.payslip.blast');
     Route::get('/print-salary-legacy', function () {
         return view('humanresources.payroll.prints.salary');
     });
@@ -5601,8 +5598,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$cnsInventoryPref-movement-detail", [UCOLogisticController::class, 'getInboundMovementDetail'])->name($cnsInventoryPref . '.movement-detail');
     Route::post("$cnsInventoryPref-submit", [UCOLogisticController::class, 'submitStoragePelindo'])->name($cnsInventoryPref . '.submit');
     Route::post("$cnsInventoryPref-submit-edit", [UCOLogisticController::class, 'updateExportedStock'])->name($cnsInventoryPref . '.submit-edit');
-    Route::post("$cnsInventoryPref-approve", [UCOLogisticController::class, 'approveInboundMovement'])->name($cnsInventoryPref . '.approve');
-    Route::post("$cnsInventoryPref-reject", [UCOLogisticController::class, 'rejectInboundMovement'])->name($cnsInventoryPref . '.reject');
     Route::delete("$cnsInventoryPref-delete", [UCOLogisticController::class, 'deleteExportedStock'])->name($cnsInventoryPref . '.delete');
     Route::get("xml-cns-upcoming-inbound", [UpcomingInboundController::class, 'xmlData'])->name('cns-upcoming-inbound.xml');
 
@@ -5635,33 +5630,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$tankDrainingPref-update/{id}", [TankDrainingController::class, 'update'])->name($tankDrainingPref . '.update');
     Route::post("$tankDrainingPref-delete/{id}", [TankDrainingController::class, 'destroy'])->name($tankDrainingPref . '.delete');
     Route::get("$tankDrainingPref-bast/{id}", [TankDrainingController::class, 'bastDocument'])->name($tankDrainingPref . '.bast');
-
-    $inboundAdjustmentPref = "cns-inbound-adjustment";
-    Route::get("$inboundAdjustmentPref", [InboundAdjustmentController::class, 'index'])->name($inboundAdjustmentPref . '.index');
-    Route::get("xml-$inboundAdjustmentPref", [InboundAdjustmentController::class, 'xmlData'])->name($inboundAdjustmentPref . '.xml');
-    Route::get("$inboundAdjustmentPref-new", [InboundAdjustmentController::class, 'newAdjustment'])->name($inboundAdjustmentPref . '.new');
-    Route::get("$inboundAdjustmentPref-detail", [InboundAdjustmentController::class, 'detailAdjustment'])->name($inboundAdjustmentPref . '.detail');
-    Route::get("$inboundAdjustmentPref-generate-code", [InboundAdjustmentController::class, 'generateCode'])->name($inboundAdjustmentPref . '.generate-code');
-    Route::get("$inboundAdjustmentPref-active/{kode}", [InboundAdjustmentController::class, 'getActiveAdjustmentByMovement'])->name($inboundAdjustmentPref . '.active-by-movement');
-    Route::post("$inboundAdjustmentPref-store", [InboundAdjustmentController::class, 'store'])->name($inboundAdjustmentPref . '.store');
-    Route::post("$inboundAdjustmentPref-update/{id}", [InboundAdjustmentController::class, 'update'])->name($inboundAdjustmentPref . '.update');
-    Route::post("$inboundAdjustmentPref-delete/{id}", [InboundAdjustmentController::class, 'destroy'])->name($inboundAdjustmentPref . '.delete');
-    Route::post("$inboundAdjustmentPref-approve/{id}", [InboundAdjustmentController::class, 'approve'])->name($inboundAdjustmentPref . '.approve');
-    Route::post("$inboundAdjustmentPref-reject/{id}", [InboundAdjustmentController::class, 'reject'])->name($inboundAdjustmentPref . '.reject');
-    Route::get("$inboundAdjustmentPref-document/{id}", [InboundAdjustmentController::class, 'document'])->name($inboundAdjustmentPref . '.document');
-
-    $drainAdjustmentPref = "cns-drain-adjustment";
-    Route::get("$drainAdjustmentPref", [DrainAdjustmentController::class, 'index'])->name($drainAdjustmentPref . '.index');
-    Route::get("xml-$drainAdjustmentPref", [DrainAdjustmentController::class, 'xmlData'])->name($drainAdjustmentPref . '.xml');
-    Route::get("$drainAdjustmentPref-new", [DrainAdjustmentController::class, 'newAdjustment'])->name($drainAdjustmentPref . '.new');
-    Route::get("$drainAdjustmentPref-detail", [DrainAdjustmentController::class, 'detailAdjustment'])->name($drainAdjustmentPref . '.detail');
-    Route::get("$drainAdjustmentPref-generate-code", [DrainAdjustmentController::class, 'generateCode'])->name($drainAdjustmentPref . '.generate-code');
-    Route::post("$drainAdjustmentPref-store", [DrainAdjustmentController::class, 'store'])->name($drainAdjustmentPref . '.store');
-    Route::post("$drainAdjustmentPref-update/{id}", [DrainAdjustmentController::class, 'update'])->name($drainAdjustmentPref . '.update');
-    Route::post("$drainAdjustmentPref-delete/{id}", [DrainAdjustmentController::class, 'destroy'])->name($drainAdjustmentPref . '.delete');
-    Route::post("$drainAdjustmentPref-approve/{id}", [DrainAdjustmentController::class, 'approve'])->name($drainAdjustmentPref . '.approve');
-    Route::post("$drainAdjustmentPref-reject/{id}", [DrainAdjustmentController::class, 'reject'])->name($drainAdjustmentPref . '.reject');
-    Route::get("$drainAdjustmentPref-document/{id}", [DrainAdjustmentController::class, 'document'])->name($drainAdjustmentPref . '.document');
 
     $cnsQualityPref = "cns-quality";
     Route::get("$cnsQualityPref-external-index", [QualityController::class, 'externalIndexPage'])->name($cnsQualityPref . '.external-index');
@@ -6411,33 +6379,32 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$gaPref-cleaning-area-qr-image", [HCGAGaCleaningController::class, 'areaQrImage']);
     Route::get("$gaPref-cleaning-area-print-qr", [HCGAGaCleaningController::class, 'printAreaQr']);
 
-    // -- HCGA Exit Clearance & Resignation Workflow --
-    Route::get("$hcPref-exit-clearance-index", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'index'])->name('hrd-exit-clearance-index');
-    Route::get("$hcPref-exit-clearance-resignation-create", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'createResignation'])->name('hrd-exit-clearance-resignation-create');
-    Route::post("$hcPref-exit-clearance-resignation-store", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'storeResignation'])->name('hrd-exit-clearance-resignation-store');
-    Route::post("$hcPref-exit-clearance-resignation/{id}/approve", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'approveResignation'])->name('hrd-exit-clearance-resignation-approve');
-    Route::post("$hcPref-exit-clearance-resignation/{id}/reject", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'rejectResignation'])->name('hrd-exit-clearance-resignation-reject');
-    Route::get("$hcPref-exit-clearance-form/{id}", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'formClearance'])->name('hrd-exit-clearance-form');
-    Route::post("$hcPref-exit-clearance-form/{id}/submit", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'submitClearance'])->name('hrd-exit-clearance-form-submit');
-    Route::get("$hcPref-exit-clearance-view/{id}", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'viewClearance'])->name('hrd-exit-clearance-view');
-    Route::post("$hcPref-exit-clearance-interview/{id}/save", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'recordInterview'])->name('hrd-exit-clearance-interview-save');
-    Route::post("$hcPref-exit-clearance-manager/{id}/approve", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'approveByManager'])->name('hrd-exit-clearance-manager-approve');
-    Route::post("$hcPref-exit-clearance-hcga/{id}/verify", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'verifyHcga'])->name('hrd-exit-clearance-hcga-verify');
-    Route::get("$hcPref-exit-clearance-pdf/{id}", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'downloadPdf'])->name('hrd-exit-clearance-download-pdf');
+//             // Tambahkan rute ini di routes/web.php
+//         Route::get('/purchase-request-list', function () {
+//             return view('procurement.purchase-request-list');
+//         });
 
-    // ==========================================
-    // MODUL SURAT PERINGATAN (DISCIPLINARY SANCTION - FR/HCGA/10-00)
-    // ==========================================
-    Route::get("$hcPref-disciplinary-sanction-index", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'index'])->name('hrd-disciplinary-sanction-index');
-    Route::get("$hcPref-disciplinary-sanction-create", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'create'])->name('hrd-disciplinary-sanction-create');
-    Route::post("$hcPref-disciplinary-sanction-store", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'store'])->name('hrd-disciplinary-sanction-store');
-    Route::get("$hcPref-disciplinary-sanction-detail/{id}", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'detail'])->name('hrd-disciplinary-sanction-detail');
-    Route::get("$hcPref-disciplinary-sanction-review/{id}", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'review'])->name('hrd-disciplinary-sanction-review');
-    Route::post("$hcPref-disciplinary-sanction-review/{id}/process", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'processReview'])->name('hrd-disciplinary-sanction-review-process');
-    Route::post("$hcPref-disciplinary-sanction-commitment/{id}/sign", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'signCommitment'])->name('hrd-disciplinary-sanction-commitment-sign');
-    Route::post("$hcPref-disciplinary-sanction-document/{id}/upload", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'uploadDocument'])->name('hrd-disciplinary-sanction-document-upload');
-    Route::get("$hcPref-disciplinary-sanction-pdf/{id}", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'downloadPdf'])->name('hrd-disciplinary-sanction-download-pdf');
+//     Route::get('/xml-purchase-request-list', function () {
+//     return response()->view('procurement.xml.purchase-request-list-xml', [], 200)
+//                      ->header('Content-Type', 'text/xml');
+// });
 
+
+    // 1. Route List PR
+Route::get('/purchase-request-list', function () {
+    return view('humanresources.procurement.purchase-request-list');
+});
+
+// 2. Route XML List PR
+Route::get('/xml-purchase-request-list', function () {
+    return response()->view('humanresources.procurement.xml.purchase-request-list-xml', [], 200)
+                     ->header('Content-Type', 'text/xml');
+});
+
+// Menggunakan Controller untuk Form, AJAX, dan Store
+Route::get('/purchase-request-create', [ProcurementController::class, 'createPR']);
+Route::get('/get-material-detail', [ProcurementController::class, 'getMaterialDetail']);
+Route::post('/purchase-request-store', [ProcurementController::class, 'storePR']);
 
     // -- General email settings (SMTP, sender, recipients, test, log) --
     $creEmailSettingsPref = "credential-email-settings";
