@@ -93,23 +93,26 @@
             margin-bottom: 3px;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
-    <!-- Header Mobile SPPD -->
-    <div class="header-card">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h5 class="mb-1 fw-bold"><i class="fa fa-briefcase me-2"></i>Perjalanan Dinas</h5>
-                <small class="text-white-50">Pengajuan & Pelacakan SPPD Karyawan</small>
-            </div>
-            <a href="{{ route('sppd.mobile.form') }}" class="btn btn-light btn-sm rounded-pill fw-bold text-primary px-3 shadow-sm">
-                <i class="fa fa-plus me-1"></i> Baru
-            </a>
+    <div class="finora-shell">
+        <div class="finora-topbar">
+            <a href="{{ route('mobile.ess') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Perjalanan Dinas</h1>
+            <a href="{{ route('sppd.mobile.form') }}" class="finora-back-btn text-decoration-none" title="Buat SPPD Baru"><i class="fas fa-plus"></i></a>
         </div>
-    </div>
 
-    <div class="container px-3 mt-3">
+        <div class="finora-hero">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="fw-bold"><i class="fas fa-briefcase me-1"></i> Perjalanan Dinas (SPPD)</div>
+                <a href="{{ route('sppd.mobile.form') }}" class="btn btn-light btn-sm rounded-pill fw-bold text-success px-3" style="font-size: 11px;">
+                    <i class="fas fa-plus me-1"></i> Baru
+                </a>
+            </div>
+            <p class="small mb-0 opacity-75">Pengajuan &amp; pelacakan surat perintah perjalanan dinas karyawan.</p>
+        </div>
         <!-- Filter Tabs Horizontal -->
         <div class="filter-scroll mb-3">
             <a href="{{ route('sppd.mobile.index', ['status' => 'ALL']) }}" class="filter-btn {{ $status == 'ALL' ? 'active' : '' }}">Semua</a>
@@ -154,21 +157,7 @@
         @endif
     </div>
 
-    <!-- Bottom Nav Mobile Bar -->
-    <div class="bottom-nav">
-        <a href="{{ route('sppd.mobile.index') }}" class="nav-item-mobile active">
-            <i class="fa fa-list-check"></i>
-            <span>Daftar SPPD</span>
-        </a>
-        <a href="{{ route('sppd.mobile.form') }}" class="nav-item-mobile">
-            <i class="fa fa-circle-plus"></i>
-            <span>Buat SPPD</span>
-        </a>
-        <a href="{{ route('sppd.mobile.approval') }}" class="nav-item-mobile">
-            <i class="fa fa-stamp"></i>
-            <span>Approval</span>
-        </a>
-    </div>
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'ess'])
 
 </body>
 </html>

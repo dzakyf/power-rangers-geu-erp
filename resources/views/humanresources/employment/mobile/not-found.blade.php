@@ -39,7 +39,7 @@
         </p>
 
         @if($isHcga)
-            <a href="{{ route('employee.mobile.directory') }}" class="btn btn-primary rounded-pill w-100 py-2">
+            <a href="{{ route('employee.mobile.directory') }}" class="btn btn-success rounded-pill w-100 py-2">
                 <i class="fa fa-users me-1"></i> Buka Direktori Karyawan
             </a>
         @else

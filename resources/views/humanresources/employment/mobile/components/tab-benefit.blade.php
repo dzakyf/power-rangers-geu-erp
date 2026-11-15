@@ -24,7 +24,7 @@
                         <div class="list-group-item px-0 py-2 border-bottom">
                             <div class="d-flex justify-content-between">
                                 <span class="fw-bold" style="font-size: 13px;">{{ $l->Leave_Type ?? 'Cuti' }}</span>
-                                <span class="badge bg-primary rounded-pill">{{ $l->Total_Days ?? 1 }} Hari</span>
+                                <span class="badge bg-success rounded-pill">{{ $l->Total_Days ?? 1 }} Hari</span>
                             </div>
                             <div class="text-muted small" style="font-size: 11px;">
                                 {{ !empty($l->Start_Date) ? date('d/m/Y', strtotime($l->Start_Date)) : '' }} s/d {{ !empty($l->End_Date) ? date('d/m/Y', strtotime($l->End_Date)) : '' }}
@@ -41,7 +41,7 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-shield-halved text-primary"></i> BPJS & Asuransi Kesehatan
+                <i class="fa fa-shield-halved text-success"></i> BPJS & Asuransi Kesehatan
             </div>
             <div class="row g-3">
                 <div class="col-6">

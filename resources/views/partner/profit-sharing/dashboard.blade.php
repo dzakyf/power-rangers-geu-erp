@@ -27,10 +27,12 @@ $Saya =  Auth::user()->username;
 	</ol>
 </div>
 
-<div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">DASHBOARD PROFIT SHARING</div>
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partials.index-title', ['title' => 'Dashboard Profit Sharing'])
+
     <div class="card card-body">
-        <div style="width:1500px;overflow:scroll">
+        <div style="width:100%;overflow-x:auto">
             <div id="chartDiv" style="width:100%;height:400px"></div>
         </div>
     </div>
@@ -57,7 +59,7 @@ $Saya =  Auth::user()->username;
 	</div>
 	<div id="divlistOpportunity"></div>
 	<div id="DivProcess"></div>
-
+    </div>
 </div>
 
 <script>

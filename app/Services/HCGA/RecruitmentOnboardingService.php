@@ -73,7 +73,6 @@ class RecruitmentOnboardingService
                 return [
                     'priv_id'          => $posRule->priv_id,
                     'default_role'     => $posRule->default_role ?: $posRule->priv_id,
-                    'default_role_id'  => $posRule->default_role_id ?? null,
                     'default_sub_menu' => $posRule->default_sub_menu,
                     'matched_by'       => 'POSITION',
                 ];
@@ -95,7 +94,6 @@ class RecruitmentOnboardingService
                 return [
                     'priv_id'          => $dirRule->priv_id,
                     'default_role'     => $dirRule->default_role ?: $dirRule->priv_id,
-                    'default_role_id'  => $dirRule->default_role_id ?? null,
                     'default_sub_menu' => $dirRule->default_sub_menu,
                     'matched_by'       => 'DIRECTORAT',
                 ];
@@ -117,7 +115,6 @@ class RecruitmentOnboardingService
                 return [
                     'priv_id'          => $deptRule->priv_id,
                     'default_role'     => $deptRule->default_role ?: $deptRule->priv_id,
-                    'default_role_id'  => $deptRule->default_role_id ?? null,
                     'default_sub_menu' => $deptRule->default_sub_menu,
                     'matched_by'       => 'DEPARTMENT',
                 ];
@@ -128,7 +125,6 @@ class RecruitmentOnboardingService
         return [
             'priv_id'          => 'STAFF',
             'default_role'     => 'STAFF',
-            'default_role_id'  => null,
             'default_sub_menu' => null,
             'matched_by'       => 'DEFAULT',
         ];
@@ -432,6 +428,19 @@ class RecruitmentOnboardingService
             $directorat = $payload['directorat'] ?? ($requisition->Directorat ?? ($recruitment->Directorat ?? null));
             $location   = $payload['location'] ?? ($recruitment->Location ?? ($requisition->Location ?? 'GEU-HO'));
 
+            // Resolusi Placement_Location_ID dari input Offering (work_location) atau Requisition (Placement)
+            $rawPlacement = trim((string) ($payload['work_location'] ?? ($recruitment->Work_Location ?? ($requisition->Placement ?? ''))));
+            $placementLocationId = $location;
+            if ($rawPlacement !== '') {
+                $matchedLoc = DB::table('location')
+                    ->where('Location_ID', $rawPlacement)
+                    ->orWhere('Name', $rawPlacement)
+                    ->first();
+                $placementLocationId = $matchedLoc ? $matchedLoc->Location_ID : $rawPlacement;
+            } elseif (!empty($requisition->Placement)) {
+                $placementLocationId = $requisition->Placement;
+            }
+
             // 1. Tentukan NIK
             $nik = !empty($payload['nik']) ? trim($payload['nik']) : ($recruitment->NIK ?? null);
             if (empty($nik)) {
@@ -441,23 +450,17 @@ class RecruitmentOnboardingService
             // 2. Resolusi Priv_ID dan Role
             $privOverride = !empty($payload['priv_id']) ? trim($payload['priv_id']) : null;
             $roleOverride = !empty($payload['role']) ? trim($payload['role']) : null;
-            $roleOverrideId = !empty($payload['role_id']) ? (int) $payload['role_id'] : null;
-            $roleOverrideModel = $roleOverrideId ? Role::find($roleOverrideId) : null;
 
             if ($privOverride) {
                 $resolved = [
                     'priv_id'          => $privOverride,
-                    'default_role'     => $roleOverrideModel ? $roleOverrideModel->name : ($roleOverride ?: $privOverride),
-                    'default_role_id'  => $roleOverrideModel ? $roleOverrideModel->id : null,
+                    'default_role'     => $roleOverride ?: $privOverride,
                     'default_sub_menu' => null,
                     'matched_by'       => 'MANUAL',
                 ];
             } else {
                 $resolved = $this->resolvePrivilegeAndRole($position, $directorat, $department);
-                if ($roleOverrideModel) {
-                    $resolved['default_role'] = $roleOverrideModel->name;
-                    $resolved['default_role_id'] = $roleOverrideModel->id;
-                } elseif ($roleOverride) {
+                if ($roleOverride) {
                     $resolved['default_role'] = $roleOverride;
                 }
             }
@@ -495,11 +498,12 @@ class RecruitmentOnboardingService
                 'Department'             => $department,
                 'Directorat'             => $directorat,
                 'Location'               => $location,
+                'Placement_Location_ID'  => $placementLocationId,
                 'Position'               => $position,
                 'Salary_Accepted'        => $salary,
                 'Start_Date'             => $startDate,
                 'Date_in'                => $startDate,
-                'Employment_Status'      => 'ACTIVE',
+                'Employment_Status'      => 'PROBATION',
                 'Employment_Status_Date' => $startDate,
                 'Status'                 => 'ACTIVE',
                 'Category'               => 'OFFICE',
@@ -614,7 +618,6 @@ class RecruitmentOnboardingService
 
             $privIdToSet = $resolved['priv_id'];
             $roleToSet   = $resolved['default_role'];
-            $roleIdToSet = $resolved['default_role_id'] ?? null;
 
             if (!$user) {
                 $user = User::create([
@@ -641,19 +644,11 @@ class RecruitmentOnboardingService
             }
 
             // Assign Spatie Role jika ada
-            if ($user && ($roleIdToSet || !empty($roleToSet))) {
-                $resolver = app(\App\Services\Rbac\RoleResolver::class);
-                $spatieRole = $roleIdToSet
-                    ? $resolver->resolveById((int) $roleIdToSet)
-                    : $resolver->resolve($roleToSet, $department);
-
+            if ($user && !empty($roleToSet)) {
+                $spatieRole = Role::where('name', $roleToSet)->first();
                 if (!$spatieRole) {
-                    // Buat role global jika belum terdaftar
-                    $spatieRole = Role::query()->firstOrCreate([
-                        'name'       => $roleToSet,
-                        'guard_name' => 'web',
-                        'department' => null,
-                    ]);
+                    // Buat role jika belum terdaftar
+                    $spatieRole = Role::create(['name' => $roleToSet, 'guard_name' => 'web']);
                 }
 
                 if ($spatieRole) {
@@ -736,8 +731,10 @@ class RecruitmentOnboardingService
                 'department'      => $department,
                 'priv_id'         => $privIdToSet,
                 'role'            => $roleToSet,
-                'offering_number' => $offeringNumber,
-                'employment_id'   => $employmentId,
+                'offering_number'       => $offeringNumber,
+                'employment_id'         => $employmentId,
+                'employment_status'     => 'PROBATION',
+                'placement_location_id' => $placementLocationId,
             ];
         });
     }

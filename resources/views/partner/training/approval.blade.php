@@ -28,9 +28,10 @@ $Saya =  Auth::user()->username;
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">AUDIT</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Approval Training'])
+
             <div>
                 Training Name <select name="training_no" id="training_no" onchange="refreshdata()">
                     @foreach ($trainings as $item)

@@ -33,6 +33,8 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	<div class="col-12">
 		<div class="card">
 			<div class="card-body">
+			    @include('partner.partials.index-title', ['title' => 'Master Audit'])
+
 				<div id="MasterAuditCategory" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 				<div>
 					<input type="button" id="ekselMasterAuditCategoryDet" name="ekselMasterAuditCategoryDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="MasterAuditCategory.toExcel('./export/generate.php');" />

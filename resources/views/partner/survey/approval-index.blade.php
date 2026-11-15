@@ -17,9 +17,10 @@
 
 
 <div id="Approval" class="row m-1">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">APPROVAL SURVEY</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Approval Survey'])
+
 			<!-- <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div> -->
 			<div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
 			<div>
@@ -53,9 +54,10 @@
 </div>
 
 <div id="ApprovalLog" class="row m-1" style="display:none">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LOG APPROVAL SURVEY</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'APPROVAL SURVEY'])
+
 			<div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;" class=" mt-2"></div>
 			<div>
 			</div>

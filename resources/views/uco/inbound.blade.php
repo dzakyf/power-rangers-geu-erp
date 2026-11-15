@@ -25,18 +25,18 @@
         <div class="card mb-3">
             <div class="card-header m-3">
                 <div class="row align-items-end">
-                    <div class="col-md-6">
-                        <h5>Instock Supplies</h5>
-                    </div>
-                    <div class="col-md-auto ml-auto">
-                        <button class="btn btn-success btn-sm" id="btnShowCreateForm">+ Tambah Data</button>
-                        <button class="btn btn-danger btn-sm" id="btnDeleteSupply">Hapus</button>
+                    <div class="col-md-12">
+                        <h5 class="bdp-index-title">Instock Supplies</h5>
                     </div>
                 </div>
             </div>
             <div class="card-body p-3">
                 <div style="width:100%;overflow-x:auto;">
                     <div id="SupplyGrid" style="width:auto;height:250px; background-color:white;overflow:hidden"></div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-success btn-sm" id="btnShowCreateForm">+ Tambah Data</button>
+                    <button class="btn btn-danger btn-sm" id="btnDeleteSupply">Hapus</button>
                 </div>
             </div>
         </div>
@@ -72,18 +72,18 @@
         <div class="card mb-3" id="poCard" style="display:none;">
             <div class="card-header m-3">
                 <div class="row align-items-end">
-                    <div class="col-md-6">
-                        <h5>Pickup Order</h5>
-                    </div>
-                    <div class="col-md-auto ml-auto">
-                        <input type="button" value="Export Excel" class="btn btn-warning ml-2" onclick="PickupOrderGrid.toExcel('./export/generate.php');" />
-                        <input type="button" value="Update Rekom" class="btn btn-info ml-2" id="btnUpdateRekom" />
+                    <div class="col-md-12">
+                        <h5 class="bdp-index-title">Pickup Order</h5>
                     </div>
                 </div>
             </div>
             <div class="card-body p-3">
                 <div style="width:100%;overflow-x:auto;">
                     <div id="PickupOrderGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+                </div>
+                <div class="mt-3">
+                    <input type="button" value="Export Excel" class="btn btn-warning ml-2" onclick="PickupOrderGrid.toExcel('./export/generate.php');" />
+                    <input type="button" value="Update Rekom" class="btn btn-info ml-2" id="btnUpdateRekom" />
                 </div>
             </div>
         </div>
@@ -94,17 +94,17 @@
         <div class="card mb-3">
             <div class="card-header m-3">
                 <div class="row align-items-end">
-                    <div class="col-md-6">
-                        <h5>Ampas</h5>
-                    </div>
-                    <div class="col-md-auto ml-auto">
-                        <button class="btn btn-success" id="btnAddDregs">+ Add Ampas</button>
+                    <div class="col-md-12">
+                        <h5 class="bdp-index-title">Ampas</h5>
                     </div>
                 </div>
             </div>
             <div class="card-body p-3">
                 <div style="width:100%;overflow-x:auto;">
                     <div id="DregsGrid" style="width:auto;height:250px; background-color:white;overflow:hidden"></div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-success" id="btnAddDregs">+ Add Ampas</button>
                 </div>
             </div>
         </div>

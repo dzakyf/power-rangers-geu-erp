@@ -44,7 +44,7 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-people-roof text-primary"></i> Data Anggota Keluarga
+                <i class="fa fa-people-roof text-success"></i> Data Anggota Keluarga
             </div>
             @if(count($family) > 0)
                 <div class="row g-2">
@@ -52,7 +52,7 @@
                         <div class="col-12 border-bottom pb-2 mb-2">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <span class="fw-bold text-dark" style="font-size: 14px;">{{ $f->Name ?? '-' }}</span>
-                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill" style="font-size: 11px;">
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill" style="font-size: 11px;">
                                     {{ $f->Relation ?? 'Keluarga' }}
                                 </span>
                             </div>

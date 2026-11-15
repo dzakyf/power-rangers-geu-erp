@@ -11,9 +11,10 @@
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">OUTSTOCK</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'Outstock'])
+
             <div id="OutstockGrid" style="width:auto;height:320px;background-color:white;overflow:hidden" class="mb-2"></div>
             <div>
                 <input type="button" value="Buat Draft" class="btn btn-success mt-2 mr-2" onclick="window.location.href='partner-outstock-create'" />

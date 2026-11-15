@@ -53,6 +53,52 @@
                     </div>
                 </div>
 
+                <!-- INFORMASI TAMBAHAN (PIC, SITE, KATEGORI ANGGARAN) -->
+                <div class="row mb-3" style="font-size: 12px;">
+                    <div class="col-md-3">
+                        <label class="font-weight-bold">PIC (Penanggung Jawab):</label>
+                        <input type="text" class="form-control form-control-sm" name="pic_name" value="{{ Auth::user()->Name }}" placeholder="Nama PIC..." required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="font-weight-bold">Phone PIC:</label>
+                        <input type="text" class="form-control form-control-sm" name="PIC_Phone" placeholder="">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="font-weight-bold">Email PIC:</label>
+                        <input type="email" class="form-control form-control-sm" name="pic_email" placeholder="email@domain.com...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="font-weight-bold">Site Tujuan:</label>
+                        <input type="text" class="form-control form-control-sm" name="site_destination" placeholder="Contoh: Site Bekasi / Head Office..." required>
+                    </div>
+                </div>
+
+
+                <div class="row mb-3" style="font-size: 12px;">
+                    <div class="col-md-6">
+                        <label class="font-weight-bold">Kategori Anggaran (Main Category):</label>
+                        <select class="form-control form-control-sm" name="main_category" required>
+                            <option value="ASSET">ASSET</option>
+                            <option value="NON ASSET">NON ASSET</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="font-weight-bold">Sub Kategori (Category):</label>
+                        <select class="form-control form-control-sm" name="category" required>
+                            <option value="BARANG">BARANG</option>
+                            <option value="JASA">JASA</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- BAGIAN NOTE & HISTORY PERCAKAPAN NOTE -->
+                <div class="row mb-3" style="font-size: 12px;">
+                    <div class="col-md-12">
+                        <label class="font-weight-bold">Catatan / Note Baru:</label>
+                        <textarea class="form-control form-control-sm" name="note" rows="4" placeholder="Tulis catatan atau instruksi tambahan untuk PR ini..."></textarea>
+                    </div>
+                </div>
+
                 <hr class="my-3">
 
                 <!-- HEADER TABEL MULTI PRODUK -->

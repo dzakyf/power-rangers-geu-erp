@@ -1,13 +1,16 @@
-@extends('layout.mainlayout-credential')
+@extends('layout.mainlayout-bp')
 
 @section('content-wrapper')
 @csrf
 <!-- Main Content Header -->
 <div class="main-content-header">
-	<h1>Credential</h1>
+	<h1>Pengaturan</h1>
 	<ol class="breadcrumb">
 		<li class="breadcrumb-item">
-			<a href="#">Credential</a>
+			<a href="#">Pengaturan</a>
+		</li>
+		<li class="breadcrumb-item">
+			<a href="#">General</a>
 		</li>
 		<li class="breadcrumb-item active">
 			<span class="active">System Settings</span>

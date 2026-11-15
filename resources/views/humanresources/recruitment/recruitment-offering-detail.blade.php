@@ -52,7 +52,7 @@ $defaultNote = $recruitment->Offering_Note ?? '';
 $onboardingService = app(\App\Services\HCGA\RecruitmentOnboardingService::class);
 $suggestedNik = $recruitment->NIK ?? $onboardingService->generateNik($defaultStartDate);
 $suggestedAccess = $onboardingService->resolvePrivilegeAndRole($defaultPosition, $requisition->Directorat ?? ($recruitment->Directorat ?? null), $requisition->Department ?? ($recruitment->Department ?? null));
-$allRoles = \App\Role::orderBy('name', 'ASC')->orderBy('department', 'ASC')->get();
+$allRoles = \App\Role::orderBy('name', 'ASC')->pluck('name');
 
 // Deteksi Atasan Langsung (Direct Supervisor) otomatis jika belum diisi manual di kolom Direct_Supervisor
 $resolvedSupervisor = $onboardingService->resolveDirectSupervisor($defaultPosition, $requisition->Department ?? ($recruitment->Department ?? null));
@@ -60,7 +60,7 @@ $defaultDirectSupervisor = !empty($recruitment->Direct_Supervisor) ? $recruitmen
 
 // Default komponen penawaran mengikuti template resmi Offering Letter
 $defaultGrading = $recruitment->Grading ?? '11';
-$defaultWorkLocation = $recruitment->Work_Location ?? ($recruitment->Location ?? ($requisition->Location ?? 'Malang'));
+$defaultWorkLocation = $recruitment->Work_Location ?: (($requisition->Placement ?? null) ?: ($recruitment->Location ?? ($requisition->Location ?? 'GEU-HO')));
 $defaultContractType = $recruitment->Contract_Type ?? 'Kontrak 1 tahun dengan masa evaluasi kerja 3 bulan';
 
 // Deteksi Hari dan Jam Kerja otomatis dari Requisition Work_Schedule -> work_calendars
@@ -323,7 +323,7 @@ $defaultTerms = $recruitment->Offering_Terms ?? "Dokumen Offering Letter ini ber
                                     @endphp
                                     @foreach ($locationList as $loc)
                                         @php
-                                            $locValue = $loc->Name ?: $loc->Location_ID;
+                                            $locValue = $loc->Location_ID ?: $loc->Name;
                                             $isSelected =
                                                 $defaultWorkLocation == $loc->Location_ID ||
                                                 $defaultWorkLocation == $loc->Name ||
@@ -639,12 +639,12 @@ $defaultTerms = $recruitment->Offering_Terms ?? "Dokumen Offering Letter ini ber
                                             <label for="offer_role" class="form-label small fw-semibold text-dark">
                                                 Role Hak Akses Menu
                                             </label>
-                                            <select class="form-select form-select-sm" name="role_id"
+                                            <select class="form-select form-select-sm" name="role"
                                                 id="offer_role">
-                                                @foreach ($allRoles as $role)
-                                                    <option value="{{ $role->id }}"
-                                                        {{ (string) $role->id === (string) ($suggestedAccess['default_role_id'] ?? '') ? 'selected' : '' }}>
-                                                        {{ $role->name }}{{ $role->department ? ' - ' . $role->department : '' }}
+                                                @foreach ($allRoles as $r)
+                                                    <option value="{{ $r }}"
+                                                        {{ $r === $suggestedAccess['default_role'] ? 'selected' : '' }}>
+                                                        {{ $r }}
                                                     </option>
                                                 @endforeach
                                             </select>

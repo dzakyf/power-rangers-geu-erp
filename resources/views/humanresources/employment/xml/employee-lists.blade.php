@@ -27,6 +27,7 @@ if (!count($keys)) {
 	$keys = employee_grid_default_columns();
 }
 
+$locationMap = location_name_map();
 $nomor = 1;
 
 echo "<rows>";
@@ -38,7 +39,7 @@ foreach($Query as $Fetch){
 	echo "<userdata name=\"nama\">".htmlspecialchars($Fetch->Name)."</userdata>";
 	echo "<cell>$nomor</cell>";
 	foreach ($keys as $k) {
-		echo "<cell>".htmlspecialchars(employee_grid_cell($k, $Fetch, $akademis))."</cell>";
+		echo "<cell>".htmlspecialchars(employee_grid_cell($k, $Fetch, $akademis, $locationMap))."</cell>";
 	}
 	echo "</row>";
 	$nomor++;

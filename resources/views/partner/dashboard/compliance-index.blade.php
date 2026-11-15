@@ -1,7 +1,9 @@
 @extends('layout.mainlayout-bp')
 @section('content-wrapper')
 @csrf
-<h4>Dashboard Compliance Gudang</h4>
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partials.index-title', ['title' => 'Dashboard Compliance Gudang'])
 
 {{-- Filters --}}
 <div class="row mt-3 mb-2 align-items-end">
@@ -105,6 +107,8 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
     </div>
 </div>
 

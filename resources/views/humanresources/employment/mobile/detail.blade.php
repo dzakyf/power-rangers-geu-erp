@@ -7,7 +7,7 @@
     <title>Employee Profile - Mobile</title>
     <!-- PWA Settings -->
     <link rel="manifest" href="{{ asset('manifest-employee.json') }}">
-    <meta name="theme-color" content="#1e3a8a">
+    <meta name="theme-color" content="#064E3B">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HCGA Mobile">
@@ -21,30 +21,22 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             padding-bottom: 70px;
         }
-        .header-profile {
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-            color: #fff;
-            padding: 24px 18px 28px;
-            border-bottom-left-radius: 24px;
-            border-bottom-right-radius: 24px;
-            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.25);
-            position: relative;
-        }
         .avatar-box {
-            width: 76px;
-            height: 76px;
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
-            border: 3px solid rgba(255,255,255,0.85);
+            border: 3px solid var(--emerald-soft);
             object-fit: cover;
-            background-color: #334155;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            background-color: var(--emerald-primary);
+            box-shadow: 0 4px 12px rgba(6, 78, 59, 0.18);
+            flex-shrink: 0;
         }
         .tab-nav-wrapper {
             background: #fff;
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
             border-bottom: 1px solid #e2e8f0;
         }
         .tab-scroll {
@@ -59,10 +51,10 @@
             display: none;
         }
         .tab-pill-btn {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             border-radius: 20px;
-            padding: 6px 14px;
+            padding: 7px 14px;
             border: 1px solid #e2e8f0;
             background: #f8fafc;
             color: #64748b;
@@ -74,18 +66,18 @@
             gap: 6px;
         }
         .tab-pill-btn.active {
-            background: #1e3a8a;
+            background: #047857;
             color: #fff;
-            border-color: #1e3a8a;
-            box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
+            border-color: #047857;
+            box-shadow: 0 2px 8px rgba(4, 120, 87, 0.25);
         }
         .info-card {
             background: #fff;
-            border-radius: 16px;
+            border-radius: 18px;
             border: 1px solid #e2e8f0;
             padding: 16px;
             margin-bottom: 14px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
         }
         .info-label {
             font-size: 11px;
@@ -104,7 +96,7 @@
         .card-section-title {
             font-size: 13px;
             font-weight: 700;
-            color: #1e3a8a;
+            color: #064E3B;
             margin-bottom: 12px;
             display: flex;
             align-items: center;
@@ -122,65 +114,63 @@
         }
         .btn-edit-field {
             font-size: 11px;
-            color: #2563eb;
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
+            color: #047857;
+            background: #ECFDF5;
+            border: 1px solid #A7F3D0;
             border-radius: 12px;
             padding: 2px 8px;
             cursor: pointer;
             text-decoration: none;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
-    <!-- Header Profil -->
-    <div class="header-profile">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('employee.mobile.directory') }}" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1" style="font-size: 12px;">
-                    <i class="fa fa-arrow-left me-1"></i> Direktori
-                </a>
-                <a href="{{ route('company-guideline.mobile.index') }}" class="btn btn-sm btn-light rounded-pill px-3 py-1 text-primary fw-bold" style="font-size: 12px;">
-                    <i class="fa fa-compass me-1"></i> Budaya & Peraturan
-                </a>
-                <span class="badge bg-primary bg-opacity-25 border border-primary border-opacity-50 text-white rounded-pill px-2 py-1" style="font-size: 11px;">
-                    <i class="fa fa-id-badge me-1"></i> {{ $employee->NIK ?? '-' }}
-                </span>
-            </div>
-            @if($isOwnProfile)
-                <span class="badge bg-success bg-opacity-25 border border-success border-opacity-50 text-success rounded-pill px-2 py-1" style="font-size: 11px;">
-                    <i class="fa fa-user-check me-1"></i> Profil Saya
-                </span>
-            @elseif($isHcga)
-                <span class="badge bg-warning bg-opacity-25 border border-warning border-opacity-50 text-warning rounded-pill px-2 py-1" style="font-size: 11px;">
-                    <i class="fa fa-shield-halved me-1"></i> Mode Admin HCGA
-                </span>
-            @endif
+    <div class="finora-shell pb-0">
+        <div class="finora-topbar">
+            <a href="{{ route('mobile.dashboard') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Profil Karyawan</h1>
+            <a href="{{ route('company-guideline.mobile.index') }}" class="finora-back-btn" title="Budaya & Peraturan"><i class="fas fa-compass"></i></a>
         </div>
 
-        <div class="d-flex align-items-center gap-3">
+        <!-- Finora Profile Identity Row -->
+        <div class="d-flex align-items-center gap-3 mb-3 px-1">
             @if(!empty($employee->Foto) && file_exists(public_path('uploads/employee/' . $employee->Foto)))
                 <img src="{{ asset('uploads/employee/' . $employee->Foto) }}" class="avatar-box" alt="Foto">
             @else
-                <div class="avatar-box d-flex align-items-center justify-content-center text-white" style="font-size: 28px; font-weight: 700;">
+                <div class="avatar-box d-flex align-items-center justify-content-center text-white" style="font-size: 24px; font-weight: 700;">
                     {{ strtoupper(substr($employee->Name ?? 'E', 0, 1)) }}
                 </div>
             @endif
-
             <div class="flex-grow-1">
-                <h5 class="fw-bold mb-1 text-white" style="font-size: 17px; line-height: 1.3;">{{ $employee->Name ?? 'Tanpa Nama' }}</h5>
-                <div class="text-white-50 small mb-1" style="font-size: 12px;">
-                    <i class="fa fa-briefcase me-1"></i> {{ $employee->Position ?? 'Belum ditentukan' }}
+                <div class="fw-bold fs-6 text-dark" style="line-height: 1.25;">{{ $employee->Name ?? 'Tanpa Nama' }}</div>
+                <div class="text-muted small">{{ $employee->Position ?? 'Belum ditentukan' }}</div>
+                <div class="d-flex flex-wrap gap-1 mt-1">
+                    @if($isOwnProfile)
+                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1" style="font-size: 10px;">
+                            <i class="fa fa-user-check me-1"></i> Profil Saya
+                        </span>
+                    @elseif($isHcga)
+                        <span class="badge bg-warning text-dark rounded-pill px-2 py-1" style="font-size: 10px;">
+                            <i class="fa fa-shield-halved me-1"></i> Admin HCGA
+                        </span>
+                    @endif
                 </div>
-                <div class="d-flex flex-wrap gap-1">
-                    <span class="badge bg-secondary bg-opacity-50 text-white rounded-pill px-2 py-1" style="font-size: 10px;">
-                        {{ $employee->Department ?? 'N/A' }}
-                    </span>
-                    <span class="badge bg-info bg-opacity-50 text-white rounded-pill px-2 py-1" style="font-size: 10px;">
-                        {{ $employee->Location ?? 'Head Office' }}
-                    </span>
-                </div>
+            </div>
+        </div>
+
+        <!-- Finora Emerald Status Card -->
+        <div class="finora-hero mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small opacity-75">Identitas Kepegawaian</span>
+                <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2 py-1" style="font-size: 11px;">
+                    NIK: {{ $employee->NIK ?? '-' }}
+                </span>
+            </div>
+            <div class="fw-bold fs-6 mb-1">{{ $employee->Department ?? 'N/A' }}</div>
+            <div class="small opacity-75">
+                <i class="fas fa-location-dot me-1"></i> {{ $employee->Location ?? 'Head Office' }}
             </div>
         </div>
     </div>
@@ -216,7 +206,7 @@
     <!-- Tab Content Container (Lazy Loaded via AJAX) -->
     <div class="container-fluid px-3 pt-3" id="tabContentContainer">
         <div class="spinner-loading">
-            <div class="spinner-border text-primary mb-2" role="status"></div>
+            <div class="spinner-border text-success mb-2" role="status"></div>
             <span class="small">Memuat data profil...</span>
         </div>
     </div>
@@ -226,7 +216,7 @@
     <div class="modal fade" id="modalRequestUpdate" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
-                <div class="modal-header {{ $isHcga ? 'bg-dark' : 'bg-primary' }} text-white py-3">
+                <div class="modal-header text-white py-3" style="background: linear-gradient(135deg, #064E3B 0%, #047857 100%);">
                     <h6 class="modal-title fw-bold" id="modalUpdateTitle">
                         <i class="fa {{ $isHcga ? 'fa-user-pen' : 'fa-edit' }} me-1"></i> 
                         {{ $isHcga ? 'Ubah Data Karyawan (HCGA Admin)' : 'Ajukan Perubahan Data' }}
@@ -276,7 +266,7 @@
                     </div>
                     <div class="modal-footer bg-light py-2">
                         <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-sm {{ $isHcga ? 'btn-dark' : 'btn-primary' }} px-3" id="btnSubmitUpdate">
+                        <button type="submit" class="btn btn-sm {{ $isHcga ? 'btn-dark' : 'btn-success' }} px-3" id="btnSubmitUpdate">
                             {{ $isHcga ? 'Simpan Perubahan' : 'Kirim Pengajuan' }}
                         </button>
                     </div>
@@ -298,7 +288,7 @@
             activeTab = tabName;
             $('#tabContentContainer').html(`
                 <div class="spinner-loading">
-                    <div class="spinner-border text-primary mb-2" role="status"></div>
+                    <div class="spinner-border text-success mb-2" role="status"></div>
                     <span class="small">Memuat data...</span>
                 </div>
             `);
@@ -387,5 +377,26 @@
             });
         });
     </script>
+    <!-- Account Security & Logout Section (Finora Profile Style) -->
+    <div class="px-3 mt-3 mb-4" style="max-width: 480px; margin: 0 auto;">
+        <div class="finora-card p-2">
+            <a href="{{ route('employee.mobile.directory') }}" class="d-flex align-items-center justify-content-between p-2 text-decoration-none text-dark border-bottom">
+                <span class="small fw-bold"><i class="fas fa-users text-success me-2"></i> Direktori Karyawan</span>
+                <i class="fas fa-chevron-right text-muted small"></i>
+            </a>
+            <a href="{{ route('mobile.sessions') }}" class="d-flex align-items-center justify-content-between p-2 text-decoration-none text-dark border-bottom">
+                <span class="small fw-bold"><i class="fas fa-shield-alt text-success me-2"></i> Keamanan &amp; Sesi Perangkat</span>
+                <i class="fas fa-chevron-right text-muted small"></i>
+            </a>
+            <form method="POST" action="{{ route('mobile.logout') }}" class="p-2 mb-0">
+                @csrf
+                <button type="submit" class="finora-btn-soft w-100">
+                    <i class="fas fa-sign-out-alt"></i> Log Out
+                </button>
+            </form>
+        </div>
+    </div>
+
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'profile'])
 </body>
 </html>

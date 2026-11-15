@@ -31,6 +31,10 @@ $Saya =  Auth::user()->username;
 	</ol>
 </div>
 
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partner.partials.index-title', ['title' => 'Outstanding Leads'])
+
 <div class="row">
 	<div id="OpportunityLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
@@ -54,6 +58,8 @@ $Saya =  Auth::user()->username;
 
 		<input type="file" id="csvFileInput" accept=".xlsx" style="display: none;">
 	</div>
+</div>
+    </div>
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>

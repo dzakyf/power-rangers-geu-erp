@@ -16,9 +16,10 @@
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">MASTER FACILITY</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'Master Fasilitas'])
+
             <div class="d-flex gap-2 mb-2">
                 <select id="filterHubType" class="form-control" style="width:160px;">
                     <option value="">-- Hub Type --</option>
@@ -49,6 +50,8 @@
         <div class="card w-100">
             <div class="card-header">Edit Facility</div>
             <div class="card-body">
+                @include('partner.partials.index-title', ['title' => 'MASTER FACILITY'])
+
                 <form id="FacilityEditForm">
                     @csrf
                     <input type="hidden" name="id" id="edit_id">

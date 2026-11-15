@@ -28,9 +28,10 @@ $Saya =  Auth::user()->username;
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LIBRARY</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Materi'])
+
 			<div id="TrainingLibrary" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselTrainingLibraryDet" name="ekselTrainingLibraryDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="TrainingLibrary.toExcel('./export/generate.php');" />

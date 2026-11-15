@@ -69,21 +69,21 @@
             z-index: 1000;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
-    <!-- Header Form Mobile -->
-    <div class="header-card">
-        <div class="d-flex align-items-center mb-2">
-            <a href="{{ route('reimbursement.mobile.index') }}" class="btn btn-sm btn-outline-light rounded-circle me-2" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center;">
-                <i class="fa fa-arrow-left"></i>
-            </a>
-            <h5 class="mb-0 fw-bold">Pengajuan Reimbursement</h5>
+    <div class="finora-shell">
+        <div class="finora-topbar">
+            <a href="{{ route('reimbursement.mobile.index') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Pengajuan Reimbursement</h1>
+            <span style="width: 38px;"></span>
         </div>
-        <small class="text-white-75">Isi rincian pengeluaran & upload bukti nota/kwitansi.</small>
-    </div>
 
-    <div class="container px-3 mt-3">
+        <div class="finora-hero">
+            <div class="fw-bold mb-1"><i class="fas fa-receipt me-1"></i> Klaim Pengeluaran Baru</div>
+            <p class="small mb-0 opacity-75">Isi rincian pengeluaran &amp; upload bukti nota/kwitansi.</p>
+        </div>
         <form id="rmbMobileForm" enctype="multipart/form-data">
             @csrf
 

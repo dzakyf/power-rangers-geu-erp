@@ -49,7 +49,7 @@ try {
 			} elseif ($k === 'Sisa_Cuti') {
 				$row[$map[$k][0]] = (isset($d->Sisa_Cuti) && is_numeric($d->Sisa_Cuti)) ? (int) $d->Sisa_Cuti : 0;
 			} else {
-				$row[$map[$k][0]] = $norm(employee_grid_cell($k, $d, $akademis));
+				$row[$map[$k][0]] = $norm(employee_grid_cell($k, $d, $akademis, location_name_map()));
 			}
 		}
 		$out[] = $row;

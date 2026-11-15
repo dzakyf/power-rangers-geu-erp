@@ -37,14 +37,6 @@
             'badge' => null
         ],
         [
-            'key' => 'template',
-            'title' => 'Master Template',
-            'subtitle' => 'Template Payroll',
-            'icon' => 'fa-file-invoice',
-            'url' => url('payroll-template-master'),
-            'badge' => null
-        ],
-        [
             'key' => 'employee',
             'title' => 'Salary Setup',
             'subtitle' => 'Setup Gaji Pegawai',
@@ -61,6 +53,15 @@
             'url' => url('payroll-generator'),
             'badge' => 'Generate',
             'badge_color' => 'bg-warning text-dark'
+        ],
+        [
+            'key' => 'thr',
+            'title' => 'Perhitungan THR',
+            'subtitle' => 'Tunjangan Hari Raya',
+            'icon' => 'fa-gift',
+            'url' => url('payroll-thr'),
+            'badge' => 'THR',
+            'badge_color' => 'bg-primary'
         ],
         [
             'key' => 'approval',

@@ -28,9 +28,10 @@ $Saya =  Auth::user()->username;
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">TIERING</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Tiering'])
+
 			<div class="form-inline mb-3">
 				<label class="mr-2">Year</label>
 				<select id="filter_year" class="form-control mr-3">

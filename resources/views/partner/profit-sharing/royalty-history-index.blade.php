@@ -16,9 +16,10 @@
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">HISTORY PEMBAYARAN ROYALTY</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'History Royalti'])
+
             <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <div>
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
@@ -34,7 +35,6 @@
 
 
 <div id="Grid1Detail" class="row m-1" style="display:none;">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">HISTORY PEMBAYARAN ROYALTY</div>
     <div class="card w-100">
         <div class="card-body">
             <!-- <div id="MembershipGrid" style="width: w-100auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div> -->
@@ -42,7 +42,7 @@
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
 
             </div>
-            <h5>Update Informasi Kemitraan</h5>
+            <h5 class="bdp-index-title">Update Informasi Kemitraan</h5>
             <form id="updateApplicationInfoForm" action="partner-profit-sharing-royalty-update" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="Application_Id" id="Application_Id" class="form-control" readonly />

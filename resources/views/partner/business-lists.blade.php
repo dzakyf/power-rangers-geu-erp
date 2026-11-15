@@ -30,12 +30,18 @@ $Saya =  Auth::user()->username;
 	</ol>
 </div>
 
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partner.partials.index-title', ['title' => 'Business Lists'])
+
 <div class="row">
 	<div id="OpportunityLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
 		<input type="button" id="ekselOpportunityListsDet" name="ekselOpportunityListsDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="OpportunityLists.toExcel('./export/generate.php');" />
 		<input type="button" id="detailBP" name="detailBP" value="Detail Leads" class="btn btn-success mt-2 mr-2" onclick="detailBP()" />
 	</div>
+</div>
+    </div>
 </div>
 <div id="divRegisteredLeadsDetail" style="display:none;">
 	@include('partner.registered-leads-detail')

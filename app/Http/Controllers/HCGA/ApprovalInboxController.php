@@ -490,9 +490,8 @@ class ApprovalInboxController extends Controller
         return $query;
     }
 
-    public function detail(Request $request)
+    private function loadTaskDetailData(int $taskId): array
     {
-        $taskId = (int) $request->input('ID');
         $task = $this->taskQuery()->where('t.ID', $taskId)->first();
 
         if (!$task) {
@@ -548,7 +547,7 @@ class ApprovalInboxController extends Controller
         $canAct = ($isMyClaim || $canClaim || $isAdmin);
         $canRelease = ($isAdmin && strtoupper((string) $task->Task_Status) === 'CLAIMED');
 
-        return view('humanresources.approval.detail', compact(
+        return compact(
             'task',
             'candidates',
             'logs',
@@ -557,7 +556,22 @@ class ApprovalInboxController extends Controller
             'canClaim',
             'canRelease',
             'isMyClaim'
-        ));
+        );
+    }
+
+    public function detail(Request $request)
+    {
+        $taskId = (int) $request->input('ID');
+        $data = $this->loadTaskDetailData($taskId);
+
+        return view('humanresources.approval.detail', $data);
+    }
+
+    public function mobileDetail(int $id)
+    {
+        $data = $this->loadTaskDetailData($id);
+
+        return view('humanresources.approval.mobile.detail', $data);
     }
 
     public function claim(Request $request)

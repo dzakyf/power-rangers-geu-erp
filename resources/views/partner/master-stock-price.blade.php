@@ -29,6 +29,10 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	</ol>
 </div>
 
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partner.partials.index-title', ['title' => 'Master Price'])
+
 <div class="row">
 	<div id="MasterPriceProduct" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
@@ -39,6 +43,8 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 
 		<input type="file" id="csvFileInput" accept=".csv" style="display: none;">
 	</div>
+</div>
+    </div>
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>

@@ -28,9 +28,10 @@ $Saya =  Auth::user()->username;
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LAPORAN KEUANGAN</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Overview2'])
+
 			<div class="d-flex align-items-end mb-2">
 				<div class="m-1">
 					<label class="d-block mb-1"><small>Dari Bulan</small></label>
