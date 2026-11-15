@@ -17,9 +17,10 @@
 
 
 <div id="Approval" class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">APPROVAL ROYALTY</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'Approval Royalty'])
+
             <!-- <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div> -->
             <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <div>
@@ -49,18 +50,20 @@
 
 
 <div id="ApprovalDetail" class="row m-1" style="display:none">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">DETAIL APPROVAL ROYALTY</div>
     <div class="card w-100">
         <div class="card-body" id="approvalDetailBody">
+            @include('partner.partials.index-title', ['title' => 'APPROVAL ROYALTY'])
+
             <p class="text-muted">Loading...</p>
         </div>
     </div>
 </div>
 
 <div id="ApprovalLog" class="row m-1" style="display:none">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LOG APPROVAL ROYALTY</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'DETAIL APPROVAL ROYALTY'])
+
             <div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;" class=" mt-2"></div>
             <div>
             </div>

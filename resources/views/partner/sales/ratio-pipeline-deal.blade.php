@@ -30,9 +30,10 @@ $getUsers = DB::table('users')->where('Priv_ID', 'SALES')->get();
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">MASTER TARGET</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Ratio Pipeline Deal'])
+
             <div class="form-inline mb-3">
                 <label class="mr-2" for="year">Year</label>
                 <select id="year" name="year" class="form-control mr-3" onchange="refreshdata()">

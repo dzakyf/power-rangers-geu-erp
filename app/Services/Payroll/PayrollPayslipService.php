@@ -182,12 +182,26 @@ class PayrollPayslipService
                         $earningsItems[] = ['name' => 'Insentif KJK', 'amount' => (float)$historicalSalary->KJK];
                     }
                 }
+
+                if (isset($historicalSalary->THR) && (float)$historicalSalary->THR > 0) {
+                    $hasThr = false;
+                    foreach ($earningsItems as $ei) {
+                        if (stripos($ei['name'], 'THR') !== false || stripos($ei['name'], 'HARI RAYA') !== false) {
+                            $hasThr = true;
+                            break;
+                        }
+                    }
+                    if (!$hasThr) {
+                        $earningsItems[] = ['name' => 'THR (Tunjangan Hari Raya)', 'amount' => (float)$historicalSalary->THR];
+                    }
+                }
             } else {
                 // Fallback struktur standar dari record salary
                 $basicSalary = (float)$historicalSalary->Pokok;
                 $dailyAllowance = (float)$historicalSalary->Tunjangan;
                 $overtime = (float)$historicalSalary->Overtime;
                 $kjk = isset($historicalSalary->KJK) ? (float)$historicalSalary->KJK : 0.0;
+                $thr = isset($historicalSalary->THR) ? (float)$historicalSalary->THR : 0.0;
                 $taxAllowance = (float)$historicalSalary->Tunjangan_PPH;
 
                 $earningsItems[] = ['name' => 'Basic salary', 'amount' => $basicSalary];
@@ -199,6 +213,9 @@ class PayrollPayslipService
                 }
                 if ($kjk > 0) {
                     $earningsItems[] = ['name' => 'Insentif KJK', 'amount' => $kjk];
+                }
+                if ($thr > 0) {
+                    $earningsItems[] = ['name' => 'THR (Tunjangan Hari Raya)', 'amount' => $thr];
                 }
 
                 if ($taxAllowance > 0) {
@@ -309,6 +326,7 @@ class PayrollPayslipService
             $dailyAllowance = (float)$calc['tunjangan'];
             $overtime = (float)$calc['overtime'];
             $kjk = isset($calc['kjk']) ? (float)$calc['kjk'] : 0.0;
+            $thr = isset($calc['thr']) ? (float)$calc['thr'] : 0.0;
             $taxAllowance = (float)$calc['tunjangan_pph'];
 
             $earningsItems = [];
@@ -322,13 +340,16 @@ class PayrollPayslipService
             if ($kjk > 0) {
                 $earningsItems[] = ['name' => 'Insentif KJK', 'amount' => $kjk];
             }
+            if ($thr > 0) {
+                $earningsItems[] = ['name' => 'THR (Tunjangan Hari Raya)', 'amount' => $thr];
+            }
 
             $additionalEarnings = [];
             if ($taxAllowance > 0) {
                 $additionalEarnings[] = ['name' => 'PPh 21 DTP / Tunjangan Pajak', 'amount' => $taxAllowance];
             }
 
-            $totalEarnings = $basicSalary + $dailyAllowance + $overtime + $kjk + $taxAllowance;
+            $totalEarnings = $basicSalary + $dailyAllowance + $overtime + $kjk + $thr + $taxAllowance;
 
             $bpjsKesEmployee = (float)$calc['bpjs_kes_amount'];
             $jhtEmployee = (float)$calc['bpjs_tk_amount'];
@@ -365,6 +386,14 @@ class PayrollPayslipService
 
             if (!empty($meta['deduction_breakdown']['custom_ded'])) {
                 $additionalDeductions[] = ['name' => 'Other Deductions / Pinjaman', 'amount' => (float)$meta['deduction_breakdown']['custom_ded']];
+            }
+
+            $advanceDeductionAmt = (float) ($meta['deduction_breakdown']['advance_deduction']['amount'] ?? 0);
+            if ($advanceDeductionAmt > 0) {
+                $additionalDeductions[] = [
+                    'name'   => 'POTONGAN SPPD / KASBON / REIMBURSE',
+                    'amount' => $advanceDeductionAmt,
+                ];
             }
 
             $totalDeductions = 0.0;

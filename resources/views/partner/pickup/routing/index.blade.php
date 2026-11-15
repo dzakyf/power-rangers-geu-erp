@@ -21,7 +21,7 @@
 <!-- Filter Card -->
 <div class="card mb-3">
     <div class="card-header m-3">
-        <h5>Filter</h5>
+        <h5 class="bdp-index-title">Filter</h5>
     </div>
     <div class="card-body">
         <div class="row align-items-end">
@@ -52,18 +52,18 @@
 <div class="card mb-3">
     <div class="card-header m-3">
         <div class="row align-items-end">
-            <div class="col-md-1">
-                <h5>Daftar Surat Jalan</h5>
-            </div>
-            <div class="col-md-auto ml-auto p-2">
-                <button id="routeBtn" class="btn btn-primary">Route</button>
-                <button id="btnDetailDO" class="btn btn-info"><i class="fas fa-info-circle"></i> Detail Surat Jalan</button>
+            <div class="col-md-12">
+                <h5 class="bdp-index-title">Daftar Surat Jalan</h5>
             </div>
         </div>
     </div>
     <div class="card-body p-0">
         <div style="width:100%;overflow-x:auto;">
             <div id="routingGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+        </div>
+        <div class="mt-3">
+            <button id="routeBtn" class="btn btn-primary">Route</button>
+            <button id="btnDetailDO" class="btn btn-info"><i class="fas fa-info-circle"></i> Detail Surat Jalan</button>
         </div>
     </div>
 </div>

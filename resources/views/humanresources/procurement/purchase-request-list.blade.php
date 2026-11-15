@@ -20,19 +20,37 @@
     <div class="row">
         <div id="PRGrid" style="width:100%; height:450px; background-color:white; overflow:hidden"></div>
     </div>
-    <div id="PRDiv"></div>
+    <div id="PRDiv" class="mt-3"></div>
 
 <script>
 function PRDoubleClick() {
     var prId = PRGrid.getSelectedId();
-    // Membuka detail PR saat baris diklik dua kali
-    LoadM('PRDiv', 'purchase-request-detail?PR_No=' + prId);
+    if (!prId) return;
+
+    // Ambil status berdasarkan atribut row di grid DHTMLX
+    var status = PRGrid.getUserData(prId, "status");
+    
+    // Jika tidak tertangkap via userData, kita bisa ambil dari cell index ke-8 (kolom Status)
+    if (!status) {
+        var cellIndexStatus = 8; // Kolom status ada di indeks ke-8
+        status = PRGrid.cells(prId, cellIndexStatus).getValue();
+    }
+
+    // Kondisi pengarahan berdasarkan status
+    if (status === 'PENDING') {
+        LoadM('PRDiv', 'purchase-request-detail-pending?PR_No=' + prId);
+    } else if (status === 'APPROVED') {
+        LoadM('PRDiv', 'purchase-request-detail-approved?PR_No=' + prId);
+    } else {
+        // Status lain jika ada (misal: APPROVAL_UPPER, dll.)
+        LoadM('PRDiv', 'purchase-request-detail-pending?PR_No=' + prId);
+    }
 }
 
 var PRGrid = new dhtmlXGridObject('PRGrid');
 PRGrid.setImagePath("./dhtmlx/imgs/");
-PRGrid.setHeader("No.,No. PR,Tanggal PR,Department,Material Code,Nama Item,Qty,Satuan,Status");
-PRGrid.setInitWidths("70,180,110,130,150,220,80,80,110");
+PRGrid.setHeader("No.,No. PR,Tanggal PR,Department,Note,yang Mengajukan,Qty,Satuan,Status");
+PRGrid.setInitWidths("70,180,110,130,250,220,80,80,110");
 PRGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 PRGrid.setColAlign("center,center,center,center,center,left,center,center,center");
 PRGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");
@@ -44,7 +62,6 @@ PRGrid.setSkin("dhx_skyblue");
 PRGrid.init();
 
 // Memuat data XML dari endpoint Laravel
-// PRGrid.load("/xml-purchase-request-list");
 PRGrid.load("/geu/hcga/public/xml-purchase-request-list");
 </script>
 @endsection

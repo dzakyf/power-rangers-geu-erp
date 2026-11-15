@@ -18,9 +18,10 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">Work Order</div>
             <div class="card">
                 <div class="card-body">
+                    @include('partner.partials.index-title', ['title' => 'Work Order (WO)'])
+
                     <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
                     <div>
                         <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->

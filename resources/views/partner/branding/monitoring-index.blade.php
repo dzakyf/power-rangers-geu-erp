@@ -16,9 +16,10 @@
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">MONITORING PROMOSI</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'Monitoring'])
+
             <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <div>
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
@@ -34,12 +35,11 @@
 
 
 <!-- <div id="Grid1Detail" class="row m-1" style="display:none;"> -->
-<!-- <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PROMOTION</div>
-<div class="card w-100">
+<!--<div class="card w-100">
     <div class="card-body">
         <div>
         </div>
-        <h5>Update Informasi Kemitraan</h5>
+        <h5 class="bdp-index-title">Update Informasi Kemitraan</h5>
         <form id="updateApplicationInfoForm" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="transfer_application_id" id="transfer_application_id" class="form-control" readonly />

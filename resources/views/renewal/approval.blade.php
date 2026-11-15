@@ -12,7 +12,7 @@
 
 <div class="card mb-3">
     <div class="card-header m-3">
-        <h5>APPROVAL RENEWAL</h5>
+        <h5 class="bdp-index-title">APPROVAL RENEWAL</h5>
     </div>
     <div class="card-body">
         <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class="mb-2"></div>

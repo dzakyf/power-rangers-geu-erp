@@ -16,9 +16,10 @@
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">MARKETING</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'Compliance'])
+
             <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <div>
                 <!-- <button type="button" id="btnView" class="btn btn-sm btn-info mt-2 mr-1"><i class="fas fa-eye"></i> Lihat</button> -->
@@ -32,10 +33,9 @@
 
 
 <div id="Grid1Detail" class="row m-1" style="display:none;">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">UPDATE PAJAK KEMITRAAN</div>
     <div class="card w-100">
         <div class="card-body">
-            <h5>Update Pajak Kemitraan</h5>
+            <h5 class="bdp-index-title">Update Pajak Kemitraan</h5>
             <form id="updateApplicationInfoForm" enctype="multipart/form-data">
                 @csrf
                 <div class="row">

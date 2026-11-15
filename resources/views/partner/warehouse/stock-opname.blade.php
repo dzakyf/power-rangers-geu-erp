@@ -14,7 +14,7 @@
     <div class="card-header m-3">
         <div class="row align-items-end">
             <div class="col-md-3">
-                <h5>Stock Opname</h5>
+                <h5 class="bdp-index-title">Stock Opname</h5>
             </div>
             <div class="col-md-auto ml-auto">
                 <select id="statusFilter" class="form-control form-control-sm" style="width:160px;" onchange="applyFilter()">

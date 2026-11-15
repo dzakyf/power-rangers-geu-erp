@@ -29,6 +29,10 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	</ol>
 </div>
 
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partner.partials.index-title', ['title' => 'Reassign Sales'])
+
 <div class="row">
 	<div id="AssignSales" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
@@ -46,6 +50,8 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 		</div>
 	</div>
 	<div class="mt-3" id="divlistAssign"></div>
+</div>
+    </div>
 </div>
 <script>
 	function assignToSales() {

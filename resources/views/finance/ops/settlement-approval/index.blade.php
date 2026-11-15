@@ -14,19 +14,19 @@
 <div class="card mb-3">
     <div class="card-header m-3">
         <div class="row align-items-end">
-            <div class="col-md-3">
-                <h5>Approval Settlement</h5>
-            </div>
-            <div class="col-md-auto ml-auto p-2">
-                <button id="btnApproveSettlement" class="btn btn-success"><i class="fa fa-check"></i> Approve</button>
-                <button id="btnRejectSettlement" class="btn btn-danger"><i class="fa fa-times"></i> Reject</button>
-                <button id="btnDetailSettlement" class="btn btn-info"><i class="fa fa-info-circle"></i> Detail</button>
+            <div class="col-md-12">
+                <h5 class="bdp-index-title">Approval Settlement</h5>
             </div>
         </div>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body p-3">
         <div style="width:100%;overflow-x:auto;">
             <div id="settlementApprovalGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+        </div>
+        <div class="mt-3">
+            <button id="btnApproveSettlement" class="btn btn-success"><i class="fa fa-check"></i> Approve</button>
+            <button id="btnRejectSettlement" class="btn btn-danger"><i class="fa fa-times"></i> Reject</button>
+            <button id="btnDetailSettlement" class="btn btn-info"><i class="fa fa-info-circle"></i> Detail</button>
         </div>
     </div>
 </div>

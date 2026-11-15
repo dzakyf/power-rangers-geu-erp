@@ -11,9 +11,10 @@
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SURAT JALAN</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'Surat Jalan'])
+
             <div class="mb-2 d-flex align-items-center">
                 <select id="doStatusFilter" class="form-control form-control-sm" style="width:200px;margin-right:8px;">
                     <option value="">-- Semua Status --</option>
@@ -40,6 +41,8 @@
             <h5 class="m-1">PICKUP ORDER</h5>
         </div>
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'SURAT JALAN'])
+
             <div id="PickupOrderGrid" style="width:auto;height:320px;background-color:white;overflow:hidden" class="mb-2"></div>
 
             <div>

@@ -1,7 +1,9 @@
 @extends('layout.mainlayout-bp')
 @section('content-wrapper')
 @csrf
-<h4>Dashboard Financial Insight</h4>
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partials.index-title', ['title' => 'Dashboard Financial Insight'])
 
 {{-- Filters --}}
 <div class="row mt-3 mb-2 align-items-end">
@@ -125,6 +127,8 @@
                 <canvas id="chart_projection_bep" height="120"></canvas>
             </div>
         </div>
+    </div>
+</div>
     </div>
 </div>
 

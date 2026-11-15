@@ -137,6 +137,7 @@
             margin-bottom: 2px;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
@@ -305,5 +306,6 @@
         </a>
     </div>
 
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'dashboard'])
 </body>
 </html>

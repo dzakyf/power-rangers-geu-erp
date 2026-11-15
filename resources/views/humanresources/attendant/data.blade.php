@@ -57,6 +57,9 @@
             </nav>
         </div>
         <div class="d-flex align-items-center flex-wrap gap-2">
+            <a href="{{ route('attendance.locations.index') }}" class="btn btn-sm rounded-pill shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
+                <i class="fe fe-map-pin me-1"></i> Setting Lokasi &amp; Radius
+            </a>
             <a href="{{ route('attendance.cutoff.index') }}" class="btn btn-sm rounded-pill shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
                 <i class="fe fe-sliders me-1"></i> Kelola Master Cutoff
             </a>
@@ -687,9 +690,13 @@ function renderDailyTableBody(list, isDetailMode) {
             ? `<span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold">${Math.floor(row.overtime_minutes/60)}j ${row.overtime_minutes%60}m</span>`
             : `<span class="text-muted">-</span>`;
 
-        let mapLink = (row.clock_in_lat && row.clock_in_lng)
-            ? `<a href="https://maps.google.com/?q=${row.clock_in_lat},${row.clock_in_lng}" target="_blank" class="small text-primary text-decoration-none d-block mt-1" title="Lihat Titik Koordinat GPS"><i class="fe fe-map-pin me-1"></i>${Number(row.clock_in_lat).toFixed(4)}, ${Number(row.clock_in_lng).toFixed(4)}</a>`
+        let gpsFlagBadge = (row.gps_anomaly_flag === 'SUSPECTED_FAKE_GPS')
+            ? `<span class="badge bg-danger text-white d-inline-block mt-1" title="${escapeHtml(row.gps_anomaly_reason || 'Anomali GPS terdeteksi')}"><i class="fe fe-alert-triangle me-1"></i>Suspect Fake GPS</span>`
             : '';
+
+        let mapLink = (row.clock_in_lat && row.clock_in_lng)
+            ? `<a href="https://maps.google.com/?q=${row.clock_in_lat},${row.clock_in_lng}" target="_blank" class="small text-primary text-decoration-none d-block mt-1" title="Lihat Titik Koordinat GPS"><i class="fe fe-map-pin me-1"></i>${Number(row.clock_in_lat).toFixed(4)}, ${Number(row.clock_in_lng).toFixed(4)}</a>${gpsFlagBadge}`
+            : gpsFlagBadge;
 
         let col2Html = '';
         let col3Html = '';

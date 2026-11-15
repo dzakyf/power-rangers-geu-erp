@@ -294,7 +294,11 @@ class OfferingController extends Controller
         // Siapkan variabel tampilan mengikuti template (prioritas: input live preview -> database -> auto-detect master_position/org -> default)
         $position = $request->input('position') ?: ($recruitment->Position ?: ($requisition->Job_Position ?? 'Kru Gudang'));
         $grading = $request->input('grading') ?: ($recruitment->Grading ?: '11');
-        $workLocation = $request->input('work_location') ?: ($recruitment->Work_Location ?: ($recruitment->Location ?: ($requisition->Location ?? 'Malang')));
+        $rawWorkLoc = $request->input('work_location') ?: ($recruitment->Work_Location ?: (($requisition->Placement ?? null) ?: ($recruitment->Location ?: ($requisition->Location ?? 'Malang'))));
+        $locRow = $rawWorkLoc
+            ? DB::table('location')->where('Location_ID', $rawWorkLoc)->orWhere('Name', $rawWorkLoc)->first()
+            : null;
+        $workLocation = $locRow ? $locRow->Name : $rawWorkLoc;
         $contractType = $request->input('contract_type') ?: ($recruitment->Contract_Type ?: 'Kontrak 1 tahun dengan masa evaluasi kerja 3 bulan');
 
         // Resolusi Atasan Langsung (Direct Supervisor)
@@ -328,7 +332,8 @@ class OfferingController extends Controller
             ? \Carbon\Carbon::parse($reqStartDate)->translatedFormat('d F Y')
             : \Carbon\Carbon::now()->addDays(7)->translatedFormat('d F Y');
 
-        $cityDate = ($workLocation ?: 'Malang') . ', ' . \Carbon\Carbon::now()->translatedFormat('d F Y');
+        $cityName = ($locRow && !empty($locRow->City)) ? $locRow->City : ($workLocation ?: 'Malang');
+        $cityDate = $cityName . ', ' . \Carbon\Carbon::now()->translatedFormat('d F Y');
 
         $offeringNumber = $request->input('offering_number') 
             ?: ($recruitment->Offering_Number ?? ('OF/' . date('Y') . '/' . str_pad($recruitment->ID ?? 1, 4, '0', STR_PAD_LEFT)));

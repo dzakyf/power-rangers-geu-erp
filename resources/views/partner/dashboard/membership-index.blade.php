@@ -3,7 +3,10 @@
 @csrf
 <!-- Main Content Header -->
 
-<h4>Dashboard Kemitraan</h4>
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partials.index-title', ['title' => 'Dashboard Kemitraan'])
+
 <div class="row mt-3 mb-2 align-items-end">
     <!-- <div class="col-auto">
         <label class="d-block mb-1">Pilih Gudang</label>
@@ -150,6 +153,8 @@
                 <button type="button" class="btn btn-primary btn-sm" onclick="window.location='partner-sales-team-performance'">Lihat Sales Performance</button>
             </div>
         </div>
+    </div>
+</div>
     </div>
 </div>
 

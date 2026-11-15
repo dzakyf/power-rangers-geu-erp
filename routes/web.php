@@ -157,6 +157,7 @@ use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\UploaderController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProcurementController; //tambahan ricko
+use App\Http\Controllers\SupplierController; //tambahan ricko
 
 /*
 |--------------------------------------------------------------------------
@@ -2650,10 +2651,10 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('procurement.purchasing-order-cancel');
     });
     Route::get('/purchasing-order-rfq', function () {
-        return view('procurement.purchasing-order-rfq');
+        return view('humanresources.procurement.purchasing-order-rfq');
     });
     Route::get('/xml-purchasing-order-rfq', function () {
-        return view('procurement.xml.purchasing-order-rfq');
+        return view('humanresources.procurement.xml.purchasing-order-rfq');
     });
 
     // Route::get('/qtn-create-detail', function () {
@@ -6389,6 +6390,29 @@ Route::group(['middleware' => 'log.access'], function () {
 //                      ->header('Content-Type', 'text/xml');
 // });
 
+Route::get('/procurement-dashboard', [ProcurementController::class, 'dashboardProcurement']);
+
+// Halaman Utama Master Product List
+Route::get('/product-list', [ProcurementController::class, 'productList']);
+
+// Endpoint XML untuk DHTMLX Grid Master Produk
+Route::get('/xml-product-list', [ProcurementController::class, 'xmlProductList']);
+Route::post('/product-store', [ProcurementController::class, 'storeProduct']);
+Route::get('/product-export-excel', [ProcurementController::class, 'exportProductExcel']);
+// Mengambil detail produk untuk form Edit (AJAX)
+Route::get('/product-edit/{id}', [ProcurementController::class, 'editProduct']);
+
+// Menyimpan perubahan data produk (Update)
+Route::post('/product-update/{id}', [ProcurementController::class, 'updateProduct']);
+
+
+// ==================== MASTER SUPPLIER ====================
+Route::get('/supplier-list', [SupplierController::class, 'supplierList']);
+Route::get('/xml-supplier-list', [SupplierController::class, 'xmlSupplierList']);
+Route::post('/supplier-store', [SupplierController::class, 'storeSupplier']);
+Route::get('/supplier-edit/{id}', [SupplierController::class, 'editSupplier']);
+Route::post('/supplier-update/{id}', [SupplierController::class, 'updateSupplier']);
+
 
     // 1. Route List PR
 Route::get('/purchase-request-list', function () {
@@ -6400,6 +6424,19 @@ Route::get('/xml-purchase-request-list', function () {
     return response()->view('humanresources.procurement.xml.purchase-request-list-xml', [], 200)
                      ->header('Content-Type', 'text/xml');
 });
+
+// Detail PR Pending (Dimuat via AJAX LoadM ke dalam PRDiv)
+Route::get('/purchase-request-detail-pending', [ProcurementController::class, 'detailPRPending']);
+Route::post('/purchase-request-update', [ProcurementController::class, 'updatePR']);
+
+// Proses Update Status Approval (Approve / Reject)
+Route::post('/purchase-request-approve', [ProcurementController::class, 'approvePR']);
+// Detail PR Approved
+Route::get('/purchase-request-detail-approved', [ProcurementController::class, 'detailPRApproved']);
+
+// Proses Lanjut ke RFQ dari PR Approved
+
+Route::post('purchase-request-to-rfq', [App\Http\Controllers\ProcurementController::class, 'convertToRFQ']);
 
 // Menggunakan Controller untuk Form, AJAX, dan Store
 Route::get('/purchase-request-create', [ProcurementController::class, 'createPR']);

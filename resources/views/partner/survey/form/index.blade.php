@@ -10,20 +10,9 @@
     </ol>
 </div>
 
-<div class="mt-5 mb-5 p-4 bg-white shadow-sm">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Form Survey Builder</h5>
-        <div>
-            @if($active)
-                <a href="{{ url('partner-survey-form-builder?version=' . $active->ID) }}" class="btn btn-primary">Edit Form Aktif</a>
-            @endif
-            <form action="{{ url('partner-survey-form-create-version') }}" method="POST" class="d-inline">
-                @csrf
-                <input type="hidden" name="source_version" value="{{ $active->ID ?? '' }}">
-                <button type="submit" class="btn btn-outline-primary">Buat Versi Baru</button>
-            </form>
-        </div>
-    </div>
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partner.partials.index-title', ['title' => 'Form Survey Builder'])
 
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
@@ -82,5 +71,17 @@
             @endforelse
         </tbody>
     </table>
+
+    <div class="mt-3">
+        @if($active)
+            <a href="{{ url('partner-survey-form-builder?version=' . $active->ID) }}" class="btn btn-primary">Edit Form Aktif</a>
+        @endif
+        <form action="{{ url('partner-survey-form-create-version') }}" method="POST" class="d-inline">
+            @csrf
+            <input type="hidden" name="source_version" value="{{ $active->ID ?? '' }}">
+            <button type="submit" class="btn btn-outline-primary">Buat Versi Baru</button>
+        </form>
+    </div>
+    </div>
 </div>
 @endsection

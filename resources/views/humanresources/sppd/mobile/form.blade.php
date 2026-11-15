@@ -10,6 +10,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+        #tblCost thead { display: none; }
+        #tblCost tbody tr {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: #F9FAFB;
+            border: 1px solid #E5EBE8;
+            border-radius: 14px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+        #tblCost tbody td {
+            border: none !important;
+            padding: 2px 0 !important;
+            width: 100% !important;
+        }
         body {
             background-color: #f4f6f9;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -84,21 +100,21 @@
             margin-bottom: 3px;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
-    <!-- Header Mobile -->
-    <div class="header-card">
-        <div class="d-flex align-items-center">
-            <a href="{{ route('sppd.mobile.index') }}" class="text-white me-3 fs-5"><i class="fa fa-arrow-left"></i></a>
-            <div>
-                <h6 class="mb-0 fw-bold">Pengajuan SPPD Baru</h6>
-                <small class="text-white-50">Kalkulasi Otomatis Matriks & Rute OSRM</small>
-            </div>
+    <div class="finora-shell">
+        <div class="finora-topbar">
+            <a href="{{ route('sppd.mobile.index') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Pengajuan SPPD Baru</h1>
+            <span style="width: 38px;"></span>
         </div>
-    </div>
 
-    <div class="container px-3 mt-3">
+        <div class="finora-hero">
+            <div class="fw-bold mb-1"><i class="fas fa-route me-1"></i> Rencana Perjalanan Dinas</div>
+            <p class="small mb-0 opacity-75">Kalkulasi otomatis matriks biaya &amp; rute OSRM.</p>
+        </div>
         <form id="mobileSppdForm">
             <!-- 1. Identitas Dokumen & Pemohon -->
             <div class="form-section-card">
@@ -264,23 +280,21 @@
                 </div>
             </div>
 
-            <!-- 3. Rincian Estimasi Biaya (Regulasi + Manual) -->
+            <!-- 3. Rincian Estimasi Biaya (Regulasi + Manual - Vertical Stacked Cards) -->
             <div class="form-section-card">
                 <div class="section-title"><i class="fa fa-coins me-1"></i> 3. Komponen Biaya Regulasi</div>
-                <div class="table-responsive">
-                    <table id="tblCost" class="table table-sm table-bordered align-middle mb-2">
-                        <thead class="table-light small">
-                            <tr>
-                                <th width="120">Nominal (Rp)</th>
-                                <th>Keterangan Komponen</th>
-                                <th width="40" class="text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Dinamis di-render oleh buildRegulationRows() -->
-                        </tbody>
-                    </table>
-                </div>
+                <table id="tblCost" class="table table-borderless w-100 mb-2">
+                    <thead class="d-none">
+                        <tr>
+                            <th>Nominal (Rp)</th>
+                            <th>Keterangan Komponen</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dinamis di-render oleh buildRegulationRows() sebagai vertical card -->
+                    </tbody>
+                </table>
                 <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
                     <div class="total-cost-box">
                         Total: Rp <span id="TotalCost">0</span>
@@ -359,21 +373,7 @@
         </div>
     </div>
 
-    <!-- Bottom Nav Mobile Bar -->
-    <div class="bottom-nav">
-        <a href="{{ route('sppd.mobile.index') }}" class="nav-item-mobile">
-            <i class="fa fa-list-check"></i>
-            <span>Daftar SPPD</span>
-        </a>
-        <a href="{{ route('sppd.mobile.form') }}" class="nav-item-mobile active">
-            <i class="fa fa-circle-plus"></i>
-            <span>Buat SPPD</span>
-        </a>
-        <a href="{{ route('sppd.mobile.approval') }}" class="nav-item-mobile">
-            <i class="fa fa-stamp"></i>
-            <span>Approval</span>
-        </a>
-    </div>
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'ess'])
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ asset('adminor/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>

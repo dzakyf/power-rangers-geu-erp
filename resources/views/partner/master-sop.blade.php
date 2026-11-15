@@ -33,6 +33,8 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	<div class="col-12">
 		<div class="card">
 			<div class="card-body">
+			    @include('partner.partials.index-title', ['title' => 'SOP'])
+
 				<div id="SopGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 				<div class="mt-2">
 					<input type="button" id="ekselSop" name="ekselSop" class="btn btn-warning mr-2" value="Export Excel" onclick="SopGrid.toExcel('./export/generate.php');" />
