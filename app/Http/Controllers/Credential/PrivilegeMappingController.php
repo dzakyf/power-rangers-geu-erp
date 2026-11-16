@@ -45,7 +45,14 @@ class PrivilegeMappingController extends Controller
             ->orderBy('Department', 'ASC')
             ->get();
 
-        return view('credential.privilege-mapping', compact('roles', 'directorats', 'positions', 'departments'));
+        $stats = [
+            'total'      => DB::table('privilege_access_mappings')->count(),
+            'active'     => DB::table('privilege_access_mappings')->where('status', 'ACTIVE')->count(),
+            'position'   => DB::table('privilege_access_mappings')->where('mapping_type', 'POSITION')->count(),
+            'org'        => DB::table('privilege_access_mappings')->whereIn('mapping_type', ['DIRECTORAT', 'DEPARTMENT'])->count(),
+        ];
+
+        return view('credential.privilege-mapping', compact('roles', 'directorats', 'positions', 'departments', 'stats'));
     }
 
     /**
@@ -59,6 +66,10 @@ class PrivilegeMappingController extends Controller
 
         if ($request->filled('mapping_type')) {
             $query->where('mapping_type', $request->input('mapping_type'));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
         }
 
         if ($request->filled('search.value')) {

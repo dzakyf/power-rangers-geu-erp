@@ -161,15 +161,6 @@ class MobileDashboardService
     {
         return [
             [
-                'key' => 'dashboard',
-                'label' => 'Dashboard',
-                'subtitle' => 'Ringkasan Harian',
-                'icon' => 'fa-house',
-                'color' => 'mint',
-                'route_name' => 'mobile.dashboard',
-                'api_endpoint' => '/api/v1/mobile/dashboard',
-            ],
-            [
                 'key' => 'ess',
                 'label' => 'ESS',
                 'subtitle' => '7 Pengajuan Mandiri',

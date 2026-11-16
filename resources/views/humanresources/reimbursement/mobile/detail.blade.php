@@ -70,9 +70,13 @@
 </head>
 <body>
 
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('reimbursement.mobile.index') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ route('reimbursement.mobile.index', $fromParams) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Detail Reimbursement</h1>
             <span style="width: 38px;"></span>
         </div>
@@ -204,7 +208,7 @@
 
     <!-- Bottom Navigation / Action -->
     <div class="bottom-action-bar">
-        <a href="{{ route('reimbursement.mobile.index') }}" class="btn btn-secondary w-100 fw-bold">
+        <a href="{{ route('reimbursement.mobile.index', $fromParams) }}" class="btn btn-secondary w-100 fw-bold">
             <i class="fa fa-arrow-left me-1"></i> Kembali ke Daftar
         </a>
     </div>

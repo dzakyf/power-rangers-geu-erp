@@ -978,3 +978,34 @@ if (!function_exists('terbilang_en')) {
     }
 }
 
+if (!function_exists('mobile_back_url')) {
+    /**
+     * Resolve context-aware back URL for mobile views based on the `from` query parameter.
+     */
+    function mobile_back_url(?string $defaultBack = null): string
+    {
+        $from = request()->query('from');
+        $targets = [
+            'dashboard' => route('mobile.dashboard'),
+            'ess'       => route('mobile.ess'),
+            'profile'   => route('employee.mobile.my-profile'),
+        ];
+
+        return $targets[$from] ?? ($defaultBack ?: route('mobile.dashboard'));
+    }
+}
+
+if (!function_exists('mobile_from_params')) {
+    /**
+     * Return ['from' => ...] query params when a valid mobile navigation source is active.
+     */
+    function mobile_from_params(): array
+    {
+        $from = request()->query('from');
+
+        return in_array($from, ['dashboard', 'ess', 'profile'], true)
+            ? ['from' => $from]
+            : [];
+    }
+}
+

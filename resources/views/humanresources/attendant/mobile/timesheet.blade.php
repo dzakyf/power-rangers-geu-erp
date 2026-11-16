@@ -18,9 +18,13 @@
     @include('humanresources.mobile.partials.theme')
 </head>
 <body>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('attendance.mobile.index') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ route('attendance.mobile.index', $fromParams) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Timesheet Karyawan</h1>
             <span style="width: 38px;"></span>
         </div>

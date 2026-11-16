@@ -39,9 +39,13 @@
     </style>
 </head>
 <body>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('attendance.mobile.location', ['action' => $action]) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ route('attendance.mobile.location', array_merge(['action' => $action], $fromParams)) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">{{ $action === 'clock-in' ? 'Clock In' : 'Clock Out' }} &bull; Foto Selfie</h1>
             <span style="width: 38px;"></span>
         </div>
@@ -99,8 +103,8 @@
         const submitUrl = flowAction === 'clock-in'
             ? @json(route('attendance.mobile.clockin'))
             : @json(route('attendance.mobile.clockout'));
-        const dashboardUrl = @json(route('mobile.dashboard'));
-        const locationUrl = @json(route('attendance.mobile.location', ['action' => $action]));
+        const dashboardUrl = @json($resolvedBackUrl);
+        const locationUrl = @json(route('attendance.mobile.location', array_merge(['action' => $action], $fromParams)));
 
         let videoStream = null;
         let selfieBase64 = null;

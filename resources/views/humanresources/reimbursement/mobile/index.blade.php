@@ -97,11 +97,15 @@
 </head>
 <body>
 
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('mobile.ess') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Reimbursement</h1>
-            <a href="{{ route('reimbursement.mobile.form') }}" class="finora-back-btn text-decoration-none" title="Buat Klaim Baru"><i class="fas fa-plus"></i></a>
+            <a href="{{ route('reimbursement.mobile.form', $fromParams) }}" class="finora-back-btn text-decoration-none" title="Buat Klaim Baru"><i class="fas fa-plus"></i></a>
         </div>
 
         <div class="finora-hero">
@@ -110,7 +114,7 @@
                     <div class="fw-bold">{{ $user->Name ?: $user->username }}</div>
                     <small class="opacity-75">{{ $user->Emp_ID }} &bull; {{ $user->Department }}</small>
                 </div>
-                <a href="{{ route('reimbursement.mobile.form') }}" class="btn btn-light btn-sm rounded-pill fw-bold text-success px-3" style="font-size: 11px;">
+                <a href="{{ route('reimbursement.mobile.form', $fromParams) }}" class="btn btn-light btn-sm rounded-pill fw-bold text-success px-3" style="font-size: 11px;">
                     <i class="fas fa-plus me-1"></i> Baru
                 </a>
             </div>
@@ -123,10 +127,10 @@
         <!-- Filter Tab Horizontal -->
         <div class="mb-3">
             <div class="filter-scroll">
-                <a href="{{ route('reimbursement.mobile.index', ['status' => 'ALL']) }}" class="filter-btn {{ $status == 'ALL' ? 'active' : '' }}">Semua</a>
-                <a href="{{ route('reimbursement.mobile.index', ['status' => 'PENDING']) }}" class="filter-btn {{ $status == 'PENDING' ? 'active' : '' }}">Menunggu</a>
-                <a href="{{ route('reimbursement.mobile.index', ['status' => 'APPROVED']) }}" class="filter-btn {{ $status == 'APPROVED' ? 'active' : '' }}">Disetujui</a>
-                <a href="{{ route('reimbursement.mobile.index', ['status' => 'REJECTED']) }}" class="filter-btn {{ $status == 'REJECTED' ? 'active' : '' }}">Ditolak</a>
+                <a href="{{ route('reimbursement.mobile.index', array_merge(['status' => 'ALL'], $fromParams)) }}" class="filter-btn {{ $status == 'ALL' ? 'active' : '' }}">Semua</a>
+                <a href="{{ route('reimbursement.mobile.index', array_merge(['status' => 'PENDING'], $fromParams)) }}" class="filter-btn {{ $status == 'PENDING' ? 'active' : '' }}">Menunggu</a>
+                <a href="{{ route('reimbursement.mobile.index', array_merge(['status' => 'APPROVED'], $fromParams)) }}" class="filter-btn {{ $status == 'APPROVED' ? 'active' : '' }}">Disetujui</a>
+                <a href="{{ route('reimbursement.mobile.index', array_merge(['status' => 'REJECTED'], $fromParams)) }}" class="filter-btn {{ $status == 'REJECTED' ? 'active' : '' }}">Ditolak</a>
             </div>
         </div>
 
@@ -144,7 +148,7 @@
                     $stBg = 'bg-warning text-dark';
                 }
             @endphp
-            <a href="{{ route('reimbursement.mobile.detail', ['id' => $r->ID]) }}" class="card rmb-item-card mb-3 p-3 bg-white">
+            <a href="{{ route('reimbursement.mobile.detail', array_merge(['id' => $r->ID], $fromParams)) }}" class="card rmb-item-card mb-3 p-3 bg-white">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>
                         <span class="text-primary fw-bold fs-14">{{ $r->Reimbursement_No }}</span>

@@ -44,7 +44,7 @@
         <div class="finora-topbar">
             <a href="{{ route('mobile.dashboard') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Employee Self-Service (ESS)</h1>
-            <a href="{{ route('employee.mobile.my-profile') }}" class="finora-back-btn" title="Profil Saya"><i class="fas fa-user"></i></a>
+            <a href="{{ route('employee.mobile.my-profile', ['from' => 'ess']) }}" class="finora-back-btn" title="Profil Saya"><i class="fas fa-user"></i></a>
         </div>
 
         <div class="finora-hero">
@@ -68,7 +68,10 @@
         </div>
 
         @foreach ($ess['essItems'] as $item)
-            <a href="{{ $item['route'] }}" class="ess-item-card">
+            @php
+                $essHref = $item['route'] . (strpos($item['route'], '?') !== false ? '&' : '?') . 'from=ess';
+            @endphp
+            <a href="{{ $essHref }}" class="ess-item-card">
                 <div class="d-flex align-items-center gap-3">
                     <span class="ess-icon-box tone-{{ $item['tone'] }}">
                         <i class="fas {{ $item['icon'] }}"></i>

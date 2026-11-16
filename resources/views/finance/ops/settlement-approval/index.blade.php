@@ -24,8 +24,10 @@
             <div id="settlementApprovalGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
         </div>
         <div class="mt-3">
+            @if(can_menu('SI00380', 'approve'))
             <button id="btnApproveSettlement" class="btn btn-success"><i class="fa fa-check"></i> Approve</button>
             <button id="btnRejectSettlement" class="btn btn-danger"><i class="fa fa-times"></i> Reject</button>
+            @endif
             <button id="btnDetailSettlement" class="btn btn-info"><i class="fa fa-info-circle"></i> Detail</button>
         </div>
     </div>

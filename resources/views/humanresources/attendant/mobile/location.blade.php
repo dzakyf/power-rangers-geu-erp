@@ -28,9 +28,13 @@
     </style>
 </head>
 <body>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('mobile.dashboard') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">{{ $action === 'clock-in' ? 'Clock In' : 'Clock Out' }} &bull; Lokasi</h1>
             <span style="width: 38px;"></span>
         </div>
@@ -71,7 +75,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const flowAction = @json($action);
-        const selfieBaseUrl = @json(route('attendance.mobile.selfie'));
+        const selfieBaseUrl = @json(route('attendance.mobile.selfie', $fromParams));
         const officeLocations = @json($locations ?? []);
 
         let userLat = null;
@@ -219,7 +223,8 @@
                 sessionStorage.setItem('hcga_att_lng', String(userLng));
             } catch (e) {}
 
-            const url = `${selfieBaseUrl}?action=${encodeURIComponent(flowAction)}&lat=${encodeURIComponent(userLat)}&lng=${encodeURIComponent(userLng)}`;
+            const sep = selfieBaseUrl.includes('?') ? '&' : '?';
+            const url = `${selfieBaseUrl}${sep}action=${encodeURIComponent(flowAction)}&lat=${encodeURIComponent(userLat)}&lng=${encodeURIComponent(userLng)}`;
             window.location.href = url;
         }
     </script>

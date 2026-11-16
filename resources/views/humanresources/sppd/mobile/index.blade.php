@@ -97,17 +97,21 @@
 </head>
 <body>
 
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('mobile.ess') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Perjalanan Dinas</h1>
-            <a href="{{ route('sppd.mobile.form') }}" class="finora-back-btn text-decoration-none" title="Buat SPPD Baru"><i class="fas fa-plus"></i></a>
+            <a href="{{ route('sppd.mobile.form', $fromParams) }}" class="finora-back-btn text-decoration-none" title="Buat SPPD Baru"><i class="fas fa-plus"></i></a>
         </div>
 
         <div class="finora-hero">
             <div class="d-flex justify-content-between align-items-center mb-1">
                 <div class="fw-bold"><i class="fas fa-briefcase me-1"></i> Perjalanan Dinas (SPPD)</div>
-                <a href="{{ route('sppd.mobile.form') }}" class="btn btn-light btn-sm rounded-pill fw-bold text-success px-3" style="font-size: 11px;">
+                <a href="{{ route('sppd.mobile.form', $fromParams) }}" class="btn btn-light btn-sm rounded-pill fw-bold text-success px-3" style="font-size: 11px;">
                     <i class="fas fa-plus me-1"></i> Baru
                 </a>
             </div>
@@ -115,10 +119,10 @@
         </div>
         <!-- Filter Tabs Horizontal -->
         <div class="filter-scroll mb-3">
-            <a href="{{ route('sppd.mobile.index', ['status' => 'ALL']) }}" class="filter-btn {{ $status == 'ALL' ? 'active' : '' }}">Semua</a>
-            <a href="{{ route('sppd.mobile.index', ['status' => 'SUBMITTED']) }}" class="filter-btn {{ $status == 'SUBMITTED' ? 'active' : '' }}">Diajukan</a>
-            <a href="{{ route('sppd.mobile.index', ['status' => 'ACCEPTED']) }}" class="filter-btn {{ $status == 'ACCEPTED' ? 'active' : '' }}">Disetujui</a>
-            <a href="{{ route('sppd.mobile.index', ['status' => 'REJECTED']) }}" class="filter-btn {{ $status == 'REJECTED' ? 'active' : '' }}">Ditolak</a>
+            <a href="{{ route('sppd.mobile.index', array_merge(['status' => 'ALL'], $fromParams)) }}" class="filter-btn {{ $status == 'ALL' ? 'active' : '' }}">Semua</a>
+            <a href="{{ route('sppd.mobile.index', array_merge(['status' => 'SUBMITTED'], $fromParams)) }}" class="filter-btn {{ $status == 'SUBMITTED' ? 'active' : '' }}">Diajukan</a>
+            <a href="{{ route('sppd.mobile.index', array_merge(['status' => 'ACCEPTED'], $fromParams)) }}" class="filter-btn {{ $status == 'ACCEPTED' ? 'active' : '' }}">Disetujui</a>
+            <a href="{{ route('sppd.mobile.index', array_merge(['status' => 'REJECTED'], $fromParams)) }}" class="filter-btn {{ $status == 'REJECTED' ? 'active' : '' }}">Ditolak</a>
         </div>
 
         <!-- Daftar Pengajuan SPPD -->
@@ -127,7 +131,7 @@
                 <i class="fa fa-folder-open fa-3x text-muted mb-3 d-block opacity-50"></i>
                 <h6 class="fw-bold text-muted">Belum ada data pengajuan SPPD</h6>
                 <small class="text-muted d-block mb-3">Tekan tombol '+ Baru' di atas untuk mengajukan perjalanan dinas.</small>
-                <a href="{{ route('sppd.mobile.form') }}" class="btn btn-primary btn-sm rounded-pill px-4">Buat Pengajuan</a>
+                <a href="{{ route('sppd.mobile.form', $fromParams) }}" class="btn btn-primary btn-sm rounded-pill px-4">Buat Pengajuan</a>
             </div>
         @else
             @foreach($sppds as $item)
@@ -139,7 +143,7 @@
                         $badgeClass = 'bg-danger text-white';
                     }
                 @endphp
-                <a href="{{ route('sppd.mobile.detail', ['id' => $item['id']]) }}" class="card sppd-item-card p-3 mb-2 bg-white">
+                <a href="{{ route('sppd.mobile.detail', array_merge(['id' => $item['id']], $fromParams)) }}" class="card sppd-item-card p-3 mb-2 bg-white">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="fw-bold text-primary" style="font-size: 13px;">{{ $item['sppd_no'] }}</span>
                         <span class="status-pill {{ $badgeClass }}">{{ $item['status'] }}</span>

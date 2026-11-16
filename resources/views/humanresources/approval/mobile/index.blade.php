@@ -302,10 +302,14 @@
 
 <body>
 
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
+        $fromParams = mobile_from_params();
+    @endphp
     <!-- Header Mobile Approval (Finora Theme) -->
     <div class="finora-shell pb-0">
         <div class="finora-topbar">
-            <a href="{{ route('mobile.dashboard') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Mobile Approval</h1>
             <a href="#" class="finora-back-btn" style="border:none;background:transparent">&nbsp;</a>
         </div>
@@ -590,7 +594,7 @@
                     </span>
 
                     <div class="d-flex gap-2">
-                        <a href="{{ route('approval.mobile.detail', ['id' => $t->ID]) }}"
+                        <a href="{{ route('approval.mobile.detail', array_merge(['id' => $t->ID], $fromParams)) }}"
                             class="btn btn-outline-success btn-action-touch text-decoration-none">
                             <i class="fa fa-eye"></i> Detail
                         </a>

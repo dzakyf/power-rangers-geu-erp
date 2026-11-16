@@ -70,25 +70,15 @@
                                 @if ($todayEntry && $todayEntry->Clock_In_Status)
                                     <span class="badge bg-success d-block mt-1">{{ $todayEntry->Clock_In_Status }}</span>
                                 @endif
-                                @if ($todayEntry && ($todayEntry->GPS_Anomaly_Flag ?? '') === 'SUSPECTED_FAKE_GPS')
-                                    @if (
-                                        $todayEntry &&
-                                            ($todayEntry->GPS_Anomaly_Flag ?? '') === 'SUSPECTED_FAKE_GPS' &&
-                                            in_array(strtolower((string) (Auth::user()->username ?? '')), ['admin', 'user.hcga', 'admin.hris'], true))
-                                        <span class="badge bg-danger text-white d-block mt-1"
-                                            title="{{ $todayEntry->GPS_Anomaly_Reason ?? 'Anomali GPS terdeteksi' }}">
-                                            <i class="fe fe-alert-triangle me-1"></i>Suspect Fake GPS
-                                        </span>
-                                    @endif
-                                    @if (
-                                        $todayEntry &&
-                                            ($todayEntry->GPS_Anomaly_Flag ?? '') === 'SUSPECTED_FAKE_GPS' &&
-                                            in_array(strtolower((string) (Auth::user()->username ?? '')), ['admin', 'user.hcga', 'admin.hris'], true))
-                                        <span class="badge bg-danger text-white d-block mt-1"
-                                            title="{{ $todayEntry->GPS_Anomaly_Reason ?? 'Anomali GPS terdeteksi' }}">
-                                            <i class="fe fe-alert-triangle me-1"></i>Suspect Fake GPS
-                                        </span>
-                                    @endif
+                                @if (
+                                    $todayEntry &&
+                                        ($todayEntry->GPS_Anomaly_Flag ?? '') === 'SUSPECTED_FAKE_GPS' &&
+                                        in_array(strtolower((string) (Auth::user()->username ?? '')), ['admin', 'user.hcga', 'admin.hris'], true))
+                                    <span class="badge bg-danger text-white d-block mt-1"
+                                        title="{{ $todayEntry->GPS_Anomaly_Reason ?? 'Anomali GPS terdeteksi' }}">
+                                        <i class="fe fe-alert-triangle me-1"></i>Suspect Fake GPS
+                                    </span>
+                                @endif
                                     @if ($todayEntry && !empty($todayEntry->Clock_In_Photo))
                                         <div class="mt-2 pt-1 border-top">
                                             <a href="javascript:void(0)"

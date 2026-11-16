@@ -27,7 +27,7 @@
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-info text-white py-2">
             <h6 class="mb-0 font-weight-bold" style="font-size: 13px;">
-                <i class="fas fa-truck mr-2"></i> Daftar Master Supplier (Tabel: <code>supplier</code>) &mdash; <span class="text-warning">Tips: Double-klik pada baris tabel untuk mengedit data</span>
+                <i class="fas fa-truck mr-2"></i> Daftar Master Supplier &mdash; <span class="text-warning">Tips: Double-klik pada baris tabel untuk mengedit data</span>
             </h6>
         </div>
         <div class="card-body p-0">
@@ -35,7 +35,7 @@
         </div>
     </div>
 
-    <!-- CARD FORM TAMBAH SUPPLIER -->
+    <!-- CARD FORM TAMBAH SUPPLIER (DIRAPIKAN) -->
     <div class="card shadow-sm border-success mb-4" id="form-card-container" style="display: none; border-top: 3px solid #28a745;">
         <div class="card-header bg-success text-white py-2">
             <h6 class="mb-0 font-weight-bold" style="font-size: 13px;">
@@ -61,11 +61,11 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-4 form-group mb-2">
+                    <div class="col-md-3 form-group mb-2">
                         <label class="font-weight-bold">City</label>
                         <input type="text" class="form-control form-control-sm" name="city" placeholder="Kota...">
                     </div>
-                    <div class="col-md-4 form-group mb-2">
+                    <div class="col-md-3 form-group mb-2">
                         <label class="font-weight-bold">Phone / HP</label>
                         <input type="text" class="form-control form-control-sm" name="phone" placeholder="Nomor telepon...">
                     </div>
@@ -73,19 +73,23 @@
                         <label class="font-weight-bold">Email</label>
                         <input type="email" class="form-control form-control-sm" name="email" placeholder="Alamat email...">
                     </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-8 form-group mb-2">
-                        <label class="font-weight-bold">Address</label>
-                        <input type="text" class="form-control form-control-sm" name="address" placeholder="Alamat lengkap...">
-                    </div>
-                    <div class="col-md-4 form-group mb-2">
+                    <div class="col-md-2 form-group mb-2">
                         <label class="font-weight-bold">Status <span class="text-danger">*</span></label>
                         <select class="form-control form-control-sm" name="status" required>
                             <option value="ACTIVE">ACTIVE</option>
                             <option value="NONACTIVE">NONACTIVE</option>
                         </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 form-group mb-2">
+                        <label class="font-weight-bold">NPWP</label>
+                        <input type="text" class="form-control form-control-sm" name="NPWP" placeholder="Nomor NPWP...">
+                    </div>
+                    <div class="col-md-8 form-group mb-2">
+                        <label class="font-weight-bold">Address</label>
+                        <input type="text" class="form-control form-control-sm" name="address" placeholder="Alamat lengkap...">
                     </div>
                 </div>
 
@@ -99,7 +103,7 @@
         </div>
     </div>
 
-    <!-- CARD FORM EDIT SUPPLIER -->
+    <!-- CARD FORM EDIT SUPPLIER (DIRAPIKAN) -->
     <div class="card shadow-sm border-warning mb-4" id="form-edit-container" style="display: none; border-top: 3px solid #ffc107;">
         <div class="card-header bg-warning text-dark py-2">
             <h6 class="mb-0 font-weight-bold" style="font-size: 13px;">
@@ -126,11 +130,11 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-4 form-group mb-2">
+                    <div class="col-md-3 form-group mb-2">
                         <label class="font-weight-bold">City</label>
                         <input type="text" class="form-control form-control-sm" id="edit_city" name="city">
                     </div>
-                    <div class="col-md-4 form-group mb-2">
+                    <div class="col-md-3 form-group mb-2">
                         <label class="font-weight-bold">Phone</label>
                         <input type="text" class="form-control form-control-sm" id="edit_phone" name="phone">
                     </div>
@@ -138,19 +142,23 @@
                         <label class="font-weight-bold">Email</label>
                         <input type="email" class="form-control form-control-sm" id="edit_email" name="email">
                     </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-8 form-group mb-2">
-                        <label class="font-weight-bold">Address</label>
-                        <input type="text" class="form-control form-control-sm" id="edit_address" name="address">
-                    </div>
-                    <div class="col-md-4 form-group mb-2">
+                    <div class="col-md-2 form-group mb-2">
                         <label class="font-weight-bold">Status <span class="text-danger">*</span></label>
                         <select class="form-control form-control-sm" id="edit_status" name="status" required>
                             <option value="ACTIVE">ACTIVE</option>
                             <option value="NONACTIVE">NONACTIVE</option>
                         </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 form-group mb-2">
+                        <label class="font-weight-bold">NPWP</label>
+                        <input type="text" class="form-control form-control-sm" id="edit_npwp" name="NPWP">
+                    </div>
+                    <div class="col-md-8 form-group mb-2">
+                        <label class="font-weight-bold">Address</label>
+                        <input type="text" class="form-control form-control-sm" id="edit_address" name="address">
                     </div>
                 </div>
 
@@ -167,12 +175,12 @@
 <script>
 var SupplierGrid = new dhtmlXGridObject('SupplierGrid');
 SupplierGrid.setImagePath("./dhtmlx/imgs/");
-SupplierGrid.setHeader("No.,Supplier ID,Company Name,Contact Person,City,Address,Phone,Email,Status");
-SupplierGrid.setInitWidths("60,130,250,160,120,130,150,180,90");
-SupplierGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-SupplierGrid.setColAlign("center,center,left,left,left,center,left,left,center");
-SupplierGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");
-SupplierGrid.setColSorting("int,str,str,str,str,str,str,str,str");
+SupplierGrid.setHeader("No.,Supplier ID,Company Name,Contact Person,City,Address,Phone,Email,NPWP,Status");
+SupplierGrid.setInitWidths("60,150,250,160,250,150,150,180,100,100");
+SupplierGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#select_filter");
+SupplierGrid.setColAlign("center,center,left,left,left,center,left,left,left,center");
+SupplierGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+SupplierGrid.setColSorting("int,str,str,str,str,str,str,str,str,str");
 SupplierGrid.setEditable(false);
 SupplierGrid.enableMultiline(true);
 SupplierGrid.setSkin("dhx_skyblue");
@@ -204,6 +212,7 @@ function editSupplier(id) {
             $('#edit_city').val(s.City);
             $('#edit_phone').val(s.Phone);
             $('#edit_email').val(s.Email);
+            $('#edit_npwp').val(s.NPWP); // Ditambahkan agar data NPWP ikut terpanggil saat edit
             $('#edit_address').val(s.Address);
             $('#edit_status').val(s.Status);
 
@@ -216,7 +225,6 @@ function editSupplier(id) {
 }
 
 $(document).ready(function() {
-    // Simpan Supplier Baru
     // Simpan Supplier Baru
     $('#btn-simpan-supplier').on('click', function() {
         var formData = $('#form-tambah-supplier').serialize();
@@ -243,7 +251,6 @@ $(document).ready(function() {
                     if (err.responseJSON.message) {
                         errMsg = err.responseJSON.message;
                     } else if (err.responseJSON.errors) {
-                        // Ambil pesan error validasi pertama
                         var errors = err.responseJSON.errors;
                         var firstKey = Object.keys(errors)[0];
                         errMsg = errors[firstKey][0];

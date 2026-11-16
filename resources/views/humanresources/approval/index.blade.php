@@ -155,7 +155,7 @@
         </nav>
     </div>
     <div class="d-flex align-items-center gap-2">
-        <a href="{{ url('hrd-approval-mobile') }}" class="btn btn-outline-light btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center gap-2" title="Buka Mode Tampilan Mobile">
+        <a href="{{ route('approval.mobile.index') }}" target="_blank" class="btn btn-outline-light btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center gap-2" title="Buka Mode Tampilan Mobile">
             <i class="fa fa-mobile-screen"></i>
             <span>Mode Mobile</span>
         </a>

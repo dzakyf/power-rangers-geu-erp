@@ -252,7 +252,7 @@
                 <div class="greeting-name">{{ $u['name'] }}</div>
                 <div class="small text-muted">{{ $u['position'] }} &bull; {{ $u['department'] }}</div>
             </div>
-            <a href="{{ route('employee.mobile.my-profile') }}" class="avatar-circle" title="Profil Saya">
+            <a href="{{ route('employee.mobile.my-profile', ['from' => 'dashboard']) }}" class="avatar-circle" title="Profil Saya">
                 {{ $initials }}
             </a>
         </div>
@@ -293,12 +293,12 @@
                     $flowAction = $isClockOutAction ? 'clock-out' : 'clock-in';
                 @endphp
                 @if ($isDoneToday)
-                    <a href="{{ route('attendance.mobile.index') }}"
+                    <a href="{{ route('attendance.mobile.index', ['from' => 'dashboard']) }}"
                        class="btn btn-light btn-sm rounded-pill fw-bold text-success px-3">
                         <i class="fas fa-check-circle me-1"></i> Selesai
                     </a>
                 @else
-                    <a href="{{ route('attendance.mobile.location', ['action' => $flowAction]) }}"
+                    <a href="{{ route('attendance.mobile.location', ['action' => $flowAction, 'from' => 'dashboard']) }}"
                        class="btn btn-light btn-sm rounded-pill fw-bold text-success px-3">
                         <i class="fas fa-fingerprint me-1"></i>
                         {{ $isClockOutAction ? 'Clock Out' : 'Clock In' }}
@@ -309,19 +309,19 @@
 
         <!-- Quick Actions -->
         <div class="quick-actions-row">
-            <a href="{{ route('attendance.mobile.index') }}" class="quick-action-btn">
+            <a href="{{ route('attendance.mobile.index', ['from' => 'dashboard']) }}" class="quick-action-btn">
                 <span class="quick-action-icon"><i class="fas fa-fingerprint"></i></span>
                 <span>Absen</span>
             </a>
-            <a href="{{ route('mobile.ess') }}" class="quick-action-btn">
+            <a href="{{ route('mobile.ess', ['from' => 'dashboard']) }}" class="quick-action-btn">
                 <span class="quick-action-icon"><i class="fas fa-briefcase"></i></span>
                 <span>ESS</span>
             </a>
-            <a href="{{ route('approval.mobile.index') }}" class="quick-action-btn">
+            <a href="{{ route('approval.mobile.index', ['from' => 'dashboard']) }}" class="quick-action-btn">
                 <span class="quick-action-icon"><i class="fas fa-check-circle"></i></span>
                 <span>Approve ({{ $dashboard['pending_approvals_count'] }})</span>
             </a>
-            <a href="{{ route('employee.mobile.my-profile') }}" class="quick-action-btn">
+            <a href="{{ route('employee.mobile.my-profile', ['from' => 'dashboard']) }}" class="quick-action-btn">
                 <span class="quick-action-icon"><i class="fas fa-user"></i></span>
                 <span>Profil</span>
             </a>
@@ -335,7 +335,7 @@
 
         <div class="module-grid">
             @foreach ($dashboard['modules'] as $mod)
-                <a href="{{ route($mod['route_name']) }}" class="module-card">
+                <a href="{{ route($mod['route_name'], ['from' => 'dashboard']) }}" class="module-card">
                     <span class="mod-icon tone-{{ $mod['color'] }}">
                         <i class="fas {{ $mod['icon'] }}"></i>
                     </span>
@@ -353,11 +353,11 @@
         <!-- Latest Announcements -->
         <div class="section-header">
             <h2 class="section-title">Pengumuman Terbaru</h2>
-            <a href="{{ route('announcement.mobile.index') }}" class="small fw-bold text-success text-decoration-none">Lihat Semua &rarr;</a>
+            <a href="{{ route('announcement.mobile.index', ['from' => 'dashboard']) }}" class="small fw-bold text-success text-decoration-none">Lihat Semua &rarr;</a>
         </div>
 
         @forelse ($dashboard['latest_announcements'] as $ann)
-            <a href="{{ route('announcement.mobile.detail', $ann->id ?? $ann->ID) }}" class="feed-card">
+            <a href="{{ route('announcement.mobile.detail', ['id' => $ann->id ?? $ann->ID, 'from' => 'dashboard']) }}" class="feed-card">
                 <div class="d-flex justify-content-between align-items-start gap-2">
                     <div>
                         <div class="fw-bold small">{{ $ann->title ?? $ann->Title ?? 'Pengumuman' }}</div>

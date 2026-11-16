@@ -91,9 +91,10 @@
     </style>
 </head>
 <body>
+    @include('humanresources.mobile.partials.resolve-back', ['defaultBack' => route('mobile.dashboard')])
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('payslip.mobile.index') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ route('payslip.mobile.index', $fromParams) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">{{ $payslip['period_label'] ?? $payslip['period'] }}</h1>
             <button type="button" class="finora-back-btn" onclick="togglePayslipMask()" title="Tampilkan / Sembunyikan Nominal">
                 <i class="fas fa-eye" id="headerMaskIcon"></i>

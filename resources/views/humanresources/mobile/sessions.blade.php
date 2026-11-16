@@ -62,9 +62,13 @@
 </head>
 
 <body>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('employee.mobile.my-profile'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="mobile-container">
         <div class="header-bar">
-            <a href="{{ route('mobile.dashboard') }}" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ $resolvedBackUrl }}" class="back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Keamanan &amp; Sesi Perangkat</h1>
             <span style="width:38px;"></span>
         </div>

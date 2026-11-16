@@ -24,7 +24,9 @@
             <div>
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
 
+                @if(can_menu('SI00252', 'create'))
                 <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
+                @endif
                 <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
                 <input type="button" id="detailGrid1" name="detailGrid1" value="Detail Data" class="btn btn-info mt-2 mr-2" />
 
@@ -156,7 +158,9 @@
                     </div>
                 </div>
 
+                @if(can_menu('SI00252', 'edit'))
                 <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
+                @endif
             </form>
         </div>
     </div>

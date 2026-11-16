@@ -2,133 +2,56 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\HCGA\OfferingController;
+use App\Services\CandidatePortalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class CandidateController extends Controller
 {
-    public function __construct()
+    /** @var CandidatePortalService */
+    private $portal;
+
+    public function __construct(CandidatePortalService $portal)
     {
         $this->middleware('auth');
+        $this->portal = $portal;
     }
 
     /**
-     * Helper untuk menghitung jadwal aktif/mendatang untuk notifikasi kandidat
+     * Guard access so only CANDIDATE or Admin users may access portal routes.
      */
-    private function getUpcomingSchedules($rec)
+    private function authorizePortal(Request $request): string
     {
-        $notifications = [];
-
-        if (!$rec) {
-            return $notifications;
+        $user = Auth::user();
+        if (!$this->portal->canAccessPortal($user)) {
+            abort(403, 'Akses ditolak. Halaman ini khusus untuk akun Kandidat atau Admin.');
         }
 
-        // 1. Jadwal Interview HR / Umum
-        $interviewDate = $rec->Interview_Schedule ?: $rec->Interview_Date;
-        if ($interviewDate && $rec->Interview_Status !== 'ACCEPT' && $rec->Interview_Status !== 'REJECT') {
-            $notifications[] = [
-                'type' => 'interview_hr',
-                'title' => 'Jadwal Interview HR',
-                'schedule' => $interviewDate,
-                'location' => $rec->Location ?? 'Kantor HCGA / Online Meeting',
-                'note' => $rec->Interview_Note ?? 'Harap hadir tepat waktu sesuai jadwal yang telah ditentukan.',
-                'badge' => 'Interview HR',
-                'icon' => 'fa-calendar-check-o',
-                'color' => 'primary'
-            ];
-        }
-
-        // 2. Jadwal Interview User
-        if ($rec->User_Interview_Date && $rec->User_Interview_Status !== 'ACCEPT' && $rec->User_Interview_Status !== 'REJECT') {
-            $notifications[] = [
-                'type' => 'interview_user',
-                'title' => 'Jadwal Interview User',
-                'schedule' => $rec->User_Interview_Date,
-                'location' => $rec->Location ?? 'Kantor / Divisi Terkait',
-                'note' => $rec->User_Interview_Note ?? 'Wawancara dengan User / Department Head.',
-                'badge' => 'Interview User',
-                'icon' => 'fa-users',
-                'color' => 'info'
-            ];
-        }
-
-        // 3. Jadwal Psikotest
-        if ($rec->Psikotest_Date && $rec->Psikotest_Status !== 'ACCEPT' && $rec->Psikotest_Status !== 'REJECT') {
-            $notifications[] = [
-                'type' => 'psikotest',
-                'title' => 'Jadwal Psikotest',
-                'schedule' => $rec->Psikotest_Date,
-                'location' => $rec->Location ?? 'Online / Ruang Asesmen HCGA',
-                'note' => $rec->Psikotest_Note ?? 'Silakan persiapkan diri untuk pelaksanaan asesmen psikotes.',
-                'badge' => 'Psikotest',
-                'icon' => 'fa-pencil-square-o',
-                'color' => 'warning'
-            ];
-        }
-
-        // 4. Jadwal Tes Teknik
-        if ($rec->Technical_Date && $rec->Technical_Test_Status !== 'ACCEPT' && $rec->Technical_Test_Status !== 'REJECT') {
-            $notifications[] = [
-                'type' => 'technical_test',
-                'title' => 'Jadwal Tes Teknik',
-                'schedule' => $rec->Technical_Date,
-                'location' => $rec->Location ?? 'Divisi Terkait',
-                'note' => $rec->Technical_Test_Note ?? 'Uji kompetensi teknis.',
-                'badge' => 'Tes Teknik',
-                'icon' => 'fa-cogs',
-                'color' => 'info'
-            ];
-        }
-
-        // 5. Jadwal MCU (Medical Check Up)
-        if ($rec->MCU_Schedule && $rec->MCU_Status !== 'ACCEPT' && $rec->MCU_Status !== 'REJECT') {
-            $notifications[] = [
-                'type' => 'mcu',
-                'title' => 'Jadwal Medical Check-Up (MCU)',
-                'schedule' => $rec->MCU_Schedule,
-                'location' => $rec->MCU_Location ?? 'Klinik / Laboratorium Rekanan',
-                'note' => $rec->MCU_Note ?? 'Harap puasa minimal 10-12 jam sebelum pelaksanaan MCU jika diinstruksikan.',
-                'badge' => 'Medical Check-Up',
-                'icon' => 'fa-stethoscope',
-                'color' => 'danger'
-            ];
-        }
-
-        // 6. Offering Letter
-        if ($rec->Status === 'OFFERING' || $rec->Offering_Status === 'PENDING') {
-            $notifications[] = [
-                'type' => 'offering',
-                'title' => 'Penawaran Kerja (Offering Letter)',
-                'schedule' => $rec->Start_Date,
-                'location' => 'Kantor HCGA',
-                'note' => 'Selamat! Anda telah masuk tahap Offering Letter. Harap konfirmasi penerimaan penawaran kerja.',
-                'badge' => 'Offering',
-                'icon' => 'fa-file-text-o',
-                'color' => 'success'
-            ];
-        }
-
-        return $notifications;
+        return $this->portal->resolveTaskId($request, $user);
     }
 
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-        $taskId = Auth::user()->username;
+        $taskId = $this->authorizePortal($request);
         $rec = DB::table('recruitment')->where('Task_ID', $taskId)->first();
 
         if (!$rec) {
             return view('humanresources.candidate.dashboard', [
-                'rec' => null,
-                'documentsCount' => 0,
-                'hasTest' => false,
-                'hasInterview' => false,
+                'rec'               => null,
+                'activeTaskId'      => $taskId,
+                'documentsCount'    => 0,
+                'hasTest'           => false,
+                'hasInterview'      => false,
                 'hasFinalInterview' => false,
-                'currentStatus' => '-',
-                'position' => '-',
-                'createdDate' => null,
-                'steps' => [],
-                'notifications' => [],
+                'currentStatus'     => '-',
+                'position'          => '-',
+                'createdDate'       => null,
+                'steps'             => [],
+                'notifications'     => [],
+                'isDefaultPassword' => Hash::check('12345678', Auth::user()->password),
             ]);
         }
 
@@ -136,7 +59,9 @@ class CandidateController extends Controller
         $documentsCount = 0;
         if ($docRecord) {
             foreach (['Foto', 'CV', 'Ijazah', 'Sertifikat', 'KTP', 'NPWP'] as $col) {
-                if ($docRecord->$col) $documentsCount++;
+                if (!empty($docRecord->$col)) {
+                    $documentsCount++;
+                }
             }
         }
 
@@ -148,147 +73,175 @@ class CandidateController extends Controller
         $hasInterview = ($rec->Interview_Status === 'ACCEPT');
         $hasFinalInterview = ($rec->User_Interview_Status === 'ACCEPT');
 
-        // Menghitung status selesai untuk alur standar 8 tahapan
-        $isDocDone = ($rec->Document_Status === 'ACCEPT');
-        $isPsikoDone = ($rec->Psikotest_Status === 'ACCEPT');
-        $isHrDone = ($rec->Interview_Status === 'ACCEPT');
-        $isUserDone = ($rec->User_Interview_Status === 'ACCEPT');
-        $isTechDone = ($rec->Technical_Test_Status === 'ACCEPT');
-        $isMcuDone = ($rec->MCU_Status === 'ACCEPT');
-        $isOfferingDone = ($rec->Offering_Status === 'ACCEPT' || in_array($currentStatus, ['HIRED', 'CLOSED']));
-
-        $steps = [
-            [
-                'no' => 1,
-                'label' => 'Input Candidate',
-                'done' => true,
-                'current' => ($currentStatus === 'CREATED' || $currentStatus === 'UPLOADED') && !$isDocDone,
-                'date' => $createdDate,
-            ],
-            [
-                'no' => 2,
-                'label' => 'Verifikasi Dokumen',
-                'done' => $isDocDone,
-                'current' => in_array($currentStatus, ['UPLOADED', 'PENDING']) && !$isDocDone,
-                'date' => $rec->Document_Date,
-            ],
-            [
-                'no' => 3,
-                'label' => 'Psikotest',
-                'done' => $isPsikoDone,
-                'current' => ($currentStatus === 'PSIKOTEST' && !$isPsikoDone),
-                'date' => $rec->Psikotest_Date,
-            ],
-            [
-                'no' => 4,
-                'label' => 'Interview HR',
-                'done' => $isHrDone,
-                'current' => ($currentStatus === 'INTERVIEW_HR' && !$isHrDone),
-                'date' => $rec->Interview_Schedule ?: $rec->Interview_Date,
-            ],
-            [
-                'no' => 5,
-                'label' => 'Interview User',
-                'done' => $isUserDone,
-                'current' => ($currentStatus === 'INTERVIEW_USER' && !$isUserDone),
-                'date' => $rec->User_Interview_Date,
-            ],
-            [
-                'no' => 6,
-                'label' => 'Tes Teknik',
-                'done' => $isTechDone,
-                'current' => ($currentStatus === 'TECHNICAL_TEST' && !$isTechDone),
-                'date' => $rec->Technical_Date,
-            ],
-            [
-                'no' => 7,
-                'label' => 'MCU',
-                'done' => $isMcuDone,
-                'current' => ($currentStatus === 'MCU' && !$isMcuDone),
-                'date' => $rec->MCU_Schedule,
-            ],
-            [
-                'no' => 8,
-                'label' => 'Offering Letter',
-                'done' => $isOfferingDone,
-                'current' => ($currentStatus === 'OFFERING' && !$isOfferingDone),
-                'date' => $rec->Start_Date,
-            ],
-        ];
-
-        // Ambil notifikasi jadwal aktif
-        $notifications = $this->getUpcomingSchedules($rec);
+        $steps = $this->portal->buildSteps($rec);
+        $notifications = $this->portal->getUpcomingSchedules($rec);
+        $isDefaultPassword = Hash::check('12345678', Auth::user()->password);
 
         return view('humanresources.candidate.dashboard', compact(
-            'rec', 'documentsCount', 'hasTest', 'hasInterview',
-            'hasFinalInterview', 'currentStatus', 'position', 'createdDate', 'steps', 'notifications'
-        ));
+            'rec',
+            'taskId',
+            'documentsCount',
+            'hasTest',
+            'hasInterview',
+            'hasFinalInterview',
+            'currentStatus',
+            'position',
+            'createdDate',
+            'steps',
+            'notifications',
+            'isDefaultPassword'
+        ))->with('activeTaskId', $taskId);
     }
 
-    public function profile()
+    public function profile(Request $request)
     {
-        $taskId = Auth::user()->username;
+        $taskId = $this->authorizePortal($request);
         $rec = DB::table('recruitment')->where('Task_ID', $taskId)->first();
-        return view('humanresources.candidate.profile', compact('rec'));
+        $bundle = $this->portal->getProfileBundle($taskId);
+
+        return view('humanresources.candidate.profile', array_merge([
+            'rec'          => $rec,
+            'activeTaskId' => $taskId,
+        ], $bundle));
     }
 
     public function profileUpdate(Request $request)
     {
-        $request->validate([
-            'Gender' => 'nullable|in:L,P',
-            'Birth_Date' => 'nullable|date',
-            'KTP' => 'nullable|digits:16',
-            'Last_Education' => 'nullable|string|max:50',
-            'Last_Education_From' => 'nullable|string|max:255',
-            'Religion' => 'nullable|string|max:50',
-            'Marital_Status' => 'nullable|string|max:50',
-            'kewarganegaraan' => 'nullable|string|max:100',
-            'Address' => 'nullable|string',
-            'City' => 'nullable|string|max:255',
-            'Phone' => 'nullable|numeric',
-            'Handphone' => 'nullable|numeric',
-            'Email' => 'nullable|email',
-        ]);
+        $taskId = $this->authorizePortal($request);
+        $section = $request->input('section', 'biodata');
 
-        $taskId = Auth::user()->username;
-        $allowed = [
-            'Gender', 'Birth_Date', 'Birth_Place', 'KTP',
-            'Last_Education', 'Last_Education_From', 'Religion', 'Marital_Status',
-            'kewarganegaraan', 'Address', 'City', 'Phone', 'Handphone', 'Email'
+        if ($section === 'biodata') {
+            $request->validate([
+                'Gender'              => 'nullable|in:L,P',
+                'Birth_Date'          => 'nullable|date',
+                'Birth_Place'         => 'nullable|string|max:100',
+                'KTP'                 => 'nullable|digits:16',
+                'Last_Education'      => 'nullable|string|max:50',
+                'Last_Education_From' => 'nullable|string|max:255',
+                'Religion'            => 'nullable|string|max:50',
+                'Marital_Status'      => 'nullable|string|max:50',
+                'kewarganegaraan'     => 'nullable|string|max:100',
+                'Address'             => 'nullable|string|max:500',
+                'City'                => 'nullable|string|max:255',
+                'Phone'               => 'nullable|string|max:30',
+                'Handphone'           => 'nullable|string|max:30',
+                'Email'               => 'nullable|email|max:255',
+            ]);
+
+            $allowed = [
+                'Gender', 'Birth_Date', 'Birth_Place', 'KTP',
+                'Last_Education', 'Last_Education_From', 'Religion', 'Marital_Status',
+                'kewarganegaraan', 'Address', 'City', 'Phone', 'Handphone', 'Email',
+            ];
+
+            $data = $request->only($allowed);
+            DB::table('recruitment')->updateOrInsert(
+                ['Task_ID' => $taskId],
+                $data
+            );
+
+            return response()->json([
+                'status'  => 'ok',
+                'message' => 'Biodata utama berhasil diperbarui.',
+            ]);
+        }
+
+        $sectionMap = [
+            'academics' => [
+                'table' => 'recruitment_akademic',
+                'cols'  => ['Education_Level', 'College', 'Education_Major', 'Location', 'Certified_Year', 'GPA'],
+                'label' => 'Riwayat Pendidikan Formal',
+            ],
+            'trainings' => [
+                'table' => 'recruitment_informal',
+                'cols'  => ['Training_Company', 'Location', 'Year_Training', 'Note'],
+                'label' => 'Pendidikan & Pelatihan (Non-Formal)',
+            ],
+            'experiences' => [
+                'table' => 'recruitment_experiences',
+                'cols'  => ['Start_Date', 'End_Date', 'Position', 'Company_Name', 'Last_Salary', 'Note'],
+                'label' => 'Pengalaman Kerja',
+            ],
+            'families' => [
+                'table' => 'recruitment_family',
+                'cols'  => ['Family_Status', 'Name', 'Gender', 'Birth_Date', 'Last_Education', 'Occupation'],
+                'label' => 'Data Keluarga',
+            ],
+            'healths' => [
+                'table' => 'recruitment_health',
+                'cols'  => ['Description', 'Disease', 'Year_Health', 'Days'],
+                'label' => 'Riwayat Kesehatan',
+            ],
+            'drivings' => [
+                'table' => 'recruitment_driving',
+                'cols'  => ['Description', 'Tipe', 'Note'],
+                'label' => 'Driving Licence (SIM)',
+            ],
+            'contacts' => [
+                'table' => 'recruitment_contact_point',
+                'cols'  => ['Name', 'Employee_Department', 'Position', 'Contact_No', 'Email', 'Phone'],
+                'label' => 'Kontak Darurat & Referensi',
+            ],
+            'insurances' => [
+                'table' => 'recruitment_insurances',
+                'cols'  => ['Employee_Name', 'On_Behalf', 'On_Behalf_Status', 'Insurances', 'Card_No', 'Polis_No', 'Polis_Type', 'Polis_Status', 'Date_Start', 'Date_End'],
+                'label' => 'Data Asuransi',
+            ],
         ];
-        $data = $request->only($allowed);
-        DB::table('recruitment')->updateOrInsert(
-            ['Task_ID' => $taskId],
-            $data
-        );
 
-        return 'success';
+        if (!isset($sectionMap[$section])) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Bagian profil tidak dikenali.',
+            ], 422);
+        }
+
+        $rows = $request->input('rows', []);
+        if (!is_array($rows)) {
+            $rows = [];
+        }
+
+        $cfg = $sectionMap[$section];
+        $this->portal->replaceSubTableRows($cfg['table'], $taskId, $rows, $cfg['cols']);
+
+        return response()->json([
+            'status'  => 'ok',
+            'message' => $cfg['label'] . ' berhasil disimpan.',
+        ]);
     }
 
-    public function documents()
+    public function documents(Request $request)
     {
-        $taskId = Auth::user()->username;
+        $taskId = $this->authorizePortal($request);
         $rec = DB::table('recruitment')->where('Task_ID', $taskId)->first();
         $docRecord = DB::table('recruitment_document')->where('Task_ID', $taskId)->first();
 
         $categories = ['FOTO', 'CV', 'IJAZAH', 'SERTIFIKAT', 'KTP', 'NPWP'];
         $labels = [
-            'FOTO' => 'Photo', 'CV' => 'CV / Resume', 'IJAZAH' => 'Diploma',
-            'SERTIFIKAT' => 'Certificate', 'KTP' => 'ID Card', 'NPWP' => 'Tax ID',
+            'FOTO'       => 'Pas Foto',
+            'CV'         => 'CV / Resume',
+            'IJAZAH'     => 'Ijazah Terakhir',
+            'SERTIFIKAT' => 'Sertifikat Pendukung',
+            'KTP'        => 'Kartu Tanda Penduduk (KTP)',
+            'NPWP'       => 'NPWP',
         ];
 
         $columnMap = [
-            'FOTO' => 'Foto', 'CV' => 'CV', 'IJAZAH' => 'Ijazah',
-            'SERTIFIKAT' => 'Sertifikat', 'KTP' => 'KTP', 'NPWP' => 'NPWP',
+            'FOTO'       => 'Foto',
+            'CV'         => 'CV',
+            'IJAZAH'     => 'Ijazah',
+            'SERTIFIKAT' => 'Sertifikat',
+            'KTP'        => 'KTP',
+            'NPWP'       => 'NPWP',
         ];
 
         $docStatus = [];
         foreach ($categories as $cat) {
             $col = $columnMap[$cat];
             $filePath = null;
-            if ($docRecord && $docRecord->$col) {
+            if ($docRecord && !empty($docRecord->$col)) {
                 $filePath = $docRecord->$col;
-            } elseif ($cat === 'FOTO' && $rec && $rec->Foto) {
+            } elseif ($cat === 'FOTO' && $rec && !empty($rec->Foto)) {
                 $filePath = $rec->Foto;
             }
             $docStatus[$cat] = [
@@ -297,32 +250,38 @@ class CandidateController extends Controller
             ];
         }
 
-        return view('humanresources.candidate.documents', compact(
-            'rec', 'categories', 'labels', 'docStatus'
-        ));
+        return view('humanresources.candidate.documents', [
+            'rec'          => $rec,
+            'activeTaskId' => $taskId,
+            'categories'   => $categories,
+            'labels'       => $labels,
+            'docStatus'    => $docStatus,
+        ]);
     }
 
     public function documentUpload(Request $request)
     {
-        $taskId = Auth::user()->username;
-        $category = $request->input('category');
+        $taskId = $this->authorizePortal($request);
+
+        $request->validate([
+            'category' => 'required|in:foto,cv,ijazah,sertifikat,ktp,npwp',
+            'file'     => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
+
+        $category = strtolower((string) $request->input('category'));
         $file = $request->file('file');
 
-        if (!$file || !$category) {
-            return 'error:Missing file or category';
-        }
-
         $columnMap = [
-            'foto' => 'Foto', 'cv' => 'CV', 'ijazah' => 'Ijazah',
-            'sertifikat' => 'Sertifikat', 'ktp' => 'KTP', 'npwp' => 'NPWP',
+            'foto'       => 'Foto',
+            'cv'         => 'CV',
+            'ijazah'     => 'Ijazah',
+            'sertifikat' => 'Sertifikat',
+            'ktp'        => 'KTP',
+            'npwp'       => 'NPWP',
         ];
 
-        $column = $columnMap[$category] ?? null;
-        if (!$column) {
-            return 'error:Invalid category';
-        }
-
-        $ext = $file->getClientOriginalExtension();
+        $column = $columnMap[$category];
+        $ext = strtolower($file->getClientOriginalExtension());
         $filename = $category . '.' . $ext;
         $path = 'uploads/recruitment/' . $taskId;
 
@@ -339,34 +298,46 @@ class CandidateController extends Controller
         } else {
             DB::table('recruitment_document')->insert([
                 'Task_ID' => $taskId,
-                $column => $filePath,
+                $column   => $filePath,
             ]);
         }
 
-        return 'success';
+        return response()->json([
+            'status'  => 'ok',
+            'message' => 'Dokumen ' . strtoupper($category) . ' berhasil diunggah.',
+            'path'    => asset($filePath),
+        ]);
     }
 
-    public function assessment()
+    public function assessment(Request $request)
     {
-        $taskId = Auth::user()->username;
+        $taskId = $this->authorizePortal($request);
         $rec = DB::table('recruitment')->where('Task_ID', $taskId)->first();
-        return view('humanresources.candidate.assessment', compact('rec'));
+
+        return view('humanresources.candidate.assessment', [
+            'rec'          => $rec,
+            'activeTaskId' => $taskId,
+        ]);
     }
 
-    public function progress()
+    public function progress(Request $request)
     {
-        $taskId = Auth::user()->username;
+        $taskId = $this->authorizePortal($request);
         $rec = DB::table('recruitment')->where('Task_ID', $taskId)->first();
 
         if (!$rec) {
             return view('humanresources.candidate.progress', [
-                'rec' => null,
-                'stages' => [],
-                'notifications' => [],
+                'rec'                 => null,
+                'activeTaskId'        => $taskId,
+                'stages'              => [],
+                'notifications'       => [],
+                'confirmations'       => collect([]),
+                'canDownloadOffering' => false,
+                'signedOfferingPath'  => null,
             ]);
         }
 
-        $statusDesc = function($val) {
+        $statusDesc = function ($val) {
             if ($val === 'ACCEPT') return 'Lulus / Selesai';
             if ($val === 'REJECT') return 'Tidak Lolos';
             if ($val === 'SEEK') return 'Dalam Proses';
@@ -374,76 +345,246 @@ class CandidateController extends Controller
             return $val ?: 'Belum Dimulai';
         };
 
-        // Pemetaan 8 Tahap Sesuai Alur Rekrutmen Standar HCGA
         $stages = [
             [
-                'no' => 1,
-                'stage' => '1. Input Candidate',
-                'date' => $rec->Created_Date ?? null,
-                'status' => $rec->Status ? 'Completed' : '-',
-                'note' => 'Pendaftaran data dan berkas awal pelamar.',
-                'raw_status' => 'ACCEPT'
+                'no'         => 1,
+                'stage'      => '1. Input Candidate',
+                'date'       => $rec->Created_Date ?? null,
+                'status'     => $rec->Status ? 'Completed' : '-',
+                'note'       => 'Pendaftaran data dan berkas awal pelamar.',
+                'raw_status' => 'ACCEPT',
             ],
             [
-                'no' => 2,
-                'stage' => '2. Verifikasi Dokumen',
-                'date' => $rec->Document_Date ?? null,
-                'status' => $statusDesc($rec->Document_Status ?? ($rec->Status === 'UPLOADED' ? 'PENDING' : null)),
-                'note' => $rec->Document_Note ?? ($rec->Registration_Status_Note ?? '-'),
-                'raw_status' => $rec->Document_Status ?? 'PENDING'
+                'no'         => 2,
+                'stage'      => '2. Verifikasi Dokumen',
+                'date'       => $rec->Document_Date ?? null,
+                'status'     => $statusDesc($rec->Document_Status ?? ($rec->Status === 'UPLOADED' ? 'PENDING' : null)),
+                'note'       => $rec->Document_Note ?? ($rec->Registration_Status_Note ?? '-'),
+                'raw_status' => $rec->Document_Status ?? 'PENDING',
             ],
             [
-                'no' => 3,
-                'stage' => '3. Psikotest',
-                'date' => $rec->Psikotest_Date ?? null,
-                'status' => $statusDesc($rec->Psikotest_Status),
-                'note' => $rec->Psikotes_Result ? 'Hasil: ' . $rec->Psikotes_Result : ($rec->Psikotest_Note ?? '-'),
-                'raw_status' => $rec->Psikotest_Status
+                'no'         => 3,
+                'stage'      => '3. Psikotest',
+                'date'       => $rec->Psikotest_Date ?? null,
+                'status'     => $statusDesc($rec->Psikotest_Status),
+                'note'       => $rec->Psikotes_Result ? 'Hasil: ' . $rec->Psikotes_Result : ($rec->Psikotest_Note ?? '-'),
+                'raw_status' => $rec->Psikotest_Status,
             ],
             [
-                'no' => 4,
-                'stage' => '4. Interview HR',
-                'date' => ($rec->Interview_Schedule ?: $rec->Interview_Date) ?? null,
-                'status' => $statusDesc($rec->Interview_Status),
-                'note' => $rec->Interview_Result ? 'Skor: ' . $rec->Interview_Result . ' (' . ($rec->Hasil_Kategori ?? '-') . ')' : ($rec->Interview_Note ?? '-'),
-                'raw_status' => $rec->Interview_Status
+                'no'         => 4,
+                'stage'      => '4. Interview HR',
+                'date'       => ($rec->Interview_Schedule ?: $rec->Interview_Date) ?? null,
+                'status'     => $statusDesc($rec->Interview_Status),
+                'note'       => $rec->Interview_Result ? 'Skor: ' . $rec->Interview_Result . ' (' . ($rec->Hasil_Kategori ?? '-') . ')' : ($rec->Interview_Note ?? '-'),
+                'raw_status' => $rec->Interview_Status,
             ],
             [
-                'no' => 5,
-                'stage' => '5. Interview User',
-                'date' => $rec->User_Interview_Date ?? null,
-                'status' => $statusDesc($rec->User_Interview_Status),
-                'note' => $rec->User_Interview_Note ?? '-',
-                'raw_status' => $rec->User_Interview_Status
+                'no'         => 5,
+                'stage'      => '5. Interview User',
+                'date'       => $rec->User_Interview_Date ?? null,
+                'status'     => $statusDesc($rec->User_Interview_Status),
+                'note'       => $rec->User_Interview_Note ?? '-',
+                'raw_status' => $rec->User_Interview_Status,
             ],
             [
-                'no' => 6,
-                'stage' => '6. Tes Teknik',
-                'date' => $rec->Technical_Date ?? null,
-                'status' => $statusDesc($rec->Technical_Test_Status),
-                'note' => $rec->Technical_Test_Note ?? '-',
-                'raw_status' => $rec->Technical_Test_Status
+                'no'         => 6,
+                'stage'      => '6. Tes Teknik',
+                'date'       => $rec->Technical_Date ?? null,
+                'status'     => $statusDesc($rec->Technical_Test_Status),
+                'note'       => $rec->Technical_Test_Note ?? '-',
+                'raw_status' => $rec->Technical_Test_Status,
             ],
             [
-                'no' => 7,
-                'stage' => '7. Medical Check-Up (MCU)',
-                'date' => $rec->MCU_Schedule ?? null,
-                'status' => $statusDesc($rec->MCU_Status),
-                'note' => $rec->MCU_Result ? 'Hasil: ' . $rec->MCU_Result : ($rec->MCU_Note ?? '-'),
-                'raw_status' => $rec->MCU_Status
+                'no'         => 7,
+                'stage'      => '7. Medical Check-Up (MCU)',
+                'date'       => $rec->MCU_Schedule ?? null,
+                'status'     => $statusDesc($rec->MCU_Status),
+                'note'       => $rec->MCU_Result ? 'Hasil: ' . $rec->MCU_Result : ($rec->MCU_Note ?? '-'),
+                'raw_status' => $rec->MCU_Status,
             ],
             [
-                'no' => 8,
-                'stage' => '8. Offering Letter',
-                'date' => $rec->Start_Date ?? null,
-                'status' => in_array($rec->Status, ['HIRED', 'CLOSED']) ? 'Diterima' : $statusDesc($rec->Offering_Status),
-                'note' => in_array($rec->Status, ['HIRED', 'CLOSED']) ? 'Selamat! Anda telah resmi diterima.' : ($rec->Offering_Status === 'DECLINED' ? 'Penawaran Ditolak' : '-'),
-                'raw_status' => $rec->Offering_Status
+                'no'         => 8,
+                'stage'      => '8. Offering Letter',
+                'date'       => $rec->Start_Date ?? null,
+                'status'     => in_array($rec->Status, ['HIRED', 'CLOSED']) ? 'Diterima' : $statusDesc($rec->Offering_Status),
+                'note'       => in_array($rec->Status, ['HIRED', 'CLOSED']) ? 'Selamat! Anda telah resmi diterima.' : ($rec->Offering_Status === 'DECLINED' ? 'Penawaran Ditolak' : '-'),
+                'raw_status' => $rec->Offering_Status,
             ],
         ];
 
-        $notifications = $this->getUpcomingSchedules($rec);
+        $notifications = $this->portal->getUpcomingSchedules($rec);
+        $confirmations = $this->portal->getConfirmations($taskId);
+        $canDownloadOffering = (
+            $rec->Status === 'OFFERING'
+            || in_array($rec->Offering_Status, ['PENDING', 'ACCEPT', 'REJECT', 'DECLINED'], true)
+            || in_array($rec->Status, ['HIRED', 'CLOSED'], true)
+        );
+        $signedOfferingPath = $this->portal->getSignedOfferingPath($taskId);
 
-        return view('humanresources.candidate.progress', compact('rec', 'stages', 'notifications'));
+        return view('humanresources.candidate.progress', compact(
+            'rec',
+            'stages',
+            'notifications',
+            'confirmations',
+            'canDownloadOffering',
+            'signedOfferingPath'
+        ))->with('activeTaskId', $taskId);
+    }
+
+    /**
+     * Non-sensitive progress update: schedule attendance confirmation or reschedule request.
+     */
+    public function confirmSchedule(Request $request)
+    {
+        $taskId = $this->authorizePortal($request);
+
+        $request->validate([
+            'stage_type'          => 'required|in:interview_hr,interview_user,psikotest,technical_test,mcu',
+            'confirmation_status' => 'required|in:CONFIRMED,RESCHEDULE_REQUEST',
+            'preferred_date'      => 'nullable|date',
+            'candidate_note'      => 'nullable|string|max:1000',
+        ]);
+
+        $this->portal->saveConfirmation($taskId, [
+            'stage_type'          => $request->input('stage_type'),
+            'confirmation_status' => $request->input('confirmation_status'),
+            'preferred_date'      => $request->input('preferred_date'),
+            'candidate_note'      => $request->input('candidate_note'),
+        ]);
+
+        return response()->json([
+            'status'  => 'ok',
+            'message' => 'Konfirmasi jadwal berhasil dikirim ke tim HCGA.',
+        ]);
+    }
+
+    /**
+     * Non-sensitive progress update: candidate availability / notice period.
+     */
+    public function updateAvailability(Request $request)
+    {
+        $taskId = $this->authorizePortal($request);
+
+        $request->validate([
+            'notice_period'  => 'required|string|max:100',
+            'candidate_note' => 'nullable|string|max:1000',
+        ]);
+
+        $this->portal->saveConfirmation($taskId, [
+            'stage_type'          => 'availability',
+            'confirmation_status' => 'UPDATED',
+            'notice_period'       => $request->input('notice_period'),
+            'candidate_note'      => $request->input('candidate_note'),
+        ]);
+
+        return response()->json([
+            'status'  => 'ok',
+            'message' => 'Informasi ketersediaan bergabung berhasil diperbarui.',
+        ]);
+    }
+
+    /**
+     * Download official Offering Letter PDF for the candidate.
+     */
+    public function downloadOfferingLetter(Request $request)
+    {
+        $taskId = $this->authorizePortal($request);
+        $rec = DB::table('recruitment')->where('Task_ID', $taskId)->first();
+
+        if (!$rec) {
+            abort(404, 'Data kandidat tidak ditemukan.');
+        }
+
+        $allowed = (
+            $rec->Status === 'OFFERING'
+            || in_array($rec->Offering_Status, ['PENDING', 'ACCEPT', 'REJECT', 'DECLINED'], true)
+            || in_array($rec->Status, ['HIRED', 'CLOSED'], true)
+        );
+        if (!$allowed) {
+            abort(403, 'Offering Letter belum tersedia untuk tahap rekrutmen Anda saat ini.');
+        }
+
+        $pdfRequest = Request::create('/hrd-recruitment-offering-letter-pdf', 'GET', [
+            'ID' => $rec->ID,
+        ]);
+
+        return app(OfferingController::class)->printPdf($pdfRequest);
+    }
+
+    /**
+     * Upload signed & stamped Offering Letter from candidate (non-sensitive submission).
+     */
+    public function uploadSignedOffering(Request $request)
+    {
+        $taskId = $this->authorizePortal($request);
+        $rec = DB::table('recruitment')->where('Task_ID', $taskId)->first();
+
+        if (!$rec) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Data kandidat tidak ditemukan.',
+            ], 404);
+        }
+
+        $request->validate([
+            'file'           => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'candidate_note' => 'nullable|string|max:1000',
+        ]);
+
+        $file = $request->file('file');
+        $ext = strtolower($file->getClientOriginalExtension());
+        $filename = 'offering_signed.' . $ext;
+        $dir = 'uploads/recruitment/' . $taskId;
+        $file->move(public_path($dir), $filename);
+        $filePath = $dir . '/' . $filename;
+
+        $this->portal->saveConfirmation($taskId, [
+            'stage_type'           => 'offering',
+            'confirmation_status'  => 'SIGNED_UPLOADED',
+            'candidate_note'       => $request->input('candidate_note'),
+            'signed_offering_file' => $filePath,
+        ]);
+
+        return response()->json([
+            'status'  => 'ok',
+            'message' => 'Offering Letter bertanda tangan & bermaterai berhasil diunggah.',
+            'path'    => asset($filePath),
+        ]);
+    }
+
+    public function passwordForm(Request $request)
+    {
+        $taskId = $this->authorizePortal($request);
+
+        return view('humanresources.candidate.password', [
+            'activeTaskId' => $taskId,
+        ]);
+    }
+
+    public function passwordUpdate(Request $request)
+    {
+        $this->authorizePortal($request);
+
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password'     => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = Auth::user();
+        if (!Hash::check($request->input('current_password'), $user->password)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Password saat ini tidak sesuai.',
+            ], 422);
+        }
+
+        DB::table('users')
+            ->where('id', $user->id)
+            ->update(['password' => bcrypt($request->input('new_password'))]);
+
+        return response()->json([
+            'status'  => 'ok',
+            'message' => 'Password berhasil diperbarui.',
+        ]);
     }
 }
