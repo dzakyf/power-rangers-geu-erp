@@ -24,7 +24,9 @@
             <div id="costRouteGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
         </div>
         <div class="mt-3">
+            @if(can_menu('SI00277', 'create'))
             <button id="settleRouteBtn" class="btn btn-primary">Submit Settlement</button>
+            @endif
         </div>
     </div>
 </div>

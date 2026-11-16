@@ -30,6 +30,7 @@ class SupplierController extends Controller
             $xml .= '<cell>' . htmlspecialchars($row->Address ?? '-') . '</cell>';
             $xml .= '<cell>' . htmlspecialchars($row->Phone ?? $row->HP ?? '-') . '</cell>';
             $xml .= '<cell>' . htmlspecialchars($row->Email ?? '-') . '</cell>';
+             $xml .= '<cell>' . htmlspecialchars($row->NPWP ?? '-') . '</cell>';
             $xml .= '<cell>' . htmlspecialchars($row->Status ?? 'ACTIVE') . '</cell>';
             $xml .= '</row>';
             $nomor++;
@@ -66,6 +67,7 @@ class SupplierController extends Controller
             'Phone'          => $request->phone,
             'HP'             => $request->phone,
             'Email'          => $request->email,
+            'NPWP'          => $request->NPWP,
             'Status'         => $request->status,
             'Location'       => $userLocation,
             'Created_Date'   => now(),
@@ -111,6 +113,7 @@ class SupplierController extends Controller
             'Phone'          => $request->phone,
             'HP'             => $request->phone,
             'Email'          => $request->email,
+            'NPWP'          => $request->NPWP,
             'Status'         => $request->status,
         ]);
 

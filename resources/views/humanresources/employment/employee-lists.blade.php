@@ -291,8 +291,8 @@ $contractEmp = DB::table('employment')
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 empColItemContainer">
                             <label
                                 class="emp-col-item d-flex align-items-center justify-content-between mb-0 w-100 {{ in_array($ck, $ActiveCols) ? 'checked' : '' }}">
-                                <span class="text-truncate me-1">{{ $cm[0] }}</span>
-                                <input type="checkbox" class="form-check-input empColCheck mt-0"
+                                <span class="text-truncate me-1 ms-3">{{ $cm[0] }}</span>
+                                <input type="checkbox" class="form-check-input empColCheck mt-0 ms-0"
                                     value="{{ $ck }}" {{ in_array($ck, $ActiveCols) ? 'checked' : '' }}>
                             </label>
                         </div>

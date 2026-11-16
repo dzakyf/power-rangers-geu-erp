@@ -21,9 +21,11 @@
                 <div id="pickupCostGrid" style="width:100%;height:320px;background-color:white;overflow-x:auto"></div>
                 <div class="mt-3">
                     <button type="button" class="btn btn-info" id="btnShowMap"><i class="fas fa-map mr-1"></i>Show Map</button>
+                    @if(can_menu('SI00378', 'approve'))
                     <button type="button" class="btn btn-success" id="btnTopup">
                         <i class="fas fa-plus mr-1"></i>Topup
                     </button>
+                    @endif
                     <button type="button" class="btn btn-primary" id="btnDetail">
                         <i class="fas fa-info-circle mr-1"></i>Detail
                     </button>

@@ -73,9 +73,13 @@
 </head>
 <body>
 
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('reimbursement.mobile.index') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ route('reimbursement.mobile.index', $fromParams) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Pengajuan Reimbursement</h1>
             <span style="width: 38px;"></span>
         </div>
@@ -185,7 +189,7 @@
 
     <!-- Bottom Action Button -->
     <div class="bottom-action-bar">
-        <a href="{{ route('reimbursement.mobile.index') }}" class="btn btn-outline-secondary w-50 fw-bold">
+        <a href="{{ route('reimbursement.mobile.index', $fromParams) }}" class="btn btn-outline-secondary w-50 fw-bold">
             Batal
         </a>
         <button type="button" class="btn btn-primary w-50 fw-bold shadow-sm" id="btnSubmitMobile">
@@ -298,7 +302,7 @@
                 success: function(res) {
                     if (res.status === 'success') {
                         alert('Pengajuan Reimbursement Berhasil Dikirim!');
-                        location.href = '{{ route("reimbursement.mobile.index") }}';
+                        location.href = '{{ route("reimbursement.mobile.index", $fromParams) }}';
                     } else {
                         alert('Gagal: ' + res.message);
                         $btn.prop('disabled', false).html('<i class="fa fa-paper-plane me-1"></i> Ajukan');

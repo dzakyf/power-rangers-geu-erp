@@ -34,9 +34,11 @@
         </div>
     </div>
     <div class="text-left ml-3 mt-3 mb-3 mr-3">
+        @if(can_menu('SI00379', 'edit'))
         <button class="btn btn-primary" onclick="openUploadBuktiTransferModal()">
             <i class="fa fa-upload"></i> Upload Bukti Transfer
         </button>
+        @endif
         <button class="btn btn-info" onclick="openDetailModal()">
             <i class="fa fa-info-circle"></i> Detail
         </button>

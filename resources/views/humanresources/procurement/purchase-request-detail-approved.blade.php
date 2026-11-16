@@ -44,15 +44,15 @@
                 </div>
             </div>
 
-            <!-- INFORMASI TAMBAHAN (PIC, SITE, KATEGORI ANGGARAN) -->
+            <!-- INFORMASI TAMBAHAN (PIC, SITE, ESTIMATED BUDGET SEJAJAR 1 BARIS) -->
             <div class="row mb-3">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="font-weight-bold">PIC (Penanggung Jawab):</label>
                     <input type="text" class="form-control form-control-sm" name="pic_name" value="{{ $header->PIC ?? $header->PIC_Name ?? '' }}" placeholder="Nama PIC..." required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="font-weight-bold">Phone PIC:</label>
-                    <input type="text" class="form-control form-control-sm" name="pic_phone" value="{{ $header->PIC_Phone ?? '' }}" placeholder="No. Telepon / WhatsApp...">
+                    <input type="text" class="form-control form-control-sm" name="pic_phone" value="{{ $header->PIC_Phone ?? '' }}" placeholder="No. Telepon...">
                 </div>
                 <div class="col-md-3">
                     <label class="font-weight-bold">Email PIC:</label>
@@ -60,7 +60,12 @@
                 </div>
                 <div class="col-md-3">
                     <label class="font-weight-bold">Site Tujuan:</label>
-                    <input type="text" class="form-control form-control-sm" name="site_destination" value="{{ $header->PIC_Address ?? '' }}" placeholder="Contoh: Site Bekasi / Head Office..." required>
+                    <input type="text" class="form-control form-control-sm" name="site_destination" value="{{ $header->PIC_Address ?? '' }}" placeholder="Contoh: Site Bekasi..." required>
+                </div>
+                <div class="col-md-2">
+                    <label class="font-weight-bold text-success">Estimated Budget (Rp):</label>
+                    <input type="text" class="form-control form-control-sm font-weight-bold text-right text-success bg-light" id="display_estimated_budget_approved" value="{{ number_format($header->Estimated_Budget ?? 0, 0, ',', '.') }}" readonly>
+                    <input type="hidden" id="estimated_budget_approved" name="estimated_budget" value="{{ $header->Estimated_Budget ?? 0 }}">
                 </div>
             </div>
 
@@ -80,8 +85,6 @@
                     </select>
                 </div>
             </div>
-
-
 
             <!-- CATATAN & RIWAYAT PERCAKAPAN -->
             <div class="row mb-3">
@@ -129,18 +132,23 @@
                 <table class="table table-bordered table-sm bg-white" id="tabel-multi-produk-approved" style="font-size: 12px;">
                     <thead class="thead-light text-center">
                         <tr>
-                            <th style="width: 22%;">Product Code</th>
-                            <th style="width: 20%;">Nama Item / Deskripsi</th>
-                            <th style="width: 18%;">Spesifikasi (Spec)</th>
-                            <th style="width: 7%;">Qty</th>
-                            <th style="width: 8%;">Satuan</th>
-                            <th style="width: 10%;">Lampiran / Foto</th>
-                            <th style="width: 12%;">Ganti File Baru</th>
+                            <th style="width: 20%;">Product Code</th>
+                            <th style="width: 17%;">Nama Item / Deskripsi</th>
+                            <th style="width: 15%;">Spesifikasi (Spec)</th>
+                            <th style="width: 6%;">Qty</th>
+                            <th style="width: 7%;">Satuan</th>
+                            <th style="width: 11%;">Est. Price (Rp)</th>
+                            <th style="width: 11%;">Subtotal (Rp)</th>
+                            <th style="width: 10%;">Lampiran</th>
                             <th style="width: 3%;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="tbody-produk-approved">
                         @foreach($details as $item)
+                        @php
+                            $itemPrice = $item->Default_Price ?? $item->Price ?? 0;
+                            $itemSubtotal = ($item->Qty ?? 1) * $itemPrice;
+                        @endphp
                         <tr class="baris-item">
                             <td>
                                 <select class="form-control form-control-sm select2-approved-produk" name="product_code[]" required style="width: 100%;">
@@ -159,21 +167,25 @@
                                 <input type="text" class="form-control form-control-sm input-spec" name="specification[]" value="{{ $item->Specification }}">
                             </td>
                             <td>
-                                <input type="number" class="form-control form-control-sm text-center" name="qty[]" value="{{ $item->Qty }}" min="1" required>
+                                <input type="number" class="form-control form-control-sm text-center input-qty" name="qty[]" value="{{ $item->Qty }}" min="1" required>
                             </td>
                             <td>
                                 <input type="text" class="form-control form-control-sm text-center input-unit" name="unit[]" value="{{ $item->Unit }}" readonly>
                             </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm text-right input-price" name="price[]" value="{{ $itemPrice }}" min="0" step="any" placeholder="0" required>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm text-right bg-light font-weight-bold input-subtotal" value="{{ number_format($itemSubtotal, 0, ',', '.') }}" readonly>
+                            </td>
                             <td class="text-center align-middle">
                                 <input type="hidden" name="old_attachment[]" value="{{ $item->Attachment }}">
                                 @if(!empty($item->Attachment))
-                                    <a href="{{ asset($item->Attachment) }}" target="_blank" class="badge badge-info p-1">Lihat File</a>
-                                @else
-                                    <span class="text-muted" style="font-size: 10px;">-</span>
+                                    <a href="{{ asset($item->Attachment) }}" target="_blank" class="btn btn-info text-white font-weight-bold mb-1 d-inline-block shadow-sm" style="padding: 1px 6px; font-size: 10px; line-height: 1.4; border-radius: 3px;" title="Lihat Lampiran">
+                                        <i class="fas fa-eye"></i> Lihat
+                                    </a>
                                 @endif
-                            </td>
-                            <td class="align-middle">
-                                <input type="file" class="form-control-file form-control-sm" name="attachment[]" style="font-size: 10px;">
+                                <input type="file" class="form-control-file form-control-sm" name="attachment[]" style="font-size: 9px;">
                             </td>
                             <td class="text-center align-middle">
                                 <button type="button" class="btn btn-danger btn-xs btn-hapus-baris-approved" title="Hapus Baris">
@@ -195,7 +207,6 @@
 
         <hr class="my-3">
 
-        <!-- PROSES LANJUTAN KE RFQ -->
         <!-- PROSES LANJUTAN KE RFQ (MULTI-VENDOR) -->
         <div class="bg-light p-3 rounded border border-success">
             <h6 class="font-weight-bold text-success mb-2" style="font-size: 12px;">
@@ -266,6 +277,8 @@
             </div>
             @endif
         </div>
+    </div>
+</div>
 
 <!-- TEMPLATE OPTION PRODUCT CODE -->
 <template id="template-options-approved">
@@ -285,6 +298,31 @@ $(document).ready(function() {
 
     initSelect2Approved('.select2-edit-search');
     initSelect2Approved('.select2-approved-produk');
+
+    // Fungsi Hitung Otomatis Qty x Price -> Estimated Budget
+    function hitungTotalBudgetApproved() {
+        var grandTotal = 0;
+
+        $('#tbody-produk-approved tr.baris-item').each(function() {
+            var qty   = parseFloat($(this).find('.input-qty').val()) || 0;
+            var price = parseFloat($(this).find('.input-price').val()) || 0;
+            var sub   = qty * price;
+
+            $(this).find('.input-subtotal').val(sub.toLocaleString('id-ID'));
+            grandTotal += sub;
+        });
+
+        $('#estimated_budget_approved').val(grandTotal);
+        $('#display_estimated_budget_approved').val(grandTotal.toLocaleString('id-ID'));
+    }
+
+    // Trigger kalkulasi saat Qty atau Price diubah
+    $(document).on('input change keyup', '#tbody-produk-approved .input-qty, #tbody-produk-approved .input-price', function() {
+        hitungTotalBudgetApproved();
+    });
+
+    // Jalankan kalkulasi pertama kali saat detail dibuka
+    hitungTotalBudgetApproved();
 
     // Event Change Product Code
     $(document).on('change', '.select2-approved-produk', function() {
@@ -311,7 +349,7 @@ $(document).ready(function() {
     });
 
     // Tambah Baris
-    $('#btn-tambah-baris-approved').on('click', function() {
+    $('#btn-tambah-baris-approved').off('click').on('click', function() {
         var optionsHtml = $('#template-options-approved').html();
         var newRow = `
             <tr class="baris-item">
@@ -327,17 +365,20 @@ $(document).ready(function() {
                     <input type="text" class="form-control form-control-sm input-spec" name="specification[]" placeholder="Spesifikasi...">
                 </td>
                 <td>
-                    <input type="number" class="form-control form-control-sm text-center" name="qty[]" value="1" min="1" required>
+                    <input type="number" class="form-control form-control-sm text-center input-qty" name="qty[]" value="1" min="1" required>
                 </td>
                 <td>
                     <input type="text" class="form-control form-control-sm text-center input-unit" name="unit[]" value="PCS" readonly>
                 </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-right input-price" name="price[]" value="0" min="0" step="any" placeholder="0" required>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm text-right bg-light font-weight-bold input-subtotal" value="0" readonly>
+                </td>
                 <td class="text-center align-middle">
                     <input type="hidden" name="old_attachment[]" value="">
-                    <span class="text-muted" style="font-size: 10px;">Baru</span>
-                </td>
-                <td class="align-middle">
-                    <input type="file" class="form-control-file form-control-sm" name="attachment[]" style="font-size: 10px;">
+                    <input type="file" class="form-control-file form-control-sm" name="attachment[]" style="font-size: 9px;">
                 </td>
                 <td class="text-center align-middle">
                     <button type="button" class="btn btn-danger btn-xs btn-hapus-baris-approved" title="Hapus Baris">
@@ -348,12 +389,14 @@ $(document).ready(function() {
         `;
         var appendedRow = $(newRow).appendTo('#tbody-produk-approved');
         initSelect2Approved(appendedRow.find('.select2-approved-produk'));
+        hitungTotalBudgetApproved();
     });
 
     // Hapus Baris
-    $(document).on('click', '.btn-hapus-baris-approved', function() {
+    $(document).off('click', '.btn-hapus-baris-approved').on('click', '.btn-hapus-baris-approved', function() {
         if ($('#tbody-produk-approved tr').length > 1) {
             $(this).closest('tr').remove();
+            hitungTotalBudgetApproved();
         } else {
             alert('Minimal harus ada 1 item rincian produk!');
         }
@@ -386,9 +429,7 @@ $(document).ready(function() {
     });
 });
 
-
 // Fungsi Lanjut ke RFQ (Multi-Vendor)
-// Fungsi Lanjut ke RFQ (Memastikan form tertutup setelah sukses)
 function lanjutKeRFQ(prNo) {
     var supplierId = $('#supplier_id_rfq').val();
     var rfqDate    = $('#rfq_date_input').val();
@@ -417,16 +458,11 @@ function lanjutKeRFQ(prNo) {
     }, function(res) {
         if (res.status === 'success') {
             alert(res.message);
-            
-            // CARA 1: Kosongkan kontainer utama PRDiv
             $('#PRDiv').html('');
-            
-            // CARA 2: Jika kontainer pembungkusnya memiliki ID lain, kita sembunyikan card-nya secara langsung
             $('#form-edit-approved-pr').closest('.card').fadeOut(300, function() {
                 $(this).remove();
             });
 
-            // Refresh grid utama di belakang
             if (typeof PRGrid !== 'undefined') {
                 PRGrid.clearAll();
                 PRGrid.load("/geu/hcga/public/xml-purchase-request-list");

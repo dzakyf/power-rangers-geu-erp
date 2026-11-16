@@ -23,6 +23,12 @@
         <div class="mb-0 navbar navbar-expand-lg navbar-nav-right responsive-navbar navbar-dark p-0 mg-lg-s-auto">
             <div class="collapse navbar-collapse" id="navbarSupportedContent-4">
                 <div class="main-header-right">
+                    <div class="nav-item">
+                        <a class="nav-link d-flex align-items-center" href="{{ route('mobile.dashboard') }}" target="_blank" title="Buka Mobile Dashboard">
+                            <i class="fe fe-smartphone"></i>
+                            <span class="d-none d-md-inline ms-1 small fw-semibold">Mobile</span>
+                        </a>
+                    </div>
                     <div class="dropdown nav-item main-header-notification">
                         <a class="new nav-link" href="javascript:void(0);">
                             <i class="fe fe-bell"></i><span class="pulse-danger"></span>
@@ -45,6 +51,7 @@
                                 <h6 class="mb-0">{{ $bpAuth->username ?? '' }}</h6>
                                 <span class="text-muted text-sm">{{ $bpAuth->Department ?? '' }} / {{ $bpAuth->Location ?? '' }}</span>
                             </div>
+                            <a class="dropdown-item" href="{{ route('mobile.dashboard') }}" target="_blank"><i class="fe fe-smartphone me-2"></i> Mobile Dashboard</a>
                             <a class="dropdown-item" href="{{ url('my-profile') }}"><i class="fe fe-user me-2"></i> Profile</a>
                             <a class="dropdown-item" href="{{ url('change-password') }}"><i class="fe fe-key me-2"></i> Change Password</a>
                             <a class="dropdown-item" href="{{ route('logout') }}"

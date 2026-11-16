@@ -132,11 +132,15 @@
 </head>
 <body>
 
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('mobile.ess') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Presensi Kehadiran</h1>
-            <a href="{{ route('attendance.mobile.timesheet') }}" class="finora-back-btn" title="Timesheet"><i class="fas fa-calendar-alt"></i></a>
+            <a href="{{ route('attendance.mobile.timesheet', $fromParams) }}" class="finora-back-btn" title="Timesheet"><i class="fas fa-calendar-alt"></i></a>
         </div>
 
         <div class="finora-hero">
@@ -162,7 +166,7 @@
             <div class="col-6">
                 @php $clockInDisabled = ($todayEntry && $todayEntry->Start_Time); @endphp
                 <button type="button" id="btn-clock-in"
-                        onclick="window.location.href='{{ route('attendance.mobile.location', ['action' => 'clock-in']) }}'"
+                        onclick="window.location.href='{{ route('attendance.mobile.location', array_merge(['action' => 'clock-in'], $fromParams)) }}'"
                         {{ $clockInDisabled ? 'disabled' : '' }}
                         class="btn w-100 p-3 text-start shadow-sm d-flex flex-column justify-content-between {{ $clockInDisabled ? 'bg-white text-muted border opacity-75' : 'text-white border-0' }}"
                         style="border-radius: 18px; min-height: 114px; {{ $clockInDisabled ? '' : 'background: linear-gradient(135deg, #064E3B 0%, #047857 100%); box-shadow: 0 8px 18px rgba(4, 120, 87, 0.22) !important;' }}">
@@ -182,7 +186,7 @@
             <div class="col-6">
                 @php $clockOutDisabled = (!$todayEntry || !$todayEntry->Start_Time || $todayEntry->End_Time); @endphp
                 <button type="button" id="btn-clock-out"
-                        onclick="window.location.href='{{ route('attendance.mobile.location', ['action' => 'clock-out']) }}'"
+                        onclick="window.location.href='{{ route('attendance.mobile.location', array_merge(['action' => 'clock-out'], $fromParams)) }}'"
                         {{ $clockOutDisabled ? 'disabled' : '' }}
                         class="btn w-100 p-3 text-start shadow-sm d-flex flex-column justify-content-between {{ $clockOutDisabled ? 'bg-white text-muted border opacity-75' : 'bg-white text-danger border border-danger border-opacity-25' }}"
                         style="border-radius: 18px; min-height: 114px;">

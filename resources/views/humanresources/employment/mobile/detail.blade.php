@@ -127,11 +127,15 @@
 </head>
 <body>
 
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell pb-0">
         <div class="finora-topbar">
-            <a href="{{ route('mobile.dashboard') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Profil Karyawan</h1>
-            <a href="{{ route('company-guideline.mobile.index') }}" class="finora-back-btn" title="Budaya & Peraturan"><i class="fas fa-compass"></i></a>
+            <a href="{{ route('company-guideline.mobile.index', ['from' => 'profile']) }}" class="finora-back-btn" title="Budaya & Peraturan"><i class="fas fa-compass"></i></a>
         </div>
 
         <!-- Finora Profile Identity Row -->
@@ -380,11 +384,11 @@
     <!-- Account Security & Logout Section (Finora Profile Style) -->
     <div class="px-3 mt-3 mb-4" style="max-width: 480px; margin: 0 auto;">
         <div class="finora-card p-2">
-            <a href="{{ route('employee.mobile.directory') }}" class="d-flex align-items-center justify-content-between p-2 text-decoration-none text-dark border-bottom">
+            <a href="{{ route('employee.mobile.directory', ['from' => 'profile']) }}" class="d-flex align-items-center justify-content-between p-2 text-decoration-none text-dark border-bottom">
                 <span class="small fw-bold"><i class="fas fa-users text-success me-2"></i> Direktori Karyawan</span>
                 <i class="fas fa-chevron-right text-muted small"></i>
             </a>
-            <a href="{{ route('mobile.sessions') }}" class="d-flex align-items-center justify-content-between p-2 text-decoration-none text-dark border-bottom">
+            <a href="{{ route('mobile.sessions', ['from' => 'profile']) }}" class="d-flex align-items-center justify-content-between p-2 text-decoration-none text-dark border-bottom">
                 <span class="small fw-bold"><i class="fas fa-shield-alt text-success me-2"></i> Keamanan &amp; Sesi Perangkat</span>
                 <i class="fas fa-chevron-right text-muted small"></i>
             </a>

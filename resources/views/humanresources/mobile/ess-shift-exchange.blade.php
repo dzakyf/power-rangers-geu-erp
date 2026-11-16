@@ -11,9 +11,13 @@
     @include('humanresources.mobile.partials.theme')
 </head>
 <body>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('mobile.ess') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Pertukaran Shift</h1>
             <span style="width: 38px;"></span>
         </div>
@@ -149,7 +153,7 @@
             .then(function (res) {
                 if (res.ok && (res.body.status === 'success' || res.body.success)) {
                     alert(res.body.message || 'Pengajuan pertukaran shift berhasil dikirim!');
-                    window.location.href = "{{ route('mobile.ess') }}";
+                    window.location.href = "{{ $resolvedBackUrl }}";
                 } else {
                     alert(res.body.message || 'Gagal mengirim pengajuan pertukaran shift.');
                     btn.disabled = false;

@@ -23,11 +23,17 @@
         <cell>{{ htmlspecialchars($Fetch->PR_No) }}</cell>
         <cell>{{ htmlspecialchars($Fetch->PR_Date ?? '-') }}</cell>
         <cell>{{ htmlspecialchars($Fetch->Department ?? '-') }}</cell>
+        <cell>{{ htmlspecialchars($Fetch->Status ?? 'PENDING') }}</cell>
         <cell>{{ htmlspecialchars($Fetch->Note ?? '-') }}</cell>
-        <cell>{{ htmlspecialchars($Fetch->Created_By ?? '-') }}</cell>
+        <cell>{{ htmlspecialchars($Fetch->PIC ?? '-') }}</cell>
+        <cell>{{ htmlspecialchars($Fetch->PIC_Phone ?? '-') }}</cell>
+        <cell>{{ htmlspecialchars($Fetch->PIC_Email ?? '-') }}</cell>
+        <cell>{{ htmlspecialchars($Fetch->PIC_Address ?? '-') }}</cell>
         <cell>{{ htmlspecialchars($totalQty > 0 ? $totalQty : ($Fetch->Qty ?? 0)) }}</cell>
         <cell>{{ htmlspecialchars($unit) }}</cell>
-        <cell>{{ htmlspecialchars($Fetch->Status ?? 'PENDING') }}</cell>
+        <cell>{{ htmlspecialchars($Fetch->Sub_Category ?? '-') }}</cell>
+        <cell>{{ htmlspecialchars($Fetch->Estimated_Budget ?? '0') }}</cell>
+
     </row>
     @php $nomor++; @endphp
 @endforeach

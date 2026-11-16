@@ -58,11 +58,13 @@
                     <td>
                         <a href="{{ url('partner-survey-form-builder?version=' . $version->ID) }}" class="btn btn-sm btn-info">Buka</a>
                         @if($version->Status !== 'ACTIVE')
+                            @if(can_menu('SI01052', 'approve'))
                             <form action="{{ url('partner-survey-form-publish') }}" method="POST" class="d-inline" onsubmit="return confirm('Publish versi ini sebagai form aktif?');">
                                 @csrf
                                 <input type="hidden" name="version_id" value="{{ $version->ID }}">
                                 <button type="submit" class="btn btn-sm btn-success">Publish</button>
                             </form>
+                            @endif
                         @endif
                     </td>
                 </tr>
@@ -76,11 +78,13 @@
         @if($active)
             <a href="{{ url('partner-survey-form-builder?version=' . $active->ID) }}" class="btn btn-primary">Edit Form Aktif</a>
         @endif
+        @if(can_menu('SI01052', 'create'))
         <form action="{{ url('partner-survey-form-create-version') }}" method="POST" class="d-inline">
             @csrf
             <input type="hidden" name="source_version" value="{{ $active->ID ?? '' }}">
             <button type="submit" class="btn btn-outline-primary">Buat Versi Baru</button>
         </form>
+        @endif
     </div>
     </div>
 </div>

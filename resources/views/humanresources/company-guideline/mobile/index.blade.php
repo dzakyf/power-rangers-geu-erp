@@ -186,9 +186,13 @@
 </head>
 <body>
 
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell pb-0">
         <div class="finora-topbar">
-            <a href="{{ route('employee.mobile.my-profile') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Pedoman Perusahaan</h1>
             <a href="{{ route('mobile.dashboard') }}" class="finora-back-btn" title="Dashboard"><i class="fas fa-home"></i></a>
         </div>

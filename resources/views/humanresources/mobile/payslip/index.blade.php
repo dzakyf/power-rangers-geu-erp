@@ -73,9 +73,10 @@
     </style>
 </head>
 <body>
+    @include('humanresources.mobile.partials.resolve-back', ['defaultBack' => route('mobile.dashboard')])
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('mobile.dashboard') }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Slip Gaji (Payslip)</h1>
             <button type="button" class="finora-back-btn" id="btnHeaderMaskToggle" onclick="togglePayslipMask()" title="Tampilkan / Sembunyikan Nominal">
                 <i class="fas fa-eye" id="headerMaskIcon"></i>
@@ -111,7 +112,7 @@
                     <div class="small opacity-75">
                         NIK: <strong class="text-white">{{ $nik }}</strong>
                     </div>
-                    <a href="{{ route('payslip.mobile.detail', ['period' => $latest['period'], 'task_id' => $latest['task_id']]) }}"
+                    <a href="{{ route('payslip.mobile.detail', array_merge(['period' => $latest['period'], 'task_id' => $latest['task_id']], $fromParams)) }}"
                        class="btn btn-light btn-sm rounded-pill fw-bold text-success px-3">
                         Lihat Rincian <i class="fas fa-arrow-right ms-1"></i>
                     </a>
@@ -137,7 +138,7 @@
         </div>
 
         @forelse ($periods as $p)
-            <a href="{{ route('payslip.mobile.detail', ['period' => $p['period'], 'task_id' => $p['task_id']]) }}" class="payslip-list-card">
+            <a href="{{ route('payslip.mobile.detail', array_merge(['period' => $p['period'], 'task_id' => $p['task_id']], $fromParams)) }}" class="payslip-list-card">
                 <div class="d-flex align-items-center gap-3">
                     <span class="payslip-icon-box">
                         <i class="fas fa-file-invoice-dollar"></i>

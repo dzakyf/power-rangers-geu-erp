@@ -32,7 +32,7 @@ function PRDoubleClick() {
     
     // Jika tidak tertangkap via userData, kita bisa ambil dari cell index ke-8 (kolom Status)
     if (!status) {
-        var cellIndexStatus = 8; // Kolom status ada di indeks ke-8
+        var cellIndexStatus = 4; // Kolom status ada di indeks ke-8
         status = PRGrid.cells(prId, cellIndexStatus).getValue();
     }
 
@@ -49,12 +49,12 @@ function PRDoubleClick() {
 
 var PRGrid = new dhtmlXGridObject('PRGrid');
 PRGrid.setImagePath("./dhtmlx/imgs/");
-PRGrid.setHeader("No.,No. PR,Tanggal PR,Department,Note,yang Mengajukan,Qty,Satuan,Status");
-PRGrid.setInitWidths("70,180,110,130,250,220,80,80,110");
-PRGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-PRGrid.setColAlign("center,center,center,center,center,left,center,center,center");
-PRGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");
-PRGrid.setColSorting("int,str,str,str,str,str,int,str,str");
+PRGrid.setHeader("No.,No. PR,Date PR,Department,Status,Note,yang Mengajukan,Phone,Email,Site Destination,Qty,Satuan,Category,Estimasi Budget");
+PRGrid.setInitWidths("70,180,110,130,130,150,250,150,150,150,80,70,100,100");
+PRGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#select_filter,#select_filter");
+PRGrid.setColAlign("center,center,center,center,center,left,center,center,center,center");
+PRGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+PRGrid.setColSorting("int,str,str,str,str,str,str,str,str,int,str,str,str,str");
 PRGrid.setEditable(false);
 PRGrid.enableMultiline(true);
 PRGrid.attachEvent("onRowDblClicked", PRDoubleClick);

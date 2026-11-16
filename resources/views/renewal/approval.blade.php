@@ -20,6 +20,7 @@
             <!-- <input type="button" value="Buat Pengajuan" class="btn btn-success" onclick="redirectToCreateApplication()" /> -->
             <input type="button" value="Log" class="btn btn-info" onclick="doubleClickMitra()" />
             <input type="button" id="detailBtn" value="Detail" class="btn btn-primary" onclick="showDetail()" />
+            @if(can_menu('SI00273', 'approve'))
             <div class="btn-group " role="group">
                 <div class="btn-group" role="group">
                     <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -32,6 +33,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
     </div>
 </div>

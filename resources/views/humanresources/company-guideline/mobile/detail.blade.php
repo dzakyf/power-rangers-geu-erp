@@ -26,9 +26,13 @@
     @include('humanresources.mobile.partials.theme')
 </head>
 <body>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
-            <a href="{{ route('company-guideline.mobile.index', ['tab' => strtolower($item->type)]) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="{{ route('company-guideline.mobile.index', array_merge(['tab' => strtolower($item->type)], $fromParams)) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
             <h1 class="fs-6 fw-bold m-0">Detail Pedoman</h1>
             <span style="width: 38px;"></span>
         </div>
@@ -70,7 +74,7 @@
         @endif
 
         <div class="mt-3">
-            <a href="{{ route('company-guideline.mobile.index', ['tab' => strtolower($item->type)]) }}" class="finora-btn-soft w-100">
+            <a href="{{ route('company-guideline.mobile.index', array_merge(['tab' => strtolower($item->type)], $fromParams)) }}" class="finora-btn-soft w-100">
                 <i class="fa fa-chevron-left"></i> Kembali ke Daftar
             </a>
         </div>

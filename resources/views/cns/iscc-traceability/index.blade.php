@@ -27,56 +27,58 @@
 	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">TRACEABILITY</div>
 	<div class="card">
 		<div class="card-body">
-			<form id="filterForm" class="form-inline mb-2">
-				<select id="fSource" name="source" class="form-control mr-2">
-					<option value="">All Sources</option>
-					<option value="BDP">BDP</option>
-					<option value="GREES">GREES</option>
-				</select>
-				<input type="text" id="fCity" name="city" placeholder="City / Regency" class="form-control mr-2" />
-				<select id="fSite" name="site" class="form-control mr-2">
-					<option value="">All Sites</option>
-					@foreach(($sites ?? []) as $s)
-					<option value="{{ $s }}">{{ $s }}</option>
-					@endforeach
-				</select>
-				<input type="date" id="fDateFrom" name="date_from" class="form-control mr-2" />
-				<input type="date" id="fDateTo" name="date_to" class="form-control mr-2" />
-				<input type="button" value="Filter" class="btn btn-primary mr-2" onclick="applyFilter()" />
-				<input type="button" value="Reset" class="btn btn-secondary" onclick="resetFilter()" />
-			</form>
-			<table id="fragTable" class="table table-striped table-bordered" style="width:100%">
-				<thead>
-					<tr>
-						<th>No</th>
-						<th>Source</th>
-						<th>POO Name</th>
-						<th>Type</th>
-						<th>Site</th>
-						<th>City</th>
-						<th>Province</th>
-						<th>Plat Nomor</th>
-						<th>Driver Name</th>
-						<th>Qty</th>
-						<th>Unit</th>
-						<th>Price</th>
-						<th>Total Price</th>
-						<th>WO Code</th>
-						<th>WO Date</th>
-						<th>WO Status</th>
-						<th>PO Code</th>
-						<th>PO Date</th>
-						<th>PO Status</th>
-						<th>Surat Jalan Code</th>
-						<th>Surat Jalan Date</th>
-						<th>Surat Jalan Status</th>
-					</tr>
-				</thead>
-			</table>
-			<div class="mt-2">
-				<button type="button" id="editBtn" class="btn btn-warning mr-2" onclick="editSelected()" disabled>Edit Data</button>
-				<button type="button" id="printBtn" class="btn btn-info mr-2" onclick="printSelected()" disabled>Print Doc</button>
-				<button type="button" id="exportBtn" class="btn btn-secondary" onclick="exportExcel()">Export Excel</button>
+			<div class="col-md-12 table-responsive">
+				<form id="filterForm" class="form-inline mb-2">
+					<select id="fSource" name="source" class="form-control mr-2">
+						<option value="">All Sources</option>
+						<option value="BDP">BDP</option>
+						<option value="GREES">GREES</option>
+					</select>
+					<input type="text" id="fCity" name="city" placeholder="City / Regency" class="form-control mr-2" />
+					<select id="fSite" name="site" class="form-control mr-2">
+						<option value="">All Sites</option>
+						@foreach(($sites ?? []) as $s)
+						<option value="{{ $s }}">{{ $s }}</option>
+						@endforeach
+					</select>
+					<input type="date" id="fDateFrom" name="date_from" class="form-control mr-2" />
+					<input type="date" id="fDateTo" name="date_to" class="form-control mr-2" />
+					<input type="button" value="Filter" class="btn btn-primary mr-2" onclick="applyFilter()" />
+					<input type="button" value="Reset" class="btn btn-secondary" onclick="resetFilter()" />
+				</form>
+				<table id="fragTable" class="table table-striped table-bordered">
+					<thead>
+						<tr>
+							<th>No</th>
+							<th>Source</th>
+							<th>POO Name</th>
+							<th>Type</th>
+							<th>Site</th>
+							<th>City</th>
+							<th>Province</th>
+							<th>Plat Nomor</th>
+							<th>Driver Name</th>
+							<th>Qty</th>
+							<th>Unit</th>
+							<th>Price</th>
+							<th>Total Price</th>
+							<th>WO Code</th>
+							<th>WO Date</th>
+							<th>WO Status</th>
+							<th>PO Code</th>
+							<th>PO Date</th>
+							<th>PO Status</th>
+							<th>Surat Jalan Code</th>
+							<th>Surat Jalan Date</th>
+							<th>Surat Jalan Status</th>
+						</tr>
+					</thead>
+				</table>
+				<div class="mt-2">
+					<button type="button" id="editBtn" class="btn btn-warning mr-2" onclick="editSelected()" disabled>Edit Data</button>
+					<button type="button" id="printBtn" class="btn btn-info mr-2" onclick="printSelected()" disabled>Print Doc</button>
+					<button type="button" id="exportBtn" class="btn btn-secondary" onclick="exportExcel()">Export Excel</button>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -94,7 +96,7 @@
 		fragTable = $('#fragTable').DataTable({
 			processing: true,
 			serverSide: true,
-			pageLength: 25,
+			pageLength: 10,
 			lengthMenu: [
 				[10, 25, 50, 100],
 				[10, 25, 50, 100]
