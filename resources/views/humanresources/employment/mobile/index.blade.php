@@ -7,7 +7,7 @@
     <title>Employee Directory - Mobile</title>
     <!-- PWA Settings -->
     <link rel="manifest" href="{{ asset('manifest-employee.json') }}">
-    <meta name="theme-color" content="#1e3a8a">
+    <meta name="theme-color" content="#064E3B">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HCGA Mobile">
@@ -20,14 +20,6 @@
             background-color: #f1f5f9;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             padding-bottom: 70px;
-        }
-        .header-directory {
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-            color: #fff;
-            padding: 20px 18px 24px;
-            border-bottom-left-radius: 20px;
-            border-bottom-right-radius: 20px;
-            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.2);
         }
         .employee-card {
             background: #fff;
@@ -99,31 +91,34 @@
             text-decoration: none;
         }
         .filter-chip.active {
-            background: #1e3a8a;
+            background: #047857;
             color: #fff;
-            border-color: #1e3a8a;
+            border-color: #047857;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
-    <!-- Header Directory -->
-    <div class="header-directory">
-        <div class="d-flex align-items-center justify-content-between">
-            <div>
-                <h5 class="fw-bold mb-0 text-white"><i class="fa fa-users-gear me-2"></i> Direktori Kontak Karyawan</h5>
-                <small class="text-white-50">{{ $isHcga ? 'Mode Admin / HCGA Portal' : 'Buku Telepon & Kontak Internal' }}</small>
-            </div>
-            <a href="{{ route('employee.mobile.my-profile') }}" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1" style="font-size: 12px;">
-                <i class="fa fa-user me-1"></i> Profil Saya
-            </a>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('employee.mobile.my-profile'));
+        $fromParams = mobile_from_params();
+    @endphp
+    <div class="finora-shell pb-0">
+        <div class="finora-topbar">
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Direktori Karyawan</h1>
+            <span style="width: 38px;"></span>
         </div>
 
-        <!-- Search Form -->
-        <form action="{{ route('employee.mobile.directory') }}" method="GET" class="search-input-wrapper">
-            <i class="fa fa-magnifying-glass"></i>
-            <input type="text" name="search" class="form-control" placeholder="Cari nama, NIK, jabatan, divisi..." value="{{ $filters['search'] ?? '' }}">
-        </form>
+        <div class="finora-hero mb-2">
+            <div class="fw-bold mb-1"><i class="fas fa-users me-1"></i> Direktori Kontak Karyawan</div>
+            <p class="small mb-2 opacity-75">{{ $isHcga ? 'Mode Admin / HCGA Portal' : 'Buku Telepon & Kontak Internal' }}</p>
+            <form action="{{ route('employee.mobile.directory') }}" method="GET" class="search-input-wrapper mt-0">
+                <i class="fa fa-magnifying-glass"></i>
+                <input type="text" name="search" class="form-control" placeholder="Cari nama, NIK, jabatan, divisi..." value="{{ $filters['search'] ?? '' }}">
+            </form>
+        </div>
     </div>
 
     <!-- Quick Department Filters -->
@@ -170,7 +165,7 @@
                             <i class="fa fa-briefcase me-1 text-muted"></i> {{ $emp->Position ?? 'Staff' }}
                         </div>
                         <div class="d-flex gap-1">
-                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 10px;">
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size: 10px;">
                                 {{ $emp->Department ?? 'N/A' }}
                             </span>
                             <span class="badge bg-secondary bg-opacity-10 text-secondary" style="font-size: 10px;">
@@ -203,5 +198,6 @@
     <!-- Scripts -->
     <script src="{{ asset('adminor/plugins/jquery/jquery.min.js') }}"></script>
     <script src="{{ asset('adminor/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'profile'])
 </body>
 </html>

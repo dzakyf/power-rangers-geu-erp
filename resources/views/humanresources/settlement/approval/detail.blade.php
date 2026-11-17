@@ -153,7 +153,7 @@
             <div class="d-flex align-items-center gap-2">
                 @if ($currentTask)
                     <span class="badge bg-warning text-dark px-3 py-2" style="font-size: 0.8rem; font-weight: 600; border-radius: 20px;">
-                        <i class="fa fa-layer-group me-1"></i> Tahap: {{ $currentTask->Stage_Name ?: ('Step ' . $currentTask->Stage_Order) }}
+                        <i class="fa fa-layer-group me-1"></i> Tahap: {{ ($currentTask->Position_Name ?? ($currentTask->Stage_Name ?? ('Step ' . ($currentTask->Stage_Order ?? '')))) }}
                     </span>
                 @endif
                 @php
@@ -447,7 +447,7 @@
                         </h5>
                         @if ($currentTask)
                             <span class="badge bg-primary text-white px-3 py-2" style="font-size: 0.8rem; font-weight: 600; border-radius: 6px;">
-                                <i class="fa fa-tasks me-1"></i> Task: {{ $currentTask->Stage_Name ?: ('Step ' . $currentTask->Stage_Order) }}
+                                <i class="fa fa-tasks me-1"></i> Task: {{ ($currentTask->Position_Name ?? ($currentTask->Stage_Name ?? ('Step ' . ($currentTask->Stage_Order ?? '')))) }}
                             </span>
                         @endif
                     </div>

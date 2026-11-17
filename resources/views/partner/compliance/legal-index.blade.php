@@ -16,9 +16,10 @@
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LEGAL</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'Legal'])
+
             <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <div>
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->

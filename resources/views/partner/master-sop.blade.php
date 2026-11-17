@@ -30,105 +30,92 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 </div>
 
 <div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div id="MasterPriceProduct" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-                <div>
-                    <input type="button" id="ekselMasterPriceProductDet" name="ekselMasterPriceProductDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="MasterPriceProduct.toExcel('./export/generate.php');" />
-                    <input type="button" id="addRow" name="addRow" value="Add Row" class="btn btn-info mt-2 mr-2" onclick="addRow()" />
-                    <input type="button" id="deleteRow" name="deleteRow" value="Delete Row" class="btn btn-danger mt-2 mr-2" onclick="deleteRow()" />
-                    <input type="button" id="savePrice" name="savePrice" value="Save Price" class="btn btn-success mt-2 mr-2" onclick="savePrice()" />
-            
-                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
-                </div>
-            </div>
-        </div>
-    </div>
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+			    @include('partner.partials.index-title', ['title' => 'SOP'])
+
+				<div id="SopGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+				<div class="mt-2">
+					<input type="button" id="ekselSop" name="ekselSop" class="btn btn-warning mr-2" value="Export Excel" onclick="SopGrid.toExcel('./export/generate.php');" />
+					<input type="button" id="newSop" name="newSop" value="New SOP" class="btn btn-primary mr-2" onclick="newSop()" />
+					<input type="button" id="editSop" name="editSop" value="Edit" class="btn btn-info mr-2" onclick="editSop()" />
+					<input type="button" id="deleteSop" name="deleteSop" value="Delete" class="btn btn-danger mr-2" onclick="deleteSop()" />
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
-<div id="divlistOpportunity"></div>
-<div id="divlistProjectList"></div>
+
+<div id="SopFormDiv"></div>
+
 <script>
-
-	function MasterPriceProductKlik() {
-
-		MasterPriceProductID = MasterPriceProduct.getSelectedId();
-		$("#divlistOpportunity").show();
-		if (MasterPriceProductID != '') {
-			$("#divlistProjectList").hide();
-			LoadM('divlistOpportunity', 'partner-master-audit-category-detail?ID=' + MasterPriceProductID);
-		}
-		return true;
+	function newSop() {
+		LoadM('SopFormDiv', 'partner-master-sop-new');
 	}
-	MasterPriceProduct = new dhtmlXGridObject('MasterPriceProduct');
-	MasterPriceProduct.setImagePath("./dhtmlx/imgs/");
-	MasterPriceProduct.setHeader("No, Category, Description, Parameter List, Parameter Score, Status");
-	MasterPriceProduct.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	// MasterPriceProduct.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	MasterPriceProduct.setInitWidths("60,100,100,100,100,100");
-	MasterPriceProduct.setColAlign("center,center,right,center,center,center");
-	MasterPriceProduct.setColSorting("int,str,int,str,str,str");
-	MasterPriceProduct.setColTypes("ron,ed,ed,ed,ed,ed");
-	MasterPriceProduct.enableSmartRendering(true, 150);
-    MasterPriceProduct.setDateFormat("%Y-%m-%d");
-	PMasterPriceProduct = new dataProcessor("partner-master-audit-category-update");
-	PMasterPriceProduct.setTransactionMode({
-		mode: "POST",
-		total: true,
-		headers: {
-			'X-CSRF-TOKEN': "{{ csrf_token() }}"
-		},
 
-	})
+	function editSop(rowId) {
+		var id = rowId || SopGrid.getSelectedId();
+		if (!id) {
+			alert('Pilih data terlebih dahulu.');
+			return;
+		}
+		LoadM('SopFormDiv', 'partner-master-sop-detail?ID=' + id);
+	}
 
-	PMasterPriceProduct.setTransactionMode("POST", true);
-	PMasterPriceProduct.setUpdateMode("Off");
-	PMasterPriceProduct.init(MasterPriceProduct);
-    PMasterPriceProduct.attachEvent("onBeforeDataSending", function (id,state, data) {
-        // Modify or add payload data here
-        // console.log(id)
-        return true; // Return true to continue processing
-    });
-    PMasterPriceProduct.attachEvent("onAfterUpdateFinish", function (id,state, data) {
-        alert("Data Successfully Submitted!");
-        setTimeout(function() {
-            refreshdata();
-        }, 500);
-    });
-	MasterPriceProduct.setSkin("dhx_skyblue");
-	MasterPriceProduct.init();
+	function deleteSop() {
+		var id = SopGrid.getSelectedId();
+		if (!id) {
+			alert('Pilih data terlebih dahulu.');
+			return;
+		}
+		if (!confirm('Yakin ingin menghapus SOP ini?')) {
+			return;
+		}
+
+		$.ajax({
+			url: 'partner-master-sop-delete',
+			type: 'POST',
+			data: {
+				id: id,
+				_token: '{{ csrf_token() }}'
+			},
+			success: function(res) {
+				if (res.status === 'success') {
+					alert(res.message || 'SOP berhasil dihapus.');
+					$('#SopFormDiv').html('');
+					refreshdata();
+				} else {
+					alert(res.message || 'Gagal menghapus SOP.');
+				}
+			},
+			error: function(xhr) {
+				var msg = (xhr.responseJSON && xhr.responseJSON.message)
+					? xhr.responseJSON.message
+					: 'Gagal menghapus SOP.';
+				alert(msg);
+			}
+		});
+	}
+
+	SopGrid = new dhtmlXGridObject('SopGrid');
+	SopGrid.setImagePath("./dhtmlx/imgs/");
+	SopGrid.setHeader("No, Category, Description, Parameter List, Parameter Score, Status");
+	SopGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	SopGrid.setInitWidths("60,150,250,250,150,100");
+	SopGrid.setColAlign("center,left,left,left,left,center");
+	SopGrid.setColSorting("int,str,str,str,str,str");
+	SopGrid.setColTypes("ron,ro,ro,ro,ro,ro");
+	SopGrid.enableSmartRendering(true, 150);
+	SopGrid.attachEvent('onRowDblClicked', function(rowId) {
+		editSop(rowId);
+	});
+	SopGrid.setSkin("dhx_skyblue");
+	SopGrid.init();
 	refreshdata();
 
 	function refreshdata() {
-		MasterPriceProduct.clearAndLoad('xml-partner-master-audit-category');
+		SopGrid.clearAndLoad('xml-partner-master-audit-category');
 	}
-
-	function deleteRow() {
-		dhtmlx.confirm('Delete this Row?', 'Opportunity', function(r) {
-
-			if (r == true) {
-				MasterPriceProduct.deleteSelectedRows();
-				PMasterPriceProduct.sendData();
-				alert('Data Successfully Deleted!');
-				setTimeout(function() {
-					refreshdata();
-				}, 1000);
-			}
-		})
-	}
-
-    function addRow()
-    {
-        let uid = MasterPriceProduct.uid();
-        let num = MasterPriceProduct.getRowsNum() + 1;
-        MasterPriceProduct.addRow(uid, [num,"{{ date('Y-m-d') }}",'0','','']);
-        MasterPriceProduct.selectRow(uid);
-    }
-
-	function savePrice() {
-		PMasterPriceProduct.sendData();
-		refreshdata();
-	}
-
 </script>
 @endsection

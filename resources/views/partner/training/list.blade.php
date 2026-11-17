@@ -28,9 +28,10 @@ $Saya =  Auth::user()->username;
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LIST TRAINING BASED ON TARGET</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Training List'])
+
             <div>
                 Training Target <select name="target" id="target" onchange="refreshdata()">
                     <option value="">All</option>

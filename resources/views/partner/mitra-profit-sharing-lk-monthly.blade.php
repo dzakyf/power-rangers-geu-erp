@@ -16,11 +16,12 @@
 </div>
 <div class="card mt-3">
     <div class="card-body">
+        @include('partner.partials.index-title', ['title' => 'Laporan Keuangan'])
+
 		<div>
 			<input type="text" id="date_filter" name="date_filter" value="{{ date('Y-m') }}" size="10" readonly>
 			<button class="btn btn-success" onclick="refreshdata()">Refresh</button>
 		</div>
-        <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LAPORAN KEUANGAN</div>
         <div id="ProfitSharingLkMonthly" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
         <div>
             <input type="button" id="ekselProfitSharingLkMonthlyDet" name="ekselProfitSharingLkMonthlyDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ProfitSharingLkMonthly.toExcel('./export/generate.php');" />

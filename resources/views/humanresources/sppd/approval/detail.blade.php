@@ -154,7 +154,12 @@
                 <h4 class="sppd-card-title">
                     <i class="fa fa-clipboard-check text-warning"></i> Lembar Verifikasi SPPD
                 </h4>
-                <span class="badge bg-light text-dark border">Jenis: {{ $sppd->Sppd_Type ?? 'NORMAL' }}</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-dark border">Jenis: {{ $sppd->Sppd_Type ?? 'NORMAL' }}</span>
+                    @if(!empty($sppd->Is_Over_Plafon))
+                        <span class="badge bg-warning text-dark"><i class="fa fa-exclamation-triangle me-1"></i> Biaya Di Atas Plafon (Approval BOD)</span>
+                    @endif
+                </div>
             </div>
             <div class="card-body">
                 <div class="row g-3">

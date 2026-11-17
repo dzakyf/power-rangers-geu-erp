@@ -3,7 +3,10 @@
 @csrf
 <!-- Main Content Header -->
 
-<h4>Dashboard Survey</h4>
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partials.index-title', ['title' => 'Dashboard Survey'])
+
 <div class="row mt-3">
 
     <div class="col-sm-3">
@@ -137,7 +140,8 @@
         </div>
     </div>
 </div>
-
+    </div>
+</div>
 
 <script>
 

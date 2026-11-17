@@ -54,11 +54,11 @@ return [
     'SI00343' => ['Inbound Adjustment', 'cns-inbound-adjustment', 'CNS', 4, 'SS00087', 3],
     'SI00344' => ['Drain Adjustment', 'cns-drain-adjustment', 'CNS', 4, 'SS00087', 4],
     'SI00341' => ['Inventory Kemasan', 'cns-inventory-kemasan', 'CNS', 4, 'SS00091', 1],
-    'SI00336' => ['Inventory Non-UCO', 'cns-inventory-non-uco', 'CNS', 4, 'SS00091', 2],
+    'SI00332' => ['Inventory Non-UCO', 'cns-inventory-non-uco', 'CNS', 4, 'SS00091', 2],
     'SI00327' => ['Master Company ', 'cns-master-company', 'CNS', 4, 'SS00088', 1],
     'SI00328' => ['Master Supplier ', 'cns-master-supplier', 'CNS', 4, 'SS00088', 2],
     'SI00329' => ['Master Consignee', 'cns-master-consignee', 'CNS', 4, 'SS00088', 3],
-    'SI00338' => ['Master User', 'credential-user-management', 'CNS', 4, 'SS00088', 4],
+    'SI00334' => ['Master User', 'credential-user-management', 'CNS', 4, 'SS00088', 4],
     'SI00339' => ['Master Tangki', 'cns-master-tank', 'CNS', 4, 'SS00088', 5],
     'SI00342' => ['Master Kemasan', 'cns-master-kemasan', 'CNS', 4, 'SS00088', 6],
 ];

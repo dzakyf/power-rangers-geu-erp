@@ -18,10 +18,26 @@ class PayrollCalculationService
      */
     protected $attendanceSyncService;
 
-    public function __construct(PayrollTaxService $taxService, PayrollAttendanceSyncService $attendanceSyncService)
-    {
+    /**
+     * @var PayrollThrService
+     */
+    protected $thrService;
+
+    /**
+     * @var PayrollAdvanceDeductionService
+     */
+    protected $advanceDeductionService;
+
+    public function __construct(
+        PayrollTaxService $taxService,
+        PayrollAttendanceSyncService $attendanceSyncService,
+        PayrollThrService $thrService = null,
+        PayrollAdvanceDeductionService $advanceDeductionService = null
+    ) {
         $this->taxService = $taxService;
         $this->attendanceSyncService = $attendanceSyncService;
+        $this->thrService = $thrService ?: app(PayrollThrService::class);
+        $this->advanceDeductionService = $advanceDeductionService ?: app(PayrollAdvanceDeductionService::class);
     }
 
     /**
@@ -142,17 +158,17 @@ class PayrollCalculationService
             if ($type === 'BASIC') {
                 $gajiPokok += $val;
             } elseif ($type === 'ALLOWANCE') {
-                // Abaikan tunjangan pajak sistem (PYH00001/PYH00000) serta komponen dinamis OVERTIME (PY000045) & KJK (PY000044)
-                // karena ketiganya dihitung secara dinamis dari modul terkait
+                // Abaikan tunjangan pajak sistem (PYH00001/PYH00000) serta komponen dinamis OVERTIME (PY000045), KJK (PY000044), & THR (PY000060)
+                // karena dihitung secara dinamis dari modul terkait per periode
                 if (
-                    !in_array($pId, ['PYH00001', 'PYH00000', 'PY000045', 'PY000044'], true)
-                    && !in_array($formula, ['OVERTIME', 'KJK'], true)
+                    !in_array($pId, ['PYH00001', 'PYH00000', 'PY000045', 'PY000044', 'PY000060'], true)
+                    && !in_array($formula, ['OVERTIME', 'KJK', 'THR'], true)
                 ) {
                     $totalTunjangan += $val;
                 }
             } elseif ($type === 'DEDUCTION') {
                 // Abaikan komponen deduction standar yang akan dihitung formula baru
-                if (!in_array($pId, ['PY000000', 'PY000037', 'PY000032', 'DED_UNPAID', 'DED_LATE', 'DED_BPJS_TK', 'DED_BPJS_KES'], true)) {
+                if (!in_array($pId, ['PY000000', 'PY000037', 'PY000032', 'DED_UNPAID', 'DED_LATE', 'DED_BPJS_TK', 'DED_BPJS_KES', 'DED_SPPD_KASBON'], true)) {
                     $customDeductions += abs($val);
                 }
             }
@@ -177,6 +193,10 @@ class PayrollCalculationService
         $overtimeAmount = (float)$attendance['approved_overtime_amount'];
         $kjkAmount = (float)($attendance['approved_kjk_amount'] ?? 0.0);
 
+        // 3b. Tarik Komponen THR (Tunjangan Hari Raya) yang sudah di-lock untuk periode berjalan
+        $thrData = $this->thrService->getApprovedThrForEmployeePeriod($nik, $periodeYm);
+        $thrAmount = (float)($thrData['amount'] ?? 0.0);
+
         // 4. Kalkulasi Komponen Deductions Dinamis Sesuai Aturan Klien
         $baseTotalSalary = $gajiPokok + $totalTunjangan;
 
@@ -191,9 +211,54 @@ class PayrollCalculationService
         $latePenaltyRate = (float)$this->getConfig('late_penalty_per_occurrence', 22000.0);
         $latePenaltyAmount = ceil($latePenaltyRate * $lateCount);
 
+        // ---------------------------------------------------------------------
+        // Pengecekan Kebijakan BPJS: Karyawan Tidak Dipotong & Masa Probation
+        // ---------------------------------------------------------------------
+        $isProbationExempt = false;
+        $probationReason = '';
+
+        // Cek flag pembebasan/penundaan potongan BPJS selama masa probation
+        $flagProbationExempt = isset($employee->bpjs_probation_exempt) ? (int)$employee->bpjs_probation_exempt : 0;
+        if ($flagProbationExempt === 1) {
+            $periodStartDate = $periodeYm . '-01';
+
+            if (!empty($employee->probation_end_date) && $employee->probation_end_date !== '0000-00-00') {
+                $probEndDate = $employee->probation_end_date;
+                // Jika periode penggajian masih berada pada atau sebelum tanggal akhir masa probation
+                if ($periodStartDate <= $probEndDate) {
+                    $isProbationExempt = true;
+                    $probationReason = 'Masa probation hingga ' . date('d M Y', strtotime($probEndDate));
+                }
+            } else {
+                // Fallback jika probation_end_date belum diisi: Cek Employment_Status atau Date_in (+3 bulan)
+                $empStatus = strtoupper(trim((string)($employee->Employment_Status ?? '')));
+                if (strpos($empStatus, 'PROBATION') !== false) {
+                    $isProbationExempt = true;
+                    $probationReason = 'Status kepegawaian PROBATION';
+                } elseif (!empty($employee->Date_in) && $employee->Date_in !== '0000-00-00') {
+                    $estProbEnd = date('Y-m-d', strtotime($employee->Date_in . ' +3 months'));
+                    if ($periodStartDate <= $estProbEnd) {
+                        $isProbationExempt = true;
+                        $probationReason = 'Masa probation (3 bulan sejak ' . date('d M Y', strtotime($employee->Date_in)) . ')';
+                    }
+                }
+            }
+        }
+
         // C. BPJS Ketenagakerjaan: Total Salary * 2%
         $bpjsTkRate = (float)$this->getConfig('bpjs_tk_jht_employee_rate', 2.0);
-        $bpjsTkAmount = ceil(($bpjsTkRate / 100.0) * $baseTotalSalary);
+        $isTkConfigDeducted = !isset($employee->bpjs_tk_deduction) || ((int)$employee->bpjs_tk_deduction === 1);
+
+        $bpjsTkExemptReason = null;
+        if (!$isTkConfigDeducted) {
+            $bpjsTkAmount = 0.0;
+            $bpjsTkExemptReason = 'Setup Karyawan: Bebas/Tidak Dipotong BPJS Ketenagakerjaan';
+        } elseif ($isProbationExempt) {
+            $bpjsTkAmount = 0.0;
+            $bpjsTkExemptReason = 'Bebas Potongan Selama Masa Probation (' . $probationReason . ')';
+        } else {
+            $bpjsTkAmount = ceil(($bpjsTkRate / 100.0) * $baseTotalSalary);
+        }
 
         // D. BPJS Kesehatan (Site HO):
         // Jika Total Salary < UMK HO -> UMK * 1%
@@ -204,22 +269,51 @@ class PayrollCalculationService
         $maxSalaryCap = (float)$this->getConfig('bpjs_kes_max_salary_cap', 12000000.0);
         $maxDeductionCap = (float)$this->getConfig('bpjs_kes_max_deduction_cap', 120000.0);
 
-        if ($baseTotalSalary > $maxSalaryCap) {
-            $bpjsKesAmount = $maxDeductionCap;
-        } elseif ($baseTotalSalary < $umkHO) {
-            $bpjsKesAmount = ceil($umkHO * $bpjsKesRate);
+        $kesDeductionSetting = isset($employee->bpjs_kes_deduction) ? (int)$employee->bpjs_kes_deduction : 1;
+        $isKesConfigDeducted = ($kesDeductionSetting === 1);
+
+        $bpjsKesExemptReason = null;
+        if ($kesDeductionSetting === 2) {
+            // Subsidi Pemerintah berupa Kartu Indonesia Sehat (KIS / PBI)
+            $bpjsKesAmount = 0.0;
+            $bpjsKesExemptReason = 'Tidak Dipotong: Menerima Subsidi Pemerintah (Kartu Indonesia Sehat / KIS PBI)';
+        } elseif ($kesDeductionSetting === 0) {
+            $bpjsKesAmount = 0.0;
+            $bpjsKesExemptReason = 'Setup Karyawan: Bebas/Tidak Dipotong BPJS Kesehatan';
+        } elseif ($isProbationExempt) {
+            $bpjsKesAmount = 0.0;
+            $bpjsKesExemptReason = 'Bebas Potongan Selama Masa Probation (' . $probationReason . ')';
         } else {
-            $bpjsKesAmount = ceil($baseTotalSalary * $bpjsKesRate);
+            if ($baseTotalSalary > $maxSalaryCap) {
+                $bpjsKesAmount = $maxDeductionCap;
+            } elseif ($baseTotalSalary < $umkHO) {
+                $bpjsKesAmount = ceil($umkHO * $bpjsKesRate);
+            } else {
+                $bpjsKesAmount = ceil($baseTotalSalary * $bpjsKesRate);
+            }
         }
 
-        // Total Potongan Selain Pajak
-        $totalNonTaxDeductions = $unpaidLeaveAmount + $latePenaltyAmount + $bpjsTkAmount + $bpjsKesAmount + $customDeductions;
+        // 4e. Tarik Potongan SPPD Belum Settlement, Kasbon, & Reimburse (Non-Tax Deduction)
+        $ignoreAdvance = !empty($options['ignore_advance_deductions']);
+        $advanceDeductionData = $ignoreAdvance
+            ? ['total' => 0.0, 'by_type' => [], 'items' => []]
+            : $this->advanceDeductionService->getActiveDeductionsForEmployee($nik, $periodeYm);
+        $rawAdvanceDeductionsTotal = (float) ($advanceDeductionData['total'] ?? 0.0);
+
+        // Total Potongan Wajib Selain Pajak (sebelum potongan SPPD/Kasbon/Manual)
+        $mandatoryNonTaxDeductions = $unpaidLeaveAmount + $latePenaltyAmount + $bpjsTkAmount + $bpjsKesAmount + $customDeductions;
 
         // 5. Kalkulasi PPh 21 (TER Bulanan PP 58/2023 atau Tahunan Pasal 17 UU HPP)
         $monthNum = (int)date('m', strtotime($periodeYm . '-01'));
 
-        // Bruto Kena Pajak Sebulan = Pokok + Tunjangan + Lembur + KJK
-        $grossTaxable = $baseTotalSalary + $overtimeAmount + $kjkAmount;
+        // Bruto Kena Pajak Sebulan = Pokok + Tunjangan + Lembur + KJK + THR
+        $grossTaxable = $baseTotalSalary + $overtimeAmount + $kjkAmount + $thrAmount;
+
+        $ktpNumber = trim((string) ($employee->KTP ?? ''));
+        $npwpNumber = trim((string) ($employee->NPWP ?? ''));
+        if ($npwpNumber === '' && $ktpNumber !== '') {
+            $npwpNumber = $ktpNumber;
+        }
 
         $taxResult = $this->taxService->calculateMonthlyTax(
             $grossTaxable,
@@ -228,19 +322,22 @@ class PayrollCalculationService
             $grossTaxable * $monthNum, // Estimasi YTD
             0.0,
             [
-                'is_gross_up'         => $isGrossUp,
-                'nik'                 => $nik,
-                'npwp'                => $employee->NPWP ?? '',
-                'jht_employee_yearly' => $bpjsTkAmount * 12,
+                'is_gross_up'           => $isGrossUp,
+                'nik'                   => $ktpNumber !== '' ? $ktpNumber : $nik,
+                'npwp'                  => $npwpNumber,
+                'jht_employee_yearly'   => $bpjsTkAmount * 12,
+                'apply_non_npwp_penalty' => false,
             ]
         );
 
         $pph21Amount = (float)$taxResult['tax_to_deduct'];
         $tunjanganPph = (float)$taxResult['tax_allowance'];
 
-        // 6. Kalkulasi Take Home Pay (THP)
-        // THP = (Pokok + Tunjangan + Lembur + KJK + Tunjangan PPh) - (Total Potongan + PPh 21)
-        $totalIncome = $gajiPokok + $totalTunjangan + $overtimeAmount + $kjkAmount + $tunjanganPph;
+        // 6. Kalkulasi Take Home Pay (THP) & Safety Cap Potongan SPPD/Kasbon/Manual agar tidak melebihi THP
+        $totalIncome = $gajiPokok + $totalTunjangan + $overtimeAmount + $kjkAmount + $thrAmount + $tunjanganPph;
+        $thpBeforeAdvance = max(0.0, $totalIncome - ($mandatoryNonTaxDeductions + $pph21Amount));
+        $advanceDeductionsTotal = $ignoreAdvance ? 0.0 : min($rawAdvanceDeductionsTotal, $thpBeforeAdvance);
+        $totalNonTaxDeductions = $mandatoryNonTaxDeductions + $advanceDeductionsTotal;
         $totalDeductions = $totalNonTaxDeductions + $pph21Amount;
         $thp = max(0.0, $totalIncome - $totalDeductions);
 
@@ -256,6 +353,7 @@ class PayrollCalculationService
                 'tunjangan'       => $totalTunjangan,
                 'overtime'        => $overtimeAmount,
                 'kjk'             => $kjkAmount,
+                'thr'             => $thrAmount,
                 'total_base'      => $baseTotalSalary,
             ],
             'attendance_metrics'  => [
@@ -291,18 +389,40 @@ class PayrollCalculationService
                     'formula'     => "{$latePenaltyRate} * {$lateCount}",
                 ],
                 'bpjs_tk'         => [
-                    'rate'        => $bpjsTkRate,
-                    'amount'      => $bpjsTkAmount,
-                    'formula'     => "{$baseTotalSalary} * {$bpjsTkRate}%",
+                    'rate'          => $bpjsTkRate,
+                    'amount'        => $bpjsTkAmount,
+                    'formula'       => $bpjsTkAmount > 0 ? "{$baseTotalSalary} * {$bpjsTkRate}%" : '0 (Bebas / Dikecualikan)',
+                    'is_exempt'     => ($bpjsTkAmount == 0.0),
+                    'exempt_reason' => $bpjsTkExemptReason,
                 ],
                 'bpjs_kes'        => [
-                    'rate'        => $bpjsKesRate * 100,
-                    'umk_ho'      => $umkHO,
-                    'max_cap'     => $maxDeductionCap,
-                    'amount'      => $bpjsKesAmount,
+                    'rate'          => $bpjsKesRate * 100,
+                    'umk_ho'        => $umkHO,
+                    'max_cap'       => $maxDeductionCap,
+                    'amount'        => $bpjsKesAmount,
+                    'formula'       => $bpjsKesAmount > 0 ? "Kalkulasi BPJS Kes HO" : '0 (Bebas / Dikecualikan)',
+                    'is_exempt'     => ($bpjsKesAmount == 0.0),
+                    'exempt_reason' => $bpjsKesExemptReason,
                 ],
-                'custom_ded'      => $customDeductions,
-                'total_deduction' => $totalNonTaxDeductions,
+                'custom_ded'        => $customDeductions,
+                'advance_deduction' => [
+                    'amount'             => $advanceDeductionsTotal,
+                    'raw_requested'      => $rawAdvanceDeductionsTotal,
+                    'thp_before_advance' => $thpBeforeAdvance,
+                    'is_capped_by_thp'   => ($rawAdvanceDeductionsTotal > $thpBeforeAdvance),
+                    'by_type'            => $advanceDeductionData['by_type'] ?? [],
+                    'items_count'        => count($advanceDeductionData['items'] ?? []),
+                ],
+                'total_deduction'   => $totalNonTaxDeductions,
+            ],
+            'bpjs_policy'         => [
+                'bpjs_tk_deduction'     => $isTkConfigDeducted,
+                'bpjs_kes_deduction'    => $isKesConfigDeducted,
+                'bpjs_kes_setting'      => $kesDeductionSetting,
+                'is_kis_subsidized'     => ($kesDeductionSetting === 2),
+                'bpjs_probation_exempt' => (bool)$flagProbationExempt,
+                'is_in_probation'       => $isProbationExempt,
+                'probation_reason'      => $probationReason,
             ],
             'tax_details'         => $taxResult,
             'final_summary'       => [
@@ -322,6 +442,7 @@ class PayrollCalculationService
             'tunjangan'             => $totalTunjangan,
             'overtime'              => $overtimeAmount,
             'kjk'                   => $kjkAmount,
+            'thr'                   => $thrAmount,
             'tunjangan_pph'         => $tunjanganPph,
             'deduction'             => $totalNonTaxDeductions,
             'pph'                   => $pph21Amount,
@@ -334,6 +455,8 @@ class PayrollCalculationService
             'bpjs_kes_amount'       => $bpjsKesAmount,
             'overtime_task_ids'     => $attendance['overtime_task_ids'] ?? [],
             'kjk_task_ids'          => $attendance['kjk_task_ids'] ?? [],
+            'thr_item_ids'          => $thrData['item_ids'] ?? [],
+            'thr_batch_nos'         => $thrData['batch_nos'] ?? [],
             'metadata'              => $calculationMetadata,
             'active_components'     => $activeComponents,
         ];
@@ -486,9 +609,10 @@ class PayrollCalculationService
             ]);
         }
 
-        // 3. Sinkronkan Komponen Dinamis OVERTIME (PY000045) & KJK (PY000044)
+        // 3. Sinkronkan Komponen Dinamis OVERTIME (PY000045), KJK (PY000044), & THR (PY000060)
         $otTasks = isset($calc['overtime_task_ids']) ? $calc['overtime_task_ids'] : [];
         $kjkTasks = isset($calc['kjk_task_ids']) ? $calc['kjk_task_ids'] : [];
+        $thrBatches = isset($calc['thr_batch_nos']) ? $calc['thr_batch_nos'] : [];
 
         $dynamicAllowances = [
             'PY000045' => [
@@ -500,6 +624,11 @@ class PayrollCalculationService
                 'name'   => 'KJK',
                 'amount' => (float)($calc['kjk'] ?? 0.0),
                 'note'   => 'Number of KJK: ' . count($kjkTasks) . '; Task LIST = ' . implode(',', $kjkTasks),
+            ],
+            'PY000060' => [
+                'name'   => 'THR (TUNJANGAN HARI RAYA)',
+                'amount' => (float)($calc['thr'] ?? 0.0),
+                'note'   => !empty($thrBatches) ? ('Batch THR: ' . implode(', ', $thrBatches)) : 'Tidak ada THR pada periode ini',
             ],
         ];
 
@@ -563,6 +692,11 @@ class PayrollCalculationService
                 'name'    => 'POTONGAN UNPAID LEAVE (ALPHA)',
                 'amount'  => -$calc['unpaid_leave_amount'],
                 'aliases' => ['UNPAID', 'ALPHA', 'ABSENSI'],
+            ],
+            'DED_SPPD_KASBON' => [
+                'name'    => 'POTONGAN SPPD / KASBON / REIMBURSE',
+                'amount'  => -((float) ($calc['metadata']['deduction_breakdown']['advance_deduction']['amount'] ?? 0.0)),
+                'aliases' => ['SPPD', 'KASBON', 'REIMBURSE'],
             ],
         ];
 

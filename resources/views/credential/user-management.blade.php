@@ -124,9 +124,9 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
             <div class="row">
                 <div class="col-md-3 mb-3">
                         <label for="Position">Position</label>
-                    <select id="Position" name="Position" class="form-control">
-                        @foreach($roles as $roleName)
-                        <option value="{{ $roleName }}">{{ $roleName }}</option>
+                    <select id="Position" name="role_id" class="form-control">
+                        @foreach($roles as $role)
+                        <option value="{{ $role->id }}">{{ $role->name }}{{ $role->department ? ' - ' . $role->department : '' }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -196,9 +196,9 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
                         </div>
                         <div class="col-md-6 mb-3">
                             <label>Posisi (Primary Role)</label>
-                            <select id="editPrimaryRole" name="primary_role" class="form-control">
-                                @foreach($roles as $roleName)
-                                <option value="{{ $roleName }}">{{ $roleName }}</option>
+                            <select id="editPrimaryRole" name="primary_role_id" class="form-control">
+                                @foreach($roles as $role)
+                                <option value="{{ $role->id }}">{{ $role->name }}{{ $role->department ? ' - ' . $role->department : '' }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -207,11 +207,11 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
                         <div class="col-12 mb-3">
                             <label>Additional Roles (Secondary Role)</label>
                             <div id="additionalRolesContainer" class="row">
-                                @foreach($roles as $roleName)
+                                @foreach($roles as $role)
                                 <div class="col-md-4">
                                     <div class="form-check">
-                                        <input type="checkbox" class="form-check-input additional-role-cb" id="ar_{{ $roleName }}" value="{{ $roleName }}">
-                                        <label class="form-check-label" for="ar_{{ $roleName }}">{{ $roleName }}</label>
+                                        <input type="checkbox" class="form-check-input additional-role-cb" id="ar_role_{{ $role->id }}" value="{{ $role->id }}">
+                                        <label class="form-check-label" for="ar_role_{{ $role->id }}">{{ $role->name }}{{ $role->department ? ' - ' . $role->department : '' }}</label>
                                     </div>
                                 </div>
                                 @endforeach
@@ -268,7 +268,7 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
                 data: 'location'
             },
             {
-                data: 'posisi'
+                data: 'primary_role_label'
             },
             {
                 data: 'status'
@@ -310,13 +310,13 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
         $('#editEmail').val(data.email || '');
         $('#editLocation').val(data.location || '');
         $('#editStatus').val(data.status || 'ACTIVE');
-        $('#editPrimaryRole').val(data.priv_id || '');
+        $('#editPrimaryRole').val(data.primary_role_id || '');
 
         $('#additionalRolesContainer .additional-role-cb').prop('checked', false);
-        if (data.roles && Array.isArray(data.roles)) {
-            data.roles.forEach(function(r) {
-                if (r !== data.priv_id) {
-                    $('#ar_' + r).prop('checked', true);
+        if (data.role_ids && Array.isArray(data.role_ids)) {
+            data.role_ids.forEach(function(roleId) {
+                if (String(roleId) !== String(data.primary_role_id)) {
+                    $('#ar_role_' + roleId).prop('checked', true);
                 }
             });
         }
@@ -340,7 +340,7 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
         var email = $('#editEmail').val().trim();
         var location = $('#editLocation').val();
         var status = $('#editStatus').val();
-        var primaryRole = $('#editPrimaryRole').val();
+        var primaryRoleId = $('#editPrimaryRole').val();
 
         if (!name) {
             $('#editStatusMsg').text('Name is required').css('color', 'red').show();
@@ -352,9 +352,9 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
             additionalRoles.push($(this).val());
         });
 
-        // Don't send primary_role in additional_roles
+        // Don't send primary role in additional role IDs
         additionalRoles = additionalRoles.filter(function(r) {
-            return r !== primaryRole;
+            return String(r) !== String(primaryRoleId);
         });
 
         $('#editStatusMsg').text('Saving...').css('color', 'blue').show();
@@ -366,9 +366,9 @@ $locations = DB::table('users')->select('Location')->distinct()->whereNotNull('L
         formData.append('email', email);
         formData.append('location', location);
         formData.append('status', status);
-        formData.append('primary_role', primaryRole);
+        formData.append('primary_role_id', primaryRoleId);
         additionalRoles.forEach(function(r) {
-            formData.append('additional_roles[]', r);
+            formData.append('additional_role_ids[]', r);
         });
 
         var sigFile = $('#editSignature')[0].files[0];

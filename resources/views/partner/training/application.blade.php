@@ -175,47 +175,31 @@ $Position = Auth::user()->Position;
             return;
         }
 
-		gettingVars = getAllValues();
-
 		$.ajax({
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
 			url: "partner-training-application-submit?_token={{ csrf_token() }}",
 			type: "POST",
-			data: gettingVars,
+			data: $('#ContentPages').find('input, select, textarea').serialize(),
 			success: function(data, textStatus, jqXHR) {
-				var dataPos = data.status;
-				if (dataPos == 'success') {
-					// var cariAWB = data.split(":");
+				if (data && data.status == 'success') {
 					alert('Training Application Submitted!');
-                    refreshdata();
-                    // $('#divlistOpportunity').html('');
-                    window.reload();
+                    window.location.href = 'partner-training';
 				} else {
-					alert('Application Failed to Submit!');
+					alert((data && data.message) ? data.message : 'Application Failed to Submit!');
 				}
 			},
-			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
-
+			error: function(xhr) {
+				var msg = (xhr.responseJSON && xhr.responseJSON.message)
+					? xhr.responseJSON.message
+					: 'Error Internal! Please Try again!';
+				alert(msg);
+			},
+			complete: function() {
+				$('#SubmitCustDetail').prop('disabled', false);
 			}
 		});
 	})
-
-	function getAllValues() {
-		var inputValues = [];
-		$('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
-			var type = $(this).attr("type");
-			if ((type == "checkbox" || type == "radio") && this.checked) {
-				inputValues.push($(this).attr("name") + "=" + $(this).val());
-			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			} else if ($(this).is("textarea")) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			}
-		})
-		return inputValues.join('&');
-	}
 </script>
 @endsection

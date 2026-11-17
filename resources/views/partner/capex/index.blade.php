@@ -28,9 +28,10 @@ $Saya =  Auth::user()->username;
 </div>
 
 <div>
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">CAPITAL EXPENDITURE</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'CAPEX'])
+
             <div class="w-25">
                 <select id="MitraList" class="custom-select">
                     <option></option>

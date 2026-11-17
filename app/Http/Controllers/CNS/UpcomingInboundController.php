@@ -8,6 +8,7 @@ use App\UCOStoragePelindo;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class UpcomingInboundController extends Controller
@@ -51,6 +52,12 @@ class UpcomingInboundController extends Controller
             $perPage = 25;
         }
 
+        $sourceCount = is_array($movements) ? count($movements) : 0;
+        $usedExcluded = 0;
+        $doneExcluded = 0;
+        $dateExcluded = 0;
+        $searchExcluded = 0;
+
         $filtered = [];
         foreach ($movements as $m) {
             if (!is_array($m)) {
@@ -58,12 +65,17 @@ class UpcomingInboundController extends Controller
             }
 
             $kode = trim((string) ($m['kode'] ?? ''));
-            if ($kode === '' || isset($usedKodes[strtoupper($kode)])) {
+            if ($kode === '') {
+                continue;
+            }
+            if (isset($usedKodes[strtoupper($kode)])) {
+                $usedExcluded++;
                 continue;
             }
 
             $status = trim((string) ($m['logistics_status'] ?? ''));
             if (strtolower($status) === 'done') {
+                $doneExcluded++;
                 continue;
             }
 
@@ -81,9 +93,11 @@ class UpcomingInboundController extends Controller
             }
 
             if ($startDate !== '' && ($tglDate === '' || $tglDate < $startDate)) {
+                $dateExcluded++;
                 continue;
             }
             if ($endDate !== '' && ($tglDate === '' || $tglDate > $endDate)) {
+                $dateExcluded++;
                 continue;
             }
 
@@ -93,6 +107,7 @@ class UpcomingInboundController extends Controller
             if ($search !== '') {
                 $haystack = $kode . ' ' . $dariGudang . ' ' . $tujuanGudang . ' ' . $status;
                 if (stripos($haystack, $search) === false) {
+                    $searchExcluded++;
                     continue;
                 }
             }
@@ -108,9 +123,24 @@ class UpcomingInboundController extends Controller
             ];
         }
 
-        $totalCount = count($filtered);
+        $filteredCount = count($filtered);
+        $totalCount = $filteredCount;
+
+        if ($sourceCount === 0 || $filteredCount === 0) {
+            Log::info('CNS upcoming inbound empty', [
+                'source_count'   => $sourceCount,
+                'used_excluded'  => $usedExcluded,
+                'done_excluded'  => $doneExcluded,
+                'date_excluded'  => $dateExcluded,
+                'search_excluded'=> $searchExcluded,
+                'filtered_count' => $filteredCount,
+                'has_date_filter'=> ($startDate !== '' || $endDate !== ''),
+                'has_search'     => $search !== '',
+            ]);
+        }
         $totalPages = $totalCount > 0 ? (int) ceil($totalCount / $perPage) : 1;
         $page = max(1, (int) $request->query('page', 1));
+
         if ($page > $totalPages) {
             $page = $totalPages;
         }
@@ -118,7 +148,9 @@ class UpcomingInboundController extends Controller
         $pagedRows = array_slice($filtered, $offset, $perPage);
 
         $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-        $xml .= '<rows total_count="' . $totalCount . '" page="' . $page . '" per_page="' . $perPage . '" total_pages="' . $totalPages . "\">\n";
+        $xml .= '<rows total_count="' . $totalCount . '" page="' . $page . '" per_page="' . $perPage . '" total_pages="' . $totalPages . '"'
+            . ' source_count="' . $sourceCount . '" used_excluded="' . $usedExcluded . '" done_excluded="' . $doneExcluded . '"'
+            . ' date_excluded="' . $dateExcluded . '" search_excluded="' . $searchExcluded . '" filtered_count="' . $filteredCount . "\">\n";
 
         $no = $offset + 1;
         foreach ($pagedRows as $row) {

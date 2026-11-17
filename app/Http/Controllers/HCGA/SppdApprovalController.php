@@ -41,38 +41,66 @@ class SppdApprovalController extends Controller
         }
 
         $admin    = SppdController::isAdministrator();
-        $verifier = $admin || SppdController::isHcgaVerifier() || SppdController::isApprover();
-        $nomor = 1;
+        $isHcga   = SppdController::isHcgaVerifier();
+        $user     = Auth::user();
+        $nomor    = 1;
 
         if ($admin) {
             // Administrator: full visibility (all types / statuses)
             $rows = DB::table('sppd')->orderBy('ID', 'DESC')->get();
-        } elseif ($verifier) {
-            // HCGA verifier / manager: monitoring of all pending
-            $normal = DB::table('sppd')
-                ->where('Sppd_Type', 'NORMAL')
-                ->where('Status', 'SUBMITTED')
-                ->orderBy('ID', 'DESC')->get();
-            $pb = DB::table('sppd')
-                ->where('Sppd_Type', 'PERBANTUAN')
-                ->whereIn('Status', ['APPROVAL_SUPERVISOR', 'APPROVAL_MANAGER', 'APPROVAL_VP', 'APPROVAL_CEO'])
-                ->orderBy('ID', 'DESC')->get();
-            $rows = $normal->merge($pb)->sortByDesc('ID')->values();
+        } elseif ($isHcga) {
+            // HCGA verifier / manager: monitoring seluruh SPPD yang sedang dalam proses approval
+            $rows = DB::table('sppd')
+                ->whereIn('Status', [
+                    'SUBMITTED',
+                    'APPROVAL_HCGA_MANAGER',
+                    'APPROVAL_SUPERVISOR',
+                    'APPROVAL_MANAGER',
+                    'APPROVAL_VP',
+                    'APPROVAL_BOD',
+                    'APPROVAL_CEO',
+                ])
+                ->orderBy('ID', 'DESC')
+                ->get();
         } else {
-            // Pb-stage approver: only rows awaiting their action
-            $rows = collect();
-            $normal = DB::table('sppd')
-                ->where('Approver_ID', Auth::user()->id)
-                ->where('Status', 'SUBMITTED')
-                ->where('Sppd_Type', 'NORMAL')
-                ->orderBy('ID', 'DESC')->get();
-            $rows = $rows->merge($normal);
+            // Approver berdasarkan Approval Policy (Manager Dept, BOD, dsb):
+            // Hanya menampilkan SPPD yang saat ini benar-benar SEDANG MENUNGGU aksi approval dari user ini
+            $rows = DB::table('sppd as s')
+                ->where(function ($q) use ($user) {
+                    $q->where(function ($eq) use ($user) {
+                        $eq->whereNotNull('s.Approval_Request_ID')
+                           ->whereExists(function ($sub) use ($user) {
+                               $sub->select(DB::raw(1))
+                                   ->from('approval_request_task as t')
+                                   ->leftJoin('approval_task_candidate as c', 'c.Task_ID', '=', 't.ID')
+                                   ->whereColumn('t.Request_ID', 's.Approval_Request_ID')
+                                   ->whereIn('t.Status', ['PENDING', 'CLAIMED'])
+                                   ->where(function ($tq) use ($user) {
+                                       $tq->where('t.Claimed_By', $user->id)
+                                          ->orWhere(function ($cq) use ($user) {
+                                              $cq->where('c.User_Id', $user->id)
+                                                 ->where('c.Status', 'ACTIVE');
+                                          });
+                                   });
+                           });
+                    })
+                    ->orWhere(function ($lq) use ($user) {
+                        $lq->whereNull('s.Approval_Request_ID')
+                           ->where('s.Approver_ID', $user->id);
+                    });
+                })
+                ->whereNotIn('s.Status', ['DRAFT', 'REJECTED', 'CLOSED', 'ACCEPTED', 'APPROVED'])
+                ->orderBy('s.ID', 'DESC')
+                ->get();
+
             $pb = DB::table('sppd')
                 ->where('Sppd_Type', 'PERBANTUAN')
                 ->whereIn('Status', ['APPROVAL_SUPERVISOR', 'APPROVAL_MANAGER', 'APPROVAL_VP', 'APPROVAL_CEO'])
+                ->whereNotIn('ID', $rows->pluck('ID')->all())
                 ->orderBy('ID', 'DESC')->get();
+
             foreach ($pb as $p) {
-                if (SppdController::isPbStageApprover($p)) {
+                if (SppdController::isPbStageApprover($p, $user)) {
                     $rows->push($p);
                 }
             }
@@ -80,15 +108,17 @@ class SppdApprovalController extends Controller
         }
 
         $stageLabels = [
-            'SUBMITTED'           => 'Manager HCGA',
-            'APPROVAL_SUPERVISOR' => 'Supervisor',
-            'APPROVAL_MANAGER'    => 'Manager',
-            'APPROVAL_VP'         => 'VP',
-            'APPROVAL_CEO'        => 'CEO',
-            'ACCEPTED'            => 'Approved',
-            'APPROVED'            => 'Approved',
-            'REJECTED'            => 'Rejected',
-            'CLOSED'              => 'Closed',
+            'SUBMITTED'             => 'Manager HCGA',
+            'APPROVAL_HCGA_MANAGER' => 'Manager HCGA',
+            'APPROVAL_SUPERVISOR'   => 'Supervisor',
+            'APPROVAL_MANAGER'      => 'Manager',
+            'APPROVAL_VP'           => 'VP / BOD',
+            'APPROVAL_BOD'          => 'BOD',
+            'APPROVAL_CEO'          => 'CEO',
+            'ACCEPTED'              => 'Approved',
+            'APPROVED'              => 'Approved',
+            'REJECTED'              => 'Rejected',
+            'CLOSED'                => 'Closed',
         ];
 
         echo "<rows>";
@@ -125,11 +155,7 @@ class SppdApprovalController extends Controller
         }
 
         $adminOrVerifier = SppdController::isAdministrator() || SppdController::isHcgaVerifier();
-        if (($sppd->Sppd_Type ?? 'NORMAL') === 'PERBANTUAN') {
-            $isActingApprover = SppdController::isPbStageApprover($sppd);
-        } else {
-            $isActingApprover = ((int) $sppd->Approver_ID === (int) Auth::user()->id);
-        }
+        $isActingApprover = SppdController::isApprover(Auth::user(), $sppd);
 
         if (!$isActingApprover && !$adminOrVerifier) {
             abort(403, 'SPPD ini bukan untuk approval Anda');
@@ -138,7 +164,12 @@ class SppdApprovalController extends Controller
         $costs = DB::table('sppd_cost')->where('SPPD_ID', $sppd->ID)->get();
         $logs  = DB::table('sppd_log')->where('SPPD_ID', $sppd->ID)->orderBy('ID', 'ASC')->get();
         $canApprove = $isActingApprover
-            && in_array($sppd->Status, ['SUBMITTED', 'APPROVAL_SUPERVISOR', 'APPROVAL_MANAGER', 'APPROVAL_VP', 'APPROVAL_CEO']);
+            && in_array($sppd->Status, ['SUBMITTED', 'APPROVAL_HCGA_MANAGER', 'APPROVAL_SUPERVISOR', 'APPROVAL_MANAGER', 'APPROVAL_VP', 'APPROVAL_BOD', 'APPROVAL_CEO']);
+
+        // Pastikan flag Is_Over_Plafon terisi dinamis jika kolom belum ada/bernilai null
+        if (!isset($sppd->Is_Over_Plafon) || $sppd->Is_Over_Plafon === null) {
+            $sppd->Is_Over_Plafon = app(\App\Services\Approval\SppdApprovalService::class)->isOverPlafon($sppd);
+        }
 
         return view('humanresources.sppd.approval.detail', compact('sppd', 'costs', 'logs', 'canApprove'));
     }
@@ -147,7 +178,7 @@ class SppdApprovalController extends Controller
     {
         $user = Auth::user();
 
-        if (!SppdController::isApprover() && !$this->userIsPbApprover()) {
+        if (!SppdController::isApprover($user) && !$this->userIsPbApprover()) {
             return response()->json(['status' => 'error', 'message' => 'Tidak berhak melakukan approval'], 403);
         }
 
@@ -169,17 +200,14 @@ class SppdApprovalController extends Controller
                     'message' => "SPPD ini sudah diproses (status: $sppd->Status)",
                 ], 422);
             }
-            if (!SppdController::isPbStageApprover($sppd)) {
+            if (!SppdController::isPbStageApprover($sppd, $user)) {
                 return response()->json(['status' => 'error', 'message' => 'SPPD ini bukan untuk approval Anda'], 403);
             }
         } else {
-            if (!SppdController::isApprover()) {
-                return response()->json(['status' => 'error', 'message' => 'Tidak berhak melakukan approval'], 403);
-            }
-            if ((int) $sppd->Approver_ID !== (int) $user->id) {
+            if (!SppdController::isApprover($user, $sppd)) {
                 return response()->json(['status' => 'error', 'message' => 'SPPD ini bukan untuk approval Anda'], 403);
             }
-            if ($sppd->Status !== 'SUBMITTED') {
+            if (!in_array($sppd->Status, ['SUBMITTED', 'APPROVAL_HCGA_MANAGER', 'APPROVAL_SUPERVISOR', 'APPROVAL_MANAGER', 'APPROVAL_VP', 'APPROVAL_BOD', 'APPROVAL_CEO'])) {
                 return response()->json([
                     'status'  => 'error',
                     'message' => "SPPD ini sudah diproses (status: $sppd->Status)",
@@ -196,19 +224,39 @@ class SppdApprovalController extends Controller
             if ($approvalType == 2) {
                 // Eksekusi penolakan pada ApprovalWorkflowService bila terhubung
                 if (!empty($sppd->Approval_Request_ID)) {
-                    try {
-                        $workflow = app(\App\Services\Approval\ApprovalWorkflowService::class);
-                        $currentTask = DB::table('approval_request_task')
-                            ->where('Request_ID', (int) $sppd->Approval_Request_ID)
-                            ->where('Status', 'PENDING')
-                            ->orderBy('Stage_Order', 'ASC')
-                            ->first();
-                        if ($currentTask) {
-                            $workflow->reject((int) $currentTask->ID, $note ?: 'Request ditolak', (int) $user->id);
-                        }
-                    } catch (\Exception $wfEx) {
-                        Log::warning('ApprovalWorkflowService reject error: ' . $wfEx->getMessage());
+                    $workflow = app(\App\Services\Approval\ApprovalWorkflowService::class);
+                    $currentTask = DB::table('approval_request_task as t')
+                        ->leftJoin('approval_task_candidate as c', 'c.Task_ID', '=', 't.ID')
+                        ->where('t.Request_ID', (int) $sppd->Approval_Request_ID)
+                        ->whereIn('t.Status', ['PENDING', 'CLAIMED'])
+                        ->where(function ($q) use ($user) {
+                            $q->where('t.Claimed_By', (int) $user->id)
+                              ->orWhere(function ($cq) use ($user) {
+                                  $cq->where('c.User_Id', (int) $user->id)
+                                     ->where('c.Status', 'ACTIVE');
+                              });
+                        })
+                        ->orderBy('t.Stage_Order', 'ASC')
+                        ->select('t.*')
+                        ->first();
+
+                    if (!$currentTask) {
+                        DB::rollBack();
+                        return response()->json([
+                            'status'  => 'error',
+                            'message' => 'Tidak ada antrean tugas penolakan untuk Anda pada SPPD ini.',
+                        ], 422);
                     }
+
+                    if (strtoupper((string) $currentTask->Status) !== 'CLAIMED' || (int) $currentTask->Claimed_By !== (int) $user->id) {
+                        try {
+                            $workflow->claim((int) $currentTask->ID, (int) $user->id);
+                        } catch (\Exception $clEx) {
+                            Log::info('Task claim bypass: ' . $clEx->getMessage());
+                        }
+                    }
+                    $workflow->act((int) $currentTask->ID, (int) $user->id, 'REJECT', $note ?: 'Request ditolak');
+                    app(\App\Services\Approval\SppdApprovalService::class)->syncApprovalStatus((int) $sppd->ID, $user->username);
                 }
 
                 $newNote = $existingNote . "$timestamp REJECTED by $user->username :: $note";
@@ -266,30 +314,54 @@ class SppdApprovalController extends Controller
             } else {
                 // Eksekusi persetujuan pada ApprovalWorkflowService bila terhubung
                 if (!empty($sppd->Approval_Request_ID)) {
-                    try {
-                        $workflow = app(\App\Services\Approval\ApprovalWorkflowService::class);
-                        $currentTask = DB::table('approval_request_task')
-                            ->where('Request_ID', (int) $sppd->Approval_Request_ID)
-                            ->where('Status', 'PENDING')
-                            ->orderBy('Stage_Order', 'ASC')
-                            ->first();
-                        if ($currentTask) {
-                            $workflow->approve((int) $currentTask->ID, $note ?: 'Request disetujui', (int) $user->id);
-                        }
-                    } catch (\Exception $wfEx) {
-                        Log::warning('ApprovalWorkflowService approve error: ' . $wfEx->getMessage());
+                    $workflow = app(\App\Services\Approval\ApprovalWorkflowService::class);
+                    $currentTask = DB::table('approval_request_task as t')
+                        ->leftJoin('approval_task_candidate as c', 'c.Task_ID', '=', 't.ID')
+                        ->where('t.Request_ID', (int) $sppd->Approval_Request_ID)
+                        ->whereIn('t.Status', ['PENDING', 'CLAIMED'])
+                        ->where(function ($q) use ($user) {
+                            $q->where('t.Claimed_By', (int) $user->id)
+                              ->orWhere(function ($cq) use ($user) {
+                                  $cq->where('c.User_Id', (int) $user->id)
+                                     ->where('c.Status', 'ACTIVE');
+                              });
+                        })
+                        ->orderBy('t.Stage_Order', 'ASC')
+                        ->select('t.*')
+                        ->first();
+
+                    if (!$currentTask) {
+                        DB::rollBack();
+                        return response()->json([
+                            'status'  => 'error',
+                            'message' => 'Tidak ada antrean tugas persetujuan untuk Anda pada SPPD ini (mungkin sudah disetujui sebelumnya atau telah berlanjut ke tahap berikutnya).',
+                        ], 422);
                     }
+
+                    if (strtoupper((string) $currentTask->Status) !== 'CLAIMED' || (int) $currentTask->Claimed_By !== (int) $user->id) {
+                        try {
+                            $workflow->claim((int) $currentTask->ID, (int) $user->id);
+                        } catch (\Exception $clEx) {
+                            Log::info('Task claim bypass: ' . $clEx->getMessage());
+                        }
+                    }
+
+                    $workflow->act((int) $currentTask->ID, (int) $user->id, 'APPROVE', $note ?: 'Request disetujui');
+                    app(\App\Services\Approval\SppdApprovalService::class)->syncApprovalStatus((int) $sppd->ID, $user->username);
                 }
 
-                $newStatus = 'ACCEPTED';
-                $newNote = $existingNote . "$timestamp ACCEPTED by $user->username :: $note";
-                DB::table('sppd')->where('ID', $sppd->ID)->update([
-                    'Status'        => $newStatus,
+                $refreshedSppd = DB::table('sppd')->where('ID', $sppd->ID)->first();
+                $newStatus = $refreshedSppd ? $refreshedSppd->Status : 'ACCEPTED';
+                $newNote = $existingNote . "$timestamp APPROVED by $user->username :: $note";
+                $updatePayload = [
                     'Approval_Note' => $newNote,
-                    'Approved_At'   => now(),
                     'Updated_By'    => $user->username,
                     'Updated_Date'  => now(),
-                ]);
+                ];
+                if (in_array($newStatus, ['ACCEPTED', 'APPROVED'])) {
+                    $updatePayload['Approved_At'] = now();
+                }
+                DB::table('sppd')->where('ID', $sppd->ID)->update($updatePayload);
                 DB::table('sppd_log')->insert([
                     'SPPD_ID'    => $sppd->ID,
                     'Action'     => 'APPROVED',

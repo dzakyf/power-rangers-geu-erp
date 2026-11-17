@@ -10,7 +10,6 @@ use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\ComplianceController;
 use App\Http\Controllers\HelperController;
-use App\Http\Controllers\KPIController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Credential\CredentialRoleController;
@@ -41,8 +40,6 @@ use App\Http\Controllers\CNS\NonUcoSupplierController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\CNS\ISCCTraceabilityController;
 use App\Http\Controllers\CNS\UpcomingInboundController;
-use App\Http\Controllers\CNS\DrainAdjustmentController;
-use App\Http\Controllers\CNS\InboundAdjustmentController;
 use App\Http\Controllers\CNS\KemasanInventoryController;
 use App\Http\Controllers\CNS\TankDrainingController;
 use App\Http\Controllers\CNS\MasterKemasanController;
@@ -91,6 +88,8 @@ use App\Http\Controllers\HCGA\EmailSettingsController as HCGAEmailSettingsContro
 use App\Http\Controllers\HCGA\AnnouncementCmsController as HCGAAnnouncementCmsController;
 use App\Http\Controllers\HCGA\AnnouncementMobileController as HCGAAnnouncementMobileController;
 use App\Http\Controllers\HCGA\CompanyGuidelineCmsController as HCGACompanyGuidelineCmsController;
+use App\Http\Controllers\HCGA\MobilePortalController as HCGAMobilePortalController;
+use App\Http\Controllers\HCGA\MobilePayslipController as HCGAMobilePayslipController;
 use App\Http\Controllers\HCGA\CompanyGuidelineMobileController as HCGACompanyGuidelineMobileController;
 use App\Http\Controllers\HCGA\Performance\PerformanceKpiController as HCGAPerformanceKpiController;
 use App\Http\Controllers\HCGA\Performance\PerformancePeriodController as HCGAPerformancePeriodController;
@@ -158,6 +157,8 @@ use App\Http\Controllers\RenewalController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\UploaderController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ProcurementController; //tambahan ricko
+use App\Http\Controllers\SupplierController; //tambahan ricko
 
 /*
 |--------------------------------------------------------------------------
@@ -239,6 +240,15 @@ Route::group(['middleware' => 'usersession'], function () {
 
 $chatPref = "partner-chat";
 Route::post("$chatPref-fetch-new", [PartnerChatListController::class, 'fetchNewMessages']);
+
+// Mobile Portal Public Auth Routes (Hardened)
+Route::prefix('mobile')->middleware(['mobile.security'])->group(function () {
+    Route::get('/login', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'showLogin'])->name('mobile.login');
+    Route::post('/login', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'login'])
+        ->middleware('throttle:5,1,mobile_web_login')
+        ->name('mobile.login.submit');
+});
+
 Route::group(['middleware' => 'log.access'], function () {
     Route::get('/dashboard-history-proforma', function () {
         return view('dashboard.history-proforma');
@@ -527,6 +537,12 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("/candidate/document-upload", [CandidateController::class, "documentUpload"]);
     Route::get("/candidate/assessment", [CandidateController::class, "assessment"]);
     Route::get("/candidate/progress", [CandidateController::class, "progress"]);
+    Route::post("/candidate/progress-confirm", [CandidateController::class, "confirmSchedule"]);
+    Route::post("/candidate/availability-update", [CandidateController::class, "updateAvailability"]);
+    Route::get("/candidate/offering-download", [CandidateController::class, "downloadOfferingLetter"]);
+    Route::post("/candidate/offering-upload", [CandidateController::class, "uploadSignedOffering"]);
+    Route::get("/candidate/password", [CandidateController::class, "passwordForm"]);
+    Route::post("/candidate/password-update", [CandidateController::class, "passwordUpdate"]);
     Route::post("/master-credential-user-update", [CredentialUserController::class, "updateUser"]);
     Route::post("/master-credential-user-delete", [CredentialUserController::class, "deleteUser"]);
 
@@ -2650,9 +2666,24 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/purchasing-order-cancel', function () {
         return view('procurement.purchasing-order-cancel');
     });
+    Route::get('/purchasing-order-rfq', function () {
+        return view('humanresources.procurement.purchasing-order-rfq');
+    });
+    Route::get('/xml-purchasing-order-rfq', function () {
+        return view('humanresources.procurement.xml.purchasing-order-rfq');
+    });
+
+    // Route::get('/qtn-create-detail', function () {
+    //     return view('procurement.qtn-create-detail');
+    // });
+
+    Route::get('/qtn-create-detail', [ProcurementController::class, 'createDetail']);
+    
+
     Route::get('/purchasing-order-approved', function () {
         return view('procurement.purchasing-order-approved');
     });
+
     Route::get('/xml-purchasing-order-approved', function () {
         return view('procurement.xml.purchasing-order-approved');
     });
@@ -3688,6 +3719,18 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::delete('/hrd-master-attendance-cutoff/{id}', [\App\Http\Controllers\HCGA\MasterAttendanceCutoffController::class, 'destroy'])->name('attendance.cutoff.destroy');
     Route::get('/hrd-master-attendance-cutoff-preview', [\App\Http\Controllers\HCGA\MasterAttendanceCutoffController::class, 'previewRange'])->name('attendance.cutoff.preview');
 
+    // Setting Lokasi & Batas Maksimal Jarak Absensi (Geofence Radius)
+    Route::get('/hrd-attendance-locations', [\App\Http\Controllers\HCGA\AttendancesController::class, 'locationsIndex'])->name('attendance.locations.index');
+    Route::post('/hrd-attendance-locations/store', [\App\Http\Controllers\HCGA\AttendancesController::class, 'locationsStore'])->name('attendance.locations.store');
+    Route::post('/hrd-attendance-locations/{id}/update', [\App\Http\Controllers\HCGA\AttendancesController::class, 'locationsUpdate'])->name('attendance.locations.update');
+    Route::delete('/hrd-attendance-locations/{id}', [\App\Http\Controllers\HCGA\AttendancesController::class, 'locationsDestroy'])->name('attendance.locations.destroy');
+
+    // HCGA Master Location (Duplikasi UI Modern dari accounting-master-location)
+    Route::get('/hrd-master-location', [\App\Http\Controllers\HCGA\MasterLocationController::class, 'index'])->name('hrd.master-location.index');
+    Route::post('/hrd-master-location/store', [\App\Http\Controllers\HCGA\MasterLocationController::class, 'store'])->name('hrd.master-location.store');
+    Route::post('/hrd-master-location/{id}/update', [\App\Http\Controllers\HCGA\MasterLocationController::class, 'update'])->name('hrd.master-location.update');
+    Route::delete('/hrd-master-location/{id}', [\App\Http\Controllers\HCGA\MasterLocationController::class, 'destroy'])->name('hrd.master-location.destroy');
+
     // Overtime (Lembur) Matrix & Requests
     Route::get('/hrd-overtime-matrix', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'indexMatrix'])->name('attendance.overtime.matrix');
     Route::get('/hrd-overtime-matrix/{id}/detail', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'getMatrixDetail'])->name('attendance.overtime.matrix.detail');
@@ -3709,27 +3752,18 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/attendance/change-shift/schedule', [\App\Http\Controllers\HCGA\ShiftExchangeController::class, 'getScheduleByDate'])->name('attendance.changeshift.schedule');
     Route::post('/attendance/request/change-shift', [\App\Http\Controllers\HCGA\ShiftExchangeController::class, 'submitChangeShift'])->name('attendance.request.changeshift');
 
-    // Mobile Webview Attendance & Timesheet
-    Route::get('/attendance/mobile', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileIndex'])->name('attendance.mobile.index');
-    Route::get('/attendance/mobile/timesheet', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileTimesheet'])->name('attendance.mobile.timesheet');
-    Route::get('/attendance/mobile/leave', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileLeaveForm'])->name('attendance.mobile.leave');
-    Route::post('/attendance/mobile/clock-in', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiClockIn'])->name('attendance.mobile.clockin');
-    Route::post('/attendance/mobile/clock-out', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiClockOut'])->name('attendance.mobile.clockout');
-    Route::post('/attendance/mobile/request/leave', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiSubmitLeave'])->name('attendance.mobile.submitleave');
+    // Mobile Webview Attendance & Timesheet (Legacy URL redirects to /mobile/attendance*)
+    Route::redirect('/attendance/mobile', '/mobile/attendance');
+    Route::redirect('/attendance/mobile/timesheet', '/mobile/attendance/timesheet');
+    Route::redirect('/attendance/mobile/leave', '/mobile/attendance/leave');
+    Route::post('/attendance/mobile/clock-in', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiClockIn']);
+    Route::post('/attendance/mobile/clock-out', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiClockOut']);
+    Route::post('/attendance/mobile/request/leave', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiSubmitLeave']);
     Route::post('/attendance/request/leave/cancel', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiCancelLeave'])->name('attendance.request.leave.cancel');
-    Route::post('/attendance/mobile/request/correction', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiSubmitCorrection'])->name('attendance.mobile.submitcorrection');
+    Route::post('/attendance/mobile/request/correction', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiSubmitCorrection']);
     Route::get('/permission-approval', [\App\Http\Controllers\HCGA\PermissionLegacyController::class, 'approvalIndex']);
     Route::post('/permission-approval-update', [\App\Http\Controllers\HCGA\PermissionLegacyController::class, 'updateApproval']);
     Route::get('/xml-permission-approval', [\App\Http\Controllers\HCGA\PermissionLegacyController::class, 'xmlApproval']);
-    Route::get('/permission-approval', function () {
-        return view('humanresources.permission.approval');
-    });
-    Route::post('/permission-approval-update', function () {
-        return view('humanresources.permission.approval-update');
-    });
-    Route::get('/xml-permission-approval', function () {
-        return view('humanresources.permission.xml.approval');
-    });
     Route::get('/xml-combo-directorat', function () {
         return view('humanresources.master.xml.combo-directorat');
     });
@@ -3843,6 +3877,16 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post('/api/payroll/deduction-configs/update', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiUpdateDeductionConfig']);
     Route::get('/api/payroll/employee-salary-detail', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiGetEmployeeSalarySlipDetail']);
 
+    // Perhitungan & Manajemen THR (Tunjangan Hari Raya) terintegrasi ke Payslip Bulan Berjalan
+    Route::get('/payroll-thr', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'index'])->name('payroll.thr.index');
+    Route::get('/api/payroll/thr/batches', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'listBatches'])->name('payroll.thr.batches');
+    Route::get('/xml-payroll-thr-items', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'batchItemsXml'])->name('payroll.thr.items.xml');
+    Route::post('/api/payroll/thr/generate', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'generateDraft'])->name('payroll.thr.generate');
+    Route::post('/api/payroll/thr/item/update', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'updateItem'])->name('payroll.thr.item.update');
+    Route::post('/api/payroll/thr/lock', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'lockBatch'])->name('payroll.thr.lock');
+    Route::post('/api/payroll/thr/unlock', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'unlockBatch'])->name('payroll.thr.unlock');
+    Route::post('/api/payroll/thr/delete', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'deleteDraft'])->name('payroll.thr.delete');
+
 
     Route::get('/payroll-group', function () {
         return view('humanresources.payroll.payroll-group');
@@ -3918,6 +3962,11 @@ Route::group(['middleware' => 'log.access'], function () {
     });
     Route::get('/xml-payroll-employee', [\App\Http\Controllers\HCGA\PayrollController::class, 'xmlPayrollEmployee'])->name('payroll.employee.xml');
     Route::post('/payroll-recounting-ajax', [\App\Http\Controllers\HCGA\PayrollController::class, 'recountingAjax'])->name('payroll.recounting.ajax');
+    Route::get('/payroll-deductions/employees', [\App\Http\Controllers\HCGA\PayrollController::class, 'deductionsEmployees'])->name('payroll.deductions.employees');
+    Route::get('/payroll-deductions/list', [\App\Http\Controllers\HCGA\PayrollController::class, 'deductionsList'])->name('payroll.deductions.list');
+    Route::post('/payroll-deductions/auto-pull', [\App\Http\Controllers\HCGA\PayrollController::class, 'deductionsAutoPull'])->name('payroll.deductions.autopull');
+    Route::post('/payroll-deductions/save', [\App\Http\Controllers\HCGA\PayrollController::class, 'deductionsSave'])->name('payroll.deductions.save');
+    Route::delete('/payroll-deductions/{id}', [\App\Http\Controllers\HCGA\PayrollController::class, 'deductionsDelete'])->name('payroll.deductions.delete');
     Route::get('/search-employee', function () {
         return view('humanresources.overtime.search-employee');
     });
@@ -4938,6 +4987,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$masterAuditPref-category-new-submit", [PartnerMasterAuditController::class, 'newMasterAuditCategorySubmit']);
     Route::get("$masterAuditPref-category-detail", [PartnerMasterAuditController::class, 'detailMasterAuditCategory']);
     Route::post("$masterAuditPref-category-detail-submit", [PartnerMasterAuditController::class, 'detailMasterAuditCategorySubmit']);
+    Route::post("$masterAuditPref-category-change-status", [PartnerMasterAuditController::class, 'changeStatusMasterAuditCategory']);
+    Route::post("$masterAuditPref-category-update", [PartnerMasterAuditController::class, 'updateMasterAuditCategory']);
     Route::get("xml-$masterAuditPref-category", [PartnerMasterAuditController::class, 'indexMasterAuditCategoryXml']);
     Route::get("$masterAuditPref-parameter", [PartnerMasterAuditController::class, 'indexMasterAuditParameter']);
     Route::get("xml-$masterAuditPref-parameter", [PartnerMasterAuditController::class, 'indexMasterAuditParameterXml']);
@@ -4951,6 +5002,11 @@ Route::group(['middleware' => 'log.access'], function () {
     /** sop compliance route */
     $sopPref = "partner-master-sop";
     Route::get($sopPref, [PartnerMasterSOPController::class, 'indexSOP']);
+    Route::get("$sopPref-new", [PartnerMasterSOPController::class, 'newSOP']);
+    Route::get("$sopPref-detail", [PartnerMasterSOPController::class, 'detailSOP']);
+    Route::post("$sopPref-new-submit", [PartnerMasterSOPController::class, 'storeSOP']);
+    Route::post("$sopPref-detail-submit", [PartnerMasterSOPController::class, 'updateSOP']);
+    Route::post("$sopPref-delete", [PartnerMasterSOPController::class, 'deleteSOP']);
 
     /** chat route */
     $chatPref = "partner-chat";
@@ -5133,6 +5189,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$partnerTransferPrefs-update-application", [RenewalController::class, 'updateTransferMembershipApplication']);
     Route::post("$partnerTransferPrefs-preview-application", [RenewalController::class, 'previewTransferMembershipApplication']);
     Route::post("$partnerTransferPrefs-finalize-application", [RenewalController::class, 'finalizeTransferMembershipApplication']);
+    Route::get("$partnerTransferPrefs-download", [RenewalController::class, 'downloadTransferMembershipApplication']);
     Route::get("$partnerTransferPrefs-approval-index", [ApprovalController::class, 'indexTransferMembershipApproval']);
     Route::get("$partnerTransferPrefs-approval-create", [ApprovalController::class, 'createTransferMembershipApproval']);
     Route::get("$partnerTransferPrefs-approval-data", [ApprovalController::class, 'getApprovalData']);
@@ -5576,8 +5633,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$cnsInventoryPref-movement-detail", [UCOLogisticController::class, 'getInboundMovementDetail'])->name($cnsInventoryPref . '.movement-detail');
     Route::post("$cnsInventoryPref-submit", [UCOLogisticController::class, 'submitStoragePelindo'])->name($cnsInventoryPref . '.submit');
     Route::post("$cnsInventoryPref-submit-edit", [UCOLogisticController::class, 'updateExportedStock'])->name($cnsInventoryPref . '.submit-edit');
-    Route::post("$cnsInventoryPref-approve", [UCOLogisticController::class, 'approveInboundMovement'])->name($cnsInventoryPref . '.approve');
-    Route::post("$cnsInventoryPref-reject", [UCOLogisticController::class, 'rejectInboundMovement'])->name($cnsInventoryPref . '.reject');
     Route::delete("$cnsInventoryPref-delete", [UCOLogisticController::class, 'deleteExportedStock'])->name($cnsInventoryPref . '.delete');
     Route::get("xml-cns-upcoming-inbound", [UpcomingInboundController::class, 'xmlData'])->name('cns-upcoming-inbound.xml');
 
@@ -5610,33 +5665,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$tankDrainingPref-update/{id}", [TankDrainingController::class, 'update'])->name($tankDrainingPref . '.update');
     Route::post("$tankDrainingPref-delete/{id}", [TankDrainingController::class, 'destroy'])->name($tankDrainingPref . '.delete');
     Route::get("$tankDrainingPref-bast/{id}", [TankDrainingController::class, 'bastDocument'])->name($tankDrainingPref . '.bast');
-
-    $inboundAdjustmentPref = "cns-inbound-adjustment";
-    Route::get("$inboundAdjustmentPref", [InboundAdjustmentController::class, 'index'])->name($inboundAdjustmentPref . '.index');
-    Route::get("xml-$inboundAdjustmentPref", [InboundAdjustmentController::class, 'xmlData'])->name($inboundAdjustmentPref . '.xml');
-    Route::get("$inboundAdjustmentPref-new", [InboundAdjustmentController::class, 'newAdjustment'])->name($inboundAdjustmentPref . '.new');
-    Route::get("$inboundAdjustmentPref-detail", [InboundAdjustmentController::class, 'detailAdjustment'])->name($inboundAdjustmentPref . '.detail');
-    Route::get("$inboundAdjustmentPref-generate-code", [InboundAdjustmentController::class, 'generateCode'])->name($inboundAdjustmentPref . '.generate-code');
-    Route::get("$inboundAdjustmentPref-active/{kode}", [InboundAdjustmentController::class, 'getActiveAdjustmentByMovement'])->name($inboundAdjustmentPref . '.active-by-movement');
-    Route::post("$inboundAdjustmentPref-store", [InboundAdjustmentController::class, 'store'])->name($inboundAdjustmentPref . '.store');
-    Route::post("$inboundAdjustmentPref-update/{id}", [InboundAdjustmentController::class, 'update'])->name($inboundAdjustmentPref . '.update');
-    Route::post("$inboundAdjustmentPref-delete/{id}", [InboundAdjustmentController::class, 'destroy'])->name($inboundAdjustmentPref . '.delete');
-    Route::post("$inboundAdjustmentPref-approve/{id}", [InboundAdjustmentController::class, 'approve'])->name($inboundAdjustmentPref . '.approve');
-    Route::post("$inboundAdjustmentPref-reject/{id}", [InboundAdjustmentController::class, 'reject'])->name($inboundAdjustmentPref . '.reject');
-    Route::get("$inboundAdjustmentPref-document/{id}", [InboundAdjustmentController::class, 'document'])->name($inboundAdjustmentPref . '.document');
-
-    $drainAdjustmentPref = "cns-drain-adjustment";
-    Route::get("$drainAdjustmentPref", [DrainAdjustmentController::class, 'index'])->name($drainAdjustmentPref . '.index');
-    Route::get("xml-$drainAdjustmentPref", [DrainAdjustmentController::class, 'xmlData'])->name($drainAdjustmentPref . '.xml');
-    Route::get("$drainAdjustmentPref-new", [DrainAdjustmentController::class, 'newAdjustment'])->name($drainAdjustmentPref . '.new');
-    Route::get("$drainAdjustmentPref-detail", [DrainAdjustmentController::class, 'detailAdjustment'])->name($drainAdjustmentPref . '.detail');
-    Route::get("$drainAdjustmentPref-generate-code", [DrainAdjustmentController::class, 'generateCode'])->name($drainAdjustmentPref . '.generate-code');
-    Route::post("$drainAdjustmentPref-store", [DrainAdjustmentController::class, 'store'])->name($drainAdjustmentPref . '.store');
-    Route::post("$drainAdjustmentPref-update/{id}", [DrainAdjustmentController::class, 'update'])->name($drainAdjustmentPref . '.update');
-    Route::post("$drainAdjustmentPref-delete/{id}", [DrainAdjustmentController::class, 'destroy'])->name($drainAdjustmentPref . '.delete');
-    Route::post("$drainAdjustmentPref-approve/{id}", [DrainAdjustmentController::class, 'approve'])->name($drainAdjustmentPref . '.approve');
-    Route::post("$drainAdjustmentPref-reject/{id}", [DrainAdjustmentController::class, 'reject'])->name($drainAdjustmentPref . '.reject');
-    Route::get("$drainAdjustmentPref-document/{id}", [DrainAdjustmentController::class, 'document'])->name($drainAdjustmentPref . '.document');
 
     $cnsQualityPref = "cns-quality";
     Route::get("$cnsQualityPref-external-index", [QualityController::class, 'externalIndexPage'])->name($cnsQualityPref . '.external-index');
@@ -6027,6 +6055,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcApprovalPref-inbox", [HCGAApprovalInboxController::class, 'index']);
     Route::get("$hcApprovalPref-inbox-data", [HCGAApprovalInboxController::class, 'data']);
     Route::get("$hcApprovalPref-mobile", [HCGAApprovalInboxController::class, 'mobileIndex'])->name('approval.mobile.index');
+    Route::get("$hcApprovalPref-mobile-detail/{id}", [HCGAApprovalInboxController::class, 'mobileDetail'])->name('approval.mobile.detail');
     Route::get("$hcApprovalPref-detail", [HCGAApprovalInboxController::class, 'detail']);
     Route::post("$hcApprovalPref-claim", [HCGAApprovalInboxController::class, 'claim']);
     Route::post("$hcApprovalPref-act", [HCGAApprovalInboxController::class, 'act']);
@@ -6128,13 +6157,11 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcSppdApprovalPref-detail", [HCGASppdApprovalController::class, 'detail']);
     Route::post("$hcSppdApprovalPref-submit", [HCGASppdApprovalController::class, 'approval']);
 
-    // SPPD Mobile Webview & Mobile Actions
-    Route::get('/sppd/mobile', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'mobileIndex'])->name('sppd.mobile.index');
-    Route::get('/sppd/mobile/form', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'mobileForm'])->name('sppd.mobile.form');
-    Route::get('/sppd/mobile/detail', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'mobileDetail'])->name('sppd.mobile.detail');
-    Route::get('/sppd/mobile/approval', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'mobileApproval'])->name('sppd.mobile.approval');
-    Route::post('/sppd/mobile/submit', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiSubmit'])->name('sppd.mobile.api.submit');
-    Route::post('/sppd/mobile/approve', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiProcessApproval'])->name('sppd.mobile.api.approval');
+    // SPPD Mobile Webview & Mobile Actions (Legacy URL redirects to /mobile/sppd*)
+    Route::redirect('/sppd/mobile', '/mobile/sppd');
+    Route::redirect('/sppd/mobile/form', '/mobile/sppd/form');
+    Route::redirect('/sppd/mobile/detail', '/mobile/sppd/detail');
+    Route::redirect('/sppd/mobile/approval', '/mobile/sppd/approval');
 
     $hcSettlementPref = "$hcPref-settlement";
     Route::get("$hcSettlementPref-index", [HCGASettlementController::class, 'index']);
@@ -6166,18 +6193,15 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcReimbursementApprovalPref-detail", [HCGAReimbursementApprovalController::class, 'detail']);
     Route::post("$hcReimbursementApprovalPref-submit", [HCGAReimbursementApprovalController::class, 'approve']);
 
-    // Mobile Webview Reimbursement
-    Route::get('/reimbursement/mobile', [\App\Http\Controllers\HCGA\ReimbursementMobileController::class, 'mobileIndex'])->name('reimbursement.mobile.index');
-    Route::get('/reimbursement/mobile/form', [\App\Http\Controllers\HCGA\ReimbursementMobileController::class, 'mobileForm'])->name('reimbursement.mobile.form');
-    Route::get('/reimbursement/mobile/detail', [\App\Http\Controllers\HCGA\ReimbursementMobileController::class, 'mobileDetail'])->name('reimbursement.mobile.detail');
-    Route::get('/reimbursement/mobile/approval', [\App\Http\Controllers\HCGA\ReimbursementMobileController::class, 'mobileApproval'])->name('reimbursement.mobile.approval');
+    // Mobile Webview Reimbursement (Legacy URL redirects to /mobile/reimbursement*)
+    Route::redirect('/reimbursement/mobile', '/mobile/reimbursement');
+    Route::redirect('/reimbursement/mobile/form', '/mobile/reimbursement/form');
+    Route::redirect('/reimbursement/mobile/detail', '/mobile/reimbursement/detail');
+    Route::redirect('/reimbursement/mobile/approval', '/mobile/reimbursement/approval');
 
-    // Mobile Employee Self-Service & HCGA Directory
-    Route::get('/employee/profile', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'myProfile'])->name('employee.mobile.my-profile');
-    Route::get('/employee/directory', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'directory'])->name('employee.mobile.directory');
-    Route::get('/employee/mobile/tab-content', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'loadTabContent'])->name('employee.mobile.tab-content');
-    Route::post('/employee/mobile/submit-update', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'submitUpdate'])->name('employee.mobile.submit-update');
-    Route::post('/employee/mobile/request-approval/{id}', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'approveRequest'])->name('employee.mobile.approve-request');
+    // Mobile Employee Self-Service & HCGA Directory (Legacy URL redirects to /mobile/profile*)
+    Route::redirect('/employee/profile', '/mobile/profile');
+    Route::redirect('/employee/directory', '/mobile/directory');
 
     // News & Announcement (CMS Web & Mobile Feed)
     $hcAnnouncementPref = "$hcPref-announcement";
@@ -6190,13 +6214,9 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcAnnouncementPref-detail", [HCGAAnnouncementCmsController::class, 'detail'])->name('hrd.announcement.detail');
     Route::post("$hcAnnouncementPref-delete", [HCGAAnnouncementCmsController::class, 'destroy'])->name('hrd.announcement.delete');
 
-    // Mobile News & Announcement
-    Route::get('/announcement/mobile', [HCGAAnnouncementMobileController::class, 'mobileIndex'])->name('announcement.mobile.index');
-    Route::get('/announcement/mobile/create', [HCGAAnnouncementMobileController::class, 'mobileForm'])->name('announcement.mobile.create');
-    Route::get('/announcement/mobile/edit/{id}', [HCGAAnnouncementMobileController::class, 'mobileForm'])->name('announcement.mobile.edit');
-    Route::get('/announcement/mobile/detail/{id}', [HCGAAnnouncementMobileController::class, 'mobileDetail'])->name('announcement.mobile.detail');
-    Route::post('/announcement/mobile/submit', [HCGAAnnouncementMobileController::class, 'mobileSubmit'])->name('announcement.mobile.submit');
-    Route::post('/announcement/mobile/delete/{id}', [HCGAAnnouncementMobileController::class, 'mobileDelete'])->name('announcement.mobile.delete');
+    // Mobile News & Announcement (Legacy URL redirects to /mobile/announcement*)
+    Route::redirect('/announcement/mobile', '/mobile/announcement');
+    Route::redirect('/announcement/mobile/create', '/mobile/announcement/create');
 
     // Corporate Culture & Regulation (Visi Misi, Core Value, Peraturan Perusahaan)
     $hcGuidelinePref = "$hcPref-company-guideline";
@@ -6209,9 +6229,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcGuidelinePref-detail", [HCGACompanyGuidelineCmsController::class, 'detail'])->name('hrd.company-guideline.detail');
     Route::post("$hcGuidelinePref-delete", [HCGACompanyGuidelineCmsController::class, 'destroy'])->name('hrd.company-guideline.delete');
 
-    // Mobile Corporate Culture & Regulation
-    Route::get('/company-guideline/mobile', [HCGACompanyGuidelineMobileController::class, 'mobileIndex'])->name('company-guideline.mobile.index');
-    Route::get('/company-guideline/mobile/detail/{id}', [HCGACompanyGuidelineMobileController::class, 'mobileDetail'])->name('company-guideline.mobile.detail');
+    // Mobile Corporate Culture & Regulation (Legacy URL redirects to /mobile/guideline*)
+    Route::redirect('/company-guideline/mobile', '/mobile/guideline');
 
     // Performance Management (KPI, OKR, Period, Review, Competency, PIP)
     $hcPerfPref = "$hcPref-performance";
@@ -6386,7 +6405,74 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$gaPref-cleaning-area-qr-image", [HCGAGaCleaningController::class, 'areaQrImage']);
     Route::get("$gaPref-cleaning-area-print-qr", [HCGAGaCleaningController::class, 'printAreaQr']);
 
+//             // Tambahkan rute ini di routes/web.php
+//         Route::get('/purchase-request-list', function () {
+//             return view('procurement.purchase-request-list');
+//         });
 
+//     Route::get('/xml-purchase-request-list', function () {
+//     return response()->view('procurement.xml.purchase-request-list-xml', [], 200)
+//                      ->header('Content-Type', 'text/xml');
+// });
+
+Route::get('/procurement-dashboard', [ProcurementController::class, 'dashboardProcurement']);
+
+// Halaman Utama Master Product List
+Route::get('/product-list', [ProcurementController::class, 'productList']);
+
+// Endpoint XML untuk DHTMLX Grid Master Produk
+Route::get('/xml-product-list', [ProcurementController::class, 'xmlProductList']);
+Route::post('/product-store', [ProcurementController::class, 'storeProduct']);
+Route::get('/product-export-excel', [ProcurementController::class, 'exportProductExcel']);
+// Mengambil detail produk untuk form Edit (AJAX)
+Route::get('/product-edit/{id}', [ProcurementController::class, 'editProduct']);
+
+// Menyimpan perubahan data produk (Update)
+Route::post('/product-update/{id}', [ProcurementController::class, 'updateProduct']);
+
+// Route untuk memproses penyimpanan Quotation / Penawaran Vendor
+Route::post('qtn-store', [ProcurementController::class, 'storeQuotation']);
+Route::get('vendor-comparison-matrix', [ProcurementController::class, 'vendorComparisonMatrix']);
+
+Route::get('rfq-print', [ProcurementController::class, 'printRFQ']);
+
+
+// ==================== MASTER SUPPLIER ====================
+Route::get('/supplier-list', [SupplierController::class, 'supplierList']);
+Route::get('/xml-supplier-list', [SupplierController::class, 'xmlSupplierList']);
+Route::post('/supplier-store', [SupplierController::class, 'storeSupplier']);
+Route::get('/supplier-edit/{id}', [SupplierController::class, 'editSupplier']);
+Route::post('/supplier-update/{id}', [SupplierController::class, 'updateSupplier']);
+
+
+    // 1. Route List PR
+Route::get('/purchase-request-list', function () {
+    return view('humanresources.procurement.purchase-request-list');
+});
+
+// 2. Route XML List PR
+Route::get('/xml-purchase-request-list', function () {
+    return response()->view('humanresources.procurement.xml.purchase-request-list-xml', [], 200)
+                     ->header('Content-Type', 'text/xml');
+});
+
+// Detail PR Pending (Dimuat via AJAX LoadM ke dalam PRDiv)
+Route::get('/purchase-request-detail-pending', [ProcurementController::class, 'detailPRPending']);
+Route::post('/purchase-request-update', [ProcurementController::class, 'updatePR']);
+
+// Proses Update Status Approval (Approve / Reject)
+Route::post('/purchase-request-approve', [ProcurementController::class, 'approvePR']);
+// Detail PR Approved
+Route::get('/purchase-request-detail-approved', [ProcurementController::class, 'detailPRApproved']);
+
+// Proses Lanjut ke RFQ dari PR Approved
+
+Route::post('purchase-request-to-rfq', [App\Http\Controllers\ProcurementController::class, 'convertToRFQ']);
+
+// Menggunakan Controller untuk Form, AJAX, dan Store
+Route::get('/purchase-request-create', [ProcurementController::class, 'createPR']);
+Route::get('/get-material-detail', [ProcurementController::class, 'getMaterialDetail']);
+Route::post('/purchase-request-store', [ProcurementController::class, 'storePR']);
 
     // -- General email settings (SMTP, sender, recipients, test, log) --
     $creEmailSettingsPref = "credential-email-settings";
@@ -6396,4 +6482,81 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$creEmailSettingsPref-recipient-toggle", [HCGAEmailSettingsController::class, 'recipientToggle']);
     Route::post("$creEmailSettingsPref-recipient-delete", [HCGAEmailSettingsController::class, 'recipientDelete']);
     Route::post("$creEmailSettingsPref-test", [HCGAEmailSettingsController::class, 'test']);
+
+    // ==========================================
+    // MOBILE PORTAL LANDING PAGE, DASHBOARD & SANCTUM SESSION MANAGER
+    // ==========================================
+    Route::prefix('mobile')->middleware(['active.user', 'mobile.security'])->group(function () {
+        Route::get('/', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'dashboard'])->name('mobile.home');
+        Route::get('/dashboard', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'dashboard'])->name('mobile.dashboard');
+        Route::get('/ess', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'ess'])->name('mobile.ess');
+        Route::get('/ess/correction', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'essCorrection'])->name('mobile.ess.correction');
+        Route::get('/ess/overtime', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'essOvertime'])->name('mobile.ess.overtime');
+        Route::get('/ess/shift-exchange', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'essShiftExchange'])->name('mobile.ess.shift-exchange');
+        Route::get('/sessions', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'sessions'])->name('mobile.sessions');
+        Route::post('/sessions/{id}/revoke', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'revokeSession'])->name('mobile.sessions.revoke');
+        Route::post('/sessions/revoke-all', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'revokeAllSessions'])->name('mobile.sessions.revoke-all');
+        Route::post('/logout', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'logout'])->name('mobile.logout');
+
+        // Unified /mobile/* Module Routes
+        Route::get('/approval', [HCGAApprovalInboxController::class, 'mobileIndex'])->name('approval.mobile.index');
+        Route::get('/approval/{id}', [HCGAApprovalInboxController::class, 'mobileDetail'])
+            ->where('id', '[0-9]+')
+            ->name('approval.mobile.detail');
+
+        Route::prefix('attendance')->group(function () {
+            Route::get('/', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileIndex'])->name('attendance.mobile.index');
+            Route::get('/location', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileLocation'])->name('attendance.mobile.location');
+            Route::get('/selfie', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileSelfie'])->name('attendance.mobile.selfie');
+            Route::get('/timesheet', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileTimesheet'])->name('attendance.mobile.timesheet');
+            Route::get('/leave', [\App\Http\Controllers\HCGA\AttendancesController::class, 'mobileLeaveForm'])->name('attendance.mobile.leave');
+            Route::post('/clock-in', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiClockIn'])->name('attendance.mobile.clockin');
+            Route::post('/clock-out', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiClockOut'])->name('attendance.mobile.clockout');
+            Route::post('/request/leave', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiSubmitLeave'])->name('attendance.mobile.submitleave');
+            Route::post('/request/correction', [\App\Http\Controllers\HCGA\AttendancesController::class, 'apiSubmitCorrection'])->name('attendance.mobile.submitcorrection');
+        });
+
+        Route::prefix('sppd')->group(function () {
+            Route::get('/', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'mobileIndex'])->name('sppd.mobile.index');
+            Route::get('/form', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'mobileForm'])->name('sppd.mobile.form');
+            Route::get('/detail', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'mobileDetail'])->name('sppd.mobile.detail');
+            Route::get('/approval', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'mobileApproval'])->name('sppd.mobile.approval');
+            Route::post('/submit', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiSubmit'])->name('sppd.mobile.api.submit');
+            Route::post('/approve', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiProcessApproval'])->name('sppd.mobile.api.approval');
+        });
+
+        Route::prefix('reimbursement')->group(function () {
+            Route::get('/', [\App\Http\Controllers\HCGA\ReimbursementMobileController::class, 'mobileIndex'])->name('reimbursement.mobile.index');
+            Route::get('/form', [\App\Http\Controllers\HCGA\ReimbursementMobileController::class, 'mobileForm'])->name('reimbursement.mobile.form');
+            Route::get('/detail', [\App\Http\Controllers\HCGA\ReimbursementMobileController::class, 'mobileDetail'])->name('reimbursement.mobile.detail');
+            Route::get('/approval', [\App\Http\Controllers\HCGA\ReimbursementMobileController::class, 'mobileApproval'])->name('reimbursement.mobile.approval');
+        });
+
+        Route::get('/profile', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'myProfile'])->name('employee.mobile.my-profile');
+        Route::get('/directory', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'directory'])->name('employee.mobile.directory');
+        Route::get('/profile/tab-content', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'loadTabContent'])->name('employee.mobile.tab-content');
+        Route::post('/profile/submit-update', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'submitUpdate'])->name('employee.mobile.submit-update');
+        Route::post('/profile/request-approval/{id}', [\App\Http\Controllers\HCGA\EmployeeMobileController::class, 'approveRequest'])->name('employee.mobile.approve-request');
+
+        Route::prefix('announcement')->group(function () {
+            Route::get('/', [HCGAAnnouncementMobileController::class, 'mobileIndex'])->name('announcement.mobile.index');
+            Route::get('/create', [HCGAAnnouncementMobileController::class, 'mobileForm'])->name('announcement.mobile.create');
+            Route::get('/edit/{id}', [HCGAAnnouncementMobileController::class, 'mobileForm'])->name('announcement.mobile.edit');
+            Route::get('/detail/{id}', [HCGAAnnouncementMobileController::class, 'mobileDetail'])->name('announcement.mobile.detail');
+            Route::post('/submit', [HCGAAnnouncementMobileController::class, 'mobileSubmit'])->name('announcement.mobile.submit');
+            Route::post('/delete/{id}', [HCGAAnnouncementMobileController::class, 'mobileDelete'])->name('announcement.mobile.delete');
+        });
+
+        Route::prefix('guideline')->group(function () {
+            Route::get('/', [HCGACompanyGuidelineMobileController::class, 'mobileIndex'])->name('company-guideline.mobile.index');
+            Route::get('/detail/{id}', [HCGACompanyGuidelineMobileController::class, 'mobileDetail'])->name('company-guideline.mobile.detail');
+        });
+
+        // Mobile Payslip (Slip Gaji Karyawan)
+        Route::prefix('payslip')->group(function () {
+            Route::get('/', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'index'])->name('payslip.mobile.index');
+            Route::get('/detail', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'detail'])->name('payslip.mobile.detail');
+            Route::get('/pdf', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'pdf'])->name('payslip.mobile.pdf');
+        });
+    });
 });

@@ -174,6 +174,7 @@ class SppdController extends Controller
             $jobLevels = MasterSppdJobLevel::all();
             $tripTypes = MasterSppdTripType::all();
             $allowances = MasterSppdAllowance::all();
+            $components = class_exists(\App\MasterSppdComponent::class) ? \App\MasterSppdComponent::all() : collect();
 
             if ($jobLevels->count() > 0 && $tripTypes->count() > 0) {
                 $matrixData = [
@@ -186,6 +187,18 @@ class SppdController extends Controller
                         ];
                     })->values()->toArray(),
                     'trip_types' => [],
+                    'components' => $components->map(function ($c) {
+                        return [
+                            'code'        => $c->code,
+                            'name'        => $c->name,
+                            'category'    => $c->category,
+                            'type'        => $c->type,
+                            'is_editable' => (bool) ($c->is_editable ?? in_array($c->code, ['ticket_max', 'reimburse_max_per_night'])),
+                        ];
+                    })->values()->toArray(),
+                    'editable_components' => $components->filter(function ($c) {
+                        return (bool) ($c->is_editable ?? in_array($c->code, ['ticket_max', 'reimburse_max_per_night']));
+                    })->pluck('code')->values()->toArray(),
                 ];
 
                 foreach ($tripTypes as $tt) {
@@ -248,18 +261,49 @@ class SppdController extends Controller
     public function routeInfo(Request $request)
     {
         try {
-            $distanceKm = self::routeDistanceKm(
-                trim($request->input('Route_Start', '')),
-                trim($request->input('Route_Finish', '')),
-                $request->input('Dest_Lat', ''),
-                $request->input('Dest_Lng', '')
-            );
+            $routeStart = trim($request->input('Route_Start', ''));
+            $routeFinish = trim($request->input('Route_Finish', ''));
+            $destLat = $request->input('Dest_Lat', '');
+            $destLng = $request->input('Dest_Lng', '');
+
+            $origin = self::resolveLocationCoords($routeStart);
+            if (!$origin) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Koordinat lokasi asal belum tersedia, rute tidak dapat dihitung',
+                ], 422);
+            }
+
+            $lat = trim((string) $destLat);
+            $lng = trim((string) $destLng);
+            if ($lat !== '' && $lng !== '' && is_numeric($lat) && is_numeric($lng)) {
+                $dest = [(float) $lat, (float) $lng];
+            } else {
+                $dest = self::resolveLocationCoords($routeFinish);
+            }
+
+            if (!$dest) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Koordinat lokasi tujuan belum tersedia, rute tidak dapat dihitung',
+                ], 422);
+            }
+
+            $route = app(OSRMService::class)->getRouteHCGA([
+                [$origin[1], $origin[0]],
+                [$dest[1], $dest[0]],
+            ]);
+
+            $distanceKm = $route['distance_km'] ?? null;
             $durationMin = self::tripDurationMinutes($request->input('Departure_Time', ''), $request->input('Return_Time', ''));
+            if ($durationMin === null && isset($route['duration_min'])) {
+                $durationMin = $route['duration_min'];
+            }
 
             if ($distanceKm === null) {
                 return response()->json([
                     'status'  => 'error',
-                    'message' => 'Koordinat asal/tujuan belum tersedia, rute tidak dapat dihitung',
+                    'message' => 'Rute tidak dapat dihitung dari koordinat tersebut',
                 ], 422);
             }
 
@@ -268,6 +312,7 @@ class SppdController extends Controller
                 'data'   => [
                     'distance_km'  => $distanceKm,
                     'duration_min' => $durationMin,
+                    'is_fallback'  => !empty($route['is_fallback']),
                 ],
             ]);
         } catch (\Throwable $e) {
@@ -337,12 +382,17 @@ class SppdController extends Controller
             return null;
         }
 
-        $route = app(OSRMService::class)->getRoute([
-            [$origin[1], $origin[0]],
-            [$dest[1], $dest[0]],
-        ]);
+        try {
+            $route = app(OSRMService::class)->getRouteHCGA([
+                [$origin[1], $origin[0]],
+                [$dest[1], $dest[0]],
+            ]);
 
-        return $route['distance_km'];
+            return $route['distance_km'] ?? null;
+        } catch (\Throwable $e) {
+            Log::warning('routeDistanceKm failed: ' . $e->getMessage());
+            return null;
+        }
     }
 
     public static function computeRouteScope($sppdType, $routeStart, $routeFinish, $destLat, $destLng, $departure, $return)
@@ -484,6 +534,10 @@ class SppdController extends Controller
         $targetSite  = trim($request->input('Target_Site', ''));
         $reason      = trim($request->input('Reason', ''));
 
+        $rawDept = trim($request->Department);
+        $mDept = DB::table('master_department')->where('Department', $rawDept)->orWhere('Initial', $rawDept)->first();
+        $dept = $mDept ? $mDept->Initial : $rawDept;
+
         if ($sppdType === 'NORMAL') {
             if ($spanDays > 14) {
                 return response()->json([
@@ -491,7 +545,7 @@ class SppdController extends Controller
                     'message' => 'SPPD Normal maksimal 14 hari',
                 ], 422);
             }
-            $approver = self::getApprover();
+            $approver = self::getApprover($nik, $dept);
             $approverId   = $approver ? $approver->id : null;
             $approverName = $approver ? ($approver->Name ?: $approver->username) : '';
             $status = 'SUBMITTED';
@@ -559,7 +613,7 @@ class SppdController extends Controller
                 'Requester_ID'   => $requesterId,
                 'Requester_Name' => $nama,
                 'Requester_NIK'  => $nik,
-                'Department'     => trim($request->Department),
+                'Department'     => $dept,
                 'Destination'    => $destination,
                 'Route_Start'    => trim($request->Route_Start),
                 'Route_Finish'   => trim($request->Route_Finish),
@@ -686,7 +740,7 @@ class SppdController extends Controller
 
         $user = Auth::user();
         $isRequester = (int) $sppd->Requester_ID === (int) $user->id;
-        $isApprover  = (int) $sppd->Approver_ID === (int) $user->id;
+        $isApprover  = self::isApprover($user, $sppd);
         $privilegedUsers = ['admin', 'user.hcga', 'admin.hris'];
         if (!$isRequester && !$isApprover && !$this->isPerbantuanParticipant($sppd, $user) && !in_array($user->username, $privilegedUsers)) {
             abort(403, 'Anda tidak berhak mengakses data ini');
@@ -711,7 +765,7 @@ class SppdController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Data tidak ditemukan'], 404);
         }
         $isRequester = (int) $sppd->Requester_ID === (int) $user->id;
-        $isApprover = (int) $sppd->Approver_ID === (int) $user->id;
+        $isApprover = self::isApprover($user, $sppd);
         $privilegedUsers = ['admin', 'user.hcga', 'admin.hris'];
         if (!$isRequester && !$isApprover && !in_array($user->username, $privilegedUsers)) {
             return response()->json(['status' => 'error', 'message' => 'Anda tidak berhak atas SPPD ini'], 403);
@@ -1115,20 +1169,215 @@ class SppdController extends Controller
         return "SPPD/{$code}/GEU/" . date('ymd') . "-{$seq}";
     }
 
-    public static function getApprover()
+    public static function getApprover($requesterNik = null, $department = null)
     {
-        return DB::table('users')
+        // 1. Cari Manager dari Departemen Pemohon terlebih dahulu
+        if (!empty($department)) {
+            $deptManager = DB::table('users')
+                ->where('Department', $department)
+                ->where('Status', 'ACTIVE')
+                ->where(function ($q) {
+                    $q->where('Priv_ID', 'MANAGER')
+                      ->orWhere('Position', 'like', '%Manager%')
+                      ->orWhere('Position', 'like', '%MGR%')
+                      ->orWhere('Position', 'like', '%Head%');
+                })
+                ->orderBy('id', 'ASC')
+                ->first();
+
+            if ($deptManager) {
+                return $deptManager;
+            }
+        }
+
+        // 2. Cari melalui atasan di organization_structure jika NIK pemohon tersedia
+        if (!empty($requesterNik)) {
+            $org = DB::table('organization_structure')->where('NIK', $requesterNik)->first();
+            if ($org && !empty($org->Reports_To_Position_ID)) {
+                $parentOrg = DB::table('organization_structure')
+                    ->where('Position_ID', $org->Reports_To_Position_ID)
+                    ->whereNotNull('NIK')
+                    ->where('NIK', '!=', '')
+                    ->first();
+                if ($parentOrg && !empty($parentOrg->NIK)) {
+                    $parentUser = DB::table('users')
+                        ->where('Emp_ID', $parentOrg->NIK)
+                        ->where('Status', 'ACTIVE')
+                        ->first();
+                    if ($parentUser) {
+                        return $parentUser;
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback: Manager HCGA
+        $hcgaManager = DB::table('users')
             ->where('Priv_ID', 'MANAGER')
             ->where('Department', 'HCGA')
             ->where('Status', 'ACTIVE')
             ->orderBy('id', 'ASC')
             ->first();
+
+        return $hcgaManager ?: DB::table('users')->where('Department', 'HCGA')->where('Status', 'ACTIVE')->first();
     }
 
-    public static function isApprover()
+    public static function isApprover($user = null, $sppd = null)
     {
-        $approver = self::getApprover();
-        return $approver && Auth::check() && (int) $approver->id === (int) Auth::user()->id;
+        $user = $user ?: Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        $userId = (int) ($user->id ?? 0);
+        if ($userId <= 0) {
+            return false;
+        }
+
+        // 1. Pengecekan spesifik bila objek SPPD diberikan:
+        if ($sppd !== null) {
+            // SPPD perbantuan: gunakan stage approver perbantuan
+            if (($sppd->Sppd_Type ?? 'NORMAL') === 'PERBANTUAN') {
+                if (self::isPbStageApprover($sppd, $user)) {
+                    return true;
+                }
+            }
+
+            // Jika SPPD terhubung ke Approval Engine:
+            // Otorisasi bertindak HANYA berlaku jika user memiliki task yang berstatus PENDING atau CLAIMED saat ini.
+            if (!empty($sppd->Approval_Request_ID)) {
+                $isPendingForUser = DB::table('approval_request_task as t')
+                    ->leftJoin('approval_task_candidate as c', 'c.Task_ID', '=', 't.ID')
+                    ->where('t.Request_ID', (int) $sppd->Approval_Request_ID)
+                    ->whereIn('t.Status', ['PENDING', 'CLAIMED'])
+                    ->where(function ($q) use ($userId) {
+                        $q->where('t.Claimed_By', $userId)
+                          ->orWhere(function ($cq) use ($userId) {
+                              $cq->where('c.User_Id', $userId)
+                                 ->where('c.Status', 'ACTIVE');
+                          });
+                    })
+                    ->exists();
+
+                if ($isPendingForUser) {
+                    return true;
+                }
+
+                // Cek delegasi aktif untuk SPPD ini
+                $delegated = DB::table('approval_request_task as t')
+                    ->join('approval_task_candidate as c', 'c.Task_ID', '=', 't.ID')
+                    ->join('approval_delegation as d', 'd.Delegator_Id', '=', 'c.User_Id')
+                    ->where('t.Request_ID', (int) $sppd->Approval_Request_ID)
+                    ->whereIn('t.Status', ['PENDING', 'CLAIMED'])
+                    ->where('c.Status', 'ACTIVE')
+                    ->where('d.Delegate_Id', $userId)
+                    ->where('d.Status', 'ACTIVE')
+                    ->where(function ($dq) {
+                        $today = date('Y-m-d');
+                        $dq->whereNull('d.Start_Date')->orWhere('d.Start_Date', '<=', $today);
+                    })
+                    ->where(function ($dq) {
+                        $today = date('Y-m-d');
+                        $dq->whereNull('d.End_Date')->orWhere('d.End_Date', '>=', $today);
+                    })
+                    ->exists();
+
+                if ($delegated) {
+                    return true;
+                }
+
+                // Jika terdaftar di Approval Engine dan user tidak memiliki task PENDING/CLAIMED saat ini,
+                // maka user BUKAN acting approver pada tahap ini (sudah approve atau belum gilirannya).
+                return false;
+            }
+
+            // Fallback untuk SPPD legacy tanpa Approval_Request_ID:
+            if (!empty($sppd->Approver_ID) && (int) $sppd->Approver_ID === $userId) {
+                return true;
+            }
+        }
+
+        // 2. Pengecekan umum / hak akses navigasi (Apakah user ini merupakan Approver SPPD secara Policy):
+
+        // a. Cek apakah user memiliki pending approval task untuk SPPD saat ini
+        $hasPendingTasks = DB::table('approval_request_task as t')
+            ->join('approval_request as r', 'r.ID', '=', 't.Request_ID')
+            ->leftJoin('approval_task_candidate as c', 'c.Task_ID', '=', 't.ID')
+            ->where('r.Request_Type', 'SPPD')
+            ->where('t.Status', 'PENDING')
+            ->where(function ($q) use ($userId) {
+                $q->where('t.Claimed_By', $userId)
+                  ->orWhere(function ($cq) use ($userId) {
+                      $cq->where('c.User_Id', $userId)
+                         ->where('c.Status', 'ACTIVE');
+                  });
+            })
+            ->exists();
+
+        if ($hasPendingTasks) {
+            return true;
+        }
+
+        // b. Cek apakah user pernah/sedang di-assign sebagai Approver_ID pada tabel sppd
+        if (DB::table('sppd')->where('Approver_ID', $userId)->exists()) {
+            return true;
+        }
+
+        // c. Cek delegasi aktif yang sedang diterima oleh user ini
+        $hasActiveDelegation = DB::table('approval_delegation')
+            ->where('Delegate_Id', $userId)
+            ->where('Status', 'ACTIVE')
+            ->where(function ($dq) {
+                $today = date('Y-m-d');
+                $dq->whereNull('Start_Date')->orWhere('Start_Date', '<=', $today);
+            })
+            ->where(function ($dq) {
+                $today = date('Y-m-d');
+                $dq->whereNull('End_Date')->orWhere('End_Date', '>=', $today);
+            })
+            ->exists();
+
+        if ($hasActiveDelegation) {
+            return true;
+        }
+
+        // d. Cek Level Jabatan & Privilege sesuai Approval Policy SPPD:
+        // Policy SPPD mencakup: Manager Dept (Level 3), Manager HCGA (Level 3 HCGA), dan BOD / Direksi / VP (Level <= 2)
+        $priv = strtoupper(trim((string) ($user->Priv_ID ?? '')));
+        if (in_array($priv, ['MANAGER', 'HEAD', 'VP', 'GM', 'DIR', 'BOD', 'CEO', 'DIRECTOR'], true)) {
+            return true;
+        }
+
+        // Cek level jabatan dari master_position berdasarkan profil employment atau posisi user
+        $emp = !empty($user->Emp_ID) ? DB::table('employment')->where('NIK', $user->Emp_ID)->first() : null;
+        $positionInitial = $emp->Position ?? ($user->Position ?? null);
+        if (!empty($positionInitial)) {
+            $pos = DB::table('master_position')->where('Initial', $positionInitial)->first();
+            if ($pos && isset($pos->Level) && is_numeric($pos->Level)) {
+                // Level 1 = BOD/Presdir, Level 2 = VP/Direktur, Level 3 = Manager / Division Head
+                if ((int) $pos->Level <= 3) {
+                    return true;
+                }
+            }
+        }
+
+        // e. Cek apakah user adalah atasan langsung di organization_structure yang membawahi staf
+        if (!empty($user->Emp_ID)) {
+            $isParentInOrg = DB::table('organization_structure')
+                ->where('Reports_To_Position_ID', function ($sub) use ($user) {
+                    $sub->select('Position_ID')
+                        ->from('organization_structure')
+                        ->where('NIK', $user->Emp_ID)
+                        ->limit(1);
+                })
+                ->exists();
+
+            if ($isParentInOrg) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function isAdministrator()

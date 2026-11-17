@@ -93,41 +93,49 @@
             margin-bottom: 3px;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
-    <!-- Header Mobile Profil & Ringkasan -->
-    <div class="header-card">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <span class="text-white-50 small">Selamat datang,</span>
-                <h5 class="mb-0 fw-bold">{{ $user->Name ?: $user->username }}</h5>
-                <small class="text-white-75">{{ $user->Emp_ID }} &bull; {{ $user->Department }}</small>
-            </div>
-            <div class="text-end">
-                <a href="{{ route('reimbursement.mobile.form') }}" class="btn btn-light btn-sm rounded-pill fw-bold text-primary shadow-sm px-3">
-                    <i class="fa fa-plus me-1"></i> Baru
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
+    <div class="finora-shell">
+        <div class="finora-topbar">
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Reimbursement</h1>
+            <a href="{{ route('reimbursement.mobile.form', $fromParams) }}" class="finora-back-btn text-decoration-none" title="Buat Klaim Baru"><i class="fas fa-plus"></i></a>
+        </div>
+
+        <div class="finora-hero">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <div class="fw-bold">{{ $user->Name ?: $user->username }}</div>
+                    <small class="opacity-75">{{ $user->Emp_ID }} &bull; {{ $user->Department }}</small>
+                </div>
+                <a href="{{ route('reimbursement.mobile.form', $fromParams) }}" class="btn btn-light btn-sm rounded-pill fw-bold text-success px-3" style="font-size: 11px;">
+                    <i class="fas fa-plus me-1"></i> Baru
                 </a>
             </div>
+            <div class="bg-white bg-opacity-10 p-2 rounded-3 d-flex justify-content-between align-items-center">
+                <span class="small"><i class="fa fa-receipt me-1"></i> Modul Klaim Reimbursement</span>
+                <span class="badge bg-white text-dark rounded-pill">{{ count($reimbursements) }} Total</span>
+            </div>
         </div>
-        <div class="bg-white bg-opacity-10 p-2 rounded-3 d-flex justify-content-between align-items-center">
-            <span class="small"><i class="fa fa-receipt me-1"></i> Modul Klaim Reimbursement</span>
-            <span class="badge bg-white text-dark rounded-pill">{{ count($reimbursements) }} Total</span>
-        </div>
-    </div>
 
-    <!-- Filter Tab Horizontal -->
-    <div class="container px-3 mt-3 mb-2">
-        <div class="filter-scroll">
-            <a href="{{ route('reimbursement.mobile.index', ['status' => 'ALL']) }}" class="filter-btn {{ $status == 'ALL' ? 'active' : '' }}">Semua</a>
-            <a href="{{ route('reimbursement.mobile.index', ['status' => 'PENDING']) }}" class="filter-btn {{ $status == 'PENDING' ? 'active' : '' }}">Menunggu</a>
-            <a href="{{ route('reimbursement.mobile.index', ['status' => 'APPROVED']) }}" class="filter-btn {{ $status == 'APPROVED' ? 'active' : '' }}">Disetujui</a>
-            <a href="{{ route('reimbursement.mobile.index', ['status' => 'REJECTED']) }}" class="filter-btn {{ $status == 'REJECTED' ? 'active' : '' }}">Ditolak</a>
+        <!-- Filter Tab Horizontal -->
+        <div class="mb-3">
+            <div class="filter-scroll">
+                <a href="{{ route('reimbursement.mobile.index', array_merge(['status' => 'ALL'], $fromParams)) }}" class="filter-btn {{ $status == 'ALL' ? 'active' : '' }}">Semua</a>
+                <a href="{{ route('reimbursement.mobile.index', array_merge(['status' => 'PENDING'], $fromParams)) }}" class="filter-btn {{ $status == 'PENDING' ? 'active' : '' }}">Menunggu</a>
+                <a href="{{ route('reimbursement.mobile.index', array_merge(['status' => 'APPROVED'], $fromParams)) }}" class="filter-btn {{ $status == 'APPROVED' ? 'active' : '' }}">Disetujui</a>
+                <a href="{{ route('reimbursement.mobile.index', array_merge(['status' => 'REJECTED'], $fromParams)) }}" class="filter-btn {{ $status == 'REJECTED' ? 'active' : '' }}">Ditolak</a>
+            </div>
         </div>
-    </div>
 
-    <!-- List Pengajuan Reimbursement -->
-    <div class="container px-3">
+        <!-- List Pengajuan Reimbursement -->
+        <div>
         @forelse ($reimbursements as $r)
             @php
                 $st = strtoupper($r->Status ?? '');
@@ -140,7 +148,7 @@
                     $stBg = 'bg-warning text-dark';
                 }
             @endphp
-            <a href="{{ route('reimbursement.mobile.detail', ['id' => $r->ID]) }}" class="card rmb-item-card mb-3 p-3 bg-white">
+            <a href="{{ route('reimbursement.mobile.detail', array_merge(['id' => $r->ID], $fromParams)) }}" class="card rmb-item-card mb-3 p-3 bg-white">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>
                         <span class="text-primary fw-bold fs-14">{{ $r->Reimbursement_No }}</span>
@@ -175,27 +183,7 @@
         @endforelse
     </div>
 
-    <!-- Bottom Navigation Bar -->
-    <div class="bottom-nav">
-        <a href="{{ route('reimbursement.mobile.index') }}" class="nav-item-mobile active">
-            <i class="fa fa-receipt"></i>
-            <span>Reimbursement</span>
-        </a>
-        <a href="{{ route('reimbursement.mobile.form') }}" class="nav-item-mobile">
-            <i class="fa fa-plus-circle text-primary" style="font-size: 26px;"></i>
-            <span>Ajukan</span>
-        </a>
-        @if(\App\Http\Controllers\HCGA\ReimbursementApprovalController::isApprover())
-        <a href="{{ route('reimbursement.mobile.approval') }}" class="nav-item-mobile">
-            <i class="fa fa-check-double text-warning"></i>
-            <span>Approval</span>
-        </a>
-        @endif
-        <a href="{{ url('hrd-reimbursement-index') }}" class="nav-item-mobile">
-            <i class="fa fa-desktop"></i>
-            <span>Desktop</span>
-        </a>
-    </div>
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'ess'])
 
 </body>
 </html>

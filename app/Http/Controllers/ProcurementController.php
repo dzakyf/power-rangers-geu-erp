@@ -1,0 +1,921 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+
+class ProcurementController extends Controller
+{
+
+
+// Menampilkan Halaman Master Product List
+    public function productList() {
+        return view('humanresources.procurement.product-list');
+    }
+
+    // Endpoint XML Data Master Produk
+    
+    // Endpoint XML Data Master Produk
+    public function xmlProductList() {
+        $products = DB::table('product_code')->orderBy('ID', 'DESC')->get();
+        
+        $xml = '<?xml version="1.0" encoding="iso-8859-1"?>';
+        $xml .= '<rows>';
+        
+        $nomor = 1;
+        foreach ($products as $row) {
+            $xml .= '<row id="' . $row->ID . '">';
+            $xml .= '<cell>' . $nomor . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Product_Code ?? '-') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Description ?? '-') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Specification ?? '-') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Unit_Name ?? 'PCS') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Category ?? '-') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->status_Muncul ?? '-') . '</cell>';
+            $xml .= '</row>';
+            $nomor++;
+        }
+        
+        $xml .= '</rows>';
+
+        return response($xml, 200)->header('Content-Type', 'text/xml');
+    }
+
+    
+    // Menyimpan Produk Baru ke Tabel product_code (Dengan Opsi Upload File atau Link Foto)
+    // Menyimpan Produk Baru ke Tabel product_code
+    public function storeProduct(Request $request) {
+    $request->validate([
+        'product_code'  => 'required|string|unique:product_code,Product_Code',
+        'description'   => 'required|string',
+        'specification' => 'nullable|string',
+        'uom'           => 'required|string',
+        'main_category' => 'required|in:ASSET,NON ASSET',
+        'category'      => 'required|in:BARANG,JASA', // <-- Validasi untuk Category
+        'status_Muncul' => 'required|in:ACTIVE,NONACTIVE',
+        'photo_type'    => 'required|in:upload,link',
+        'photo_file'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
+        'photo_link'    => 'nullable|url',
+    ]);
+
+    $fotoPath = null;
+
+    // Opsi 1: Upload File ke Server
+    if ($request->photo_type === 'upload' && $request->hasFile('photo_file')) {
+        $file = $request->file('photo_file');
+        if ($file->isValid()) {
+            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $destinationPath = public_path('uploads/product_images');
+
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0777, true);
+            }
+
+            $file->move($destinationPath, $fileName);
+            $fotoPath = 'uploads/product_images/' . $fileName;
+        }
+    } 
+    // Opsi 2: Menggunakan Link / URL Gambar
+    elseif ($request->photo_type === 'link' && !empty($request->photo_link)) {
+        $fotoPath = $request->photo_link;
+    }
+
+    // Ambil Location dari session user yang login
+    $username = session('username') ?? 'admin';
+    $userData = DB::table('users')->where('username', $username)->first();
+    $userLocation = $userData ? $userData->Location : 'GEU-HO';
+
+    DB::table('product_code')->insert([
+        'Product_Code'  => $request->product_code,
+        'Description'   => $request->description,
+        'Specification' => $request->specification,
+        'Unit_Name'     => $request->uom,
+        'Main_Category' => $request->main_category,
+        'Category'      => $request->category,      // <-- Disimpan ke kolom Category tabel database
+        'status_Muncul' => $request->status_Muncul,
+        'Location'      => $userLocation,
+        'Foto'          => $fotoPath,
+        'Created_Date'  => now(),
+        'Created_By'    => $username,
+    ]);
+
+    return response()->json([
+        'status'  => 'success',
+        'message' => 'Master produk berhasil ditambahkan!'
+    ]);
+}
+
+
+// Mengambil data produk untuk keperluan Edit
+    public function editProduct($id) {
+        $product = DB::table('product_code')->where('ID', $id)->first();
+        if (!$product) {
+            return response()->json(['status' => 'error', 'message' => 'Produk tidak ditemukan!'], 404);
+        }
+        return response()->json(['status' => 'success', 'data' => $product]);
+    }
+
+    // Memproses Update Data Produk
+    public function updateProduct(Request $request, $id) {
+        $request->validate([
+            'description'   => 'required|string',
+            'specification' => 'nullable|string',
+            'uom'           => 'required|string',
+            'main_category' => 'required|in:ASSET,NON ASSET',
+            'category'      => 'required|in:BARANG,JASA',
+            'status_Muncul' => 'required|in:ACTIVE,NONACTIVE',
+            'photo_type'    => 'required|in:upload,link',
+            'photo_file'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
+            'photo_link'    => 'nullable|url',
+        ]);
+
+        $product = DB::table('product_code')->where('ID', $id)->first();
+        if (!$product) {
+            return response()->json(['status' => 'error', 'message' => 'Produk tidak ditemukan!'], 404);
+        }
+
+        $fotoPath = $product->Foto; // Default menggunakan foto lama
+
+        // Opsi 1: Upload File baru ke Server
+        if ($request->photo_type === 'upload' && $request->hasFile('photo_file')) {
+            $file = $request->file('photo_file');
+            if ($file->isValid()) {
+                $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $destinationPath = public_path('uploads/product_images');
+
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0777, true);
+                }
+
+                $file->move($destinationPath, $fileName);
+                $fotoPath = 'uploads/product_images/' . $fileName;
+            }
+        } 
+        // Opsi 2: Menggunakan Link / URL Gambar baru
+        elseif ($request->photo_type === 'link' && !empty($request->photo_link)) {
+            $fotoPath = $request->photo_link;
+        }
+
+        DB::table('product_code')->where('ID', $id)->update([
+            'Description'   => $request->description,
+            'Specification' => $request->specification,
+            'Unit_Name'     => $request->uom,
+            'Main_Category' => $request->main_category,
+            'Category'      => $request->category,
+            'status_Muncul' => $request->status_Muncul,
+            'Foto'          => $fotoPath,
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Data master produk berhasil diperbarui!'
+        ]);
+    }
+
+
+// Menampilkan Dashboard Procurement / Ringkasan Data
+    public function dashboardProcurement() {
+        // Hitung statistik data
+        $totalProduct   = DB::table('product_code')->count();
+        $totalSupplier  = DB::table('supplier')->count();
+        $totalPR        = DB::table('purchase_request')->count();
+        $pendingPR      = DB::table('purchase_request')->where('Status', 'PENDING')->count();
+        $approvedPR     = DB::table('purchase_request')->where('Status', 'APPROVED')->count();
+        $rejectedPR     = DB::table('purchase_request')->where('Status', 'REJECTED')->count();
+
+        return view('humanresources.procurement.procurement-dashboard', compact(
+            'totalProduct', 'totalSupplier', 'totalPR', 'pendingPR', 'approvedPR', 'rejectedPR'
+        ));
+    }
+
+    // --- KODE YANG SUDAH ADA SEBELUMNYA (RFQ Detail) ---
+    // public function createDetail(Request $request) {
+    //     $rfqNo = $request->query('rfq');
+
+    //     $rfq = DB::table('rfq as r')
+    //             ->leftJoin('supplier as s', 'r.Supplier_ID', '=', 's.Supplier_ID')
+    //             ->where('r.RFQ_No', $rfqNo)
+    //             ->first();
+
+    //     if (!$rfq) {
+    //         return redirect()->back()->with('error', 'Data RFQ tidak ditemukan.');
+    //     }
+
+    //     $pr_items = DB::table('purchase_request_dtl')
+    //                 ->where('PR_No', $rfq->PR_No)
+    //                 ->get();
+
+    //     // return view('procurement.qtn-create-detail', compact('rfq', 'pr_items'));
+    //                 // Contoh di ProcurementController.php saat mereturn view create PR:
+    //         return view('humanresources.procurement.purchase-request-create', compact('generated_pr_no', 'materials', 'departments', 'userDepartment'));
+    // }
+
+
+  // 1. Menampilkan Form Create PR (Multi Produk + Master Department)
+    public function createPR() {
+        $lastPr = DB::table('purchase_request')->orderBy('ID', 'DESC')->first();
+        $nextId = $lastPr ? ($lastPr->ID + 1) : 1;
+        $generated_pr_no = 'PR/GEU-HO/' . date('Ym') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+
+        // Ambil daftar material dari tabel 'product_code'
+        $materials = DB::table('product_code')->select('Product_Code', 'Description')->get();
+
+        // Ambil daftar department dari tabel 'department'
+        $departments = DB::table('department')->orderBy('Department', 'ASC')->get(); 
+
+        // Ambil department user yang sedang login
+        // Sesuaikan cara pengambilan session/auth di aplikasi Anda (misal: session('username') atau Auth::user())
+        $currentUsername = session('username') ?? 'admin'; // Sesuaikan dengan key session login Anda
+        $userData = DB::table('users')->where('username', $currentUsername)->first();
+        
+        // Department user login (misal isinya "ICT" atau "FIN")
+        $userDepartment = $userData->Department ?? ''; 
+
+        // return view('procurement.purchase-request-create', compact('generated_pr_no', 'materials', 'departments', 'userDepartment'));
+        return view('humanresources.procurement.purchase-request-create', compact('generated_pr_no', 'materials', 'departments', 'userDepartment'));
+    }
+
+    // 2. Endpoint AJAX Auto-Populate Detail Berdasarkan 'Product_Code' (Tetap sama)
+    public function getMaterialDetail(Request $request) {
+        $code = $request->query('code');
+        $material = DB::table('product_code')->where('Product_Code', $code)->first();
+
+        if ($material) {
+            return response()->json([
+                'status' => 'success',
+                'nama'   => $material->Description ?? '',
+                'spec'   => $material->Specification ?? '-',
+                'uom'    => $material->Unit_Name ?? 'PCS',
+                'image'  => $material->Foto ?? ''
+            ]);
+        }
+
+        return response()->json(['status' => 'not_found'], 404);
+    }
+
+    public function storePR(Request $request) {
+        $request->validate([
+            'pr_no'          => 'required|string',
+            'pr_date'        => 'required|date',
+            'department'     => 'required',
+            'product_code'   => 'required|array',
+            'product_code.*' => 'required|string',
+            'qty'            => 'required|array',
+            'qty.*'          => 'required|numeric|min:1',
+            'price'          => 'nullable|array',
+            'price.*'        => 'nullable|numeric|min:0',
+            'attachment'     => 'nullable|array',
+            'attachment.*'   => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120'
+        ]);
+
+        // Hitung total budget secara akurat di sisi server
+        $calculatedBudget = 0;
+        if ($request->has('product_code')) {
+            foreach ($request->product_code as $idx => $code) {
+                if (!empty($code)) {
+                    $q = floatval($request->qty[$idx] ?? 1);
+                    $p = floatval($request->price[$idx] ?? 0);
+                    $calculatedBudget += ($q * $p);
+                }
+            }
+        }
+        $estimatedBudget = $calculatedBudget > 0 ? $calculatedBudget : floatval($request->estimated_budget ?? 0);
+
+        $username = session('username') ?? (Auth::user()->username ?? 'admin');
+        $location = Auth::user()->Location ?? 'GEU-HO';
+
+        // 1. Simpan ke Header purchase_request
+        DB::table('purchase_request')->insert([
+            'Location'         => $location,
+            'Supplies_Type'    => 'NON-OPS',
+            'PR_No'            => $request->pr_no,
+            'PR_Date'          => $request->pr_date,
+            'Department'       => $request->department,
+            'Category'         => $request->main_category ?? $request->Category ?? 'ASSET',
+            'Sub_Category'     => $request->category ?? $request->Sub_Category ?? 'BARANG',
+            'PIC'              => $request->pic_name,
+            'PIC_Phone'        => $request->PIC_Phone,
+            'PIC_Email'        => $request->pic_email,
+            'PIC_Address'      => $request->site_destination,
+            'Estimated_Budget' => $estimatedBudget,
+            'Note'             => $request->note,
+            'Status'           => 'PENDING',
+            'Created_By'       => $username,
+            'Created_Date'     => now(),
+        ]);
+
+        // 1.1 Simpan History Note ke pr_notes_history
+        if (!empty(trim($request->note))) {
+            DB::table('pr_notes_history')->insert([
+                'PR_No'         => $request->pr_no,
+                'Action_Status' => 'CREATED PR',
+                'Note'          => trim($request->note),
+                'Created_By'    => $username,
+                'Created_Date'  => now(),
+            ]);
+        }
+
+        // 2. Looping simpan rincian multi-produk ke purchase_request_dtl
+        if ($request->has('product_code')) {
+            foreach ($request->product_code as $index => $code) {
+                if (!empty($code)) {
+                    $attachmentPath = null;
+
+                    if ($request->hasFile("attachment.{$index}")) {
+                        $file = $request->file('attachment')[$index];
+                        if ($file->isValid()) {
+                            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                            $destinationPath = public_path('uploads/pr_attachments');
+                            
+                            if (!file_exists($destinationPath)) {
+                                mkdir($destinationPath, 0777, true);
+                            }
+
+                            $file->move($destinationPath, $fileName);
+                            $attachmentPath = 'uploads/pr_attachments/' . $fileName;
+                        }
+                    }
+
+                    $qty   = floatval($request->qty[$index] ?? 1);
+                    $price = floatval($request->price[$index] ?? 0);
+
+                    DB::table('purchase_request_dtl')->insert([
+                        'PR_No'         => $request->pr_no,
+                        'Product_Code'  => $code,
+                        'Product_Desc'  => $request->product_desc[$index] ?? '',
+                        'Specification' => $request->specification[$index] ?? '',
+                        'Qty'           => $qty,
+                        'Unit'          => $request->unit[$index] ?? 'PCS',
+                        'Default_Price' => $price,
+                        'Attachment'    => $attachmentPath,
+                    ]);
+                }
+            }
+        }
+
+        return redirect('purchase-request-list')->with('success', 'Purchase Request berhasil disimpan!');
+    }
+
+    // Menampilkan Detail PR Status PENDING
+    public function detailPRPending(Request $request) {
+        $prNo = $request->query('PR_No');
+
+        $header = DB::table('purchase_request')->where('PR_No', $prNo)->first();
+        $details = DB::table('purchase_request_dtl')->where('PR_No', $prNo)->get();
+        
+        // Ambil riwayat percakapan dari pr_notes_history
+        $noteHistories = DB::table('pr_notes_history')
+                            ->where('PR_No', $prNo)
+                            ->orderBy('ID', 'DESC')
+                            ->get();
+        
+        // Ambil master data agar dropdown bisa dipilih
+        $materials = DB::table('product_code')->select('Product_Code', 'Description')->get();
+        $departments = DB::table('department')->orderBy('Department', 'ASC')->get();
+
+        return view('humanresources.procurement.purchase-request-detail-pending', compact('header', 'details', 'materials', 'departments', 'noteHistories'));
+    }
+
+
+    // Proses Approve atau Reject PR
+    
+    public function approvePR(Request $request) {
+        $prNo     = $request->pr_no;
+        $action   = $request->action; // 'APPROVED' atau 'REJECTED'
+        $note     = $request->approval_note;
+        $username = session('username') ?? 'admin'; // <-- Perbaikan: Definisikan $username di sini
+
+        DB::table('purchase_request')
+            ->where('PR_No', $prNo)
+            ->update([
+                'Status'              => $action,
+                'Note'                => $note,
+                'Approval_User'       => $username,
+                'Approval_Date'       => now(),
+                'Approval_Department' => session('department') ?? 'ICT',
+            ]);
+
+        // Simpan log aksi approval/rejection ke pr_notes_history jika ada catatan
+        if (!empty(trim($note))) {
+            DB::table('pr_notes_history')->insert([
+                'PR_No'         => $prNo,
+                'Action_Status' => $action,
+                'Note'          => trim($note),
+                'Created_By'    => $username,
+                'Created_Date'  => now(),
+            ]);
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "Purchase Request {$prNo} berhasil diubah menjadi {$action}!"
+        ]);
+    }
+
+    
+    // Proses Update / Edit PR yang Statusnya PENDING
+    
+    public function updatePR(Request $request) {
+        $prNo = $request->pr_no;
+        $username = session('username') ?? 'admin';
+
+        $request->validate([
+            'pr_date'        => 'required|date',
+            'department'     => 'required',
+            'product_code'   => 'required|array',
+            'product_code.*' => 'required|string',
+            'qty'            => 'required|array',
+            'qty.*'          => 'required|numeric|min:1',
+            'price'          => 'nullable|array',
+            'price.*'        => 'nullable|numeric|min:0',
+        ]);
+
+        // Hitung ulang total budget di sisi server untuk keamanan data
+        $calculatedBudget = 0;
+        if ($request->has('product_code')) {
+            foreach ($request->product_code as $idx => $code) {
+                if (!empty($code)) {
+                    $q = floatval($request->qty[$idx] ?? 1);
+                    $p = floatval($request->price[$idx] ?? 0);
+                    $calculatedBudget += ($q * $p);
+                }
+            }
+        }
+
+        // Gunakan hasil kalkulasi server (atau fallback ke input request)
+        $estimatedBudget = $calculatedBudget > 0 ? $calculatedBudget : floatval($request->estimated_budget ?? 0);
+
+        // 1. Update Header purchase_request termasuk Estimated_Budget
+        DB::table('purchase_request')->where('PR_No', $prNo)->update([
+            'PR_Date'          => $request->pr_date,
+            'Department'       => $request->department,
+            'Category'         => $request->main_category ?? $request->Category ?? 'ASSET',
+            'Sub_Category'     => $request->category ?? $request->Sub_Category ?? 'BARANG',
+            'PIC'              => $request->pic_name ?? '',
+            'PIC_Phone'        => $request->pic_phone ?? '',
+            'PIC_Email'        => $request->pic_email ?? '',
+            'PIC_Address'      => $request->site_destination ?? '',
+            'Estimated_Budget' => $estimatedBudget,
+            'Note'             => $request->note ?? '',
+            'Updated_By'       => $username,
+        ]);
+
+        // 1.1 Simpan History Note
+        if (!empty(trim($request->note))) {
+            DB::table('pr_notes_history')->insert([
+                'PR_No'         => $prNo,
+                'Action_Status' => 'UPDATED PR',
+                'Note'          => trim($request->note),
+                'Created_By'    => $username,
+                'Created_Date'  => now(),
+            ]);
+        }
+
+        // 2. Hapus detail lama & masukkan kembali data detail baru beserta Price
+        DB::table('purchase_request_dtl')->where('PR_No', $prNo)->delete();
+
+        if ($request->has('product_code')) {
+            foreach ($request->product_code as $index => $code) {
+                if (!empty($code)) {
+                    $attachmentPath = $request->old_attachment[$index] ?? null;
+
+                    if ($request->hasFile("attachment.{$index}")) {
+                        $file = $request->file('attachment')[$index];
+                        if ($file && $file->isValid()) {
+                            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                            $destinationPath = public_path('uploads/pr_attachments');
+                            
+                            if (!file_exists($destinationPath)) {
+                                mkdir($destinationPath, 0777, true);
+                            }
+
+                            $file->move($destinationPath, $fileName);
+                            $attachmentPath = 'uploads/pr_attachments/' . $fileName;
+                        }
+                    }
+
+                    $qty   = floatval($request->qty[$index] ?? 1);
+                    $price = floatval($request->price[$index] ?? 0);
+
+                    DB::table('purchase_request_dtl')->insert([
+                        'PR_No'         => $prNo,
+                        'Product_Code'  => $code,
+                        'Product_Desc'  => $request->product_desc[$index] ?? '',
+                        'Specification' => $request->specification[$index] ?? '',
+                        'Qty'           => $qty,
+                        'Unit'          => $request->unit[$index] ?? 'PCS',
+                        'Default_Price' => $price, // Pastikan kolom 'Price' ada di tabel purchase_request_dtl
+                        'Attachment'    => $attachmentPath ?? '',
+                    ]);
+                }
+            }
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "Purchase Request {$prNo} berhasil diperbarui! Estimated Budget: Rp " . number_format($estimatedBudget, 0, ',', '.')
+        ]);
+    }
+
+    
+    // Menampilkan Detail PR Status APPROVED
+    public function detailPRApproved(Request $request) {
+        $prNo = $request->query('PR_No');
+
+        $header = DB::table('purchase_request')->where('PR_No', $prNo)->first();
+        if (!$header) {
+            return response()->json(['status' => 'error', 'message' => 'Data PR tidak ditemukan'], 404);
+        }
+
+        $details = DB::table('purchase_request_dtl')->where('PR_No', $prNo)->get();
+        
+        $noteHistories = DB::table('pr_notes_history')
+                            ->where('PR_No', $prNo)
+                            ->orderBy('ID', 'ASC')
+                            ->get();
+        
+        // Ambil data RFQ secara terpisah agar tidak error join
+        $listRfqsRaw = DB::table('rfq')->where('PR_No', $prNo)->get();
+        $listRfqs = [];
+        $existingSupplierIds = [];
+
+        foreach ($listRfqsRaw as $rfq) {
+            $supplier = DB::table('supplier')->where('Supplier_ID', $rfq->Supplier_ID)->first();
+            $listRfqs[] = (object)[
+                'RFQ_No'       => $rfq->RFQ_No,
+                'RFQ_Date'     => $rfq->RFQ_Date,
+                'Supplier_ID'  => $rfq->Supplier_ID,
+                'Company_Name' => $supplier->Company_Name ?? $rfq->Supplier_ID,
+                'Status'       => $rfq->Status ?? 'SENT'
+            ];
+            $existingSupplierIds[] = $rfq->Supplier_ID;
+        }
+
+        $materials = DB::table('product_code')->select('Product_Code', 'Description')->get();
+        $departments = DB::table('department')->orderBy('Department', 'ASC')->get();
+        
+        // Ambil supplier yang belum dipilih
+        $suppliersQuery = DB::table('supplier')->select('Supplier_ID', 'Company_Name');
+        if (!empty($existingSupplierIds)) {
+            $suppliersQuery->whereNotIn('Supplier_ID', $existingSupplierIds);
+        }
+        $suppliers = $suppliersQuery->orderBy('Company_Name', 'ASC')->get();
+
+        return view('humanresources.procurement.purchase-request-detail-approved', compact('header', 'details', 'materials', 'departments', 'noteHistories', 'suppliers', 'listRfqs'));
+    }
+
+    // Proses Lanjut ke RFQ (Sesuai Flow Procurement)
+    public function convertToRFQ(Request $request) {
+    $prNo       = $request->pr_no;
+    $supplierId = $request->supplier_id;
+    $rfqDate    = $request->rfq_date ?? now()->toDateString();
+
+    if (empty($supplierId)) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Silakan pilih Vendor / Supplier terlebih dahulu!'
+        ], 422);
+    }
+
+    // Generate Nomor RFQ Unik
+    $rfqNo = 'RFQ/GEU/' . date('Ym') . '-' . rand(1000, 9999);
+    $username = session('username') ?? 'admin';
+
+    // 1. Insert RFQ baru ke tabel rfq (Multi-vendor)
+    DB::table('rfq')->insert([
+        'RFQ_No'       => $rfqNo,
+        'PR_No'        => $prNo,
+        'Supplier_ID'  => $supplierId,
+        'RFQ_Date'     => $rfqDate,
+        'Status'       => 'SENT',
+        'Created_By'   => $username,
+    ]);
+
+    // 2. Ambil semua RFQ terkait PR ini untuk digabungkan di header purchase_request
+    $allRfqs = DB::table('rfq')->where('PR_No', $prNo)->pluck('RFQ_No')->toArray();
+    $combinedRfqNo = implode(', ', $allRfqs);
+
+    // 3. Update tabel purchase_request
+    DB::table('purchase_request')
+        ->where('PR_No', $prNo)
+        ->update([
+            'RFQ_No'              => $combinedRfqNo,
+            'Processing_Status'   => 'WAITING_RFQ',
+        ]);
+
+    return response()->json([
+        $status  = 'success',
+        'rfq_no'  => $rfqNo,
+        'message' => "RFQ berhasil dibuat ({$rfqNo}) untuk Vendor {$supplierId}!"
+    ]);
+    }
+
+
+
+    public function createDetail(Request $request) {
+        $rfqNo = $request->query('rfq');
+
+        $rfq = DB::table('rfq as r')
+            ->leftJoin('supplier as s', DB::raw('r.Supplier_ID COLLATE utf8mb4_unicode_ci'), '=', DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci'))
+            ->leftJoin('purchase_request as pr', DB::raw('r.PR_No COLLATE utf8mb4_unicode_ci'), '=', DB::raw('pr.PR_No COLLATE utf8mb4_unicode_ci'))
+            ->select('r.*', 's.Company_Name', 's.Contact_Person', 's.Phone', 's.Email', 'pr.Department', 'pr.PIC_Address as Site_Tujuan', 'pr.Estimated_Budget')
+            ->where('r.RFQ_No', $rfqNo)
+            ->first();
+
+        if (!$rfq) {
+            return '<div class="alert alert-danger m-3">Data RFQ tidak ditemukan.</div>';
+        }
+
+        // Ambil detail item dari rfq_dtl
+        $rfq_items = DB::table('rfq_dtl')
+            ->where('RFQ_No', $rfqNo)
+            ->orderBy('ID', 'ASC')
+            ->get();
+
+        // Fallback jika data rfq_dtl kosong
+        if ($rfq_items->isEmpty()) {
+            $prItems = DB::table('purchase_request_dtl')->where('PR_No', $rfq->PR_No)->get();
+            foreach ($prItems as $item) {
+                DB::table('rfq_dtl')->insert([
+                    'RFQ_No'        => $rfq->RFQ_No,
+                    'PR_No'         => $rfq->PR_No,
+                    'Supplier_ID'   => $rfq->Supplier_ID,
+                    'Product_Code'  => $item->Product_Code,
+                    'Product_Desc'  => $item->Product_Desc,
+                    'Specification' => $item->Specification,
+                    'Qty'           => $item->Qty,
+                    'Unit'          => $item->Unit,
+                    'Est_Price'     => $item->Default_Price ?? 0,
+                    'Quoted_Price'  => 0,
+                    'Total_Price'   => 0,
+                    'Attachment'    => $item->Attachment ?? null,
+                    'Created_By'    => session('username') ?? 'admin',
+                    'Created_Date'  => now(),
+                ]);
+            }
+            $rfq_items = DB::table('rfq_dtl')->where('RFQ_No', $rfqNo)->orderBy('ID', 'ASC')->get();
+        }
+
+        return view('humanresources.procurement.qtn-create-detail', compact('rfq', 'rfq_items'));
+    }
+
+
+
+    // 2. Menyimpan Penawaran Harga Vendor (Quotation) ke rfq & rfq_dtl
+    public function storeQuotation(Request $request) {
+        $request->validate([
+            'rfq_no'            => 'required|string',
+            'quotation_no'      => 'required|string',
+            'valid_until'       => 'nullable|date',
+            'payment_terms'     => 'nullable|string',
+            'tax_percent'       => 'nullable|numeric|min:0',
+            'shipping_cost'     => 'nullable|numeric|min:0',
+            'dtl_id'            => 'required|array',
+            'quoted_price'      => 'required|array',
+            'discount_percent'  => 'nullable|array',
+            'vendor_attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120'
+        ]);
+
+        $rfqNo    = $request->rfq_no;
+        $username = session('username') ?? 'admin';
+
+        $rfqHeader = DB::table('rfq')->where('RFQ_No', $rfqNo)->first();
+        if (!$rfqHeader) {
+            return response()->json(['status' => 'error', 'message' => 'Data RFQ tidak ditemukan!'], 404);
+        }
+
+        $attachmentPath = $rfqHeader->Vendor_Attachment;
+        if ($request->hasFile('vendor_attachment')) {
+            $file = $request->file('vendor_attachment');
+            if ($file->isValid()) {
+                $fileName = time() . '_QTN_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $destinationPath = public_path('uploads/vendor_quotations');
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0777, true);
+                }
+                $file->move($destinationPath, $fileName);
+                $attachmentPath = 'uploads/vendor_quotations/' . $fileName;
+            }
+        }
+
+        DB::transaction(function () use ($request, $rfqNo, $rfqHeader, $attachmentPath, $username) {
+            $subtotalAmount = 0;
+
+            foreach ($request->dtl_id as $idx => $dtlId) {
+                $qty         = floatval($request->qty[$idx] ?? 1);
+                $quotedPrice = floatval($request->quoted_price[$idx] ?? 0);
+                $discPercent = floatval($request->discount_percent[$idx] ?? 0);
+                $leadTime    = $request->lead_time_days[$idx] ?? null;
+                $vendorNote  = $request->vendor_note[$idx] ?? null;
+
+                $gross     = $qty * $quotedPrice;
+                $discValue = $gross * ($discPercent / 100);
+                $lineTotal = $gross - $discValue;
+
+                $subtotalAmount += $lineTotal;
+
+                DB::table('rfq_dtl')->where('ID', $dtlId)->update([
+                    'Quoted_Price'     => $quotedPrice,
+                    'Discount_Percent' => $discPercent,
+                    'Total_Price'      => $lineTotal,
+                    'Lead_Time_Days'   => $leadTime,
+                    'Vendor_Note'      => $vendorNote,
+                    'Updated_By'       => $username,
+                    'Updated_Date'     => now(),
+                ]);
+            }
+
+            $taxPercent   = floatval($request->tax_percent ?? 11);
+            $taxAmount    = $subtotalAmount * ($taxPercent / 100);
+            $shippingCost = floatval($request->shipping_cost ?? 0);
+            $grandTotal   = $subtotalAmount + $taxAmount + $shippingCost;
+
+            DB::table('rfq')->where('RFQ_No', $rfqNo)->update([
+                'Quotation_No'      => $request->quotation_no,
+                'Valid_Until'       => $request->valid_until,
+                'Payment_Terms'     => $request->payment_terms,
+                'Subtotal_Amount'   => $subtotalAmount,
+                'Tax_Percent'       => $taxPercent,
+                'Tax_Amount'        => $taxAmount,
+                'Shipping_Cost'     => $shippingCost,
+                'Grand_Total'       => $grandTotal,
+                'Vendor_Attachment' => $attachmentPath,
+                'Remarks'           => $request->remarks,
+                'Status'            => 'RESPONDED',
+                'Updated_By'        => $username,
+            ]);
+
+            DB::table('purchase_request')
+                ->where('PR_No', $rfqHeader->PR_No)
+                ->update([
+                    'Processing_Status' => 'QUOTATION_RECEIVED',
+                ]);
+        });
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "Penawaran Vendor untuk {$rfqNo} berhasil disimpan!"
+        ]);
+    }
+
+    // Menampilkan Halaman Matriks Perbandingan Penawaran (Vendor Comparison Matrix)
+    // public function vendorComparisonMatrix(Request $request) {
+    //     $prNo = $request->query('pr_no');
+
+    //     // 1. Ambil Header PR
+    //     $prHeader = DB::table('purchase_request')->where('PR_No', $prNo)->first();
+    //     if (!$prHeader) {
+    //         return '<div class="alert alert-danger m-3">Data Purchase Request tidak ditemukan.</div>';
+    //     }
+
+    //     // 2. Ambil daftar RFQ & Vendor yang merespons PR ini
+    //     $rfqVendors = DB::table('rfq as r')
+    //         ->leftJoin('supplier as s', 'r.Supplier_ID', '=', 's.Supplier_ID')
+    //         ->select('r.*', 's.Company_Name', 's.Contact_Person', 's.Phone')
+    //         ->where('r.PR_No', $prNo)
+    //         ->get();
+
+    //     // 3. Ambil rincian item kebutuhan dari PR asli
+    //     $prItems = DB::table('purchase_request_dtl')->where('PR_No', $prNo)->get();
+
+    //     // 4. Ambil rincian penawaran harga dari rfq_dtl dikelompokkan per Supplier_ID
+    //     $rfqDetailsRaw = DB::table('rfq_dtl')->where('PR_No', $prNo)->get();
+    //     $rfqDetails = [];
+    //     foreach ($rfqDetailsRaw as $detail) {
+    //         $rfqDetails[$detail->Supplier_ID][$detail->Product_Code] = $detail;
+    //     }
+
+    //     return view('humanresources.procurement.vendor-comparison-matrix', compact('prHeader', 'rfqVendors', 'prItems', 'rfqDetails'));
+    // }
+
+    public function vendorComparisonMatrix(Request $request) {
+        $prNo = $request->query('pr_no');
+
+        // Jika pr_no dikirim sebagai RFQ_No, kita ambil PR_No-nya terlebih dahulu
+        if (str_starts_with($prNo, 'RFQ/')) {
+            $rfqHeader = DB::table('rfq')->where('RFQ_No', $prNo)->first();
+            if ($rfqHeader) {
+                $prNo = $rfqHeader->PR_No;
+            }
+        }
+
+        // 1. Ambil Header PR
+        $prHeader = DB::table('purchase_request')->where('PR_No', $prNo)->first();
+        if (! $prHeader) {
+            return '<div class="alert alert-danger m-3">Data Purchase Request tidak ditemukan untuk PR: ' . htmlspecialchars($prNo) . '</div>';
+        }
+
+        // 2. Ambil daftar Vendor UNIK yang merespons PR ini (GROUP BY Supplier_ID)
+        $rfqVendors = DB::table('rfq as r')
+            ->leftJoin('supplier as s', 'r.Supplier_ID', '=', 's.Supplier_ID')
+            ->select('r.*', 's.Company_Name', 's.Contact_Person', 's.Phone')
+            ->where('r.PR_No', $prNo)
+            ->groupBy('r.Supplier_ID') // Mencegah duplikat kolom vendor yang sama
+            ->get();
+
+        // 3. Ambil rincian item kebutuhan dari PR asli
+        $prItems = DB::table('purchase_request_dtl')->where('PR_No', $prNo)->get();
+
+        // 4. Ambil rincian penawaran harga dari rfq_dtl dikelompokkan per Supplier_ID & Product_Code
+        $rfqDetailsRaw = DB::table('rfq_dtl')->where('PR_No', $prNo)->get();
+        $rfqDetails = [];
+        foreach ($rfqDetailsRaw as $detail) {
+            $rfqDetails[$detail->Supplier_ID][$detail->Product_Code] = $detail;
+        }
+
+        return view('humanresources.procurement.vendor-comparison-matrix', compact('prHeader', 'rfqVendors', 'prItems', 'rfqDetails'));
+    }
+
+    // Cetak Dokumen RFQ Resmi untuk Dikirim ke Vendor
+    // public function printRFQ(Request $request) {
+    //     $rfqNo = $request->query('rfq');
+
+    //     $rfq = DB::table('rfq as r')
+    //         ->leftJoin('supplier as s', 'r.Supplier_ID', '=', 's.Supplier_ID')
+    //         ->leftJoin('purchase_request as pr', 'r.PR_No', '=', 'pr.PR_No')
+    //         ->select(
+    //             'r.*', 
+    //             's.Company_Name', 's.Address as Supplier_Address', 's.Contact_Person', 's.Phone', 's.Email',
+    //             'pr.Department', 'pr.PIC', 'pr.PIC_Phone', 'pr.PIC_Email', 'pr.PIC_Address as Site_Tujuan', 'pr.Note as PR_Note'
+    //         )
+    //         ->where('r.RFQ_No', $rfqNo)
+    //         ->first();
+
+    //     if (!$rfq) {
+    //         return abort(404, 'Dokumen RFQ tidak ditemukan.');
+    //     }
+
+    //     // Ambil item dari rfq_dtl (jika kosong, ambil dari purchase_request_dtl)
+    //     $items = DB::table('rfq_dtl')->where('RFQ_No', $rfqNo)->orderBy('ID', 'ASC')->get();
+    //     if ($items->isEmpty()) {
+    //         $items = DB::table('purchase_request_dtl')->where('PR_No', $rfq->PR_No)->get();
+    //     }
+
+    //     return view('humanresources.procurement.rfq-print', compact('rfq', 'items'));
+    // }
+
+    public function printRFQ(Request $request) {
+        $rfqNo = $request->query('rfq');
+
+        $rfq = DB::table('rfq as r')
+            ->leftJoin('supplier as s', 'r.Supplier_ID', '=', 's.Supplier_ID')
+            ->leftJoin('purchase_request as pr', 'r.PR_No', '=', 'pr.PR_No')
+            ->select(
+                'r.*', 
+                's.Company_Name', 's.Address as Supplier_Address', 's.Contact_Person', 's.Phone', 's.Email',
+                'pr.Department', 'pr.PIC', 'pr.PIC_Phone', 'pr.PIC_Email', 'pr.PIC_Address as Site_Tujuan', 'pr.Note as PR_Note'
+            )
+            ->where('r.RFQ_No', $rfqNo)
+            ->first();
+
+        if (!$rfq) {
+            return abort(404, 'Dokumen RFQ tidak ditemukan.');
+        }
+
+        // Ambil item dari rfq_dtl (jika kosong, ambil dari purchase_request_dtl)
+        $items = DB::table('rfq_dtl')->where('RFQ_No', $rfqNo)->orderBy('ID', 'ASC')->get();
+        if ($items->isEmpty()) {
+            $items = DB::table('purchase_request_dtl')->where('PR_No', $rfq->PR_No)->get();
+        }
+
+        // Konfigurasi mPDF (Samakan margin top dengan printPR agar kop surat tidak menimpa isi)
+        // Pastikan folder temporary mPDF tersedia di dalam storage Laravel
+        $mpdfTempDir = storage_path('app/mpdf');
+        if (!file_exists($mpdfTempDir)) {
+            mkdir($mpdfTempDir, 0775, true);
+        }
+
+        // Konfigurasi mPDF dengan tempDir yang writable
+        $mpdf = new \Mpdf\Mpdf([
+            'mode'          => 'utf-8',
+            'format'        => 'A4',
+            'tempDir'       => $mpdfTempDir, // <-- Tambahkan baris ini!
+            'margin_left'   => 10,
+            'margin_right'  => 10,
+            'margin_top'    => 38,
+            'margin_bottom' => 15,
+            'margin_header' => 5,
+            'margin_footer' => 5,
+        ]);
+
+        // Set Kop Surat (Sesuaikan nama file gambar dengan yang ada di printPR Anda)
+        $kopPath = public_path('images/kop-geu.png'); 
+        if (file_exists($kopPath)) {
+            $mpdf->SetHTMLHeader('
+                <div style="text-align: center; border-bottom: 1.5px solid #689f38; padding-bottom: 5px;">
+                    <img src="' . $kopPath . '" style="width: 100%; max-height: 95px;">
+                </div>
+            ');
+        }
+
+        $html = view('humanresources.procurement.rfq-print', compact('rfq', 'items'))->render();
+        $mpdf->WriteHTML($html);
+
+        // Output langsung tampil di browser (I = Inline)
+        $fileName = str_replace('/', '-', $rfq->RFQ_No) . '.pdf';
+        return response($mpdf->Output($fileName, 'I'), 200)
+            ->header('Content-Type', 'application/pdf');
+    }
+}

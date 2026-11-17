@@ -3,7 +3,7 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-clock-rotate-left text-primary"></i> Daftar Pengajuan Perubahan Data Mandiri
+                <i class="fa fa-clock-rotate-left text-success"></i> Daftar Pengajuan Perubahan Data Mandiri
             </div>
             @if(count($requests) > 0)
                 <div class="row g-2">

@@ -4,7 +4,7 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-folder-closed text-primary"></i> Berkas & Dokumen Terlampir
+                <i class="fa fa-folder-closed text-success"></i> Berkas & Dokumen Terlampir
             </div>
             @if(count($documents) > 0)
                 <div class="list-group list-group-flush">
@@ -37,7 +37,7 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-clock-rotate-left text-primary"></i> Riwayat Mutasi / Karir
+                <i class="fa fa-clock-rotate-left text-success"></i> Riwayat Mutasi / Karir
             </div>
             @if(count($history) > 0)
                 <div class="timeline-wrapper">

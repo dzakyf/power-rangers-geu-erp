@@ -60,7 +60,7 @@ $defaultDirectSupervisor = !empty($recruitment->Direct_Supervisor) ? $recruitmen
 
 // Default komponen penawaran mengikuti template resmi Offering Letter
 $defaultGrading = $recruitment->Grading ?? '11';
-$defaultWorkLocation = $recruitment->Work_Location ?? ($recruitment->Location ?? ($requisition->Location ?? 'Malang'));
+$defaultWorkLocation = $recruitment->Work_Location ?: (($requisition->Placement ?? null) ?: ($recruitment->Location ?? ($requisition->Location ?? 'GEU-HO')));
 $defaultContractType = $recruitment->Contract_Type ?? 'Kontrak 1 tahun dengan masa evaluasi kerja 3 bulan';
 
 // Deteksi Hari dan Jam Kerja otomatis dari Requisition Work_Schedule -> work_calendars
@@ -323,7 +323,7 @@ $defaultTerms = $recruitment->Offering_Terms ?? "Dokumen Offering Letter ini ber
                                     @endphp
                                     @foreach ($locationList as $loc)
                                         @php
-                                            $locValue = $loc->Name ?: $loc->Location_ID;
+                                            $locValue = $loc->Location_ID ?: $loc->Name;
                                             $isSelected =
                                                 $defaultWorkLocation == $loc->Location_ID ||
                                                 $defaultWorkLocation == $loc->Name ||

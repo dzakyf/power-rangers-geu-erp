@@ -105,6 +105,7 @@
                 data: function(p) {
                     return {
                         format: 'json',
+                        available_for_do: 1,
                         q: p.term || '',
                         whid: $('#WarehouseFilter').val() || ''
                     };

@@ -133,6 +133,7 @@ if (!function_exists('employee_grid_columns')) {
             'Position' => ['Last Position', 150, 'center', '#combo_filter', 'str'],
             'Reason' => ['Reason', 150, 'left', '#text_filter', 'str'],
             'Location' => ['Location', 100, 'center', '#combo_filter', 'str'],
+            'Site_Location' => ['Site Penempatan', 160, 'left', '#combo_filter', 'str'],
             'Alocation' => ['Alocation', 120, 'center', '#text_filter', 'str'],
             'Work_Area' => ['Work Area', 120, 'center', '#combo_filter', 'str'],
             'Department' => ['Department', 130, 'center', '#combo_filter', 'str'],
@@ -192,15 +193,33 @@ if (!function_exists('employee_grid_columns')) {
     }
 }
 
+if (!function_exists('location_name_map')) {
+    function location_name_map(): array
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+        try {
+            $cache = \Illuminate\Support\Facades\DB::table('location')
+                ->pluck('Name', 'Location_ID')
+                ->toArray();
+        } catch (\Throwable $e) {
+            $cache = [];
+        }
+        return $cache;
+    }
+}
+
 if (!function_exists('employee_grid_default_columns')) {
     function employee_grid_default_columns(): array
     {
-        return ['Name', 'Task_ID', 'Gender', 'Marital_Status', 'Age', 'Position', 'Department', 'Directorat', 'Employment_Status', 'Location', 'Last_Education', 'Academic_Major'];
+        return ['Name', 'Task_ID', 'Gender', 'Marital_Status', 'Age', 'Position', 'Department', 'Directorat', 'Employment_Status', 'Location', 'Site_Location', 'Last_Education', 'Academic_Major'];
     }
 }
 
 if (!function_exists('employee_grid_cell')) {
-    function employee_grid_cell(string $key, $row, array $akademis = []): string
+    function employee_grid_cell(string $key, $row, array $akademis = [], array $locationMap = []): string
     {
         if ($key === 'Age') {
             $b = isset($row->Birth_Date) ? $row->Birth_Date : '';
@@ -212,6 +231,16 @@ if (!function_exists('employee_grid_cell')) {
         if ($key === 'Academic_Major') {
             $tid = isset($row->Task_ID) ? $row->Task_ID : null;
             return isset($akademis[$tid]) ? (string) $akademis[$tid] : '';
+        }
+        if ($key === 'Site_Location') {
+            $locId = isset($row->Placement_Location_ID) && $row->Placement_Location_ID !== ''
+                ? (string) $row->Placement_Location_ID
+                : (isset($row->Location) ? (string) $row->Location : '');
+            if ($locId === '') {
+                return '';
+            }
+            $map = !empty($locationMap) ? $locationMap : location_name_map();
+            return (isset($map[$locId]) && $map[$locId] !== '') ? (string) $map[$locId] : $locId;
         }
         return isset($row->$key) ? (string) $row->$key : '';
     }
@@ -946,6 +975,37 @@ if (!function_exists('terbilang_en')) {
         }
 
         return (string)$n;
+    }
+}
+
+if (!function_exists('mobile_back_url')) {
+    /**
+     * Resolve context-aware back URL for mobile views based on the `from` query parameter.
+     */
+    function mobile_back_url(?string $defaultBack = null): string
+    {
+        $from = request()->query('from');
+        $targets = [
+            'dashboard' => route('mobile.dashboard'),
+            'ess'       => route('mobile.ess'),
+            'profile'   => route('employee.mobile.my-profile'),
+        ];
+
+        return $targets[$from] ?? ($defaultBack ?: route('mobile.dashboard'));
+    }
+}
+
+if (!function_exists('mobile_from_params')) {
+    /**
+     * Return ['from' => ...] query params when a valid mobile navigation source is active.
+     */
+    function mobile_from_params(): array
+    {
+        $from = request()->query('from');
+
+        return in_array($from, ['dashboard', 'ess', 'profile'], true)
+            ? ['from' => $from]
+            : [];
     }
 }
 

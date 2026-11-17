@@ -256,8 +256,8 @@ class MarketingController extends Controller
 
     public function getPromotionData()
     {
-        $d = DB::table('branding_promotion as p')->select('p.ID as Promotion_Id', 'p.*', 'p.Description as Promotion_Desc', 'p.Created_At as Applied_At', 'bm.Code as Marketing_Code', 'mf.ID as File_Id', 'mf.*')
-            ->join('branding_marketing as bm', 'bm.ID', '=', 'p.Marketing_Id')
+        $d = DB::table('branding_promotion as p')->select('p.ID as Promotion_Id', 'p.*', 'p.Description as Promotion_Desc', 'p.Created_At as Applied_At', 'bm.Code as Marketing_Code', 'bm.Name as Marketing_Name', 'mf.ID as File_Id', 'mf.*')
+            ->leftJoin('branding_marketing as bm', 'bm.ID', '=', 'p.Marketing_Id')
             ->leftJoin('meta_files as mf', function ($join) {
                 $join->on('mf.Map_To', '=', 'p.ID')
                     ->where('mf.topic', '=', 'branding-promotion');
@@ -277,7 +277,7 @@ class MarketingController extends Controller
             $row->addChild('cell', htmlspecialchars($d->Department));
             $row->addChild('cell', $d->Type);
             $row->addChild('cell', $d->Platform);
-            $row->addChild('cell', $d->Marketing_Code);
+            $row->addChild('cell', htmlspecialchars($d->Marketing_Name ?: '-'));
             $row->addChild('cell', htmlspecialchars($d->Promotion_Desc));
             $row->addChild('cell', $d->Audience);
             $row->addChild('cell', $d->Estimation);
@@ -299,6 +299,7 @@ class MarketingController extends Controller
                 'bp.*',
                 'bp.ID as Promotion_Id',
                 'bp.Code as Promotion_Code',
+                'bmk.Name as Marketing_Name',
                 'us.Name as PIC_Name',
                 DB::raw('(
             SELECT COUNT(*)
@@ -313,6 +314,7 @@ class MarketingController extends Controller
         ) as Total_Deals'),
             ])
             ->leftJoin('branding_promotion as bp', 'bp.ID', '=', 'bm.Promotion_Id')
+            ->leftJoin('branding_marketing as bmk', 'bmk.ID', '=', 'bp.Marketing_Id')
             ->leftJoin('users as us', 'us.id', '=', 'bm.PIC_Id');
 
         if (!empty($q['promotion_id'])) {
@@ -343,6 +345,7 @@ class MarketingController extends Controller
             $row->addChild('cell', $d->Campaign_Start_At);
             $row->addChild('cell', $d->Campaign_End_At);
             $row->addChild('cell', $d->Platform);
+            $row->addChild('cell', htmlspecialchars($d->Marketing_Name ?: '-'));
             $row->addChild('cell', $d->Budget_Realization);
             $row->addChild('cell', $d->Campaign_Status);
             $row->addChild('cell', $d->PIC_Name);
@@ -672,109 +675,55 @@ class MarketingController extends Controller
         $b    = $r->all();
         $user = $this->userService->getCurrentSessionUserInfo();
 
-
-        // Store paths outside transaction for cleanup on failure
-        $savedFilePaths = [];
-
-        DB::beginTransaction();
-
         try {
-            $highest         = DB::table('branding_promotion')->max('ID');
-            $applicationCode = $this->generatorService->generateApplicationCode($highest, "PROM-VCH");
+            $promotionId = DB::transaction(function () use ($b, $user) {
+                $highest         = DB::table('branding_promotion')->max('ID');
+                $applicationCode = $this->generatorService->generateApplicationCode($highest, "PROM-VCH");
 
+                $promotionId = DB::table('branding_promotion')->insertGetId([
+                    "Code"         => $applicationCode,
+                    "Department"   => $b["department"],
+                    "Type"         => $b["type"],
+                    "Platform"     => $b["platform"],
+                    "Marketing_Id" => $b["marketing_id"],
+                    "Description"  => $b["description"],
+                    "Audience"     => $b["audience"],
+                    "Estimation"   => $b["estimation"],
+                    "Status"       => $b["status"],
+                ]);
 
-            $promotionId = DB::table('branding_promotion')->insertGetId([
-                "Code"         => $applicationCode,
-                "Department"   => $b["department"],
-                "Type"         => $b["type"],
-                "Platform"     => $b["platform"],
-                "Marketing_Id" => $b["marketing_id"],
-                "Description"  => $b["description"],
-                "Audience"     => $b["audience"],
-                "Estimation"   => $b["estimation"],
-                "Status"       => $b["status"],
-            ]);
+                if (strtoupper((string) ($b["status"] ?? '')) === 'SUBMIT') {
+                    $level = DB::table('approval_level')
+                        ->where('Request_Type', 'BRANDING_PROMOTION')
+                        ->where('Level_Number', 1)
+                        ->first();
 
-            $topic  = "branding-promotion";
-            $folder = "filevendor/$this->year/$this->month";
+                    if (!$level) {
+                        throw new \Exception('Approval level not found for BRANDING_PROMOTION level 1.');
+                    }
 
-
-            //file
-            $filesAttachment = DB::table('meta_files as mf')->select('mf.*')->where('mf.Map_To', '=', $b['marketing_id'])->where('mf.Topic', '=', 'branding-marketing')->get();
-
-
-            // ─── Generated .docx ──────────────────────────────────────────────
-            // $doc      = $this->generateVoucherRAB($promotionId, $applicationCode, $filesAttachment);
-
-
-
-            // $path         = "{$this->generatorService->generateUUID()}.docx";
-            // $filename     = "{$folder}/{$path}";
-            // $savedDocPath = public_path($filename);
-
-            // Ensure directory exists
-            // if (!file_exists(dirname($savedDocPath))) {
-            //     mkdir(dirname($savedDocPath), 0755, true);
-            // }
-
-            // Move the temp merged PDF to your desired location
-            // copy($doc['doc'], $savedDocPath);
-
-            // Optional: clean up temp file
-            // @unlink($doc['doc']);
-
-            // $this->store
-            // $doc['doc']->saveAs($savedDocPath);
-
-            // $savedFilePaths[] = $savedDocPath;
-
-
-            // $this->uploadService->uploadMetaFile(
-            //     $path,
-            //     $filename,
-            //     "Voucher Promosi - Dokumen",
-            //     'docx',
-            //     $topic,
-            //     $promotionId
-            // );
-
-
-            // // ─── Approval ─────────────────────────────────────────────────────
-            // $level = DB::table('approval_level as al')
-            //     ->select('*')
-            //     ->where("al.Request_Type", '=', 'BRANDING_PROMOTION')
-            //     ->where("al.Level_Number", '=', 1)
-            //     ->first();
-
-            // if (!$level) {
-            //     throw new \Exception("Approval level not found for BRANDING_PROMOTION level 1.");
-            // }
-
-            // DB::table('approval_request')->insertGetId([
-            //     "Status"        => "NEED_APPROVAL",
-            //     "Requester_Id"  => $user->id,
-            //     "Description"   => $level->Description,
-            //     "Current_Level" => $level->Level_Number,
-            //     "Request_Type"  => $level->Request_Type,
-            //     "Level_Id"      => $level->ID,
-            //     "Map_To"        => $promotionId,
-            // ]);
-
-            // DB::commit();
-
-            // return $doc;
-            return response()->json(['status' => 'success', 'message' => 'success']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            // ─── Clean up all saved files on failure ──────────────────────────
-            foreach ($savedFilePaths as $filePath) {
-                if (file_exists($filePath)) {
-                    unlink($filePath);
+                    app(ApprovalController::class)->createApprovalRequest(
+                        'BRANDING_PROMOTION',
+                        (string) $user->id,
+                        'NEED_APPROVAL',
+                        [
+                            'Map_To'        => $promotionId,
+                            'Current_Level' => 0,
+                            'Level_Id'      => $level->ID,
+                            'Submitted_At'  => now(),
+                        ]
+                    );
                 }
-            }
-            // print_r($e);
 
+                return $promotionId;
+            });
+
+            return response()->json([
+                'status'       => 'success',
+                'message'      => 'success',
+                'promotion_id' => $promotionId,
+            ]);
+        } catch (\Throwable $e) {
             return response()->json([
                 'message' => 'Failed to submit promotion.',
                 'error'   => $e->getMessage(),

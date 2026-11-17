@@ -32,7 +32,7 @@ $Saya =  Auth::user()->username;
 
 <div class="card my-3">
     <div class="card-body">
-        <h5 class="">Keuntungan Mobil</h5>
+        <h5 class="bdp-index-title ">Keuntungan Mobil</h5>
         <div class="mb-3">
             <h6 class="">Inventory</h6>
             <div id="FacilityBenefitsMobil" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>

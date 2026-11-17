@@ -265,15 +265,30 @@ class ApprovalPolicyResolver
     private function decodeConditions($conditions): array
     {
         if (is_array($conditions)) {
-            return $conditions;
-        }
-        if (empty($conditions)) {
+            $raw = $conditions;
+        } elseif (empty($conditions)) {
             return [];
+        } else {
+            $raw = json_decode((string) $conditions, true);
+            if (!is_array($raw)) {
+                return [];
+            }
         }
 
-        $decoded = json_decode((string) $conditions, true);
+        $normalized = [];
+        foreach ($raw as $key => $item) {
+            if (is_array($item) && isset($item['field'])) {
+                $normalized[] = $item;
+            } elseif (!is_numeric($key) && (is_scalar($item) || is_null($item))) {
+                $normalized[] = [
+                    'field'    => (string) $key,
+                    'operator' => '=',
+                    'value'    => $item,
+                ];
+            }
+        }
 
-        return is_array($decoded) ? $decoded : [];
+        return $normalized;
     }
 
     private function conditionsMatch(array $conditions, array $context): bool

@@ -516,7 +516,8 @@ class ApprovalController extends Controller
                 return ['success' => false, 'message' => 'Approval level not found'];
             }
 
-            if ($session->Position !== $level->Approver_Position && $session->Position !== 'SUPERADMIN') {
+            if ($session->Position !== $level->Approver_Position
+                && !in_array($session->Position, ['SUPERADMIN', 'Administrator'], true)) {
                 return ['success' => false, 'message' => 'Anda tidak memiliki wewenang untuk level ini (' . $level->Level_Name . ')'];
             }
 
@@ -565,7 +566,7 @@ class ApprovalController extends Controller
      * side effects: the approval itself is already committed, so failures
      * here are logged instead of failing the request.
      */
-    private function applyFlowSideEffects(string $type, int $requestId): void
+    public function applyFlowSideEffects(string $type, int $requestId): void
     {
         try {
             $req = DB::table('approval_request')->where('ID', $requestId)->first();
@@ -653,7 +654,7 @@ class ApprovalController extends Controller
         $type = $q['type'] ?? "%";
         $session = $this->userService->getCurrentSessionUserInfo();
         $user_id = $session->id ?? "%";
-        $apprId = $q['id'] ?? "%";
+        $apprId = $q['id'] ?? null;
 
         // Head Table 
         $d = DB::table('approval_request as appr');
@@ -699,6 +700,11 @@ class ApprovalController extends Controller
                 ->join('survey_location as sl', 'appr.Map_To', '=', 'sl.ID');
         }
 
+        // The approval inbox only contains pending requests. Final rows are
+        // exposed through the Log endpoint instead of remaining actionable.
+        $d->where('appr.Request_Type', 'LIKE', $type)
+            ->where('appr.Status', '=', 'NEED_APPROVAL');
+
         // Filtering jabatan
         $userLevel = DB::table('approval_level')
             ->where('Request_Type', $type)
@@ -706,17 +712,19 @@ class ApprovalController extends Controller
             ->value('Level_Number');
 
         if ($userLevel) {
-            $d->where('appr.Current_Level', '=', $userLevel - 1)
-                ->where('appr.Status', '=', 'NEED_APPROVAL')
-                ->where('appr.Request_Type', 'LIKE', $type);
-        } else if (in_array($session->Position, ["MITRA"])) {
-            $d->where('appr.Request_Type', 'LIKE', $type)->where('appr.Requester_Id', 'LIKE', $user_id);
-        } else {
-            $d->where('appr.Request_Type', 'LIKE', $type)
-                ->where(function ($query) use ($user_id, $apprId) {
-                    $query->where('appr.Requester_Id', 'LIKE', $user_id)
-                        ->orWhere('appr.Opportunity_Partner_Id', 'LIKE', $apprId);
-                });
+            $d->where('appr.Current_Level', '=', $userLevel - 1);
+        } elseif (in_array($session->Position, ['MITRA'], true)) {
+            $d->where('appr.Requester_Id', '=', $user_id);
+        } elseif (!in_array($session->Position, ['Administrator', 'SUPERADMIN'], true)) {
+            // Internal positions without an approval level only see requests
+            // they raised or are linked to. Administrators see every pending
+            // request of this type so they can act as an override.
+            $d->where(function ($query) use ($user_id, $apprId) {
+                $query->where('appr.Requester_Id', '=', $user_id);
+                if ($apprId) {
+                    $query->orWhere('appr.Opportunity_Partner_Id', '=', $apprId);
+                }
+            });
         }
 
 
@@ -734,6 +742,11 @@ class ApprovalController extends Controller
                     $p->Status = 'APPROVED';
                 }
             }
+
+            // Healed requests are no longer pending; keep them out of the inbox.
+            $d = $d->filter(function ($p) {
+                return $p->Status === 'NEED_APPROVAL';
+            })->values();
         }
 
         $xml = new SimpleXMLElement('<rows></rows>');
@@ -818,6 +831,19 @@ class ApprovalController extends Controller
         $result = $this->processToNextLevel((int) $r->input('id'), $r->input('action'), $r->input('notes', ''));
         return response()->json($result, $result['success'] ? 200 : 500);
     }
+
+    /**
+     * Force-approve any BDP request, bypassing the configured approval chain.
+     */
+    public function forceApprove(Request $r)
+    {
+        $result = app(\App\Services\Approval\ForceApproveService::class)
+            ->forceApprove((int) $r->input('id'));
+        $status = (int) ($result['status'] ?? 200);
+        unset($result['status']);
+
+        return response()->json($result, $status);
+    }
     public function getProfitSharingApprovalDetail(Request $r)
     {
         $apprId = $r->query('appr_id');
@@ -828,10 +854,18 @@ class ApprovalController extends Controller
         }
 
         $partner = DB::table('opportunity_partner')->where('id', $approval->Opportunity_Partner_Id)->first();
-        $ap = DB::table('account_payable')->where('Opportunity_Id', $approval->Opportunity_Partner_Id)->first();
+        $ap = null;
+        if (!empty($approval->Map_To)) {
+            $ap = DB::table('account_payable')->where('ID', $approval->Map_To)->first();
+        }
         $files = DB::table('meta_files')
             ->where('Topic', 'profit-sharing')
-            ->where('Map_To', $approval->Requester_Id)
+            ->where(function ($query) use ($approval, $ap) {
+                $query->where('Map_To', $approval->Requester_Id);
+                if ($ap) {
+                    $query->orWhere('Map_To', $ap->ID);
+                }
+            })
             ->get();
         $log = DB::table('approval_log')->where('Request_Id', $apprId)->get();
 

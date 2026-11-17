@@ -16,14 +16,17 @@
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">MARKETING</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'Marketing'])
+
             <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <div>
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
 
+                @if(can_menu('SI00252', 'create'))
                 <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
+                @endif
                 <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
                 <input type="button" id="detailGrid1" name="detailGrid1" value="Detail Data" class="btn btn-info mt-2 mr-2" />
 
@@ -34,10 +37,9 @@
 
 
 <div id="Grid1Detail" class="row m-1" style="display:none;">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">MARKETING</div>
     <div class="card w-100">
         <div class="card-body">
-            <h5>Detail Informasi Marketing</h5>
+            <h5 class="bdp-index-title">Detail Informasi Marketing</h5>
             <form id="updateMarketingDetailForm" action="partner-branding-marketing-update" method="POST">
                 @method('PUT')
                 @csrf
@@ -156,7 +158,9 @@
                     </div>
                 </div>
 
+                @if(can_menu('SI00252', 'edit'))
                 <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
+                @endif
             </form>
         </div>
     </div>

@@ -7,6 +7,7 @@ $queryParams = [
 ];
 $dataUrl = $dataUrl ?? "xml-partner-valuation-detail?" . http_build_query($queryParams);
 $encodedUrl = rawurlencode($dataUrl);
+$isAggregate = strpos($dataUrl, 'aggregate') !== false;
 @endphp
 
 <div class="mt-3">
@@ -45,10 +46,41 @@ $encodedUrl = rawurlencode($dataUrl);
 	ValuationListDetail.setNumberFormat("0,000", 13, ".", ",");
 	ValuationListDetail.setSkin("dhx_skyblue");
 	ValuationListDetail.init();
-	refreshdataDetail();
+
+	var VALUATION_DETAIL_URL = '{!! $dataUrl !!}';
+	var VALUATION_DETAIL_IS_AGGREGATE = {{ $isAggregate ? 'true' : 'false' }};
 
 	function refreshdataDetail() {
-		ValuationListDetail.clearAndLoad('{!! $dataUrl !!}');
+		ValuationListDetail.clearAndLoad(VALUATION_DETAIL_URL);
+	}
 
+	function loadValuationForPartner(partnerId) {
+		if (!partnerId) {
+			ValuationListDetail.clearAll();
+			return;
+		}
+
+		var separator = VALUATION_DETAIL_URL.indexOf('?') === -1 ? '?' : '&';
+		ValuationListDetail.clearAndLoad(
+			VALUATION_DETAIL_URL + separator + 'partner=' + encodeURIComponent(partnerId)
+		);
+	}
+
+	function clearValuationList() {
+		ValuationListDetail.clearAll();
+	}
+
+	if (!VALUATION_DETAIL_IS_AGGREGATE) {
+		refreshdataDetail();
+	}
+
+	if ($('#mitra_select').length) {
+		$('#mitra_select').on('select2:select', function() {
+			loadValuationForPartner($(this).val());
+		});
+
+		$('#mitra_select').on('select2:clear', function() {
+			clearValuationList();
+		});
 	}
 </script>

@@ -56,11 +56,25 @@
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="Qty">Qty</label>
-                                <input type="number" class="form-control" id="Qty" name="Qty" min="0" required>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="Qty" name="Qty" min="0" required>
+                                    <select class="form-control" id="Qty_Unit" name="Qty_Unit" style="max-width:130px">
+                                        <option value="L">Liter</option>
+                                        <option value="PCS">Kemasan</option>
+                                    </select>
+                                </div>
+                                <small id="QtyUnitLabel" class="text-muted">(Liter)</small>
                             </div>
                             <div class="form-group col-md-6">
                                 <label for="Price">Price</label>
-                                <input type="number" class="form-control" id="Price" name="Price" min="0" required>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="Price" name="Price" min="0" required>
+                                    <select class="form-control" id="Price_Unit" name="Price_Unit" style="max-width:150px">
+                                        <option value="L">per Liter</option>
+                                        <option value="PCS">per Kemasan</option>
+                                    </select>
+                                </div>
+                                <small id="PriceUnitLabel" class="text-muted">(per Liter)</small>
                             </div>
                         </div>
                         <div class="form-group">
@@ -82,6 +96,51 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
+    var pooPricePerLiter = null;
+    var lastAutoPrice = '';
+
+    function selectedPackageCapacity() {
+        var capacity = parseFloat($('#Package option:selected').data('capacity'));
+        return capacity > 0 ? capacity : 1;
+    }
+
+    function refreshUnitLabels() {
+        var packageName = $('#Package').val();
+        var capacity = selectedPackageCapacity();
+        var qtyUnit = $('#Qty_Unit').val();
+        var priceUnit = $('#Price_Unit').val();
+
+        $('#QtyUnitLabel').text(qtyUnit === 'PCS' && packageName ? '(' + packageName + ')' : '(Liter)');
+        $('#PriceUnitLabel').text(priceUnit === 'PCS' && packageName ? '(per ' + packageName + ')' : '(per Liter)');
+    }
+
+    function syncPriceFromPoo() {
+        if (pooPricePerLiter === null) return;
+
+        var capacity = selectedPackageCapacity();
+        var current = $('#Price').val();
+        if (current !== '' && current !== lastAutoPrice) return;
+
+        var next = $('#Price_Unit').val() === 'PCS'
+            ? pooPricePerLiter * capacity
+            : pooPricePerLiter;
+        $('#Price').val(Math.round(next * 100) / 100);
+        lastAutoPrice = $('#Price').val();
+    }
+
+    function updatePackagePriceLabel() {
+        var capacity = selectedPackageCapacity();
+        var isPackage = capacity > 1 && $('#Package').val();
+
+        if ($('#Package').val()) {
+            $('#Qty_Unit').val(isPackage ? 'PCS' : 'L');
+            $('#Price_Unit').val(isPackage ? 'PCS' : 'L');
+        }
+
+        refreshUnitLabels();
+        syncPriceFromPoo();
+    }
+
     $(document).ready(function() {
         $('#WO_Number').select2({
             placeholder: '-- Pilih WO Number --',
@@ -93,6 +152,7 @@
                 data: function(p) {
                     return {
                         format: 'json',
+                        available_for_po: 1,
                         q: p.term || ''
                     };
                 },
@@ -118,7 +178,9 @@
         // Work Order (Qty stays manual; Coverage/Site remain editable).
         $('#WO_Number').on('select2:select', function(e) {
             var data = e.params.data;
-            $('#Price').val(data.price != null && data.price !== '' ? data.price : '');
+            pooPricePerLiter = data.price != null && data.price !== '' ? parseFloat(data.price) : null;
+            lastAutoPrice = '';
+            updatePackagePriceLabel();
 
             var coverage = data.province ? (data.province + ' - ' + (data.city || '')) : (data.city || '');
             $('#Coverage').val(coverage || '');
@@ -155,8 +217,19 @@
         $.get('master-packaging-data', function(res) {
             var $pkg = $('#Package');
             $.each(res.data, function(_, item) {
-                $pkg.append($('<option>', { value: item.Name, text: item.Name }));
+                $pkg.append($('<option>', {
+                    value: item.Name,
+                    text: item.Name,
+                    'data-capacity': item.Capacity
+                }));
             });
+            updatePackagePriceLabel();
+        });
+
+        $('#Package').on('change', updatePackagePriceLabel);
+        $('#Qty_Unit, #Price_Unit').on('change', function() {
+            refreshUnitLabels();
+            syncPriceFromPoo();
         });
 
         $('#SubmitPickup').on('click', function() {

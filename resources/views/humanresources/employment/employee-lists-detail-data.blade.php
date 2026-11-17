@@ -429,13 +429,56 @@ foreach ($Query1 as $Fetch1) {
                     <input type="text" id="Payment_Reference_Branch" class="form-control form-control-sm" value="<?php echo $datahasil->Payment_Reference_Branch ?? ''; ?>">
                 </div>
 
-                <div class="col-md-6">
+                <div class="col-12 mt-2">
+                    <div class="border-top pt-3">
+                        <span class="fw-bold text-primary small text-uppercase"><i class="fa fa-shield me-1"></i> Pengaturan Pemotongan Iuran BPJS Ketenagakerjaan & Kesehatan</span>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="bpjs_tk">BPJS Ketenagakerjaan No</label>
+                    <input type="text" id="bpjs_tk" class="form-control form-control-sm" placeholder="No. BPJS Ketenagakerjaan" value="<?php echo $datahasil->bpjs_tk ?? ''; ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="bpjs_tk_deduction">Potongan BPJS Ketenagakerjaan (JHT 2%)</label>
+                    <?php $tkDed = isset($datahasil->bpjs_tk_deduction) ? (int)$datahasil->bpjs_tk_deduction : 1; ?>
+                    <select id="bpjs_tk_deduction" class="form-select form-select-sm">
+                        <option value="1" <?php echo ($tkDed === 1) ? 'selected' : ''; ?>>DIPOTONG (Dikenakan Iuran JHT)</option>
+                        <option value="0" <?php echo ($tkDed === 0) ? 'selected' : ''; ?>>TIDAK DIPOTONG (Bebas Iuran BPJS TK)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted" for="bpjs_kes">BPJS Kesehatan No</label>
-                    <input type="text" id="bpjs_kes" class="form-control form-control-sm" value="<?php echo $datahasil->bpjs_kes ?? ''; ?>">
+                    <input type="text" id="bpjs_kes" class="form-control form-control-sm" placeholder="No. BPJS Kesehatan / KIS" value="<?php echo $datahasil->bpjs_kes ?? ''; ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="bpjs_kes_deduction">Potongan BPJS Kesehatan (1%)</label>
+                    <?php $kesDed = isset($datahasil->bpjs_kes_deduction) ? (int)$datahasil->bpjs_kes_deduction : 1; ?>
+                    <select id="bpjs_kes_deduction" class="form-select form-select-sm">
+                        <option value="1" <?php echo ($kesDed === 1) ? 'selected' : ''; ?>>DIPOTONG (Dikenakan Iuran BPJS Kes 1%)</option>
+                        <option value="2" <?php echo ($kesDed === 2) ? 'selected' : ''; ?>>TIDAK DIPOTONG (Subsidi Pemerintah / KIS - Kartu Indonesia Sehat)</option>
+                        <option value="0" <?php echo ($kesDed === 0) ? 'selected' : ''; ?>>TIDAK DIPOTONG (Bebas Iuran / Kebijakan Internal)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted" for="bpjs_probation_exempt">Pengecualian Masa Probation (Tunda BPJS)</label>
+                    <?php $probExempt = isset($datahasil->bpjs_probation_exempt) ? (int)$datahasil->bpjs_probation_exempt : 0; ?>
+                    <select id="bpjs_probation_exempt" class="form-select form-select-sm">
+                        <option value="0" <?php echo ($probExempt === 0) ? 'selected' : ''; ?>>TIDAK (Tetap Dipotong Normal Walaupun Probation)</option>
+                        <option value="1" <?php echo ($probExempt === 1) ? 'selected' : ''; ?>>YA (Tunda / Bebaskan Potongan BPJS Selama Probation)</option>
+                    </select>
+                    <div class="form-text small text-muted" style="font-size: 0.75rem;">
+                        Jika YA, potongan BPJS TK & Kes otomatis Rp 0 selama status karyawan masih PROBATION atau dalam masa probation. PPh 21 tetap dipotong normal.
+                    </div>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label small fw-bold text-muted" for="bpjs_tk">BPJS Ketenagakerjaan No</label>
-                    <input type="text" id="bpjs_tk" class="form-control form-control-sm" value="<?php echo $datahasil->bpjs_tk ?? ''; ?>">
+                    <label class="form-label small fw-bold text-muted" for="probation_end_date">Tanggal Berakhir Masa Probation</label>
+                    <input type="text" id="probation_end_date" class="form-control form-control-sm" placeholder="YYYY-MM-DD" value="<?php echo (!empty($datahasil->probation_end_date) && $datahasil->probation_end_date !== '0000-00-00') ? date('Y-m-d', strtotime($datahasil->probation_end_date)) : ''; ?>">
+                    <div class="form-text small text-muted" style="font-size: 0.75rem;">
+                        Batas akhir masa percobaan. Potongan BPJS otomatis aktif pada periode setelah tanggal ini.
+                    </div>
                 </div>
             </div>
         </div>
@@ -537,7 +580,7 @@ function formatnpwp(nilai) {
     $("#NPWP").val(nilaibaru);
 }
 
-var myCalendar = new dhtmlXCalendarObject(["Start_Date", "End_Date", "Date_in", "Birth_Date"]);
+var myCalendar = new dhtmlXCalendarObject(["Start_Date", "End_Date", "Date_in", "Birth_Date", "probation_end_date"]);
 myCalendar.setDateFormat("%Y-%m-%d");
 
 $(document).ready(function() {

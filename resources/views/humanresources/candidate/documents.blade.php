@@ -1,38 +1,73 @@
 @extends('layout.mainlayout-candidate')
 
 @section('content-wrapper')
-<div class="main-content-header">
-    <h1>My Documents</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('/candidate/dashboard') }}">Dashboard</a></li>
-        <li class="breadcrumb-item active"><span>Documents</span></li>
-    </ol>
+<div class="breadcrumb-header justify-content-between">
+    <div class="my-auto">
+        <div class="d-flex">
+            <h4 class="content-title mb-0 my-auto">Dokumen Lamaran</h4>
+            <span class="text-muted mt-1 tx-13 ms-2 mb-0">/ Unggah & Perbarui Berkas</span>
+        </div>
+    </div>
 </div>
 
-<div class="card">
+@php
+    $uploadedTotal = collect($docStatus)->where('uploaded', true)->count();
+    $totalDocs = count($categories);
+    $percent = $totalDocs > 0 ? round(($uploadedTotal / $totalDocs) * 100) : 0;
+@endphp
+
+<div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold text-dark">Kelengkapan Dokumen</span>
+            <span class="badge bg-primary text-white">{{ $uploadedTotal }} / {{ $totalDocs }} Dokumen ({{ $percent }}%)</span>
+        </div>
+        <div class="progress" style="height: 10px;">
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ $percent }}%;" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <small class="text-muted d-block mt-2">
+            Format yang diizinkan: <strong>JPG, JPEG, PNG, PDF</strong> (maksimal <strong>5 MB</strong> per file).
+        </small>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <div id="docAlert" class="alert d-none" role="alert"></div>
         <div class="table-responsive">
-            <table class="table table-bordered">
-                <thead><tr><th>Document</th><th>Status</th><th>Action</th></tr></thead>
-                <tbody>
-                    @foreach($categories as $cat)
+            <table class="table table-bordered table-hover align-middle mb-0">
+                <thead class="table-light">
                     <tr>
-                        <td>{{ $labels[$cat] ?? $cat }}</td>
-                        <td>
+                        <th style="width: 60px;" class="text-center">No</th>
+                        <th>Jenis Dokumen</th>
+                        <th style="width: 160px;" class="text-center">Status</th>
+                        <th style="width: 260px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($categories as $idx => $cat)
+                    <tr>
+                        <td class="text-center fw-bold text-muted">{{ $idx + 1 }}</td>
+                        <td class="fw-semibold">{{ $labels[$cat] ?? $cat }}</td>
+                        <td class="text-center">
                             @if($docStatus[$cat]['uploaded'])
-                            <span class="badge badge-success">Uploaded</span>
+                                <span class="badge bg-success text-white"><i class="fa fa-check me-1"></i>Uploaded</span>
                             @else
-                            <span class="badge badge-secondary">Not Uploaded</span>
+                                <span class="badge bg-secondary text-white">Belum Diunggah</span>
                             @endif
                         </td>
                         <td>
-                            <form class="upload-form" data-category="{{ strtolower($cat) }}" style="display:inline;">
+                            <form class="upload-form d-inline" data-category="{{ strtolower($cat) }}">
                                 @csrf
-                                <input type="file" name="file" accept="image/*,.pdf" class="file-input" style="display:none">
-                                <button type="button" class="btn btn-sm btn-primary upload-btn">Upload</button>
+                                <input type="file" name="file" accept=".jpg,.jpeg,.png,.pdf,image/*,application/pdf" class="file-input d-none">
+                                <button type="button" class="btn btn-sm btn-primary upload-btn">
+                                    <i class="fa fa-upload me-1"></i> {{ $docStatus[$cat]['uploaded'] ? 'Ganti File' : 'Upload' }}
+                                </button>
                             </form>
                             @if($docStatus[$cat]['uploaded'])
-                            <a href="{{ asset($docStatus[$cat]['filePath']) }}" class="btn btn-sm btn-success" target="_blank">View</a>
+                                <a href="{{ asset($docStatus[$cat]['filePath']) }}" class="btn btn-sm btn-outline-success ms-1" target="_blank">
+                                    <i class="fa fa-eye me-1"></i> Lihat
+                                </a>
                             @endif
                         </td>
                     </tr>
@@ -45,18 +80,24 @@
 
 <script>
 $(document).ready(function() {
-    $('.upload-btn').click(function() {
+    $('.upload-btn').on('click', function() {
         $(this).siblings('.file-input').click();
     });
-    $('.file-input').change(function() {
+
+    $('.file-input').on('change', function() {
         var form = $(this).closest('.upload-form');
         var category = form.data('category');
         var file = this.files[0];
         if (!file) return;
+
         var fd = new FormData();
         fd.append('file', file);
         fd.append('category', category);
         fd.append('_token', '{{ csrf_token() }}');
+
+        var btn = form.find('.upload-btn');
+        btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Uploading...');
+
         $.ajax({
             url: '{{ url("/candidate/document-upload") }}',
             type: 'POST',
@@ -64,15 +105,21 @@ $(document).ready(function() {
             processData: false,
             contentType: false,
             success: function(res) {
-                if (res.indexOf('success') !== -1) {
-                    alert('File uploaded successfully!');
-                    location.reload();
+                if (res && res.status === 'ok') {
+                    $('#docAlert').removeClass('d-none alert-danger').addClass('alert-success').text(res.message);
+                    setTimeout(function() { location.reload(); }, 700);
                 } else {
-                    alert(res);
+                    $('#docAlert').removeClass('d-none alert-success').addClass('alert-danger').text(res.message || 'Gagal mengunggah dokumen.');
+                    btn.prop('disabled', false).html('<i class="fa fa-upload me-1"></i> Upload');
                 }
             },
-            error: function() {
-                alert('Upload failed!');
+            error: function(xhr) {
+                var msg = 'Upload gagal! Pastikan format file JPG/PNG/PDF dan ukuran maksimal 5 MB.';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    msg = Object.values(xhr.responseJSON.errors).flat().join(' ');
+                }
+                $('#docAlert').removeClass('d-none alert-success').addClass('alert-danger').text(msg);
+                btn.prop('disabled', false).html('<i class="fa fa-upload me-1"></i> Upload');
             }
         });
     });

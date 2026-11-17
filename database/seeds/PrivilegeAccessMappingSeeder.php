@@ -122,7 +122,13 @@ class PrivilegeAccessMappingSeeder extends Seeder
             ],
         ];
 
+        $globalRoles = DB::table('roles')->whereNull('department')->pluck('id', 'name');
+
         foreach ($defaults as $item) {
+            if (!empty($item['default_role']) && isset($globalRoles[$item['default_role']])) {
+                $item['default_role_id'] = $globalRoles[$item['default_role']];
+            }
+
             DB::table('privilege_access_mappings')->updateOrInsert(
                 [
                     'mapping_type' => $item['mapping_type'],

@@ -15,25 +15,35 @@
         .nav-item-mobile.active { color: #1e3c72; font-weight: bold; }
         .nav-item-mobile i { font-size: 20px; margin-bottom: 3px; }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
-    <div class="header-card">
-        <h5 class="mb-1 fw-bold"><i class="fa fa-calendar-check me-2"></i>Timesheet Karyawan</h5>
-        <small class="text-white-50">Rekap riwayat kehadiran per bulan</small>
-        
-        <form method="GET" action="{{ route('attendance.mobile.timesheet') }}" class="mt-3">
-            <div class="input-group">
-                <input type="month" name="month" class="form-control" value="{{ $month }}">
-                <button class="btn btn-warning" type="submit"><i class="fa fa-filter"></i></button>
-            </div>
-        </form>
-    </div>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
+    <div class="finora-shell">
+        <div class="finora-topbar">
+            <a href="{{ route('attendance.mobile.index', $fromParams) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Timesheet Karyawan</h1>
+            <span style="width: 38px;"></span>
+        </div>
 
-    <div class="container px-3 mt-3">
+        <div class="finora-hero">
+            <div class="fw-bold mb-1"><i class="fas fa-calendar-check me-1"></i> Rekap Riwayat Kehadiran</div>
+            <p class="small mb-2 opacity-75">Pantau catatan jam masuk, pulang, keterlambatan, dan lembur per bulan.</p>
+            <form method="GET" action="{{ route('attendance.mobile.timesheet') }}">
+                <div class="input-group input-group-sm">
+                    <input type="month" name="month" class="form-control rounded-start-3 border-0" value="{{ $month }}">
+                    <button class="btn btn-light text-success fw-bold rounded-end-3 px-3" type="submit"><i class="fa fa-filter me-1"></i> Filter</button>
+                </div>
+            </form>
+        </div>
         @if(count($entries) === 0)
-            <div class="text-center py-5 text-muted">
-                <i class="fa fa-clipboard-list fa-3x mb-3"></i>
-                <p>Belum ada data kehadiran pada periode ini.</p>
+            <div class="finora-card text-center py-5 text-muted">
+                <i class="fa fa-clipboard-list fa-3x mb-3 text-success opacity-50"></i>
+                <div class="fw-bold text-dark">Belum Ada Data Kehadiran</div>
+                <p class="small mb-0">Tidak ditemukan catatan presensi pada periode ini.</p>
             </div>
         @else
             @php
@@ -53,26 +63,37 @@
                 }
             @endphp
             @foreach($entries as $row)
-                <div class="timesheet-row d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fw-bold">{{ date('d M Y (D)', strtotime($row->Scan_Date)) }}</div>
-                        <span class="badge bg-light text-dark border">{{ $row->Category ?? 'KERJA' }}</span>
-                        @if($row->Late_Minutes > 0)
-                            <span class="badge bg-danger text-white"><i class="fa fa-clock me-1"></i>Terlambat: {{ formatDurationMinutes($row->Late_Minutes) }}</span>
-                        @endif
-                        @if(!empty($row->Early_Leave_Minutes) && $row->Early_Leave_Minutes > 0)
-                            <span class="badge bg-warning text-dark"><i class="fa fa-person-walking-arrow-right me-1"></i>Pulang Cepat: {{ formatDurationMinutes($row->Early_Leave_Minutes) }}</span>
-                        @endif
-                    </div>
-                    <div class="text-end">
+                @php
+                    $isLate = ($row->Late_Minutes ?? 0) > 0;
+                    $tone = $isLate ? 'tone-coral' : 'tone-mint';
+                @endphp
+                <div class="finora-card mb-2 d-flex justify-content-between align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="rounded-4 d-inline-flex align-items-center justify-content-center flex-shrink-0 {{ $tone }}" style="width: 42px; height: 42px;">
+                            <i class="fas {{ $isLate ? 'fa-clock' : 'fa-calendar-check' }}"></i>
+                        </span>
                         <div>
-                            <span class="text-success fw-bold">{{ $row->Start_Time ?? '--:--' }}</span>
+                            <div class="fw-bold small">{{ date('d M Y (D)', strtotime($row->Scan_Date)) }}</div>
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                <span class="badge bg-light text-dark border rounded-pill" style="font-size: 10px;">{{ $row->Category ?? 'KERJA' }}</span>
+                                @if($row->Late_Minutes > 0)
+                                    <span class="badge bg-danger text-white rounded-pill" style="font-size: 10px;">Telat {{ formatDurationMinutes($row->Late_Minutes) }}</span>
+                                @endif
+                                @if(!empty($row->Early_Leave_Minutes) && $row->Early_Leave_Minutes > 0)
+                                    <span class="badge bg-warning text-dark rounded-pill" style="font-size: 10px;">Pulang Cepat {{ formatDurationMinutes($row->Early_Leave_Minutes) }}</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-end flex-shrink-0">
+                        <div class="small">
+                            <span class="text-success fw-bold">{{ $row->Start_Time ? substr((string)$row->Start_Time, 0, 5) : '--:--' }}</span>
                             <span class="text-muted mx-1">-</span>
-                            <span class="text-danger fw-bold">{{ $row->End_Time ?? '--:--' }}</span>
+                            <span class="text-danger fw-bold">{{ $row->End_Time ? substr((string)$row->End_Time, 0, 5) : '--:--' }}</span>
                         </div>
                         @if($row->Overtime_Minutes > 0)
-                            <small class="d-block text-primary fw-semibold" style="font-size: 11px;">
-                                <i class="fa fa-business-time me-1"></i>Lembur: +{{ formatDurationMinutes($row->Overtime_Minutes) }}
+                            <small class="d-block text-success fw-semibold" style="font-size: 10px;">
+                                <i class="fa fa-business-time me-1"></i>+{{ formatDurationMinutes($row->Overtime_Minutes) }}
                             </small>
                         @endif
                     </div>
@@ -81,21 +102,7 @@
         @endif
     </div>
 
-    <!-- Bottom Nav -->
-    <div class="bottom-nav">
-        <a href="{{ route('attendance.mobile.index') }}" class="nav-item-mobile">
-            <i class="fa fa-fingerprint"></i>
-            <span>Presensi</span>
-        </a>
-        <a href="{{ route('attendance.mobile.timesheet') }}" class="nav-item-mobile active">
-            <i class="fa fa-calendar-check"></i>
-            <span>Timesheet</span>
-        </a>
-        <a href="{{ route('attendance.mobile.leave') }}" class="nav-item-mobile">
-            <i class="fa fa-paper-plane"></i>
-            <span>Izin & Cuti</span>
-        </a>
-    </div>
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'attendance'])
 </body>
 </html>
 

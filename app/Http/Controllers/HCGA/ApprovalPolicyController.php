@@ -11,14 +11,17 @@ use Illuminate\Support\Facades\Gate;
 class ApprovalPolicyController extends Controller
 {
     const CONDITION_FIELDS = [
-        'Position_Level' => 'Level Posisi',
-        'Position_Code' => 'Kode Posisi',
-        'Department' => 'Departemen Posisi',
+        'Position_Level'    => 'Level Posisi',
+        'Position_Code'     => 'Kode Posisi',
+        'Department'        => 'Departemen Posisi',
         'Target_Department' => 'Departemen Target',
-        'Location' => 'Lokasi',
-        'Company_ID' => 'Company',
-        'Amount' => 'Nilai Pengajuan',
-        'Request_Type' => 'Tipe Request',
+        'Location'          => 'Lokasi',
+        'Company_ID'        => 'Company',
+        'Amount'            => 'Nilai Pengajuan',
+        'Request_Type'      => 'Tipe Request',
+        'Sppd_Type'         => 'Jenis SPPD (NORMAL / PERBANTUAN)',
+        'Is_Over_Plafon'    => 'Di Atas Plafon Regulasi (1 = Ya, 0 = Tidak)',
+        'Over_Plafon'       => 'Status Over Plafon (YES / NO)',
     ];
 
     const CONDITION_OPERATORS = [

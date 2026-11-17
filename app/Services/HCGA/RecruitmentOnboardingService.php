@@ -428,6 +428,19 @@ class RecruitmentOnboardingService
             $directorat = $payload['directorat'] ?? ($requisition->Directorat ?? ($recruitment->Directorat ?? null));
             $location   = $payload['location'] ?? ($recruitment->Location ?? ($requisition->Location ?? 'GEU-HO'));
 
+            // Resolusi Placement_Location_ID dari input Offering (work_location) atau Requisition (Placement)
+            $rawPlacement = trim((string) ($payload['work_location'] ?? ($recruitment->Work_Location ?? ($requisition->Placement ?? ''))));
+            $placementLocationId = $location;
+            if ($rawPlacement !== '') {
+                $matchedLoc = DB::table('location')
+                    ->where('Location_ID', $rawPlacement)
+                    ->orWhere('Name', $rawPlacement)
+                    ->first();
+                $placementLocationId = $matchedLoc ? $matchedLoc->Location_ID : $rawPlacement;
+            } elseif (!empty($requisition->Placement)) {
+                $placementLocationId = $requisition->Placement;
+            }
+
             // 1. Tentukan NIK
             $nik = !empty($payload['nik']) ? trim($payload['nik']) : ($recruitment->NIK ?? null);
             if (empty($nik)) {
@@ -485,11 +498,12 @@ class RecruitmentOnboardingService
                 'Department'             => $department,
                 'Directorat'             => $directorat,
                 'Location'               => $location,
+                'Placement_Location_ID'  => $placementLocationId,
                 'Position'               => $position,
                 'Salary_Accepted'        => $salary,
                 'Start_Date'             => $startDate,
                 'Date_in'                => $startDate,
-                'Employment_Status'      => 'ACTIVE',
+                'Employment_Status'      => 'PROBATION',
                 'Employment_Status_Date' => $startDate,
                 'Status'                 => 'ACTIVE',
                 'Category'               => 'OFFICE',
@@ -717,8 +731,10 @@ class RecruitmentOnboardingService
                 'department'      => $department,
                 'priv_id'         => $privIdToSet,
                 'role'            => $roleToSet,
-                'offering_number' => $offeringNumber,
-                'employment_id'   => $employmentId,
+                'offering_number'       => $offeringNumber,
+                'employment_id'         => $employmentId,
+                'employment_status'     => 'PROBATION',
+                'placement_location_id' => $placementLocationId,
             ];
         });
     }

@@ -48,6 +48,10 @@ class EmployeeMobileController extends Controller
             ]);
         }
 
+        $locMap = location_name_map();
+        $siteLocId = !empty($employee->Placement_Location_ID) ? $employee->Placement_Location_ID : ($employee->Location ?? '');
+        $employee->Site_Location_Name = ($siteLocId !== '' && isset($locMap[$siteLocId])) ? $locMap[$siteLocId] : $siteLocId;
+
         return view('humanresources.employment.mobile.detail', [
             'employee'     => $employee,
             'isHcga'       => $isHcga,
@@ -156,7 +160,7 @@ class EmployeeMobileController extends Controller
             if ($isHcga) {
                 $column = $request->field_name;
                 $allowedEmploymentCols = [
-                    'Name', 'Position', 'Department', 'Location', 'Handphone', 'Phone', 'Email',
+                    'Name', 'Position', 'Department', 'Location', 'Placement_Location_ID', 'Handphone', 'Phone', 'Email',
                     'Email_Individual', 'Address', 'City', 'Province', 'District', 'Sub_District',
                     'ZipCode', 'Address_Living', 'City_Living', 'Province_Living', 'District_Living',
                     'Sub_District_Living', 'ZipCode_Living', 'Blood', 'Blood_Rhesus', 'Marital_Status',

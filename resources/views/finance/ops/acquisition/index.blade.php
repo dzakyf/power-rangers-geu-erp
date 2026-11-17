@@ -15,7 +15,7 @@
     <div class="card-header m-3">
         <div class="row align-items-end">
             <div class="col-md-3">
-                <h5>Acquisition Cost</h5>
+                <h5 class="bdp-index-title">Acquisition Cost</h5>
             </div>
             <div class="col-md-auto ml-auto">
                 <select id="statusFilter" class="form-control form-control-sm" style="width:200px;" onchange="applyFilter()">
@@ -34,9 +34,11 @@
         </div>
     </div>
     <div class="text-left ml-3 mt-3 mb-3 mr-3">
+        @if(can_menu('SI00379', 'edit'))
         <button class="btn btn-primary" onclick="openUploadBuktiTransferModal()">
             <i class="fa fa-upload"></i> Upload Bukti Transfer
         </button>
+        @endif
         <button class="btn btn-info" onclick="openDetailModal()">
             <i class="fa fa-info-circle"></i> Detail
         </button>

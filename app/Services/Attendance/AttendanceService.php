@@ -106,6 +106,96 @@ class AttendanceService
     }
 
     /**
+     * Validasi integritas GPS (Anti-Fake GPS Hybrid):
+     * - Hard Block: mock provider, akurasi <= 0, atau teleportasi kecepatan > 150 km/jam.
+     * - Soft Flag (SUSPECTED_FAKE_GPS): akurasi > 500m, koordinat statis tanpa jitter, atau drift waktu GPS.
+     */
+    public function validateGpsIntegrity($user, float $lat, float $lng, array $params, string $action = 'clock-in'): array
+    {
+        $meta = [];
+        if (!empty($params['gps_meta'])) {
+            if (is_array($params['gps_meta'])) {
+                $meta = $params['gps_meta'];
+            } elseif (is_string($params['gps_meta'])) {
+                $decoded = json_decode($params['gps_meta'], true);
+                if (is_array($decoded)) {
+                    $meta = $decoded;
+                }
+            }
+        }
+
+        $isMock = !empty($params['is_mock']) || !empty($meta['is_mock']);
+        if ($isMock) {
+            throw new InvalidArgumentException('Terindikasi penggunaan Fake GPS / Mock Location. Harap matikan aplikasi lokasi palsu dan gunakan GPS asli perangkat Anda.');
+        }
+
+        $accuracy = isset($params['accuracy']) && $params['accuracy'] !== ''
+            ? (float) $params['accuracy']
+            : (isset($meta['accuracy']) && $meta['accuracy'] !== '' ? (float) $meta['accuracy'] : null);
+
+        if ($accuracy !== null && $accuracy <= 0) {
+            throw new InvalidArgumentException('Nilai akurasi GPS tidak valid (<= 0m). Pastikan sensor GPS asli perangkat aktif.');
+        }
+
+        // Velocity / Teleportation Check terhadap koordinat presensi terakhir dalam 12 jam terakhir
+        $nik = is_object($user) ? ($user->Emp_ID ?? '') : '';
+        if (!empty($nik)) {
+            $today = Carbon::now()->toDateString();
+            $lastLog = DB::table('attendant_log')
+                ->where('NIK', $nik)
+                ->where('Scan_Date', $today)
+                ->orderBy('ID', 'desc')
+                ->first();
+
+            if ($lastLog) {
+                $prevLat = null;
+                $prevLng = null;
+                $prevTime = null;
+
+                if ($action === 'clock-out' && !empty($lastLog->Clock_In_Lat) && !empty($lastLog->Clock_In_Lng) && !empty($lastLog->Start_Time)) {
+                    $prevLat = (float) $lastLog->Clock_In_Lat;
+                    $prevLng = (float) $lastLog->Clock_In_Lng;
+                    $prevTime = Carbon::parse($lastLog->Scan_Date . ' ' . $lastLog->Start_Time);
+                }
+
+                if ($prevLat !== null && $prevLng !== null && $prevTime !== null) {
+                    $distMeters = $this->calculateDistance($prevLat, $prevLng, $lat, $lng);
+                    $elapsedSeconds = max(1, Carbon::now()->diffInSeconds($prevTime));
+                    $distKm = $distMeters / 1000.0;
+                    $speedKmh = ($distKm / ($elapsedSeconds / 3600.0));
+
+                    if ($distMeters > 5000 && ($elapsedSeconds < 120 || $speedKmh > 150.0)) {
+                        $elapsedMin = round($elapsedSeconds / 60.0, 1);
+                        throw new InvalidArgumentException(
+                            'Terindikasi perpindahan lokasi GPS tidak wajar (teleportasi ' . round($distKm, 1) . ' km dalam ' . $elapsedMin . ' menit). Presensi ditolak.'
+                        );
+                    }
+                }
+            }
+        }
+
+        $softReasons = [];
+        if ($accuracy !== null && $accuracy > 500) {
+            $softReasons[] = 'Akurasi GPS rendah (' . round($accuracy) . 'm > 500m)';
+        }
+        if (!empty($meta['static_zero_jitter'])) {
+            $softReasons[] = 'Koordinat GPS statis identik tanpa variasi sensor';
+        }
+        if (!empty($meta['timestamp_drift'])) {
+            $softReasons[] = 'Selisih waktu timestamp GPS dan perangkat tidak wajar';
+        }
+
+        $flag = !empty($softReasons) ? 'SUSPECTED_FAKE_GPS' : 'CLEAN';
+
+        return [
+            'flag'     => $flag,
+            'reason'   => !empty($softReasons) ? implode('; ', $softReasons) : null,
+            'accuracy' => $accuracy,
+            'meta'     => $meta,
+        ];
+    }
+
+    /**
      * Dapatkan jadwal kerja harian karyawan dari MasterWorkCalendar atau EmployeeSchedule (Roster/Shift).
      */
     public function getWorkScheduleForDate(string $nik, string $date): array
@@ -281,11 +371,12 @@ class AttendanceService
         }
         $photoPath = $this->saveAttachmentFile($photo, 'attendance_photos');
 
-        // Validasi Geofencing
+        // Validasi Geofencing & Integritas Anti-Fake GPS (Hybrid)
         $geoCheck = $this->validateGeofence($lat, $lng);
         if (!$geoCheck['is_valid']) {
             throw new InvalidArgumentException($geoCheck['message']);
         }
+        $gpsIntegrity = $this->validateGpsIntegrity($user, $lat, $lng, $params, 'clock-in');
 
         // Dapatkan jadwal kerja
         $schedule = $this->getWorkScheduleForDate($nik, $today);
@@ -340,12 +431,16 @@ class AttendanceService
             'Shift_3'              => 0,
             'Clock_In_Lat'         => $lat,
             'Clock_In_Lng'         => $lng,
+            'Clock_In_Accuracy'    => $gpsIntegrity['accuracy'],
             'Clock_In_Photo'       => $photoPath ?: $photo,
             'Clock_In_Location_ID' => $geoCheck['location']->id ?? null,
             'Clock_In_Status'      => $status,
             'Late_Minutes'         => $lateMinutes,
             'Work_Calendar_ID'     => $schedule['calendar_id'],
             'Notes'                => $notes,
+            'GPS_Anomaly_Flag'     => $gpsIntegrity['flag'],
+            'GPS_Anomaly_Reason'   => $gpsIntegrity['reason'],
+            'GPS_Meta_Json'        => !empty($gpsIntegrity['meta']) ? json_encode(['clock_in' => $gpsIntegrity['meta']]) : null,
             'Created_By'           => $user->username ?? 'SYSTEM',
             'Created_Date'         => Carbon::now(),
         ];
@@ -387,11 +482,12 @@ class AttendanceService
         }
         $photoPath = $this->saveAttachmentFile($photo, 'attendance_photos');
 
-        // Validasi Geofencing
+        // Validasi Geofencing & Integritas Anti-Fake GPS (Hybrid)
         $geoCheck = $this->validateGeofence($lat, $lng);
         if (!$geoCheck['is_valid']) {
             throw new InvalidArgumentException($geoCheck['message']);
         }
+        $gpsIntegrity = $this->validateGpsIntegrity($user, $lat, $lng, $params, 'clock-in');
 
         // Cari log hari ini langsung berdasarkan NIK dan Scan_Date agar tidak gagal jika Task_ID baru
         $entry = Attendance::where('NIK', $nik)->where('Scan_Date', $today)->first();
@@ -437,16 +533,39 @@ class AttendanceService
             }
         }
 
+        $existingMeta = [];
+        if (!empty($entry->GPS_Meta_Json)) {
+            $decodedMeta = json_decode($entry->GPS_Meta_Json, true);
+            if (is_array($decodedMeta)) {
+                $existingMeta = $decodedMeta;
+            }
+        }
+        if (!empty($gpsIntegrity['meta'])) {
+            $existingMeta['clock_out'] = $gpsIntegrity['meta'];
+        }
+
+        $mergedFlag = ($entry->GPS_Anomaly_Flag === 'SUSPECTED_FAKE_GPS' || $gpsIntegrity['flag'] === 'SUSPECTED_FAKE_GPS')
+            ? 'SUSPECTED_FAKE_GPS'
+            : 'CLEAN';
+        $mergedReasons = array_filter([
+            $entry->GPS_Anomaly_Reason ?? null,
+            $gpsIntegrity['reason'] ? ('Clock-Out: ' . $gpsIntegrity['reason']) : null,
+        ]);
+
         $entryUpdate = [
             'End_Time'              => $nowTime,
             'Clock_Out_Lat'         => $lat,
             'Clock_Out_Lng'         => $lng,
+            'Clock_Out_Accuracy'    => $gpsIntegrity['accuracy'],
             'Clock_Out_Photo'       => $photoPath ?: $photo,
             'Clock_Out_Location_ID' => $geoCheck['location']->id ?? null,
             'Clock_Out_Status'      => $outStatus,
             'Early_Leave_Minutes'   => $earlyLeaveMinutes,
             'Overtime_Minutes'      => $overtimeMinutes,
             'Notes'                 => $notes ?: ($entry->Notes ?? null),
+            'GPS_Anomaly_Flag'      => $mergedFlag,
+            'GPS_Anomaly_Reason'    => !empty($mergedReasons) ? implode(' | ', $mergedReasons) : null,
+            'GPS_Meta_Json'         => !empty($existingMeta) ? json_encode($existingMeta) : ($entry->GPS_Meta_Json ?? null),
         ];
 
         DB::table('attendant_log')->where('ID', $entry->ID)->update($entryUpdate);
@@ -1038,10 +1157,12 @@ class AttendanceService
                     'overtime_minutes' => $overtime,
                     'clock_in_status'  => $statusClockIn,
                     'notes'            => $notes,
-                    'clock_in_lat'     => $log->Clock_In_Lat ?? null,
-                    'clock_in_lng'     => $log->Clock_In_Lng ?? null,
-                    'clock_in_photo'   => $log->Clock_In_Photo ?? null,
-                    'clock_out_photo'  => $log->Clock_Out_Photo ?? null,
+                    'clock_in_lat'       => $log->Clock_In_Lat ?? null,
+                    'clock_in_lng'       => $log->Clock_In_Lng ?? null,
+                    'clock_in_photo'     => $log->Clock_In_Photo ?? null,
+                    'clock_out_photo'    => $log->Clock_Out_Photo ?? null,
+                    'gps_anomaly_flag'   => $log->GPS_Anomaly_Flag ?? 'CLEAN',
+                    'gps_anomaly_reason' => $log->GPS_Anomaly_Reason ?? null,
                 ];
 
                 $currDateCarbon->addDay();
@@ -1130,10 +1251,12 @@ class AttendanceService
                     'overtime_minutes' => $overtime,
                     'clock_in_status'  => $statusClockIn,
                     'notes'            => $notes ?: ($log->Notes ?? ''),
-                    'clock_in_lat'     => $log->Clock_In_Lat ?? null,
-                    'clock_in_lng'     => $log->Clock_In_Lng ?? null,
-                    'clock_in_photo'   => $log->Clock_In_Photo ?? null,
-                    'clock_out_photo'  => $log->Clock_Out_Photo ?? null,
+                    'clock_in_lat'       => $log->Clock_In_Lat ?? null,
+                    'clock_in_lng'       => $log->Clock_In_Lng ?? null,
+                    'clock_in_photo'     => $log->Clock_In_Photo ?? null,
+                    'clock_out_photo'    => $log->Clock_Out_Photo ?? null,
+                    'gps_anomaly_flag'   => $log->GPS_Anomaly_Flag ?? 'CLEAN',
+                    'gps_anomaly_reason' => $log->GPS_Anomaly_Reason ?? null,
                 ];
             }
 

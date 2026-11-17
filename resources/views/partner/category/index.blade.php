@@ -15,14 +15,19 @@
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">KATEGORI</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'Master Kemasan'])
+
             <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <div>
+                @if(can_menu('SI00260', 'create'))
                 <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreate()" />
+                @endif
                 <input type="button" id="detailGrid1" name="detailGrid1" value="Detail" class="btn btn-info mt-2 mr-2" />
+                @if(can_menu('SI00260', 'delete'))
                 <input type="button" id="deleteGrid" name="deleteGrid" value="Hapus" class="btn btn-danger mt-2 mr-2" onclick="deleteSelected()" />
+                @endif
                 <input type="button" id="eksel" name="eksel" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="alert('Export Excel belum tersedia');" />
             </div>
         </div>

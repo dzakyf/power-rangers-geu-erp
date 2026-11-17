@@ -8,7 +8,11 @@ class CreateMasterPackagingTable extends Migration
 {
     public function up()
     {
-        Schema::create('master_uco_packaging', function (Blueprint $table) {
+        if (Schema::hasTable('master_packaging')) {
+            return;
+        }
+
+        Schema::create('master_packaging', function (Blueprint $table) {
             $table->bigIncrements('ID');
             $table->string('Name');
             $table->decimal('Capacity', 12, 2)->nullable();
@@ -22,6 +26,6 @@ class CreateMasterPackagingTable extends Migration
 
     public function down()
     {
-        Schema::dropIfExists('master_uco_packaging');
+        Schema::dropIfExists('master_packaging');
     }
 }

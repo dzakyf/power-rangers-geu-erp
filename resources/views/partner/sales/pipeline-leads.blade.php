@@ -21,9 +21,10 @@
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PIPELINE LEADS</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Pipeline Leads'])
+
 			<div id="SalesPipelineLeads" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselSalesPipelineLeadsDet" name="ekselSalesPipelineLeadsDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="SalesPipelineLeads.toExcel('./export/generate.php');" />
@@ -36,6 +37,8 @@
 	{{-- Checker: leads belonging to the selected sales row --}}
 	<div class="card mt-3" id="checkerCard" style="display:none">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'PIPELINE LEADS'])
+
 			<div class="d-flex flex-wrap align-items-end mb-3">
 				<div class="mr-3 mb-2">
 					<label class="d-block mb-1">Sales</label>

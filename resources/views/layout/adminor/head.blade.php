@@ -1,21 +1,28 @@
 <meta charset="utf-8">
 <meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="notification-list-url" content="{{ url('notification-getall') }}">
+<meta name="notification-stream-url" content="{{ url('notification-stream') }}">
+<meta name="notification-read-url" content="{{ url('notification-read') }}">
+<meta name="notification-sse-enabled" content="{{ config('notifications.sse_enabled', true) ? '1' : '0' }}">
+<meta name="notification-poll-seconds" content="{{ config('notifications.poll_interval', 30) }}">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0">
 <title>GREEN ENERGI UTAMA</title>
 <link rel="icon" href="{{ asset('adminor/img/favicon.png') }}" type="image/x-icon">
 
 {{-- Adminor V3 (Bootstrap 5) --}}
 <link href="{{ asset('adminor/plugins/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet" id="style">
-<link href="{{ asset('adminor/css/style.css') }}" rel="stylesheet">
+<link href="{{ asset('adminor/css/style.css') }}?v={{ filemtime(public_path('adminor/css/style.css')) }}" rel="stylesheet">
 <link href="{{ asset('adminor/css/plugins.css') }}" rel="stylesheet">
 <link href="{{ asset('adminor/css/icons.css') }}" rel="stylesheet">
 <link href="{{ asset('adminor/css/animate.css') }}" rel="stylesheet">
 
 <style>
     :root {
-        --primary-bg-color: #0a5221ff;
-        --primary-bg-hover: #083b19ff;
-        --primary-bg-border: #0d7a30ff;
+        --primary-bg-color: #0a5221;
+        --primary-bg-hover: #083b19;
+        --primary-bg-border: #0d7a30;
+        --primary-bg-gradient: #0d7a30;
+        --primary-bg-gradient-alt: #083b19;
     }
 </style>
 

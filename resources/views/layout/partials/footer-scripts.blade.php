@@ -15,4 +15,5 @@
 <!-- Custom JS -->
 <script src="{{ asset('/assets/js/custom.js') }}"></script>
 <script src="{{ asset('/assets/js/apex-charts/apexcharts.min.js') }}"></script>
+<script src="{{ asset('/js/notification-stream.js') }}"></script>
 @stack('footer')

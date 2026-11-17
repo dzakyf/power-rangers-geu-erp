@@ -111,10 +111,11 @@ class PayrollTaxService
         // Resolusi tarif TER dari tabel konfigurasi database
         $ratePercent = $this->getTerRatePercent($terCategory, $gross);
 
-        // Validasi NPWP / NIK 16 digit sesuai PMK 168/2023
-        // Jika memiliki NIK 16 digit atau NPWP valid, tidak dikenakan penalti 120%
+        // Validasi NPWP / NIK KTP 16 digit (per 2025 Coretax: NPWP sama dengan No_KTP)
+        // Jika belum memiliki NPWP/KTP valid, tidak dikenakan penalti potongan 120% kecuali diminta eksplisit
         $hasValidTaxId = (strlen(preg_replace('/\D/', '', $nik)) >= 16 || strlen(preg_replace('/\D/', '', $npwp)) >= 15);
-        $taxMultiplier = $hasValidTaxId ? 1.0 : 1.2;
+        $applyPenalty = !empty($options['apply_non_npwp_penalty']);
+        $taxMultiplier = ($applyPenalty && !$hasValidTaxId) ? 1.2 : 1.0;
 
         if (!$isGrossUp) {
             // Metode GROSS (Potong dari karyawan)

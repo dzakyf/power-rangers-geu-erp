@@ -7,7 +7,7 @@
     <title>Budaya & Peraturan Perusahaan</title>
     <!-- PWA Settings -->
     <link rel="manifest" href="{{ asset('manifest-employee.json') }}">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#064E3B">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Budaya & Peraturan">
@@ -21,15 +21,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             padding-bottom: 80px;
             color: #1e293b;
-        }
-        .header-culture {
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-            color: #fff;
-            padding: 24px 18px 24px;
-            border-bottom-left-radius: 24px;
-            border-bottom-right-radius: 24px;
-            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.2);
-            position: relative;
         }
         /* Segmented Button Group for Mobile */
         .category-nav-wrapper {
@@ -72,9 +63,9 @@
             text-decoration: none;
         }
         .segmented-btn.active {
-            background: #ffffff;
-            color: #1e3a8a;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            background: #047857;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
             font-weight: 700;
         }
         .segmented-btn i {
@@ -84,16 +75,16 @@
             font-size: 0.65rem;
             padding: 2px 6px;
             border-radius: 10px;
-            background: rgba(30, 58, 138, 0.1);
-            color: #1e3a8a;
+            background: rgba(4, 120, 87, 0.12);
+            color: #047857;
         }
         .segmented-btn.active .badge-count {
-            background: #1e3a8a;
+            background: rgba(255, 255, 255, 0.22);
             color: #ffffff;
         }
         .culture-card {
             background: #fff;
-            border-radius: 16px;
+            border-radius: 18px;
             border: 1px solid #e2e8f0;
             padding: 18px;
             margin-bottom: 14px;
@@ -106,14 +97,14 @@
         .card-icon-wrapper {
             width: 44px;
             height: 44px;
-            border-radius: 12px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
             font-size: 1.15rem;
         }
-        .icon-primary { background-color: #eff6ff; color: #2563eb; }
+        .icon-primary { background-color: #ECFDF5; color: #047857; }
         .icon-success { background-color: #f0fdf4; color: #16a34a; }
         .icon-warning { background-color: #fefce8; color: #ca8a04; }
         .icon-danger  { background-color: #fef2f2; color: #dc2626; }
@@ -175,7 +166,7 @@
             text-align: center;
         }
         .nav-bottom-item.active {
-            color: #1e3a8a;
+            color: #047857;
             font-weight: 700;
         }
         .nav-bottom-item i {
@@ -191,31 +182,34 @@
             backdrop-filter: blur(4px);
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
-    <!-- Header Section -->
-    <div class="header-culture">
-        <div class="d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('employee.mobile.my-profile') }}" class="btn btn-outline-light btn-sm rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
-                    <i class="fa fa-arrow-left"></i>
-                </a>
-                <span class="badge bg-light text-primary fw-semibold px-2 py-1 rounded-pill small">Budaya & Tata Tertib</span>
-            </div>
-            <div class="small opacity-75">
-                <i class="fa fa-user-circle me-1"></i> {{ $user->Name ?? $user->username }}
-            </div>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
+        $fromParams = mobile_from_params();
+    @endphp
+    <div class="finora-shell pb-0">
+        <div class="finora-topbar">
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Pedoman Perusahaan</h1>
+            <a href="{{ route('mobile.dashboard') }}" class="finora-back-btn" title="Dashboard"><i class="fas fa-home"></i></a>
         </div>
 
-        <div class="mt-3">
-            <h4 class="fw-bold mb-1">Pedoman Perusahaan</h4>
-            <p class="small text-white-50 mb-0">Visi, Misi, Nilai-nilai Utama (Core Values), dan Peraturan Perusahaan</p>
-        </div>
-
-        <div class="hero-banner">
-            <div class="d-flex align-items-center gap-2">
-                <i class="fa fa-quote-left opacity-50"></i>
+        <div class="finora-hero mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3 py-1" style="font-size: 11px;">
+                    <i class="fas fa-compass me-1"></i> Budaya &amp; Tata Tertib
+                </span>
+                <span class="small opacity-75">
+                    <i class="fa fa-user-circle me-1"></i> {{ $user->Name ?? $user->username }}
+                </span>
+            </div>
+            <div class="fw-bold fs-6 mb-1">Visi, Misi &amp; Peraturan</div>
+            <p class="small mb-2 opacity-75">Nilai-nilai utama (Core Values) dan pedoman kerja karyawan.</p>
+            <div class="bg-white bg-opacity-10 rounded-3 px-3 py-2 d-flex align-items-center gap-2">
+                <i class="fa fa-quote-left opacity-75"></i>
                 <div class="small fw-semibold">
                     "Membangun integritas, profesionalisme, dan komitmen bersama."
                 </div>
@@ -475,6 +469,7 @@
             }
         }
     </script>
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'dashboard'])
 </body>
 </html>
 

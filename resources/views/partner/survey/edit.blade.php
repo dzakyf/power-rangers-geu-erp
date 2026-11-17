@@ -1,3 +1,6 @@
+@php
+    $detailForm = isset($form) ? $form : app(\App\Services\Survey\SurveyScoringService::class)->activeVersionWithItems();
+@endphp
 @csrf
 <!-- Main Content Header -->
 <div class="mt-5 mb-5 p-4 bg-white shadow-sm">
@@ -172,6 +175,31 @@
                 </tr>
             </thead>
             <tbody id="C_Checklist">
+                @if($detailForm)
+                    @foreach($detailForm->items->where('Section_Code', 'C') as $item)
+                        @php
+                            $cfg = is_array($item->Score_Config) ? $item->Score_Config : json_decode($item->Score_Config, true);
+                            $cfg = is_array($cfg) ? $cfg : [];
+                        @endphp
+                        <tr data-code="{{ $item->Item_Code }}">
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $item->Criteria }}</td>
+                            <td>{{ $item->Keterangan }}</td>
+                            <td class="radio-group">
+                                <input type="radio" name="answers[{{ $item->Item_Code }}][value]" value="1" id="{{ $item->Item_Code }}_yes">
+                            </td>
+                            <td class="radio-group">
+                                <input type="radio" name="answers[{{ $item->Item_Code }}][value]" value="0" id="{{ $item->Item_Code }}_no">
+                            </td>
+                            <td>
+                                <input type="file" name="answers[{{ $item->Item_Code }}][file]" id="file_{{ $item->Item_Code }}" style="display:none;">
+                                <button class="upload-btn" type="button" onclick="$('#file_{{ $item->Item_Code }}').click();">Upload</button>
+                                <span class="file-name" id="fileName_{{ $item->Item_Code }}">No file chosen</span>
+                                <span class="existing-file" data-code="{{ $item->Item_Code }}"></span>
+                            </td>
+                        </tr>
+                    @endforeach
+                @endif
             </tbody>
         </table>
 
@@ -190,6 +218,25 @@
                 </tr>
             </thead>
             <tbody id="D_Checklist">
+                @if($detailForm)
+                    @foreach($detailForm->items->where('Section_Code', 'D') as $item)
+                        <tr data-code="{{ $item->Item_Code }}">
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $item->Criteria }}</td>
+                            <td>{{ $item->Parameter_Evaluation }}</td>
+                            <td>{{ $item->Minimum_Standard }}</td>
+                            <td class="radio-group">
+                                <input type="radio" name="answers[{{ $item->Item_Code }}][value]" value="1" id="{{ $item->Item_Code }}_yes">
+                            </td>
+                            <td class="radio-group">
+                                <input type="radio" name="answers[{{ $item->Item_Code }}][value]" value="0" id="{{ $item->Item_Code }}_no">
+                            </td>
+                            <td>
+                                <textarea name="answers[{{ $item->Item_Code }}][notes]" rows="4" cols="30"></textarea>
+                            </td>
+                        </tr>
+                    @endforeach
+                @endif
             </tbody>
         </table>
 
@@ -205,6 +252,28 @@
                 </tr>
             </thead>
             <tbody id="E_Checklist">
+                @if($detailForm)
+                    @foreach($detailForm->items->where('Section_Code', 'E') as $item)
+                        @php
+                            $cfg = is_array($item->Score_Config) ? $item->Score_Config : json_decode($item->Score_Config, true);
+                            $options = is_array($cfg) && isset($cfg['options']) ? $cfg['options'] : [];
+                        @endphp
+                        <tr data-code="{{ $item->Item_Code }}">
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $item->Criteria }}</td>
+                            <td>{{ $item->Parameter_Evaluation }}</td>
+                            <td>{{ $item->Keterangan }}</td>
+                            <td>
+                                <select name="answers[{{ $item->Item_Code }}][value]" class="rating-select">
+                                    <option value="">-- Pilih --</option>
+                                    @foreach($options as $option)
+                                        <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                        </tr>
+                    @endforeach
+                @endif
             </tbody>
         </table>
 
@@ -221,6 +290,30 @@
                 </tr>
             </thead>
             <tbody id="F_Checklist">
+                @if($detailForm)
+                    @foreach($detailForm->items->where('Section_Code', 'F') as $item)
+                        <tr data-code="{{ $item->Item_Code }}" class="f-row">
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $item->Criteria }}</td>
+                            <td>
+                                <input type="number" name="answers[{{ $item->Item_Code }}][source_value]" class="f-source" min="0" step="0.01">
+                            </td>
+                            <td>
+                                <input type="number" name="answers[{{ $item->Item_Code }}][uco_estimation]" class="f-uco" min="0" step="0.01">
+                            </td>
+                            <td>
+                                <input type="number" class="f-total" readonly style="background-color:#f8f9fa;">
+                            </td>
+                        </tr>
+                    @endforeach
+                    <tr class="f-total-row">
+                        <td></td>
+                        <td><strong>Total</strong></td>
+                        <td><input type="number" id="F_total_source" readonly style="background-color:#e9ecef;font-weight:bold;"></td>
+                        <td><input type="number" id="F_total_uco" readonly style="background-color:#e9ecef;font-weight:bold;"></td>
+                        <td><input type="number" id="F_total_estimation" readonly style="background-color:#e9ecef;font-weight:bold;"></td>
+                    </tr>
+                @endif
             </tbody>
         </table>
 
@@ -550,121 +643,28 @@
     }
 
     function initializeUCOCalculations() {
-        // Function to calculate individual row total (col3 = col1 + col2)
-        function calculateRowTotal(row) {
-            const sourceVal = parseFloat($(`#F_p${row}_col1`).val()) || 0;
-            const ucoVal = parseFloat($(`#F_p${row}_col2`).val()) || 0;
-            const total = sourceVal * ucoVal;
-            $(`#F_p${row}_col3`).val(total.toFixed(2));
-            console.log(`Row ${row}: ${sourceVal} + ${ucoVal} = ${total.toFixed(2)}`);
-            return {
-                sourceVal,
-                ucoVal,
-                total
-            };
+        function recalc() {
+            var totalSource = 0;
+            var totalUco = 0;
+            var totalEst = 0;
+
+            $('#F_Checklist .f-row').each(function() {
+                var source = parseFloat($(this).find('.f-source').val()) || 0;
+                var uco = parseFloat($(this).find('.f-uco').val()) || 0;
+                var total = source * uco;
+                $(this).find('.f-total').val(total.toFixed(2));
+                totalSource += source;
+                totalUco += uco;
+                totalEst += total;
+            });
+
+            $('#F_total_source').val(totalSource.toFixed(2));
+            $('#F_total_uco').val(totalUco.toFixed(2));
+            $('#F_total_estimation').val(totalEst.toFixed(2));
         }
 
-        // Function to calculate sum of column 1 from rows 1-4 and put in row 5 col1
-        function calculateRow5Col1() {
-            let sumSource = 0;
-
-            // Sum all Source values from rows 1-4
-            for (let i = 1; i <= 4; i++) {
-                const sourceVal = parseFloat($(`#F_p${i}_col1`).val()) || 0;
-                sumSource += sourceVal;
-                console.log(`Row ${i} col1: ${sourceVal}, Running sum: ${sumSource}`);
-            }
-
-            // Set row 5 col1 to the sum
-            $('#F_p5_col1').val(sumSource.toFixed(2));
-            console.log(`Row 5 col1 (Total Source) set to: ${sumSource.toFixed(2)}`);
-
-            return sumSource;
-        }
-
-        // Function to calculate sum of column 2 from rows 1-4 and put in row 5 col2
-        function calculateRow5Col2() {
-            let sumUCO = 0;
-
-            // Sum all UCO values from rows 1-4
-            for (let i = 1; i <= 4; i++) {
-                const ucoVal = parseFloat($(`#F_p${i}_col2`).val()) || 0;
-                sumUCO += ucoVal;
-                console.log(`Row ${i} col2: ${ucoVal}, Running sum: ${sumUCO}`);
-            }
-
-            // Set row 5 col2 to the sum
-            $('#F_p5_col2').val(sumUCO.toFixed(2));
-            console.log(`Row 5 col2 (Total UCO) set to: ${sumUCO.toFixed(2)}`);
-
-            return sumUCO;
-        }
-
-        // Function to calculate sum of column 3 from rows 1-4 and put in row 5 col3
-        function calculateRow5Col3() {
-            let sumTotal = 0;
-
-            // Sum all Total Estimation values from rows 1-4
-            for (let i = 1; i <= 4; i++) {
-                const totalVal = parseFloat($(`#F_p${i}_col3`).val()) || 0;
-                sumTotal += totalVal;
-                console.log(`Row ${i} col3: ${totalVal}, Running sum: ${sumTotal}`);
-            }
-
-            // Set row 5 col3 to the sum
-            $('#F_p5_col3').val(sumTotal.toFixed(2));
-            console.log(`Row 5 col3 (Total Estimation Sum) set to: ${sumTotal.toFixed(2)}`);
-
-            return sumTotal;
-        }
-
-        // Function to recalculate all rows
-        function recalculateAll() {
-            console.log('Recalculating all...');
-
-            // Calculate row totals for rows 1-4 (non-total rows)
-            for (let i = 1; i <= 4; i++) {
-                calculateRowTotal(i);
-            }
-
-            // Calculate row 5 col1 (sum of rows 1-4 col1)
-            calculateRow5Col1();
-
-            // Calculate row 5 col2 (sum of rows 1-4 col2)
-            calculateRow5Col2();
-
-            // Calculate row 5 col3 (sum of rows 1-4 col3)
-            calculateRow5Col3();
-        }
-
-        // Event handlers
-        function handleInputChange() {
-            const row = $(this).data('row');
-            console.log(`Change detected on row ${row}, element: ${$(this).attr('id')}, value: ${$(this).val()}`);
-
-            if (row == 5) {
-                // If row 5 changes, row 5 col3 is already a sum from rows 1-4 col3
-                // No action needed as row 5 col3 is calculated from rows 1-4
-                console.log('Row 5 is a total row, values are calculated automatically');
-            } else {
-                // For rows 1-4, update the current row's total (col3 = col1 + col2)
-                calculateRowTotal(row);
-
-                // Then update all row 5 totals
-                calculateRow5Col1(); // Update total source (sum of rows 1-4 col1)
-                calculateRow5Col2(); // Update total UCO (sum of rows 1-4 col2)
-                calculateRow5Col3(); // Update total estimation (sum of rows 1-4 col3)
-            }
-        }
-
-        // Attach event listeners
-        $(document).off('input', '.source-value, .uco-estimation');
-        $(document).on('input', '.source-value, .uco-estimation', handleInputChange);
-
-        // Initial calculation
-        recalculateAll();
-
-        console.log('Initialization complete');
+        $(document).off('input', '.f-source, .f-uco').on('input', '.f-source, .f-uco', recalc);
+        recalc();
     }
 
     function renderTableEnvirontmentAssessment() {
@@ -798,28 +798,45 @@
                 $('#Longitude').val(d.Longitude);
                 $('#Area').val(d.Area);
 
-                // C. Foto — radio buttons
-                for (var i = 1; i <= 4; i++) {
-                    var val = d['C_c' + i];
-                    $('input[name="C_c' + i + '"][value="' + val + '"]').prop('checked', true);
-                }
+                if (d.Answers && Object.keys(d.Answers).length) {
+                    Object.keys(d.Answers).forEach(function(code) {
+                        var answer = d.Answers[code] || {};
+                        var payload = answer.Answer_JSON || {};
+                        var value = payload.value;
 
-                // D. Checklist Lokasi — radio buttons + notes
-                for (var j = 1; j <= 9; j++) {
-                    var val = d['D_c' + j];
-                    $('input[name="D_c' + j + '"][value="' + val + '"]').prop('checked', true);
-                    $('#D_c' + j + '_Notes').val(d['D_c' + j + '_Notes'] || '');
-                }
+                        if (value !== undefined && value !== null) {
+                            $('input[name="answers[' + code + '][value]"][value="' + value + '"]').prop('checked', true);
+                            $('select[name="answers[' + code + '][value]"]').val(String(value));
+                        }
 
-                // E. Kondisi Lingkungan — select
-                for (var k = 1; k <= 4; k++) {
-                    $('select[name="E_p' + k + '"]').val(d['E_p' + k]);
-                }
+                        $('textarea[name="answers[' + code + '][notes]"]').val(answer.Notes || '');
+                        $('input[name="answers[' + code + '][source_value]"]').val(payload.source_value || '');
+                        $('input[name="answers[' + code + '][uco_estimation]"]').val(payload.uco_estimation || '');
 
-                // F. UCO Estimation — inputs
-                for (var f = 1; f <= 4; f++) {
-                    $('#F_p' + f + '_col1').val(d['F_p' + f + '_col1']);
-                    $('#F_p' + f + '_col2').val(d['F_p' + f + '_col2']);
+                        if (answer.File_Path) {
+                            $('.existing-file[data-code="' + code + '"]').html('<a href="/storage/' + answer.File_Path + '" target="_blank">Lihat file</a>');
+                        }
+                    });
+                } else {
+                    for (var i = 1; i <= 4; i++) {
+                        var cVal = d['C_c' + i];
+                        $('input[name="answers[C' + i + '][value]"][value="' + cVal + '"]').prop('checked', true);
+                    }
+
+                    for (var j = 1; j <= 9; j++) {
+                        var dVal = d['D_c' + j];
+                        $('input[name="answers[D' + j + '][value]"][value="' + dVal + '"]').prop('checked', true);
+                        $('textarea[name="answers[D' + j + '][notes]"]').val(d['D_c' + j + '_Notes'] || '');
+                    }
+
+                    for (var k = 1; k <= 4; k++) {
+                        $('select[name="answers[E' + k + '][value]"]').val(String(d['E_p' + k] || ''));
+                    }
+
+                    for (var f = 1; f <= 4; f++) {
+                        $('input[name="answers[F' + f + '][source_value]"]').val(d['F_p' + f + '_col1']);
+                        $('input[name="answers[F' + f + '][uco_estimation]"]').val(d['F_p' + f + '_col2']);
+                    }
                 }
                 initializeUCOCalculations();
             }
@@ -827,20 +844,16 @@
     }
 
     $(document).ready(function() {
-        renderTableLocationDocumentation()
-        renderTableLocationAssessment()
-        renderTableEnvirontmentAssessment()
-        renderTableUCOEstimation()
-
         renderTableSurveyorRecommendation()
         getSurveyData()
+        initializeUCOCalculations()
 
 
         // Show the chosen file name next to the Upload button (photo docs)
-        $(document).on('change', 'input[type="file"][id^="C_c"][id$="_File"]', function() {
-            var m = this.id.match(/^C_c(\d+)_File$/);
+        $(document).on('change', 'input[type="file"][name$="[file]"]', function() {
+            var m = this.name.match(/^answers\[([^\]]+)\]\[file\]$/);
             if (!m) { return; }
-            var $label = $('#fileName_' + (parseInt(m[1], 10) - 1));
+            var $label = $('#fileName_' + m[1]);
             if ($label.length) {
                 $label.text(this.files.length ? this.files[0].name : 'No file chosen');
             }

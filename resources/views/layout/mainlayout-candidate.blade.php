@@ -1,34 +1,34 @@
 <!doctype html>
 <html lang="en">
-
 <head>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    @include('layout.partials.head')
+    @include('layout.adminor.head')
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
+<body class="main-body app sidebar-mini ltr">
+    @include('layout.adminor.loader')
 
-<body>
-    @include('layout.partials.loader')
-    @include('ui-components.modal')
-    @include('layout.partials.top-nav-candidate')
-    @include('layout.partials.sidemenu')
-    @include('layout.plugins')
+    <div class="page">
+        @include('layout.adminor.header-candidate')
 
-    <div class="main-content d-flex flex-column hide-sidemenu" id="PagesContent">
-        @yield('content-wrapper')
-        @include('layout.partials.footer')
+        <div class="app-sidebar__overlay" data-bs-toggle="sidebar"></div>
+        <div class="sticky">
+            <aside class="app-sidebar sidebar-scroll">
+                @include('layout.adminor.sidebar-candidate')
+            </aside>
+        </div>
+
+        @include('layout.adminor.vendor-scripts')
+
+        <div class="main-content app-content">
+            <div class="main-container container-fluid">
+                @yield('content-wrapper')
+            </div>
+        </div>
+
+        @include('layout.adminor.footer')
     </div>
 
-    @include('layout.partials.theme-color-customizer')
-    @include('layout.partials.footer-scripts')
-
+    @include('ui-components.modal-bp')
+    @include('layout.adminor.scripts')
 </body>
 </html>
-<link href="{{ asset('ajaxloader/ajaxloader.css') }}" type="text/css" rel="stylesheet" />
-<script src="{{ asset('jquery.ajaxloader.1.5.1.js') }}"></script>
-<script src="{{ asset('blockui.js') }}"></script>
-<link rel="stylesheet" type="text/css" href="{{ asset('blockui.css') }}" />
-<link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolautosuggest.css') }}" />
-<link rel="stylesheet" type="text/css" href="{{ asset('jquery.coolfieldset.css') }}" />
-@stack('rightmenu-script')
-@stack('modals-script')
-@stack('scripts')

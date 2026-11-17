@@ -146,51 +146,62 @@ class ValuationController extends Controller
     // Gabungan valuasi semua gudang di satu akun mitra tersebut
     public function detailAggregateValuationXml(Request $r)
     {
-        $q = $r->query();
-
-        // partner
         $session = $this->userService->getCurrentSessionUserInfo();
+        $requestedPartner = $r->query('partner') ?? $r->query('opportunity_id');
+        $partnerRow = null;
 
-        $partner = DB::table('opportunity_partner as op')->select('op.id', 'op.lead_id')
-            // ->where('op.user_row_id', '=', '2345')
-            ->where('op.user_row_id', '=', $session->id)
+        if ($requestedPartner) {
+            $partnerRow = DB::table('opportunity_partner')
+                ->select('id', 'lead_id', 'user_row_id')
+                ->where('id', $requestedPartner)
+                ->first();
+
+            if (!$partnerRow) {
+                return $this->emptyValuationXml();
+            }
+
+            if (($session->Position ?? '') === 'MITRA'
+                && (int) $partnerRow->user_row_id !== (int) $session->id) {
+                abort(403, 'Anda tidak memiliki akses ke data mitra ini.');
+            }
+        } elseif (($session->Position ?? '') === 'MITRA') {
+            $partnerRow = DB::table('opportunity_partner')
+                ->select('id', 'lead_id', 'user_row_id')
+                ->where('user_row_id', $session->id)
+                ->first();
+
+            if (!$partnerRow) {
+                return $this->emptyValuationXml();
+            }
+        } else {
+            // Internal users must pass the selected mitra.
+            return $this->emptyValuationXml();
+        }
+
+        $getAsset = DB::table('master_facility')
+            ->where('is_deleted', 0)
+            ->where('asset_type', 'Asset')
             ->get();
-
-
-        // gudang
-        // dari session tarik ke opportunity partner tarik lagi ke warehouse 
-        $warehouse = DB::table('warehouse_partner as wp')
-            // ->where('wp.partner_task_id', '=', $partner[0]->lead_id ?? "BP/GEU-HO/20260306113133/212")
-            ->where('wp.partner_task_id', '=', $partner[0]->lead_id)
-            ->pluck('wp.warehouse_task_id')->toArray();
-
-        $r->merge([
-            'partner' => $partner[0]->id,
-            'warehouse' => $warehouse
-        ]);
-
-        $r->query->add([
-            'partner' => $partner[0]->id,
-            'warehouse' => $warehouse
-        ]);
-
-
-        $getAsset = DB::table('master_facility')->where('is_deleted', 0)->where('asset_type', 'Asset')->get();
         $asId = $getAsset->pluck('id');
         $asset = $getAsset->keyBy('id');
-        $startDate = DB::table('opportunity_partner')->where("id", $r->partner)->select('contract_start_at')->first();
 
-
-        $facilityDtl = OpportunityPartnerFacilityDtl::whereIn("Facility_ID", $asId)->where('Partner_ID', $r->partner)
-            ->whereIn('warehouse_task_id', $r->warehouse)
+        $facilityDtl = OpportunityPartnerFacilityDtl::whereIn('Facility_ID', $asId)
+            ->where('Partner_ID', $partnerRow->id)
             ->get();
 
         $xml = new SimpleXMLElement('<rows></rows>');
-
         $nomor = 1;
-        foreach ($facilityDtl as $key => $Fetch) {
-            $orderDate = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00') ? $Fetch->Order_Date : now()->format('Y-m-d');
-            $depreciationYear = $asset[$Fetch->Facility_ID]->depreciation_year ?: 1;
+
+        foreach ($facilityDtl as $Fetch) {
+            $assetRow = $asset[$Fetch->Facility_ID] ?? null;
+            if (!$assetRow) {
+                continue;
+            }
+
+            $orderDate = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00')
+                ? $Fetch->Order_Date
+                : now()->format('Y-m-d');
+            $depreciationYear = $assetRow->depreciation_year ?: 1;
 
             $month = ($Fetch->Order_Date && $Fetch->Order_Date !== '0000-00-00')
                 ? (int) Carbon::parse($Fetch->Order_Date)->startOfDay()->diffInMonths(Carbon::now()->startOfDay())
@@ -202,17 +213,17 @@ class ValuationController extends Controller
             $sisaWaktu = max(0, ($depreciationYear * 12) - $month);
 
             $row = $xml->addChild('row');
-            $row->addAttribute("ID", $Fetch->ID);
+            $row->addAttribute('ID', $Fetch->ID);
             $row->addChild('cell', $nomor);
             $row->addChild('cell', $orderDate);
-            $row->addChild('cell', htmlspecialchars($asset[$Fetch->Facility_ID]->description));
+            $row->addChild('cell', htmlspecialchars($assetRow->description));
             $row->addChild('cell', $Fetch->Qty);
             $row->addChild('cell', $Fetch->Price);
             $row->addChild('cell', $Fetch->Total);
             $row->addChild('cell', $depreciationYear);
             $row->addChild('cell', round($prosen * 100, 2) . '%');
             $row->addChild('cell', $deprPerBulan);
-            $row->addChild('cell', strtoupper($asset[$Fetch->Facility_ID]->asset_type ?? '-'));
+            $row->addChild('cell', strtoupper($assetRow->asset_type ?: '-'));
             $row->addChild('cell', $month);
             $row->addChild('cell', $deprPerBulan * $month);
             $row->addChild('cell', $sisaWaktu);
@@ -220,6 +231,15 @@ class ValuationController extends Controller
 
             $nomor++;
         }
+
+        return response()->make($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
+
+    private function emptyValuationXml()
+    {
+        $xml = new SimpleXMLElement('<rows></rows>');
 
         return response()->make($xml->asXML(), 200, [
             'Content-Type' => 'application/xml'

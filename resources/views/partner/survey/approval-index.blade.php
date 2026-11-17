@@ -17,9 +17,10 @@
 
 
 <div id="Approval" class="row m-1">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">APPROVAL SURVEY</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Approval Survey'])
+
 			<!-- <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div> -->
 			<div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
 			<div>
@@ -30,17 +31,20 @@
 				<!-- <input type="button" id="pengajuan" name="pengajuan" value="Buat Data" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" /> -->
 				<!-- <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" /> -->
 
+				@if(can_menu('SI00228', 'approve'))
 				<div class="btn-group mt-2 mr-2" role="group" aria-label="Button group with nested dropdown">
 					<div class="btn-group" role="group">
-						<button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 							Action
 						</button>
 						<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
 							<a class="dropdown-item" href="#" onclick="approveClick('APPROVED')">Approve</a>
 							<a class="dropdown-item" href="#" onclick="approveClick('REJECTED')">Reject</a>
+                            @include('approval.partials.force-approve-menu-item', ['idVar' => 'apprId'])
 						</div>
 					</div>
 				</div>
+				@endif
 			</div>
 		</div>
 	</div>
@@ -52,9 +56,10 @@
 </div>
 
 <div id="ApprovalLog" class="row m-1" style="display:none">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">LOG APPROVAL SURVEY</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'APPROVAL SURVEY'])
+
 			<div id="ProjectionGrid" style="width:auto;height:320px; background-color:white;" class=" mt-2"></div>
 			<div>
 			</div>
@@ -69,7 +74,7 @@
     <div class="row col-md-12" style="width:auto;height:40px">
         <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
             <div class="btn-group" role="group">
-                <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     Action
                 </button>
                 <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
@@ -91,6 +96,10 @@
 
 
 	function approveClick(action) {
+		if (!apprId) {
+			alert('Pilih data terlebih dahulu.');
+			return;
+		}
 
 		let formData = new FormData();
 
@@ -106,7 +115,7 @@
 			contentType: false,
 			cache: false,
 			success: function(response) {
-				alert("Berhasil approve");
+				alert(action === 'REJECTED' ? 'Berhasil reject' : 'Berhasil approve');
 				location.reload();
 			},
 			error: function(xhr, status, error) {
@@ -137,12 +146,12 @@
 		PartnerGrid.setInitWidths(tWidth.join(","));
 		// PartnerGrid.enableAutoWidth(true);
 		PartnerGrid.attachHeader(headerAttachment);
-		// ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-		// ProjectionGrid.setColAlign("center,left,left,left,left");
-		// ProjectionGrid.setColSorting("int,str,str,str,str");
-		// ProjectionGrid.setColTypes("ro,ro,ro,ro,ro");
-		// ProjectionGrid.enableSmartRendering(true, 150);
-		// ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
+		// ApprovalLogGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+		// ApprovalLogGrid.setColAlign("center,left,left,left,left");
+		// ApprovalLogGrid.setColSorting("int,str,str,str,str");
+		// ApprovalLogGrid.setColTypes("ro,ro,ro,ro,ro");
+		// ApprovalLogGrid.enableSmartRendering(true, 150);
+		// ApprovalLogGrid.setNumberFormat("0,000", 7, ".", ",");
 		// PartnerGrid.enableAutoWidth(true);
 		PartnerGrid.attachEvent("onRowDblClicked", doubleClickApproval);
 		PartnerGrid.attachEvent("onRowSelect", selectMitra);
@@ -160,22 +169,22 @@
 		let headerAttachment = [
 			'#rspan', '#text_filter', '#text_filter', '#text_filter', '#text_filter', '#text_filter'
 		]
-		ProjectionGrid = new dhtmlXGridObject('ProjectionGrid');
-		ProjectionGrid.setImagePath("./dhtmlx/imgs/");
-		ProjectionGrid.setHeader(tHeader.join(','));
-		ProjectionGrid.setInitWidths(tWidth.join(','));
-		// ProjectionGrid.enableAutoWidth(true);
-		ProjectionGrid.attachHeader(headerAttachment);
-		// ProjectionGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-		// ProjectionGrid.setColAlign("center,left,left,left,left");
-		// ProjectionGrid.setColSorting("int,str,str,str,str");
-		// ProjectionGrid.setColTypes("ro,ro,ro,ro,ro");
-		// ProjectionGrid.enableSmartRendering(true, 150);
-		// ProjectionGrid.setNumberFormat("0,000", 7, ".", ",");
-		// ProjectionGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
-		ProjectionGrid.setSkin("dhx_skyblue");
-		ProjectionGrid.init();
-		ProjectionGrid.clearAndLoad(`partner-approval-data-log?appr_id=${apprId}&user_id=&type=SURVEY`);
+		ApprovalLogGrid = new dhtmlXGridObject('ProjectionGrid');
+		ApprovalLogGrid.setImagePath("./dhtmlx/imgs/");
+		ApprovalLogGrid.setHeader(tHeader.join(','));
+		ApprovalLogGrid.setInitWidths(tWidth.join(','));
+		// ApprovalLogGrid.enableAutoWidth(true);
+		ApprovalLogGrid.attachHeader(headerAttachment);
+		// ApprovalLogGrid.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
+		// ApprovalLogGrid.setColAlign("center,left,left,left,left");
+		// ApprovalLogGrid.setColSorting("int,str,str,str,str");
+		// ApprovalLogGrid.setColTypes("ro,ro,ro,ro,ro");
+		// ApprovalLogGrid.enableSmartRendering(true, 150);
+		// ApprovalLogGrid.setNumberFormat("0,000", 7, ".", ",");
+		// ApprovalLogGrid.attachEvent("onRowDblClicked", ProjectionGridKlik);
+		ApprovalLogGrid.setSkin("dhx_skyblue");
+		ApprovalLogGrid.init();
+		ApprovalLogGrid.clearAndLoad(`partner-approval-data-log?appr_id=${apprId}&user_id=&type=SURVEY`);
 	}
 
 	function selectMitra(rowId, cellIdx) {
@@ -187,9 +196,21 @@
 		opportunityId = opptId
 	}
 
-	function doubleClickApproval() {
-		initApprovalLogGrid()
-		$('#ApprovalLog').show()
+	function doubleClickApproval(rowId) {
+		if (rowId) {
+			apprId = rowId;
+		}
+		if (!apprId) {
+			alert('Pilih data terlebih dahulu.');
+			return;
+		}
+		$('#ApprovalLog').show();
+		if (typeof ApprovalLogGrid === 'undefined' || !ApprovalLogGrid) {
+			initApprovalLogGrid();
+		} else {
+			ApprovalLogGrid.clearAndLoad(`partner-approval-data-log?appr_id=${apprId}&user_id=&type=SURVEY`);
+			ApprovalLogGrid.setSizes();
+		}
 	}
 
 	function openSurveyDetail() {
@@ -208,4 +229,5 @@
 		getSurveyData(mapperId);
 	}
 </script>
+@include('approval.partials.force-approve-script')
 @endsection

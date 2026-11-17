@@ -183,6 +183,31 @@
                 </tr>
             </thead>
             <tbody id="C_Checklist">
+                @if($form)
+                    @foreach($form->items->where('Section_Code', 'C') as $item)
+                        @php
+                            $cfg = is_array($item->Score_Config) ? $item->Score_Config : json_decode($item->Score_Config, true);
+                            $cfg = is_array($cfg) ? $cfg : [];
+                        @endphp
+                        <tr data-code="{{ $item->Item_Code }}">
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $item->Criteria }}</td>
+                            <td>{{ $item->Keterangan }}</td>
+                            <td class="radio-group">
+                                <input type="radio" name="answers[{{ $item->Item_Code }}][value]" value="1" id="{{ $item->Item_Code }}_yes">
+                            </td>
+                            <td class="radio-group">
+                                <input type="radio" name="answers[{{ $item->Item_Code }}][value]" value="0" id="{{ $item->Item_Code }}_no">
+                            </td>
+                            <td>
+                                <input type="file" name="answers[{{ $item->Item_Code }}][file]" id="file_{{ $item->Item_Code }}" style="display:none;">
+                                <button class="upload-btn" type="button" onclick="$('#file_{{ $item->Item_Code }}').click();">Upload</button>
+                                <span class="file-name" id="fileName_{{ $item->Item_Code }}">No file chosen</span>
+                                <span class="existing-file" data-code="{{ $item->Item_Code }}"></span>
+                            </td>
+                        </tr>
+                    @endforeach
+                @endif
             </tbody>
         </table>
 
@@ -409,6 +434,16 @@
                     $('#Longitude').val(d.Longitude);
                     $('#Area').val(d.Area);
                     $('#Opportunity_Partner_Id').val(d.Opportunity_Partner_Id);
+
+                    if (d.Answers) {
+                        Object.keys(d.Answers).forEach(function(code) {
+                            var answer = d.Answers[code] || {};
+                            var payload = answer.Answer_JSON || {};
+                            if (answer.Section_Code === 'C' && payload.value !== undefined && payload.value !== null) {
+                                $('input[name="answers[' + code + '][value]"][value="' + payload.value + '"]').prop('checked', true);
+                            }
+                        });
+                    }
                 },
                 error: function() {
                     console.log('Failed to fetch survey data');
@@ -418,57 +453,12 @@
 
 
 
-    // C. Dokumentasi Foto Lokasi (restored: MITRA can attach location photos)
-    const photoData = [{
-            no: 1,
-            jenisFoto: 'Foto Tampak Depan',
-            keterangan: 'Foto Area Lokasi'
-        },
-        {
-            no: 2,
-            jenisFoto: 'Foto Area Operasional',
-            keterangan: 'Area untuk Booth / Mobil'
-        },
-        {
-            no: 3,
-            jenisFoto: 'Foto Akses Kendaraan',
-            keterangan: 'Jalan Masuk'
-        },
-        {
-            no: 4,
-            jenisFoto: 'Foto Lingkungan Sekitar',
-            keterangan: 'Kondisi Sekitar'
-        }
-    ];
-
-    function renderTableLocationDocumentation() {
-        let html = '';
-        $.each(photoData, function(index, item) {
-            const radioId = `C_c${index+1}`;
-            const fileInputId = `${radioId}_File`;
-            html += '<tr>';
-            html += '    <td>' + item.no + '</td>';
-            html += '    <td>' + item.jenisFoto + '</td>';
-            html += '    <td>' + item.keterangan + '</td>';
-            html += '    <td class="radio-group"><input type="radio" name="' + radioId + '" value="1" id="' + radioId + '"></td>';
-            html += '    <td class="radio-group"><input type="radio" name="' + radioId + '" value="0" id="' + radioId + '_0"></td>';
-            html += '    <td>';
-            html += '        <input type="file" name="' + fileInputId + '" id="' + fileInputId + '" style="display: none;">';
-            html += '        <button class="upload-btn" type="button" onclick="$(\'#' + fileInputId + '\').click();">Upload</button>';
-            html += '        <span class="file-name" id="fileName_' + index + '">No file chosen</span>';
-            html += '    </td>';
-            html += '</tr>';
-        });
-        $('#C_Checklist').html(html);
-    }
-
-    $(function() { renderTableLocationDocumentation(); });
 
     // Show the chosen file name next to the Upload button (photo docs)
-    $(document).on('change', 'input[type="file"][id^="C_c"][id$="_File"]', function() {
-        var m = this.id.match(/^C_c(\d+)_File$/);
+    $(document).on('change', 'input[type="file"][name$="[file]"]', function() {
+        var m = this.name.match(/^answers\[([^\]]+)\]\[file\]$/);
         if (!m) { return; }
-        var $label = $('#fileName_' + (parseInt(m[1], 10) - 1));
+        var $label = $('#fileName_' + m[1]);
         if ($label.length) {
             $label.text(this.files.length ? this.files[0].name : 'No file chosen');
         }
