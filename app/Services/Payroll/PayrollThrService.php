@@ -75,14 +75,16 @@ class PayrollThrService
     }
 
     /**
-     * Ambil basis upah THR karyawan (Gaji Pokok + Tunjangan Tetap / Kena_Potongan = 1)
-     * sesuai Permenaker No. 6 Tahun 2016.
+     * Ambil komponen gaji THR karyawan:
+     * - gapok      : BASIC saja
+     * - upah_bruto : BASIC + semua ALLOWANCE (termasuk COLA & seluruh tunjangan)
+     * - upah_tetap : BASIC + ALLOWANCE dengan Kena_Potongan = 1 (standar Permenaker)
      *
      * @param string $nik
      * @param string|null $mainId
-     * @return float
+     * @return array
      */
-    public function getThrBaseSalary($nik, $mainId = null)
+    public function getEmployeeSalaryComponents($nik, $mainId = null)
     {
         $query = DB::table('payrol_group_lists')
             ->where('Group_ID', $nik);
@@ -92,7 +94,9 @@ class PayrollThrService
         }
 
         $items = $query->get();
-        $base = 0.0;
+        $gapok = 0.0;
+        $upahBruto = 0.0;
+        $upahTetap = 0.0;
 
         foreach ($items as $item) {
             $type = strtoupper(trim((string)$item->Type_Payroll));
@@ -101,13 +105,36 @@ class PayrollThrService
                 : (float)$item->Amounts;
 
             if ($type === 'BASIC') {
-                $base += $val;
-            } elseif ($type === 'ALLOWANCE' && (int)$item->Kena_Potongan === 1) {
-                $base += $val;
+                $gapok += $val;
+                $upahBruto += $val;
+                $upahTetap += $val;
+            } elseif ($type === 'ALLOWANCE') {
+                $upahBruto += $val;
+                if ((int)$item->Kena_Potongan === 1) {
+                    $upahTetap += $val;
+                }
             }
         }
 
-        return max(0.0, $base);
+        return [
+            'gapok'      => max(0.0, $gapok),
+            'upah_bruto' => max(0.0, $upahBruto),
+            'upah_tetap' => max(0.0, $upahTetap),
+        ];
+    }
+
+    /**
+     * Ambil basis upah THR karyawan (Gaji Pokok + Tunjangan Tetap / Kena_Potongan = 1)
+     * sesuai Permenaker No. 6 Tahun 2016.
+     *
+     * @param string $nik
+     * @param string|null $mainId
+     * @return float
+     */
+    public function getThrBaseSalary($nik, $mainId = null)
+    {
+        $components = $this->getEmployeeSalaryComponents($nik, $mainId);
+        return $components['upah_tetap'];
     }
 
     /**
@@ -141,7 +168,8 @@ class PayrollThrService
                 'e.Date_in',
                 'e.Date_Out',
                 'e.Resigned_Date',
-                'e.Status'
+                'e.Status',
+                'e.thr_scheme'
             )
             ->orderBy('e.Name', 'ASC');
 
@@ -199,10 +227,36 @@ class PayrollThrService
                 }
 
                 $tenure = $this->calculateTenureAndProrate($emp->Date_in, $referenceDate, $prorateMethod);
-                $baseSalary = $this->getThrBaseSalary($nik, $emp->Salary_Group);
+                $components = $this->getEmployeeSalaryComponents($nik, $emp->Salary_Group);
+                $thrScheme = !empty($emp->thr_scheme) ? strtoupper(trim((string)$emp->thr_scheme)) : null;
 
                 $isEligible = $tenure['is_tenure_valid'] ? 1 : 0;
                 $reason = $tenure['ineligible_reason'];
+                $effectiveRatio = $tenure['prorate_ratio'];
+                $baseSalary = $components['upah_tetap'];
+
+                if ($thrScheme === 'FULL_UPAH') {
+                    $baseSalary = $components['upah_bruto'];
+                    $effectiveRatio = $tenure['is_tenure_valid'] ? 1.0 : 0.0;
+                } elseif ($thrScheme === 'PRORATE_UPAH') {
+                    $baseSalary = $components['upah_bruto'];
+                    $effectiveRatio = $tenure['prorate_ratio'];
+                } elseif ($thrScheme === 'FULL_GAPOK') {
+                    $baseSalary = $components['gapok'];
+                    $effectiveRatio = $tenure['is_tenure_valid'] ? 1.0 : 0.0;
+                } elseif ($thrScheme === 'PRORATE_GAPOK') {
+                    $baseSalary = $components['gapok'];
+                    $effectiveRatio = $tenure['prorate_ratio'];
+                } elseif ($thrScheme === 'NO_THR_UNDER_12M') {
+                    $baseSalary = $components['upah_bruto'];
+                    if ($tenure['tenure_months'] < 12) {
+                        $isEligible = 0;
+                        $effectiveRatio = 0.0;
+                        $reason = 'Kontrak < 12 bulan tidak dapat THR (Sesuai PKWT/MoU)';
+                    } else {
+                        $effectiveRatio = 1.0;
+                    }
+                }
 
                 // Cek status resign / keluar sebelum tanggal acuan -> flag default 0 agar bisa ditinjau HCGA
                 $resignDate = null;
@@ -225,7 +279,7 @@ class PayrollThrService
                     $reason = 'Komponen gaji pokok/tetap belum disetup';
                 }
 
-                $calculated = ceil($baseSalary * $tenure['prorate_ratio']);
+                $calculated = ($isEligible === 1) ? ceil($baseSalary * $effectiveRatio) : 0.0;
                 $finalAmount = ($isEligible === 1) ? $calculated : 0.0;
 
                 if ($isEligible === 1) {
@@ -244,7 +298,8 @@ class PayrollThrService
                     'resigned_date'         => $resignDate,
                     'tenure_months'         => $tenure['tenure_months'],
                     'tenure_days'           => $tenure['tenure_days'],
-                    'prorate_ratio'         => $tenure['prorate_ratio'],
+                    'prorate_ratio'         => $effectiveRatio,
+                    'thr_scheme'            => $thrScheme,
                     'base_salary_amount'    => $baseSalary,
                     'thr_calculated_amount' => $calculated,
                     'thr_adjustment_amount' => 0,

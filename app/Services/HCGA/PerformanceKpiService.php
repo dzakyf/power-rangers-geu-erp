@@ -166,11 +166,11 @@ class PerformanceKpiService
 
         return DB::transaction(function () use ($goal, $requester) {
             $context = [
-                'request_type' => self::REQUEST_TYPE,
-                'location'     => $requester->Location ?? 'GEU-HO',
-                'company_id'   => $requester->Company_ID ?? 'GEU',
-                'department'   => $requester->Department ?? 'HCGA',
-                'amount'       => 0,
+                'Request_Type' => self::REQUEST_TYPE,
+                'Location'     => $requester->Location ?? 'GEU-HO',
+                'Company_ID'   => $requester->Company_ID ?? 'GEU',
+                'Department'   => $requester->Department ?? 'HCGA',
+                'Amount'       => 0,
             ];
 
             $desc = "Persetujuan Target KPI & OKR: {$goal->goal_no} ({$requester->Name})";
@@ -185,9 +185,15 @@ class PerformanceKpiService
                 Log::warning('ApprovalWorkflow engine submit fallback: ' . $e->getMessage());
             }
 
+            if ($approvalReq && !empty($approvalReq->ID)) {
+                DB::table('approval_request')->where('ID', (int) $approvalReq->ID)->update([
+                    'Map_To' => (int) $goal->id,
+                ]);
+            }
+
             $goal->update([
                 'status'              => 'WAITING_APPROVAL',
-                'approval_request_id' => $approvalReq ? $approvalReq->id : null,
+                'approval_request_id' => $approvalReq ? (int) $approvalReq->ID : null,
                 'updated_by'          => $requester->id,
             ]);
 
@@ -274,6 +280,34 @@ class PerformanceKpiService
             'overall_progress_percent' => $overallProgress,
             'final_score'              => $overallProgress,
         ]);
+    }
+
+    /**
+     * Sinkronkan status approval_request ke performance_goals.
+     */
+    public function syncApprovalStatus(int $goalId): void
+    {
+        $goal = PerformanceGoal::find($goalId);
+        if (!$goal || empty($goal->approval_request_id)) {
+            return;
+        }
+
+        $approvalReq = $this->workflowService->getRequest((int) $goal->approval_request_id);
+        if (!$approvalReq) {
+            return;
+        }
+
+        $statusUpper = strtoupper((string) $approvalReq->Status);
+        if (in_array($statusUpper, ['APPROVED', 'COMPLETED'], true)) {
+            $goal->update([
+                'status'      => 'APPROVED',
+                'approved_at' => Carbon::now(),
+            ]);
+        } elseif (in_array($statusUpper, ['REJECTED', 'RETURNED', 'CANCELLED'], true)) {
+            $goal->update([
+                'status' => $statusUpper === 'CANCELLED' ? 'DRAFT' : 'REJECTED',
+            ]);
+        }
     }
 }
 

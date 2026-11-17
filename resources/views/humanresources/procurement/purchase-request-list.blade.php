@@ -14,6 +14,10 @@
         <a href="{{ url('purchase-request-create') }}" class="btn btn-success btn-sm font-weight-bold">
             <i class="fas fa-plus mr-1"></i> Buat Purchase Request Baru
         </a>
+
+        <button type="button" id="PrintPRProcurement" name="PrintPRProcurement" class="btn btn-dark btn-sm me-1">
+                            <i class="fa fa-print me-1"></i> Cetak PR
+        </button>
     </div>
 
     <!-- Grid Container -->
@@ -23,6 +27,33 @@
     <div id="PRDiv" class="mt-3"></div>
 
 <script>
+
+    function selectedPRPO() {
+            let pmid = PRGrid.getSelectedRowId();
+            if(pmid == null) { 
+                alert('Silakan pilih salah satu baris PR terlebih dahulu.'); 
+                return null; 
+            }
+            return {
+                pr: PRGrid.cells(pmid,1).getValue(),
+                // po: PRGrid.cells(pmid,5).getValue()
+            };
+        }
+
+$('#PrintPRProcurement').on('click', function() {
+    let s = selectedPRPO(); 
+    if (!s) return;
+
+    // Jika fungsi streamPdf sudah ada di mainlayout, gunakan streamPdf; jika tidak, buka di tab baru
+    let printUrl = "{{ url('hrd-procurement-print-pr') }}?PR_No=" + encodeURIComponent(s.pr);
+    
+    if (typeof streamPdf === 'function') {
+        streamPdf(printUrl, 'Cetak PR ' + s.pr);
+    } else {
+        window.open(printUrl, '_blank');
+    }
+});
+
 function PRDoubleClick() {
     var prId = PRGrid.getSelectedId();
     if (!prId) return;
@@ -43,7 +74,7 @@ function PRDoubleClick() {
         LoadM('PRDiv', 'purchase-request-detail-approved?PR_No=' + prId);
     } else {
         // Status lain jika ada (misal: APPROVAL_UPPER, dll.)
-        LoadM('PRDiv', 'purchase-request-detail-pending?PR_No=' + prId);
+        LoadM('PRDiv', 'purchase-request-detail?PR_No=' + prId);
     }
 }
 

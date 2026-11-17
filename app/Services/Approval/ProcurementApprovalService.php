@@ -330,6 +330,61 @@ class ProcurementApprovalService
     }
 
     /**
+     * Sinkronkan status approval_request ke purchase_request, log, dan auto-PO.
+     */
+    public function syncApprovalStatus(int $prId, $actorUser = null): void
+    {
+        $pr = DB::table('purchase_request')->where('ID', $prId)->first();
+        if (!$pr || empty($pr->Approval_Request_ID)) {
+            return;
+        }
+
+        $request = $this->workflow->getRequest((int) $pr->Approval_Request_ID);
+        if (!$request) {
+            return;
+        }
+
+        $newPrStatus = $this->mapApprovalStatusToPrStatus((string) $request->Status);
+        if (strtoupper((string) $pr->Status) === $newPrStatus && $newPrStatus !== 'APPROVED') {
+            return;
+        }
+
+        if (!$actorUser) {
+            $lastTask = DB::table('approval_request_task')
+                ->where('Request_ID', (int) $request->ID)
+                ->whereNotNull('Acted_By')
+                ->orderBy('ID', 'DESC')
+                ->first();
+            if ($lastTask) {
+                $actorUser = DB::table('users')->where('id', (int) $lastTask->Acted_By)->first();
+            }
+        }
+
+        DB::transaction(function () use ($pr, $prId, $request, $newPrStatus, $actorUser) {
+            DB::table('purchase_request')->where('ID', $prId)->update([
+                'Status' => $newPrStatus,
+            ]);
+
+            DB::table('purchase_request_log')->insert([
+                'PR_No' => $pr->PR_No,
+                'Action_By' => $actorUser->username ?? 'SYSTEM',
+                'Action_Date' => now(),
+                'Action_Status' => $newPrStatus,
+                'Last_ID' => $pr->ID,
+                'Category' => $pr->Category ?? '',
+                'Sub_Category' => $pr->Sub_Category ?? '',
+                'Supplies_Type' => $pr->Supplies_Type ?? '',
+                'Note' => 'Sinkronisasi Approval Engine (' . $request->Status . ')',
+                'Reference' => $pr->Reference ?? '',
+            ]);
+
+            if (strtoupper((string) $request->Status) === 'APPROVED') {
+                $this->onFinalApproved($pr, $actorUser ?: (object) ['username' => 'SYSTEM', 'Location' => $pr->Location]);
+            }
+        });
+    }
+
+    /**
      * Memetakan status ApprovalWorkflow ke status purchase_request.
      */
     protected function mapApprovalStatusToPrStatus(string $status): string

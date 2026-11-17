@@ -32,6 +32,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('performance:send-pip-reminders')->weeklyOn(1, '08:00'); // Setiap Senin Pukul 08:00
         $schedule->command('sanctions:auto-expire')->dailyAt('00:01');
         $schedule->command('exit-clearance:sync-resigned')->dailyAt('00:05');
+        $schedule->command('approval:check-sla')->hourly();
     }
 
     /**
