@@ -186,7 +186,7 @@
       }
 
       $.ajax({
-        url: 'cns-sales-order-check-stock',
+        url: '{{ url("cns-sales-order-check-stock") }}',
         type: 'GET',
         data: {
           site_id: siteId,
@@ -245,7 +245,7 @@
       var hasInitialSelection = selectedVal !== '';
 
       $.ajax({
-        url: 'cns-master-warehouses?type=site',
+        url: '{{ url("cns-master-warehouses") }}?type=site',
         type: 'GET',
         dataType: 'json',
         success: function(res) {
