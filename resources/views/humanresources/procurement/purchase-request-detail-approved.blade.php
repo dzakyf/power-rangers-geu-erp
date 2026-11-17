@@ -253,6 +253,7 @@
                                 <th style="width: 15%;">ID Vendor</th>
                                 <th style="width: 35%;">Nama Perusahaan (Supplier)</th>
                                 <th style="width: 10%;">Status</th>
+                                <th style="width: 10%;">Print</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -264,6 +265,11 @@
                                 <td>{{ $rfq->Company_Name }}</td>
                                 <td class="text-center">
                                     <span class="badge badge-info">{{ $rfq->Status }}</span>
+                                </td>
+                                <td class="text-center align-middle">
+                                    <a href="{{ url('rfq-print') }}?rfq={{ urlencode($rfq->RFQ_No) }}" target="_blank" class="btn btn-xs btn-outline-primary font-weight-bold shadow-sm" title="Cetak Dokumen RFQ untuk Vendor">
+                                        <i class="fas fa-print mr-1"></i> Print
+                                    </a>
                                 </td>
                             </tr>
                             @endforeach

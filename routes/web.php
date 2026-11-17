@@ -6434,6 +6434,8 @@ Route::post('/product-update/{id}', [ProcurementController::class, 'updateProduc
 Route::post('qtn-store', [ProcurementController::class, 'storeQuotation']);
 Route::get('vendor-comparison-matrix', [ProcurementController::class, 'vendorComparisonMatrix']);
 
+Route::get('rfq-print', [ProcurementController::class, 'printRFQ']);
+
 
 // ==================== MASTER SUPPLIER ====================
 Route::get('/supplier-list', [SupplierController::class, 'supplierList']);
