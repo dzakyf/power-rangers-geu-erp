@@ -2,7 +2,7 @@
 
 namespace App\Services\CNS;
 
-use App\ShipmentInstruction;
+use App\ShippingInstruction;
 use App\User;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
@@ -19,7 +19,7 @@ class ShippingInstructionPrintService
     /** @var string|null */
     private static $ffmpegPath;
 
-    public function resolve(ShipmentInstruction $shipment): array
+    public function resolve(ShippingInstruction $shipment): array
     {
         $contract = $this->resolveContract($shipment);
         $schedule = $this->resolveSchedule($shipment);
@@ -142,7 +142,7 @@ class ShippingInstructionPrintService
         ];
     }
 
-    private function resolveContract(ShipmentInstruction $shipment)
+    private function resolveContract(ShippingInstruction $shipment)
     {
         if ($shipment->Contract_ID) {
             return DB::table('cns_buyer_contracts')->where('ID', $shipment->Contract_ID)->first();
@@ -155,7 +155,7 @@ class ShippingInstructionPrintService
         return null;
     }
 
-    private function resolveSchedule(ShipmentInstruction $shipment)
+    private function resolveSchedule(ShippingInstruction $shipment)
     {
         if ($shipment->Order_No) {
             $schedule = VesselSchedule::where('Order_No', $shipment->Order_No)->orderBy('id')->first();
@@ -192,7 +192,7 @@ class ShippingInstructionPrintService
         return null;
     }
 
-    public function containersFor(ShipmentInstruction $shipment)
+    public function containersFor(ShippingInstruction $shipment)
     {
         $schedule = $this->resolveSchedule($shipment);
 

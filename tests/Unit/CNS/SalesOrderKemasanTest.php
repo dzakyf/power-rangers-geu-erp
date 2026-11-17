@@ -141,7 +141,7 @@ class SalesOrderKemasanTest extends TestCase
         $this->assertStringContainsString('75000', $newHtml);
         $this->assertStringContainsString('item_unit${idx}', $newHtml);
         $this->assertStringContainsString('<th class="unit-col text-center">Unit</th>', $newHtml);
-        $this->assertStringContainsString('colspan="5"', $newHtml);
+        $this->assertStringContainsString('colspan="6"', $newHtml);
         $this->assertStringContainsString('isAmpas ? rawName : `${rawName} ${item.Volume ?? 0}L`', $newHtml);
         $this->assertStringContainsString('cns-sales-order-new-submit', $newHtml);
 

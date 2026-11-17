@@ -2,7 +2,8 @@
 
 namespace App\Services\CNS;
 
-use App\ShipmentInstruction;
+use App\ShippingInstruction;
+use Illuminate\Support\Facades\DB;
 use Mpdf\Mpdf;
 
 class ShippingInstructionPdfService
@@ -14,7 +15,7 @@ class ShippingInstructionPdfService
         $this->printService = $printService;
     }
 
-    public function render(ShipmentInstruction $shipment, string $prefix = 'SI'): array
+    public function render(ShippingInstruction $shipment, string $prefix = 'SI'): array
     {
         $print = $this->printService->resolve($shipment);
         $vsds = $this->printService->containersFor($shipment);
@@ -23,7 +24,25 @@ class ShippingInstructionPdfService
         $netto = $vsds->sum('Netto_KG');
         $mt = round($netto / 1000, 2);
 
-        $html = view('cns.export.print.si', compact('print', 'vsds', 'gross', 'netto', 'mt'))->render();
+        if ($prefix === 'FSI') {
+            $companies = collect();
+            try {
+                $rawSuppliers = DB::table('supplier')->get();
+                $companies = $rawSuppliers->keyBy('Supplier_ID')->union($rawSuppliers->keyBy('ID'));
+            } catch (\Throwable $e) {
+                // Keep empty collection when DB is unreachable
+            }
+            $approver = $print['approver'];
+            $approverSignature = $print['approver_signature'];
+            $logoDataUri = $print['shipper']['logo_data_uri'];
+
+            $html = view('cns.export.print.fsi', compact(
+                'print', 'shipment', 'vsds', 'gross', 'netto', 'mt',
+                'companies', 'approver', 'approverSignature', 'logoDataUri'
+            ))->render();
+        } else {
+            $html = view('cns.export.print.si', compact('print', 'vsds', 'gross', 'netto', 'mt'))->render();
+        }
 
         $headerHtml = $this->imageHtml($print['shipper']['letterhead_data_uri']);
         $footerHtml = $this->imageHtml($print['shipper']['footer_data_uri']);

@@ -2,7 +2,7 @@
 
 namespace App\Services\CNS;
 
-use App\ShipmentInstruction;
+use App\ShippingInstruction;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
 use App\VesselScheduleLog;
@@ -141,7 +141,7 @@ class StuffingContainerService
             return;
         }
 
-        $instructions = ShipmentInstruction::whereIn('SI_No', $siNos)->get();
+        $instructions = ShippingInstruction::whereIn('SI_No', $siNos)->get();
 
         foreach ($instructions as $instruction) {
             $hasActiveContainer = VesselScheduleDtl::active()

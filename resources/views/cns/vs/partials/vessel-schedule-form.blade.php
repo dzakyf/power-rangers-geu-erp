@@ -26,7 +26,10 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="Contract_ID">Pilih Kontrak</label>
-                            <select name="Contract_ID" id="Contract_ID" class="form-control shadow-sm" required>
+                            @if($isEdit)
+                                <input type="hidden" name="Contract_ID" value="{{ $vs->Contract_ID }}" />
+                            @endif
+                            <select name="{{ $isEdit ? '' : 'Contract_ID' }}" id="Contract_ID" class="form-control shadow-sm" required {{ $isEdit ? 'disabled' : '' }}>
                                 <option value="">-- Pilih Kontrak --</option>
                                 @foreach($contracts as $contract)
                                     <option value="{{ $contract->ID }}"
@@ -50,7 +53,10 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="Shipping_Method">Shipping Method</label>
-                            <select name="Shipping_Method" id="Shipping_Method" class="form-control shadow-sm" required>
+                            @if($isEdit)
+                                <input type="hidden" name="Shipping_Method" value="{{ $vs->Shipping_Method }}" />
+                            @endif
+                            <select name="{{ $isEdit ? '' : 'Shipping_Method' }}" id="Shipping_Method" class="form-control shadow-sm" required {{ $isEdit ? 'disabled' : '' }}>
                                 <option value="">-- Pilih Metode --</option>
                                 <option value="CONTAINER" {{ $isContainer ? 'selected' : '' }}>Container</option>
                                 <option value="VESSEL" {{ $isVessel ? 'selected' : '' }}>Vessel</option>
@@ -66,7 +72,10 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="Container_Booking_ID">Nomor Booking Confirmation</label>
-                                <select name="Container_Booking_ID" id="Container_Booking_ID" class="form-control shadow-sm">
+                                @if($isEdit)
+                                    <input type="hidden" name="Container_Booking_ID" value="{{ $vs->Booking_ID }}" />
+                                @endif
+                                <select name="{{ $isEdit ? '' : 'Container_Booking_ID' }}" id="Container_Booking_ID" class="form-control shadow-sm" {{ $isEdit ? 'disabled' : '' }}>
                                     <option value="">-- Pilih Booking --</option>
                                     @foreach($bookings as $booking)
                                         <option value="{{ $booking->ID }}"

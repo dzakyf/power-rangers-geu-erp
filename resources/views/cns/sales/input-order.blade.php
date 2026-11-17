@@ -42,6 +42,8 @@ $Saya =  Auth::user()->username;
 				<input type="button" id="DetailSalesOrder" name="DetailSalesOrder" value="Detail Sales Order" class="btn btn-primary mt-2 mr-2" onclick="SalesOrderKlik()" />
 				<input type="button" id="NewSalesOrder" name="NewSalesOrder" value="New Sales Order" class="btn btn-info mt-2 mr-2" onclick="SalesOrderNew()" />
 				<input type="button" id="PrintSalesOrder" name="PrintSalesOrder" value="Print Sales Order" class="btn btn-info mt-2 mr-2" onclick="SalesOrderPrint()" />
+				<input type="button" id="ApproveSalesOrder" name="ApproveSalesOrder" value="Approve Sales Order" class="btn btn-success mt-2 mr-2" onclick="SalesOrderApprove()" />
+				<input type="button" id="RejectSalesOrder" name="RejectSalesOrder" value="Reject Sales Order" class="btn btn-danger mt-2 mr-2" onclick="SalesOrderReject()" />
 			</div>
 		</div>
 	</div>
@@ -80,15 +82,84 @@ $Saya =  Auth::user()->username;
 		}
 		return true;
 	}
+	function SalesOrderApprove() {
+		SalesOrderID = SalesOrder.getSelectedId();
+		if (!SalesOrderID) {
+			alert("Pilih baris data terlebih dahulu.");
+			return;
+		}
+
+		if (!confirm("Apakah Anda yakin ingin meng-approve Sales Order ini? Stok kemasan akan dipotong.")) {
+			return;
+		}
+
+		$.ajax({
+			headers: {
+				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+			},
+			url: 'cns-sales-order-approve/' + SalesOrderID + '?_token={{ csrf_token() }}',
+			type: 'POST',
+			dataType: 'json',
+			success: function(res) {
+				if (res && res.status === 'success') {
+					alert(res.message || 'Sales Order berhasil di-approve!');
+					refreshdata();
+					$('#divlistOpportunity').html('');
+				} else {
+					alert(res.message || 'Gagal approve Sales Order.');
+				}
+			},
+			error: function(xhr) {
+				var msg = (xhr && xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (xhr.responseText || 'Terjadi kesalahan sistem.');
+				alert(msg);
+			}
+		});
+	}
+
+	function SalesOrderReject() {
+		SalesOrderID = SalesOrder.getSelectedId();
+		if (!SalesOrderID) {
+			alert("Pilih baris data terlebih dahulu.");
+			return;
+		}
+
+		var reason = prompt("Masukkan alasan penolakan (opsional):");
+		if (reason === null) {
+			return;
+		}
+
+		$.ajax({
+			headers: {
+				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+			},
+			url: 'cns-sales-order-reject/' + SalesOrderID + '?_token={{ csrf_token() }}',
+			type: 'POST',
+			data: { reason: reason },
+			dataType: 'json',
+			success: function(res) {
+				if (res && res.status === 'success') {
+					alert(res.message || 'Sales Order berhasil di-reject.');
+					refreshdata();
+					$('#divlistOpportunity').html('');
+				} else {
+					alert(res.message || 'Gagal reject Sales Order.');
+				}
+			},
+			error: function(xhr) {
+				var msg = (xhr && xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (xhr.responseText || 'Terjadi kesalahan sistem.');
+				alert(msg);
+			}
+		});
+	}
+
 	SalesOrder = new dhtmlXGridObject('SalesOrder');
 	SalesOrder.setImagePath("./dhtmlx/imgs/");
-	SalesOrder.setHeader("No,Tanggal Order, No Sales Order, Site, Metode Pembayaran");
-	SalesOrder.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter");
-	// SalesOrder.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total,#stat_total,#stat_total,#stat_total");
-	SalesOrder.setInitWidths("60,150,100,200,150");
-	SalesOrder.setColAlign("center,center,left,left,left");
-	SalesOrder.setColSorting("int,str,str,str,str");
-	SalesOrder.setColTypes("ron,ro,ro,ro,ro");
+	SalesOrder.setHeader("No,Tanggal Order, No Sales Order, Site, Metode Pembayaran, Status");
+	SalesOrder.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#select_filter");
+	SalesOrder.setInitWidths("60,130,130,180,140,110");
+	SalesOrder.setColAlign("center,center,left,left,left,center");
+	SalesOrder.setColSorting("int,str,str,str,str,str");
+	SalesOrder.setColTypes("ron,ro,ro,ro,ro,ro");
 	SalesOrder.enableSmartRendering(true, 150);
 	// SalesOrder.setNumberFormat("0,000", 7, ".", ",");
 	SalesOrder.attachEvent("onRowDblClicked", SalesOrderKlik);

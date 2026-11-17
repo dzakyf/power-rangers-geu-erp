@@ -14,21 +14,22 @@ $Saya =  Auth::user()->username;
 
 @section('content-wrapper')
 @csrf
+
 <!-- Main Content Header -->
 <div class="main-content-header">
 	<h1>Partner</h1>
 	<ol class="breadcrumb">
 		<li class="breadcrumb-item">
-			<a href="/">Shipping Instruction</a>
+			<a href="/">Shipping Instructions</a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">Shipping Instruction List</span>
+			<span class="active">Shipping Instructions List</span>
 		</li>
 	</ol>
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPPING INSTRUCTION LIST</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPPING INSTRUCTIONS LIST</div>
 	<div class="card">
 		<div class="card-body">
 			<div class="mb-2">
@@ -59,7 +60,7 @@ $Saya =  Auth::user()->username;
 		<div class="modal-dialog" role="document">
 			<div class="modal-content">
 				<div class="modal-header bg-success text-white">
-					<h5 class="modal-title" id="modalApproveSILabel"><i class="fa fa-check-circle mr-1"></i> Approve Shipping Instruction</h5>
+					<h5 class="modal-title" id="modalApproveSILabel"><i class="fa fa-check-circle mr-1"></i> Approve Shipping Instructions</h5>
 					<button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" onclick="$('#modalApproveSI').modal('hide');">
 						<span aria-hidden="true">&times;</span>
 					</button>
@@ -116,7 +117,7 @@ $Saya =  Auth::user()->username;
 			if (!selectedId) {
 				dhtmlx.alert({
 					title: "Peringatan",
-					text: "Pilih baris data terlebih dahulu pada tabel Shipping Instruction!",
+					text: "Pilih baris data terlebih dahulu pada tabel Shipping Instructions!",
 					ok: "OK"
 				});
 				return false;
@@ -139,7 +140,7 @@ $Saya =  Auth::user()->username;
 			if (status && status.trim().toUpperCase() === 'APPROVED') {
 				dhtmlx.alert({
 					title: "Peringatan",
-					text: "Shipping Instruction " + (siNo || selectedId) + " ini sudah berstatus APPROVED!",
+					text: "Shipping Instructions " + (siNo || selectedId) + " ini sudah berstatus APPROVED!",
 					ok: "OK"
 				});
 				return false;
@@ -186,7 +187,7 @@ $Saya =  Auth::user()->username;
 
 			dhtmlx.confirm({
 				title: "Konfirmasi Approval",
-				text: "Apakah Anda yakin ingin menyetujui (Approve) Shipping Instruction " + (siNo || selectedId) + " dengan Approver: " + approverName + "?",
+				text: "Apakah Anda yakin ingin menyetujui (Approve) Shipping Instructions " + (siNo || selectedId) + " dengan Approver: " + approverName + "?",
 				ok: "Ya, Setujui",
 				cancel: "Batal",
 				callback: function(result) {
@@ -204,7 +205,7 @@ $Saya =  Auth::user()->username;
 						headers: {
 							'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 						},
-						url: "cns-export-shipment-instruction-approve",
+						url: "cns-export-shipping-instruction-approve",
 						type: "POST",
 						dataType: "json",
 						data: {
@@ -220,7 +221,7 @@ $Saya =  Auth::user()->username;
 							if (response && response.status === 'success') {
 								dhtmlx.alert({
 									title: "Sukses",
-									text: response.message || "Shipping Instruction berhasil di-approve.",
+									text: response.message || "Shipping Instructions berhasil di-approve.",
 									ok: "OK",
 									callback: function() {
 										if (typeof refreshdata === 'function') {
@@ -231,7 +232,7 @@ $Saya =  Auth::user()->username;
 							} else {
 								dhtmlx.alert({
 									title: "Gagal",
-									text: (response && response.message) || "Gagal approve Shipping Instruction.",
+									text: (response && response.message) || "Gagal approve Shipping Instructions.",
 									ok: "OK"
 								});
 							}
@@ -240,7 +241,7 @@ $Saya =  Auth::user()->username;
 							if (typeof $.unblockUI === 'function') {
 								$.unblockUI();
 							}
-							var msg = "Gagal approve Shipping Instruction.";
+							var msg = "Gagal approve Shipping Instructions.";
 							if (xhr.responseJSON && xhr.responseJSON.message) {
 								msg = xhr.responseJSON.message;
 							} else if (xhr.responseText) {
@@ -282,8 +283,8 @@ $Saya =  Auth::user()->username;
 		if (selectedId != null) {
 			var siNo = ShipmentInstruction.cells(selectedId, 2).getValue();
 			dhtmlx.confirm({
-				title: "Hapus Shipping Instruction",
-				text: "Apakah Anda yakin ingin menghapus Shipping Instruction " + siNo + "?",
+				title: "Hapus Shipping Instructions",
+				text: "Apakah Anda yakin ingin menghapus Shipping Instructions " + siNo + "?",
 				ok: "Ya",
 				cancel: "Batal",
 				callback: function(result) {
@@ -295,7 +296,7 @@ $Saya =  Auth::user()->username;
 						headers: {
 							'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 						},
-						url: "cns-export-shipment-instruction-delete",
+						url: "cns-export-shipping-instruction-delete",
 						type: "POST",
 						data: {
 							_token: "{{ csrf_token() }}",
@@ -306,7 +307,7 @@ $Saya =  Auth::user()->username;
 							if (response.status === 'success') {
 								dhtmlx.alert({
 									title: "Sukses",
-									text: response.message || "Shipping Instruction berhasil dihapus.",
+									text: response.message || "Shipping Instructions berhasil dihapus.",
 									ok: "OK",
 									callback: function() {
 										$('#divlistOpportunity').html('');
@@ -316,7 +317,7 @@ $Saya =  Auth::user()->username;
 							} else {
 								dhtmlx.alert({
 									title: "Gagal",
-									text: response.message || "Gagal menghapus Shipping Instruction.",
+									text: response.message || "Gagal menghapus Shipping Instructions.",
 									ok: "OK"
 								});
 							}
@@ -324,7 +325,7 @@ $Saya =  Auth::user()->username;
 						error: function(xhr) {
 							var msg = (xhr.responseJSON && xhr.responseJSON.message)
 								? xhr.responseJSON.message
-								: "Gagal menghapus Shipping Instruction. Silakan coba lagi.";
+								: "Gagal menghapus Shipping Instructions. Silakan coba lagi.";
 							dhtmlx.alert({
 								title: "Error",
 								text: msg,
@@ -348,7 +349,7 @@ $Saya =  Auth::user()->username;
 	{
 		var selectedId = getActiveSiId();
 		if (selectedId != null) {
-			window.open('cns-export-shipment-instruction-print?Task=' + ShipmentInstruction.cells(selectedId, 2).getValue(), '_blank');
+			window.open('cns-export-shipping-instruction-print?Task=' + ShipmentInstruction.cells(selectedId, 2).getValue(), '_blank');
 		} else {
 			dhtmlx.alert({
 				title: "Peringatan",
@@ -383,7 +384,7 @@ $Saya =  Auth::user()->username;
 		if (status !== 'APPROVED') {
 			dhtmlx.alert({
 				title: "Peringatan",
-				text: "Shipping Instruction harus berstatus APPROVED sebelum dibuatkan Final SI.",
+				text: "Shipping Instructions harus berstatus APPROVED sebelum dibuatkan Final SI.",
 				ok: "OK"
 			});
 			return false;
@@ -395,7 +396,7 @@ $Saya =  Auth::user()->username;
 		} else {
 			dhtmlx.confirm({
 				title: "Konfirmasi Final SI",
-				text: "Buat Final SI untuk Shipping Instruction " + (siNo || selectedId) + " dengan tanggal " + $('#FSI_Date').val() + "?",
+				text: "Buat Final SI untuk Shipping Instructions " + (siNo || selectedId) + " dengan tanggal " + $('#FSI_Date').val() + "?",
 				ok: "Ya",
 				cancel: "Batal",
 				callback: function(result) {
@@ -403,7 +404,7 @@ $Saya =  Auth::user()->username;
 						return;
 					}
 					$('#divFSIDate').css('display', 'none');
-					LoadM('divlistOpportunity', 'cns-export-shipment-instruction-generate-fsi?Task=' + encodeURIComponent(siNo) + "&FSI_Date=" + encodeURIComponent($('#FSI_Date').val()));
+					LoadM('divlistOpportunity', 'cns-export-shipping-instruction-generate-fsi?Task=' + encodeURIComponent(siNo) + "&FSI_Date=" + encodeURIComponent($('#FSI_Date').val()));
 
 					setTimeout(function() {
 						refreshdata();
@@ -429,14 +430,14 @@ $Saya =  Auth::user()->username;
 	}
 
 	function ShipmentInstructionNewBtn() {
-		LoadM('divlistOpportunity', 'cns-export-shipment-instruction-new');
+		LoadM('divlistOpportunity', 'cns-export-shipping-instruction-new');
 		return true;
 	}
 
 	function ShipmentInstructionKlik() {
 		var selectedId = getActiveSiId();
 		if (selectedId != null) {
-			LoadM('divlistOpportunity', 'cns-export-shipment-instruction-detail?Task=' + selectedId);
+			LoadM('divlistOpportunity', 'cns-export-shipping-instruction-detail?Task=' + selectedId);
 		} else {
 			dhtmlx.alert({
 				title: "Peringatan",
@@ -450,11 +451,11 @@ $Saya =  Auth::user()->username;
 	ShipmentInstruction = new dhtmlXGridObject('ShipmentInstruction');
 	ShipmentInstruction.setImagePath("./dhtmlx/imgs/");
 	ShipmentInstruction.setHeader("No,Order (DO)/Booking Confirmation (BC), SI No, SI Date,Kontainer (Seal), Tare, Netto (Kg), Netto (MT), Gross, Gross (MT), Status");
-	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	ShipmentInstruction.setInitWidths("60,150,150,150,150,150,100,100,100,100,100,auto");
-	ShipmentInstruction.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left");
-	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	ShipmentInstruction.setInitWidths("60,150,150,150,150,150,100,100,100,100,100");
+	ShipmentInstruction.setColAlign("center,left,left,left,left,left,left,left,left,left,left");
+	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
+	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	ShipmentInstruction.enableSmartRendering(true, 150);
 	ShipmentInstruction.attachEvent("onRowDblClicked", ShipmentInstructionKlik);
 	ShipmentInstruction.attachEvent("onRowSelect", function(id, ind) {
@@ -466,7 +467,7 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		ShipmentInstruction.clearAndLoad('xml-cns-export-shipment-instruction?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
+		ShipmentInstruction.clearAndLoad('xml-cns-export-shipping-instruction?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
 	}
 </script>
 @endsection

@@ -160,8 +160,9 @@ class CnsFlowSeeder extends Seeder
     private function seedDraftSi($contract, $supplier, string $actor, $today)
     {
         $siNo = 'SI/SEED/001';
+        $table = Schema::hasTable('shipping_instructions') ? 'shipping_instructions' : 'shipment_instructions';
 
-        DB::table('shipment_instructions')->updateOrInsert(
+        DB::table($table)->updateOrInsert(
             ['SI_No' => $siNo],
             [
                 'Order_No' => null,
@@ -194,7 +195,7 @@ class CnsFlowSeeder extends Seeder
             ]
         );
 
-        return DB::table('shipment_instructions')->where('SI_No', $siNo)->first();
+        return DB::table($table)->where('SI_No', $siNo)->first();
     }
 
     private function seedContainers($schedule, $si, string $actor, $today): void

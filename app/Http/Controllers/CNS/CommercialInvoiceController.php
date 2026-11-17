@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
-use App\ShipmentInstruction;
+use App\ShippingInstruction;
 use App\VesselScheduleDtl;
 use App\CommercialInvoice;
 use App\VesselSchedule;
@@ -75,14 +75,14 @@ class CommercialInvoiceController extends Controller
 
     public function newCommercialInvoice()
     {
-        $sis = ShipmentInstruction::where("Status", "FINAL")->get();
+        $sis = ShippingInstruction::where("Status", "FINAL")->get();
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         return view('cns.export.ci-new', compact('sis','companies'));
     }
 
     public function getSIDetail(Request $request)
     {
-        $si = ShipmentInstruction::where('Final_SI_No', $request->input('Final_SI_No'))->first();
+        $si = ShippingInstruction::where('Final_SI_No', $request->input('Final_SI_No'))->first();
         if ($si) {
             $vsd = VesselScheduleDtl::active()->where("SI_No", $si->SI_No)->sum('Netto_MT');
             $si->Netto_MT = round($vsd, 2);
@@ -100,7 +100,7 @@ class CommercialInvoiceController extends Controller
         unset($r['Final_SI_No']);
         $r['Status'] = "CREATED";
 
-        $getSI = ShipmentInstruction::where("Final_SI_No", $request->Final_SI_No)->first();
+        $getSI = ShippingInstruction::where("Final_SI_No", $request->Final_SI_No)->first();
         if ($getSI) {
             $getVS = VesselSchedule::where("Order_No", $getSI->Order_No)->first();
             if ($getVS) {
@@ -124,7 +124,7 @@ class CommercialInvoiceController extends Controller
 
     public function detailCommercialInvoice(Request $request)
     {
-        $sis = ShipmentInstruction::where("Status", "FINAL")->get();
+        $sis = ShippingInstruction::where("Status", "FINAL")->get();
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         $ci = CommercialInvoice::where("Inv_No", $request->Task)->first();
         $ro = $ci->Status == 'CREATED' ? ['input' => '', 'select' => ''] : ['input' => 'readonly', 'select' => 'disabled'];
@@ -158,7 +158,7 @@ class CommercialInvoiceController extends Controller
         $r['status'] = $status;
         unset($r['Final_SI_No']);
 
-        $getSI = ShipmentInstruction::where("Final_SI_No", $request->Final_SI_No)->first();
+        $getSI = ShippingInstruction::where("Final_SI_No", $request->Final_SI_No)->first();
         if ($getSI) {
             $getVS = VesselSchedule::where("Order_No", $getSI->Order_No)->first();
             if ($getVS) {

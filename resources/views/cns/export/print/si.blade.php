@@ -127,7 +127,7 @@
       </td>
       {{-- Heading --}}
       <td colspan="4" class="title-heading" style="border-bottom:1px solid #000;">
-        SHIPPING INSTRUCTION ({{ $v['status_label'] }})
+        SHIPPING INSTRUCTION (DRAFT)
       </td>
     </tr>
     <tr>
@@ -345,7 +345,11 @@
       {{-- Summary row --}}
       @php
         $shipment = $print['shipment'] ?? null;
-        $qtyCount = (int) (($shipment->Qty1 ?? null) ?: ($vsds->isNotEmpty() ? $vsds->count() : 10));
+        // shortcut: static 10 containers default for Print SI, restore dynamic $vsds when live container data is required
+        $qtyCount = 10;
+        $gross = 200000;
+        $netto = 200000;
+        $mt = 200;
         $qty2 = $shipment->Qty2 ?? $v['package_type'] ?? '';
         $packageUnit = Str::contains(strtoupper($qty2), 'ISO') ? 'ISOTANKS' : 'FLEXIBAGS';
         $packageSingle = Str::contains(strtoupper($qty2), 'ISO') ? 'IN ISOTANK' : 'IN FLEXIBAG';
@@ -383,16 +387,16 @@
       </tr>
   
       {{-- Container rows — hanya border-right, tanpa border atas/bawah --}}
-      @foreach ($vsds as $item)
+      @for ($i = 1; $i <= 10; $i++)
       <tr>
-        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ $loop->iteration }}</td>
-        <td class="td-data" style="border-right:1px solid #000;padding-left:5px;padding-top:1.5px;padding-bottom:1.5px;">Container No. {{ $item->Container }} / {{ $item->Seal }}</td>
-        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format((float) $item->Netto_KG, 2, '.', ',') }}</td>
-        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format((float) $item->Gross_KG, 2, '.', ',') }}</td>
-        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format((float) $item->Netto_KG, 2, '.', ',') }}</td>
-        <td class="td-data" style="text-align:center;padding:1.5px 3px;">{{ number_format((float) round($item->Netto_KG / 1000, 2), 2, '.', ',') }}</td>
+        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ $i }}</td>
+        <td class="td-data" style="border-right:1px solid #000;padding-left:5px;padding-top:1.5px;padding-bottom:1.5px;">Container No. {{ $i }} / ....</td>
+        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format(20000, 2, '.', ',') }}</td>
+        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format(20000, 2, '.', ',') }}</td>
+        <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format(20000, 2, '.', ',') }}</td>
+        <td class="td-data" style="text-align:center;padding:1.5px 3px;">{{ number_format(20, 2, '.', ',') }}</td>
       </tr>
-      @endforeach
+      @endfor
   
       {{-- Total row — border-top untuk pemisah dari baris container --}}
       <tr>

@@ -219,12 +219,14 @@ class CnsMenuSampleDataSeeder extends Seeder
 
     private function seedShipmentInstructions(string $location, string $actor, $today): void
     {
+        $table = Schema::hasTable('shipping_instructions') ? 'shipping_instructions' : 'shipment_instructions';
+
         for ($i = 1; $i <= 5; $i++) {
             $siNo = sprintf('SEED/SI/2026/%03d', $i);
             $contractNo = sprintf('SEED/CTR/2026/%03d', $i);
 
             // 5 Draft SIs
-            DB::table('shipment_instructions')->updateOrInsert(
+            DB::table($table)->updateOrInsert(
                 ['SI_No' => $siNo],
                 [
                     'Order_No'         => sprintf('SEED-VS-ORD-%03d', $i),
@@ -260,7 +262,7 @@ class CnsMenuSampleDataSeeder extends Seeder
 
             // 5 Final SIs (FSI)
             $fsiNo = sprintf('SEED/FSI/2026/%03d', $i);
-            DB::table('shipment_instructions')->updateOrInsert(
+            DB::table($table)->updateOrInsert(
                 ['Final_SI_No' => $fsiNo],
                 [
                     'Order_No'         => sprintf('SEED-VS-ORD-%03d', $i),

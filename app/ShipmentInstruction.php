@@ -2,15 +2,9 @@
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Model;
-
-class ShipmentInstruction extends Model
+/**
+ * Backward compatibility alias for ShippingInstruction.
+ */
+class ShipmentInstruction extends ShippingInstruction
 {
-    protected $guarded = ['id'];
-    public $timestamps = false;
-
-    public function approver()
-    {
-        return $this->belongsTo(User::class, 'approved_by', 'id');
-    }
 }

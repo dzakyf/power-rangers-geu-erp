@@ -34,7 +34,7 @@ class KemasanInventoryTest extends TestCase
         $this->assertStringContainsString("'SI00317' => ['Inbound Movement', 'cns-inventory-tracking-index', 'CNS', 4, 'SS00087', 1]", $menuData);
         $this->assertStringContainsString("'SI00340' => ['Tank Draining', 'cns-tank-draining', 'CNS', 4, 'SS00087', 2]", $menuData);
         $this->assertStringContainsString("'SI00341' => ['Inventory Kemasan', 'cns-inventory-kemasan', 'CNS', 4, 'SS00091', 1]", $menuData);
-        $this->assertStringContainsString("'SI00336' => ['Inventory Non-UCO', 'cns-inventory-non-uco', 'CNS', 4, 'SS00091', 2]", $menuData);
+        $this->assertStringContainsString("'SI00332' => ['Inventory Non-UCO', 'cns-inventory-non-uco', 'CNS', 4, 'SS00091', 2]", $menuData);
     }
 
     /** @test */

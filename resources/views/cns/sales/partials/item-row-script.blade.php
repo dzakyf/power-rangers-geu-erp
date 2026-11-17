@@ -26,14 +26,15 @@
         const unit = String(item.Unit ?? '').trim() || 'Pcs';
         const isSelected = selectedDesc !== '' && name === selectedDesc;
         if (isSelected) matched = true;
-        optionsHtml += `<option value="${escapeHtml(name)}" data-price="${price}" data-unit="${escapeHtml(unit)}"${isSelected ? ' selected' : ''}>${escapeHtml(name)}</option>`;
+        optionsHtml += `<option value="${escapeHtml(name)}" data-id="${item.Kemasan_ID ?? ''}" data-price="${price}" data-unit="${escapeHtml(unit)}"${isSelected ? ' selected' : ''}>${escapeHtml(name)}</option>`;
       });
 
       if (selectedDesc !== '' && !matched) {
-        optionsHtml += `<option value="${escapeHtml(selectedDesc)}" data-price="" data-unit="" selected>${escapeHtml(selectedDesc)}</option>`;
+        optionsHtml += `<option value="${escapeHtml(selectedDesc)}" data-id="" data-price="" data-unit="" selected>${escapeHtml(selectedDesc)}</option>`;
       }
 
-      return `<select class="form-control form-control-sm desc-select" id="description${idx}" style="width:100%;">${optionsHtml}</select>`;
+      return `<select class="form-control form-control-sm desc-select" id="description${idx}" style="width:100%;">${optionsHtml}</select>
+              <input type="hidden" id="product_code${idx}" name="product_code${idx}" value="">`;
     }
 
     function addRow(desc = '', qty = 1, price = 0, unit = '') {
@@ -48,7 +49,8 @@
       tr.innerHTML = `
       <td class="num-col text-center row-num">${tbody.rows.length + 1}</td>
       <td class="desc-col">${buildKemasanSelectHtml(idx, desc)}</td>
-      <td class="qty-col"><input type="text" inputmode="decimal" id="qty${idx}" class="form-control form-control-sm text-center qty-inp cns-decimal" value="${cnsFormatNumber(qtyNum, 2)}" onchange="recalc()"/></td>
+      <td class="stock-col text-center align-middle" style="white-space:nowrap;"><span id="stock_info_${idx}" style="color: #000; font-size: 15px; font-weight: 700;">-</span></td>
+      <td class="qty-col"><input type="text" inputmode="decimal" id="qty${idx}" class="form-control form-control-sm text-center qty-inp cns-decimal" value="${cnsFormatNumber(qtyNum, 2)}" oninput="validateRowQty(${idx}); recalc();" onchange="validateRowQty(${idx}); recalc();"/></td>
       <td class="unit-col"><input type="text" id="item_unit${idx}" class="form-control form-control-sm text-center" value="${escapeHtml(unit)}" placeholder="Unit"/></td>
       <td class="price-col"><input type="text" inputmode="decimal" id="unit${idx}" class="form-control form-control-sm text-right price-inp cns-decimal" value="${cnsFormatNumber(priceNum, 2)}" onchange="recalc()" placeholder="0.00"/></td>
       <td class="total-col text-right total-cell" style="font-weight:600;">${fmt(total)}</td>
@@ -59,9 +61,15 @@
 
       const $select = $('#description' + idx);
       const unitInput = document.getElementById('item_unit' + idx);
+      const prodCodeInput = document.getElementById('product_code' + idx);
+      const matchedOpt = $select.find('option:selected');
       if (unitInput && !String(unitInput.value ?? '').trim() && desc !== '') {
         const matchedUnit = $select.find('option:selected').attr('data-unit');
         if (matchedUnit) unitInput.value = matchedUnit;
+      }
+      if (prodCodeInput) {
+        const matchedId = matchedOpt.attr('data-id');
+        if (matchedId) prodCodeInput.value = matchedId;
       }
       if ($.fn.select2) {
         $select.select2({
@@ -76,6 +84,8 @@
         const val = $(this).val();
         const kemasanUnit = selectedOpt.attr('data-unit');
         const kemasanPrice = selectedOpt.attr('data-price');
+        const kemasanId = selectedOpt.attr('data-id') || '';
+        if (prodCodeInput) prodCodeInput.value = kemasanId;
         if (val && kemasanUnit !== undefined) {
           document.getElementById('item_unit' + idx).value = kemasanUnit;
         } else if (!val) {
@@ -86,9 +96,11 @@
         } else if (!val) {
           document.getElementById('unit' + idx).value = cnsFormatNumber(0, 2);
         }
+        checkRowStock(idx);
         recalc();
       });
 
+      checkRowStock(idx);
       recalc();
     }
 
@@ -149,14 +161,206 @@
       document.getElementById('taxAmount').value = cnsFormatNumber(0, 2);
       document.getElementById('shippingAmount').value = cnsFormatNumber(0, 2);
       document.getElementById('otherAmount').value = cnsFormatNumber(0, 2);
+      var $siteSel = $('#site');
+      if ($siteSel.length) {
+        $siteSel.val('').trigger('change');
+      }
+      var addrEl = document.getElementById('siteAddress');
+      if (addrEl) addrEl.value = '';
+      $('#site_id').val('');
       recalc();
+    }
+
+    function checkRowStock(idx) {
+      var $desc = $('#description' + idx);
+      var descVal = $desc.val();
+      var siteId = $('#site_id').val() || '';
+      var siteName = $('#site').val() || '';
+      var packagingId = $('#product_code' + idx).val() || '';
+      var $stockInfo = $('#stock_info_' + idx);
+
+      if (!descVal || (!siteId && !siteName)) {
+        $stockInfo.html('<span style="color: #000; font-size: 15px; font-weight: 700;">-</span>');
+        $desc.data('stock', null);
+        return;
+      }
+
+      $.ajax({
+        url: 'cns-sales-order-check-stock',
+        type: 'GET',
+        data: {
+          site_id: siteId,
+          site_name: siteName,
+          packaging_id: packagingId,
+          description: descVal
+        },
+        dataType: 'json',
+        success: function(res) {
+          if (res && res.status === 'success') {
+            var stock = Number(res.stock) || 0;
+            $desc.data('stock', stock);
+            validateRowQty(idx);
+          }
+        }
+      });
+    }
+
+    function validateRowQty(idx) {
+      var $desc = $('#description' + idx);
+      var stock = $desc.data('stock');
+      var qtyInp = document.getElementById('qty' + idx);
+      var $stockInfo = $('#stock_info_' + idx);
+      if (stock === null || stock === undefined || !qtyInp) {
+        $stockInfo.html('<span style="color: #000; font-size: 15px; font-weight: 700;">-</span>');
+        return true;
+      }
+
+      var qty = cnsParseNumber(qtyInp.value, 0);
+      if (qty > stock) {
+        $stockInfo.html('<span class="badge" style="color: #000 !important; background-color: #f8d7da; border: 1px solid #f5c6cb; font-size: 15px; font-weight: 700; padding: 4px 8px;" title="Stok tidak mencukupi (' + fmt(stock) + ')">' + fmt(stock) + '</span>');
+        $(qtyInp).addClass('is-invalid');
+        return false;
+      } else {
+        $stockInfo.html('<span class="badge" style="color: #000 !important; background-color: #d4edda; border: 1px solid #c3e6cb; font-size: 15px; font-weight: 700; padding: 4px 8px;" title="Stok tersedia (' + fmt(stock) + ')">' + fmt(stock) + '</span>');
+        $(qtyInp).removeClass('is-invalid');
+        return true;
+      }
+    }
+
+    function recheckAllRowsStock() {
+      $('#itemsBody tr').each(function() {
+        var idStr = this.id || '';
+        var idx = idStr.replace('row_', '');
+        if (idx) {
+          checkRowStock(idx);
+        }
+      });
+    }
+
+    function initSiteSelect() {
+      var $siteSel = $('#site');
+      if (!$siteSel.length || $siteSel.is('input')) return;
+
+      var selectedVal = String($siteSel.data('selected') || '').trim();
+      var hasInitialSelection = selectedVal !== '';
+
+      $.ajax({
+        url: 'cns-master-warehouses?type=site',
+        type: 'GET',
+        dataType: 'json',
+        success: function(res) {
+          $siteSel.empty().append($('<option>', {
+            value: '',
+            text: '-- Pilih Site --',
+            selected: !hasInitialSelection
+          }));
+
+          var found = false;
+          var warehouses = (res && res.data) || [];
+          warehouses.forEach(function(w) {
+            var name = (w && w.name) ? String(w.name) : '';
+            if (!name) return;
+            var isSelected = (hasInitialSelection && selectedVal === name);
+            if (isSelected) found = true;
+            var $opt = $('<option>', {
+              value: name,
+              text: name,
+              selected: isSelected
+            });
+            $opt.attr('data-id', w.id || '');
+            $opt.attr('data-alamat', w.alamat || '');
+            $opt.attr('data-kota', w.kota_name || '');
+            $opt.attr('data-provinsi', w.provinsi_name || '');
+            $siteSel.append($opt);
+          });
+
+          if (hasInitialSelection && !found) {
+            $siteSel.append($('<option>', { value: selectedVal, text: selectedVal, selected: true }));
+          }
+
+          if ($.fn.select2) {
+            if ($siteSel.hasClass('select2-hidden-accessible')) {
+              $siteSel.select2('destroy');
+            }
+            $siteSel.select2({
+              placeholder: '-- Pilih Site --',
+              allowClear: true,
+              width: '100%'
+            });
+          }
+
+          $siteSel.val(hasInitialSelection ? selectedVal : '').trigger('change', [true]);
+        }
+      });
+
+      $siteSel.on('change', function(e, isInit) {
+        var opt = $(this).find('option:selected');
+        var val = $(this).val() || '';
+        var siteId = opt.attr('data-id') || '';
+        var alamat = opt.attr('data-alamat') || '';
+        var kota = opt.attr('data-kota') || '';
+        var prov = opt.attr('data-provinsi') || '';
+
+        $('#site_id').val(val ? siteId : '');
+
+        var addrEl = document.getElementById('siteAddress');
+        if (addrEl) {
+          if (!isInit) {
+            if (!val) {
+              addrEl.value = '';
+            } else if (alamat) {
+              addrEl.value = alamat;
+            } else if (kota || prov) {
+              addrEl.value = [kota, prov].filter(Boolean).join(', ');
+            } else {
+              addrEl.value = '';
+            }
+          } else {
+            if (!addrEl.value || addrEl.value.trim() === '') {
+              if (alamat) {
+                addrEl.value = alamat;
+              } else if (kota || prov) {
+                addrEl.value = [kota, prov].filter(Boolean).join(', ');
+              }
+            }
+          }
+        }
+
+        recheckAllRowsStock();
+      });
     }
 
     function saveSO() {
       const soCode = document.getElementById('soCode').value;
       const soDate = document.getElementById('soDate').value;
+      const site = document.getElementById('site').value;
       if (!soCode || !soDate) {
         alert('SO Code dan tanggal wajib diisi!');
+        return;
+      }
+      if (!site) {
+        alert('Site wajib dipilih!');
+        return;
+      }
+
+      var hasStockError = false;
+      var errorMsg = '';
+      $('#itemsBody tr').each(function() {
+        var idStr = this.id || '';
+        var idx = idStr.replace('row_', '');
+        if (!idx) return;
+        var $desc = $('#description' + idx);
+        var stock = $desc.data('stock');
+        var qty = cnsParseNumber($('#qty' + idx).val(), 0);
+        if (stock !== null && stock !== undefined && qty > stock) {
+          hasStockError = true;
+          errorMsg = 'Qty untuk item "' + $desc.val() + '" (' + qty + ') melebihi stok tersedia (' + stock + ') di site ' + site + '!';
+          return false;
+        }
+      });
+
+      if (hasStockError) {
+        alert(errorMsg);
         return;
       }
 
@@ -168,6 +372,7 @@
     if ((!defaultItems || defaultItems.length === 0) && !document.getElementById('soId')) {
       recalc();
     }
+    initSiteSelect();
 
     var myCalendar;
     myCalendar = new dhtmlXCalendarObject(["Stuffing", "Checking_BC", "Closing_CY", "ETD", "ATD", "ETA", "ATA"]);
@@ -190,11 +395,12 @@
             refreshdata();
             $('#divlistOpportunity').html('');
           } else {
-            alert('Sales Order Failed to Submit!');
+            alert('Sales Order Failed to Submit: ' + data);
           }
         },
-        error: function() {
-          alert("Error Internal! Please Try again!");
+        error: function(xhr) {
+          var msg = (xhr && xhr.responseText) ? xhr.responseText : "Error Internal! Please Try again!";
+          alert(msg);
         }
       });
     }

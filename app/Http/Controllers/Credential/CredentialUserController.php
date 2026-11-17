@@ -9,6 +9,7 @@ use App\User;
 use App\Role as SpatieRole;
 use App\Services\RbacService;
 use App\Services\Rbac\RoleResolver;
+use Spatie\Permission\Models\Permission;
 
 class CredentialUserController extends Controller
 {
@@ -312,6 +313,7 @@ class CredentialUserController extends Controller
         ]);
 
         $user->syncRoles($roleModels);
+
 
         if ($request->hasFile('signature')) {
             $file = $request->file('signature');

@@ -16,6 +16,14 @@
     }
 @endphp
 
+<style>
+    #ProjectionGridWrapper {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+    }
+</style>
+
 <!-- Main Content Header -->
 <div class="main-content-header">
     <h1>Quality Control</h1>
@@ -72,25 +80,7 @@
                     </div>
                     <div class="d-flex align-items-center mt-1 mt-md-0" onclick="event.stopPropagation();">
                         <label for="filter_stat_month" class="mb-0 mr-2 font-weight-bold text-secondary" style="font-size: 0.85rem;">Periode:</label>
-                        @php
-                            $curMonthVal = date('Y-m');
-                            $monthNames = [
-                                '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
-                                '04' => 'April', '05' => 'Mei', '06' => 'Juni',
-                                '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
-                                '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
-                            ];
-                        @endphp
-                        <select id="filter_stat_month" class="form-control form-control-sm mr-1" style="width: 170px;" onchange="loadMonthlyStats()">
-                            @for ($i = 3; $i >= -24; $i--)
-                                @php
-                                    $dt = \Carbon\Carbon::now()->addMonths($i);
-                                    $val = $dt->format('Y-m');
-                                    $label = $monthNames[$dt->format('m')] . ' ' . $dt->format('Y');
-                                @endphp
-                                <option value="{{ $val }}" {{ $val === $curMonthVal ? 'selected' : '' }}>{{ $label }}</option>
-                            @endfor
-                        </select>
+                        <input type="month" id="filter_stat_month" class="form-control form-control-sm mr-1" style="width: 170px;" value="{{ date('Y-m') }}" onchange="loadMonthlyStats()">
                         <button type="button" class="btn btn-sm btn-outline-secondary ml-1" onclick="toggleMonthlyStats()" title="Buka/Tutup Ringkasan">
                             <i id="qcStatsToggleIcon" class="fa fa-chevron-down"></i>
                         </button>
@@ -138,7 +128,9 @@
                 </div>
             </div>
 
-            <div id="ProjectionGrid" style="width:auto;height:340px; background-color:white;overflow:hidden" class="mt-2"></div>
+            <div id="ProjectionGridWrapper">
+                <div id="ProjectionGrid" style="width:100%;height:340px; background-color:white;overflow:hidden" class="mt-2"></div>
+            </div>
             <div class="mt-2">
                 <input type="button" id="CreateQC" name="CreateQC" value="Create" class="btn btn-info mr-2" onclick="createQC()" />
                 <input type="button" id="DetailQC" name="DetailQC" value="Detail" class="btn btn-info mr-2" onclick="detailQC()" />

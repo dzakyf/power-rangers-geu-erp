@@ -91,26 +91,30 @@
         toggleSections();
         updateBookingFile();
 
-        $('#Shipping_Method').on('change', toggleSections);
+        if (!IS_EDIT) {
+            $('#Shipping_Method').on('change', toggleSections);
 
-        $('#Contract_ID').on('change', function () {
-            var contractId = $(this).val();
-            var option = $('#Contract_ID option:selected');
+            $('#Contract_ID').on('change', function () {
+                var contractId = $(this).val();
+                var option = $('#Contract_ID option:selected');
 
-            $('#Incoterms').val(option.data('incoterms') || '');
-            prefillContainerFromContract();
-            loadBookings(contractId, null);
-        });
+                $('#Incoterms').val(option.data('incoterms') || '');
+                prefillContainerFromContract();
+                loadBookings(contractId, null);
+            });
+        }
 
         $('#Container_Booking_ID').on('change', updateBookingFile);
 
         $('#SubmitVesselSchedule').on('click', function () {
-            if (!$('#Contract_ID').val()) {
+            var selectedContract = $('#Contract_ID').val() || $('input[name="Contract_ID"]').val();
+            if (!selectedContract) {
                 alert('Pilih kontrak terlebih dahulu.');
                 return;
             }
 
-            if (!$('#Shipping_Method').val()) {
+            var selectedMethod = $('#Shipping_Method').val() || $('input[name="Shipping_Method"]').val();
+            if (!selectedMethod) {
                 alert('Pilih shipping method terlebih dahulu.');
                 return;
             }

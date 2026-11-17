@@ -115,11 +115,21 @@
                 $dmActive = true;
             }
 
+            // Suppress empty sub-folder if no children and no direct route
+            if (($bpSb->Path_Loc === '#' || empty($bpSb->Path_Loc)) && count($thirdTree) === 0) {
+                continue;
+            }
+
             $secondTree[] = [
                 'item' => $bpSb,
                 'active' => $sbActive,
                 'children' => $thirdTree,
             ];
+        }
+
+        // Suppress empty top-level folder if no children and no direct route
+        if (($bpDm->Path_Loc === '#' || empty($bpDm->Path_Loc)) && count($secondTree) === 0) {
+            continue;
         }
 
         $menuTree[] = [
@@ -160,7 +170,26 @@
         </div>
     </div>
 
+    @if ($adminorMenuModule === 'CNS')
+        <div class="sidebar-search-wrapper px-3 mb-2">
+            <div class="sidebar-search-box input-group input-group-sm position-relative">
+                <span class="input-group-text bg-transparent border-0 text-muted" id="sidebar-search-icon" role="button" title="Search menu">
+                    <i class="fe fe-search"></i>
+                </span>
+                <input type="text" id="sidebar-menu-search" class="form-control form-control-sm border-0 ps-0" placeholder="Search menu..." autocomplete="off" aria-label="Search menu">
+                <button type="button" id="sidebar-search-clear" class="btn btn-sm text-muted position-absolute end-0 top-50 translate-middle-y me-1 p-0 text-decoration-none d-none" style="z-index: 5; background: none; border: none; font-size: 16px; line-height: 1;" aria-label="Clear search">
+                    <i class="fe fe-x"></i>
+                </button>
+            </div>
+        </div>
+    @endif
+
     <ul class="side-menu">
+        @if ($adminorMenuModule === 'CNS')
+            <li id="sidebar-no-results" class="text-center text-muted py-3 d-none" style="font-size: 13px;">
+                <i class="fe fe-alert-circle me-1"></i> No menu found
+            </li>
+        @endif
         @foreach ($menuTree as $dm)
             @php
                 $hasSecond = count($dm['children']) > 0;
@@ -337,6 +366,62 @@
         margin-left: auto;
         flex-shrink: 0;
     }
+
+    .sidebar-search-wrapper .sidebar-search-box {
+        background-color: #f7f8fc;
+        border: 1px solid #e8ebf3;
+        border-radius: 6px;
+        transition: border-color 0.15s ease-in-out;
+    }
+    .sidebar-search-wrapper .sidebar-search-box:focus-within {
+        border-color: #0162e8;
+        background-color: #fff;
+    }
+    .sidebar-search-wrapper .form-control {
+        background: transparent !important;
+        font-size: 13px;
+        color: #334155;
+        box-shadow: none !important;
+        height: 32px;
+    }
+    .sidebar-search-wrapper .input-group-text {
+        font-size: 13px;
+        padding-left: 8px;
+        padding-right: 6px;
+    }
+    .sidebar-search-wrapper #sidebar-search-clear {
+        padding: 0 8px !important;
+        cursor: pointer;
+    }
+    .sidebar-search-wrapper #sidebar-search-clear:hover {
+        color: #000 !important;
+    }
+    @media (min-width: 992px) {
+        body.app.sidebar-mini.sidenav-toggled:not(.sidenav-toggled-open) .sidebar-search-wrapper {
+            padding: 0 10px !important;
+            margin-bottom: 8px;
+        }
+        body.app.sidebar-mini.sidenav-toggled:not(.sidenav-toggled-open) .sidebar-search-box input,
+        body.app.sidebar-mini.sidenav-toggled:not(.sidenav-toggled-open) #sidebar-search-clear {
+            display: none !important;
+        }
+        body.app.sidebar-mini.sidenav-toggled:not(.sidenav-toggled-open) .sidebar-search-box {
+            justify-content: center;
+            border-color: transparent;
+            background: transparent;
+        }
+        body.app.sidebar-mini.sidenav-toggled:not(.sidenav-toggled-open) #sidebar-search-icon {
+            border: 1px solid #e8ebf3 !important;
+            border-radius: 4px;
+            padding: 6px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f7f8fc !important;
+        }
+    }
 </style>
 
 <script>
@@ -420,10 +505,173 @@
             });
         }
 
+        function initSidebarSearch() {
+            var searchInput = document.getElementById('sidebar-menu-search');
+            var clearBtn = document.getElementById('sidebar-search-clear');
+            var searchIcon = document.getElementById('sidebar-search-icon');
+            var noResults = document.getElementById('sidebar-no-results');
+            var sideMenu = document.querySelector('.main-sidemenu .side-menu');
+
+            if (!searchInput || !sideMenu) return;
+
+            var slides = sideMenu.querySelectorAll(':scope > li.slide');
+
+            function resetSearch() {
+                searchInput.value = '';
+                if (clearBtn) clearBtn.classList.add('d-none');
+                if (noResults) noResults.classList.add('d-none');
+
+                slides.forEach(function (slide) {
+                    slide.style.display = '';
+                    var slideMenu = slide.querySelector('.slide-menu');
+                    if (slideMenu) {
+                        slideMenu.style.display = '';
+                        slideMenu.classList.remove('open');
+                    }
+                    var subSlides = slide.querySelectorAll('.sub-slide');
+                    subSlides.forEach(function (sub) {
+                        sub.style.display = '';
+                        var subMenu = sub.querySelector('.sub-slide-menu');
+                        if (subMenu) {
+                            subMenu.style.display = '';
+                            subMenu.classList.remove('open');
+                        }
+                        var subItems = sub.querySelectorAll('li');
+                        subItems.forEach(function (si) { si.style.display = ''; });
+                    });
+                    var slideDirectItems = slide.querySelectorAll('.slide-menu > li:not(.sub-slide)');
+                    slideDirectItems.forEach(function (di) { di.style.display = ''; });
+                });
+
+                keepActiveMenuOpen();
+            }
+
+            function doSearch() {
+                var q = searchInput.value.trim().toLowerCase();
+                if (!q) {
+                    resetSearch();
+                    return;
+                }
+
+                if (clearBtn) clearBtn.classList.remove('d-none');
+                var anyMatch = false;
+
+                slides.forEach(function (slide) {
+                    var slideLabelEl = slide.querySelector('.side-menu__label');
+                    var slideText = (slideLabelEl ? slideLabelEl.textContent : '').toLowerCase();
+                    var slideMatches = slideText.indexOf(q) !== -1;
+
+                    var slideMenu = slide.querySelector('.slide-menu');
+                    var hasMatchingChild = false;
+
+                    if (slideMenu) {
+                        var subSlides = slide.querySelectorAll('.sub-slide');
+                        subSlides.forEach(function (sub) {
+                            var subLabelEl = sub.querySelector('.sub-side-menu__label');
+                            var subText = (subLabelEl ? subLabelEl.textContent : '').toLowerCase();
+                            var subMatches = slideMatches || subText.indexOf(q) !== -1;
+
+                            var hasMatchingSubChild = false;
+                            var subItems = sub.querySelectorAll('li');
+                            subItems.forEach(function (subLi) {
+                                var itemLink = subLi.querySelector('.sub-side-menu__item');
+                                var itemText = (itemLink ? itemLink.textContent : '').toLowerCase();
+                                if (subMatches || itemText.indexOf(q) !== -1) {
+                                    subLi.style.display = '';
+                                    hasMatchingSubChild = true;
+                                } else {
+                                    subLi.style.display = 'none';
+                                }
+                            });
+
+                            if (subMatches || hasMatchingSubChild) {
+                                sub.style.display = '';
+                                var subMenu = sub.querySelector('.sub-slide-menu');
+                                if (subMenu) {
+                                    subMenu.style.display = 'block';
+                                    subMenu.classList.add('open');
+                                }
+                                hasMatchingChild = true;
+                            } else {
+                                sub.style.display = 'none';
+                            }
+                        });
+
+                        var directItems = slide.querySelectorAll('.slide-menu > li:not(.sub-slide)');
+                        directItems.forEach(function (di) {
+                            var link = di.querySelector('.slide-item');
+                            var itemText = (link ? link.textContent : '').toLowerCase();
+                            if (slideMatches || itemText.indexOf(q) !== -1) {
+                                di.style.display = '';
+                                hasMatchingChild = true;
+                            } else {
+                                di.style.display = 'none';
+                            }
+                        });
+                    }
+
+                    if (slideMatches || hasMatchingChild) {
+                        slide.style.display = '';
+                        if (slideMenu) {
+                            slideMenu.style.display = 'block';
+                            slideMenu.classList.add('open');
+                        }
+                        anyMatch = true;
+                    } else {
+                        slide.style.display = 'none';
+                    }
+                });
+
+                if (noResults) {
+                    if (anyMatch) {
+                        noResults.classList.add('d-none');
+                    } else {
+                        noResults.classList.remove('d-none');
+                    }
+                }
+            }
+
+            searchInput.addEventListener('input', doSearch);
+
+            searchInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    resetSearch();
+                    searchInput.blur();
+                }
+            });
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function () {
+                    resetSearch();
+                    searchInput.focus();
+                });
+            }
+
+            if (searchIcon) {
+                searchIcon.addEventListener('click', function () {
+                    var body = document.body;
+                    if (body.classList.contains('sidenav-toggled')) {
+                        var toggle = document.querySelector('[data-bs-toggle="sidebar"]');
+                        if (toggle) {
+                            toggle.click();
+                        } else {
+                            body.classList.remove('sidenav-toggled');
+                            var app = document.querySelector('.app');
+                            if (app) app.classList.remove('sidenav-toggled');
+                        }
+                    }
+                    setTimeout(function () {
+                        searchInput.focus();
+                    }, 150);
+                });
+            }
+        }
+
         function initSidebar() {
             keepActiveMenuOpen();
             syncSidebarWidth();
             setTimeout(scrollToActiveMenu, 150);
+            initSidebarSearch();
         }
 
         if (document.readyState === 'loading') {

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\AnnexVII;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\ShipmentInstruction;
+use App\ShippingInstruction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -64,7 +64,7 @@ class AnnexVIIController extends Controller
         //     $shipment = ShipmentInstruction::where('id', $request->id)->first();
         // }
 
-        $shipments = ShipmentInstruction::where("Status", "FINAL")->groupBy('SI_No')->get();
+        $shipments = ShippingInstruction::where("Status", "FINAL")->groupBy('SI_No')->get();
         $comps = DB::table('supplier')->get();
 
         return view('cns.export.annex-new', compact('shipments', 'comps'));
@@ -72,7 +72,7 @@ class AnnexVIIController extends Controller
 
     public function getSI(Request $request)
     {
-        $query = ShipmentInstruction::query();
+        $query = ShippingInstruction::query();
 
         if ($request->has('Final_SI_No')) {
             $query->where('Final_SI_No', $request->Final_SI_No);

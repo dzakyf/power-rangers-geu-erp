@@ -7,7 +7,39 @@ if (!function_exists('can_menu')) {
             return false;
         }
 
-        return auth()->user()->can("menu.{$menuId}.{$action}");
+        $user = auth()->user();
+
+        if (\App\Services\CNS\CnsPermissionService::isCnsMenu($menuId)) {
+            $cnsPerm = \App\Services\CNS\CnsPermissionService::permissionName($menuId, $action);
+            if ($user->can($cnsPerm)) {
+                return true;
+            }
+        }
+
+        return $user->can("menu.{$menuId}.{$action}");
+    }
+}
+
+if (!function_exists('cns_can')) {
+    function cns_can(string $menuSlug, string $action = 'view'): bool
+    {
+        if (!auth()->check()) {
+            return false;
+        }
+
+        $user = auth()->user();
+        $perm = "cns.{$menuSlug}.{$action}";
+
+        if ($user->can($perm)) {
+            return true;
+        }
+
+        $menuId = \App\Services\CNS\CnsPermissionService::getMenuId($menuSlug);
+        if ($menuId && $user->can("menu.{$menuId}.{$action}")) {
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -848,7 +880,7 @@ if (!function_exists('cns_eligible_approvers')) {
                     $isApproverRole = $u->username === 'admin'
                         || (method_exists($u, 'hasRole') && ($u->hasRole('ADM') || $u->hasRole('super-admin')))
                         || in_array($u->Priv_ID ?? '', ['ADM', 'CNS', 'SPV', 'MANAGER'])
-                        || (method_exists($u, 'can') && ($u->can('menu.SI00307.approve') || $u->can('cns.shipment_instruction.approve')));
+                        || (method_exists($u, 'can') && ($u->can('menu.SI00307.approve') || $u->can('cns.shipping_instruction.approve') || $u->can('cns.shipment_instruction.approve')));
 
                     return $isApproverRole && !empty(user_signature_path($u->id));
                 })

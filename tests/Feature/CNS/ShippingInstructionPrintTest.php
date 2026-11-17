@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\CNS;
 
-use App\ShipmentInstruction;
+use App\ShippingInstruction;
 use App\Services\CNS\ShippingInstructionPrintService;
 use App\User;
 use App\VesselSchedule;
@@ -64,7 +64,7 @@ class ShippingInstructionPrintTest extends TestCase
 
         $this->assertSame($contract->Contract_No, $print['values']['contract_no']);
         $this->assertSame('CIF', $print['values']['delivery_terms']);
-        $this->assertStringContainsString('36.000 MT', $print['values']['quantity']);
+        $this->assertStringContainsString('36.00 MT', $print['values']['quantity']);
         $this->assertSame('Test Buyer Company', $print['consignee']['name']);
         $this->assertSame('Test Buyer Company', $print['notify']['name']);
         $this->assertSame('Test Buyer Company', $print['destination']['name']);
@@ -187,7 +187,7 @@ class ShippingInstructionPrintTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->testUser())
-            ->get('/cns-export-final-shipment-instruction-print?Task=' . urlencode($final->Final_SI_No));
+            ->get('/cns-export-final-shipping-instruction-print?Task=' . urlencode($final->Final_SI_No));
 
         $response->assertOk();
         $response->assertHeader('content-type', 'application/pdf');
@@ -220,7 +220,7 @@ class ShippingInstructionPrintTest extends TestCase
         $this->assertNull($print['shipper']['footer_data_uri']);
 
         $response = $this->actingAs($this->testUser())
-            ->get('/cns-export-shipment-instruction-print?Task=' . urlencode($si->SI_No));
+            ->get('/cns-export-shipping-instruction-print?Task=' . urlencode($si->SI_No));
 
         $response->assertOk();
         $response->assertHeader('content-type', 'application/pdf');
@@ -294,7 +294,7 @@ class ShippingInstructionPrintTest extends TestCase
         return [DB::table('cns_buyer_contracts')->where('ID', $contractId)->first(), $supplierId];
     }
 
-    private function makeSi($contractId, string $contractNo, array $overrides = []): ShipmentInstruction
+    private function makeSi($contractId, string $contractNo, array $overrides = []): ShippingInstruction
     {
         $user = $this->testUser();
 
@@ -329,7 +329,7 @@ class ShippingInstructionPrintTest extends TestCase
             'Created_Date' => now(),
         ], $overrides);
 
-        return ShipmentInstruction::create($data);
+        return ShippingInstruction::create($data);
     }
 
     private function makeSchedule($contract, string $orderNo): VesselSchedule

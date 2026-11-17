@@ -146,7 +146,7 @@ class ApipiApiClient
     }
 
     /**
-     * All non-deleted movements destined for Pelindo (tujuan_gudang contains "Pelindo").
+     * All non-deleted movements with ptu_id = 43.
      */
     public function pelindoInboundMovements(): array
     {
@@ -161,7 +161,7 @@ class ApipiApiClient
                 if (
                     is_array($row)
                     && trim((string) ($row['deleted_at'] ?? '')) === ''
-                    && stripos((string) ($row['tujuan_gudang'] ?? ''), 'Pelindo') !== false
+                    && (int) ($row['ptu_id'] ?? 0) === 43
                 ) {
                     $matched[] = $row;
                 }

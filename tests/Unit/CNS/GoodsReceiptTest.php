@@ -98,7 +98,7 @@ class GoodsReceiptTest extends TestCase
 
         $menuData = file_get_contents(database_path('seeds/data/menu_lists_cns.php'));
         $this->assertStringContainsString("'SI00337' => ['Goods Receipt', 'cns-procurement-goods-receipt'", $menuData);
-        $this->assertStringContainsString("'SI00336' => ['Inventory Non-UCO', 'cns-inventory-non-uco'", $menuData);
+        $this->assertStringContainsString("'SI00332' => ['Inventory Non-UCO', 'cns-inventory-non-uco'", $menuData);
     }
 
     /** @test */

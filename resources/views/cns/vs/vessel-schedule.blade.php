@@ -14,6 +14,14 @@ $Saya =  Auth::user()->username;
 
 @section('content-wrapper')
 @csrf
+
+<style>
+	#VSGridWrapper {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+    }
+</style>
 <!-- Main Content Header -->
 <div class="main-content-header">
 	<h1>Partner</h1>
@@ -36,7 +44,9 @@ $Saya =  Auth::user()->username;
 				s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
 				<button onclick="refreshdata()" class="btn btn-primary p-2">Refresh</button>
 			</div>
-			<div id="VesselSchedule" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+			<div id="VSGridWrapper">
+				<div id="VesselSchedule" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+			</div>
 			<div>
 				<input type="button" id="newSchedule" name="newSchedule" value="New Schedule" class="btn btn-primary mt-2 mr-2" onclick="VesselScheduleNew()" />
 				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail Schedule" class="btn btn-info mt-2 mr-2" onclick="VesselScheduleKlik()" />

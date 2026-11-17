@@ -1,13 +1,13 @@
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPMENT INSTRUCTION</div>
+    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPPING INSTRUCTIONS</div>
     <div class="card">
         <div class="card-body">
             <div id="ContentPages">
                 <div class="FormInput_Form_Content">
                     <div class="row">
-                        <div class="col-md-4 col-12">
+                        <div class="col-md-8 col-12">
                             <div class="form-group">
-                                <label for="Contract_ID">Kontrak Buyer</label>
+                                <strong><label class="font-bold" for="Contract_ID">Kontrak Buyer</label></strong>
                                 <select name="Contract_ID" id="Contract_ID" class=" text-black form-control shadow-sm" required>
                                     <option value="">-- Pilih Kontrak --</option>
                                     @foreach ($contracts as $contract)
@@ -23,31 +23,31 @@
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
-                                <label for="SI_No">SI No</label>
+                                <strong><label class="font-bold" for="SI_No">SI No</label></strong>
                                 <input type="text" name="SI_No" id="SI_No" value="{{ $SINo }}" class="text-black form-control shadow-sm" required readonly />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
-                                <label for="SI_Date">SI Date</label>
+                                <strong><label class="font-bold" for="SI_Date">SI Date</label></strong>
                                 <input type="date" name="SI_Date" id="SI_Date" value="{{ date('Y-m-d') }}" class="text-black form-control shadow-sm" required />
                             </div>
                         </div>
-                        <div class="col-md-6 col-12">
+                        <!-- <div class="col-md-6 col-12">
                             <div class="form-group">
-                                <label for="Contract_No">Contract No</label>
+                                <strong><label class="font-bold" for="Contract_No">Contract No</label></strong>
                                 <input type="text" name="Contract_No" id="Contract_No" value="" class="text-black form-control shadow-sm" required />
                             </div>
-                        </div>
-                        <div class="col-md-6 col-12">
+                        </div> -->
+                        <div class="col-md-8 col-12">
                             <div class="form-group">
-                                <label for="Delivery_Terms">Delivery Terms</label>
-                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="" class="text-black form-control shadow-sm" required />
+                                <strong><label class="font-bold" for="Delivery_Terms">Delivery Terms</label></strong>
+                                <textarea name="Delivery_Terms" id="Delivery_Terms" value="" class="text-black form-control shadow-sm" required></textarea>
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
-                                <label for="Shipper">Shipper</label>
+                                <strong><label class="font-bold" for="Shipper">Shipper</label></strong>
                                 <select name="Shipper" id="Shipper" class="text-black form-control" required>
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
@@ -56,13 +56,13 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="Shipper_Address">Shipper Address</label>
-                                <textarea name="Shipper_Address" id="Shipper_Address" rows="2" class="text-black form-control" placeholder="Alamat Shipper"></textarea>
+                                <strong><label class="font-bold" for="Shipper_Address">Shipper Address</label></strong>
+                                <textarea name="Shipper_Address" id="Shipper_Address" rows="4" class="text-black form-control" placeholder="Alamat Shipper"></textarea>
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
-                                <label for="Consignee">Consignee</label>
+                                <strong><label class="font-bold" for="Consignee">Consignee</label></strong>
                                 <select name="Consignee" id="Consignee" class="text-black form-control" required>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
@@ -71,13 +71,13 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="Consignee_Address">Consignee Address</label>
-                                <textarea name="Consignee_Address" id="Consignee_Address" rows="2" class="text-black form-control" placeholder="Alamat Consignee" value=""></textarea>
+                                <strong><label class="font-bold" for="Consignee_Address">Consignee Address</label></strong>
+                                <textarea name="Consignee_Address" id="Consignee_Address" rows="4" class="text-black form-control" placeholder="Alamat Consignee" value=""></textarea>
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
-                                <label for="Notify">Notify Party</label>
+                                <strong><label class="font-bold" for="Notify">Notify Party</label></strong>
                                 <select name="Notify" id="Notify" class="text-black form-control" required>
                                     <option value="">-- Pilih Notify --</option>
                                     @foreach ($companies as $notify)
@@ -86,43 +86,43 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="Notify_Address">Notify Party Address</label>
-                                <textarea name="Notify_Address" id="Notify_Address" rows="2" class="text-black form-control" placeholder="Alamat Notify Party"></textarea>
+                                <strong><label class="font-bold" for="Notify_Address">Notify Party Address</label></strong>
+                                <textarea name="Notify_Address" id="Notify_Address" rows="4" class="text-black form-control" placeholder="Alamat Notify Party"></textarea>
                             </div>
                         </div>
                         <div class="col-md-3 col-12">
                             <div class="form-group">
-                                <label for="Destination_Port">Destination Port</label>
+                                <strong><label class="font-bold" for="Destination_Port">Destination Port</label></strong>
                                 <input type="text" id="Destination_Port" name="Destination_Port" class="text-black form-control" value="" />
                             </div>
                         </div>
                         <div class="col-md-3 col-12">
                             <div class="form-group">
-                                <label for="PEB_Date">PEB Date</label>
+                                <strong><label class="font-bold" for="PEB_Date">PEB Date</label></strong>
                                 <input type="date" name="PEB_Date" id="PEB_Date" value="" class="text-black form-control shadow-sm" />
                             </div>
                         </div>
                         <div class="col-md-3 col-12">
                             <div class="form-group">
-                                <label for="PEB_No">PEB No</label>
+                                <strong><label class="font-bold" for="PEB_No">PEB No</label></strong>
                                 <input type="text" name="PEB_No" id="PEB_No" value="" class="text-black form-control shadow-sm" />
                             </div>
                         </div>
                         <div class="col-md-3 col-12">
                             <div class="form-group">
-                                <label for="BL_No">B/L No</label>
+                                <strong><label class="font-bold" for="BL_No">B/L No</label></strong>
                                 <input type="text" name="BL_No" id="BL_No" value="" class="text-black form-control shadow-sm" />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
-                                <label for="Product_Name">Product Name</label>
+                                <strong><label class="font-bold" for="Product_Name">Product Name</label></strong>
                                 <input type="text" name="Product_Name" id="Product_Name" value="" class="text-black form-control" />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
-                                <label for="HS_Code">HS Code</label>
+                                <strong><label class="font-bold" for="HS_Code">HS Code</label></strong>
                                 <select name="HS_Code" id="HS_Code" class="text-black form-control shadow-sm">
                                     <option value="">-- Pilih HS Code --</option>
                                     <option value="15180090">15180090</option>
@@ -196,7 +196,7 @@
 
     $('#SI_Date').on('change', function() {
         $.ajax({
-            url: "cns-export-shipment-instruction-new-get-si-no",
+            url: "cns-export-shipping-instruction-new-get-si-no",
             type: "POST",
             data: {_token: "{{ csrf_token() }}", date: $(this).val()},
             success: function(res) {
@@ -212,18 +212,18 @@
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
-            url: "cns-export-shipment-instruction-new-submit?_token={{ csrf_token() }}",
+            url: "cns-export-shipping-instruction-new-submit?_token={{ csrf_token() }}",
             type: "POST",
             data: gettingVars,
             success: function(data) {
                 if (data.status === 'success') {
-                    alert('Draft Shipping Instruction berhasil dibuat.');
+                    alert('Draft Shipping Instructions berhasil dibuat.');
                     if (typeof refreshdata === 'function') {
                         refreshdata();
                     }
                     $('#divlistOpportunity').html('');
                 } else {
-                    alert('Draft Shipping Instruction gagal dibuat.');
+                    alert('Draft Shipping Instructions gagal dibuat.');
                 }
             },
             error: function(xhr) {

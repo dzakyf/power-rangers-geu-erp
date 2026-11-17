@@ -6,13 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Repair CNS menu rows that drifted from the intended hierarchy:
- *  - Master User (SI00334) orphaned (Parent_Menu empty)
  *  - Tank Draining (SI00340) overwritten by another module
  *  - Inventory Non-UCO (SI00332) attached to the wrong subheader
  *  - Inventory Kemasan (SI00341) / Inbound Movement (SI00317) hierarchy
  *
  * Uses the existing CNS ids; it intentionally does NOT touch SI00338
  * (Credential "Role & Permissions") or SI00336 (Candidate menu).
+ * The legacy Master User (SI00334) was replaced by the CNS access-control
+ * menus (SI00347/SI00348) in 2026_11_14_000003.
  */
 class RepairCnsMenuStructure extends Migration
 {
@@ -23,7 +24,6 @@ class RepairCnsMenuStructure extends Migration
         }
 
         $rows = [
-            'SI00334' => ['Master User', 'credential-user-management', 'CNS', 4, 'SS00088', 4],
             'SS00087' => ['Inventory UCO', '#', 'CNS', 3, 'SM00063', 1],
             'SS00091' => ['Inventory Non UCO', '#', 'CNS', 3, 'SM00063', 2],
             'SI00317' => ['Inbound Movement', 'cns-inventory-tracking-index', 'CNS', 4, 'SS00087', 1],

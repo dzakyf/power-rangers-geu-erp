@@ -274,6 +274,35 @@ class KemasanInventoryService
         return $latest ? (float) $latest->current_balance : 0.0;
     }
 
+    /**
+     * Get available stock balance for sale (excess balance for regular kemasan, qty balance for ampas).
+     */
+    public function getAvailableSaleBalance(string $itemName, ?int $packagingId = null, ?int $siteId = null): float
+    {
+        $latest = $this->buildScopedQuery($siteId, $packagingId, $itemName)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if (!$latest) {
+            return 0.0;
+        }
+
+        [$qtyBalance, $excessBalance] = self::extractBucketBalances($latest);
+
+        $kemasan = null;
+        if ($packagingId) {
+            try {
+                $kemasan = CnsMasterKemasan::find($packagingId);
+            } catch (\Throwable $e) {
+                $kemasan = null;
+            }
+        }
+        $isAmpas = ($kemasan && method_exists($kemasan, 'isAmpas') && $kemasan->isAmpas())
+            || stripos($itemName, 'ampas') !== false;
+
+        return $isAmpas ? $qtyBalance : $excessBalance;
+    }
+
     protected function loadSiteLimitMap(): array
     {
         if (!Schema::hasTable('cns_kemasan_site_limits')) {

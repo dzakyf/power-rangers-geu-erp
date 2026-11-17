@@ -4,7 +4,7 @@ namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
 use App\PackingList;
-use App\ShipmentInstruction;
+use App\ShippingInstruction;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
 use App\WeightBridgeTicket;
@@ -72,8 +72,8 @@ class WeightBridgeTicketController extends Controller
             abort(404, 'Weight Bridge Ticket tidak ditemukan');
         }
 
-        // Lengkapi data yang mungkin belum tersimpan di WBT dari ShipmentInstruction / PackingList
-        $si = ShipmentInstruction::where('SI_No', $wbt->SI_No)
+        // Lengkapi data yang mungkin belum tersimpan di WBT dari ShippingInstruction / PackingList
+        $si = ShippingInstruction::where('SI_No', $wbt->SI_No)
             ->orWhere('Final_SI_No', $wbt->Final_SI_No)
             ->first();
         if ($si) {
