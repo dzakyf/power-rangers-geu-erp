@@ -827,4 +827,95 @@ class ProcurementController extends Controller
 
         return view('humanresources.procurement.vendor-comparison-matrix', compact('prHeader', 'rfqVendors', 'prItems', 'rfqDetails'));
     }
+
+    // Cetak Dokumen RFQ Resmi untuk Dikirim ke Vendor
+    // public function printRFQ(Request $request) {
+    //     $rfqNo = $request->query('rfq');
+
+    //     $rfq = DB::table('rfq as r')
+    //         ->leftJoin('supplier as s', 'r.Supplier_ID', '=', 's.Supplier_ID')
+    //         ->leftJoin('purchase_request as pr', 'r.PR_No', '=', 'pr.PR_No')
+    //         ->select(
+    //             'r.*', 
+    //             's.Company_Name', 's.Address as Supplier_Address', 's.Contact_Person', 's.Phone', 's.Email',
+    //             'pr.Department', 'pr.PIC', 'pr.PIC_Phone', 'pr.PIC_Email', 'pr.PIC_Address as Site_Tujuan', 'pr.Note as PR_Note'
+    //         )
+    //         ->where('r.RFQ_No', $rfqNo)
+    //         ->first();
+
+    //     if (!$rfq) {
+    //         return abort(404, 'Dokumen RFQ tidak ditemukan.');
+    //     }
+
+    //     // Ambil item dari rfq_dtl (jika kosong, ambil dari purchase_request_dtl)
+    //     $items = DB::table('rfq_dtl')->where('RFQ_No', $rfqNo)->orderBy('ID', 'ASC')->get();
+    //     if ($items->isEmpty()) {
+    //         $items = DB::table('purchase_request_dtl')->where('PR_No', $rfq->PR_No)->get();
+    //     }
+
+    //     return view('humanresources.procurement.rfq-print', compact('rfq', 'items'));
+    // }
+
+    public function printRFQ(Request $request) {
+        $rfqNo = $request->query('rfq');
+
+        $rfq = DB::table('rfq as r')
+            ->leftJoin('supplier as s', 'r.Supplier_ID', '=', 's.Supplier_ID')
+            ->leftJoin('purchase_request as pr', 'r.PR_No', '=', 'pr.PR_No')
+            ->select(
+                'r.*', 
+                's.Company_Name', 's.Address as Supplier_Address', 's.Contact_Person', 's.Phone', 's.Email',
+                'pr.Department', 'pr.PIC', 'pr.PIC_Phone', 'pr.PIC_Email', 'pr.PIC_Address as Site_Tujuan', 'pr.Note as PR_Note'
+            )
+            ->where('r.RFQ_No', $rfqNo)
+            ->first();
+
+        if (!$rfq) {
+            return abort(404, 'Dokumen RFQ tidak ditemukan.');
+        }
+
+        // Ambil item dari rfq_dtl (jika kosong, ambil dari purchase_request_dtl)
+        $items = DB::table('rfq_dtl')->where('RFQ_No', $rfqNo)->orderBy('ID', 'ASC')->get();
+        if ($items->isEmpty()) {
+            $items = DB::table('purchase_request_dtl')->where('PR_No', $rfq->PR_No)->get();
+        }
+
+        // Konfigurasi mPDF (Samakan margin top dengan printPR agar kop surat tidak menimpa isi)
+        // Pastikan folder temporary mPDF tersedia di dalam storage Laravel
+        $mpdfTempDir = storage_path('app/mpdf');
+        if (!file_exists($mpdfTempDir)) {
+            mkdir($mpdfTempDir, 0775, true);
+        }
+
+        // Konfigurasi mPDF dengan tempDir yang writable
+        $mpdf = new \Mpdf\Mpdf([
+            'mode'          => 'utf-8',
+            'format'        => 'A4',
+            'tempDir'       => $mpdfTempDir, // <-- Tambahkan baris ini!
+            'margin_left'   => 10,
+            'margin_right'  => 10,
+            'margin_top'    => 38,
+            'margin_bottom' => 15,
+            'margin_header' => 5,
+            'margin_footer' => 5,
+        ]);
+
+        // Set Kop Surat (Sesuaikan nama file gambar dengan yang ada di printPR Anda)
+        $kopPath = public_path('images/kop-geu.png'); 
+        if (file_exists($kopPath)) {
+            $mpdf->SetHTMLHeader('
+                <div style="text-align: center; border-bottom: 1.5px solid #689f38; padding-bottom: 5px;">
+                    <img src="' . $kopPath . '" style="width: 100%; max-height: 95px;">
+                </div>
+            ');
+        }
+
+        $html = view('humanresources.procurement.rfq-print', compact('rfq', 'items'))->render();
+        $mpdf->WriteHTML($html);
+
+        // Output langsung tampil di browser (I = Inline)
+        $fileName = str_replace('/', '-', $rfq->RFQ_No) . '.pdf';
+        return response($mpdf->Output($fileName, 'I'), 200)
+            ->header('Content-Type', 'application/pdf');
+    }
 }
