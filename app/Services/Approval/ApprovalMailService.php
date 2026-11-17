@@ -30,6 +30,9 @@ class ApprovalMailService
             'ATTENDANCE_CHANGE_SHIFT'=> 'Perubahan / Pertukaran Shift Kerja',
             'STATUS_CHANGE'          => 'Perubahan Status Kepegawaian',
             'EMPLOYEE_DATA_UPDATE'   => 'Perubahan Data Mandiri Karyawan',
+            'EMPLOYEE_RESIGNATION'   => 'Pengajuan Resign Karyawan',
+            'EXIT_CLEARANCE'         => 'Exit Clearance & Interview',
+            'DISCIPLINARY_SANCTION'  => 'Surat Peringatan & Sanksi Karyawan',
             'GENERAL'                => 'Pengajuan Dokumen Persetujuan',
         ];
 
@@ -45,6 +48,14 @@ class ApprovalMailService
             $actionUrl = url('hrd-procurement-approval-detail') . '?id=' . $mapTo;
         } elseif ($type === 'EMPLOYEE_DATA_UPDATE') {
             $actionUrl = url('employee/directory');
+        } elseif ($type === 'EXIT_CLEARANCE' && !empty($mapTo)) {
+            $actionUrl = url('hrd-exit-clearance-view/' . $mapTo);
+        } elseif ($type === 'EMPLOYEE_RESIGNATION') {
+            $actionUrl = url('hrd-exit-clearance-index');
+        } elseif ($type === 'DISCIPLINARY_SANCTION' && !empty($mapTo)) {
+            $actionUrl = url('hrd-disciplinary-sanction-detail/' . $mapTo);
+        } elseif ($type === 'DISCIPLINARY_SANCTION') {
+            $actionUrl = url('hrd-disciplinary-sanction-index');
         }
 
         return [

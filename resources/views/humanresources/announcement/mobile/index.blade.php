@@ -137,14 +137,19 @@
             margin-bottom: 2px;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
+        $fromParams = mobile_from_params();
+    @endphp
     <!-- Header Section -->
     <div class="header-announcement">
         <div class="d-flex align-items-center justify-content-between mb-3">
             <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('employee.mobile.my-profile') }}" class="btn btn-sm btn-outline-light rounded-circle px-2 py-1">
+                <a href="{{ $resolvedBackUrl }}" class="btn btn-sm btn-outline-light rounded-circle px-2 py-1">
                     <i class="fa fa-arrow-left"></i>
                 </a>
                 <h5 class="fw-bold mb-0 text-white">News & Updates</h5>
@@ -210,7 +215,7 @@
                     @php
                         $catClass = strtolower($item->category ?? 'announcement');
                     @endphp
-                    <a href="{{ route('announcement.mobile.detail', $item->id) }}" class="feed-card">
+                    <a href="{{ route('announcement.mobile.detail', array_merge(['id' => $item->id], $fromParams)) }}" class="feed-card">
                         @if($item->thumbnail)
                             <img src="{{ asset($item->thumbnail) }}" alt="{{ $item->title }}" class="feed-img-thumb" loading="lazy">
                         @endif
@@ -305,5 +310,6 @@
         </a>
     </div>
 
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'dashboard'])
 </body>
 </html>

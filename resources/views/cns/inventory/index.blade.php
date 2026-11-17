@@ -205,6 +205,8 @@
                     </div>
 
                     <div id="UpcomingGrid" style="width:100% !important; min-height:450px; height:450px; background-color:white; overflow:hidden;" class="mt-2 border"></div>
+                    <div id="upcomingEmptyNotice" class="alert alert-info mt-2 mb-0" style="display:none;"></div>
+                    <div id="upcomingErrorNotice" class="alert alert-danger mt-2 mb-0" style="display:none;"></div>
 
                     <div id="upcomingPaginationBar" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2">
                         <div class="d-flex align-items-center">
@@ -791,15 +793,21 @@
             UpcomingGrid.clearAll();
             UpcomingGrid.parse(xml);
 
-            var meta = { totalCount: 0, page: 1, perPage: upcomingPerPage, totalPages: 1 };
+            var meta = { totalCount: 0, page: 1, perPage: upcomingPerPage, totalPages: 1, sourceCount: 0, usedExcluded: 0, doneExcluded: 0, dateExcluded: 0, searchExcluded: 0, filteredCount: 0 };
             try {
                 var xmlDoc = new DOMParser().parseFromString(xml, 'text/xml');
                 var rowsEl = xmlDoc.getElementsByTagName('rows')[0];
                 if (rowsEl) {
-                    meta.totalCount = parseInt(rowsEl.getAttribute('total_count') || '0', 10) || 0;
-                    meta.page       = parseInt(rowsEl.getAttribute('page') || '1', 10) || 1;
-                    meta.perPage    = parseInt(rowsEl.getAttribute('per_page') || String(upcomingPerPage), 10) || upcomingPerPage;
-                    meta.totalPages = parseInt(rowsEl.getAttribute('total_pages') || '1', 10) || 1;
+                    meta.totalCount   = parseInt(rowsEl.getAttribute('total_count') || '0', 10) || 0;
+                    meta.page         = parseInt(rowsEl.getAttribute('page') || '1', 10) || 1;
+                    meta.perPage      = parseInt(rowsEl.getAttribute('per_page') || String(upcomingPerPage), 10) || upcomingPerPage;
+                    meta.totalPages   = parseInt(rowsEl.getAttribute('total_pages') || '1', 10) || 1;
+                    meta.sourceCount  = parseInt(rowsEl.getAttribute('source_count') || '0', 10) || 0;
+                    meta.usedExcluded = parseInt(rowsEl.getAttribute('used_excluded') || '0', 10) || 0;
+                    meta.doneExcluded = parseInt(rowsEl.getAttribute('done_excluded') || '0', 10) || 0;
+                    meta.dateExcluded = parseInt(rowsEl.getAttribute('date_excluded') || '0', 10) || 0;
+                    meta.searchExcluded = parseInt(rowsEl.getAttribute('search_excluded') || '0', 10) || 0;
+                    meta.filteredCount = parseInt(rowsEl.getAttribute('filtered_count') || '0', 10) || 0;
                 }
             } catch (e) {}
 
@@ -807,9 +815,11 @@
             upcomingPerPage = meta.perPage;
             $('#upcomingPerPage').val(String(meta.perPage));
             renderUpcomingPagination(meta);
+            renderUpcomingState(meta);
         }).fail(function(xhr) {
             UpcomingGrid.clearAll();
             renderUpcomingPagination({ totalCount: 0, page: 1, perPage: upcomingPerPage, totalPages: 1 });
+            $('#upcomingEmptyNotice').hide();
             var msg = 'Gagal mengambil data movements dari APIPI.';
             try {
                 var parsed = JSON.parse(xhr.responseText || '{}');
@@ -817,10 +827,36 @@
                     msg = parsed.message;
                 }
             } catch (e) {}
-            alert(msg);
+            $('#upcomingErrorNotice').text(msg).show();
         }).always(function() {
             $btn.prop('disabled', false).html(originalHtml);
         });
+    }
+
+    function renderUpcomingState(meta) {
+        var $empty = $('#upcomingEmptyNotice');
+        var $error = $('#upcomingErrorNotice');
+        $error.hide().text('');
+
+        if (meta.totalCount > 0) {
+            $empty.hide();
+            return;
+        }
+
+        var msg = 'Tidak ada data upcoming inbound.';
+        if (meta.sourceCount === 0) {
+            msg = 'APIPI tidak mengembalikan movement apa pun. Pastikan akun APIPI memiliki data movement dan filter tanggal sudah benar.';
+        } else if (meta.doneExcluded > 0 && meta.filteredCount === 0) {
+            msg = 'Semua movement dari APIPI sudah berstatus done sehingga tidak ditampilkan.';
+        } else if (meta.usedExcluded > 0 && meta.filteredCount === 0) {
+            msg = 'Semua movement dari APIPI sudah pernah dicatat sebagai inbound.';
+        } else if (meta.dateExcluded > 0) {
+            msg = 'Tidak ada movement pada rentang tanggal yang dipilih.';
+        } else if (meta.searchExcluded > 0) {
+            msg = 'Tidak ada movement yang cocok dengan pencarian.';
+        }
+
+        $empty.text(msg).show();
     }
 
     function renderUpcomingPagination(meta) {

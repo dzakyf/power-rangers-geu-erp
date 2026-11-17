@@ -64,9 +64,13 @@
 
 <body>
 
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
+        $fromParams = mobile_from_params();
+    @endphp
     <!-- Header Navigation -->
     <div class="header-form shadow-sm">
-        <a href="{{ $item ? route('announcement.mobile.detail', $item->id) : route('announcement.mobile.index') }}"
+        <a href="{{ $item ? route('announcement.mobile.detail', array_merge(['id' => $item->id], $fromParams)) : route('announcement.mobile.index', $fromParams) }}"
             class="btn btn-sm btn-light rounded-circle px-2 py-1">
             <i class="fa fa-times"></i>
         </a>

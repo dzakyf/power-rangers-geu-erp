@@ -30,6 +30,10 @@ $Saya =  Auth::user()->username;
 	</ol>
 </div>
 
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partner.partials.index-title', ['title' => 'Asset Management'])
+
 <div class="row">
 	<div id="FacilityBenefits" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
@@ -38,6 +42,8 @@ $Saya =  Auth::user()->username;
 		{{-- <input type="button" id="detailBooth" name="detailBooth" value="Detail Booth" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlikBooth()" />
 		<input type="button" id="detailMobil" name="detailMobil" value="Detail Mobil" class="btn btn-success mt-2 mr-2" onclick="FacilityBenefitsKlikMobil()" /> --}}
 	</div>
+</div>
+    </div>
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>

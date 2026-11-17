@@ -30,9 +30,10 @@ $getUsers = DB::table('users')->where('Priv_ID', 'SALES')->get();
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">MASTER TARGET</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Master Target'])
+
 			<div id="SalesTiering" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselSalesTieringDet" name="ekselSalesTieringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="SalesTiering.toExcel('./export/generate.php');" />

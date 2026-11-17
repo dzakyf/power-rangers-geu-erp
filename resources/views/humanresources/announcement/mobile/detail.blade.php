@@ -61,9 +61,13 @@
 </head>
 <body>
 
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
+        $fromParams = mobile_from_params();
+    @endphp
     <!-- Header Navigation -->
     <div class="header-detail shadow-sm">
-        <a href="{{ route('announcement.mobile.index') }}" class="btn btn-sm btn-light rounded-circle px-2 py-1">
+        <a href="{{ route('announcement.mobile.index', $fromParams) }}" class="btn btn-sm btn-light rounded-circle px-2 py-1">
             <i class="fa fa-arrow-left"></i>
         </a>
         <h6 class="fw-bold mb-0 text-truncate px-2">{{ $item->category ?? 'Announcement' }}</h6>
@@ -157,7 +161,7 @@
 
         <!-- Back to list -->
         <div class="text-center pt-2">
-            <a href="{{ route('announcement.mobile.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-4">
+            <a href="{{ route('announcement.mobile.index', $fromParams) }}" class="btn btn-outline-secondary btn-sm rounded-pill px-4">
                 <i class="fa fa-arrow-left me-1"></i> Kembali ke Berita
             </a>
         </div>

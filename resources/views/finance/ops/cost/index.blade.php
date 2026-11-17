@@ -14,15 +14,18 @@
 <div class="mt-3">
     <div class="tab-content mt-3">
         <!-- Pickup Cost Tab -->
-        <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">COST</div>
         <div class="card">
             <div class="card-body">
+                @include('partials.index-title', ['title' => 'Pickup Cost'])
+
                 <div id="pickupCostGrid" style="width:100%;height:320px;background-color:white;overflow-x:auto"></div>
                 <div class="mt-3">
                     <button type="button" class="btn btn-info" id="btnShowMap"><i class="fas fa-map mr-1"></i>Show Map</button>
+                    @if(can_menu('SI00378', 'approve'))
                     <button type="button" class="btn btn-success" id="btnTopup">
                         <i class="fas fa-plus mr-1"></i>Topup
                     </button>
+                    @endif
                     <button type="button" class="btn btn-primary" id="btnDetail">
                         <i class="fas fa-info-circle mr-1"></i>Detail
                     </button>

@@ -16,14 +16,16 @@
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">TRANSFER MEMBERSHIP</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'Transfer Kepemilikan'])
+
             <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <div>
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
 
                 <input type="button" id="pengajuan" name="pengajuan" value="Buat Pengajuan" class="btn btn-success mt-2 mr-2" onclick="redirectToCreateApplication()" />
+                <input type="button" id="downloadResult" name="downloadResult" value="Download Result" class="btn btn-info mt-2 mr-2" onclick="downloadResult()" />
                 <input type="button" id="ekselWarehouseMonitoringDet" name="ekselWarehouseMonitoringDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="WarehouseMonitoring.toExcel('./export/generate.php');" />
             </div>
         </div>
@@ -32,7 +34,6 @@
 
 
 <div id="Grid1Detail" class="row m-1" style="display:none;">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">TRANSFER MEMBERSHIP</div>
     <div class="card w-100">
         <div class="card-body">
             <!-- <div id="MembershipGrid" style="width: w-100auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div> -->
@@ -40,7 +41,7 @@
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
 
             </div>
-            <h5>Update Informasi Kemitraan</h5>
+            <h5 class="bdp-index-title">Update Informasi Kemitraan</h5>
             <form id="updateApplicationInfoForm" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="transfer_application_id" id="transfer_application_id" class="form-control" readonly />
@@ -104,6 +105,22 @@
 
     function redirectToCreateApplication() {
         window.location.href = `partner-transfer-membership-create-application`
+    }
+
+    function downloadResult() {
+        var rowId = Grid1.getSelectedId();
+        if (!rowId) {
+            alert('Pilih data terlebih dahulu.');
+            return;
+        }
+
+        var transferId = Grid1.getRowAttribute(rowId, 'Transfer_Application_Id');
+        if (!transferId) {
+            alert('Data transfer tidak ditemukan.');
+            return;
+        }
+
+        window.open('partner-transfer-membership-download?ID=' + transferId, '_blank');
     }
 
     function initTableGrid1() {

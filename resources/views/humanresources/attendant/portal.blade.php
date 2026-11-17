@@ -70,16 +70,25 @@
                                 @if ($todayEntry && $todayEntry->Clock_In_Status)
                                     <span class="badge bg-success d-block mt-1">{{ $todayEntry->Clock_In_Status }}</span>
                                 @endif
-                                @if ($todayEntry && !empty($todayEntry->Clock_In_Photo))
-                                    <div class="mt-2 pt-1 border-top">
-                                        <a href="javascript:void(0)"
-                                            onclick="previewDesktopSelfie('{{ asset($todayEntry->Clock_In_Photo) }}', 'Foto Selfie Clock-In')"
-                                            class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill"
-                                            style="font-size: 10px;">
-                                            <i class="fe fe-camera me-1"></i>Lihat Foto
-                                        </a>
-                                    </div>
+                                @if (
+                                    $todayEntry &&
+                                        ($todayEntry->GPS_Anomaly_Flag ?? '') === 'SUSPECTED_FAKE_GPS' &&
+                                        in_array(strtolower((string) (Auth::user()->username ?? '')), ['admin', 'user.hcga', 'admin.hris'], true))
+                                    <span class="badge bg-danger text-white d-block mt-1"
+                                        title="{{ $todayEntry->GPS_Anomaly_Reason ?? 'Anomali GPS terdeteksi' }}">
+                                        <i class="fe fe-alert-triangle me-1"></i>Suspect Fake GPS
+                                    </span>
                                 @endif
+                                    @if ($todayEntry && !empty($todayEntry->Clock_In_Photo))
+                                        <div class="mt-2 pt-1 border-top">
+                                            <a href="javascript:void(0)"
+                                                onclick="previewDesktopSelfie('{{ asset($todayEntry->Clock_In_Photo) }}', 'Foto Selfie Clock-In')"
+                                                class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill"
+                                                style="font-size: 10px;">
+                                                <i class="fe fe-camera me-1"></i>Lihat Foto
+                                            </a>
+                                        </div>
+                                    @endif
                             </div>
                         </div>
                         <div class="col-6">
@@ -227,15 +236,21 @@
                         <div class="tab-pane fade show active" id="leave-pane" role="tabpanel">
                             <!-- Banner Sisa Saldo Cuti Karyawan -->
                             @if (isset($leaveBalance))
-                                <div class="alert alert-primary py-2 px-3 rounded-3 mb-3 d-flex justify-content-between align-items-center">
+                                <div
+                                    class="alert alert-primary py-2 px-3 rounded-3 mb-3 d-flex justify-content-between align-items-center">
                                     <div class="small">
-                                        <i class="fe fe-info me-1"></i> Sisa Saldo Cuti Tahunan Anda (Tahun {{ $leaveBalance->year ?? date('Y') }}):
-                                        <strong class="fs-6 text-primary">{{ $leaveBalance->remaining_total ?? 0 }} Hari</strong>
+                                        <i class="fe fe-info me-1"></i> Sisa Saldo Cuti Tahunan Anda (Tahun
+                                        {{ $leaveBalance->year ?? date('Y') }}):
+                                        <strong class="fs-6 text-primary">{{ $leaveBalance->remaining_total ?? 0 }}
+                                            Hari</strong>
                                         @if (($leaveBalance->carry_forward_quota ?? 0) > 0)
-                                            <span class="text-muted ms-1">(Termasuk akumulasi tahun lalu: {{ $leaveBalance->carry_forward_quota - $leaveBalance->used_carry_forward }} hari)</span>
+                                            <span class="text-muted ms-1">(Termasuk akumulasi tahun lalu:
+                                                {{ $leaveBalance->carry_forward_quota - $leaveBalance->used_carry_forward }}
+                                                hari)</span>
                                         @endif
                                     </div>
-                                    <span class="badge bg-primary text-white">Sisa Kuota: {{ $leaveBalance->remaining_total ?? 0 }} Hari</span>
+                                    <span class="badge bg-primary text-white">Sisa Kuota:
+                                        {{ $leaveBalance->remaining_total ?? 0 }} Hari</span>
                                 </div>
                             @endif
 
@@ -251,11 +266,14 @@
                                                     data-deduct="{{ $kat->is_deduct_annual_leave }}"
                                                     data-attachment="{{ $kat->is_need_attachment }}"
                                                     data-max="{{ $kat->jatah_hari }}">
-                                                    {{ $kat->kat_izin_nama }} {{ $kat->jatah_hari > 0 ? '(Maks ' . $kat->jatah_hari . ' hari)' : '' }} {{ $kat->is_deduct_annual_leave === 'YES' ? '[Potong Cuti]' : '' }}
+                                                    {{ $kat->kat_izin_nama }}
+                                                    {{ $kat->jatah_hari > 0 ? '(Maks ' . $kat->jatah_hari . ' hari)' : '' }}
+                                                    {{ $kat->is_deduct_annual_leave === 'YES' ? '[Potong Cuti]' : '' }}
                                                 </option>
                                             @endforeach
                                         </select>
-                                        <small class="text-muted d-block mt-1" id="leave_cat_hint" style="font-size: 11px;"></small>
+                                        <small class="text-muted d-block mt-1" id="leave_cat_hint"
+                                            style="font-size: 11px;"></small>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small fw-semibold">Tanggal Mulai <span
@@ -406,8 +424,8 @@
                                     <div class="col-md-3">
                                         <label class="form-label small fw-semibold">Tipe Hari Lembur <span
                                                 class="text-danger">*</span></label>
-                                        <select name="day_type" id="ot_day_type" class="form-select rounded-3"
-                                            required onchange="calculateOvertimePreview()">
+                                        <select name="day_type" id="ot_day_type" class="form-select rounded-3" required
+                                            onchange="calculateOvertimePreview()">
                                             <option value="WORKDAY" selected>Hari Kerja Reguler</option>
                                             <option value="HOLIDAY">Hari Libur Mingguan / Libur Nasional</option>
                                         </select>
@@ -417,7 +435,8 @@
                                                 class="text-danger">*</span></label>
                                         <select name="overtime_type" id="ot_type" class="form-select rounded-3"
                                             required onchange="calculateOvertimePreview()">
-                                            <option value="AFTER_SHIFT" selected>Lembur Setelah Shift (Pasca-Shift)</option>
+                                            <option value="AFTER_SHIFT" selected>Lembur Setelah Shift (Pasca-Shift)
+                                            </option>
                                             <option value="BEFORE_SHIFT">Lembur Sebelum Shift Masuk (Pra-Shift)</option>
                                         </select>
                                     </div>
@@ -425,7 +444,8 @@
                                         <label class="form-label small fw-semibold">Pilihan Kompensasi <span
                                                 class="text-danger">*</span></label>
                                         <select name="compensation_type" id="ot_compensation"
-                                            class="form-select rounded-3" required onchange="calculateOvertimePreview()" readonly>
+                                            class="form-select rounded-3" required onchange="calculateOvertimePreview()"
+                                            readonly>
                                             <option value="PAID" selected>Uang Lembur (Matriks Tarif / Depnaker)</option>
                                             <option value="TIME_OFF">Tukar Cuti / Hari Libur Pengganti (Day Off)</option>
                                         </select>
@@ -476,13 +496,18 @@
                                         <div
                                             class="p-3 rounded-4 border bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
                                             <div>
-                                                <small class="text-muted d-block fw-semibold" style="font-size: 11px;">ESTIMASI PERHITUNGAN MATRIKS TARIF / LEMBUR</small>
+                                                <small class="text-muted d-block fw-semibold"
+                                                    style="font-size: 11px;">ESTIMASI PERHITUNGAN MATRIKS TARIF /
+                                                    LEMBUR</small>
                                                 <h5 class="fw-bold mb-0 text-primary" id="ot_preview_amount">Rp 0</h5>
-                                                <small class="text-muted d-block" id="ot_preview_breakdown">Silakan sesuaikan jam lembur untuk kalkulasi estimasi.</small>
+                                                <small class="text-muted d-block" id="ot_preview_breakdown">Silakan
+                                                    sesuaikan jam lembur untuk kalkulasi estimasi.</small>
                                             </div>
                                             <div class="text-end">
-                                                <span class="badge bg-secondary text-white" id="ot_preview_region">Wilayah 1</span>
-                                                <span class="badge bg-primary text-white ms-1" id="ot_preview_hours">0 Jam Lembur</span>
+                                                <span class="badge bg-secondary text-white" id="ot_preview_region">Wilayah
+                                                    1</span>
+                                                <span class="badge bg-primary text-white ms-1" id="ot_preview_hours">0 Jam
+                                                    Lembur</span>
                                                 <div>
                                                     <a href="{{ route('attendance.overtime.matrix') }}" target="_blank"
                                                         class="small text-decoration-underline text-muted"
@@ -531,83 +556,115 @@
                                     <div class="col-12">
                                         <div class="alert alert-info py-2 px-3 rounded-3 mb-0" style="font-size: 12px;">
                                             <i class="fe fe-info me-1"></i>
-                                            Gunakan form ini untuk mengajukan perubahan shift mandiri atau bertukar jadwal dinas dengan rekan kerja. Setelah diajukan, permohonan akan diproses melalui alur persetujuan Manager Departemen &amp; HCGA.
+                                            Gunakan form ini untuk mengajukan perubahan shift mandiri atau bertukar jadwal
+                                            dinas dengan rekan kerja. Setelah diajukan, permohonan akan diproses melalui
+                                            alur persetujuan Manager Departemen &amp; HCGA.
                                         </div>
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label small fw-semibold">Tipe Pengajuan Shift <span class="text-danger">*</span></label>
-                                        <select name="request_mode" id="cs_request_mode" class="form-select rounded-3" required onchange="toggleChangeShiftMode(this.value)">
+                                        <label class="form-label small fw-semibold">Tipe Pengajuan Shift <span
+                                                class="text-danger">*</span></label>
+                                        <select name="request_mode" id="cs_request_mode" class="form-select rounded-3"
+                                            required onchange="toggleChangeShiftMode(this.value)">
                                             <option value="CHANGE">Ganti Shift Mandiri (Ubah Jadwal Sendiri)</option>
                                             <option value="EXCHANGE">Tukar Jadwal Dinas dengan Rekan Kerja</option>
                                         </select>
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label small fw-semibold">Tanggal Dinas yang Diubah <span class="text-danger">*</span></label>
-                                        <input type="date" name="original_date" id="cs_original_date" class="form-control rounded-3" value="{{ date('Y-m-d') }}" required onchange="fetchCurrentShiftInfo(this.value)">
-                                        <small class="text-muted d-block mt-1" style="font-size: 11px;" id="cs_current_shift_info">
-                                            <i class="fe fe-calendar me-1"></i> Shift saat ini: <strong class="text-primary">{{ $schedule['shift_name'] ?? 'Regular' }} ({{ $schedule['default_start'] }} - {{ $schedule['default_end'] }})</strong>
+                                        <label class="form-label small fw-semibold">Tanggal Dinas yang Diubah <span
+                                                class="text-danger">*</span></label>
+                                        <input type="date" name="original_date" id="cs_original_date"
+                                            class="form-control rounded-3" value="{{ date('Y-m-d') }}" required
+                                            onchange="fetchCurrentShiftInfo(this.value)">
+                                        <small class="text-muted d-block mt-1" style="font-size: 11px;"
+                                            id="cs_current_shift_info">
+                                            <i class="fe fe-calendar me-1"></i> Shift saat ini: <strong
+                                                class="text-primary">{{ $schedule['shift_name'] ?? 'Regular' }}
+                                                ({{ $schedule['default_start'] }} -
+                                                {{ $schedule['default_end'] }})</strong>
                                         </small>
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label small fw-semibold">Shift Pengganti (Tujuan) <span class="text-danger">*</span></label>
-                                        <select name="target_shift_id" id="cs_target_shift_id" class="form-select rounded-3" required>
+                                        <label class="form-label small fw-semibold">Shift Pengganti (Tujuan) <span
+                                                class="text-danger">*</span></label>
+                                        <select name="target_shift_id" id="cs_target_shift_id"
+                                            class="form-select rounded-3" required>
                                             <option value="">-- Pilih Shift Baru --</option>
                                             @foreach ($availableShifts as $sh)
                                                 <option value="{{ $sh->id }}">
-                                                    {{ $sh->shift_name }} ({{ substr($sh->start_time, 0, 5) }} - {{ substr($sh->end_time, 0, 5) }}) {{ $sh->is_off ? '[LIBUR/OFF]' : '' }}
+                                                    {{ $sh->shift_name }} ({{ substr($sh->start_time, 0, 5) }} -
+                                                    {{ substr($sh->end_time, 0, 5) }})
+                                                    {{ $sh->is_off ? '[LIBUR/OFF]' : '' }}
                                                 </option>
                                             @endforeach
                                         </select>
                                     </div>
 
                                     <div class="col-md-6 peer-field" style="display: none;">
-                                        <label class="form-label small fw-semibold">Rekan Kerja Pengganti <span class="text-danger">*</span></label>
-                                        <select name="peer_nik" id="cs_peer_nik" class="form-select rounded-3" onchange="fetchPeerShiftInfo()">
+                                        <label class="form-label small fw-semibold">Rekan Kerja Pengganti <span
+                                                class="text-danger">*</span></label>
+                                        <select name="peer_nik" id="cs_peer_nik" class="form-select rounded-3"
+                                            onchange="fetchPeerShiftInfo()">
                                             <option value="">-- Pilih Rekan Satu Departemen --</option>
                                             @foreach ($colleagues as $col)
                                                 <option value="{{ $col->Emp_ID }}">
-                                                    {{ $col->Name }} ({{ $col->Emp_ID }}) - {{ $col->Position ?: $col->Department }}
+                                                    {{ $col->Name }} ({{ $col->Emp_ID }}) -
+                                                    {{ $col->Position ?: $col->Department }}
                                                 </option>
                                             @endforeach
                                         </select>
-                                        <small class="text-muted d-block mt-1" style="font-size: 11px;" id="cs_peer_shift_info"></small>
+                                        <small class="text-muted d-block mt-1" style="font-size: 11px;"
+                                            id="cs_peer_shift_info"></small>
                                     </div>
 
                                     <div class="col-md-6 peer-field" style="display: none;">
-                                        <label class="form-label small fw-semibold">Tanggal Shift Rekan <span class="text-danger">*</span></label>
-                                        <input type="date" name="target_date" id="cs_target_date" class="form-control rounded-3" value="{{ date('Y-m-d') }}" onchange="fetchPeerShiftInfo()">
+                                        <label class="form-label small fw-semibold">Tanggal Shift Rekan <span
+                                                class="text-danger">*</span></label>
+                                        <input type="date" name="target_date" id="cs_target_date"
+                                            class="form-control rounded-3" value="{{ date('Y-m-d') }}"
+                                            onchange="fetchPeerShiftInfo()">
                                     </div>
 
                                     <div class="col-md-6 peer-field" style="display: none;">
-                                        <label class="form-label small fw-semibold">Shift Baru untuk Rekan <span class="text-danger">*</span></label>
-                                        <select name="peer_target_shift_id" id="cs_peer_target_shift_id" class="form-select rounded-3">
+                                        <label class="form-label small fw-semibold">Shift Baru untuk Rekan <span
+                                                class="text-danger">*</span></label>
+                                        <select name="peer_target_shift_id" id="cs_peer_target_shift_id"
+                                            class="form-select rounded-3">
                                             <option value="">-- Otomatis Mengisi Shift Pemohon --</option>
                                             @foreach ($availableShifts as $sh)
                                                 <option value="{{ $sh->id }}">
-                                                    {{ $sh->shift_name }} ({{ substr($sh->start_time, 0, 5) }} - {{ substr($sh->end_time, 0, 5) }})
+                                                    {{ $sh->shift_name }} ({{ substr($sh->start_time, 0, 5) }} -
+                                                    {{ substr($sh->end_time, 0, 5) }})
                                                 </option>
                                             @endforeach
                                         </select>
                                     </div>
 
                                     <div class="col-md-12">
-                                        <label class="form-label small fw-semibold">Lampiran / Berkas Pendukung (Opsional)</label>
-                                        <input type="file" name="attachment_file" id="cs_attachment" class="form-control rounded-3" accept=".pdf,image/png,image/jpeg,image/jpg">
+                                        <label class="form-label small fw-semibold">Lampiran / Berkas Pendukung
+                                            (Opsional)</label>
+                                        <input type="file" name="attachment_file" id="cs_attachment"
+                                            class="form-control rounded-3" accept=".pdf,image/png,image/jpeg,image/jpg">
                                         <small class="text-muted d-block mt-1" style="font-size: 11px;">
-                                            <i class="fe fe-paperclip me-1"></i> Form kesepakatan tukar shift / surat izin pendukung jika diperlukan (PDF / Foto Maks 5MB).
+                                            <i class="fe fe-paperclip me-1"></i> Form kesepakatan tukar shift / surat izin
+                                            pendukung jika diperlukan (PDF / Foto Maks 5MB).
                                         </small>
                                     </div>
 
                                     <div class="col-12">
-                                        <label class="form-label small fw-semibold">Alasan Perubahan / Tukar Shift <span class="text-danger">*</span></label>
-                                        <textarea name="reason" id="cs_reason" rows="2" class="form-control rounded-3" placeholder="Jelaskan keperluan dan alasan penggantian jadwal shift..." required></textarea>
+                                        <label class="form-label small fw-semibold">Alasan Perubahan / Tukar Shift <span
+                                                class="text-danger">*</span></label>
+                                        <textarea name="reason" id="cs_reason" rows="2" class="form-control rounded-3"
+                                            placeholder="Jelaskan keperluan dan alasan penggantian jadwal shift..." required></textarea>
                                     </div>
 
                                     <div class="col-12">
-                                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm" id="btn-submit-desk-cs">
+                                        <button type="submit"
+                                            class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm"
+                                            id="btn-submit-desk-cs">
                                             <i class="fe fe-send me-1"></i> Kirim Pengajuan Perubahan Shift
                                         </button>
                                     </div>
@@ -967,43 +1024,54 @@
                                         <td class="ps-3 fw-bold">{{ $cs->change_shift_no }}</td>
                                         <td>
                                             @if ($cs->request_mode === 'EXCHANGE')
-                                                <span class="badge bg-purple text-white"><i class="fe fe-repeat me-1"></i>Tukar Rekan</span>
+                                                <span class="badge bg-purple text-white"><i
+                                                        class="fe fe-repeat me-1"></i>Tukar Rekan</span>
                                             @else
-                                                <span class="badge bg-primary-subtle text-primary border"><i class="fe fe-user me-1"></i>Ganti Mandiri</span>
+                                                <span class="badge bg-primary-subtle text-primary border"><i
+                                                        class="fe fe-user me-1"></i>Ganti Mandiri</span>
                                             @endif
                                         </td>
                                         <td>
-                                            <div class="fw-semibold text-dark">{{ date('d M Y', strtotime($cs->original_date)) }}</div>
+                                            <div class="fw-semibold text-dark">
+                                                {{ date('d M Y', strtotime($cs->original_date)) }}</div>
                                             <small class="badge bg-light text-muted border">
                                                 {{ $cs->current_shift_name ?? 'Default' }}
-                                                @if($cs->current_shift_start)
-                                                    ({{ substr($cs->current_shift_start, 0, 5) }} - {{ substr($cs->current_shift_end, 0, 5) }})
+                                                @if ($cs->current_shift_start)
+                                                    ({{ substr($cs->current_shift_start, 0, 5) }} -
+                                                    {{ substr($cs->current_shift_end, 0, 5) }})
                                                 @endif
                                             </small>
                                         </td>
                                         <td>
-                                            <div class="fw-semibold text-dark">{{ date('d M Y', strtotime($cs->target_date ?: $cs->original_date)) }}</div>
+                                            <div class="fw-semibold text-dark">
+                                                {{ date('d M Y', strtotime($cs->target_date ?: $cs->original_date)) }}
+                                            </div>
                                             <small class="badge bg-info-subtle text-info border">
                                                 {{ $cs->target_shift_name }}
-                                                @if($cs->target_shift_start)
-                                                    ({{ substr($cs->target_shift_start, 0, 5) }} - {{ substr($cs->target_shift_end, 0, 5) }})
+                                                @if ($cs->target_shift_start)
+                                                    ({{ substr($cs->target_shift_start, 0, 5) }} -
+                                                    {{ substr($cs->target_shift_end, 0, 5) }})
                                                 @endif
                                             </small>
                                         </td>
                                         <td>
                                             @if ($cs->peer_nik)
-                                                <span class="fw-semibold text-dark">{{ $cs->peer_name ?: $cs->peer_nik }}</span>
+                                                <span
+                                                    class="fw-semibold text-dark">{{ $cs->peer_name ?: $cs->peer_nik }}</span>
                                                 <small class="d-block text-muted">NIK: {{ $cs->peer_nik }}</small>
                                             @else
                                                 <span class="text-muted">-</span>
                                             @endif
                                         </td>
                                         <td>
-                                            <small class="text-muted" title="{{ $cs->reason }}">{{ \Illuminate\Support\Str::limit($cs->reason, 35) }}</small>
+                                            <small class="text-muted"
+                                                title="{{ $cs->reason }}">{{ \Illuminate\Support\Str::limit($cs->reason, 35) }}</small>
                                         </td>
                                         <td>
                                             @if ($cs->attachment)
-                                                <a href="{{ asset($cs->attachment) }}" target="_blank" class="btn btn-outline-secondary btn-sm py-0 px-2 rounded-pill" style="font-size: 11px;">
+                                                <a href="{{ asset($cs->attachment) }}" target="_blank"
+                                                    class="btn btn-outline-secondary btn-sm py-0 px-2 rounded-pill"
+                                                    style="font-size: 11px;">
                                                     <i class="fe fe-paperclip me-1"></i>File
                                                 </a>
                                             @else
@@ -1011,13 +1079,15 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <span class="badge {{ $cs->status == 'APPROVED' ? 'bg-success' : ($cs->status == 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark') }}">
+                                            <span
+                                                class="badge {{ $cs->status == 'APPROVED' ? 'bg-success' : ($cs->status == 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark') }}">
                                                 {{ $cs->status }}
                                             </span>
                                         </td>
                                         <td class="text-end pe-3">
                                             @if ($cs->approval_request_id)
-                                                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill shadow-sm"
+                                                <button type="button"
+                                                    class="btn btn-outline-primary btn-sm rounded-pill shadow-sm"
                                                     onclick="showApprovalProgressModal({{ $cs->approval_request_id }}, '{{ $cs->change_shift_no }}')">
                                                     <i class="fe fe-users me-1"></i> Cek Approver
                                                 </button>
@@ -1028,7 +1098,8 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="9" class="text-center py-4 text-muted">Belum ada riwayat permohonan perubahan / tukar shift.</td>
+                                        <td colspan="9" class="text-center py-4 text-muted">Belum ada riwayat
+                                            permohonan perubahan / tukar shift.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -1176,13 +1247,16 @@
 
             let hint = '';
             if (isDeduct) {
-                hint += '<span class="text-danger fw-semibold"><i class="fe fe-alert-triangle me-1"></i>Memotong kuota cuti tahunan.</span> ';
+                hint +=
+                    '<span class="text-danger fw-semibold"><i class="fe fe-alert-triangle me-1"></i>Memotong kuota cuti tahunan.</span> ';
             } else {
-                hint += '<span class="text-success fw-semibold"><i class="fe fe-check me-1"></i>Izin khusus berbayar (tidak memotong cuti).</span> ';
+                hint +=
+                    '<span class="text-success fw-semibold"><i class="fe fe-check me-1"></i>Izin khusus berbayar (tidak memotong cuti).</span> ';
             }
 
             if (isNeedDoc) {
-                hint += '<span class="text-warning fw-semibold ms-1"><i class="fe fe-paperclip me-1"></i>Wajib upload dokumen pendukung (Surat Dokter/Keterangan).</span>';
+                hint +=
+                    '<span class="text-warning fw-semibold ms-1"><i class="fe fe-paperclip me-1"></i>Wajib upload dokumen pendukung (Surat Dokter/Keterangan).</span>';
             }
 
             document.getElementById('leave_cat_hint').innerHTML = hint;
@@ -1718,7 +1792,8 @@
                 .then(res => {
                     if (res.status === 'success' && res.data) {
                         const d = res.data;
-                        infoEl.innerHTML = `<i class="fe fe-calendar me-1"></i> Shift saat ini: <strong class="text-primary">${d.shift_name || 'Regular'} (${d.default_start} - ${d.default_end})</strong> ${d.is_holiday ? '<span class="badge bg-danger ms-1">Libur Nasional</span>' : ''}`;
+                        infoEl.innerHTML =
+                            `<i class="fe fe-calendar me-1"></i> Shift saat ini: <strong class="text-primary">${d.shift_name || 'Regular'} (${d.default_start} - ${d.default_end})</strong> ${d.is_holiday ? '<span class="badge bg-danger ms-1">Libur Nasional</span>' : ''}`;
                     } else {
                         infoEl.innerHTML = '<i class="fe fe-info me-1"></i> Jadwal shift tidak ditemukan.';
                     }
@@ -1736,7 +1811,8 @@
 
             if (!peerNikEl || !peerInfoEl) return;
             const peerNik = peerNikEl.value;
-            const targetDate = (targetDateEl && targetDateEl.value) ? targetDateEl.value : (origDateEl ? origDateEl.value : '');
+            const targetDate = (targetDateEl && targetDateEl.value) ? targetDateEl.value : (origDateEl ? origDateEl.value :
+                '');
 
             if (!peerNik || !targetDate) {
                 peerInfoEl.innerHTML = '';
@@ -1749,7 +1825,8 @@
                 .then(res => {
                     if (res.status === 'success' && res.data) {
                         const d = res.data;
-                        peerInfoEl.innerHTML = `<i class="fe fe-info me-1"></i> Shift rekan pada ${targetDate}: <strong class="text-purple">${d.shift_name || 'Regular'} (${d.default_start} - ${d.default_end})</strong>`;
+                        peerInfoEl.innerHTML =
+                            `<i class="fe fe-info me-1"></i> Shift rekan pada ${targetDate}: <strong class="text-purple">${d.shift_name || 'Regular'} (${d.default_start} - ${d.default_end})</strong>`;
                     }
                 })
                 .catch(() => {
@@ -1780,7 +1857,11 @@
                         ok: res.ok,
                         body: data
                     })))
-                    .then(({ status, ok, body }) => {
+                    .then(({
+                        status,
+                        ok,
+                        body
+                    }) => {
                         if (ok && body.status === 'success') {
                             alert(body.message || 'Pengajuan perubahan shift berhasil dikirimkan!');
                             window.location.reload();
@@ -1803,33 +1884,42 @@
 
         // Fungsi Pembatalan Pengajuan Cuti / Izin oleh Karyawan
         function cancelLeaveRequest(leaveId, requestNo) {
-            const reason = prompt(`Apakah Anda yakin ingin membatalkan pengajuan ${requestNo}?\nMasukkan alasan pembatalan (opsional):`);
+            const reason = prompt(
+                `Apakah Anda yakin ingin membatalkan pengajuan ${requestNo}?\nMasukkan alasan pembatalan (opsional):`);
             if (reason === null) return; // Klik Batal di prompt
 
             fetch("{{ route('attendance.request.leave.cancel') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': "{{ csrf_token() }}",
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    leave_id: leaveId,
-                    cancel_reason: reason
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        leave_id: leaveId,
+                        cancel_reason: reason
+                    })
                 })
-            })
-            .then(res => res.json().then(data => ({ status: res.status, ok: res.ok, body: data })))
-            .then(({ status, ok, body }) => {
-                if (ok && body.status === 'success') {
-                    alert(body.message || 'Pengajuan cuti berhasil dibatalkan.');
-                    window.location.reload();
-                } else {
-                    alert('Gagal membatalkan: ' + (body.message || 'Terjadi kesalahan sistem.'));
-                }
-            })
-            .catch(err => {
-                alert('Terjadi kesalahan jaringan.');
-            });
+                .then(res => res.json().then(data => ({
+                    status: res.status,
+                    ok: res.ok,
+                    body: data
+                })))
+                .then(({
+                    status,
+                    ok,
+                    body
+                }) => {
+                    if (ok && body.status === 'success') {
+                        alert(body.message || 'Pengajuan cuti berhasil dibatalkan.');
+                        window.location.reload();
+                    } else {
+                        alert('Gagal membatalkan: ' + (body.message || 'Terjadi kesalahan sistem.'));
+                    }
+                })
+                .catch(err => {
+                    alert('Terjadi kesalahan jaringan.');
+                });
         }
     </script>
 @endsection

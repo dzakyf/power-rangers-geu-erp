@@ -6,45 +6,72 @@ require_once 'db.php';
 $success_message = '';
 $error_message = '';
 
-// 2. PROSES REJECT / CANCEL PR (Hanya untuk status Pending)
+// Ambil data user yang sedang login dari session untuk mapping Emp_ID & Username
+$current_user_session = $_SESSION['username'] ?? $_SESSION['name'] ?? 'ADMIN';
+$current_emp_id = 'EMP001'; 
+$current_username = $current_user_session;
+$session_department = $_SESSION['department'] ?? 'IT DIVISION - 1110 - ICT';
+
+try {
+    $stmt_user_info = $pdo->prepare("SELECT * FROM users WHERE username = :uname OR name = :uname LIMIT 1");
+    $stmt_user_info->execute([':uname' => $current_user_session]);
+    $user_row = $stmt_user_info->fetch(PDO::FETCH_ASSOC);
+    if ($user_row) {
+        $current_emp_id = $user_row['Emp_ID'] ?? $user_row['id'] ?? 'EMP001';
+        $current_username = $user_row['username'] ?? $current_user_session;
+        if (!empty($user_row['Department'])) {
+            $session_department = $user_row['Department'];
+        }
+    }
+} catch (Exception $e) {}
+
+// 2. PROSES REJECT / CANCEL PR
 if (isset($_GET['action']) && $_GET['action'] === 'reject' && isset($_GET['id'])) {
     $pr_id = intval($_GET['id']);
     try {
-        $stmt_check = $pdo->prepare("SELECT status_approval FROM purchase_requisitions WHERE id = :id AND tipe_pengadaan = 'Non-Ops'");
+        $stmt_check = $pdo->prepare("SELECT PR_No, Status FROM purchase_request WHERE ID = :id");
         $stmt_check->execute([':id' => $pr_id]);
-        $curr_status = $stmt_check->fetchColumn();
+        $pr_data = $stmt_check->fetch(PDO::FETCH_ASSOC);
 
-        if ($curr_status === 'Pending') {
-            $stmt_rej = $pdo->prepare("UPDATE purchase_requisitions SET status_approval = 'Cancel' WHERE id = :id");
+        if ($pr_data && (strcasecmp($pr_data['Status'], 'APPROVAL_UPPER') === 0 || strcasecmp($pr_data['Status'], 'Pending') === 0)) {
+            $pr_no = $pr_data['PR_No'];
+
+            $stmt_rej = $pdo->prepare("UPDATE purchase_request SET Status = 'Cancel' WHERE ID = :id");
             $stmt_rej->execute([':id' => $pr_id]);
+
+            $stmt_log = $pdo->prepare("INSERT INTO purchase_request_log 
+                (PR_No, Status, Action_By, Action_Date, Action_Status, Note) 
+                VALUES (:pr_no, 'Cancel', :action_by, NOW(), 'Cancel', 'Dokumen PR di-reject oleh user')");
+            $stmt_log->execute([
+                ':pr_no'     => $pr_no,
+                ':action_by' => $current_username
+            ]);
+
             $success_message = "Dokumen PR berhasil di-reject/cancel.";
         } else {
-            $error_message = "Hanya dokumen dengan status Pending yang dapat di-reject!";
+            $error_message = "Hanya dokumen dengan status APPROVAL_UPPER/Pending yang dapat di-reject!";
         }
     } catch (Exception $e) {
         $error_message = "Gagal melakukan reject: " . $e->getMessage();
     }
 }
 
-// 3. PROSES INSERT ATAU UPDATE DATA PR NON-OPS
+// 3. PROSES INSERT ATAU UPDATE DATA PR NON-OPS (Tanpa Input Vendor di Awal)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_pr'])) {
-    $pr_id              = $_POST['pr_id'] ?? ''; // Jika ada pr_id berarti mode Edit
-    $kategori           = trim($_POST['kategori']);
-    $status_order       = trim($_POST['status_order']);
-    $supplier_id        = trim($_POST['supplier_id']); 
-    $delivery_site      = trim($_POST['delivery_site']);
-    $pic                = trim($_POST['pic']); 
-    $email_pic          = trim($_POST['email_pic']);
-    $tanggal_pengajuan  = trim($_POST['tanggal_pengajuan']);
-    $tanggal_diinginkan = trim($_POST['tanggal_diinginkan']);
-    $catatan            = trim($_POST['catatan']);
+    $pr_id              = $_POST['pr_id'] ?? ''; 
+    $category           = trim($_POST['kategori']);
+    $sub_category       = trim($_POST['sub_category']); 
+    $priority_status    = trim($_POST['status_order']); 
+    $department_input   = trim($_POST['department']); 
+    $location           = trim($_POST['delivery_site']);
+    $user_request_name  = trim($_POST['pic']); 
+    $pic_address        = trim($_POST['pic_address']);
+    $pic_phone          = trim($_POST['pic_phone']);
+    $user_request_email = trim($_POST['email_pic']);
+    $pr_date            = trim($_POST['tanggal_pengajuan']);
+    $remark             = trim($_POST['catatan']);
     
-    $ppn_persen         = floatval($_POST['ppn_persen'] ?? 0);
-    $pph_persen         = floatval($_POST['pph_persen'] ?? 0);
-
-    $departemen         = $_SESSION['department'] ?? 'ICT / HRGA';
-    $user_id            = $_SESSION['user_id'] ?? NULL;
-    $tipe_pengadaan     = 'Non-Ops';
+    $supplies_type      = 'Non-Ops';
 
     $item_keterangan    = $_POST['item_keterangan'] ?? [];
     $item_spesifikasi   = $_POST['item_spesifikasi'] ?? [];
@@ -58,21 +85,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_pr'])) {
         try {
             $pdo->beginTransaction();
 
-            // Hitung Subtotal dari item
-            $subtotal_calc = 0;
+            $estimated_budget = 0;
             for ($i = 0; $i < count($item_keterangan); $i++) {
                 if (!empty(trim($item_keterangan[$i]))) {
                     $qty_val  = floatval($item_qty[$i]);
                     $hrg_val  = floatval($item_harga[$i]);
-                    $subtotal_calc += ($qty_val * $hrg_val);
+                    $estimated_budget += ($qty_val * $hrg_val);
                 }
             }
 
-            $ppn_calc   = $subtotal_calc * ($ppn_persen / 100);
-            $pph_calc   = $subtotal_calc * ($pph_persen / 100);
-            $grand_total_calc = $subtotal_calc + $ppn_calc - $pph_calc;
-
-            $lampiran_name = NULL;
+            $attachment_name = NULL;
             if (isset($_FILES['lampiran_file']) && $_FILES['lampiran_file']['error'] === UPLOAD_ERR_OK) {
                 $fileTmpPath = $_FILES['lampiran_file']['tmp_name'];
                 $fileName = $_FILES['lampiran_file']['name'];
@@ -88,98 +110,119 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_pr'])) {
                     $dest_path = $uploadFileDir . $newFileName;
 
                     if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                        $lampiran_name = $dest_path;
+                        $attachment_name = $dest_path;
                     }
                 }
             }
 
             if (!empty($pr_id)) {
                 // --- MODE EDIT ---
-                $sql_update = "UPDATE purchase_requisitions SET 
-                               kategori = :kategori, delivery_site = :delivery_site, supplier_id = :supplier_id, 
-                               supplier_name = :supplier_name, tanggal_pengajuan = :tanggal_pengajuan, 
-                               tanggal_diinginkan = :tanggal_diinginkan, status_order = :status_order, 
-                               pic = :pic, email_pic = :email_pic, subtotal = :subtotal, ppn = :ppn, 
-                               pph = :pph, grand_total = :grand_total, catatan = :catatan";
+                $stmt_old = $pdo->prepare("SELECT PR_No FROM purchase_request WHERE ID = :id");
+                $stmt_old->execute([':id' => $pr_id]);
+                $pr_no = $stmt_old->fetchColumn();
+
+                $sql_update = "UPDATE purchase_request SET 
+                               Category = :category, Sub_Category = :sub_category, Location = :location, 
+                               Department = :department, User_Request = :user_request, User_Request_Name = :user_request_name, 
+                               PR_Date = :pr_date, Estimated_Budget = :estimated_budget, Priority_Status = :priority_status, 
+                               PIC = :pic, PIC_Address = :pic_address, PIC_Phone = :pic_phone, Remark = :remark
+                               WHERE ID = :id AND Status IN ('Pending', 'APPROVAL_UPPER')";
                 
-                $params_up = [
-                    ':kategori'           => $kategori,
-                    ':delivery_site'       => $delivery_site,
-                    ':supplier_id'         => $supplier_id,
-                    ':supplier_name'       => $supplier_id,
-                    ':tanggal_pengajuan'  => $tanggal_pengajuan,
-                    ':tanggal_diinginkan' => $tanggal_diinginkan,
-                    ':status_order'        => $status_order,
-                    ':pic'                 => $pic,
-                    ':email_pic'           => $email_pic,
-                    ':subtotal'            => $subtotal_calc,
-                    ':ppn'                 => $ppn_calc,
-                    ':pph'                 => $pph_calc,
-                    ':grand_total'         => $grand_total_calc,
-                    ':catatan'             => $catatan,
-                    ':id'                  => $pr_id
-                ];
-
-                if ($lampiran_name) {
-                    $sql_update .= ", lampiran_file = :lampiran_file";
-                    $params_up[':lampiran_file'] = $lampiran_name;
-                }
-                $sql_update .= " WHERE id = :id AND status_approval = 'Pending'";
-
                 $stmt_up = $pdo->prepare($sql_update);
-                $stmt_up->execute($params_up);
+                $stmt_up->execute([
+                    ':category'         => $category,
+                    ':sub_category'     => $sub_category,
+                    ':location'         => 'GEU-HO',
+                    ':department'       => $department_input,
+                    ':user_request'     => $current_emp_id,
+                    ':user_request_name'=> $current_username,
+                    ':pr_date'          => $pr_date,
+                    ':estimated_budget' => $estimated_budget,
+                    ':priority_status'  => $priority_status,
+                    ':pic'              => $user_request_name,
+                    ':pic_address'      => $pic_address,
+                    ':pic_phone'        => $pic_phone,
+                    ':remark'           => $remark,
+                    ':id'               => $pr_id
+                ]);
 
-                // Hapus item lama lalu masukkan kembali item baru
-                $pdo->prepare("DELETE FROM purchase_requisition_items WHERE pr_id = :pr_id")->execute([':pr_id' => $pr_id]);
-                $target_pr_id = $pr_id;
+                $pdo->prepare("DELETE FROM purchase_request_dtl WHERE PR_No = :pr_no")->execute([':pr_no' => $pr_no]);
+                $target_pr_no = $pr_no;
+                
+                $stmt_log = $pdo->prepare("INSERT INTO purchase_request_log 
+                    (PR_No, Location, Category, Sub_Category, PIC, PR_Date, Department, Status, Note, Action_By, Action_Date, Action_Status) 
+                    VALUES (:pr_no, :location, :category, :sub_category, :pic, :pr_date, :department, 'APPROVAL_UPPER', :note, :action_by, NOW(), 'Edit')");
+                $stmt_log->execute([
+                    ':pr_no'        => $target_pr_no,
+                    ':location'     => 'GEU-HO',
+                    ':category'     => $category,
+                    ':sub_category' => $sub_category,
+                    ':pic'          => $user_request_name,
+                    ':pr_date'      => $pr_date,
+                    ':department'   => $department_input,
+                    ':note'         => $remark,
+                    ':action_by'    => $current_username
+                ]);
+
                 $success_message = "PR Non-Ops berhasil diperbarui!";
             } else {
                 // --- MODE TAMBAH BARU ---
                 $bulanRomawi = array("", "I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII");
-                $bln = $bulanRomawi[(int) date('m', strtotime($tanggal_pengajuan))];
-                $thn = date('Y', strtotime($tanggal_pengajuan));
+                $bln = $bulanRomawi[(int) date('m', strtotime($pr_date))];
+                $thn = date('Y', strtotime($pr_date));
 
-                $stmt_count = $pdo->query("SELECT COUNT(*) FROM purchase_requisitions WHERE tipe_pengadaan = 'Non-Ops'");
+                $stmt_count = $pdo->query("SELECT COUNT(*) FROM purchase_request WHERE Supplies_Type = 'Non-Ops'");
                 $next_no = $stmt_count->fetchColumn() + 1;
-                $nomor_pr = sprintf("%03d", $next_no) . "/PR-NONOPS/" . $bln . "/" . $thn;
+                $target_pr_no = sprintf("%03d", $next_no) . "/PR-NONOPS/" . $bln . "/" . $thn;
 
-                $sql_header = "INSERT INTO purchase_requisitions 
-                               (nomor_pr, kategori, tipe_pengadaan, departemen, delivery_site, supplier_id, supplier_name, tanggal_pengajuan, tanggal_diinginkan, status_order, user_id, pic, email_pic, subtotal, ppn, pph, grand_total, catatan, lampiran_file, status_approval) 
+                $sql_header = "INSERT INTO purchase_request 
+                               (PR_No, Category, Sub_Category, Supplies_Type, Department, Location, User_Request, User_Request_Name, PR_Date, Priority_Status, Created_By, PIC, PIC_Address, PIC_Phone, Estimated_Budget, Remark, Status) 
                                VALUES 
-                               (:nomor_pr, :kategori, :tipe_pengadaan, :departemen, :delivery_site, :supplier_id, :supplier_name, :tanggal_pengajuan, :tanggal_diinginkan, :status_order, :user_id, :pic, :email_pic, :subtotal, :ppn, :pph, :grand_total, :catatan, :lampiran_file, 'Pending')";
+                               (:pr_no, :category, :sub_category, :supplies_type, :department, :location, :user_request, :user_request_name, :pr_date, :priority_status, :created_by, :pic, :pic_address, :pic_phone, :estimated_budget, :remark, 'PENDING')";
                 
                 $stmt_h = $pdo->prepare($sql_header);
                 $stmt_h->execute([
-                    ':nomor_pr'           => $nomor_pr,
-                    ':kategori'           => $kategori,
-                    ':tipe_pengadaan'      => $tipe_pengadaan,
-                    ':departemen'          => $departemen,
-                    ':delivery_site'       => $delivery_site,
-                    ':supplier_id'         => $supplier_id,
-                    ':supplier_name'       => $supplier_id,
-                    ':tanggal_pengajuan'  => $tanggal_pengajuan,
-                    ':tanggal_diinginkan' => $tanggal_diinginkan,
-                    ':status_order'        => $status_order,
-                    ':user_id'             => $user_id,
-                    ':pic'                 => $pic,
-                    ':email_pic'           => $email_pic,
-                    ':subtotal'            => $subtotal_calc,
-                    ':ppn'                 => $ppn_calc,
-                    ':pph'                 => $pph_calc,
-                    ':grand_total'         => $grand_total_calc,
-                    ':catatan'             => $catatan,
-                    ':lampiran_file'       => $lampiran_name
+                    ':pr_no'           => $target_pr_no,
+                    ':category'        => $category,
+                    ':sub_category'    => $sub_category,
+                    ':supplies_type'   => $supplies_type,
+                    ':department'      => $department_input,
+                    ':location'        => 'GEU-HO',
+                    ':user_request'    => $current_emp_id,
+                    ':user_request_name'=> $current_username,
+                    ':pr_date'         => $pr_date,
+                    ':priority_status' => $priority_status,
+                    ':created_by'      => $current_username,
+                    ':pic'             => $user_request_name,
+                    ':pic_address'     => $pic_address,
+                    ':pic_phone'       => $pic_phone,
+                    ':estimated_budget'=> $estimated_budget,
+                    ':remark'          => $remark
                 ]);
 
-                $target_pr_id = $pdo->lastInsertId();
-                $success_message = "PR Non-Ops berhasil diajukan dengan Nomor: " . $nomor_pr;
+                $stmt_log = $pdo->prepare("INSERT INTO purchase_request_log 
+                    (PR_No, Location, Category, Sub_Category, PIC, PR_Date, Department, Status, Note, Action_By, Action_Date, Action_Status) 
+                    VALUES (:pr_no, :location, :category, :sub_category, :pic, :pr_date, :department, 'APPROVAL_UPPER', :note, :action_by, NOW(), 'Created')");
+                $stmt_log->execute([
+                    ':pr_no'        => $target_pr_no,
+                    ':location'     => 'GEU-HO',
+                    ':category'     => $category,
+                    ':sub_category' => $sub_category,
+                    ':pic'          => $user_request_name,
+                    ':pr_date'      => $pr_date,
+                    ':department'   => $department_input,
+                    ':note'         => $remark,
+                    ':action_by'    => $current_username
+                ]);
+
+                $success_message = "PR Non-Ops berhasil diajukan dengan Nomor: " . $target_pr_no;
             }
 
-            // Insert Item Detail
-            $sql_item = "INSERT INTO purchase_requisition_items 
-                         (pr_id, keterangan, spesifikasi, qty, satuan, harga_estimasi, total_harga) 
+            // Insert Item Detail ke purchase_request_dtl
+            $sql_item = "INSERT INTO purchase_request_dtl 
+                         (PR_No, Purchase_Category, Purchase_Type, Category, Product_Desc, Specification, Qty, Unit, Default_Price, Prices, Reference, Attachment) 
                          VALUES 
-                         (:pr_id, :keterangan, :spesifikasi, :qty, :satuan, :harga_estimasi, :total_harga)";
+                         (:pr_no, :purchase_category, :purchase_type, :category, :product_desc, :specification, :qty, :unit, :default_price, :prices, :reference, :attachment)";
             $stmt_i = $pdo->prepare($sql_item);
 
             for ($i = 0; $i < count($item_keterangan); $i++) {
@@ -192,13 +235,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_pr'])) {
                     $total = $qty * $hrg;
 
                     $stmt_i->execute([
-                        ':pr_id'          => $target_pr_id,
-                        ':keterangan'     => $ket,
-                        ':spesifikasi'    => $spec,
-                        ':qty'            => $qty,
-                        ':satuan'         => $sat,
-                        ':harga_estimasi' => $hrg,
-                        ':total_harga'    => $total
+                        ':pr_no'             => $target_pr_no,
+                        ':purchase_category' => $sub_category, 
+                        ':purchase_type'     => $supplies_type,     
+                        ':category'          => $category,
+                        ':product_desc'      => $ket,
+                        ':specification'     => $spec,
+                        ':qty'               => $qty,
+                        ':unit'              => $sat,
+                        ':default_price'     => $hrg,
+                        ':prices'            => $total,
+                        ':reference'         => $remark ?: '-',     
+                        ':attachment'        => $attachment_name ?? '' 
                     ]);
                 }
             }
@@ -211,34 +259,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_pr'])) {
     }
 }
 
-// 3. AMBIL DATA SUPPLIER
+// 5. AMBIL LIST DEPARTEMEN
+$list_departments = [
+    "DIRECTOR - 0000 - DIR",
+    "OPERATION DIVISION - 1100 - OPS",
+    "IT DIVISION - 1110 - ICT",
+    "GENERAL AFFAIR - 2210 - GEA",
+    "CORPORATE SERVICE DIVISION - 1100 - CSV",
+    "COMMERCIAL AND SUSTAINABILITY - 2310 - CNS"
+];
 try {
-    $stmt_supp = $pdo->query("SELECT * FROM supplier ORDER BY Company_Name ASC");
-    $list_suppliers = $stmt_supp->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $list_suppliers = [];
-}
+    $stmt_dept = $pdo->query("SELECT DISTINCT Department FROM users WHERE Department IS NOT NULL AND Department != '' ORDER BY Department ASC");
+    $dept_db = $stmt_dept->fetchAll(PDO::FETCH_COLUMN);
+    if (!empty($dept_db)) {
+        $list_departments = array_unique(array_merge($list_departments, $dept_db));
+    }
+} catch (Exception $e) {}
 
-// 4. FILTER & SEARCH
+// 6. FILTER & SEARCH
 $search     = $_GET['search'] ?? '';
 $start_date = $_GET['start_date'] ?? '';
 $end_date   = $_GET['end_date'] ?? '';
 
-$query = "SELECT * FROM purchase_requisitions WHERE tipe_pengadaan = 'Non-Ops'";
+$query = "SELECT * FROM purchase_request WHERE Supplies_Type = 'Non-Ops'";
 $params = [];
 
 if (!empty($search)) {
-    $query .= " AND (nomor_pr LIKE :search OR kategori LIKE :search OR catatan LIKE :search OR delivery_site LIKE :search OR supplier_name LIKE :search)";
+    $query .= " AND (PR_No LIKE :search OR Category LIKE :search OR Remark LIKE :search OR Location LIKE :search OR Department LIKE :search)";
     $params[':search'] = '%' . $search . '%';
 }
 
 if (!empty($start_date) && !empty($end_date)) {
-    $query .= " AND tanggal_pengajuan BETWEEN :start_date AND :end_date";
+    $query .= " AND PR_Date BETWEEN :start_date AND :end_date";
     $params[':start_date'] = $start_date;
     $params[':end_date']   = $end_date;
 }
 
-$query .= " ORDER BY id DESC";
+$query .= " ORDER BY ID DESC";
 
 try {
     $stmt_list = $pdo->prepare($query);
@@ -350,7 +407,7 @@ $default_pic = $_SESSION['name'] ?? $_SESSION['username'] ?? 'ADMINISTRATOR';
                 <form action="procurement-non-ops" method="GET">
                     <div class="row align-items-end">
                         <div class="col-md-4 mb-2 mb-md-0">
-                            <label class="small font-weight-bold text-secondary mb-1">Cari No. PR / Vendor / Site</label>
+                            <label class="small font-weight-bold text-secondary mb-1">Cari No. PR / Site</label>
                             <input type="text" class="form-control form-control-sm" name="search" value="<?= htmlspecialchars($search); ?>" placeholder="Ketik kata kunci...">
                         </div>
                         <div class="col-md-3 mb-2 mb-md-0">
@@ -375,32 +432,34 @@ $default_pic = $_SESSION['name'] ?? $_SESSION['username'] ?? 'ADMINISTRATOR';
             <?php if (!empty($list_pr)): ?>
                 <?php foreach ($list_pr as $row): ?>
                     <?php 
-                        $stmt_items = $pdo->prepare("SELECT * FROM purchase_requisition_items WHERE pr_id = :pr_id");
-                        $stmt_items->execute([':pr_id' => $row['id']]);
+                        $stmt_items = $pdo->prepare("SELECT * FROM purchase_request_dtl WHERE PR_No = :pr_no");
+                        $stmt_items->execute([':pr_no' => $row['PR_No']]);
                         $pr_items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
+
+                        $attachment_file = !empty($pr_items[0]['Attachment']) ? $pr_items[0]['Attachment'] : null;
                     ?>
                     <div class="col-md-6 mb-3">
                         <div class="card pr-card p-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="font-weight-bold text-success" style="font-size: 14px;"><?= htmlspecialchars($row['nomor_pr']); ?></span>
+                                <span class="font-weight-bold text-success" style="font-size: 14px;"><?= htmlspecialchars($row['PR_No']); ?></span>
                                 <?php 
-                                    $status = $row['status_approval'];
-                                    if ($status === 'Approved') {
-                                        echo '<span class="badge badge-success px-2 py-1" style="font-size: 11px;">Approved</span>';
-                                    } elseif ($status === 'Pending') {
-                                        echo '<span class="badge badge-warning text-dark px-2 py-1" style="font-size: 11px;">Pending</span>';
-                                    } elseif ($status === 'Hold') {
+                                    $status = $row['Status'];
+                                    if (strcasecmp($status, 'APPROVED') === 0) {
+                                        echo '<span class="badge badge-success px-2 py-1" style="font-size: 11px;">APPROVED</span>';
+                                    } elseif (strcasecmp($status, 'PENDING') === 0 || strcasecmp($status, 'Pending') === 0) {
+                                        echo '<span class="badge badge-warning text-dark px-2 py-1" style="font-size: 11px;">PENDING</span>';
+                                    } elseif (strcasecmp($status, 'Hold') === 0) {
                                         echo '<span class="badge badge-secondary px-2 py-1" style="font-size: 11px;">Hold</span>';
                                     } else {
-                                        echo '<span class="badge badge-danger px-2 py-1" style="font-size: 11px;">Cancel</span>';
+                                        echo '<span class="badge badge-danger px-2 py-1" style="font-size: 11px;">' . htmlspecialchars($status) . '</span>';
                                     }
                                 ?>
                             </div>
                             <div class="mb-2 text-secondary" style="font-size: 12px;">
-                                <div><i class="fas fa-tag mr-1 text-muted"></i> <strong>Kategori:</strong> <?= htmlspecialchars($row['kategori']); ?></div>
-                                <div><i class="fas fa-store mr-1 text-muted"></i> <strong>Vendor:</strong> <?= htmlspecialchars($row['supplier_name'] ?? '-'); ?></div>
-                                <div><i class="fas fa-map-marker-alt mr-1 text-muted"></i> <strong>Delivery Site:</strong> <?= htmlspecialchars($row['delivery_site'] ?? '-'); ?></div>
-                                <div><i class="far fa-calendar-alt mr-1 text-muted"></i> <strong>Tgl Diinginkan:</strong> <?= date('d/m/Y', strtotime($row['tanggal_diinginkan'] ?? $row['tanggal_pengajuan'])); ?></div>
+                                <div><i class="fas fa-tag mr-1 text-muted"></i> <strong>Kategori:</strong> <?= htmlspecialchars($row['Category']); ?> (<?= htmlspecialchars($row['Sub_Category'] ?? '-'); ?>)</div>
+                                <div><i class="fas fa-building mr-1 text-muted"></i> <strong>Dept:</strong> <?= htmlspecialchars($row['Department'] ?? '-'); ?></div>
+                                <div><i class="fas fa-map-marker-alt mr-1 text-muted"></i> <strong>Delivery Site:</strong> <?= htmlspecialchars($row['Location'] ?? '-'); ?></div>
+                                <div><i class="far fa-calendar-alt mr-1 text-muted"></i> <strong>Tgl Pengajuan:</strong> <?= date('d/m/Y', strtotime($row['PR_Date'])); ?></div>
                             </div>
 
                             <!-- Kotak Rincian Item -->
@@ -410,9 +469,9 @@ $default_pic = $_SESSION['name'] ?? $_SESSION['username'] ?? 'ADMINISTRATOR';
                                     <?php if (!empty($pr_items)): ?>
                                         <?php foreach ($pr_items as $it): ?>
                                             <li>
-                                                <strong><?= htmlspecialchars($it['keterangan']); ?></strong> 
-                                                (<?= $it['qty']; ?> <?= htmlspecialchars($it['satuan']); ?>) 
-                                                - <span class="text-dark">Rp <?= number_format($it['total_harga'], 0, ',', '.'); ?></span>
+                                                <strong><?= htmlspecialchars($it['Product_Desc']); ?></strong> 
+                                                (<?= $it['Qty']; ?> <?= htmlspecialchars($it['Unit']); ?>) 
+                                                - <span class="text-dark">Rp <?= number_format($it['Prices'], 0, ',', '.'); ?></span>
                                             </li>
                                         <?php endforeach; ?>
                                     <?php else: ?>
@@ -423,40 +482,28 @@ $default_pic = $_SESSION['name'] ?? $_SESSION['username'] ?? 'ADMINISTRATOR';
 
                             <!-- Ringkasan Finansial dalam Card -->
                             <div class="bg-light p-2 rounded mb-2" style="font-size: 12px;">
-                                <div class="d-flex justify-content-between">
-                                    <span class="text-muted">Subtotal:</span>
-                                    <span>Rp <?= number_format($row['subtotal'] ?? 0, 0, ',', '.'); ?></span>
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <span class="text-muted">PPN:</span>
-                                    <span>Rp <?= number_format($row['ppn'] ?? 0, 0, ',', '.'); ?></span>
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <span class="text-muted">PPh:</span>
-                                    <span>Rp <?= number_format($row['pph'] ?? 0, 0, ',', '.'); ?></span>
-                                </div>
-                                <div class="d-flex justify-content-between font-weight-bold text-dark border-top pt-1 mt-1">
-                                    <span>Grand Total:</span>
-                                    <span class="text-success">Rp <?= number_format($row['grand_total'] ?? 0, 0, ',', '.'); ?></span>
+                                <div class="d-flex justify-content-between font-weight-bold text-dark">
+                                    <span>Estimated Budget / Total:</span>
+                                    <span class="text-success">Rp <?= number_format($row['Estimated_Budget'] ?? 0, 0, ',', '.'); ?></span>
                                 </div>
                             </div>
 
                             <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-                                <small class="text-muted" style="font-size: 11px;"><i class="far fa-user mr-1"></i> PIC: <?= htmlspecialchars($row['pic']); ?> (<?= htmlspecialchars($row['email_pic'] ?? '-'); ?>)</small>
+                                <small class="text-muted" style="font-size: 11px;"><i class="far fa-user mr-1"></i> PIC: <?= htmlspecialchars($row['PIC']); ?></small>
                                 <div>
-                                    <a href="detail-pr-non-ops?token=<?= urlencode(encrypt_id($row['id'])); ?>" class="btn btn-sm btn-info text-white py-1 px-2" title="Detail" style="font-size: 11px;"><i class="fas fa-eye mr-1"></i> Detail</a>
+                                   
                                     
-                                    <?php if ($row['status_approval'] === 'Pending'): ?>
+                                    <?php if (strcasecmp($row['Status'], 'APPROVAL_UPPER') === 0 || strcasecmp($row['Status'], 'Pending') === 0): ?>
                                         <button class="btn btn-sm btn-warning text-dark py-1 px-2" title="Edit" style="font-size: 11px;" onclick='openEditModal(<?= json_encode($row); ?>, <?= json_encode($pr_items); ?>)'>
                                             <i class="fas fa-edit mr-1"></i> Edit
                                         </button>
-                                        <button class="btn btn-sm btn-danger py-1 px-2" title="Reject" style="font-size: 11px;" onclick="confirmReject(<?= $row['id']; ?>)">
+                                        <button class="btn btn-sm btn-danger py-1 px-2" title="Reject" style="font-size: 11px;" onclick="confirmReject(<?= $row['ID']; ?>)">
                                             <i class="fas fa-ban mr-1"></i> Reject
                                         </button>
                                     <?php endif; ?>
 
-                                    <?php if (!empty($row['lampiran_file'])): ?>
-                                        <a href="<?= htmlspecialchars($row['lampiran_file']); ?>" target="_blank" class="btn btn-sm btn-secondary py-1 px-2" title="Lampiran" style="font-size: 11px;"><i class="fas fa-paperclip"></i></a>
+                                    <?php if (!empty($attachment_file)): ?>
+                                        <a href="<?= htmlspecialchars($attachment_file); ?>" target="_blank" class="btn btn-sm btn-secondary py-1 px-2" title="Lampiran" style="font-size: 11px;"><i class="fas fa-paperclip"></i></a>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -488,63 +535,83 @@ $default_pic = $_SESSION['name'] ?? $_SESSION['username'] ?? 'ADMINISTRATOR';
                         <input type="hidden" name="submit_pr" value="1">
                         <input type="hidden" name="pr_id" id="prIdInput" value="">
                         
+                        <!-- PILIHAN DEPARTEMEN -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-label-group">
+                                    <select class="form-control" name="department" id="departmentInput" required>
+                                        <option value="" disabled selected></option>
+                                        <?php foreach ($list_departments as $dept): ?>
+                                            <option value="<?= htmlspecialchars($dept); ?>" <?= ($dept === $session_department) ? 'selected' : ''; ?>>
+                                                <?= htmlspecialchars($dept); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <label>Departemen (Pembebanan Budget)</label>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-label-group">
                                     <select class="form-control" name="kategori" id="kategoriInput" required>
                                         <option value="" disabled selected></option>
-                                        <option value="Kategori - 1 (< 1 Jt)">Kategori - 1 (&lt; 1 Jt - Petty Cash)</option>
-                                        <option value="Kategori - 2 (ATK & Inventaris)">Kategori - 2 (ATK & Inventaris Kantor)</option>
-                                        <option value="Kategori - 3 (Pengadaan Khusus)">Kategori - 3 (Pengadaan Khusus / Aset)</option>
+                                        <option value="ASSET">ASSET</option>
+                                        <option value="NON ASSET">NON ASSET</option>
                                     </select>
                                     <label>Kategori Anggaran</label>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-label-group">
-                                    <select class="form-control" name="supplier_id" id="supplierInput" required>
+                                    <select class="form-control" name="sub_category" id="subCategoryInput" required>
                                         <option value="" disabled selected></option>
-                                        <?php foreach ($list_suppliers as $supp): ?>
-                                            <option value="<?= htmlspecialchars($supp['Company_Name']); ?>">
-                                                <?= htmlspecialchars($supp['Company_Name']); ?> (<?= htmlspecialchars($supp['Supplier_ID'] ?? ''); ?>)
-                                            </option>
-                                        <?php endforeach; ?>
+                                        <option value="BARANG">BARANG</option>
+                                        <option value="JASA">JASA</option>
                                     </select>
-                                    <label>Pilih Vendor / Supplier</label>
+                                    <label>Sub Category (Barang / Jasa)</label>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- INPUT LOKASI PENGIRIMAN (Form Vendor Dihilangkan) -->
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="form-label-group">
                                     <input type="text" class="form-control" name="delivery_site" id="deliverySiteInput" required placeholder=" ">
                                     <label>Delivery Site (Lokasi Pengiriman)</label>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="form-label-group">
-                                    <select class="form-control" name="status_order" id="statusOrderInput" required>
-                                        <option value="Normal" selected>Normal</option>
-                                        <option value="Urgent">Urgent</option>
-                                    </select>
-                                    <label>Status Order</label>
-                                </div>
-                            </div>
                         </div>
 
-                        <!-- INPUT PIC & EMAIL -->
+                        <!-- INPUT PIC, PHONE & ADDRESS -->
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-label-group">
                                     <input type="text" class="form-control" name="pic" id="picInput" value="<?= htmlspecialchars($default_pic); ?>" required placeholder=" ">
                                     <label>PIC (Penanggung Jawab)</label>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <div class="form-label-group">
+                                    <input type="text" class="form-control" name="pic_phone" id="picPhoneInput" required placeholder=" ">
+                                    <label>PIC Phone (No. Telp)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="form-label-group">
                                     <input type="email" class="form-control" name="email_pic" id="emailPicInput" required placeholder=" ">
-                                    <label>Form Email PIC / Pemohon</label>
+                                    <label>Email Pemohon</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-label-group">
+                                    <input type="text" class="form-control" name="pic_address" id="picAddressInput" required placeholder=" ">
+                                    <label>PIC Address (Alamat PIC)</label>
                                 </div>
                             </div>
                         </div>
@@ -558,8 +625,11 @@ $default_pic = $_SESSION['name'] ?? $_SESSION['username'] ?? 'ADMINISTRATOR';
                             </div>
                             <div class="col-md-6">
                                 <div class="form-label-group">
-                                    <input type="date" class="form-control" name="tanggal_diinginkan" id="tglDiinginkanInput" value="<?= date('Y-m-d', strtotime('+7 days')); ?>" required placeholder=" ">
-                                    <label>Tanggal Diinginkan</label>
+                                    <select class="form-control" name="status_order" id="statusOrderInput" required>
+                                        <option value="NORMAL" selected>NORMAL</option>
+                                        <option value="URGENT">URGENT</option>
+                                    </select>
+                                    <label>Status Order (Priority)</label>
                                 </div>
                             </div>
                         </div>
@@ -688,7 +758,6 @@ $default_pic = $_SESSION['name'] ?? $_SESSION['username'] ?? 'ADMINISTRATOR';
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-file-alt mr-2"></i>Form Purchase Requisition - Non Ops (Baru)';
             document.getElementById('submitBtnText').innerHTML = '<i class="fas fa-save mr-1"></i> Simpan & Ajukan PR Non-Ops';
             
-            // Reset item container ke 1 baris kosong
             const container = document.getElementById('itemContainer');
             container.innerHTML = `
                 <div class="card p-2 mb-2 item-row shadow-sm border">
@@ -708,30 +777,21 @@ $default_pic = $_SESSION['name'] ?? $_SESSION['username'] ?? 'ADMINISTRATOR';
         // Fungsi Buka Modal untuk Edit Data
         function openEditModal(row, items) {
             document.getElementById('formPRNonOps').reset();
-            document.getElementById('prIdInput').value = row.id;
-            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit mr-2"></i>Edit Purchase Requisition: ' + row.nomor_pr;
+            document.getElementById('prIdInput').value = row.ID;
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit mr-2"></i>Edit Purchase Requisition: ' + row.PR_No;
             document.getElementById('submitBtnText').innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Update Perubahan PR';
 
-            // Isi field header
-            document.getElementById('kategoriInput').value = row.kategori;
-            document.getElementById('supplierInput').value = row.supplier_name;
-            document.getElementById('deliverySiteInput').value = row.delivery_site;
-            document.getElementById('statusOrderInput').value = row.status_order;
-            document.getElementById('picInput').value = row.pic;
-            document.getElementById('emailPicInput').value = row.email_pic;
-            document.getElementById('tglPengajuanInput').value = row.tanggal_pengajuan;
-            document.getElementById('tglDiinginkanInput').value = row.tanggal_diinginkan;
-            document.getElementById('catatanInput').value = row.catatan;
+            document.getElementById('departmentInput').value = row.Department || '';
+            document.getElementById('kategoriInput').value = row.Category;
+            document.getElementById('subCategoryInput').value = row.Sub_Category || '';
+            document.getElementById('deliverySiteInput').value = row.Location;
+            document.getElementById('statusOrderInput').value = row.Priority_Status || 'NORMAL';
+            document.getElementById('picInput').value = row.PIC;
+            document.getElementById('picPhoneInput').value = row.PIC_Phone || '';
+            document.getElementById('picAddressInput').value = row.PIC_Address || '';
+            document.getElementById('tglPengajuanInput').value = row.PR_Date;
+            document.getElementById('catatanInput').value = row.Remark;
 
-            // Hitung persentase PPN & PPh jika ada
-            if(row.subtotal > 0) {
-                let ppnRate = Math.round((row.ppn / row.subtotal) * 100);
-                let pphRate = Math.round((row.pph / row.subtotal) * 100);
-                document.getElementById('ppnPersen').value = ppnRate;
-                document.getElementById('pphPersen').value = pphRate;
-            }
-
-            // Render ulang item barang
             const container = document.getElementById('itemContainer');
             container.innerHTML = '';
             
@@ -740,12 +800,12 @@ $default_pic = $_SESSION['name'] ?? $_SESSION['username'] ?? 'ADMINISTRATOR';
                 const htmlRow = `
                     <div class="card p-2 mb-2 item-row shadow-sm border">
                         <div class="form-row align-items-center">
-                            <div class="col-md-4 mb-2"><input type="text" class="form-control form-control-sm item-ket" name="item_keterangan[]" value="${it.keterangan || ''}" placeholder="Nama Barang / Keterangan" required></div>
-                            <div class="col-md-3 mb-2"><input type="text" class="form-control form-control-sm item-spec" name="item_spesifikasi[]" value="${it.spesifikasi || ''}" placeholder="Spesifikasi"></div>
-                            <div class="col-md-2 mb-2"><input type="number" step="any" class="form-control form-control-sm calc-trigger item-qty" name="item_qty[]" value="${it.qty || ''}" placeholder="Qty" required></div>
-                            <div class="col-md-2 mb-2"><input type="text" class="form-control form-control-sm item-sat" name="item_satuan[]" value="${it.satuan || ''}" placeholder="Satuan (Pcs/Box)" required></div>
+                            <div class="col-md-4 mb-2"><input type="text" class="form-control form-control-sm item-ket" name="item_keterangan[]" value="${it.Product_Desc || ''}" placeholder="Nama Barang / Keterangan" required></div>
+                            <div class="col-md-3 mb-2"><input type="text" class="form-control form-control-sm item-spec" name="item_spesifikasi[]" value="${it.Specification || ''}" placeholder="Spesifikasi"></div>
+                            <div class="col-md-2 mb-2"><input type="number" step="any" class="form-control form-control-sm calc-trigger item-qty" name="item_qty[]" value="${it.Qty || ''}" placeholder="Qty" required></div>
+                            <div class="col-md-2 mb-2"><input type="text" class="form-control form-control-sm item-sat" name="item_satuan[]" value="${it.Unit || ''}" placeholder="Satuan (Pcs/Box)" required></div>
                             <div class="col-md-1 mb-2 text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-row" style="display:${showDel};"><i class="fas fa-trash"></i></button></div>
-                            <div class="col-md-12"><input type="number" step="any" class="form-control form-control-sm calc-trigger item-price" name="item_harga[]" value="${it.harga_estimasi || ''}" placeholder="Estimasi Harga Satuan (Rp)" required></div>
+                            <div class="col-md-12"><input type="number" step="any" class="form-control form-control-sm calc-trigger item-price" name="item_harga[]" value="${it.Default_Price || ''}" placeholder="Estimasi Harga Satuan (Rp)" required></div>
                         </div>
                     </div>`;
                 container.insertAdjacentHTML('beforeend', htmlRow);
@@ -829,28 +889,6 @@ $default_pic = $_SESSION['name'] ?? $_SESSION['username'] ?? 'ADMINISTRATOR';
                 }
             }
         });
-
-        const btnLogout = document.getElementById('btnLogout');
-        if(btnLogout) {
-            btnLogout.addEventListener('click', function(e) {
-                e.preventDefault();
-                Swal.fire({
-                    title: 'Konfirmasi Keluar',
-                    text: 'Apakah anda mau keluar dari menu ini?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Ya',
-                    cancelButtonText: 'Tidak',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = 'logout';
-                    }
-                });
-            });
-        }
 
         <?php if (!empty($success_message)): ?>
             Swal.fire({

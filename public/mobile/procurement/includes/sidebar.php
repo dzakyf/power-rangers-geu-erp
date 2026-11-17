@@ -17,13 +17,16 @@
                         <i class="fas fa-chevron-down small"></i>
                     </a>
                     <ul class="submenu collapse show" id="procurementSub">
+                        <li><a href="index">Dashboard</a></li>
                         <li><a href="procurement-ops">Procurement - Ops</a></li>
                         <li><a href="procurement-non-ops">Procurement - Non Ops</a></li>
-                        <li><a href="index">Dashboard</a></li>
-                        <li><a href="#">Edit PR (Form & Attach)</a></li>
-                        <li><a href="approval-ops">Approval PR</a></li>
-                        <li><a href="#">Tracking PR</a></li>
-                        <li><a href="#">Confirm PO & BAST</a></li>
+                        <li><a href="approval-center">Approval PR</a></li>
+                        <li><a href="rfq-create">Request for Quotation</a></li>
+                        <li><a href="qtn-create">Quotation</a></li>
+                        <li><a href="po-create">PO generation</a></li>
+                        
+                        <li><a href="tracking">Tracking PR</a></li>
+                        <li><a href="confirm-po">Confirm PO & BAST</a></li>
                     </ul>
                 </li>
             </ul>

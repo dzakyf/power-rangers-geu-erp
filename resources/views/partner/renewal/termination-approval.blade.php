@@ -12,7 +12,7 @@
 
 <div class="card mb-3">
     <div class="card-header m-3">
-        <h5>APPROVAL TERMINATION</h5>
+        <h5 class="bdp-index-title">APPROVAL TERMINATION</h5>
     </div>
     <div class="card-body">
         <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class="mb-2"></div>
@@ -28,6 +28,7 @@
                 <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
                     <a class="dropdown-item" href="#" onclick="approveClick('APPROVED')">Approve</a>
                     <a class="dropdown-item" href="#" onclick="approveClick('REJECTED')">Reject</a>
+                            @include('approval.partials.force-approve-menu-item', ['idVar' => 'mitraId'])
                 </div>
             </div>
         </div>
@@ -173,4 +174,5 @@
         });
     }
 </script>
+@include('approval.partials.force-approve-script')
 @endsection

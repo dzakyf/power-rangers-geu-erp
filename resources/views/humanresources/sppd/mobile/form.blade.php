@@ -10,6 +10,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+        #tblCost thead { display: none; }
+        #tblCost tbody tr {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: #F9FAFB;
+            border: 1px solid #E5EBE8;
+            border-radius: 14px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+        #tblCost tbody td {
+            border: none !important;
+            padding: 2px 0 !important;
+            width: 100% !important;
+        }
         body {
             background-color: #f4f6f9;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -84,21 +100,25 @@
             margin-bottom: 3px;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
-    <!-- Header Mobile -->
-    <div class="header-card">
-        <div class="d-flex align-items-center">
-            <a href="{{ route('sppd.mobile.index') }}" class="text-white me-3 fs-5"><i class="fa fa-arrow-left"></i></a>
-            <div>
-                <h6 class="mb-0 fw-bold">Pengajuan SPPD Baru</h6>
-                <small class="text-white-50">Kalkulasi Otomatis Matriks & Rute OSRM</small>
-            </div>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
+    <div class="finora-shell">
+        <div class="finora-topbar">
+            <a href="{{ route('sppd.mobile.index', $fromParams) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Pengajuan SPPD Baru</h1>
+            <span style="width: 38px;"></span>
         </div>
-    </div>
 
-    <div class="container px-3 mt-3">
+        <div class="finora-hero">
+            <div class="fw-bold mb-1"><i class="fas fa-route me-1"></i> Rencana Perjalanan Dinas</div>
+            <p class="small mb-0 opacity-75">Kalkulasi otomatis matriks biaya &amp; rute OSRM.</p>
+        </div>
         <form id="mobileSppdForm">
             <!-- 1. Identitas Dokumen & Pemohon -->
             <div class="form-section-card">
@@ -130,8 +150,8 @@
                     <select name="Department" id="Department" class="form-select form-select-sm" required>
                         <option value="">-- Pilih Departemen --</option>
                         @foreach($departments as $dept)
-                            <option value="{{ $dept->Department }}" {{ ($user->Department == $dept->Department) ? 'selected' : '' }}>
-                                {{ $dept->Department }}
+                            <option value="{{ $dept->Initial }}" {{ ($user->Department == $dept->Initial || $user->Department == $dept->Department) ? 'selected' : '' }}>
+                                {{ $dept->Department }} ({{ $dept->Initial }})
                             </option>
                         @endforeach
                     </select>
@@ -264,23 +284,21 @@
                 </div>
             </div>
 
-            <!-- 3. Rincian Estimasi Biaya (Regulasi + Manual) -->
+            <!-- 3. Rincian Estimasi Biaya (Regulasi + Manual - Vertical Stacked Cards) -->
             <div class="form-section-card">
                 <div class="section-title"><i class="fa fa-coins me-1"></i> 3. Komponen Biaya Regulasi</div>
-                <div class="table-responsive">
-                    <table id="tblCost" class="table table-sm table-bordered align-middle mb-2">
-                        <thead class="table-light small">
-                            <tr>
-                                <th width="120">Nominal (Rp)</th>
-                                <th>Keterangan Komponen</th>
-                                <th width="40" class="text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Dinamis di-render oleh buildRegulationRows() -->
-                        </tbody>
-                    </table>
-                </div>
+                <table id="tblCost" class="table table-borderless w-100 mb-2">
+                    <thead class="d-none">
+                        <tr>
+                            <th>Nominal (Rp)</th>
+                            <th>Keterangan Komponen</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dinamis di-render oleh buildRegulationRows() sebagai vertical card -->
+                    </tbody>
+                </table>
                 <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
                     <div class="total-cost-box">
                         Total: Rp <span id="TotalCost">0</span>
@@ -359,21 +377,7 @@
         </div>
     </div>
 
-    <!-- Bottom Nav Mobile Bar -->
-    <div class="bottom-nav">
-        <a href="{{ route('sppd.mobile.index') }}" class="nav-item-mobile">
-            <i class="fa fa-list-check"></i>
-            <span>Daftar SPPD</span>
-        </a>
-        <a href="{{ route('sppd.mobile.form') }}" class="nav-item-mobile active">
-            <i class="fa fa-circle-plus"></i>
-            <span>Buat SPPD</span>
-        </a>
-        <a href="{{ route('sppd.mobile.approval') }}" class="nav-item-mobile">
-            <i class="fa fa-stamp"></i>
-            <span>Approval</span>
-        </a>
-    </div>
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'ess'])
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ asset('adminor/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
@@ -386,6 +390,7 @@
         var routeDistanceKm = null;
         var routeDurationMin = null;
         var routeResolved = false;
+        var routeIsFallback = false;
 
         var TYPE_CODES = {
             NORMAL: 'RS',
@@ -422,13 +427,14 @@
                 },
                 success: function(resp) {
                     if (resp.status === 'success' && resp.data) {
-                        cb(true, resp.data.distance_km, resp.data.duration_min);
+                        cb(true, resp.data.distance_km, resp.data.duration_min, !!resp.data.is_fallback);
                     } else {
-                        cb(false);
+                        cb(false, null, null, false, resp.message || null);
                     }
                 },
-                error: function() {
-                    cb(false);
+                error: function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : null;
+                    cb(false, null, null, false, msg);
                 }
             });
         }
@@ -442,14 +448,16 @@
                 routeResolved = false;
                 routeDistanceKm = null;
                 routeDurationMin = null;
+                routeIsFallback = false;
                 renderScopeBanner();
                 updateAllowanceInfo();
                 if (origin) {
-                    fetchRouteInfo(origin, function(ok, dist, dur) {
+                    fetchRouteInfo(origin, function(ok, dist, dur, isFallback) {
                         if (ok) {
                             routeDistanceKm = dist;
                             routeDurationMin = dur;
                             routeResolved = true;
+                            routeIsFallback = isFallback;
                             renderScopeBanner();
                         }
                     });
@@ -462,37 +470,44 @@
                 routeResolved = false;
                 routeDistanceKm = null;
                 routeDurationMin = null;
+                routeIsFallback = false;
                 renderScopeBanner();
                 updateAllowanceInfo();
                 return;
             }
 
-            fetchRouteInfo(origin, function(ok, dist, dur) {
+            fetchRouteInfo(origin, function(ok, dist, dur, isFallback, errMsg) {
                 if (!ok) {
                     routeScope = null;
                     routeResolved = false;
                     routeDistanceKm = null;
                     routeDurationMin = null;
+                    routeIsFallback = false;
+                    renderScopeBanner(errMsg);
                 } else {
                     routeDistanceKm = dist;
                     routeDurationMin = dur;
                     routeResolved = true;
+                    routeIsFallback = isFallback;
                     routeScope = (dist !== null && dur !== null && dist < 120 && dur < 480) ? 'MEAL_ONLY' : 'FULL';
+                    renderScopeBanner();
                 }
-                renderScopeBanner();
                 updateAllowanceInfo();
             });
         }
 
-        function renderScopeBanner() {
+        function renderScopeBanner(customErr) {
             var sppdType = $('#Sppd_Type').val();
+            var fallbackBadge = routeIsFallback ? ' <span class="badge bg-warning text-dark ms-1" title="Dihitung menggunakan estimasi koordinat"><i class="fa fa-map-pin"></i> Estimasi Jarak</span>' : '';
+
             if (sppdType !== 'NORMAL') {
-                var extra = (routeDistanceKm !== null) ? 'Jarak: ' + routeDistanceKm + ' km &bull; ' : '';
+                var extra = (routeDistanceKm !== null) ? 'Jarak: ' + routeDistanceKm + ' km' + fallbackBadge + ' &bull; ' : '';
                 $('#routeScopeInfo').html('<div class="alert alert-success py-2 mb-0 small"><strong>Perbantuan Sementara:</strong> ' + extra + 'hak penuh (di luar kriteria 120 km / 8 jam).</div>');
                 return;
             }
             if (!routeResolved || routeDistanceKm === null) {
-                $('#routeScopeInfo').html('<div class="alert alert-warning py-2 mb-0 small"><strong>Rute belum dapat dihitung.</strong> Pastikan lokasi asal &amp; tujuan lengkap serta isi jam berangkat/kembali.</div>');
+                var warnText = customErr ? customErr : 'Pastikan lokasi asal &amp; tujuan lengkap serta isi jam berangkat/kembali.';
+                $('#routeScopeInfo').html('<div class="alert alert-warning py-2 mb-0 small"><strong>Rute belum dapat dihitung.</strong> ' + warnText + '</div>');
                 return;
             }
             var isMeal = (routeScope === 'MEAL_ONLY');
@@ -500,7 +515,7 @@
             var label = isMeal
                 ? '&lt; 120 km &amp; &lt; 8 jam &rarr; <strong>hanya Uang Makan</strong>'
                 : '&ge; 120 km atau &ge; 8 jam &rarr; <strong>hak penuh</strong>';
-            $('#routeScopeInfo').html('<div class="alert ' + css + ' py-2 mb-0 small">Jarak: <strong>' + routeDistanceKm + ' km</strong> &bull; Durasi: <strong>' + fmtDuration(routeDurationMin) + '</strong> &bull; ' + label + '</div>');
+            $('#routeScopeInfo').html('<div class="alert ' + css + ' py-2 mb-0 small">Jarak: <strong>' + routeDistanceKm + ' km</strong>' + fallbackBadge + ' &bull; Durasi: <strong>' + fmtDuration(routeDurationMin) + '</strong> &bull; ' + label + '</div>');
         }
 
         function updateRuteMode() {
@@ -609,31 +624,88 @@
             var daily = allowance.daily || {};
             var isTugasKerja = ($('#Sppd_Type').val() === 'NORMAL');
 
+            function isComponentEditable(code) {
+                if (!matrixData) return (code === 'ticket_max' || code === 'reimburse_max_per_night');
+                if (matrixData.editable_components && Array.isArray(matrixData.editable_components)) {
+                    return matrixData.editable_components.indexOf(code) !== -1;
+                }
+                return (code === 'ticket_max' || code === 'reimburse_max_per_night');
+            }
+
             if (isTugasKerja && routeScope === 'MEAL_ONLY') {
                 if (daily.meal) {
-                    reg.push({ cost: daily.meal * days, desc: 'Uang Makan (Rp ' + moneyID(daily.meal) + '/hari \u00d7 ' + days + ' hari)' });
+                    reg.push({
+                        cost: daily.meal * days,
+                        desc: 'Uang Makan (Rp ' + moneyID(daily.meal) + '/hari \u00d7 ' + days + ' hari)',
+                        is_editable: isComponentEditable('daily_meal'),
+                        max_limit: daily.meal * days
+                    });
                 }
                 renderCostRows(reg, manuals);
                 return;
             }
 
+            var dateStartVal = $.trim($('#Date_Start').val());
+            var dateFinishVal = $.trim($('#Date_Finish').val());
+
             if (t.ticket_max) {
-                reg.push({ cost: t.ticket_max, desc: 'Tiket PP (Maks. Rp ' + moneyID(t.ticket_max) + ')' });
+                var ticketEditable = isComponentEditable('ticket_max');
+                var departDateLabel = dateStartVal ? ('(' + dateStartVal + ')') : '(Tgl Mulai)';
+                var returnDateLabel = dateFinishVal ? ('(' + dateFinishVal + ')') : '(Tgl Selesai)';
+
+                reg.push({
+                    cost: t.ticket_max,
+                    desc: 'Tiket Berangkat ' + departDateLabel + ' (Maks. Rp ' + moneyID(t.ticket_max) + ')',
+                    is_editable: ticketEditable,
+                    max_limit: t.ticket_max
+                });
+                reg.push({
+                    cost: t.ticket_max,
+                    desc: 'Tiket Pulang ' + returnDateLabel + ' (Maks. Rp ' + moneyID(t.ticket_max) + ')',
+                    is_editable: ticketEditable,
+                    max_limit: t.ticket_max
+                });
             }
             if (isTugasKerja && t.reimburse_max_per_night && nights > 0) {
-                reg.push({ cost: t.reimburse_max_per_night * nights, desc: 'Penginapan (Rp ' + moneyID(t.reimburse_max_per_night) + '/malam \u00d7 ' + nights + ' malam)' });
+                var hotelMaxTotal = t.reimburse_max_per_night * nights;
+                reg.push({
+                    cost: hotelMaxTotal,
+                    desc: 'Penginapan (Rp ' + moneyID(t.reimburse_max_per_night) + '/malam \u00d7 ' + nights + ' malam)',
+                    is_editable: isComponentEditable('reimburse_max_per_night'),
+                    max_limit: hotelMaxTotal
+                });
             }
             if (daily.meal) {
-                reg.push({ cost: daily.meal * days, desc: 'Uang Makan (Rp ' + moneyID(daily.meal) + '/hari \u00d7 ' + days + ' hari)' });
+                reg.push({
+                    cost: daily.meal * days,
+                    desc: 'Uang Makan (Rp ' + moneyID(daily.meal) + '/hari \u00d7 ' + days + ' hari)',
+                    is_editable: isComponentEditable('daily_meal'),
+                    max_limit: daily.meal * days
+                });
             }
             if (daily.pocket) {
-                reg.push({ cost: daily.pocket * days, desc: 'Uang Saku (Rp ' + moneyID(daily.pocket) + '/hari \u00d7 ' + days + ' hari)' });
+                reg.push({
+                    cost: daily.pocket * days,
+                    desc: 'Uang Saku (Rp ' + moneyID(daily.pocket) + '/hari \u00d7 ' + days + ' hari)',
+                    is_editable: isComponentEditable('daily_pocket'),
+                    max_limit: daily.pocket * days
+                });
             }
             if (allowance.assistance && allowance.assistance.kos_per_month) {
-                reg.push({ cost: allowance.assistance.kos_per_month * months, desc: 'Uang Kos/Bantuan (' + months + ' bulan)' });
+                reg.push({
+                    cost: allowance.assistance.kos_per_month * months,
+                    desc: 'Uang Kos/Bantuan (' + months + ' bulan)',
+                    is_editable: isComponentEditable('kos_per_month'),
+                    max_limit: allowance.assistance.kos_per_month * months
+                });
             }
             if (allowance.mobilization && allowance.mobilization.cost_per_week) {
-                reg.push({ cost: allowance.mobilization.cost_per_week * weeks, desc: 'Uang Perbantuan (' + weeks + ' minggu)' });
+                reg.push({
+                    cost: allowance.mobilization.cost_per_week * weeks,
+                    desc: 'Uang Perbantuan (' + weeks + ' minggu)',
+                    is_editable: isComponentEditable('mobilization_cost_per_week'),
+                    max_limit: allowance.mobilization.cost_per_week * weeks
+                });
             }
 
             renderCostRows(reg, manuals);
@@ -648,11 +720,20 @@
             var idx = 0;
 
             $.each(regRows, function(_, r) {
+                var isEditable = !!r.is_editable;
+                var costInput = isEditable
+                    ? "<input type='number' id='Cost_" + idx + "' class='form-control form-control-sm fw-bold' onkeyup='hitungTotal();' value='" + escapeAttr(r.cost) + "' placeholder='0' />"
+                    : "<input type='number' id='Cost_" + idx + "' class='form-control form-control-sm bg-light fw-bold' value='" + escapeAttr(r.cost) + "' readonly />";
+
+                var iconAction = isEditable
+                    ? "<span class='badge bg-success text-white p-1' style='font-size: 0.65rem;' title='Dapat disesuaikan (plafon maks: " + (r.max_limit ? moneyID(r.max_limit) : '-') + ")'><i class='fa fa-pencil-alt'></i></span>"
+                    : "<i class='fa fa-lock text-muted' title='Regulasi Master'></i>";
+
                 $tb.append(
                     "<tr class='reg-row' data-reg='1'>" +
-                    "<td><input type='number' id='Cost_" + idx + "' class='form-control form-control-sm bg-light fw-bold' value='" + escapeAttr(r.cost) + "' readonly /></td>" +
+                    "<td>" + costInput + "</td>" +
                     "<td><input type='text' id='Desc_" + idx + "' class='form-control form-control-sm bg-light' value=\"" + escapeAttr(r.desc) + "\" readonly /></td>" +
-                    "<td class='text-center'><i class='fa fa-lock text-muted' title='Regulasi Master'></i></td>" +
+                    "<td class='text-center'>" + iconAction + "</td>" +
                     "</tr>"
                 );
                 idx++;
@@ -881,7 +962,7 @@
                 data: formData,
                 success: function(res) {
                     alert('Sukses! ' + res.message);
-                    window.location.href = "{{ route('sppd.mobile.index') }}";
+                    window.location.href = "{{ route('sppd.mobile.index', $fromParams) }}";
                 },
                 error: function(xhr) {
                     $('#btnSubmit').prop('disabled', false).html('<i class="fa fa-paper-plane me-1"></i> Kirim Pengajuan SPPD');

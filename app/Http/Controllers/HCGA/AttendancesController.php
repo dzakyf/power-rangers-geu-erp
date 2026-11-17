@@ -1394,6 +1394,9 @@ class AttendancesController extends Controller
             'longitude' => 'required|numeric',
             'photo'     => 'nullable|string',
             'notes'     => 'nullable|string|max:255',
+            'accuracy'  => 'nullable|numeric',
+            'is_mock'   => 'nullable|boolean',
+            'gps_meta'  => 'nullable',
         ]);
 
         try {
@@ -1434,6 +1437,9 @@ class AttendancesController extends Controller
             'longitude' => 'required|numeric',
             'photo'     => 'nullable|string',
             'notes'     => 'nullable|string|max:255',
+            'accuracy'  => 'nullable|numeric',
+            'is_mock'   => 'nullable|boolean',
+            'gps_meta'  => 'nullable',
         ]);
 
         try {
@@ -1607,29 +1613,104 @@ class AttendancesController extends Controller
     /**
      * Webview Mobile: Halaman Utama Presensi & Clock-in/out
      */
-    public function mobileIndex(Request $request)
+    private function findTodayAttendanceEntry(?string $empId)
     {
-        $user = Auth::user();
+        if (!$empId) {
+            return null;
+        }
+
         $today = date('Y-m-d');
         $periode = (int) date('Ym');
 
-        // Cari log hari ini langsung berdasarkan NIK dan Scan_Date agar selalu sinkron
-        $todayEntry = Attendance::where('NIK', $user->Emp_ID)
+        $todayEntry = Attendance::where('NIK', $empId)
             ->where('Scan_Date', $today)
             ->first();
 
-        // Fallback jika hanya terikat ke Task_ID
         if (!$todayEntry) {
-            $main = AttendanceMain::where('NIK', $user->Emp_ID)->where('Periode', $periode)->first();
+            $main = AttendanceMain::where('NIK', $empId)->where('Periode', $periode)->first();
             if ($main) {
                 $todayEntry = Attendance::where('Task_ID', $main->Task_ID)->where('Scan_Date', $today)->first();
             }
         }
 
+        return $todayEntry;
+    }
+
+    private function resolveAttendanceAction(?string $requestedAction, $todayEntry): ?string
+    {
+        $hasClockIn = $todayEntry && !empty($todayEntry->Start_Time);
+        $hasClockOut = $todayEntry && !empty($todayEntry->End_Time);
+
+        if ($hasClockIn && $hasClockOut) {
+            return null;
+        }
+
+        $expected = $hasClockIn ? 'clock-out' : 'clock-in';
+        if ($requestedAction && in_array($requestedAction, ['clock-in', 'clock-out'], true) && $requestedAction !== $expected) {
+            return null;
+        }
+
+        return $expected;
+    }
+
+    public function mobileIndex(Request $request)
+    {
+        $user = Auth::user();
+        $today = date('Y-m-d');
+        $todayEntry = $this->findTodayAttendanceEntry($user->Emp_ID);
         $schedule = $this->attendanceService->getWorkScheduleForDate($user->Emp_ID, $today);
         $locations = DB::table('attendance_locations')->where('status', 'ACTIVE')->get();
 
         return view('humanresources.attendant.mobile.index', compact('user', 'todayEntry', 'schedule', 'locations'));
+    }
+
+    /**
+     * Webview Mobile: Step 1 Presensi — Penguncian Titik Lokasi GPS
+     */
+    public function mobileLocation(Request $request)
+    {
+        $user = Auth::user();
+        $todayEntry = $this->findTodayAttendanceEntry($user->Emp_ID);
+        $action = $this->resolveAttendanceAction($request->query('action'), $todayEntry);
+
+        if (!$action) {
+            return redirect()->route('mobile.dashboard')
+                ->with('info', 'Presensi hari ini sudah tercatat atau aksi tidak sesuai status saat ini.');
+        }
+
+        $locations = DB::table('attendance_locations')->where('status', 'ACTIVE')->get();
+
+        return view('humanresources.attendant.mobile.location', compact('user', 'action', 'todayEntry', 'locations'));
+    }
+
+    /**
+     * Webview Mobile: Step 2 Presensi — Foto Selfie Wajib
+     */
+    public function mobileSelfie(Request $request)
+    {
+        $user = Auth::user();
+        $todayEntry = $this->findTodayAttendanceEntry($user->Emp_ID);
+        $action = $this->resolveAttendanceAction($request->query('action'), $todayEntry);
+
+        if (!$action) {
+            return redirect()->route('mobile.dashboard')
+                ->with('info', 'Presensi hari ini sudah tercatat atau aksi tidak sesuai status saat ini.');
+        }
+
+        $lat = $request->query('lat');
+        $lng = $request->query('lng');
+        if (!is_numeric($lat) || !is_numeric($lng)) {
+            return redirect()->route('attendance.mobile.location', ['action' => $action])
+                ->with('error', 'Silakan kunci titik lokasi GPS terlebih dahulu.');
+        }
+
+        return view('humanresources.attendant.mobile.selfie', [
+            'user' => $user,
+            'action' => $action,
+            'lat' => (float) $lat,
+            'lng' => (float) $lng,
+            'todayEntry' => $todayEntry,
+        ]);
     }
 
     /**
@@ -1663,5 +1744,85 @@ class AttendancesController extends Controller
             ->get();
 
         return view('humanresources.attendant.mobile.leave-form', compact('user', 'leaves'));
+    }
+
+    /**
+     * Master Pengaturan Lokasi & Batas Maksimal Jarak Absensi (Geofence Radius)
+     */
+    public function locationsIndex()
+    {
+        $locations = DB::table('attendance_locations')->orderBy('id', 'asc')->get();
+        $masterLocations = DB::table('location')->orderBy('Name', 'asc')->get();
+
+        return view('humanresources.attendant.locations', compact('locations', 'masterLocations'));
+    }
+
+    /**
+     * Simpan Lokasi Absensi & Radius Baru
+     */
+    public function locationsStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name'          => 'required|string|max:150',
+            'latitude'      => 'required|numeric|between:-90,90',
+            'longitude'     => 'required|numeric|between:-180,180',
+            'radius_meters' => 'required|integer|min:10|max:50000',
+            'status'        => 'required|in:ACTIVE,INACTIVE',
+            'zipcode'       => 'nullable|string|max:20',
+            'region_group'  => 'nullable|string|max:100',
+        ]);
+
+        DB::table('attendance_locations')->insert([
+            'name'          => $validated['name'],
+            'latitude'      => $validated['latitude'],
+            'longitude'     => $validated['longitude'],
+            'radius_meters' => (int) $validated['radius_meters'],
+            'status'        => $validated['status'],
+            'zipcode'       => $validated['zipcode'] ?? null,
+            'region_group'  => $validated['region_group'] ?? null,
+            'created_at'    => now(),
+            'updated_at'    => now(),
+        ]);
+
+        return redirect()->route('attendance.locations.index')->with('success', 'Lokasi & batas jarak absensi berhasil ditambahkan.');
+    }
+
+    /**
+     * Perbarui Lokasi Absensi & Batas Maksimal Jarak (Radius)
+     */
+    public function locationsUpdate(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'name'          => 'required|string|max:150',
+            'latitude'      => 'required|numeric|between:-90,90',
+            'longitude'     => 'required|numeric|between:-180,180',
+            'radius_meters' => 'required|integer|min:10|max:50000',
+            'status'        => 'required|in:ACTIVE,INACTIVE',
+            'zipcode'       => 'nullable|string|max:20',
+            'region_group'  => 'nullable|string|max:100',
+        ]);
+
+        DB::table('attendance_locations')->where('id', (int) $id)->update([
+            'name'          => $validated['name'],
+            'latitude'      => $validated['latitude'],
+            'longitude'     => $validated['longitude'],
+            'radius_meters' => (int) $validated['radius_meters'],
+            'status'        => $validated['status'],
+            'zipcode'       => $validated['zipcode'] ?? null,
+            'region_group'  => $validated['region_group'] ?? null,
+            'updated_at'    => now(),
+        ]);
+
+        return redirect()->route('attendance.locations.index')->with('success', 'Pengaturan lokasi & radius absensi berhasil diperbarui.');
+    }
+
+    /**
+     * Hapus Lokasi Absensi
+     */
+    public function locationsDestroy($id)
+    {
+        DB::table('attendance_locations')->where('id', (int) $id)->delete();
+
+        return redirect()->route('attendance.locations.index')->with('success', 'Lokasi absensi berhasil dihapus.');
     }
 }

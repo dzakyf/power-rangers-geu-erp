@@ -15,21 +15,31 @@
         .nav-item-mobile.active { color: #1e3c72; font-weight: bold; }
         .nav-item-mobile i { font-size: 20px; margin-bottom: 3px; }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
-    <div class="header-card">
-        <h5 class="mb-1 fw-bold"><i class="fa fa-paper-plane me-2"></i>Form Izin & Cuti</h5>
-        <small class="text-white-50">Pengajuan otomatis terhubung ke Approval Engine</small>
-    </div>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
+    <div class="finora-shell">
+        <div class="finora-topbar">
+            <a href="{{ $resolvedBackUrl }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Pengajuan Izin &amp; Cuti</h1>
+            <span style="width: 38px;"></span>
+        </div>
 
-    <div class="container px-3 mt-3">
+        <div class="finora-hero">
+            <div class="fw-bold mb-1"><i class="fas fa-paper-plane me-1"></i> Form Izin &amp; Cuti</div>
+            <p class="small mb-0 opacity-75">Pengajuan otomatis terhubung ke Approval Engine HCGA.</p>
+        </div>
         <!-- Card Form Pengajuan -->
-        <div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
+        <div class="finora-card mb-3">
             <h6 class="fw-bold mb-3">Buat Pengajuan Baru</h6>
             <form id="leave-form">
                 <div class="mb-2">
-                    <label class="form-label small text-muted">Kategori Izin / Cuti</label>
-                    <select name="leave_type" id="leave_type" class="form-select" required>
+                    <label class="form-label small fw-bold">Kategori Izin / Cuti</label>
+                    <select name="leave_type" id="leave_type" class="form-select rounded-3" required>
                         @php
                             $kategoriList = DB::table('kategori_izin')->where('status', 'ACTIVE')->orderBy('izin_jenis_id', 'asc')->get();
                         @endphp
@@ -43,62 +53,62 @@
 
                 <div class="row g-2 mb-2">
                     <div class="col-6">
-                        <label class="form-label small text-muted">Tanggal Mulai</label>
-                        <input type="date" name="start_date" id="start_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        <label class="form-label small fw-bold">Tanggal Mulai</label>
+                        <input type="date" name="start_date" id="start_date" class="form-control rounded-3" value="{{ date('Y-m-d') }}" required>
                     </div>
                     <div class="col-6">
-                        <label class="form-label small text-muted">Tanggal Selesai</label>
-                        <input type="date" name="end_date" id="end_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        <label class="form-label small fw-bold">Tanggal Selesai</label>
+                        <input type="date" name="end_date" id="end_date" class="form-control rounded-3" value="{{ date('Y-m-d') }}" required>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label small text-muted">Alasan / Keterangan</label>
-                    <textarea name="reason" id="reason" class="form-control" rows="3" placeholder="Tuliskan alasan pengajuan..." required></textarea>
+                    <label class="form-label small fw-bold">Alasan / Keterangan</label>
+                    <textarea name="reason" id="reason" class="form-control rounded-3" rows="3" placeholder="Tuliskan alasan pengajuan..." required></textarea>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold" id="btn-submit">
+                <button type="submit" class="btn finora-btn-primary w-100 rounded-pill py-2 fw-semibold" id="btn-submit">
                     <i class="fa fa-paper-plane me-1"></i> Kirim Pengajuan
                 </button>
             </form>
         </div>
 
         <!-- Riwayat Pengajuan -->
-        <h6 class="fw-bold mb-2">Riwayat Pengajuan Terakhir</h6>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold small text-uppercase text-muted">Riwayat Pengajuan Terakhir</span>
+            <span class="finora-pill">{{ count($leaves) }}</span>
+        </div>
         @if(count($leaves) === 0)
-            <div class="text-center py-4 text-muted small">Belum ada pengajuan izin/cuti.</div>
+            <div class="finora-card text-center py-4 text-muted small">Belum ada pengajuan izin/cuti.</div>
         @else
             @foreach($leaves as $lv)
-                <div class="card border-0 shadow-sm rounded-3 p-3 mb-2">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="fw-bold">{{ $lv->leave_type }}</span>
-                        <span class="badge {{ $lv->status == 'APPROVED' ? 'bg-success' : ($lv->status == 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark') }}">{{ $lv->status }}</span>
+                @php
+                    $lvTone = $lv->status == 'APPROVED' ? 'tone-mint' : ($lv->status == 'REJECTED' ? 'tone-coral' : 'tone-amber');
+                    $lvBadge = $lv->status == 'APPROVED' ? 'bg-success text-white' : ($lv->status == 'REJECTED' ? 'bg-danger text-white' : 'bg-warning text-dark');
+                @endphp
+                <div class="finora-card mb-2">
+                    <div class="d-flex align-items-start gap-3">
+                        <span class="rounded-4 d-inline-flex align-items-center justify-content-center flex-shrink-0 {{ $lvTone }}" style="width: 40px; height: 40px;">
+                            <i class="fas fa-calendar-day"></i>
+                        </span>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold small">{{ $lv->leave_type }}</span>
+                                <span class="badge {{ $lvBadge }} rounded-pill" style="font-size: 10px;">{{ $lv->status }}</span>
+                            </div>
+                            <small class="text-muted d-block">{{ date('d M Y', strtotime($lv->start_date)) }} s/d {{ date('d M Y', strtotime($lv->end_date)) }} ({{ $lv->total_days }} hari)</small>
+                            <small class="text-dark d-block mt-1">{{ $lv->reason }}</small>
+                            @if($lv->approval_request_id)
+                                <small class="text-success d-block mt-1 fw-semibold" style="font-size: 10px;"><i class="fa fa-check-double me-1"></i>Approval Ref #{{ $lv->approval_request_id }}</small>
+                            @endif
+                        </div>
                     </div>
-                    <small class="text-muted d-block">{{ date('d M Y', strtotime($lv->start_date)) }} s/d {{ date('d M Y', strtotime($lv->end_date)) }} ({{ $lv->total_days }} hari)</small>
-                    <small class="text-dark mt-1">{{ $lv->reason }}</small>
-                    @if($lv->approval_request_id)
-                        <small class="text-primary mt-1" style="font-size: 10px;"><i class="fa fa-check-double me-1"></i>Approval Ref #{{ $lv->approval_request_id }}</small>
-                    @endif
                 </div>
             @endforeach
         @endif
     </div>
 
-    <!-- Bottom Nav -->
-    <div class="bottom-nav">
-        <a href="{{ route('attendance.mobile.index') }}" class="nav-item-mobile">
-            <i class="fa fa-fingerprint"></i>
-            <span>Presensi</span>
-        </a>
-        <a href="{{ route('attendance.mobile.timesheet') }}" class="nav-item-mobile">
-            <i class="fa fa-calendar-check"></i>
-            <span>Timesheet</span>
-        </a>
-        <a href="{{ route('attendance.mobile.leave') }}" class="nav-item-mobile active">
-            <i class="fa fa-paper-plane"></i>
-            <span>Izin & Cuti</span>
-        </a>
-    </div>
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'ess'])
 
     <script>
         document.getElementById('leave-form').addEventListener('submit', function(e) {

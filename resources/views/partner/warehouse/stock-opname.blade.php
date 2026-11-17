@@ -14,7 +14,7 @@
     <div class="card-header m-3">
         <div class="row align-items-end">
             <div class="col-md-3">
-                <h5>Stock Opname</h5>
+                <h5 class="bdp-index-title">Stock Opname</h5>
             </div>
             <div class="col-md-auto ml-auto">
                 <select id="statusFilter" class="form-control form-control-sm" style="width:160px;" onchange="applyFilter()">
@@ -34,7 +34,9 @@
         </div>
     </div>
     <div class="m-3">
+        @if(can_menu('SI00276', 'create'))
         <input type="button" value="Buat Opname" class="btn btn-success" onclick="redirectToCreate()" />
+        @endif
         <input type="button" id="detailBtn" value="Detail" class="btn btn-info" onclick="openDetail()" />
         <input type="button" id="logBtn" value="Log" class="btn btn-secondary" onclick="openLog()" />
         <input type="button" value="Export Excel" class="btn btn-warning" onclick="opnameGrid.toExcel('./export/generate.php');" />

@@ -34,7 +34,11 @@ class CredentialRoleController extends Controller
     }
     public function index()
     {
-        return view('credential.role');
+        $departments = DB::table('master_department')
+            ->orderBy('Department', 'ASC')
+            ->get(['Department', 'Initial']);
+
+        return view('credential.role', compact('departments'));
     }
 
     public function roleListData(Request $request)
@@ -45,12 +49,28 @@ class CredentialRoleController extends Controller
 
         if ($request->filled('search.value')) {
             $search = $request->input('search.value');
-            $query->where('name', 'like', "%{$search}%");
+            $departmentCodes = DB::table('master_department')
+                ->where('Department', 'like', "%{$search}%")
+                ->pluck('Initial')
+                ->all();
+
+            $query->where(function ($q) use ($search, $departmentCodes) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('department', 'like', "%{$search}%");
+
+                if (!empty($departmentCodes)) {
+                    $q->orWhereIn('department', $departmentCodes);
+                }
+            });
+        }
+
+        if ($request->filled('department')) {
+            $query->where('department', $request->input('department'));
         }
 
         $orderColumn = $request->input('order.0.column', 0);
         $orderDir = $request->input('order.0.dir', 'asc');
-        $columns = ['id', 'name'];
+        $columns = ['id', 'name', 'department', 'users_count'];
         $query->orderBy($columns[$orderColumn] ?? 'id', $orderDir);
 
         $start = (int) $request->input('start', 0);
@@ -58,10 +78,16 @@ class CredentialRoleController extends Controller
 
         $filtered = $query->count();
 
-        $data = $query->offset($start)->limit($length)->get()->map(function ($role) {
+        $departmentNames = DB::table('master_department')->pluck('Department', 'Initial');
+
+        $data = $query->offset($start)->limit($length)->get()->map(function ($role) use ($departmentNames) {
             return [
                 'id' => $role->id,
                 'name' => $role->name,
+                'department' => $role->department,
+                'department_name' => $role->department
+                    ? ($departmentNames[$role->department] ?? $role->department)
+                    : 'Global',
                 'users_count' => $role->users_count,
             ];
         });
@@ -162,15 +188,36 @@ class CredentialRoleController extends Controller
         }
 
         $name = trim($request->input('name'));
+        $department = trim((string) $request->input('department')) ?: null;
+
         if (!$name) {
             return response()->json(['success' => false, 'message' => 'Role name is required.']);
         }
 
-        if (Role::where('name', $name)->exists()) {
-            return response()->json(['success' => false, 'message' => 'Role name already exists.']);
+        if ($department !== null && !DB::table('master_department')->where('Initial', $department)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Department is invalid.']);
         }
 
-        Role::create(['name' => $name, 'guard_name' => 'web']);
+        if (in_array($name, ['ADM', 'super-admin'], true) && $department !== null) {
+            return response()->json(['success' => false, 'message' => 'ADM and super-admin roles must be global.']);
+        }
+
+        $duplicate = Role::where('name', $name)
+            ->where('guard_name', 'web')
+            ->where(function ($q) use ($department) {
+                if ($department === null) {
+                    $q->whereNull('department');
+                } else {
+                    $q->where('department', $department);
+                }
+            })
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json(['success' => false, 'message' => 'Role name already exists in this department.']);
+        }
+
+        Role::create(['name' => $name, 'guard_name' => 'web', 'department' => $department]);
 
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
@@ -186,15 +233,37 @@ class CredentialRoleController extends Controller
         $role = Role::findOrFail($id);
 
         $name = trim($request->input('name'));
+        $department = trim((string) $request->input('department')) ?: null;
+
         if (!$name) {
             return response()->json(['success' => false, 'message' => 'Role name is required.']);
         }
 
-        if (Role::where('name', $name)->where('id', '!=', $id)->exists()) {
-            return response()->json(['success' => false, 'message' => 'Role name already exists.']);
+        if ($department !== null && !DB::table('master_department')->where('Initial', $department)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Department is invalid.']);
         }
 
-        $role->update(['name' => $name]);
+        if (in_array($name, ['ADM', 'super-admin'], true) && $department !== null) {
+            return response()->json(['success' => false, 'message' => 'ADM and super-admin roles must be global.']);
+        }
+
+        $duplicate = Role::where('name', $name)
+            ->where('guard_name', 'web')
+            ->where('id', '!=', $id)
+            ->where(function ($q) use ($department) {
+                if ($department === null) {
+                    $q->whereNull('department');
+                } else {
+                    $q->where('department', $department);
+                }
+            })
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json(['success' => false, 'message' => 'Role name already exists in this department.']);
+        }
+
+        $role->update(['name' => $name, 'department' => $department]);
 
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 

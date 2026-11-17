@@ -4,7 +4,7 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-address-book text-primary"></i> Kontak & Komunikasi
+                <i class="fa fa-address-book text-success"></i> Kontak & Komunikasi
             </div>
             <div class="row g-3">
                 <div class="col-12 d-flex justify-content-between align-items-center">
@@ -32,7 +32,7 @@
                         <div class="info-label">Email Kantor / Korporat</div>
                         <div class="info-value">
                             @if(!empty($emp->Email))
-                                <a href="mailto:{{ $emp->Email }}" class="text-decoration-none text-primary">
+                                <a href="mailto:{{ $emp->Email }}" class="text-decoration-none text-success">
                                     <i class="fa fa-envelope me-1"></i> {{ $emp->Email }}
                                 </a>
                             @else
@@ -66,7 +66,7 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-briefcase text-primary"></i> Posisi & Penempatan Kerja
+                <i class="fa fa-briefcase text-success"></i> Posisi & Penempatan Kerja
             </div>
             <div class="row g-3">
                 <div class="col-6">
@@ -93,7 +93,7 @@
     <!-- Banner Pembatasan Hak Akses untuk Karyawan Lain -->
     <div class="col-12">
         <div class="alert alert-light border text-center p-3 text-muted small" style="border-radius: 14px;">
-            <i class="fa fa-shield-alt text-primary d-block mb-1" style="font-size: 20px;"></i>
+            <i class="fa fa-shield-alt text-success d-block mb-1" style="font-size: 20px;"></i>
             Rincian data pribadi lainnya (Identitas KTP, Alamat Domisili, Keluarga, dan Payroll) dilindungi privasi dan hanya dapat diakses oleh karyawan bersangkutan atau tim HCGA.
         </div>
     </div>
@@ -104,7 +104,7 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-id-card text-primary"></i> Identitas & Kependudukan
+                <i class="fa fa-id-card text-success"></i> Identitas & Kependudukan
             </div>
             <div class="row g-3">
                 <div class="col-6">
@@ -150,7 +150,7 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-map-marker-alt text-primary"></i> Alamat & Domisili
+                <i class="fa fa-map-marker-alt text-success"></i> Alamat & Domisili
             </div>
             <div class="row g-3">
                 <div class="col-12 d-flex justify-content-between align-items-start">
@@ -188,7 +188,7 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-building-columns text-primary"></i> Payroll & Rekening Bank
+                <i class="fa fa-building-columns text-success"></i> Payroll & Rekening Bank
             </div>
             <div class="row g-3">
                 <div class="col-6">

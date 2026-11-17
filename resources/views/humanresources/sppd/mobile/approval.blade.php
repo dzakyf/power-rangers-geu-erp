@@ -65,6 +65,7 @@
             margin-bottom: 3px;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
@@ -109,21 +110,7 @@
         @endif
     </div>
 
-    <!-- Bottom Nav Mobile Bar -->
-    <div class="bottom-nav">
-        <a href="{{ route('sppd.mobile.index') }}" class="nav-item-mobile">
-            <i class="fa fa-list-check"></i>
-            <span>Daftar SPPD</span>
-        </a>
-        <a href="{{ route('sppd.mobile.form') }}" class="nav-item-mobile">
-            <i class="fa fa-circle-plus"></i>
-            <span>Buat SPPD</span>
-        </a>
-        <a href="{{ route('sppd.mobile.approval') }}" class="nav-item-mobile active">
-            <i class="fa fa-stamp"></i>
-            <span>Approval</span>
-        </a>
-    </div>
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'approval'])
 
 </body>
 </html>

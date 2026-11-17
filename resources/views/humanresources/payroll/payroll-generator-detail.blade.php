@@ -18,6 +18,9 @@
             <small class="text-muted">Daftar komponen aktif yang menjadi dasar perhitungan batch penggajian karyawan ini.</small>
         </div>
         <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 text-white shadow-sm" onclick="openDigitalPayslipPreview('{{ $empNik }}')">
+                <i class="fa fa-external-link me-1"></i> Buka Slip Digital (Preview)
+            </button>
             <button type="button" class="btn btn-sm btn-success rounded-pill px-3 text-white" onclick="previewGeneratorSlipDetail('{{ $empNik }}')">
                 <i class="fa fa-calculator me-1"></i> Simulasi Slip &amp; Presensi Cutoff
             </button>
@@ -79,7 +82,10 @@
                 var html = '<div class="card border shadow-sm rounded-3 mb-0" style="background: #fcfcfd;">' +
                     '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3">' +
                         '<h6 class="mb-0 fw-bold text-white"><i class="fa fa-file-text-o me-1"></i> Simulasi Perhitungan Slip Gaji: ' + d.name + ' (' + d.nik + ') — Periode ' + d.periode + '</h6>' +
-                        '<button type="button" class="btn btn-sm btn-light py-0 px-2 rounded-pill" onclick="$(\'#GeneratorSlipPreviewContainer\').slideUp();">Tutup</button>' +
+                        '<div class="d-flex align-items-center gap-2">' +
+                            '<button type="button" class="btn btn-sm btn-light py-0 px-2 rounded-pill text-primary fw-bold" onclick="openDigitalPayslipPreview(\'' + d.nik + '\')"><i class="fa fa-external-link me-1"></i> Buka Slip Digital</button>' +
+                            '<button type="button" class="btn btn-sm btn-light py-0 px-2 rounded-pill" onclick="$(\'#GeneratorSlipPreviewContainer\').slideUp();">Tutup</button>' +
+                        '</div>' +
                     '</div>' +
                     '<div class="card-body p-3">' +
                         '<div class="row g-3">' +
@@ -139,5 +145,12 @@
         }).fail(function() {
             $("#GeneratorSlipPreviewContainer").html('<div class="alert alert-danger py-2 text-center mb-0">Terjadi kesalahan saat menghubungi server.</div>');
         });
+    }
+
+    function openDigitalPayslipPreview(nik) {
+        var periodVal = $('#Salary_Period').val() || '{{ date('Y-m') }}';
+        var mainIdVal = $('#Main_ID').val() || '';
+        var url = "{{ url('payslip-digital') }}?nik=" + encodeURIComponent(nik) + "&period=" + encodeURIComponent(periodVal) + "&main_id=" + encodeURIComponent(mainIdVal) + "&source=generator";
+        window.open(url, '_blank');
     }
 </script>

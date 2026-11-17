@@ -36,7 +36,7 @@ class HcgaPermissionSeeder extends Seeder
 
     public function run()
     {
-        $hrdRole = Role::firstOrCreate(['name' => 'HRD', 'guard_name' => 'web']);
+        $hrdRole = Role::firstOrCreate(['name' => 'HRD', 'guard_name' => 'web', 'department' => null]);
 
         $this->command->info('Dumping HCGA/HRD menu permissions from menu_lists...');
         $hrdMenus = DB::table('menu_lists')->where('Modules', 'HRD')->get();

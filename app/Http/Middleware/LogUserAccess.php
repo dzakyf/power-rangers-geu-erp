@@ -21,7 +21,18 @@ class LogUserAccess
     {
         // Block unauthenticated requests before any route/view code executes
         if (!Auth::check()) {
-            return redirect()->route('login');
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            if ($request->is('mobile') || $request->is('mobile/*')) {
+                return redirect()->guest(route('mobile.login'));
+            }
+
+            return redirect()->guest(route('login'));
         }
 
         // Ambil payload / data request (baik dari POST, PUT, atau Query Parameters)

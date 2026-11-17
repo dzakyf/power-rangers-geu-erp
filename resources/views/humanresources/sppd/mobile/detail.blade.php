@@ -81,46 +81,52 @@
             z-index: 1000;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
-    <!-- Header Mobile Detail -->
-    <div class="header-nav">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="d-flex align-items-center">
-                <a href="{{ route('sppd.mobile.index') }}" class="text-white me-3 fs-5"><i class="fa fa-arrow-left"></i></a>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
+    <div class="finora-shell">
+        <div class="finora-topbar">
+            <a href="{{ route('sppd.mobile.index', $fromParams) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Detail SPPD</h1>
+            <span style="width: 38px;"></span>
+        </div>
+
+        <div class="finora-hero">
+            <div class="d-flex align-items-center justify-content-between mb-2">
                 <div>
-                    <h6 class="mb-0 fw-bold">{{ $sppd->SPPD_No }}</h6>
-                    <small class="text-white-50" style="font-size: 11px;">
+                    <div class="fw-bold">{{ $sppd->SPPD_No }}</div>
+                    <small class="opacity-75" style="font-size: 11px;">
                         <i class="fa fa-calendar-alt me-1"></i> {{ $sppd->Date_Start ?: '-' }} s/d {{ $sppd->Date_Finish ?: '-' }}
                     </small>
                 </div>
+                @php
+                    $badgeClass = 'bg-warning text-dark';
+                    if (in_array($sppd->Status, ['ACCEPTED', 'APPROVED'])) {
+                        $badgeClass = 'bg-success text-white';
+                    } elseif ($sppd->Status === 'REJECTED') {
+                        $badgeClass = 'bg-danger text-white';
+                    }
+                @endphp
+                <span class="badge {{ $badgeClass }} rounded-pill px-3 py-2 shadow-sm">{{ $sppd->Status }}</span>
             </div>
-            @php
-                $badgeClass = 'bg-warning text-dark';
-                if (in_array($sppd->Status, ['ACCEPTED', 'APPROVED'])) {
-                    $badgeClass = 'bg-success text-white';
-                } elseif ($sppd->Status === 'REJECTED') {
-                    $badgeClass = 'bg-danger text-white';
-                }
-            @endphp
-            <span class="badge {{ $badgeClass }} rounded-pill px-3 py-2 shadow-sm">{{ $sppd->Status }}</span>
-        </div>
 
-        <!-- Tombol Aksi Download PDF -->
-        <div class="d-flex gap-2 mt-2 pt-2 border-top border-white border-opacity-25">
-            <a href="{{ url('hrd-sppd-print?ID=' . $sppd->ID) }}" target="_blank" class="btn btn-sm btn-light text-primary rounded-pill px-3 py-1 fw-bold flex-fill text-center" style="font-size: 11px;">
-                <i class="fa fa-file-pdf text-danger me-1"></i> Form Pengajuan
-            </a>
-            @if(in_array($sppd->Status, ['ACCEPTED', 'APPROVED']))
-            <a href="{{ url('hrd-sppd-print-approved?ID=' . $sppd->ID) }}" target="_blank" class="btn btn-sm btn-light text-success rounded-pill px-3 py-1 fw-bold flex-fill text-center" style="font-size: 11px;">
-                <i class="fa fa-certificate text-success me-1"></i> Lembar Disetujui
-            </a>
-            @endif
+            <!-- Tombol Aksi Download PDF -->
+            <div class="d-flex gap-2 mt-2 pt-2 border-top border-white border-opacity-25">
+                <a href="{{ url('hrd-sppd-print?ID=' . $sppd->ID) }}" target="_blank" class="btn btn-sm btn-light text-success rounded-pill px-3 py-1 fw-bold flex-fill text-center" style="font-size: 11px;">
+                    <i class="fa fa-file-pdf text-danger me-1"></i> Form Pengajuan
+                </a>
+                @if(in_array($sppd->Status, ['ACCEPTED', 'APPROVED']))
+                <a href="{{ url('hrd-sppd-print-approved?ID=' . $sppd->ID) }}" target="_blank" class="btn btn-sm btn-light text-success rounded-pill px-3 py-1 fw-bold flex-fill text-center" style="font-size: 11px;">
+                    <i class="fa fa-certificate text-success me-1"></i> Lembar Disetujui
+                </a>
+                @endif
+            </div>
         </div>
-    </div>
-
-    <div class="container px-3 mt-3">
 
         <!-- 1. Informasi Pokok SPPD -->
         <div class="detail-card">

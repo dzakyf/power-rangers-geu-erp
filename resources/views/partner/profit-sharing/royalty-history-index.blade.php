@@ -16,9 +16,10 @@
 </div>
 
 <div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">HISTORY PEMBAYARAN ROYALTY</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'History Royalti'])
+
             <div id="MembershipGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div>
             <div>
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
@@ -34,7 +35,6 @@
 
 
 <div id="Grid1Detail" class="row m-1" style="display:none;">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">HISTORY PEMBAYARAN ROYALTY</div>
     <div class="card w-100">
         <div class="card-body">
             <!-- <div id="MembershipGrid" style="width: w-100auto;height:320px; background-color:white;overflow:hidden" class=" mb-2"></div> -->
@@ -42,7 +42,7 @@
                 <!-- <input type="button" id="detailWarehouseMonitoring" name="detailWarehouseMonitoring" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" /> -->
 
             </div>
-            <h5>Update Informasi Kemitraan</h5>
+            <h5 class="bdp-index-title">Update Informasi Kemitraan</h5>
             <form id="updateApplicationInfoForm" action="partner-profit-sharing-royalty-update" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="Application_Id" id="Application_Id" class="form-control" readonly />
@@ -62,7 +62,7 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="Transfer_Doc">Biaya Administrasi<span style="color: red;">*</span></label>
+                            <label for="Transfer_Doc">Bukti Transfer<span style="color: red;">*</span></label>
                             <input type="file" name="Transfer_Doc" id="Transfer_Doc" class="form-control" required />
                         </div>
                     </div>
@@ -121,10 +121,9 @@
     }
 
     function selectMitra(id, cellIdx) {
-        royaltyId = Grid1.getRowAttribute(id, 'ID');
-
-        $('#Application_Id').val(royaltyId)
-        console.log(royaltyId)
+        // The XML row id is the account_payable ID.
+        royaltyId = id;
+        $('#Application_Id').val(royaltyId);
     }
 
     function doubleClickMitra() {
@@ -133,6 +132,11 @@
 
     $('#updateApplicationInfoForm').on('submit', function(e) {
         e.preventDefault();
+
+        if (!royaltyId) {
+            alert('Pilih data terlebih dahulu.');
+            return;
+        }
 
         let formData = new FormData(this);
 
@@ -145,17 +149,20 @@
             processData: false,
             contentType: false,
             cache: false,
-            success: function(response, status, xhr) {
-                alert("Berhasil mengupdate info pengajuan")
-                // $('#updateApplicationInfoForm')[0].reset()
+            success: function(response) {
+                alert("Berhasil mengupdate info pengajuan");
+                $('#updateApplicationInfoForm')[0].reset();
+                $('#Grid1Detail').hide();
+                Grid1.clearAndLoad('partner-profit-sharing-royalty-data');
             },
-            error: function(xhr, status, error) {
-                console.log('Error details:', xhr.responseText);
-
+            error: function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                    ? xhr.responseJSON.message
+                    : 'Gagal mengirim dokumen. Silakan coba lagi.';
+                alert(msg);
             },
             complete: function() {
                 $('#submitBtn').prop('disabled', false).text('Submit');
-                $('#transfer_application_id').val(royaltyId)
             }
         });
 

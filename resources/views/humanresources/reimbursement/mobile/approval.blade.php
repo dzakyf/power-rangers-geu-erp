@@ -66,6 +66,7 @@
             margin-bottom: 3px;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
@@ -158,25 +159,7 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar -->
-    <div class="bottom-nav">
-        <a href="{{ route('reimbursement.mobile.index') }}" class="nav-item-mobile">
-            <i class="fa fa-receipt"></i>
-            <span>Reimbursement</span>
-        </a>
-        <a href="{{ route('reimbursement.mobile.form') }}" class="nav-item-mobile">
-            <i class="fa fa-plus-circle text-primary" style="font-size: 26px;"></i>
-            <span>Ajukan</span>
-        </a>
-        <a href="{{ route('reimbursement.mobile.approval') }}" class="nav-item-mobile active">
-            <i class="fa fa-check-double text-warning"></i>
-            <span>Approval</span>
-        </a>
-        <a href="{{ url('hrd-reimbursement-index') }}" class="nav-item-mobile">
-            <i class="fa fa-desktop"></i>
-            <span>Desktop</span>
-        </a>
-    </div>
+    @include('humanresources.mobile.partials.bottom-nav', ['active' => 'approval'])
 
     <!-- Bootstrap Bundle JS -->
     <script src="{{ asset('adminor/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>

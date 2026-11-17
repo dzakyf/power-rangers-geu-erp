@@ -1149,7 +1149,7 @@ class ProfitSharingController extends Controller
                 'Payment_Acc_No'         => '',                      // nomor rekening sumber pembayaran (rekening perusahaan)
                 'Payment_Note'           => '',                      // keterangan pada slip transfer
                 'materai'                => 0,                       // flag meterai: 1 jika dokumen perlu meterai Rp10.000
-                'Opportunity_Id' => $partner[0]->id,
+                'Opportunity_Id'        => $partner[0]->id,
             ]);
 
             $firstLevel = DB::table('approval_level')
@@ -1188,38 +1188,56 @@ class ProfitSharingController extends Controller
 
     public function updateRoyaltyPaymentData(Request $r)
     {
-        $b = $r->all();
-        $allFiles = $r->allFiles();
+        $applicationId = (int) $r->input('Application_Id');
+        $status = (string) $r->input('Status');
+        $file = $r->file('Transfer_Doc');
 
-        $id = DB::table('account_payable as ap')->where('ap.ID', '=', $b['Application_Id'])->update([
-            'Status' => $b['Status'],
-        ]);
-
-        if (isset($allFiles['Transfer_Doc'])) {
-            $files = $allFiles['Transfer_Doc'];
-
-            $files = is_array($files) ? $files : [$files];
-
-            foreach ($files as $file) {
-                if ($file->isValid()) {
-                    $path = $file->store("$this->year/$this->month", 'public');
-                    $ext = $file->getClientOriginalExtension();
-
-                    $filename = basename($path);
-                    $desc = "Bukti Transfer";
-                    $topic = "profit-sharing";
-                    $mapTo = $id;
-
-                    $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
-
-                    $updatedId = DB::table('account_payable as ap')->where('ap.ID', '=', $b['Application_Id'])->update([
-                        'Url_Transfer' => asset("filevendor/$path"),
-                    ]);
-                }
-            }
+        if (!$applicationId || !DB::table('account_payable')->where('ID', $applicationId)->exists()) {
+            return response()->json(['message' => 'Data pengajuan tidak ditemukan.'], 422);
         }
 
-        return response()->json(['message' => 'success'], 200);
+        if (!in_array($status, ['WAITING_PAYMENT', 'PAID'], true)) {
+            return response()->json(['message' => 'Status pembayaran tidak valid.'], 422);
+        }
+
+        if (!$file || !$file->isValid()) {
+            return response()->json(['message' => 'Dokumen bukti transfer wajib diunggah.'], 422);
+        }
+
+        try {
+            DB::transaction(function () use ($applicationId, $status, $file) {
+                $path = $file->store("$this->year/$this->month", 'public');
+
+                if (!$path) {
+                    throw new \RuntimeException('Gagal menyimpan dokumen.');
+                }
+
+                $ext = $file->getClientOriginalExtension();
+
+                DB::table('account_payable')->where('ID', $applicationId)->update([
+                    'Status' => $status,
+                    'Url_Transfer' => asset("filevendor/$path"),
+                    'Last_Update' => now(),
+                ]);
+
+                $this->uploaderService->uploadMetaFile(
+                    $path,
+                    basename($path),
+                    'Bukti Transfer',
+                    $ext,
+                    'profit-sharing',
+                    $applicationId
+                );
+            });
+
+            return response()->json(['message' => 'success'], 200);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Royalty transfer upload failed: ' . $e->getMessage(), [
+                'application_id' => $applicationId,
+            ]);
+
+            return response()->json(['message' => 'Gagal menyimpan dokumen: ' . $e->getMessage()], 500);
+        }
     }
 
     public function monthlyMitraprofitSharing()
@@ -1443,15 +1461,20 @@ class ProfitSharingController extends Controller
         $b  = $r->all();
         $session = $this->userService->getCurrentSessionUserInfo();
 
-        $d = DB::table('account_payable as ap');
+        // History Royalty must only list payables that belong to a
+        // PROFIT_SHARING approval request (not the whole AP ledger).
+        $d = DB::table('account_payable as ap')
+            ->join('approval_request as ar', 'ar.Map_To', '=', 'ap.ID')
+            ->where('ar.Request_Type', 'PROFIT_SHARING');
 
         if (in_array($session->Position, ["MITRA"])) {
-            $d = $d->join('opportunity_partner as op', 'op.id', '=', 'ap.Opportunity_Id')
+            $d->join('opportunity_partner as op', 'op.id', '=', 'ar.Opportunity_Partner_Id')
                 ->where("op.user_row_id", "=", $session->id);
         }
 
-        $d =  $d->select('ap.*')
-            ->orderBy('ID', 'DESC')->get();
+        $d = $d->select('ap.*')
+            ->distinct()
+            ->orderBy('ap.ID', 'DESC')->get();
 
         $xml = new SimpleXMLElement('<rows></rows>');
 
@@ -1459,6 +1482,7 @@ class ProfitSharingController extends Controller
 
         foreach ($d as $p) {
             $row = $xml->addChild('row');
+            $row->addAttribute('id', $p->ID);
             $row->addAttribute('ID', $p->ID);
             $row->addChild('cell', $counter);
             $row->addChild('cell', $p->Task_ID);

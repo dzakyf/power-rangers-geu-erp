@@ -116,6 +116,17 @@ class RenewalTerminationTransferDocsTest extends TestCase
         $this->assertStringContainsString($expectedDate, $text);
         $this->assertStringContainsString('ACTIVE', $text);
         $this->assertStringContainsString('500000', $text);
+
+        // Checkbox marks must be ASCII so Times New Roman does not substitute
+        // an Arabic-looking fallback glyph for U+2612/U+2610.
+        $this->assertStringContainsString('[X]', $text, 'The selected transfer type must be marked with [X]');
+        $this->assertStringContainsString('[ ]', $text, 'Unselected transfer types must be marked with [ ]');
+        $this->assertStringNotContainsString('☒', $text);
+        $this->assertStringNotContainsString('☐', $text);
+
+        // The template has ${mitra_fullname}; it must be replaced.
+        $this->assertStringContainsString('Doc Test Co', $text);
+        $this->assertStringNotContainsString('${mitra_fullname}', $text);
     }
 
     /** @test */
@@ -176,5 +187,11 @@ class RenewalTerminationTransferDocsTest extends TestCase
         $this->assertEquals('INACTIVE', $row->Result);
         $this->assertEquals(750000, (float) $row->Fee);
         $this->assertNotNull($row->Effective_Transfer_At);
+
+        $this->assertNotNull($row->File_Id, 'The finalized document must be linked to the transfer row');
+        $meta = DB::table('meta_files')->where('ID', $row->File_Id)->first();
+        $this->assertNotNull($meta);
+        $this->assertFileExists(public_path($meta->Filename), 'The finalized document must be kept on disk');
+        @unlink(public_path($meta->Filename));
     }
 }

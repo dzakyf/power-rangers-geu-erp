@@ -12,7 +12,7 @@
 
 <div class="card mb-3">
     <div class="card-header m-3">
-        <h5>APPROVAL RENEWAL</h5>
+        <h5 class="bdp-index-title">APPROVAL RENEWAL</h5>
     </div>
     <div class="card-body">
         <div id="PartnerGrid" style="width:auto;height:320px; background-color:white;overflow:hidden" class="mb-2"></div>
@@ -20,6 +20,7 @@
             <!-- <input type="button" value="Buat Pengajuan" class="btn btn-success" onclick="redirectToCreateApplication()" /> -->
             <input type="button" value="Log" class="btn btn-info" onclick="doubleClickMitra()" />
             <input type="button" id="detailBtn" value="Detail" class="btn btn-primary" onclick="showDetail()" />
+            @if(can_menu('SI00273', 'approve'))
             <div class="btn-group " role="group">
                 <div class="btn-group" role="group">
                     <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -28,9 +29,11 @@
                     <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
                         <a class="dropdown-item" href="#" onclick="approveClick('APPROVED')">Approve</a>
                         <a class="dropdown-item" href="#" onclick="approveClick('REJECTED')">Reject</a>
+                            @include('approval.partials.force-approve-menu-item', ['idVar' => 'mitraId'])
                     </div>
                 </div>
             </div>
+            @endif
         </div>
     </div>
 </div>
@@ -163,4 +166,5 @@
         });
     }
 </script>
+@include('approval.partials.force-approve-script')
 @endsection

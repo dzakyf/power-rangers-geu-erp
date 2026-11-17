@@ -39,9 +39,10 @@ $years = $years->map(fn($y) => (int) $y)->unique()->sortByDesc(function ($y) {
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">TEAM PERFORMANCE</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Team Performance'])
+
 			<div class="form-inline mb-3">
 				<label class="mr-2">Tahun</label>
 				<select id="filter_year" class="form-control mr-3">

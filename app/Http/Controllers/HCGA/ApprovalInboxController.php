@@ -221,6 +221,21 @@ class ApprovalInboxController extends Controller
                 'icon' => 'fa-screwdriver-wrench',
                 'badge_color' => 'warning',
             ],
+            'EMPLOYEE_RESIGNATION' => [
+                'label' => 'Pengajuan Resign',
+                'icon' => 'fa-user-times',
+                'badge_color' => 'danger',
+            ],
+            'EXIT_CLEARANCE' => [
+                'label' => 'Exit Clearance',
+                'icon' => 'fa-clipboard-check',
+                'badge_color' => 'info',
+            ],
+            'DISCIPLINARY_SANCTION' => [
+                'label' => 'Surat Peringatan (SP)',
+                'icon' => 'fa-gavel',
+                'badge_color' => 'dark',
+            ],
             'GENERAL' => [
                 'label' => 'General Approval',
                 'icon' => 'fa-file-signature',
@@ -475,9 +490,8 @@ class ApprovalInboxController extends Controller
         return $query;
     }
 
-    public function detail(Request $request)
+    private function loadTaskDetailData(int $taskId): array
     {
-        $taskId = (int) $request->input('ID');
         $task = $this->taskQuery()->where('t.ID', $taskId)->first();
 
         if (!$task) {
@@ -533,7 +547,7 @@ class ApprovalInboxController extends Controller
         $canAct = ($isMyClaim || $canClaim || $isAdmin);
         $canRelease = ($isAdmin && strtoupper((string) $task->Task_Status) === 'CLAIMED');
 
-        return view('humanresources.approval.detail', compact(
+        return compact(
             'task',
             'candidates',
             'logs',
@@ -542,7 +556,22 @@ class ApprovalInboxController extends Controller
             'canClaim',
             'canRelease',
             'isMyClaim'
-        ));
+        );
+    }
+
+    public function detail(Request $request)
+    {
+        $taskId = (int) $request->input('ID');
+        $data = $this->loadTaskDetailData($taskId);
+
+        return view('humanresources.approval.detail', $data);
+    }
+
+    public function mobileDetail(int $id)
+    {
+        $data = $this->loadTaskDetailData($id);
+
+        return view('humanresources.approval.mobile.detail', $data);
     }
 
     public function claim(Request $request)

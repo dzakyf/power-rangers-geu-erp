@@ -25,6 +25,10 @@ $Saya =  Auth::user()->username;
     </ol>
 </div>
 
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partner.partials.index-title', ['title' => 'Panduan'])
+
 <div class="row">
     <div id="PanduanList" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
     <div>
@@ -35,6 +39,8 @@ $Saya =  Auth::user()->username;
         <input type="button" id="deletePanduanBtn" name="deletePanduanBtn" value="Delete Panduan" class="btn btn-danger mt-2 mr-2" onclick="deletePanduan()" />
         <div class="btn-group" role="group">
         </div>
+    </div>
+</div>
     </div>
 </div>
 

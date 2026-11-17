@@ -13,6 +13,8 @@ use App\Services\Payroll\PayrollTaxService;
 use App\Services\Payroll\PayrollAttendanceSyncService;
 use App\Services\Payroll\PayrollPayslipService;
 use App\Services\Payroll\PayrollApprovalService;
+use App\Services\Payroll\PayrollThrService;
+use App\Services\Payroll\PayrollAdvanceDeductionService;
 use App\Services\EmailSettingsService;
 
 class PayrollController extends Controller
@@ -47,13 +49,25 @@ class PayrollController extends Controller
      */
     protected $approvalService;
 
+    /**
+     * @var PayrollThrService
+     */
+    protected $thrService;
+
+    /**
+     * @var PayrollAdvanceDeductionService
+     */
+    protected $advanceDeductionService;
+
     public function __construct(
         PayrollCalculationService $calcService,
         PayrollTaxService $taxService,
         PayrollAttendanceSyncService $attendanceSyncService,
         PayrollPayslipService $payslipService,
         EmailSettingsService $emailSettingsService,
-        PayrollApprovalService $approvalService
+        PayrollApprovalService $approvalService,
+        PayrollThrService $thrService = null,
+        PayrollAdvanceDeductionService $advanceDeductionService = null
     ) {
         $this->calcService = $calcService;
         $this->taxService = $taxService;
@@ -61,6 +75,8 @@ class PayrollController extends Controller
         $this->payslipService = $payslipService;
         $this->emailSettingsService = $emailSettingsService;
         $this->approvalService = $approvalService;
+        $this->thrService = $thrService ?: app(PayrollThrService::class);
+        $this->advanceDeductionService = $advanceDeductionService ?: app(PayrollAdvanceDeductionService::class);
     }
 
     // =========================================================================
@@ -386,10 +402,6 @@ class PayrollController extends Controller
         $taskId = 'PG-' . $location . '-' . date('ymdhis');
         $defaultPeriod = date('Y-m');
 
-        $templates = DB::table('payrol_master_template')
-            ->orderBy('Payroll_ID', 'ASC')
-            ->get();
-
         // Hitung jumlah anggota yang terdaftar di tabel employment & komponen aktif per Main_ID
         $empCounts = DB::table('payrol_master_group as pmg')
             ->join('employment as e', 'e.NIK', '=', 'pmg.Group_ID')
@@ -424,7 +436,6 @@ class PayrollController extends Controller
         return view('humanresources.payroll.payroll-generator', [
             'taskId'             => $taskId,
             'defaultPeriod'      => $defaultPeriod,
-            'templates'          => $templates,
             'mainGroups'         => $mainGroups,
             'pendingBatchCount'  => $pendingBatchCount,
             'approvedBatchCount' => $approvedBatchCount,
@@ -470,18 +481,6 @@ class PayrollController extends Controller
             )
             ->where('pmg.Main_ID', $mainId);
 
-        // Jika memilih template khusus selain SALARY, ambil daftar Payroll_ID yang termasuk di template
-        $templatePayrollIds = null;
-        if (!empty($category) && $category !== 'SALARY') {
-            $tplItems = DB::table('payrol_template_master_lists')
-                ->where('Main_ID', $category)
-                ->pluck('Payroll_ID')
-                ->toArray();
-            if (!empty($tplItems)) {
-                $templatePayrollIds = array_map('strtoupper', array_map('trim', $tplItems));
-            }
-        }
-
         // Preload formula master lists untuk membedakan OVERTIME & KJK
         $masterFormulas = [];
         $masterLists = DB::table('payrol_master_lists')->get();
@@ -512,13 +511,14 @@ class PayrollController extends Controller
             $tunjangan = 0.0;
             $overtime = 0.0;
             $kjk = 0.0;
+            $thr = 0.0;
             $tunjanganPph = 0.0;
             $deduction = 0.0;
             $pph = 0.0;
 
             foreach ($items as $it) {
                 $pId = strtoupper(trim((string)$it->Payroll_ID));
-                if ($templatePayrollIds !== null && !in_array($pId, $templatePayrollIds) && !in_array($pId, ['PY000000', 'PYH00001'])) {
+                if ($pId === 'DED_SPPD_KASBON') {
                     continue;
                 }
 
@@ -538,6 +538,8 @@ class PayrollController extends Controller
                         $overtime += $val;
                     } elseif ($pId === 'PY000044' || $formula === 'KJK') {
                         $kjk += $val;
+                    } elseif ($pId === 'PY000060' || $formula === 'THR') {
+                        $thr += $val;
                     } else {
                         $tunjangan += $val;
                     }
@@ -546,27 +548,53 @@ class PayrollController extends Controller
                 }
             }
 
-            // Sinkronisasi langsung nilai Overtime & KJK dari modul Overtime/KJK untuk periode terpilih jika belum ter-recount
-            if ($category === 'SALARY' || $templatePayrollIds === null) {
-                try {
-                    $attSummary = $this->attendanceSyncService->getEmployeeAttendanceForPeriod($nik, $period, [
-                        'department' => $emp->Department,
-                    ]);
-                    if ((float)$attSummary['approved_overtime_amount'] > 0) {
-                        $overtime = (float)$attSummary['approved_overtime_amount'];
-                    }
-                    if ((float)($attSummary['approved_kjk_amount'] ?? 0) > 0) {
-                        $kjk = (float)$attSummary['approved_kjk_amount'];
-                    }
-                } catch (\Throwable $e) {
-                    // Fallback ke nilai payrol_group_lists
+            // Sinkronisasi langsung nilai Overtime, KJK, & THR untuk periode terpilih
+            try {
+                $attSummary = $this->attendanceSyncService->getEmployeeAttendanceForPeriod($nik, $period, [
+                    'department' => $emp->Department,
+                ]);
+                if ((float)$attSummary['approved_overtime_amount'] > 0) {
+                    $overtime = (float)$attSummary['approved_overtime_amount'];
                 }
+                if ((float)($attSummary['approved_kjk_amount'] ?? 0) > 0) {
+                    $kjk = (float)$attSummary['approved_kjk_amount'];
+                }
+            } catch (\Throwable $e) {
+                // Fallback ke nilai payrol_group_lists
             }
 
-            $thp = max(0.0, ($pokok + $tunjangan + $overtime + $kjk + $tunjanganPph) - ($deduction + $pph));
+            try {
+                $thrInfo = $this->thrService->getApprovedThrForEmployeePeriod($nik, $period);
+                if ((float)$thrInfo['amount'] > 0) {
+                    $thr = (float)$thrInfo['amount'];
+                }
+            } catch (\Throwable $e) {
+                // Fallback ke nilai payrol_group_lists
+            }
+
+            $advDedAmount = 0.0;
+            try {
+                $advInfo = $this->advanceDeductionService->getActiveDeductionsForEmployee($nik, $period);
+                $advDedAmount = (float) ($advInfo['total'] ?? 0.0);
+            } catch (\Throwable $e) {
+                $advDedAmount = 0.0;
+            }
+
+            $tunjanganDisplay = $tunjangan + $thr;
+            $thpBeforeAdv = max(0.0, ($pokok + $tunjanganDisplay + $overtime + $kjk + $tunjanganPph) - ($deduction + $pph));
+            $advDedAmount = min($advDedAmount, $thpBeforeAdv);
+
+            $deduction += $advDedAmount;
+            $thp = max(0.0, ($pokok + $tunjanganDisplay + $overtime + $kjk + $tunjanganPph) - ($deduction + $pph));
             $catLabel = $emp->Group_Use_For ?: ($useFor ?: 'INTERNAL');
             $typeSalLabel = $category ?: 'SALARY';
             $ptkpNote = $emp->PTKP_Status ? "PTKP: {$emp->PTKP_Status}" : 'Active';
+            if ($thr > 0) {
+                $ptkpNote .= ' | +THR Rp ' . number_format($thr, 0, ',', '.');
+            }
+            if ($advDedAmount > 0) {
+                $ptkpNote .= ' | -SPPD/Kasbon Rp ' . number_format($advDedAmount, 0, ',', '.');
+            }
 
             echo "<row id='" . htmlspecialchars($nik, ENT_QUOTES) . "'>";
             echo "<cell>1</cell>"; // 0: Select Checkbox (default checked)
@@ -577,7 +605,7 @@ class PayrollController extends Controller
             echo "<cell><![CDATA[{$emp->Main_ID}]]></cell>"; // 5: Salary Group
             echo "<cell><![CDATA[{$emp->Position}]]></cell>"; // 6: Position
             echo "<cell>{$pokok}</cell>"; // 7: Pokok
-            echo "<cell>{$tunjangan}</cell>"; // 8: Allowance
+            echo "<cell>{$tunjanganDisplay}</cell>"; // 8: Allowance (termasuk THR jika ada)
             echo "<cell>{$overtime}</cell>"; // 9: Overtime
             echo "<cell>{$kjk}</cell>"; // 10: KJK
             echo "<cell>{$tunjanganPph}</cell>"; // 11: WHT Allowance
@@ -879,9 +907,10 @@ class PayrollController extends Controller
                         $empCalc['custom_note'] = (string)$ov['note'];
                     }
                     $kjkVal = isset($empCalc['kjk']) ? (float)$empCalc['kjk'] : 0.0;
+                    $thrVal = isset($empCalc['thr']) ? (float)$empCalc['thr'] : 0.0;
                     $empCalc['thp'] = max(
                         0.0,
-                        ($empCalc['pokok'] + $empCalc['tunjangan'] + $empCalc['overtime'] + $kjkVal + $empCalc['tunjangan_pph'])
+                        ($empCalc['pokok'] + $empCalc['tunjangan'] + $empCalc['overtime'] + $kjkVal + $thrVal + $empCalc['tunjangan_pph'])
                         - ($empCalc['deduction'] + $empCalc['pph'])
                     );
                 }
@@ -930,6 +959,7 @@ class PayrollController extends Controller
                     'Tunjangan'            => $empCalc['tunjangan'],
                     'Overtime'             => $empCalc['overtime'],
                     'KJK'                  => isset($empCalc['kjk']) ? $empCalc['kjk'] : 0,
+                    'THR'                  => isset($empCalc['thr']) ? $empCalc['thr'] : 0,
                     'Tunjangan_PPH'        => $empCalc['tunjangan_pph'],
                     'Deduction'            => $empCalc['deduction'],
                     'PPH'                  => $empCalc['pph'],
@@ -1004,6 +1034,15 @@ class PayrollController extends Controller
                             'Salary_Period' => $period,
                         ]);
                 }
+
+                // Tandai item THR karyawan sudah masuk ke batch penggajian (idempotency guard)
+                if (!empty($empCalc['thr_item_ids'])) {
+                    $this->thrService->markThrAsProcessed($nik, $period, $taskId);
+                }
+
+                // Tandai item potongan SPPD/Kasbon/Reimburse sudah masuk ke batch penggajian (dibatasi maksimal THP)
+                $maxAdvDeductible = (float) ($empCalc['metadata']['deduction_breakdown']['advance_deduction']['amount'] ?? 0.0);
+                $this->advanceDeductionService->markDeductionsPosted($nik, $period, $taskId, $currentUser, $maxAdvDeductible);
             }
 
             // 4. Inisialisasi Dynamic Approval Workflow (ApprovalWorkflowService via PayrollApprovalService)
@@ -1247,12 +1286,15 @@ class PayrollController extends Controller
 
     /**
      * Tampilan Slip Gaji Digital Modern (Sesuai Layout Talenta / PT GEU)
+     * Mengakomodasi mode Final (Payroll Report) & Preview Recounting (Payroll Generator)
      */
     public function showDigitalPayslip(Request $request)
     {
         $nik = $request->input('NIK') ?: $request->input('nik');
         $taskId = $request->input('Task_ID') ?: $request->input('task_id');
         $period = $request->input('Period') ?: $request->input('period', date('Y-m'));
+        $source = $request->input('source', '');
+        $mainId = $request->input('Main_ID') ?: $request->input('main_id');
 
         if (empty($nik)) {
             // Jika tidak diberikan parameter NIK, ambil NIK user yang sedang login
@@ -1265,7 +1307,8 @@ class PayrollController extends Controller
         }
 
         try {
-            $payslipData = $this->payslipService->getPayslipData($nik, $period, $taskId);
+            $options = ['source' => $source, 'main_id' => $mainId];
+            $payslipData = $this->payslipService->getPayslipData($nik, $period, $taskId, $options);
             return view('humanresources.payroll.prints.payslip-digital', [
                 'payslip' => $payslipData,
             ]);
@@ -1282,13 +1325,16 @@ class PayrollController extends Controller
         $nik = $request->input('nik') ?: $request->input('NIK');
         $period = $request->input('period') ?: $request->input('Period', date('Y-m'));
         $taskId = $request->input('task_id') ?: $request->input('Task_ID');
+        $source = $request->input('source', '');
+        $mainId = $request->input('main_id') ?: $request->input('Main_ID');
 
         if (empty($nik)) {
             return response()->json(['success' => false, 'message' => 'Parameter NIK wajib diisi.'], 400);
         }
 
         try {
-            $payslipData = $this->payslipService->getPayslipData($nik, $period, $taskId);
+            $options = ['source' => $source, 'main_id' => $mainId];
+            $payslipData = $this->payslipService->getPayslipData($nik, $period, $taskId, $options);
             $recipientEmail = $payslipData['email'];
 
             if (empty($recipientEmail) || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
@@ -1303,10 +1349,29 @@ class PayrollController extends Controller
                 'payslip' => $payslipData,
             ])->render();
 
-            $subject = "Payslip Detail - {$payslipData['period']} - {$payslipData['name']}";
+            $subjectSuffix = !empty($payslipData['is_final']) ? '' : ' [PREVIEW RECOUNTING]';
+            $subject = "Payslip Detail - {$payslipData['period']} - {$payslipData['name']}{$subjectSuffix}";
 
             // Kirim via EmailSettingsService (PHPMailer SMTP)
             list($isSent, $errorMsg) = $this->emailSettingsService->send($recipientEmail, $subject, $htmlBody);
+
+            $currentUser = Auth::user() ? Auth::user()->username : 'SYSTEM';
+
+            // Catat log pengiriman jika tabel tersedia
+            if (Schema::hasTable('payroll_payslip_email_logs')) {
+                DB::table('payroll_payslip_email_logs')->insert([
+                    'task_id'         => $payslipData['task_id'],
+                    'salary_period'   => $payslipData['period'],
+                    'nik'             => $nik,
+                    'recipient_email' => $recipientEmail,
+                    'mode'            => !empty($payslipData['is_final']) ? 'FINAL' : 'PREVIEW',
+                    'status'          => $isSent ? 'SENT' : 'FAILED',
+                    'error_message'   => $isSent ? null : $errorMsg,
+                    'sent_by'         => $currentUser,
+                    'created_at'      => Carbon::now()->toDateTimeString(),
+                    'updated_at'      => Carbon::now()->toDateTimeString(),
+                ]);
+            }
 
             if ($isSent) {
                 return response()->json([
@@ -1326,6 +1391,153 @@ class PayrollController extends Controller
                 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * API Blasting Pengiriman Payslip Digital ke Banyak Email Karyawan
+     */
+    public function apiBlastPayslipEmails(Request $request)
+    {
+        $niksInput = $request->input('niks');
+        $period = $request->input('period') ?: date('Y-m');
+        $taskId = $request->input('task_id');
+        $source = $request->input('source', '');
+        $mainId = $request->input('main_id');
+        $currentUser = Auth::user() ? Auth::user()->username : 'SYSTEM';
+
+        $niks = [];
+        if (is_array($niksInput)) {
+            $niks = array_filter(array_map('trim', $niksInput));
+        } elseif (is_string($niksInput) && trim($niksInput) !== '') {
+            $niks = array_filter(array_map('trim', explode(',', $niksInput)));
+        }
+
+        if (empty($niks)) {
+            if (!empty($taskId)) {
+                $niks = DB::table('salary')->where('Task_ID', $taskId)->pluck('Group_ID')->toArray();
+            } elseif (!empty($mainId)) {
+                $niks = DB::table('payrol_master_group')->where('Main_ID', $mainId)->pluck('Group_ID')->toArray();
+            }
+        }
+
+        if (empty($niks)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada NIK karyawan yang dipilih untuk blasting email.',
+            ], 400);
+        }
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(300);
+        }
+
+        $results = [];
+        $sentCount = 0;
+        $failedCount = 0;
+        $skippedCount = 0;
+        $hasLogTable = Schema::hasTable('payroll_payslip_email_logs');
+
+        foreach ($niks as $nik) {
+            $nik = trim((string)$nik);
+            if ($nik === '') continue;
+
+            try {
+                $options = ['source' => $source, 'main_id' => $mainId];
+                $payslipData = $this->payslipService->getPayslipData($nik, $period, $taskId, $options);
+                $recipientEmail = $payslipData['email'];
+                $empName = $payslipData['name'] ?? $nik;
+
+                if (empty($recipientEmail) || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+                    $skippedCount++;
+                    $results[] = [
+                        'nik'     => $nik,
+                        'name'    => $empName,
+                        'email'   => $recipientEmail ?: '-',
+                        'status'  => 'SKIPPED',
+                        'message' => 'Alamat email tidak valid atau belum terdaftar di sistem.',
+                    ];
+
+                    if ($hasLogTable) {
+                        DB::table('payroll_payslip_email_logs')->insert([
+                            'task_id'         => $payslipData['task_id'],
+                            'salary_period'   => $payslipData['period'],
+                            'nik'             => $nik,
+                            'recipient_email' => $recipientEmail ?: '-',
+                            'mode'            => !empty($payslipData['is_final']) ? 'FINAL' : 'PREVIEW',
+                            'status'          => 'SKIPPED',
+                            'error_message'   => 'Email tidak valid atau belum terdaftar.',
+                            'sent_by'         => $currentUser,
+                            'created_at'      => Carbon::now()->toDateTimeString(),
+                            'updated_at'      => Carbon::now()->toDateTimeString(),
+                        ]);
+                    }
+                    continue;
+                }
+
+                $htmlBody = view('humanresources.payroll.prints.payslip-digital', [
+                    'payslip' => $payslipData,
+                ])->render();
+
+                $subjectSuffix = !empty($payslipData['is_final']) ? '' : ' [PREVIEW RECOUNTING]';
+                $subject = "Payslip Detail - {$payslipData['period']} - {$empName}{$subjectSuffix}";
+
+                list($isSent, $errorMsg) = $this->emailSettingsService->send($recipientEmail, $subject, $htmlBody);
+
+                if ($isSent) {
+                    $sentCount++;
+                    $results[] = [
+                        'nik'     => $nik,
+                        'name'    => $empName,
+                        'email'   => $recipientEmail,
+                        'status'  => 'SENT',
+                        'message' => 'Berhasil terkirim.',
+                    ];
+                } else {
+                    $failedCount++;
+                    $results[] = [
+                        'nik'     => $nik,
+                        'name'    => $empName,
+                        'email'   => $recipientEmail,
+                        'status'  => 'FAILED',
+                        'message' => $errorMsg ?: 'Gagal terkirim via SMTP.',
+                    ];
+                }
+
+                if ($hasLogTable) {
+                    DB::table('payroll_payslip_email_logs')->insert([
+                        'task_id'         => $payslipData['task_id'],
+                        'salary_period'   => $payslipData['period'],
+                        'nik'             => $nik,
+                        'recipient_email' => $recipientEmail,
+                        'mode'            => !empty($payslipData['is_final']) ? 'FINAL' : 'PREVIEW',
+                        'status'          => $isSent ? 'SENT' : 'FAILED',
+                        'error_message'   => $isSent ? null : $errorMsg,
+                        'sent_by'         => $currentUser,
+                        'created_at'      => Carbon::now()->toDateTimeString(),
+                        'updated_at'      => Carbon::now()->toDateTimeString(),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                $failedCount++;
+                $results[] = [
+                    'nik'     => $nik,
+                    'name'    => $nik,
+                    'email'   => '-',
+                    'status'  => 'ERROR',
+                    'message' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json([
+            'success'       => true,
+            'message'       => "Blasting payslip selesai: {$sentCount} terkirim, {$failedCount} gagal, {$skippedCount} dilewati.",
+            'total'         => count($niks),
+            'sent'          => $sentCount,
+            'failed'        => $failedCount,
+            'skipped'       => $skippedCount,
+            'results'       => $results,
+        ]);
     }
 
     /**
@@ -1707,6 +1919,80 @@ class PayrollController extends Controller
         header('Cache-Control: max-age=0');
         $writer->save('php://output');
         exit;
+    }
+
+    // =========================================================================
+    // POTONGAN SPPD, KASBON & REIMBURSE (AUTO-PULL + MANUAL OVERRIDE)
+    // =========================================================================
+
+    public function deductionsList(Request $request)
+    {
+        $mainId = trim((string) $request->input('main_id', ''));
+        $periodeYm = trim((string) $request->input('periode', date('Y-m')));
+        $nik = $request->input('nik');
+
+        $data = $this->advanceDeductionService->listDeductions($mainId, $periodeYm, $nik ? trim((string) $nik) : null);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+        ]);
+    }
+
+    public function deductionsAutoPull(Request $request)
+    {
+        $mainId = trim((string) $request->input('main_id', ''));
+        $periodeYm = trim((string) $request->input('periode', date('Y-m')));
+        $operator = Auth::user() ? Auth::user()->username : 'SYSTEM';
+
+        $res = $this->advanceDeductionService->autoPullOutstandingForPeriod($mainId, $periodeYm, $operator);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Auto-pull selesai: {$res['inserted']} item baru ditarik, {$res['skipped']} dilewati.",
+            'data'    => $res,
+        ]);
+    }
+
+    public function deductionsSave(Request $request)
+    {
+        $operator = Auth::user() ? Auth::user()->username : 'SYSTEM';
+
+        try {
+            $item = $this->advanceDeductionService->saveManualOrUpdateItem($request->all(), $operator);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Item potongan berhasil disimpan.',
+                'data'    => $item,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function deductionsEmployees(Request $request)
+    {
+        $mainId = trim((string) $request->input('main_id', ''));
+        $employees = $this->advanceDeductionService->getEmploymentOptions($mainId);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $employees,
+        ]);
+    }
+
+    public function deductionsDelete($id)
+    {
+        $res = $this->advanceDeductionService->deleteDraftItem((int) $id);
+
+        return response()->json([
+            'success' => $res['success'],
+            'message' => $res['message'],
+        ], $res['status']);
     }
 }
 

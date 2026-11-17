@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,37 +14,44 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: #333;
         }
+
         .payslip-container {
             max-width: 820px;
             margin: 25px auto;
             background: #ffffff;
             border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
             padding: 35px 40px;
         }
+
         .confidential-tag {
             color: #e53935;
             font-weight: 700;
             font-size: 0.85rem;
             letter-spacing: 0.5px;
         }
+
         .meta-table td {
             padding: 3px 0;
             font-size: 0.88rem;
             vertical-align: top;
         }
+
         .meta-label {
             color: #495057;
             width: 130px;
         }
+
         .meta-separator {
             width: 15px;
             text-align: center;
         }
+
         .meta-val {
             font-weight: 500;
             color: #212529;
         }
+
         .section-header {
             font-size: 0.95rem;
             font-weight: 700;
@@ -51,6 +59,7 @@
             padding-bottom: 6px;
             margin-bottom: 10px;
         }
+
         .sub-header {
             font-size: 0.75rem;
             font-weight: 700;
@@ -60,6 +69,7 @@
             margin-top: 10px;
             margin-bottom: 4px;
         }
+
         .item-row {
             display: flex;
             justify-content: space-between;
@@ -67,10 +77,12 @@
             padding: 3px 0;
             color: #495057;
         }
+
         .item-row .amount {
             font-weight: 500;
             color: #212529;
         }
+
         .total-row {
             display: flex;
             justify-content: space-between;
@@ -81,6 +93,7 @@
             padding-top: 8px;
             margin-top: 10px;
         }
+
         .thp-box {
             background-color: #f8f9fa;
             border-radius: 6px;
@@ -91,16 +104,19 @@
             margin-top: 12px;
             border: 1px solid #e9ecef;
         }
+
         .thp-label {
             font-size: 1.05rem;
             font-weight: 700;
             color: #212529;
         }
+
         .thp-amount {
             font-size: 1.25rem;
             font-weight: 800;
             color: #198754;
         }
+
         .disclaimer-text {
             font-size: 0.72rem;
             color: #8c98a4;
@@ -109,13 +125,16 @@
             border-top: 1px solid #f1f3f5;
             padding-top: 15px;
         }
+
         @media print {
             body {
                 background: #ffffff;
             }
+
             .no-print {
                 display: none !important;
             }
+
             .payslip-container {
                 box-shadow: none;
                 padding: 0;
@@ -125,6 +144,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- Top Action Bar -->
@@ -133,11 +153,19 @@
             <button onclick="window.history.back()" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
                 <i class="fa fa-arrow-left me-1"></i> Kembali
             </button>
-            <div class="fw-bold text-dark fs-6">
-                Payslip Detail
+            <div class="fw-bold text-dark fs-6 d-flex align-items-center gap-2">
+                <span>Payslip Detail</span>
+                @if (!empty($payslip['is_final']))
+                    <span class="badge bg-success text-white fw-bold rounded-pill px-2 py-1"
+                        style="font-size: 0.72rem;">FINAL / RESMI</span>
+                @else
+                    <span class="badge bg-warning text-dark fw-bold rounded-pill px-2 py-1"
+                        style="font-size: 0.72rem;">PREVIEW RECOUNTING (DRAFT)</span>
+                @endif
             </div>
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="sendSlipEmail('{{ $payslip['nik'] }}', '{{ $payslip['period'] }}')">
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                    onclick="sendSlipEmail('{{ $payslip['nik'] }}', '{{ $payslip['period'] }}', '{{ $payslip['task_id'] }}', '{{ $payslip['source'] ?? '' }}', '{{ $payslip['main_id'] ?? '' }}')">
                     <i class="fa fa-envelope me-1"></i> Kirim ke Email
                 </button>
                 <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" onclick="window.print()">
@@ -152,15 +180,26 @@
         <!-- Header: Logo, Company & Confidential -->
         <div class="d-flex justify-content-between align-items-start mb-3">
             <div class="d-flex align-items-center gap-2">
-                <img src="{{ asset('assets/images/geu-logo-color.webp') }}" alt="Logo" style="height: 48px; object-fit: contain;">
+                <img src="{{ asset('assets/images/geu-logo-color.webp') }}" alt="Logo"
+                    style="height: 48px; object-fit: contain;">
                 <div>
-                    <h5 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.3px;">{{ $payslip['company_name'] }}</h5>
-                    <small class="text-muted fw-semibold">GENERAL ENERGY UTAMA GROUP</small>
+                    <h5 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.3px;">{{ $payslip['company_name'] }}
+                    </h5>
+                    <small class="text-muted fw-semibold">GREEN ENERGY UTAMA</small>
                 </div>
             </div>
             <div class="text-end">
                 <div class="confidential-tag mb-1">*CONFIDENTIAL</div>
-                <div class="fw-bold text-dark fs-5" style="letter-spacing: 0.5px;">PAYSLIP</div>
+                <div class="d-flex align-items-center justify-content-end gap-2">
+                    <div class="fw-bold text-dark fs-5" style="letter-spacing: 0.5px;">PAYSLIP</div>
+                    @if (!empty($payslip['is_final']))
+                        <span class="badge bg-success text-white fw-bold px-2 py-1"
+                            style="font-size: 0.72rem;">FINAL</span>
+                    @else
+                        <span class="badge bg-warning text-dark fw-bold px-2 py-1" style="font-size: 0.72rem;">PREVIEW
+                            DRAFT</span>
+                    @endif
+                </div>
             </div>
         </div>
 
@@ -214,6 +253,17 @@
                         <td class="meta-separator">:</td>
                         <td class="meta-val">{{ $payslip['join_date'] }}</td>
                     </tr>
+                    <tr>
+                        <td class="meta-label">Email</td>
+                        <td class="meta-separator">:</td>
+                        <td class="meta-val">
+                            @if (!empty($payslip['email']))
+                                <span class="text-primary">{{ $payslip['email'] }}</span>
+                            @else
+                                <span class="text-muted fst-italic">Belum diatur</span>
+                            @endif
+                        </td>
+                    </tr>
                 </table>
             </div>
         </div>
@@ -223,17 +273,17 @@
             <!-- Kolom Kiri: Earnings -->
             <div class="col-md-6">
                 <div class="section-header border-bottom">Earnings</div>
-                
-                @foreach($payslip['earnings'] as $earn)
+
+                @foreach ($payslip['earnings'] as $earn)
                     <div class="item-row">
                         <span>{{ $earn['name'] }}</span>
                         <span class="amount">{{ number_format($earn['amount'], 0, ',', '.') }}</span>
                     </div>
                 @endforeach
 
-                @if(!empty($payslip['additional_earnings']))
+                @if (!empty($payslip['additional_earnings']))
                     <div class="sub-header">ADDITIONAL EARNINGS</div>
-                    @foreach($payslip['additional_earnings'] as $addEarn)
+                    @foreach ($payslip['additional_earnings'] as $addEarn)
                         <div class="item-row">
                             <span>{{ $addEarn['name'] }}</span>
                             <span class="amount">{{ number_format($addEarn['amount'], 0, ',', '.') }}</span>
@@ -257,12 +307,13 @@
                         <span class="amount text-danger">{{ number_format($deduct['amount'], 0, ',', '.') }}</span>
                     </div>
                 @empty
-                    <div class="item-row text-muted"><span>Tidak ada potongan standar</span><span class="amount">0</span></div>
+                    <div class="item-row text-muted"><span>Tidak ada potongan standar</span><span
+                            class="amount">0</span></div>
                 @endforelse
 
-                @if(!empty($payslip['additional_deductions']))
+                @if (!empty($payslip['additional_deductions']))
                     <div class="sub-header">ADDITIONAL DEDUCTIONS</div>
-                    @foreach($payslip['additional_deductions'] as $addDed)
+                    @foreach ($payslip['additional_deductions'] as $addDed)
                         <div class="item-row">
                             <span>{{ $addDed['name'] }}</span>
                             <span class="amount text-danger">{{ number_format($addDed['amount'], 0, ',', '.') }}</span>
@@ -288,7 +339,7 @@
             <!-- Kolom Kiri: Benefits* (Porsi Perusahaan) -->
             <div class="col-md-6">
                 <div class="section-header border-bottom">Benefits*</div>
-                @foreach($payslip['benefits'] as $b)
+                @foreach ($payslip['benefits'] as $b)
                     <div class="item-row text-muted">
                         <span>{{ $b['name'] }}</span>
                         <span class="amount">{{ number_format($b['amount'], 0, ',', '.') }}</span>
@@ -321,7 +372,8 @@
                 </div>
                 <div class="item-row">
                     <span>Attendance / Time Off Code</span>
-                    <span class="amount badge bg-secondary text-white">{{ $payslip['attendance']['attendance_code'] }}</span>
+                    <span
+                        class="amount badge bg-secondary text-white">{{ $payslip['attendance']['attendance_code'] }}</span>
                 </div>
             </div>
         </div>
@@ -333,11 +385,13 @@
 
         <!-- Legal Disclaimer & Footer -->
         <div class="disclaimer-text">
-            <p class="mb-1 text-muted">*These are the benefits you'll get from the company, but not included in your take-home pay (THP).</p>
+            <p class="mb-1 text-muted">*These are the benefits you'll get from the company, but not included in your
+                take-home pay (THP).</p>
             <p class="mb-1 fw-bold text-dark">THIS IS A COMPUTER GENERATED PRINTOUT AND NO SIGNATURE IS REQUIRED</p>
             <p class="mb-0 text-muted">
                 PLEASE NOTE THAT THE CONTENTS OF THIS STATEMENT SHOULD BE TREATED WITH ABSOLUTE CONFIDENTIALITY.
-                HARAP DIPERHATIKAN, ISI PERNYATAAN INI ADALAH RAHASIA KECUALI ANDA DIMINTA UNTUK MENGUNGKAPKANNYA UNTUK KEPERLUAN PAJAK ATAU HUKUM.
+                HARAP DIPERHATIKAN, ISI PERNYATAAN INI ADALAH RAHASIA KECUALI ANDA DIMINTA UNTUK MENGUNGKAPKANNYA UNTUK
+                KEPERLUAN PAJAK ATAU HUKUM.
             </p>
             <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
                 <span class="text-muted small">This payslip is generated by PT Green Energi Utama ERP</span>
@@ -349,12 +403,15 @@
     <!-- Scripts -->
     <script src="{{ asset('adminor/plugins/jquery/jquery.min.js') }}"></script>
     <script>
-        function sendSlipEmail(nik, period) {
-            if (!confirm('Kirim slip gaji digital ini ke email karyawan?')) return;
-            
-            var btn = event.target;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Mengirim...';
+        function sendSlipEmail(nik, period, taskId, source, mainId) {
+            if (!confirm('Kirim slip gaji digital ini ke email karyawan (' + nik + ')?')) return;
+
+            var btn = (typeof event !== 'undefined' && event.target) ? (event.target.closest('button') || event.target) :
+                document.querySelector('button');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Mengirim...';
+            }
 
             $.ajax({
                 url: '{{ url('api/payroll/send-payslip-email') }}',
@@ -362,11 +419,16 @@
                 data: {
                     _token: '{{ csrf_token() }}',
                     nik: nik,
-                    period: period
+                    period: period,
+                    task_id: taskId || '',
+                    source: source || '',
+                    main_id: mainId || ''
                 },
                 success: function(res) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa fa-envelope me-1"></i> Kirim ke Email';
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-envelope me-1"></i> Kirim ke Email';
+                    }
                     if (res.success) {
                         alert('Slip gaji berhasil dikirimkan ke: ' + res.recipient);
                     } else {
@@ -374,13 +436,17 @@
                     }
                 },
                 error: function(xhr) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa fa-envelope me-1"></i> Kirim ke Email';
-                    alert('Terjadi kesalahan saat memproses pengiriman email.');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-envelope me-1"></i> Kirim ke Email';
+                    }
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message :
+                        'Terjadi kesalahan saat memproses pengiriman email.';
+                    alert(msg);
                 }
             });
         }
     </script>
 </body>
-</html>
 
+</html>

@@ -10,6 +10,7 @@
 <script src="{{ asset('adminor/js/themecolor.js') }}"></script>
 <script src="{{ asset('adminor/js/swither-styles.js') }}"></script>
 <script src="{{ asset('adminor/js/custom.js') }}"></script>
+<script src="{{ asset('js/notification-stream.js') }}"></script>
 @stack('rightmenu-script')
 @stack('modals-script')
 @stack('scripts')

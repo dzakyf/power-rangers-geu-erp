@@ -397,14 +397,18 @@ class OnboardingController extends Controller
         }
 
         $approvalController = app(\App\Http\Controllers\ApprovalController::class);
+        $action = strtoupper((string) ($b['action'] ?? ''));
 
-        // Idempotent: an already-APPROVED request only needs its MITRA
-        // account (re)created - re-running processToNextLevel would only
-        // yield "Approval level not found" and block approve AND reject.
-        if (!$req || $req->Status !== 'APPROVED') {
+        // Idempotent only for a repeated APPROVE: an already-APPROVED request
+        // only needs its MITRA account (re)created. Any other action (notably
+        // REJECTED) must go through processToNextLevel so an already-processed
+        // request returns a real error instead of a silent success.
+        $isIdempotentApprove = $req && $req->Status === 'APPROVED' && $action === 'APPROVED';
+
+        if (!$isIdempotentApprove) {
             $result = $approvalController->processToNextLevel(
                 (int) ($b['id'] ?? 0),
-                $b['action'],
+                $action,
                 $b['notes'] ?? ''
             );
 
@@ -592,38 +596,26 @@ class OnboardingController extends Controller
 
     public function forceApprove(Request $r)
     {
-        $session = $this->userService->getCurrentSessionUserInfo();
-        if (!in_array($session->Position, ['Administrator', 'BOD'])) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        $result = app(\App\Services\Approval\ForceApproveService::class)
+            ->forceApprove((int) $r->input('id'));
+        $status = (int) ($result['status'] ?? 200);
+        unset($result['status']);
+
+        // Preserve the historical onboarding endpoint contract for
+        // already-processed requests.
+        if ($status === 422) {
+            $status = 500;
         }
 
-        $requestId = $r->input('id');
-        $req = DB::table('approval_request')->where('ID', $requestId)->first();
-        if (!$req) {
-            return response()->json(['success' => false, 'message' => 'Approval request not found'], 404);
-        }
-
-        try {
-            DB::transaction(function () use ($req, $session) {
-                DB::table('approval_request')->where('ID', $req->ID)->update([
-                    'Status' => 'APPROVED',
-                ]);
-
-                DB::table('approval_log')->insert([
-                    'Approver_Id'   => $session->id,
-                    'Notes'         => 'Force approved (bypass)',
-                    'Action'        => 'APPROVED',
-                    'Request_Id'    => $req->ID,
-                    'Level_Number'  => $req->Current_Level,
-                    'Next_Level'    => $req->Current_Level + 1,
-                ]);
-            });
-
-            $this->createMitraAccount($req->Opportunity_Partner_Id);
-
-            return response()->json(['success' => true, 'message' => 'Force approve success']);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+        return response()->json($result, $status);
     }
+
+    /**
+     * Public entry point used by the generic force-approve service.
+     */
+    public function ensureMitraAccountForForceApprove($opportunityPartnerId): void
+    {
+        $this->createMitraAccount($opportunityPartnerId);
+    }
+
 }

@@ -747,10 +747,12 @@ class RecruitmentStageController extends Controller
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Offering Letter berhasil diterbitkan! Kandidat resmi diterima (HIRED) dan telah didaftarkan ke data Karyawan (Employment), Bagan Organisasi, serta akun login (Users).',
+            'message' => 'Offering Letter berhasil diterbitkan! Kandidat resmi diterima (HIRED / PROBATION) dan telah didaftarkan ke data Karyawan (Employment), Bagan Organisasi, serta akun login (Users).',
             'data'    => [
                 'recruitment_id'         => $id,
                 'status'                 => 'HIRED',
+                'employment_status'      => $onboardResult['employment_status'] ?? 'PROBATION',
+                'placement_location_id'  => $onboardResult['placement_location_id'] ?? null,
                 'offering_letter_number' => $offeringNumber,
                 'nik'                    => $onboardResult['nik'] ?? null,
                 'username'               => $onboardResult['username'] ?? null,

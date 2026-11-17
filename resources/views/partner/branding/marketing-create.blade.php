@@ -138,7 +138,6 @@ $Saya =  Auth::user()->username;
     </form>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     $(document).ready(function() {
         $('#Media_Type').on('change', function(e) {

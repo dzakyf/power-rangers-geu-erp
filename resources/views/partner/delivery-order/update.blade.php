@@ -70,17 +70,33 @@
 
                         {{-- Section 3: Confirmation --}}
                         <h6 class="font-weight-bold">3. Konfirmasi</h6>
+                        @php
+                            $unitMeta = $poUnits ?? null;
+                            $packageCapacity = $unitMeta['capacity'] ?? 1;
+                            $hasPackage = $unitMeta && $packageCapacity > 1;
+                        @endphp
                         <div class="form-group">
-                            <label>Total Berat Aktual</label>
+                            <label>Total Qty Aktual</label>
                             <div class="input-group">
                                 <input type="number" class="form-control" id="Actual_Qty" name="Actual_Qty" min="0" step="any" value="{{ $po->Actual_Qty ?? '' }}" {{ !empty($locked) ? 'disabled' : '' }}>
                                 <div class="input-group-append">
-                                    <select class="form-control" id="BeratUnit" name="BeratUnit">
+                                    <select class="form-control" id="BeratUnit" name="BeratUnit" {{ !empty($locked) ? 'disabled' : '' }}>
                                         <option value="L" selected>L (Liter)</option>
+                                        @if ($hasPackage)
+                                            <option value="PCS">{{ $unitMeta['package'] }} ({{ number_format($packageCapacity, 2, ',', '.') }} L)</option>
+                                        @endif
                                     </select>
                                 </div>
                             </div>
+                            <small id="actualQtySummary" class="form-text text-muted"></small>
                         </div>
+                        @if ($hasPackage)
+                            <div class="alert alert-light border py-2 small">
+                                <div><strong>Kemasan PO:</strong> {{ $unitMeta['package'] }} &middot; {{ number_format($packageCapacity, 2, ',', '.') }} L / kemasan</div>
+                                <div><strong>Rencana PO:</strong> {{ number_format($unitMeta['qty'], 2, ',', '.') }} {{ $unitMeta['qty_unit'] === 'PCS' ? 'kemasan' : 'L' }} = {{ number_format($unitMeta['qty_plan_liters'], 2, ',', '.') }} L</div>
+                                <div><strong>Harga PO:</strong> Rp {{ number_format($unitMeta['po_price'], 0, ',', '.') }} / {{ $unitMeta['price_unit'] === 'PCS' ? 'kemasan' : 'L' }} (Rp {{ number_format($unitMeta['price_per_liter'], 2, ',', '.') }} / L)</div>
+                            </div>
+                        @endif
                         <div class="form-group">
                             <label>Status Surat Jalan</label>
                             <select class="form-control" id="DO_Status" name="DO_Status" {{ !empty($locked) ? 'disabled' : '' }}>
@@ -192,6 +208,7 @@
     }
     var capturedPhotos = [];
     var isLocked = {{ !empty($locked) ? 'true' : 'false' }};
+    var poUnits = @json($poUnits);
     var webcamStream = null;
     var isDragging = false;
     var dragStartX = 0;
@@ -322,6 +339,24 @@
         isDragging = false;
     }
 
+    function updateActualSummary() {
+        if (!poUnits) return;
+        var value = parseFloat($('#Actual_Qty').val()) || 0;
+        var unit = $('#BeratUnit').val();
+        var liters = unit === 'PCS' ? value * poUnits.capacity : value;
+        var packages = poUnits.capacity > 0 ? liters / poUnits.capacity : liters;
+        var estimated = liters * (parseFloat(poUnits.price_per_liter) || 0);
+
+        var text = liters.toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' L';
+        if (poUnits.capacity > 1) {
+            text += ' / ' + packages.toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' kemasan';
+        }
+        if (estimated > 0) {
+            text += ' • Estimasi Rp ' + estimated.toLocaleString('id-ID', { maximumFractionDigits: 0 });
+        }
+        $('#actualQtySummary').text(text);
+    }
+
     $(document).ready(function() {
         if (isLocked) {
             $('#UpdateReceiptForm').find('input, select, textarea, button').prop('disabled', true);
@@ -358,6 +393,9 @@
                 }
             );
         });
+
+        $('#Actual_Qty, #BeratUnit').on('input change', updateActualSummary);
+        updateActualSummary();
 
         $('#btnCapture').on('click', function() {
             var video = document.getElementById('webcam');

@@ -5,7 +5,9 @@
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/plugins/data-tables/css/datatables.min.css') }}">
 @endpush
 <!-- Main Content Header -->
-<h4>Dashboard Aftersales Management</h4>
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partials.index-title', ['title' => 'Dashboard Aftersales Management'])
 
 <div class="row mt-3 mb-2 align-items-end">
     <div class="col-auto">
@@ -250,6 +252,8 @@
                 </table>
             </div>
         </div>
+    </div>
+</div>
     </div>
 </div>
 

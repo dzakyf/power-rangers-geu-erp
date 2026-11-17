@@ -25,6 +25,10 @@ $Saya =  Auth::user()->username;
     </ol>
 </div>
 
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partner.partials.index-title', ['title' => 'Broadcast'])
+
 <div class="row">
     <div id="BroadcastList" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
     <div>
@@ -33,6 +37,8 @@ $Saya =  Auth::user()->username;
 
         <div class="btn-group" role="group">
         </div>
+    </div>
+</div>
     </div>
 </div>
 

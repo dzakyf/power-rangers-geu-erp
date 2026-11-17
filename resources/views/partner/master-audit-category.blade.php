@@ -33,6 +33,8 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	<div class="col-12">
 		<div class="card">
 			<div class="card-body">
+			    @include('partner.partials.index-title', ['title' => 'Master Audit'])
+
 				<div id="MasterAuditCategory" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 				<div>
 					<input type="button" id="ekselMasterAuditCategoryDet" name="ekselMasterAuditCategoryDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="MasterAuditCategory.toExcel('./export/generate.php');" />
@@ -96,30 +98,34 @@ $pic = DB::table('users')->where('Location', $LSP)->where('Priv_ID', 'SALES')->g
 	function MasterAuditCategoryStatus() {
 
 		MasterAuditCategoryID = MasterAuditCategory.getSelectedId();
-		if (MasterAuditCategoryID != '') {
-			$.ajax({
-				url:"partner-master-audit-category-change-status",
-				headers: {
-					'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-				},
-				type:"POST",
-				data:{param:MasterAuditParameterID},
-				success: function(data, textStatus, jqXHR) {
-					var dataPos = data.status;
-					if (dataPos == 'success') {
-						// var cariAWB = data.split(":");
-						alert('Training Application Submitted!');
-						refreshdata();
-					} else {
-						alert('Application Failed to Submit!');
-					}
-				},
-				error: function(jqXHR, textStatus, errorThrown) {
-					alert("Error Internal! Please Try again!");
-
-				}
-			})
+		if (!MasterAuditCategoryID) {
+			alert('Pilih data terlebih dahulu.');
+			return false;
 		}
+
+		$.ajax({
+			url: "partner-master-audit-category-change-status",
+			headers: {
+				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+			},
+			type: "POST",
+			data: { param: MasterAuditCategoryID },
+			success: function(data) {
+				if (data.status == 'success') {
+					alert('Status berhasil diubah');
+					refreshdata();
+				} else {
+					alert(data.message || 'Gagal mengubah status');
+				}
+			},
+			error: function(xhr) {
+				var msg = (xhr.responseJSON && xhr.responseJSON.message)
+					? xhr.responseJSON.message
+					: 'Error Internal! Please try again!';
+				alert(msg);
+			}
+		});
+
 		return true;
 	}
 	MasterAuditCategory = new dhtmlXGridObject('MasterAuditCategory');

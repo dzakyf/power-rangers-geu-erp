@@ -947,7 +947,7 @@ class MasterDataController extends Controller
 
     public function configSystemIndex()
     {
-        return view('credential.settings.index');
+        return view('partner.settings.index');
     }
 
     public function configSystemData(Request $r)

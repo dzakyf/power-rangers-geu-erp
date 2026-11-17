@@ -31,6 +31,10 @@ $Saya =  Auth::user()->username;
 	</ol>
 </div>
 
+<div class="card mb-3">
+    <div class="card-body">
+        @include('partner.partials.index-title', ['title' => 'Outstanding Leads'])
+
 <div class="row">
 	<div id="OpportunityLists" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 	<div>
@@ -39,7 +43,7 @@ $Saya =  Auth::user()->username;
 		<!-- <input type="button" id="delets" name="delets" value="Cancel Opportunity" class="btn btn-danger mt-2 mr-2" onclick="delsOpportunity()" /> -->
 
 		<div class="btn-group mt-2 mr-2" role="group">
-			<button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+			<button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 				<i class="fas fa-download"></i> Action
 			</button>
 			<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
@@ -54,6 +58,8 @@ $Saya =  Auth::user()->username;
 
 		<input type="file" id="csvFileInput" accept=".xlsx" style="display: none;">
 	</div>
+</div>
+    </div>
 </div>
 <div id="divlistOpportunity"></div>
 <div id="divlistProjectList"></div>

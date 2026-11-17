@@ -12,10 +12,10 @@
 
 <ul class="nav nav-tabs mb-3" id="instockTabs" role="tablist">
     <li class="nav-item">
-        <a class="nav-link active" id="instock-tab" data-toggle="tab" href="#instockTabContent" role="tab">Instock</a>
+        <a class="nav-link active" id="instock-tab" data-bs-toggle="tab" data-bs-target="#instockTabContent" href="#instockTabContent" role="tab">Instock</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" id="ampas-tab" data-toggle="tab" href="#ampasTabContent" role="tab">Ampas</a>
+        <a class="nav-link" id="ampas-tab" data-bs-toggle="tab" data-bs-target="#ampasTabContent" href="#ampasTabContent" role="tab">Ampas</a>
     </li>
 </ul>
 
@@ -25,18 +25,18 @@
         <div class="card mb-3">
             <div class="card-header m-3">
                 <div class="row align-items-end">
-                    <div class="col-md-6">
-                        <h5>Instock Supplies</h5>
-                    </div>
-                    <div class="col-md-auto ml-auto">
-                        <button class="btn btn-success btn-sm" id="btnShowCreateForm">+ Tambah Data</button>
-                        <button class="btn btn-danger btn-sm" id="btnDeleteSupply">Hapus</button>
+                    <div class="col-md-12">
+                        <h5 class="bdp-index-title">Instock Supplies</h5>
                     </div>
                 </div>
             </div>
             <div class="card-body p-3">
                 <div style="width:100%;overflow-x:auto;">
                     <div id="SupplyGrid" style="width:auto;height:250px; background-color:white;overflow:hidden"></div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-success btn-sm" id="btnShowCreateForm">+ Tambah Data</button>
+                    <button class="btn btn-danger btn-sm" id="btnDeleteSupply">Hapus</button>
                 </div>
             </div>
         </div>
@@ -72,18 +72,18 @@
         <div class="card mb-3" id="poCard" style="display:none;">
             <div class="card-header m-3">
                 <div class="row align-items-end">
-                    <div class="col-md-6">
-                        <h5>Pickup Order</h5>
-                    </div>
-                    <div class="col-md-auto ml-auto">
-                        <input type="button" value="Export Excel" class="btn btn-warning ml-2" onclick="PickupOrderGrid.toExcel('./export/generate.php');" />
-                        <input type="button" value="Update Rekom" class="btn btn-info ml-2" id="btnUpdateRekom" />
+                    <div class="col-md-12">
+                        <h5 class="bdp-index-title">Pickup Order</h5>
                     </div>
                 </div>
             </div>
             <div class="card-body p-3">
                 <div style="width:100%;overflow-x:auto;">
                     <div id="PickupOrderGrid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+                </div>
+                <div class="mt-3">
+                    <input type="button" value="Export Excel" class="btn btn-warning ml-2" onclick="PickupOrderGrid.toExcel('./export/generate.php');" />
+                    <input type="button" value="Update Rekom" class="btn btn-info ml-2" id="btnUpdateRekom" />
                 </div>
             </div>
         </div>
@@ -94,17 +94,17 @@
         <div class="card mb-3">
             <div class="card-header m-3">
                 <div class="row align-items-end">
-                    <div class="col-md-6">
-                        <h5>Ampas</h5>
-                    </div>
-                    <div class="col-md-auto ml-auto">
-                        <button class="btn btn-success" id="btnAddDregs">+ Add Ampas</button>
+                    <div class="col-md-12">
+                        <h5 class="bdp-index-title">Ampas</h5>
                     </div>
                 </div>
             </div>
             <div class="card-body p-3">
                 <div style="width:100%;overflow-x:auto;">
                     <div id="DregsGrid" style="width:auto;height:250px; background-color:white;overflow:hidden"></div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-success" id="btnAddDregs">+ Add Ampas</button>
                 </div>
             </div>
         </div>
@@ -205,6 +205,17 @@
             if (PickupOrderGrid) PickupOrderGrid.setSizes();
             if (DregsGrid) DregsGrid.setSizes();
         });
+
+        $('#ampas-tab').on('shown.bs.tab', function() {
+            if (DregsGrid) {
+                DregsGrid.setSizes();
+            }
+            loadDregsData();
+        });
+
+        $('#instock-tab').on('shown.bs.tab', function() {
+            if (SupplyGrid) SupplyGrid.setSizes();
+        });
     });
 
     // === Instock Supplies Grid ===
@@ -250,10 +261,10 @@
     function initPickupOrderGrid() {
         PickupOrderGrid = new dhtmlXGridObject('PickupOrderGrid');
         PickupOrderGrid.setImagePath("./dhtmlx/imgs/");
-        PickupOrderGrid.setHeader("No,PO Code,POO Name,Qty,Unit (L),Percentage (%),Actual Qty,Recommendation");
+        PickupOrderGrid.setHeader("No,PO Code,POO Name,Package,Qty Plan (L),Actual Qty (L),Percentage (%),Recommendation");
         PickupOrderGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#rspan,#rspan,#rspan");
-        PickupOrderGrid.setInitWidths("50,120,*,80,60,100,80,120");
-        PickupOrderGrid.setColAlign("center,left,left,right,center,right,right,right");
+        PickupOrderGrid.setInitWidths("50,120,*,150,90,90,90,110");
+        PickupOrderGrid.setColAlign("center,left,left,left,right,right,right,right");
         PickupOrderGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
         PickupOrderGrid.setSkin("dhx_skyblue");
         PickupOrderGrid.attachEvent("onRowSelect", function(id) {
@@ -291,8 +302,8 @@
     // === Webcam helpers ===
     var webcamStream = null;
 
-    function startWebcam() {
-        var video = document.getElementById('webcam');
+    function startWebcam(videoId) {
+        var video = document.getElementById(videoId);
         if (!video) return;
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({
@@ -344,15 +355,15 @@
                 '<input type="hidden" name="do_id" value="' + selectedDOId + '">' +
                 '<div class="text-center mb-3">' +
                 '<div class="border rounded p-2 bg-light">' +
-                '<video id="webcam" width="100%" autoplay playsinline style="max-height:200px;"></video>' +
+                '<video id="instockUpdateWebcam" width="100%" autoplay playsinline style="max-height:200px;"></video>' +
                 '<div class="mt-2">' +
-                '<button type="button" class="btn btn-sm btn-primary" id="btnCapture">Capture</button>' +
+                '<button type="button" class="btn btn-sm btn-primary" id="btnCaptureInstockUpdate">Capture</button>' +
                 '</div>' +
                 '</div>' +
                 '</div>' +
                 '<div class="form-group">' +
                 '<label>Captured Photos</label>' +
-                '<div id="photoGallery" class="row"></div>' +
+                '<div id="instockUpdateGallery" class="row"></div>' +
                 '</div>' +
                 '<div class="form-group">' +
                 '<label>Upload Image</label>' +
@@ -405,7 +416,7 @@
             });
 
             $('#appModal').one('shown.bs.modal', function() {
-                startWebcam();
+                startWebcam('instockUpdateWebcam');
             });
         });
     }
@@ -424,14 +435,15 @@
 
             var bodyHtml = '<form id="rekomForm">';
             bodyHtml += '<table class="table table-sm table-bordered">';
-            bodyHtml += '<thead><tr><th>PO Code</th><th>POO Name</th><th>Qty</th><th>Rekomendasi (Kg)</th></tr></thead>';
+            bodyHtml += '<thead><tr><th>PO Code</th><th>POO Name</th><th>Qty Plan (L)</th><th>Rekomendasi (L)</th></tr></thead>';
             bodyHtml += '<tbody>';
             items.forEach(function(item, idx) {
                 var rec = item.Instock_Recommendation || item.Recommendation || 0;
+                var qtyPlan = item.Qty_Plan_Liters != null ? item.Qty_Plan_Liters : (item.Qty || 0);
                 bodyHtml += '<tr>';
                 bodyHtml += '<td>' + (item.PO_Code || '') + '</td>';
                 bodyHtml += '<td>' + (item.POO_Name || '') + '</td>';
-                bodyHtml += '<td>' + (item.Qty || 0) + '</td>';
+                bodyHtml += '<td>' + qtyPlan + '</td>';
                 bodyHtml += '<td><input type="number" step="0.01" class="form-control form-control-sm rekom-input" name="recommendations[' + idx + '][recommendation]" value="' + rec + '">';
                 bodyHtml += '<input type="hidden" name="recommendations[' + idx + '][po_id]" value="' + item.ID + '"></td>';
                 bodyHtml += '</tr>';
@@ -509,7 +521,7 @@
             '<hr>' +
             '<div class="text-center mb-3">' +
             '<div class="border rounded p-2 bg-light">' +
-            '<video id="webcam" width="100%" autoplay playsinline style="max-height:200px;"></video>' +
+            '<video id="dregsWebcam" width="100%" autoplay playsinline style="max-height:200px;"></video>' +
             '<div class="mt-2">' +
             '<button type="button" class="btn btn-sm btn-primary" id="btnCaptureDregs">Capture</button>' +
             '</div>' +
@@ -571,7 +583,7 @@
         });
 
         $('#appModal').one('shown.bs.modal', function() {
-            startWebcam();
+            startWebcam('dregsWebcam');
             if (!$('#dregsDO').hasClass('select2-hidden-accessible')) {
                 $('#dregsDO').select2({
                     placeholder: '-- Pilih Surat Jalan --',
@@ -605,7 +617,7 @@
             col.className = 'col-4 col-md-3 mb-2';
             col.innerHTML = '<div class="position-relative" style="border:1px solid #ddd;border-radius:4px;overflow:hidden;">' +
                 '<img src="' + photo + '" style="width:100%;height:120px;object-fit:cover;" />' +
-                '<button type="button" class="btn btn-sm btn-danger position-absolute delete-photo-btn" style="top:2px;right:2px;padding:0 6px;" data-photo-index="' + index + '" data-container-id="' + containerId + '" data-arr-name="' + (containerId === 'photoGallery' ? 'instockPhotos' : 'dregsPhotos') + '">&times;</button>' +
+                '<button type="button" class="btn btn-sm btn-danger position-absolute delete-photo-btn" style="top:2px;right:2px;padding:0 6px;" data-photo-index="' + index + '" data-container-id="' + containerId + '" data-arr-name="' + (containerId === 'dregsPhotoGallery' ? 'dregsPhotos' : 'instockPhotos') + '">&times;</button>' +
                 '</div>';
             container.appendChild(col);
         });
@@ -623,8 +635,9 @@
     });
 
     // Capture for instock modal
-    $(document).on('click', '#btnCapture', function() {
-        var video = document.getElementById('webcam');
+    $(document).on('click', '#btnCaptureInstockUpdate', function() {
+        var video = document.getElementById('instockUpdateWebcam');
+        if (!video) return;
         var canvas = document.createElement('canvas');
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 480;
@@ -632,12 +645,13 @@
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         var dataUrl = canvas.toDataURL('image/png');
         instockPhotos.push(dataUrl);
-        renderGallery('photoGallery', instockPhotos);
+        renderGallery('instockUpdateGallery', instockPhotos);
     });
 
     // Capture for dregs modal
     $(document).on('click', '#btnCaptureDregs', function() {
-        var video = document.getElementById('webcam');
+        var video = document.getElementById('dregsWebcam');
+        if (!video) return;
         var canvas = document.createElement('canvas');
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 480;

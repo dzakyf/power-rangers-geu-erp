@@ -24,6 +24,7 @@
                 <div class="col-md-3"><strong>Fleet:</strong> {{ $outstock->Fleet_Number ?? '-' }}</div>
                 <div class="col-md-3"><strong>Kategori:</strong> {{ $outstock->Vehicle_Category ?? '-' }}</div>
                 <div class="col-md-3"><strong>Status:</strong> {{ $outstock->Status }}</div>
+                <div class="col-md-3"><strong>Warehouse Tujuan:</strong> {{ $destinationName ?? '-' }}</div>
             </div>
         </div>
     </div>
@@ -154,7 +155,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Destination</label>
-                            <input type="text" class="form-control" name="Destination" value="{{ $handover->Destination ?? '' }}">
+                            <input type="text" class="form-control" name="Destination" value="{{ $handover->Destination ?: ($destinationName ?? '') }}">
                         </div>
                     </div>
                     <div class="col-md-4">

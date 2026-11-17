@@ -28,16 +28,23 @@ $Saya =  Auth::user()->username;
 </div>
 
 <div>
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SURVEY LOKASI</div>
     <div class="card">
         <div class="card-body">
+            @include('partner.partials.index-title', ['title' => 'Survey'])
+
             <div id="Survey" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
             <div>
+                @if(can_menu('SI00227', 'create'))
                 <input type="button" id="buatSurvey" name="buatSurvey" value="Formulir Survey" class="btn btn-info mt-2 mr-2" onclick="redirectToFormSurvey()" />
+                @endif
+                @if(can_menu('SI00227', 'edit'))
                 <input type="button" value="Lengkapi Data" class="btn btn-primary mt-2 mr-2" onclick="redirectToEditSurvey()" />
+                @endif
                 <!-- <input type="button" value="Reply" class="btn btn-success mt-2 mr-2" onclick="redirectToReplySurvey()" /> -->
                 <input type="button" id="detailSurvey" name="detailSurvey" value="Detail" class="btn btn-info mt-2 mr-2" onclick="SurveyKlik()" />
+                @if(can_menu('SI00227', 'delete'))
                 <input type="button" id="deleteSurvey" value="Hapus" class="btn btn-danger mt-2 mr-2" onclick="deleteSelectedSurveys()" />
+                @endif
                 <input type="button" id="ekselSurveyDet" name="ekselSurveyDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="Survey.toExcel('./export/generate.php');" />
             </div>
         </div>

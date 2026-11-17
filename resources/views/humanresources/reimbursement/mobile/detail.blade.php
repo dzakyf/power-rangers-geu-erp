@@ -66,35 +66,41 @@
             z-index: 1000;
         }
     </style>
+    @include('humanresources.mobile.partials.theme')
 </head>
 <body>
 
-    <!-- Header Detail Mobile -->
-    <div class="header-card">
-        <div class="d-flex align-items-center mb-2">
-            <a href="{{ route('reimbursement.mobile.index') }}" class="btn btn-sm btn-outline-light rounded-circle me-2" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center;">
-                <i class="fa fa-arrow-left"></i>
-            </a>
-            <h5 class="mb-0 fw-bold">Detail Reimbursement</h5>
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.ess'));
+        $fromParams = mobile_from_params();
+    @endphp
+    <div class="finora-shell">
+        <div class="finora-topbar">
+            <a href="{{ route('reimbursement.mobile.index', $fromParams) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1 class="fs-6 fw-bold m-0">Detail Reimbursement</h1>
+            <span style="width: 38px;"></span>
         </div>
-        <div class="d-flex justify-content-between align-items-center">
-            <span class="text-white-75 small">{{ $reimbursement->Reimbursement_No }}</span>
-            @php
-                $st = strtoupper($reimbursement->Status ?? '');
-                $stBg = 'bg-secondary text-white';
-                if (in_array($st, ['APPROVED', 'CLOSED', 'COMPLETED'])) {
-                    $stBg = 'bg-success text-white';
-                } elseif (in_array($st, ['REJECT', 'REJECTED', 'CANCELED'])) {
-                    $stBg = 'bg-danger text-white';
-                } elseif (in_array($st, ['PENDING', 'WAITING_APPROVAL', 'IN_PROGRESS', 'APPROVAL_UPPER', 'APPROVAL_VP', 'APPROVAL_HCGA'])) {
-                    $stBg = 'bg-warning text-dark';
-                }
-            @endphp
-            <span class="badge {{ $stBg }} px-3 py-1 rounded-pill">{{ $reimbursement->Status }}</span>
-        </div>
-    </div>
 
-    <div class="container px-3 mt-3">
+        <div class="finora-hero">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="fw-bold">{{ $reimbursement->Reimbursement_No }}</div>
+                    <small class="opacity-75">Rincian Pengajuan Klaim</small>
+                </div>
+                @php
+                    $st = strtoupper($reimbursement->Status ?? '');
+                    $stBg = 'bg-secondary text-white';
+                    if (in_array($st, ['APPROVED', 'CLOSED', 'COMPLETED'])) {
+                        $stBg = 'bg-success text-white';
+                    } elseif (in_array($st, ['REJECT', 'REJECTED', 'CANCELED'])) {
+                        $stBg = 'bg-danger text-white';
+                    } elseif (in_array($st, ['PENDING', 'WAITING_APPROVAL', 'IN_PROGRESS', 'APPROVAL_UPPER', 'APPROVAL_VP', 'APPROVAL_HCGA'])) {
+                        $stBg = 'bg-warning text-dark';
+                    }
+                @endphp
+                <span class="badge {{ $stBg }} px-3 py-1 rounded-pill">{{ $reimbursement->Status }}</span>
+            </div>
+        </div>
 
         <!-- Section 1: Informasi Dokumen & Pemohon -->
         <div class="detail-card">
@@ -202,7 +208,7 @@
 
     <!-- Bottom Navigation / Action -->
     <div class="bottom-action-bar">
-        <a href="{{ route('reimbursement.mobile.index') }}" class="btn btn-secondary w-100 fw-bold">
+        <a href="{{ route('reimbursement.mobile.index', $fromParams) }}" class="btn btn-secondary w-100 fw-bold">
             <i class="fa fa-arrow-left me-1"></i> Kembali ke Daftar
         </a>
     </div>

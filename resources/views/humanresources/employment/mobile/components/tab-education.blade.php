@@ -4,14 +4,14 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-graduation-cap text-primary"></i> Riwayat Pendidikan Formal
+                <i class="fa fa-graduation-cap text-success"></i> Riwayat Pendidikan Formal
             </div>
             @if(count($education) > 0)
                 <div class="timeline-wrapper">
                     @foreach($education as $edu)
-                        <div class="border-start border-primary border-3 ps-3 pb-3 mb-2 position-relative">
+                        <div class="border-start border-success border-3 ps-3 pb-3 mb-2 position-relative">
                             <div class="fw-bold text-dark" style="font-size: 14px;">{{ $edu->Education_Name ?? '-' }}</div>
-                            <div class="text-primary fw-semibold" style="font-size: 12px;">{{ $edu->Education_Major ?? '-' }}</div>
+                            <div class="text-success fw-semibold" style="font-size: 12px;">{{ $edu->Education_Major ?? '-' }}</div>
                             <div class="text-muted small mt-1" style="font-size: 11px;">
                                 <i class="fa fa-calendar me-1"></i> Periode: {{ $edu->Education_Year_Start ?? '' }} - {{ $edu->Education_Year_End ?? 'Selesai' }}
                                 @if(!empty($edu->GPA))
@@ -31,7 +31,7 @@
     <div class="col-12">
         <div class="info-card">
             <div class="card-section-title">
-                <i class="fa fa-briefcase text-primary"></i> Pengalaman Kerja Sebelumnya
+                <i class="fa fa-briefcase text-success"></i> Pengalaman Kerja Sebelumnya
             </div>
             @if(count($experience) > 0)
                 <div>

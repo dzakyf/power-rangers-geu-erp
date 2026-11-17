@@ -3,9 +3,6 @@
     $lsp = $user ? ($user->Location ?: 'GEU-HO') : 'GEU-HO';
     $taskId = isset($taskId) ? $taskId : 'PG-' . $lsp . '-' . date('ymdhis');
     $defaultPeriod = isset($defaultPeriod) ? $defaultPeriod : date('Y-m');
-    $templates = isset($templates)
-        ? $templates
-        : \Illuminate\Support\Facades\DB::table('payrol_master_template')->orderBy('Payroll_ID', 'ASC')->get();
     $mainGroups = isset($mainGroups)
         ? $mainGroups
         : \Illuminate\Support\Facades\DB::table('payrol_main_group')->orderBy('ID', 'ASC')->get();
@@ -94,6 +91,10 @@
             </nav>
         </div>
         <div class="d-flex align-items-center flex-wrap gap-2">
+            <a href="{{ url('payroll-thr') }}" class="btn btn-sm rounded-pill shadow-sm"
+                style="background: rgba(255, 255, 255, 0.25); border: 1px solid rgba(255, 255, 255, 0.6); color: #ffffff !important;">
+                <i class="fe fe-gift me-1"></i> Perhitungan THR
+            </a>
             <a href="{{ url('payroll-tax') }}" class="btn btn-sm rounded-pill shadow-sm"
                 style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
                 <i class="fe fe-percent me-1"></i> Master Tax &amp; TER
@@ -195,6 +196,11 @@
                     title="Buat Gen ID Baru">
                     <i class="fa fa-refresh me-1"></i> Buat Gen ID Baru
                 </button>
+                <button type="button" class="btn btn-sm btn-warning rounded-pill px-3 text-dark fw-semibold"
+                    onclick="openAdvanceDeductionsModal()"
+                    title="Kelola Potongan SPPD, Kasbon & Reimburse (Otomatis & Manual)">
+                    <i class="fa fa-scissors me-1"></i> Potongan SPPD / Kasbon / Reimburse
+                </button>
                 <button type="button" class="btn btn-sm btn-success rounded-pill px-3 text-white"
                     onclick="recountingCurrentGroup()"
                     title="Kalkulasi ulang Presensi, Potongan & PPh 21 TER untuk grup ini">
@@ -205,8 +211,8 @@
 
         <div class="card-body p-3 p-md-4">
             <div class="row g-3 pg-input-group">
-                <!-- Baris 1: Gen ID, Period, Template, Category -->
-                <div class="col-lg-3 col-md-6">
+                <!-- Baris 1: Gen ID, Period, Filter Kategori -->
+                <div class="col-lg-4 col-md-6">
                     <label for="Task_ID" class="pg-form-label">Gen ID (Nomor Batch)</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light text-secondary border-end-0"
@@ -219,24 +225,15 @@
                     </div>
                 </div>
 
-                <div class="col-lg-2 col-md-6">
+                <div class="col-lg-3 col-md-6">
                     <label for="Salary_Period" class="pg-form-label">Periode Gaji</label>
                     <input type="hidden" id="Payroll_Date" name="Payroll_Date" value="{{ date('Y-m-d') }}" />
+                    <input type="hidden" id="Category" name="Category" value="SALARY" />
                     <input type="month" id="Salary_Period" name="Salary_Period" class="form-control fw-semibold"
                         value="{{ $defaultPeriod }}" onchange="onPeriodChange()" />
                 </div>
 
-                <div class="col-lg-3 col-md-6">
-                    <label for="Category" class="pg-form-label">Generate untuk Template</label>
-                    <select id="Category" name="Category" class="form-select fw-semibold" onchange="refreshdata()">
-                        <option value="SALARY">SALARY (Gaji Bulanan Reguler)</option>
-                        @foreach ($templates as $tpl)
-                            <option value="{{ $tpl->Payroll_ID }}">{{ $tpl->Payroll_ID }} - {{ $tpl->Name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-lg-4 col-md-6">
+                <div class="col-lg-5 col-md-12">
                     <label for="Use_For" class="pg-form-label">Filter Kategori Grup</label>
                     <select id="Use_For" name="Use_For" class="form-select fw-semibold"
                         onchange="onUseForFilterChange()">
@@ -319,6 +316,14 @@
                 </small>
             </div>
             <div class="d-flex align-items-center flex-wrap gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm"
+                    onclick="openSelectedEmployeeSlip()" title="Lihat Payslip Digital untuk baris karyawan terpilih">
+                    <i class="fa fa-file-text-o me-1"></i> Buka Slip Digital
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 shadow-sm"
+                    onclick="openBlastModalGenerator()" title="Kirim email payslip preview ke karyawan terpilih untuk pengecekan">
+                    <i class="fa fa-paper-plane me-1"></i> Blasting Email Slip (Uji Coba)
+                </button>
                 <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
                     onclick="toggleSelectAllRows(true)">
                     <i class="fa fa-check-square-o me-1"></i> Pilih Semua
@@ -415,6 +420,85 @@
                     <button type="button" id="btnProcessUploadExcel"
                         class="btn btn-primary rounded-pill px-4 fw-semibold" onclick="submitExcelUpload()">
                         <i class="fa fa-check me-1"></i> Terapkan ke Tabel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Blasting Email Payslip (Preview Recounting) -->
+    <div class="modal fade" id="modalBlastEmailGenerator" tabindex="-1" aria-labelledby="modalBlastEmailGeneratorLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold text-white" id="modalBlastEmailGeneratorLabel">
+                        <i class="fa fa-paper-plane me-2"></i>Blasting Email Slip Gaji (Preview Recounting)
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info small rounded-3 mb-3">
+                        <i class="fa fa-info-circle me-1"></i>
+                        Fitur ini mengirimkan email slip gaji digital (format preview hasil recounting) ke karyawan yang dicentang di tabel. Sangat berguna agar karyawan atau tim HR dapat memeriksa apakah data presensi, tunjangan, dan potongan sudah sesuai sebelum batch penggajian digenerate secara resmi.
+                    </div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="p-2 border rounded-3 bg-light">
+                                <small class="text-muted d-block fw-semibold">Salary Group:</small>
+                                <strong id="blastGenMainId" class="text-dark">-</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-2 border rounded-3 bg-light">
+                                <small class="text-muted d-block fw-semibold">Periode Penggajian:</small>
+                                <strong id="blastGenPeriod" class="text-dark">-</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-2 border rounded-3 bg-light">
+                                <small class="text-muted d-block fw-semibold">Penerima Tercentang:</small>
+                                <strong id="blastGenCount" class="text-primary fs-6">0 Orang</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar Pengiriman -->
+                    <div id="blastProgressBarWrapper" class="mb-3" style="display: none;">
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span id="blastProgressText">Memulai pengiriman email...</span>
+                            <span id="blastProgressPercent" class="fw-bold text-primary">0%</span>
+                        </div>
+                        <div class="progress" style="height: 12px; border-radius: 6px;">
+                            <div id="blastProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Live Results Table -->
+                    <div class="table-responsive border rounded-3" style="max-height: 250px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0" id="blastResultsTable">
+                            <thead class="table-light sticky-top">
+                                <tr class="small text-muted">
+                                    <th style="width: 40px;" class="text-center">#</th>
+                                    <th>NIK</th>
+                                    <th>Nama Karyawan</th>
+                                    <th>Email</th>
+                                    <th style="width: 100px;" class="text-center">Status</th>
+                                    <th>Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="blastResultsBody" class="small">
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">Klik tombol "Kirim Blasting Sekarang" untuk memulai proses pengiriman email slip.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal" id="btnCancelBlastGen">Tutup</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" id="btnStartBlastGen" onclick="startBlastingGenerator()">
+                        <i class="fa fa-paper-plane me-1"></i> Kirim Blasting Sekarang
                     </button>
                 </div>
             </div>
@@ -891,11 +975,481 @@
             });
         });
 
+        // =========================================================================
+        // FITUR PREVIEW PAYSLIP DIGITAL & BLASTING EMAIL (PREVIEW RECOUNTING)
+        // =========================================================================
+
+        function openSelectedEmployeeSlip() {
+            var selectedRowId = EmployeeSalary.getSelectedRowId();
+            if (!selectedRowId) {
+                alert('Pilih salah satu baris karyawan pada tabel terlebih dahulu.');
+                return;
+            }
+            var periodVal = $("#Salary_Period").val() || '{{ $defaultPeriod }}';
+            var mainIdVal = $("#Main_ID").val() || '';
+            var url = "{{ url('payslip-digital') }}?nik=" + encodeURIComponent(selectedRowId) +
+                "&period=" + encodeURIComponent(periodVal) +
+                "&main_id=" + encodeURIComponent(mainIdVal) +
+                "&source=generator";
+            window.open(url, '_blank');
+        }
+
+        var blastQueueGen = [];
+        var blastIndexGen = 0;
+        var blastSuccessGen = 0;
+        var blastFailedGen = 0;
+        var blastSkippedGen = 0;
+
+        function openBlastModalGenerator() {
+            var mainId = $("#Main_ID").val();
+            if (!mainId) {
+                alert('Pilih Salary Group terlebih dahulu.');
+                return;
+            }
+
+            blastQueueGen = [];
+            var allIds = EmployeeSalary.getAllRowIds();
+            if (allIds) {
+                var rowIdArr = allIds.split(',');
+                for (var i = 0; i < rowIdArr.length; i++) {
+                    var rId = rowIdArr[i].trim();
+                    if (!rId) continue;
+                    var isChecked = EmployeeSalary.cells(rId, 0).getValue();
+                    if (isChecked == 1 || isChecked == '1' || isChecked === true) {
+                        blastQueueGen.push(rId);
+                    }
+                }
+            }
+
+            if (blastQueueGen.length === 0) {
+                alert('Centang minimal 1 karyawan pada tabel untuk melakukan blasting email slip.');
+                return;
+            }
+
+            $("#blastGenMainId").text(mainId);
+            $("#blastGenPeriod").text($("#Salary_Period").val() || '{{ $defaultPeriod }}');
+            $("#blastGenCount").text(blastQueueGen.length + ' Orang');
+
+            $("#blastProgressBarWrapper").hide();
+            $("#blastProgressBar").css('width', '0%').removeClass('bg-success').addClass('bg-primary progress-bar-animated');
+            $("#blastProgressPercent").text('0%');
+            $("#blastProgressText").text('Menunggu konfirmasi...');
+            $("#blastResultsBody").html('<tr><td colspan="6" class="text-center py-4 text-muted">Klik tombol "Kirim Blasting Sekarang" untuk memulai proses pengiriman ke ' + blastQueueGen.length + ' karyawan terpilih.</td></tr>');
+
+            $("#btnStartBlastGen").prop('disabled', false).html('<i class="fa fa-paper-plane me-1"></i> Kirim Blasting Sekarang');
+            $("#btnCancelBlastGen").prop('disabled', false);
+
+            var modalEl = document.getElementById('modalBlastEmailGenerator');
+            var bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+        }
+
+        function startBlastingGenerator() {
+            if (!blastQueueGen.length) return;
+            if (!confirm('Yakin ingin mengirim email slip gaji preview ke ' + blastQueueGen.length + ' karyawan terpilih?')) return;
+
+            $("#btnStartBlastGen").prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Sedang Mengirim...');
+            $("#btnCancelBlastGen").prop('disabled', true);
+            $("#blastProgressBarWrapper").show();
+            $("#blastResultsBody").empty();
+
+            blastIndexGen = 0;
+            blastSuccessGen = 0;
+            blastFailedGen = 0;
+            blastSkippedGen = 0;
+
+            processNextBlastChunkGen();
+        }
+
+        function processNextBlastChunkGen() {
+            if (blastIndexGen >= blastQueueGen.length) {
+                // Selesai
+                $("#btnStartBlastGen").prop('disabled', false).html('<i class="fa fa-check me-1"></i> Selesai');
+                $("#btnCancelBlastGen").prop('disabled', false);
+                $("#blastProgressBar").removeClass('progress-bar-animated').addClass('bg-success');
+                $("#blastProgressText").html('<strong class="text-success">Pengiriman Selesai!</strong> Berhasil: ' + blastSuccessGen + ', Gagal: ' + blastFailedGen + ', Dilewati: ' + blastSkippedGen);
+                return;
+            }
+
+            var chunkSize = 3;
+            var chunkNiks = blastQueueGen.slice(blastIndexGen, blastIndexGen + chunkSize);
+            var periodVal = $("#Salary_Period").val() || '{{ $defaultPeriod }}';
+            var mainIdVal = $("#Main_ID").val() || '';
+
+            $.ajax({
+                url: '{{ url('api/payroll/blast-payslip-emails') }}',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    niks: chunkNiks,
+                    period: periodVal,
+                    main_id: mainIdVal,
+                    source: 'generator'
+                },
+                success: function(res) {
+                    if (res && res.results) {
+                        res.results.forEach(function(item) {
+                            blastIndexGen++;
+                            var badgeHtml = '';
+                            if (item.status === 'SENT') {
+                                blastSuccessGen++;
+                                badgeHtml = '<span class="badge bg-success text-white">Terkirim</span>';
+                            } else if (item.status === 'SKIPPED') {
+                                blastSkippedGen++;
+                                badgeHtml = '<span class="badge bg-warning text-dark">Dilewati</span>';
+                            } else {
+                                blastFailedGen++;
+                                badgeHtml = '<span class="badge bg-danger text-white">Gagal</span>';
+                            }
+
+                            var rowHtml = '<tr>' +
+                                '<td class="text-center">' + blastIndexGen + '</td>' +
+                                '<td class="font-monospace fw-semibold">' + item.nik + '</td>' +
+                                '<td>' + (item.name || '-') + '</td>' +
+                                '<td class="small text-muted">' + (item.email || '-') + '</td>' +
+                                '<td class="text-center">' + badgeHtml + '</td>' +
+                                '<td class="small text-truncate" style="max-width: 200px;" title="' + (item.message || '') + '">' + (item.message || '-') + '</td>' +
+                            '</tr>';
+                            $("#blastResultsBody").append(rowHtml);
+                        });
+                    } else {
+                        blastIndexGen += chunkNiks.length;
+                        blastFailedGen += chunkNiks.length;
+                    }
+
+                    var pct = Math.min(100, Math.round((blastIndexGen / blastQueueGen.length) * 100));
+                    $("#blastProgressBar").css('width', pct + '%');
+                    $("#blastProgressPercent").text(pct + '%');
+                    $("#blastProgressText").text('Mengirim ' + blastIndexGen + ' dari ' + blastQueueGen.length + ' karyawan...');
+
+                    var container = $("#blastResultsTable").parent();
+                    container.scrollTop(container.prop('scrollHeight'));
+
+                    setTimeout(processNextBlastChunkGen, 200);
+                },
+                error: function() {
+                    blastIndexGen += chunkNiks.length;
+                    blastFailedGen += chunkNiks.length;
+                    var pct = Math.min(100, Math.round((blastIndexGen / blastQueueGen.length) * 100));
+                    $("#blastProgressBar").css('width', pct + '%');
+                    $("#blastProgressPercent").text(pct + '%');
+                    setTimeout(processNextBlastChunkGen, 200);
+                }
+            });
+        }
+
         // Muat data otomatis untuk Salary Group pertama saat halaman dibuka
         $(document).ready(function() {
             if ($("#Main_ID").val()) {
                 refreshdata();
             }
         });
+    </script>
+
+    <!-- Modal Potongan SPPD, Kasbon & Reimburse (Auto-Pull + Manual Input) -->
+    <div class="modal fade" id="advanceDeductionsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header bg-warning bg-opacity-25 border-bottom">
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark">
+                            <i class="fa fa-scissors me-2 text-warning"></i>Potongan SPPD, Kasbon &amp; Reimburse
+                        </h5>
+                        <small class="text-muted">Tarik otomatis item outstanding atau input/ubah nominal cicilan secara manual sebelum Submit Payroll.</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <div>
+                            <span class="badge bg-primary text-white me-2" id="advDedGroupBadge">Group: -</span>
+                            <span class="badge bg-info text-white" id="advDedPeriodBadge">Periode: -</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" onclick="runAdvanceAutoPull()">
+                            <i class="fa fa-download me-1"></i> Auto-Pull Outstanding (SPPD / Kasbon / Reimburse)
+                        </button>
+                    </div>
+
+                    <!-- Form Tambah Manual -->
+                    <div class="card bg-light border-0 rounded-3 mb-3">
+                        <div class="card-body p-3">
+                            <h6 class="fw-bold mb-2 small text-uppercase text-secondary">Tambah Potongan / Kasbon Manual</h6>
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1">Karyawan (Employment)</label>
+                                    <select id="advManNik" class="form-select form-select-sm">
+                                        <option value="">-- Memuat karyawan... --</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Tipe</label>
+                                    <select id="advManType" class="form-select form-select-sm">
+                                        <option value="KASBON_MANUAL">Kasbon Manual</option>
+                                        <option value="SPPD_UNSETTLED">SPPD Belum Settlement</option>
+                                        <option value="KASBON_SPPD_EXCESS">Kasbon Selisih SPPD</option>
+                                        <option value="REIMBURSE">Reimburse</option>
+                                        <option value="OTHER">Lainnya</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small mb-1">Keterangan</label>
+                                    <input type="text" id="advManDesc" class="form-control form-control-sm" placeholder="Deskripsi potongan / nomor referensi">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Nominal (Rp)</label>
+                                    <input type="number" id="advManAmount" class="form-control form-control-sm" min="0" step="1000" placeholder="0">
+                                </div>
+                                <div class="col-md-1 d-grid">
+                                    <button type="button" class="btn btn-sm btn-success text-white" onclick="addManualAdvanceDeduction()">
+                                        <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabel Item -->
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width:55px;">Ikut</th>
+                                    <th>NIK / Nama</th>
+                                    <th>Tipe &amp; Sumber</th>
+                                    <th>Keterangan</th>
+                                    <th class="text-end">Sisa Saldo</th>
+                                    <th class="text-end" style="width:160px;">Nominal Potong</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center" style="width:110px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="advDedTableBody">
+                                <tr><td colspan="8" class="text-center text-muted py-3">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <div class="me-auto fw-bold text-dark">
+                        Total Potongan Aktif (DRAFT): <span class="text-danger" id="advDedTotalText">Rp 0</span>
+                    </div>
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal" onclick="refreshdata()">Tutup &amp; Refresh Grid</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openAdvanceDeductionsModal() {
+            var mainId = $("#Main_ID").val() || '';
+            var periode = $("#Salary_Period").val() || '{{ $defaultPeriod }}';
+            $("#advDedGroupBadge").text('Group: ' + (mainId || 'SEMUA'));
+            $("#advDedPeriodBadge").text('Periode: ' + periode);
+            var modalEl = document.getElementById('advanceDeductionsModal');
+            if (window.bootstrap && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else {
+                $(modalEl).modal('show');
+            }
+            loadAdvanceEmploymentOptions();
+            loadAdvanceDeductionsList();
+        }
+
+        function loadAdvanceEmploymentOptions() {
+            var mainId = $("#Main_ID").val() || '';
+            var $sel = $("#advManNik");
+            $sel.html('<option value="">-- Memuat karyawan... --</option>');
+            $.get("{{ url('payroll-deductions/employees') }}", { main_id: mainId }, function(res) {
+                var opts = '<option value="">-- Pilih Karyawan --</option>';
+                if (res && res.success && Array.isArray(res.data)) {
+                    res.data.forEach(function(emp) {
+                        var label = emp.NIK + ' - ' + (emp.Name || '-') + (emp.Position ? ' (' + emp.Position + ')' : '');
+                        opts += '<option value="' + emp.NIK + '">' + label + '</option>';
+                    });
+                }
+                $sel.html(opts);
+                if ($.fn.select2) {
+                    $sel.select2({
+                        dropdownParent: $('#advanceDeductionsModal'),
+                        width: '100%',
+                        placeholder: '-- Pilih Karyawan --'
+                    });
+                }
+            });
+        }
+
+        function loadAdvanceDeductionsList() {
+            var mainId = $("#Main_ID").val() || '';
+            var periode = $("#Salary_Period").val() || '{{ $defaultPeriod }}';
+            $.get("{{ url('payroll-deductions/list') }}", { main_id: mainId, periode: periode }, function(res) {
+                if (!res || !res.success) return;
+                var rows = res.data.items || [];
+                $("#advDedTotalText").text('Rp ' + Number(res.data.total_included || 0).toLocaleString('id-ID'));
+                if (!rows.length) {
+                    $("#advDedTableBody").html('<tr><td colspan="8" class="text-center text-muted py-3">Belum ada item potongan untuk grup &amp; periode ini. Klik <b>Auto-Pull Outstanding</b> atau tambah manual.</td></tr>');
+                    return;
+                }
+                var html = '';
+                rows.forEach(function(item) {
+                    var isDraft = item.status === 'DRAFT';
+                    var isIncluded = Number(item.is_included) === 1;
+                    var isManual = Number(item.is_auto_pulled) === 0;
+                    var checked = isIncluded ? 'checked' : '';
+                    var srcBadge = !isManual ? '<span class="badge bg-info text-white">AUTO</span>' : '<span class="badge bg-secondary text-white">MANUAL</span>';
+                    var stBadge = isDraft ? '<span class="badge bg-warning text-dark">DRAFT</span>' : '<span class="badge bg-success text-white">POSTED</span>';
+                    var delDisabled = isIncluded ? ' disabled title="Uncheck (keluarkan dari potongan) terlebih dahulu sebelum menghapus"' : ' title="Hapus item manual"';
+                    html += '<tr>' +
+                        '<td class="text-center"><input type="checkbox" class="form-check-input" id="adv_inc_' + item.id + '" ' + checked + (isDraft ? ' onchange="toggleAdvanceInclude(' + item.id + ', this)"' : ' disabled') + '></td>' +
+                        '<td><div class="fw-semibold font-monospace">' + item.nik + '</div><small class="text-muted">' + (item.employee_name || '-') + '</small></td>' +
+                        '<td><div>' + item.deduction_type + '</div>' + srcBadge + ' <small class="text-muted">' + (item.reference_no || '') + '</small></td>' +
+                        '<td>' + (item.description || '-') + '</td>' +
+                        '<td class="text-end">Rp ' + Number(item.remaining_amount || 0).toLocaleString('id-ID') + '</td>' +
+                        '<td><input type="number" class="form-control form-control-sm text-end" id="adv_amt_' + item.id + '" value="' + Number(item.deducted_amount || 0) + '" min="0" step="1000"' + (isDraft ? '' : ' disabled') + '></td>' +
+                        '<td class="text-center">' + stBadge + '</td>' +
+                        '<td class="text-center">' +
+                            (isDraft ? '<button type="button" class="btn btn-xs btn-primary me-1" onclick="updateAdvanceDeductionRow(' + item.id + ')" title="Simpan Perubahan"><i class="fa fa-save"></i></button>' : '') +
+                            (isDraft && isManual ? '<button type="button" class="btn btn-xs btn-danger" id="adv_del_' + item.id + '" onclick="deleteAdvanceDeductionRow(' + item.id + ')"' + delDisabled + '><i class="fa fa-trash"></i></button>' : '') +
+                        '</td>' +
+                    '</tr>';
+                });
+                $("#advDedTableBody").html(html);
+            });
+        }
+
+        function runAdvanceAutoPull() {
+            var mainId = $("#Main_ID").val() || '';
+            var periode = $("#Salary_Period").val() || '{{ $defaultPeriod }}';
+            $.post("{{ url('payroll-deductions/auto-pull') }}", {
+                _token: "{{ csrf_token() }}",
+                main_id: mainId,
+                periode: periode
+            }, function(res) {
+                alert((res && res.message) ? res.message : 'Auto-pull selesai.');
+                loadAdvanceDeductionsList();
+            });
+        }
+
+        function addManualAdvanceDeduction() {
+            var nik = $("#advManNik").val().trim();
+            var amount = $("#advManAmount").val();
+            if (!nik || !amount || Number(amount) <= 0) {
+                alert('NIK dan Nominal wajib diisi lebih dari 0.');
+                return;
+            }
+            $.post("{{ url('payroll-deductions/save') }}", {
+                _token: "{{ csrf_token() }}",
+                nik: nik,
+                main_id: $("#Main_ID").val() || '',
+                salary_period: $("#Salary_Period").val() || '{{ $defaultPeriod }}',
+                deduction_type: $("#advManType").val(),
+                description: $("#advManDesc").val().trim() || 'Potongan Kasbon Manual',
+                deducted_amount: amount
+            }, function(res) {
+                if (res && res.success) {
+                    $("#advManDesc").val('');
+                    $("#advManAmount").val('');
+                    loadAdvanceDeductionsList();
+                } else {
+                    alert((res && res.message) ? res.message : 'Gagal menyimpan.');
+                }
+            }).fail(function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menyimpan potongan.';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'warning', title: 'Melebihi Batas THP', text: msg });
+                } else {
+                    alert(msg);
+                }
+            });
+        }
+
+        function updateAdvanceDeductionRow(id) {
+            $.post("{{ url('payroll-deductions/save') }}", {
+                _token: "{{ csrf_token() }}",
+                id: id,
+                deducted_amount: $("#adv_amt_" + id).val(),
+                is_included: $("#adv_inc_" + id).is(':checked') ? 1 : 0
+            }, function(res) {
+                if (res && res.success) {
+                    loadAdvanceDeductionsList();
+                } else {
+                    alert((res && res.message) ? res.message : 'Gagal update.');
+                    loadAdvanceDeductionsList();
+                }
+            }).fail(function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal update potongan.';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'warning', title: 'Melebihi Batas THP', text: msg });
+                } else {
+                    alert(msg);
+                }
+                loadAdvanceDeductionsList();
+            });
+        }
+
+        function toggleAdvanceInclude(id, checkboxEl) {
+            var isInc = $(checkboxEl).is(':checked') ? 1 : 0;
+            $.post("{{ url('payroll-deductions/save') }}", {
+                _token: "{{ csrf_token() }}",
+                id: id,
+                deducted_amount: $("#adv_amt_" + id).val(),
+                is_included: isInc
+            }, function(res) {
+                if (res && res.success) {
+                    loadAdvanceDeductionsList();
+                } else {
+                    alert((res && res.message) ? res.message : 'Gagal memperbarui status potongan.');
+                    loadAdvanceDeductionsList();
+                }
+            }).fail(function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal memperbarui status potongan.';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'warning', title: 'Melebihi Batas THP', text: msg });
+                } else {
+                    alert(msg);
+                }
+                loadAdvanceDeductionsList();
+            });
+        }
+
+        function deleteAdvanceDeductionRow(id) {
+            if ($("#adv_inc_" + id).is(':checked')) {
+                alert('Silakan uncheck (keluarkan dari potongan) terlebih dahulu sebelum menghapus item ini.');
+                return;
+            }
+            var executeDelete = function() {
+                $.ajax({
+                    url: "{{ url('payroll-deductions') }}/" + id,
+                    type: 'DELETE',
+                    data: { _token: "{{ csrf_token() }}" },
+                    success: function(res) {
+                        if (res && res.message && typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'success', title: 'Terhapus', text: res.message, timer: 1500, showConfirmButton: false });
+                        }
+                        loadAdvanceDeductionsList();
+                    },
+                    error: function(xhr) {
+                        var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menghapus item.';
+                        alert(msg);
+                    }
+                });
+            };
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Hapus Potongan Manual?',
+                    text: 'Data potongan yang sudah dihapus tidak dapat dikembalikan.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    confirmButtonText: 'Ya, Hapus',
+                    cancelButtonText: 'Batal'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        executeDelete();
+                    }
+                });
+            } else if (confirm('Apakah Anda yakin ingin menghapus item potongan manual ini?')) {
+                executeDelete();
+            }
+        }
     </script>
 @endsection

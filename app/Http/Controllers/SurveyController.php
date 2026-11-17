@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Services\GeneratorService;
 use App\Services\UploadService;
+use App\Services\Survey\SurveyScoringService;
 use App\Services\UserService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -17,13 +18,15 @@ class SurveyController extends Controller
     protected $userService;
     protected $generatorService;
     protected ApprovalController $approvalController;
+    protected SurveyScoringService $surveyScoring;
 
-    public function __construct(GeneratorService $g, UploadService $up, UserService $us, ApprovalController $ac)
+    public function __construct(GeneratorService $g, UploadService $up, UserService $us, ApprovalController $ac, SurveyScoringService $scoring)
     {
         $this->uploadService = $up;
         $this->userService = $us;
         $this->generatorService = $g;
         $this->approvalController = $ac;
+        $this->surveyScoring = $scoring;
     }
 
     public function indexSurvey()
@@ -36,15 +39,30 @@ class SurveyController extends Controller
         return view('partner.survey.approval-index');
     }
 
-    public function createMasterDataSurvey()
+    public function createMasterDataSurvey(Request $r)
     {
-        return view('partner.survey.create');
+        $form = null;
+        if ($r->query('id')) {
+            $survey = DB::table('survey_location')->where('ID', $r->query('id'))->first();
+            if ($survey && !empty($survey->Survey_Form_Version_ID)) {
+                $form = $this->surveyScoring->versionWithItems($survey->Survey_Form_Version_ID);
+            }
+        }
+
+        if (!$form) {
+            $form = $this->surveyScoring->activeVersionWithItems();
+        }
+
+        return view('partner.survey.create', compact('form'));
     }
 
     public function createReplyMasterDataSurvey()
     {
-        return view('partner.survey.survey-reply');
+        $form = $this->surveyScoring->activeVersionWithItems();
+
+        return view('partner.survey.survey-reply', compact('form'));
     }
+
 
     public function dashboardSurvey()
     {
@@ -131,7 +149,7 @@ class SurveyController extends Controller
                 $row->addChild("cell", $p->Recommendation_Type ?? "-");
                 $row->addChild("cell", $p->City ?? "-");
                 $row->addChild("cell", $p->District ?? "-");
-                $row->addChild("cell", $this->resolveRecommendation((int) $p->Total_Score));
+                $row->addChild("cell", $p->Recommendation ?: $this->resolveRecommendation($p->Total_Score));
                 $row->addChild("cell", $p->Created_At ?? $p->Surveyed_At);
                 $no++;
             }
@@ -177,7 +195,7 @@ class SurveyController extends Controller
             $row->addChild('cell', $p->Status);
             $row->addChild('cell', $p->Surveyed_At);
             $row->addChild('cell', $p->Total_Score);
-            $row->addChild('cell', $this->resolveRecommendation($p->Total_Score));
+            $row->addChild('cell', $p->Recommendation ?: $this->resolveRecommendation($p->Total_Score));
             $no++;
         }
 
@@ -204,14 +222,28 @@ class SurveyController extends Controller
         }
 
         $d = $query->get()->map(function ($p) {
-            $p->Recommendation = $this->resolveRecommendation($p->Total_Score);
+            $p->Recommendation = $p->Recommendation ?: $this->resolveRecommendation($p->Total_Score);
+            $answers = DB::table('survey_answers')
+                ->where('Survey_Location_ID', $p->ID)
+                ->get()
+                ->map(function ($answer) {
+                    $answer->Answer_JSON = json_decode($answer->Answer_JSON, true);
+                    return $answer;
+                })
+                ->keyBy('Item_Code');
+            $p->Answers = $answers;
+
+            if (!empty($p->Survey_Form_Version_ID)) {
+                $p->Survey_Form = $this->surveyScoring->versionWithItems($p->Survey_Form_Version_ID);
+            }
+
             return $p;
         });
 
-        return response()->json(['data' => $d]);
+        return response()->json(['data' => $d, 'form' => $this->surveyScoring->activeVersionWithItems()]);
     }
 
-    private function resolveRecommendation(int $score = 0): string
+    private function resolveRecommendation($score = 0): string
     {
         if ($score >= 80) return 'Layak';
         if ($score >= 70) return 'Layak Bersyarat';
@@ -227,13 +259,14 @@ class SurveyController extends Controller
     public function submitMasterDataSurvey(Request $r)
     {
         $b = $r->all();
+        $version = $this->surveyScoring->activeVersionWithItems();
 
-        // The 3-times limit applies only when a MITRA inputs their location
-        // through the survey form during onboarding approval. Internal
-        // submissions via partner-survey-create are unlimited.
+        if (!$version) {
+            return response()->json(['success' => false, 'message' => 'Form survey aktif belum tersedia'], 400);
+        }
+
         $isPartner = optional(auth()->user())->Priv_ID === 'MITRA';
-
-        $highest       = DB::table('survey_location as sl')->max('ID');
+        $highest = DB::table('survey_location as sl')->max('ID');
         $applicatonCode = $this->generatorService->generateApplicationCode($highest, 'SVY');
 
         if ($isPartner) {
@@ -250,139 +283,52 @@ class SurveyController extends Controller
         }
 
         try {
-                            $photo        = 0;
-        $checklist    = 0;
-        $environtment = 0;
-        $ucoEstimation = 0;
-
-        for ($i = 1; $i <= 4; $i++) {
-            $photo += ($b["C_c$i"] ?? 0) * 2.5;
-        }
-
-        for ($j = 1; $j <= 9; $j++) {
-            $count = ($b["D_c$j"] ?? 0);
-            if ($count == 1 && $j !== 9) {
-                $checklist += ($count * 6);
-            } else if ($count == 1) {
-                $checklist += ($count * 7);
+            $answers = $this->answerInput($r, $version);
+            $result = $this->surveyScoring->calculate($version, $version->items, $answers);
+            $legacy = $this->legacyColumns($result);
+            $parentId = $b["Parent_Id"] ?? null;
+            $surveyStatus = "NEED_APPROVAL";
+            if (!$isPartner && $parentId) {
+                $surveyStatus = "DONE_SURVEY";
             }
-        }
 
-        for ($k = 1; $k <= 4; $k++) {
-            $input = ($b["E_p$k"] ?? 0);
-            if ($input == 1) {
-                $environtment += 1;
-            } else if ($input == 2) {
-                $environtment += 3;
-            } else if ($input == 3) {
-                $environtment += 5;
-            }
-        }
-
-        $ton = ($b["F_p5_col2"] ?? 0);
-        if ($ton > 15) {
-            $ucoEstimation += 15;
-        } else if ($ton >= 10) {
-            $ucoEstimation += 12;
-        } else if ($ton >= 6) {
-            $ucoEstimation += 8;
-        } else if ($ton >= 4) {
-            $ucoEstimation += 5;
-        } else {
-            $ucoEstimation += 2;
-        }
-
-        $totalScore = $photo + $checklist + $environtment + $ucoEstimation;
-
-        $parentId  = $b["Parent_Id"] ?? null;
-
-        $surveyStatus = "NEED_APPROVAL";
-        if (!$isPartner && $parentId) {
-            $surveyStatus = "DONE_SURVEY";
-        }
-
-        $surveyId = DB::transaction(function () use ($b, $applicatonCode, $photo, $checklist, $environtment, $ucoEstimation, $totalScore, $surveyStatus) {
-                return DB::table('survey_location')->insertGetId([
+            $surveyId = DB::transaction(function () use ($b, $applicatonCode, $legacy, $result, $version, $surveyStatus, $r) {
+                $surveyId = DB::table('survey_location')->insertGetId([
                     "Opportunity_Partner_Id" => $b['Opportunity_Partner_Id'] ?? "",
-                    "Code"                => $applicatonCode,
-                    "Surveyed_At"         => $b["Survey_At"] ?? now(),
-                    "Parent_Id"          => $b["Parent_Id"] ?? null,
-                    "Suggestion_Type"    => $b["Suggestion_Type"] ?? "ORIGINAL",
-                    "Province"            => $b['Province'] ?? "",
-                    "City"                => $b['City'] ?? '',
-                    "District"            => $b['District'] ?? '',
-                    "Subdistrict"         => $b['Subdistrict'] ?? '',
-                    "Address"             => $b['Address'] ?? '',
-                    "Location_Name"       => $b['Location_Name'] ?? "",
-                    "Latitude"            => $b['Latitude'] ?? '',
-                    "Longitude"           => $b['Longitude'] ?? '',
+                    "Code" => $applicatonCode,
+                    "Surveyed_At" => $b["Survey_At"] ?? now(),
+                    "Parent_Id" => $b["Parent_Id"] ?? null,
+                    "Suggestion_Type" => $b["Suggestion_Type"] ?? "ORIGINAL",
+                    "Province" => $b['Province'] ?? "",
+                    "City" => $b['City'] ?? '',
+                    "District" => $b['District'] ?? '',
+                    "Subdistrict" => $b['Subdistrict'] ?? '',
+                    "Address" => $b['Address'] ?? '',
+                    "Location_Name" => $b['Location_Name'] ?? "",
+                    "Latitude" => $b['Latitude'] ?? '',
+                    "Longitude" => $b['Longitude'] ?? '',
                     "Recommendation_Type" => $b['Recommendation_Type'] ?? "INTERNAL",
-                    "Status"              => $surveyStatus,
-                    "Surveyor_Name"       => $b['Surveyor_Name'] ?? '',
+                    "Status" => $surveyStatus,
+                    "Surveyor_Name" => $b['Surveyor_Name'] ?? '',
                     "Location_Owner_Name" => $b['Location_Owner_Name'] ?? '',
-                    "Area"                => $b['Area'] ?? '',
-                    "Location_Type"       => $b['Location_Type'] ?? '',
-                    "C_c1"                => $b["C_c1"] ?? 0,
-                    "C_c2"                => $b["C_c2"] ?? 0,
-                    "C_c3"                => $b["C_c3"] ?? 0,
-                    "C_c4"                => $b["C_c4"] ?? 0,
-                    "C_Total_Score"       => $photo ?? 0,
-                    "D_c1"                => $b["D_c1"] ?? 0,
-                    "D_c2"                => $b["D_c2"] ?? 0,
-                    "D_c3"                => $b["D_c3"] ?? 0,
-                    "D_c4"                => $b["D_c4"] ?? 0,
-                    "D_c5"                => $b["D_c5"] ?? 0,
-                    "D_c6"                => $b["D_c6"] ?? 0,
-                    "D_c7"                => $b["D_c7"] ?? 0,
-                    "D_c8"                => $b["D_c8"] ?? 0,
-                    "D_c9"                => $b["D_c9"] ?? 0,
-                    "D_Total_Score"       => $checklist ?? 0,
-                    "D_c1_Notes"          => $b['D_c1_Notes'] ?? '',
-                    "D_c2_Notes"          => $b['D_c2_Notes'] ?? '',
-                    "D_c3_Notes"          => $b['D_c3_Notes'] ?? '',
-                    "D_c4_Notes"          => $b['D_c4_Notes'] ?? '',
-                    "D_c5_Notes"          => $b['D_c5_Notes'] ?? '',
-                    "D_c6_Notes"          => $b['D_c6_Notes'] ?? '',
-                    "D_c7_Notes"          => $b['D_c7_Notes'] ?? '',
-                    "D_c8_Notes"          => $b['D_c8_Notes'] ?? '',
-                    "D_c9_Notes"          => $b['D_c9_Notes'] ?? '',
-                    "E_p1"                => $b["E_p1"] ?? 0,
-                    "E_p2"                => $b["E_p2"] ?? 0,
-                    "E_p3"                => $b["E_p3"] ?? 0,
-                    "E_p4"                => $b["E_p4"] ?? 0,
-                    "E_Total_Score"       => $environtment ?? 0,
-                    "F_p1_col1"           => $b["F_p1_col1"] ?? 0,
-                    "F_p1_col2"           => $b["F_p1_col2"] ?? 0,
-                    "F_p2_col1"           => $b["F_p2_col1"] ?? 0,
-                    "F_p2_col2"           => $b["F_p2_col2"] ?? 0,
-                    "F_p3_col1"           => $b["F_p3_col1"] ?? 0,
-                    "F_p3_col2"           => $b["F_p3_col2"] ?? 0,
-                    "F_p4_col1"           => $b["F_p4_col1"] ?? 0,
-                    "F_p4_col2"           => $b["F_p4_col2"] ?? 0,
-                    "F_Total_Score"       => $ucoEstimation ?? 0,
-                    "G_p1"                => $b["G_p1"] ?? "",
-                    "G_p2"                => $b["G_p2"] ?? "",
-                    "G_p3"                => $b["G_p3"] ?? "",
-                    "Total_Score"         => $totalScore ?? 0,
-                    "Approval_Surveyor"   => $b["Approval_Surveyor"] ?? 1,
-                    "Approval_Manager"    => $b["Approval_Manager"] ?? 0,
-                    "Approval_COO"        => $b["Approval_COO"] ?? 0,
-                ]);
+                    "Area" => $b['Area'] ?? '',
+                    "Location_Type" => $b['Location_Type'] ?? '',
+                    "G_p1" => $b["G_p1"] ?? "",
+                    "G_p2" => $b["G_p2"] ?? "",
+                    "G_p3" => $b["G_p3"] ?? "",
+                    "Approval_Surveyor" => $b["Approval_Surveyor"] ?? 1,
+                    "Approval_Manager" => $b["Approval_Manager"] ?? 0,
+                    "Approval_COO" => $b["Approval_COO"] ?? 0,
+                    "Survey_Form_Version_ID" => $version->ID,
+                    "Max_Score" => $result['max_score'],
+                    "Score_Percentage" => $result['percentage'],
+                    "Recommendation" => $result['recommendation'],
+                ] + $legacy);
+
+                $this->persistDynamicAnswers($surveyId, $version, $result, $r);
+
+                return $surveyId;
             });
-
-            $fileInputs = ['C_c1_File', 'C_c2_File', 'C_c3_File', 'C_c4_File'];
-
-            foreach ($fileInputs as $inputName) {
-                if ($r->hasFile($inputName) && $r->file($inputName)->isValid()) {
-                    $file  = $r->file($inputName);
-                    $year  = Carbon::now()->year;
-                    $month = Carbon::now()->format('m');
-                    $path  = $file->store("$year/$month", 'public');
-                    $ext   = $file->getClientOriginalExtension();
-
-                    $this->uploadService->uploadMetaFile($path, basename($path), $inputName, $ext, 'survey', $surveyId);
-                }
-            }
 
             if (!$isPartner && !$parentId) {
                 $session = $this->userService->getCurrentSessionUserInfo();
@@ -391,25 +337,13 @@ class SurveyController extends Controller
                     (string) $session->id,
                     'NEED_APPROVAL',
                     [
-                        'Map_To'                 => $surveyId,
+                        'Map_To' => $surveyId,
                         'Opportunity_Partner_Id' => $b['Opportunity_Partner_Id'] ?? null,
                     ]
                 );
             }
 
-            // Return the computed section scores so the client can render the
-            // "Analisis Surveyor" (Penilaian) table right after submit - the
-            // same contract as updateMasterDataSurvey(). Missing totals here
-            // used to render "undefined" in the Penilaian column.
-            return response()->json(['message' => 'success', 'data' => [
-                'survey_id'       => $surveyId,
-                'C_Total_Score'   => $photo,
-                'D_Total_Score'   => $checklist,
-                'E_Total_Score'   => $environtment,
-                'F_Total_Score'   => $ucoEstimation,
-                'Total_Score'     => $totalScore,
-                'Analysis_Result' => $this->resolveRecommendation($totalScore),
-            ]]);
+            return response()->json(['message' => 'success', 'data' => $this->surveyResponseData($surveyId, $result)]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -420,151 +354,61 @@ class SurveyController extends Controller
 
     public function updateMasterDataSurvey(Request $r)
     {
-        $b     = $r->all();
+        $b = $r->all();
         $rowId = $r->input('ID');
         if (!$rowId) {
             return response()->json(['success' => false, 'message' => 'ID is required'], 400);
         }
 
-        $exists = DB::table('survey_location')->where('ID', $rowId)->exists();
-        if (!$exists) {
+        $survey = DB::table('survey_location')->where('ID', $rowId)->first();
+        if (!$survey) {
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
         }
 
-        $photo        = 0;
-        $checklist    = 0;
-        $environtment = 0;
-        $ucoEstimation = 0;
+        $version = !empty($survey->Survey_Form_Version_ID)
+            ? $this->surveyScoring->versionWithItems($survey->Survey_Form_Version_ID)
+            : $this->surveyScoring->activeVersionWithItems();
 
-        for ($i = 1; $i <= 4; $i++) {
-            $photo += $b["C_c$i"] * 2.5;
+        if (!$version) {
+            return response()->json(['success' => false, 'message' => 'Form survey tidak ditemukan'], 400);
         }
-
-        for ($j = 1; $j <= 9; $j++) {
-            $count = $b["D_c$j"];
-            if ($count == 1 && $j !== 9) {
-                $checklist += ($count * 6);
-            } else if ($count == 1) {
-                $checklist += ($count * 7);
-            }
-        }
-
-        for ($k = 1; $k <= 4; $k++) {
-            $input = $b["E_p$k"];
-            if ($input == 1) {
-                $environtment += 1;
-            } else if ($input == 2) {
-                $environtment += 3;
-            } else if ($input == 3) {
-                $environtment += 5;
-            }
-        }
-
-        $ton = $b["F_p5_col2"];
-        if ($ton > 15) {
-            $ucoEstimation += 15;
-        } else if ($ton >= 10) {
-            $ucoEstimation += 12;
-        } else if ($ton >= 6) {
-            $ucoEstimation += 8;
-        } else if ($ton >= 4) {
-            $ucoEstimation += 5;
-        } else {
-            $ucoEstimation += 2;
-        }
-
-        $totalScore = $photo + $checklist + $environtment + $ucoEstimation;
 
         try {
-            DB::transaction(function () use ($rowId, $b, $photo, $checklist, $environtment, $ucoEstimation, $totalScore, $r) {
+            $answers = $this->answerInput($r, $version);
+            $result = $this->surveyScoring->calculate($version, $version->items, $answers);
+            $legacy = $this->legacyColumns($result);
+
+            DB::transaction(function () use ($rowId, $b, $legacy, $result, $version, $r) {
                 DB::table('survey_location')->where('ID', $rowId)->update([
-                    // "Opportunity_Partner_Id" => $b["Opportunity_Partner_Id"],
-                    "Parent_Id"       => $b["Parent_Id"] ?? null,
+                    "Parent_Id" => $b["Parent_Id"] ?? null,
                     "Suggestion_Type" => $b["Suggestion_Type"] ?? "ORIGINAL",
-                    "Province"            => $b['Province'] ?? "",
-                    "City"                => $b['City'],
-                    "District"            => $b['District'],
-                    "Subdistrict"         => $b['Subdistrict'],
-                    "Address"             => $b['Address'],
-                    "Location_Name"       => $b['Location_Name'] ?? "",
-                    "Latitude"            => $b['Latitude'],
-                    "Longitude"           => $b['Longitude'],
+                    "Province" => $b['Province'] ?? "",
+                    "City" => $b['City'],
+                    "District" => $b['District'],
+                    "Subdistrict" => $b['Subdistrict'],
+                    "Address" => $b['Address'],
+                    "Location_Name" => $b['Location_Name'] ?? "",
+                    "Latitude" => $b['Latitude'],
+                    "Longitude" => $b['Longitude'],
                     "Recommendation_Type" => $b['Recommendation_Type'] ?? "INTERNAL",
-                    "Surveyor_Name"       => $b['Surveyor_Name'],
+                    "Surveyor_Name" => $b['Surveyor_Name'],
                     "Location_Owner_Name" => $b['Location_Owner_Name'],
-                    "Area"                => $b['Area'],
-                    "Location_Type"       => $b['Location_Type'],
-                    "C_c1"                => $b["C_c1"],
-                    "C_c2"                => $b["C_c2"],
-                    "C_c3"                => $b["C_c3"],
-                    "C_c4"                => $b["C_c4"],
-                    "C_Total_Score"       => $photo,
-                    "C_Total_Score"       => $photo,
-                    "D_c1"                => $b["D_c1"],
-                    "D_c2"                => $b["D_c2"],
-                    "D_c3"                => $b["D_c3"],
-                    "D_c4"                => $b["D_c4"],
-                    "D_c5"                => $b["D_c5"],
-                    "D_c6"                => $b["D_c6"],
-                    "D_c7"                => $b["D_c7"],
-                    "D_c8"                => $b["D_c8"],
-                    "D_c9"                => $b["D_c9"],
-                    "D_Total_Score"       => $checklist,
-                    "D_Total_Score"       => $checklist,
-                    "D_c1_Notes"          => $b['D_c1_Notes'],
-                    "D_c2_Notes"          => $b['D_c2_Notes'],
-                    "D_c3_Notes"          => $b['D_c3_Notes'],
-                    "D_c4_Notes"          => $b['D_c4_Notes'],
-                    "D_c5_Notes"          => $b['D_c5_Notes'],
-                    "D_c6_Notes"          => $b['D_c6_Notes'],
-                    "D_c7_Notes"          => $b['D_c7_Notes'],
-                    "D_c8_Notes"          => $b['D_c8_Notes'],
-                    "D_c9_Notes"          => $b['D_c9_Notes'],
-                    "E_p1"                => $b["E_p1"],
-                    "E_p2"                => $b["E_p2"],
-                    "E_p3"                => $b["E_p3"],
-                    "E_p4"                => $b["E_p4"],
-                    "E_Total_Score"       => $environtment,
-                    "E_Total_Score"       => $environtment,
-                    "F_p1_col1"           => $b["F_p1_col1"],
-                    "F_p1_col2"           => $b["F_p1_col2"],
-                    "F_p2_col1"           => $b["F_p2_col1"],
-                    "F_p2_col2"           => $b["F_p2_col2"],
-                    "F_p3_col1"           => $b["F_p3_col1"],
-                    "F_p3_col2"           => $b["F_p3_col2"],
-                    "F_p4_col1"           => $b["F_p4_col1"],
-                    "F_p4_col2"           => $b["F_p4_col2"],
-                    "F_Total_Score"       => $ucoEstimation,
-                    "F_Total_Score"       => $ucoEstimation,
-                    "G_p1"                => $b["G_p1"] ?? "",
-                    "G_p2"                => $b["G_p2"] ?? "",
-                    "G_p3"                => $b["G_p3"] ?? "",
-                    "Total_Score"         => $totalScore,
-                    "Total_Score"         => $totalScore,
-                    "Approval_Surveyor"   => $b["Approval_Surveyor"] ?? 1,
-                    "Approval_Manager"    => $b["Approval_Manager"] ?? 0,
-                    "Approval_COO"        => $b["Approval_COO"] ?? 0,
-                ]);
+                    "Area" => $b['Area'],
+                    "Location_Type" => $b['Location_Type'],
+                    "G_p1" => $b["G_p1"] ?? "",
+                    "G_p2" => $b["G_p2"] ?? "",
+                    "G_p3" => $b["G_p3"] ?? "",
+                    "Approval_Surveyor" => $b["Approval_Surveyor"] ?? 1,
+                    "Approval_Manager" => $b["Approval_Manager"] ?? 0,
+                    "Approval_COO" => $b["Approval_COO"] ?? 0,
+                    "Survey_Form_Version_ID" => $version->ID,
+                    "Max_Score" => $result['max_score'],
+                    "Score_Percentage" => $result['percentage'],
+                    "Recommendation" => $result['recommendation'],
+                ] + $legacy);
 
-                $fileInputs = ['C_c1_File', 'C_c2_File', 'C_c3_File', 'C_c4_File'];
-
-                foreach ($fileInputs as $inputName) {
-                    if ($r->hasFile($inputName) && $r->file($inputName)->isValid()) {
-                        $file  = $r->file($inputName);
-                        $year  = Carbon::now()->year;
-                        $month = Carbon::now()->format('m');
-                        $path  = $file->store("$year/$month", 'public');
-                        $ext   = $file->getClientOriginalExtension();
-
-                        DB::table('meta_files')
-                            ->where('Topic', 'survey')
-                            ->where('Map_To', $rowId)
-                            ->where('Description', $inputName)
-                            ->delete();
-
-                        $this->uploadService->uploadMetaFile($path, basename($path), $inputName, $ext, 'survey', $rowId);
-                    }
-                }
+                DB::table('survey_answers')->where('Survey_Location_ID', $rowId)->delete();
+                $this->persistDynamicAnswers($rowId, $version, $result, $r);
             });
         } catch (\Exception $e) {
             return response()->json([
@@ -573,17 +417,7 @@ class SurveyController extends Controller
             ], 500);
         }
 
-        $analysisResult = "Tidak Diketahui";
-        if ($totalScore >= 80) {
-            $analysisResult = "Layak";
-        } else if ($totalScore >= 70) {
-            $analysisResult = "Layak Bersyarat";
-        } else {
-            $analysisResult = "Tidak Layak";
-        }
-
         $survey = DB::table('survey_location')->where('ID', $rowId)->first();
-
         $isPartner = optional(auth()->user())->Priv_ID === 'MITRA';
         $hasApprovalRequest = DB::table('approval_request')
             ->where('Request_Type', 'SURVEY')
@@ -598,14 +432,141 @@ class SurveyController extends Controller
             }
         }
 
-        return response()->json(['message' => 'success', 'data' => [
-            'C_Total_Score'   => $photo,
-            'D_Total_Score'   => $checklist,
-            'E_Total_Score'   => $environtment,
-            'F_Total_Score'   => $ucoEstimation,
-            'Total_Score'     => $totalScore,
-            'Analysis_Result' => $analysisResult
-        ]]);
+        return response()->json(['message' => 'success', 'data' => $this->surveyResponseData($rowId, $result)]);
+    }
+
+    private function answerInput(Request $r, $version): array
+    {
+        $incoming = $r->input('answers', []);
+        if (is_array($incoming) && count($incoming) > 0) {
+            return $incoming;
+        }
+
+        $b = $r->all();
+        $answers = [];
+        foreach ($version->items as $item) {
+            $code = $item->Item_Code;
+            $section = $item->Section_Code;
+            $number = (int) preg_replace('/\D+/', '', $code);
+
+            if ($section === 'C') {
+                $answers[$code] = ['value' => $b["C_c$number"] ?? null];
+            } elseif ($section === 'D') {
+                $answers[$code] = [
+                    'value' => $b["D_c$number"] ?? null,
+                    'notes' => $b["D_c{$number}_Notes"] ?? null,
+                ];
+            } elseif ($section === 'E') {
+                $answers[$code] = ['value' => $b["E_p$number"] ?? null];
+            } elseif ($section === 'F') {
+                $answers[$code] = [
+                    'source_value' => $b["F_p{$number}_col1"] ?? null,
+                    'uco_estimation' => $b["F_p{$number}_col2"] ?? null,
+                ];
+            }
+        }
+
+        return $answers;
+    }
+
+    private function legacyColumns(array $result): array
+    {
+        $columns = [
+            'C_Total_Score' => $result['section_scores']['C'] ?? 0,
+            'D_Total_Score' => $result['section_scores']['D'] ?? 0,
+            'E_Total_Score' => $result['section_scores']['E'] ?? 0,
+            'F_Total_Score' => $result['section_scores']['F'] ?? 0,
+            'Total_Score' => $result['total'],
+        ];
+
+
+        foreach ($result['items'] as $code => $entry) {
+            if (!preg_match('/^([CDEF])(\d+)$/', $code, $m)) {
+                continue;
+            }
+            $section = $m[1];
+            $number = (int) $m[2];
+            $value = $entry['value'];
+
+            if ($section === 'C' && $number <= 4) {
+                $columns["C_c$number"] = $value ?: 0;
+            } elseif ($section === 'D' && $number <= 9) {
+                $columns["D_c$number"] = $value ?: 0;
+                $columns["D_c{$number}_Notes"] = $entry['notes'] ?? '';
+            } elseif ($section === 'E' && $number <= 4) {
+                $columns["E_p$number"] = $value ?: 0;
+            } elseif ($section === 'F' && $number <= 4) {
+                $source = (float) ($entry['answer_json']['source_value'] ?? 0);
+                $uco = (float) ($entry['answer_json']['uco_estimation'] ?? 0);
+                $columns["F_p{$number}_col1"] = $source;
+                $columns["F_p{$number}_col2"] = $uco;
+            }
+        }
+
+        return $columns;
+    }
+
+    private function persistDynamicAnswers(int $surveyId, $version, array $result, Request $r): void
+    {
+        foreach ($result['items'] as $code => $entry) {
+            $item = $entry['item'];
+            $filePath = null;
+            $file = $r->file("answers.$code.file");
+
+            if (!$file && preg_match('/^C(\d+)$/', $code, $m)) {
+                $file = $r->file("C_c{$m[1]}_File");
+            }
+
+            if ($file && $file->isValid()) {
+                $year = Carbon::now()->year;
+                $month = Carbon::now()->format('m');
+                $path = $file->store("$year/$month", 'public');
+                $filePath = $path;
+                $description = preg_match('/^C(\d+)$/', $code, $m) ? "C_c{$m[1]}_File" : "{$code}_File";
+
+                DB::table('meta_files')
+                    ->where('Topic', 'survey')
+                    ->where('Map_To', $surveyId)
+                    ->where('Description', $description)
+                    ->delete();
+
+                $this->uploadService->uploadMetaFile($path, basename($path), $description, $file->getClientOriginalExtension(), 'survey', $surveyId);
+            }
+
+            DB::table('survey_answers')->insert([
+                'Survey_Location_ID' => $surveyId,
+                'Form_Item_ID' => $item->ID,
+                'Item_Code' => $code,
+                'Section_Code' => $item->Section_Code,
+                'Criteria_Snapshot' => $item->Criteria,
+                'Keterangan_Snapshot' => $item->Keterangan,
+                'Minimum_Standard_Snapshot' => $item->Minimum_Standard,
+                'Parameter_Evaluation_Snapshot' => $item->Parameter_Evaluation,
+                'Answer_JSON' => json_encode($entry['answer_json']),
+                'Score' => $entry['score'],
+                'Notes' => $entry['notes'],
+                'File_Path' => $filePath,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
+    private function surveyResponseData(int $surveyId, array $result): array
+    {
+        return [
+            'survey_id' => $surveyId,
+            'C_Total_Score' => $result['section_scores']['C'] ?? 0,
+            'D_Total_Score' => $result['section_scores']['D'] ?? 0,
+            'E_Total_Score' => $result['section_scores']['E'] ?? 0,
+            'F_Total_Score' => $result['section_scores']['F'] ?? 0,
+            'Total_Score' => $result['total'],
+            'Max_Score' => $result['max_score'],
+            'Score_Percentage' => $result['percentage'],
+            'Analysis_Result' => $result['recommendation'],
+            'section_scores' => $result['section_scores'],
+            'section_max' => $result['section_max'],
+        ];
     }
 
     public function getSurvey(Request $r)

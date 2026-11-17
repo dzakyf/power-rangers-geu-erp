@@ -36,9 +36,10 @@ $masterCategory = DB::table('master_ticket_category')->get();
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">HISTORY TICKET CASE</div>
 	<div class="card">
 		<div class="card-body">
+		    @include('partner.partials.index-title', ['title' => 'Ticket History'])
+
 			<div id="TicketHistory" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 			<div>
 				<input type="button" id="ekselTicketHistoryDet" name="ekselTicketHistoryDet" class="btn btn-info mt-2 mr-2" value="Export Excel" onclick="TicketHistory.toExcel('./export/generate.php');" />
