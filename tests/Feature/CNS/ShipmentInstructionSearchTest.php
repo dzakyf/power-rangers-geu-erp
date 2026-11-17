@@ -32,7 +32,7 @@ class ShipmentInstructionSearchTest extends TestCase
     public function create_new_si_initializes_searchable_select2_fields(): void
     {
         $response = $this->actingAs($this->testUser())
-            ->get('/cns-export-shipment-instruction-new');
+            ->get('/cns-export-shipping-instruction-new');
 
         $response->assertOk();
 

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Role;
 use App\Permission;
 use App\Services\RbacService;
+use App\Services\CNS\CnsPermissionService;
 
 class CredentialRoleController extends Controller
 {
@@ -128,7 +129,9 @@ class CredentialRoleController extends Controller
                 'urutan' => $menu->Urutan,
             ];
             foreach ($actions as $action) {
-                $permName = "menu.{$menu->Menu_ID}.{$action}";
+                $permName = ($menu->Modules === 'CNS' && CnsPermissionService::isCnsMenu($menu->Menu_ID))
+                    ? CnsPermissionService::permissionName($menu->Menu_ID, $action)
+                    : "menu.{$menu->Menu_ID}.{$action}";
                 $row[$action] = in_array($permName, $rolePermissionNames);
             }
             return $row;
@@ -154,16 +157,26 @@ class CredentialRoleController extends Controller
 
         $permissionNames = [];
         foreach ($permissionInput as $menuId => $actions) {
+            $isCns = CnsPermissionService::isCnsMenu($menuId);
             foreach ($actions as $action => $checked) {
                 if (filter_var($checked, FILTER_VALIDATE_BOOLEAN)) {
-                    $permissionNames[] = "menu.{$menuId}.{$action}";
+                    $permissionNames[] = $isCns
+                        ? CnsPermissionService::permissionName($menuId, $action)
+                        : "menu.{$menuId}.{$action}";
                 }
             }
         }
 
-        // Preserve standalone permissions (not menu.*) so role/system-level capabilities survive the sync
+        // Preserve standalone permissions (not menu.* and not cns menu permissions)
+        $cnsMenuPerms = [];
+        foreach (CnsPermissionService::allMenuSlugs() as $mId => $slug) {
+            foreach (self::MENU_ACTIONS as $act) {
+                $cnsMenuPerms[] = "cns.{$slug}.{$act}";
+            }
+        }
         $standalone = $role->permissions()
             ->where('name', 'not like', 'menu.%')
+            ->whereNotIn('name', $cnsMenuPerms)
             ->pluck('name')
             ->toArray();
 
@@ -304,14 +317,17 @@ class CredentialRoleController extends Controller
 
         $allowedModules = self::ALLOWED_MODULES;
 
-        $menuIds = DB::table('menu_lists')
+        $menus = DB::table('menu_lists')
             ->whereIn('Modules', $allowedModules)
-            ->pluck('Menu_ID');
+            ->get();
 
         $permissionNames = [];
-        foreach ($menuIds as $menuId) {
+        foreach ($menus as $menu) {
+            $isCns = $menu->Modules === 'CNS' && CnsPermissionService::isCnsMenu($menu->Menu_ID);
             foreach (['view', 'create', 'edit', 'delete', 'approve'] as $action) {
-                $permissionNames[] = "menu.{$menuId}.{$action}";
+                $permissionNames[] = $isCns
+                    ? CnsPermissionService::permissionName($menu->Menu_ID, $action)
+                    : "menu.{$menu->Menu_ID}.{$action}";
             }
         }
 
@@ -401,8 +417,12 @@ class CredentialRoleController extends Controller
         ]);
 
         foreach (['view', 'create', 'edit', 'delete', 'approve'] as $action) {
+            $permName = ($module === 'CNS' && CnsPermissionService::isCnsMenu($menuId))
+                ? CnsPermissionService::permissionName($menuId, $action)
+                : "menu.{$menuId}.{$action}";
+
             Permission::firstOrCreate(
-                ['name' => "menu.{$menuId}.{$action}", 'guard_name' => 'web'],
+                ['name' => $permName, 'guard_name' => 'web'],
                 ['menu_id' => $menuId, 'action' => $action]
             );
         }
@@ -483,7 +503,7 @@ class CredentialRoleController extends Controller
 
         DB::table('menu_lists')->where('ID', $target->ID)->delete();
 
-        Permission::where('name', 'like', "menu.{$target->Menu_ID}.%")->delete();
+        Permission::where('menu_id', $target->Menu_ID)->delete();
 
         return response()->json(['success' => true]);
     }
@@ -545,8 +565,12 @@ class CredentialRoleController extends Controller
         ]);
 
         foreach (self::MENU_ACTIONS as $action) {
+            $permName = ($module === 'CNS' && CnsPermissionService::isCnsMenu($menuId))
+                ? CnsPermissionService::permissionName($menuId, $action)
+                : "menu.{$menuId}.{$action}";
+
             Permission::firstOrCreate(
-                ['name' => "menu.{$menuId}.{$action}", 'guard_name' => 'web'],
+                ['name' => $permName, 'guard_name' => 'web'],
                 ['menu_id' => $menuId, 'action' => $action]
             );
         }

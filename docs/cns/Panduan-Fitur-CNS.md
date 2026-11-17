@@ -75,17 +75,17 @@ Modul ini digunakan oleh beberapa kelompok pengguna dengan hak akses yang berbed
 Sebagian besar dokumen pada modul CNS dibuat secara berjenjang. Alur pembuatan dokumen ekspor secara ringkas adalah sebagai berikut:
 
 1. **Jadwal Kapal / Boking** menjadi sumber awal; dari sini data kontainer (nomor kontainer, segel, dan berat) dicatat pada menu **Stuffing**.
-2. **Shipment Instruction (SI)** dibuat dari data boking setelah seluruh kontainer tercatat. Dokumen SI kemudian difinalisasi menjadi **Final Shipment Instruction (FSI)**.
+2. **Shipping Instructions (SI)** dibuat dari data boking setelah seluruh kontainer tercatat. Dokumen SI kemudian difinalisasi menjadi **Final Shipping Instructions (FSI)**.
 3. Dari **FSI** dihasilkan dokumen **Packing List** dan **Commercial Invoice**.
 4. **Weight Bridge Ticket** dibuat berdasarkan **Packing List**, memuat bukti tiket timbangan setiap kontainer.
 5. **Certificate of Origin** dibuat berdasarkan **Weight Bridge Ticket**, memuat rincian kontainer dan segel.
 6. **Annex VII** dibuat berdasarkan **FSI** sebagai dokumen pergerakan lintas batas.
 7. **Sustainability Declaration** dan **Delivery Note** merupakan dokumen mandiri yang tidak dihasilkan dari dokumen lain.
 
-| Dokumen                          | Dihasilkan dari       | Keterangan                          |
-| -------------------------------- | --------------------- | ----------------------------------- |
-| Shipment Instruction (SI)        | Boking / Jadwal Kapal | Nomor SI dibuat otomatis            |
-| Final Shipment Instruction (FSI) | SI                    | Menjadi kunci dokumen hilir         |
+| Dokumen                             | Dihasilkan dari       | Keterangan                          |
+| ----------------------------------- | --------------------- | ----------------------------------- |
+| Shipping Instructions (SI)          | Boking / Jadwal Kapal | Nomor SI dibuat otomatis            |
+| Final Shipping Instructions (FSI)   | SI                    | Menjadi kunci dokumen hilir         |
 | Packing List (PL)                | FSI                   | Terdapat varian cetak untuk pembeli |
 | Commercial Invoice (CI)          | FSI                   | Berstatus draf hingga difinalisasi  |
 | Weight Bridge Ticket (WBT)       | Packing List          | Memuat unggahan tiket timbangan     |
@@ -102,7 +102,7 @@ Menu utama modul CNS dan sub-menunya adalah sebagai berikut:
 
 1. **Vessel Schedule** — jadwal dan boking kapal.
 2. **Stuffing** — pencatatan pengisian kontainer, dengan sub-menu **Stuffing Monitoring**.
-3. **Export Management** — kumpulan dokumen ekspor: Shipment Instruction, Final Shipment Instruction, Packing List, Commercial Invoice, Weight Bridge Ticket, Certificate of Origin, Sustainability Declaration, Delivery Note, dan Annex VII.
+3. **Export Management** — kumpulan dokumen ekspor: Shipping Instructions, Final Shipping Instructions, Packing List, Commercial Invoice, Weight Bridge Ticket, Certificate of Origin, Sustainability Declaration, Delivery Note, dan Annex VII.
 4. **Quality Control** — pengendalian mutu produk UCO, terdiri dari sub-menu **Quality Control External** dan **Quality Control Internal** yang masing-masing melayani pengujian **Inbound** dan **Outbound**.
 5. **Sales & Commercial** — pesanan penjualan (Sales Order).
 6. **ISCC Sustainability** — keterlacakan dan sertifikasi keberlanjutan (Traceability).
@@ -144,7 +144,7 @@ Pengguna dapat membuat jadwal baru melalui tombol **New Schedule** dengan mengis
 
 ### 3.3 Detail dan Riwayat Perubahan
 
-Dari halaman detail, pengguna dapat memperbarui seluruh data jadwal, termasuk tanggal aktual ATD dan ATA. Apabila nomor order diubah, sistem turut memperbarui dokumen **Shipment Instruction** dan **Packing List** yang masih memakai nomor order yang sama.
+Dari halaman detail, pengguna dapat memperbarui seluruh data jadwal, termasuk tanggal aktual ATD dan ATA. Apabila nomor order diubah, sistem turut memperbarui dokumen **Shipping Instructions** dan **Packing List** yang masih memakai nomor order yang sama.
 
 Seluruh perubahan tercatat pada bagian **Vessel Schedule Log**, menampilkan pengguna, tanggal, dan jenis tindakan (pembuatan, perubahan data, atau pembaruan stuffing kontainer). Sistem juga menyediakan tautan pelacakan pengiriman kapal (ShipmentLink) untuk memantau posisi kapal secara eksternal.
 
@@ -198,7 +198,7 @@ Menu ini menyajikan seluruh catatan pengisian kontainer dari berbagai order dala
 
 Menu Export Management menampung seluruh dokumen ekspor. Setiap sub-bab berikut menjelaskan fungsi, kolom utama, dan hubungan antardokumen.
 
-### 5.1 Shipment Instruction (SI)
+### 5.1 Shipping Instructions (SI)
 
 Dokumen perintah pengiriman ekspor yang dibuat berdasarkan boking/jadwal kapal yang seluruh kontainernya telah tercatat. Saat memilih nomor order, sistem otomatis mengisi nama kapal, tanggal stuffing, ETD/ETA, POL/POD, serta daftar kontainer. Nomor SI dibuat otomatis dengan format **SI/EXP/…/BULAN/TAHUN**.
 
@@ -207,13 +207,13 @@ Aksi yang tersedia antara lain:
 - **New SI** — membuat dokumen SI baru.
 - **Detail SI** — melihat dan memperbarui data SI.
 - **Print SI** — mencetak dokumen berformat PDF dengan kop dan kaki perusahaan.
-- **Create Final SI** — memfinalisasi SI menjadi **Final Shipment Instruction**.
+- **Create Final SI** — memfinalisasi SI menjadi **Final Shipping Instructions**.
 
 Status SI: **CREATED** (draf, masih tampil pada daftar SI) hingga **FINAL** (telah difinalisasi dan berpindah ke daftar FSI).
 
-[Sisipkan tangkapan layar: Daftar Shipment Instruction]
+[Sisipkan tangkapan layar: Daftar Shipping Instructions]
 
-### 5.2 Final Shipment Instruction (FSI)
+### 5.2 Final Shipping Instructions (FSI)
 
 Dokumen finalisasi SI yang menjadi kunci referensi bagi dokumen ekspor lainnya. Nomor Final SI dibuat otomatis dengan format **FINALSI/EXP/…**.
 
@@ -525,8 +525,8 @@ Menu ini menampilkan perusahaan yang berperan sebagai **penerima barang (consign
 | ------------------ | -------------------------------------------------------------------------------------- |
 | UCO                | Used Cooking Oil atau minyak jelantah, komoditas utama rantai pasok                    |
 | ISCC               | International Sustainability and Carbon Certification, skema sertifikasi keberlanjutan |
-| SI                 | Shipment Instruction, perintah pengiriman ekspor                                       |
-| FSI                | Final Shipment Instruction, finalisasi SI dan kunci dokumen hilir                      |
+| SI                 | Shipping Instructions, perintah pengiriman ekspor                                     |
+| FSI                | Final Shipping Instructions, finalisasi SI dan kunci dokumen hilir                    |
 | PL                 | Packing List, daftar kemasan/kontainer pengiriman                                      |
 | CI                 | Commercial Invoice, faktur komersial ekspor                                            |
 | WBT                | Weight Bridge Ticket, tiket timbangan pengiriman                                       |

@@ -200,18 +200,23 @@ $Saya =  Auth::user()->username;
   }
 
   .items-table .desc-col {
-    width: 38%;
-    min-width: 180px;
+    width: 32%;
+    min-width: 170px;
+  }
+
+  .items-table .stock-col {
+    width: 10%;
+    min-width: 90px;
   }
 
   .items-table .qty-col {
-    width: 11%;
-    min-width: 105px;
+    width: 10%;
+    min-width: 95px;
   }
 
   .items-table .unit-col {
-    width: 11%;
-    min-width: 105px;
+    width: 10%;
+    min-width: 95px;
   }
 
   .items-table .price-col,
@@ -450,7 +455,10 @@ $Saya =  Auth::user()->username;
                 <div class="section-body">
                   <div class="form-group mb-2">
                     <label class="form-label">Site</label>
-                    <input type="text" class="form-control" id="site" placeholder="Nama Site" />
+                    <input type="hidden" id="site_id" name="site_id" value="" />
+                    <select class="form-control" id="site" name="site" value="" style="width: 100%;">
+                      <option value="" selected>-- Pilih Site --</option>
+                    </select>
                   </div>
                   <div class="form-group mb-2">
                     <label class="form-label">Site Address</label>
@@ -486,6 +494,7 @@ $Saya =  Auth::user()->username;
                       <tr>
                         <th class="num-col">No.</th>
                         <th class="desc-col">Description</th>
+                        <th class="stock-col text-center">Stok</th>
                         <th class="qty-col text-center">QTY</th>
                         <th class="unit-col text-center">Unit</th>
                         <th class="price-col text-right">Unit Price (IDR)</th>
@@ -498,33 +507,33 @@ $Saya =  Auth::user()->username;
                     </tbody>
                     <tfoot>
                       <tr class="subtotal-row">
-                        <td colspan="5" class="text-right font-weight-600">SUBTOTAL</td>
+                        <td colspan="6" class="text-right font-weight-600">SUBTOTAL</td>
                         <td class="text-right font-weight-600" id="subtotalDisplay">0</td>
                         <td class="no-print"></td>
                       </tr>
                       <tr>
-                        <td colspan="5" class="text-right">TAX</td>
+                        <td colspan="6" class="text-right">TAX</td>
                         <td class="text-right">
                           <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="taxAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                         <td class="no-print"></td>
                       </tr>
                       <tr>
-                        <td colspan="5" class="text-right">SHIPPING</td>
+                        <td colspan="6" class="text-right">SHIPPING</td>
                         <td class="text-right">
                           <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="shippingAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                         <td class="no-print"></td>
                       </tr>
                       <tr>
-                        <td colspan="5" class="text-right">OTHER</td>
+                        <td colspan="6" class="text-right">OTHER</td>
                         <td class="text-right">
                           <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="otherAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                         <td class="no-print"></td>
                       </tr>
                       <tr class="total-row">
-                        <td colspan="5" class="text-right">TOTAL</td>
+                        <td colspan="6" class="text-right">TOTAL</td>
                         <input type="hidden" name="totalAmount" id="totalAmount" value="">
                         <td class="text-right" id="totalDisplay">Rp 0</td>
                         <td class="no-print"></td>

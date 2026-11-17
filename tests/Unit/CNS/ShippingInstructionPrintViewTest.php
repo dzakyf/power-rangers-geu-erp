@@ -165,5 +165,144 @@ class ShippingInstructionPrintViewTest extends TestCase
 
         $this->assertNotEmpty($pdfOutput);
         $this->assertStringStartsWith('%PDF', $pdfOutput);
+
+        // Verify static 10 container rows
+        for ($i = 1; $i <= 10; $i++) {
+            $this->assertStringContainsString("Container No. {$i} / ....", $html);
+        }
+        $this->assertStringContainsString('20,000.00', $html);
+        $this->assertStringContainsString('200,000.00', $html);
+        $this->assertStringContainsString('QUANTITY : 200.00 METRIC TONS', $html);
+    }
+
+    /** @test */
+    public function it_can_write_fsi_html_to_mpdf_with_dynamic_containers(): void
+    {
+        $shipment = (object) [
+            'Status' => 'FINAL',
+            'Final_SI_No' => 'FINAL-SI-001',
+            'Final_SI_Date' => '2026-11-10',
+            'SI_No' => 'SI-001',
+            'SI_Date' => '2026-11-02',
+            'Qty' => '3 x 20 FT',
+            'Qty1' => '3',
+            'Qty2' => '20 FT',
+            'Product_Name' => 'REFINED USED COOKING OIL',
+            'HS_Code' => '15119020',
+            'Shipper' => '',
+            'Consignee' => '',
+            'Notify' => '',
+            'Destination_Port' => '',
+            'BL_No' => 'BL-001',
+            'POL' => 'JAKARTA',
+            'POD' => 'PASIR GUDANG',
+            'Delivery_Terms' => 'CIF',
+            'Contract_No' => 'CTR-001',
+            'Shipped_By' => 'VESSEL 1',
+            'Voyage' => 'VESSEL 1',
+            'ETD' => '2026-11-10',
+            'ETA' => '2026-11-15',
+            'Stuffing' => '2026-11-09',
+            'PEB_No' => 'PEB-001',
+            'PEB_Date' => '2026-11-09',
+        ];
+
+        $mockPrint = [
+            'shipment' => $shipment,
+            'values' => [
+                'status_label' => 'FINAL',
+                'si_no' => 'FINAL-SI-001',
+                'si_date' => 'November, 10 2026',
+                'contract_no' => 'CTR-001',
+                'delivery_terms' => 'CIF',
+                'quantity' => '3 x 20 FT',
+                'voyage' => 'VESSEL 1',
+                'shipped_by' => 'VESSEL 1',
+                'etd' => 'November, 10 2026',
+                'eta' => 'November, 15 2026',
+                'stuffing' => 'November, 09 2026',
+                'peb_no' => 'PEB-001',
+                'peb_date' => 'November, 09 2026',
+                'product_name' => 'REFINED USED COOKING OIL',
+                'hs_code' => '15119020',
+                'package_type' => '20 FT',
+                'bl_no' => 'BL-001',
+                'pol' => 'JAKARTA',
+                'pod' => 'PASIR GUDANG',
+            ],
+            'shipper' => [
+                'name' => 'PT Shipper',
+                'address' => 'Shipper Address',
+                'city' => 'Jakarta',
+                'logo_data_uri' => null,
+            ],
+            'consignee' => [
+                'name' => 'Consignee Ltd',
+                'address' => 'Consignee Address',
+                'city' => 'Singapore',
+            ],
+            'notify' => [
+                'name' => 'Notify Ltd',
+                'address' => 'Notify Address',
+                'city' => 'Singapore',
+            ],
+            'destination' => [
+                'name' => 'Port Authority',
+                'address' => 'Port Address',
+            ],
+            'is_final' => true,
+            'approver' => (object) [
+                'Name' => 'Hani Septyana',
+                'Position' => 'Commercial and Sustainability Manager',
+            ],
+            'approver_signature' => null,
+        ];
+
+        $vsds = collect([
+            (object) [
+                'Container' => 'CONT-DYN-1',
+                'Seal' => 'SEAL-DYN-1',
+                'Netto_KG' => 21500,
+                'Gross_KG' => 23500,
+            ],
+            (object) [
+                'Container' => 'CONT-DYN-2',
+                'Seal' => 'SEAL-DYN-2',
+                'Netto_KG' => 21400,
+                'Gross_KG' => 23400,
+            ],
+        ]);
+
+        $gross = 46900;
+        $netto = 42900;
+        $mt = 42.90;
+
+        $html = view('cns.export.print.fsi', [
+            'print' => $mockPrint,
+            'shipment' => $shipment,
+            'companies' => collect(),
+            'approver' => $mockPrint['approver'],
+            'approverSignature' => null,
+            'logoDataUri' => null,
+            'vsds' => $vsds,
+            'gross' => $gross,
+            'netto' => $netto,
+            'mt' => $mt,
+        ])->render();
+
+        $mpdf = new \Mpdf\Mpdf([
+            'format' => 'A4',
+            'tempDir' => storage_path('app/mpdf'),
+        ]);
+
+        $mpdf->WriteHTML($html);
+        $pdfOutput = $mpdf->Output('', 'S');
+
+        $this->assertNotEmpty($pdfOutput);
+        $this->assertStringStartsWith('%PDF', $pdfOutput);
+        $this->assertStringContainsString('CONT-DYN-1', $html);
+        $this->assertStringContainsString('CONT-DYN-2', $html);
+        $this->assertStringContainsString('42,900.00', $html);
+        $this->assertStringContainsString('46,900.00', $html);
     }
 }

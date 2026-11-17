@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\CNS;
 
-use App\ShipmentInstruction;
+use App\ShippingInstruction;
 use App\User;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
@@ -36,21 +36,21 @@ class ShipmentInstructionDeleteTest extends TestCase
     public function it_renders_delete_si_button_on_si_list_page(): void
     {
         $response = $this->actingAs($this->testUser())
-            ->get('/cns-export-shipment-instruction');
+            ->get('/cns-export-shipping-instruction');
 
         $response->assertOk();
         $html = $response->getContent();
         $this->assertStringContainsString('id="DeleteSI"', $html);
         $this->assertStringContainsString('value="Delete SI"', $html);
         $this->assertStringContainsString('onclick="DeleteSI()"', $html);
-        $this->assertStringContainsString('cns-export-shipment-instruction-delete', $html);
+        $this->assertStringContainsString('cns-export-shipping-instruction-delete', $html);
     }
 
     /** @test */
     public function it_fails_when_id_is_missing(): void
     {
         $response = $this->actingAs($this->testUser())
-            ->postJson('/cns-export-shipment-instruction-delete', []);
+            ->postJson('/cns-export-shipping-instruction-delete', []);
 
         $response->assertStatus(400);
         $response->assertJson([
@@ -62,7 +62,7 @@ class ShipmentInstructionDeleteTest extends TestCase
     public function it_fails_when_si_not_found(): void
     {
         $response = $this->actingAs($this->testUser())
-            ->postJson('/cns-export-shipment-instruction-delete', ['id' => 999999999]);
+            ->postJson('/cns-export-shipping-instruction-delete', ['id' => 999999999]);
 
         $response->assertStatus(404);
         $response->assertJson([
@@ -74,7 +74,7 @@ class ShipmentInstructionDeleteTest extends TestCase
     public function it_cannot_delete_final_si(): void
     {
         $user = $this->testUser();
-        $si = ShipmentInstruction::create([
+        $si = ShippingInstruction::create([
             'SI_No' => 'TEST-SI-FINAL-' . uniqid(),
             'Final_SI_No' => 'TEST-FINALSI-' . uniqid(),
             'SI_Date' => now()->toDateString(),
@@ -83,15 +83,15 @@ class ShipmentInstructionDeleteTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)
-            ->postJson('/cns-export-shipment-instruction-delete', ['id' => $si->id]);
+            ->postJson('/cns-export-shipping-instruction-delete', ['id' => $si->id]);
 
         $response->assertStatus(422);
         $response->assertJson([
             'status' => 'error',
-            'message' => 'Shipping Instruction yang sudah menjadi Final SI tidak dapat dihapus.',
+            'message' => 'Shipping Instructions yang sudah menjadi Final SI tidak dapat dihapus.',
         ]);
 
-        $this->assertDatabaseHas('shipment_instructions', ['id' => $si->id]);
+        $this->assertDatabaseHas('shipping_instructions', ['id' => $si->id]);
     }
 
     /** @test */
@@ -120,7 +120,7 @@ class ShipmentInstructionDeleteTest extends TestCase
             'Updated_Date' => now(),
         ]);
 
-        $si = ShipmentInstruction::create([
+        $si = ShippingInstruction::create([
             'SI_No' => $siNo,
             'Order_No' => $orderNo,
             'SI_Date' => now()->toDateString(),
@@ -129,7 +129,7 @@ class ShipmentInstructionDeleteTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)
-            ->postJson('/cns-export-shipment-instruction-delete', [
+            ->postJson('/cns-export-shipping-instruction-delete', [
                 'id' => $si->id,
                 'Task' => $si->SI_No,
             ]);
@@ -137,12 +137,21 @@ class ShipmentInstructionDeleteTest extends TestCase
         $response->assertOk();
         $response->assertJson([
             'status' => 'success',
-            'message' => 'Shipping Instruction berhasil dihapus.',
+            'message' => 'Shipping Instructions berhasil dihapus.',
         ]);
 
-        $this->assertDatabaseMissing('shipment_instructions', ['id' => $si->id]);
+        $this->assertDatabaseMissing('shipping_instructions', ['id' => $si->id]);
 
         $container = DB::table('vessel_schedule_dtls')->where('ID', $containerId)->first();
         $this->assertNull($container->SI_No);
+    }
+
+    /** @test */
+    public function it_supports_legacy_route_alias(): void
+    {
+        $response = $this->actingAs($this->testUser())
+            ->get('/cns-export-shipment-instruction');
+
+        $response->assertOk();
     }
 }

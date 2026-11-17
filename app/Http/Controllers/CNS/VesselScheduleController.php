@@ -4,7 +4,7 @@ namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
 use App\PackingList;
-use App\ShipmentInstruction;
+use App\ShippingInstruction;
 use App\Services\UploadService;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
@@ -103,7 +103,7 @@ class VesselScheduleController extends Controller
     {
         return view('cns.vs.vessel-schedule-new', [
             'vs' => null,
-            'contracts' => $this->activeContracts(),
+            'contracts' => $this->availableContractsForNew(),
             'vendors' => $this->vendors(),
             'bookings' => collect(),
             'q88' => null,
@@ -134,6 +134,30 @@ class VesselScheduleController extends Controller
 
             if (!$booking) {
                 return response()->json(['message' => 'Booking confirmation tidak ditemukan pada kontrak ini.'], 422);
+            }
+
+            $alreadyScheduled = DB::table('vessel_schedules')
+                ->where(function ($q) use ($booking) {
+                    $q->where('Booking_ID', $booking->ID)
+                        ->orWhere('Booking_No', $booking->Booking_No);
+                })
+                ->exists();
+
+            if ($alreadyScheduled) {
+                return response()->json(['message' => 'Booking confirmation sudah digunakan pada vessel schedule lain.'], 422);
+            }
+        }
+
+        if ($method === 'VESSEL' || $method === 'TANK_TRUCK') {
+            $alreadyScheduled = DB::table('vessel_schedules')
+                ->where(function ($q) use ($contract) {
+                    $q->where('Contract_ID', $contract->ID)
+                        ->orWhere('Contract_No', $contract->Contract_No);
+                })
+                ->exists();
+
+            if ($alreadyScheduled) {
+                return response()->json(['message' => 'Kontrak ini sudah pernah dibuatkan vessel schedule.'], 422);
             }
         }
 
@@ -170,20 +194,21 @@ class VesselScheduleController extends Controller
             abort(404);
         }
 
-        $contracts = $this->activeContracts();
         $currentContract = $vs->Contract_ID
             ? DB::table('cns_buyer_contracts')->where('ID', $vs->Contract_ID)->first()
             : null;
 
-        $hasCurrentContract = $currentContract && $contracts->contains(function ($contract) use ($currentContract) {
-            return (int) $contract->ID === (int) $currentContract->ID;
-        });
+        $contracts = $currentContract ? collect([$currentContract]) : collect();
 
-        if ($currentContract && !$hasCurrentContract) {
-            $contracts->prepend($currentContract);
+        $bookings = collect();
+        if ($vs->Contract_ID) {
+            $currentBooking = $vs->Booking_ID
+                ? DB::table('cns_buyer_contract_bookings')->where('ID', $vs->Booking_ID)->first()
+                : null;
+
+            $bookings = $currentBooking ? collect([$currentBooking]) : $this->bookingsFor($vs->Contract_ID);
         }
 
-        $bookings = $vs->Contract_ID ? $this->bookingsFor($vs->Contract_ID) : collect();
         $q88 = $vs->Q88_Meta_File_ID
             ? DB::table('meta_files')->where('ID', $vs->Q88_Meta_File_ID)->first()
             : null;
@@ -217,6 +242,18 @@ class VesselScheduleController extends Controller
             'Contract_ID' => 'required|integer',
             'Shipping_Method' => 'required|in:CONTAINER,VESSEL,TANK_TRUCK',
         ], $this->methodRules($method, true)));
+
+        if ($vs->Contract_ID && (int) $data['Contract_ID'] !== (int) $vs->Contract_ID) {
+            return response()->json(['message' => 'Kontrak tidak dapat diubah pada schedule ini.'], 422);
+        }
+
+        if ($vs->Shipping_Method && $method !== (string) $vs->Shipping_Method) {
+            return response()->json(['message' => 'Shipping method tidak dapat diubah pada schedule ini.'], 422);
+        }
+
+        if ($method === 'CONTAINER' && $vs->Booking_ID && (int) $data['Container_Booking_ID'] !== (int) $vs->Booking_ID) {
+            return response()->json(['message' => 'Booking confirmation tidak dapat diubah pada schedule ini.'], 422);
+        }
 
         $contract = $this->contractForEdit($data['Contract_ID'], $vs->Contract_ID);
 
@@ -256,7 +293,7 @@ class VesselScheduleController extends Controller
             $this->fillMethodFields($vs, $data, $method, $contract, $booking, $vendor);
 
             if ($oldOrderNo && $oldOrderNo !== $vs->Order_No) {
-                ShipmentInstruction::where('Order_No', $oldOrderNo)
+                ShippingInstruction::where('Order_No', $oldOrderNo)
                     ->update(['Order_No' => $vs->Order_No]);
 
                 PackingList::where('Order_No', $oldOrderNo)
@@ -315,7 +352,7 @@ class VesselScheduleController extends Controller
             return response()->json([]);
         }
 
-        $rows = $this->bookingsFor($contract->ID);
+        $rows = $this->availableBookingsFor($contract->ID);
 
         return response()->json($rows->map(function ($row) {
             return [
@@ -349,7 +386,7 @@ class VesselScheduleController extends Controller
 
         DB::transaction(function () use ($request, $vs, $oldOrderNo) {
             if ($oldOrderNo != $request->input('Order_No')) {
-                ShipmentInstruction::where('Order_No', $oldOrderNo)
+                ShippingInstruction::where('Order_No', $oldOrderNo)
                     ->update(['Order_No' => $request->input('Order_No')]);
 
                 PackingList::where('Order_No', $oldOrderNo)
@@ -575,6 +612,69 @@ class VesselScheduleController extends Controller
             ->get();
     }
 
+    private function availableContractsForNew()
+    {
+        $contracts = $this->activeContracts();
+
+        if ($contracts->isEmpty()) {
+            return $contracts;
+        }
+
+        $contractIds = $contracts->pluck('ID')->all();
+
+        $allBookings = DB::table('cns_buyer_contract_bookings')
+            ->whereIn('Contract_ID', $contractIds)
+            ->select('ID', 'Contract_ID', 'Booking_No')
+            ->get()
+            ->groupBy('Contract_ID');
+
+        $usedBookingIds = DB::table('vessel_schedules')
+            ->whereNotNull('Booking_ID')
+            ->pluck('Booking_ID')
+            ->all();
+
+        $usedBookingNos = DB::table('vessel_schedules')
+            ->whereNotNull('Booking_No')
+            ->pluck('Booking_No')
+            ->all();
+
+        $usedBookingIdMap = array_flip($usedBookingIds);
+        $usedBookingNoMap = array_flip($usedBookingNos);
+
+        $scheduledContractIds = DB::table('vessel_schedules')
+            ->whereNotNull('Contract_ID')
+            ->pluck('Contract_ID')
+            ->all();
+
+        $scheduledContractNos = DB::table('vessel_schedules')
+            ->whereNotNull('Contract_No')
+            ->pluck('Contract_No')
+            ->all();
+
+        $scheduledContractIdMap = array_flip($scheduledContractIds);
+        $scheduledContractNoMap = array_flip($scheduledContractNos);
+
+        return $contracts->filter(function ($contract) use (
+            $allBookings,
+            $usedBookingIdMap,
+            $usedBookingNoMap,
+            $scheduledContractIdMap,
+            $scheduledContractNoMap
+        ) {
+            $bookings = $allBookings->get($contract->ID, collect());
+
+            if ($bookings->isNotEmpty()) {
+                return $bookings->contains(function ($booking) use ($usedBookingIdMap, $usedBookingNoMap) {
+                    return !isset($usedBookingIdMap[$booking->ID]) && !isset($usedBookingNoMap[$booking->Booking_No]);
+                });
+            }
+
+            $hasSchedule = isset($scheduledContractIdMap[$contract->ID]) || isset($scheduledContractNoMap[$contract->Contract_No]);
+
+            return !$hasSchedule;
+        })->values();
+    }
+
     private function contractForNew($id)
     {
         return DB::table('cns_buyer_contracts')
@@ -603,6 +703,34 @@ class VesselScheduleController extends Controller
             ->where('Contract_ID', $contractId)
             ->orderBy('Label')
             ->get();
+    }
+
+    private function availableBookingsFor($contractId, $excludeVsId = null)
+    {
+        $usedBookingsQuery = DB::table('vessel_schedules');
+
+        if ($excludeVsId) {
+            $usedBookingsQuery->where('id', '!=', $excludeVsId);
+        }
+
+        $usedBookingIds = (clone $usedBookingsQuery)
+            ->whereNotNull('Booking_ID')
+            ->pluck('Booking_ID')
+            ->all();
+
+        $usedBookingNos = (clone $usedBookingsQuery)
+            ->whereNotNull('Booking_No')
+            ->pluck('Booking_No')
+            ->all();
+
+        $usedBookingIdMap = array_flip($usedBookingIds);
+        $usedBookingNoMap = array_flip($usedBookingNos);
+
+        $bookings = $this->bookingsFor($contractId);
+
+        return $bookings->filter(function ($booking) use ($usedBookingIdMap, $usedBookingNoMap) {
+            return !isset($usedBookingIdMap[$booking->ID]) && !isset($usedBookingNoMap[$booking->Booking_No]);
+        })->values();
     }
 
     private function bookingFor($contractId, $bookingId)

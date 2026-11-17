@@ -41,16 +41,16 @@ class InboundMovementCreateTest extends TestCase
                 if ($page === 1) {
                     return [
                         'data' => [
-                            ['id' => 1, 'kode' => 'GEU-MOV-26-TEST01', 'tujuan_gudang' => 'Final Storage Pelindo', 'tgl' => '2026-11-10T00:00:00+07:00', 'dari_gudang' => 'Surabaya', 'total_qty' => 12000, 'deleted_at' => null],
-                            ['id' => 2, 'kode' => 'GEU-MOV-26-TEST02', 'tujuan_gudang' => 'Transit Sidoarjo', 'tgl' => '2026-11-10T00:00:00+07:00', 'dari_gudang' => 'Denpasar', 'total_qty' => 5000, 'deleted_at' => null],
-                            ['id' => 4, 'kode' => 'GEU-MOV-26-DEL01', 'tujuan_gudang' => 'Final Storage Pelindo', 'tgl' => '2026-11-10T00:00:00+07:00', 'dari_gudang' => 'Surabaya', 'total_qty' => 9000, 'deleted_at' => '2026-11-10T12:00:00+07:00'],
+                            ['id' => 1, 'kode' => 'GEU-MOV-26-TEST01', 'ptu_id' => 43, 'tujuan_gudang' => 'Final Storage', 'tgl' => '2026-11-10T00:00:00+07:00', 'dari_gudang' => 'Surabaya', 'total_qty' => 12000, 'deleted_at' => null],
+                            ['id' => 2, 'kode' => 'GEU-MOV-26-TEST02', 'ptu_id' => 12, 'tujuan_gudang' => 'Final Storage Pelindo', 'tgl' => '2026-11-10T00:00:00+07:00', 'dari_gudang' => 'Denpasar', 'total_qty' => 5000, 'deleted_at' => null],
+                            ['id' => 4, 'kode' => 'GEU-MOV-26-DEL01', 'ptu_id' => 43, 'tujuan_gudang' => 'Final Storage Pelindo', 'tgl' => '2026-11-10T00:00:00+07:00', 'dari_gudang' => 'Surabaya', 'total_qty' => 9000, 'deleted_at' => '2026-11-10T12:00:00+07:00'],
                         ],
                         'pagination' => ['has_next' => true],
                     ];
                 }
                 return [
                     'data' => [
-                        ['id' => 3, 'kode' => 'GEU-MOV-26-TEST03', 'tujuan_gudang' => 'Final Storage Pelindo', 'tgl' => '2026-11-09', 'dari_gudang' => 'Malang', 'total_qty' => 0],
+                        ['id' => 3, 'kode' => 'GEU-MOV-26-TEST03', 'ptu_id' => '43', 'tujuan_gudang' => 'Final Storage Pelindo', 'tgl' => '2026-11-09', 'dari_gudang' => 'Malang', 'total_qty' => 0],
                     ],
                     'pagination' => ['has_next' => false],
                 ];

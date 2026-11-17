@@ -19,6 +19,40 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
 <script src="{{ asset('adminor/js/apexcharts.min.js') }}"></script>
 <script src="{{ asset('adminor/plugins/moment/moment.js') }}"></script>
+<script src="{{ asset('assets/plugins/sweetalert/js/sweetalert.min.js') }}"></script>
+<script>
+  if (window.swal) {
+    var _origSwal = window.swal;
+    window.swal = function () {
+      var args = Array.prototype.slice.call(arguments);
+      if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
+        var opts = Object.assign({}, args[0]);
+        if (opts.type && !opts.icon) {
+          opts.icon = opts.type;
+        }
+        if (opts.showCancelButton && !opts.buttons) {
+          opts.buttons = [opts.cancelButtonText || 'Batal', opts.confirmButtonText || 'OK'];
+          if (opts.confirmButtonClass && opts.confirmButtonClass.indexOf('danger') !== -1) {
+            opts.dangerMode = true;
+          }
+        }
+        if (args.length >= 2 && typeof args[1] === 'function') {
+          var cb = args[1];
+          return _origSwal(opts).then(function (val) {
+            cb(Boolean(val));
+          });
+        }
+        args[0] = opts;
+      }
+      return _origSwal.apply(this, args);
+    };
+    for (var prop in _origSwal) {
+      if (Object.prototype.hasOwnProperty.call(_origSwal, prop)) {
+        window.swal[prop] = _origSwal[prop];
+      }
+    }
+  }
+</script>
 <script>
   function LoadM(DivID, PathID) {
     $("#" + DivID).ajaxloader(PathID);

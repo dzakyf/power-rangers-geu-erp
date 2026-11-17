@@ -59,7 +59,7 @@ class ShipmentInstructionDraftTest extends TestCase
         ]);
 
         $siNo = 'TEST-SI-' . uniqid();
-        $response = $this->actingAs($user)->post('/cns-export-shipment-instruction-new-submit', [
+        $response = $this->actingAs($user)->post('/cns-export-shipping-instruction-new-submit', [
             'Contract_ID' => $contractId,
             'SI_No' => $siNo,
             'SI_Date' => date('Y-m-d'),
@@ -78,7 +78,7 @@ class ShipmentInstructionDraftTest extends TestCase
 
         $response->assertOk()->assertJson(['status' => 'success']);
 
-        $si = DB::table('shipment_instructions')->where('SI_No', $siNo)->first();
+        $si = DB::table('shipping_instructions')->where('SI_No', $siNo)->first();
 
         $this->assertNotNull($si);
         $this->assertSame('DRAFT', $si->Status);
@@ -137,7 +137,7 @@ class ShipmentInstructionDraftTest extends TestCase
 
         $siId = $this->makeDraftSi($contractId, $contractNo, $supplierCode, $user);
 
-        $response = $this->actingAs($user)->post('/cns-export-shipment-instruction-detail-submit', [
+        $response = $this->actingAs($user)->post('/cns-export-shipping-instruction-detail-submit', [
             'id' => $siId,
             'SI_Date' => date('Y-m-d'),
             'Order_No' => $orderNo,
@@ -166,7 +166,7 @@ class ShipmentInstructionDraftTest extends TestCase
 
         $response->assertOk()->assertJson(['success' => true, 'status' => 'CREATED']);
 
-        $si = DB::table('shipment_instructions')->where('id', $siId)->first();
+        $si = DB::table('shipping_instructions')->where('id', $siId)->first();
         $this->assertSame('CREATED', $si->Status);
         $this->assertSame($orderNo, $si->Order_No);
 
@@ -178,7 +178,7 @@ class ShipmentInstructionDraftTest extends TestCase
 
         $secondSiId = $this->makeDraftSi($contractId, $contractNo, $supplierCode, $user, 'SECOND');
 
-        $blocked = $this->actingAs($user)->post('/cns-export-shipment-instruction-detail-submit', [
+        $blocked = $this->actingAs($user)->post('/cns-export-shipping-instruction-detail-submit', [
             'id' => $secondSiId,
             'SI_Date' => date('Y-m-d'),
             'Order_No' => $orderNo,
@@ -218,7 +218,7 @@ class ShipmentInstructionDraftTest extends TestCase
 
     private function makeDraftSi(int $contractId, string $contractNo, string $supplierCode, User $user, string $suffix = ''): int
     {
-        return DB::table('shipment_instructions')->insertGetId([
+        return DB::table('shipping_instructions')->insertGetId([
             'Order_No' => null,
             'SI_No' => 'TEST-SI-DRAFT-' . $suffix . uniqid(),
             'SI_Date' => date('Y-m-d'),

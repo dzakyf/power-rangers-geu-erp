@@ -23,9 +23,27 @@ class AuthServiceProvider extends ServiceProvider
      *
      * @return void
      */
+    public function register()
+    {
+        Gate::before(function ($user, $ability) {
+            if ($user->username === 'admin'
+                || ($user->Priv_ID ?? '') === 'ADM'
+                || (method_exists($user, 'hasRole') && rescue(function () use ($user) { return $user->hasRole('ADM') || $user->hasRole('super-admin'); }, false))) {
+                return true;
+            }
+
+            return null;
+        });
+    }
+
     public function boot()
     {
         $this->registerPolicies();
+
+        Gate::define('cns.master_user.view', fn ($user) => $user->can('cns.user_management.view'));
+        Gate::define('cns.master_user.create', fn ($user) => $user->can('cns.user_management.create'));
+        Gate::define('cns.master_user.edit', fn ($user) => $user->can('cns.user_management.edit'));
+        Gate::define('cns.master_user.delete', fn ($user) => $user->can('cns.user_management.delete'));
 
         \Auth::provider('active_eloquent', function ($app, array $config) {
             return new \App\Auth\ActiveUserProvider($app['hash'], $config['model']);

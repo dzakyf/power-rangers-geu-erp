@@ -25,7 +25,7 @@ class ExportApprovalModalTest extends TestCase
         $this->assertStringContainsString('id="approveSiUser"', $content);
         $this->assertStringContainsString('SubmitApproveSI()', $content);
         $this->assertStringContainsString('approved_by: approverId', $content);
-        $this->assertStringContainsString('cns-export-shipment-instruction-approve', $content);
+        $this->assertStringContainsString('cns-export-shipping-instruction-approve', $content);
         $this->assertStringContainsString('sudah berstatus APPROVED', $content);
         $this->assertStringContainsString('Konfirmasi Approval', $content);
     }
@@ -41,7 +41,7 @@ class ExportApprovalModalTest extends TestCase
         $this->assertStringContainsString('id="approveFsiUser"', $content);
         $this->assertStringContainsString('SubmitApproveFSI()', $content);
         $this->assertStringContainsString('approved_by: approverId', $content);
-        $this->assertStringContainsString('cns-export-final-shipment-instruction-approve', $content);
+        $this->assertStringContainsString('cns-export-final-shipping-instruction-approve', $content);
         $this->assertStringContainsString('sudah berstatus APPROVED', $content);
         $this->assertStringContainsString('Konfirmasi Approval', $content);
     }

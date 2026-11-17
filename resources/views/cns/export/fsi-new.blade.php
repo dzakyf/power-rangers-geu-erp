@@ -49,13 +49,13 @@ function getRomawi($bln)
 
 $LSP = Auth::user()->Location;
 $Saya =  Auth::user()->username;
-$counter = DB::table("shipment_instructions")->where('SI_Date', "LIKE", date("Y-m"). "%")->count();
+$counter = DB::table("shipping_instructions")->where('SI_Date', "LIKE", date("Y-m"). "%")->count();
 
 $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . "/" . date("Y");
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">NEW FINAL SHIPMENT INSTRUCTION</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">NEW FINAL SHIPPING INSTRUCTIONS</div>
 	<div class="card">
 		<div class="card-body">
 			<div id="ContentPages">
@@ -310,7 +310,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 	// ShipmentInstructionNew.init();
 
 	function refreshdata() {
-		ShipmentInstruction.clearAndLoad('xml-cns-export-final-shipment-instruction?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
+		ShipmentInstruction.clearAndLoad('xml-cns-export-final-shipping-instruction?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
 	}
 
     function updateAddressFromSelectedCompany(selectSelector, addressSelector) {
@@ -340,7 +340,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-            url: "cns-export-final-shipment-instruction-new-get-si",
+            url: "cns-export-final-shipping-instruction-new-get-si",
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
@@ -425,7 +425,7 @@ $SINo = "SI/EXP/" . sprintf('%03d',$counter + 1) . "/" . getRomawi(date("n")) . 
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "cns-export-final-shipment-instruction-new-submit?_token={{ csrf_token() }}",
+			url: "cns-export-final-shipping-instruction-new-submit?_token={{ csrf_token() }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {

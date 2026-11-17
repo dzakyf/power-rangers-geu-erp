@@ -19,16 +19,16 @@ $Saya =  Auth::user()->username;
 	<h1>Partner</h1>
 	<ol class="breadcrumb">
 		<li class="breadcrumb-item">
-			<a href="/">Final Shipping Instruction</a>
+			<a href="/">Final Shipping Instructions</a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">Final Shipping Instruction List</span>
+			<span class="active">Final Shipping Instructions List</span>
 		</li>
 	</ol>
 </div>
 
 <div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">FINAL SHIPPING INSTRUCTION LIST</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">FINAL SHIPPING INSTRUCTIONS LIST</div>
 	<div class="card">
 		<div class="card-body">
 			<div class="mb-2">
@@ -63,7 +63,7 @@ $Saya =  Auth::user()->username;
 		<div class="modal-dialog" role="document">
 			<div class="modal-content">
 				<div class="modal-header bg-success text-white">
-					<h5 class="modal-title" id="modalApproveFSILabel"><i class="fa fa-check-circle mr-1"></i> Approve Final Shipping Instruction</h5>
+					<h5 class="modal-title" id="modalApproveFSILabel"><i class="fa fa-check-circle mr-1"></i> Approve Final Shipping Instructions</h5>
 					<button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" onclick="$('#modalApproveFSI').modal('hide');">
 						<span aria-hidden="true">&times;</span>
 					</button>
@@ -119,7 +119,7 @@ $Saya =  Auth::user()->username;
 			if (!selectedId) {
 				dhtmlx.alert({
 					title: "Peringatan",
-					text: "Pilih baris data terlebih dahulu pada tabel Final Shipping Instruction!",
+					text: "Pilih baris data terlebih dahulu pada tabel Final Shipping Instructions!",
 					ok: "OK"
 				});
 				return false;
@@ -142,7 +142,7 @@ $Saya =  Auth::user()->username;
 			if (status && status.trim().toUpperCase() === 'APPROVED') {
 				dhtmlx.alert({
 					title: "Peringatan",
-					text: "Final Shipping Instruction " + (fsiNo || selectedId) + " ini sudah berstatus APPROVED!",
+					text: "Final Shipping Instructions " + (fsiNo || selectedId) + " ini sudah berstatus APPROVED!",
 					ok: "OK"
 				});
 				return false;
@@ -188,7 +188,7 @@ $Saya =  Auth::user()->username;
 
 			dhtmlx.confirm({
 				title: "Konfirmasi Approval",
-				text: "Apakah Anda yakin ingin menyetujui (Approve) Final Shipping Instruction " + (fsiNo || selectedId) + " dengan Approver: " + approverName + "?",
+				text: "Apakah Anda yakin ingin menyetujui (Approve) Final Shipping Instructions " + (fsiNo || selectedId) + " dengan Approver: " + approverName + "?",
 				ok: "Ya, Setujui",
 				cancel: "Batal",
 				callback: function(result) {
@@ -206,7 +206,7 @@ $Saya =  Auth::user()->username;
 						headers: {
 							'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 						},
-						url: "cns-export-final-shipment-instruction-approve",
+						url: "cns-export-final-shipping-instruction-approve",
 						type: "POST",
 						dataType: "json",
 						data: {
@@ -222,7 +222,7 @@ $Saya =  Auth::user()->username;
 							if (response && response.status === 'success') {
 								dhtmlx.alert({
 									title: "Sukses",
-									text: response.message || "Final Shipping Instruction berhasil di-approve.",
+									text: response.message || "Final Shipping Instructions berhasil di-approve.",
 									ok: "OK",
 									callback: function() {
 										if (typeof refreshdata === 'function') {
@@ -233,7 +233,7 @@ $Saya =  Auth::user()->username;
 							} else {
 								dhtmlx.alert({
 									title: "Gagal",
-									text: (response && response.message) || "Gagal approve Final Shipping Instruction.",
+									text: (response && response.message) || "Gagal approve Final Shipping Instructions.",
 									ok: "OK"
 								});
 							}
@@ -242,7 +242,7 @@ $Saya =  Auth::user()->username;
 							if (typeof $.unblockUI === 'function') {
 								$.unblockUI();
 							}
-							var msg = "Gagal approve Final Shipping Instruction.";
+							var msg = "Gagal approve Final Shipping Instructions.";
 							if (xhr.responseJSON && xhr.responseJSON.message) {
 								msg = xhr.responseJSON.message;
 							} else if (xhr.responseText) {
@@ -294,7 +294,7 @@ $Saya =  Auth::user()->username;
 					callback: function(result) {
 						if (!result) return;
 						$('#divCreatePL').css('display', 'none');
-						LoadM('DivProcess', 'cns-export-final-shipment-instruction-create-pl?Task=' + encodeURIComponent(fsiNo) + '&PL_Date=' + encodeURIComponent($('#PL_Date').val()));
+						LoadM('DivProcess', 'cns-export-final-shipping-instruction-create-pl?Task=' + encodeURIComponent(fsiNo) + '&PL_Date=' + encodeURIComponent($('#PL_Date').val()));
 
 						setTimeout(function() {
 							refreshdata();
@@ -328,7 +328,7 @@ $Saya =  Auth::user()->username;
 					callback: function(result) {
 						if (!result) return;
 						$('#divCreateCI').css('display', 'none');
-						LoadM('DivProcess', 'cns-export-final-shipment-instruction-create-ci?Task=' + encodeURIComponent(fsiNo) + "&CI_Date=" + encodeURIComponent($('#CI_Date').val()));
+						LoadM('DivProcess', 'cns-export-final-shipping-instruction-create-ci?Task=' + encodeURIComponent(fsiNo) + "&CI_Date=" + encodeURIComponent($('#CI_Date').val()));
 
 						setTimeout(function() {
 							refreshdata();
@@ -356,7 +356,7 @@ $Saya =  Auth::user()->username;
 				finalSiNo = ShipmentInstruction.cells(rowId, 1).getValue();
 			} catch (e) {}
 			var task = (finalSiNo && finalSiNo.trim() !== '') ? finalSiNo.trim() : rowId;
-			window.open('{{ url("cns-export-final-shipment-instruction-print") }}?Task=' + encodeURIComponent(task), '_blank');
+			window.open('{{ url("cns-export-final-shipping-instruction-print") }}?Task=' + encodeURIComponent(task), '_blank');
 		} else {
 			dhtmlx.alert({
 				title: "Peringatan",
@@ -368,14 +368,14 @@ $Saya =  Auth::user()->username;
 	}
 
 	function ShipmentInstructionNewBtn() {
-		LoadM('divlistOpportunity', 'cns-export-final-shipment-instruction-new');
+		LoadM('divlistOpportunity', 'cns-export-final-shipping-instruction-new');
 		return true;
 	}
 
 	function ShipmentInstructionKlik() {
 		var selectedId = getActiveFsiId();
 		if (selectedId != null) {
-			LoadM('divlistOpportunity', 'cns-export-final-shipment-instruction-detail?Task=' + selectedId);
+			LoadM('divlistOpportunity', 'cns-export-final-shipping-instruction-detail?Task=' + selectedId);
 		} else {
 			dhtmlx.alert({
 				title: "Peringatan",
@@ -405,7 +405,7 @@ $Saya =  Auth::user()->username;
 	refreshdata();
 
 	function refreshdata() {
-		ShipmentInstruction.clearAndLoad('xml-cns-export-final-shipment-instruction?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
+		ShipmentInstruction.clearAndLoad('xml-cns-export-final-shipping-instruction?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
 	}
 </script>
 @endsection

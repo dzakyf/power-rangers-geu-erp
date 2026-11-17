@@ -40,6 +40,7 @@ class KemasanInventoryController extends Controller
         $masterPackagings = collect();
         if (Schema::hasTable('cns_master_kemasan')) {
             $masterPackagings = CnsMasterKemasan::orderBy('Name', 'asc')
+                ->where('product_type', 'Kemasan')
                 ->orderBy('Volume', 'asc')
                 ->get();
         }

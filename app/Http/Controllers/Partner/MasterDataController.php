@@ -284,6 +284,7 @@ class MasterDataController extends Controller
                 'id'            => isset($w['id']) ? (int) $w['id'] : null,
                 'name'          => (string) ($w['name'] ?? ''),
                 'type'          => (string) ($w['type'] ?? ''),
+                'alamat'        => trim((string) ($w['alamat'] ?? ($w['address'] ?? ''))),
                 'kota_name'     => (string) ($w['kota_name'] ?? ''),
                 'provinsi_name' => (string) ($w['provinsi_name'] ?? ''),
             ];

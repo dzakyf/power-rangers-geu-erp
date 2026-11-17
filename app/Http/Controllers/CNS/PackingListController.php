@@ -4,7 +4,7 @@ namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
 use App\PackingList;
-use App\ShipmentInstruction;
+use App\ShippingInstruction;
 use App\User;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
@@ -281,7 +281,7 @@ class PackingListController extends Controller
 
         $plno = "PL-GEU/EXP-BC/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
 
-        $fsis = ShipmentInstruction::where("Status", "FINAL")->where("Final_SI_No", '!=', null)->get();
+        $fsis = ShippingInstruction::where("Status", "FINAL")->where("Final_SI_No", '!=', null)->get();
 
         $companies = DB::table('supplier')->where("Status", "NORMAL")->where("Location", auth()->user()->Location)->get();
 
@@ -294,7 +294,7 @@ class PackingListController extends Controller
 
     public function newPackingListSubmit(Request $request)
     {
-        $shipment = ShipmentInstruction::where("Final_SI_No", $request->Final_SI_No)->first();
+        $shipment = ShippingInstruction::where("Final_SI_No", $request->Final_SI_No)->first();
 
         if (!$shipment) {
             echo "error";
@@ -360,12 +360,12 @@ class PackingListController extends Controller
     public function getSI(Request $request)
     {
         $SINo = $request->input('SI_No');
-        $shipment = ShipmentInstruction::where('Final_SI_No', $SINo)->first();
+        $shipment = ShippingInstruction::where('Final_SI_No', $SINo)->first();
         if ($shipment) {
             $shipment->orderDetails = VesselScheduleDtl::active()->where("SI_No", $shipment->SI_No)->get();
             return response()->json($shipment);
         } else {
-            return response()->json(['error' => 'Shipping Instruction not found'], 404);
+            return response()->json(['error' => 'Shipping Instructions not found'], 404);
         }
     }
 
@@ -375,7 +375,7 @@ class PackingListController extends Controller
 
         $plno = "PL-GEU/EXP-BC/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
 
-        $fsis = ShipmentInstruction::where("Status", "FINAL")->where("Final_SI_No", '!=', null)->get();
+        $fsis = ShippingInstruction::where("Status", "FINAL")->where("Final_SI_No", '!=', null)->get();
 
         $companies = DB::table('supplier')->where("Status", "NORMAL")->where("Location", auth()->user()->Location)->get();
 
@@ -387,10 +387,10 @@ class PackingListController extends Controller
         $containers = collect();
         if ($pl) {
             if (!empty($pl->Final_SI_No)) {
-                $selectedSi = ShipmentInstruction::where('Final_SI_No', $pl->Final_SI_No)->first();
+                $selectedSi = ShippingInstruction::where('Final_SI_No', $pl->Final_SI_No)->first();
             }
             if (!$selectedSi && !empty($pl->SI_No)) {
-                $selectedSi = ShipmentInstruction::where('SI_No', $pl->SI_No)->first();
+                $selectedSi = ShippingInstruction::where('SI_No', $pl->SI_No)->first();
             }
             if ($selectedSi) {
                 $containers = VesselScheduleDtl::active()->where('SI_No', $selectedSi->SI_No)->get();

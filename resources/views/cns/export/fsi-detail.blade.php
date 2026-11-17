@@ -14,7 +14,7 @@ $consigneeAddr = !empty($shipment->Consignee_Address) ? $shipment->Consignee_Add
 $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($companiesKeyed->get($shipment->Notify)->Address ?? '');
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">NEW FINAL SHIPMENT INSTRUCTION</div>
+	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">FINAL SHIPPING INSTRUCTIONS</div>
 	<div class="card">
 		<div class="card-body">
 			<div id="ContentPages">
@@ -271,7 +271,7 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-            url: "cns-export-shipment-instruction-detail-get-order",
+            url: "cns-export-shipping-instruction-detail-get-order",
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
@@ -316,7 +316,7 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
     });
 
 	function refreshdata() {
-		ShipmentInstruction.clearAndLoad('xml-cns-export-final-shipment-instruction?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
+		ShipmentInstruction.clearAndLoad('xml-cns-export-final-shipping-instruction?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
 	}
 
     function updateAddressFromSelectedCompany(selectSelector, addressSelector) {
@@ -347,7 +347,7 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
 			headers: {
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			},
-			url: "cns-export-final-shipment-instruction-detail-submit?_token={{ csrf_token() }}",
+			url: "cns-export-final-shipping-instruction-detail-submit?_token={{ csrf_token() }}",
 			type: "POST",
 			data: gettingVars,
 			success: function(data, textStatus, jqXHR) {

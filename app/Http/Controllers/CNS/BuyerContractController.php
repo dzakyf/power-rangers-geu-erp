@@ -77,11 +77,9 @@ class BuyerContractController extends Controller
     public function newBuyerContract()
     {
         $highest = DB::table('cns_buyer_contracts')->max('ID') ?? 0;
-        $generatedContractNo = $this->generatorService->generateApplicationCode($highest, 'CTR');
 
         return view('cns.procurement.buyer-contract-new', array_merge($this->formData(), [
             'nonUcoCategories' => NonUcoSupplierController::CATEGORIES,
-            'generatedContractNo' => $generatedContractNo,
         ]));
     }
 

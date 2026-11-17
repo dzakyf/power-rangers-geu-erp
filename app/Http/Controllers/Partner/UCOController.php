@@ -471,8 +471,8 @@ class UCOController extends Controller
             if (!is_array($d)) {
                 continue;
             }
-            if ($tglRaw === null && !empty($d['tgl_unloading'])) {
-                $tglRaw = $d['tgl_unloading'];
+            if ($tglRaw === null && !empty($d['tgl_loading'])) {
+                $tglRaw = $d['tgl_loading'];
             }
             if ($tangki === '' && !empty($d['to_storage_name'])) {
                 $tangki = trim((string) $d['to_storage_name']);

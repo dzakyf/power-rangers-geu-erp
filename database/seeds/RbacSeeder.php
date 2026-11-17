@@ -7,6 +7,7 @@ use App\Permission;
 use App\User;
 use App\Services\RbacService;
 use App\Services\Rbac\RoleResolver;
+use App\Services\CNS\CnsPermissionService;
 
 /**
  * Idempotent RBAC seeder.
@@ -38,8 +39,12 @@ class RbacSeeder extends Seeder
         $menus = DB::table('menu_lists')->get();
         foreach ($menus as $menu) {
             foreach (self::ACTIONS as $action) {
+                $permName = ($menu->Modules === 'CNS' && CnsPermissionService::isCnsMenu($menu->Menu_ID))
+                    ? CnsPermissionService::permissionName($menu->Menu_ID, $action)
+                    : "menu.{$menu->Menu_ID}.{$action}";
+
                 Permission::firstOrCreate(
-                    ['name' => "menu.{$menu->Menu_ID}.{$action}", 'guard_name' => 'web'],
+                    ['name' => $permName, 'guard_name' => 'web'],
                     ['menu_id' => $menu->Menu_ID, 'action' => $action]
                 );
             }

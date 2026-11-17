@@ -86,6 +86,14 @@
   .sig-title { font-size: 7.5pt; }
 </style>
 
+@php
+  $v = $print['values'] ?? [];
+  $shipper = $print['shipper'] ?? [];
+  $consignee = $print['consignee'] ?? [];
+  $notify = $print['notify'] ?? [];
+  $destination = $print['destination'] ?? [];
+@endphp
+
 {{-- =====================================================
      WRAPPER — padding kiri kanan mengikuti margin mPDF
      ===================================================== --}}
@@ -110,7 +118,7 @@
       </td>
       {{-- Heading --}}
       <td colspan="4" class="title-heading" style="border-bottom:1px solid #000;">
-        {{ $shipment->Status == 'FINAL' && $shipment->Final_SI_No != null ? 'FINAL ' : '' }}SHIPPING INSTRUCTION
+        SHIPPING INSTRUCTION (FINAL)
       </td>
     </tr>
     <tr>
@@ -140,9 +148,9 @@
           </tr>
           <tr>
             <td style="padding:3px 5px;font-size:7.5pt;line-height:1.35;height:12mm;vertical-align:top;">
-              {{ $companies[$shipment->Shipper]->Company_Name ?? '' }}<br>
-              {!! nl2br(e(!empty($shipment->Shipper_Address) ? $shipment->Shipper_Address : ($companies[$shipment->Shipper]->Address ?? ''))) !!}<br>
-              {{ $companies[$shipment->Shipper]->City ?? '' }}
+              {{ $companies[$shipment->Shipper]->Company_Name ?? ($shipper['name'] ?? '') }}<br>
+              {!! nl2br(e(!empty($shipment->Shipper_Address) ? $shipment->Shipper_Address : ($companies[$shipment->Shipper]->Address ?? ($shipper['address'] ?? '')))) !!}<br>
+              {{ $companies[$shipment->Shipper]->City ?? ($shipper['city'] ?? '') }}
             </td>
           </tr>
         </table>
@@ -155,9 +163,9 @@
           </tr>
           <tr>
             <td style="padding:3px 5px;font-size:7.5pt;line-height:1.35;height:12mm;vertical-align:top;">
-              {{ $companies[$shipment->Consignee]->Company_Name ?? '' }}<br>
-              {!! nl2br(e(!empty($shipment->Consignee_Address) ? $shipment->Consignee_Address : ($companies[$shipment->Consignee]->Address ?? ''))) !!}<br>
-              {{ $companies[$shipment->Consignee]->City ?? '' }}
+              {{ $companies[$shipment->Consignee]->Company_Name ?? ($consignee['name'] ?? '') }}<br>
+              {!! nl2br(e(!empty($shipment->Consignee_Address) ? $shipment->Consignee_Address : ($companies[$shipment->Consignee]->Address ?? ($consignee['address'] ?? '')))) !!}<br>
+              {{ $companies[$shipment->Consignee]->City ?? ($consignee['city'] ?? '') }}
             </td>
           </tr>
         </table>
@@ -170,9 +178,9 @@
           </tr>
           <tr>
             <td style="padding:3px 5px;font-size:7.5pt;line-height:1.35;height:12mm;vertical-align:top;">
-              {{ $companies[$shipment->Notify]->Company_Name ?? '' }}<br>
-              {!! nl2br(e(!empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($companies[$shipment->Notify]->Address ?? ''))) !!}<br>
-              {{ $companies[$shipment->Notify]->City ?? '' }}
+              {{ $companies[$shipment->Notify]->Company_Name ?? ($notify['name'] ?? '') }}<br>
+              {!! nl2br(e(!empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($companies[$shipment->Notify]->Address ?? ($notify['address'] ?? '')))) !!}<br>
+              {{ $companies[$shipment->Notify]->City ?? ($notify['city'] ?? '') }}
             </td>
           </tr>
         </table>
@@ -217,8 +225,8 @@
           <tr>
             <td class="flbl" style="border-right:1px solid #000;border-bottom:1px solid #000;vertical-align:top;padding-top:3px;">To</td>
             <td class="fval" style="border-bottom:1px solid #000;vertical-align:top;padding-top:3px;height:10mm;line-height:1.35;">
-              {{ $companies[$shipment->Destination_Port]->Company_Name ?? '' }}<br>
-              {{ $companies[$shipment->Destination_Port]->Address ?? '' }}
+              {{ $companies[$shipment->Destination_Port]->Company_Name ?? ($destination['name'] ?? '') }}<br>
+              {{ $companies[$shipment->Destination_Port]->Address ?? ($destination['address'] ?? '') }}
             </td>
           </tr>
           <tr>

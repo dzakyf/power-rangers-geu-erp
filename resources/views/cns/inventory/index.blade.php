@@ -180,6 +180,13 @@
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                         <div class="d-flex align-items-end flex-wrap gap-2">
                             <div class="m-1">
+                                <label class="d-block mb-1"><small>Jenis Tanggal</small></label>
+                                <select id="filterUpcomingDateType" class="form-control form-control-sm" style="width:130px;">
+                                    <option value="eta" selected>Tgl ETA</option>
+                                    <option value="loading">Tgl Loading</option>
+                                </select>
+                            </div>
+                            <div class="m-1">
                                 <label class="d-block mb-1"><small>Dari Tanggal</small></label>
                                 <input type="date" id="filterUpcomingStartDate" class="form-control form-control-sm" style="width:145px;" />
                             </div>
@@ -748,11 +755,11 @@
 
         UpcomingGrid = new dhtmlXGridObject('UpcomingGrid');
         UpcomingGrid.setImagePath("./dhtmlx/imgs/");
-        UpcomingGrid.setHeader("No,Kode Movement,Tanggal,Asal Gudang,Tujuan Gudang,Total Qty (KG),Logistics Status");
-        UpcomingGrid.setInitWidths("50,180,120,200,220,140,*");
-        UpcomingGrid.setColAlign("center,left,center,left,left,right,center");
-        UpcomingGrid.setColSorting("int,str,str,str,str,int,str");
-        UpcomingGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro");
+        UpcomingGrid.setHeader("No,Kode Movement,Tanggal,ETA,Asal Gudang,Tujuan Gudang,Total Qty (KG),Logistics Status");
+        UpcomingGrid.setInitWidths("50,170,110,110,190,200,130,*");
+        UpcomingGrid.setColAlign("center,left,left,left,left,left,right,center");
+        UpcomingGrid.setColSorting("int,str,str,str,str,str,int,str");
+        UpcomingGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
         UpcomingGrid.init();
 
         loadUpcomingGridData(false);
@@ -767,10 +774,12 @@
     function loadUpcomingGridData(forceRefresh) {
         if (!UpcomingGrid) return;
         var params = [];
-        var start  = $('#filterUpcomingStartDate').val();
-        var end    = $('#filterUpcomingEndDate').val();
-        var search = $('#filterUpcomingSearch').val();
+        var dateType = $('#filterUpcomingDateType').val() || 'eta';
+        var start    = $('#filterUpcomingStartDate').val();
+        var end      = $('#filterUpcomingEndDate').val();
+        var search   = $('#filterUpcomingSearch').val();
 
+        params.push('date_type=' + encodeURIComponent(dateType));
         if (start)  params.push('start_date=' + encodeURIComponent(start));
         if (end)    params.push('end_date=' + encodeURIComponent(end));
         if (search) params.push('search=' + encodeURIComponent(search));
@@ -930,6 +939,7 @@
     }
 
     function resetUpcomingFilters() {
+        $('#filterUpcomingDateType').val('eta');
         $('#filterUpcomingStartDate').val('');
         $('#filterUpcomingEndDate').val('');
         $('#filterUpcomingSearch').val('');
