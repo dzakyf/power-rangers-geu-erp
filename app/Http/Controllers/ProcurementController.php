@@ -358,6 +358,23 @@ class ProcurementController extends Controller
         return redirect('purchase-request-list')->with('success', 'Purchase Request berhasil disimpan!');
     }
 
+
+    // Menampilkan Detail PR (Mode Read-Only)
+    public function detailPR(Request $request) {
+        $prNo = $request->query('PR_No');
+
+        $header = DB::table('purchase_request')->where('PR_No', $prNo)->first();
+        $details = DB::table('purchase_request_dtl')->where('PR_No', $prNo)->get();
+        $noteHistories = DB::table('pr_notes_history')
+            ->where('PR_No', $prNo)
+            ->orderBy('ID', 'DESC')
+            ->get();
+        $departments = DB::table('department')->orderBy('Department', 'ASC')->get();
+
+        return view('humanresources.procurement.purchase-request-detail', compact('header', 'details', 'departments', 'noteHistories'));
+    }
+        
+
     // Menampilkan Detail PR Status PENDING
     public function detailPRPending(Request $request) {
         $prNo = $request->query('PR_No');
@@ -901,7 +918,8 @@ class ProcurementController extends Controller
         ]);
 
         // Set Kop Surat (Sesuaikan nama file gambar dengan yang ada di printPR Anda)
-        $kopPath = public_path('images/kop-geu.png'); 
+       // Arahkan langsung ke lokasi file header_geu.jpg di folder public/assets/images/surat/
+        $kopPath = public_path('assets/images/surat/header_geu.jpg');
         if (file_exists($kopPath)) {
             $mpdf->SetHTMLHeader('
                 <div style="text-align: center; border-bottom: 1.5px solid #689f38; padding-bottom: 5px;">
@@ -918,4 +936,308 @@ class ProcurementController extends Controller
         return response($mpdf->Output($fileName, 'I'), 200)
             ->header('Content-Type', 'application/pdf');
     }
+
+    public function generatePO(Request $request)
+    {
+        $prNo       = $request->input('pr_no');
+        $rfqNo      = $request->input('rfq_no');
+        $supplierId = $request->input('supplier_id');
+
+        DB::beginTransaction();
+        try {
+            // 1. Ambil data PR, RFQ vendor pemenang, dan data master Supplier
+            $pr = DB::table('purchase_request')->where('PR_No', $prNo)->first();
+
+            $rfqQuery = DB::table('rfq')->where('PR_No', $prNo)->where('Supplier_ID', $supplierId);
+            if (!empty($rfqNo)) {
+                $rfqQuery->where('RFQ_No', $rfqNo);
+            }
+            $rfq = $rfqQuery->first();
+
+            if (!$pr || !$rfq) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Data PR atau Penawaran Vendor tidak ditemukan.'
+                ], 404);
+            }
+
+            $supplier = DB::table('supplier')->where('Supplier_ID', $supplierId)->first();
+
+            // Cek jika PO untuk PR & Supplier ini sudah pernah diterbitkan (menggunakan kolom 'Supplier')
+            $existingPo = DB::table('purchase_order')
+                ->where('PR_No', $prNo)
+                ->where('Supplier', $supplierId)
+                ->first();
+
+            if ($existingPo) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Purchase Order untuk PR & Vendor ini sudah pernah dibuat (' . $existingPo->PO_No . ').'
+                ], 400);
+            }
+
+            // 2. Generate Nomor PO Otomatis (Format: PO/GEU/YYYYMM-XXXX)
+            $prefix = 'PO/GEU/' . date('Ym') . '-';
+            $lastPo = DB::table('purchase_order')
+                ->where('PO_No', 'like', $prefix . '%')
+                ->orderBy('ID', 'desc')
+                ->first();
+
+            $nextNum = $lastPo ? ((int) substr($lastPo->PO_No, -4)) + 1 : 1;
+            $poNo    = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+
+            // 3. Insert Header ke tabel purchase_order (sesuai struktur tabel asli)
+            $remarkInfo = 'Ref RFQ: ' . $rfq->RFQ_No;
+            if (!empty($rfq->Quotation_No)) {
+                $remarkInfo .= ' | Ref Quotation: ' . $rfq->Quotation_No;
+            }
+            if (!empty($pr->Note)) {
+                $remarkInfo .= ' | ' . $pr->Note;
+            }
+
+            DB::table('purchase_order')->insert([
+                'Location'              => $pr->Location ?? 'HO',
+                'Process_By'            => auth()->user()->Username ?? auth()->user()->name ?? 'admin',
+                'Purchase_Type'         => $pr->Purchase_Type ?? null,
+                'Purchase_Category'     => $pr->Category ?? null,
+                'Purchase_Sub_Category' => $pr->Sub_Category ?? null,
+                'PR_No'                 => $pr->PR_No,
+                'PO_No'                 => $poNo,
+                'PO_Date'               => date('Y-m-d'),
+                'PO_Dest'               => $pr->Location ?? null,
+                'Department'            => $pr->Department,
+                'PIC_Address'           => $pr->PIC_Address ?? null,
+                'PIC_Phone'             => $pr->PIC_Phone ?? null,
+                'PIC'                   => $pr->PIC ?? null,
+                'Supplier'              => $supplierId,
+                'Supplier_PIC'          => $supplier->Contact_Person ?? null,
+                'Term_Payment'          => $rfq->Payment_Terms ?? 'NET 30',
+                'Pay_Term'              => $rfq->Payment_Terms ?? 'NET 30',
+                'Subtotal'              => $rfq->Subtotal_Amount ?? 0,
+                'Discount'              => 0,
+                'PPN'                   => $rfq->Tax_Amount ?? 0,
+                'PPH'                   => 0,
+                'Delivery_Fee'          => $rfq->Shipping_Cost ?? 0,
+                'Total'                 => $rfq->Grand_Total ?? 0,
+                'Total_Paid'            => 0,
+                'Status'                => 'OPEN',
+                'Status_Receive'        => 'OPEN',
+                'Currency'              => 'IDR',
+                'Remark'                => $remarkInfo,
+                'Date_Trx'              => now(),
+                'User_Trx'              => auth()->user()->Username ?? auth()->user()->name ?? 'admin',
+            ]);
+
+            // 4. Insert Detail Item ke tabel purchase_order_dtl (sesuai struktur tabel asli)
+            $rfqItems = DB::table('rfq_dtl')->where('RFQ_No', $rfq->RFQ_No)->get();
+            foreach ($rfqItems as $item) {
+                $unitPrice = $item->Quoted_Price ?? $item->Price ?? 0;
+                $totalLine = $item->Total_Price ?? ($item->Qty * $unitPrice);
+
+                DB::table('purchase_order_dtl')->insert([
+                    'Location'      => $pr->Location ?? 'HO',
+                    'PR_No'         => $pr->PR_No,
+                    'PO_No'         => $poNo,
+                    'Category'      => $pr->Category ?? null,
+                    'Sub_Category'  => $pr->Sub_Category ?? null,
+                    'Purchase_Type' => $pr->Purchase_Type ?? null,
+                    'Product_Code'  => $item->Product_Code,
+                    'Product_Desc'  => $item->Product_Desc,
+                    'Specification' => $item->Specification ?? null,
+                    'Qty'           => $item->Qty,
+                    'Unit'          => $item->Unit,
+                    'Price'         => $unitPrice,
+                    'Discount'      => 0,
+                    'Subtotal'      => $totalLine,
+                    'PPN'           => 0,
+                    'PPN_pct'       => 0,
+                    'Total'         => $totalLine,
+                    'Qty_Receive'   => 0,
+                    'Qty_Remain'    => $item->Qty,
+                    'Currency'      => 'IDR',
+                ]);
+            }
+
+            // 5. Update Status RFQ Pemenang & Vendor Lainnya
+            DB::table('rfq')->where('RFQ_No', $rfq->RFQ_No)->update(['Status' => 'AWARDED']);
+            DB::table('rfq')
+                ->where('PR_No', $prNo)
+                ->where('RFQ_No', '!=', $rfq->RFQ_No)
+                ->update(['Status' => 'CLOSED']);
+
+            // 6. Update Status PR menjadi PO_CREATED
+            DB::table('purchase_request')->where('PR_No', $prNo)->update(['Status' => 'PO_CREATED']);
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Berhasil! Purchase Order ' . $poNo . ' telah diterbitkan.',
+                'po_no'   => $poNo
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal membuat PO: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // 1. Tampilkan Halaman Utama Outstanding PO
+    public function outstandingPOIndex()
+    {
+        return view('humanresources.procurement.po-outstanding-list');
+    }
+
+    // 2. Endpoint XML DHTMLX Grid untuk Daftar PO Berstatus OPEN / PARTIAL
+    public function xmlOutstandingPO()
+    {
+        $pos = DB::table('purchase_order as po')
+            ->leftJoin(
+                'supplier as s',
+                DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
+                '=',
+                DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
+            )
+            ->select(
+                'po.ID',
+                'po.PO_No',
+                'po.PO_Date',
+                'po.PR_No',
+                'po.Supplier',
+                's.Company_Name',
+                'po.Department',
+                'po.Term_Payment',
+                'po.Total',
+                'po.Status',
+                'po.Status_Receive',
+                'po.User_Trx'
+            )
+            ->whereIn('po.Status', ['OPEN', 'PARTIAL', 'APPROVED'])
+            ->orderBy('po.ID', 'desc')
+            ->get();
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+        $xml .= '<rows>';
+
+        $no = 1;
+        foreach ($pos as $row) {
+            $vendorDisplay = $row->Company_Name
+                ? $row->Supplier . ' - ' . $row->Company_Name
+                : $row->Supplier;
+
+            $xml .= '<row id="' . htmlspecialchars($row->PO_No) . '">';
+            $xml .= '<cell>' . $no++ . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->PO_No) . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->PO_Date ?? '-') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->PR_No ?? '-') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($vendorDisplay ?? '-') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Department ?? '-') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Term_Payment ?? '-') . '</cell>';
+            $xml .= '<cell>' . number_format($row->Total ?? 0, 0, ',', '.') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Status ?? 'OPEN') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Status_Receive ?? 'OPEN') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->User_Trx ?? '-') . '</cell>';
+            $xml .= '</row>';
+        }
+
+        $xml .= '</rows>';
+
+        return response($xml, 200)->header('Content-Type', 'text/xml');
+    }
+
+    // 3. Detail Item PO saat Baris Grid Di-Double Click
+    public function detailPO(Request $request)
+    {
+        $poNo = $request->query('PO_No');
+
+        $poHeader = DB::table('purchase_order as po')
+            ->leftJoin(
+                'supplier as s',
+                DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
+                '=',
+                DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
+            )
+            ->select('po.*', 's.Company_Name', 's.Address as Supplier_Address', 's.Phone as Supplier_Phone')
+            ->where('po.PO_No', $poNo)
+            ->first();
+
+        if (!$poHeader) {
+            return '<div class="alert alert-danger">Data Purchase Order tidak ditemukan.</div>';
+        }
+
+        $poItems = DB::table('purchase_order_dtl')
+            ->where('PO_No', $poNo)
+            ->orderBy('ID', 'ASC')
+            ->get();
+
+        return view('humanresources.procurement.po-detail', compact('poHeader', 'poItems'));
+    }
+
+    // 4. Cetak PDF Purchase Order (mPDF + Kop Surat Base64)
+    public function printPO(Request $request)
+    {
+        $poNo = $request->query('PO_No');
+
+        $poHeader = DB::table('purchase_order as po')
+            ->leftJoin(
+                'supplier as s',
+                DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
+                '=',
+                DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
+            )
+            ->select('po.*', 's.Company_Name', 's.Address as Supplier_Address', 's.Phone as Supplier_Phone', 's.Email as Supplier_Email')
+            ->where('po.PO_No', $poNo)
+            ->first();
+
+        if (!$poHeader) {
+            abort(404, 'Data Purchase Order tidak ditemukan.');
+        }
+
+        $poItems = DB::table('purchase_order_dtl')
+            ->where('PO_No', $poNo)
+            ->orderBy('ID', 'ASC')
+            ->get();
+
+        $mpdfTempDir = storage_path('app/mpdf');
+        if (!file_exists($mpdfTempDir)) {
+            mkdir($mpdfTempDir, 0775, true);
+        }
+
+        $mpdf = new \Mpdf\Mpdf([
+            'mode'          => 'utf-8',
+            'format'        => 'A4',
+            'tempDir'       => $mpdfTempDir,
+            'margin_left'   => 10,
+            'margin_right'  => 10,
+            'margin_top'    => 42,
+            'margin_bottom' => 15,
+            'margin_header' => 5,
+            'margin_footer' => 5,
+        ]);
+
+        $kopPath = public_path('assets/images/surat/header_geu.jpg');
+        if (file_exists($kopPath)) {
+            $ext = pathinfo($kopPath, PATHINFO_EXTENSION);
+            $base64 = 'data:image/' . $ext . ';base64,' . base64_encode(file_get_contents($kopPath));
+
+            $mpdf->SetHTMLHeader('
+                <div style="text-align: center; border-bottom: 1.5px solid #689f38; padding-bottom: 5px;">
+                    <img src="' . $base64 . '" style="width: 100%; max-height: 95px;">
+                </div>
+            ');
+        }
+
+        $html = view('humanresources.procurement.po-print-pdf', compact('poHeader', 'poItems'))->render();
+        $mpdf->WriteHTML($html);
+
+        $safeFilename = str_replace('/', '-', $poHeader->PO_No) . '.pdf';
+        return response($mpdf->Output($safeFilename, 'S'), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="' . $safeFilename . '"');
+    }
+
+
+
 }

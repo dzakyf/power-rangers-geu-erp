@@ -233,16 +233,16 @@
             function initThrGrid() {
                 thrGrid = new dhtmlXGridObject('thrGridBox');
                 thrGrid.setImagePath("{{ asset('dhtmlx/skins/skyblue/imgs/') }}/");
-                thrGrid.setHeader("Eligible,NIK,Nama Karyawan,Department,Agama,Tgl Masuk,Masa Kerja,Prorata,Basis Upah,THR Sistem,Adjustment (+/-),THR Final,Keterangan");
-                thrGrid.attachHeader("#master_checkbox,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter,#numeric_filter,#numeric_filter,#numeric_filter,#numeric_filter,#text_filter");
-                thrGrid.setInitWidths("65,105,190,120,90,95,125,75,115,115,115,120,*");
-                thrGrid.setColAlign("center,left,left,left,center,center,center,right,right,right,right,right,left");
-                thrGrid.setColTypes("ch,ro,ro,ro,ro,ro,ro,ro,ron,ron,edn,ron,ed");
-                thrGrid.setColSorting("int,str,str,str,str,str,str,str,int,int,int,int,str");
-                thrGrid.setNumberFormat("0,000", 8, ".", ",");
+                thrGrid.setHeader("Eligible,NIK,Nama Karyawan,Department,Agama,Tgl Masuk,Masa Kerja,Skema THR (PKWT/MoU),Prorata,Basis Upah,THR Sistem,Adjustment (+/-),THR Final,Keterangan");
+                thrGrid.attachHeader("#master_checkbox,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#select_filter,#text_filter,#numeric_filter,#numeric_filter,#numeric_filter,#numeric_filter,#text_filter");
+                thrGrid.setInitWidths("65,105,190,120,90,95,125,175,75,115,115,115,120,*");
+                thrGrid.setColAlign("center,left,left,left,center,center,center,left,right,right,right,right,right,left");
+                thrGrid.setColTypes("ch,ro,ro,ro,ro,ro,ro,ro,ro,ron,ron,edn,ron,ed");
+                thrGrid.setColSorting("int,str,str,str,str,str,str,str,str,int,int,int,int,str");
                 thrGrid.setNumberFormat("0,000", 9, ".", ",");
                 thrGrid.setNumberFormat("0,000", 10, ".", ",");
                 thrGrid.setNumberFormat("0,000", 11, ".", ",");
+                thrGrid.setNumberFormat("0,000", 12, ".", ",");
                 thrGrid.setSkin("dhx_skyblue");
                 thrGrid.init();
 
@@ -257,9 +257,9 @@
                         return false;
                     }
                     if (stage === 2 && nValue != oValue) {
-                        if (cInd === 10) {
+                        if (cInd === 11) {
                             saveRowItem(rId, { thr_adjustment_amount: parseFloat(nValue) || 0 });
-                        } else if (cInd === 12) {
+                        } else if (cInd === 13) {
                             saveRowItem(rId, { note: nValue });
                         }
                     }

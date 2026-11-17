@@ -164,15 +164,18 @@ $contractEmp = DB::table('employment')
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="#">Human Capital</a></li>
                     <li class="breadcrumb-item"><a href="#">Employment</a></li>
-                    <li class="breadcrumb-item active" aria-current="page" style="font-weight: 600;">Data Internal Employees</li>
+                    <li class="breadcrumb-item active" aria-current="page" style="font-weight: 600;">Data Internal Employees
+                    </li>
                 </ol>
             </nav>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('employee.mobile.directory') }}" target="_blank" class="btn btn-outline-primary emp-top-btn shadow-sm">
+            <a href="{{ route('employee.mobile.directory') }}" target="_blank"
+                class="btn btn-outline-primary emp-top-btn shadow-sm">
                 <i class="fa fa-mobile-screen-button"></i> Versi Mobile HCGA
             </a>
-            <button type="button" class="btn btn-success emp-top-btn shadow-sm text-white" onclick="EmployeeLists.toExcel('./export/generate.php');">
+            <button type="button" class="btn btn-success emp-top-btn shadow-sm text-white"
+                onclick="EmployeeLists.toExcel('./export/generate.php');">
                 <i class="fa fa-file-excel"></i> Export Excel
             </button>
         </div>
@@ -244,6 +247,9 @@ $contractEmp = DB::table('employment')
                 <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3"
                     onclick="toggleDivPivotTable();">
                     <i class="fa fa-chart-pie me-1"></i> Analisis Pivot
+                </button>
+                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" onclick="openThrSchemeModal();">
+                    <i class="fa fa-file-signature me-1"></i> Setting Skema THR (PKWT/MoU)
                 </button>
             </div>
 
@@ -407,9 +413,36 @@ $contractEmp = DB::table('employment')
             EmployeeLists.setColTypes(ty.join(','));
             EmployeeLists.setColSorting(so.join(','));
             EmployeeLists.attachEvent("onRowDblClicked", EmployeeListsKlik);
+            EmployeeLists.enableMultiselect(true);
             EmployeeLists.setSkin("dhx_skyblue");
             EmployeeLists.init();
             EmployeeLists.clearAndLoad('xml-employee-lists?cols=' + encodeURIComponent(keys.join(',')));
+        }
+
+        function openThrSchemeModal() {
+            var selectedIds = EmployeeLists.getSelectedRowId();
+            if (!selectedIds) {
+                alert(
+                    'Pilih minimal 1 karyawan pada tabel terlebih dahulu (gunakan Ctrl/Shift+Klik untuk memilih lebih dari satu).'
+                    );
+                return;
+            }
+            var url = '{{ url('hrd-employee-thr-scheme-modal') }}?ids=' + encodeURIComponent(selectedIds);
+            if (window.AppModal && typeof window.AppModal.open === 'function') {
+                window.AppModal.open({
+                    title: 'Setting Skema THR Karyawan (PKWT / MoU)',
+                    body: '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="small text-muted mt-2">Memuat form skema THR...</div></div>',
+                    size: 'lg'
+                });
+                $.get(url, function(html) {
+                    $('#appModalBody').html(html);
+                }).fail(function(xhr) {
+                    $('#appModalBody').html('<div class="alert alert-danger mb-0">Gagal memuat form (' + xhr
+                        .status + '). Silakan coba lagi.</div>');
+                });
+            } else {
+                LoadM('divlistProjectOrg', url);
+            }
         }
 
         function saveEmployeeCols(reset) {

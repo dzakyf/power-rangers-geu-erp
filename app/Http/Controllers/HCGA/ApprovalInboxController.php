@@ -236,6 +236,16 @@ class ApprovalInboxController extends Controller
                 'icon' => 'fa-gavel',
                 'badge_color' => 'dark',
             ],
+            'TNA_REQUEST' => [
+                'label' => 'TNA (Need Analysis)',
+                'icon' => 'fa-clipboard-list',
+                'badge_color' => 'primary',
+            ],
+            'TRAINING_REQUEST' => [
+                'label' => 'Request Training',
+                'icon' => 'fa-chalkboard-teacher',
+                'badge_color' => 'success',
+            ],
             'GENERAL' => [
                 'label' => 'General Approval',
                 'icon' => 'fa-file-signature',
@@ -851,6 +861,7 @@ class ApprovalInboxController extends Controller
             echo '<cell>' . $this->xml($task->Held_Reason) . '</cell>';
             echo '<cell>' . $this->xml($task->Requester_Name) . '</cell>';
             echo '<cell>' . $this->xml($task->Held_At) . '</cell>';
+            echo '<userdata name="request_id">' . (int) $task->Request_ID . '</userdata>';
             echo '</row>';
             $no++;
         }
@@ -871,11 +882,119 @@ class ApprovalInboxController extends Controller
             echo '<cell>' . $this->xml($reason ?: 'No recipient available') . '</cell>';
             echo '<cell>' . $this->xml($request->Requester_Name) . '</cell>';
             echo '<cell>' . $this->xml($request->Updated_At) . '</cell>';
+            echo '<userdata name="request_id">' . (int) $request->Request_ID . '</userdata>';
             echo '</row>';
             $no++;
         }
 
+        if (\Illuminate\Support\Facades\Schema::hasColumn('approval_request_task', 'Escalated_At')) {
+            $overdue = DB::table('approval_request_task as t')
+                ->join('approval_request as r', 'r.ID', '=', 't.Request_ID')
+                ->join('users as u', 'u.id', '=', 'r.Requester_Id')
+                ->select(
+                    't.ID',
+                    't.Request_ID',
+                    't.Stage_Order',
+                    't.Position_Code',
+                    't.Position_Name',
+                    't.Due_At',
+                    't.Escalated_At',
+                    't.Reminder_Count',
+                    'r.Request_No',
+                    'r.Request_Type',
+                    'u.Name as Requester_Name'
+                )
+                ->whereIn('t.Status', ['PENDING', 'CLAIMED'])
+                ->whereNotNull('t.Escalated_At')
+                ->whereNotIn('r.Status', ['APPROVED', 'REJECTED', 'RETURNED', 'CANCELLED'])
+                ->orderBy('t.Escalated_At', 'ASC')
+                ->get();
+
+            foreach ($overdue as $task) {
+                echo '<row id="sla-' . (int) $task->ID . '">';
+                echo '<cell>' . $no . '</cell>';
+                echo '<cell>OVERDUE SLA</cell>';
+                echo '<cell>' . $this->xml($task->Request_No) . '</cell>';
+                echo '<cell>' . $this->xml($task->Request_Type) . '</cell>';
+                echo '<cell>' . $this->xml($task->Position_Code . ' - ' . $task->Position_Name . ' / Stage ' . $task->Stage_Order) . '</cell>';
+                echo '<cell>' . $this->xml('Lewat SLA (' . $task->Due_At . '), Reminder ke-' . (int) $task->Reminder_Count) . '</cell>';
+                echo '<cell>' . $this->xml($task->Requester_Name) . '</cell>';
+                echo '<cell>' . $this->xml($task->Escalated_At) . '</cell>';
+                echo '<userdata name="request_id">' . (int) $task->Request_ID . '</userdata>';
+                echo '</row>';
+                $no++;
+            }
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('approval_request', 'Sync_Status')) {
+            $syncFailed = DB::table('approval_request as r')
+                ->join('users as u', 'u.id', '=', 'r.Requester_Id')
+                ->select('r.ID as Request_ID', 'r.Request_No', 'r.Request_Type', 'r.Current_Stage', 'r.Sync_Error', 'r.Sync_Attempts', 'r.Updated_At', 'u.Name as Requester_Name')
+                ->where('r.Sync_Status', 'FAILED')
+                ->orderBy('r.Updated_At', 'DESC')
+                ->get();
+
+            foreach ($syncFailed as $req) {
+                echo '<row id="sync-' . (int) $req->Request_ID . '">';
+                echo '<cell>' . $no . '</cell>';
+                echo '<cell>SYNC FAILED</cell>';
+                echo '<cell>' . $this->xml($req->Request_No) . '</cell>';
+                echo '<cell>' . $this->xml($req->Request_Type) . '</cell>';
+                echo '<cell>' . $this->xml('Stage ' . $req->Current_Stage . ' (Attempt #' . (int) $req->Sync_Attempts . ')') . '</cell>';
+                echo '<cell>' . $this->xml($req->Sync_Error ?: 'Callback sync gagal') . '</cell>';
+                echo '<cell>' . $this->xml($req->Requester_Name) . '</cell>';
+                echo '<cell>' . $this->xml($req->Updated_At) . '</cell>';
+                echo '<userdata name="request_id">' . (int) $req->Request_ID . '</userdata>';
+                echo '</row>';
+                $no++;
+            }
+        }
+
         echo '</rows>';
+    }
+
+    public function forceApprove(Request $request)
+    {
+        $requestId = (int) $request->input('Request_ID');
+        $reason = trim((string) $request->input('Reason', ''));
+
+        if ($requestId <= 0) {
+            return response()->json(['status' => 'error', 'message' => 'Request ID tidak valid.'], 422);
+        }
+
+        return $this->jsonWorkflow(function () use ($requestId, $reason) {
+            $req = $this->workflow->forceApprove($requestId, (int) Auth::id(), $reason);
+
+            return ['message' => 'Request berhasil di-Force Approve.', 'request' => $req];
+        });
+    }
+
+    public function resync(Request $request)
+    {
+        if (!$this->authorization->isWildcardAdmin(Auth::user())) {
+            return response()->json(['status' => 'error', 'message' => 'Hanya Wildcard Admin yang dapat melakukan Re-sync modul.'], 403);
+        }
+
+        $requestId = (int) $request->input('Request_ID');
+        $approvalReq = $this->workflow->getRequest($requestId);
+        if (!$approvalReq) {
+            return response()->json(['status' => 'error', 'message' => 'Approval request tidak ditemukan.'], 404);
+        }
+
+        event(new \App\Events\Approval\ApprovalRequestUpdated($approvalReq, (string) $approvalReq->Status, 'Manual admin re-sync'));
+        $refreshed = $this->workflow->getRequest($requestId);
+
+        if (isset($refreshed->Sync_Status) && $refreshed->Sync_Status === 'FAILED') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Re-sync gagal: ' . ($refreshed->Sync_Error ?: 'Unknown error'),
+            ], 500);
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Status modul berhasil disinkronkan ulang.',
+        ]);
     }
 
     private function taskQuery()

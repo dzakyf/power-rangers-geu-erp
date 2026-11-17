@@ -48,7 +48,11 @@
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <button type="button" class="btn btn-outline-secondary" onclick="ApprovalEscalationRefresh();" title="Muat ulang data"><i class="fa fa-refresh"></i> Refresh</button>
                 <span class="ap-sep"></span>
+                <button type="button" class="btn btn-outline-success" onclick="ApprovalEscalationForceApprove();" title="Bypass final approval (Wildcard Admin)"><i class="fa fa-check-double"></i> Force Approve</button>
+                <button type="button" class="btn btn-outline-warning" onclick="ApprovalEscalationResync();" title="Sinkronkan ulang status ke modul"><i class="fa fa-sync"></i> Re-sync Module</button>
+                <span class="ap-sep"></span>
                 <a class="btn btn-outline-dark" href="hrd-approval-policy" title="Kelola policy approval"><i class="fa fa-sliders"></i> Policy Management</a>
+                <a class="btn btn-outline-primary" href="hrd-approval-delegation" title="Kelola delegasi approval"><i class="fa fa-users"></i> Delegation</a>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <span id="ApprovalEscalationSel" class="ap-sel"><i class="fa fa-info-circle me-1"></i>Belum ada baris dipilih</span>
@@ -151,6 +155,51 @@ function ApprovalEscalationAssign() {
     });
 
     return false;
+}
+
+function ApprovalEscalationForceApprove() {
+    var rowId = ApprovalEscalation.getSelectedRowId();
+    if (!rowId) { alert('Pilih baris terlebih dahulu.'); return; }
+    var reqId = ApprovalEscalation.getUserData(rowId, 'request_id');
+    if (!reqId) { alert('Request ID tidak ditemukan pada baris terpilih.'); return; }
+    var reason = prompt('Masukkan alasan Force Approve (wajib):');
+    if (!reason || !reason.trim()) return;
+
+    var body = new URLSearchParams();
+    body.append('_token', ApprovalEscalationToken);
+    body.append('Request_ID', reqId);
+    body.append('Reason', reason.trim());
+
+    fetch('hrd-approval-force-approve', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-CSRF-TOKEN': ApprovalEscalationToken, 'Accept': 'application/json' },
+        body: body.toString()
+    }).then(function (r) { return r.json(); }).then(function (res) {
+        alert(res.message || 'Selesai');
+        if (res.status !== 'error') ApprovalEscalationRefresh();
+    }).catch(function () { alert('Tidak dapat menghubungi server.'); });
+}
+
+function ApprovalEscalationResync() {
+    var rowId = ApprovalEscalation.getSelectedRowId();
+    if (!rowId) { alert('Pilih baris terlebih dahulu.'); return; }
+    var reqId = ApprovalEscalation.getUserData(rowId, 'request_id');
+    if (!reqId) { alert('Request ID tidak ditemukan pada baris terpilih.'); return; }
+
+    var body = new URLSearchParams();
+    body.append('_token', ApprovalEscalationToken);
+    body.append('Request_ID', reqId);
+
+    fetch('hrd-approval-resync', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-CSRF-TOKEN': ApprovalEscalationToken, 'Accept': 'application/json' },
+        body: body.toString()
+    }).then(function (r) { return r.json(); }).then(function (res) {
+        alert(res.message || 'Selesai');
+        if (res.status !== 'error') ApprovalEscalationRefresh();
+    }).catch(function () { alert('Tidak dapat menghubungi server.'); });
 }
 
 var ApprovalEscalation = new dhtmlXGridObject('ApprovalEscalationGrid');

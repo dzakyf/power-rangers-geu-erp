@@ -86,6 +86,7 @@ class PayrollThrController extends Controller
             foreach ($items as $it) {
                 $eligible = (int)$it->is_eligible;
                 $tenureLabel = $it->tenure_months . ' bln (' . $it->tenure_days . ' hr)';
+                $schemeLabel = \App\Services\HCGA\EmployeeThrSchemeService::label($it->thr_scheme ?? null);
                 $proratePct = round(((float)$it->prorate_ratio) * 100, 2) . '%';
                 $noteDisplay = $it->note ?: ($it->ineligible_reason ?: ($it->is_payroll_processed ? 'Sudah masuk Payroll: ' . $it->salary_id : 'Eligible'));
 
@@ -97,6 +98,7 @@ class PayrollThrController extends Controller
                 echo "<cell><![CDATA[" . ($it->religion ?: '-') . "]]></cell>";
                 echo "<cell><![CDATA[" . ($it->date_in ?: '-') . "]]></cell>";
                 echo "<cell><![CDATA[{$tenureLabel}]]></cell>";
+                echo "<cell><![CDATA[{$schemeLabel}]]></cell>";
                 echo "<cell><![CDATA[{$proratePct}]]></cell>";
                 echo "<cell>{$it->base_salary_amount}</cell>";
                 echo "<cell>{$it->thr_calculated_amount}</cell>";

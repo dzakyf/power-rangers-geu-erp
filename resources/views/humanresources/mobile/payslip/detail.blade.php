@@ -91,7 +91,10 @@
     </style>
 </head>
 <body>
-    @include('humanresources.mobile.partials.resolve-back', ['defaultBack' => route('mobile.dashboard')])
+    @php
+        $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
+        $fromParams = mobile_from_params();
+    @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
             <a href="{{ route('payslip.mobile.index', $fromParams) }}" class="finora-back-btn"><i class="fas fa-arrow-left"></i></a>

@@ -40,11 +40,11 @@ class EmployeeDataUpdateApprovalService
 
         return DB::transaction(function () use ($req, $reqId, $user) {
             $context = [
-                'request_type' => self::REQUEST_TYPE,
-                'location'     => $user->Location ?? 'GEU-HO',
-                'company_id'   => $user->Company_ID ?? 'GEU',
-                'department'   => $user->Department ?? 'HCGA',
-                'amount'       => 0,
+                'Request_Type' => self::REQUEST_TYPE,
+                'Location'     => $user->Location ?? 'GEU-HO',
+                'Company_ID'   => $user->Company_ID ?? 'GEU',
+                'Department'   => $user->Department ?? 'HCGA',
+                'Amount'       => 0,
             ];
 
             $description = "Perubahan Data Mandiri Karyawan: {$req->field_name} (NIK: {$req->nik})";
@@ -60,9 +60,13 @@ class EmployeeDataUpdateApprovalService
                 Log::warning('ApprovalWorkflow engine submit fallback: ' . $e->getMessage());
             }
 
-            if ($approvalReq && !empty($approvalReq->id)) {
+            if ($approvalReq && !empty($approvalReq->ID)) {
+                DB::table('approval_request')->where('ID', (int) $approvalReq->ID)->update([
+                    'Map_To' => $reqId,
+                ]);
+
                 DB::table('employee_data_update_requests')->where('id', $reqId)->update([
-                    'approval_request_id' => $approvalReq->id,
+                    'approval_request_id' => (int) $approvalReq->ID,
                     'status'              => 'WAITING_APPROVAL',
                     'updated_at'          => Carbon::now(),
                 ]);
@@ -131,37 +135,167 @@ class EmployeeDataUpdateApprovalService
     }
 
     /**
+     * Sinkronkan status approval_request ke employee_data_update_requests dan tabel employment.
+     */
+    public function syncApprovalStatus(int $reqId, string $actor = 'system'): void
+    {
+        $req = DB::table('employee_data_update_requests')->where('id', $reqId)->first();
+        if (!$req || empty($req->approval_request_id)) {
+            return;
+        }
+
+        if ($req->status !== 'WAITING_APPROVAL') {
+            return;
+        }
+
+        $approvalReq = $this->workflow->getRequest((int) $req->approval_request_id);
+        if (!$approvalReq) {
+            return;
+        }
+
+        $statusUpper = strtoupper((string) $approvalReq->Status);
+        if (!in_array($statusUpper, ['APPROVED', 'COMPLETED', 'REJECTED', 'RETURNED', 'CANCELLED'], true)) {
+            return;
+        }
+
+        $lastTask = DB::table('approval_request_task')
+            ->where('Request_ID', (int) $approvalReq->ID)
+            ->whereIn('Status', ['APPROVED', 'AUTO_APPROVED', 'REJECTED'])
+            ->orderBy('ID', 'DESC')
+            ->first();
+
+        $approvedBy = $actor;
+        $note = '';
+        if ($lastTask) {
+            $note = (string) ($lastTask->Notes ?? '');
+            if (!empty($lastTask->Acted_By)) {
+                $actorUser = DB::table('users')->where('id', (int) $lastTask->Acted_By)->first();
+                if ($actorUser) {
+                    $approvedBy = $actorUser->username ?? $actorUser->name ?? $actor;
+                }
+            }
+        }
+
+        DB::transaction(function () use ($req, $reqId, $statusUpper, $approvedBy, $note) {
+            if (in_array($statusUpper, ['APPROVED', 'COMPLETED'], true)) {
+                $this->applyEmploymentColumnChange($req);
+                $targetStatus = 'APPROVED';
+            } elseif ($statusUpper === 'CANCELLED') {
+                $targetStatus = 'CANCELLED';
+            } else {
+                $targetStatus = 'REJECTED';
+            }
+
+            DB::table('employee_data_update_requests')->where('id', $reqId)->update([
+                'status'        => $targetStatus,
+                'approved_by'   => $approvedBy,
+                'approved_at'   => Carbon::now(),
+                'approval_note' => $note,
+                'updated_at'    => Carbon::now(),
+            ]);
+        });
+    }
+
+    /**
+     * Terapkan perubahan kolom yang disetujui ke tabel employment.
+     */
+    protected function applyEmploymentColumnChange($req): void
+    {
+        $column = $req->field_name;
+        $allowedEmploymentCols = [
+            'Handphone', 'Phone', 'Email_Individual', 'Address', 'City', 'Province',
+            'District', 'Sub_District', 'ZipCode', 'Address_Living', 'City_Living',
+            'Province_Living', 'District_Living', 'Sub_District_Living', 'ZipCode_Living',
+            'Blood', 'Blood_Rhesus', 'Marital_Status', 'PTKP_Status', 'Payment_Reference',
+            'Payment_Reference2', 'Payment_Reference3', 'Payment_Method', 'NPWP',
+        ];
+
+        if (in_array($column, $allowedEmploymentCols, true)) {
+            DB::table('employment')->where('Task_ID', $req->task_id)->update([
+                $column => $req->new_value,
+            ]);
+        }
+    }
+
+    /**
+     * Proses aksi melalui ApprovalWorkflowService jika request terhubung ke engine.
+     */
+    protected function actThroughWorkflowIfLinked($req, $user, string $action, string $note = ''): bool
+    {
+        if (empty($req->approval_request_id)) {
+            return false;
+        }
+
+        $approvalReq = $this->workflow->getRequest((int) $req->approval_request_id);
+        if (!$approvalReq || in_array(strtoupper((string) $approvalReq->Status), ['APPROVED', 'REJECTED', 'RETURNED', 'CANCELLED'], true)) {
+            return false;
+        }
+
+        $userId = (int) ($user->id ?? 0);
+        if ($userId < 1) {
+            throw new \Exception('User approver tidak valid.');
+        }
+
+        $task = DB::table('approval_request_task as t')
+            ->leftJoin('approval_task_candidate as c', function ($join) use ($userId) {
+                $join->on('c.Task_ID', '=', 't.ID')
+                     ->where('c.User_Id', '=', $userId)
+                     ->where('c.Status', '=', 'ACTIVE');
+            })
+            ->where('t.Request_ID', (int) $approvalReq->ID)
+            ->where('t.Stage_Order', (int) $approvalReq->Current_Stage)
+            ->whereIn('t.Status', ['PENDING', 'CLAIMED'])
+            ->where(function ($q) use ($userId) {
+                $q->where('t.Claimed_By', $userId)
+                  ->orWhereNotNull('c.ID');
+            })
+            ->select('t.*')
+            ->orderBy('t.ID', 'ASC')
+            ->first();
+
+        if (!$task && app(ApprovalAuthorizationService::class)->isWildcardAdmin($user)) {
+            $task = DB::table('approval_request_task')
+                ->where('Request_ID', (int) $approvalReq->ID)
+                ->where('Stage_Order', (int) $approvalReq->Current_Stage)
+                ->whereIn('Status', ['PENDING', 'CLAIMED'])
+                ->orderBy('ID', 'ASC')
+                ->first();
+        }
+
+        if (!$task) {
+            throw new ApprovalWorkflowException('Anda tidak memiliki task approval aktif untuk permohonan ini.', 'TASK_FORBIDDEN', 403);
+        }
+
+        if (strtoupper((string) $task->Status) === 'PENDING') {
+            $this->workflow->claim((int) $task->ID, $userId);
+        }
+
+        $this->workflow->act((int) $task->ID, $userId, $action, $note);
+
+        return true;
+    }
+
+    /**
      * Approve perubahan data & terapkan (sync) langsung ke tabel employment
      */
     public function approve($reqId, $user, $note = '')
     {
-        return DB::transaction(function () use ($reqId, $user, $note) {
-            $req = DB::table('employee_data_update_requests')->where('id', $reqId)->first();
-            if (!$req) {
-                throw new \Exception('Data permohonan tidak ditemukan.');
-            }
+        $req = DB::table('employee_data_update_requests')->where('id', $reqId)->first();
+        if (!$req) {
+            throw new \Exception('Data permohonan tidak ditemukan.');
+        }
 
-            if ($req->status !== 'WAITING_APPROVAL') {
-                throw new \Exception("Permohonan ini telah berstatus {$req->status}.");
-            }
+        if ($req->status !== 'WAITING_APPROVAL') {
+            throw new \Exception("Permohonan ini telah berstatus {$req->status}.");
+        }
 
-            // Sync perubahan ke tabel employment jika kolom tersebut valid
-            $column = $req->field_name;
-            $allowedEmploymentCols = [
-                'Handphone', 'Phone', 'Email_Individual', 'Address', 'City', 'Province',
-                'District', 'Sub_District', 'ZipCode', 'Address_Living', 'City_Living',
-                'Province_Living', 'District_Living', 'Sub_District_Living', 'ZipCode_Living',
-                'Blood', 'Blood_Rhesus', 'Marital_Status', 'PTKP_Status', 'Payment_Reference',
-                'Payment_Reference2', 'Payment_Reference3', 'Payment_Method', 'NPWP'
-            ];
+        if ($this->actThroughWorkflowIfLinked($req, $user, 'APPROVE', (string) $note)) {
+            return true;
+        }
 
-            if (in_array($column, $allowedEmploymentCols)) {
-                DB::table('employment')->where('Task_ID', $req->task_id)->update([
-                    $column => $req->new_value,
-                ]);
-            }
+        return DB::transaction(function () use ($req, $reqId, $user, $note) {
+            $this->applyEmploymentColumnChange($req);
 
-            // Update status permohonan
             DB::table('employee_data_update_requests')->where('id', $reqId)->update([
                 'status'        => 'APPROVED',
                 'approved_by'   => $user->username ?? $user->name,
@@ -179,16 +313,20 @@ class EmployeeDataUpdateApprovalService
      */
     public function reject($reqId, $user, $note = '')
     {
+        $req = DB::table('employee_data_update_requests')->where('id', $reqId)->first();
+        if (!$req) {
+            throw new \Exception('Data permohonan tidak ditemukan.');
+        }
+
+        if ($req->status !== 'WAITING_APPROVAL') {
+            throw new \Exception("Permohonan ini telah berstatus {$req->status}.");
+        }
+
+        if ($this->actThroughWorkflowIfLinked($req, $user, 'REJECT', (string) $note)) {
+            return true;
+        }
+
         return DB::transaction(function () use ($reqId, $user, $note) {
-            $req = DB::table('employee_data_update_requests')->where('id', $reqId)->first();
-            if (!$req) {
-                throw new \Exception('Data permohonan tidak ditemukan.');
-            }
-
-            if ($req->status !== 'WAITING_APPROVAL') {
-                throw new \Exception("Permohonan ini telah berstatus {$req->status}.");
-            }
-
             DB::table('employee_data_update_requests')->where('id', $reqId)->update([
                 'status'        => 'REJECTED',
                 'approved_by'   => $user->username ?? $user->name,

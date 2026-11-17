@@ -340,6 +340,21 @@ foreach ($Query1 as $Fetch1) {
                     <label class="form-label small fw-bold text-muted" for="End_Date">End Contract Date</label>
                     <input type="text" id="End_Date" class="form-control form-control-sm" value="<?php echo !empty($datahasil->End_Date) && $datahasil->End_Date != '0000-00-00' ? date('d M Y', strtotime($datahasil->End_Date)) : ''; ?>" readonly>
                 </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted" for="thr_scheme">Skema THR (PKWT / MoU)</label>
+                    <select id="thr_scheme" class="form-select form-select-sm">
+                        <option value="">Default (Standar Permenaker)</option>
+                        <?php foreach (\App\Services\HCGA\EmployeeThrSchemeService::schemeOptions() as $skKey => $skLabel): ?>
+                            <option value="<?php echo $skKey; ?>" <?php echo (($datahasil->thr_scheme ?? '') === $skKey) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($skLabel); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted" for="thr_contract_note">Catatan / No. Kontrak PKWT / MoU (THR)</label>
+                    <input type="text" id="thr_contract_note" class="form-control form-control-sm" maxlength="255" value="<?php echo htmlspecialchars($datahasil->thr_contract_note ?? ''); ?>" placeholder="Misal: PKWT No. 012/HRD/2026">
+                </div>
             </div>
         </div>
     </div>
