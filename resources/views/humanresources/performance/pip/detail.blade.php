@@ -48,6 +48,29 @@
     </div>
 </div>
 
+@if($pip->parentPip)
+<div class="alert alert-info mb-3">
+    <i class="feather-corner-down-right me-1"></i> Dokumen ini adalah <strong>Perpanjangan PIP</strong> dari
+    <a href="{{ url('hrd-performance-pip-detail', $pip->parentPip->id) }}" class="fw-bold text-decoration-underline">{{ $pip->parentPip->pip_no }}</a>.
+</div>
+@endif
+
+@if($pip->extendedPips && $pip->extendedPips->count() > 0)
+<div class="alert alert-warning mb-3">
+    <i class="feather-repeat me-1"></i> PIP ini telah diperpanjang menjadi:
+    @foreach($pip->extendedPips as $ext)
+        <a href="{{ url('hrd-performance-pip-detail', $ext->id) }}" class="fw-bold text-decoration-underline ms-1">{{ $ext->pip_no }}</a>
+    @endforeach
+</div>
+@endif
+
+@if($pip->outcome_status === 'FAILED' && $pip->hr_followup_action)
+<div class="alert alert-danger mb-3">
+    <strong><i class="feather-alert-octagon me-1"></i> Tindak Lanjut HR ({{ $pip->hr_followup_action }}):</strong>
+    {{ $pip->hr_followup_notes ?? 'Direkomendasikan untuk proses eskalasi HCGA.' }}
+</div>
+@endif
+
 <div class="row">
     <!-- Rangkuman Masalah & Target Harapan -->
     <div class="col-md-5">
@@ -158,7 +181,14 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Rencana Aksi & Milestone Perbaikan</h5>
-                <span class="badge bg-primary">{{ $pip->actions->count() }} Kegiatan</span>
+                <div>
+                    <span class="badge bg-primary text-white me-2">{{ $pip->actions->count() }} Kegiatan</span>
+                    @if($pip->status !== 'COMPLETED')
+                        <button type="button" class="btn btn-sm btn-primary" onclick="openAddActionModal()">
+                            <i class="feather-plus me-1"></i> Tambah Action Plan
+                        </button>
+                    @endif
+                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -168,7 +198,7 @@
                                 <th>Rencana Tindakan</th>
                                 <th>Standar Keberhasilan</th>
                                 <th style="width: 100px;">Tenggat</th>
-                                <th style="width: 100px;" class="text-center">Status</th>
+                                <th style="width: 140px;" class="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -178,9 +208,17 @@
                                     <td class="small">{{ $act->expected_standard ?? '-' }}</td>
                                     <td class="small">{{ date('d/m/Y', strtotime($act->due_date)) }}</td>
                                     <td class="text-center">
-                                        <span class="badge bg-{{ $act->status === 'ACHIEVED' ? 'success' : ($act->status === 'IN_PROGRESS' ? 'info' : 'secondary') }}">
-                                            {{ $act->status }}
-                                        </span>
+                                        @if($pip->status !== 'COMPLETED')
+                                            <select class="form-select form-select-sm form-control form-control-sm" onchange="updateActionStatus({{ $act->id }}, this.value)">
+                                                @foreach(['PENDING', 'IN_PROGRESS', 'ACHIEVED', 'NOT_ACHIEVED'] as $st)
+                                                    <option value="{{ $st }}" {{ $act->status === $st ? 'selected' : '' }}>{{ $st }}</option>
+                                                @endforeach
+                                            </select>
+                                        @else
+                                            <span class="badge bg-{{ $act->status === 'ACHIEVED' ? 'success' : ($act->status === 'IN_PROGRESS' ? 'info' : 'secondary') }} text-white">
+                                                {{ $act->status }}
+                                            </span>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
@@ -212,11 +250,25 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label font-weight-bold">Hasil Akhir Program PIP <span class="text-danger">*</span></label>
-                        <select name="outcome_status" id="pipOutcomeStatus" class="form-select form-control" required>
+                        <select name="outcome_status" id="pipOutcomeStatus" class="form-select form-control" onchange="togglePipEvalFields()" required>
                             <option value="PASSED">PASSED (Lulus / Performa Kembali Sesuai Standar)</option>
-                            <option value="EXTENDED">EXTENDED (Diperpanjang Tambahan 30 Hari)</option>
-                            <option value="FAILED">FAILED (Tidak Lulus / Direkomendasikan Eskalasi HCGA)</option>
+                            <option value="EXTENDED">EXTENDED (Diperpanjang Otomatis)</option>
+                            <option value="FAILED">FAILED (Tidak Lulus / Rekomendasi Tindak Lanjut HR)</option>
                         </select>
+                    </div>
+                    <div class="mb-3 d-none" id="divExtendDays">
+                        <label class="form-label font-weight-bold">Durasi Perpanjangan (Hari)</label>
+                        <input type="number" name="extend_days" class="form-control" value="30" min="7" max="180">
+                    </div>
+                    <div class="mb-3 d-none" id="divHrFollowup">
+                        <label class="form-label font-weight-bold">Rekomendasi Tindak Lanjut HR</label>
+                        <select name="hr_followup_action" class="form-select form-control mb-2">
+                            <option value="SANCTION">Sanksi Disipliner / SP</option>
+                            <option value="MUTATION">Mutasi / Demosi / Penyesuaian Posisi</option>
+                            <option value="TERMINATION">Evaluasi Pemutusan Hubungan Kerja</option>
+                            <option value="OTHER">Tindak Lanjut Lainnya</option>
+                        </select>
+                        <textarea name="hr_followup_notes" class="form-control" rows="2" placeholder="Catatan tindak lanjut HR..."></textarea>
                     </div>
                     <div class="mb-3">
                         <label class="form-label font-weight-bold">Catatan Evaluator / HCGA</label>
@@ -377,6 +429,87 @@
         })
         .catch(err => Swal.fire('Error', err.message, 'error'));
     }
+</script>
+
+<!-- Modal Tambah Action Plan PIP -->
+<div class="modal fade" id="modalAddAction" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Tambah Action Plan Perbaikan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAddAction">
+                    <div class="mb-3">
+                        <label class="form-label">Rencana Tindakan <span class="text-danger">*</span></label>
+                        <input type="text" name="action_title" class="form-control" required placeholder="Contoh: Review pencapaian KPI mingguan bersama atasan">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Standar Keberhasilan</label>
+                        <textarea name="expected_standard" class="form-control" rows="2" placeholder="Target terukur yang harus dicapai..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tenggat Waktu <span class="text-danger">*</span></label>
+                        <input type="date" name="due_date" class="form-control" value="{{ $pip->end_date }}" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary" onclick="saveActionItem()">
+                    <i class="feather-save me-1"></i> Simpan Action Plan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openAddActionModal() {
+        var myModal = new bootstrap.Modal(document.getElementById('modalAddAction'));
+        myModal.show();
+    }
+
+    function saveActionItem() {
+        var form = document.getElementById('formAddAction');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        var formData = new FormData(form);
+        fetch("{{ url('hrd-performance-pip-action-store', $pip->id) }}", {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.success) {
+                Swal.fire('Berhasil', res.message, 'success').then(() => location.reload());
+            } else {
+                Swal.fire('Gagal', res.message, 'error');
+            }
+        })
+        .catch(err => Swal.fire('Error', err.message, 'error'));
+    }
+
+    function updateActionStatus(actionId, status) {
+        var formData = new FormData();
+        formData.append('status', status);
+        fetch("{{ url('hrd-performance-pip-action-status') }}/" + actionId, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (!res.success) {
+                Swal.fire('Gagal', res.message, 'error');
+            }
+        })
+        .catch(err => Swal.fire('Error', err.message, 'error'));
+    }
 
     function saveTraining() {
         var form = document.getElementById('formTraining');
@@ -400,6 +533,12 @@
             }
         })
         .catch(err => Swal.fire('Error', err.message, 'error'));
+    }
+
+    function togglePipEvalFields() {
+        var val = document.getElementById('pipOutcomeStatus').value;
+        document.getElementById('divExtendDays').classList.toggle('d-none', val !== 'EXTENDED');
+        document.getElementById('divHrFollowup').classList.toggle('d-none', val !== 'FAILED');
     }
 </script>
 @endsection

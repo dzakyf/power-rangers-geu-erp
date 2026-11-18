@@ -578,7 +578,7 @@ class SyncModuleApprovalStatus
         }
     }
 
-    protected function handlePerformanceKpi(int $requestId): void
+    protected function handlePerformanceKpi(int $requestId, ?string $approvalStatus): void
     {
         $goal = DB::table('performance_goals')->where('approval_request_id', $requestId)->first();
         if (!$goal) {
@@ -587,8 +587,40 @@ class SyncModuleApprovalStatus
             })->first();
         }
 
-        if ($goal) {
-            app(\App\Services\HCGA\PerformanceKpiService::class)->syncApprovalStatus((int) $goal->id);
+        if (!$goal) {
+            return;
+        }
+
+        $statusUpper = strtoupper((string) $approvalStatus);
+        $now = \Carbon\Carbon::now();
+
+        if (in_array($statusUpper, ['APPROVED', 'COMPLETED'])) {
+            DB::table('performance_goals')->where('id', $goal->id)->update([
+                'status'           => 'APPROVED',
+                'rejection_reason' => null,
+                'updated_at'       => $now,
+            ]);
+        } elseif (in_array($statusUpper, ['REJECTED', 'RETURNED'])) {
+            $lastLog = DB::table('approval_log')
+                ->where('Request_ID', $requestId)
+                ->whereIn('Action', ['REJECTED', 'RETURNED'])
+                ->orderBy('ID', 'desc')
+                ->first();
+
+            $reason = ($lastLog && !empty($lastLog->Note))
+                ? $lastLog->Note
+                : 'Ditolak pada proses approval. Silakan revisi target KPI dan ajukan ulang.';
+
+            DB::table('performance_goals')->where('id', $goal->id)->update([
+                'status'           => 'REJECTED',
+                'rejection_reason' => $reason,
+                'updated_at'       => $now,
+            ]);
+        } elseif ($statusUpper === 'CANCELLED') {
+            DB::table('performance_goals')->where('id', $goal->id)->update([
+                'status'     => 'DRAFT',
+                'updated_at' => $now,
+            ]);
         }
     }
 }

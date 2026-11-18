@@ -921,9 +921,9 @@ class ApprovalWorkflowService
                 throw new ApprovalWorkflowException('Request tidak ditemukan.', 'REQUEST_NOT_FOUND', 404);
             }
 
-            if (!in_array(strtoupper((string) $request->Status), ['IN_PROGRESS', 'BLOCKED'], true)) {
+            if (!in_array(strtoupper((string) $request->Status), ['IN_PROGRESS', 'BLOCKED', 'HELD', 'PENDING', 'WAITING_APPROVAL'], true)) {
                 throw new ApprovalWorkflowException(
-                    'Hanya request berstatus IN_PROGRESS atau BLOCKED yang dapat di-Force Approve.',
+                    'Hanya request berstatus IN_PROGRESS, BLOCKED, HELD, atau PENDING yang dapat di-Force Approve.',
                     'FORCE_APPROVE_INVALID_STATUS',
                     422,
                     ['Status' => $request->Status]
