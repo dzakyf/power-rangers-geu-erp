@@ -171,4 +171,24 @@ class TrainingController extends Controller
     {
         return redirect('hrd-approval-inbox');
     }
+
+    public function approve(Request $request)
+    {
+        $rowId = (int) ($request->input('gr_id') ?: $request->input('ID') ?: $request->input('id'));
+        $actionType = (string) $request->input('!nativeeditor_status', 'updated');
+
+        if ($rowId <= 0) {
+            return response('<data><action type="error" sid="' . $rowId . '" tid="' . $rowId . '">ID tidak valid</action></data>', 422, ['Content-Type' => 'text/xml']);
+        }
+
+        $training = HcgaTraining::find($rowId);
+        if ($training) {
+            $training->Status = $request->input('Status', $training->Status);
+            $training->Updated_By = Auth::user()->username ?? 'system';
+            $training->Updated_Date = now();
+            $training->save();
+        }
+
+        return response('<data><action type="' . htmlspecialchars($actionType, ENT_QUOTES, 'UTF-8') . '" sid="' . $rowId . '" tid="' . $rowId . '"/></data>', 200, ['Content-Type' => 'text/xml']);
+    }
 }

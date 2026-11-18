@@ -55,7 +55,7 @@ class PerformancePipService
                 'start_date'                => $startDate,
                 'end_date'                  => $endDate,
                 'performance_issue_summary' => "Hasil evaluasi siklus {$review->cycle->title} memperoleh nilai {$review->final_score} (Grade {$review->rating_grade}). Catatan: " . ($review->improvement_notes ?? 'Perlu peningkatan kinerja pada indikator target KPI dan kompetensi kerja.'),
-                'expected_outcomes'         => 'Meningkatkan pemenuhan target kerja minimal standar passing grade, kedisiplinan dan kapabilitas operasional sesuai uraian jabatan.',
+                'expected_outcome'          => 'Meningkatkan pemenuhan target kerja minimal standar passing grade, kedisiplinan dan kapabilitas operasional sesuai uraian jabatan.',
                 'outcome_status'            => 'ONGOING',
                 'status'                    => 'ACTIVE',
                 'created_by'                => $creatorId,
@@ -65,14 +65,80 @@ class PerformancePipService
             // Buat default aksi korektif
             PerformancePipAction::create([
                 'pip_id'            => $pip->id,
-                'action_item'       => 'Penyelarasan target mingguan dan review berkala bersama atasan/mentor',
-                'target_completion' => $endDate,
-                'success_metric'    => 'Pencapaian milestone mingguan mencapai minimal 80%',
+                'action_title'      => 'Penyelarasan target mingguan dan review berkala bersama atasan/mentor',
+                'due_date'          => $endDate,
+                'expected_standard' => 'Pencapaian milestone mingguan mencapai minimal 80%',
                 'status'            => 'IN_PROGRESS',
             ]);
 
             return $pip;
         });
+    }
+
+    /**
+     * Buat dokumen PIP secara manual oleh HRGA / Atasan
+     */
+    public function createManualPip(array $data, int $creatorId = 1): PerformancePipPlan
+    {
+        return DB::transaction(function () use ($data, $creatorId) {
+            $startDate = Carbon::parse($data['start_date'])->toDateString();
+            $durationDays = (int) ($data['duration_days'] ?? 60);
+            $endDate = !empty($data['end_date'])
+                ? Carbon::parse($data['end_date'])->toDateString()
+                : Carbon::parse($startDate)->addDays($durationDays)->toDateString();
+
+            $pip = PerformancePipPlan::create([
+                'pip_no'                    => $this->generatePipNo(),
+                'review_id'                 => $data['review_id'] ?? null,
+                'user_id'                   => $data['user_id'],
+                'mentor_id'                 => $data['mentor_id'] ?? $creatorId,
+                'duration_days'             => $durationDays,
+                'start_date'                => $startDate,
+                'end_date'                  => $endDate,
+                'performance_issue_summary' => $data['performance_issue_summary'],
+                'expected_outcome'          => $data['expected_outcome'] ?? ($data['expected_outcomes'] ?? ''),
+                'outcome_status'            => 'ONGOING',
+                'status'                    => 'ACTIVE',
+                'created_by'                => $creatorId,
+                'updated_by'                => $creatorId,
+            ]);
+
+            if (!empty($data['action_title'])) {
+                PerformancePipAction::create([
+                    'pip_id'            => $pip->id,
+                    'action_title'      => $data['action_title'],
+                    'expected_standard' => $data['expected_standard'] ?? null,
+                    'due_date'          => $endDate,
+                    'status'            => 'PENDING',
+                ]);
+            }
+
+            return $pip;
+        });
+    }
+
+    /**
+     * Tambah Action Item pada rencana PIP
+     */
+    public function addActionItem(PerformancePipPlan $pip, array $data): PerformancePipAction
+    {
+        return PerformancePipAction::create([
+            'pip_id'            => $pip->id,
+            'action_title'      => $data['action_title'],
+            'expected_standard' => $data['expected_standard'] ?? null,
+            'due_date'          => $data['due_date'],
+            'status'            => $data['status'] ?? 'PENDING',
+            'notes'             => $data['notes'] ?? null,
+        ]);
+    }
+
+    /**
+     * Perbarui status Action Item pada rencana PIP
+     */
+    public function updateActionStatus(PerformancePipAction $action, string $status): PerformancePipAction
+    {
+        $action->update(['status' => $status]);
+        return $action;
     }
 
     /**
@@ -122,10 +188,53 @@ class PerformancePipService
         return DB::transaction(function () use ($pip, $data, $userId) {
             $pip->final_score = (float) $data['final_score'];
             $pip->outcome_status = $data['outcome_status']; // PASSED, EXTENDED, FAILED
-            $pip->evaluation_notes = $data['evaluation_notes'] ?? null;
+            $pip->final_notes = $data['evaluation_notes'] ?? ($data['final_notes'] ?? null);
             $pip->status = 'COMPLETED';
             $pip->updated_by = $userId;
+
+            if ($pip->outcome_status === 'FAILED') {
+                $pip->hr_followup_action = $data['hr_followup_action'] ?? 'SANCTION';
+                $pip->hr_followup_notes = $data['hr_followup_notes'] ?? $pip->final_notes;
+            }
+
             $pip->save();
+
+            // Jika EXTENDED, buat otomatis dokumen PIP perpanjangan
+            if ($pip->outcome_status === 'EXTENDED' && !$pip->extendedPips()->exists()) {
+                $extendDays = max(7, (int) ($data['extend_days'] ?? 30));
+                $newStart = $pip->end_date
+                    ? Carbon::parse($pip->end_date)->addDay()->toDateString()
+                    : Carbon::now()->toDateString();
+                $newEnd = Carbon::parse($newStart)->addDays($extendDays)->toDateString();
+
+                $extendedPip = PerformancePipPlan::create([
+                    'pip_no'                    => $this->generatePipNo(),
+                    'review_id'                 => $pip->review_id,
+                    'parent_pip_id'             => $pip->id,
+                    'user_id'                   => $pip->user_id,
+                    'mentor_id'                 => $pip->mentor_id,
+                    'duration_days'             => $extendDays,
+                    'start_date'                => $newStart,
+                    'end_date'                  => $newEnd,
+                    'performance_issue_summary' => "Perpanjangan dari {$pip->pip_no}: " . $pip->performance_issue_summary,
+                    'expected_outcome'          => $pip->expected_outcome,
+                    'outcome_status'            => 'ONGOING',
+                    'status'                    => 'ACTIVE',
+                    'created_by'                => $userId,
+                    'updated_by'                => $userId,
+                ]);
+
+                // Salin action items yang belum ACHIEVED
+                foreach ($pip->actions()->where('status', '!=', 'ACHIEVED')->get() as $oldAct) {
+                    PerformancePipAction::create([
+                        'pip_id'            => $extendedPip->id,
+                        'action_title'      => $oldAct->action_title,
+                        'expected_standard' => $oldAct->expected_standard,
+                        'due_date'          => $newEnd,
+                        'status'            => 'IN_PROGRESS',
+                    ]);
+                }
+            }
 
             return $pip;
         });

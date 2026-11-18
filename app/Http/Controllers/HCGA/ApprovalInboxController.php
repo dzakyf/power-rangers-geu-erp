@@ -981,7 +981,15 @@ class ApprovalInboxController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Approval request tidak ditemukan.'], 404);
         }
 
-        event(new \App\Events\Approval\ApprovalRequestUpdated($approvalReq, (string) $approvalReq->Status, 'Manual admin re-sync'));
+        try {
+            event(new \App\Events\Approval\ApprovalRequestUpdated($approvalReq, (string) $approvalReq->Status, 'Manual admin re-sync'));
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Re-sync gagal: ' . $e->getMessage(),
+            ], 500);
+        }
+
         $refreshed = $this->workflow->getRequest($requestId);
 
         if (isset($refreshed->Sync_Status) && $refreshed->Sync_Status === 'FAILED') {

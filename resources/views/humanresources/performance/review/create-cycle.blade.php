@@ -41,8 +41,10 @@
                 <div class="col-md-3">
                     <label class="form-label font-weight-bold">Jenis Evaluasi</label>
                     <select name="review_type" class="form-select form-control">
+                        <option value="SEMESTER_1" selected>Semester 1 (Evaluasi 6 Bulan Pertama)</option>
+                        <option value="SEMESTER_2">Semester 2 (Evaluasi 6 Bulan Kedua)</option>
+                        <option value="MID_YEAR">Tengah Tahun (Mid-Year 6 Bulanan)</option>
                         <option value="ANNUAL">Tahunan (Annual Review)</option>
-                        <option value="MID_YEAR">Tengah Tahun (Mid-Year)</option>
                         <option value="PROBATION">Evaluasi Masa Percobaan (Probation)</option>
                         <option value="PROJECT">Review Khusus Proyek</option>
                     </select>
@@ -59,7 +61,7 @@
                     <label class="form-label font-weight-bold">Komponen Penilai (360)</label>
                     <div class="mt-2">
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" name="enable_self_review" id="enable_self_review" checked>
+                            <input class="form-check-input" type="checkbox" name="enable_self_review" id="enable_self_review">
                             <label class="form-check-label" for="enable_self_review">Self</label>
                         </div>
                         <div class="form-check form-check-inline">
@@ -80,6 +82,12 @@
                 <div class="col-md-6">
                     <label class="form-label font-weight-bold">Batas Akhir Evaluasi (Deadline) <span class="text-danger">*</span></label>
                     <input type="date" name="end_date" class="form-control" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label font-weight-bold">Ambang Batas Minimum PIP (&lt; Skor)</label>
+                    <input type="number" step="0.01" min="0" max="100" name="pip_threshold_score" class="form-control" placeholder="Default: 60 (Grade D)">
+                    <small class="text-muted">Kosongkan untuk menggunakan default kebijakan HCGA.</small>
                 </div>
 
                 <div class="col-md-12">

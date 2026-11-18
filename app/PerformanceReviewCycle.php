@@ -15,6 +15,7 @@ class PerformanceReviewCycle extends Model
         'enable_peer_review'    => 'boolean',
         'weight_kpi'            => 'float',
         'weight_competency'     => 'float',
+        'pip_threshold_score'   => 'float',
         'start_date'            => 'date',
         'end_date'              => 'date',
     ];

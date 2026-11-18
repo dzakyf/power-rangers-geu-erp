@@ -10,6 +10,13 @@
     </ol>
 </div>
 
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">Daftar Sasaran Kerja Pegawai (KPI / OKR)</h5>
@@ -17,9 +24,11 @@
             <a href="{{ url('hrd-performance-period-index') }}" class="btn btn-outline-secondary me-2">
                 <i class="feather-calendar me-1"></i> Master Periode
             </a>
-            <a href="{{ url('hrd-performance-kpi-new') }}" class="btn btn-primary">
-                <i class="feather-plus me-1"></i> Buat Sasaran Baru
-            </a>
+            @if(!isset($canCreateGoal) || $canCreateGoal)
+                <a href="{{ url('hrd-performance-kpi-new') }}" class="btn btn-primary">
+                    <i class="feather-plus me-1"></i> Buat Sasaran Baru
+                </a>
+            @endif
         </div>
     </div>
     <div class="card-body">
@@ -64,7 +73,7 @@
     document.addEventListener("DOMContentLoaded", function () {
         myGrid = new dhtmlXGridObject('gridKpiContainer');
         myGrid.setImagePath("{{ asset('dhtmlx/skins/skyblue/imgs/') }}/");
-        myGrid.setHeader("No Goal,Periode,Karyawan,Departemen,Tipe,Bobot KPI,Progres,Status,Dibuat Pada");
+        myGrid.setHeader("No Goal,Periode,Posisi / Karyawan,Departemen,Tipe,Bobot KPI,Progres,Status,Dibuat Pada");
         myGrid.setInitWidths("150,150,180,140,90,90,90,140,140");
         myGrid.setColAlign("left,left,left,left,center,right,right,center,center");
         myGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");

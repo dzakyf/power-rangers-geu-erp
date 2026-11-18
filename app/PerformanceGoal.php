@@ -29,5 +29,12 @@ class PerformanceGoal extends Model
     {
         return $this->hasMany(PerformanceGoalItem::class, 'goal_id')->orderBy('sort_order', 'asc');
     }
+
+    public function scopeForPosition($query, int $periodId, int $positionId)
+    {
+        return $query->where('period_id', $periodId)
+            ->where('position_id', $positionId)
+            ->where('scope_type', 'POSITION');
+    }
 }
 

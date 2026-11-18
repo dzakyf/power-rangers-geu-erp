@@ -170,14 +170,19 @@ function ApprovalEscalationForceApprove() {
     body.append('Request_ID', reqId);
     body.append('Reason', reason.trim());
 
-    fetch('hrd-approval-force-approve', {
+    fetch("{{ url('hrd-approval-force-approve') }}", {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-CSRF-TOKEN': ApprovalEscalationToken, 'Accept': 'application/json' },
         body: body.toString()
-    }).then(function (r) { return r.json(); }).then(function (res) {
-        alert(res.message || 'Selesai');
-        if (res.status !== 'error') ApprovalEscalationRefresh();
+    }).then(function (r) {
+        return r.text().then(function (txt) {
+            try { return { ok: r.ok, status: r.status, payload: JSON.parse(txt) }; }
+            catch (e) { return { ok: false, status: r.status, payload: { status: 'error', message: 'HTTP ' + r.status + ': Respons server tidak valid.' } }; }
+        });
+    }).then(function (res) {
+        alert(res.payload.message || 'Selesai');
+        if (res.ok && res.payload.status !== 'error') ApprovalEscalationRefresh();
     }).catch(function () { alert('Tidak dapat menghubungi server.'); });
 }
 
@@ -191,14 +196,19 @@ function ApprovalEscalationResync() {
     body.append('_token', ApprovalEscalationToken);
     body.append('Request_ID', reqId);
 
-    fetch('hrd-approval-resync', {
+    fetch("{{ url('hrd-approval-resync') }}", {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-CSRF-TOKEN': ApprovalEscalationToken, 'Accept': 'application/json' },
         body: body.toString()
-    }).then(function (r) { return r.json(); }).then(function (res) {
-        alert(res.message || 'Selesai');
-        if (res.status !== 'error') ApprovalEscalationRefresh();
+    }).then(function (r) {
+        return r.text().then(function (txt) {
+            try { return { ok: r.ok, status: r.status, payload: JSON.parse(txt) }; }
+            catch (e) { return { ok: false, status: r.status, payload: { status: 'error', message: 'HTTP ' + r.status + ': Respons server tidak valid.' } }; }
+        });
+    }).then(function (res) {
+        alert(res.payload.message || 'Selesai');
+        if (res.ok && res.payload.status !== 'error') ApprovalEscalationRefresh();
     }).catch(function () { alert('Tidak dapat menghubungi server.'); });
 }
 

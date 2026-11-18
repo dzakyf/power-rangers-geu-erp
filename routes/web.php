@@ -51,6 +51,11 @@ use App\Http\Controllers\HCGA\MasterApprovalController as HCGAMasterApprovalCont
 use App\Http\Controllers\HCGA\MasterWorkCalendarController as HCGAMasterWorkCalendarController;
 use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormController;
 use App\Http\Controllers\HCGA\TrainingController as HCGATrainingController;
+use App\Http\Controllers\HCGA\TnaController as HCGATnaController;
+use App\Http\Controllers\HCGA\TrainingProgramController as HCGATrainingProgramController;
+use App\Http\Controllers\HCGA\TrainingEvaluationController as HCGATrainingEvaluationController;
+use App\Http\Controllers\HCGA\TrainingSummaryController as HCGATrainingSummaryController;
+use App\Http\Controllers\HCGA\TrainingCoachingController as HCGATrainingCoachingController;
 use App\Http\Controllers\HCGA\RequisitionController as HCGARequisitionController;
 use App\Http\Controllers\HCGA\RecruitmentController as HCGARecruitmentController;
 use App\Http\Controllers\HCGA\RecruitmentStageController as HCGARecruitmentStageController;
@@ -72,6 +77,7 @@ use App\Http\Controllers\HCGA\AssetFixingApprovalController as HCGAAssetFixingAp
 use App\Http\Controllers\HCGA\ApprovalInboxController as HCGAApprovalInboxController;
 use App\Http\Controllers\HCGA\ApprovalPolicyController as HCGAApprovalPolicyController;
 use App\Http\Controllers\HCGA\ApprovalPositionController as HCGAApprovalPositionController;
+use App\Http\Controllers\HCGA\ApprovalDelegationController as HCGAApprovalDelegationController;
 use App\Http\Controllers\HCGA\SppdController as HCGASppdController;
 use App\Http\Controllers\HCGA\SppdApprovalController as HCGASppdApprovalController;
 use App\Http\Controllers\HCGA\MasterSppdRegulationController as HCGAMasterSppdRegulationController;
@@ -117,6 +123,7 @@ use App\Http\Controllers\HCGA\AssetHandoverReturnedApprovalController as HCGAAss
 use App\Http\Controllers\HCGA\AssetDispossalController as HCGAAssetDispossalController;
 use App\Http\Controllers\HCGA\AssetDispossalApprovalController as HCGAAssetDispossalApprovalController;
 use App\Http\Controllers\HCGA\VehicleOperationsController as HCGAVehicleOperationsController;
+use App\Http\Controllers\HCGA\VehicleManagementController as HCGAVehicleManagementController;
 use App\Http\Controllers\HCGA\CarRentController as HCGACarRentController;
 use App\Http\Controllers\HCGA\OrganizationChartController as HCGAOrganizationChartController;
 
@@ -248,6 +255,9 @@ Route::prefix('mobile')->middleware(['mobile.security'])->group(function () {
         ->middleware('throttle:5,1,mobile_web_login')
         ->name('mobile.login.submit');
 });
+
+Route::get('hrd-training-certificate-verify/{token}', [HCGATrainingSummaryController::class, 'verifyCertificate'])
+    ->name('hrd.training.certificate.verify');
 
 Route::group(['middleware' => 'log.access'], function () {
     Route::get('/dashboard-history-proforma', function () {
@@ -3248,6 +3258,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/employee-lists', function () {
         return view('humanresources.employment.employee-lists');
     });
+    Route::get('/hrd-employee-thr-scheme-modal', [\App\Http\Controllers\HCGA\EmployeeThrSchemeController::class, 'modal']);
+    Route::post('/hrd-employee-thr-scheme-save', [\App\Http\Controllers\HCGA\EmployeeThrSchemeController::class, 'save']);
     Route::get('/xml-employee-lists', function () {
         return view('humanresources.employment.xml.employee-lists');
     });
@@ -5825,14 +5837,51 @@ Route::group(['middleware' => 'log.access'], function () {
     });
     Route::get("$hcPref-employee-form-print", [HCGAEmploymentFormController::class, 'printPerubahanStatus']);
 
+    // === TNA (Training Need Analysis) ===
+    Route::get("$hcPref-tna-index", [HCGATnaController::class, 'index']);
+    Route::get("xml-$hcPref-tna-index", [HCGATnaController::class, 'indexXml']);
+    Route::get("$hcPref-tna-create", [HCGATnaController::class, 'create']);
+    Route::post("$hcPref-tna-store", [HCGATnaController::class, 'store']);
+    Route::get("$hcPref-tna-detail", [HCGATnaController::class, 'detail']);
+    Route::post("$hcPref-tna-submit-approval", [HCGATnaController::class, 'submitApproval']);
+
+    // === Module & Program Training ===
+    Route::get("$hcPref-training-program-index", [HCGATrainingProgramController::class, 'index']);
+    Route::get("xml-$hcPref-training-program-index", [HCGATrainingProgramController::class, 'indexXml']);
+    Route::get("$hcPref-training-program-form", [HCGATrainingProgramController::class, 'form']);
+    Route::post("$hcPref-training-program-store", [HCGATrainingProgramController::class, 'store']);
+
+    // === Jadwal & Request Training ===
     $hcTrainingPref = "$hcPref-training";
     Route::get("$hcTrainingPref-index", [HCGATrainingController::class, 'index']);
     Route::get("xml-$hcTrainingPref-index", [HCGATrainingController::class, 'indexXml']);
+    Route::get("xml-$hcTrainingPref-lists", [HCGATrainingController::class, 'indexXml']);
     Route::get("$hcTrainingPref-new", [HCGATrainingController::class, 'new']);
     Route::post("$hcTrainingPref-new-submit", [HCGATrainingController::class, 'newSubmit']);
-    Route::post("$hcTrainingPref-new-update", [HCGATrainingController::class, 'newUpdate']);
+    Route::get("$hcTrainingPref-detail", [HCGATrainingController::class, 'detail']);
+    Route::post("$hcTrainingPref-detail-submit", [HCGATrainingController::class, 'detailSubmit']);
+    Route::post("$hcTrainingPref-submit-approval", [HCGATrainingController::class, 'submitApproval']);
+    Route::post("$hcTrainingPref-approve", [HCGATrainingController::class, 'approve']);
+    Route::post("$hcTrainingPref-close", [HCGATrainingController::class, 'close']);
     Route::get("$hcTrainingPref-approval", [HCGATrainingController::class, 'approval']);
-    Route::get("xml-$hcTrainingPref-approval", [HCGATrainingController::class, 'approvalXml']);
+
+    // === Evaluasi Training (Hasil Karyawan, Pemateri, Materi) ===
+    Route::get("$hcTrainingPref-evaluation-index", [HCGATrainingEvaluationController::class, 'index']);
+    Route::get("$hcTrainingPref-evaluation-score", [HCGATrainingEvaluationController::class, 'scoreForm']);
+    Route::post("$hcTrainingPref-evaluation-score-save", [HCGATrainingEvaluationController::class, 'saveScores']);
+    Route::get("$hcTrainingPref-evaluation-feedback", [HCGATrainingEvaluationController::class, 'feedbackForm']);
+    Route::post("$hcTrainingPref-evaluation-feedback-save", [HCGATrainingEvaluationController::class, 'saveFeedback']);
+
+    // === Summary Training & Sertifikat Digital ===
+    Route::get("$hcTrainingPref-summary-index", [HCGATrainingSummaryController::class, 'index']);
+    Route::get("$hcTrainingPref-summary-detail", [HCGATrainingSummaryController::class, 'detail']);
+    Route::post("$hcTrainingPref-summary-issue-certificates", [HCGATrainingSummaryController::class, 'issueCertificates']);
+    Route::get("$hcTrainingPref-certificate-download/{certificateId}", [HCGATrainingSummaryController::class, 'downloadCertificate']);
+
+    // === Coaching & Training Refreshment ===
+    Route::get("$hcTrainingPref-coaching-index", [HCGATrainingCoachingController::class, 'index']);
+    Route::get("$hcTrainingPref-coaching-form", [HCGATrainingCoachingController::class, 'form']);
+    Route::post("$hcTrainingPref-coaching-store", [HCGATrainingCoachingController::class, 'store']);
     Route::get("$hcPref-onboarding-materials", [HrgaOnboardingController::class, 'index']);
     Route::get("xml-$hcPref-onboarding-materials", [HrgaOnboardingController::class, 'onboardingData']);
     Route::get("$hcPref-onboarding-materials-create", [HrgaOnboardingController::class, 'create']);
@@ -6065,6 +6114,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcApprovalPref-candidate-options", [HCGAApprovalInboxController::class, 'candidateOptions']);
     Route::get("$hcApprovalPref-escalation", [HCGAApprovalInboxController::class, 'escalation']);
     Route::get("$hcApprovalPref-escalation-data", [HCGAApprovalInboxController::class, 'escalationData']);
+    Route::post("$hcApprovalPref-force-approve", [HCGAApprovalInboxController::class, 'forceApprove']);
+    Route::post("$hcApprovalPref-resync", [HCGAApprovalInboxController::class, 'resync']);
     Route::get("$hcApprovalPref-policy", [HCGAApprovalPolicyController::class, 'index']);
     Route::get("$hcApprovalPref-policy-data", [HCGAApprovalPolicyController::class, 'data']);
     Route::get("$hcApprovalPref-policy-detail", [HCGAApprovalPolicyController::class, 'detail']);
@@ -6078,6 +6129,10 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcApprovalPref-position-save", [HCGAApprovalPositionController::class, 'save']);
     Route::post("$hcApprovalPref-position-toggle", [HCGAApprovalPositionController::class, 'toggle']);
     Route::post("$hcApprovalPref-position-sync", [HCGAApprovalPositionController::class, 'sync']);
+    Route::get("$hcApprovalPref-delegation", [HCGAApprovalDelegationController::class, 'index']);
+    Route::get("$hcApprovalPref-delegation-data", [HCGAApprovalDelegationController::class, 'data']);
+    Route::post("$hcApprovalPref-delegation-save", [HCGAApprovalDelegationController::class, 'save']);
+    Route::post("$hcApprovalPref-delegation-revoke", [HCGAApprovalDelegationController::class, 'revoke']);
 
     // -- Bagan struktur organisasi --
     Route::get("$hcPref-organization-chart", [HCGAOrganizationChartController::class, 'index']);
@@ -6235,16 +6290,21 @@ Route::group(['middleware' => 'log.access'], function () {
     // Performance Management (KPI, OKR, Period, Review, Competency, PIP)
     $hcPerfPref = "$hcPref-performance";
 
-    // 1. Master Periode
+    // 1. Master Periode & Pengaturan Kebijakan
     Route::get("$hcPerfPref-period-index", [HCGAPerformancePeriodController::class, 'index'])->name('hrd.performance.period.index');
     Route::post("$hcPerfPref-period-store", [HCGAPerformancePeriodController::class, 'store'])->name('hrd.performance.period.store');
     Route::post("$hcPerfPref-period-update-status/{id}", [HCGAPerformancePeriodController::class, 'updateStatus'])->name('hrd.performance.period.update-status');
+    Route::post("$hcPerfPref-settings-update", [HCGAPerformancePeriodController::class, 'updateSettings'])->name('hrd.performance.settings.update');
+    Route::post("$hcPerfPref-dept-pic-store", [HCGAPerformancePeriodController::class, 'storeDeptPic'])->name('hrd.performance.dept-pic.store');
+    Route::delete("$hcPerfPref-dept-pic-delete/{id}", [HCGAPerformancePeriodController::class, 'deleteDeptPic'])->name('hrd.performance.dept-pic.delete');
 
     // 2. Goal Sheet (KPI & OKR)
     Route::get("$hcPerfPref-kpi-index", [HCGAPerformanceKpiController::class, 'index'])->name('hrd.performance.kpi.index');
     Route::get("$hcPerfPref-kpi-data", [HCGAPerformanceKpiController::class, 'data'])->name('hrd.performance.kpi.data');
     Route::get("$hcPerfPref-kpi-new", [HCGAPerformanceKpiController::class, 'create'])->name('hrd.performance.kpi.new');
     Route::post("$hcPerfPref-kpi-new-submit", [HCGAPerformanceKpiController::class, 'store'])->name('hrd.performance.kpi.new-submit');
+    Route::get("$hcPerfPref-kpi-edit/{id}", [HCGAPerformanceKpiController::class, 'edit'])->name('hrd.performance.kpi.edit');
+    Route::post("$hcPerfPref-kpi-update/{id}", [HCGAPerformanceKpiController::class, 'update'])->name('hrd.performance.kpi.update');
     Route::get("$hcPerfPref-kpi-detail/{id?}", [HCGAPerformanceKpiController::class, 'detail'])->name('hrd.performance.kpi.detail');
     Route::post("$hcPerfPref-kpi-submit-approval/{id}", [HCGAPerformanceKpiController::class, 'submitApproval'])->name('hrd.performance.kpi.submit-approval');
     Route::post("$hcPerfPref-kpi-record-progress/{id}", [HCGAPerformanceKpiController::class, 'recordProgress'])->name('hrd.performance.kpi.record-progress');
@@ -6256,6 +6316,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcPerfPref-review-cycle-store", [HCGAPerformanceReviewController::class, 'storeCycle'])->name('hrd.performance.review.cycle-store');
     Route::post("$hcPerfPref-review-generate/{id}", [HCGAPerformanceReviewController::class, 'generateReviews'])->name('hrd.performance.review.generate');
     Route::get("$hcPerfPref-review-detail/{id?}", [HCGAPerformanceReviewController::class, 'detail'])->name('hrd.performance.review.detail');
+    Route::post("$hcPerfPref-review-update-kpi/{id}", [HCGAPerformanceReviewController::class, 'updateKpiRealization'])->name('hrd.performance.review.update-kpi');
     Route::post("$hcPerfPref-review-feedback/{id}", [HCGAPerformanceReviewController::class, 'submitFeedback'])->name('hrd.performance.review.feedback');
     Route::post("$hcPerfPref-review-finalize/{id}", [HCGAPerformanceReviewController::class, 'finalize'])->name('hrd.performance.review.finalize');
 
@@ -6266,14 +6327,37 @@ Route::group(['middleware' => 'log.access'], function () {
     // 5. Performance Improvement Plan (PIP)
     Route::get("$hcPerfPref-pip-index", [HCGAPerformancePipController::class, 'index'])->name('hrd.performance.pip.index');
     Route::get("$hcPerfPref-pip-data", [HCGAPerformancePipController::class, 'data'])->name('hrd.performance.pip.data');
+    Route::get("$hcPerfPref-pip-new", [HCGAPerformancePipController::class, 'create'])->name('hrd.performance.pip.new');
+    Route::post("$hcPerfPref-pip-store", [HCGAPerformancePipController::class, 'store'])->name('hrd.performance.pip.store');
     Route::get("$hcPerfPref-pip-detail/{id?}", [HCGAPerformancePipController::class, 'detail'])->name('hrd.performance.pip.detail');
+    Route::post("$hcPerfPref-pip-action-store/{id}", [HCGAPerformancePipController::class, 'storeAction'])->name('hrd.performance.pip.action-store');
+    Route::post("$hcPerfPref-pip-action-status/{actionId}", [HCGAPerformancePipController::class, 'updateActionStatus'])->name('hrd.performance.pip.action-status');
     Route::post("$hcPerfPref-pip-checkin/{id}", [HCGAPerformancePipController::class, 'recordCheckin'])->name('hrd.performance.pip.checkin');
     Route::post("$hcPerfPref-pip-training/{id}", [HCGAPerformancePipController::class, 'assignTraining'])->name('hrd.performance.pip.training');
     Route::post("$hcPerfPref-pip-evaluate/{id}", [HCGAPerformancePipController::class, 'evaluate'])->name('hrd.performance.pip.evaluate');
 
     $hcAssetPref = "$hcPref-asset";
+    Route::get("$hcAssetPref-lists", [HCGAAssetListController::class, 'index']);
+    Route::get("$hcAssetPref-lists-data", [HCGAAssetListController::class, 'data']);
+    Route::get("$hcAssetPref-lists-new", [HCGAAssetListController::class, 'create']);
+    Route::post("$hcAssetPref-lists-new-submit", [HCGAAssetListController::class, 'store']);
+    Route::get("$hcAssetPref-lists-detail", [HCGAAssetListController::class, 'detail']);
+    Route::post("$hcAssetPref-lists-detail-submit", [HCGAAssetListController::class, 'update']);
+    Route::post("$hcAssetPref-lists-stnk-update", [HCGAAssetListController::class, 'updateStnk']);
+    Route::post("$hcAssetPref-lists-kir-update", [HCGAAssetListController::class, 'updateKeur']);
+    Route::post("$hcAssetPref-lists-photo-upload", [HCGAAssetListController::class, 'uploadPhoto']);
+    Route::post("$hcAssetPref-lists-photo-delete", [HCGAAssetListController::class, 'deletePhoto']);
+    Route::get("$hcAssetPref-lists-sub-category", [HCGAAssetListController::class, 'subCategory']);
+    Route::get("$hcAssetPref-lists-sub-sub-category", [HCGAAssetListController::class, 'subSubCategory']);
     Route::post("$hcAssetPref-lists-new-from-po", [HCGAAssetListController::class, 'getDataFromPO']);
     Route::post("$hcAssetPref-lists-new-get-wh", [HCGAAssetListController::class, 'getDataFromWH']);
+
+    // Vehicle Management: Master Kendaraan + Reminder STNK & KEUR
+    $hcVehMgmtPref = "$hcPref-vehicle-management";
+    Route::get("$hcVehMgmtPref-index", [HCGAVehicleManagementController::class, 'index']);
+    Route::get("$hcVehMgmtPref-data", [HCGAVehicleManagementController::class, 'data']);
+    Route::get("$hcVehMgmtPref-reminders", [HCGAVehicleManagementController::class, 'reminders']);
+    Route::post("$hcVehMgmtPref-sync-reminders", [HCGAVehicleManagementController::class, 'syncReminders']);
 
     // Vehicle Operations: Logbook & Fuel Tracking (Controller based)
     $vehOpsPref = "$hcPref-vehicle-operations";
@@ -6493,6 +6577,33 @@ Route::get('po-print', [ProcurementController::class, 'printPO']);
     Route::post("$creEmailSettingsPref-recipient-toggle", [HCGAEmailSettingsController::class, 'recipientToggle']);
     Route::post("$creEmailSettingsPref-recipient-delete", [HCGAEmailSettingsController::class, 'recipientDelete']);
     Route::post("$creEmailSettingsPref-test", [HCGAEmailSettingsController::class, 'test']);
+
+    // -- HCGA Exit Clearance & Resignation Workflow --
+    Route::get("$hcPref-exit-clearance-index", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'index'])->name('hrd-exit-clearance-index');
+    Route::get("$hcPref-exit-clearance-resignation-create", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'createResignation'])->name('hrd-exit-clearance-resignation-create');
+    Route::post("$hcPref-exit-clearance-resignation-store", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'storeResignation'])->name('hrd-exit-clearance-resignation-store');
+    Route::post("$hcPref-exit-clearance-resignation/{id}/approve", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'approveResignation'])->name('hrd-exit-clearance-resignation-approve');
+    Route::post("$hcPref-exit-clearance-resignation/{id}/reject", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'rejectResignation'])->name('hrd-exit-clearance-resignation-reject');
+    Route::get("$hcPref-exit-clearance-form/{id}", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'formClearance'])->name('hrd-exit-clearance-form');
+    Route::post("$hcPref-exit-clearance-form/{id}/submit", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'submitClearance'])->name('hrd-exit-clearance-form-submit');
+    Route::get("$hcPref-exit-clearance-view/{id}", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'viewClearance'])->name('hrd-exit-clearance-view');
+    Route::post("$hcPref-exit-clearance-interview/{id}/save", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'recordInterview'])->name('hrd-exit-clearance-interview-save');
+    Route::post("$hcPref-exit-clearance-manager/{id}/approve", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'approveByManager'])->name('hrd-exit-clearance-manager-approve');
+    Route::post("$hcPref-exit-clearance-hcga/{id}/verify", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'verifyHcga'])->name('hrd-exit-clearance-hcga-verify');
+    Route::get("$hcPref-exit-clearance-pdf/{id}", [\App\Http\Controllers\HCGA\ExitClearanceController::class, 'downloadPdf'])->name('hrd-exit-clearance-download-pdf');
+
+    // ==========================================
+    // MODUL SURAT PERINGATAN (DISCIPLINARY SANCTION - FR/HCGA/10-00)
+    // ==========================================
+    Route::get("$hcPref-disciplinary-sanction-index", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'index'])->name('hrd-disciplinary-sanction-index');
+    Route::get("$hcPref-disciplinary-sanction-create", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'create'])->name('hrd-disciplinary-sanction-create');
+    Route::post("$hcPref-disciplinary-sanction-store", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'store'])->name('hrd-disciplinary-sanction-store');
+    Route::get("$hcPref-disciplinary-sanction-detail/{id}", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'detail'])->name('hrd-disciplinary-sanction-detail');
+    Route::get("$hcPref-disciplinary-sanction-review/{id}", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'review'])->name('hrd-disciplinary-sanction-review');
+    Route::post("$hcPref-disciplinary-sanction-review/{id}/process", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'processReview'])->name('hrd-disciplinary-sanction-review-process');
+    Route::post("$hcPref-disciplinary-sanction-commitment/{id}/sign", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'signCommitment'])->name('hrd-disciplinary-sanction-commitment-sign');
+    Route::post("$hcPref-disciplinary-sanction-document/{id}/upload", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'uploadDocument'])->name('hrd-disciplinary-sanction-document-upload');
+    Route::get("$hcPref-disciplinary-sanction-pdf/{id}", [\App\Http\Controllers\HCGA\DisciplinarySanctionController::class, 'downloadPdf'])->name('hrd-disciplinary-sanction-download-pdf');
 
     // ==========================================
     // MOBILE PORTAL LANDING PAGE, DASHBOARD & SANCTUM SESSION MANAGER

@@ -2,6 +2,7 @@
 
 namespace App\Services\HCGA;
 
+use App\PerformanceDeptPic;
 use App\PerformanceGoal;
 use App\PerformanceGoalItem;
 use App\PerformanceGoalProgress;
@@ -52,24 +53,60 @@ class PerformanceKpiService
     public function createGoal(array $headerData, array $items, int $creatorId): PerformanceGoal
     {
         return DB::transaction(function () use ($headerData, $items, $creatorId) {
-            $user = User::findOrFail($headerData['user_id']);
             $period = PerformancePeriod::findOrFail($headerData['period_id']);
 
-            $goal = PerformanceGoal::create([
-                'goal_no'           => $this->generateGoalNo($period->period_code),
-                'period_id'         => $period->id,
-                'user_id'           => $user->id,
-                'emp_id'            => $user->Emp_ID,
-                'department'        => $user->Department,
-                'position'          => $user->Position,
-                'goal_type'         => $headerData['goal_type'] ?? 'HYBRID',
-                'level'             => $headerData['level'] ?? 'INDIVIDUAL',
-                'total_kpi_weight'  => 0,
-                'status'            => 'DRAFT',
-                'notes'             => $headerData['notes'] ?? null,
-                'created_by'        => $creatorId,
-                'updated_by'        => $creatorId,
-            ]);
+            if (!empty($headerData['position_id'])) {
+                $pos = DB::table('master_position')->where('ID', (int) $headerData['position_id'])->first();
+                if (!$pos) {
+                    throw new \InvalidArgumentException('Posisi jabatan tidak ditemukan di master_position.');
+                }
+
+                $exists = PerformanceGoal::where('period_id', $period->id)
+                    ->where('position_id', $pos->ID)
+                    ->where('scope_type', 'POSITION')
+                    ->where('status', '!=', 'CANCELLED')
+                    ->exists();
+
+                if ($exists) {
+                    throw new \InvalidArgumentException("Template KPI untuk posisi {$pos->Position} ({$pos->Department}) pada periode {$period->period_code} sudah ada.");
+                }
+
+                $goal = PerformanceGoal::create([
+                    'goal_no'          => $this->generateGoalNo($period->period_code),
+                    'scope_type'       => 'POSITION',
+                    'period_id'        => $period->id,
+                    'user_id'          => null,
+                    'emp_id'           => null,
+                    'department'       => $pos->Department,
+                    'position_id'      => $pos->ID,
+                    'position'         => $pos->Initial ?: $pos->Position,
+                    'goal_type'        => $headerData['goal_type'] ?? 'HYBRID',
+                    'level'            => $headerData['level'] ?? 'TEAM',
+                    'total_kpi_weight' => 0,
+                    'status'           => 'DRAFT',
+                    'notes'            => $headerData['notes'] ?? null,
+                    'created_by'       => $creatorId,
+                    'updated_by'       => $creatorId,
+                ]);
+            } else {
+                $user = User::findOrFail($headerData['user_id']);
+                $goal = PerformanceGoal::create([
+                    'goal_no'          => $this->generateGoalNo($period->period_code),
+                    'scope_type'       => 'INDIVIDUAL',
+                    'period_id'        => $period->id,
+                    'user_id'          => $user->id,
+                    'emp_id'           => $user->Emp_ID,
+                    'department'       => $user->Department,
+                    'position'         => $user->Position,
+                    'goal_type'        => $headerData['goal_type'] ?? 'HYBRID',
+                    'level'            => $headerData['level'] ?? 'INDIVIDUAL',
+                    'total_kpi_weight' => 0,
+                    'status'           => 'DRAFT',
+                    'notes'            => $headerData['notes'] ?? null,
+                    'created_by'       => $creatorId,
+                    'updated_by'       => $creatorId,
+                ]);
+            }
 
             $this->syncGoalItems($goal, $items);
             return $goal->fresh(['items', 'period', 'user']);
@@ -82,7 +119,7 @@ class PerformanceKpiService
     public function updateGoal(PerformanceGoal $goal, array $headerData, array $items, int $updaterId): PerformanceGoal
     {
         if (!in_array($goal->status, ['DRAFT', 'REJECTED'])) {
-            throw new \InvalidArgumentException("Target dengan status [{$goal->status}] tidak dapat diedit.");
+            throw new \InvalidArgumentException("Target KPI dengan status [{$goal->status}] sudah terkunci untuk tahun berjalan dan tidak dapat diubah.");
         }
 
         return DB::transaction(function () use ($goal, $headerData, $items, $updaterId) {
@@ -165,35 +202,39 @@ class PerformanceKpiService
         }
 
         return DB::transaction(function () use ($goal, $requester) {
+            $owner = $goal->user ?: $requester;
+            $targetDept = $goal->department ?: ($owner->Department ?? 'HCGA');
             $context = [
-                'Request_Type' => self::REQUEST_TYPE,
-                'Location'     => $requester->Location ?? 'GEU-HO',
-                'Company_ID'   => $requester->Company_ID ?? 'GEU',
-                'Department'   => $requester->Department ?? 'HCGA',
-                'Amount'       => 0,
+                'request_type' => self::REQUEST_TYPE,
+                'location'     => $owner->Location ?? 'GEU-HO',
+                'company_id'   => $owner->Company_ID ?? 'GEU',
+                'department'   => $targetDept,
+                'Department'   => $targetDept,
+                'amount'       => 0,
             ];
 
-            $desc = "Persetujuan Target KPI & OKR: {$goal->goal_no} ({$requester->Name})";
-            $approvalReq = null;
+            $targetLabel = $goal->scope_type === 'POSITION'
+                ? "Posisi {$goal->position} ({$targetDept})"
+                : ($owner->Name ?? '-');
+            $desc = "Persetujuan Target KPI: {$goal->goal_no} ({$targetLabel})";
+            $approvalReq = $this->workflowService->submit([
+                'Request_No'  => $goal->goal_no,
+                'Description' => $desc,
+                'Map_To'      => $goal->id,
+            ], $context, (int) $requester->id);
 
-            try {
-                $approvalReq = $this->workflowService->submit([
-                    'Request_No'  => $goal->goal_no,
-                    'Description' => $desc,
-                ], $context, (int) $requester->id);
-            } catch (\Throwable $e) {
-                Log::warning('ApprovalWorkflow engine submit fallback: ' . $e->getMessage());
+            $reqId = $approvalReq ? ($approvalReq->ID ?? $approvalReq->id ?? null) : null;
+            if (!$reqId) {
+                throw new \RuntimeException('Gagal membuat permintaan approval pada Approval Workflow Engine.');
             }
 
-            if ($approvalReq && !empty($approvalReq->ID)) {
-                DB::table('approval_request')->where('ID', (int) $approvalReq->ID)->update([
-                    'Map_To' => (int) $goal->id,
-                ]);
-            }
+            $reqStatus = strtoupper((string) ($approvalReq->Status ?? ''));
+            $goalStatus = ($reqStatus === 'APPROVED') ? 'APPROVED' : 'WAITING_APPROVAL';
 
             $goal->update([
-                'status'              => 'WAITING_APPROVAL',
-                'approval_request_id' => $approvalReq ? (int) $approvalReq->ID : null,
+                'status'              => $goalStatus,
+                'approval_request_id' => $reqId,
+                'rejection_reason'    => null,
                 'updated_by'          => $requester->id,
             ]);
 
@@ -202,10 +243,210 @@ class PerformanceKpiService
     }
 
     /**
+     * Cek apakah user memiliki akses penuh HCGA / Administrator untuk modul Performance.
+     */
+    public function isHcgaOrAdmin(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        if (method_exists($user, 'hasRole') && ($user->hasRole('ADM') || $user->hasRole('Super Admin'))) {
+            return true;
+        }
+
+        if (($user->Position ?? '') === 'Administrator') {
+            return true;
+        }
+
+        if (strtoupper((string) ($user->Department ?? '')) === 'HCGA') {
+            return true;
+        }
+
+        if (function_exists('can_menu') && can_menu('SI01039', 'approve')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Ambil daftar user_id bawahan langsung & tidak langsung berdasarkan organization_structure.
+     */
+    public function getSubordinateUserIds(User $manager): array
+    {
+        if (empty($manager->Emp_ID)) {
+            return [];
+        }
+
+        $managerNodeIds = DB::table('organization_structure')
+            ->where('NIK', $manager->Emp_ID)
+            ->pluck('ID')
+            ->all();
+
+        if (empty($managerNodeIds)) {
+            return [];
+        }
+
+        // Traverse hierarki ke bawah (maksimal 6 level untuk menghindari cycle)
+        $allSubNiks = [];
+        $frontier = $managerNodeIds;
+        $visited = $managerNodeIds;
+
+        for ($depth = 0; $depth < 6 && !empty($frontier); $depth++) {
+            $children = DB::table('organization_structure')
+                ->whereIn('Reports_To_Position_ID', $frontier)
+                ->select('ID', 'NIK')
+                ->get();
+
+            $nextFrontier = [];
+            foreach ($children as $child) {
+                if (!empty($child->NIK)) {
+                    $allSubNiks[] = $child->NIK;
+                }
+                if (!in_array($child->ID, $visited, true)) {
+                    $visited[] = $child->ID;
+                    $nextFrontier[] = $child->ID;
+                }
+            }
+            $frontier = $nextFrontier;
+        }
+
+        $allSubNiks = array_values(array_unique(array_filter($allSubNiks)));
+        if (empty($allSubNiks)) {
+            return [];
+        }
+
+        return User::whereIn('Emp_ID', $allSubNiks)
+            ->where('Status', 'ACTIVE')
+            ->pluck('id')
+            ->map(function ($id) {
+                return (int) $id;
+            })
+            ->all();
+    }
+
+    /**
+     * Daftar user_id yang boleh dilihat/dikelola oleh user saat ini.
+     * Return null berarti akses penuh (HCGA/Admin).
+     */
+    public function getAccessibleEmployeeIds(?User $user): ?array
+    {
+        if (!$user) {
+            return [];
+        }
+
+        if ($this->isHcgaOrAdmin($user)) {
+            return null;
+        }
+
+        $subIds = $this->getSubordinateUserIds($user);
+        $ids = array_values(array_unique(array_merge([(int) $user->id], $subIds)));
+
+        return $ids;
+    }
+
+    /**
+     * Daftar departemen di mana user ditunjuk sebagai PIC Departemen.
+     */
+    public function getPicDepartments(?User $user): array
+    {
+        if (!$user) {
+            return [];
+        }
+
+        return PerformanceDeptPic::where('user_id', $user->id)
+            ->pluck('department')
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Cek apakah user adalah PIC Departemen (opsional: untuk departemen tertentu).
+     */
+    public function isDeptPic(?User $user, ?string $department = null): bool
+    {
+        $depts = $this->getPicDepartments($user);
+        if (empty($depts)) {
+            return false;
+        }
+        if ($department === null) {
+            return true;
+        }
+        foreach ($depts as $d) {
+            if (strcasecmp(trim($d), trim($department)) === 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Cek apakah user boleh membuat / mengelola KPI Planning (hanya HCGA/Admin atau PIC Departemen).
+     * Karyawan biasa non-PIC bersifat strictly read-only.
+     */
+    public function canUserCreateGoal(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        return $this->isHcgaOrAdmin($user) || $this->isDeptPic($user);
+    }
+
+    /**
+     * Cek apakah user boleh mengedit / mengajukan KPI tertentu.
+     */
+    public function canUserManageGoal(?User $user, PerformanceGoal $goal): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        if ($this->isHcgaOrAdmin($user)) {
+            return true;
+        }
+        return $this->isDeptPic($user, $goal->department);
+    }
+
+    /**
+     * Cek apakah user boleh melihat KPI tertentu (HCGA, PIC Dept, pemegang posisi saat ini, atau punya histori review).
+     */
+    public function canUserViewGoal(?User $user, PerformanceGoal $goal): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        if ($this->canUserManageGoal($user, $goal)) {
+            return true;
+        }
+        if ($goal->user_id && (int) $goal->user_id === (int) $user->id) {
+            return true;
+        }
+        if ($goal->scope_type === 'POSITION' && $goal->status === 'APPROVED') {
+            $matchesPosition = strcasecmp((string) $user->Department, (string) $goal->department) === 0
+                && strcasecmp((string) $user->Position, (string) $goal->position) === 0;
+            if ($matchesPosition) {
+                return true;
+            }
+        }
+
+        return DB::table('performance_reviews')
+            ->where('user_id', $user->id)
+            ->where('goal_id', $goal->id)
+            ->exists();
+    }
+
+    /**
      * Catat Check-in / Pembaruan Progres Target
      */
     public function recordProgress(PerformanceGoalItem $item, array $data, int $userId): PerformanceGoalProgress
     {
+        $goal = $item->goal;
+        if ($goal && !in_array($goal->status, ['APPROVED', 'EVALUATION'])) {
+            throw new \InvalidArgumentException("Realisasi hanya dapat dicatat untuk KPI yang sudah berstatus APPROVED (status saat ini: {$goal->status}).");
+        }
+
         return DB::transaction(function () use ($item, $data, $userId) {
             $newValue = (float) $data['new_value'];
             $previousValue = (float) $item->actual_value;
@@ -280,34 +521,6 @@ class PerformanceKpiService
             'overall_progress_percent' => $overallProgress,
             'final_score'              => $overallProgress,
         ]);
-    }
-
-    /**
-     * Sinkronkan status approval_request ke performance_goals.
-     */
-    public function syncApprovalStatus(int $goalId): void
-    {
-        $goal = PerformanceGoal::find($goalId);
-        if (!$goal || empty($goal->approval_request_id)) {
-            return;
-        }
-
-        $approvalReq = $this->workflowService->getRequest((int) $goal->approval_request_id);
-        if (!$approvalReq) {
-            return;
-        }
-
-        $statusUpper = strtoupper((string) $approvalReq->Status);
-        if (in_array($statusUpper, ['APPROVED', 'COMPLETED'], true)) {
-            $goal->update([
-                'status'      => 'APPROVED',
-                'approved_at' => Carbon::now(),
-            ]);
-        } elseif (in_array($statusUpper, ['REJECTED', 'RETURNED', 'CANCELLED'], true)) {
-            $goal->update([
-                'status' => $statusUpper === 'CANCELLED' ? 'DRAFT' : 'REJECTED',
-            ]);
-        }
     }
 }
 
