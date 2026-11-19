@@ -28,6 +28,9 @@
                 <a href="hrd-vehicle-operations" class="btn btn-outline-success btn-sm fw-bold">
                     <i class="fa fa-truck me-1"></i> Logbook & Fuel Tracking
                 </a>
+                <a href="hrd-asset-ticketing-index" class="btn btn-primary btn-sm fw-bold">
+                    <i class="fa fa-ticket-alt me-1"></i> Asset Ticketing &amp; Lifecycle Hub
+                </a>
             </div>
         </div>
         <div class="card-body">
@@ -69,14 +72,14 @@ function DATAASSETSDBL() {
 DATAASSETS = new dhtmlXGridObject('DATAASSETS');
 DATAASSETS.setImagePath("./dhtmlx/imgs/");
 
-DATAASSETS.setHeader("No,Asset No,Asset Category,Asset Sub Category,Asset Type,Asset Code,Asset Description,Brand,Sub Product Type,Manufacture Date,Registration No,Buy Date,Buy Value,Asset Location,Address,City,Departement,Vendor,Contract No,Acc No,Unit Name,Model,Bahan Bakar,CC,No Rangka,No Mesin,Jenis Kendaraan,No BPKB,No Surat Jalan,Asuransi,STNK Tahunan,STNK 5 Tahun,Jadwal KIR,Berkas KIR,Mypertamina,Barcode,Barcode PSAK,Service Terakhir,Service Berikutnya,KM Saat Ini,KM Jadwal PM,Interval PM,Tgl Penghapusan,User Responsible,User Sebelumnya,Link QR,QR Aset,Status,Note");
-DATAASSETS.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-DATAASSETS.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan");
-DATAASSETS.setInitWidths("60,120,120,120,100,100,200,100,100,100,100,100,110,110,150,100,110,120,100,90,100,100,90,80,130,120,130,100,110,180,100,100,150,120,90,120,130,110,110,100,100,90,100,120,120,150,110,90,200");
-DATAASSETS.setColAlign("center,center,center,center,center,center,left,center,center,center,center,center,right,center,left,center,center,left,center,center,center,center,center,center,center,center,center,center,center,left,center,center,left,center,center,center,center,center,center,center,center,center,center,center,center,center,left,center,left");
+DATAASSETS.setHeader("No,Asset No,Asset Category,Asset Sub Category,Asset Type,Asset Code,Asset Description,Brand,Sub Product Type,Manufacture Date,Registration No,Buy Date,Buy Value,Asset Location,Address,City,Departement,Vendor,Contract No,Acc No,Unit Name,Model,Bahan Bakar,CC,No Rangka,No Mesin,Jenis Kendaraan,No BPKB,No Surat Jalan,Asuransi,STNK Tahunan,STNK 5 Tahun,Jadwal KIR,Berkas KIR,Mypertamina,Barcode,Barcode PSAK,Service Terakhir,Service Berikutnya,KM Saat Ini,KM Jadwal PM,Interval PM,Tgl Penghapusan,User Responsible,User Sebelumnya,Link QR,QR Aset,Status,Kondisi,Note");
+DATAASSETS.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+DATAASSETS.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan");
+DATAASSETS.setInitWidths("60,120,120,120,100,100,200,100,100,100,100,100,110,110,150,100,110,120,100,90,100,100,90,80,130,120,130,100,110,180,100,100,150,120,90,120,130,110,110,100,100,90,100,120,120,150,110,90,90,200");
+DATAASSETS.setColAlign("center,center,center,center,center,center,left,center,center,center,center,center,right,center,left,center,center,left,center,center,center,center,center,center,center,center,center,center,center,left,center,center,left,center,center,center,center,center,center,center,center,center,center,center,center,center,left,center,center,left");
 DATAASSETS.setDateFormat("%Y-%m-%d");
-DATAASSETS.setColSorting("int,str,str,str,str,str,str,str,str,date,str,date,int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,date,date,str,str,str,str,str,date,date,int,int,int,date,str,str,str,str,str,str");
-DATAASSETS.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ron,ron,ron,ro,ro,ro,ro,ro,ro,ro");
+DATAASSETS.setColSorting("int,str,str,str,str,str,str,str,str,date,str,date,int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,date,date,str,str,str,str,str,date,date,int,int,int,date,str,str,str,str,str,str,str");
+DATAASSETS.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ron,ron,ron,ro,ro,ro,ro,ro,ro,ro,ro");
 DATAASSETS.setNumberFormat("0,000", 12, ".", ",");
 DATAASSETS.attachEvent("onRowDblClicked", DATAASSETSDBL);
 DATAASSETS.enableSmartRendering(true, 150);

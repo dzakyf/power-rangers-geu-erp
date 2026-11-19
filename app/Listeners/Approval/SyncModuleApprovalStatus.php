@@ -48,6 +48,10 @@ class SyncModuleApprovalStatus
             'TNA_REQUEST'             => 'handleTnaRequest',
             'TRAINING_REQUEST'        => 'handleTrainingRequest',
             'DISCIPLINARY_SANCTION'   => 'handleDisciplinarySanction',
+            'ASSET_MAINTENANCE_SCHEDULE' => 'handleAssetMaintenanceSchedule',
+            'VEHICLE_TAX_REQUEST'        => 'handleVehicleTaxRequest',
+            'VEHICLE_FLEET'              => 'handleVehicleFleet',
+            'VEHICLE_LOGBOOK'            => 'handleVehicleLogbook',
         ];
 
         $method = $handlers[$type] ?? null;
@@ -576,6 +580,30 @@ class SyncModuleApprovalStatus
         if ($pr) {
             app(\App\Services\Approval\ProcurementApprovalService::class)->syncApprovalStatus((int) $pr->ID);
         }
+    }
+
+    protected function handleAssetMaintenanceSchedule(int $requestId): void
+    {
+        app(\App\Services\Approval\AssetFleetApprovalService::class)
+            ->syncStatus(\App\Services\Approval\AssetFleetApprovalService::TYPE_MAINTENANCE_SCHEDULE, $requestId);
+    }
+
+    protected function handleVehicleTaxRequest(int $requestId): void
+    {
+        app(\App\Services\Approval\AssetFleetApprovalService::class)
+            ->syncStatus(\App\Services\Approval\AssetFleetApprovalService::TYPE_VEHICLE_TAX, $requestId);
+    }
+
+    protected function handleVehicleFleet(int $requestId): void
+    {
+        app(\App\Services\Approval\AssetFleetApprovalService::class)
+            ->syncStatus(\App\Services\Approval\AssetFleetApprovalService::TYPE_VEHICLE_FLEET, $requestId);
+    }
+
+    protected function handleVehicleLogbook(int $requestId): void
+    {
+        app(\App\Services\Approval\AssetFleetApprovalService::class)
+            ->syncStatus(\App\Services\Approval\AssetFleetApprovalService::TYPE_VEHICLE_LOGBOOK, $requestId);
     }
 
     protected function handlePerformanceKpi(int $requestId, ?string $approvalStatus): void

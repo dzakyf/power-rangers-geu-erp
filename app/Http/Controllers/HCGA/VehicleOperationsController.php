@@ -112,7 +112,7 @@ class VehicleOperationsController extends Controller
             ->orderBy('Registration_No', 'ASC')
             ->get();
 
-        return view('assets.vehicle-operations', compact('vehicles'));
+        return view('humanresources.vehicle-management.vehicle-operations', compact('vehicles'));
     }
 
     /**
@@ -162,19 +162,19 @@ class VehicleOperationsController extends Controller
 
             // Status Badge
             if ($r->Status === 'ON_GOING') {
-                $statusBadge = "<![CDATA[<span class='badge badge-warning text-dark font-weight-bold px-2 py-1'><i class='fa fa-clock mr-1'></i>Berjalan</span>]]>";
+                $statusBadge = "<![CDATA[<span class='badge bg-warning text-dark font-weight-bold px-2 py-1'><i class='fa fa-clock mr-1'></i>Berjalan</span>]]>";
             } elseif ($r->Status === 'COMPLETED') {
-                $statusBadge = "<![CDATA[<span class='badge badge-success font-weight-bold px-2 py-1'><i class='fa fa-check mr-1'></i>Selesai</span>]]>";
+                $statusBadge = "<![CDATA[<span class='badge bg-success font-weight-bold px-2 py-1'><i class='fa fa-check mr-1'></i>Selesai</span>]]>";
             } else {
-                $statusBadge = "<![CDATA[<span class='badge badge-secondary font-weight-bold px-2 py-1'>Batal</span>]]>";
+                $statusBadge = "<![CDATA[<span class='badge bg-secondary font-weight-bold px-2 py-1'>Batal</span>]]>";
             }
 
             // Action button
             $aksi = "<![CDATA[<div class='btn-group btn-group-sm'>";
             if ($r->Status === 'ON_GOING') {
-                $aksi .= "<button type='button' class='btn btn-success btn-sm py-0 px-2' title='Check-In / Selesaikan' onclick='finishLogbook(" . $r->id . ", \"" . htmlspecialchars($r->Log_No, ENT_QUOTES) . "\", \"" . htmlspecialchars($r->Registration_No, ENT_QUOTES) . "\", " . (float)$r->Start_KM . ")'><i class='fa fa-check-circle mr-1'></i>Check-In</button>";
+                $aksi .= "<button type='button' class='btn btn-success btn-sm py-0 px-2' title='Check-In / Selesaikan' onclick='finishLogbook(" . $r->id . ", \"" . htmlspecialchars($r->Log_No, ENT_QUOTES) . "\", \"" . htmlspecialchars($r->Registration_No, ENT_QUOTES) . "\", " . (float)$r->Start_KM . ")'><i class='fa fa-check-circle mr-1 text-white'></i>Check-In</button>";
             }
-            $aksi .= "<button type='button' class='btn btn-outline-danger btn-sm py-0 px-2' title='Hapus' onclick='deleteLogbook(" . $r->id . ", \"" . htmlspecialchars($r->Log_No, ENT_QUOTES) . "\")'><i class='fa fa-trash'></i></button>";
+            $aksi .= "<button type='button' class='btn btn-outline-danger btn-sm py-0 px-2' title='Hapus' onclick='deleteLogbook(" . $r->id . ", \"" . htmlspecialchars($r->Log_No, ENT_QUOTES) . "\")'><i class='fa fa-trash text-dark'></i></button>";
             $aksi .= "</div>]]>";
 
             // Foto link
@@ -635,6 +635,28 @@ class VehicleOperationsController extends Controller
             'status' => 'success',
             'message' => 'Perjalanan selesai. Total jarak tempuh: ' . number_format($totalKM, 1) . ' KM.'
         ]);
+    }
+
+    /**
+     * Approval Logbook oleh HCGA Manager melalui ApprovalWorkflowService (-> Data Valid).
+     */
+    public function approveLogbook(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            app(\App\Services\HCGA\VehicleFleetService::class)->approveLogbook(
+                (int) $request->input('id'),
+                (string) $request->input('action', 'APPROVE'),
+                $user->username ?? 'system',
+                $request->input('note'),
+                (int) ($user->id ?? 0)
+            );
+            return response()->json(['status' => 'success', 'message' => 'Approval logbook diproses.']);
+        } catch (\App\Exceptions\ApprovalWorkflowException $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], $e->getStatusCode() ?: 422);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
+use App\Services\HCGA\AssetLifecycleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -127,11 +128,20 @@ class AssetHandoverApprovalController extends Controller
 
                     if ($assetExists) {
                         $getPICWH = DB::table('users')->select("WH_ID")->where("Emp_ID", $dataHandover->PIC_NIK)->first();
-                        DB::table('asset_list')->where("ID", $assetExists->ID)->update([
-                            'WH_ID' => $getPICWH->WH_ID,
-                            'User_Responsible' => $dataHandover->PIC_Name,
-                            'User_Responsible_NIK' => $dataHandover->PIC_NIK,
-                        ]);
+                        app(AssetLifecycleService::class)->recordUserTransfer(
+                            $assetExists->Asset_No,
+                            $assetExists->User_Responsible ?? null,
+                            $dataHandover->PIC_Name,
+                            'HANDOVER',
+                            $handoverNo,
+                            $username,
+                            $approvalNote,
+                            null,
+                            [
+                                'WH_ID'                => $getPICWH ? $getPICWH->WH_ID : ($assetExists->WH_ID ?? null),
+                                'User_Responsible_NIK' => $dataHandover->PIC_NIK,
+                            ]
+                        );
                     }
                 }
             } else if ($status === 'REJECTED') {

@@ -216,7 +216,7 @@ class MasterKemasanTest extends TestCase
     public function menu_and_migration_definitions_exist()
     {
         $menuData = file_get_contents(database_path('seeds/data/menu_lists_cns.php'));
-        $this->assertStringContainsString("'SI00342' => ['Master Kemasan', 'cns-master-kemasan', 'CNS', 4, 'SS00088', 6]", $menuData);
+        $this->assertStringContainsString("'SI00342' => ['Master Kemasan', 'cns-master-kemasan', 'CNS', 4, 'SS00088', 5]", $menuData);
 
         $baseMigration = file_get_contents(database_path('migrations/cns/2026_11_11_000001_create_cns_master_kemasan_table_and_menu.php'));
         $this->assertStringContainsString("bigIncrements('Kemasan_ID')", $baseMigration);

@@ -90,9 +90,14 @@ class TicketService
                 'Department' => mb_substr((string) ($reporter->Department ?? $data['Department'] ?? ''), 0, 100),
             ]);
 
+            $assetNo = trim((string) ($data['Asset_No'] ?? ''));
+            $damageSeverity = strtoupper(trim((string) ($data['Damage_Severity'] ?? '')));
+
             DB::table('ga_ticket')->insert([
                 'Ticket_ID' => $ticketId,
                 'Location' => $location,
+                'Asset_No' => $assetNo !== '' ? mb_substr($assetNo, 0, 50) : null,
+                'Damage_Severity' => $damageSeverity !== '' ? mb_substr($damageSeverity, 0, 30) : null,
                 'Company_ID' => $company,
                 'Reporter_User_Id' => (int) $reporter->id,
                 'Reporter_Name' => mb_substr((string) ($reporter->Name ?? $reporter->username), 0, 150),
@@ -116,6 +121,14 @@ class TicketService
             ]);
 
             $this->insertHistory($ticketId, null, self::STATUS_OPEN, 'Tiket dibuat.', (string) $user->username, $now);
+
+            if ($assetNo !== '') {
+                app(\App\Services\HCGA\AssetLifecycleService::class)->markDamaged(
+                    $assetNo,
+                    $damageSeverity !== '' ? $damageSeverity : 'RUSAK RINGAN',
+                    (string) $user->username
+                );
+            }
 
             $assigned = false;
             if ($category && !empty($category->Default_Team_ID)) {
@@ -353,6 +366,13 @@ class TicketService
             DB::table('ga_ticket')->where('Ticket_ID', $ticketId)->update($gaUpdates);
             $this->insertHistory($ticketId, $from, $toStatus, $note !== '' ? $note : null, (string) $user->username, $now);
 
+            if ($detail && !empty($detail->Asset_No) && in_array($toStatus, [self::STATUS_RESOLVED, self::STATUS_CLOSED], true)) {
+                app(\App\Services\HCGA\AssetLifecycleService::class)->markRestored(
+                    (string) $detail->Asset_No,
+                    (string) $user->username
+                );
+            }
+
             $fresh = $this->find($ticketId);
             if ($fresh && !empty($fresh->Reporter_User_Id)) {
                 $this->notifications->notifyUser(
@@ -445,6 +465,8 @@ class TicketService
                 't.Ticket_Status',
                 't.Priority',
                 't.Location',
+                'g.Asset_No',
+                'g.Damage_Severity',
                 't.Company_ID',
                 't.Source',
                 't.Reporter',
@@ -726,6 +748,8 @@ class TicketService
                 't.Ticket_Status',
                 't.Priority',
                 't.Location',
+                'g.Asset_No',
+                'g.Damage_Severity',
                 't.Company_ID',
                 't.Created_Date',
                 't.Reporter',

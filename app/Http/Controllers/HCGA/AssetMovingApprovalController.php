@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
+use App\Services\HCGA\AssetLifecycleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -107,6 +108,27 @@ class AssetMovingApprovalController extends Controller
                 'status' => 'error',
                 'message' => 'Data tidak ditemukan',
             ]);
+        }
+
+        if (!empty($asset->Approval_Request_ID)) {
+            try {
+                $action = ((int) $approvalType === 1) ? 'APPROVE' : 'REJECT';
+                app(\App\Services\Approval\AssetLifecycleApprovalService::class)->actOnRequest(
+                    (int) $asset->Approval_Request_ID,
+                    (int) Auth::id(),
+                    $action,
+                    (string) $note
+                );
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => 'Berhasil memproses approval pemindahan via Policy Engine',
+                ]);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
         }
 
         // 2. Ambil konfigurasi approval user dari master_hr_approval
@@ -223,6 +245,16 @@ class AssetMovingApprovalController extends Controller
                 'Approval_Note' => $newNote,
                 'Status' => $newStatus,
             ]);
+
+        if ($newStatus === 'APPROVED' && !empty($asset->Asset_No)) {
+            app(AssetLifecycleService::class)->updateLocation(
+                $asset->Asset_No,
+                $asset->New_Location ?? null,
+                $asset->Receipent_Department ?? null,
+                null,
+                $username
+            );
+        }
 
         return response()->json([
             'status' => 'success',

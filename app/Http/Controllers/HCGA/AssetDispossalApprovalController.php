@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
+use App\Services\HCGA\AssetLifecycleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -77,6 +78,28 @@ class AssetDispossalApprovalController extends Controller
             ]);
         }
 
+        $dataDisposal = DB::table('asset_disposal')->where('Disposal_No', $disposalNo)->first();
+        if ($dataDisposal && !empty($dataDisposal->Approval_Request_ID)) {
+            try {
+                $action = (strtoupper((string) $status) === 'REJECTED') ? 'REJECT' : 'APPROVE';
+                app(\App\Services\Approval\AssetLifecycleApprovalService::class)->actOnRequest(
+                    (int) $dataDisposal->Approval_Request_ID,
+                    (int) Auth::id(),
+                    $action,
+                    (string) $approvalNote
+                );
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => "Berhasil memproses approval disposal $disposalNo",
+                ]);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+        }
+
         $update = [
             'Status' => $status,
             'Approval_Note' => $approvalNote,
@@ -104,13 +127,11 @@ class AssetDispossalApprovalController extends Controller
         $dataDisposal = DB::table('asset_disposal')->where('Disposal_No', $disposalNo)->first();
 
         if ($status === 'APPROVED' && $dataDisposal && !empty($dataDisposal->Asset_Serial_No)) {
-            DB::table('asset_list')
-                ->where('Asset_No', $dataDisposal->Asset_Serial_No)
-                ->update([
-                    'Status' => 'DISPOSED',
-                    'Last_User' => $username,
-                    'Last_Modified_Date' => now(),
-                ]);
+            app(AssetLifecycleService::class)->markDisposed(
+                $dataDisposal->Asset_Serial_No,
+                $dataDisposal->Disposal_Actual_Date ?? null,
+                $username
+            );
         }
 
         return response()->json([

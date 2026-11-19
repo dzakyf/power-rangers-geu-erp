@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
+use App\Services\HCGA\AssetLifecycleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -120,11 +121,32 @@ class AssetHandoverReturnedApprovalController extends Controller
                                 ->count();
 
             if ($unreturnedCount == 0) {
+                $username = Auth::user()->username;
                 DB::table('asset_handover')->where('Handover_No', $handoverNo)->update([
                     'Status' => 'RETURNED',
-                    'Updated_By' => Auth::user()->username,
+                    'Updated_By' => $username,
                     'Updated_Date' => now(),
                 ]);
+
+                $returnedItems = DB::table('asset_handover_dtl')->where('Handover_No', $handoverNo)->get();
+                $lifecycle = app(AssetLifecycleService::class);
+                foreach ($returnedItems as $item) {
+                    $assetExists = DB::table('asset_list')
+                        ->where('GR_No', $item->GR_No ?? '')
+                        ->where('Product_Description', $item->Description ?? '')
+                        ->first();
+                    if ($assetExists) {
+                        $lifecycle->recordUserTransfer(
+                            $assetExists->Asset_No,
+                            $assetExists->User_Responsible ?? null,
+                            'GA / Pool',
+                            'RETURN',
+                            $handoverNo,
+                            $username,
+                            $item->Returned_Remark ?? 'Pengembalian aset'
+                        );
+                    }
+                }
             }
 
             return response()->json([

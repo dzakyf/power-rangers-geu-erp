@@ -28,6 +28,25 @@
     </div>
 
     <div class="card-body">
+        <!-- Quick Action Bar Siklus Hidup Aset -->
+        <div class="bg-light border rounded p-2 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span class="small fw-semibold text-secondary"><i class="fa fa-bolt text-warning me-1"></i> Aksi Cepat Siklus Hidup Aset:</span>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="hrd-asset-ticketing-index?action=DAMAGE&asset_no={{ urlencode($asset->Asset_No) }}" target="_blank" class="btn btn-xs btn-danger">
+                    <i class="fa fa-exclamation-triangle me-1"></i> Lapor Kerusakan
+                </a>
+                <a href="hrd-asset-ticketing-index?action=PROCUREMENT&asset_no={{ urlencode($asset->Asset_No) }}" target="_blank" class="btn btn-xs btn-primary">
+                    <i class="fa fa-cart-plus me-1"></i> Pengadaan Pengganti
+                </a>
+                <a href="hrd-asset-ticketing-index?action=MOVING&asset_no={{ urlencode($asset->Asset_No) }}" target="_blank" class="btn btn-xs btn-info text-white">
+                    <i class="fa fa-exchange-alt me-1"></i> Pemindahan
+                </a>
+                <a href="hrd-asset-ticketing-index?action=DISPOSAL&asset_no={{ urlencode($asset->Asset_No) }}" target="_blank" class="btn btn-xs btn-dark">
+                    <i class="fa fa-trash-alt me-1"></i> Pemusnahan
+                </a>
+            </div>
+        </div>
+
         @if($isVehicle)
         <div class="row g-2 mb-3">
             <div class="col-md-4">
@@ -109,13 +128,24 @@
                             <input type="text" id="Model" class="form-control" />
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label">No Seri (SN)</label>
+                            <input type="text" id="SN" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">Status</label>
                             <select id="Status" class="form-select form-control">
-                                <option value="NEW">NEW</option>
                                 <option value="ACTIVE">ACTIVE</option>
+                                <option value="NEW">NEW</option>
                                 <option value="MAINTENANCE">MAINTENANCE</option>
                                 <option value="DISPOSED">DISPOSED</option>
                                 <option value="INACTIVE">INACTIVE</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Kondisi Aset</label>
+                            <select id="Kondisi_Aset" class="form-select form-control">
+                                <option value="BAIK">BAIK</option>
+                                <option value="RUSAK">RUSAK</option>
                             </select>
                         </div>
                     </div>
@@ -408,26 +438,143 @@
             </div>
         </div>
 
-        <!-- 7. Foto Asset -->
+        <!-- 7. Riwayat Pemegang Aset (Pemindahtanganan > 2x) -->
+        <div class="card border mb-3">
+            <div class="card-header bg-light fw-bold small">Riwayat Pemegang Aset (User History)</div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height:220px;overflow-y:auto;">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Tanggal Efektif</th>
+                                <th>User Sebelumnya</th>
+                                <th>User Sekarang</th>
+                                <th>Sumber</th>
+                                <th>Referensi</th>
+                                <th>Catatan</th>
+                                <th>Oleh</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($userHistories ?? [] as $uh)
+                            <tr>
+                                <td>{{ $tglx($uh->Effective_Date) }}</td>
+                                <td>{{ $uh->From_User ?: '-' }}</td>
+                                <td class="fw-bold">{{ $uh->To_User }}</td>
+                                <td><span class="badge bg-info text-white">{{ $uh->Source_Type }}</span></td>
+                                <td>{{ $uh->Reference_No ?: '-' }}</td>
+                                <td>{{ $uh->Note ?: '-' }}</td>
+                                <td>{{ $uh->Created_By }}</td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="7" class="text-center text-muted py-2">Belum ada riwayat pemindahtanganan aset.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Riwayat Tiket & Siklus Hidup Aset (Kerusakan, Pengadaan, Pemindahan, Pemusnahan) -->
+        <div class="card border mb-3">
+            <div class="card-header bg-light fw-bold small d-flex justify-content-between align-items-center">
+                <span><i class="fa fa-history me-1 text-primary"></i> Riwayat Tiket &amp; Siklus Hidup Aset</span>
+                <a href="hrd-asset-ticketing-index?asset_no={{ urlencode($asset->Asset_No) }}" target="_blank" class="btn btn-xs btn-outline-primary">Buka di Hub</a>
+            </div>
+            <div class="card-body p-2">
+                <ul class="nav nav-pills nav-sm mb-2" role="tablist">
+                    <li class="nav-item"><button class="nav-link active py-1 px-2 small" data-bs-toggle="pill" data-bs-target="#tab-asset-dmg" type="button">Kerusakan ({{ count($damageTickets ?? []) + count($fixingHistory ?? []) }})</button></li>
+                    <li class="nav-item"><button class="nav-link py-1 px-2 small" data-bs-toggle="pill" data-bs-target="#tab-asset-prc" type="button">Pengadaan ({{ count($procurementHistory ?? []) }})</button></li>
+                    <li class="nav-item"><button class="nav-link py-1 px-2 small" data-bs-toggle="pill" data-bs-target="#tab-asset-mov" type="button">Pemindahan ({{ count($movingHistory ?? []) }})</button></li>
+                    <li class="nav-item"><button class="nav-link py-1 px-2 small" data-bs-toggle="pill" data-bs-target="#tab-asset-dsp" type="button">Pemusnahan ({{ count($disposalHistory ?? []) }})</button></li>
+                </ul>
+                <div class="tab-content small">
+                    <div class="tab-pane fade show active" id="tab-asset-dmg">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="table-light"><tr><th>No Dokumen</th><th>Tipe</th><th>Keterangan</th><th>Status</th><th>Tanggal</th></tr></thead>
+                            <tbody>
+                                @foreach(($damageTickets ?? []) as $dt)
+                                    <tr><td class="fw-bold">{{ $dt->Ticket_No }}</td><td>Tiket Kerusakan ({{ $dt->Damage_Severity ?: '-' }})</td><td>{{ $dt->Ticket_Subject }}</td><td><span class="badge bg-info text-white">{{ $dt->Ticket_Status }}</span></td><td>{{ $dt->Proposed_Date ?: '-' }}</td></tr>
+                                @endforeach
+                                @foreach(($fixingHistory ?? []) as $fx)
+                                    <tr><td class="fw-bold">{{ $fx->No_Trx ?? $fx->ID }}</td><td>Perbaikan Aset</td><td>{{ $fx->Jenis_Perbaikan }} - Rp {{ number_format((float)($fx->Estimasi_Biaya ?? 0), 0, ',', '.') }}</td><td><span class="badge bg-warning text-dark">{{ $fx->Status }}</span></td><td>{{ $fx->Tanggal_Pengajuan ?: '-' }}</td></tr>
+                                @endforeach
+                                @if(empty($damageTickets) || (count($damageTickets) === 0 && count($fixingHistory ?? []) === 0))
+                                    <tr><td colspan="5" class="text-center text-muted py-2">Belum ada riwayat kerusakan/perbaikan.</td></tr>
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="tab-pane fade" id="tab-asset-prc">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="table-light"><tr><th>No PR</th><th>Jenis</th><th>Keterangan</th><th>Status</th><th>Tanggal</th></tr></thead>
+                            <tbody>
+                                @forelse(($procurementHistory ?? []) as $pr)
+                                    <tr><td class="fw-bold">{{ $pr->PR_No }}</td><td>{{ $pr->Asset_Request_Type ?: 'NEW' }}</td><td>{{ $pr->Remark ?: '-' }}</td><td><span class="badge bg-primary text-white">{{ $pr->Status }}</span></td><td>{{ $pr->Created_Date ?: '-' }}</td></tr>
+                                @empty
+                                    <tr><td colspan="5" class="text-center text-muted py-2">Belum ada riwayat pengadaan terkait.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="tab-pane fade" id="tab-asset-mov">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="table-light"><tr><th>No Moving</th><th>Tujuan</th><th>Penerima</th><th>Status</th><th>Tanggal</th></tr></thead>
+                            <tbody>
+                                @forelse(($movingHistory ?? []) as $mv)
+                                    <tr><td class="fw-bold">{{ $mv->No_Trx ?? $mv->ID }}</td><td>{{ $mv->New_Location ?? '-' }}</td><td>{{ $mv->Receipent_Name ?: '-' }}</td><td><span class="badge bg-info text-white">{{ $mv->Status }}</span></td><td>{{ $mv->DateTrx ?: '-' }}</td></tr>
+                                @empty
+                                    <tr><td colspan="5" class="text-center text-muted py-2">Belum ada riwayat pemindahan aset.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="tab-pane fade" id="tab-asset-dsp">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="table-light"><tr><th>No Disposal</th><th>Alasan</th><th>Nilai Buku</th><th>Status</th><th>Tanggal</th></tr></thead>
+                            <tbody>
+                                @forelse(($disposalHistory ?? []) as $ds)
+                                    <tr><td class="fw-bold">{{ $ds->Disposal_No }}</td><td>{{ $ds->Disposal_Reason ?: '-' }}</td><td>Rp {{ number_format((float)($ds->Book_Value ?? 0), 0, ',', '.') }}</td><td><span class="badge bg-dark text-white">{{ $ds->Status }}</span></td><td>{{ $ds->Disposal_Date ?: '-' }}</td></tr>
+                                @empty
+                                    <tr><td colspan="5" class="text-center text-muted py-2">Belum ada riwayat pemusnahan aset.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. Dokumentasi Asset (Foto & Dokumen PDF/DOC) -->
         <div class="card border">
             <div class="card-header bg-light fw-bold small d-flex justify-content-between align-items-center">
-                <span>Foto Asset</span>
+                <span>Dokumentasi Asset (Foto &amp; PDF/DOC)</span>
                 <div class="d-flex gap-2 align-items-center">
-                    <input type="file" id="AssetPhotoInput" class="form-control form-control-sm" multiple accept="image/*" style="width:auto;" />
+                    <input type="file" id="AssetPhotoInput" class="form-control form-control-sm" multiple accept="image/*,.pdf,.doc,.docx" style="width:auto;" />
                     <button type="button" class="btn btn-sm btn-primary" onclick="uploadAssetPhotos();">Upload</button>
                 </div>
             </div>
             <div class="card-body">
                 <div class="row g-2">
                     @forelse($photos as $photo)
+                    @php
+                        $isImg = in_array(strtolower($photo->Extension ?? ''), ['jpg', 'jpeg', 'png', 'gif', 'webp'], true);
+                    @endphp
                     <div class="col-6 col-md-3 col-lg-2 text-center">
-                        <div class="border rounded p-1">
-                            <img src="{{ asset('filevendor/' . $photo->Path) }}" class="img-fluid rounded mb-1" style="height:100px;object-fit:cover;" alt="Asset Photo" />
-                            <button type="button" class="btn btn-xs btn-outline-danger w-100" onclick="deleteAssetPhoto({{ $photo->ID }});">Hapus</button>
+                        <div class="border rounded p-2 h-100 d-flex flex-column justify-content-between">
+                            @if($isImg)
+                                <img src="{{ asset('filevendor/' . $photo->Path) }}" class="img-fluid rounded mb-1" style="height:100px;object-fit:cover;" alt="Asset Photo" />
+                            @else
+                                <a href="{{ asset('filevendor/' . $photo->Path) }}" target="_blank" class="d-block py-3 text-decoration-none">
+                                    <i class="fa fa-file-pdf fa-2x text-danger"></i>
+                                    <div class="small text-truncate mt-1">{{ $photo->Filename }}</div>
+                                </a>
+                            @endif
+                            <button type="button" class="btn btn-xs btn-outline-danger w-100 mt-1" onclick="deleteAssetPhoto({{ $photo->ID }});">Hapus</button>
                         </div>
                     </div>
                     @empty
-                    <div class="col-12 text-muted small">Belum ada foto aset.</div>
+                    <div class="col-12 text-muted small">Belum ada dokumentasi aset.</div>
                     @endforelse
                 </div>
             </div>
