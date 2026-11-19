@@ -39,6 +39,15 @@ use App\Http\Controllers\CNS\BuyerContractController;
 use App\Http\Controllers\CNS\NonUcoSupplierController;
 use App\Http\Controllers\CNS\AnnexVIIController as CNSAnnexVIIController;
 use App\Http\Controllers\CNS\ISCCTraceabilityController;
+use App\Http\Controllers\CNS\ExportVolumeDashboardController;
+use App\Http\Controllers\CNS\DrainAdjustmentController;
+use App\Http\Controllers\CNS\InboundAdjustmentController;
+use App\Http\Controllers\CNS\CustomerKycController;
+use App\Http\Controllers\CNS\OfferingLetterController;
+use App\Http\Controllers\CNS\CnsRoleController;
+use App\Http\Controllers\CNS\CnsUserController;
+use App\Http\Controllers\CNS\FinalShippingInstructionController;
+use App\Http\Controllers\CNS\ShippingInstructionController;
 use App\Http\Controllers\CNS\UpcomingInboundController;
 use App\Http\Controllers\CNS\KemasanInventoryController;
 use App\Http\Controllers\CNS\TankDrainingController;
@@ -5492,13 +5501,21 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$stuffPref-detail-note", [CNSStuffingController::class, "detailNote"]);
 
     $stuffMonitoringPref = "cns-export-stuffing-monitoring";
-    Route::get("$stuffMonitoringPref", [CNSStuffingMonitoringController::class, 'indexStuffingMonitoring']);
-    Route::get("xml-$stuffMonitoringPref", [CNSStuffingMonitoringController::class, 'indexStuffingMonitoringXml']);
-    Route::post("$stuffMonitoringPref-save", [CNSStuffingMonitoringController::class, 'saveStuffingMonitoring']);
-    Route::post("$stuffMonitoringPref-delete", [CNSStuffingMonitoringController::class, 'deleteStuffingMonitoring']);
-    Route::get("$stuffMonitoringPref-detail", [CNSStuffingMonitoringController::class, 'detailStuffingMonitoring']);
-    Route::get("$stuffMonitoringPref-note", [CNSStuffingMonitoringController::class, 'showWeighbridgeNote']);
-    Route::get("$stuffMonitoringPref-note-info", [CNSStuffingMonitoringController::class, 'weighbridgeNoteInfo']);
+    Route::get("$stuffMonitoringPref", function () {
+        return redirect()->to('cns-stuffing?tab=monitoring');
+    })->middleware('can:cns.stuffing.view');
+    Route::group(['middleware' => 'can:cns.stuffing.view'], function () use ($stuffMonitoringPref) {
+        Route::get("xml-$stuffMonitoringPref", [CNSStuffingController::class, 'indexStuffingMonitoringXml']);
+        Route::get("$stuffMonitoringPref-detail", [CNSStuffingMonitoringController::class, 'detailStuffingMonitoring']);
+        Route::get("$stuffMonitoringPref-note", [CNSStuffingMonitoringController::class, 'showWeighbridgeNote']);
+        Route::get("$stuffMonitoringPref-note-info", [CNSStuffingMonitoringController::class, 'weighbridgeNoteInfo']);
+    });
+    Route::group(['middleware' => 'can:cns.stuffing.edit'], function () use ($stuffMonitoringPref) {
+        Route::post("$stuffMonitoringPref-save", [CNSStuffingMonitoringController::class, 'saveStuffingMonitoring']);
+    });
+    Route::group(['middleware' => 'can:cns.stuffing.delete'], function () use ($stuffMonitoringPref) {
+        Route::post("$stuffMonitoringPref-delete", [CNSStuffingMonitoringController::class, 'deleteStuffingMonitoring']);
+    });
 
     $masterCompanyPref = "cns-master-company";
     Route::get("$masterCompanyPref", [MasterCompanyController::class, "indexMasterCompany"]);
@@ -5548,33 +5565,57 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$masterKemasanPref-update/{id}", [MasterKemasanController::class, 'update'])->name($masterKemasanPref . '.update');
     Route::post("$masterKemasanPref-delete/{id}", [MasterKemasanController::class, 'destroy'])->name($masterKemasanPref . '.delete');
 
-    $siPref = "cns-export-shipment-instruction";
-    Route::get("$siPref", [ShipmentInstructionController::class, 'indexShipmentInstruction']);
-    Route::get("xml-$siPref", [ShipmentInstructionController::class, 'indexShipmentInstructionXml']);
-    Route::get("$siPref-print", [ShipmentInstructionController::class, 'printShipmentInstruction']);
-    Route::get("$siPref-new", [ShipmentInstructionController::class, 'newShipmentInstruction']);
-    Route::post("$siPref-new-get-si-no", [ShipmentInstructionController::class, 'getSINo']);
-    Route::post("$siPref-new-get-order", [ShipmentInstructionController::class, 'getOrderDetail']);
-    Route::post("$siPref-new-submit", [ShipmentInstructionController::class, 'newShipmentInstructionSubmit']);
-    Route::get("$siPref-generate-fsi", [ShipmentInstructionController::class, 'generateFinalShipmentInstruction']);
-    Route::get("$siPref-detail", [ShipmentInstructionController::class, 'detailShipmentInstruction']);
-    Route::post("$siPref-detail-get-order", [ShipmentInstructionController::class, 'getOrderDetail']);
-    Route::post("$siPref-detail-submit", [ShipmentInstructionController::class, 'detailShipmentInstructionSubmit']);
-    Route::post("$siPref-delete", [ShipmentInstructionController::class, 'deleteShipmentInstruction']);
-    Route::post("$siPref-approve", [ShipmentInstructionController::class, 'approveShipmentInstruction']);
+    // Shipping Instructions
+    $siPrefs = ["cns-export-shipping-instruction", "cns-export-shipment-instruction"];
+    foreach ($siPrefs as $pref) {
+        Route::group(['middleware' => 'can:cns.shipping_instruction.view'], function () use ($pref) {
+            Route::get("$pref", [ShippingInstructionController::class, 'indexShippingInstruction']);
+            Route::get("xml-$pref", [ShippingInstructionController::class, 'indexShippingInstructionXml']);
+            Route::get("$pref-print", [ShippingInstructionController::class, 'printShippingInstruction']);
+            Route::get("$pref-detail", [ShippingInstructionController::class, 'detailShippingInstruction']);
+            Route::get("$pref-generate-fsi", [ShippingInstructionController::class, 'generateFinalShippingInstruction']);
+            Route::post("$pref-new-get-si-no", [ShippingInstructionController::class, 'getSINo']);
+            Route::post("$pref-new-get-order", [ShippingInstructionController::class, 'getOrderDetail']);
+            Route::post("$pref-detail-get-order", [ShippingInstructionController::class, 'getOrderDetail']);
+        });
+        Route::group(['middleware' => 'can:cns.shipping_instruction.create'], function () use ($pref) {
+            Route::get("$pref-new", [ShippingInstructionController::class, 'newShippingInstruction']);
+            Route::post("$pref-new-submit", [ShippingInstructionController::class, 'newShippingInstructionSubmit']);
+        });
+        Route::group(['middleware' => 'can:cns.shipping_instruction.edit'], function () use ($pref) {
+            Route::post("$pref-detail-submit", [ShippingInstructionController::class, 'detailShippingInstructionSubmit']);
+        });
+        Route::group(['middleware' => 'can:cns.shipping_instruction.delete'], function () use ($pref) {
+            Route::post("$pref-delete", [ShippingInstructionController::class, 'deleteShippingInstruction']);
+        });
+        Route::group(['middleware' => 'can:cns.shipping_instruction.approve'], function () use ($pref) {
+            Route::post("$pref-approve", [ShippingInstructionController::class, 'approveShippingInstruction']);
+        });
+    }
 
-    $fsiPref = "cns-export-final-shipment-instruction";
-    Route::get("$fsiPref", [FinalShipmentInstructionController::class, 'indexFinalShipmentInstruction']);
-    Route::get("$fsiPref-print", [FinalShipmentInstructionController::class, 'printFinalShipmentInstruction']);
-    Route::get("xml-$fsiPref", [FinalShipmentInstructionController::class, 'indexFinalShipmentInstructionXml']);
-    Route::get("$fsiPref-new", [FinalShipmentInstructionController::class, 'newFinalShipmentInstruction']);
-    Route::post("$fsiPref-new-get-si", [FinalShipmentInstructionController::class, 'getSI']);
-    Route::post("$fsiPref-new-submit", [FinalShipmentInstructionController::class, 'newFinalShipmentInstructionSubmit']);
-    Route::get("$fsiPref-detail", [FinalShipmentInstructionController::class, 'detailFinalShipmentInstruction']);
-    Route::post("$fsiPref-detail-submit", [FinalShipmentInstructionController::class, 'detailFinalShipmentInstructionSubmit']);
-    Route::post("$fsiPref-approve", [FinalShipmentInstructionController::class, 'approveFinalShipmentInstruction']);
-    Route::get("$fsiPref-create-pl", [FinalShipmentInstructionController::class, 'generatePackingList']);
-    Route::get("$fsiPref-create-ci", [FinalShipmentInstructionController::class, 'generateCommercialInvoice']);
+    // Final Shipping Instructions
+    $fsiPrefs = ["cns-export-final-shipping-instruction", "cns-export-final-shipment-instruction"];
+    foreach ($fsiPrefs as $pref) {
+        Route::group(['middleware' => 'can:cns.final_shipping_instruction.view'], function () use ($pref) {
+            Route::get("$pref", [FinalShippingInstructionController::class, 'indexFinalShippingInstruction']);
+            Route::get("$pref-print", [FinalShippingInstructionController::class, 'printFinalShippingInstruction']);
+            Route::get("xml-$pref", [FinalShippingInstructionController::class, 'indexFinalShippingInstructionXml']);
+            Route::get("$pref-detail", [FinalShippingInstructionController::class, 'detailFinalShippingInstruction']);
+            Route::post("$pref-new-get-si", [FinalShippingInstructionController::class, 'getSI']);
+            Route::get("$pref-create-pl", [FinalShippingInstructionController::class, 'generatePackingList']);
+            Route::get("$pref-create-ci", [FinalShippingInstructionController::class, 'generateCommercialInvoice']);
+        });
+        Route::group(['middleware' => 'can:cns.final_shipping_instruction.create'], function () use ($pref) {
+            Route::get("$pref-new", [FinalShippingInstructionController::class, 'newFinalShippingInstruction']);
+            Route::post("$pref-new-submit", [FinalShippingInstructionController::class, 'newFinalShippingInstructionSubmit']);
+        });
+        Route::group(['middleware' => 'can:cns.final_shipping_instruction.edit'], function () use ($pref) {
+            Route::post("$pref-detail-submit", [FinalShippingInstructionController::class, 'detailFinalShippingInstructionSubmit']);
+        });
+        Route::group(['middleware' => 'can:cns.final_shipping_instruction.approve'], function () use ($pref) {
+            Route::post("$pref-approve", [FinalShippingInstructionController::class, 'approveFinalShippingInstruction']);
+        });
+    }
 
     $packingListPref = "cns-export-packing-list";
     Route::get("$packingListPref", [CNSPackingListController::class, 'indexPackingList']);
@@ -5681,6 +5722,56 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$tankDrainingPref-delete/{id}", [TankDrainingController::class, 'destroy'])->name($tankDrainingPref . '.delete');
     Route::get("$tankDrainingPref-bast/{id}", [TankDrainingController::class, 'bastDocument'])->name($tankDrainingPref . '.bast');
 
+    $inboundAdjustmentPref = "cns-inbound-adjustment";
+    Route::group(['middleware' => 'can:cns.inbound_adjustment.view'], function () use ($inboundAdjustmentPref) {
+        Route::get("$inboundAdjustmentPref", [InboundAdjustmentController::class, 'index'])->name($inboundAdjustmentPref . '.index');
+        Route::get("xml-$inboundAdjustmentPref", [InboundAdjustmentController::class, 'xmlData'])->name($inboundAdjustmentPref . '.xml');
+        Route::get("$inboundAdjustmentPref-detail", [InboundAdjustmentController::class, 'detailAdjustment'])->name($inboundAdjustmentPref . '.detail');
+        Route::get("$inboundAdjustmentPref-generate-code", [InboundAdjustmentController::class, 'generateCode'])->name($inboundAdjustmentPref . '.generate-code');
+        Route::get("$inboundAdjustmentPref-active/{kode}", [InboundAdjustmentController::class, 'getActiveAdjustmentByMovement'])->name($inboundAdjustmentPref . '.active-by-movement');
+        Route::get("$inboundAdjustmentPref-document/{id}", [InboundAdjustmentController::class, 'document'])->name($inboundAdjustmentPref . '.document');
+    });
+    Route::group(['middleware' => 'can:cns.inbound_adjustment.create'], function () use ($inboundAdjustmentPref) {
+        Route::get("$inboundAdjustmentPref-new", [InboundAdjustmentController::class, 'newAdjustment'])->name($inboundAdjustmentPref . '.new');
+        Route::post("$inboundAdjustmentPref-store", [InboundAdjustmentController::class, 'store'])->name($inboundAdjustmentPref . '.store');
+    });
+    Route::group(['middleware' => 'can:cns.inbound_adjustment.edit'], function () use ($inboundAdjustmentPref) {
+        Route::post("$inboundAdjustmentPref-update/{id}", [InboundAdjustmentController::class, 'update'])->name($inboundAdjustmentPref . '.update');
+    });
+    Route::group(['middleware' => 'can:cns.inbound_adjustment.delete'], function () use ($inboundAdjustmentPref) {
+        Route::post("$inboundAdjustmentPref-delete/{id}", [InboundAdjustmentController::class, 'destroy'])->name($inboundAdjustmentPref . '.delete');
+    });
+    Route::group(['middleware' => 'can:cns.inbound_adjustment.approve'], function () use ($inboundAdjustmentPref) {
+        Route::post("$inboundAdjustmentPref-approve/{id}", [InboundAdjustmentController::class, 'approve'])->name($inboundAdjustmentPref . '.approve');
+        Route::post("$inboundAdjustmentPref-reject/{id}", [InboundAdjustmentController::class, 'reject'])->name($inboundAdjustmentPref . '.reject');
+    });
+
+    // Drain Adjustment
+    $drainAdjustmentPref = "cns-drain-adjustment";
+    Route::group(['middleware' => 'can:cns.drain_adjustment.view'], function () use ($drainAdjustmentPref) {
+        Route::get("$drainAdjustmentPref", [DrainAdjustmentController::class, 'index'])->name($drainAdjustmentPref . '.index');
+        Route::get("xml-$drainAdjustmentPref", [DrainAdjustmentController::class, 'xmlData'])->name($drainAdjustmentPref . '.xml');
+        Route::get("$drainAdjustmentPref-detail", [DrainAdjustmentController::class, 'detailAdjustment'])->name($drainAdjustmentPref . '.detail');
+        Route::get("$drainAdjustmentPref-generate-code", [DrainAdjustmentController::class, 'generateCode'])->name($drainAdjustmentPref . '.generate-code');
+        Route::get("$drainAdjustmentPref-document/{id}", [DrainAdjustmentController::class, 'document'])->name($drainAdjustmentPref . '.document');
+    });
+    Route::group(['middleware' => 'can:cns.drain_adjustment.create'], function () use ($drainAdjustmentPref) {
+        Route::get("$drainAdjustmentPref-new", [DrainAdjustmentController::class, 'newAdjustment'])->name($drainAdjustmentPref . '.new');
+        Route::post("$drainAdjustmentPref-store", [DrainAdjustmentController::class, 'store'])->name($drainAdjustmentPref . '.store');
+    });
+    Route::group(['middleware' => 'can:cns.drain_adjustment.edit'], function () use ($drainAdjustmentPref) {
+        Route::post("$drainAdjustmentPref-update/{id}", [DrainAdjustmentController::class, 'update'])->name($drainAdjustmentPref . '.update');
+    });
+    Route::group(['middleware' => 'can:cns.drain_adjustment.delete'], function () use ($drainAdjustmentPref) {
+        Route::post("$drainAdjustmentPref-delete/{id}", [DrainAdjustmentController::class, 'destroy'])->name($drainAdjustmentPref . '.delete');
+    });
+    Route::group(['middleware' => 'can:cns.drain_adjustment.approve'], function () use ($drainAdjustmentPref) {
+        Route::post("$drainAdjustmentPref-approve/{id}", [DrainAdjustmentController::class, 'approve'])->name($drainAdjustmentPref . '.approve');
+        Route::post("$drainAdjustmentPref-reject/{id}", [DrainAdjustmentController::class, 'reject'])->name($drainAdjustmentPref . '.reject');
+    });
+
+    // Quality Control
+
     $cnsQualityPref = "cns-quality";
     Route::get("$cnsQualityPref-external-index", [QualityController::class, 'externalIndexPage'])->name($cnsQualityPref . '.external-index');
     Route::get("$cnsQualityPref-internal-index", [QualityController::class, 'internalIndexPage'])->name($cnsQualityPref . '.internal-index');
@@ -5786,6 +5877,86 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$isccTraceabilityPref-photo-delete", [ISCCTraceabilityController::class, 'deletePhoto'])->name($isccTraceabilityPref . '.photo-delete');
     Route::post("$isccTraceabilityPref-mark-audited", [ISCCTraceabilityController::class, 'markAudited'])->name($isccTraceabilityPref . '.mark-audited');
     Route::get("$isccTraceabilityPref-print/{fragmentId}", [ISCCTraceabilityController::class, 'printDoc'])->name($isccTraceabilityPref . '.print');
+
+    // CNS Access & User Management
+    $cnsUserPref = "cns-user-management";
+    Route::group(['middleware' => 'can:cns.user_management.view'], function () use ($cnsUserPref) {
+        Route::get("$cnsUserPref", [CnsUserController::class, "index"])->name("$cnsUserPref.index");
+        Route::get("$cnsUserPref-data", [CnsUserController::class, "userListData"])->name("$cnsUserPref.data");
+    });
+    Route::group(['middleware' => 'can:cns.user_management.create'], function () use ($cnsUserPref) {
+        Route::post("$cnsUserPref-store", [CnsUserController::class, "createUserSubmit"])->name("$cnsUserPref.store");
+    });
+    Route::group(['middleware' => 'can:cns.user_management.edit'], function () use ($cnsUserPref) {
+        Route::post("$cnsUserPref-update/{id?}", [CnsUserController::class, "updateUser"])->name("$cnsUserPref.update");
+    });
+    Route::group(['middleware' => 'can:cns.user_management.delete'], function () use ($cnsUserPref) {
+        Route::post("$cnsUserPref-delete/{id?}", [CnsUserController::class, "deleteUser"])->name("$cnsUserPref.delete");
+    });
+
+    // CNS Role & RBAC Management (Admin Only)
+    $cnsRolePref = "cns-role-management";
+    Route::group(['middleware' => 'can:cns.role_management.view'], function () use ($cnsRolePref) {
+        Route::get("$cnsRolePref", [CnsRoleController::class, "index"])->name("$cnsRolePref.index");
+        Route::get("$cnsRolePref-data", [CnsRoleController::class, "roleListData"])->name("$cnsRolePref.data");
+        Route::get("$cnsRolePref-permissions", [CnsRoleController::class, "rolePermissionsData"])->name("$cnsRolePref.permissions");
+        Route::post("$cnsRolePref-permissions-save", [CnsRoleController::class, "savePermissions"])->name("$cnsRolePref.permissions.save");
+        Route::post("$cnsRolePref-store", [CnsRoleController::class, "createRole"])->name("$cnsRolePref.store");
+        Route::post("$cnsRolePref-update/{id}", [CnsRoleController::class, "updateRole"])->name("$cnsRolePref.update");
+        Route::post("$cnsRolePref-delete/{id}", [CnsRoleController::class, "deleteRole"])->name("$cnsRolePref.delete");
+        Route::post("$cnsRolePref-grant-all/{id}", [CnsRoleController::class, "grantAllPermissions"])->name("$cnsRolePref.grant_all");
+        Route::post("$cnsRolePref-revoke-all/{id}", [CnsRoleController::class, "revokeAllPermissions"])->name("$cnsRolePref.revoke_all");
+    });
+
+    // Offering Letter
+    $offeringLetterPref = "cns-offering-letter";
+    Route::group(['middleware' => 'can:cns.offering_letter.view'], function () use ($offeringLetterPref) {
+        Route::get("$offeringLetterPref", [OfferingLetterController::class, 'index'])->name($offeringLetterPref . '.index');
+        Route::get("xml-$offeringLetterPref", [OfferingLetterController::class, 'xmlData'])->name($offeringLetterPref . '.xml');
+        Route::get("$offeringLetterPref-next-number", [OfferingLetterController::class, 'nextNumber'])->name($offeringLetterPref . '.next-number');
+        Route::get("$offeringLetterPref-detail/{id}", [OfferingLetterController::class, 'detail'])->name($offeringLetterPref . '.detail');
+        Route::get("$offeringLetterPref-print", [OfferingLetterController::class, 'print'])->name($offeringLetterPref . '.print-task');
+        Route::get("$offeringLetterPref-print/{id}", [OfferingLetterController::class, 'print'])->name($offeringLetterPref . '.print');
+    });
+    Route::group(['middleware' => 'can:cns.offering_letter.create'], function () use ($offeringLetterPref) {
+        Route::get("$offeringLetterPref-create", [OfferingLetterController::class, 'create'])->name($offeringLetterPref . '.create');
+        Route::post("$offeringLetterPref-store", [OfferingLetterController::class, 'store'])->name($offeringLetterPref . '.store');
+    });
+    Route::group(['middleware' => 'can:cns.offering_letter.edit'], function () use ($offeringLetterPref) {
+        Route::post("$offeringLetterPref-update/{id}", [OfferingLetterController::class, 'update'])->name($offeringLetterPref . '.update');
+    });
+    Route::group(['middleware' => 'can:cns.offering_letter.approve'], function () use ($offeringLetterPref) {
+        Route::post("$offeringLetterPref-approve/{id}", [OfferingLetterController::class, 'approve'])->name($offeringLetterPref . '.approve');
+    });
+
+    // KYC
+    $kycPref = "cns-customer-compliance-kyc";
+    Route::group(['middleware' => 'can:cns.customer_compliance_kyc.view'], function () use ($kycPref) {
+        Route::get("$kycPref", [CustomerKycController::class, 'index'])->name($kycPref . '.index');
+        Route::get("xml-$kycPref", [CustomerKycController::class, 'xmlData'])->name($kycPref . '.xml');
+        Route::get("$kycPref-detail/{id}", [CustomerKycController::class, 'detail'])->name($kycPref . '.detail');
+        Route::get("$kycPref-download/{id}/{type}", [CustomerKycController::class, 'downloadDoc'])->name($kycPref . '.download');
+        Route::get("$kycPref-print/{id}", [CustomerKycController::class, 'printPdf'])->name($kycPref . '.print');
+    });
+    Route::group(['middleware' => 'can:cns.customer_compliance_kyc.create'], function () use ($kycPref) {
+        Route::get("$kycPref-create", [CustomerKycController::class, 'create'])->name($kycPref . '.create');
+        Route::post("$kycPref-store", [CustomerKycController::class, 'store'])->name($kycPref . '.store');
+    });
+    Route::group(['middleware' => 'can:cns.customer_compliance_kyc.edit'], function () use ($kycPref) {
+        Route::get("$kycPref-edit/{id}", [CustomerKycController::class, 'edit'])->name($kycPref . '.edit');
+        Route::post("$kycPref-update/{id}", [CustomerKycController::class, 'update'])->name($kycPref . '.update');
+    });
+    Route::group(['middleware' => 'can:cns.customer_compliance_kyc.delete'], function () use ($kycPref) {
+        Route::post("$kycPref-delete/{id}", [CustomerKycController::class, 'destroy'])->name($kycPref . '.delete');
+    });
+
+    // Dashboard Export Volume
+    $dashboardExportPref = "cns-dashboard-export-volume";
+    Route::group(['middleware' => 'can:cns.export_volume.view'], function () use ($dashboardExportPref) {
+        Route::get("$dashboardExportPref", [ExportVolumeDashboardController::class, 'index'])->name($dashboardExportPref . '.index');
+        Route::get("$dashboardExportPref-data", [ExportVolumeDashboardController::class, 'dataAjax'])->name($dashboardExportPref . '.data');
+        Route::get("$dashboardExportPref-excel", [ExportVolumeDashboardController::class, 'exportExcel'])->name($dashboardExportPref . '.export-excel');
+    });
 
     $sustainabilityPref = "cns-sustainability";
 
