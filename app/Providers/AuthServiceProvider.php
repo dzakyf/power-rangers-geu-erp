@@ -40,11 +40,6 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        Gate::define('cns.master_user.view', fn ($user) => $user->can('cns.user_management.view'));
-        Gate::define('cns.master_user.create', fn ($user) => $user->can('cns.user_management.create'));
-        Gate::define('cns.master_user.edit', fn ($user) => $user->can('cns.user_management.edit'));
-        Gate::define('cns.master_user.delete', fn ($user) => $user->can('cns.user_management.delete'));
-
         \Auth::provider('active_eloquent', function ($app, array $config) {
             return new \App\Auth\ActiveUserProvider($app['hash'], $config['model']);
         });

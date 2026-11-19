@@ -22,7 +22,6 @@ class CnsPermissionService
         'SM00062' => 'folder_procurement',
         'SM00063' => 'folder_inventory',
         'SM00064' => 'folder_master_data',
-        'SM00066' => 'folder_access_control',
         'SM00080' => 'folder_dashboard',
 
         // Level 3: Sub Folders
@@ -39,7 +38,6 @@ class CnsPermissionService
         'SS00087' => 'folder_inventory_uco',
         'SS00091' => 'folder_inventory_non_uco',
         'SS00088' => 'folder_sub_master_data',
-        'SS00095' => 'folder_sub_access_control',
         'SS00150' => 'folder_sub_dashboard',
 
         // Level 4: Leaf Pages / Actions
@@ -75,8 +73,6 @@ class CnsPermissionService
         'SI00329' => 'master_consignee',
         'SI01074' => 'master_tank',
         'SI00342' => 'master_kemasan',
-        'SI00347' => 'user_management',
-        'SI00348' => 'role_management',
         'SI01150' => 'export_volume',
     ];
 
