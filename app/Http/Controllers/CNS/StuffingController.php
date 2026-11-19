@@ -128,6 +128,67 @@ class StuffingController extends Controller
         echo "</rows>";
     }
 
+    public function indexStuffingMonitoringXml(Request $request)
+    {
+        if (!headers_sent()) {
+            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
+                header("Content-type: application/xhtml+xml");
+            } else {
+                header("Content-type: text/xml");
+            }
+        }
+        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+
+        echo "<rows>";
+
+        $vessels = VesselScheduleDtl::active()
+            ->whereBetween('Date', [$request->tgl1, $request->tgl2])
+            ->get();
+
+        $vesselIdsByOrder = VesselSchedule::whereIn('Order_No', $vessels->pluck('Order_No')->filter()->unique()->values())
+            ->pluck('id', 'Order_No');
+        $noteMetadata = $this->notes->metadataByScheduleIds($vesselIdsByOrder->values()->all());
+
+        foreach ($vessels as $key => $vessel) {
+            $tare = (float) $vessel->Tare;
+            $nettoKg = (float) $vessel->Netto_KG;
+            $nettoMt = round($nettoKg / 1000, 2);
+            $grossKg = $tare + $nettoKg;
+            $grossMt = round($grossKg / 1000, 2);
+            $vesselId = $vesselIdsByOrder->get($vessel->Order_No);
+            $hasNote = $vesselId && isset($noteMetadata[(string) $vesselId]);
+
+            $timeFrom = $vessel->Time_From ? date("H:i", strtotime($vessel->Time_From)) : "";
+            $timeTo = $vessel->Time_To ? date("H:i", strtotime($vessel->Time_To)) : "";
+            $dateFormatted = $vessel->Date ? date("d M Y", strtotime($vessel->Date)) : "";
+
+            echo "<row id=\"$vessel->ID\" >";
+            echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $vessel->Order_No) . "</cell>";
+            echo "<cell>" . htmlspecialchars($timeFrom) . "</cell>";
+            echo "<cell>" . htmlspecialchars($timeTo) . "</cell>";
+            echo "<cell>" . htmlspecialchars($dateFormatted) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $vessel->Police_No) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $vessel->Container) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $vessel->Seal) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($tare, 2, '.', ',')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($nettoKg, 2, '.', ',')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($nettoMt, 2, '.', ',')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($grossKg, 2, '.', ',')) . "</cell>";
+            echo "<cell>" . htmlspecialchars(number_format($grossMt, 2, '.', ',')) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $vessel->Note) . "</cell>";
+            if ($hasNote) {
+                echo "<cell><![CDATA[Ada (<a href=\"cns-stuffing-detail-note?Order_No=" . urlencode((string) $vessel->Order_No) . "\" target=\"_blank\" class=\"badge badge-success text-white p-1\">Lihat Nota</a>)]]></cell>";
+            } else {
+                echo "<cell>Tidak Ada</cell>";
+            }
+            echo "<cell>" . htmlspecialchars((string) ($vesselId ?? '')) . "</cell>";
+            echo "</row>";
+        }
+
+        echo "</rows>";
+    }
+
     public function generateStuffingReport(Request $request)
     {
         $schedule = VesselSchedule::where('id', $request->query('task'))->first();

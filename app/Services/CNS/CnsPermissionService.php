@@ -23,6 +23,7 @@ class CnsPermissionService
         'SM00063' => 'folder_inventory',
         'SM00064' => 'folder_master_data',
         'SM00066' => 'folder_access_control',
+        'SM00080' => 'folder_dashboard',
 
         // Level 3: Sub Folders
         'SS00090' => 'folder_sub_buyer_contract',
@@ -39,6 +40,7 @@ class CnsPermissionService
         'SS00091' => 'folder_inventory_non_uco',
         'SS00088' => 'folder_sub_master_data',
         'SS00095' => 'folder_sub_access_control',
+        'SS00150' => 'folder_sub_dashboard',
 
         // Level 4: Leaf Pages / Actions
         'SI00331' => 'buyer_contract',
@@ -46,7 +48,6 @@ class CnsPermissionService
         'SI00346' => 'customer_compliance_kyc',
         'SI00304' => 'vessel_schedule',
         'SI00305' => 'stuffing',
-        'SI00306' => 'stuffing_monitoring',
         'SI00307' => 'shipping_instruction',
         'SI00308' => 'final_shipping_instruction',
         'SI00309' => 'packing_list',
@@ -62,7 +63,7 @@ class CnsPermissionService
         'SI00319' => 'purchase_request',
         'SI00322' => 'purchase_request_outstanding',
         'SI00321' => 'purchase_order',
-        'SI01055' => 'goods_receipt',
+        'SI01075' => 'goods_receipt',
         'SI00317' => 'inbound_movement',
         'SI00340' => 'tank_draining',
         'SI00343' => 'inbound_adjustment',
@@ -76,6 +77,7 @@ class CnsPermissionService
         'SI00342' => 'master_kemasan',
         'SI00347' => 'user_management',
         'SI00348' => 'role_management',
+        'SI01150' => 'export_volume',
     ];
 
     public static function allMenuSlugs(): array
