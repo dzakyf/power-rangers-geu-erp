@@ -1,123 +1,68 @@
-<?php
-error_reporting(0);
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-
-$LSP = Auth::user()->Location;
-$Saya = Auth::user()->username;
-$ID  = $_GET['Handover_No'] ?? $_GET['ID'] ?? '';
-
-// Log dari asset_handover — diurutkan terbaru di atas
-$logs = DB::table('asset_handover_log')
-    ->where('Handover_No', $ID)
-    ->orderBy('ID', 'DESC')
-    ->get();
-?>
-
-<div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">
-    ASSET HANDOVER LOG — SERAH TERIMA ASET
-</div>
-
-<div style="margin:6px 0;font-size:12px;color:#555;">
-    Handover No : <strong><?php echo htmlspecialchars($ID); ?></strong>
-</div>
-
-<style>
-.log-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  margin-top: 10px;
-  background-color: #fff;
-}
-.log-table th {
-  background-color: #8e44ad;
-  color: #fff;
-  padding: 6px 8px;
-  border: 1px solid #8e44ad;
-  text-align: left;
-  font-weight: bold;
-  white-space: nowrap;
-}
-.log-table td {
-  padding: 5px 8px;
-  border: 1px solid #ccc;
-  vertical-align: top;
-}
-.log-table tbody tr:nth-child(even) {
-  background-color: #f5eef8;
-}
-.log-table tbody tr:nth-child(odd) {
-  background-color: #fff;
-}
-.log-table tbody tr:hover {
-  background-color: #ecdfe5;
-}
-.log-table-wrap {
-  max-width: 100%;
-  overflow-x: auto;
-}
-.log-empty {
-  color: #888;
-  font-style: italic;
-  margin-top: 18px;
-  padding: 8px 12px;
-  background: #fafafa;
-  border-radius: 6px;
-  border: 1px dashed #d0d0d0;
-  font-size: 12px;
-}
-</style>
-
-<div class="log-table-wrap">
-<?php if ($logs->isEmpty()): ?>
-    <div class="log-empty">No handover log entries found for this Handover No.</div>
-<?php else: ?>
-<table class="log-table">
-  <thead>
-    <tr>
-      <th>No</th>
-      <th>Action By</th>
-      <th>Action Date</th>
-      <th>Action Status</th>
-      <th>Handover Date</th>
-      <th>Status</th>
-      <th>User Name</th>
-      <th>User NIK</th>
-      <th>PIC Name</th>
-      <th>PIC Department</th>
-      <th>PIC Phone</th>
-      <th>Reference</th>
-      <th>Remark</th>
-      <th>Created By</th>
-      <th>Created Date</th>
-      <th>Updated By</th>
-      <th>Updated Date</th>
-    </tr>
-  </thead>
-  <tbody>
-    <?php $no = 1; foreach ($logs as $log): ?>
-    <tr>
-      <td><?php echo $no++; ?></td>
-      <td><?php echo htmlspecialchars($log->Action_By); ?></td>
-      <td><?php echo htmlspecialchars($log->Action_Date); ?></td>
-      <td><?php echo htmlspecialchars($log->Action_Status); ?></td>
-      <td><?php echo htmlspecialchars($log->Handover_Date); ?></td>
-      <td><?php echo htmlspecialchars($log->Status); ?></td>
-      <td><?php echo htmlspecialchars($log->User_Name); ?></td>
-      <td><?php echo htmlspecialchars($log->User_NIK); ?></td>
-      <td><?php echo htmlspecialchars($log->PIC_Name); ?></td>
-      <td><?php echo htmlspecialchars($log->PIC_Department); ?></td>
-      <td><?php echo htmlspecialchars($log->PIC_Phone); ?></td>
-      <td><?php echo htmlspecialchars($log->Reference); ?></td>
-      <td><?php echo htmlspecialchars($log->Remark); ?></td>
-      <td><?php echo htmlspecialchars($log->Created_By); ?></td>
-      <td><?php echo htmlspecialchars($log->Created_Date); ?></td>
-      <td><?php echo htmlspecialchars($log->Updated_By); ?></td>
-      <td><?php echo htmlspecialchars($log->Updated_Date); ?></td>
-    </tr>
-    <?php endforeach; ?>
-  </tbody>
-</table>
-<?php endif; ?>
+<div class="mt-3">
+    <div class="card border-success shadow-sm">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 text-white">
+                <i class="fa fa-history me-2"></i>Asset Handover Log — {{ $ID }}
+            </h6>
+            <button type="button" class="btn btn-light btn-sm" onclick="$('#AssetHandoverDiv').html('')">
+                <i class="fa fa-times me-1"></i> Tutup
+            </button>
+        </div>
+        <div class="card-body">
+            @if ($logs->isEmpty())
+                <div class="alert alert-light border text-muted mb-0">
+                    <i class="fa fa-info-circle me-1"></i> Belum ada riwayat log untuk Handover No: <strong>{{ $ID }}</strong>.
+                </div>
+            @else
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-striped table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                        <thead class="table-success">
+                            <tr class="text-nowrap">
+                                <th>No</th>
+                                <th>Action By</th>
+                                <th>Action Date</th>
+                                <th>Action Status</th>
+                                <th>Handover Date</th>
+                                <th>Status</th>
+                                <th>User Name</th>
+                                <th>User NIK</th>
+                                <th>PIC Name</th>
+                                <th>PIC Department</th>
+                                <th>PIC Phone</th>
+                                <th>Reference</th>
+                                <th>Remark</th>
+                                <th>Created By</th>
+                                <th>Created Date</th>
+                                <th>Updated By</th>
+                                <th>Updated Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($logs as $log)
+                                <tr>
+                                    <td class="text-center">{{ $loop->iteration }}</td>
+                                    <td>{{ $log->Action_By }}</td>
+                                    <td class="text-nowrap">{{ $log->Action_Date }}</td>
+                                    <td><span class="badge bg-secondary">{{ $log->Action_Status }}</span></td>
+                                    <td class="text-nowrap">{{ $log->Handover_Date }}</td>
+                                    <td><span class="badge bg-info text-dark">{{ $log->Status }}</span></td>
+                                    <td>{{ $log->User_Name }}</td>
+                                    <td>{{ $log->User_NIK }}</td>
+                                    <td>{{ $log->PIC_Name }}</td>
+                                    <td>{{ $log->PIC_Department }}</td>
+                                    <td>{{ $log->PIC_Phone }}</td>
+                                    <td>{{ $log->Reference }}</td>
+                                    <td>{{ $log->Remark }}</td>
+                                    <td>{{ $log->Created_By }}</td>
+                                    <td class="text-nowrap">{{ $log->Created_Date }}</td>
+                                    <td>{{ $log->Updated_By }}</td>
+                                    <td class="text-nowrap">{{ $log->Updated_Date }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
 </div>

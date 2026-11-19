@@ -1,29 +1,37 @@
-<?php
-use Illuminate\Support\Facades\Auth;
-?>
-
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
 @csrf
-    <div class="main-content-header">
-        <h1>Human Capital and General Affairs</h1>
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="#">Data Assets</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <span class="active">Asset Fixing Approval</span>
-            </li>
-        </ol>
+    <div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+        <div>
+            <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+                Asset Fixing Approval
+            </h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Human Capital &amp; GA</a></li>
+                    <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Data Assets</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Asset Fixing Approval</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="d-none d-sm-flex align-items-center gap-2">
+            <span class="badge px-3 py-2 fs-12 shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+                <i class="fa fa-clipboard-check me-1"></i> Persetujuan Perbaikan
+            </span>
+        </div>
     </div>
 
-    <div class="card mt-3">
+    <div class="card shadow-sm border-0 mt-3">
         <div class="card-body">
-            <div id="AssetFixingApproval" style="width:auto;height:350px; background-color:white;overflow:hidden"></div>
-            <div>
-                <input type="button" id="ASSETFIXINGAP_Refresh" class="btn btn-info mt-2 mr-2" value="Refresh Data" onclick="AssetFixingApprovalRefresh();" />
-                <input type="button" id="dxdata" class="btn btn-success mt-2 mr-2" value="Detail Approval" onclick="AssetFixingApprovalDetail();" />
+            <div id="AssetFixingApproval" style="width:100%;height:380px;background-color:white;overflow:hidden"></div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                <button type="button" id="ASSETFIXINGAP_Detail" class="btn btn-success btn-sm" onclick="AssetFixingApprovalDetail();">
+                    <i class="fa fa-check-circle me-1"></i> Detail Approval
+                </button>
+                <button type="button" id="ASSETFIXINGAP_Refresh" class="btn btn-outline-secondary btn-sm" onclick="AssetFixingApprovalRefresh();">
+                    <i class="fa fa-sync-alt me-1"></i> Refresh Data
+                </button>
             </div>
         </div>
     </div>
@@ -37,7 +45,9 @@ function AssetFixingApprovalDetail() {
         alert("Pilih Baris terlebih dulu");
         return false;
     }
-    LoadM('ASSETFIXINGAPPROVALDTL', 'hrd-asset-fixing-approval-detail?ID=' + AssetFixingApprovalID);
+    LoadM('ASSETFIXINGAPPROVALDTL', 'hrd-asset-fixing-approval-detail?ID=' + encodeURIComponent(AssetFixingApprovalID));
+    var el = document.getElementById('ASSETFIXINGAPPROVALDTL');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function AssetFixingApprovalRefresh() {

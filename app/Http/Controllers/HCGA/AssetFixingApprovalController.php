@@ -111,6 +111,29 @@ class AssetFixingApprovalController extends Controller
             ]);
         }
 
+        if (!empty($asset->Approval_Request_ID)) {
+            try {
+                $action = ((int) $approvalType === 1) ? 'APPROVE' : 'REJECT';
+                app(\App\Services\Approval\AssetLifecycleApprovalService::class)->actOnRequest(
+                    (int) $asset->Approval_Request_ID,
+                    (int) Auth::id(),
+                    $action,
+                    (string) $note
+                );
+                $updated = DB::table('asset_fixing')->where('ID', $id)->first();
+                return response()->json([
+                    'status'    => 'success',
+                    'message'   => 'Berhasil memproses approval via Policy Engine',
+                    'newStatus' => $updated->Status ?? $asset->Status,
+                ]);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+        }
+
         $approver = DB::table('master_hr_approval')
             ->where('username', Auth::user()->username)
             ->where('Status', 'ACTIVE')

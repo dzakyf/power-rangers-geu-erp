@@ -560,6 +560,8 @@ class ApprovalWorkflowService
                     continue;
                 }
 
+                $slaHours = isset($step->Sla_Hours) && (int) $step->Sla_Hours > 0 ? (int) $step->Sla_Hours : 48;
+
                 $taskId = DB::table('approval_request_task')->insertGetId([
                     'Request_ID' => $requestId,
                     'Stage_Order' => $stageOrder,
@@ -572,6 +574,7 @@ class ApprovalWorkflowService
                     'Quorum' => $step->Quorum,
                     'Status' => 'PENDING',
                     'Is_Self_Approval' => $this->hasCandidate($item['Candidates'], $requesterId) ? 1 : 0,
+                    'Due_At' => Carbon::now()->addHours($slaHours),
                     'Snapshot' => json_encode([
                         'Step' => (array) $step,
                         'Position' => (array) $position,
@@ -770,6 +773,11 @@ class ApprovalWorkflowService
             $context,
             (int) $request->Requester_Id
         );
+
+        $fresh = $this->getRequest((int) $request->ID);
+        if ($fresh) {
+            event(new \App\Events\Approval\ApprovalStageProgressed($fresh, $stageOrder, (int) $nextStage, $nextLevel !== null ? (int) $nextLevel : null));
+        }
     }
 
     protected function handleRejection($request, $task): void
@@ -890,6 +898,59 @@ class ApprovalWorkflowService
         if ($fresh) {
             event(new \App\Events\Approval\ApprovalRequestUpdated($fresh, 'REJECTED', $reason));
         }
+    }
+
+    /**
+     * Force Approve resmi untuk transaksi Dynamic Engine (khusus Wildcard Admin).
+     */
+    public function forceApprove(int $requestId, int $adminId, string $reason)
+    {
+        $admin = \App\User::find($adminId);
+        if (!$admin || !$this->authorization->isWildcardAdmin($admin)) {
+            throw new ApprovalWorkflowException('Hanya Wildcard Admin yang dapat melakukan Force Approve.', 'FORCE_APPROVE_FORBIDDEN', 403);
+        }
+
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new ApprovalWorkflowException('Alasan Force Approve wajib diisi.', 'REASON_REQUIRED', 422);
+        }
+
+        return DB::transaction(function () use ($requestId, $adminId, $reason) {
+            $request = $this->getRequest($requestId, true);
+            if (!$request) {
+                throw new ApprovalWorkflowException('Request tidak ditemukan.', 'REQUEST_NOT_FOUND', 404);
+            }
+
+            if (!in_array(strtoupper((string) $request->Status), ['IN_PROGRESS', 'BLOCKED', 'HELD', 'PENDING', 'WAITING_APPROVAL'], true)) {
+                throw new ApprovalWorkflowException(
+                    'Hanya request berstatus IN_PROGRESS, BLOCKED, HELD, atau PENDING yang dapat di-Force Approve.',
+                    'FORCE_APPROVE_INVALID_STATUS',
+                    422,
+                    ['Status' => $request->Status]
+                );
+            }
+
+            DB::table('approval_request_task')
+                ->where('Request_ID', $requestId)
+                ->whereIn('Status', ['PENDING', 'CLAIMED', 'HELD'])
+                ->update([
+                    'Status'     => 'AUTO_APPROVED',
+                    'Acted_By'   => $adminId,
+                    'Acted_At'   => Carbon::now(),
+                    'Action'     => 'FORCE_APPROVE',
+                    'Notes'      => $reason,
+                    'Updated_At' => Carbon::now(),
+                ]);
+
+            $this->log($requestId, $adminId, 'FORCE_APPROVED', (int) $request->Current_Level, (int) $request->Current_Stage, null, null, null, [
+                'Bypass' => true,
+                'Reason' => $reason,
+            ], true);
+
+            $this->completeRequest($requestId, 'FORCE_APPROVED: ' . $reason);
+
+            return $this->getRequest($requestId);
+        });
     }
 
     protected function completeRequest(int $requestId, string $reason): void

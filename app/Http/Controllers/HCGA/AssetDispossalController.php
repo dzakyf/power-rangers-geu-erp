@@ -61,7 +61,15 @@ class AssetDispossalController extends Controller
         $Position = Auth::user()->Position;
         $counter = DB::table('asset_disposal')->where("Created_By", "LIKE", date("Y-m")."%")->count() + 1;
         $Disposal_No = "DA/GA/$LSP/".date("ymdhis") . "-" . $counter;
-        return view('humanresources.asset-dispossal.create', compact("Disposal_No", 'NIK', 'Name', 'Position'));
+        $assets = DB::table('asset_list')
+            ->where(function ($q) {
+                $q->whereNull('Status')->orWhere('Status', '!=', 'DISPOSED');
+            })
+            ->select('Asset_No', 'Product_Description', 'SN', 'Kondisi_Aset', 'Asset_Location', 'Buy_Val', 'Product_Brand', 'Model')
+            ->orderBy('Asset_No', 'ASC')
+            ->limit(1000)
+            ->get();
+        return view('humanresources.asset-dispossal.create', compact("Disposal_No", 'NIK', 'Name', 'Position', 'assets'));
     }
 
     public function store(Request $request)
@@ -86,7 +94,21 @@ class AssetDispossalController extends Controller
             }
         }
 
-        DB::table('asset_disposal')->insert($r);
+        $disposalId = DB::table('asset_disposal')->insertGetId($r);
+
+        try {
+            $assetNo = trim((string) ($r['Asset_No'] ?? ($r['Asset_Serial_No'] ?? '')));
+            app(\App\Services\Approval\AssetLifecycleApprovalService::class)->submit(
+                \App\Services\Approval\AssetLifecycleApprovalService::TYPE_ASSET_DISPOSAL,
+                (int) $disposalId,
+                (string) ($r['Disposal_No'] ?? ('DSP-' . $disposalId)),
+                'Pemusnahan Aset ' . ($r['Asset_Name'] ?? $assetNo),
+                (int) Auth::id(),
+                ['Asset_No' => $assetNo, 'Amount' => (float) ($r['Book_Value'] ?? 0)]
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('AssetDisposal ApprovalWorkflow fallback: ' . $e->getMessage());
+        }
 
         return response()->json([
             'status' => 'success',
@@ -128,6 +150,9 @@ class AssetDispossalController extends Controller
 
     public function log(Request $request)
     {
-        return view('humanresources.asset-dispossal.log');
+        $ID = (string) ($request->input('Disposal_No') ?? $request->input('ID') ?? '');
+        $logs = app(\App\Services\HCGA\AssetLegacyLogService::class)->getDisposalLogs($ID);
+
+        return view('humanresources.asset-dispossal.log', compact('ID', 'logs'));
     }
 }

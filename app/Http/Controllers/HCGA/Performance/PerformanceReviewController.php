@@ -128,12 +128,13 @@ class PerformanceReviewController extends Controller
             'cycle_code'            => strtoupper(trim($request->cycle_code)),
             'title'                 => $request->title,
             'period_id'             => $request->period_id,
-            'review_type'           => $request->review_type ?? 'ANNUAL',
+            'review_type'           => $request->review_type ?? 'SEMESTER_1',
             'enable_self_review'    => $request->has('enable_self_review'),
             'enable_manager_review' => $request->has('enable_manager_review'),
             'enable_peer_review'    => $request->has('enable_peer_review'),
             'weight_kpi'            => $request->weight_kpi ?? 70.00,
             'weight_competency'     => $request->weight_competency ?? 30.00,
+            'pip_threshold_score'   => $request->filled('pip_threshold_score') ? (float) $request->pip_threshold_score : null,
             'start_date'            => $request->start_date,
             'end_date'              => $request->end_date,
             'status'                => 'ONGOING',
@@ -151,18 +152,38 @@ class PerformanceReviewController extends Controller
     public function generateReviews(Request $request, $cycleId)
     {
         $cycle = PerformanceReviewCycle::findOrFail($cycleId);
-        $employees = User::where('Status', 'ACTIVE')->get();
+
+        $approvedGoals = PerformanceGoal::where('period_id', $cycle->period_id)
+            ->whereIn('status', ['APPROVED', 'EVALUATION', 'COMPLETED'])
+            ->get();
+
+        $approvedUserIds = $approvedGoals->pluck('user_id')->filter()->unique()->all();
+        $positionGoals = $approvedGoals->where('scope_type', 'POSITION');
+
+        $employeesQuery = User::where('Status', 'ACTIVE');
+        $employeesQuery->where(function ($q) use ($approvedUserIds, $positionGoals) {
+            if (!empty($approvedUserIds)) {
+                $q->whereIn('id', $approvedUserIds);
+            }
+            foreach ($positionGoals as $pg) {
+                $q->orWhere(function ($sub) use ($pg) {
+                    $sub->where('Department', $pg->department)
+                        ->where('Position', $pg->position);
+                });
+            }
+            if (empty($approvedUserIds) && $positionGoals->isEmpty()) {
+                $q->where('id', -1);
+            }
+        });
+
+        $employees = $employeesQuery->get();
+
         $count = 0;
 
         foreach ($employees as $emp) {
-            // Cek apakah review untuk employee sudah pernah digenerate di cycle ini
             $exists = PerformanceReview::where('cycle_id', $cycle->id)->where('user_id', $emp->id)->exists();
             if (!$exists) {
-                // Cari manager jika ada
-                $manager = User::where('Department', $emp->Department)
-                    ->where('Position', 'LIKE', '%Manager%')
-                    ->first();
-
+                $manager = $this->reviewService->resolveDirectManagerForUser($emp);
                 $this->reviewService->initiateReviewForEmployee($cycle, $emp, $manager);
                 $count++;
             }
@@ -170,7 +191,7 @@ class PerformanceReviewController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Berhasil menginisiasi {$count} dokumen review kinerja karyawan."
+            'message' => "Berhasil menginisiasi {$count} dokumen review untuk karyawan dengan KPI Approved."
         ]);
     }
 
@@ -184,13 +205,73 @@ class PerformanceReviewController extends Controller
             'user',
             'manager',
             'goal.items.progressLogs',
+            'kpiItems',
+            'pipPlan',
             'feedbacks.reviewer',
             'feedbacks.competencyScores.competency'
         ])->findOrFail($id);
 
         $competencies = \App\PerformanceCompetency::where('is_active', true)->get();
 
-        return view('humanresources.performance.review.detail', compact('review', 'competencies'));
+        $currentUser = Auth::user();
+        $isHcgaAdmin = app(\App\Services\HCGA\PerformanceKpiService::class)->isHcgaOrAdmin($currentUser);
+        $isEmployeeOwner = $currentUser && ((int) $currentUser->id === (int) $review->user_id);
+        $isAssignedManager = $currentUser && ((int) $currentUser->id === (int) $review->manager_id);
+
+        $canSelfReview = $review->status !== 'FINALIZED'
+            && $isEmployeeOwner
+            && in_array($review->status, ['SELF_REVIEW', 'SCHEDULED'], true);
+
+        $canManagerReview = $review->status !== 'FINALIZED'
+            && ($isAssignedManager || $isHcgaAdmin);
+
+        $canFinalize = $review->status !== 'FINALIZED'
+            && ($isAssignedManager || $isHcgaAdmin);
+
+        $canEditKpiRealization = $review->status !== 'FINALIZED'
+            && ($isAssignedManager || $isHcgaAdmin);
+
+        return view('humanresources.performance.review.detail', compact(
+            'review',
+            'competencies',
+            'canSelfReview',
+            'canManagerReview',
+            'canFinalize',
+            'canEditKpiRealization',
+            'isHcgaAdmin'
+        ));
+    }
+
+    /**
+     * Update Realisasi Item KPI langsung dari Lembar Review 6 Bulanan
+     */
+    public function updateKpiRealization(Request $request, $id)
+    {
+        $request->validate([
+            'goal_item_id'  => 'required|integer',
+            'new_value'     => 'required|numeric',
+            'check_in_date' => 'nullable|date',
+            'comment'       => 'nullable|string',
+        ]);
+
+        $review = PerformanceReview::findOrFail($id);
+
+        try {
+            $updated = $this->reviewService->updateKpiRealizationOnReview(
+                $review,
+                (int) $request->goal_item_id,
+                $request->only(['new_value', 'check_in_date', 'comment']),
+                Auth::id() ?? 1
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Realisasi KPI & skor evaluasi berhasil diperbarui.',
+                'data'    => $updated,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     /**
@@ -199,8 +280,9 @@ class PerformanceReviewController extends Controller
     public function submitFeedback(Request $request, $id)
     {
         $request->validate([
-            'score'    => 'required|numeric|min:0|max:100',
-            'feedback' => 'nullable|string',
+            'score'        => 'nullable|numeric|min:0|max:100',
+            'competencies' => 'nullable|array',
+            'feedback'     => 'nullable|string',
         ]);
 
         $review = PerformanceReview::findOrFail($id);

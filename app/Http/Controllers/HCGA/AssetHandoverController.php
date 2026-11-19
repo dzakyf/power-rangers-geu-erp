@@ -338,6 +338,9 @@ class AssetHandoverController extends Controller
 
     public function log(Request $request)
     {
-        return view('humanresources.asset-handover.log');
+        $ID = (string) ($request->input('Handover_No') ?? $request->input('ID') ?? '');
+        $logs = app(\App\Services\HCGA\AssetLegacyLogService::class)->getHandoverLogs($ID);
+
+        return view('humanresources.asset-handover.log', compact('ID', 'logs'));
     }
 }

@@ -126,9 +126,21 @@
                             <td colspan="3" class="text-right align-middle font-weight-bold">Aksi Pilihan Vendor (Awarding PO):</td>
                             @foreach($rfqVendors as $vendor)
                                 <td colspan="2" class="border-left text-center align-middle">
-                                    <button type="button" class="btn btn-sm btn-success font-weight-bold shadow-sm py-1 px-3" onclick="alert('Fitur Generate PO untuk Vendor {{ $vendor->Supplier_ID }} akan segera diproses!');">
-                                        <i class="fas fa-check-circle mr-1"></i> Pilih Vendor Ini (PO)
-                                    </button>
+                                    @if(($vendor->Status ?? '') === 'AWARDED')
+                                        <span class="badge badge-primary px-3 py-2" style="font-size: 11px;">
+                                            <i class="fas fa-award mr-1"></i> Terpilih (PO Sudah Terbit)
+                                        </span>
+                                    @elseif(($vendor->Status ?? '') === 'CLOSED')
+                                        <span class="badge badge-danger px-2 py-1">Tidak Terpilih</span>
+                                    @elseif(($vendor->Grand_Total ?? 0) > 0)
+                                        <button type="button" 
+                                                class="btn btn-sm btn-success font-weight-bold shadow-sm py-1 px-3" 
+                                                onclick="generatePO('{{ $prHeader->PR_No }}', '{{ $vendor->RFQ_No ?? '' }}', '{{ $vendor->Supplier_ID }}', '{{ addslashes($vendor->Company_Name ?? $vendor->Supplier_ID) }}')">
+                                            <i class="fas fa-check-circle mr-1"></i> Pilih Vendor Ini (PO)
+                                        </button>
+                                    @else
+                                        <span class="badge badge-secondary">Belum Ada Penawaran</span>
+                                    @endif
                                 </td>
                             @endforeach
                         </tr>
@@ -138,3 +150,33 @@
         @endif
     </div>
 </div>
+
+<script>
+function generatePO(prNo, rfqNo, supplierId, companyName) {
+    if (!confirm('Apakah Anda yakin memilih vendor "' + companyName + '" (' + supplierId + ') sebagai pemenang dan menerbitkan Purchase Order (PO)?')) {
+        return;
+    }
+
+    $.post("{{ url('procurement-generate-po') }}", {
+        _token: "{{ csrf_token() }}",
+        pr_no: prNo,
+        rfq_no: rfqNo,
+        supplier_id: supplierId
+    }, function(res) {
+        if (res.status === 'success') {
+            alert(res.message);
+            $('#ComparisonDiv').html('');
+            // Redirect ke halaman Outstanding PO atau reload grid
+            window.location.href = "{{ url('po-outstanding-list') }}";
+        } else {
+            alert(res.message || 'Gagal menerbitkan Purchase Order.');
+        }
+    }).fail(function(err) {
+        let msg = 'Terjadi kesalahan saat menerbitkan PO.';
+        if (err.responseJSON && err.responseJSON.message) {
+            msg = err.responseJSON.message;
+        }
+        alert(msg);
+    });
+}
+</script>

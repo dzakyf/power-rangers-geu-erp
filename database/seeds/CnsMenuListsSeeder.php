@@ -49,6 +49,18 @@ class CnsMenuListsSeeder extends Seeder
             ->whereNotIn('Menu_ID', array_keys($rows))
             ->delete();
 
+        $duplicates = DB::table('menu_lists')
+            ->where('Modules', 'CNS')
+            ->select('Menu_ID', DB::raw('COUNT(*) as total'))
+            ->groupBy('Menu_ID')
+            ->having('total', '>', 1)
+            ->pluck('Menu_ID')
+            ->toArray();
+
+        if (!empty($duplicates)) {
+            $this->command->warn('Duplicate CNS Menu_ID rows detected: ' . implode(', ', $duplicates));
+        }
+
         // Ensure user admin and CNS users have all CNS menus in Sub_Menu
         if (\Illuminate\Support\Facades\Schema::hasTable('users')) {
             $cnsMenuIds = DB::table('menu_lists')

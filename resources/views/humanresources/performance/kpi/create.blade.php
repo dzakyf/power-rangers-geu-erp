@@ -29,11 +29,11 @@
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label font-weight-bold">Pilih Karyawan <span class="text-danger">*</span></label>
-                    <select name="user_id" id="user_id" class="form-select form-control" required>
-                        <option value="">-- Pilih Karyawan --</option>
-                        @foreach($users as $u)
-                            <option value="{{ $u->id }}">{{ $u->Name }} ({{ $u->Emp_ID ?? '-' }}) - {{ $u->Department ?? '-' }}</option>
+                    <label class="form-label font-weight-bold">Pilih Posisi / Jabatan <span class="text-danger">*</span></label>
+                    <select name="position_id" id="position_id" class="form-select form-control" required>
+                        <option value="">-- Pilih Posisi di Departemen --</option>
+                        @foreach($positions as $pos)
+                            <option value="{{ $pos->ID }}">[{{ $pos->Department }}] {{ $pos->Position }} ({{ $pos->Initial }})</option>
                         @endforeach
                     </select>
                 </div>
