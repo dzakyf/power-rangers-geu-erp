@@ -174,7 +174,19 @@ class AssetFixingController extends Controller
         Log::info('AssetFixing store: ' . json_encode($data));
 
         try {
-            DB::table('asset_fixing')->insert($data);
+            $fixingId = DB::table('asset_fixing')->insertGetId($data);
+            try {
+                app(\App\Services\Approval\AssetLifecycleApprovalService::class)->submit(
+                    \App\Services\Approval\AssetLifecycleApprovalService::TYPE_ASSET_FIXING,
+                    (int) $fixingId,
+                    (string) $data['No_Trx'],
+                    'Perbaikan Aset ' . $asset->Asset_No . ' - ' . ($data['Nama_Aset'] ?? ''),
+                    (int) Auth::id(),
+                    ['Asset_No' => $asset->Asset_No, 'Amount' => (float) $estimasi]
+                );
+            } catch (\Throwable $apprEx) {
+                Log::warning('AssetFixing ApprovalWorkflow fallback: ' . $apprEx->getMessage());
+            }
         } catch (\Exception $e) {
             Log::error('AssetFixing store DB error: ' . $e->getMessage());
             return response()->json([
@@ -200,7 +212,9 @@ class AssetFixingController extends Controller
 
     public function log(Request $request)
     {
-        $ID = $request->input('ID') ?? $request->input('No_Trx') ?? '';
-        return view('humanresources.asset-fixing.log', compact('ID'));
+        $ID = (string) ($request->input('ID') ?? $request->input('No_Trx') ?? '');
+        $logs = app(\App\Services\HCGA\AssetLegacyLogService::class)->getFixingLogs($ID);
+
+        return view('humanresources.asset-fixing.log', compact('ID', 'logs'));
     }
 }

@@ -124,10 +124,13 @@ use App\Http\Controllers\HCGA\AssetDispossalController as HCGAAssetDispossalCont
 use App\Http\Controllers\HCGA\AssetDispossalApprovalController as HCGAAssetDispossalApprovalController;
 use App\Http\Controllers\HCGA\VehicleOperationsController as HCGAVehicleOperationsController;
 use App\Http\Controllers\HCGA\VehicleManagementController as HCGAVehicleManagementController;
+use App\Http\Controllers\HCGA\AssetMaintenanceScheduleController as HCGAAssetMaintenanceScheduleController;
+use App\Http\Controllers\HCGA\AssetTicketingController as HCGAAssetTicketingController;
 use App\Http\Controllers\HCGA\CarRentController as HCGACarRentController;
 use App\Http\Controllers\HCGA\OrganizationChartController as HCGAOrganizationChartController;
 
 use App\Http\Controllers\Finance\CostManagementController;
+use App\Http\Controllers\Finance\FinanceApprovalController;
 use App\Http\Controllers\Partner\SalesController as PartnerSalesController;
 use App\Http\Controllers\Partner\UCOController as UCOLogisticController;
 use App\Http\Controllers\Partner\TrainingController as PartnerTrainingController;
@@ -6352,12 +6355,47 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcAssetPref-lists-new-from-po", [HCGAAssetListController::class, 'getDataFromPO']);
     Route::post("$hcAssetPref-lists-new-get-wh", [HCGAAssetListController::class, 'getDataFromWH']);
 
-    // Vehicle Management: Master Kendaraan + Reminder STNK & KEUR
+    // Vehicle Management: Master Kendaraan + Reminder STNK & KEUR + Pajak
     $hcVehMgmtPref = "$hcPref-vehicle-management";
     Route::get("$hcVehMgmtPref-index", [HCGAVehicleManagementController::class, 'index']);
     Route::get("$hcVehMgmtPref-data", [HCGAVehicleManagementController::class, 'data']);
     Route::get("$hcVehMgmtPref-reminders", [HCGAVehicleManagementController::class, 'reminders']);
     Route::post("$hcVehMgmtPref-sync-reminders", [HCGAVehicleManagementController::class, 'syncReminders']);
+    Route::get("$hcVehMgmtPref-tax-requests", [HCGAVehicleManagementController::class, 'taxRequests']);
+    Route::post("$hcVehMgmtPref-tax-store", [HCGAVehicleManagementController::class, 'storeTaxRequest']);
+    Route::post("$hcVehMgmtPref-tax-approval", [HCGAVehicleManagementController::class, 'approveTaxRequest']);
+    Route::post("$hcVehMgmtPref-tax-force-approve", [HCGAVehicleManagementController::class, 'forceApproveTaxRequest']);
+    Route::post("$hcVehMgmtPref-tax-resubmit", [HCGAVehicleManagementController::class, 'resubmitTaxRequest']);
+    Route::post("$hcVehMgmtPref-tax-pay", [HCGAVehicleManagementController::class, 'payTaxRequest']);
+    Route::get("$hcVehMgmtPref-tax-voucher", [HCGAVehicleManagementController::class, 'printTaxVoucher']);
+    Route::post("$hcVehMgmtPref-fleet-approval", [HCGAVehicleManagementController::class, 'approveFleetVehicle']);
+
+    // Asset Maintenance Schedule (Perawatan Aset)
+    $hcMaintSchedPref = "$hcPref-asset-fixing-schedule";
+    Route::get("$hcMaintSchedPref", [HCGAAssetMaintenanceScheduleController::class, 'index']);
+    Route::post("$hcMaintSchedPref-store", [HCGAAssetMaintenanceScheduleController::class, 'store']);
+    Route::post("$hcMaintSchedPref-approval", [HCGAAssetMaintenanceScheduleController::class, 'approval']);
+    Route::post("$hcMaintSchedPref-resubmit", [HCGAAssetMaintenanceScheduleController::class, 'resubmit']);
+    Route::post("$hcMaintSchedPref-confirm", [HCGAAssetMaintenanceScheduleController::class, 'confirmSchedule']);
+    Route::post("$hcMaintSchedPref-start", [HCGAAssetMaintenanceScheduleController::class, 'startExecution']);
+    Route::post("$hcMaintSchedPref-complete", [HCGAAssetMaintenanceScheduleController::class, 'completeExecution']);
+
+    // Unified Asset Ticketing & Lifecycle Hub (Kerusakan, Pengadaan, Pemindahan, Pemusnahan)
+    $hcAssetTicketPref = "$hcPref-asset-ticketing";
+    Route::get("$hcAssetTicketPref-index", [HCGAAssetTicketingController::class, 'index']);
+    Route::get("$hcAssetTicketPref-data", [HCGAAssetTicketingController::class, 'data']);
+    Route::post("$hcAssetTicketPref-store", [HCGAAssetTicketingController::class, 'store']);
+    Route::post("$hcAssetTicketPref-escalate", [HCGAAssetTicketingController::class, 'escalate']);
+    Route::get("$hcAssetTicketPref-detail", [HCGAAssetTicketingController::class, 'detail']);
+
+    // Finance Approval & Voucher (Human Resources & GA)
+    Route::get('finance-hr-approval-index', [FinanceApprovalController::class, 'index']);
+    Route::get('finance-hr-approval-data', [FinanceApprovalController::class, 'data']);
+    Route::get('finance-hr-approval-detail', [FinanceApprovalController::class, 'detail']);
+    Route::get('finance-hr-approval-workflow-detail', [FinanceApprovalController::class, 'workflowDetail']);
+    Route::post('finance-hr-approval-workflow-act', [FinanceApprovalController::class, 'actWorkflow']);
+    Route::post('finance-hr-approval-maintenance-confirm', [FinanceApprovalController::class, 'confirmMaintenanceVoucher']);
+    Route::post('finance-hr-approval-tax-pay', [FinanceApprovalController::class, 'payVehicleTaxVoucher']);
 
     // Vehicle Operations: Logbook & Fuel Tracking (Controller based)
     $vehOpsPref = "$hcPref-vehicle-operations";
@@ -6368,6 +6406,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$vehOpsPref-vehicle-info", [HCGAVehicleOperationsController::class, 'vehicleInfo']);
     Route::post("$vehOpsPref-logbook-submit", [HCGAVehicleOperationsController::class, 'storeLogbook']);
     Route::post("$vehOpsPref-logbook-finish", [HCGAVehicleOperationsController::class, 'finishLogbook']);
+    Route::post("$vehOpsPref-logbook-approval", [HCGAVehicleOperationsController::class, 'approveLogbook']);
     Route::post("$vehOpsPref-logbook-delete", [HCGAVehicleOperationsController::class, 'deleteLogbook']);
     Route::post("$vehOpsPref-fuel-submit", [HCGAVehicleOperationsController::class, 'storeFuel']);
     Route::post("$vehOpsPref-fuel-delete", [HCGAVehicleOperationsController::class, 'deleteFuel']);

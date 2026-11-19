@@ -103,7 +103,10 @@
                                 <td>{{ $item['due_date'] }}</td>
                                 <td><span class="badge {{ $item['badge_class'] }}">{{ $item['label'] }}</span></td>
                                 <td>{{ $item['pic'] }}</td>
-                                <td class="text-end">
+                                <td class="text-end text-nowrap">
+                                    <button type="button" class="btn btn-xs btn-warning text-dark py-0 px-2 me-1" onclick="openTaxRequestModal('{{ $item['asset_no'] }}', '{{ $item['doc_type'] ?? '' }}', '{{ $item['due_date'] ?? '' }}');">
+                                        <i class="fa fa-file-invoice-dollar me-1"></i> Ajukan Perpanjangan
+                                    </button>
                                     <button type="button" class="btn btn-xs btn-primary py-0 px-2" onclick="openVehicleDetail('{{ $item['asset_no'] }}');">
                                         <i class="fa fa-edit me-1"></i> Detail / Update
                                     </button>
@@ -146,6 +149,9 @@
                 <button type="button" class="btn btn-secondary btn-sm" onclick="VEHICLEDetailSelected();">
                     <i class="fa fa-eye me-1"></i> Detail &amp; Update STNK / KEUR
                 </button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="openTaxRequestFromGrid();">
+                    <i class="fa fa-file-invoice-dollar me-1"></i> Ajukan Perpanjangan STNK / KEUR
+                </button>
                 <a href="hrd-vehicle-maintenance-index" class="btn btn-outline-primary btn-sm">
                     <i class="fa fa-wrench me-1"></i> Vehicle Maintenance
                 </a>
@@ -160,6 +166,150 @@
     </div>
 
     <div id="VEHICLEDTL" class="mt-3"></div>
+
+    <!-- Daftar Pengajuan Perpanjangan STNK / KEUR (Terintegrasi Approval Engine) -->
+    <div class="card shadow-sm mt-3">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-0 fw-bold"><i class="fa fa-file-invoice-dollar me-2 text-primary"></i>Pengajuan Perpanjangan STNK / KEUR &amp; Voucher Finance</h6>
+                <small class="text-muted">Alur: Pengajuan GA &rarr; Approval HCGA Manager &rarr; Voucher Finance &rarr; Pembayaran &amp; Update Tanggal STNK/KEUR</small>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadTaxRequests();">
+                <i class="fa fa-sync me-1"></i> Muat Ulang
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>No Pengajuan</th>
+                            <th>Kendaraan</th>
+                            <th>Jenis</th>
+                            <th>Jatuh Tempo</th>
+                            <th class="text-end">Estimasi Biaya</th>
+                            <th>Voucher Finance</th>
+                            <th>Status</th>
+                            <th class="text-end">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="TaxRequestsBody">
+                        <tr><td colspan="8" class="text-center text-muted py-3">Memuat data pengajuan...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pengajuan Perpanjangan STNK / KEUR -->
+    <div class="modal fade" id="TaxRequestModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h6 class="modal-title text-white">Ajukan Perpanjangan STNK / KEUR</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="FormTaxRequest" class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Asset No Kendaraan <span class="text-danger">*</span></label>
+                            <input type="text" id="Tax_Asset_No" name="Asset_No" class="form-control" readonly required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Jenis Dokumen <span class="text-danger">*</span></label>
+                            <select id="Tax_Jenis_Pajak" name="Jenis_Pajak" class="form-select form-control" required>
+                                <option value="STNK_TAHUNAN">STNK Tahunan</option>
+                                <option value="STNK_5_TAHUNAN">STNK 5 Tahunan</option>
+                                <option value="KEUR">KEUR / KIR</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tanggal Jatuh Tempo</label>
+                            <input type="date" id="Tax_Jatuh_Tempo" name="Tanggal_Jatuh_Tempo" class="form-control" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Estimasi Biaya (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" id="Tax_Estimasi_Biaya" name="Estimasi_Biaya" class="form-control" value="0" min="0" required />
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="submitTaxRequest();">Submit ke Approval HCGA</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pembayaran Pajak STNK / KEUR -->
+    <div class="modal fade" id="TaxPayModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h6 class="modal-title text-white">Konfirmasi Pembayaran &amp; Update Masa Berlaku</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="FormTaxPay" class="row g-3" enctype="multipart/form-data">
+                        <input type="hidden" id="Pay_Tax_ID" name="id" />
+                        <div class="col-md-6">
+                            <label class="form-label">Tanggal Bayar <span class="text-danger">*</span></label>
+                            <input type="date" id="Pay_Date" name="paid_date" class="form-control" value="{{ date('Y-m-d') }}" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Masa Berlaku Baru <span class="text-danger">*</span></label>
+                            <input type="date" id="Pay_New_Due_Date" name="new_due_date" class="form-control" value="{{ date('Y-m-d', strtotime('+1 year')) }}" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">No. Referensi / Keterangan</label>
+                            <input type="text" id="Pay_Bukti" name="bukti_bayar" class="form-control" placeholder="ex: TRF/FIN/2026/001" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Upload File Bukti Bayar (Gambar / PDF)</label>
+                            <input type="file" id="Pay_Bukti_File" name="bukti_file" class="form-control" accept="image/*,.pdf" />
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-success btn-sm" onclick="submitTaxPay();">Simpan &amp; Update STNK/KEUR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Revisi & Ajukan Ulang (Resubmit) -->
+    <div class="modal fade" id="TaxResubmitModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h6 class="modal-title">Revisi &amp; Ajukan Ulang Perpanjangan STNK / KEUR</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="FormTaxResubmit" class="row g-3">
+                        <input type="hidden" id="Resub_Tax_ID" name="id" />
+                        <div class="col-12">
+                            <label class="form-label">Catatan Penolakan Sebelumnya</label>
+                            <input type="text" id="Resub_Note" class="form-control bg-light" readonly />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tanggal Jatuh Tempo</label>
+                            <input type="date" id="Resub_Due_Date" name="Tanggal_Jatuh_Tempo" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Revisi Estimasi Biaya (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" id="Resub_Estimasi_Biaya" name="Estimasi_Biaya" class="form-control" min="0" required />
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="submitTaxResubmit();">Ajukan Ulang ke HCGA Mgr</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <script>
 var currentDocFilter = 'ALL';
@@ -233,6 +383,168 @@ function VEHICLERefresh() {
     VEHICLEGRID.clearAndLoad('hrd-vehicle-management-data?doc_status=' + encodeURIComponent(currentDocFilter));
 }
 
+function openTaxRequestModal(assetNo, docType, dueDate) {
+    $('#Tax_Asset_No').val(assetNo || '');
+    var mapped = 'STNK_TAHUNAN';
+    if ((docType || '').toUpperCase().indexOf('5') !== -1) { mapped = 'STNK_5_TAHUNAN'; }
+    else if ((docType || '').toUpperCase().indexOf('KEUR') !== -1 || (docType || '').toUpperCase().indexOf('KIR') !== -1) { mapped = 'KEUR'; }
+    $('#Tax_Jenis_Pajak').val(mapped);
+    $('#Tax_Jatuh_Tempo').val(dueDate && dueDate !== '-' ? dueDate : '');
+    $('#Tax_Estimasi_Biaya').val(0);
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('TaxRequestModal')).show();
+}
+
+function openTaxRequestFromGrid() {
+    var selectedId = VEHICLEGRID.getSelectedId();
+    if (!selectedId) {
+        alert('Pilih baris kendaraan di tabel terlebih dahulu.');
+        return;
+    }
+    var assetNo = VEHICLEGRID.cells(selectedId, 1).getValue();
+    var dueDate = VEHICLEGRID.cells(selectedId, 9).getValue();
+    openTaxRequestModal(assetNo, 'STNK_TAHUNAN', dueDate);
+}
+
+function submitTaxRequest() {
+    $.ajax({
+        url: 'hrd-vehicle-management-tax-store',
+        type: 'POST',
+        headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() },
+        data: $('#FormTaxRequest').serialize(),
+        success: function (res) {
+            alert(res.message || 'Pengajuan berhasil dikirim.');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('TaxRequestModal')).hide();
+            loadTaxRequests();
+        },
+        error: function (xhr) {
+            alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal mengirim pengajuan.');
+        }
+    });
+}
+
+function loadTaxRequests() {
+    $.get('hrd-vehicle-management-tax-requests', function (res) {
+        var rows = (res && res.data) ? res.data : [];
+        var tbody = $('#TaxRequestsBody');
+        if (!rows.length) {
+            tbody.html('<tr><td colspan="8" class="text-center text-muted py-3">Belum ada pengajuan perpanjangan STNK/KEUR.</td></tr>');
+            return;
+        }
+        var html = '';
+        rows.forEach(function (r) {
+            var aksi = '<span class="text-muted small">-</span>';
+            if (r.Status === 'APPROVAL_HCGA') {
+                var btns = [];
+                if (r.can_approve === true) {
+                    btns.push('<button class="btn btn-xs btn-success me-1" onclick="actTaxRequest(' + r.ID + ', \'APPROVE\')">Approve</button>');
+                    btns.push('<button class="btn btn-xs btn-danger me-1" onclick="actTaxRequest(' + r.ID + ', \'REJECT\')">Reject</button>');
+                }
+                if (r.can_force_approve === true) {
+                    btns.push('<button class="btn btn-xs btn-dark" onclick="forceApproveTax(' + r.ID + ')">Force Approve</button>');
+                }
+                aksi = btns.length ? btns.join('') : '<span class="text-muted small">Menunggu Approval HCGA Mgr</span>';
+            } else if (r.Status === 'RETURNED' || r.Status === 'REJECTED') {
+                aksi = '<button class="btn btn-xs btn-outline-primary" onclick="openTaxResubmitModal(' + r.ID + ', ' + Number(r.Estimasi_Biaya || 0) + ', \'' + (r.Tanggal_Jatuh_Tempo || '') + '\', \'' + ((r.Approval_Note || '').replace(/\'/g, "\\'")) + '\')">Revisi &amp; Ajukan Ulang</button>';
+            } else if (r.Status === 'FINANCE_SUBMITTED') {
+                aksi = '<a href="hrd-vehicle-management-tax-voucher?id=' + r.ID + '" target="_blank" class="btn btn-xs btn-outline-secondary me-1">Cetak Voucher</a>'
+                    + '<button class="btn btn-xs btn-success" onclick="openTaxPayModal(' + r.ID + ')">Bayar &amp; Update</button>';
+            } else if (r.Status === 'PAID') {
+                aksi = '<a href="hrd-vehicle-management-tax-voucher?id=' + r.ID + '" target="_blank" class="btn btn-xs btn-outline-secondary me-1">Voucher</a>';
+                if (r.Bukti_Bayar && r.Bukti_Bayar.indexOf('/') !== -1) {
+                    aksi += '<a href="{{ asset("filevendor") }}/' + r.Bukti_Bayar + '" target="_blank" class="btn btn-xs btn-outline-success">Bukti</a>';
+                }
+            }
+            html += '<tr>'
+                + '<td class="fw-bold">' + (r.Tax_Request_No || '') + '</td>'
+                + '<td>' + (r.Registration_No || r.Asset_No) + '<br><small class="text-muted">' + (r.Product_Description || '') + '</small></td>'
+                + '<td>' + (r.Jenis_Pajak || '') + '</td>'
+                + '<td>' + (r.Tanggal_Jatuh_Tempo || '-') + '</td>'
+                + '<td class="text-end">Rp ' + Number(r.Estimasi_Biaya || 0).toLocaleString('id-ID') + '</td>'
+                + '<td>' + (r.Voucher_No || '-') + '</td>'
+                + '<td><span class="badge bg-info text-white">' + (r.Status || '') + '</span></td>'
+                + '<td class="text-end text-nowrap">' + aksi + '</td>'
+                + '</tr>';
+        });
+        tbody.html(html);
+    });
+}
+
+function actTaxRequest(id, action) {
+    var note = action === 'REJECT' ? (prompt('Alasan penolakan:') || '') : '';
+    $.ajax({
+        url: 'hrd-vehicle-management-tax-approval',
+        type: 'POST',
+        headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() },
+        data: { id: id, action: action, note: note },
+        success: function (res) { alert(res.message); loadTaxRequests(); },
+        error: function (xhr) { alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal memproses approval.'); }
+    });
+}
+
+function forceApproveTax(id) {
+    var reason = prompt('Alasan Force Approve (wajib diisi):');
+    if (!reason || !reason.trim()) {
+        return;
+    }
+    $.ajax({
+        url: 'hrd-vehicle-management-tax-force-approve',
+        type: 'POST',
+        headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() },
+        data: { id: id, reason: reason.trim() },
+        success: function (res) { alert(res.message); loadTaxRequests(); },
+        error: function (xhr) { alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal melakukan Force Approve.'); }
+    });
+}
+
+function openTaxResubmitModal(id, estimasi, dueDate, note) {
+    $('#Resub_Tax_ID').val(id);
+    $('#Resub_Estimasi_Biaya').val(estimasi || 0);
+    $('#Resub_Due_Date').val(dueDate || '');
+    $('#Resub_Note').val(note || '-');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('TaxResubmitModal')).show();
+}
+
+function submitTaxResubmit() {
+    $.ajax({
+        url: 'hrd-vehicle-management-tax-resubmit',
+        type: 'POST',
+        headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() },
+        data: $('#FormTaxResubmit').serialize(),
+        success: function (res) {
+            alert(res.message);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('TaxResubmitModal')).hide();
+            loadTaxRequests();
+        },
+        error: function (xhr) { alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal mengajukan ulang.'); }
+    });
+}
+
+function openTaxPayModal(id) {
+    $('#Pay_Tax_ID').val(id);
+    $('#Pay_Bukti_File').val('');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('TaxPayModal')).show();
+}
+
+function submitTaxPay() {
+    var fd = new FormData(document.getElementById('FormTaxPay'));
+    $.ajax({
+        url: 'hrd-vehicle-management-tax-pay',
+        type: 'POST',
+        headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() },
+        data: fd,
+        processData: false,
+        contentType: false,
+        success: function (res) {
+            alert(res.message);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('TaxPayModal')).hide();
+            loadTaxRequests();
+            VEHICLERefresh();
+        },
+        error: function (xhr) { alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal mencatat pembayaran.'); }
+    });
+}
+
 VEHICLERefresh();
+loadTaxRequests();
 </script>
 @endsection

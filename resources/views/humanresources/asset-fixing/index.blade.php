@@ -2,27 +2,48 @@
 
 @section('content-wrapper')
 @csrf
-    <!-- Main Content Header -->
-    <div class="main-content-header">
-        <h1>Human Capital and General Affairs</h1>
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="#">Data Assets</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <span class="active">Asset Fixing</span>
-            </li>
-        </ol>
+    <div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+        <div>
+            <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+                Asset Fixing Management
+            </h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Human Capital &amp; GA</a></li>
+                    <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Data Assets</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Asset Fixing</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="d-none d-sm-flex align-items-center gap-2">
+            <span class="badge px-3 py-2 fs-12 shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+                <i class="fa fa-tools me-1"></i> Perbaikan &amp; Perawatan Aset
+            </span>
+        </div>
     </div>
 
-    <div class="card mt-3">
+    <div class="card shadow-sm border-0 mt-3">
         <div class="card-body">
-            <div id="AssetFixing" style="width:auto;height:350px; background-color:white;overflow:hidden"></div>
-            <div>
-                <input type="button" id="ekselASSETFIXING" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="AssetFixing.toExcel('./export/generate.php');" />
-                <input type="button" id="ASSETFIXING_Refresh" class="btn btn-info mt-2 mr-2" value="Refresh Data" onclick="AssetFixingRefresh();" />
-                <input type="button" id="dxdata" class="btn btn-primary mt-2 mr-2" value="Form Perbaikan Aset" onclick="AssetFixingNew();" />
-                <input type="button" id="dxdata" class="btn btn-success mt-2 mr-2" value="Log Perbaikan Aset" onclick="AssetFixingLog();" />
+            <div id="AssetFixing" style="width:100%;height:380px;background-color:white;overflow:hidden"></div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                <button type="button" id="ASSETFIXING_New" class="btn btn-primary btn-sm" onclick="AssetFixingNew();">
+                    <i class="fa fa-plus me-1"></i> Form Perbaikan Aset
+                </button>
+                <button type="button" id="ASSETFIXING_Detail" class="btn btn-info btn-sm text-white" onclick="AssetFixingDetail();">
+                    <i class="fa fa-eye me-1"></i> Detail Perbaikan
+                </button>
+                <button type="button" id="ASSETFIXING_Log" class="btn btn-success btn-sm" onclick="AssetFixingLog();">
+                    <i class="fa fa-history me-1"></i> Log Perbaikan Aset
+                </button>
+                <button type="button" id="ekselASSETFIXING" class="btn btn-warning btn-sm text-dark" onclick="AssetFixing.toExcel('./export/generate.php');">
+                    <i class="fa fa-file-excel me-1"></i> Export Excel
+                </button>
+                <button type="button" id="ASSETFIXING_Refresh" class="btn btn-outline-secondary btn-sm" onclick="AssetFixingRefresh();">
+                    <i class="fa fa-sync-alt me-1"></i> Refresh Data
+                </button>
+                <a href="hrd-asset-fixing-schedule" class="btn btn-outline-primary btn-sm">
+                    <i class="fa fa-calendar-check me-1"></i> Jadwal Perawatan Aset (Schedule)
+                </a>
             </div>
         </div>
     </div>
@@ -31,8 +52,14 @@
     <div id="ASSETFIXINGDTL1"></div>
 
 <script>
+function scrollToFixingPanel(id) {
+    var el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function AssetFixingNew() {
     LoadM('ASSETFIXINGDTL1', 'hrd-asset-fixing-create');
+    scrollToFixingPanel('ASSETFIXINGDTL1');
 }
 
 function AssetFixingDetail() {
@@ -41,8 +68,9 @@ function AssetFixingDetail() {
         alert("Pilih Baris terlebih dulu");
         return false;
     }
-    var url = 'hrd-asset-fixing-detail?ID=' + AssetFixingID;
+    var url = 'hrd-asset-fixing-detail?ID=' + encodeURIComponent(AssetFixingID);
     LoadM('ASSETFIXINGDTL', url);
+    scrollToFixingPanel('ASSETFIXINGDTL');
 }
 
 function AssetFixingLog() {
@@ -51,8 +79,9 @@ function AssetFixingLog() {
         alert("Pilih Baris terlebih dulu");
         return false;
     }
-    var url = 'hrd-asset-fixing-log?ID=' + AssetFixingID;
+    var url = 'hrd-asset-fixing-log?ID=' + encodeURIComponent(AssetFixingID);
     LoadM('ASSETFIXINGDTL', url);
+    scrollToFixingPanel('ASSETFIXINGDTL');
 }
 
 function AssetFixingRefresh() {

@@ -37,6 +37,7 @@ class AssetListController extends Controller
         $rows = $this->assetService->getAssetGridData([
             'sub_category' => $request->input('sub_category'),
             'status'       => $request->input('status'),
+            'kondisi'      => $request->input('kondisi'),
         ]);
 
         $nomor = 1;
@@ -91,6 +92,7 @@ class AssetListController extends Controller
             echo '<cell>' . $this->xml($dapat->Link_QR ?? '') . '</cell>';
             echo '<cell>' . $this->xml($dapat->QR_Aset ?? '') . '</cell>';
             echo '<cell>' . $this->xml($dapat->Status ?? '') . '</cell>';
+            echo '<cell>' . $this->xml($dapat->Kondisi_Aset ?? 'BAIK') . '</cell>';
             echo '<cell>' . $this->xml($dapat->Note ?? '') . '</cell>';
             echo '</row>';
             $nomor++;
@@ -111,7 +113,12 @@ class AssetListController extends Controller
             $username = $user ? ($user->username ?? 'system') : 'system';
             $location = $user ? ($user->Location ?? 'GEU-HO') : 'GEU-HO';
 
-            $created = $this->assetService->createAsset($request->all(), $username, $location);
+            $documents = $request->file('documents') ?: ($request->file('photos') ?: []);
+            if (!is_array($documents)) {
+                $documents = $documents ? [$documents] : [];
+            }
+
+            $created = $this->assetService->createAsset($request->all(), $username, $location, $documents);
 
             return response()->json([
                 'status'  => 'success',

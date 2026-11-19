@@ -11,9 +11,15 @@ class AssetVehicleService
     /** @var VehicleDocumentReminderService */
     protected $reminderService;
 
-    public function __construct(VehicleDocumentReminderService $reminderService)
-    {
+    /** @var AssetLifecycleService */
+    protected $lifecycleService;
+
+    public function __construct(
+        VehicleDocumentReminderService $reminderService,
+        AssetLifecycleService $lifecycleService
+    ) {
         $this->reminderService = $reminderService;
+        $this->lifecycleService = $lifecycleService;
     }
 
     /**
@@ -71,6 +77,7 @@ class AssetVehicleService
                 'Link_QR',
                 'QR_Aset',
                 'Status',
+                'Kondisi_Aset',
                 'Note'
             )
             ->orderBy('ID', 'ASC');
@@ -80,6 +87,9 @@ class AssetVehicleService
         }
         if (!empty($filters['status'])) {
             $query->where('Status', $filters['status']);
+        }
+        if (!empty($filters['kondisi'])) {
+            $query->where('Kondisi_Aset', $filters['kondisi']);
         }
 
         return $query->get();
@@ -211,9 +221,55 @@ class AssetVehicleService
         $stnkLogs = DB::table('asset_stnk_log')->where('Asset_No', $assetNo)->orderBy('ID', 'DESC')->get();
         $kirLogs  = DB::table('asset_kir_log')->where('Asset_No', $assetNo)->orderBy('Ke', 'DESC')->get();
         $photos   = DB::table('meta_files')
-            ->where('Topic', 'asset-photo')
+            ->whereIn('Topic', ['asset-photo', 'asset-doc'])
             ->where('Map_To', $assetNo)
             ->orderBy('ID', 'ASC')
+            ->get();
+
+        $userHistories = DB::table('asset_user_history')
+            ->where('Asset_No', $assetNo)
+            ->orderBy('ID', 'DESC')
+            ->get();
+
+        $damageTickets = DB::table('ga_ticket as gt')
+            ->join('ticket as t', 't.ID', '=', 'gt.Ticket_ID')
+            ->where('gt.Asset_No', $assetNo)
+            ->select(
+                't.ID', 't.Ticket_No', 't.Ticket_Subject', 't.Ticket_Status',
+                't.Priority', 't.Proposed_Date', 'gt.Damage_Severity', 'gt.Reporter_Name'
+            )
+            ->orderBy('t.ID', 'DESC')
+            ->limit(20)
+            ->get();
+
+        $fixingHistory = DB::table('asset_fixing')
+            ->where('Asset_No', $assetNo)
+            ->orderBy('ID', 'DESC')
+            ->limit(20)
+            ->get();
+
+        $procurementHistory = DB::table('purchase_request')
+            ->where('Asset_No', $assetNo)
+            ->orderBy('ID', 'DESC')
+            ->limit(20)
+            ->get();
+
+        $movingHistory = DB::table('moving_asset')
+            ->where('Asset_No', $assetNo)
+            ->orderBy('ID', 'DESC')
+            ->limit(20)
+            ->get();
+
+        $disposalHistory = DB::table('asset_disposal')
+            ->where(function ($q) use ($assetNo, $asset) {
+                $q->where('Asset_No', $assetNo);
+                if (!empty($asset->SN)) {
+                    $q->orWhere('Asset_Serial_No', $asset->SN);
+                }
+                $q->orWhere('Asset_Serial_No', $assetNo);
+            })
+            ->orderBy('ID', 'DESC')
+            ->limit(20)
             ->get();
 
         $banks     = DB::table('bank_acc')->where('Status', 'ACTIVE')->orderBy('Bank_Acc', 'ASC')->get();
@@ -222,12 +278,18 @@ class AssetVehicleService
         $today = Carbon::today();
 
         return [
-            'asset'     => $asset,
-            'stnkLogs'  => $stnkLogs,
-            'kirLogs'   => $kirLogs,
-            'photos'    => $photos,
-            'banks'     => $banks,
-            'suppliers' => $suppliers,
+            'asset'              => $asset,
+            'stnkLogs'           => $stnkLogs,
+            'kirLogs'            => $kirLogs,
+            'photos'             => $photos,
+            'userHistories'      => $userHistories,
+            'damageTickets'      => $damageTickets,
+            'fixingHistory'      => $fixingHistory,
+            'procurementHistory' => $procurementHistory,
+            'movingHistory'      => $movingHistory,
+            'disposalHistory'    => $disposalHistory,
+            'banks'              => $banks,
+            'suppliers'          => $suppliers,
             'docStatus' => [
                 'stnk_1' => $this->reminderService->evaluateDocumentStatus($asset->STNK_Tahunan ?? null, $today),
                 'stnk_5' => $this->reminderService->evaluateDocumentStatus($asset->STNK_5_Tahun ?? null, $today),
@@ -263,10 +325,12 @@ class AssetVehicleService
 
     /**
      * Simpan asset baru (Manual atau dari PO) dalam transaksi.
+     *
+     * @param UploadedFile[] $documents
      */
-    public function createAsset(array $payload, string $username, string $location = 'GEU-HO'): array
+    public function createAsset(array $payload, string $username, string $location = 'GEU-HO', array $documents = []): array
     {
-        return DB::transaction(function () use ($payload, $username, $location) {
+        return DB::transaction(function () use ($payload, $username, $location, $documents) {
             $assetCategory    = $payload['Asset_Category'] ?? '';
             $assetSubCategory = $payload['Asset_Sub_Category'] ?? '';
             $assetType        = $payload['Asset_Type'] ?? '';
@@ -288,7 +352,11 @@ class AssetVehicleService
             $prefix = "{$p1}-{$p2}-{$p3}-01-";
 
             $columnTypes = $this->getAssetColumnTypes();
-            $skipKeys = ['_token', 'Task_ID', 'Created_Date', 'Created_By', 'Location', 'Incoming_Type', 'PO_No', 'PO_Item_Select', 'Item_Qty_Select', 'items'];
+            $skipKeys = ['_token', 'Task_ID', 'Created_Date', 'Created_By', 'Location', 'Incoming_Type', 'PO_No', 'PO_Item_Select', 'Item_Qty_Select', 'items', 'documents', 'photos'];
+            $defaultKondisi = strtoupper(trim((string) ($payload['Kondisi_Aset'] ?? 'BAIK')));
+            if (!in_array($defaultKondisi, ['BAIK', 'RUSAK'], true)) {
+                $defaultKondisi = 'BAIK';
+            }
 
             $createdAssetNos = [];
             $isPo = isset($payload['Incoming_Type']) && $payload['Incoming_Type'] === 'PO' && !empty($payload['PO_No']);
@@ -305,9 +373,15 @@ class AssetVehicleService
                     $countExisting = DB::table('asset_list')->where('Asset_No', 'LIKE', "{$prefix}%")->count();
                     $assetNo = $prefix . sprintf("%'04d", $countExisting + 1 + $index);
 
+                    $itemKondisi = strtoupper(trim((string) ($itemData['Kondisi_Aset'] ?? $defaultKondisi)));
+                    if (!in_array($itemKondisi, ['BAIK', 'RUSAK'], true)) {
+                        $itemKondisi = 'BAIK';
+                    }
+
                     $row = [
                         'Asset_No'           => $assetNo,
                         'PO_No'              => $poNo,
+                        'GR_No'              => $grNo,
                         'Product_Code'       => $productCode,
                         'Asset_Category'     => $assetCategory,
                         'Asset_Sub_Category' => $assetSubCategory,
@@ -315,7 +389,8 @@ class AssetVehicleService
                         'Location'           => $location,
                         'Created_By'         => $username,
                         'Created_Date'       => now(),
-                        'Status'             => 'NEW',
+                        'Status'             => 'ACTIVE',
+                        'Kondisi_Aset'       => $itemKondisi,
                     ];
 
                     foreach ($itemData as $k => $v) {
@@ -326,6 +401,9 @@ class AssetVehicleService
                     }
 
                     DB::table('asset_list')->insert($row);
+                    if (!empty($row['User_Responsible'])) {
+                        $this->recordInitialUserHistory($assetNo, $row['User_Sebelumnya'] ?? null, $row['User_Responsible'], 'INITIAL', $poNo, $username, $row['Buy_Date'] ?? date('Y-m-d'));
+                    }
                     $createdAssetNos[] = $assetNo;
                 }
 
@@ -392,7 +470,8 @@ class AssetVehicleService
                     'Location'     => $location,
                     'Created_By'   => $username,
                     'Created_Date' => now(),
-                    'Status'       => 'NEW',
+                    'Status'       => 'ACTIVE',
+                    'Kondisi_Aset' => $defaultKondisi,
                 ];
 
                 foreach ($payload as $k => $v) {
@@ -403,6 +482,9 @@ class AssetVehicleService
                 }
 
                 DB::table('asset_list')->insert($row);
+                if (!empty($row['User_Responsible'])) {
+                    $this->recordInitialUserHistory($assetNo, $row['User_Sebelumnya'] ?? null, $row['User_Responsible'], 'INITIAL', null, $username, $row['Buy_Date'] ?? date('Y-m-d'));
+                }
                 $createdAssetNos[] = $assetNo;
 
                 $grNoManual = $payload['AP_No'] ?? ('GR/FA/' . $location . '/' . date('ymdHis'));
@@ -424,8 +506,36 @@ class AssetVehicleService
                 ]);
             }
 
+            if (!empty($documents)) {
+                foreach ($createdAssetNos as $createdAssetNo) {
+                    $this->uploadPhotos($createdAssetNo, $documents, $username);
+                }
+            }
+
             return $createdAssetNos;
         });
+    }
+
+    protected function recordInitialUserHistory(
+        string $assetNo,
+        ?string $fromUser,
+        string $toUser,
+        string $sourceType,
+        ?string $refNo,
+        string $username,
+        ?string $effectiveDate
+    ): void {
+        DB::table('asset_user_history')->insert([
+            'Asset_No'       => $assetNo,
+            'From_User'      => ($fromUser !== null && trim($fromUser) !== '') ? trim($fromUser) : null,
+            'To_User'        => trim($toUser),
+            'Source_Type'    => $sourceType,
+            'Reference_No'   => $refNo,
+            'Effective_Date' => ($effectiveDate && $effectiveDate !== '0000-00-00') ? $effectiveDate : date('Y-m-d'),
+            'Note'           => 'Pencatatan awal saat input data aset',
+            'Created_By'     => $username,
+            'Created_At'     => now(),
+        ]);
     }
 
     /**
@@ -433,6 +543,11 @@ class AssetVehicleService
      */
     public function updateAsset(int $id, array $payload, string $username): void
     {
+        $existing = DB::table('asset_list')->where('ID', $id)->first();
+        if (!$existing) {
+            throw new \RuntimeException('Asset tidak ditemukan.');
+        }
+
         $columnTypes = $this->getAssetColumnTypes();
         $skip = ['_token', 'Task_ID', 'ID', 'Created_Date', 'Created_By', 'Location', 'Incoming_Type', 'PO_Item_Select', 'Item_Qty_Select'];
 
@@ -442,6 +557,27 @@ class AssetVehicleService
                 continue;
             }
             $data[$k] = $this->normalizeColumnValue($v, $columnTypes[$k]);
+        }
+
+        $oldResponsible = trim((string) ($existing->User_Responsible ?? ''));
+        $newResponsible = isset($data['User_Responsible']) ? trim((string) $data['User_Responsible']) : $oldResponsible;
+
+        if ($newResponsible !== '' && $newResponsible !== $oldResponsible) {
+            if (!isset($data['User_Sebelumnya']) || trim((string) $data['User_Sebelumnya']) === '' || trim((string) $data['User_Sebelumnya']) === trim((string) ($existing->User_Sebelumnya ?? ''))) {
+                $data['User_Sebelumnya'] = $oldResponsible !== '' ? $oldResponsible : null;
+            }
+
+            DB::table('asset_user_history')->insert([
+                'Asset_No'       => $existing->Asset_No,
+                'From_User'      => $oldResponsible !== '' ? $oldResponsible : null,
+                'To_User'        => $newResponsible,
+                'Source_Type'    => 'MANUAL_UPDATE',
+                'Reference_No'   => null,
+                'Effective_Date' => date('Y-m-d'),
+                'Note'           => 'Perubahan User Responsible dari detail aset',
+                'Created_By'     => $username,
+                'Created_At'     => now(),
+            ]);
         }
 
         $data['Last_User'] = $username;
@@ -535,10 +671,11 @@ class AssetVehicleService
             throw new \RuntimeException('Asset tidak ditemukan.');
         }
 
-        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        $maxBytes = 5 * 1024 * 1024;
-        $uploaded = 0;
-        $rejected = [];
+        $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $allowed   = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx'];
+        $maxBytes  = 5 * 1024 * 1024;
+        $uploaded  = 0;
+        $rejected  = [];
 
         $year = date('Y');
         $month = date('m');
@@ -564,6 +701,7 @@ class AssetVehicleService
                 continue;
             }
 
+            $isImage = in_array($ext, $imageExts, true);
             $newName = 'asset_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $assetNo) . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
             $file->move($targetDir, $newName);
 
@@ -571,8 +709,8 @@ class AssetVehicleService
                 'Filename'    => $newName,
                 'Path'        => "{$year}/{$month}/{$newName}",
                 'Extension'   => $ext,
-                'Description' => 'Asset Photo',
-                'Topic'       => 'asset-photo',
+                'Description' => $isImage ? 'Asset Photo' : 'Asset Document',
+                'Topic'       => $isImage ? 'asset-photo' : 'asset-doc',
                 'Map_To'      => $assetNo,
                 'Created_At'  => now(),
             ]);
@@ -590,7 +728,7 @@ class AssetVehicleService
 
     public function deletePhoto(int $photoId, string $assetNo, string $username): void
     {
-        $foto = DB::table('meta_files')->where('ID', $photoId)->where('Topic', 'asset-photo')->first();
+        $foto = DB::table('meta_files')->where('ID', $photoId)->whereIn('Topic', ['asset-photo', 'asset-doc'])->first();
         if (!$foto) {
             throw new \RuntimeException('Foto tidak ditemukan.');
         }
