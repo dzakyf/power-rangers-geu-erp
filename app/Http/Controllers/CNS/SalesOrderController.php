@@ -6,6 +6,8 @@ use App\CnsMasterKemasan;
 use App\Http\Controllers\Controller;
 use App\SalesOrderCNS;
 use App\SalesOrderCNSDtl;
+use App\SludgeMovement;
+use App\TankDraining;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -48,8 +50,232 @@ class SalesOrderController extends Controller
         return CnsMasterKemasan::where('product_type', 'Kemasan')->orderBy('Name', 'asc')->get(['Kemasan_ID', 'Name', 'Volume', 'Is_Ampas', 'Unit', 'Price']);
     }
 
+    protected function getUsedSludgeQtyMap(?int $excludeSoId = null): array
+    {
+        try {
+            if (!Schema::hasTable('sales_order_cns') || !Schema::hasColumn('sales_order_cns', 'draining_id')) {
+                return [];
+            }
+
+            $query = DB::table('sales_order_cns as so')
+                ->join('sales_order_cns_dtl as dtl', 'dtl.so_no', '=', 'so.so_no')
+                ->where('so.so_type', 'SLUDGE')
+                ->whereNotNull('so.draining_id')
+                ->whereRaw("UPPER(COALESCE(so.status, '')) != 'REJECTED'");
+
+            if (Schema::hasColumn('sales_order_cns', 'sludge_movement_id')) {
+                $query->whereNull('so.sludge_movement_id');
+            }
+            if ($excludeSoId !== null) {
+                $query->where('so.id', '!=', $excludeSoId);
+            }
+
+            return $query->select('so.draining_id', DB::raw('SUM(dtl.qty) as used_qty'))
+                ->groupBy('so.draining_id')
+                ->pluck('used_qty', 'so.draining_id')
+                ->map(function ($qty) {
+                    return (float) $qty;
+                })
+                ->toArray();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    protected function getUsedMovementSludgeQtyMap(?int $excludeSoId = null): array
+    {
+        try {
+            if (!Schema::hasTable('sales_order_cns') || !Schema::hasColumn('sales_order_cns', 'sludge_movement_id')) {
+                return [];
+            }
+
+            $query = DB::table('sales_order_cns as so')
+                ->join('sales_order_cns_dtl as dtl', 'dtl.so_no', '=', 'so.so_no')
+                ->where('so.so_type', 'SLUDGE')
+                ->whereNotNull('so.sludge_movement_id')
+                ->whereRaw("UPPER(COALESCE(so.status, '')) != 'REJECTED'");
+
+            if ($excludeSoId !== null) {
+                $query->where('so.id', '!=', $excludeSoId);
+            }
+
+            return $query->select('so.sludge_movement_id', DB::raw('SUM(dtl.qty) as used_qty'))
+                ->groupBy('so.sludge_movement_id')
+                ->pluck('used_qty', 'so.sludge_movement_id')
+                ->map(function ($qty) {
+                    return (float) $qty;
+                })
+                ->toArray();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    protected function getMovedOutSludgeQtyMap(): array
+    {
+        try {
+            if (!Schema::hasTable('cns_sludge_movements')) {
+                return [];
+            }
+            return SludgeMovement::select('draining_id', DB::raw('SUM(qty) as moved_qty'))
+                ->groupBy('draining_id')
+                ->pluck('moved_qty', 'draining_id')
+                ->map(function ($qty) {
+                    return (float) $qty;
+                })
+                ->toArray();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    protected function getAvailableSludgeDrainings(?int $excludeSoId = null, ?int $selectedDrainingId = null, ?int $selectedMovementId = null)
+    {
+        try {
+            $usedMap = $this->getUsedSludgeQtyMap($excludeSoId);
+            $movedMap = $this->getMovedOutSludgeQtyMap();
+            $drainings = TankDraining::where('qty_sludge', '>', 0)
+                ->orderBy('draining_date', 'desc')
+                ->orderBy('id', 'desc')
+                ->get(['id', 'draining_code', 'draining_date', 'tank_name', 'qty_sludge']);
+
+            $drainingItems = $drainings->map(function ($draining) use ($usedMap, $movedMap) {
+                $used = (float) ($usedMap[$draining->id] ?? 0);
+                $moved = (float) ($movedMap[$draining->id] ?? 0);
+                $draining->available_qty_sludge = max(0.0, round((float) $draining->qty_sludge - $used - $moved, 4));
+                $draining->option_value = (string) $draining->id;
+                $draining->source_type = 'DRAINING';
+                $draining->movement_id = null;
+                return $draining;
+            })->filter(function ($draining) use ($selectedDrainingId, $selectedMovementId) {
+                $isSelectedDirect = $selectedMovementId === null && $selectedDrainingId !== null && (int) $draining->id === $selectedDrainingId;
+                return $draining->available_qty_sludge > 0 || $isSelectedDirect;
+            });
+
+            $movementItems = collect();
+            if (Schema::hasTable('cns_sludge_movements')) {
+                $usedMovMap = $this->getUsedMovementSludgeQtyMap($excludeSoId);
+                $movements = SludgeMovement::with('draining')
+                    ->orderBy('movement_date', 'desc')
+                    ->orderBy('id', 'desc')
+                    ->get();
+
+                $movementItems = $movements->map(function ($mov) use ($usedMovMap) {
+                    $used = (float) ($usedMovMap[$mov->id] ?? 0);
+                    $avail = max(0.0, round((float) $mov->qty - $used, 4));
+                    $srcCode = $mov->draining ? $mov->draining->draining_code : '';
+                    return (object) [
+                        'id'                   => $mov->draining_id,
+                        'movement_id'          => $mov->id,
+                        'option_value'         => 'M:' . $mov->id,
+                        'source_type'          => 'MOVEMENT',
+                        'draining_code'        => $mov->movement_code,
+                        'tank_name'            => $mov->target_warehouse_name . ($srcCode ? ' / asal ' . $srcCode : ''),
+                        'qty_sludge'           => (float) $mov->qty,
+                        'available_qty_sludge' => $avail,
+                    ];
+                })->filter(function ($item) use ($selectedMovementId) {
+                    return $item->available_qty_sludge > 0 || ($selectedMovementId !== null && (int) $item->movement_id === $selectedMovementId);
+                });
+            }
+
+            return $drainingItems->concat($movementItems)->values();
+        } catch (\Throwable $e) {
+            return collect();
+        }
+    }
+
+    protected function getAvailableSludgeQty(int $drainingId, ?int $excludeSoId = null): ?float
+    {
+        $draining = TankDraining::find($drainingId);
+        if (!$draining) {
+            return null;
+        }
+        $usedMap = $this->getUsedSludgeQtyMap($excludeSoId);
+        $movedMap = $this->getMovedOutSludgeQtyMap();
+        $used = (float) ($usedMap[$drainingId] ?? 0);
+        $moved = (float) ($movedMap[$drainingId] ?? 0);
+        return max(0.0, round((float) $draining->qty_sludge - $used - $moved, 4));
+    }
+
+    protected function getAvailableMovementSludgeQty(int $movementId, ?int $excludeSoId = null): ?float
+    {
+        $movement = SludgeMovement::find($movementId);
+        if (!$movement) {
+            return null;
+        }
+        $usedMap = $this->getUsedMovementSludgeQtyMap($excludeSoId);
+        $used = (float) ($usedMap[$movementId] ?? 0);
+        return max(0.0, round((float) $movement->qty - $used, 4));
+    }
+
+    protected function resolveSludgeSource(Request $request): array
+    {
+        $rawVal = trim((string) $request->input('sludgeDrainingId', ''));
+        $movementId = $request->filled('sludgeMovementId') ? (int) $request->input('sludgeMovementId') : null;
+        $drainingId = null;
+
+        if (strpos($rawVal, 'M:') === 0) {
+            $movementId = (int) substr($rawVal, 2);
+        } elseif ($rawVal !== '' && is_numeric($rawVal)) {
+            $drainingId = (int) $rawVal;
+        }
+
+        $code = trim((string) $request->input('sludgeDrainingCode', ''));
+        if ($movementId) {
+            $mov = SludgeMovement::find($movementId);
+            if ($mov) {
+                $drainingId = (int) $mov->draining_id;
+                if ($code === '') {
+                    $code = (string) $mov->movement_code;
+                }
+            }
+        } elseif ($drainingId && $code === '') {
+            $draining = TankDraining::find($drainingId);
+            $code = $draining ? (string) $draining->draining_code : '';
+        }
+
+        return [
+            'draining_id' => $drainingId,
+            'movement_id' => $movementId,
+            'code'        => $code,
+            'product_ref' => $movementId ? ('M:' . $movementId) : ($drainingId ? (string) $drainingId : ''),
+        ];
+    }
+
     protected function parseSubmittedItems(Request $request, ?bool $hasUnitCol = null): array
     {
+        if (strtoupper((string) $request->input('soType', '')) === 'SLUDGE') {
+            if ($hasUnitCol === null) {
+                try {
+                    $hasUnitCol = Schema::hasColumn('sales_order_cns_dtl', 'unit');
+                } catch (\Throwable $e) {
+                    $hasUnitCol = true;
+                }
+            }
+
+            $src = $this->resolveSludgeSource($request);
+            $qty = (float) $request->input('sludgeQty', 0);
+            $price = (float) $request->input('sludgePrice', 0);
+            $lineTotal = $qty * $price;
+            $desc = $src['code'] !== '' ? "Sludge ({$src['code']})" : 'Sludge';
+
+            $row = [
+                'sort_order'  => 1,
+                'description' => $desc,
+                'qty'         => $qty,
+                'unit_price'  => $price,
+                'total'       => $lineTotal,
+            ];
+            if ($hasUnitCol) {
+                $row['unit'] = 'KG';
+            }
+            if ($src['product_ref'] !== '') {
+                $row['product_code'] = $src['product_ref'];
+            }
+
+            return [[$row], $lineTotal];
+        }
         $raw = [];
         foreach ($request->all() as $key => $value) {
             if (preg_match('/^([a-zA-Z_]+)(\d+)$/', $key, $matches)) {
@@ -123,6 +349,15 @@ class SalesOrderController extends Controller
             'remarks'        => $request->remarks,
         ];
 
+        $soType = strtoupper((string) $request->input('soType', 'KEMASAN_AMPAS'));
+        if (!in_array($soType, ['SLUDGE', 'KEMASAN_AMPAS'], true)) {
+            $soType = 'KEMASAN_AMPAS';
+        }
+        $sludgeSrc = $soType === 'SLUDGE' ? $this->resolveSludgeSource($request) : ['draining_id' => null, 'movement_id' => null, 'code' => null];
+        $drainingId = $sludgeSrc['draining_id'];
+        $movementId = $sludgeSrc['movement_id'];
+        $drainingCode = $sludgeSrc['code'];
+
         try {
             if (Schema::hasColumn('sales_order_cns', 'site_id')) {
                 $payload['site_id'] = $siteId;
@@ -130,12 +365,55 @@ class SalesOrderController extends Controller
             if (Schema::hasColumn('sales_order_cns', 'status')) {
                 $payload['status'] = $request->filled('status') ? (string) $request->status : 'PENDING';
             }
+            if (Schema::hasColumn('sales_order_cns', 'so_type')) {
+                $payload['so_type'] = $soType;
+            }
+            if (Schema::hasColumn('sales_order_cns', 'draining_id')) {
+                $payload['draining_id'] = $drainingId;
+            }
+            if (Schema::hasColumn('sales_order_cns', 'draining_code')) {
+                $payload['draining_code'] = $drainingCode;
+            }
+            if (Schema::hasColumn('sales_order_cns', 'sludge_movement_id')) {
+                $payload['sludge_movement_id'] = $movementId;
+            }
         } catch (\Throwable $e) {
             $payload['site_id'] = $siteId;
             $payload['status'] = $request->filled('status') ? (string) $request->status : 'PENDING';
         }
 
         return $payload;
+    }
+
+    protected function validateSludgeOrder(?int $drainingId, float $qty, ?int $excludeSoId = null, ?int $movementId = null): ?string
+    {
+        if (!$drainingId && !$movementId) {
+            return 'Sumber sludge (kode draining / moving) wajib dipilih untuk Sales Order Sludge.';
+        }
+        if ($qty <= 0) {
+            return 'Qty Sludge harus lebih dari 0.';
+        }
+
+        if ($movementId) {
+            $availableSludge = $this->getAvailableMovementSludgeQty($movementId, $excludeSoId);
+            if ($availableSludge === null) {
+                return 'Data moving sludge tidak ditemukan.';
+            }
+            if ($qty > $availableSludge) {
+                return "Qty Sludge ({$qty} KG) melebihi sisa qty moving sludge di gudang ({$availableSludge} KG).";
+            }
+            return null;
+        }
+
+        $availableSludge = $this->getAvailableSludgeQty($drainingId, $excludeSoId);
+        if ($availableSludge === null) {
+            return 'Data draining tidak ditemukan.';
+        }
+        if ($qty > $availableSludge) {
+            return "Qty Sludge ({$qty} KG) melebihi sisa qty sludge draining yang tersedia ({$availableSludge} KG).";
+        }
+
+        return null;
     }
 
     public function newSalesOrder()
@@ -148,7 +426,8 @@ class SalesOrderController extends Controller
         }
         $socode = sprintf("%03d", $counter) . "/SO/" . $romawi[(int)date('n') - 1] . "/" . date("Y");
         $kemasans = $this->getKemasanOptions();
-        return view('cns.sales.input-order-new', compact('socode', 'kemasans'));
+        $drainings = $this->getAvailableSludgeDrainings();
+        return view('cns.sales.input-order-new', compact('socode', 'kemasans', 'drainings'));
     }
 
     public function newSalesOrderSubmit(Request $request)
@@ -166,25 +445,36 @@ class SalesOrderController extends Controller
         $headerPayload = $this->buildHeaderPayload($request, $socode, $total);
         $headerPayload['created_by'] = auth()->check() ? auth()->user()->username : '';
 
-        $siteId = $headerPayload['site_id'] ?? $this->resolveSiteIdByName($request->site);
-        $siteName = (string) ($request->site ?? '');
-        $inventoryService = app(\App\Services\CNS\KemasanInventoryService::class);
-
-        foreach ($items as $item) {
-            $qty = (float) ($item['qty'] ?? 0);
-            if ($qty <= 0) {
-                continue;
+        $soType = strtoupper((string) ($headerPayload['so_type'] ?? $request->input('soType', 'KEMASAN_AMPAS')));
+        if ($soType === 'SLUDGE') {
+            $sludgeSrc = $this->resolveSludgeSource($request);
+            $drainingId = $headerPayload['draining_id'] ?? $sludgeSrc['draining_id'];
+            $movementId = $headerPayload['sludge_movement_id'] ?? $sludgeSrc['movement_id'];
+            $sludgeQty = (float) ($items[0]['qty'] ?? 0);
+            if ($error = $this->validateSludgeOrder($drainingId ?: null, $sludgeQty, null, $movementId ?: null)) {
+                return response($error, 422);
             }
-            $desc = $item['description'] ?? '';
-            $packagingId = !empty($item['product_code']) ? (int) $item['product_code'] : null;
-            if (!$packagingId) {
-                $kemasan = $this->findKemasanByDescription($desc);
-                $packagingId = $kemasan ? (int) $kemasan->Kemasan_ID : null;
-            }
+        } else {
+            $siteId = $headerPayload['site_id'] ?? $this->resolveSiteIdByName($request->site);
+            $siteName = (string) ($request->site ?? '');
+            $inventoryService = app(\App\Services\CNS\KemasanInventoryService::class);
 
-            $availableStock = $inventoryService->getAvailableSaleBalance($desc, $packagingId, $siteId);
-            if ($qty > $availableStock) {
-                return response("Stok kemasan '{$desc}' tidak mencukupi di site {$siteName}. Tersedia: {$availableStock}, Diminta: {$qty}", 422);
+            foreach ($items as $item) {
+                $qty = (float) ($item['qty'] ?? 0);
+                if ($qty <= 0) {
+                    continue;
+                }
+                $desc = $item['description'] ?? '';
+                $packagingId = !empty($item['product_code']) ? (int) $item['product_code'] : null;
+                if (!$packagingId) {
+                    $kemasan = $this->findKemasanByDescription($desc);
+                    $packagingId = $kemasan ? (int) $kemasan->Kemasan_ID : null;
+                }
+
+                $availableStock = $inventoryService->getAvailableSaleBalance($desc, $packagingId, $siteId);
+                if ($qty > $availableStock) {
+                    return response("Stok kemasan '{$desc}' tidak mencukupi di site {$siteName}. Tersedia: {$availableStock}, Diminta: {$qty}", 422);
+                }
             }
         }
 
@@ -210,8 +500,11 @@ class SalesOrderController extends Controller
             ->orderBy('id', 'asc')
             ->get();
         $kemasans = $this->getKemasanOptions();
+        $selectedDrainingId = !empty($salesOrder->draining_id) ? (int) $salesOrder->draining_id : null;
+        $selectedMovementId = !empty($salesOrder->sludge_movement_id) ? (int) $salesOrder->sludge_movement_id : null;
+        $drainings = $this->getAvailableSludgeDrainings((int) $salesOrder->id, $selectedDrainingId, $selectedMovementId);
 
-        return view('cns.sales.input-order-detail', compact('salesOrder', 'details', 'kemasans'));
+        return view('cns.sales.input-order-detail', compact('salesOrder', 'details', 'kemasans', 'drainings'));
     }
 
     public function detailSalesOrderSubmit(Request $request)
@@ -228,6 +521,17 @@ class SalesOrderController extends Controller
         $newSoNo = trim((string) $request->soCode) !== '' ? trim((string) $request->soCode) : $oldSoNo;
         [$items, $total] = $this->parseSubmittedItems($request);
         $headerPayload = $this->buildHeaderPayload($request, $newSoNo, $total);
+
+        $soType = strtoupper((string) ($headerPayload['so_type'] ?? $request->input('soType', $salesOrder->so_type ?? 'KEMASAN_AMPAS')));
+        if ($soType === 'SLUDGE') {
+            $sludgeSrc = $this->resolveSludgeSource($request);
+            $drainingId = $headerPayload['draining_id'] ?? $sludgeSrc['draining_id'];
+            $movementId = $headerPayload['sludge_movement_id'] ?? $sludgeSrc['movement_id'];
+            $sludgeQty = (float) ($items[0]['qty'] ?? 0);
+            if ($error = $this->validateSludgeOrder($drainingId ?: null, $sludgeQty, (int) $salesOrder->id, $movementId ?: null)) {
+                return response($error, 422);
+            }
+        }
 
         $createdBy = auth()->check() ? auth()->user()->username : (string) ($salesOrder->created_by ?? '');
 
@@ -290,6 +594,25 @@ class SalesOrderController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Detail Sales Order kosong.'], 400);
         }
 
+        $isSludgeOrder = strtoupper((string) ($so->so_type ?? '')) === 'SLUDGE';
+
+        if ($isSludgeOrder) {
+            $productRef = (string) ($details->first()->product_code ?? '');
+            $movementId = !empty($so->sludge_movement_id)
+                ? (int) $so->sludge_movement_id
+                : (strpos($productRef, 'M:') === 0 ? (int) substr($productRef, 2) : null);
+            $drainingId = !empty($so->draining_id) ? (int) $so->draining_id : (is_numeric($productRef) ? (int) $productRef : null);
+            $sludgeQty = (float) $details->sum('qty');
+            if ($error = $this->validateSludgeOrder($drainingId ?: null, $sludgeQty, (int) $so->id, $movementId ?: null)) {
+                return response()->json(['status' => 'error', 'message' => $error], 422);
+            }
+
+            $actor = auth()->check() ? auth()->user()->username : 'admin';
+            $this->markSalesOrderApproved($so, $actor);
+
+            return response()->json(['status' => 'success', 'message' => 'Sales Order Sludge berhasil di-approve.']);
+        }
+
         $inventoryService = app(\App\Services\CNS\KemasanInventoryService::class);
         $siteId = $so->site_id ? (int) $so->site_id : $this->resolveSiteIdByName($so->site);
         $siteName = (string) ($so->site ?: ($siteId ? ($inventoryService::getSites()[$siteId] ?? '') : ''));
@@ -349,30 +672,35 @@ class SalesOrderController extends Controller
                 );
             }
 
-            $updateData = [];
-            try {
-                if (Schema::hasColumn('sales_order_cns', 'status')) {
-                    $updateData['status'] = 'APPROVED';
-                }
-                if (Schema::hasColumn('sales_order_cns', 'approved_by')) {
-                    $updateData['approved_by'] = $actor;
-                }
-                if (Schema::hasColumn('sales_order_cns', 'approved_date')) {
-                    $updateData['approved_date'] = now();
-                }
-            } catch (\Throwable $e) {
-                $updateData = [
-                    'status' => 'APPROVED',
-                    'approved_by' => $actor,
-                    'approved_date' => now(),
-                ];
-            }
-            if (!empty($updateData)) {
-                $so->update($updateData);
-            }
+            $this->markSalesOrderApproved($so, $actor);
         });
 
         return response()->json(['status' => 'success', 'message' => 'Sales Order berhasil di-approve dan stok telah dipotong.']);
+    }
+
+    protected function markSalesOrderApproved(SalesOrderCNS $so, string $actor): void
+    {
+        $updateData = [];
+        try {
+            if (Schema::hasColumn('sales_order_cns', 'status')) {
+                $updateData['status'] = 'APPROVED';
+            }
+            if (Schema::hasColumn('sales_order_cns', 'approved_by')) {
+                $updateData['approved_by'] = $actor;
+            }
+            if (Schema::hasColumn('sales_order_cns', 'approved_date')) {
+                $updateData['approved_date'] = now();
+            }
+        } catch (\Throwable $e) {
+            $updateData = [
+                'status' => 'APPROVED',
+                'approved_by' => $actor,
+                'approved_date' => now(),
+            ];
+        }
+        if (!empty($updateData)) {
+            $so->update($updateData);
+        }
     }
 
     public function rejectSalesOrder(Request $request, $id)

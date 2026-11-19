@@ -6,9 +6,9 @@ use App\Services\UploadService;
 use App\VesselSchedule;
 use Illuminate\Support\Facades\DB;
 
-class StuffingDeliveryOrderService
+class StuffingBookingConfirmationService
 {
-    public const TOPIC = 'cns-delivery-order';
+    public const TOPIC = 'cns-booking-confirmation';
 
     protected $uploadService;
 
@@ -19,17 +19,17 @@ class StuffingDeliveryOrderService
 
     public function forSchedule(VesselSchedule $schedule)
     {
-        if (!$schedule->DO_Meta_File_ID) {
+        if (!$schedule->BC_Meta_File_ID) {
             return null;
         }
 
-        return DB::table('meta_files')->where('ID', $schedule->DO_Meta_File_ID)->first();
+        return DB::table('meta_files')->where('ID', $schedule->BC_Meta_File_ID)->first();
     }
 
     public function save(
         VesselSchedule $schedule,
         $file,
-        ?string $doNo,
+        ?string $bcNo,
         ?string $status,
         ?string $note,
         string $actor
@@ -42,17 +42,17 @@ class StuffingDeliveryOrderService
                 'file',
                 self::TOPIC,
                 (string) $schedule->id,
-                'Delivery Order'
+                'Booking Confirmation'
             );
 
-            $schedule->DO_Meta_File_ID = $fileId;
+            $schedule->BC_Meta_File_ID = $fileId;
         }
 
-        $schedule->DO_No = $doNo;
-        $schedule->DO_Status = $status;
-        $schedule->DO_Note = $note;
-        $schedule->DO_Updated_By = $actor;
-        $schedule->DO_Updated_Date = now();
+        $schedule->BC_No = $bcNo;
+        $schedule->BC_Status = $status;
+        $schedule->BC_Note = $note;
+        $schedule->BC_Updated_By = $actor;
+        $schedule->BC_Updated_Date = now();
         $schedule->save();
     }
 
@@ -76,6 +76,6 @@ class StuffingDeliveryOrderService
         }
 
         DB::table('meta_files')->where('ID', $meta->ID)->delete();
-        $schedule->DO_Meta_File_ID = null;
+        $schedule->BC_Meta_File_ID = null;
     }
 }

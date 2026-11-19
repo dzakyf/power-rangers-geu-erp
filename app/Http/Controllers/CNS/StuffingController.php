@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CNS\StuffingContainerRequest;
 use App\Services\CNS\FlexibagInventoryService;
 use App\Services\CNS\StuffingContainerService;
-use App\Services\CNS\StuffingDeliveryOrderService;
+use App\Services\CNS\StuffingBookingConfirmationService;
 use App\Services\CNS\StuffingNoteService;
 use App\Services\CNS\StuffingPhotoService;
 use App\Services\CNS\StuffingReportService;
@@ -21,7 +21,7 @@ class StuffingController extends Controller
     protected $containers;
     protected $notes;
     protected $photos;
-    protected $deliveryOrders;
+    protected $bookingConfirmations;
     protected $reports;
     protected $flexibag;
 
@@ -29,21 +29,23 @@ class StuffingController extends Controller
         StuffingContainerService $containers,
         StuffingNoteService $notes,
         StuffingPhotoService $photos,
-        StuffingDeliveryOrderService $deliveryOrders,
+        StuffingBookingConfirmationService $bookingConfirmations,
         StuffingReportService $reports,
         FlexibagInventoryService $flexibag
     ) {
         $this->containers = $containers;
         $this->notes = $notes;
         $this->photos = $photos;
-        $this->deliveryOrders = $deliveryOrders;
+        $this->bookingConfirmations = $bookingConfirmations;
         $this->reports = $reports;
         $this->flexibag = $flexibag;
     }
 
     public function indexStuffing()
     {
-        return view('cns.vs.stuffing');
+        $vss = VesselSchedule::orderBy('Order_No')->get();
+
+        return view('cns.vs.stuffing', compact('vss'));
     }
 
     public function indexStuffingXml(Request $request)
@@ -213,9 +215,9 @@ class StuffingController extends Controller
         $contract = $vs->Contract_ID
             ? DB::table('cns_buyer_contracts')->where('ID', $vs->Contract_ID)->first()
             : null;
-        $deliveryOrder = $this->deliveryOrders->forSchedule($vs);
+        $bookingConfirmation = $this->bookingConfirmations->forSchedule($vs);
 
-        return view('cns.vs.stuffing-detail', compact('vs', 'contract', 'deliveryOrder'));
+        return view('cns.vs.stuffing-detail', compact('vs', 'contract', 'bookingConfirmation'));
     }
 
     public function detailStuffingXml(Request $request)
@@ -398,54 +400,54 @@ class StuffingController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Foto berhasil dihapus.']);
     }
 
-    public function saveDetailDeliveryOrder(Request $request)
+    public function saveDetailBookingConfirmation(Request $request)
     {
         $request->validate([
-            'DO_File' => 'nullable|file|mimes:pdf,jpg,jpeg|max:10240',
-            'DO_No' => 'nullable|string|max:150',
-            'DO_Status' => 'nullable|in:KURANG,SESUAI,MELEBIH',
-            'DO_Note' => 'nullable|string|max:1000',
+            'BC_File' => 'nullable|file|mimes:pdf,jpg,jpeg|max:10240',
+            'BC_No' => 'nullable|string|max:150',
+            'BC_Status' => 'nullable|in:KURANG,SESUAI,MELEBIH',
+            'BC_Note' => 'nullable|string|max:1000',
         ]);
 
         $schedule = VesselSchedule::where('id', $request->query('task'))->first();
 
         abort_if(!$schedule, 404);
 
-        if (!$schedule->DO_No && !$request->filled('DO_No')) {
+        if (!$schedule->BC_No && !$request->filled('BC_No')) {
             return response()->json([
-                'message' => 'Nomor Delivery Order wajib diisi.',
+                'message' => 'Nomor Booking Confirmation wajib diisi.',
             ], 422);
         }
 
-        if (!$schedule->DO_Meta_File_ID && !$request->hasFile('DO_File')) {
+        if (!$schedule->BC_Meta_File_ID && !$request->hasFile('BC_File')) {
             return response()->json([
-                'message' => 'File Delivery Order wajib diunggah pada penyimpanan pertama.',
+                'message' => 'File Booking Confirmation wajib diunggah pada penyimpanan pertama.',
             ], 422);
         }
 
         DB::transaction(function () use ($request, $schedule) {
-            $this->deliveryOrders->save(
+            $this->bookingConfirmations->save(
                 $schedule,
-                $request->file('DO_File'),
-                $request->input('DO_No'),
-                $request->input('DO_Status'),
-                $request->input('DO_Note'),
+                $request->file('BC_File'),
+                $request->input('BC_No'),
+                $request->input('BC_Status'),
+                $request->input('BC_Note'),
                 auth()->check() ? (string) auth()->user()->username : 'system'
             );
 
-            $this->containers->writeScheduleLog($schedule, 'DELIVERY ORDER UPDATED');
+            $this->containers->writeScheduleLog($schedule, 'BOOKING CONFIRMATION UPDATED');
         });
 
-        $meta = $this->deliveryOrders->forSchedule($schedule);
+        $meta = $this->bookingConfirmations->forSchedule($schedule);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Delivery Order berhasil disimpan.',
-            'url' => $this->deliveryOrders->url($meta),
+            'message' => 'Booking Confirmation berhasil disimpan.',
+            'url' => $this->bookingConfirmations->url($meta),
             'name' => $meta ? $meta->Filename : null,
-            'DO_No' => $schedule->DO_No,
-            'DO_Status' => $schedule->DO_Status,
-            'DO_Note' => $schedule->DO_Note,
+            'BC_No' => $schedule->BC_No,
+            'BC_Status' => $schedule->BC_Status,
+            'BC_Note' => $schedule->BC_Note,
         ]);
     }
 

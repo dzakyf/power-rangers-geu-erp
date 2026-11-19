@@ -32,6 +32,7 @@
     </div>
 
     @include('ui-components.modal-bp')
+    @include('ui-components.modal-doc-preview')
     @include('layout.adminor.scripts')
     <script>
         window.cnsParseNumber = function (val, fallback) {

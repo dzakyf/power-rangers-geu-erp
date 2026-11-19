@@ -13,12 +13,6 @@ class ShippingInstructionPrintService
     /** @var array */
     private $companyCache = [];
 
-    /** @var bool */
-    private static $ffmpegChecked = false;
-
-    /** @var string|null */
-    private static $ffmpegPath;
-
     public function resolve(ShippingInstruction $shipment): array
     {
         $contract = $this->resolveContract($shipment);
@@ -361,30 +355,8 @@ class ShippingInstructionPrintService
 
                 return $binary;
             } catch (\Throwable $e) {
-                // Fall through to ffmpeg/GD.
+                // Fall through to GD.
             }
-        }
-
-        $ffmpeg = $this->ffmpegPath();
-
-        if ($ffmpeg) {
-            $output = sys_get_temp_dir() . '/cns_png_' . uniqid('', true) . '.png';
-            $command = escapeshellarg($ffmpeg)
-                . ' -hide_banner -loglevel error -y -i ' . escapeshellarg($file)
-                . ' -frames:v 1 -pix_fmt rgba ' . escapeshellarg($output) . ' 2>/dev/null';
-
-            @exec($command, $ignored, $exitCode);
-
-            if ($exitCode === 0 && is_file($output)) {
-                $binary = file_get_contents($output);
-                @unlink($output);
-
-                if ($binary !== false) {
-                    return $binary;
-                }
-            }
-
-            @unlink($output);
         }
 
         $image = @imagecreatefrompng($file);
@@ -393,6 +365,8 @@ class ShippingInstructionPrintService
             return null;
         }
 
+        imagealphablending($image, false);
+        imagesavealpha($image, true);
         imageinterlace($image, false);
         ob_start();
         imagepng($image);
@@ -402,15 +376,6 @@ class ShippingInstructionPrintService
         return $binary === false ? null : $binary;
     }
 
-    private function ffmpegPath(): ?string
-    {
-        if (!self::$ffmpegChecked) {
-            self::$ffmpegChecked = true;
-            self::$ffmpegPath = trim((string) @shell_exec('command -v ffmpeg 2>/dev/null')) ?: null;
-        }
-
-        return self::$ffmpegPath;
-    }
 
     private function publicFile($path): ?string
     {

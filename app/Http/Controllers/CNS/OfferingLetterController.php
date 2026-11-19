@@ -691,8 +691,11 @@ class OfferingLetterController extends Controller
                 }
             }
 
+
             $image = @imagecreatefrompng($fullPath);
             if ($image !== false) {
+                imagealphablending($image, false);
+                imagesavealpha($image, true);
                 imageinterlace($image, false);
                 ob_start();
                 imagepng($image);

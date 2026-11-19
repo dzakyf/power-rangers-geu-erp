@@ -405,8 +405,14 @@ $Saya =  Auth::user()->username;
   <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SALES ORDER DETAIL</div>
   <div class="card">
     <div class="card-body">
+      @php
+        $detailSoType = strtoupper((string) ($salesOrder->so_type ?? 'KEMASAN_AMPAS'));
+        $isSludgeSo = $detailSoType === 'SLUDGE';
+        $firstDetail = collect($details)->first();
+      @endphp
       <div id="ContentPages">
         <input type="hidden" id="soId" value="{{ $salesOrder->id }}">
+        <input type="hidden" id="soType" name="soType" value="{{ $detailSoType }}">
         <div class="FormInput_Form_Content">
           <!-- ── TITLE BAR ── -->
           <div class="so-titlebar">
@@ -431,7 +437,7 @@ $Saya =  Auth::user()->username;
             <!-- ── BUYER + SALES DETAIL ── -->
             <div class="row mb-4">
               <!-- BUYER -->
-              <div class="col-md-5 mb-3 mb-md-0">
+              <div class="{{ $isSludgeSo ? 'col-md-12' : 'col-md-5' }} mb-3 mb-md-0" id="buyerCol">
                 <div class="section-header">Buyer</div>
                 <div class="section-body">
                   <div class="form-group mb-2">
@@ -446,17 +452,25 @@ $Saya =  Auth::user()->username;
                     <label class="form-label">Provinsi</label>
                     <input type="text" class="form-control" id="buyerProvinsi" placeholder="Provinsi" value="{{ $salesOrder->buyer_province }}" />
                   </div>
-                  <div class="form-group mb-0">
+                  <div class="form-group mb-2">
                     <label class="form-label">Phone</label>
                     <input type="text" class="form-control" id="buyerPhone" placeholder="+62 xxx-xxxx-xxxx" value="{{ $salesOrder->buyer_phone }}" />
+                  </div>
+                  <div id="buyerPaymentTermSlot">
+                    @if($isSludgeSo)
+                      <div class="form-group mb-0" id="paymentTermGroup">
+                        <label class="form-label">Payment Term</label>
+                        <input type="text" id="paymentTerm" class="form-control" value="{{ $salesOrder->payment_term }}">
+                      </div>
+                    @endif
                   </div>
                 </div>
               </div>
 
               <!-- SALES DETAIL -->
-              <div class="col-md-7">
+              <div class="col-md-7" id="salesDetailCol" style="{{ $isSludgeSo ? 'display:none;' : '' }}">
                 <div class="section-header">Sales Detail</div>
-                <div class="section-body">
+                <div class="section-body" id="salesDetailBody">
                   <div class="form-group mb-2">
                     <label class="form-label">Site</label>
                     <input type="hidden" id="site_id" name="site_id" value="{{ $salesOrder->site_id }}" />
@@ -471,19 +485,21 @@ $Saya =  Auth::user()->username;
                     <label class="form-label">Site Address</label>
                     <textarea class="form-control" id="siteAddress" rows="3" placeholder="Alamat lengkap site">{{ $salesOrder->site_address }}</textarea>
                   </div>
-                  <div class="form-group mb-0">
-                    <label class="form-label">Payment Term</label>
-                    {{-- <select class="form-control" id="paymentTerm">
-                      <option value="Transfer" {{ $salesOrder->payment_term == 'Transfer' ? 'selected' : '' }}>Transfer</option>
-                    </select> --}}
-                    <input type="text" id="paymentTerm" class="form-control" value="{{ $salesOrder->payment_term }}">
-                  </div>
+                  @if(!$isSludgeSo)
+                    <div class="form-group mb-0" id="paymentTermGroup">
+                      <label class="form-label">Payment Term</label>
+                      {{-- <select class="form-control" id="paymentTerm">
+                        <option value="Transfer" {{ $salesOrder->payment_term == 'Transfer' ? 'selected' : '' }}>Transfer</option>
+                      </select> --}}
+                      <input type="text" id="paymentTerm" class="form-control" value="{{ $salesOrder->payment_term }}">
+                    </div>
+                  @endif
                 </div>
               </div>
             </div>
 
-            <!-- ── ITEMS TABLE ── -->
-            <div class="mb-3">
+            <!-- ── ITEMS TABLE (KEMASAN & AMPAS) ── -->
+            <div class="mb-3" id="kemasanItemsSection" style="{{ $isSludgeSo ? 'display:none;' : '' }}">
               <div class="section-header d-flex justify-content-between align-items-center">
                 <span>Item / Produk</span>
                 <button class="btn btn-primary btn-add-row no-print" onclick="addRow()">
@@ -508,38 +524,54 @@ $Saya =  Auth::user()->username;
                     <tbody id="itemsBody">
                       <!-- rows injected by JS -->
                     </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── SLUDGE SECTION ── -->
+            @include('cns.sales.partials.sludge-section', [
+              'drainings' => $drainings ?? collect(),
+              'selectedDrainingId' => $salesOrder->draining_id ?? ($firstDetail->product_code ?? null),
+              'selectedMovementId' => $salesOrder->sludge_movement_id ?? null,
+              'selectedDrainingCode' => $salesOrder->draining_code ?? '',
+              'sludgeQty' => $isSludgeSo ? ($firstDetail->qty ?? 0) : 0,
+              'sludgePrice' => $isSludgeSo ? ($firstDetail->unit_price ?? 0) : 0,
+              'isSludge' => $isSludgeSo,
+            ])
+
+            <!-- ── SUMMARY TOTALS ── -->
+            <div class="mb-3" id="summaryTotalsSection">
+              <div class="section-body p-0">
+                <div class="items-table-wrap">
+                  <table class="items-table">
                     <tfoot>
                       <tr class="subtotal-row">
                         <td colspan="6" class="text-right font-weight-600">SUBTOTAL</td>
-                        <td class="text-right font-weight-600" id="subtotalDisplay">{{ number_format((float) $salesOrder->subtotal, 2, '.', ',') }}</td>
-                        <td class="no-print"></td>
+                        <td class="text-right font-weight-600 total-col" id="subtotalDisplay">{{ number_format((float) $salesOrder->subtotal, 2, '.', ',') }}</td>
                       </tr>
                       <tr>
                         <td colspan="6" class="text-right">TAX</td>
-                        <td class="text-right">
+                        <td class="text-right total-col">
                           <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="taxAmount" value="{{ number_format((float) $salesOrder->tax, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
-                        <td class="no-print"></td>
                       </tr>
                       <tr>
                         <td colspan="6" class="text-right">SHIPPING</td>
-                        <td class="text-right">
+                        <td class="text-right total-col">
                           <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="shippingAmount" value="{{ number_format((float) $salesOrder->shipping, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
-                        <td class="no-print"></td>
                       </tr>
                       <tr>
                         <td colspan="6" class="text-right">OTHER</td>
-                        <td class="text-right">
+                        <td class="text-right total-col">
                           <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="otherAmount" value="{{ number_format((float) $salesOrder->other, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
-                        <td class="no-print"></td>
                       </tr>
                       <tr class="total-row">
                         <td colspan="6" class="text-right">TOTAL</td>
                         <input type="hidden" name="totalAmount" id="totalAmount" value="{{ $salesOrder->total }}">
-                        <td class="text-right" id="totalDisplay">Rp {{ number_format((float) $salesOrder->total, 2, '.', ',') }}</td>
-                        <td class="no-print"></td>
+                        <td class="text-right total-col" id="totalDisplay">Rp {{ number_format((float) $salesOrder->total, 2, '.', ',') }}</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -574,14 +606,16 @@ $Saya =  Auth::user()->username;
 
   </div>
   @php
-    $defaultItemsData = collect($details)->map(function ($item) {
-      return [
-        'desc'  => $item->description,
-        'qty'   => $item->qty,
-        'unit'  => $item->unit ?? '',
-        'price' => $item->unit_price,
-      ];
-    })->values();
+    $defaultItemsData = $isSludgeSo
+      ? collect()
+      : collect($details)->map(function ($item) {
+          return [
+            'desc'  => $item->description,
+            'qty'   => $item->qty,
+            'unit'  => $item->unit ?? '',
+            'price' => $item->unit_price,
+          ];
+        })->values();
   @endphp
   <script>
     // ── Default items ──

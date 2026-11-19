@@ -9,11 +9,11 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-class StuffingDeliveryOrderTest extends TestCase
+class StuffingBookingConfirmationTest extends TestCase
 {
     use DatabaseTransactions;
 
-    private const TOPIC = 'cns-delivery-order';
+    private const TOPIC = 'cns-booking-confirmation';
 
     /** @var User|null */
     private $user;
@@ -49,7 +49,7 @@ class StuffingDeliveryOrderTest extends TestCase
     }
 
     /** @test */
-    public function stuffing_detail_renders_the_delivery_order_card_and_contract_quantity(): void
+    public function stuffing_detail_renders_the_booking_confirmation_card_and_contract_quantity(): void
     {
         $contract = $this->makeContract(36);
         $vs = $this->makeVesselSchedule($contract->ID, $contract->Contract_No);
@@ -58,26 +58,26 @@ class StuffingDeliveryOrderTest extends TestCase
             ->get('/cns-stuffing-detail?task=' . $vs->id);
 
         $response->assertOk();
-        $response->assertSee('DELIVERY ORDER');
-        $response->assertSee('id="DeliveryOrderForm"', false);
-        $response->assertSee('id="DO_File"', false);
-        $response->assertSee('id="DO_No"', false);
-        $response->assertSee('id="DO_Status"', false);
-        $response->assertSee('id="DO_Note"', false);
-        $response->assertSee('id="SaveDeliveryOrder"', false);
+        $response->assertSee('BOOKING CONFIRMATION');
+        $response->assertSee('id="BookingConfirmationForm"', false);
+        $response->assertSee('id="BC_File"', false);
+        $response->assertSee('id="BC_No"', false);
+        $response->assertSee('id="BC_Status"', false);
+        $response->assertSee('id="BC_Note"', false);
+        $response->assertSee('id="SaveBookingConfirmation"', false);
         $response->assertSee('36.000');
     }
 
     /** @test */
-    public function uploading_a_do_stores_meta_files_and_links_the_schedule(): void
+    public function uploading_a_bc_stores_meta_files_and_links_the_schedule(): void
     {
         $contract = $this->makeContract(36);
         $vs = $this->makeVesselSchedule($contract->ID, $contract->Contract_No);
 
         $response = $this->actingAs($this->testUser())
-            ->post('/cns-stuffing-detail-delivery-order?task=' . $vs->id, [
-                'DO_File' => UploadedFile::fake()->create('delivery-order.pdf', 100, 'application/pdf'),
-                'DO_No' => 'DO-TEST-001',
+            ->post('/cns-stuffing-detail-booking-confirmation?task=' . $vs->id, [
+                'BC_File' => UploadedFile::fake()->create('booking-confirmation.pdf', 100, 'application/pdf'),
+                'BC_No' => 'BC-TEST-001',
             ]);
 
         $response->assertOk()->assertJson(['status' => 'success']);
@@ -91,20 +91,20 @@ class StuffingDeliveryOrderTest extends TestCase
         $this->assertFileExists(public_path('filevendor/' . $meta->Path));
         $this->uploadedPaths[] = $meta->Path;
 
-        $this->assertSame((string) $meta->ID, (string) DB::table('vessel_schedules')->where('id', $vs->id)->value('DO_Meta_File_ID'));
-        $this->assertSame('DO-TEST-001', DB::table('vessel_schedules')->where('id', $vs->id)->value('DO_No'));
+        $this->assertSame((string) $meta->ID, (string) DB::table('vessel_schedules')->where('id', $vs->id)->value('BC_Meta_File_ID'));
+        $this->assertSame('BC-TEST-001', DB::table('vessel_schedules')->where('id', $vs->id)->value('BC_No'));
     }
 
     /** @test */
-    public function replacing_a_do_removes_the_previous_meta_file_and_physical_file(): void
+    public function replacing_a_bc_removes_the_previous_meta_file_and_physical_file(): void
     {
         $contract = $this->makeContract(36);
         $vs = $this->makeVesselSchedule($contract->ID, $contract->Contract_No);
 
         $this->actingAs($this->testUser())
-            ->post('/cns-stuffing-detail-delivery-order?task=' . $vs->id, [
-                'DO_File' => UploadedFile::fake()->create('delivery-order-old.pdf', 100, 'application/pdf'),
-                'DO_No' => 'DO-TEST-001',
+            ->post('/cns-stuffing-detail-booking-confirmation?task=' . $vs->id, [
+                'BC_File' => UploadedFile::fake()->create('booking-confirmation-old.pdf', 100, 'application/pdf'),
+                'BC_No' => 'BC-TEST-001',
             ])
             ->assertOk();
 
@@ -113,9 +113,9 @@ class StuffingDeliveryOrderTest extends TestCase
         $this->uploadedPaths[] = $old->Path;
 
         $this->actingAs($this->testUser())
-            ->post('/cns-stuffing-detail-delivery-order?task=' . $vs->id, [
-                'DO_File' => UploadedFile::fake()->create('delivery-order-new.pdf', 100, 'application/pdf'),
-                'DO_No' => 'DO-TEST-002',
+            ->post('/cns-stuffing-detail-booking-confirmation?task=' . $vs->id, [
+                'BC_File' => UploadedFile::fake()->create('booking-confirmation-new.pdf', 100, 'application/pdf'),
+                'BC_No' => 'BC-TEST-002',
             ])
             ->assertOk();
 
@@ -133,9 +133,9 @@ class StuffingDeliveryOrderTest extends TestCase
         $vs = $this->makeVesselSchedule($contract->ID, $contract->Contract_No);
 
         $this->actingAs($this->testUser())
-            ->post('/cns-stuffing-detail-delivery-order?task=' . $vs->id, [
-                'DO_File' => UploadedFile::fake()->create('delivery-order.pdf', 100, 'application/pdf'),
-                'DO_No' => 'DO-TEST-003',
+            ->post('/cns-stuffing-detail-booking-confirmation?task=' . $vs->id, [
+                'BC_File' => UploadedFile::fake()->create('booking-confirmation.pdf', 100, 'application/pdf'),
+                'BC_No' => 'BC-TEST-003',
             ])
             ->assertOk();
 
@@ -143,52 +143,52 @@ class StuffingDeliveryOrderTest extends TestCase
         $this->uploadedPaths[] = $meta->Path;
 
         $response = $this->actingAs($this->testUser())
-            ->post('/cns-stuffing-detail-delivery-order?task=' . $vs->id, [
-                'DO_Status' => 'SESUAI',
-                'DO_Note' => 'Qty DO sesuai dengan kontrak.',
+            ->post('/cns-stuffing-detail-booking-confirmation?task=' . $vs->id, [
+                'BC_Status' => 'SESUAI',
+                'BC_Note' => 'Qty BC sesuai dengan kontrak.',
             ]);
 
         $response->assertOk();
 
         $schedule = DB::table('vessel_schedules')->where('id', $vs->id)->first();
-        $this->assertSame('SESUAI', $schedule->DO_Status);
-        $this->assertSame('Qty DO sesuai dengan kontrak.', $schedule->DO_Note);
-        $this->assertSame($this->testUser()->username, $schedule->DO_Updated_By);
-        $this->assertNotNull($schedule->DO_Updated_Date);
+        $this->assertSame('SESUAI', $schedule->BC_Status);
+        $this->assertSame('Qty BC sesuai dengan kontrak.', $schedule->BC_Note);
+        $this->assertSame($this->testUser()->username, $schedule->BC_Updated_By);
+        $this->assertNotNull($schedule->BC_Updated_Date);
         $this->assertSame(2, DB::table('vessel_schedule_logs')->where('Last_ID', $vs->id)->count());
     }
 
     /** @test */
-    public function first_do_save_requires_a_file_and_validates_file_type_and_status(): void
+    public function first_bc_save_requires_a_file_and_validates_file_type_and_status(): void
     {
         $contract = $this->makeContract(36);
         $vs = $this->makeVesselSchedule($contract->ID, $contract->Contract_No);
 
         $this->actingAs($this->testUser())
-            ->post('/cns-stuffing-detail-delivery-order?task=' . $vs->id, [])
+            ->post('/cns-stuffing-detail-booking-confirmation?task=' . $vs->id, [])
             ->assertStatus(422);
 
         $this->actingAs($this->testUser())
             ->withHeaders(['Accept' => 'application/json'])
-            ->post('/cns-stuffing-detail-delivery-order?task=' . $vs->id, [
-                'DO_File' => UploadedFile::fake()->create('delivery-order.pdf', 100, 'application/pdf'),
+            ->post('/cns-stuffing-detail-booking-confirmation?task=' . $vs->id, [
+                'BC_File' => UploadedFile::fake()->create('booking-confirmation.pdf', 100, 'application/pdf'),
             ])
             ->assertStatus(422);
 
         $this->actingAs($this->testUser())
             ->withHeaders(['Accept' => 'application/json'])
-            ->post('/cns-stuffing-detail-delivery-order?task=' . $vs->id, [
-                'DO_File' => UploadedFile::fake()->create('delivery-order.docx', 100),
-                'DO_No' => 'DO-TEST-005',
+            ->post('/cns-stuffing-detail-booking-confirmation?task=' . $vs->id, [
+                'BC_File' => UploadedFile::fake()->create('booking-confirmation.docx', 100),
+                'BC_No' => 'BC-TEST-005',
             ])
             ->assertStatus(422);
 
         $this->actingAs($this->testUser())
             ->withHeaders(['Accept' => 'application/json'])
-            ->post('/cns-stuffing-detail-delivery-order?task=' . $vs->id, [
-                'DO_File' => UploadedFile::fake()->create('delivery-order.pdf', 100, 'application/pdf'),
-                'DO_No' => 'DO-TEST-004',
-                'DO_Status' => 'INVALID',
+            ->post('/cns-stuffing-detail-booking-confirmation?task=' . $vs->id, [
+                'BC_File' => UploadedFile::fake()->create('booking-confirmation.pdf', 100, 'application/pdf'),
+                'BC_No' => 'BC-TEST-004',
+                'BC_Status' => 'INVALID',
             ])
             ->assertStatus(422);
     }
@@ -198,7 +198,7 @@ class StuffingDeliveryOrderTest extends TestCase
         $user = $this->testUser();
 
         $id = DB::table('cns_buyer_contracts')->insertGetId([
-            'Contract_No' => 'TEST-DO-' . uniqid(),
+            'Contract_No' => 'TEST-BC-' . uniqid(),
             'Supplier_ID' => null,
             'Buyer_Name' => 'Test Buyer',
             'Buyer_Address' => 'Test Address',
@@ -225,7 +225,7 @@ class StuffingDeliveryOrderTest extends TestCase
 
         return VesselSchedule::create([
             'Task_ID' => 'VS/TEST/' . uniqid(),
-            'Order_No' => 'TEST-DO-' . uniqid(),
+            'Order_No' => 'TEST-BC-' . uniqid(),
             'Contract_ID' => $contractId,
             'Contract_No' => $contractNo,
             'Shipping_Method' => 'CONTAINER',

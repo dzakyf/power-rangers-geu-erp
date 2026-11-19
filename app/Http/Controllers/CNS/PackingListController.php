@@ -211,13 +211,13 @@ class PackingListController extends Controller
 
         $mpdf->splitTableBorderWidth = 1;
 
-        if ($headerHtml !== '') {
-            $mpdf->SetHTMLHeader($headerHtml);
-        }
+        // if ($headerHtml !== '') {
+        //     $mpdf->SetHTMLHeader($headerHtml);
+        // }
 
-        if ($footerHtml !== '') {
-            $mpdf->SetHTMLFooter($footerHtml);
-        }
+        // if ($footerHtml !== '') {
+        //     $mpdf->SetHTMLFooter($footerHtml);
+        // }
  
         $mpdf->WriteHTML($html);
  
@@ -566,8 +566,11 @@ class PackingListController extends Controller
                 }
             }
 
+
             $image = @imagecreatefrompng($fullPath);
             if ($image !== false) {
+                imagealphablending($image, false);
+                imagesavealpha($image, true);
                 imageinterlace($image, false);
                 ob_start();
                 imagepng($image);

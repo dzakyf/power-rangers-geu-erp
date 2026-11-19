@@ -54,11 +54,15 @@ class StuffingMonitoringTest extends TestCase
         $response = $this->actingAs($this->testUser())
             ->get('/cns-export-stuffing-monitoring');
 
-        $response->assertOk();
-        $response->assertSee('BUAT FORM STUFFING MONITORING');
-        $response->assertSee('Edit Container');
-        $response->assertSee('Upload Nota Timbang');
-        $response->assertDontSee('Update Data');
+        $response->assertRedirect('cns-stuffing?tab=monitoring');
+
+        $tabResponse = $this->actingAs($this->testUser())
+            ->get('/cns-stuffing?tab=monitoring');
+
+        $tabResponse->assertOk();
+        $tabResponse->assertSee('Monitoring Kontainer');
+        $tabResponse->assertSee('Buka Detail Stuffing');
+        $tabResponse->assertSee('StuffingMonitoringGrid');
     }
 
     /** @test */

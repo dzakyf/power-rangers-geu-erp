@@ -105,15 +105,15 @@
         style="border:1px solid #000;border-collapse:collapse;margin-bottom:4px;">
     <tr>
       {{-- Logo --}}
-      <td rowspan="2" width="28mm" style="border-right:1px solid #000;padding:4px;text-align:center;vertical-align:middle;">
+      <td rowspan="2" width="auto" style="border-right:1px solid #000;padding:4px;text-align:center;vertical-align:middle;">
         @php
           $shipperLogo = $companies[$shipment->Shipper]->Logo ?? null;
           $logoPath = $shipperLogo ? public_path($shipperLogo) : null;
         @endphp
         @if (!empty($logoDataUri))
-          <img src="{{ $logoDataUri }}" alt="Logo" width="130px" height="55px">
+          <img src="{{ $logoDataUri }}" alt="Logo" width="100px" height="100px">
         @elseif ($logoPath && is_file($logoPath) && file_exists($logoPath))
-          <img src="{{ $logoPath }}" alt="Logo" width="130px" height="55px">
+          <img src="{{ $logoPath }}" alt="Logo" width="100px" height="100px">
         @endif
       </td>
       {{-- Heading --}}
@@ -355,23 +355,23 @@
       @if ($vsds->isNotEmpty())
         @foreach ($vsds as $item)
         <tr>
-          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ $loop->iteration }}</td>
-          <td class="td-data" style="border-right:1px solid #000;padding-left:5px;padding-top:1.5px;padding-bottom:1.5px;">Container {{ $loop->iteration }} / {{ $item->Container ?: '...' }}{{ !empty($item->Seal) ? ' / ' . $item->Seal : '' }}</td>
-          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format((float) $item->Netto_KG, 2, '.', ',') }}</td>
-          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format((float) $item->Gross_KG, 2, '.', ',') }}</td>
-          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ number_format((float) $item->Netto_KG, 2, '.', ',') }}</td>
-          <td class="td-data" style="text-align:center;padding:1.5px 3px;">{{ number_format((float) round($item->Netto_KG / 1000, 2), 2, '.', ',') }}</td>
+          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:4px 3px;">{{ $loop->iteration }}</td>
+          <td class="td-data" style="border-right:1px solid #000;padding-left:5px;padding-top:4px;padding-bottom:4px;">Container {{ $loop->iteration }} / {{ $item->Container ?: '...' }}{{ !empty($item->Seal) ? ' / ' . $item->Seal : '' }}</td>
+          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:4px 3px;">{{ number_format((float) $item->Netto_KG, 2, '.', ',') }}</td>
+          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:4px 3px;">{{ number_format((float) $item->Gross_KG, 2, '.', ',') }}</td>
+          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:4px 3px;">{{ number_format((float) $item->Netto_KG, 2, '.', ',') }}</td>
+          <td class="td-data" style="text-align:center;padding:4px 3px;">{{ number_format((float) round($item->Netto_KG / 1000, 2), 2, '.', ',') }}</td>
         </tr>
         @endforeach
       @elseif ($qtyCount > 0)
         @for ($i = 1; $i <= $qtyCount; $i++)
         <tr>
-          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">{{ $i }}</td>
-          <td class="td-data" style="border-right:1px solid #000;padding-left:5px;padding-top:1.5px;padding-bottom:1.5px;">Container {{ $i }} / ...</td>
-          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">&nbsp;</td>
-          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">&nbsp;</td>
-          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:1.5px 3px;">&nbsp;</td>
-          <td class="td-data" style="text-align:center;padding:1.5px 3px;">&nbsp;</td>
+          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:4px 3px;">{{ $i }}</td>
+          <td class="td-data" style="border-right:1px solid #000;padding-left:5px;padding-top:4px;padding-bottom:4px;">Container {{ $i }} / ...</td>
+          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:4px 3px;">&nbsp;</td>
+          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:4px 3px;">&nbsp;</td>
+          <td class="td-data" style="text-align:center;border-right:1px solid #000;padding:4px 3px;">&nbsp;</td>
+          <td class="td-data" style="text-align:center;padding:4px 3px;">&nbsp;</td>
         </tr>
         @endfor
       @endif

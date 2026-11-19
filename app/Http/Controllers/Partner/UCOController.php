@@ -773,13 +773,6 @@ class UCOController extends Controller
                 $notimBadge = '-';
             }
 
-            if ($row->BA_Path) {
-                $baUrl = asset("filevendor/{$row->BA_Path}");
-                $baBadge = "<span class='badge badge-light border text-success' style='background:#f8f9fa;border:1px solid #dee2e6!important;padding:2px 5px;border-radius:3px;'><i class='fa fa-file-pdf text-success'></i> BA</span>^" . $baUrl . "^_blank";
-            } else {
-                $baBadge = '-';
-            }
-
             if ($approvalStatus === 'REJECTED') {
                 $approvalBadge = "<span class='badge badge-danger text-dark' style='color:#000 !important;'>REJECTED</span>";
             } elseif ($approvalStatus === 'PENDING') {
@@ -821,7 +814,6 @@ class UCOController extends Controller
             $r->addChild('cell', $stokPelindo);
             $r->addChild('cell', $remarks);
             $r->addChild('cell', $notimBadge);
-            $r->addChild('cell', $baBadge);
             $r->addChild('cell', $approvalBadge);
             $r->addChild('cell', $qc['ffa_palmitic']);
             $r->addChild('cell', $qc['ffa_oleic']);
@@ -978,64 +970,10 @@ class UCOController extends Controller
         }
     }
 
-    private function validateBaAttachment(Request $r)
-    {
-        if (strtolower((string) $r->input('Type', 'inbound')) !== 'inbound') {
-            return null;
-        }
-
-        $validator = \Illuminate\Support\Facades\Validator::make($r->all(), [
-            'BA_Attachment' => 'required|file|mimes:pdf,jpg,jpeg,png',
-        ], [
-            'BA_Attachment.required' => 'Attachment BA wajib diupload',
-            'BA_Attachment.file'     => 'Attachment BA harus berupa file yang valid',
-            'BA_Attachment.mimes'    => 'Attachment BA harus berformat pdf, jpg, jpeg, atau png',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first('BA_Attachment'),
-            ], 422);
-        }
-
-        return null;
-    }
-
-    private function storeFilevendorAttachment(Request $r, string $inputName): ?array
-    {
-        if (!$r->hasFile($inputName) || !$r->file($inputName)->isValid()) {
-            return null;
-        }
-
-        $file = $r->file($inputName);
-        $ext = $file->getClientOriginalExtension();
-        $year = now()->format('Y');
-        $month = now()->format('m');
-        $filename = \Ramsey\Uuid\Uuid::uuid4()->toString() . '.' . $ext;
-        $path = "{$year}/{$month}/{$filename}";
-
-        $dir = public_path("filevendor/{$year}/{$month}");
-        if (!is_dir($dir)) {
-            mkdir($dir, 0777, true);
-        }
-        $file->move($dir, $filename);
-
-        return [
-            'path'     => $path,
-            'filename' => $filename,
-            'ext'      => $ext,
-        ];
-    }
-
     public function submitStoragePelindo(Request $r)
     {
         if ($r->has('movement_kode') && !$r->filled('Type')) {
             return $this->submitInboundFromMovement($r);
-        }
-
-        if ($baError = $this->validateBaAttachment($r)) {
-            return $baError;
         }
 
         if ($r->filled('movement_kode')) {
@@ -1090,10 +1028,6 @@ class UCOController extends Controller
                 }
                 $qcFile->move($dir, $qcFilename);
             }
-
-            // 2.5 Upload Attachment BA
-            $baFile = $this->storeFilevendorAttachment($r, 'BA_Attachment');
-            $baPath = $baFile['path'] ?? null;
 
             // 3. Compute FFA, MC, IMP from QC parameters (top, middle, bottom)
             $ffa = $r->input('FFA');
@@ -1161,7 +1095,6 @@ class UCOController extends Controller
                 'driver_name'       => $driverName !== '' ? mb_substr($driverName, 0, 150) : null,
                 'Notim_Path'        => $notimPath,
                 'QC_Path'           => $qcPath,
-                'BA_Path'           => $baPath,
                 'FFA'               => $ffa,
                 'MC'                => $mc,
                 'IMP'               => $imp,
@@ -1359,10 +1292,6 @@ class UCOController extends Controller
 
     public function updateExportedStock(Request $r)
     {
-        if ($baError = $this->validateBaAttachment($r)) {
-            return $baError;
-        }
-
         $existing = UCOStoragePelindo::find($r->id);
         if (!$existing) {
             return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
@@ -1436,11 +1365,6 @@ class UCOController extends Controller
                     'Map_To'      => $r->id,
                     'Created_At'  => now(),
                 ]);
-            }
-
-            // Handle Attachment BA
-            if ($baFile = $this->storeFilevendorAttachment($r, 'BA_Attachment')) {
-                $updateData['BA_Path'] = $baFile['path'];
             }
 
             // Recompute FFA, MC, IMP
@@ -1674,7 +1598,6 @@ class UCOController extends Controller
                 'driver_name'       => $primaryModel->driver_name,
                 'Notim_Path'        => $primaryModel->Notim_Path,
                 'QC_Path'           => $primaryModel->QC_Path,
-                'BA_Path'           => $primaryModel->BA_Path,
                 'FFA'               => $primaryModel->FFA,
                 'MC'                => $primaryModel->MC,
                 'IMP'               => $primaryModel->IMP,

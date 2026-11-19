@@ -34,7 +34,6 @@ class UCOStoragePelindo extends Model
         'Movement_IMP',
         'Notes',
         'QC_Path',
-        'BA_Path',
         'Approval_Status',
         'Approved_By',
         'Approved_At',
