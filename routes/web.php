@@ -6775,9 +6775,18 @@ Route::post('/purchase-request-store', [ProcurementController::class, 'storePR']
 // Halaman & Data Outstanding PO
 Route::get('po-outstanding-list', [ProcurementController::class, 'outstandingPOIndex']);
 Route::get('xml-outstanding-po-list', [ProcurementController::class, 'xmlOutstandingPO']);
+Route::post('generate-split-po', [ProcurementController::class, 'generateSplitPO']);
+Route::post('cancel-po', [ProcurementController::class, 'cancelPO']);
+
+Route::post('po-approve', [ProcurementController::class, 'approvePO']);
+Route::post('po-delivery', [ProcurementController::class, 'deliveryPO']);
+Route::post('po-receive', [ProcurementController::class, 'receivePO']);
 
 Route::get('po-detail', [ProcurementController::class, 'detailPO']);
 Route::get('po-print', [ProcurementController::class, 'printPO']);
+Route::get('print-pr', [ProcurementController::class, 'printPR']);
+
+
 
 
     // -- General email settings (SMTP, sender, recipients, test, log) --
