@@ -15,7 +15,6 @@ return [
     'SM00062' => ['Procurement', '#', 'CNS', 2, 'MS00011', 9],
     'SM00063' => ['Inventory', '#', 'CNS', 2, 'MS00011', 10],
     'SM00064' => ['Master Data', '#', 'CNS', 2, 'MS00011', 11],
-    'SM00066' => ['Akses & Pengguna', '#', 'CNS', 2, 'MS00011', 12],
 
     'SS00090' => ['Kontrak Pembelian', '#', 'CNS', 3, 'SM00065', 1],
     'SS00093' => ['Document Control', '#', 'CNS', 3, 'SM00065', 2],
@@ -31,7 +30,6 @@ return [
     'SS00091' => ['Inventory Non UCO', '#', 'CNS', 3, 'SM00063', 2],
     'SS00088' => ['Master Data', '#', 'CNS', 3, 'SM00064', 1],
     'SS00089' => ['', '#', 'CNS', 3, 'SM00064', 2],
-    'SS00095' => ['Akses & Pengguna', '#', 'CNS', 3, 'SM00066', 1],
     'SS00150' => ['Dashboard', '#', 'CNS', 3, 'SM00080', 1],
 
     'SI00331' => ['Kontrak Pembelian', 'cns-procurement-buyer-contract', 'CNS', 4, 'SS00090', 1],
@@ -67,7 +65,5 @@ return [
     'SI00329' => ['Master Consignee', 'cns-master-consignee', 'CNS', 4, 'SS00088', 3],
     'SI01074' => ['Master Tangki', 'cns-master-tank', 'CNS', 4, 'SS00088', 4],
     'SI00342' => ['Master Kemasan', 'cns-master-kemasan', 'CNS', 4, 'SS00088', 5],
-    'SI00347' => ['Manajemen Pengguna', 'cns-user-management', 'CNS', 4, 'SS00095', 1],
-    'SI00348' => ['Role & Hak Akses', 'cns-role-management', 'CNS', 4, 'SS00095', 2],
     'SI01150' => ['Export Volume', 'cns-dashboard-export-volume', 'CNS', 4, 'SS00150', 1],
 ];
