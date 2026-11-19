@@ -126,16 +126,112 @@
       });
     }
 
+    function selectSoType(type) {
+      $('#soType').val(type);
+      $('.so-type-choice').each(function() {
+        var btnType = $(this).data('so-type');
+        var isSludgeBtn = btnType === 'SLUDGE';
+        $(this).removeClass('btn-success btn-primary btn-outline-success btn-outline-primary active');
+        if (btnType === type) {
+          $(this).addClass((isSludgeBtn ? 'btn-success' : 'btn-primary') + ' active');
+        } else {
+          $(this).addClass(isSludgeBtn ? 'btn-outline-success' : 'btn-outline-primary');
+        }
+      });
+
+      $('#soFormContainer').show();
+      if (type === 'SLUDGE') {
+        $('#salesDetailCol').hide();
+        $('#buyerCol').removeClass('col-md-5').addClass('col-md-12');
+        $('#buyerPaymentTermSlot').append($('#paymentTermGroup'));
+        $('#kemasanItemsSection').hide();
+        $('#sludgeItemsSection').show();
+        initSludgeSelect();
+      } else {
+        $('#salesDetailCol').show();
+        $('#buyerCol').removeClass('col-md-12').addClass('col-md-5');
+        $('#salesDetailBody').append($('#paymentTermGroup'));
+        $('#sludgeItemsSection').hide();
+        $('#kemasanItemsSection').show();
+      }
+      recalc();
+    }
+
+    function initSludgeSelect() {
+      var $sludgeSel = $('#sludgeDrainingId');
+      if (!$sludgeSel.length) return;
+
+      if ($.fn.select2 && !$sludgeSel.hasClass('select2-hidden-accessible')) {
+        $sludgeSel.select2({
+          width: '100%',
+          placeholder: '-- Pilih Kode Draining --',
+          allowClear: true
+        });
+      }
+
+      if (!$sludgeSel.data('sludge-bound')) {
+        $sludgeSel.data('sludge-bound', true);
+        $sludgeSel.on('change', function() {
+          var $opt = $(this).find('option:selected');
+          var val = $(this).val() || '';
+          var code = $opt.attr('data-code') || '';
+          var avail = cnsParseNumber($opt.attr('data-qty'), 0);
+          var qtyEl = document.getElementById('sludgeQty');
+          var codeEl = document.getElementById('sludgeDrainingCode');
+
+          if (codeEl) codeEl.value = val ? code : '';
+          if (qtyEl) {
+            qtyEl.setAttribute('data-max-qty', val ? avail : 0);
+            qtyEl.value = cnsFormatNumber(val ? avail : 0, 2);
+          }
+
+          validateSludgeQty();
+          recalc();
+        });
+      }
+    }
+
+    function validateSludgeQty() {
+      var drainingId = $('#sludgeDrainingId').val() || '';
+      var qtyEl = document.getElementById('sludgeQty');
+      var $availInfo = $('#sludgeAvailableInfo');
+      if (!drainingId || !qtyEl) {
+        $availInfo.html('<span style="color: #000; font-size: 15px; font-weight: 700;">-</span>');
+        if (qtyEl) $(qtyEl).removeClass('is-invalid');
+        return true;
+      }
+
+      var maxQty = cnsParseNumber(qtyEl.getAttribute('data-max-qty'), 0);
+      var qty = cnsParseNumber(qtyEl.value, 0);
+      if (qty > maxQty) {
+        $availInfo.html('<span class="badge" style="color: #000 !important; background-color: #f8d7da; border: 1px solid #f5c6cb; font-size: 15px; font-weight: 700; padding: 4px 8px;">' + fmt(maxQty) + ' KG</span>');
+        $(qtyEl).addClass('is-invalid');
+        return false;
+      }
+
+      $availInfo.html('<span class="badge" style="color: #000 !important; background-color: #d4edda; border: 1px solid #c3e6cb; font-size: 15px; font-weight: 700; padding: 4px 8px;">' + fmt(maxQty) + ' KG</span>');
+      $(qtyEl).removeClass('is-invalid');
+      return true;
+    }
+
     function recalc() {
       let subtotal = 0;
-      document.querySelectorAll('#itemsBody tr').forEach(tr => {
-        const qty = cnsParseNumber(tr.querySelector('.qty-inp')?.value, 0);
-        const price = cnsParseNumber(tr.querySelector('.price-inp')?.value, 0);
-        const tot = qty * price;
-        const cell = tr.querySelector('.total-cell');
-        if (cell) cell.textContent = fmt(tot);
-        subtotal += tot;
-      });
+      if (($('#soType').val() || '').toUpperCase() === 'SLUDGE') {
+        const qty = cnsParseNumber(document.getElementById('sludgeQty')?.value, 0);
+        const price = cnsParseNumber(document.getElementById('sludgePrice')?.value, 0);
+        subtotal = qty * price;
+        const sludgeTotalEl = document.getElementById('sludgeTotalDisplay');
+        if (sludgeTotalEl) sludgeTotalEl.textContent = fmt(subtotal);
+      } else {
+        document.querySelectorAll('#itemsBody tr').forEach(tr => {
+          const qty = cnsParseNumber(tr.querySelector('.qty-inp')?.value, 0);
+          const price = cnsParseNumber(tr.querySelector('.price-inp')?.value, 0);
+          const tot = qty * price;
+          const cell = tr.querySelector('.total-cell');
+          if (cell) cell.textContent = fmt(tot);
+          subtotal += tot;
+        });
+      }
       const tax = cnsParseNumber(document.getElementById('taxAmount').value, 0);
       const ship = cnsParseNumber(document.getElementById('shippingAmount').value, 0);
       const other = cnsParseNumber(document.getElementById('otherAmount').value, 0);
@@ -168,6 +264,13 @@
       var addrEl = document.getElementById('siteAddress');
       if (addrEl) addrEl.value = '';
       $('#site_id').val('');
+      var $sludgeSel = $('#sludgeDrainingId');
+      if ($sludgeSel.length) {
+        $sludgeSel.val('').trigger('change');
+      }
+      if (document.getElementById('sludgePrice')) {
+        document.getElementById('sludgePrice').value = cnsFormatNumber(0, 2);
+      }
       recalc();
     }
 
@@ -333,11 +436,34 @@
     function saveSO() {
       const soCode = document.getElementById('soCode').value;
       const soDate = document.getElementById('soDate').value;
+      const soType = ($('#soType').val() || 'KEMASAN_AMPAS').toUpperCase();
       const site = document.getElementById('site').value;
       if (!soCode || !soDate) {
         alert('SO Code dan tanggal wajib diisi!');
         return;
       }
+
+      if (soType === 'SLUDGE') {
+        const drainingId = $('#sludgeDrainingId').val() || '';
+        const sludgeQtyEl = document.getElementById('sludgeQty');
+        const qty = cnsParseNumber(sludgeQtyEl?.value, 0);
+        const maxQty = cnsParseNumber(sludgeQtyEl?.getAttribute('data-max-qty'), 0);
+        if (!drainingId) {
+          alert('Kode draining wajib dipilih!');
+          return;
+        }
+        if (qty <= 0) {
+          alert('Qty Sludge harus lebih dari 0!');
+          return;
+        }
+        if (qty > maxQty) {
+          alert('Qty Sludge (' + qty + ' KG) melebihi sisa qty sludge draining (' + maxQty + ' KG)!');
+          return;
+        }
+        submitSalesOrder();
+        return;
+      }
+
       if (!site) {
         alert('Site wajib dipilih!');
         return;
@@ -373,6 +499,13 @@
       recalc();
     }
     initSiteSelect();
+    initSludgeSelect();
+    if (document.getElementById('sludgeItemsSection')) {
+      cnsInitDecimalInputs(document.getElementById('sludgeItemsSection'));
+    }
+    if (($('#soType').val() || '').toUpperCase() === 'SLUDGE') {
+      validateSludgeQty();
+    }
 
     var myCalendar;
     myCalendar = new dhtmlXCalendarObject(["Stuffing", "Checking_BC", "Closing_CY", "ETD", "ATD", "ETA", "ATA"]);

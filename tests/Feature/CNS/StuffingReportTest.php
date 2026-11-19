@@ -54,7 +54,7 @@ class StuffingReportTest extends TestCase
         $this->assertSame('Buyer Report Company', $sheet->getCell('B4')->getValue());
         $this->assertSame('REPORT-CTR-001', $sheet->getCell('F4')->getValue());
         $this->assertSame('02 November 2026 - 07 November 2026', $sheet->getCell('B5')->getValue());
-        $this->assertSame('DO-REPORT-001', $sheet->getCell('F5')->getValue());
+        $this->assertSame('BC-REPORT-001', $sheet->getCell('F5')->getValue());
         $this->assertSame('CIF', $sheet->getCell('B6')->getValue());
         $this->assertSame('BOOK-REPORT-001', $sheet->getCell('F6')->getValue());
         $this->assertSame('REPORT VESSEL', $sheet->getCell('B7')->getValue());
@@ -77,17 +77,17 @@ class StuffingReportTest extends TestCase
         $this->assertSame('Belum', $sheet->getCell('E16')->getValue());
         $this->assertSame('admin', $sheet->getCell('F16')->getValue());
         $this->assertSame('Schedule report note', $sheet->getCell('H16')->getValue());
-        $this->assertSame('DO report note', $sheet->getCell('A19')->getValue());
+        $this->assertSame('BC report note', $sheet->getCell('A19')->getValue());
     }
 
     /** @test */
-    public function it_uses_tbd_when_do_data_is_missing(): void
+    public function it_uses_tbd_when_bc_data_is_missing(): void
     {
         [$contract, $supplier] = $this->makeContractWithSupplier();
         $schedule = $this->makeSchedule($contract, $supplier, [
-            'DO_No' => null,
-            'DO_Status' => null,
-            'DO_Note' => null,
+            'BC_No' => null,
+            'BC_Status' => null,
+            'BC_Note' => null,
         ]);
         $this->makeContainer($schedule, 18000, 20000, 'REPORTU0000003');
 
@@ -170,9 +170,9 @@ class StuffingReportTest extends TestCase
             'ETD' => '2026-11-05',
             'ETA' => '2026-11-06',
             'Note' => 'Schedule report note',
-            'DO_No' => 'DO-REPORT-001',
-            'DO_Status' => 'SESUAI',
-            'DO_Note' => 'DO report note',
+            'BC_No' => 'BC-REPORT-001',
+            'BC_Status' => 'SESUAI',
+            'BC_Note' => 'BC report note',
             'Checklist_Pickup_Container' => 1,
             'Checklist_Stuffing_Process' => 1,
             'Checklist_Rilis_NPE' => 0,

@@ -42,7 +42,7 @@
                                 @endforeach
                             </select>
                             <div id="sourceTankStockInfo" class="mt-1" style="display:none;">
-                                <span class="badge badge-info p-1" id="badgeSourceStock" style="cursor:pointer;" onclick="$('#new_qty').val(currentSourceStock > 0 ? cnsFormatNumber(currentSourceStock, 2) : '')" title="Klik untuk isi seluruh stok tangki">Stok Tersedia: 0.00 KG</span>
+                                <span class="badge badge-info p-1" id="badgeSourceStock" style="cursor:pointer;" onclick="var rem = currentSourceStock - cnsParseNumber($('#new_qty_sludge').val(), 0); $('#new_qty').val(rem > 0 ? cnsFormatNumber(rem, 2) : '')" title="Klik untuk isi seluruh stok tangki">Stok Tersedia: 0.00 KG</span>
                             </div>
                         </div>
                     </div>
@@ -53,6 +53,15 @@
                             <label for="new_qty" class="font-weight-bold">Qty Draining (KG) <span class="text-danger">*</span></label>
                             <input type="text" inputmode="decimal" class="text-black form-control cns-decimal" id="new_qty" name="qty" placeholder="Contoh: 25,000.00" required />
                             <small class="form-text text-muted">Jumlah minyak UCO yang dikeluarkan dalam satuan KG.</small>
+                        </div>
+                    </div>
+
+                    <!-- Qty Sludge -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="new_qty_sludge" class="font-weight-bold">Qty Sludge (KG)</label>
+                            <input type="text" inputmode="decimal" class="text-black form-control cns-decimal" id="new_qty_sludge" name="qty_sludge" placeholder="0.00" />
+                            <small class="form-text text-muted">Jumlah sludge (opsional). Mengurangi stok tangki asal, tidak masuk ke tangki tujuan.</small>
                         </div>
                     </div>
 
@@ -213,7 +222,7 @@
             onMovingTypeChange();
         } else if (targetType === 'PENJUALAN') {
             $('#sectionMovingTarget').hide();
-            $('#sectionSalesOrder').show();
+            $('#sectionSalesOrder').hide();
         } else {
             $('#sectionMovingTarget').hide();
             $('#sectionSalesOrder').hide();
@@ -275,6 +284,7 @@
         e.preventDefault();
 
         var qty = cnsParseNumber($('#new_qty').val(), 0);
+        var qtySludge = cnsParseNumber($('#new_qty_sludge').val(), 0);
         var tankId = $('#new_tank_id').val();
         var targetType = $('#new_target_type').val();
 
@@ -288,8 +298,14 @@
             return;
         }
 
-        if (currentSourceStock > 0 && qty > currentSourceStock) {
-            alert('Qty draining (' + cnsFormatNumber(qty, 2) + ' KG) melebihi stok tangki yang tersedia (' + cnsFormatNumber(currentSourceStock, 2) + ' KG).');
+        if (qtySludge < 0) {
+            alert('Qty sludge tidak boleh kurang dari 0.');
+            return;
+        }
+
+        var totalOut = qty + qtySludge;
+        if (currentSourceStock > 0 && totalOut > currentSourceStock) {
+            alert('Total Qty Draining + Sludge (' + cnsFormatNumber(totalOut, 2) + ' KG) melebihi stok tangki yang tersedia (' + cnsFormatNumber(currentSourceStock, 2) + ' KG).');
             return;
         }
 
@@ -340,6 +356,7 @@
         formData.append('draining_date', $('#new_draining_date').val());
         formData.append('tank_id', tankId);
         formData.append('qty', qty);
+        formData.append('qty_sludge', qtySludge);
         formData.append('target_type', targetType);
         if (targetType === 'MOVING') {
             var movingTargetType = $('#new_moving_target_type').val();

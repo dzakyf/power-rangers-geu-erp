@@ -23,3 +23,66 @@ pre *,
 .font-monospace {
     font-family: var(--font-family-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace) !important;
 }
+
+/* ========================================================
+   GLOBAL UNIFORM TABS (Matching Stuffing Style)
+   ======================================================== */
+.nav.nav-tabs,
+.nav-tabs {
+    border-bottom: 2px solid #dee2e6 !important;
+    background: #f8f9fa !important;
+    padding: 8px 16px 0 16px !important;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.nav-tabs .nav-item {
+    margin-bottom: 0 !important;
+}
+
+.nav-tabs .nav-link {
+    border: 1px solid transparent !important;
+    border-top-left-radius: 6px !important;
+    border-top-right-radius: 6px !important;
+    color: #495057 !important;
+    padding: 10px 22px !important;
+    font-size: 14px;
+    font-weight: 600 !important;
+    background: transparent !important;
+    transition: all 0.2s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: -2px !important;
+    text-decoration: none !important;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--primary-bg-color, #0d6efd) !important;
+    background: #eef2f7 !important;
+    border-color: #dee2e6 #dee2e6 transparent !important;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+    color: var(--primary-bg-color, #0d6efd) !important;
+    background: #ffffff !important;
+    border-color: #dee2e6 #dee2e6 #ffffff !important;
+    border-top: 3px solid var(--primary-bg-color, #0d6efd) !important;
+    border-bottom: 2px solid #ffffff !important;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.nav-tabs .nav-link i {
+    font-size: 15px;
+}
+
+/* Card header integration */
+.card-header .nav-tabs,
+.card-header-tabs {
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+}

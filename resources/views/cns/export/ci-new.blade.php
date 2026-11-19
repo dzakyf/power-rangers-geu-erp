@@ -86,6 +86,17 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
 						</div>
                         <div class="col-md-3">
                             <div class="form-group">
+                                <label for="Shipper">Shipper</label>
+                                <select name="Shipper" id="Shipper" class="form-control bg-white shadow-sm" disabled>
+                                    <option value="">-- Pilih Shipper --</option>
+                                    @foreach ($companies as $shipper)
+                                        <option value="{{ $shipper->Supplier_ID }}">{{ $shipper->Company_Name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
                                 <label for="Consignee">Consignee</label>
                                 <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Consignee --</option>
@@ -210,6 +221,7 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
                 $('#Qty').val(cnsFormatNumber(response.Netto_MT ?? 0));
                 calculateTotal();
                 $('#Description').val(response.Product_Name ?? "");
+                $('#Shipper').val(response.Shipper ?? '');
                 $('#Consignee').find('option[value="'+response.Consignee+'"]').attr('selected', true);
                 $.unblockUI();
             },

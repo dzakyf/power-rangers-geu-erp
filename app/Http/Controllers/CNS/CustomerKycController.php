@@ -297,7 +297,22 @@ class CustomerKycController extends Controller
             return back()->with('error', 'File dokumen tidak ditemukan.');
         }
 
-        return Storage::disk('local')->download($path, $name);
+        if (request()->query('download')) {
+            return Storage::disk('local')->download($path, $name);
+        }
+
+        $fullPath = Storage::disk('local')->path($path);
+        $downloadName = $name;
+        if (!pathinfo($downloadName, PATHINFO_EXTENSION)) {
+            $ext = pathinfo($path, PATHINFO_EXTENSION);
+            if ($ext) {
+                $downloadName .= '.' . $ext;
+            }
+        }
+
+        return response()->file($fullPath, [
+            'Content-Disposition' => 'inline; filename="' . str_replace('"', '', $downloadName) . '"',
+        ]);
     }
 
     public function printPdf($id)

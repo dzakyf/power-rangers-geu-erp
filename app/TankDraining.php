@@ -17,6 +17,7 @@ class TankDraining extends Model
         'tank_id',
         'tank_name',
         'qty',
+        'qty_sludge',
         'target_type',
         'moving_target_type',
         'moving_target_tank_id',
@@ -34,6 +35,7 @@ class TankDraining extends Model
     protected $casts = [
         'draining_date' => 'date',
         'qty'           => 'float',
+        'qty_sludge'    => 'float',
     ];
 
     protected $dates = [

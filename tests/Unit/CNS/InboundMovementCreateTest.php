@@ -7,7 +7,6 @@ use App\Services\ExternalApi\ApipiApiClient;
 use App\Services\ExternalApi\ApipiAuthService;
 use App\UCOStoragePelindo;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use RuntimeException;
@@ -223,8 +222,6 @@ class InboundMovementCreateTest extends TestCase
                 'top_FFA_As_Palmitic' => 3.27,
                 'top_Moisture'        => 0.43,
                 'top_Impurities'      => 0.49,
-            ], [], [], [], [
-                'BA_Attachment' => UploadedFile::fake()->create('ba.pdf', 100, 'application/pdf'),
             ]));
             $json = json_decode($resp->getContent(), true);
 
@@ -256,8 +253,6 @@ class InboundMovementCreateTest extends TestCase
                 'Quantity'         => 19500,
                 'Transaction_Date' => '2026-11-11',
                 'Reference_Number' => $kode,
-            ], [], [], [], [
-                'BA_Attachment' => UploadedFile::fake()->create('ba.pdf', 100, 'application/pdf'),
             ]));
             $dupJson = json_decode($dupResp->getContent(), true);
             $this->assertSame(422, $dupResp->getStatusCode());
@@ -289,9 +284,9 @@ class InboundMovementCreateTest extends TestCase
         $this->assertStringContainsString('id="edit_fleet_plat"', $editHtml);
         $this->assertStringContainsString('id="edit_driver_name"', $editHtml);
         $this->assertStringContainsString('id="Attachment"', $createHtml);
-        $this->assertStringContainsString('id="BA_Attachment"', $createHtml);
+        $this->assertStringNotContainsString('id="BA_Attachment"', $createHtml);
         $this->assertStringContainsString('id="QC_Attachment"', $createHtml);
-        $this->assertStringContainsString('id="edit_BA_Attachment"', $editHtml);
+        $this->assertStringNotContainsString('id="edit_BA_Attachment"', $editHtml);
         $this->assertStringContainsString('id="edit_approval_banner"', $editHtml);
         $this->assertStringContainsString('id="btnUpdateEditStock"', $editHtml);
         $this->assertStringContainsString('id="create_mov_ffa"', $createHtml);
@@ -305,29 +300,6 @@ class InboundMovementCreateTest extends TestCase
         $this->assertStringContainsString('id="Notes"', $createHtml);
         $this->assertStringNotContainsString('id="Quantity_Sounding"', $createHtml);
         $this->assertStringContainsString('window.populateCnsWarehouseSelect', $editHtml);
-    }
-
-    /** @test */
-    public function inbound_submit_and_edit_require_ba_attachment()
-    {
-        $controller = app(UCOController::class);
-
-        $createResp = $controller->submitStoragePelindo(new Request([
-            'movement_kode'    => 'GEU-MOV-26-NOBA',
-            'Type'             => 'inbound',
-            'Quantity'         => 1000,
-            'Transaction_Date' => '2026-11-12',
-        ]));
-        $this->assertSame(422, $createResp->getStatusCode());
-        $this->assertFalse(json_decode($createResp->getContent(), true)['success']);
-
-        $editResp = $controller->updateExportedStock(new Request([
-            'id'               => 1,
-            'Type'             => 'inbound',
-            'Transaction_Date' => '2026-11-12',
-        ]));
-        $this->assertSame(422, $editResp->getStatusCode());
-        $this->assertFalse(json_decode($editResp->getContent(), true)['success']);
     }
 
     /** @test */
@@ -345,5 +317,6 @@ class InboundMovementCreateTest extends TestCase
         $this->assertStringContainsString('approveSelectedInbound()', $indexHtml);
         $this->assertStringContainsString('rejectSelectedInbound()', $indexHtml);
         $this->assertStringContainsString('Status Approval', $indexHtml);
+        $this->assertStringNotContainsString('Attachment BA', $indexHtml);
     }
 }

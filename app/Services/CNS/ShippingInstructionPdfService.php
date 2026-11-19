@@ -62,13 +62,13 @@ class ShippingInstructionPdfService
 
         $mpdf->splitTableBorderWidth = 1;
 
-        if ($headerHtml !== '') {
-            $mpdf->SetHTMLHeader($headerHtml);
-        }
+        // if ($headerHtml !== '') {
+        //     $mpdf->SetHTMLHeader($headerHtml);
+        // }
 
-        if ($footerHtml !== '') {
-            $mpdf->SetHTMLFooter($footerHtml);
-        }
+        // if ($footerHtml !== '') {
+        //     $mpdf->SetHTMLFooter($footerHtml);
+        // }
 
         $mpdf->WriteHTML($html);
 

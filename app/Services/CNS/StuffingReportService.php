@@ -48,7 +48,7 @@ class StuffingReportService
             $contract ? $contract->Contract_No : null,
         ]));
         $sheet->setCellValue('B5', $this->loadingPeriod($contract));
-        $sheet->setCellValue('F5', $this->first([$schedule->DO_No]));
+        $sheet->setCellValue('F5', $this->first([$schedule->BC_No]));
         $sheet->setCellValue('B6', $this->first([
             $schedule->Incoterms,
             $contract ? $contract->Incoterms : null,
@@ -66,7 +66,7 @@ class StuffingReportService
         $sheet->setCellValue('B12', $gwKg);
         $sheet->setCellValue('D12', $gwMt);
         $sheet->setCellValue('F12', $difference);
-        $sheet->setCellValue('H12', $this->first([$schedule->DO_Status]));
+        $sheet->setCellValue('H12', $this->first([$schedule->BC_Status]));
 
         $sheet->setCellValue('A16', $schedule->Checklist_Pickup_Container ? 'Sudah' : 'Belum');
         $sheet->setCellValue('B16', $schedule->Checklist_Stuffing_Process ? 'Sudah' : 'Belum');
@@ -80,7 +80,7 @@ class StuffingReportService
         $sheet->setCellValue('G16', $this->formatDateTime($schedule->Checklist_Updated_Date));
         $sheet->setCellValue('H16', $this->first([$schedule->Note]));
         $sheet->setCellValue('A19', $this->first([
-            $schedule->DO_Note,
+            $schedule->BC_Note,
             $schedule->Note,
         ]));
 

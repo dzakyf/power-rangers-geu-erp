@@ -44,7 +44,7 @@
                                 @endforeach
                             </select>
                             <div id="editSourceTankStockInfo" class="mt-1">
-                                <span class="badge badge-info p-1" id="editBadgeSourceStock" style="cursor:pointer;" onclick="var av = ($('#edit_tank_id').val() == editOriginalSourceId ? (editCurrentSourceStock + editOriginalQty) : editCurrentSourceStock); if(av > 0) $('#edit_qty').val(cnsFormatNumber(av, 2));" title="Klik untuk isi seluruh stok tangki">Stok Saat Ini: {{ number_format((float) $currentStock, 2, '.', ',') }} KG</span>
+                                <span class="badge badge-info p-1" id="editBadgeSourceStock" style="cursor:pointer;" onclick="var av = ($('#edit_tank_id').val() == editOriginalSourceId ? (editCurrentSourceStock + editOriginalTotalOut) : editCurrentSourceStock); var sl = cnsParseNumber($('#edit_qty_sludge').val(), 0); var rem = av - sl; if(rem > 0) $('#edit_qty').val(cnsFormatNumber(rem, 2));" title="Klik untuk isi seluruh stok tangki">Stok Saat Ini: {{ number_format((float) $currentStock, 2, '.', ',') }} KG</span>
                             </div>
                         </div>
                     </div>
@@ -55,6 +55,15 @@
                             <label for="edit_qty" class="font-weight-bold">Qty Draining (KG) <span class="text-danger">*</span></label>
                             <input type="text" inputmode="decimal" class="text-black form-control cns-decimal" id="edit_qty" name="qty" value="{{ number_format((float) $draining->qty, 2, '.', ',') }}" required />
                             <small class="form-text text-muted">Jumlah minyak UCO yang dikeluarkan dalam satuan KG.</small>
+                        </div>
+                    </div>
+
+                    <!-- Qty Sludge -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="edit_qty_sludge" class="font-weight-bold">Qty Sludge (KG)</label>
+                            <input type="text" inputmode="decimal" class="text-black form-control cns-decimal" id="edit_qty_sludge" name="qty_sludge" value="{{ number_format((float) ($draining->qty_sludge ?? 0), 2, '.', ',') }}" placeholder="0.00" />
+                            <small class="form-text text-muted">Jumlah sludge (opsional). Mengurangi stok tangki asal, tidak masuk ke tangki tujuan.</small>
                         </div>
                     </div>
 
@@ -104,7 +113,7 @@
                     </div>
 
                     <!-- Penjualan / Sales Order Section -->
-                    <div class="col-md-6" id="editSectionSalesOrder" style="{{ $draining->target_type === 'PENJUALAN' ? '' : 'display:none;' }}">
+                    <div class="col-md-6" id="editSectionSalesOrder" style="display:none;">
                         <div class="form-group">
                             <label for="edit_sales_order_id" class="font-weight-bold">Referensi Sales Order (Opsional)</label>
                             <select class="text-black form-control" id="edit_sales_order_id" name="sales_order_id">
@@ -180,7 +189,7 @@
 
 <script>
     var editOriginalSourceId = {{ $draining->tank_id }};
-    var editOriginalQty = {{ (float) $draining->qty }};
+    var editOriginalTotalOut = {{ (float) $draining->qty + (float) ($draining->qty_sludge ?? 0) }};
     var editCurrentSourceStock = {{ (float) $currentStock }};
     var editHasBastDocument = {{ !empty($draining->bast_document_path) ? 'true' : 'false' }};
 
@@ -201,8 +210,10 @@
                 var formatted = cnsFormatNumber(editCurrentSourceStock, 2);
                 $('#editBadgeSourceStock').text('Stok Saat Ini: ' + formatted + ' KG');
                 $('#editSourceTankStockInfo').show();
-                var av = (tankId == editOriginalSourceId) ? (editCurrentSourceStock + editOriginalQty) : editCurrentSourceStock;
-                $('#edit_qty').val(av > 0 ? cnsFormatNumber(av, 2) : '');
+                var av = (tankId == editOriginalSourceId) ? (editCurrentSourceStock + editOriginalTotalOut) : editCurrentSourceStock;
+                var sl = cnsParseNumber($('#edit_qty_sludge').val(), 0);
+                var rem = av - sl;
+                $('#edit_qty').val(rem > 0 ? cnsFormatNumber(rem, 2) : '');
 
                 if (res.pending_drain_adjustment) {
                     var p = res.pending_drain_adjustment;
@@ -244,7 +255,7 @@
             onEditMovingTypeChange();
         } else if (targetType === 'PENJUALAN') {
             $('#editSectionMovingTarget').hide();
-            $('#editSectionSalesOrder').show();
+            $('#editSectionSalesOrder').hide();
         } else {
             $('#editSectionMovingTarget').hide();
             $('#editSectionSalesOrder').hide();
@@ -310,6 +321,7 @@
         e.preventDefault();
 
         var qty = cnsParseNumber($('#edit_qty').val(), 0);
+        var qtySludge = cnsParseNumber($('#edit_qty_sludge').val(), 0);
         var tankId = $('#edit_tank_id').val();
         var targetType = $('#edit_target_type').val();
 
@@ -323,10 +335,16 @@
             return;
         }
 
-        // Available stock considering current transaction's outbound
-        var available = (tankId == editOriginalSourceId) ? (editCurrentSourceStock + editOriginalQty) : editCurrentSourceStock;
-        if (qty > available) {
-            alert('Qty draining (' + cnsFormatNumber(qty, 2) + ' KG) melebihi stok tangki yang tersedia (' + cnsFormatNumber(available, 2) + ' KG).');
+        if (qtySludge < 0) {
+            alert('Qty sludge tidak boleh kurang dari 0.');
+            return;
+        }
+
+        // Available stock considering current transaction's outbound (qty + qty_sludge)
+        var available = (tankId == editOriginalSourceId) ? (editCurrentSourceStock + editOriginalTotalOut) : editCurrentSourceStock;
+        var totalOut = qty + qtySludge;
+        if (totalOut > available) {
+            alert('Total Qty Draining + Sludge (' + cnsFormatNumber(totalOut, 2) + ' KG) melebihi stok tangki yang tersedia (' + cnsFormatNumber(available, 2) + ' KG).');
             return;
         }
 
@@ -379,6 +397,7 @@
         formData.append('draining_date', $('#edit_draining_date').val());
         formData.append('tank_id', tankId);
         formData.append('qty', qty);
+        formData.append('qty_sludge', qtySludge);
         formData.append('target_type', targetType);
         if (targetType === 'MOVING') {
             var movingTargetType = $('#edit_moving_target_type').val();

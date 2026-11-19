@@ -181,6 +181,21 @@ class StuffingListTest extends TestCase
         );
     }
 
+    /** @test */
+    public function stuffing_page_renders_both_schedule_and_monitoring_tabs(): void
+    {
+        $response = $this->actingAs($this->testUser())
+            ->get('/cns-stuffing');
+
+        $response->assertOk();
+        $response->assertSee('Jadwal Stuffing (Vessel)');
+        $response->assertSee('Monitoring Kontainer');
+        $response->assertSee('StuffingVessel');
+        $response->assertSee('StuffingMonitoringGrid');
+        $response->assertSee('Create Stuffing');
+        $response->assertSee('Add Container');
+    }
+
     private function makeVesselSchedule(string $orderNo, string $taskId, string $note = 'Initial note'): VesselSchedule
     {
         return VesselSchedule::create([

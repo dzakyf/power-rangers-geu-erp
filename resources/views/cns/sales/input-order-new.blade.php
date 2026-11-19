@@ -406,6 +406,27 @@ $Saya =  Auth::user()->username;
   <div class="card">
     <div class="card-body">
       <div id="ContentPages">
+        <input type="hidden" id="soType" name="soType" value="" />
+        <div class="p-3 p-md-4 border-bottom bg-light" id="soTypeSelector">
+          <div class="mb-2 font-weight-bold text-uppercase" style="font-size: 13px; color: var(--geu-green-dark); letter-spacing: 0.5px;">
+            Pilih Jenis Sales Order
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-2 mb-md-0">
+              <button type="button" class="btn btn-outline-success btn-block text-left p-3 so-type-choice" data-so-type="SLUDGE" onclick="selectSoType('SLUDGE')" style="border-width:2px;">
+                <div class="font-weight-bold" style="font-size:15px;">1. Sludge</div>
+                <div class="small text-muted">Pilih kode draining dan qty sludge dari hasil draining tangki.</div>
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button type="button" class="btn btn-outline-primary btn-block text-left p-3 so-type-choice" data-so-type="KEMASAN_AMPAS" onclick="selectSoType('KEMASAN_AMPAS')" style="border-width:2px;">
+                <div class="font-weight-bold" style="font-size:15px;">2. Kemasan dan Ampas</div>
+                <div class="small text-muted">Penjualan produk kemasan dan ampas berdasarkan stok site.</div>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="soFormContainer" style="display:none;">
         <div class="FormInput_Form_Content">
           <!-- ── TITLE BAR ── -->
           <div class="so-titlebar">
@@ -427,7 +448,7 @@ $Saya =  Auth::user()->username;
             <!-- ── BUYER + SALES DETAIL ── -->
             <div class="row mb-4">
               <!-- BUYER -->
-              <div class="col-md-5 mb-3 mb-md-0">
+              <div class="col-md-5 mb-3 mb-md-0" id="buyerCol">
                 <div class="section-header">Buyer</div>
                 <div class="section-body">
                   <div class="form-group mb-2">
@@ -442,17 +463,18 @@ $Saya =  Auth::user()->username;
                     <label class="form-label">Provinsi</label>
                     <input type="text" class="form-control" id="buyerProvinsi" placeholder="Provinsi" />
                   </div>
-                  <div class="form-group mb-0">
+                  <div class="form-group mb-2">
                     <label class="form-label">Phone</label>
                     <input type="text" class="form-control" id="buyerPhone" placeholder="+62 xxx-xxxx-xxxx" />
                   </div>
+                  <div id="buyerPaymentTermSlot"></div>
                 </div>
               </div>
 
               <!-- SALES DETAIL -->
-              <div class="col-md-7">
+              <div class="col-md-7" id="salesDetailCol">
                 <div class="section-header">Sales Detail</div>
-                <div class="section-body">
+                <div class="section-body" id="salesDetailBody">
                   <div class="form-group mb-2">
                     <label class="form-label">Site</label>
                     <input type="hidden" id="site_id" name="site_id" value="" />
@@ -464,7 +486,7 @@ $Saya =  Auth::user()->username;
                     <label class="form-label">Site Address</label>
                     <textarea class="form-control" id="siteAddress" rows="3" placeholder="Alamat lengkap site"></textarea>
                   </div>
-                  <div class="form-group mb-0">
+                  <div class="form-group mb-0" id="paymentTermGroup">
                     <label class="form-label">Payment Term</label>
                     {{-- <select class="form-control" id="paymentTerm">
                       <option value="Transfer" selected>Transfer</option>
@@ -479,8 +501,8 @@ $Saya =  Auth::user()->username;
               </div>
             </div>
 
-            <!-- ── ITEMS TABLE ── -->
-            <div class="mb-3">
+            <!-- ── ITEMS TABLE (KEMASAN & AMPAS) ── -->
+            <div class="mb-3" id="kemasanItemsSection">
               <div class="section-header d-flex justify-content-between align-items-center">
                 <span>Item / Produk</span>
                 <button class="btn btn-primary btn-add-row no-print" onclick="addRow()">
@@ -505,38 +527,46 @@ $Saya =  Auth::user()->username;
                     <tbody id="itemsBody">
                       <!-- rows injected by JS -->
                     </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── SLUDGE SECTION ── -->
+            @include('cns.sales.partials.sludge-section', ['drainings' => $drainings ?? collect(), 'isSludge' => false])
+
+            <!-- ── SUMMARY TOTALS ── -->
+            <div class="mb-3" id="summaryTotalsSection">
+              <div class="section-body p-0">
+                <div class="items-table-wrap">
+                  <table class="items-table">
                     <tfoot>
                       <tr class="subtotal-row">
                         <td colspan="6" class="text-right font-weight-600">SUBTOTAL</td>
-                        <td class="text-right font-weight-600" id="subtotalDisplay">0</td>
-                        <td class="no-print"></td>
+                        <td class="text-right font-weight-600 total-col" id="subtotalDisplay">0</td>
                       </tr>
                       <tr>
                         <td colspan="6" class="text-right">TAX</td>
-                        <td class="text-right">
+                        <td class="text-right total-col">
                           <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="taxAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
-                        <td class="no-print"></td>
                       </tr>
                       <tr>
                         <td colspan="6" class="text-right">SHIPPING</td>
-                        <td class="text-right">
+                        <td class="text-right total-col">
                           <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="shippingAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
-                        <td class="no-print"></td>
                       </tr>
                       <tr>
                         <td colspan="6" class="text-right">OTHER</td>
-                        <td class="text-right">
+                        <td class="text-right total-col">
                           <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="otherAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
-                        <td class="no-print"></td>
                       </tr>
                       <tr class="total-row">
                         <td colspan="6" class="text-right">TOTAL</td>
                         <input type="hidden" name="totalAmount" id="totalAmount" value="">
-                        <td class="text-right" id="totalDisplay">Rp 0</td>
-                        <td class="no-print"></td>
+                        <td class="text-right total-col" id="totalDisplay">Rp 0</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -563,9 +593,9 @@ $Saya =  Auth::user()->username;
             <button class="btn-submit" onclick="saveSO()">
               <i class="fas fa-save mr-2"></i>Simpan Sales Order
             </button>
-            </button>
           </div>
         </div>
+        </div><!-- /soFormContainer -->
       </div>
     </div>
     <div id="DivProcess"></div>

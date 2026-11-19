@@ -526,7 +526,7 @@
             'No', 'Bulan', 'Tanggal',
             'Asal Warehouse', 'Nama Tangki', 'Nopol / Kontainer', 'Fleet', 'No. Polisi', 'Driver', 'QTY SJ',
             'IN (KG)', 'OUT (KG)', 'Jumlah Stok Pelindo (KG)',
-            'Remarks', 'Link', 'Attachment BA', 'Status Approval',
+            'Remarks', 'Link', 'Status Approval',
             'Parameter QC', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan'
         ];
 
@@ -534,7 +534,7 @@
             '#rspan', '#rspan', '#rspan',
             '#rspan', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan', '#rspan',
             '#rspan', '#rspan', '#rspan',
-            '#rspan', '#rspan', '#rspan', '#rspan',
+            '#rspan', '#rspan', '#rspan',
             'FFA Palmitic', 'FFA Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals', 'Link'
         ];
 
@@ -554,7 +554,6 @@
             '150',  // Jumlah Stok Pelindo (KG)
             '100',  // Remarks
             '110',  // Link (Nota Timbang)
-            '100',  // Attachment BA
             '110',  // Status Approval
             '85',   // FFA Palmitic
             '85',   // FFA Oleic
@@ -573,7 +572,7 @@
             'ro', 'ro', 'ro',
             'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro',
             'ro', 'ro', 'ro',
-            'ro', 'link', 'link', 'ro',
+            'ro', 'link', 'ro',
             'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'ro', 'link'
         ];
 
@@ -581,7 +580,7 @@
             'center', 'center', 'center',
             'left', 'center', 'center', 'left', 'center', 'left', 'right',
             'right', 'right', 'right',
-            'left', 'center', 'center', 'center',
+            'left', 'center', 'center',
             'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'center'
         ];
 
@@ -589,7 +588,7 @@
             'int', 'str', 'date',
             'str', 'str', 'str', 'str', 'str', 'str', 'int',
             'int', 'int', 'int',
-            'str', 'str', 'str', 'str',
+            'str', 'str', 'str',
             'str', 'str', 'str', 'str', 'str', 'str', 'str', 'str', 'str', 'str', 'str'
         ];
 
@@ -617,7 +616,6 @@
             '#stat_total_indo',
             '#stat_total_indo',
             '#stat_total_indo',
-            '',
             '',
             '',
             '',

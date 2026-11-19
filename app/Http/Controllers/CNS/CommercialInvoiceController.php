@@ -44,6 +44,7 @@ class CommercialInvoiceController extends Controller
                 echo "<cell>".htmlspecialchars($value->SI_No)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Inv_No)."</cell>";
                 echo "<cell>".htmlspecialchars(date("d F Y", strtotime($value->Inv_Date)))."</cell>";
+                echo "<cell>".htmlspecialchars($companies[$value->Shipper] ?? '')."</cell>";
                 echo "<cell>".htmlspecialchars($companies[$value->Consignee] ?? '')."</cell>";
                 echo "<cell>".htmlspecialchars($value->Description)."</cell>";
                 echo "<cell>".htmlspecialchars($value->Qty)."</cell>";

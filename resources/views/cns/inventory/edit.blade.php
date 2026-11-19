@@ -91,27 +91,20 @@
                     </div>
                 </div>
                 <div class="row mb-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Reference_Number">Reference Number</label>
                             <input type="text" name="Reference_Number" id="edit_Reference_Number" class="form-control" />
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Attachment">Attachment Nota Timbang</label>
                             <input type="file" name="Attachment" id="edit_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
                             <div id="current_notim_link"></div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="edit_BA_Attachment">Attachment BA <span style="color:red;">*</span></label>
-                            <input type="file" name="BA_Attachment" id="edit_BA_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required />
-                            <div id="current_ba_link"></div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_QC_Attachment">QC Attachment</label>
                             <input type="file" name="QC_Attachment" id="edit_QC_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
@@ -306,10 +299,6 @@
             var notimHtml = row.Notim_Path ? `<a href="filevendor/${row.Notim_Path}" target="_blank" class="small text-danger d-block mt-1"><i class="fa fa-file-pdf"></i> Lihat Nota Timbang saat ini</a>` : '';
             $('#current_notim_link').html(notimHtml);
 
-            $('#edit_BA_Attachment').val('');
-            var baHtml = row.BA_Path ? `<a href="filevendor/${row.BA_Path}" target="_blank" class="small text-success d-block mt-1"><i class="fa fa-file-pdf"></i> Lihat Attachment BA saat ini</a>` : '';
-            $('#current_ba_link').html(baHtml);
-
             var qcHtml = row.QC_Path ? `<a href="filevendor/${row.QC_Path}" target="_blank" class="small text-primary d-block mt-1"><i class="fa fa-file-pdf"></i> Lihat QC Attachment saat ini</a>` : '';
             $('#current_qc_link').html(qcHtml);
 
@@ -369,10 +358,6 @@
 
         if (!form.Transaction_Date.value) {
             alert('Transaction Date wajib diisi');
-            return;
-        }
-        if (!form.BA_Attachment || !form.BA_Attachment.files || form.BA_Attachment.files.length === 0) {
-            alert('Attachment BA wajib diupload');
             return;
         }
 

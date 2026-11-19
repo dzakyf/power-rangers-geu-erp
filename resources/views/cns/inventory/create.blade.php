@@ -104,25 +104,19 @@
                         </div>
                     </div>
                     <div class="row mb-3">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Reference_Number">Reference Number</label>
                                 <input type="text" name="Reference_Number" id="Reference_Number" class="form-control" />
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Attachment">Attachment Nota Timbang</label>
                                 <input type="file" name="Attachment" id="Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="BA_Attachment">Attachment BA <span style="color:red;">*</span></label>
-                                <input type="file" name="BA_Attachment" id="BA_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required />
-                            </div>
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label for="QC_Attachment">Attachment QC</label>
                                 <input type="file" name="QC_Attachment" id="QC_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
@@ -376,7 +370,6 @@
         $('#driver_name').val('');
         $('#Reference_Number').val('');
         $('#Attachment').val('');
-        $('#BA_Attachment').val('');
         $('#QC_Attachment').val('');
         $('#Notes').val('');
         if ($('#Asal_Warehouse').hasClass('select2-hidden-accessible')) {
@@ -398,7 +391,6 @@
         $('#Reference_Number').val(d.Reference_Number || d.kode || '');
         $('#Quantity_PTU').val('');
         $('#Attachment').val('');
-        $('#BA_Attachment').val('');
         $('#QC_Attachment').val('');
         $('#Notes').val('');
 
@@ -502,10 +494,6 @@
         }
         if (!form.Transaction_Date.value) {
             alert('Transaction Date wajib diisi');
-            return;
-        }
-        if (!form.BA_Attachment || !form.BA_Attachment.files || form.BA_Attachment.files.length === 0) {
-            alert('Attachment BA wajib diupload');
             return;
         }
 
