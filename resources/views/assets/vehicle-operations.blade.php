@@ -2,28 +2,26 @@
 
 @section('content-wrapper')
 @csrf
-<div class="main-content-header mb-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
-            <h1 class="h3 fw-bold mb-1 text-dark d-flex align-items-center">
-                <i class="fe fe-truck text-primary me-2"></i>Operasional Kendaraan: Logbook & Fuel Tracking
-            </h1>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb bg-transparent p-0 mb-0 small">
-                    <li class="breadcrumb-item"><a href="home-asset" class="text-decoration-none">Asset</a></li>
-                    <li class="breadcrumb-item"><a href="asset-lists" class="text-decoration-none">Data Assets</a></li>
-                    <li class="breadcrumb-item active text-primary" aria-current="page">Operasional Kendaraan</li>
-                </ol>
-            </nav>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <a href="asset-lists" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
-                <i class="fe fe-arrow-left me-1"></i>Kembali ke Asset Lists
-            </a>
-            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" onclick="refreshAllData()">
-                <i class="fe fe-refresh-cw me-1"></i>Refresh Data
-            </button>
-        </div>
+<div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2 flex-wrap gap-2">
+    <div>
+        <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+            <i class="fe fe-truck me-2"></i>Operasional Kendaraan: Logbook &amp; Fuel Tracking
+        </h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="home-asset" style="color: rgba(255, 255, 255, 0.8) !important;">Asset</a></li>
+                <li class="breadcrumb-item"><a href="asset-lists" style="color: rgba(255, 255, 255, 0.8) !important;">Data Assets</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Operasional Kendaraan</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="asset-lists" class="btn btn-light btn-sm rounded-pill px-3 shadow-sm">
+            <i class="fe fe-arrow-left me-1"></i>Kembali ke Asset Lists
+        </a>
+        <button type="button" class="btn btn-sm rounded-pill px-3 shadow-sm text-white" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4);" onclick="refreshAllData()">
+            <i class="fe fe-refresh-cw me-1"></i>Refresh Data
+        </button>
     </div>
 </div>
 

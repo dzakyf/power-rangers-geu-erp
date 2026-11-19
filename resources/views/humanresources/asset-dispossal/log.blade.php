@@ -1,125 +1,70 @@
-<?php
-error_reporting(0);
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-
-$LSP = Auth::user()->Location;
-$Saya = Auth::user()->username;
-$ID  = $_GET['Disposal_No'] ?? $_GET['ID'] ?? '';
-
-// Log dari asset_disposal — diurutkan terbaru di atas
-$logs = DB::table('asset_disposal_log')
-    ->where('Disposal_No', $ID)
-    ->orderBy('ID', 'DESC')
-    ->get();
-?>
-
-<div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">
-    ASSET DISPOSAL LOG — PEMUSNAHAN ASET
-</div>
-
-<div style="margin:6px 0;font-size:12px;color:#555;">
-    Disposal No : <strong><?php echo htmlspecialchars($ID); ?></strong>
-</div>
-
-<style>
-.log-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  margin-top: 10px;
-  background-color: #fff;
-}
-.log-table th {
-  background-color: #c0392b;
-  color: #fff;
-  padding: 6px 8px;
-  border: 1px solid #c0392b;
-  text-align: left;
-  font-weight: bold;
-  white-space: nowrap;
-}
-.log-table td {
-  padding: 5px 8px;
-  border: 1px solid #ccc;
-  vertical-align: top;
-}
-.log-table tbody tr:nth-child(even) {
-  background-color: #fdf2f2;
-}
-.log-table tbody tr:nth-child(odd) {
-  background-color: #fff;
-}
-.log-table tbody tr:hover {
-  background-color: #fae5e5;
-}
-.log-table-wrap {
-  max-width: 100%;
-  overflow-x: auto;
-}
-.log-empty {
-  color: #888;
-  font-style: italic;
-  margin-top: 18px;
-  padding: 8px 12px;
-  background: #fafafa;
-  border-radius: 6px;
-  border: 1px dashed #d0d0d0;
-  font-size: 12px;
-}
-</style>
-
-<div class="log-table-wrap">
-<?php if ($logs->isEmpty()): ?>
-    <div class="log-empty">No disposal log entries found for this Disposal No.</div>
-<?php else: ?>
-<table class="log-table">
-  <thead>
-    <tr>
-      <th>No</th>
-      <th>Action By</th>
-      <th>Action Date</th>
-      <th>Action Status</th>
-      <th>Disposal Date</th>
-      <th>Status</th>
-      <th>User Name</th>
-      <th>User Position</th>
-      <th>Asset Name</th>
-      <th>Asset Serial No</th>
-      <th>Asset Condition</th>
-      <th>Asset Location</th>
-      <th>Disposal Reason</th>
-      <th>Disposal Actual Date</th>
-      <th>Created By</th>
-      <th>Created Date</th>
-      <th>Updated By</th>
-      <th>Updated Date</th>
-    </tr>
-  </thead>
-  <tbody>
-    <?php $no = 1; foreach ($logs as $log): ?>
-    <tr>
-      <td><?php echo $no++; ?></td>
-      <td><?php echo htmlspecialchars($log->Action_By); ?></td>
-      <td><?php echo htmlspecialchars($log->Action_Date); ?></td>
-      <td><?php echo htmlspecialchars($log->Action_Status); ?></td>
-      <td><?php echo htmlspecialchars($log->Disposal_Date); ?></td>
-      <td><?php echo htmlspecialchars($log->Status); ?></td>
-      <td><?php echo htmlspecialchars($log->User_Name); ?></td>
-      <td><?php echo htmlspecialchars($log->User_Position); ?></td>
-      <td><?php echo htmlspecialchars($log->Asset_Name); ?></td>
-      <td><?php echo htmlspecialchars($log->Asset_Serial_No); ?></td>
-      <td><?php echo htmlspecialchars($log->Asset_Condition); ?></td>
-      <td><?php echo htmlspecialchars($log->Asset_Location); ?></td>
-      <td><?php echo htmlspecialchars($log->Disposal_Reason); ?></td>
-      <td><?php echo htmlspecialchars($log->Disposal_Actual_Date); ?></td>
-      <td><?php echo htmlspecialchars($log->Created_By); ?></td>
-      <td><?php echo htmlspecialchars($log->Created_Date); ?></td>
-      <td><?php echo htmlspecialchars($log->Updated_By); ?></td>
-      <td><?php echo htmlspecialchars($log->Updated_Date); ?></td>
-    </tr>
-    <?php endforeach; ?>
-  </tbody>
-</table>
-<?php endif; ?>
+<div class="mt-3">
+    <div class="card border-danger shadow-sm">
+        <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 text-white">
+                <i class="fa fa-history me-2"></i>Asset Disposal Log — {{ $ID }}
+            </h6>
+            <button type="button" class="btn btn-light btn-sm" onclick="$('#AssetDisposalDiv').html('')">
+                <i class="fa fa-times me-1"></i> Tutup
+            </button>
+        </div>
+        <div class="card-body">
+            @if ($logs->isEmpty())
+                <div class="alert alert-light border text-muted mb-0">
+                    <i class="fa fa-info-circle me-1"></i> Belum ada riwayat log untuk Disposal No: <strong>{{ $ID }}</strong>.
+                </div>
+            @else
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-striped table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                        <thead class="table-danger">
+                            <tr class="text-nowrap">
+                                <th>No</th>
+                                <th>Action By</th>
+                                <th>Action Date</th>
+                                <th>Action Status</th>
+                                <th>Disposal Date</th>
+                                <th>Status</th>
+                                <th>User Name</th>
+                                <th>User Position</th>
+                                <th>Asset Name</th>
+                                <th>Asset Serial No</th>
+                                <th>Asset Condition</th>
+                                <th>Asset Location</th>
+                                <th>Disposal Reason</th>
+                                <th>Disposal Actual Date</th>
+                                <th>Created By</th>
+                                <th>Created Date</th>
+                                <th>Updated By</th>
+                                <th>Updated Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($logs as $log)
+                                <tr>
+                                    <td class="text-center">{{ $loop->iteration }}</td>
+                                    <td>{{ $log->Action_By }}</td>
+                                    <td class="text-nowrap">{{ $log->Action_Date }}</td>
+                                    <td><span class="badge bg-secondary">{{ $log->Action_Status }}</span></td>
+                                    <td class="text-nowrap">{{ $log->Disposal_Date }}</td>
+                                    <td><span class="badge bg-info text-dark">{{ $log->Status }}</span></td>
+                                    <td>{{ $log->User_Name }}</td>
+                                    <td>{{ $log->User_Position }}</td>
+                                    <td>{{ $log->Asset_Name }}</td>
+                                    <td>{{ $log->Asset_Serial_No }}</td>
+                                    <td>{{ $log->Asset_Condition }}</td>
+                                    <td>{{ $log->Asset_Location }}</td>
+                                    <td>{{ $log->Disposal_Reason }}</td>
+                                    <td class="text-nowrap">{{ $log->Disposal_Actual_Date }}</td>
+                                    <td>{{ $log->Created_By }}</td>
+                                    <td class="text-nowrap">{{ $log->Created_Date }}</td>
+                                    <td>{{ $log->Updated_By }}</td>
+                                    <td class="text-nowrap">{{ $log->Updated_Date }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
 </div>

@@ -15,7 +15,10 @@
     <div class="card-body">
         <div class="row align-items-center">
             <div class="col-md-7">
-                <h4 class="mb-1">{{ $goal->user->Name ?? '-' }} <span class="badge bg-primary text-white ms-2">{{ $goal->goal_no }}</span></h4>
+                <h4 class="mb-1">
+                    {{ $goal->scope_type === 'POSITION' ? ('Template Posisi: ' . ($goal->position ?? '-')) : ($goal->user->Name ?? '-') }}
+                    <span class="badge bg-primary text-white ms-2">{{ $goal->goal_no }}</span>
+                </h4>
                 <p class="text-muted mb-0">
                     <strong>Departemen:</strong> {{ $goal->department ?? '-' }} | 
                     <strong>Jabatan:</strong> {{ $goal->position ?? '-' }} | 
@@ -33,7 +36,10 @@
                     <span class="h5 font-weight-bold text-primary">Progres Keseluruhan: {{ number_format($goal->overall_progress_percent, 1) }}%</span>
                 </div>
                 <div class="mt-2">
-                    @if(in_array($goal->status, ['DRAFT', 'REJECTED']))
+                    @if(in_array($goal->status, ['DRAFT', 'REJECTED']) && (!isset($canManageGoal) || $canManageGoal))
+                        <a href="{{ url('hrd-performance-kpi-edit', $goal->id) }}" class="btn btn-warning text-white me-1">
+                            <i class="feather-edit me-1"></i> Edit / Revisi Target
+                        </a>
                         <button type="button" class="btn btn-success me-1" onclick="submitToApproval({{ $goal->id }})">
                             <i class="feather-send me-1"></i> Ajukan Approval
                         </button>
@@ -46,6 +52,45 @@
         </div>
     </div>
 </div>
+
+@if($goal->status === 'REJECTED' && $goal->rejection_reason)
+<div class="alert alert-danger mb-3">
+    <strong><i class="feather-alert-triangle me-1"></i> Ditolak pada Approval:</strong> {{ $goal->rejection_reason }}
+    <div class="small mt-1">Silakan klik <strong>Edit / Revisi Target</strong> untuk memperbaiki indikator, lalu ajukan ulang approval.</div>
+</div>
+@endif
+
+@if(isset($approvalTasks) && $approvalTasks->count() > 0)
+<div class="card mb-3">
+    <div class="card-header">
+        <h6 class="card-title mb-0">Alur Persetujuan (Atasan Langsung &amp; HCGA)</h6>
+    </div>
+    <div class="card-body py-2">
+        <div class="row g-2">
+            @foreach($approvalTasks as $task)
+                <div class="col-md-6">
+                    <div class="border rounded p-2 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold">Stage {{ $task->Stage_Order }}: {{ $task->Label }}</div>
+                            <div class="small text-muted">Approver: {{ $task->approver_names ?: 'Menunggu Resolusi' }}</div>
+                        </div>
+                        <span class="badge bg-{{ $task->Status === 'APPROVED' ? 'success' : ($task->Status === 'REJECTED' ? 'danger' : 'warning') }} text-white">
+                            {{ $task->Status }}
+                        </span>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        @if(isset($approvalLogs) && $approvalLogs->count() > 0)
+            <div class="mt-2 small text-muted">
+                @foreach($approvalLogs->take(3) as $log)
+                    <div>[{{ date('d/m/Y H:i', strtotime($log->Created_At)) }}] <strong>{{ $log->actor_name ?? 'System' }}</strong> - {{ $log->Action }} {{ $log->Note ? ': ' . $log->Note : '' }}</div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+</div>
+@endif
 
 <!-- Tabel Items & Progres -->
 <div class="card">
@@ -97,9 +142,13 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="openProgressModal({{ $item->id }}, '{{ addslashes($item->title) }}', {{ $item->actual_value }}, '{{ $item->kpi_unit }}')">
-                                    <i class="feather-edit-3 me-1"></i> Check-in
-                                </button>
+                                @if(in_array($goal->status, ['APPROVED', 'EVALUATION']))
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openProgressModal({{ $item->id }}, '{{ addslashes($item->title) }}', {{ $item->actual_value }}, '{{ $item->kpi_unit }}')">
+                                        <i class="feather-edit-3 me-1"></i> Check-in
+                                    </button>
+                                @else
+                                    <span class="badge bg-secondary text-white">Menunggu Approved</span>
+                                @endif
                             </td>
                         </tr>
                     @empty

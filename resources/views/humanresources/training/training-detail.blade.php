@@ -1,225 +1,168 @@
-@csrf
-<div class="mt-3">
-	<div class="card">
-		<div class="card-header">
-			<h5 class="mt-3 ml-2">New Training</h5>
-		</div>
-		<div class="card-body">
-			<div id="ContentPages">
-				<div class="row">
-					<div class="col-12">
-						<div class="form-group">
-							<input type="hidden" name="ID" id="ID" value="{{ $training->ID }}">
-							<input type="hidden" name="Task_No" id="Task_No" value="{{ $training->Task_No }}">
-							<label for="Training_Name">Training Name</label>
-							<input class="form-control shadow-sm" type="text" name="Training_Name" id="Training_Name" value="{{ $training->Training_Name }}">
-						</div>
-					</div>
-					<div class="col-12">
-						<div class="form-group">
-							<label for="Training_Category">Training Category</label>
-							<select name="Training_Category" id="Training_Category" class="form-control shadow-sm">
-								<option value="">-- Choose Training Category --</option>
-								@foreach ($trCategory as $item)
-									<option value="{{$item->Budget_Code}}" {{ $item->Budget_Code == $training->Training_Category ? 'selected' : '' }}>{{ $item->Description }}</option>
-								@endforeach
-							</select>
-						</div>
-					</div>
-					<div class="col-12">
-						<div class="form-group">
-							<label for="Training_Type">Training Type</label>
-							<input class="form-control shadow-sm" type="text" name="Training_Type" id="Training_Type" value="{{ $training->Training_Type }}">
-						</div>
-					</div>
-					<div class="col-12">
-						<div class="form-group">
-							<label for="Training_Method">Training Method</label>
-							<input class="form-control shadow-sm" type="text" name="Training_Method" id="Training_Method" value="{{ $training->Training_Method }}">
-						</div>
-					</div>
-					<div class="col-12">
-						<div class="form-group">
-							<label for="Training_Objective">Training Objective</label>
-							<input class="form-control shadow-sm" type="text" name="Training_Objective" id="Training_Objective" value="{{ $training->Training_Objective }}">
-						</div>
-					</div>
-					<div class="col-12">
-						<div class="form-group">
-							<label for="Training_Competence">Training Competence</label>
-							<input class="form-control shadow-sm" type="text" name="Training_Competence" id="Training_Competence" value="{{ $training->Training_Competence }}">
-						</div>
-					</div>
-					<div class="col-12">
-						<div class="row">
-							<div class="col-6">
-								<div class="form-group">
-									<label for="Start_Date">Start Date</label>
-									<input class="form-control shadow-sm bg-white" type="text" name="Start_Date" id="Start_Date" value="{{ date("d M Y", strtotime($training->Start_Date)) }}" readonly>
-								</div>
-							</div>
-							<div class="col-6">
-								<div class="form-group">
-									<label for="End_Date">End Date</label>
-									<input class="form-control shadow-sm bg-white" type="text" name="End_Date" id="End_Date" value="{{ date("d M Y", strtotime($training->End_Date)) }}" readonly>
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="col-12">
-						<div class="form-group">
-							<label for="Currency">Currency</label>
-							<select name="Currency" id="Curremcy" class="form-control shadow-sm">
-								<option value="">-- Choose Currency --</option>
-								@foreach ($currency as $item)
-								<option value="{{ $item->Currency_Symbol }}" {{ $item->Currency_Symbol == $Fetch->Currency ? 'selected' : '' }}>{{ $item->Currency_Symbol }}</option>
-								@endforeach
-							</select>
-						</div>
-					</div>
-					<div class="col-12 mb-3">
-						<div id="TrainingListsCost" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-						<div class="mt-2">
-							<button type="button" class="btn btn-primary" onclick="addTrainingCost()">Add Cost</button>
-							<button type="button" class="btn btn-danger" onclick="delTrainingCost()">Remove Cost</button>
-						</div>
-					</div>
-					<div class="col-12">
-						<div class="form-group">
-							<label for="Total_Cost">Total Estimated Cost</label>
-							<input class="form-control shadow-sm bg-white" type="text" name="Total_Cost" id="Total_Cost" value="{{ $training->Total_Cost }}" readonly>
-						</div>
-					</div>
-					<div class="col-12">
-						<button type="button" class="btn btn-success" id="SubmitDataTraining">Submit</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0">Detail Jadwal: {{ $training->Training_Name }} ({{ $training->Task_No }})</h5>
+            <small class="text-muted">Batch: <span class="badge bg-secondary text-white">{{ $training->batch_type ?? 'REGULAR' }}</span> | Status: <span class="badge bg-info text-white">{{ $training->Status }}</span> | KKM: {{ $training->passing_grade }}</small>
+        </div>
+        <div>
+            @if(in_array(strtoupper($training->Status), ['DRAFT', 'CREATED', 'REJECTED']))
+                <button type="button" class="btn btn-primary btn-sm" onclick="submitTrainingApproval({{ $training->ID }})">Ajukan Approval</button>
+            @endif
+            <a href="{{ url('hrd-training-evaluation-score') }}?training_id={{ $training->ID }}" class="btn btn-warning btn-sm">Input Nilai</a>
+            <a href="{{ url('hrd-training-summary-detail') }}?training_id={{ $training->ID }}" class="btn btn-success btn-sm">Summary &amp; Sertifikat</a>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="$('#divlistTraining').html('')">Tutup</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <form id="formEditTraining">
+            @csrf
+            <input type="hidden" name="ID" value="{{ $training->ID }}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nama Training *</label>
+                    <input type="text" name="Training_Name" class="form-control" value="{{ $training->Training_Name }}" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Pemateri / Trainer</label>
+                    <input type="text" name="trainer_name" class="form-control" value="{{ $training->trainer_name }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Passing Grade (KKM)</label>
+                    <input type="number" step="0.01" name="passing_grade" class="form-control" value="{{ $training->passing_grade }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Tipe</label>
+                    <select name="Training_Type" class="form-control">
+                        @foreach(['INTERNAL','EXTERNAL','IN_HOUSE'] as $t)
+                            <option value="{{ $t }}" {{ $training->Training_Type == $t ? 'selected' : '' }}>{{ $t }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Metode</label>
+                    <select name="Training_Method" class="form-control">
+                        @foreach(['OFFLINE','ONLINE','HYBRID'] as $m)
+                            <option value="{{ $m }}" {{ $training->Training_Method == $m ? 'selected' : '' }}>{{ $m }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Tanggal Mulai</label>
+                    <input type="date" name="Start_Date" class="form-control" value="{{ $training->Start_Date }}" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Tanggal Selesai</label>
+                    <input type="date" name="End_Date" class="form-control" value="{{ $training->End_Date }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Lokasi</label>
+                    <input type="text" name="Training_Location" class="form-control" value="{{ $training->Training_Location }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Tujuan</label>
+                    <input type="text" name="Training_Objective" class="form-control" value="{{ $training->Training_Objective }}">
+                </div>
+            </div>
+
+            <h6>Kurikulum Sesi ({{ $training->curriculums->count() }})</h6>
+            <div class="table-responsive mb-3">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sesi</th>
+                            <th>Topik Materi</th>
+                            <th>Pemateri</th>
+                            <th>Durasi (Menit)</th>
+                            <th>Metode</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($training->curriculums as $idx => $cur)
+                            <tr>
+                                <td>{{ $cur->session_order }}</td>
+                                <td><input type="text" name="curriculums[{{ $idx }}][topic_title]" class="form-control form-control-sm" value="{{ $cur->topic_title }}"></td>
+                                <td><input type="text" name="curriculums[{{ $idx }}][speaker_name]" class="form-control form-control-sm" value="{{ $cur->speaker_name }}"></td>
+                                <td><input type="number" name="curriculums[{{ $idx }}][duration_minutes]" class="form-control form-control-sm" value="{{ $cur->duration_minutes }}"></td>
+                                <td><input type="text" name="curriculums[{{ $idx }}][learning_method]" class="form-control form-control-sm" value="{{ $cur->learning_method }}"></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5" class="text-center text-muted">Belum ada kurikulum.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <h6>Daftar Peserta ({{ $training->participants->count() }})</h6>
+            <div class="table-responsive mb-3">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>No</th>
+                            <th>Nama Karyawan</th>
+                            <th>Departemen</th>
+                            <th>Kehadiran</th>
+                            <th>Skor Akhir</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($training->participants as $idx => $p)
+                            <tr>
+                                <td>{{ $idx + 1 }}</td>
+                                <td>{{ $p->employee_name }} ({{ $p->employee_username }})</td>
+                                <td>{{ $p->department ?? '-' }}</td>
+                                <td>{{ $p->attendance_status }}</td>
+                                <td>{{ $p->final_score !== null ? number_format($p->final_score, 2) : '-' }}</td>
+                                <td>
+                                    @if($p->is_passed === true)
+                                        <span class="badge bg-success text-white">LULUS</span>
+                                    @elseif($p->is_passed === false)
+                                        <span class="badge bg-danger text-white">TIDAK LULUS</span>
+                                    @else
+                                        <span class="badge bg-secondary text-white">BELUM DINILAI</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="6" class="text-center text-muted">Belum ada peserta.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <button type="submit" class="btn btn-success">Update Jadwal</button>
+        </form>
+    </div>
 </div>
-<div id="divlistTraining"></div>
+
 <script>
-	TrainingListsCost = new dhtmlXGridObject('TrainingListsCost');
-	TrainingListsCost.setImagePath("./dhtmlx/imgs/");
-	TrainingListsCost.setHeader("No.,Item Type, Item Description, Estimated Cost");
-	TrainingListsCost.setInitWidths("70,100,250,120");
-	TrainingListsCost.setColAlign("center,left,left,right");
-	TrainingListsCost.setColTypes("ro,ed,ed,edn");
-	TrainingListsCost.setColSorting("int,str,str,int");
-	TrainingListsCost.setNumberFormat("0,000",3,".",",");
-	TrainingListsCost.setEditable(true);
-	PTrainingListsCost = new dataProcessor("hrd-training-new-update");
-	PTrainingListsCost.setTransactionMode({
-		mode: "POST",
-		total:true,
-		headers:{
-			'X-CSRF-TOKEN': "{{ csrf_token() }}"
-		}	,
-		payload: {"Task_No":"<?php echo $Task_No;  ?>"}
-	})
-	PTrainingListsCost.setUpdateMode("Off");
-	PTrainingListsCost.init(TrainingListsCost);
-	TrainingListsCost.setSkin("dhx_skyblue");
-	TrainingListsCost.init();
-	TrainingListsCost.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
-		if(stage == 2){
-			if(cInd == 3){
-				let ids = TrainingListsCost.getAllRowIds().split(',');
-				let total = 0;
-				for (let i = 0; i < ids.length; i++) {
-					const ele = ids[i];
-					total += Number(TrainingListsCost.cells(ele, 3).getValue());
-				}
+    $('#formEditTraining').on('submit', function(e) {
+        e.preventDefault();
+        $.ajax({
+            url: '{{ url("hrd-training-detail-submit") }}',
+            type: 'POST',
+            data: $(this).serialize(),
+            success: function(res) {
+                alert(res.message);
+                refreshdata();
+            },
+            error: function(xhr) {
+                alert((xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal update.');
+            }
+        });
+    });
 
-				$('#Total_Cost').val(total);
-			}
-		}
-
-		return true;
-	});
-
-	function addTrainingCost() {
-		let uuid = TrainingListsCost.uid();
-		TrainingListsCost.addRow(uuid, [TrainingListsCost.getRowsNum() + 1, '', '', '', '']);
-		TrainingListsCost.selectRow(uuid);
-	}
-
-	function delTrainingCost() {
-		TrainingListsCost.deleteSelectedRows();
-		// dhtmlx.confirm('Cancel this Requisition?', 'Requisition', function(r) {
-
-		// 	if (r == true) {
-		// 		alert('Data Successfully Deleted!');
-		// 		setTimeout(function() {
-		// 			refreshdata();
-		// 		}, 1000);
-		// 	}
-		// })
-	}
-    var myCalendar = new dhtmlXCalendarObject(["Start_Date","End_Date"]);
-	myCalendar.setDateFormat("%d %M %Y");
-
-	function SubmitGrid_Requisition() {
-		TrainingListsCostProc.sendData();
-		alert('Data Successfully Updated!');
-		TrainingListsCost.clearAll();
-		refreshdata();
-	}
-
-	function newreq() {
-		LoadM('divlistTraining', 'hrd-training-new');
-	}
-	
-	$('#SubmitDataTraining').click(function(){
-
-		gettingVars = getAllValues();
-
-		$.ajax({
-			headers: {
-			'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-			},
-			url : "hrd-training-detail-submit?_token={{ csrf_token() }}&Task_ID={{ $Task_ID }}",
-			type: "POST",
-			data : gettingVars,
-			success: function(data, textStatus, jqXHR)
-			{
-				var dataPos = data.indexOf("success");
-				if (dataPos != '-1'){
-					alert('Data Was Submitted!');
-
-					setTimeout(() => {
-						refreshdata();
-						$('#divlistTraining').html('');
-					}, 500);
-				}else{
-					alert('Failed to Submit!');
-				}
-			},
-			error: function (jqXHR, textStatus, errorThrown)
-			{
-			alert( "Error Internal! Please Try again!" );
-		
-			}
-		});
-	})
-
-	function getAllValues() {
-		var inputValues = [];
-		$('#ContentPages input,#ContentPages select,#ContentPages textarea').each(function() {
-			var type = $(this).attr("type");
-			if ((type == "checkbox" || type == "radio")) {
-				if (this.checked) {
-					inputValues.push($(this).attr("id") + "=" + $(this).val());
-				}
-			}
-			else if (type != "button" || type != "submit") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-				} else if ($this.is("textarea")) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			}
-		})
-		return inputValues.join('&');
-	}
-
+    function submitTrainingApproval(id) {
+        if (!confirm('Ajukan Jadwal Training ini ke Approval Inbox?')) return;
+        $.post('{{ url("hrd-training-submit-approval") }}', {
+            _token: '{{ csrf_token() }}',
+            ID: id
+        }, function(res) {
+            alert(res.message);
+            refreshdata();
+            LoadM('divlistTraining', 'hrd-training-detail?ID=' + id);
+        }).fail(function(xhr) {
+            alert((xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal mengajukan approval.');
+        });
+    }
 </script>

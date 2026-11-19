@@ -41,5 +41,15 @@ class PerformanceReview extends Model
     {
         return $this->hasMany(PerformanceReviewFeedback::class, 'review_id');
     }
+
+    public function kpiItems()
+    {
+        return $this->hasMany(PerformanceReviewKpiItem::class, 'review_id');
+    }
+
+    public function pipPlan()
+    {
+        return $this->hasOne(PerformancePipPlan::class, 'review_id');
+    }
 }
 

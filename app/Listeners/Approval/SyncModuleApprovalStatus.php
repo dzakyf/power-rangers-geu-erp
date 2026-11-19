@@ -27,69 +27,61 @@ class SyncModuleApprovalStatus
         $type = strtoupper(trim((string) $request->Request_Type));
         $requestId = (int) $request->ID;
 
+        $handlers = [
+            'STATUS_CHANGE'           => 'handleStatusChange',
+            'REQUISITION'             => 'handleRequisition',
+            'GA_WORK_ORDER'           => 'handleGaWorkOrder',
+            'ATTENDANCE_OVERTIME'     => 'handleAttendanceOvertime',
+            'ATTENDANCE_LEAVE'        => 'handleAttendanceLeave',
+            'ATTENDANCE_CORRECTION'   => 'handleAttendanceCorrection',
+            'ATTENDANCE_CHANGE_SHIFT' => 'handleAttendanceChangeShift',
+            'SPPD'                    => 'handleSppd',
+            'SETTLEMENT'              => 'handleSettlement',
+            'EMPLOYEE_DATA_UPDATE'    => 'handleEmployeeDataUpdate',
+            'PROCUREMENT'             => 'handleProcurement',
+            'PERFORMANCE_KPI'         => 'handlePerformanceKpi',
+            'REIMBURSEMENT'           => 'handleReimbursement',
+            'PAYROLL'                 => 'handlePayroll',
+            'SALARY'                  => 'handlePayroll',
+            'EMPLOYEE_RESIGNATION'    => 'handleEmployeeResignation',
+            'EXIT_CLEARANCE'          => 'handleExitClearance',
+            'TNA_REQUEST'             => 'handleTnaRequest',
+            'TRAINING_REQUEST'        => 'handleTrainingRequest',
+            'DISCIPLINARY_SANCTION'   => 'handleDisciplinarySanction',
+            'ASSET_MAINTENANCE_SCHEDULE' => 'handleAssetMaintenanceSchedule',
+            'VEHICLE_TAX_REQUEST'        => 'handleVehicleTaxRequest',
+            'VEHICLE_FLEET'              => 'handleVehicleFleet',
+            'VEHICLE_LOGBOOK'            => 'handleVehicleLogbook',
+        ];
+
+        $method = $handlers[$type] ?? null;
+        if (!$method || !method_exists($this, $method)) {
+            return;
+        }
+
         try {
-            switch ($type) {
-                case 'STATUS_CHANGE':
-                    $this->handleStatusChange($requestId);
-                    break;
+            $this->{$method}($requestId, $request->Status);
 
-                case 'REQUISITION':
-                    $this->handleRequisition($requestId);
-                    break;
-
-                case 'GA_WORK_ORDER':
-                    $this->handleGaWorkOrder($requestId);
-                    break;
-
-                case 'ATTENDANCE_OVERTIME':
-                    $this->handleAttendanceOvertime($requestId, $request->Status);
-                    break;
-
-                case 'ATTENDANCE_LEAVE':
-                    $this->handleAttendanceLeave($requestId, $request->Status);
-                    break;
-
-                case 'ATTENDANCE_CORRECTION':
-                    $this->handleAttendanceCorrection($requestId, $request->Status);
-                    break;
-
-                case 'ATTENDANCE_CHANGE_SHIFT':
-                    $this->handleAttendanceChangeShift($requestId, $request->Status);
-                    break;
-
-                case 'SPPD':
-                    $this->handleSppd($requestId);
-                    break;
-
-                case 'REIMBURSEMENT':
-                    $this->handleReimbursement($requestId, $request->Status);
-                    break;
-
-                case 'PAYROLL':
-                case 'SALARY':
-                    $this->handlePayroll($requestId, $request->Status);
-                    break;
-
-                case 'EMPLOYEE_RESIGNATION':
-                    $this->handleEmployeeResignation($requestId, $request->Status);
-                    break;
-
-                case 'EXIT_CLEARANCE':
-                    $this->handleExitClearance($requestId, $request->Status);
-                    break;
-
-                case 'DISCIPLINARY_SANCTION':
-                    $this->handleDisciplinarySanction($requestId, $request->Status);
-                    break;
-
-                default:
-                    // Request_Type lain dapat didaftarkan di sini
-                    break;
+            if (\Illuminate\Support\Facades\Schema::hasColumn('approval_request', 'Sync_Status')) {
+                DB::table('approval_request')->where('ID', $requestId)->update([
+                    'Sync_Status'    => 'SYNCED',
+                    'Sync_Error'     => null,
+                    'Sync_Attempts'  => DB::raw('COALESCE(Sync_Attempts, 0) + 1'),
+                    'Last_Synced_At' => now(),
+                ]);
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error("SyncModuleApprovalStatus error for Request_Type {$type} [ID: {$requestId}]: " . $e->getMessage(), [
                 'exception' => $e,
             ]);
+
+            if (\Illuminate\Support\Facades\Schema::hasColumn('approval_request', 'Sync_Status')) {
+                DB::table('approval_request')->where('ID', $requestId)->update([
+                    'Sync_Status'   => 'FAILED',
+                    'Sync_Error'    => substr($e->getMessage(), 0, 1000),
+                    'Sync_Attempts' => DB::raw('COALESCE(Sync_Attempts, 0) + 1'),
+                ]);
+            }
         }
     }
 
@@ -488,6 +480,174 @@ class SyncModuleApprovalStatus
             DB::table('disciplinary_sanctions')->where('id', $sanction->id)->update([
                 'Status' => 'REJECTED',
                 'updated_at' => \Carbon\Carbon::now(),
+            ]);
+        }
+    }
+
+    protected function handleTnaRequest(int $requestId, ?string $approvalStatus): void
+    {
+        $tna = DB::table('hcga_tna_requests')->where('approval_request_id', $requestId)->first();
+        if (!$tna) {
+            $tna = DB::table('hcga_tna_requests')->where('id', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+        if (!$tna) {
+            return;
+        }
+
+        $statusUpper = strtoupper((string) $approvalStatus);
+        if (in_array($statusUpper, ['APPROVED', 'COMPLETED'])) {
+            DB::table('hcga_tna_requests')->where('id', $tna->id)->update([
+                'status' => 'APPROVED',
+                'approved_at' => \Carbon\Carbon::now(),
+                'approved_by' => optional(auth()->user())->username ?? 'approval-engine',
+                'updated_at' => \Carbon\Carbon::now(),
+            ]);
+        } elseif (in_array($statusUpper, ['REJECTED', 'RETURNED'])) {
+            DB::table('hcga_tna_requests')->where('id', $tna->id)->update([
+                'status' => 'REJECTED',
+                'updated_at' => \Carbon\Carbon::now(),
+            ]);
+        }
+    }
+
+    protected function handleTrainingRequest(int $requestId, ?string $approvalStatus): void
+    {
+        $training = DB::table('training_hcga')->where('approval_request_id', $requestId)->first();
+        if (!$training) {
+            $training = DB::table('training_hcga')->where('ID', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+        if (!$training) {
+            return;
+        }
+
+        $statusUpper = strtoupper((string) $approvalStatus);
+        if (in_array($statusUpper, ['APPROVED', 'COMPLETED'])) {
+            DB::table('training_hcga')->where('ID', $training->ID)->update([
+                'Status' => 'APPROVED',
+                'Approved_Date' => \Carbon\Carbon::now(),
+                'Approved_By' => optional(auth()->user())->username ?? 'approval-engine',
+                'Updated_Date' => \Carbon\Carbon::now(),
+            ]);
+        } elseif (in_array($statusUpper, ['REJECTED', 'RETURNED'])) {
+            DB::table('training_hcga')->where('ID', $training->ID)->update([
+                'Status' => 'REJECTED',
+                'Updated_Date' => \Carbon\Carbon::now(),
+            ]);
+        }
+    }
+
+    protected function handleSettlement(int $requestId): void
+    {
+        $sttl = DB::table('settlement_sppd')->where('Approval_Request_ID', $requestId)->first();
+        if (!$sttl) {
+            $sttl = DB::table('settlement_sppd')->where('ID', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+
+        if ($sttl) {
+            app(\App\Services\Approval\SettlementApprovalService::class)->syncApprovalStatus((int) $sttl->ID);
+        }
+    }
+
+    protected function handleEmployeeDataUpdate(int $requestId): void
+    {
+        $req = DB::table('employee_data_update_requests')->where('approval_request_id', $requestId)->first();
+        if (!$req) {
+            $req = DB::table('employee_data_update_requests')->where('id', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+
+        if ($req) {
+            app(\App\Services\Approval\EmployeeDataUpdateApprovalService::class)->syncApprovalStatus((int) $req->id, 'system');
+        }
+    }
+
+    protected function handleProcurement(int $requestId): void
+    {
+        $pr = DB::table('purchase_request')->where('Approval_Request_ID', $requestId)->first();
+        if (!$pr) {
+            $pr = DB::table('purchase_request')->where('ID', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+
+        if ($pr) {
+            app(\App\Services\Approval\ProcurementApprovalService::class)->syncApprovalStatus((int) $pr->ID);
+        }
+    }
+
+    protected function handleAssetMaintenanceSchedule(int $requestId): void
+    {
+        app(\App\Services\Approval\AssetFleetApprovalService::class)
+            ->syncStatus(\App\Services\Approval\AssetFleetApprovalService::TYPE_MAINTENANCE_SCHEDULE, $requestId);
+    }
+
+    protected function handleVehicleTaxRequest(int $requestId): void
+    {
+        app(\App\Services\Approval\AssetFleetApprovalService::class)
+            ->syncStatus(\App\Services\Approval\AssetFleetApprovalService::TYPE_VEHICLE_TAX, $requestId);
+    }
+
+    protected function handleVehicleFleet(int $requestId): void
+    {
+        app(\App\Services\Approval\AssetFleetApprovalService::class)
+            ->syncStatus(\App\Services\Approval\AssetFleetApprovalService::TYPE_VEHICLE_FLEET, $requestId);
+    }
+
+    protected function handleVehicleLogbook(int $requestId): void
+    {
+        app(\App\Services\Approval\AssetFleetApprovalService::class)
+            ->syncStatus(\App\Services\Approval\AssetFleetApprovalService::TYPE_VEHICLE_LOGBOOK, $requestId);
+    }
+
+    protected function handlePerformanceKpi(int $requestId, ?string $approvalStatus): void
+    {
+        $goal = DB::table('performance_goals')->where('approval_request_id', $requestId)->first();
+        if (!$goal) {
+            $goal = DB::table('performance_goals')->where('id', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+
+        if (!$goal) {
+            return;
+        }
+
+        $statusUpper = strtoupper((string) $approvalStatus);
+        $now = \Carbon\Carbon::now();
+
+        if (in_array($statusUpper, ['APPROVED', 'COMPLETED'])) {
+            DB::table('performance_goals')->where('id', $goal->id)->update([
+                'status'           => 'APPROVED',
+                'rejection_reason' => null,
+                'updated_at'       => $now,
+            ]);
+        } elseif (in_array($statusUpper, ['REJECTED', 'RETURNED'])) {
+            $lastLog = DB::table('approval_log')
+                ->where('Request_ID', $requestId)
+                ->whereIn('Action', ['REJECTED', 'RETURNED'])
+                ->orderBy('ID', 'desc')
+                ->first();
+
+            $reason = ($lastLog && !empty($lastLog->Note))
+                ? $lastLog->Note
+                : 'Ditolak pada proses approval. Silakan revisi target KPI dan ajukan ulang.';
+
+            DB::table('performance_goals')->where('id', $goal->id)->update([
+                'status'           => 'REJECTED',
+                'rejection_reason' => $reason,
+                'updated_at'       => $now,
+            ]);
+        } elseif ($statusUpper === 'CANCELLED') {
+            DB::table('performance_goals')->where('id', $goal->id)->update([
+                'status'     => 'DRAFT',
+                'updated_at' => $now,
             ]);
         }
     }

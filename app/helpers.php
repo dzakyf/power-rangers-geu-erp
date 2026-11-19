@@ -181,6 +181,8 @@ if (!function_exists('employee_grid_columns')) {
             'Interview_Result' => ['Interview Result', 130, 'center', '#combo_filter', 'str'],
             'Interview_By' => ['Interview By', 130, 'center', '#text_filter', 'str'],
             'Employment_Status' => ['Employee Status', 120, 'center', '#combo_filter', 'str'],
+            'thr_scheme' => ['Skema THR (PKWT/MoU)', 180, 'center', '#combo_filter', 'str'],
+            'thr_contract_note' => ['Catatan Kontrak THR', 180, 'left', '#text_filter', 'str'],
             'Employment_Status_Date' => ['Employment Status Date', 150, 'center', '#text_filter', 'date'],
             'Employment_Class' => ['Employment Class', 120, 'center', '#combo_filter', 'str'],
             'Employment_Grade' => ['Employment Grade', 120, 'center', '#combo_filter', 'str'],
@@ -246,7 +248,7 @@ if (!function_exists('location_name_map')) {
 if (!function_exists('employee_grid_default_columns')) {
     function employee_grid_default_columns(): array
     {
-        return ['Name', 'Task_ID', 'Gender', 'Marital_Status', 'Age', 'Position', 'Department', 'Directorat', 'Employment_Status', 'Location', 'Site_Location', 'Last_Education', 'Academic_Major'];
+        return ['Name', 'Task_ID', 'Gender', 'Marital_Status', 'Age', 'Position', 'Department', 'Directorat', 'Employment_Status', 'thr_scheme', 'Location', 'Site_Location', 'Last_Education', 'Academic_Major'];
     }
 }
 
@@ -273,6 +275,9 @@ if (!function_exists('employee_grid_cell')) {
             }
             $map = !empty($locationMap) ? $locationMap : location_name_map();
             return (isset($map[$locId]) && $map[$locId] !== '') ? (string) $map[$locId] : $locId;
+        }
+        if ($key === 'thr_scheme') {
+            return \App\Services\HCGA\EmployeeThrSchemeService::label($row->thr_scheme ?? null);
         }
         return isset($row->$key) ? (string) $row->$key : '';
     }

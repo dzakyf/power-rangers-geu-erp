@@ -160,4 +160,12 @@ class AssetMovingController extends Controller
         $assetMoving = DB::table('moving_asset')->where('ID', $request->ID)->first();
         return view('humanresources.asset-moving.detail', compact('assetMoving'));
     }
+
+    public function log(Request $request)
+    {
+        $ID = (string) ($request->input('No_Trx') ?? $request->input('ID') ?? '');
+        $logs = app(\App\Services\HCGA\AssetLegacyLogService::class)->getMovingLogs($ID);
+
+        return view('humanresources.asset-moving.log', compact('ID', 'logs'));
+    }
 }

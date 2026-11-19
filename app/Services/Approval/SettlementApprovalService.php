@@ -231,6 +231,8 @@ class SettlementApprovalService
                 return 'APPROVED';
             case 'REJECTED':
                 return 'REJECTED';
+            case 'RETURNED':
+                return 'RETURNED';
             case 'CANCELLED':
             case 'CANCELED':
                 return 'CANCELED';

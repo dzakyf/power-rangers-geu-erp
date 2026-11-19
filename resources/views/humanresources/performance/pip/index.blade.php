@@ -14,13 +14,27 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">Daftar Rencana Perbaikan Kinerja (PIP Plan)</h5>
         <div>
-            <span class="badge bg-danger p-2 me-2">Otomatis Terbit Bagi Review Grade D / Skor &lt; 60</span>
+            <span class="badge bg-danger text-white p-2 me-2">Otomatis Terbit Bagi Review Grade D / Skor &lt; 60</span>
+            <a href="{{ url('hrd-performance-pip-new') }}" class="btn btn-primary me-2">
+                <i class="feather-plus me-1"></i> Buat PIP Manual
+            </a>
             <button type="button" class="btn btn-secondary" onclick="reloadGrid()">
                 <i class="feather-refresh-cw me-1"></i> Refresh
             </button>
         </div>
     </div>
     <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <label class="form-label font-weight-bold">Filter Status PIP</label>
+                <select id="filterPipStatus" class="form-select form-control" onchange="reloadGrid()">
+                    <option value="">-- Semua Status --</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="COMPLETED">COMPLETED</option>
+                    <option value="CANCELLED">CANCELLED</option>
+                </select>
+            </div>
+        </div>
         <div id="gridPipContainer" style="width: 100%; height: 500px; background-color: white;"></div>
     </div>
 </div>
@@ -46,7 +60,8 @@
     });
 
     function reloadGrid() {
-        var url = "{{ url('hrd-performance-pip-data') }}";
+        var status = document.getElementById('filterPipStatus').value;
+        var url = "{{ url('hrd-performance-pip-data') }}?status=" + status;
         myGrid.clearAndLoad(url);
     }
 </script>

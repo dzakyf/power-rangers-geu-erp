@@ -45,5 +45,15 @@ class PerformancePipPlan extends Model
     {
         return $this->hasMany(PerformancePipTraining::class, 'pip_id');
     }
+
+    public function parentPip()
+    {
+        return $this->belongsTo(PerformancePipPlan::class, 'parent_pip_id');
+    }
+
+    public function extendedPips()
+    {
+        return $this->hasMany(PerformancePipPlan::class, 'parent_pip_id');
+    }
 }
 

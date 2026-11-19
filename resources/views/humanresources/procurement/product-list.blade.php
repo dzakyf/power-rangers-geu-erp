@@ -51,7 +51,7 @@
                 <div class="row">
                     <div class="col-md-3 form-group mb-2">
                         <label class="font-weight-bold">Product Code <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" name="product_code" readonly placeholder="" required>
+                        <input type="text" class="form-control form-control-sm" name="product_code"  placeholder="" required>
                     </div>
                     <div class="col-md-5 form-group mb-2">
                         <label class="font-weight-bold">Nama Produk / Description <span class="text-danger">*</span></label>

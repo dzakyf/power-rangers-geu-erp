@@ -28,10 +28,12 @@ class Kernel extends ConsoleKernel
         //          ->hourly();
 
         $schedule->command('permits:send-expiry-reminders')->dailyAt('07:00');
+        $schedule->command('vehicle:send-document-reminders')->dailyAt('07:30');
         $schedule->command('roster:generate-schedules --days=30')->dailyAt('01:00');
         $schedule->command('performance:send-pip-reminders')->weeklyOn(1, '08:00'); // Setiap Senin Pukul 08:00
         $schedule->command('sanctions:auto-expire')->dailyAt('00:01');
         $schedule->command('exit-clearance:sync-resigned')->dailyAt('00:05');
+        $schedule->command('approval:check-sla')->hourly();
     }
 
     /**

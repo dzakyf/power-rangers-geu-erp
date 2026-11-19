@@ -42,10 +42,17 @@
                     @endif
                 </div>
                 <div class="mt-2">
-                    <button type="button" class="btn btn-primary me-1" onclick="openFeedbackModal()">
-                        <i class="feather-edit-3 me-1"></i> Nilai Kompetensi & Ulasan
-                    </button>
-                    @if($review->status !== 'FINALIZED')
+                    @if(!empty($canSelfReview))
+                        <button type="button" class="btn btn-info text-white me-1" onclick="openFeedbackModal()">
+                            <i class="feather-user-check me-1"></i> Isi Self Review
+                        </button>
+                    @endif
+                    @if(!empty($canManagerReview))
+                        <button type="button" class="btn btn-primary me-1" onclick="openFeedbackModal()">
+                            <i class="feather-edit-3 me-1"></i> Nilai Kompetensi & Ulasan (Atasan)
+                        </button>
+                    @endif
+                    @if(!empty($canFinalize) && $review->status !== 'FINALIZED')
                         <button type="button" class="btn btn-success me-1" onclick="finalizeReview({{ $review->id }})">
                             <i class="feather-check-circle me-1"></i> Finalisasi / Kalibrasi
                         </button>
@@ -68,7 +75,12 @@
                 <span class="badge bg-success p-2">Skor Pencapaian: {{ number_format($review->kpi_score, 1) }}%</span>
             </div>
             <div class="card-body">
-                @if($review->goal && $review->goal->items->count() > 0)
+                @php
+                    $kpiRows = ($review->kpiItems && $review->kpiItems->count() > 0)
+                        ? $review->kpiItems
+                        : ($review->goal ? $review->goal->items : collect());
+                @endphp
+                @if($kpiRows->count() > 0)
                     <div class="table-responsive">
                         <table class="table table-bordered table-sm align-middle">
                             <thead class="table-light">
@@ -78,10 +90,14 @@
                                     <th class="text-end" style="width: 80px;">Realisasi</th>
                                     <th class="text-end" style="width: 70px;">Bobot</th>
                                     <th class="text-end" style="width: 80px;">Capaian</th>
+                                    @if(!empty($canEditKpiRealization))
+                                        <th class="text-center" style="width: 90px;">Aksi</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($review->goal->items as $it)
+                                @foreach($kpiRows as $it)
+                                    @php $goalItemId = $it->goal_item_id ?? $it->id; @endphp
                                     <tr>
                                         <td>
                                             <span class="badge bg-secondary me-1">{{ $it->item_type }}</span>
@@ -91,6 +107,13 @@
                                         <td class="text-end font-weight-bold text-success">{{ number_format($it->actual_value, 1) }}</td>
                                         <td class="text-end">{{ $it->weight_percent > 0 ? number_format($it->weight_percent, 1) . '%' : '-' }}</td>
                                         <td class="text-end font-weight-bold">{{ number_format($it->progress_percent, 1) }}%</td>
+                                        @if(!empty($canEditKpiRealization))
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="openKpiRealizationModal({{ $goalItemId }}, '{{ addslashes($it->title) }}', {{ $it->actual_value }}, '{{ $it->kpi_unit }}')">
+                                                    <i class="feather-edit-3"></i> Input
+                                                </button>
+                                            </td>
+                                        @endif
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -165,11 +188,20 @@
                     </li>
                 </ul>
 
-                @if($review->rating_grade === 'D' || ($review->final_score !== null && $review->final_score < 60))
+                @php
+                    $pipThreshold = ($review->cycle && $review->cycle->pip_threshold_score !== null)
+                        ? (float) $review->cycle->pip_threshold_score
+                        : (float) \App\PerformanceSetting::getValue('default_pip_threshold_score', 60);
+                @endphp
+                @if($review->rating_grade === 'D' || ($review->final_score !== null && $review->final_score < $pipThreshold))
                     <div class="alert alert-danger small mb-0">
-                        <i class="feather-alert-triangle me-1"></i> <strong>Perhatian:</strong> Skor berada di bawah standar minimum (Grade D). Dokumen PIP (Performance Improvement Plan) diterbitkan secara otomatis untuk perbaikan performa.
+                        <i class="feather-alert-triangle me-1"></i> <strong>Perhatian:</strong> Skor berada di bawah standar minimum (&lt; {{ $pipThreshold }} / Grade D). Dokumen PIP (Performance Improvement Plan) diterbitkan secara otomatis untuk perbaikan performa.
                         <div class="mt-2 text-end">
-                            <a href="{{ url('hrd-performance-pip-index') }}" class="btn btn-sm btn-danger text-white">Lihat PIP Plan</a>
+                            @if($review->pipPlan)
+                                <a href="{{ url('hrd-performance-pip-detail', $review->pipPlan->id) }}" class="btn btn-sm btn-danger text-white">Buka PIP {{ $review->pipPlan->pip_no }}</a>
+                            @else
+                                <a href="{{ url('hrd-performance-pip-index') }}" class="btn btn-sm btn-danger text-white">Lihat PIP Plan</a>
+                            @endif
                         </div>
                     </div>
                 @else
@@ -250,7 +282,74 @@
     </div>
 </div>
 
+<!-- Modal Input Realisasi KPI pada Review 6 Bulanan -->
+<div class="modal fade" id="modalKpiRealization" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Input Realisasi KPI (Evaluasi 6 Bulanan)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formKpiRealization">
+                    <input type="hidden" name="goal_item_id" id="revGoalItemId">
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold">Indikator KPI</label>
+                        <p id="revGoalItemTitle" class="text-primary mb-0 font-weight-bold"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nilai Realisasi Aktual (<span id="revGoalItemUnit"></span>) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" name="new_value" id="revGoalNewValue" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Catatan Evaluasi Realisasi</label>
+                        <textarea name="comment" class="form-control" rows="2" placeholder="Catatan pencapaian 6 bulanan..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary" onclick="saveKpiRealization()">
+                    <i class="feather-save me-1"></i> Simpan Realisasi &amp; Hitung Skor
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    function openKpiRealizationModal(itemId, title, actualVal, unit) {
+        document.getElementById('revGoalItemId').value = itemId;
+        document.getElementById('revGoalItemTitle').innerText = title;
+        document.getElementById('revGoalNewValue').value = actualVal;
+        document.getElementById('revGoalItemUnit').innerText = unit || '%';
+        var myModal = new bootstrap.Modal(document.getElementById('modalKpiRealization'));
+        myModal.show();
+    }
+
+    function saveKpiRealization() {
+        var form = document.getElementById('formKpiRealization');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        var formData = new FormData(form);
+        fetch("{{ url('hrd-performance-review-update-kpi', $review->id) }}", {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.success) {
+                Swal.fire('Berhasil', res.message, 'success').then(() => location.reload());
+            } else {
+                Swal.fire('Gagal', res.message, 'error');
+            }
+        })
+        .catch(err => Swal.fire('Error', err.message, 'error'));
+    }
+
     function openFeedbackModal() {
         var myModal = new bootstrap.Modal(document.getElementById('modalFeedback'));
         myModal.show();

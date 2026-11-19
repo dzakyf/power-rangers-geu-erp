@@ -41,7 +41,7 @@ class PerformancePipController extends Controller
     {
         $this->xmlHeader();
 
-        $rows = DB::table('performance_pip_plans as p')
+        $query = DB::table('performance_pip_plans as p')
             ->join('users as u', 'u.id', '=', 'p.user_id')
             ->leftJoin('users as m', 'm.id', '=', 'p.mentor_id')
             ->leftJoin('performance_reviews as pr', 'pr.id', '=', 'p.review_id')
@@ -57,9 +57,13 @@ class PerformancePipController extends Controller
                 'p.end_date',
                 'p.outcome_status',
                 'p.status',
-            ])
-            ->orderBy('p.id', 'desc')
-            ->get();
+            ]);
+
+        if ($request->filled('status')) {
+            $query->where('p.status', $request->status);
+        }
+
+        $rows = $query->orderBy('p.id', 'desc')->get();
 
         echo '<rows>';
         foreach ($rows as $r) {
@@ -78,12 +82,70 @@ class PerformancePipController extends Controller
         echo '</rows>';
     }
 
+    public function create()
+    {
+        $users = User::where('Status', 'ACTIVE')->select('id', 'Name', 'Emp_ID', 'Department', 'Position')->orderBy('Name')->get();
+        return view('humanresources.performance.pip.create', compact('users'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'user_id'                   => 'required|exists:users,id',
+            'mentor_id'                 => 'nullable|exists:users,id',
+            'start_date'                => 'required|date',
+            'duration_days'             => 'required|integer|min:7|max:180',
+            'performance_issue_summary' => 'required|string',
+            'expected_outcomes'         => 'required|string',
+        ]);
+
+        $pip = $this->pipService->createManualPip($request->all(), Auth::id() ?? 1);
+
+        return redirect()->route('hrd.performance.pip.detail', $pip->id)
+            ->with('success', "Dokumen PIP {$pip->pip_no} berhasil dibuat.");
+    }
+
+    public function storeAction(Request $request, $id)
+    {
+        $request->validate([
+            'action_title'      => 'required|string|max:255',
+            'expected_standard' => 'nullable|string',
+            'due_date'          => 'required|date',
+        ]);
+
+        $pip = PerformancePipPlan::findOrFail($id);
+        $action = $this->pipService->addActionItem($pip, $request->all());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Action plan perbaikan kinerja berhasil ditambahkan.',
+            'data'    => $action,
+        ]);
+    }
+
+    public function updateActionStatus(Request $request, $actionId)
+    {
+        $request->validate([
+            'status' => 'required|in:PENDING,IN_PROGRESS,ACHIEVED,NOT_ACHIEVED',
+        ]);
+
+        $action = \App\PerformancePipAction::findOrFail($actionId);
+        $this->pipService->updateActionStatus($action, $request->status);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status action plan diperbarui.',
+        ]);
+    }
+
     public function detail($id)
     {
         $pip = PerformancePipPlan::with([
             'user',
             'mentor',
             'review.cycle',
+            'parentPip',
+            'extendedPips',
             'actions',
             'checkins.creator',
             'trainings'
@@ -131,8 +193,11 @@ class PerformancePipController extends Controller
     public function evaluate(Request $request, $id)
     {
         $request->validate([
-            'final_score'    => 'required|numeric|min:0|max:100',
-            'outcome_status' => 'required|in:PASSED,EXTENDED,FAILED',
+            'final_score'        => 'required|numeric|min:0|max:100',
+            'outcome_status'     => 'required|in:PASSED,EXTENDED,FAILED',
+            'extend_days'        => 'nullable|integer|min:7|max:180',
+            'hr_followup_action' => 'nullable|in:SANCTION,MUTATION,TERMINATION,OTHER',
+            'hr_followup_notes'  => 'nullable|string',
         ]);
 
         $pip = PerformancePipPlan::findOrFail($id);
