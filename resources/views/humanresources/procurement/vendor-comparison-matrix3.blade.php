@@ -286,16 +286,24 @@ $(document).off('change', '.chk-split-po').on('change', '.chk-split-po', functio
 });
 
 function hitungTotalSplitPO() {
-    // Reset semua vendor terlebih dahulu
     var vendorSummary = {};
+
+    // Inisialisasi semua vendor dari tombol Buat PO yang ada di footer
+    $('[id^="btn-split-po-"]').each(function() {
+        var supId = $(this).attr('id').replace('btn-split-po-', '');
+        vendorSummary[supId] = { count: 0, subtotal: 0, taxpct: 11 };
+    });
+
     $('.chk-split-po').each(function() {
-        var supId = $(this).data('supplier');
+        var supId = $(this).attr('data-supplier');
         if (!vendorSummary[supId]) {
-            vendorSummary[supId] = { count: 0, subtotal: 0, taxpct: parseFloat($(this).data('taxpct')) || 11 };
+            vendorSummary[supId] = { count: 0, subtotal: 0, taxpct: 11 };
         }
+        vendorSummary[supId].taxpct = parseFloat($(this).attr('data-taxpct')) || 11;
+
         if ($(this).is(':checked')) {
             vendorSummary[supId].count += 1;
-            vendorSummary[supId].subtotal += parseFloat($(this).data('linetotal')) || 0;
+            vendorSummary[supId].subtotal += parseFloat($(this).attr('data-linetotal')) || 0;
         }
     });
 
@@ -303,11 +311,11 @@ function hitungTotalSplitPO() {
         var taxVal   = data.subtotal * (data.taxpct / 100);
         var grandVal = data.subtotal + taxVal;
 
-        $('#sub-selected-' + supId).text(Math.round(data.subtotal).toLocaleString('id-ID'));
-        $('#tax-selected-' + supId).text(Math.round(taxVal).toLocaleString('id-ID'));
-        $('#total-selected-' + supId).text('Rp ' + Math.round(grandVal).toLocaleString('id-ID'));
+        $(document.getElementById('sub-selected-' + supId)).text(Math.round(data.subtotal).toLocaleString('id-ID'));
+        $(document.getElementById('tax-selected-' + supId)).text(Math.round(taxVal).toLocaleString('id-ID'));
+        $(document.getElementById('total-selected-' + supId)).text('Rp ' + Math.round(grandVal).toLocaleString('id-ID'));
 
-        var btn = $('#btn-split-po-' + supId);
+        var btn = $(document.getElementById('btn-split-po-' + supId));
         if (data.count > 0) {
             btn.prop('disabled', false).html('&#10004; Buat PO (' + data.count + ' Item)');
         } else {

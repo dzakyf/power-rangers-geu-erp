@@ -97,16 +97,8 @@
                     <label class="thr-form-label">Tgl Acuan Hari Raya</label>
                     <input type="date" name="reference_date" id="thr_reference_date" class="form-control" value="{{ date('Y-m-d') }}" required>
                 </div>
-                <div class="col-md-2">
-                    <label class="thr-form-label">Filter Agama</label>
-                    <select name="religion_filter" id="thr_religion_filter" class="form-select">
-                        <option value="ALL">ALL (Serentak Semua Agama)</option>
-                        @foreach ($religions as $rel)
-                            <option value="{{ $rel }}">{{ $rel }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
+                <input type="hidden" name="religion_filter" id="thr_religion_filter" value="ALL">
+                <div class="col-md-5">
                     <label class="thr-form-label">Salary Group (Opsional)</label>
                     <select name="main_id_filter" id="thr_main_id_filter" class="form-select">
                         <option value="">-- Semua Salary Group --</option>
@@ -115,14 +107,26 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="thr-form-label">Metode Prorata (&lt; 12 Bln)</label>
+                <div class="col-md-5">
+                    <label class="thr-form-label">Skema Perhitungan THR</label>
                     <select name="prorate_method" id="thr_prorate_method" class="form-select">
-                        <option value="MONTH_FLOOR">Bulan Penuh (Masa Kerja Bulan / 12)</option>
-                        <option value="DAY_365">Prorata Hari Aktual (Jumlah Hari / 365)</option>
+                        <option value="FOLLOW_EMPLOYEE" selected>Ikuti Settingan Employee (Employee Lists)</option>
+                        <option value="DEFAULT_PERMENAKER">Default (Standar Permenaker)</option>
+                        @foreach ($thrSchemes as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
                     </select>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4" id="thrFallbackSchemeWrapper">
+                    <label class="thr-form-label">Jika Employee Belum Disetting</label>
+                    <select name="fallback_thr_scheme" id="thr_fallback_scheme" class="form-select">
+                        <option value="DEFAULT_PERMENAKER" selected>Default (Standar Permenaker)</option>
+                        @foreach ($thrSchemes as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-5">
                     <label class="thr-form-label">Catatan Batch (Opsional)</label>
                     <input type="text" name="note" id="thr_note" class="form-control" placeholder="Catatan internal HCGA...">
                 </div>
@@ -183,7 +187,7 @@
                     <div>
                         <div class="text-muted small fw-semibold">Total Estimasi THR</div>
                         <div id="kpiTotalAmount" class="fs-4 fw-bold text-success">Rp 0</div>
-                        <div class="small text-muted">Basis: Gaji Pokok + Tunjangan Tetap</div>
+                        <div class="small text-muted">Basis: Sesuai Skema THR Karyawan (Permenaker / PKWT / MoU)</div>
                     </div>
                 </div>
             </div>
@@ -230,19 +234,28 @@
                 return el ? el.value : '';
             }
 
+            var thrSchemes = @json($thrSchemes);
+
             function initThrGrid() {
                 thrGrid = new dhtmlXGridObject('thrGridBox');
                 thrGrid.setImagePath("{{ asset('dhtmlx/skins/skyblue/imgs/') }}/");
                 thrGrid.setHeader("Eligible,NIK,Nama Karyawan,Department,Agama,Tgl Masuk,Masa Kerja,Skema THR (PKWT/MoU),Prorata,Basis Upah,THR Sistem,Adjustment (+/-),THR Final,Keterangan");
                 thrGrid.attachHeader("#master_checkbox,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#select_filter,#text_filter,#numeric_filter,#numeric_filter,#numeric_filter,#numeric_filter,#text_filter");
-                thrGrid.setInitWidths("65,105,190,120,90,95,125,175,75,115,115,115,120,*");
+                thrGrid.setInitWidths("65,105,190,120,90,95,125,210,75,115,115,115,120,300");
                 thrGrid.setColAlign("center,left,left,left,center,center,center,left,right,right,right,right,right,left");
-                thrGrid.setColTypes("ch,ro,ro,ro,ro,ro,ro,ro,ro,ron,ron,edn,ron,ed");
+                thrGrid.setColTypes("ch,ro,ro,ro,ro,ro,ro,coro,ro,ron,ron,edn,ron,ed");
                 thrGrid.setColSorting("int,str,str,str,str,str,str,str,str,int,int,int,int,str");
                 thrGrid.setNumberFormat("0,000", 9, ".", ",");
                 thrGrid.setNumberFormat("0,000", 10, ".", ",");
                 thrGrid.setNumberFormat("0,000", 11, ".", ",");
                 thrGrid.setNumberFormat("0,000", 12, ".", ",");
+
+                var schemeCombo = thrGrid.getCombo(7);
+                schemeCombo.put("DEFAULT_PERMENAKER", "Default (Standar Permenaker)");
+                Object.keys(thrSchemes || {}).forEach(function (k) {
+                    schemeCombo.put(k, thrSchemes[k]);
+                });
+
                 thrGrid.setSkin("dhx_skyblue");
                 thrGrid.init();
 
@@ -257,7 +270,9 @@
                         return false;
                     }
                     if (stage === 2 && nValue != oValue) {
-                        if (cInd === 11) {
+                        if (cInd === 7) {
+                            saveRowItem(rId, { thr_scheme: nValue });
+                        } else if (cInd === 11) {
                             saveRowItem(rId, { thr_adjustment_amount: parseFloat(nValue) || 0 });
                         } else if (cInd === 13) {
                             saveRowItem(rId, { note: nValue });
@@ -289,7 +304,20 @@
                         return;
                     }
                     if (res.data) {
-                        thrGrid.cells(itemId, 11).setValue(res.data.thr_final_amount);
+                        if (typeof res.data.is_eligible !== 'undefined') {
+                            thrGrid.cells(itemId, 0).setValue(res.data.is_eligible ? 1 : 0);
+                        }
+                        if (typeof res.data.prorate_ratio !== 'undefined') {
+                            var pct = Math.round(parseFloat(res.data.prorate_ratio) * 10000) / 100;
+                            thrGrid.cells(itemId, 8).setValue(pct + '%');
+                        }
+                        if (typeof res.data.base_salary_amount !== 'undefined') {
+                            thrGrid.cells(itemId, 9).setValue(res.data.base_salary_amount);
+                        }
+                        if (typeof res.data.thr_calculated_amount !== 'undefined') {
+                            thrGrid.cells(itemId, 10).setValue(res.data.thr_calculated_amount);
+                        }
+                        thrGrid.cells(itemId, 12).setValue(res.data.thr_final_amount);
                         updateKpi(res.data.total_employees, res.data.total_amount);
                     }
                 })
@@ -366,6 +394,23 @@
 
             document.addEventListener('DOMContentLoaded', function () {
                 initThrGrid();
+
+                var schemeModeSelect = document.getElementById('thr_prorate_method');
+                var fallbackWrapper = document.getElementById('thrFallbackSchemeWrapper');
+                var fallbackSelect = document.getElementById('thr_fallback_scheme');
+                function toggleFallbackScheme() {
+                    var isFollow = (schemeModeSelect && schemeModeSelect.value === 'FOLLOW_EMPLOYEE');
+                    if (fallbackWrapper) {
+                        fallbackWrapper.style.display = isFollow ? '' : 'none';
+                    }
+                    if (fallbackSelect) {
+                        fallbackSelect.disabled = !isFollow;
+                    }
+                }
+                if (schemeModeSelect) {
+                    schemeModeSelect.addEventListener('change', toggleFallbackScheme);
+                    toggleFallbackScheme();
+                }
 
                 var sel = document.getElementById('activeBatchSelect');
                 sel.addEventListener('change', function () {

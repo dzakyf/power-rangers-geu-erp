@@ -72,39 +72,49 @@ class PerformanceKpiService
                 }
 
                 $goal = PerformanceGoal::create([
-                    'goal_no'          => $this->generateGoalNo($period->period_code),
-                    'scope_type'       => 'POSITION',
-                    'period_id'        => $period->id,
-                    'user_id'          => null,
-                    'emp_id'           => null,
-                    'department'       => $pos->Department,
-                    'position_id'      => $pos->ID,
-                    'position'         => $pos->Initial ?: $pos->Position,
-                    'goal_type'        => $headerData['goal_type'] ?? 'HYBRID',
-                    'level'            => $headerData['level'] ?? 'TEAM',
-                    'total_kpi_weight' => 0,
-                    'status'           => 'DRAFT',
-                    'notes'            => $headerData['notes'] ?? null,
-                    'created_by'       => $creatorId,
-                    'updated_by'       => $creatorId,
+                    'goal_no'              => $this->generateGoalNo($period->period_code),
+                    'scope_type'           => 'POSITION',
+                    'is_addon'             => false,
+                    'goal_category'        => $headerData['goal_category'] ?? 'REGULAR',
+                    'probation_months'     => $headerData['probation_months'] ?? null,
+                    'probation_start_date' => $headerData['probation_start_date'] ?? null,
+                    'probation_end_date'   => $headerData['probation_end_date'] ?? null,
+                    'period_id'            => $period->id,
+                    'user_id'              => null,
+                    'emp_id'               => null,
+                    'department'           => $pos->Department,
+                    'position_id'          => $pos->ID,
+                    'position'             => $pos->Initial ?: $pos->Position,
+                    'goal_type'            => $headerData['goal_type'] ?? 'HYBRID',
+                    'level'                => $headerData['level'] ?? 'TEAM',
+                    'total_kpi_weight'     => 0,
+                    'status'               => 'DRAFT',
+                    'notes'                => $headerData['notes'] ?? null,
+                    'created_by'           => $creatorId,
+                    'updated_by'           => $creatorId,
                 ]);
             } else {
                 $user = User::findOrFail($headerData['user_id']);
                 $goal = PerformanceGoal::create([
-                    'goal_no'          => $this->generateGoalNo($period->period_code),
-                    'scope_type'       => 'INDIVIDUAL',
-                    'period_id'        => $period->id,
-                    'user_id'          => $user->id,
-                    'emp_id'           => $user->Emp_ID,
-                    'department'       => $user->Department,
-                    'position'         => $user->Position,
-                    'goal_type'        => $headerData['goal_type'] ?? 'HYBRID',
-                    'level'            => $headerData['level'] ?? 'INDIVIDUAL',
-                    'total_kpi_weight' => 0,
-                    'status'           => 'DRAFT',
-                    'notes'            => $headerData['notes'] ?? null,
-                    'created_by'       => $creatorId,
-                    'updated_by'       => $creatorId,
+                    'goal_no'              => $this->generateGoalNo($period->period_code),
+                    'scope_type'           => 'INDIVIDUAL',
+                    'is_addon'             => !empty($headerData['is_addon']),
+                    'goal_category'        => $headerData['goal_category'] ?? 'REGULAR',
+                    'probation_months'     => $headerData['probation_months'] ?? null,
+                    'probation_start_date' => $headerData['probation_start_date'] ?? null,
+                    'probation_end_date'   => $headerData['probation_end_date'] ?? null,
+                    'period_id'            => $period->id,
+                    'user_id'              => $user->id,
+                    'emp_id'               => $user->Emp_ID,
+                    'department'           => $user->Department,
+                    'position'             => $user->Position,
+                    'goal_type'            => $headerData['goal_type'] ?? 'HYBRID',
+                    'level'                => $headerData['level'] ?? 'INDIVIDUAL',
+                    'total_kpi_weight'     => 0,
+                    'status'               => 'DRAFT',
+                    'notes'                => $headerData['notes'] ?? null,
+                    'created_by'           => $creatorId,
+                    'updated_by'           => $creatorId,
                 ]);
             }
 
@@ -203,14 +213,18 @@ class PerformanceKpiService
 
         return DB::transaction(function () use ($goal, $requester) {
             $owner = $goal->user ?: $requester;
-            $targetDept = $goal->department ?: ($owner->Department ?? 'HCGA');
+            $targetDept = $goal->department ?: ($owner->Department ?: 'HCGA');
+            $location = !empty($owner->Location) ? $owner->Location : 'GEU-HO';
+            $companyId = !empty($owner->Company_ID) ? $owner->Company_ID : 'GEU';
+
             $context = [
-                'request_type' => self::REQUEST_TYPE,
-                'location'     => $owner->Location ?? 'GEU-HO',
-                'company_id'   => $owner->Company_ID ?? 'GEU',
-                'department'   => $targetDept,
-                'Department'   => $targetDept,
-                'amount'       => 0,
+                'Request_Type'       => self::REQUEST_TYPE,
+                'Location'           => $location,
+                'Company_ID'         => $companyId,
+                'Department'         => $targetDept,
+                'Amount'             => 0,
+                'Target_User_Id'     => $goal->user_id,
+                'Target_Position_Id' => $goal->position_id,
             ];
 
             $targetLabel = $goal->scope_type === 'POSITION'

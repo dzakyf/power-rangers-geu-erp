@@ -10,7 +10,8 @@ class PerformanceReviewCompetencyScore extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'score' => 'integer',
+        'score'     => 'integer',
+        'max_scale' => 'integer',
     ];
 
     public function feedback()

@@ -23,8 +23,15 @@
                     <input type="text" name="Training_Name" class="form-control" value="{{ $training->Training_Name }}" required>
                 </div>
                 <div class="col-md-3 mb-3">
-                    <label class="form-label">Pemateri / Trainer</label>
-                    <input type="text" name="trainer_name" class="form-control" value="{{ $training->trainer_name }}">
+                    <label class="form-label">Pemateri / Trainer *</label>
+                    <select name="trainer_id" id="edit_trainer_id" class="form-control" required>
+                        <option value="">-- Pilih Pemateri dari Master --</option>
+                        @foreach($trainers as $tr)
+                            <option value="{{ $tr->ID }}" {{ (int) $training->trainer_id === (int) $tr->ID ? 'selected' : '' }}>
+                                {{ $tr->Trainer_Name }} ({{ $tr->Trainer_Type }})
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="col-md-3 mb-3">
                     <label class="form-label">Passing Grade (KKM)</label>
@@ -64,9 +71,12 @@
                 </div>
             </div>
 
-            <h6>Kurikulum Sesi ({{ $training->curriculums->count() }})</h6>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Kurikulum Sesi ({{ $training->curriculums->count() }})</h6>
+                <button type="button" class="btn btn-sm btn-primary" onclick="addDetailCurriculumRow()">+ Tambah Sesi</button>
+            </div>
             <div class="table-responsive mb-3">
-                <table class="table table-bordered table-sm">
+                <table class="table table-bordered table-sm" id="tblDetailCurriculums">
                     <thead class="table-light">
                         <tr>
                             <th>Sesi</th>
@@ -74,19 +84,31 @@
                             <th>Pemateri</th>
                             <th>Durasi (Menit)</th>
                             <th>Metode</th>
+                            <th style="width:50px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($training->curriculums as $idx => $cur)
+                            @php $spName = (string) ($cur->speaker_name ?? ''); @endphp
                             <tr>
                                 <td>{{ $cur->session_order }}</td>
                                 <td><input type="text" name="curriculums[{{ $idx }}][topic_title]" class="form-control form-control-sm" value="{{ $cur->topic_title }}"></td>
-                                <td><input type="text" name="curriculums[{{ $idx }}][speaker_name]" class="form-control form-control-sm" value="{{ $cur->speaker_name }}"></td>
+                                <td>
+                                    <select name="curriculums[{{ $idx }}][speaker_name]" class="form-control form-control-sm">
+                                        <option value="">-- Ikuti Pemateri Utama --</option>
+                                        @foreach($trainers as $tr)
+                                            <option value="{{ $tr->Trainer_Name }}" {{ $spName === $tr->Trainer_Name ? 'selected' : '' }}>
+                                                {{ $tr->Trainer_Name }} ({{ $tr->Trainer_Type }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </td>
                                 <td><input type="number" name="curriculums[{{ $idx }}][duration_minutes]" class="form-control form-control-sm" value="{{ $cur->duration_minutes }}"></td>
                                 <td><input type="text" name="curriculums[{{ $idx }}][learning_method]" class="form-control form-control-sm" value="{{ $cur->learning_method }}"></td>
+                                <td><button type="button" class="btn btn-danger btn-sm" onclick="$(this).closest('tr').remove()">x</button></td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="text-center text-muted">Belum ada kurikulum.</td></tr>
+                            <tr class="empty-cur-row"><td colspan="6" class="text-center text-muted">Belum ada kurikulum.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -136,6 +158,28 @@
 </div>
 
 <script>
+    var detailCurIdx = {{ $training->curriculums->count() }};
+
+    function addDetailCurriculumRow() {
+        $('#tblDetailCurriculums tbody tr.empty-cur-row').remove();
+        var idx = detailCurIdx++;
+        var optionsHtml = '<option value="">-- Ikuti Pemateri Utama --</option>'
+            @foreach($trainers as $tr)
+            + '<option value="{{ e($tr->Trainer_Name) }}">{{ e($tr->Trainer_Name) }} ({{ e($tr->Trainer_Type) }})</option>'
+            @endforeach
+            ;
+
+        var row = '<tr>'
+            + '<td>' + (idx + 1) + '</td>'
+            + '<td><input type="text" name="curriculums[' + idx + '][topic_title]" class="form-control form-control-sm" placeholder="Topik sesi"></td>'
+            + '<td><select name="curriculums[' + idx + '][speaker_name]" class="form-control form-control-sm">' + optionsHtml + '</select></td>'
+            + '<td><input type="number" name="curriculums[' + idx + '][duration_minutes]" class="form-control form-control-sm" value="60"></td>'
+            + '<td><input type="text" name="curriculums[' + idx + '][learning_method]" class="form-control form-control-sm" value="Presentasi & Diskusi"></td>'
+            + '<td><button type="button" class="btn btn-danger btn-sm" onclick="$(this).closest(\'tr\').remove()">x</button></td>'
+            + '</tr>';
+        $('#tblDetailCurriculums tbody').append(row);
+    }
+
     $('#formEditTraining').on('submit', function(e) {
         e.preventDefault();
         $.ajax({

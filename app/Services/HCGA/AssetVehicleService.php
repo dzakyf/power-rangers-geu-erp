@@ -190,6 +190,28 @@ class AssetVehicleService
     }
 
     /**
+     * Ringkasan KPI jumlah aset untuk header halaman Asset Lists.
+     */
+    public function getAssetSummaryStats(): array
+    {
+        $row = DB::table('asset_list')
+            ->selectRaw("
+                COUNT(*) AS total,
+                SUM(CASE WHEN UPPER(COALESCE(Status, '')) = 'ACTIVE' THEN 1 ELSE 0 END) AS active_count,
+                SUM(CASE WHEN UPPER(COALESCE(Status, '')) = 'MAINTENANCE' THEN 1 ELSE 0 END) AS attention_count,
+                SUM(CASE WHEN UPPER(COALESCE(Asset_Sub_Category, '')) LIKE '%VEHICLE%' OR UPPER(COALESCE(Asset_Sub_Category, '')) LIKE '%KENDARAAN%' THEN 1 ELSE 0 END) AS vehicle_count
+            ")
+            ->first();
+
+        return [
+            'total'     => (int) ($row->total ?? 0),
+            'active'    => (int) ($row->active_count ?? 0),
+            'attention' => (int) ($row->attention_count ?? 0),
+            'vehicle'   => (int) ($row->vehicle_count ?? 0),
+        ];
+    }
+
+    /**
      * Data master untuk form create asset baru.
      */
     public function getCreateFormData(): array
@@ -198,7 +220,7 @@ class AssetVehicleService
             'categories' => DB::table('master_product_group')->orderBy('Product_Group', 'ASC')->get(),
             'suppliers'  => DB::table('supplier')->orderBy('Company_Name', 'ASC')->get(),
             'banks'      => DB::table('bank_acc')->where('Status', 'ACTIVE')->orderBy('Bank_Acc', 'ASC')->get(),
-            'warehouses' => DB::table('gudang_list')->orderBy('Gudang_Name', 'ASC')->get(),
+            'warehouses' => DB::table('gudang_list')->orderBy('Gudang_ID', 'ASC')->get(),
             'poList'     => DB::table('purchase_order')
                 ->whereIn('Status_Receive', ['WAITING', 'PARTIAL', ''])
                 ->orWhereNull('Status_Receive')
@@ -331,9 +353,13 @@ class AssetVehicleService
     public function createAsset(array $payload, string $username, string $location = 'GEU-HO', array $documents = []): array
     {
         return DB::transaction(function () use ($payload, $username, $location, $documents) {
-            $assetCategory    = $payload['Asset_Category'] ?? '';
-            $assetSubCategory = $payload['Asset_Sub_Category'] ?? '';
-            $assetType        = $payload['Asset_Type'] ?? '';
+            $assetCategory    = trim((string) ($payload['Asset_Category'] ?? ''));
+            $assetSubCategory = trim((string) ($payload['Asset_Sub_Category'] ?? ''));
+            $assetType        = trim((string) ($payload['Asset_Type'] ?? ''));
+
+            if ($assetCategory === '' || $assetSubCategory === '') {
+                throw new \InvalidArgumentException('Asset Category dan Asset Sub Category wajib dipilih.');
+            }
 
             $prod1 = DB::table('master_product_group')->where('Product_Group', $assetCategory)->first();
             $prod2 = DB::table('master_product_sub_group')

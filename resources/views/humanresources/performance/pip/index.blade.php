@@ -2,13 +2,16 @@
 
 @section('content-wrapper')
 @csrf
-<div class="main-content-header mb-3">
-    <h1>Performance Management</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('hrd-performance-review-index') }}">Performance</a></li>
-        <li class="breadcrumb-item active"><span class="active">Performance Improvement Plan (PIP)</span></li>
-    </ol>
-</div>
+@include('humanresources.performance.partials.page-header', [
+    'title'       => '6. Performance Improvement Plan (PIP)',
+    'parentLabel' => 'Performance Management',
+    'parentUrl'   => url('hrd-performance-pip-index'),
+    'current'     => 'PIP Plan',
+    'icon'        => 'fa-chart-line',
+    'badgeText'   => 'Step 6: Pembinaan Kinerja',
+])
+
+@include('humanresources.performance.partials.workflow-guide', ['activeStep' => 6])
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">

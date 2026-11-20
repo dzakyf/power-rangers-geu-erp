@@ -129,15 +129,26 @@ class RepairTraceabilityData extends Command
 
         $this->line('  SUPPLIER fragments: ' . count($targets));
 
-        $candidates = DB::table('traceability_external_poo_fragments')
-            ->where('poo_type', '<>', 'SUPPLIER')
-            ->whereNotNull('poo_name')->where('poo_name', '<>', '')
-            ->select('poo_name', 'poo_type', 'city', 'province', 'full_address', 'lat', 'lng', 'phone', 'account_no', 'account_name')
+        $inactive = $this->inactiveSupplierNames();
+
+        $candidates = DB::table('traceability_external_poo_fragments as f')
+            ->join('traceability_external_deliveries as d', 'd.id', '=', 'f.traceability_external_delivery_id')
+            ->where('f.poo_type', '<>', 'SUPPLIER')
+            ->whereNotNull('f.poo_name')->where('f.poo_name', '<>', '')
+            ->where('f.poo_name', 'not like', '%supplier%')
+            ->where(function ($q) {
+                $q->where('d.api_reference', 'like', 'GEU-SR-%')
+                  ->orWhere('d.api_reference', 'like', 'GEU-SJ-%');
+            })
+            ->select('f.poo_name', 'f.poo_type', 'f.city', 'f.province', 'f.full_address', 'f.lat', 'f.lng', 'f.phone', 'f.account_no', 'f.account_name')
             ->distinct()->get();
 
         $byCity = $byProvince = [];
         $national = [];
         foreach ($candidates as $candidate) {
+            $nameKey = strtolower(trim((string) $candidate->poo_name));
+            if ($nameKey === '' || isset($inactive[$nameKey])) { continue; }
+
             $row = (array) $candidate;
             $national[] = $row;
             if (!empty($candidate->city)) { $byCity[$candidate->city][] = $row; }
@@ -265,6 +276,26 @@ class RepairTraceabilityData extends Command
         }
 
         $this->line('  fragments with restored oil documentation: ' . count($fragmentUpdates));
+    }
+
+    protected function inactiveSupplierNames(): array
+    {
+        $dir = rtrim(config('services.apipi.cache_path') ?: storage_path('app/apipi/cache'), '/');
+        $suppliers = json_decode((string) @file_get_contents($dir . '/suppliers.json'), true);
+        if (!is_array($suppliers)) { return []; }
+
+        $inactive = [];
+        foreach ($suppliers as $supplier) {
+            $name = strtolower(trim((string) ($supplier['name'] ?? '')));
+            if ($name === '') { continue; }
+            $active = $supplier['active'] ?? null;
+            $status = strtolower(trim((string) ($supplier['poo_status'] ?? '')));
+            if ((string) $active === '0' || $status === 'inactive') {
+                $inactive[$name] = true;
+            }
+        }
+
+        return $inactive;
     }
 
     protected function updateRows(string $table, string $idColumn, array $rows): void

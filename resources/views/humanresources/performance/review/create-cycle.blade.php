@@ -2,13 +2,14 @@
 
 @section('content-wrapper')
 @csrf
-<div class="main-content-header mb-3">
-    <h1>Performance Management</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('hrd-performance-review-index') }}">Performance Review</a></li>
-        <li class="breadcrumb-item active"><span class="active">Buat Siklus Evaluasi</span></li>
-    </ol>
-</div>
+@include('humanresources.performance.partials.page-header', [
+    'title'       => 'Buat Siklus Evaluasi Baru',
+    'parentLabel' => 'Performance Review',
+    'parentUrl'   => url('hrd-performance-review-index'),
+    'current'     => 'Buat Siklus Evaluasi',
+    'icon'        => 'fa-calendar-plus',
+    'badgeText'   => 'Siklus Appraisal',
+])
 
 <div class="card">
     <div class="card-header">

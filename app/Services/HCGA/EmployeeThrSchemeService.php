@@ -22,7 +22,7 @@ class EmployeeThrSchemeService
 
     public static function label(?string $scheme): string
     {
-        if (empty($scheme)) {
+        if (empty($scheme) || strtoupper(trim($scheme)) === 'DEFAULT_PERMENAKER') {
             return 'Default (Standar Permenaker)';
         }
         return self::SCHEMES[$scheme] ?? $scheme;

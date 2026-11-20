@@ -1277,17 +1277,19 @@ class ProcurementController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Data PR atau RFQ Vendor tidak ditemukan.'], 404);
             }
 
-            // Cek apakah ada item yang dicentang ternyata sudah dibuatkan PO sebelumnya
-            $alreadyOrdered = DB::table('purchase_order_dtl')
-                ->where('PR_No', $prNo)
-                ->whereIn('Product_Code', $productCodes)
-                ->pluck('Product_Code')
+            // Cek apakah ada item yang dicentang ternyata sudah dibuatkan PO AKTIF (abaikan PO yang CANCELLED)
+            $alreadyOrdered = DB::table('purchase_order_dtl as pod')
+                ->join('purchase_order as po', 'pod.PO_No', '=', 'po.PO_No')
+                ->where('pod.PR_No', $prNo)
+                ->where('po.Status', '!=', 'CANCELLED')
+                ->whereIn('pod.Product_Code', $productCodes)
+                ->pluck('pod.Product_Code')
                 ->toArray();
 
             if (!empty($alreadyOrdered)) {
                 return response()->json([
                     'status'  => 'error',
-                    'message' => 'Item berikut sudah pernah diterbitkan PO-nya: ' . implode(', ', $alreadyOrdered)
+                    'message' => 'Item berikut sudah pernah diterbitkan PO aktifnya: ' . implode(', ', $alreadyOrdered)
                 ], 400);
             }
 

@@ -60,6 +60,7 @@ class RenameTraceabilityPool extends Command
             if (!$id) { continue; }
             $nm = $this->normName($s['name'] ?? '');
             if ($nm === '' || !isset($sjNames[$nm])) { continue; }
+            if (stripos($nm, 'supplier') !== false) { continue; }
             $byId[$id] = $s;
             $nameById[$id] = $nm;
             $idByName[$nm][] = $id;

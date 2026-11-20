@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
+use App\Services\HCGA\EmployeeThrSchemeService;
 use App\Services\Payroll\PayrollThrService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,13 +27,6 @@ class PayrollThrController extends Controller
     public function index()
     {
         $mainGroups = DB::table('payrol_main_group')->orderBy('ID', 'ASC')->get();
-        $religions = DB::table('employment')
-            ->whereNotNull('Religion')
-            ->where('Religion', '!=', '')
-            ->distinct()
-            ->orderBy('Religion', 'ASC')
-            ->pluck('Religion');
-
         $batches = DB::table('payroll_thr_batches')
             ->orderBy('id', 'DESC')
             ->limit(30)
@@ -40,7 +34,7 @@ class PayrollThrController extends Controller
 
         return view('humanresources.payroll.payroll-thr', [
             'mainGroups'    => $mainGroups,
-            'religions'     => $religions,
+            'thrSchemes'    => EmployeeThrSchemeService::schemeOptions(),
             'batches'       => $batches,
             'defaultPeriod' => date('Y-m'),
         ]);
@@ -86,7 +80,7 @@ class PayrollThrController extends Controller
             foreach ($items as $it) {
                 $eligible = (int)$it->is_eligible;
                 $tenureLabel = $it->tenure_months . ' bln (' . $it->tenure_days . ' hr)';
-                $schemeLabel = \App\Services\HCGA\EmployeeThrSchemeService::label($it->thr_scheme ?? null);
+                $schemeValue = !empty($it->thr_scheme) ? $it->thr_scheme : 'DEFAULT_PERMENAKER';
                 $proratePct = round(((float)$it->prorate_ratio) * 100, 2) . '%';
                 $noteDisplay = $it->note ?: ($it->ineligible_reason ?: ($it->is_payroll_processed ? 'Sudah masuk Payroll: ' . $it->salary_id : 'Eligible'));
 
@@ -98,7 +92,7 @@ class PayrollThrController extends Controller
                 echo "<cell><![CDATA[" . ($it->religion ?: '-') . "]]></cell>";
                 echo "<cell><![CDATA[" . ($it->date_in ?: '-') . "]]></cell>";
                 echo "<cell><![CDATA[{$tenureLabel}]]></cell>";
-                echo "<cell><![CDATA[{$schemeLabel}]]></cell>";
+                echo "<cell><![CDATA[{$schemeValue}]]></cell>";
                 echo "<cell><![CDATA[{$proratePct}]]></cell>";
                 echo "<cell>{$it->base_salary_amount}</cell>";
                 echo "<cell>{$it->thr_calculated_amount}</cell>";
@@ -118,11 +112,13 @@ class PayrollThrController extends Controller
      */
     public function generateDraft(Request $request)
     {
+        $schemeKeys = implode(',', array_keys(EmployeeThrSchemeService::schemeOptions()));
         $request->validate([
-            'salary_period'  => 'required|regex:/^\d{4}-\d{2}$/',
-            'thr_event_name' => 'required|string|max:150',
-            'reference_date' => 'required|date',
-            'prorate_method' => 'required|in:MONTH_FLOOR,DAY_365',
+            'salary_period'       => 'required|regex:/^\d{4}-\d{2}$/',
+            'thr_event_name'      => 'required|string|max:150',
+            'reference_date'      => 'required|date',
+            'prorate_method'      => 'required|in:FOLLOW_EMPLOYEE,DEFAULT_PERMENAKER,MONTH_FLOOR,DAY_365,' . $schemeKeys,
+            'fallback_thr_scheme' => 'nullable|in:DEFAULT_PERMENAKER,' . $schemeKeys,
         ]);
 
         $operator = Auth::user() ? Auth::user()->username : 'SYSTEM';
@@ -156,6 +152,7 @@ class PayrollThrController extends Controller
         try {
             $res = $this->thrService->updateItem($itemId, $request->only([
                 'is_eligible',
+                'thr_scheme',
                 'thr_adjustment_amount',
                 'note',
             ]));

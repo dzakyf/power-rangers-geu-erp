@@ -133,6 +133,45 @@ class VehicleManagementController extends Controller
         }
     }
 
+    /**
+     * Preview kerangka email reminder dokumen kendaraan.
+     */
+    public function previewEmailReminder()
+    {
+        try {
+            return response()->json([
+                'status' => 'success',
+                'data'   => $this->reminderService->previewEmailReminder(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Kirim email reminder dokumen kendaraan secara manual.
+     */
+    public function sendEmailReminders(Request $request)
+    {
+        try {
+            $force = filter_var($request->input('force', false), FILTER_VALIDATE_BOOLEAN);
+            $sent = $this->reminderService->sendEmailReminders($force);
+            return response()->json([
+                'status'  => 'success',
+                'message' => "Pengiriman email reminder selesai. {$sent} email berhasil diproses.",
+                'sent'    => $sent,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function taxRequests()
     {
         $user = Auth::user();
