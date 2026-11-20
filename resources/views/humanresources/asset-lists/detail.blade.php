@@ -499,7 +499,7 @@
                                 @foreach(($fixingHistory ?? []) as $fx)
                                     <tr><td class="fw-bold">{{ $fx->No_Trx ?? $fx->ID }}</td><td>Perbaikan Aset</td><td>{{ $fx->Jenis_Perbaikan }} - Rp {{ number_format((float)($fx->Estimasi_Biaya ?? 0), 0, ',', '.') }}</td><td><span class="badge bg-warning text-dark">{{ $fx->Status }}</span></td><td>{{ $fx->Tanggal_Pengajuan ?: '-' }}</td></tr>
                                 @endforeach
-                                @if(empty($damageTickets) || (count($damageTickets) === 0 && count($fixingHistory ?? []) === 0))
+                                @if(count($damageTickets ?? []) === 0 && count($fixingHistory ?? []) === 0)
                                     <tr><td colspan="5" class="text-center text-muted py-2">Belum ada riwayat kerusakan/perbaikan.</td></tr>
                                 @endif
                             </tbody>
@@ -595,10 +595,22 @@
     });
 })();
 
+function notifyDetail(icon, title, text) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({ icon: icon, title: title, text: text, confirmButtonText: 'OK' });
+    } else {
+        alert((title ? title + ': ' : '') + (text || ''));
+    }
+}
+
 function reloadAssetDetail() {
     var assetNo = $('#Asset_No').val();
     var targetId = document.getElementById('VEHICLEDTL') ? 'VEHICLEDTL' : 'DATAASSETSDTL';
-    LoadM(targetId, 'hrd-asset-lists-detail?Task_ID=' + encodeURIComponent(assetNo));
+    if (typeof loadAssetPanel === 'function' && targetId === 'DATAASSETSDTL') {
+        loadAssetPanel('hrd-asset-lists-detail?Task_ID=' + encodeURIComponent(assetNo), 'Memuat ulang detail asset...');
+    } else {
+        LoadM(targetId, 'hrd-asset-lists-detail?Task_ID=' + encodeURIComponent(assetNo));
+    }
     if (typeof DATAASSETSRefresh === 'function') { DATAASSETSRefresh(); }
     if (typeof VEHICLERefresh === 'function') { VEHICLERefresh(); }
 }
@@ -615,6 +627,10 @@ function updateKIRHint() {
 }
 
 $('#SubmitEditAsset').on('click', function() {
+    var $btn = $(this);
+    var origHtml = $btn.html();
+    $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Menyimpan...');
+
     var payload = {};
     $('#DivDetailAsset input, #DivDetailAsset select, #DivDetailAsset textarea').each(function() {
         var id = $(this).attr('id');
@@ -628,18 +644,25 @@ $('#SubmitEditAsset').on('click', function() {
         headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() || '{{ csrf_token() }}' },
         data: payload,
         success: function(res) {
-            alert(res.message || 'Data Asset berhasil disimpan.');
+            notifyDetail('success', 'Berhasil', res.message || 'Data Asset berhasil disimpan.');
             reloadAssetDetail();
         },
         error: function(xhr) {
-            alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menyimpan data asset.');
+            notifyDetail('error', 'Gagal', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menyimpan data asset.');
+        },
+        complete: function() {
+            $btn.prop('disabled', false).html(origHtml);
         }
     });
 });
 
 $('#BtnUpdSTNK').on('click', function() {
     var tgl = $('#STNK_Upd_Tanggal').val();
-    if (!tgl) { alert('Tanggal berlaku STNK wajib diisi!'); return; }
+    if (!tgl) { notifyDetail('warning', 'Validasi', 'Tanggal berlaku STNK wajib diisi!'); return; }
+    var $btn = $(this);
+    var origHtml = $btn.html();
+    $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Menyimpan...');
+
     $.ajax({
         url: 'hrd-asset-lists-stnk-update',
         type: 'POST',
@@ -651,18 +674,25 @@ $('#BtnUpdSTNK').on('click', function() {
             Catatan: $('#STNK_Upd_Catatan').val()
         },
         success: function(res) {
-            alert(res.message || 'STNK diperbarui!');
+            notifyDetail('success', 'Berhasil', res.message || 'STNK diperbarui!');
             reloadAssetDetail();
         },
         error: function(xhr) {
-            alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal memperbarui STNK.');
+            notifyDetail('error', 'Gagal', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal memperbarui STNK.');
+        },
+        complete: function() {
+            $btn.prop('disabled', false).html(origHtml);
         }
     });
 });
 
 $('#BtnUpdKIR').on('click', function() {
     var tgl = $('#KIR_Upd_Tanggal').val();
-    if (!tgl) { alert('Tanggal KIR wajib diisi!'); return; }
+    if (!tgl) { notifyDetail('warning', 'Validasi', 'Tanggal KIR wajib diisi!'); return; }
+    var $btn = $(this);
+    var origHtml = $btn.html();
+    $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Menyimpan...');
+
     $.ajax({
         url: 'hrd-asset-lists-kir-update',
         type: 'POST',
@@ -674,11 +704,14 @@ $('#BtnUpdKIR').on('click', function() {
             Catatan: $('#KIR_Upd_Catatan').val()
         },
         success: function(res) {
-            alert(res.message || 'KEUR/KIR diperbarui!');
+            notifyDetail('success', 'Berhasil', res.message || 'KEUR/KIR diperbarui!');
             reloadAssetDetail();
         },
         error: function(xhr) {
-            alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal memperbarui KEUR/KIR.');
+            notifyDetail('error', 'Gagal', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal memperbarui KEUR/KIR.');
+        },
+        complete: function() {
+            $btn.prop('disabled', false).html(origHtml);
         }
     });
 });
@@ -686,7 +719,7 @@ $('#BtnUpdKIR').on('click', function() {
 function uploadAssetPhotos() {
     var input = document.getElementById('AssetPhotoInput');
     if (!input.files || !input.files.length) {
-        alert('Pilih file foto terlebih dahulu.');
+        notifyDetail('warning', 'Validasi', 'Pilih file foto/dokumen terlebih dahulu.');
         return;
     }
     var fd = new FormData();
@@ -702,29 +735,48 @@ function uploadAssetPhotos() {
         processData: false,
         contentType: false,
         success: function(res) {
-            alert(res.message || 'Foto diunggah.');
+            notifyDetail('success', 'Berhasil', res.message || 'Dokumentasi diunggah.');
             reloadAssetDetail();
         },
         error: function(xhr) {
-            alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal mengunggah foto.');
+            notifyDetail('error', 'Gagal', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal mengunggah dokumentasi.');
         }
     });
 }
 
 function deleteAssetPhoto(photoId) {
-    if (!confirm('Hapus foto ini?')) return;
-    $.ajax({
-        url: 'hrd-asset-lists-photo-delete',
-        type: 'POST',
-        headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() || '{{ csrf_token() }}' },
-        data: { Photo_ID: photoId, Asset_No: $('#Asset_No').val() },
-        success: function(res) {
-            alert(res.message || 'Foto dihapus.');
-            reloadAssetDetail();
-        },
-        error: function(xhr) {
-            alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menghapus foto.');
-        }
-    });
+    var executeDelete = function() {
+        $.ajax({
+            url: 'hrd-asset-lists-photo-delete',
+            type: 'POST',
+            headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() || '{{ csrf_token() }}' },
+            data: { Photo_ID: photoId, Asset_No: $('#Asset_No').val() },
+            success: function(res) {
+                notifyDetail('success', 'Berhasil', res.message || 'Foto dihapus.');
+                reloadAssetDetail();
+            },
+            error: function(xhr) {
+                notifyDetail('error', 'Gagal', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menghapus foto.');
+            }
+        });
+    };
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Hapus Dokumentasi?',
+            text: 'Berkas yang dihapus tidak dapat dikembalikan.',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Ya, Hapus',
+            cancelButtonText: 'Batal'
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                executeDelete();
+            }
+        });
+    } else if (confirm('Hapus foto ini?')) {
+        executeDelete();
+    }
 }
 </script>

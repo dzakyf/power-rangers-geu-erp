@@ -37,6 +37,11 @@ class PerformanceReview extends Model
         return $this->belongsTo(User::class, 'manager_id');
     }
 
+    public function competencyVersion()
+    {
+        return $this->belongsTo(PerformanceCompetencyVersion::class, 'competency_version_id');
+    }
+
     public function feedbacks()
     {
         return $this->hasMany(PerformanceReviewFeedback::class, 'review_id');

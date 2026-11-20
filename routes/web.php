@@ -60,6 +60,7 @@ use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormCont
 use App\Http\Controllers\HCGA\TrainingController as HCGATrainingController;
 use App\Http\Controllers\HCGA\TnaController as HCGATnaController;
 use App\Http\Controllers\HCGA\TrainingProgramController as HCGATrainingProgramController;
+use App\Http\Controllers\HCGA\TrainingTrainerController as HCGATrainingTrainerController;
 use App\Http\Controllers\HCGA\TrainingEvaluationController as HCGATrainingEvaluationController;
 use App\Http\Controllers\HCGA\TrainingSummaryController as HCGATrainingSummaryController;
 use App\Http\Controllers\HCGA\TrainingCoachingController as HCGATrainingCoachingController;
@@ -6026,6 +6027,13 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcPref-training-program-form", [HCGATrainingProgramController::class, 'form']);
     Route::post("$hcPref-training-program-store", [HCGATrainingProgramController::class, 'store']);
 
+    // === Master Pemateri / Trainer ===
+    Route::get("$hcPref-training-trainer-index", [HCGATrainingTrainerController::class, 'index']);
+    Route::get("xml-$hcPref-training-trainer-index", [HCGATrainingTrainerController::class, 'indexXml']);
+    Route::get("$hcPref-training-trainer-form", [HCGATrainingTrainerController::class, 'form']);
+    Route::post("$hcPref-training-trainer-store", [HCGATrainingTrainerController::class, 'store']);
+    Route::post("$hcPref-training-trainer-toggle", [HCGATrainingTrainerController::class, 'toggleStatus']);
+
     // === Jadwal & Request Training ===
     $hcTrainingPref = "$hcPref-training";
     Route::get("$hcTrainingPref-index", [HCGATrainingController::class, 'index']);
@@ -6483,21 +6491,36 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcPerfPref-kpi-detail/{id?}", [HCGAPerformanceKpiController::class, 'detail'])->name('hrd.performance.kpi.detail');
     Route::post("$hcPerfPref-kpi-submit-approval/{id}", [HCGAPerformanceKpiController::class, 'submitApproval'])->name('hrd.performance.kpi.submit-approval');
     Route::post("$hcPerfPref-kpi-record-progress/{id}", [HCGAPerformanceKpiController::class, 'recordProgress'])->name('hrd.performance.kpi.record-progress');
+    Route::post("$hcPerfPref-kpi-reschedule/{id}", [HCGAPerformanceKpiController::class, 'rescheduleGoal'])->name('hrd.performance.kpi.reschedule');
 
     // 3. Performance Review & Appraisal Cycles
     Route::get("$hcPerfPref-review-index", [HCGAPerformanceReviewController::class, 'index'])->name('hrd.performance.review.index');
     Route::get("$hcPerfPref-review-data", [HCGAPerformanceReviewController::class, 'data'])->name('hrd.performance.review.data');
     Route::get("$hcPerfPref-review-cycle-new", [HCGAPerformanceReviewController::class, 'createCycle'])->name('hrd.performance.review.cycle-new');
     Route::post("$hcPerfPref-review-cycle-store", [HCGAPerformanceReviewController::class, 'storeCycle'])->name('hrd.performance.review.cycle-store');
+    Route::get("$hcPerfPref-review-cycle-edit/{id}", [HCGAPerformanceReviewController::class, 'editCycle'])->name('hrd.performance.review.cycle-edit');
+    Route::post("$hcPerfPref-review-cycle-update/{id}", [HCGAPerformanceReviewController::class, 'updateCycle'])->name('hrd.performance.review.cycle-update');
+    Route::post("$hcPerfPref-review-cycle-reschedule/{id}", [HCGAPerformanceReviewController::class, 'rescheduleCycle'])->name('hrd.performance.review.cycle-reschedule');
+
+    // 3b. Evaluasi Probation & Kontrak
+    Route::get("$hcPerfPref-probation-index", [App\Http\Controllers\HCGA\Performance\PerformanceProbationController::class, 'index'])->name('hrd.performance.probation.index');
+    Route::post("$hcPerfPref-probation-initiate/{userId}", [App\Http\Controllers\HCGA\Performance\PerformanceProbationController::class, 'initiateSingleReview'])->name('hrd.performance.probation.initiate');
     Route::post("$hcPerfPref-review-generate/{id}", [HCGAPerformanceReviewController::class, 'generateReviews'])->name('hrd.performance.review.generate');
     Route::get("$hcPerfPref-review-detail/{id?}", [HCGAPerformanceReviewController::class, 'detail'])->name('hrd.performance.review.detail');
     Route::post("$hcPerfPref-review-update-kpi/{id}", [HCGAPerformanceReviewController::class, 'updateKpiRealization'])->name('hrd.performance.review.update-kpi');
     Route::post("$hcPerfPref-review-feedback/{id}", [HCGAPerformanceReviewController::class, 'submitFeedback'])->name('hrd.performance.review.feedback');
     Route::post("$hcPerfPref-review-finalize/{id}", [HCGAPerformanceReviewController::class, 'finalize'])->name('hrd.performance.review.finalize');
+    Route::get("$hcPerfPref-review-pdf/{id}", [HCGAPerformanceReviewController::class, 'exportPdf'])->name('hrd.performance.review.pdf');
 
-    // 4. Performance Competency
+    // 4. Performance Competency & Soft Skill Versioning
     Route::get("$hcPerfPref-competency-index", [HCGAPerformanceCompetencyController::class, 'index'])->name('hrd.performance.competency.index');
+    Route::post("$hcPerfPref-competency-version-draft", [HCGAPerformanceCompetencyController::class, 'createDraftVersion'])->name('hrd.performance.competency.version-draft');
+    Route::post("$hcPerfPref-competency-version-publish/{versionId}", [HCGAPerformanceCompetencyController::class, 'publishVersion'])->name('hrd.performance.competency.version-publish');
+    Route::post("$hcPerfPref-competency-version-scale/{versionId}", [HCGAPerformanceCompetencyController::class, 'updateVersionScale'])->name('hrd.performance.competency.version-scale');
     Route::post("$hcPerfPref-competency-store", [HCGAPerformanceCompetencyController::class, 'store'])->name('hrd.performance.competency.store');
+    Route::post("$hcPerfPref-competency-update/{id}", [HCGAPerformanceCompetencyController::class, 'update'])->name('hrd.performance.competency.update');
+    Route::post("$hcPerfPref-competency-toggle/{id}", [HCGAPerformanceCompetencyController::class, 'toggleActive'])->name('hrd.performance.competency.toggle');
+    Route::delete("$hcPerfPref-competency-delete/{id}", [HCGAPerformanceCompetencyController::class, 'destroy'])->name('hrd.performance.competency.delete');
 
     // 5. Performance Improvement Plan (PIP)
     Route::get("$hcPerfPref-pip-index", [HCGAPerformancePipController::class, 'index'])->name('hrd.performance.pip.index');
@@ -6533,6 +6556,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcVehMgmtPref-data", [HCGAVehicleManagementController::class, 'data']);
     Route::get("$hcVehMgmtPref-reminders", [HCGAVehicleManagementController::class, 'reminders']);
     Route::post("$hcVehMgmtPref-sync-reminders", [HCGAVehicleManagementController::class, 'syncReminders']);
+    Route::get("$hcVehMgmtPref-email-preview", [HCGAVehicleManagementController::class, 'previewEmailReminder']);
+    Route::post("$hcVehMgmtPref-send-email-reminders", [HCGAVehicleManagementController::class, 'sendEmailReminders']);
     Route::get("$hcVehMgmtPref-tax-requests", [HCGAVehicleManagementController::class, 'taxRequests']);
     Route::post("$hcVehMgmtPref-tax-store", [HCGAVehicleManagementController::class, 'storeTaxRequest']);
     Route::post("$hcVehMgmtPref-tax-approval", [HCGAVehicleManagementController::class, 'approveTaxRequest']);
@@ -6775,9 +6800,18 @@ Route::post('/purchase-request-store', [ProcurementController::class, 'storePR']
 // Halaman & Data Outstanding PO
 Route::get('po-outstanding-list', [ProcurementController::class, 'outstandingPOIndex']);
 Route::get('xml-outstanding-po-list', [ProcurementController::class, 'xmlOutstandingPO']);
+Route::post('generate-split-po', [ProcurementController::class, 'generateSplitPO']);
+Route::post('cancel-po', [ProcurementController::class, 'cancelPO']);
+
+Route::post('po-approve', [ProcurementController::class, 'approvePO']);
+Route::post('po-delivery', [ProcurementController::class, 'deliveryPO']);
+Route::post('po-receive', [ProcurementController::class, 'receivePO']);
 
 Route::get('po-detail', [ProcurementController::class, 'detailPO']);
 Route::get('po-print', [ProcurementController::class, 'printPO']);
+Route::get('print-pr', [ProcurementController::class, 'printPR']);
+
+
 
 
     // -- General email settings (SMTP, sender, recipients, test, log) --

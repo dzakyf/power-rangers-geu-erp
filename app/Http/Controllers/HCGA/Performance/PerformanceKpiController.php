@@ -160,7 +160,14 @@ class PerformanceKpiController extends Controller
 
         $positions = $positionsQuery->get();
 
-        return view('humanresources.performance.kpi.create', compact('periods', 'positions'));
+        $employeesQuery = User::where('Status', 'ACTIVE')->orderBy('Name');
+        if ($currentUser && !$this->kpiService->isHcgaOrAdmin($currentUser)) {
+            $picDepts = $this->kpiService->getPicDepartments($currentUser);
+            $employeesQuery->whereIn('Department', empty($picDepts) ? ['__NONE__'] : $picDepts);
+        }
+        $employees = $employeesQuery->select('id', 'Name', 'Emp_ID', 'Department', 'Position')->get();
+
+        return view('humanresources.performance.kpi.create', compact('periods', 'positions', 'employees'));
     }
 
     /**
@@ -196,7 +203,10 @@ class PerformanceKpiController extends Controller
 
         try {
             $goal = $this->kpiService->createGoal(
-                $request->only(['period_id', 'position_id', 'user_id', 'goal_type', 'level', 'notes']),
+                $request->only([
+                    'period_id', 'position_id', 'user_id', 'goal_type', 'level', 'notes',
+                    'is_addon', 'goal_category', 'probation_months', 'probation_start_date', 'probation_end_date'
+                ]),
                 $request->input('items', []),
                 Auth::id() ?? 1
             );
@@ -275,7 +285,9 @@ class PerformanceKpiController extends Controller
 
         $approvalRequest = null;
         $approvalTasks = collect();
+        $approvalStages = collect();
         $approvalLogs = collect();
+        $isCurrentUserApprover = false;
 
         if ($goal->approval_request_id) {
             $approvalRequest = DB::table('approval_request')
@@ -289,24 +301,93 @@ class PerformanceKpiController extends Controller
                 ->select([
                     't.ID',
                     't.Stage_Order',
-                    't.Label',
+                    't.Position_Name as Label',
                     't.Status',
-                    't.Completed_At',
+                    't.Acted_At as Completed_At',
                     DB::raw('GROUP_CONCAT(DISTINCT u.Name SEPARATOR ", ") as approver_names'),
                 ])
-                ->groupBy('t.ID', 't.Stage_Order', 't.Label', 't.Status', 't.Completed_At')
+                ->groupBy('t.ID', 't.Stage_Order', 't.Position_Name', 't.Status', 't.Acted_At')
                 ->orderBy('t.Stage_Order')
                 ->get();
 
+            $tasksByStage = $approvalTasks->keyBy('Stage_Order');
+            $plannedSteps = [];
+            if ($approvalRequest && !empty($approvalRequest->Policy_Snapshot)) {
+                $snap = json_decode($approvalRequest->Policy_Snapshot, true);
+                $plannedSteps = $snap['steps'] ?? [];
+            }
+            if (empty($plannedSteps) && $approvalRequest && !empty($approvalRequest->Policy_ID)) {
+                $plannedSteps = DB::table('approval_policy_step')
+                    ->where('Policy_ID', $approvalRequest->Policy_ID)
+                    ->orderBy('Stage_Order')
+                    ->get()
+                    ->map(function ($s) {
+                        return (array) $s;
+                    })
+                    ->all();
+            }
+
+            $pendingTaskIds = $approvalTasks->where('Status', 'PENDING')->pluck('ID')->all();
+            $myPendingTaskIds = [];
+            if (!empty($pendingTaskIds) && Auth::check()) {
+                $myPendingTaskIds = DB::table('approval_task_candidate')
+                    ->whereIn('Task_ID', $pendingTaskIds)
+                    ->where('User_ID', Auth::id())
+                    ->pluck('Task_ID')
+                    ->all();
+                $isCurrentUserApprover = !empty($myPendingTaskIds);
+            }
+
+            if (!empty($plannedSteps)) {
+                foreach ($plannedSteps as $st) {
+                    $order = (int) ($st['Stage_Order'] ?? 0);
+                    $task = $tasksByStage->get($order);
+                    $approvalStages->push((object) [
+                        'Stage_Order'    => $order,
+                        'Label'          => $task ? ($task->Label ?: ($st['Label'] ?? "Stage {$order}")) : ($st['Label'] ?? "Stage {$order}"),
+                        'Role_Label'     => $st['Label'] ?? '',
+                        'Status'         => $task ? $task->Status : 'WAITING_PREVIOUS',
+                        'approver_names' => $task ? $task->approver_names : null,
+                        'Completed_At'   => $task ? $task->Completed_At : null,
+                        'is_my_task'     => $task ? in_array($task->ID, $myPendingTaskIds, true) : false,
+                    ]);
+                }
+            } else {
+                foreach ($approvalTasks as $task) {
+                    $approvalStages->push((object) [
+                        'Stage_Order'    => $task->Stage_Order,
+                        'Label'          => $task->Label,
+                        'Role_Label'     => $task->Label,
+                        'Status'         => $task->Status,
+                        'approver_names' => $task->approver_names,
+                        'Completed_At'   => $task->Completed_At,
+                        'is_my_task'     => in_array($task->ID, $myPendingTaskIds, true),
+                    ]);
+                }
+            }
+
             $approvalLogs = DB::table('approval_log as l')
-                ->leftJoin('users as u', 'u.id', '=', 'l.Actor_ID')
-                ->where('l.Request_ID', $goal->approval_request_id)
-                ->select(['l.Action', 'l.Note', 'l.Created_At', 'u.Name as actor_name'])
+                ->leftJoin('users as u', 'u.id', '=', 'l.Approver_Id')
+                ->where('l.Request_Id', $goal->approval_request_id)
+                ->select([
+                    'l.Action',
+                    'l.Notes as Note',
+                    'l.Action_Date as Created_At',
+                    'u.Name as actor_name',
+                ])
                 ->orderBy('l.ID', 'desc')
                 ->get();
         }
 
-        return view('humanresources.performance.kpi.detail', compact('goal', 'approvalRequest', 'approvalTasks', 'approvalLogs', 'canManageGoal'));
+        return view('humanresources.performance.kpi.detail', compact(
+            'goal',
+            'approvalRequest',
+            'approvalTasks',
+            'approvalStages',
+            'approvalLogs',
+            'canManageGoal',
+            'isCurrentUserApprover'
+        ));
     }
 
     /**
@@ -359,6 +440,51 @@ class PerformanceKpiController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
+    }
+
+    /**
+     * Ubah durasi / waktu penilaian KPI yang sudah diajukan atau disetujui (mis. 6 bulan -> 3 bulan)
+     */
+    public function rescheduleGoal(Request $request, $id)
+    {
+        $currentUser = Auth::user();
+        if (!$this->kpiService->isHcgaOrAdmin($currentUser)) {
+            return response()->json(['success' => false, 'message' => 'Hanya HCGA/Admin yang dapat mengubah durasi/waktu KPI.'], 403);
+        }
+
+        $request->validate([
+            'probation_months'     => 'nullable|integer|min:0|max:24',
+            'probation_start_date' => 'nullable|date',
+            'probation_end_date'   => 'nullable|date',
+            'reschedule_reason'    => 'required|string|max:500',
+        ]);
+
+        $goal = PerformanceGoal::findOrFail($id);
+        $goal->probation_months = $request->filled('probation_months') && (int) $request->probation_months > 0 ? (int) $request->probation_months : null;
+        $goal->probation_start_date = $request->filled('probation_start_date') ? $request->probation_start_date : $goal->probation_start_date;
+        $goal->probation_end_date = $request->filled('probation_end_date') ? $request->probation_end_date : $goal->probation_end_date;
+        $goal->reschedule_reason = $request->reschedule_reason;
+        $goal->rescheduled_at = \Carbon\Carbon::now();
+        $goal->updated_by = Auth::id();
+        $goal->save();
+
+        // Sinkronkan probation_end_date ke employment & review aktif jika KPI individu
+        if ($goal->user_id && $goal->probation_end_date) {
+            $empUser = \App\User::find($goal->user_id);
+            if ($empUser && $empUser->Emp_ID) {
+                DB::table('employment')
+                    ->where('NIK', $empUser->Emp_ID)
+                    ->update(['probation_end_date' => $goal->probation_end_date]);
+            }
+            \App\PerformanceReview::where('goal_id', $goal->id)
+                ->where('status', '!=', 'FINALIZED')
+                ->update(['probation_end_date' => $goal->probation_end_date]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Waktu penilaian KPI {$goal->goal_no} berhasil diubah.",
+        ]);
     }
 }
 

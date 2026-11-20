@@ -23,9 +23,17 @@
         </div>
 
     </div>
-    <button type="button" class="btn btn-sm btn-success font-weight-bold mb-2" onclick="bukaMatriksPerbandingan()">
-            <i class="fas fa-balance-scale mr-1"></i> Lihat Matriks Perbandingan (Berdasarkan RFQ Dipilih)
+    <div class="d-flex flex-wrap align-items-center mb-2">
+        <<!-- button type="button" class="btn btn-sm btn-success font-weight-bold mr-2 mb-1" onclick="bukaMatriksPerbandingan(1)">
+            <i class="fas fa-balance-scale mr-1"></i> Lihat Matriks Perbandingan (Versi 1)
         </button>
+        <button type="button" class="btn btn-sm btn-primary font-weight-bold mr-2 mb-1" onclick="bukaMatriksPerbandingan(2)">
+            <i class="fas fa-chart-bar mr-1"></i> Lihat Matriks Perbandingan v2 (Ranking Harga)
+        </button> -->
+        <button type="button" class="btn btn-sm btn-info font-weight-bold mb-1" onclick="bukaMatriksPerbandingan(3)">
+            <i class="fas fa-tasks mr-1"></i>Matrik Quotation
+        </button>
+    </div>
 
 
 
@@ -39,21 +47,19 @@
     
 
 <script>
-function bukaMatriksPerbandingan() {
+function bukaMatriksPerbandingan(versi = 1) {
     var selectedRFQ = RFQ.getSelectedId();
     if (!selectedRFQ) {
         alert("Silakan klik / pilih salah satu baris RFQ di tabel terlebih dahulu!");
         return;
     }
     
-    // Panggil fungsi openComparisonMatrix menggunakan ID RFQ yang diklik
-    openComparisonMatrix(selectedRFQ);
+    openComparisonMatrix(selectedRFQ, versi);
 }
 
-// DEFINISIKAN FUNGSI openComparisonMatrix DI SINI
-function openComparisonMatrix(rfqNo) {
-    $('#ComparisonDiv').html('<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-success"></i><p class="mt-2">Memuat Matriks Perbandingan Vendor...</p></div>');
-    $('#ComparisonDiv').load("{{ url('vendor-comparison-matrix') }}?pr_no=" + encodeURIComponent(rfqNo), function(response, status, xhr) {
+function openComparisonMatrix(rfqNo, versi = 1) {
+    $('#ComparisonDiv').html('<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2">Memuat Matriks Perbandingan Vendor...</p></div>');
+    $('#ComparisonDiv').load("{{ url('vendor-comparison-matrix') }}?pr_no=" + encodeURIComponent(rfqNo) + "&v=" + versi, function(response, status, xhr) {
         if (status == "error") {
             $('#ComparisonDiv').html('<div class="alert alert-danger">Gagal memuat matriks perbandingan.</div>');
         } else {

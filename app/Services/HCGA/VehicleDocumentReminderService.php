@@ -326,9 +326,109 @@ class VehicleDocumentReminderService
     }
 
     /**
+     * Susun subject dan body email reminder untuk satu item dokumen kendaraan.
+     */
+    public function buildEmailPayload(array $item): array
+    {
+        $regNo = ($item['registration_no'] ?? '-') !== '-' ? $item['registration_no'] : ($item['asset_no'] ?? '-');
+        $subject = sprintf(
+            '[HCGA Vehicle Reminder] %s - %s (%s)',
+            $item['doc_label'] ?? 'Dokumen',
+            $regNo,
+            $item['label'] ?? '-'
+        );
+
+        $body = implode("\n", [
+            "Yth. Tim HCGA / PIC Kendaraan,",
+            "",
+            "Berikut pengingat masa berlaku dokumen kendaraan:",
+            "- Asset No       : " . ($item['asset_no'] ?? '-'),
+            "- No Polisi      : " . ($item['registration_no'] ?? '-'),
+            "- Kendaraan      : " . ($item['vehicle_name'] ?? '-'),
+            "- Jenis Dokumen  : " . ($item['doc_label'] ?? '-'),
+            "- Jatuh Tempo    : " . ($item['due_date'] ?? '-'),
+            "- Status         : " . ($item['label'] ?? '-'),
+            "- Lokasi / Dept  : " . ($item['location'] ?? '-') . " / " . ($item['department'] ?? '-'),
+            "- PIC            : " . ($item['pic'] ?? '-'),
+            "",
+            "Mohon segera melakukan perpanjangan dan memperbarui data pada menu Vehicle Management.",
+        ]);
+
+        return [
+            'subject' => $subject,
+            'body'    => $body,
+        ];
+    }
+
+    /**
+     * Ambil preview kerangka email reminder berdasarkan data riil pertama (atau contoh dummy jika kosong).
+     */
+    public function previewEmailReminder(): array
+    {
+        $summary = $this->getReminderSummary(500);
+        $items = $summary['items'];
+        $defaultEmails = $this->resolveHcgaEmails();
+
+        $unsentCount = 0;
+        if (!empty($items) && Schema::hasTable('vehicle_document_reminder_log')) {
+            $loggedKeys = DB::table('vehicle_document_reminder_log')
+                ->where('Channel', 'EMAIL')
+                ->select('Asset_No', 'Doc_Type', 'Due_Date', 'Threshold_Days')
+                ->get()
+                ->mapWithKeys(function ($row) {
+                    $key = $row->Asset_No . '|' . $row->Doc_Type . '|' . $row->Due_Date . '|' . $row->Threshold_Days;
+                    return [$key => true];
+                })
+                ->all();
+
+            foreach ($items as $item) {
+                $threshold = $item['threshold'];
+                if ($threshold === null || empty($item['due_date'])) {
+                    continue;
+                }
+                $key = $item['asset_no'] . '|' . $item['doc_type'] . '|' . $item['due_date'] . '|' . $threshold;
+                if (!isset($loggedKeys[$key])) {
+                    $unsentCount++;
+                }
+            }
+        } else {
+            $unsentCount = count($items);
+        }
+
+        $isSample = empty($items);
+        $previewItem = $isSample ? [
+            'asset_no'        => 'AST-VEH-0001 (Contoh)',
+            'registration_no' => 'B 1234 XYZ',
+            'vehicle_name'    => 'Toyota Innova Zenix',
+            'doc_type'        => 'STNK_TAHUNAN',
+            'doc_label'       => 'STNK Tahunan',
+            'due_date'        => Carbon::today()->addDays(14)->toDateString(),
+            'days_remaining'  => 14,
+            'status'          => 'CRITICAL',
+            'label'           => 'H-14 (Kritis)',
+            'location'        => 'GEU-HO',
+            'department'      => 'HCGA',
+            'pic'             => 'PIC Kendaraan',
+        ] : $items[0];
+
+        $recipients = $this->resolveVehicleEmails($isSample ? null : ($previewItem['pic'] ?? null), $defaultEmails);
+        $payload = $this->buildEmailPayload($previewItem);
+
+        return [
+            'is_sample'           => $isSample,
+            'total_pending_items' => count($items),
+            'unsent_count'        => $unsentCount,
+            'recipients'          => $recipients,
+            'subject'             => $payload['subject'],
+            'body'                => $payload['body'],
+            'item'                => $previewItem,
+        ];
+    }
+
+    /**
      * Kirim email reminder untuk dokumen kendaraan yang jatuh tempo (H-60, H-30, H-14, Expired).
      */
-    public function sendEmailReminders(): int
+    public function sendEmailReminders(bool $force = false): int
     {
         if (!Schema::hasTable('vehicle_document_reminder_log')) {
             return 0;
@@ -345,16 +445,18 @@ class VehicleDocumentReminderService
                 continue;
             }
 
-            $alreadySent = DB::table('vehicle_document_reminder_log')
-                ->where('Asset_No', $item['asset_no'])
-                ->where('Doc_Type', $item['doc_type'])
-                ->where('Due_Date', $item['due_date'])
-                ->where('Threshold_Days', $threshold)
-                ->where('Channel', 'EMAIL')
-                ->exists();
+            if (!$force) {
+                $alreadySent = DB::table('vehicle_document_reminder_log')
+                    ->where('Asset_No', $item['asset_no'])
+                    ->where('Doc_Type', $item['doc_type'])
+                    ->where('Due_Date', $item['due_date'])
+                    ->where('Threshold_Days', $threshold)
+                    ->where('Channel', 'EMAIL')
+                    ->exists();
 
-            if ($alreadySent) {
-                continue;
+                if ($alreadySent) {
+                    continue;
+                }
             }
 
             $recipients = $this->resolveVehicleEmails($item['pic'], $defaultEmails);
@@ -362,27 +464,9 @@ class VehicleDocumentReminderService
                 continue;
             }
 
-            $subject = sprintf(
-                '[HCGA Vehicle Reminder] %s - %s (%s)',
-                $item['doc_label'],
-                $item['registration_no'] !== '-' ? $item['registration_no'] : $item['asset_no'],
-                $item['label']
-            );
-            $body = implode("\n", [
-                "Yth. Tim HCGA / PIC Kendaraan,",
-                "",
-                "Berikut pengingat masa berlaku dokumen kendaraan:",
-                "- Asset No       : {$item['asset_no']}",
-                "- No Polisi      : {$item['registration_no']}",
-                "- Kendaraan      : {$item['vehicle_name']}",
-                "- Jenis Dokumen  : {$item['doc_label']}",
-                "- Jatuh Tempo    : {$item['due_date']}",
-                "- Status         : {$item['label']}",
-                "- Lokasi / Dept  : {$item['location']} / {$item['department']}",
-                "- PIC            : {$item['pic']}",
-                "",
-                "Mohon segera melakukan perpanjangan dan memperbarui data pada menu Vehicle Management.",
-            ]);
+            $payload = $this->buildEmailPayload($item);
+            $subject = $payload['subject'];
+            $body = $payload['body'];
 
             try {
                 Mail::raw($body, function ($message) use ($recipients, $subject) {

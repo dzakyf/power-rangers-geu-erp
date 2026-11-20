@@ -1,13 +1,14 @@
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
-<div class="main-content-header mb-3">
-    <h1>Performance Management</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('hrd-performance-pip-index') }}">PIP Plan</a></li>
-        <li class="breadcrumb-item active"><span class="active">Buat PIP Manual</span></li>
-    </ol>
-</div>
+@include('humanresources.performance.partials.page-header', [
+    'title'       => 'Buat Rencana PIP Manual',
+    'parentLabel' => 'PIP Plan',
+    'parentUrl'   => url('hrd-performance-pip-index'),
+    'current'     => 'Buat PIP Manual',
+    'icon'        => 'fa-chart-line',
+    'badgeText'   => 'Performance Improvement',
+])
 
 <div class="card">
     <div class="card-header">

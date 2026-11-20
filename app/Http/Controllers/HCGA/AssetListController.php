@@ -21,7 +21,8 @@ class AssetListController extends Controller
 
     public function index()
     {
-        return view('humanresources.asset-lists.index');
+        $summary = $this->assetService->getAssetSummaryStats();
+        return view('humanresources.asset-lists.index', compact('summary'));
     }
 
     public function data(Request $request)
@@ -102,12 +103,51 @@ class AssetListController extends Controller
 
     public function create()
     {
-        $formData = $this->assetService->getCreateFormData();
-        return view('humanresources.asset-lists.create', $formData);
+        try {
+            $formData = $this->assetService->getCreateFormData();
+            return view('humanresources.asset-lists.create', $formData);
+        } catch (\Throwable $e) {
+            Log::error('AssetListController::create error: ' . $e->getMessage());
+            $msg = htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+            return response(
+                '<div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">'
+                . '<i class="fa fa-exclamation-triangle me-2"></i>'
+                . '<strong>Gagal memuat form tambah asset:</strong> ' . $msg
+                . '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>'
+                . '</div>',
+                500
+            );
+        }
     }
 
     public function store(Request $request)
     {
+        $isPo = $request->input('Incoming_Type') === 'PO';
+        $rules = [
+            'Asset_Category'     => 'required|string|max:100',
+            'Asset_Sub_Category' => 'required|string|max:100',
+        ];
+        if (!$isPo) {
+            $rules['Product_Description'] = 'required|string|max:500';
+        } else {
+            $rules['PO_No'] = 'required|string|max:50';
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), $rules, [
+            'Asset_Category.required'      => 'Asset Category wajib dipilih.',
+            'Asset_Sub_Category.required'  => 'Asset Sub Category wajib dipilih.',
+            'Product_Description.required' => 'Product Description wajib diisi.',
+            'PO_No.required'               => 'Nomor PO wajib dipilih.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $validator->errors()->first(),
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
         try {
             $user = Auth::user();
             $username = $user ? ($user->username ?? 'system') : 'system';

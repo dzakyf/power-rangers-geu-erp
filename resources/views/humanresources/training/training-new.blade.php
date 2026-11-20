@@ -79,8 +79,17 @@
                     <input type="date" name="End_Date" class="form-control" value="{{ date('Y-m-d') }}" required>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Pemateri / Trainer</label>
-                    <input type="text" name="trainer_name" class="form-control" placeholder="Nama Pemateri Internal/Eksternal">
+                    <label class="form-label">Pemateri / Trainer *
+                        <a href="{{ url('hrd-training-trainer-index') }}" target="_blank" class="small ms-1">(Kelola Master)</a>
+                    </label>
+                    <select name="trainer_id" id="new_trainer_id" class="form-control" required>
+                        <option value="">-- Pilih Pemateri dari Master --</option>
+                        @foreach($trainers as $tr)
+                            <option value="{{ $tr->ID }}">
+                                {{ $tr->Trainer_Name }} ({{ $tr->Trainer_Type }} - {{ $tr->Trainer_Company }})
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Lokasi / Link Meeting</label>
@@ -115,7 +124,14 @@
                     <tbody>
                         <tr>
                             <td><input type="text" name="curriculums[0][topic_title]" class="form-control form-control-sm" placeholder="Sesi 1: Pengenalan & Teori"></td>
-                            <td><input type="text" name="curriculums[0][speaker_name]" class="form-control form-control-sm"></td>
+                            <td>
+                                <select name="curriculums[0][speaker_name]" class="form-control form-control-sm">
+                                    <option value="">-- Ikuti Pemateri Utama --</option>
+                                    @foreach($trainers as $tr)
+                                        <option value="{{ $tr->Trainer_Name }}">{{ $tr->Trainer_Name }} ({{ $tr->Trainer_Type }})</option>
+                                    @endforeach
+                                </select>
+                            </td>
                             <td><input type="number" name="curriculums[0][duration_minutes]" class="form-control form-control-sm" value="60"></td>
                             <td><input type="text" name="curriculums[0][learning_method]" class="form-control form-control-sm" value="Presentasi & Diskusi"></td>
                             <td><button type="button" class="btn btn-danger btn-sm" onclick="$(this).closest('tr').remove()">x</button></td>
@@ -179,10 +195,14 @@
 
     function addCurriculumRow() {
         var row = $('#tblCurriculums tbody tr:first').clone();
-        row.find('input').each(function() {
+        row.find('input, select').each(function() {
             var n = $(this).attr('name');
             if (n) $(this).attr('name', n.replace(/\[\d+\]/, '[' + curIdx + ']'));
-            if ($(this).attr('type') === 'text') $(this).val('');
+            if ($(this).is('select')) {
+                $(this).val('');
+            } else if ($(this).attr('type') === 'text') {
+                $(this).val('');
+            }
         });
         $('#tblCurriculums tbody').append(row);
         curIdx++;

@@ -471,6 +471,11 @@ class RecruitmentOnboardingService
                 $existingEmp = DB::table('employment')->where('Task_ID', $recruitment->Task_ID)->first();
             }
 
+            $probationMonths = isset($payload['probation_months']) ? (int) $payload['probation_months'] : 3;
+            $probationEndDate = !empty($payload['probation_end_date'])
+                ? $payload['probation_end_date']
+                : \Carbon\Carbon::parse($startDate)->addMonths(max(1, $probationMonths))->toDateString();
+
             $empData = [
                 'NIK'                    => $nik,
                 'Task_ID'                => $recruitment->Task_ID ?: $nik,
@@ -503,6 +508,7 @@ class RecruitmentOnboardingService
                 'Salary_Accepted'        => $salary,
                 'Start_Date'             => $startDate,
                 'Date_in'                => $startDate,
+                'probation_end_date'     => $probationEndDate,
                 'Employment_Status'      => 'PROBATION',
                 'Employment_Status_Date' => $startDate,
                 'Status'                 => 'ACTIVE',
