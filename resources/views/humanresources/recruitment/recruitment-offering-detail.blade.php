@@ -386,9 +386,32 @@ $defaultTerms = $recruitment->Offering_Terms ?? "Dokumen Offering Letter ini ber
                                     <span class="input-group-text bg-light"><i
                                             class="fa fa-calendar-check text-muted"></i></span>
                                     <input type="date" class="form-control" name="start_date"
-                                        id="offer_start_date" value="{{ $defaultStartDate }}" required>
+                                        id="offer_start_date" value="{{ $defaultStartDate }}" required onchange="recalcProbationEndDate()">
                                 </div>
-                                <div class="form-text fs-11">Tanggal hari pertama bergabung (Onboarding).</div>
+                                <div class="form-text fs-11">Tanggal hari pertama bergabung (Onboarding / Date_in).</div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="offer_probation_months" class="form-label small fw-semibold text-dark">
+                                    Masa Probation (Bulan)
+                                </label>
+                                <select class="form-select form-select-sm" name="probation_months" id="offer_probation_months" onchange="recalcProbationEndDate()">
+                                    <option value="3" selected>3 Bulan</option>
+                                    <option value="6">6 Bulan</option>
+                                    <option value="12">12 Bulan (1 Tahun)</option>
+                                    <option value="0">Custom Tanggal</option>
+                                </select>
+                                <div class="form-text fs-11">Menentukan otomatis tanggal akhir masa probation.</div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="offer_probation_end_date" class="form-label small fw-semibold text-dark">
+                                    Tanggal Berakhir Probation
+                                </label>
+                                <input type="date" class="form-control form-control-sm" name="probation_end_date"
+                                    id="offer_probation_end_date"
+                                    value="{{ \Carbon\Carbon::parse($defaultStartDate)->addMonths(3)->format('Y-m-d') }}">
+                                <div class="form-text fs-11">Notifikasi penilaian otomatis terkirim H-14 sebelum tanggal ini.</div>
                             </div>
 
                             {{-- Baris 3: Komponen Penggajian Rinci Dinamis --}}
@@ -890,6 +913,19 @@ $defaultTerms = $recruitment->Offering_Terms ?? "Dokumen Offering Letter ini ber
             ensureSwalOffering(function() {
                 _prosesDeclineOffering(id);
             });
+        }
+
+        function recalcProbationEndDate() {
+            var startVal = $('#offer_start_date').val();
+            var months = parseInt($('#offer_probation_months').val() || '0', 10);
+            if (!startVal || months <= 0) return;
+            var d = new Date(startVal + 'T00:00:00');
+            if (isNaN(d.getTime())) return;
+            d.setMonth(d.getMonth() + months);
+            var yyyy = d.getFullYear();
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var dd = String(d.getDate()).padStart(2, '0');
+            $('#offer_probation_end_date').val(yyyy + '-' + mm + '-' + dd);
         }
 
         function _prosesIssueOffering() {

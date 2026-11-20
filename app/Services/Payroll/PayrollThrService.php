@@ -2,6 +2,7 @@
 
 namespace App\Services\Payroll;
 
+use App\Services\HCGA\EmployeeThrSchemeService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -138,6 +139,80 @@ class PayrollThrService
     }
 
     /**
+     * Hitung nominal dan eligibilitas THR karyawan berdasarkan skema efektif.
+     *
+     * @param array $components
+     * @param array $tenure
+     * @param string|null $effectiveScheme
+     * @param string $referenceDate
+     * @param string|null $resignDate
+     * @param string|null $empStatus
+     * @return array
+     */
+    protected function resolveEmployeeThrCalculation(
+        array $components,
+        array $tenure,
+        ?string $effectiveScheme,
+        string $referenceDate,
+        ?string $resignDate,
+        ?string $empStatus
+    ): array {
+        $isEligible = $tenure['is_tenure_valid'] ? 1 : 0;
+        $reason = $tenure['ineligible_reason'];
+        $effectiveRatio = $tenure['prorate_ratio'];
+        $baseSalary = $components['upah_tetap'];
+
+        $schemeKey = !empty($effectiveScheme) ? strtoupper(trim($effectiveScheme)) : 'DEFAULT_PERMENAKER';
+
+        if ($schemeKey === 'FULL_UPAH') {
+            $baseSalary = $components['upah_bruto'];
+            $effectiveRatio = $tenure['is_tenure_valid'] ? 1.0 : 0.0;
+        } elseif ($schemeKey === 'PRORATE_UPAH') {
+            $baseSalary = $components['upah_bruto'];
+            $effectiveRatio = $tenure['prorate_ratio'];
+        } elseif ($schemeKey === 'FULL_GAPOK') {
+            $baseSalary = $components['gapok'];
+            $effectiveRatio = $tenure['is_tenure_valid'] ? 1.0 : 0.0;
+        } elseif ($schemeKey === 'PRORATE_GAPOK') {
+            $baseSalary = $components['gapok'];
+            $effectiveRatio = $tenure['prorate_ratio'];
+        } elseif ($schemeKey === 'NO_THR_UNDER_12M') {
+            $baseSalary = $components['upah_bruto'];
+            if ($tenure['tenure_months'] < 12) {
+                $isEligible = 0;
+                $effectiveRatio = 0.0;
+                $reason = 'Kontrak < 12 bulan tidak dapat THR (Sesuai PKWT/MoU)';
+            } else {
+                $effectiveRatio = 1.0;
+            }
+        }
+
+        if ($resignDate && $resignDate < $referenceDate) {
+            $isEligible = 0;
+            $reason = 'Resign/Keluar sebelum tgl acuan (' . $resignDate . ')';
+        } elseif (!empty($empStatus) && strtoupper(trim((string)$empStatus)) !== 'ACTIVE') {
+            $isEligible = 0;
+            $reason = 'Status kepegawaian: ' . $empStatus;
+        }
+
+        if ($baseSalary <= 0 && $isEligible === 1) {
+            $isEligible = 0;
+            $reason = 'Komponen gaji pokok/tetap belum disetup';
+        }
+
+        $calculated = ($isEligible === 1) ? ceil($baseSalary * $effectiveRatio) : 0.0;
+
+        return [
+            'thr_scheme'            => ($schemeKey === 'DEFAULT_PERMENAKER') ? null : $schemeKey,
+            'prorate_ratio'         => $effectiveRatio,
+            'base_salary_amount'    => $baseSalary,
+            'thr_calculated_amount' => $calculated,
+            'is_eligible'           => $isEligible,
+            'ineligible_reason'     => $reason,
+        ];
+    }
+
+    /**
      * Generate atau regenerate draft batch THR untuk periode payslip tertentu.
      *
      * @param array $params
@@ -149,14 +224,23 @@ class PayrollThrService
         $salaryPeriod = trim((string)($params['salary_period'] ?? date('Y-m')));
         $eventName = trim((string)($params['thr_event_name'] ?? 'THR ' . $salaryPeriod));
         $referenceDate = trim((string)($params['reference_date'] ?? date('Y-m-d')));
-        $religionFilter = trim((string)($params['religion_filter'] ?? 'ALL'));
+        $religionFilter = trim((string)($params['religion_filter'] ?? 'ALL')) ?: 'ALL';
         $mainIdFilter = !empty($params['main_id_filter']) ? trim((string)$params['main_id_filter']) : null;
-        $prorateMethod = strtoupper(trim((string)($params['prorate_method'] ?? 'MONTH_FLOOR')));
+        $schemeMode = strtoupper(trim((string)($params['prorate_method'] ?? 'FOLLOW_EMPLOYEE')));
+        $fallbackScheme = strtoupper(trim((string)($params['fallback_thr_scheme'] ?? 'DEFAULT_PERMENAKER')));
         $note = trim((string)($params['note'] ?? ''));
 
-        if (!in_array($prorateMethod, ['MONTH_FLOOR', 'DAY_365'], true)) {
-            $prorateMethod = 'MONTH_FLOOR';
+        $validSchemes = array_merge(['FOLLOW_EMPLOYEE', 'DEFAULT_PERMENAKER', 'MONTH_FLOOR', 'DAY_365'], array_keys(EmployeeThrSchemeService::schemeOptions()));
+        if (!in_array($schemeMode, $validSchemes, true)) {
+            $schemeMode = 'FOLLOW_EMPLOYEE';
         }
+
+        $validFallbacks = array_merge(['DEFAULT_PERMENAKER'], array_keys(EmployeeThrSchemeService::schemeOptions()));
+        if (!in_array($fallbackScheme, $validFallbacks, true)) {
+            $fallbackScheme = 'DEFAULT_PERMENAKER';
+        }
+
+        $prorateCalcMethod = ($schemeMode === 'DAY_365') ? 'DAY_365' : 'MONTH_FLOOR';
 
         $empQuery = DB::table('employment as e')
             ->select(
@@ -194,20 +278,22 @@ class PayrollThrService
             $referenceDate,
             $religionFilter,
             $mainIdFilter,
-            $prorateMethod,
+            $schemeMode,
+            $fallbackScheme,
+            $prorateCalcMethod,
             $note,
             $employees,
             $operator,
             $now
         ) {
-            $batchId = DB::table('payroll_thr_batches')->insertGetId([
+            $batchInsert = [
                 'batch_no'        => $batchNo,
                 'salary_period'   => $salaryPeriod,
                 'thr_event_name'  => $eventName,
                 'reference_date'  => $referenceDate,
                 'religion_filter' => $religionFilter ?: 'ALL',
                 'main_id_filter'  => $mainIdFilter,
-                'prorate_method'  => $prorateMethod,
+                'prorate_method'  => $schemeMode,
                 'status'          => 'DRAFT',
                 'total_employees' => 0,
                 'total_amount'    => 0,
@@ -215,7 +301,13 @@ class PayrollThrService
                 'created_by'      => $operator,
                 'created_at'      => $now,
                 'updated_at'      => $now,
-            ]);
+            ];
+
+            if (Schema::hasColumn('payroll_thr_batches', 'fallback_thr_scheme')) {
+                $batchInsert['fallback_thr_scheme'] = ($schemeMode === 'FOLLOW_EMPLOYEE') ? $fallbackScheme : null;
+            }
+
+            $batchId = DB::table('payroll_thr_batches')->insertGetId($batchInsert);
 
             $eligibleCount = 0;
             $totalAmount = 0.0;
@@ -226,36 +318,16 @@ class PayrollThrService
                     continue;
                 }
 
-                $tenure = $this->calculateTenureAndProrate($emp->Date_in, $referenceDate, $prorateMethod);
+                $tenure = $this->calculateTenureAndProrate($emp->Date_in, $referenceDate, $prorateCalcMethod);
                 $components = $this->getEmployeeSalaryComponents($nik, $emp->Salary_Group);
-                $thrScheme = !empty($emp->thr_scheme) ? strtoupper(trim((string)$emp->thr_scheme)) : null;
+                $empScheme = !empty($emp->thr_scheme) ? strtoupper(trim((string)$emp->thr_scheme)) : null;
 
-                $isEligible = $tenure['is_tenure_valid'] ? 1 : 0;
-                $reason = $tenure['ineligible_reason'];
-                $effectiveRatio = $tenure['prorate_ratio'];
-                $baseSalary = $components['upah_tetap'];
-
-                if ($thrScheme === 'FULL_UPAH') {
-                    $baseSalary = $components['upah_bruto'];
-                    $effectiveRatio = $tenure['is_tenure_valid'] ? 1.0 : 0.0;
-                } elseif ($thrScheme === 'PRORATE_UPAH') {
-                    $baseSalary = $components['upah_bruto'];
-                    $effectiveRatio = $tenure['prorate_ratio'];
-                } elseif ($thrScheme === 'FULL_GAPOK') {
-                    $baseSalary = $components['gapok'];
-                    $effectiveRatio = $tenure['is_tenure_valid'] ? 1.0 : 0.0;
-                } elseif ($thrScheme === 'PRORATE_GAPOK') {
-                    $baseSalary = $components['gapok'];
-                    $effectiveRatio = $tenure['prorate_ratio'];
-                } elseif ($thrScheme === 'NO_THR_UNDER_12M') {
-                    $baseSalary = $components['upah_bruto'];
-                    if ($tenure['tenure_months'] < 12) {
-                        $isEligible = 0;
-                        $effectiveRatio = 0.0;
-                        $reason = 'Kontrak < 12 bulan tidak dapat THR (Sesuai PKWT/MoU)';
-                    } else {
-                        $effectiveRatio = 1.0;
-                    }
+                if ($schemeMode === 'FOLLOW_EMPLOYEE' || $schemeMode === 'MONTH_FLOOR' || $schemeMode === 'DAY_365') {
+                    $effectiveScheme = $empScheme ?: (($fallbackScheme === 'DEFAULT_PERMENAKER') ? null : $fallbackScheme);
+                } elseif ($schemeMode === 'DEFAULT_PERMENAKER') {
+                    $effectiveScheme = null;
+                } else {
+                    $effectiveScheme = $schemeMode;
                 }
 
                 // Cek status resign / keluar sebelum tanggal acuan -> flag default 0 agar bisa ditinjau HCGA
@@ -266,23 +338,18 @@ class PayrollThrService
                     $resignDate = $emp->Date_Out;
                 }
 
-                if ($resignDate && $resignDate < $referenceDate) {
-                    $isEligible = 0;
-                    $reason = 'Resign/Keluar sebelum tgl acuan (' . $resignDate . ')';
-                } elseif (!empty($emp->Status) && strtoupper(trim((string)$emp->Status)) !== 'ACTIVE') {
-                    $isEligible = 0;
-                    $reason = 'Status kepegawaian: ' . $emp->Status;
-                }
+                $calc = $this->resolveEmployeeThrCalculation(
+                    $components,
+                    $tenure,
+                    $effectiveScheme,
+                    $referenceDate,
+                    $resignDate,
+                    $emp->Status
+                );
 
-                if ($baseSalary <= 0 && $isEligible === 1) {
-                    $isEligible = 0;
-                    $reason = 'Komponen gaji pokok/tetap belum disetup';
-                }
+                $finalAmount = ($calc['is_eligible'] === 1) ? $calc['thr_calculated_amount'] : 0.0;
 
-                $calculated = ($isEligible === 1) ? ceil($baseSalary * $effectiveRatio) : 0.0;
-                $finalAmount = ($isEligible === 1) ? $calculated : 0.0;
-
-                if ($isEligible === 1) {
+                if ($calc['is_eligible'] === 1) {
                     $eligibleCount++;
                     $totalAmount += $finalAmount;
                 }
@@ -298,14 +365,14 @@ class PayrollThrService
                     'resigned_date'         => $resignDate,
                     'tenure_months'         => $tenure['tenure_months'],
                     'tenure_days'           => $tenure['tenure_days'],
-                    'prorate_ratio'         => $effectiveRatio,
-                    'thr_scheme'            => $thrScheme,
-                    'base_salary_amount'    => $baseSalary,
-                    'thr_calculated_amount' => $calculated,
+                    'prorate_ratio'         => $calc['prorate_ratio'],
+                    'thr_scheme'            => $calc['thr_scheme'],
+                    'base_salary_amount'    => $calc['base_salary_amount'],
+                    'thr_calculated_amount' => $calc['thr_calculated_amount'],
                     'thr_adjustment_amount' => 0,
                     'thr_final_amount'      => $finalAmount,
-                    'is_eligible'           => $isEligible,
-                    'ineligible_reason'     => $reason,
+                    'is_eligible'           => $calc['is_eligible'],
+                    'ineligible_reason'     => $calc['ineligible_reason'],
                     'is_payroll_processed'  => 0,
                     'salary_period'         => $salaryPeriod,
                     'created_at'            => $now,
@@ -349,33 +416,76 @@ class PayrollThrService
             throw new \RuntimeException('Hanya batch berstatus DRAFT yang dapat diubah.');
         }
 
-        $isEligible = isset($data['is_eligible']) ? (int)$data['is_eligible'] : (int)$item->is_eligible;
         $adjustment = isset($data['thr_adjustment_amount']) ? (float)$data['thr_adjustment_amount'] : (float)$item->thr_adjustment_amount;
         $note = array_key_exists('note', $data) ? trim((string)$data['note']) : $item->note;
 
+        $updatePayload = [
+            'thr_adjustment_amount' => $adjustment,
+            'note'                  => $note,
+        ];
+
+        if (array_key_exists('thr_scheme', $data)) {
+            $rawScheme = strtoupper(trim((string)($data['thr_scheme'] ?? '')));
+            if ($rawScheme !== '' && $rawScheme !== 'DEFAULT_PERMENAKER' && !array_key_exists($rawScheme, EmployeeThrSchemeService::schemeOptions())) {
+                throw new \InvalidArgumentException('Skema THR tidak valid.');
+            }
+
+            $emp = DB::table('employment')->where('NIK', $item->nik)->first();
+            $prorateCalcMethod = ($batch->prorate_method === 'DAY_365') ? 'DAY_365' : 'MONTH_FLOOR';
+            $dateIn = $item->date_in ?: ($emp->Date_in ?? null);
+            $tenure = $this->calculateTenureAndProrate($dateIn, $batch->reference_date, $prorateCalcMethod);
+            $components = $this->getEmployeeSalaryComponents($item->nik, $item->main_id ?: ($emp->Salary_Group ?? null));
+
+            $calc = $this->resolveEmployeeThrCalculation(
+                $components,
+                $tenure,
+                ($rawScheme === '' || $rawScheme === 'DEFAULT_PERMENAKER') ? null : $rawScheme,
+                $batch->reference_date,
+                $item->resigned_date,
+                $emp ? $emp->Status : 'ACTIVE'
+            );
+
+            $isEligible = isset($data['is_eligible']) ? (int)$data['is_eligible'] : $calc['is_eligible'];
+            $calculatedAmount = $calc['thr_calculated_amount'];
+            $baseSalaryAmount = $calc['base_salary_amount'];
+            $prorateRatio = $calc['prorate_ratio'];
+
+            $updatePayload['thr_scheme'] = $calc['thr_scheme'];
+            $updatePayload['prorate_ratio'] = $prorateRatio;
+            $updatePayload['base_salary_amount'] = $baseSalaryAmount;
+            $updatePayload['thr_calculated_amount'] = $calculatedAmount;
+            $updatePayload['ineligible_reason'] = $calc['ineligible_reason'];
+        } else {
+            $isEligible = isset($data['is_eligible']) ? (int)$data['is_eligible'] : (int)$item->is_eligible;
+            $calculatedAmount = (float)$item->thr_calculated_amount;
+            $baseSalaryAmount = (float)$item->base_salary_amount;
+            $prorateRatio = (float)$item->prorate_ratio;
+        }
+
         $finalAmount = ($isEligible === 1)
-            ? max(0.0, (float)$item->thr_calculated_amount + $adjustment)
+            ? max(0.0, $calculatedAmount + $adjustment)
             : 0.0;
 
+        $updatePayload['is_eligible'] = $isEligible;
+        $updatePayload['thr_final_amount'] = $finalAmount;
         $now = Carbon::now()->toDateTimeString();
+        $updatePayload['updated_at'] = $now;
 
-        return DB::transaction(function () use ($itemId, $item, $isEligible, $adjustment, $finalAmount, $note, $now) {
+        return DB::transaction(function () use ($itemId, $item, $updatePayload, $isEligible, $baseSalaryAmount, $prorateRatio, $calculatedAmount, $finalAmount) {
             DB::table('payroll_thr_items')
                 ->where('id', $itemId)
-                ->update([
-                    'is_eligible'           => $isEligible,
-                    'thr_adjustment_amount' => $adjustment,
-                    'thr_final_amount'      => $finalAmount,
-                    'note'                  => $note,
-                    'updated_at'            => $now,
-                ]);
+                ->update($updatePayload);
 
             $summary = $this->recalculateBatchTotals($item->batch_id);
 
             return array_merge([
-                'item_id'          => $itemId,
-                'is_eligible'      => $isEligible,
-                'thr_final_amount' => $finalAmount,
+                'item_id'               => $itemId,
+                'is_eligible'           => $isEligible,
+                'prorate_ratio'         => $prorateRatio,
+                'base_salary_amount'    => $baseSalaryAmount,
+                'thr_calculated_amount' => $calculatedAmount,
+                'thr_final_amount'      => $finalAmount,
+                'ineligible_reason'     => $updatePayload['ineligible_reason'] ?? $item->ineligible_reason,
             ], $summary);
         });
     }

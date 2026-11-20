@@ -842,7 +842,18 @@ class ProcurementController extends Controller
             $rfqDetails[$detail->Supplier_ID][$detail->Product_Code] = $detail;
         }
 
-        return view('humanresources.procurement.vendor-comparison-matrix', compact('prHeader', 'rfqVendors', 'prItems', 'rfqDetails'));
+        // return view('humanresources.procurement.vendor-comparison-matrix', compact('prHeader', 'rfqVendors', 'prItems', 'rfqDetails'));
+
+        $versi = $request->query('v');
+        if ($versi == '3') {
+            $viewName = 'humanresources.procurement.vendor-comparison-matrix3';
+        } elseif ($versi == '2') {
+            $viewName = 'humanresources.procurement.vendor-comparison-matrix2';
+        } else {
+            $viewName = 'humanresources.procurement.vendor-comparison-matrix';
+        }
+
+        return view($viewName, compact('prHeader', 'rfqVendors', 'prItems', 'rfqDetails'));
     }
 
     // Cetak Dokumen RFQ Resmi untuk Dikirim ke Vendor
@@ -1114,7 +1125,7 @@ class ProcurementController extends Controller
                 'po.Status_Receive',
                 'po.User_Trx'
             )
-            ->whereIn('po.Status', ['OPEN', 'PARTIAL', 'APPROVED'])
+            ->whereIn('po.Status', ['OPEN', 'APPROVED', 'DELIVERY', 'PARTIAL'])
             ->orderBy('po.ID', 'desc')
             ->get();
 
@@ -1238,6 +1249,424 @@ class ProcurementController extends Controller
             ->header('Content-Disposition', 'inline; filename="' . $safeFilename . '"');
     }
 
+    // Generate Split PO (1 PR menjadi Banyak PO berdasarkan item yang diceklis per vendor)
+    public function generateSplitPO(Request $request)
+    {
+        $prNo         = $request->input('pr_no');
+        $rfqNo        = $request->input('rfq_no');
+        $supplierId   = $request->input('supplier_id');
+        $productCodes = $request->input('product_codes', []); // Array Product_Code yang dicentang
 
+        if (empty($productCodes) || !is_array($productCodes)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Silakan centang minimal 1 item produk untuk vendor ini!'
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $pr = DB::table('purchase_request')->where('PR_No', $prNo)->first();
+            $rfqQuery = DB::table('rfq')->where('PR_No', $prNo)->where('Supplier_ID', $supplierId);
+            if (!empty($rfqNo)) {
+                $rfqQuery->where('RFQ_No', $rfqNo);
+            }
+            $rfq = $rfqQuery->first();
+
+            if (!$pr || !$rfq) {
+                return response()->json(['status' => 'error', 'message' => 'Data PR atau RFQ Vendor tidak ditemukan.'], 404);
+            }
+
+            // Cek apakah ada item yang dicentang ternyata sudah dibuatkan PO AKTIF (abaikan PO yang CANCELLED)
+            $alreadyOrdered = DB::table('purchase_order_dtl as pod')
+                ->join('purchase_order as po', 'pod.PO_No', '=', 'po.PO_No')
+                ->where('pod.PR_No', $prNo)
+                ->where('po.Status', '!=', 'CANCELLED')
+                ->whereIn('pod.Product_Code', $productCodes)
+                ->pluck('pod.Product_Code')
+                ->toArray();
+
+            if (!empty($alreadyOrdered)) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Item berikut sudah pernah diterbitkan PO aktifnya: ' . implode(', ', $alreadyOrdered)
+                ], 400);
+            }
+
+            $supplier = DB::table('supplier')->where('Supplier_ID', $supplierId)->first();
+
+            // Ambil detail penawaran hanya untuk item yang dicentang
+            $selectedItems = DB::table('rfq_dtl')
+                ->where('RFQ_No', $rfq->RFQ_No)
+                ->whereIn('Product_Code', $productCodes)
+                ->get();
+
+            if ($selectedItems->isEmpty()) {
+                return response()->json(['status' => 'error', 'message' => 'Rincian harga item tidak ditemukan.'], 404);
+            }
+
+            // Hitung Subtotal, PPN, dan Grand Total khusus item yang dicentang
+            $subtotal = 0;
+            foreach ($selectedItems as $item) {
+                $unitPrice = $item->Quoted_Price ?? $item->Price ?? 0;
+                $lineTotal = ($item->Total_Price > 0) ? $item->Total_Price : ($item->Qty * $unitPrice);
+                $subtotal += $lineTotal;
+            }
+
+            $taxPercent  = floatval($rfq->Tax_Percent ?? 11);
+            $ppnAmount   = $subtotal * ($taxPercent / 100);
+            // Ongkir diambil penuh hanya jika belum pernah dibebankan pada PO vendor ini di PR yang sama
+            $hasPreviousPoSameVendor = DB::table('purchase_order')
+                ->where('PR_No', $prNo)
+                ->where('Supplier', $supplierId)
+                ->exists();
+            $deliveryFee = $hasPreviousPoSameVendor ? 0 : floatval($rfq->Shipping_Cost ?? 0);
+            $grandTotal  = $subtotal + $ppnAmount + $deliveryFee;
+
+            // Generate Nomor PO Otomatis (Format: PO/GEU/YYYYMM-XXXX)
+            $prefix = 'PO/GEU/' . date('Ym') . '-';
+            $lastPo = DB::table('purchase_order')
+                ->where('PO_No', 'like', $prefix . '%')
+                ->orderBy('ID', 'desc')
+                ->first();
+            $nextNum = $lastPo ? ((int) substr($lastPo->PO_No, -4)) + 1 : 1;
+            $poNo    = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+
+            $username = session('username') ?? (auth()->user()->Username ?? auth()->user()->name ?? 'admin');
+
+            $remarkInfo = 'Split PO | Ref RFQ: ' . $rfq->RFQ_No;
+            if (!empty($rfq->Quotation_No)) {
+                $remarkInfo .= ' | Ref QTN: ' . $rfq->Quotation_No;
+            }
+
+            // 1. Insert Header PO
+            DB::table('purchase_order')->insert([
+                'Location'              => $pr->Location ?? 'HO',
+                'Process_By'            => $username,
+                'Purchase_Type'         => $pr->Purchase_Type ?? null,
+                'Purchase_Category'     => $pr->Category ?? null,
+                'Purchase_Sub_Category' => $pr->Sub_Category ?? null,
+                'PR_No'                 => $pr->PR_No,
+                'PO_No'                 => $poNo,
+                'PO_Date'               => date('Y-m-d'),
+                'PO_Dest'               => $pr->Location ?? null,
+                'Department'            => $pr->Department,
+                'PIC_Address'           => $pr->PIC_Address ?? null,
+                'PIC_Phone'             => $pr->PIC_Phone ?? null,
+                'PIC'                   => $pr->PIC ?? null,
+                'Supplier'              => $supplierId,
+                'Supplier_PIC'          => $supplier->Contact_Person ?? null,
+                'Term_Payment'          => $rfq->Payment_Terms ?? 'NET 30',
+                'Pay_Term'              => $rfq->Payment_Terms ?? 'NET 30',
+                'Subtotal'              => $subtotal,
+                'Discount'              => 0,
+                'PPN'                   => $ppnAmount,
+                'PPH'                   => 0,
+                'Delivery_Fee'          => $deliveryFee,
+                'Total'                 => $grandTotal,
+                'Total_Paid'            => 0,
+                'Status'                => 'OPEN',
+                'Status_Receive'        => 'OPEN',
+                'Currency'              => 'IDR',
+                'Remark'                => $remarkInfo,
+                'Date_Trx'              => now(),
+                'User_Trx'              => $username,
+            ]);
+
+            // 2. Insert Detail PO khusus item yang dicentang
+            foreach ($selectedItems as $item) {
+                $unitPrice = $item->Quoted_Price ?? $item->Price ?? 0;
+                $lineTotal = ($item->Total_Price > 0) ? $item->Total_Price : ($item->Qty * $unitPrice);
+
+                DB::table('purchase_order_dtl')->insert([
+                    'Location'      => $pr->Location ?? 'HO',
+                    'PR_No'         => $pr->PR_No,
+                    'PO_No'         => $poNo,
+                    'Category'      => $pr->Category ?? null,
+                    'Sub_Category'  => $pr->Sub_Category ?? null,
+                    'Purchase_Type' => $pr->Purchase_Type ?? null,
+                    'Product_Code'  => $item->Product_Code,
+                    'Product_Desc'  => $item->Product_Desc,
+                    'Specification' => $item->Specification ?? null,
+                    'Qty'           => $item->Qty,
+                    'Unit'          => $item->Unit,
+                    'Price'         => $unitPrice,
+                    'Discount'      => 0,
+                    'Subtotal'      => $lineTotal,
+                    'PPN'           => 0,
+                    'PPN_pct'       => 0,
+                    'Total'         => $lineTotal,
+                    'Qty_Receive'   => 0,
+                    'Qty_Remain'    => $item->Qty,
+                    'Currency'      => 'IDR',
+                ]);
+            }
+
+            // 3. Tandai RFQ vendor ini sebagai AWARDED (Pemenang parsial/penuh)
+            DB::table('rfq')->where('RFQ_No', $rfq->RFQ_No)->update(['Status' => 'AWARDED']);
+
+            // 4. Cek apakah masih ada sisa item PR yang belum dibuatkan PO
+            $totalPrItems = DB::table('purchase_request_dtl')->where('PR_No', $prNo)->count();
+            $totalOrderedItems = DB::table('purchase_order_dtl')->where('PR_No', $prNo)->distinct('Product_Code')->count('Product_Code');
+
+            $newPrStatus = ($totalOrderedItems >= $totalPrItems) ? 'PO_CREATED' : 'PARTIAL_PO';
+            DB::table('purchase_request')->where('PR_No', $prNo)->update(['Status' => $newPrStatus]);
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => "Split PO {$poNo} berhasil diterbitkan untuk {$supplier->Company_Name} (" . count($productCodes) . " item)!",
+                'po_no'   => $poNo
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal membuat Split PO: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    // Cancel / Batalkan PO dan kembalikan item agar bisa dipilih ulang di Matrix v3
+    public function cancelPO(Request $request)
+    {
+        $poNo   = $request->input('po_no');
+        $reason = trim($request->input('cancel_reason', 'Dibatalkan oleh user'));
+
+        DB::beginTransaction();
+        try {
+            $po = DB::table('purchase_order')->where('PO_No', $poNo)->first();
+            if (!$po) {
+                return response()->json(['status' => 'error', 'message' => 'Data PO tidak ditemukan.'], 404);
+            }
+
+            if (strtoupper($po->Status) === 'CANCELLED') {
+                return response()->json(['status' => 'error', 'message' => 'PO ini sudah berstatus CANCELLED.'], 400);
+            }
+
+            // 1. Cek apakah sudah ada barang yang diterima (Goods Received)
+            $hasReceived = DB::table('purchase_order_dtl')
+                ->where('PO_No', $poNo)
+                ->where('Qty_Receive', '>', 0)
+                ->exists();
+
+            if ($hasReceived) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'PO tidak dapat dibatalkan karena sudah ada proses penerimaan barang (Goods Received)!'
+                ], 400);
+            }
+
+            $username = session('username') ?? (auth()->user()->Username ?? auth()->user()->name ?? 'admin');
+            $cancelNote = " [CANCELLED by {$username} (" . date('d-m-Y H:i') . "): {$reason}]";
+
+            // 2. Ubah status PO menjadi CANCELLED (riwayat nomor PO tetap tersimpan untuk audit)
+            DB::table('purchase_order')->where('PO_No', $poNo)->update([
+                'Status'         => 'CANCELLED',
+                'Status_Receive' => 'CANCELLED',
+                'Remark'         => ($po->Remark ?? '') . $cancelNote,
+            ]);
+
+            // 3. Cek sisa PO aktif (selain CANCELLED) untuk PR dan Supplier yang sama
+            $prNo = $po->PR_No;
+            $hasOtherActivePoSameVendor = DB::table('purchase_order')
+                ->where('PR_No', $prNo)
+                ->where('Supplier', $po->Supplier)
+                ->where('Status', '!=', 'CANCELLED')
+                ->exists();
+
+            // Jika vendor ini tidak punya PO aktif lain pada PR ini, kembalikan status RFQ-nya ke RESPONDED
+            if (!$hasOtherActivePoSameVendor) {
+                DB::table('rfq')
+                    ->where('PR_No', $prNo)
+                    ->where('Supplier_ID', $po->Supplier)
+                    ->update(['Status' => 'RESPONDED']);
+            }
+
+            // 4. Hitung ulang sisa item yang masih terikat PO aktif untuk memperbarui status PR
+            $totalPrItems = DB::table('purchase_request_dtl')->where('PR_No', $prNo)->count();
+            $activeOrderedItems = DB::table('purchase_order_dtl as pod')
+                ->join('purchase_order as po', 'pod.PO_No', '=', 'po.PO_No')
+                ->where('pod.PR_No', $prNo)
+                ->where('po.Status', '!=', 'CANCELLED')
+                ->distinct('pod.Product_Code')
+                ->count('pod.Product_Code');
+
+            if ($activeOrderedItems === 0) {
+                $newPrStatus = 'APPROVED';
+            } elseif ($activeOrderedItems < $totalPrItems) {
+                $newPrStatus = 'PARTIAL_PO';
+            } else {
+                $newPrStatus = 'PO_CREATED';
+            }
+
+            DB::table('purchase_request')->where('PR_No', $prNo)->update(['Status' => $newPrStatus]);
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => "PO {$poNo} berhasil dibatalkan! Item-item tersebut kini dapat dipilih ulang di Matrix."
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal membatalkan PO: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    // 1. Proses APPROVED PO
+    public function approvePO(Request $request)
+    {
+        $poNo = $request->input('po_no');
+        $note = trim($request->input('note', ''));
+        $username = session('username') ?? (auth()->user()->Username ?? auth()->user()->name ?? 'admin');
+
+        $po = DB::table('purchase_order')->where('PO_No', $poNo)->first();
+        if (!$po) {
+            return response()->json(['status' => 'error', 'message' => 'Data PO tidak ditemukan.'], 404);
+        }
+
+        $remark = $po->Remark ?? '';
+        if (!empty($note)) {
+            $remark .= " | Approved by {$username}: {$note}";
+        }
+
+        DB::table('purchase_order')->where('PO_No', $poNo)->update([
+            'Status'   => 'APPROVED',
+            'Remark'   => $remark,
+            'User_Trx' => $username,
+            'Date_Trx' => now(),
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "Purchase Order {$poNo} berhasil di-APPROVED!"
+        ]);
+    }
+
+    // 2. Proses DELIVERY PO (Barang dalam pengiriman vendor)
+    public function deliveryPO(Request $request)
+    {
+        $poNo     = $request->input('po_no');
+        $suratJln = trim($request->input('delivery_note', ''));
+        $username = session('username') ?? (auth()->user()->Username ?? auth()->user()->name ?? 'admin');
+
+        $po = DB::table('purchase_order')->where('PO_No', $poNo)->first();
+        if (!$po) {
+            return response()->json(['status' => 'error', 'message' => 'Data PO tidak ditemukan.'], 404);
+        }
+
+        $remark = $po->Remark ?? '';
+        $infoSj = !empty($suratJln) ? " (No. SJ/Resi: {$suratJln})" : '';
+        $remark .= " | Delivery by {$username} (" . date('d-m-Y') . "){$infoSj}";
+
+        DB::table('purchase_order')->where('PO_No', $poNo)->update([
+            'Status'         => 'DELIVERY',
+            'Status_Receive' => 'ON_DELIVERY',
+            'Remark'         => $remark,
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "Status {$poNo} berhasil diubah menjadi DELIVERY!"
+        ]);
+    }
+
+    // 3. Proses RECEIVED PO (Penerimaan Barang Parsial / Penuh)
+    public function receivePO(Request $request)
+    {
+        $poNo       = $request->input('po_no');
+        $receiveQty = $request->input('receive_qty', []); // [dtl_id => qty_masuk]
+        $sjNo       = trim($request->input('surat_jalan', ''));
+        $username   = session('username') ?? (auth()->user()->Username ?? auth()->user()->name ?? 'admin');
+
+        DB::beginTransaction();
+        try {
+            $po = DB::table('purchase_order')->where('PO_No', $poNo)->first();
+            if (!$po) {
+                return response()->json(['status' => 'error', 'message' => 'Data PO tidak ditemukan.'], 404);
+            }
+
+            $totalReceivedThisTime = 0;
+
+            foreach ($receiveQty as $dtlId => $qtyIn) {
+                $qtyIn = floatval($qtyIn);
+                if ($qtyIn <= 0) continue;
+
+                $item = DB::table('purchase_order_dtl')->where('ID', $dtlId)->where('PO_No', $poNo)->first();
+                if (!$item) continue;
+
+                $currentReceive = floatval($item->Qty_Receive ?? 0);
+                $orderQty       = floatval($item->Qty ?? 0);
+                $maxAllowed     = max(0, $orderQty - $currentReceive);
+
+                if ($qtyIn > $maxAllowed) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => "Qty terima untuk {$item->Product_Desc} melebihi sisa order ({$maxAllowed})!"
+                    ], 422);
+                }
+
+                $newReceive = $currentReceive + $qtyIn;
+                $newRemain  = max(0, $orderQty - $newReceive);
+
+                DB::table('purchase_order_dtl')->where('ID', $dtlId)->update([
+                    'Qty_Receive' => $newReceive,
+                    'Qty_Remain'  => $newRemain,
+                ]);
+
+                $totalReceivedThisTime += $qtyIn;
+            }
+
+            if ($totalReceivedThisTime <= 0) {
+                DB::rollBack();
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Masukkan minimal 1 item dengan Qty Diterima lebih dari 0!'
+                ], 422);
+            }
+
+            // Cek total sisa seluruh item di PO ini
+            $remainingTotal = DB::table('purchase_order_dtl')
+                ->where('PO_No', $poNo)
+                ->sum('Qty_Remain');
+
+            $newStatus        = ($remainingTotal <= 0) ? 'RECEIVED' : 'PARTIAL';
+            $newStatusReceive = ($remainingTotal <= 0) ? 'RECEIVED' : 'PARTIAL';
+
+            $remark = $po->Remark ?? '';
+            $sjInfo = !empty($sjNo) ? " [SJ: {$sjNo}]" : '';
+            $remark .= " | Received ({$newStatus}) by {$username} (" . date('d-m-Y H:i') . "){$sjInfo}";
+
+            DB::table('purchase_order')->where('PO_No', $poNo)->update([
+                'Status'         => $newStatus,
+                'Status_Receive' => $newStatusReceive,
+                'Remark'         => $remark,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => ($remainingTotal <= 0)
+                    ? "Seluruh barang untuk {$poNo} telah diterima (STATUS: RECEIVED)!"
+                    : "Penerimaan parsial untuk {$poNo} berhasil disimpan (STATUS: PARTIAL)!",
+                'po_status' => $newStatus
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal memproses penerimaan barang: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
 }

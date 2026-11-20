@@ -2,13 +2,14 @@
 
 @section('content-wrapper')
 @csrf
-<div class="main-content-header mb-3">
-    <h1>Performance Management</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('hrd-performance-review-index') }}">Performance Review</a></li>
-        <li class="breadcrumb-item active"><span class="active">Lembar Appraisal {{ $review->review_no }}</span></li>
-    </ol>
-</div>
+@include('humanresources.performance.partials.page-header', [
+    'title'       => 'Lembar Appraisal & Evaluasi',
+    'parentLabel' => 'Performance Review',
+    'parentUrl'   => url('hrd-performance-review-index'),
+    'current'     => $review->review_no,
+    'icon'        => 'fa-clipboard-check',
+    'badgeText'   => 'Appraisal Sheet',
+])
 
 <!-- Header Info Karyawan -->
 <div class="card mb-3">
@@ -57,6 +58,9 @@
                             <i class="feather-check-circle me-1"></i> Finalisasi / Kalibrasi
                         </button>
                     @endif
+                    <a href="{{ url('hrd-performance-review-pdf', $review->id) }}" target="_blank" class="btn btn-outline-danger me-1">
+                        <i class="feather-printer me-1"></i> Cetak PDF (FR/HCGA/14-00)
+                    </a>
                     <a href="{{ url('hrd-performance-review-index') }}" class="btn btn-secondary">
                         <i class="feather-arrow-left me-1"></i> Kembali
                     </a>
@@ -81,6 +85,9 @@
                         : ($review->goal ? $review->goal->items : collect());
                 @endphp
                 @if($kpiRows->count() > 0)
+                    @php
+                        $totalRawWeight = (float) $kpiRows->where('item_type', 'KPI')->sum('weight_percent');
+                    @endphp
                     <div class="table-responsive">
                         <table class="table table-bordered table-sm align-middle">
                             <thead class="table-light">
@@ -88,7 +95,7 @@
                                     <th>Indikator Sasaran</th>
                                     <th class="text-end" style="width: 80px;">Target</th>
                                     <th class="text-end" style="width: 80px;">Realisasi</th>
-                                    <th class="text-end" style="width: 70px;">Bobot</th>
+                                    <th class="text-end" style="width: 110px;">Bobot (Efektif)</th>
                                     <th class="text-end" style="width: 80px;">Capaian</th>
                                     @if(!empty($canEditKpiRealization))
                                         <th class="text-center" style="width: 90px;">Aksi</th>
@@ -97,15 +104,34 @@
                             </thead>
                             <tbody>
                                 @foreach($kpiRows as $it)
-                                    @php $goalItemId = $it->goal_item_id ?? $it->id; @endphp
+                                    @php
+                                        $goalItemId = $it->goal_item_id ?? $it->id;
+                                        $effWeight = ($totalRawWeight > 0 && $it->weight_percent > 0)
+                                            ? round(($it->weight_percent / $totalRawWeight) * 100, 1)
+                                            : 0;
+                                    @endphp
                                     <tr>
                                         <td>
                                             <span class="badge bg-secondary me-1">{{ $it->item_type }}</span>
+                                            @if(!empty($it->source_scope))
+                                                <span class="badge bg-{{ strpos($it->source_scope, 'ADDON') !== false ? 'info text-dark' : (strpos($it->source_scope, 'PROBATION') !== false ? 'warning text-dark' : 'light text-dark border') }} me-1">
+                                                    {{ str_replace('_', ' ', $it->source_scope) }}
+                                                </span>
+                                            @endif
                                             <strong>{{ $it->title }}</strong>
                                         </td>
                                         <td class="text-end">{{ number_format($it->target_value, 1) }} {{ $it->kpi_unit }}</td>
                                         <td class="text-end font-weight-bold text-success">{{ number_format($it->actual_value, 1) }}</td>
-                                        <td class="text-end">{{ $it->weight_percent > 0 ? number_format($it->weight_percent, 1) . '%' : '-' }}</td>
+                                        <td class="text-end">
+                                            @if($it->weight_percent > 0)
+                                                <div>{{ number_format($it->weight_percent, 1) }}%</div>
+                                                @if(abs($totalRawWeight - 100) > 0.01)
+                                                    <small class="text-primary fw-bold">(Efektif: {{ number_format($effWeight, 1) }}%)</small>
+                                                @endif
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
                                         <td class="text-end font-weight-bold">{{ number_format($it->progress_percent, 1) }}%</td>
                                         @if(!empty($canEditKpiRealization))
                                             <td class="text-center">
@@ -117,6 +143,15 @@
                                     </tr>
                                 @endforeach
                             </tbody>
+                            @if($totalRawWeight > 0 && abs($totalRawWeight - 100) > 0.01)
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="3" class="text-end small fw-bold">Normalisasi Bobot Gabungan (Posisi + Tambahan)</td>
+                                        <td class="text-end small fw-bold text-primary">Total Efektif: 100.0%</td>
+                                        <td colspan="{{ !empty($canEditKpiRealization) ? 2 : 1 }}"></td>
+                                    </tr>
+                                </tfoot>
+                            @endif
                         </table>
                     </div>
                 @else
@@ -186,6 +221,19 @@
                         <span class="h6 mb-0 font-weight-bold">Predikat / Rating Grade</span>
                         <span class="badge bg-{{ $review->rating_grade === 'D' ? 'danger' : 'success' }} fs-6">{{ $review->rating_grade ?? '-' }}</span>
                     </li>
+                    @if($review->cycle && $review->cycle->review_type === 'PROBATION')
+                        @php
+                            $recText = 'Belum ditentukan';
+                            $recColor = 'secondary';
+                            if ($review->recommendation === 'NOT_RECOMMENDED') { $recText = 'Tidak Disarankan (0-50)'; $recColor = 'danger'; }
+                            elseif ($review->recommendation === 'EXTEND_CONTRACT') { $recText = 'Kontrak / Perpanjang (>50-75)'; $recColor = 'warning text-dark'; }
+                            elseif ($review->recommendation === 'PROMOTE_PERMANENT') { $recText = 'Promosi Karyawan Tetap (>75-100)'; $recColor = 'success'; }
+                        @endphp
+                        <li class="list-group-item bg-light">
+                            <div class="small fw-bold text-muted">Kesimpulan Probation</div>
+                            <span class="badge bg-{{ $recColor }} mt-1">{{ $recText }}</span>
+                        </li>
+                    @endif
                 </ul>
 
                 @php
@@ -224,38 +272,71 @@
             </div>
             <div class="modal-body">
                 <form id="formFeedback">
-                    <h6 class="font-weight-bold text-primary mb-2">A. Penilaian Matriks Kompetensi Baku (Skala 1 - 5)</h6>
+                    @php
+                        $sMin = (int) ($scaleConfig['min'] ?? 1);
+                        $sMax = (int) ($scaleConfig['max'] ?? 5);
+                        $sLabels = $scaleConfig['labels'] ?? [];
+                        $groupedComps = $competencies->groupBy(function ($c) { return $c->category_group ?: 'Kompetensi Umum'; });
+                        $existingMgrFb = $review->feedbacks->where('reviewer_type', 'MANAGER')->first();
+                        $existingScores = $existingMgrFb ? $existingMgrFb->competencyScores->keyBy('competency_id') : collect();
+                    @endphp
+                    <h6 class="font-weight-bold text-primary mb-2">
+                        A. Penilaian Soft Skill / Kompetensi ({{ $scaleConfig['version_label'] ?? 'Standar' }} — Skala {{ $sMin }} s/d {{ $sMax }})
+                    </h6>
                     <div class="table-responsive mb-3">
                         <table class="table table-bordered table-sm align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Kompetensi</th>
-                                    <th>Tipe</th>
-                                    <th style="width: 140px;" class="text-center">Skor (1 - 5)</th>
+                                    <th>Poin Soft Skill / Kompetensi</th>
+                                    <th style="width: 140px;" class="text-center">Skor ({{ $sMin }} - {{ $sMax }})</th>
+                                    <th style="width: 220px;">Keterangan</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($competencies as $comp)
-                                    <tr>
-                                        <td>
-                                            <strong>{{ $comp->name }}</strong>
-                                            <div class="text-muted small">{{ $comp->behavioral_indicators ?? $comp->description }}</div>
-                                        </td>
-                                        <td><span class="badge bg-secondary">{{ $comp->type }}</span></td>
-                                        <td class="text-center">
-                                            <select name="competencies[{{ $comp->id }}]" class="form-select form-control form-control-sm">
-                                                <option value="5">5 - Exceptional</option>
-                                                <option value="4" selected>4 - Exceeds Standard</option>
-                                                <option value="3">3 - Meets Standard</option>
-                                                <option value="2">2 - Needs Improvement</option>
-                                                <option value="1">1 - Unsatisfactory</option>
-                                            </select>
-                                        </td>
+                                @foreach($groupedComps as $grpName => $grpItems)
+                                    <tr class="table-secondary">
+                                        <td colspan="3" class="fw-bold">{{ $grpName }}</td>
                                     </tr>
+                                    @foreach($grpItems as $comp)
+                                        @php
+                                            $prevScore = $existingScores->get($comp->id);
+                                            $selectedVal = $prevScore ? (int) $prevScore->score : (int) ceil(($sMin + $sMax) / 2);
+                                        @endphp
+                                        <tr>
+                                            <td>
+                                                <strong>{{ $comp->name }}</strong>
+                                                <div class="text-muted small">{{ $comp->behavioral_indicators ?? $comp->description }}</div>
+                                            </td>
+                                            <td class="text-center">
+                                                <select name="competencies[{{ $comp->id }}]" class="form-select form-select-sm">
+                                                    @for($v = $sMax; $v >= $sMin; $v--)
+                                                        <option value="{{ $v }}" {{ $selectedVal === $v ? 'selected' : '' }}>
+                                                            {{ $v }}{{ isset($sLabels[(string) $v]) ? ' - ' . $sLabels[(string) $v] : '' }}
+                                                        </option>
+                                                    @endfor
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="text" name="competency_comments[{{ $comp->id }}]" class="form-control form-control-sm" value="{{ $prevScore->comment ?? '' }}" placeholder="Keterangan...">
+                                            </td>
+                                        </tr>
+                                    @endforeach
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
+
+                    @if($review->cycle && $review->cycle->review_type === 'PROBATION')
+                        <div class="mb-3">
+                            <label class="form-label font-weight-bold text-primary">Rekomendasi Kesimpulan Probation (Opsional — Otomatis jika dikosongkan)</label>
+                            <select name="recommendation" class="form-select form-select-sm">
+                                <option value="">-- Otomatis Berdasarkan Nilai Akhir --</option>
+                                <option value="NOT_RECOMMENDED" {{ $review->recommendation === 'NOT_RECOMMENDED' ? 'selected' : '' }}>Tidak Disarankan (0 - 50)</option>
+                                <option value="EXTEND_CONTRACT" {{ $review->recommendation === 'EXTEND_CONTRACT' ? 'selected' : '' }}>Disarankan untuk di Kontrak / Diperpanjang (&gt;50 - 75)</option>
+                                <option value="PROMOTE_PERMANENT" {{ $review->recommendation === 'PROMOTE_PERMANENT' ? 'selected' : '' }}>Disarankan Dipromosikan Karyawan Tetap (&gt;75 - 100)</option>
+                            </select>
+                        </div>
+                    @endif
 
                     <h6 class="font-weight-bold text-primary mb-2">B. Ulasan & Umpan Balik Kualitatif</h6>
                     <div class="mb-3">
@@ -318,6 +399,15 @@
 </div>
 
 <script>
+    function showPerfAlert(title, msg, type, cb) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire(title, msg, type).then(function() { if (cb) cb(); });
+        } else {
+            alert(title + ': ' + msg);
+            if (cb) cb();
+        }
+    }
+
     function openKpiRealizationModal(itemId, title, actualVal, unit) {
         document.getElementById('revGoalItemId').value = itemId;
         document.getElementById('revGoalItemTitle').innerText = title;
@@ -342,12 +432,12 @@
         .then(res => res.json())
         .then(res => {
             if (res.success) {
-                Swal.fire('Berhasil', res.message, 'success').then(() => location.reload());
+                showPerfAlert('Berhasil', res.message, 'success', function() { location.reload(); });
             } else {
-                Swal.fire('Gagal', res.message, 'error');
+                showPerfAlert('Gagal', res.message, 'error');
             }
         })
-        .catch(err => Swal.fire('Error', err.message, 'error'));
+        .catch(err => showPerfAlert('Error', err.message, 'error'));
     }
 
     function openFeedbackModal() {
@@ -373,47 +463,57 @@
         .then(res => res.json())
         .then(res => {
             if (res.success) {
-                Swal.fire('Berhasil', res.message, 'success').then(() => location.reload());
+                showPerfAlert('Berhasil', res.message, 'success', function() { location.reload(); });
             } else {
-                Swal.fire('Gagal', res.message, 'error');
+                showPerfAlert('Gagal', res.message, 'error');
             }
         })
-        .catch(err => Swal.fire('Error', err.message, 'error'));
+        .catch(err => showPerfAlert('Error', err.message, 'error'));
     }
 
     function finalizeReview(reviewId) {
-        Swal.fire({
-            title: 'Finalisasi / Kalibrasi Review?',
-            text: 'Proses ini akan mengunci skor akhir. Jika skor < 60 atau Grade D, sistem otomatis menerbitkan PIP Plan.',
-            input: 'number',
-            inputLabel: 'Skor Kalibrasi Akhir (Opsional, kosongkan jika tetap)',
-            inputValue: '{{ $review->final_score ?? 80 }}',
-            showCancelButton: true,
-            confirmButtonText: 'Ya, Finalisasi',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                var payload = new FormData();
-                payload.append('calibrated_score', result.value);
-
-                fetch("{{ url('hrd-performance-review-finalize') }}/" + reviewId, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: payload
-                })
-                .then(res => res.json())
-                .then(res => {
-                    if (res.success) {
-                        Swal.fire('Berhasil', res.message, 'success').then(() => location.reload());
-                    } else {
-                        Swal.fire('Gagal', res.message, 'error');
-                    }
-                })
-                .catch(err => Swal.fire('Error', err.message, 'error'));
+        var runFinalize = function(val) {
+            var payload = new FormData();
+            if (val !== null && val !== '') {
+                payload.append('calibrated_score', val);
             }
-        });
+            fetch("{{ url('hrd-performance-review-finalize') }}/" + reviewId, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: payload
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    showPerfAlert('Berhasil', res.message, 'success', function() { location.reload(); });
+                } else {
+                    showPerfAlert('Gagal', res.message, 'error');
+                }
+            })
+            .catch(err => showPerfAlert('Error', err.message, 'error'));
+        };
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Finalisasi / Kalibrasi Review?',
+                text: 'Proses ini akan mengunci skor akhir. Jika skor < 60 atau Grade D, sistem otomatis menerbitkan PIP Plan.',
+                input: 'number',
+                inputLabel: 'Skor Kalibrasi Akhir (Opsional, kosongkan jika tetap)',
+                inputValue: '{{ $review->final_score ?? 80 }}',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Finalisasi',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    runFinalize(result.value);
+                }
+            });
+        } else {
+            var val = prompt('Finalisasi Review? Masukkan Skor Kalibrasi Akhir (kosongkan jika tetap):', '{{ $review->final_score ?? "" }}');
+            if (val !== null) {
+                runFinalize(val);
+            }
+        }
     }
 </script>
 @endsection

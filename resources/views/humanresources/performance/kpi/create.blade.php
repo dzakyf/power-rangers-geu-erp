@@ -2,13 +2,14 @@
 
 @section('content-wrapper')
 @csrf
-<div class="main-content-header mb-3">
-    <h1>Performance Management</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('hrd-performance-kpi-index') }}">KPI & OKR</a></li>
-        <li class="breadcrumb-item active"><span class="active">Buat Sasaran Baru</span></li>
-    </ol>
-</div>
+@include('humanresources.performance.partials.page-header', [
+    'title'       => 'Buat Sasaran KPI / OKR Baru',
+    'parentLabel' => 'KPI & OKR',
+    'parentUrl'   => url('hrd-performance-kpi-index'),
+    'current'     => 'Buat Sasaran Baru',
+    'icon'        => 'fa-bullseye',
+    'badgeText'   => 'Target Kerja Baru',
+])
 
 <div class="card">
     <div class="card-header">
@@ -17,7 +18,7 @@
     <div class="card-body">
         <form id="formGoalCreate">
             <div class="row g-3 mb-4">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label font-weight-bold">Periode Penilaian <span class="text-danger">*</span></label>
                     <select name="period_id" id="period_id" class="form-select form-control" required>
                         <option value="">-- Pilih Periode --</option>
@@ -28,14 +29,66 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label class="form-label font-weight-bold">Kategori KPI</label>
+                    <select name="goal_category" id="goal_category" class="form-select form-control" onchange="toggleGoalScope()">
+                        <option value="REGULAR" selected>Reguler (Tahunan / Semester)</option>
+                        <option value="PROBATION">Khusus Masa Probation (3/6/12 Bln)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label font-weight-bold">Target Penerima KPI</label>
+                    <select id="scope_mode" class="form-select form-control" onchange="toggleGoalScope()">
+                        <option value="POSITION" selected>Template Posisi / Jabatan</option>
+                        <option value="INDIVIDUAL_ADDON">KPI Tambahan Karyawan (Add-on)</option>
+                        <option value="INDIVIDUAL_FULL">KPI Khusus Individu</option>
+                    </select>
+                    <input type="hidden" name="is_addon" id="is_addon" value="0">
+                </div>
+                <div class="col-md-3" id="wrapPositionSelect">
                     <label class="form-label font-weight-bold">Pilih Posisi / Jabatan <span class="text-danger">*</span></label>
-                    <select name="position_id" id="position_id" class="form-select form-control" required>
+                    <select name="position_id" id="position_id" class="form-select form-control">
                         <option value="">-- Pilih Posisi di Departemen --</option>
                         @foreach($positions as $pos)
                             <option value="{{ $pos->ID }}">[{{ $pos->Department }}] {{ $pos->Position }} ({{ $pos->Initial }})</option>
                         @endforeach
                     </select>
+                </div>
+                <div class="col-md-3 d-none" id="wrapEmployeeSelect">
+                    <label class="form-label font-weight-bold">Pilih Karyawan <span class="text-danger">*</span></label>
+                    <select name="user_id" id="user_id" class="form-select form-control">
+                        <option value="">-- Pilih Karyawan --</option>
+                        @foreach($employees ?? [] as $emp)
+                            <option value="{{ $emp->id }}">{{ $emp->Name }} ({{ $emp->Emp_ID }} - {{ $emp->Position }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-12 d-none" id="wrapProbationMonths">
+                    <div class="row g-2 p-2 bg-light border rounded">
+                        <div class="col-md-4">
+                            <label class="form-label font-weight-bold">Preset Waktu Penilaian</label>
+                            <select id="probation_preset" class="form-select form-control" onchange="applyCreateTimePreset()">
+                                <option value="1w">1 Minggu (7 Hari)</option>
+                                <option value="2w">2 Minggu (14 Hari)</option>
+                                <option value="3w">3 Minggu (21 Hari)</option>
+                                <option value="1m">1 Bulan</option>
+                                <option value="2m">2 Bulan</option>
+                                <option value="3m" selected>3 Bulan</option>
+                                <option value="6m">6 Bulan</option>
+                                <option value="12m">12 Bulan (1 Tahun)</option>
+                                <option value="custom">Custom Tanggal Bebas</option>
+                            </select>
+                            <input type="hidden" name="probation_months" id="probation_months" value="3">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label font-weight-bold">Tanggal Mulai Penilaian</label>
+                            <input type="date" name="probation_start_date" id="probation_start_date" class="form-control" value="{{ date('Y-m-d') }}" onchange="applyCreateTimePreset()">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label font-weight-bold">Tanggal Berakhir / Evaluasi</label>
+                            <input type="date" name="probation_end_date" id="probation_end_date" class="form-control" value="{{ date('Y-m-d', strtotime('+3 months')) }}" onchange="document.getElementById('probation_preset').value='custom';">
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label font-weight-bold">Tipe Sasaran</label>
@@ -103,9 +156,70 @@
     var itemIndex = 0;
 
     document.addEventListener("DOMContentLoaded", function () {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('goal_category') === 'PROBATION') {
+            document.getElementById('goal_category').value = 'PROBATION';
+        }
+        if (params.get('user_id')) {
+            document.getElementById('scope_mode').value = 'INDIVIDUAL_FULL';
+            document.getElementById('user_id').value = params.get('user_id');
+        }
+        toggleGoalScope();
         addRowItem('KPI');
         addRowItem('KPI');
     });
+
+    function toggleGoalScope() {
+        var mode = document.getElementById('scope_mode').value;
+        var cat = document.getElementById('goal_category').value;
+        var wrapPos = document.getElementById('wrapPositionSelect');
+        var wrapEmp = document.getElementById('wrapEmployeeSelect');
+        var wrapProb = document.getElementById('wrapProbationMonths');
+
+        if (mode === 'POSITION') {
+            wrapPos.classList.remove('d-none');
+            wrapEmp.classList.add('d-none');
+            document.getElementById('user_id').value = '';
+            document.getElementById('is_addon').value = '0';
+        } else {
+            wrapPos.classList.add('d-none');
+            wrapEmp.classList.remove('d-none');
+            document.getElementById('position_id').value = '';
+            document.getElementById('is_addon').value = (mode === 'INDIVIDUAL_ADDON') ? '1' : '0';
+        }
+
+        if (cat === 'PROBATION') {
+            wrapProb.classList.remove('d-none');
+        } else {
+            wrapProb.classList.add('d-none');
+        }
+    }
+
+    function applyCreateTimePreset() {
+        var preset = document.getElementById('probation_preset').value;
+        var startVal = document.getElementById('probation_start_date').value;
+        var hiddenMonths = document.getElementById('probation_months');
+        if (preset === 'custom') {
+            hiddenMonths.value = '';
+            return;
+        }
+        if (!startVal) return;
+        var d = new Date(startVal + 'T00:00:00');
+        if (isNaN(d.getTime())) return;
+        if (preset.endsWith('w')) {
+            var weeks = parseInt(preset, 10);
+            d.setDate(d.getDate() + (weeks * 7));
+            hiddenMonths.value = '';
+        } else if (preset.endsWith('m')) {
+            var months = parseInt(preset, 10);
+            d.setMonth(d.getMonth() + months);
+            hiddenMonths.value = months;
+        }
+        var yyyy = d.getFullYear();
+        var mm = String(d.getMonth() + 1).padStart(2, '0');
+        var dd = String(d.getDate()).padStart(2, '0');
+        document.getElementById('probation_end_date').value = yyyy + '-' + mm + '-' + dd;
+    }
 
     function addRowItem(defaultType = 'KPI') {
         var idx = itemIndex++;

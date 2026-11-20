@@ -3,6 +3,7 @@
 namespace App\Services\HCGA;
 
 use App\PerformanceCompetency;
+use App\PerformanceCompetencyVersion;
 use App\PerformanceGoal;
 use App\PerformancePipPlan;
 use App\PerformanceReview;
@@ -49,10 +50,16 @@ class PerformanceReviewService
 
     /**
      * Cari Goal KPI aktif untuk karyawan pada periode tertentu:
-     * prioritas template KPI Posisi saat ini (mendukung mutasi tengah tahun), fallback ke KPI Individu.
+     * Mengembalikan array ['primary' => ?PerformanceGoal, 'addons' => Collection<PerformanceGoal>]
+     * Mendukung KPI Posisi + KPI Tambahan (Add-on), serta kategori PROBATION.
      */
-    public function resolveActiveGoalForEmployee(User $employee, int $periodId): ?PerformanceGoal
+    public function resolveGoalsForEmployee(User $employee, int $periodId, string $reviewType = 'REGULAR'): array
     {
+        $isProbation = (strtoupper($reviewType) === 'PROBATION');
+        $posGoal = null;
+        $addons = collect();
+
+        $posId = null;
         if (!empty($employee->Position)) {
             $posQuery = DB::table('master_position')
                 ->where(function ($q) use ($employee) {
@@ -66,59 +73,114 @@ class PerformanceReviewService
 
             $pos = $posQuery->first();
             if ($pos) {
-                $posGoal = PerformanceGoal::where('period_id', $periodId)
-                    ->where('scope_type', 'POSITION')
-                    ->where('position_id', $pos->ID)
-                    ->whereIn('status', ['APPROVED', 'EVALUATION', 'COMPLETED'])
-                    ->orderBy('id', 'desc')
-                    ->first();
-
-                if ($posGoal) {
-                    return $posGoal;
-                }
+                $posId = (int) $pos->ID;
             }
         }
 
-        if (!empty($employee->Department) && !empty($employee->Position)) {
-            $byText = PerformanceGoal::where('period_id', $periodId)
+        if ($isProbation) {
+            // 1a. Cari Template KPI Probation Posisi
+            if ($posId) {
+                $posGoal = PerformanceGoal::where('scope_type', 'POSITION')
+                    ->where('goal_category', 'PROBATION')
+                    ->where('position_id', $posId)
+                    ->whereIn('status', ['APPROVED', 'EVALUATION', 'COMPLETED'])
+                    ->orderBy('id', 'desc')
+                    ->first();
+            }
+
+            // 1b. Cari KPI Probation Individu (bisa sebagai utama atau add-on)
+            $probIndGoals = PerformanceGoal::where('user_id', $employee->id)
+                ->where('goal_category', 'PROBATION')
+                ->whereIn('status', ['APPROVED', 'EVALUATION', 'COMPLETED'])
+                ->orderBy('id', 'desc')
+                ->get();
+
+            if (!$posGoal && $probIndGoals->isNotEmpty()) {
+                $posGoal = $probIndGoals->first();
+                $addons = $probIndGoals->slice(1)->values();
+            } else {
+                $addons = $probIndGoals;
+            }
+
+            if ($posGoal || $addons->isNotEmpty()) {
+                return ['primary' => $posGoal, 'addons' => $addons];
+            }
+        }
+
+        // 2. KPI Reguler: Template Posisi (prioritas) + KPI Tambahan (is_addon = 1)
+        if ($posId) {
+            $posGoal = PerformanceGoal::where('period_id', $periodId)
                 ->where('scope_type', 'POSITION')
+                ->where('goal_category', 'REGULAR')
+                ->where('position_id', $posId)
+                ->whereIn('status', ['APPROVED', 'EVALUATION', 'COMPLETED'])
+                ->orderBy('id', 'desc')
+                ->first();
+        }
+
+        if (!$posGoal && !empty($employee->Department) && !empty($employee->Position)) {
+            $posGoal = PerformanceGoal::where('period_id', $periodId)
+                ->where('scope_type', 'POSITION')
+                ->where('goal_category', 'REGULAR')
                 ->where('department', $employee->Department)
                 ->where('position', $employee->Position)
                 ->whereIn('status', ['APPROVED', 'EVALUATION', 'COMPLETED'])
                 ->orderBy('id', 'desc')
                 ->first();
-
-            if ($byText) {
-                return $byText;
-            }
         }
 
-        return PerformanceGoal::where('period_id', $periodId)
+        $indGoals = PerformanceGoal::where('period_id', $periodId)
             ->where('user_id', $employee->id)
+            ->where('goal_category', 'REGULAR')
             ->whereIn('status', ['APPROVED', 'EVALUATION', 'COMPLETED'])
             ->orderBy('id', 'desc')
-            ->first();
+            ->get();
+
+        if ($posGoal) {
+            $addons = $indGoals->filter(function ($g) {
+                return (bool) $g->is_addon || $g->scope_type === 'INDIVIDUAL';
+            })->values();
+        } elseif ($indGoals->isNotEmpty()) {
+            $posGoal = $indGoals->first();
+            $addons = $indGoals->slice(1)->values();
+        }
+
+        return ['primary' => $posGoal, 'addons' => $addons];
+    }
+
+    /**
+     * Backward-compatible helper untuk mengambil 1 Goal utama karyawan.
+     */
+    public function resolveActiveGoalForEmployee(User $employee, int $periodId): ?PerformanceGoal
+    {
+        $resolved = $this->resolveGoalsForEmployee($employee, $periodId);
+        return $resolved['primary'];
     }
 
     /**
      * Inisiasi Dokumen Review Karyawan dari Siklus & Goal yang sudah disetujui (Approved)
      */
-    public function initiateReviewForEmployee(PerformanceReviewCycle $cycle, User $employee, ?User $manager = null): PerformanceReview
+    public function initiateReviewForEmployee(PerformanceReviewCycle $cycle, User $employee, ?User $manager = null, ?string $probationEndDate = null): PerformanceReview
     {
-        return DB::transaction(function () use ($cycle, $employee, $manager) {
-            $goal = $this->resolveActiveGoalForEmployee($employee, (int) $cycle->period_id);
+        return DB::transaction(function () use ($cycle, $employee, $manager, $probationEndDate) {
+            $resolved = $this->resolveGoalsForEmployee($employee, (int) $cycle->period_id, (string) $cycle->review_type);
+            $primaryGoal = $resolved['primary'];
+            $addonGoals = $resolved['addons'];
 
-            $kpiScore = $goal ? (float) $goal->overall_progress_percent : 0;
+            $activeVersion = PerformanceCompetencyVersion::getActivePublished();
+            $kpiScore = $primaryGoal ? (float) $primaryGoal->overall_progress_percent : 0;
 
             $review = PerformanceReview::create([
-                'review_no'        => $this->generateReviewNo(),
-                'cycle_id'         => $cycle->id,
-                'user_id'          => $employee->id,
-                'goal_id'          => $goal ? $goal->id : null,
-                'manager_id'       => $manager ? $manager->id : null,
-                'kpi_score'        => $kpiScore,
-                'competency_score' => 0,
-                'status'           => $cycle->enable_self_review ? 'SELF_REVIEW' : 'MANAGER_REVIEW',
+                'review_no'             => $this->generateReviewNo(),
+                'cycle_id'              => $cycle->id,
+                'user_id'               => $employee->id,
+                'goal_id'               => $primaryGoal ? $primaryGoal->id : null,
+                'manager_id'            => $manager ? $manager->id : null,
+                'competency_version_id' => $activeVersion ? $activeVersion->id : null,
+                'probation_end_date'    => $probationEndDate,
+                'kpi_score'             => $kpiScore,
+                'competency_score'      => 0,
+                'status'                => $cycle->enable_self_review ? 'SELF_REVIEW' : 'MANAGER_REVIEW',
             ]);
 
             if ($cycle->enable_self_review) {
@@ -139,8 +201,16 @@ class PerformanceReviewService
                 ]);
             }
 
-            if ($goal) {
-                $this->snapshotGoalItemsForReview($review, $goal);
+            if ($primaryGoal) {
+                $primaryScope = ($primaryGoal->goal_category === 'PROBATION')
+                    ? ($primaryGoal->scope_type === 'POSITION' ? 'PROBATION_POSITION' : 'PROBATION_INDIVIDUAL')
+                    : ($primaryGoal->scope_type === 'POSITION' ? 'POSITION' : 'INDIVIDUAL');
+                $this->snapshotGoalItemsForReview($review, $primaryGoal, $primaryScope);
+            }
+
+            foreach ($addonGoals as $addon) {
+                $addonScope = ($addon->goal_category === 'PROBATION') ? 'PROBATION_INDIVIDUAL' : 'INDIVIDUAL_ADDON';
+                $this->snapshotGoalItemsForReview($review, $addon, $addonScope);
             }
 
             return $review;
@@ -148,9 +218,9 @@ class PerformanceReviewService
     }
 
     /**
-     * Salin item KPI/OKR dari Goal Sheet ke snapshot per dokumen Review 6 bulanan.
+     * Salin item KPI/OKR dari Goal Sheet ke snapshot per dokumen Review.
      */
-    public function snapshotGoalItemsForReview(PerformanceReview $review, PerformanceGoal $goal): void
+    public function snapshotGoalItemsForReview(PerformanceReview $review, PerformanceGoal $goal, string $sourceScope = 'POSITION'): void
     {
         $items = $goal->items()->orderBy('sort_order')->get();
         foreach ($items as $it) {
@@ -160,6 +230,7 @@ class PerformanceReviewService
                     'goal_item_id' => $it->id,
                 ],
                 [
+                    'source_scope'     => $sourceScope,
                     'item_type'        => $it->item_type,
                     'title'            => $it->title,
                     'kpi_unit'         => $it->kpi_unit,
@@ -209,31 +280,38 @@ class PerformanceReviewService
                 $feedback->save();
             }
 
-            // Jika ada rincian nilai competency matrix
+            // Ambil konfigurasi skala penilaian dari versi kompetensi yang terpasang pada review (atau versi aktif)
+            $scaleConfig = $this->getScaleConfigForReview($review);
+            $scaleMin = (int) $scaleConfig['min'];
+            $scaleMax = (int) $scaleConfig['max'];
+
+            // Jika ada rincian nilai competency matrix / soft skill
             $competencyScores = $data['competencies'] ?? [];
+            $competencyComments = $data['competency_comments'] ?? [];
             $avgCompetencyScore = null;
 
             if (!empty($competencyScores) && is_array($competencyScores)) {
                 PerformanceReviewCompetencyScore::where('feedback_id', $feedback->id)->delete();
-                $totalComp = 0;
+                $totalScore = 0;
                 $countComp = 0;
 
                 foreach ($competencyScores as $compId => $compVal) {
                     $scoreVal = (int) $compVal;
-                    if ($scoreVal >= 1 && $scoreVal <= 5) {
+                    if ($scoreVal >= $scaleMin && $scoreVal <= $scaleMax) {
                         PerformanceReviewCompetencyScore::create([
                             'feedback_id'   => $feedback->id,
                             'competency_id' => $compId,
                             'score'         => $scoreVal,
+                            'max_scale'     => $scaleMax,
+                            'comment'       => $competencyComments[$compId] ?? null,
                         ]);
-                        // Konversi skala 1-5 ke skala 100
-                        $totalComp += ($scoreVal * 20);
+                        $totalScore += $scoreVal;
                         $countComp++;
                     }
                 }
 
-                if ($countComp > 0) {
-                    $avgCompetencyScore = round($totalComp / $countComp, 2);
+                if ($countComp > 0 && $scaleMax > 0) {
+                    $avgCompetencyScore = round(($totalScore / ($countComp * $scaleMax)) * 100, 2);
                 }
             }
 
@@ -268,6 +346,15 @@ class PerformanceReviewService
                 $compPart = ($compScore * ($cycle->weight_competency / 100));
                 $review->final_score = round($kpiPart + $compPart, 2);
                 $review->rating_grade = $this->determineGrade($review->final_score);
+
+                if ($cycle->review_type === 'PROBATION') {
+                    $review->recommendation = !empty($data['recommendation'])
+                        ? $data['recommendation']
+                        : $this->determineProbationRecommendation((float) $review->final_score);
+                    if (isset($data['conclusion_notes'])) {
+                        $review->conclusion_notes = $data['conclusion_notes'];
+                    }
+                }
             }
 
             $review->save();
@@ -395,23 +482,27 @@ class PerformanceReviewService
         }
 
         $actor = User::find($userId);
-        $isAssignedManager = ($review->manager_id && (int) $review->manager_id === $userId);
-        $isHcga = app(PerformanceKpiService::class)->isHcgaOrAdmin($actor);
-        if (!$isAssignedManager && !$isHcga) {
-            throw new \InvalidArgumentException('Hanya Atasan Langsung atau HCGA yang dapat mengisi realisasi KPI evaluasi.');
+        $kpiService = app(PerformanceKpiService::class);
+        $empDept = $review->user ? $review->user->Department : null;
+        $isPic = $kpiService->isDeptPic($actor, $empDept);
+        $isHcga = $kpiService->isHcgaOrAdmin($actor);
+        if (!$isPic && !$isHcga) {
+            throw new \InvalidArgumentException('Hanya PIC yang ditetapkan atau HCGA yang dapat mengisi target & realisasi KPI. Atasan hanya melakukan penilaian.');
         }
 
-        if (!$review->goal_id) {
-            throw new \InvalidArgumentException('Lembar review ini tidak tertaut ke Goal KPI.');
+        $snapshot = PerformanceReviewKpiItem::where('review_id', $review->id)
+            ->where('goal_item_id', $goalItemId)
+            ->first();
+
+        if (!$snapshot && !$review->goal_id) {
+            throw new \InvalidArgumentException('Item KPI tidak ditemukan pada lembar review ini.');
         }
 
-        $item = \App\PerformanceGoalItem::where('id', $goalItemId)
-            ->where('goal_id', $review->goal_id)
-            ->firstOrFail();
+        $item = \App\PerformanceGoalItem::where('id', $goalItemId)->firstOrFail();
 
         return DB::transaction(function () use ($review, $item, $data, $userId) {
-            $goal = PerformanceGoal::findOrFail($review->goal_id);
-            if ($review->kpiItems()->count() === 0) {
+            if ($review->kpiItems()->count() === 0 && $review->goal_id) {
+                $goal = PerformanceGoal::findOrFail($review->goal_id);
                 $this->snapshotGoalItemsForReview($review, $goal);
             }
 
@@ -490,5 +581,53 @@ class PerformanceReviewService
         if ($score >= 70) return 'B';
         if ($score >= 60) return 'C';
         return 'D';
+    }
+
+    /**
+     * Konversi Skor Akhir Probation ke Rekomendasi Kesimpulan (FR/HCGA/14-00)
+     */
+    public function determineProbationRecommendation(float $score): string
+    {
+        if ($score <= 50) {
+            return 'NOT_RECOMMENDED';
+        }
+        if ($score <= 75) {
+            return 'EXTEND_CONTRACT';
+        }
+        return 'PROMOTE_PERMANENT';
+    }
+
+    /**
+     * Ambil konfigurasi skala penilaian untuk dokumen review tertentu
+     */
+    public function getScaleConfigForReview(?PerformanceReview $review = null): array
+    {
+        $version = null;
+        if ($review && $review->competency_version_id) {
+            $version = PerformanceCompetencyVersion::find($review->competency_version_id);
+        }
+        if (!$version) {
+            $version = PerformanceCompetencyVersion::getActivePublished();
+        }
+
+        if ($version) {
+            return [
+                'version_id'    => $version->id,
+                'version_no'    => $version->version_no,
+                'version_label' => $version->version_label,
+                'min'           => (int) $version->scale_min,
+                'max'           => (int) $version->scale_max,
+                'labels'        => $version->scale_labels ?: [],
+            ];
+        }
+
+        return [
+            'version_id'    => null,
+            'version_no'    => 1,
+            'version_label' => 'Default',
+            'min'           => (int) PerformanceSetting::getValue('competency_scale_min', 1),
+            'max'           => (int) PerformanceSetting::getValue('competency_scale_max', 5),
+            'labels'        => [],
+        ];
     }
 }

@@ -57,6 +57,11 @@ class HcgaTraining extends Model
         return $this->belongsTo(HcgaTrainingProgram::class, 'program_id');
     }
 
+    public function trainer()
+    {
+        return $this->belongsTo(HcgaTrainingTrainer::class, 'trainer_id', 'ID');
+    }
+
     public function parentTraining()
     {
         return $this->belongsTo(self::class, 'parent_training_id', 'ID');

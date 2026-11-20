@@ -605,7 +605,7 @@ class ISCCTraceabilityController extends Controller
         $tmp = $photo ? $this->downloadToTemp($photo) : null;
         if ($tmp) {
             try {
-                $t->setImageValue('oil_doc', ['path' => $tmp, 'width' => 220, 'height' => 160]);
+                $t->setImageValue('oil_doc', ['path' => $tmp, 'width' => 330, 'height' => 240, 'ratio' => false]);
             } catch (\Throwable $e) {
                 $t->setValue('oil_doc', '');
             }

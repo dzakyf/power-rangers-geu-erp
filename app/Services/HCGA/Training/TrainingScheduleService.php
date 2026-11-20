@@ -7,6 +7,7 @@ use App\Models\HCGA\Training\HcgaTraining;
 use App\Models\HCGA\Training\HcgaTrainingCurriculum;
 use App\Models\HCGA\Training\HcgaTrainingParticipant;
 use App\Models\HCGA\Training\HcgaTrainingProgram;
+use App\Models\HCGA\Training\HcgaTrainingTrainer;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -51,11 +52,16 @@ class TrainingScheduleService
             }
 
             $program = !empty($data['program_id']) ? HcgaTrainingProgram::find($data['program_id']) : null;
+            $trainer = (!empty($data['trainer_id']) && is_numeric($data['trainer_id']))
+                ? HcgaTrainingTrainer::find((int) $data['trainer_id'])
+                : null;
 
             $training->tna_id = !empty($data['tna_id']) ? (int) $data['tna_id'] : null;
             $training->program_id = $program ? $program->id : null;
-            $training->trainer_id = !empty($data['trainer_id']) ? (int) $data['trainer_id'] : null;
-            $training->trainer_name = $data['trainer_name'] ?? null;
+            $training->trainer_id = $trainer ? $trainer->ID : null;
+            $training->trainer_name = $trainer
+                ? $trainer->Trainer_Name
+                : (!empty($data['trainer_name']) ? trim((string) $data['trainer_name']) : null);
             $training->Training_Name = $data['Training_Name'] ?? ($program ? $program->program_name : '');
             $training->Training_Category = $data['Training_Category'] ?? ($program && $program->category_id ? (string) $program->category_id : '');
             $training->Training_Type = $data['Training_Type'] ?? ($program ? $program->training_type : 'INTERNAL');
@@ -86,7 +92,7 @@ class TrainingScheduleService
                         'training_id' => $training->ID,
                         'session_order' => !empty($cur['session_order']) ? (int) $cur['session_order'] : $order,
                         'topic_title' => $cur['topic_title'],
-                        'speaker_name' => $cur['speaker_name'] ?? $training->trainer_name,
+                        'speaker_name' => !empty($cur['speaker_name']) ? $cur['speaker_name'] : $training->trainer_name,
                         'duration_minutes' => !empty($cur['duration_minutes']) ? (int) $cur['duration_minutes'] : 60,
                         'learning_method' => $cur['learning_method'] ?? $training->Training_Method,
                         'notes' => $cur['notes'] ?? null,
