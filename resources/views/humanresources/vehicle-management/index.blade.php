@@ -55,10 +55,13 @@
         </div>
         <div class="col-6 col-md-4 col-xl-2">
             <div class="card border-0 shadow-sm h-100 bg-light">
-                <div class="card-body py-3 d-flex flex-column justify-content-between">
-                    <div class="text-muted small fw-semibold">Reminder In-App</div>
-                    <button type="button" id="btnSyncReminder" class="btn btn-outline-primary btn-sm mt-1" onclick="syncVehicleReminders();">
-                        <i class="fa fa-bell me-1"></i> Sinkronkan
+                <div class="card-body py-2 d-flex flex-column justify-content-between gap-1">
+                    <div class="text-muted small fw-semibold">Aksi Reminder</div>
+                    <button type="button" id="btnSyncReminder" class="btn btn-outline-primary btn-sm" onclick="syncVehicleReminders();">
+                        <i class="fa fa-bell me-1"></i> Sinkron In-App
+                    </button>
+                    <button type="button" id="btnPreviewEmail" class="btn btn-outline-success btn-sm" onclick="openEmailPreviewModal();">
+                        <i class="fa fa-envelope-open-text me-1"></i> Preview &amp; Kirim Email
                     </button>
                 </div>
             </div>
@@ -311,6 +314,49 @@
         </div>
     </div>
 
+    <!-- Modal Preview Kerangka & Kirim Email Reminder -->
+    <div class="modal fade" id="EmailReminderPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h6 class="modal-title text-white"><i class="fa fa-envelope-open-text me-2"></i>Preview Kerangka Email Reminder</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="emailPreviewAlert" class="alert alert-info py-2 small d-none"></div>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="badge bg-primary text-white">Total Item Perlu Perhatian: <span id="emailPrevTotalItems">0</span></span>
+                        <span class="badge bg-warning text-dark">Belum Terkirim Email: <span id="emailPrevUnsentCount">0</span></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted mb-1">Penerima (To)</label>
+                        <div id="emailPrevRecipients" class="p-2 bg-light border rounded small text-dark">-</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted mb-1">Subject</label>
+                        <input type="text" id="emailPrevSubject" class="form-control form-control-sm bg-light fw-semibold" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted mb-1">Kerangka / Isi Email</label>
+                        <pre id="emailPrevBody" class="p-3 bg-light border rounded small mb-0" style="white-space:pre-wrap;font-family:Consolas,monospace;max-height:280px;overflow-y:auto;">Memuat preview...</pre>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="chkForceResendEmail" />
+                        <label class="form-check-label small" for="chkForceResendEmail">
+                            Paksa kirim ulang semua (termasuk item yang sudah pernah dikirim emailnya pada threshold saat ini)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" id="btnSendEmailManual" class="btn btn-success btn-sm" onclick="sendManualEmailReminders();">
+                        <i class="fa fa-paper-plane me-1"></i> Kirim Email Reminder Sekarang
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
 var currentDocFilter = 'ALL';
 
@@ -360,6 +406,68 @@ function syncVehicleReminders() {
         },
         error: function (xhr) {
             alert('Gagal sinkronisasi reminder.');
+            btn.disabled = false;
+        }
+    });
+}
+
+function openEmailPreviewModal() {
+    var modalEl = document.getElementById('EmailReminderPreviewModal');
+    $('#emailPreviewAlert').addClass('d-none').text('');
+    $('#emailPrevRecipients').text('Memuat...');
+    $('#emailPrevSubject').val('Memuat...');
+    $('#emailPrevBody').text('Memuat preview...');
+    $('#chkForceResendEmail').prop('checked', false);
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+    $.get('hrd-vehicle-management-email-preview', function (res) {
+        if (!res || res.status !== 'success' || !res.data) {
+            $('#emailPrevBody').text('Gagal memuat preview email.');
+            return;
+        }
+        var d = res.data;
+        $('#emailPrevTotalItems').text(d.total_pending_items || 0);
+        $('#emailPrevUnsentCount').text(d.unsent_count || 0);
+
+        if (d.is_sample) {
+            $('#emailPreviewAlert')
+                .removeClass('d-none')
+                .text('Saat ini tidak ada dokumen jatuh tempo (H-60 s/d Expired). Menampilkan contoh kerangka email.');
+        }
+
+        if (d.recipients && d.recipients.length > 0) {
+            var badges = d.recipients.map(function (em) {
+                return '<span class="badge bg-secondary text-white me-1 mb-1">' + $('<div>').text(em).html() + '</span>';
+            }).join(' ');
+            $('#emailPrevRecipients').html(badges);
+        } else {
+            $('#emailPrevRecipients').html('<span class="text-danger">Belum ada email penerima (HCGA/GA atau PIC) yang terdaftar di tabel users.</span>');
+        }
+
+        $('#emailPrevSubject').val(d.subject || '-');
+        $('#emailPrevBody').text(d.body || '-');
+    }).fail(function () {
+        $('#emailPrevBody').text('Terjadi kesalahan saat memuat preview email.');
+    });
+}
+
+function sendManualEmailReminders() {
+    var btn = document.getElementById('btnSendEmailManual');
+    var force = $('#chkForceResendEmail').is(':checked');
+    btn.disabled = true;
+
+    $.ajax({
+        url: 'hrd-vehicle-management-send-email-reminders',
+        type: 'POST',
+        headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() },
+        data: { force: force ? 1 : 0 },
+        success: function (res) {
+            alert(res.message || 'Pengiriman email reminder selesai.');
+            btn.disabled = false;
+            openEmailPreviewModal();
+        },
+        error: function (xhr) {
+            alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal mengirim email reminder.');
             btn.disabled = false;
         }
     });

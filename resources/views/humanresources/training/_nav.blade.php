@@ -19,6 +19,9 @@
             <a href="{{ url('hrd-training-coaching-index') }}" class="btn btn-sm {{ ($activeTab ?? '') === 'coaching' ? 'btn-primary' : 'btn-outline-primary' }}">
                 6. Coaching &amp; Refreshment
             </a>
+            <a href="{{ url('hrd-training-trainer-index') }}" class="btn btn-sm {{ ($activeTab ?? '') === 'trainer' ? 'btn-primary' : 'btn-outline-primary' }}">
+                7. Master Pemateri
+            </a>
         </div>
     </div>
 </div>

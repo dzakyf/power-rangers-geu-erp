@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\HCGA\Training\HcgaTnaRequest;
 use App\Models\HCGA\Training\HcgaTraining;
 use App\Models\HCGA\Training\HcgaTrainingProgram;
+use App\Models\HCGA\Training\HcgaTrainingTrainer;
 use App\Services\Approval\TrainingApprovalService;
 use App\Services\HCGA\Training\TrainingScheduleService;
 use Illuminate\Http\Request;
@@ -63,7 +64,7 @@ class TrainingController extends Controller
         $trCategory = DB::table('master_training_hcga_category')->orderBy('Category')->get();
         $programs = HcgaTrainingProgram::where('status', 'ACTIVE')->orderBy('program_name')->get();
         $tnas = HcgaTnaRequest::with('items')->where('status', 'APPROVED')->orderBy('id', 'desc')->get();
-        $trainers = DB::table('master_training_hcga_trainer')->where('Status', 'ACTIVE')->get();
+        $trainers = HcgaTrainingTrainer::where('Status', 'ACTIVE')->orderBy('Trainer_Name')->get();
         $employees = DB::table('users')->select('username', 'name', 'Department')->orderBy('name')->get();
         $selectedTnaId = $request->input('tna_id');
 
@@ -76,6 +77,7 @@ class TrainingController extends Controller
     {
         $request->validate([
             'Training_Name' => 'required|string|max:255',
+            'trainer_id' => 'required|integer|exists:master_training_hcga_trainer,ID',
             'Start_Date' => 'required|date',
             'End_Date' => 'required|date|after_or_equal:Start_Date',
         ]);
@@ -106,10 +108,16 @@ class TrainingController extends Controller
         $trCategory = DB::table('master_training_hcga_category')->orderBy('Category')->get();
         $programs = HcgaTrainingProgram::where('status', 'ACTIVE')->orderBy('program_name')->get();
         $tnas = HcgaTnaRequest::where('status', 'APPROVED')->orderBy('id', 'desc')->get();
+        $trainers = HcgaTrainingTrainer::where(function ($q) use ($training) {
+            $q->where('Status', 'ACTIVE');
+            if ($training->trainer_id) {
+                $q->orWhere('ID', $training->trainer_id);
+            }
+        })->orderBy('Trainer_Name')->get();
         $employees = DB::table('users')->select('username', 'name', 'Department')->orderBy('name')->get();
 
         return view('humanresources.training.training-detail', compact(
-            'training', 'trCategory', 'programs', 'tnas', 'employees'
+            'training', 'trCategory', 'programs', 'tnas', 'trainers', 'employees'
         ));
     }
 
@@ -118,6 +126,7 @@ class TrainingController extends Controller
         $id = (int) ($request->ID ?: $request->id);
         $request->validate([
             'Training_Name' => 'required|string|max:255',
+            'trainer_id' => 'required|integer|exists:master_training_hcga_trainer,ID',
             'Start_Date' => 'required|date',
             'End_Date' => 'required|date|after_or_equal:Start_Date',
         ]);

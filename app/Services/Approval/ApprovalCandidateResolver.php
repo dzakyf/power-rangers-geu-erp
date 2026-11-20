@@ -560,17 +560,42 @@ class ApprovalCandidateResolver
     {
         $targetLevel = (int) $step->Level_Number;
 
-        // 1. Dapatkan posisi pemohon atau posisi kepala departemen
+        // 1. Dapatkan posisi subjek target (Target_Position_Id / Target_User_Id) atau pemohon
         $startingPosition = null;
-        if ($requesterId) {
-            $user = DB::table('users')->where('id', $requesterId)->first();
+        if (!empty($context['Target_Position_Id'])) {
+            $startingPosition = DB::table('master_position')->where('ID', (int) $context['Target_Position_Id'])->first();
+        }
+
+        $subjectUserId = !empty($context['Target_User_Id']) ? (int) $context['Target_User_Id'] : $requesterId;
+        if (!$startingPosition && $subjectUserId) {
+            $user = DB::table('users')->where('id', $subjectUserId)->first();
+            if ($user && !empty($user->Emp_ID)) {
+                $orgNode = DB::table('organization_structure')
+                    ->where('NIK', $user->Emp_ID)
+                    ->whereNotNull('Reports_To_Position_ID')
+                    ->first();
+                if ($orgNode && !empty($orgNode->Reports_To_Position_ID)) {
+                    $parentNode = DB::table('organization_structure')
+                        ->where('ID', (int) $orgNode->Reports_To_Position_ID)
+                        ->first();
+                    if ($parentNode && !empty($parentNode->Position_ID)) {
+                        $directParentPos = $this->positionById((int) $parentNode->Position_ID, $context);
+                        if ($directParentPos) {
+                            return $directParentPos;
+                        }
+                    }
+                }
+            }
             if ($user && !empty($user->Position)) {
-                $startingPosition = DB::table('master_position')
+                $posQ = DB::table('master_position')
                     ->where(function ($q) use ($user) {
                         $q->where('Initial', $user->Position)
                           ->orWhere('Position', $user->Position);
-                    })
-                    ->first();
+                    });
+                if (!empty($user->Department)) {
+                    $posQ->where('Department', $user->Department);
+                }
+                $startingPosition = $posQ->first();
             }
             if (!$startingPosition && $user && !empty($user->Emp_ID)) {
                 $emp = DB::table('employment')->where('NIK', $user->Emp_ID)->first();

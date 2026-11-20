@@ -10,6 +10,8 @@ class PerformanceGoal extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
+        'is_addon'                 => 'boolean',
+        'probation_months'         => 'integer',
         'total_kpi_weight'         => 'float',
         'overall_progress_percent' => 'float',
         'final_score'              => 'float',

@@ -2,13 +2,16 @@
 
 @section('content-wrapper')
 @csrf
-<div class="main-content-header mb-3">
-    <h1>Performance Management</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('hrd-performance-kpi-index') }}">KPI & OKR</a></li>
-        <li class="breadcrumb-item active"><span class="active">Master Periode KPI</span></li>
-    </ol>
-</div>
+@include('humanresources.performance.partials.page-header', [
+    'title'       => '1. Master Periode KPI & Dept PIC',
+    'parentLabel' => 'Performance Management',
+    'parentUrl'   => url('hrd-performance-period-index'),
+    'current'     => 'Periode & Dept PIC',
+    'icon'        => 'fa-calendar-check',
+    'badgeText'   => 'Step 1: Setup Periode & PIC',
+])
+
+@include('humanresources.performance.partials.workflow-guide', ['activeStep' => 1])
 
 @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">

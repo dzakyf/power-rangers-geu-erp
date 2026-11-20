@@ -18,6 +18,7 @@ class HcgaTrainingMenuSeeder extends Seeder
         'SI01056' => ['Evaluasi Training', 'hrd-training-evaluation-index', 4, 'SS00110', 4],
         'SI01057' => ['Summary & Sertifikat', 'hrd-training-summary-index', 4, 'SS00110', 5],
         'SI01058' => ['Coaching & Refreshment', 'hrd-training-coaching-index', 4, 'SS00110', 6],
+        'SI01061' => ['Master Pemateri', 'hrd-training-trainer-index', 4, 'SS00110', 7],
     ];
 
     public function run()

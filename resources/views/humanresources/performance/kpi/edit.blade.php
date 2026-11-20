@@ -2,14 +2,14 @@
 
 @section('content-wrapper')
 @csrf
-<div class="main-content-header mb-3">
-    <h1>Performance Management</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('hrd-performance-kpi-index') }}">KPI & OKR</a></li>
-        <li class="breadcrumb-item"><a href="{{ url('hrd-performance-kpi-detail', $goal->id) }}">{{ $goal->goal_no }}</a></li>
-        <li class="breadcrumb-item active"><span class="active">Edit & Revisi Target</span></li>
-    </ol>
-</div>
+@include('humanresources.performance.partials.page-header', [
+    'title'       => 'Edit & Revisi Target KPI',
+    'parentLabel' => 'KPI & OKR',
+    'parentUrl'   => url('hrd-performance-kpi-index'),
+    'current'     => 'Edit ' . $goal->goal_no,
+    'icon'        => 'fa-bullseye',
+    'badgeText'   => 'Revisi Goal Sheet',
+])
 
 @if($goal->status === 'REJECTED')
     <div class="alert alert-danger">

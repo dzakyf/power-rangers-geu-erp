@@ -24,14 +24,14 @@
 
     </div>
     <div class="d-flex flex-wrap align-items-center mb-2">
-        <button type="button" class="btn btn-sm btn-success font-weight-bold mr-2 mb-1" onclick="bukaMatriksPerbandingan(1)">
+        <<!-- button type="button" class="btn btn-sm btn-success font-weight-bold mr-2 mb-1" onclick="bukaMatriksPerbandingan(1)">
             <i class="fas fa-balance-scale mr-1"></i> Lihat Matriks Perbandingan (Versi 1)
         </button>
         <button type="button" class="btn btn-sm btn-primary font-weight-bold mr-2 mb-1" onclick="bukaMatriksPerbandingan(2)">
             <i class="fas fa-chart-bar mr-1"></i> Lihat Matriks Perbandingan v2 (Ranking Harga)
-        </button>
+        </button> -->
         <button type="button" class="btn btn-sm btn-info font-weight-bold mb-1" onclick="bukaMatriksPerbandingan(3)">
-            <i class="fas fa-tasks mr-1"></i> Lihat Matriks v3 (Split PO / Multi-Vendor)
+            <i class="fas fa-tasks mr-1"></i>Matrik Quotation
         </button>
     </div>
 
