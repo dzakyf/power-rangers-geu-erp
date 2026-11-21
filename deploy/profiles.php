@@ -13,18 +13,18 @@
 return [
     'bdp' => [
         'version' => '1.0.0',
-        'modules' => ['core', 'bp', 'finance'],
+        'modules' => ['core', 'credential', 'bp', 'finance'],
     ],
     'cns' => [
         'version' => null,
-        'modules' => ['core', 'cns'],
+        'modules' => ['core', 'credential', 'cns'],
     ],
     'hcga' => [
         'version' => null,
-        'modules' => ['core', 'cns', 'hcga'],
+        'modules' => ['core', 'credential', 'cns', 'hcga'],
     ],
     'full' => [
         'version' => null,
-        'modules' => ['core', 'bp', 'finance', 'cns', 'hcga', 'legacy'],
+        'modules' => ['core', 'credential', 'bp', 'finance', 'cns', 'hcga', 'legacy'],
     ],
 ];

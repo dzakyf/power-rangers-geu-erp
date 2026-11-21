@@ -12,8 +12,6 @@ use App\Http\Controllers\ComplianceController;
 use App\Http\Controllers\HelperController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\Credential\CredentialRoleController;
-use App\Http\Controllers\Credential\CredentialUserController;
 use App\Http\Controllers\CandidateController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OperationalController;
@@ -183,9 +181,11 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/home-sales', function () {
         return view('home-sales');
     });
-    Route::get('/home-credential', function () {
-        return view('home-credential');
-    });
+    if (\App\Support\Modules::isEnabled('credential')) {
+        (function () {
+            require base_path('routes/modules/credential.php');
+        })();
+    }
     Route::get('/home-mymenu', function () {
         return view('home-mymenu');
     });
@@ -385,41 +385,7 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('assets.xml.lists');
     });
 
-    Route::get("/credential-role-old", function () {
-        return view('credential.role-old');
-    });
 
-    Route::get("/credential-role-detail", function () {
-        return view('credential.role-detail');
-    });
-    Route::get("/xml-credential-role-old", function () {
-        return view('credential.xml.role');
-    });
-
-    Route::post("/credential-role-detail-submit", function () {
-        return view('credential.role-detail-submit');
-    });
-    Route::get("/credential-role", [CredentialRoleController::class, "index"]);
-    Route::get("/master-credential-role-list", [CredentialRoleController::class, "roleListData"])->name("master.credential.role.list");
-    Route::get("/master-credential-role-permission", [CredentialRoleController::class, "rolePermissionsData"])->name("master.credential.role.permission");
-    Route::post("/master-credential-role-permission-save", [CredentialRoleController::class, "savePermissions"])->name("master.credential.role.permission.save");
-    Route::post("/master-credential-role-create", [CredentialRoleController::class, "createRole"]);
-    Route::post("/master-credential-role-update/{id}", [CredentialRoleController::class, "updateRole"]);
-    Route::post("/master-credential-role-delete/{id}", [CredentialRoleController::class, "deleteRole"]);
-    Route::post("/master-credential-role-grant-all/{id}", [CredentialRoleController::class, "grantAllPermissions"]);
-    Route::post("/master-credential-role-revoke-all/{id}", [CredentialRoleController::class, "revokeAllPermissions"]);
-    Route::post("/master-credential-role-menu-create", [CredentialRoleController::class, "createMenuItem"]);
-    Route::post("/master-credential-role-menu-update", [CredentialRoleController::class, "updateMenuItem"]);
-    Route::post("/master-credential-role-menu-delete", [CredentialRoleController::class, "deleteMenuItem"]);
-    Route::get("/master-credential-role-menu-tree", [CredentialRoleController::class, "menuTree"])->name("master.credential.role.menu.tree");
-    Route::post("/master-credential-role-menu-create-cascade", [CredentialRoleController::class, "createMenuItemCascade"])->name("master.credential.role.menu.create.cascade");
-
-    Route::get("/credential-user-management", [CredentialUserController::class, "index"]);
-    Route::get("/credential-create-user", [CredentialUserController::class, "createUser"]);
-    Route::get("/master-credential-user-list", [CredentialUserController::class, "userListData"]);
-    Route::get("/master-credential-candidate-without-account", [CredentialUserController::class, "candidatesWithoutAccount"]);
-    Route::post("/credential-create-candidate-account", [CredentialUserController::class, "createCandidateAccount"]);
-    Route::post("/credential-create-user-submit", [CredentialUserController::class, "createUserSubmit"]);
 
     Route::get("/candidate/dashboard", [CandidateController::class, "dashboard"]);
     Route::get("/candidate/profile", [CandidateController::class, "profile"]);
@@ -434,14 +400,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("/candidate/offering-upload", [CandidateController::class, "uploadSignedOffering"]);
     Route::get("/candidate/password", [CandidateController::class, "passwordForm"]);
     Route::post("/candidate/password-update", [CandidateController::class, "passwordUpdate"]);
-    Route::post("/master-credential-user-update", [CredentialUserController::class, "updateUser"]);
-    Route::post("/master-credential-user-delete", [CredentialUserController::class, "deleteUser"]);
-
-    // Privilege & Role Access Mappings
-    Route::get("/credential-privilege-mapping", [\App\Http\Controllers\Credential\PrivilegeMappingController::class, "index"]);
-    Route::get("/credential-privilege-mapping-data", [\App\Http\Controllers\Credential\PrivilegeMappingController::class, "data"]);
-    Route::post("/credential-privilege-mapping-store", [\App\Http\Controllers\Credential\PrivilegeMappingController::class, "store"]);
-    Route::post("/credential-privilege-mapping-delete", [\App\Http\Controllers\Credential\PrivilegeMappingController::class, "destroy"]);
 
     Route::get('/accounting-project-posted', function () {
 
@@ -2904,18 +2862,6 @@ Route::group(['middleware' => 'log.access'], function () {
     });
 
 
-    Route::get('/credential-maillog', function () {
-        return view('credential.maillog');
-    });
-
-    Route::post('/credential-maillog-update', function () {
-        return view('credential.maillog-update');
-    });
-
-    Route::get('/xml-credential-maillog', function () {
-        return view('credential.xml.maillog');
-    });
-
     Route::get('/xml-accounting-report-coa', function () {
         return view('accounting.report.xml.coa');
     });
@@ -3009,15 +2955,6 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('finance.invoice-cancel-update');
     });
 
-    Route::get('credential-organization', function () {
-        return view('credential.organization');
-    });
-    Route::get('/xml-credential-organization', function () {
-        return view('credential.xml.organization');
-    });
-    Route::post('/credential-organization-update', function () {
-        return view('credential.organization-update');
-    });
 
     Route::get('/home-businesspartner', function () {
         return view('home-businesspartner');

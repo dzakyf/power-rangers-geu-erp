@@ -81,7 +81,6 @@ foreach ($credMenus as $m) {
                                 <h5 class="title">Role Management</h5>
                                 <a class="dropdown-item" href="credential-role">Role Management</a>
                                 <a class="dropdown-item" href="credential-privilege-mapping">Privilege Mapping</a>
-                                <a class="dropdown-item" href="credential-structure">Approval Management Structures</a>
                             </div>
                         @endforelse
   
