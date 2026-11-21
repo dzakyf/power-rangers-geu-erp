@@ -8,6 +8,10 @@ class AddPriceToMasterFacilityTable extends Migration
 {
     public function up()
     {
+        if (!Schema::hasTable('master_facility') || Schema::hasColumn('master_facility', 'price')) {
+            return;
+        }
+
         Schema::table('master_facility', function (Blueprint $table) {
             $table->decimal('price', 15, 2)->nullable()->after('shelf_life');
         });
@@ -15,6 +19,10 @@ class AddPriceToMasterFacilityTable extends Migration
 
     public function down()
     {
+        if (!Schema::hasTable('master_facility') || !Schema::hasColumn('master_facility', 'price')) {
+            return;
+        }
+
         Schema::table('master_facility', function (Blueprint $table) {
             $table->dropColumn('price');
         });

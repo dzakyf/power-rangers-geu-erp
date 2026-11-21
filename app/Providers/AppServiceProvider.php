@@ -39,11 +39,19 @@ class AppServiceProvider extends ServiceProvider
         // Register per-module migration paths for every enabled module. The
         // single shared `migrations` ledger means these are additive: a slim
         // deployment only loads its own module folders (see config/modules.php).
-        foreach (Modules::enabled() as $module) {
-            $path = database_path("migrations/{$module}");
+        $migrationDirs = (array) config('modules.migration_dirs', []);
 
-            if (is_dir($path)) {
-                $this->loadMigrationsFrom($path);
+        foreach (Modules::enabled() as $module) {
+            $dirs = array_key_exists($module, $migrationDirs)
+                ? (array) $migrationDirs[$module]
+                : [$module];
+
+            foreach ($dirs as $dir) {
+                $path = database_path("migrations/{$dir}");
+
+                if (is_dir($path)) {
+                    $this->loadMigrationsFrom($path);
+                }
             }
         }
     }

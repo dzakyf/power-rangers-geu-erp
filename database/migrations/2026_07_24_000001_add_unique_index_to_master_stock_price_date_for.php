@@ -9,6 +9,10 @@ class AddUniqueIndexToMasterStockPriceDateFor extends Migration
 {
     public function up()
     {
+        if (!Schema::hasTable('master_stock_price')) {
+            return;
+        }
+
         DB::statement('
             DELETE t1 FROM master_stock_price t1
             INNER JOIN master_stock_price t2
@@ -22,6 +26,10 @@ class AddUniqueIndexToMasterStockPriceDateFor extends Migration
 
     public function down()
     {
+        if (!Schema::hasTable('master_stock_price')) {
+            return;
+        }
+
         Schema::table('master_stock_price', function (Blueprint $table) {
             $table->dropUnique(['date_for']);
         });

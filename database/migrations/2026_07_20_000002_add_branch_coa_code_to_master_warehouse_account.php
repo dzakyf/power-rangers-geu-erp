@@ -8,6 +8,10 @@ class AddBranchCoaCodeToMasterWarehouseAccount extends Migration
 {
     public function up()
     {
+        if (!Schema::hasTable('master_warehouse_account') || Schema::hasColumn('master_warehouse_account', 'branch_coa_code')) {
+            return;
+        }
+
         Schema::table('master_warehouse_account', function (Blueprint $table) {
             $table->string('branch_coa_code', 25)->nullable()->after('account_no_coa');
             $table->index('branch_coa_code');
@@ -16,6 +20,10 @@ class AddBranchCoaCodeToMasterWarehouseAccount extends Migration
 
     public function down()
     {
+        if (!Schema::hasTable('master_warehouse_account') || !Schema::hasColumn('master_warehouse_account', 'branch_coa_code')) {
+            return;
+        }
+
         Schema::table('master_warehouse_account', function (Blueprint $table) {
             $table->dropColumn('branch_coa_code');
         });

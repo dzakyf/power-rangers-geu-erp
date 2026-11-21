@@ -44,6 +44,20 @@ return [
     ],
 
     /*
+    | Module => migration directories under database/migrations. A module can
+    | own more than one directory (e.g. core + approval-core). Modules with no
+    | entry fall back to a directory named after the module.
+    */
+    'migration_dirs' => [
+        'core'    => ['core', 'approval-core'],
+        'bp'      => ['bdp'],
+        'finance' => [],
+        'cns'     => ['cns'],
+        'hcga'    => ['hcga'],
+        'legacy'  => ['legacy'],
+    ],
+
+    /*
     | menu_lists.Modules values owned by core itself (not by an optional
     | module). Optional modules contribute theirs via their permission
     | provider's menuModules() method.
