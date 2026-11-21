@@ -13,6 +13,13 @@
 */
 
 return [
+    'credential' => [
+        'app/Modules/Credential',
+        'routes/modules/credential.php',
+        'tests/Feature/Credential',
+        'tests/Unit/Rbac',
+    ],
+
     'bp' => [
         'app/Modules/BusinessPartner',
         'app/Http/Controllers/Partner',

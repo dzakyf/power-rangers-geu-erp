@@ -14,13 +14,14 @@
 
 return [
 
-    'enabled' => array_values(array_filter(array_map('trim', explode(',', (string) env('MODULES', 'core,bp,finance,cns,hcga,legacy'))))),
+    'enabled' => array_values(array_filter(array_map('trim', explode(',', (string) env('MODULES', 'core,credential,bp,finance,cns,hcga,legacy'))))),
 
     /*
     | Module => service provider class. Registered conditionally by
     | App\Providers\AppServiceProvider based on the enabled list.
     */
     'providers' => [
+        'credential' => App\Modules\Credential\Providers\CredentialServiceProvider::class,
         'bp'      => App\Modules\BusinessPartner\Providers\BusinessPartnerServiceProvider::class,
         'finance' => App\Modules\Finance\Providers\FinanceServiceProvider::class,
         'cns'     => App\Modules\CNS\Providers\CNSServiceProvider::class,
@@ -33,12 +34,13 @@ return [
     | pre-existing ERP modules that are not yet extracted.
     */
     'routes' => [
-        'core'    => 'core',
-        'bp'      => 'bp',
-        'finance' => 'finance',
-        'cns'     => 'cns',
-        'hcga'    => 'hcga',
-        'legacy'  => 'legacy',
+        'core'       => 'core',
+        'credential' => 'credential',
+        'bp'         => 'bp',
+        'finance'    => 'finance',
+        'cns'        => 'cns',
+        'hcga'       => 'hcga',
+        'legacy'     => 'legacy',
     ],
 
     /*
@@ -46,6 +48,6 @@ return [
     | module). Optional modules contribute theirs via their permission
     | provider's menuModules() method.
     */
-    'core_menus' => ['CREDENTIAL', 'CANDIDATE'],
+    'core_menus' => ['CANDIDATE'],
 
 ];

@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\CNS;
 
-use App\Http\Controllers\Credential\CredentialRoleController;
+use App\Modules\Credential\Http\Controllers\CredentialRoleController;
 use App\Role;
 use App\Services\CNS\CnsPermissionService;
 use App\User;
