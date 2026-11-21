@@ -4,8 +4,7 @@ namespace App\Services\Finance;
 
 use App\Services\Approval\ApprovalAuthorizationService;
 use App\Services\Approval\ApprovalWorkflowService;
-use App\Services\HCGA\AssetMaintenanceScheduleService;
-use App\Services\HCGA\VehicleFleetService;
+use App\Support\Modules;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
@@ -30,8 +29,8 @@ class FinanceApprovalService
     public function __construct(
         ApprovalWorkflowService $workflow,
         ApprovalAuthorizationService $authorization,
-        AssetMaintenanceScheduleService $maintenanceScheduleService,
-        VehicleFleetService $vehicleFleetService
+        $maintenanceScheduleService = null,
+        $vehicleFleetService = null
     ) {
         $this->workflow = $workflow;
         $this->authorization = $authorization;
@@ -249,7 +248,7 @@ class FinanceApprovalService
 
     public function approveMaintenanceVoucher(int $scheduleId): object
     {
-        return $this->maintenanceScheduleService->confirmScheduleAndNotify($scheduleId);
+        return $this->hcgaMaintenanceScheduleService()->confirmScheduleAndNotify($scheduleId);
     }
 
     public function payVehicleTaxVoucher(
@@ -260,6 +259,35 @@ class FinanceApprovalService
         ?string $bukti = null,
         ?UploadedFile $buktiFile = null
     ): object {
-        return $this->vehicleFleetService->markTaxPaid($taxId, $paidDate, $newDueDate, $username, $bukti, $buktiFile);
+        return $this->hcgaVehicleFleetService()->markTaxPaid($taxId, $paidDate, $newDueDate, $username, $bukti, $buktiFile);
+    }
+
+    private function hcgaService(string $class)
+    {
+        $fqcn = '\\App\\Services\\'.'HCGA\\'.$class;
+
+        if (!Modules::isEnabled('hcga') || !class_exists($fqcn)) {
+            throw new \RuntimeException('HCGA module is not enabled for this deployment.');
+        }
+
+        return app($fqcn);
+    }
+
+    private function hcgaMaintenanceScheduleService()
+    {
+        if ($this->maintenanceScheduleService) {
+            return $this->maintenanceScheduleService;
+        }
+
+        return $this->maintenanceScheduleService = $this->hcgaService('AssetMaintenanceScheduleService');
+    }
+
+    private function hcgaVehicleFleetService()
+    {
+        if ($this->vehicleFleetService) {
+            return $this->vehicleFleetService;
+        }
+
+        return $this->vehicleFleetService = $this->hcgaService('VehicleFleetService');
     }
 }

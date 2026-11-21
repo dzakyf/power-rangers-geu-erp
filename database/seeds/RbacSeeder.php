@@ -7,7 +7,7 @@ use App\Permission;
 use App\User;
 use App\Services\RbacService;
 use App\Services\Rbac\RoleResolver;
-use App\Services\CNS\CnsPermissionService;
+use App\Services\Rbac\PermissionRegistry;
 
 /**
  * Idempotent RBAC seeder.
@@ -23,7 +23,10 @@ class RbacSeeder extends Seeder
     /**
      * Modules managed by the credential-role editor and granted to ADM.
      */
-    private const ADM_MODULES = ['FINANCE', 'HRD', 'MITRA', 'CNS', 'CANDIDATE', 'CREDENTIAL'];
+    private function admModules(): array
+    {
+        return app(PermissionRegistry::class)->menuModules();
+    }
 
     public function run()
     {
@@ -39,8 +42,9 @@ class RbacSeeder extends Seeder
         $menus = DB::table('menu_lists')->get();
         foreach ($menus as $menu) {
             foreach (self::ACTIONS as $action) {
-                $permName = ($menu->Modules === 'CNS' && CnsPermissionService::isCnsMenu($menu->Menu_ID))
-                    ? CnsPermissionService::permissionName($menu->Menu_ID, $action)
+                $provider = app(PermissionRegistry::class)->providerForMenu($menu->Menu_ID);
+                $permName = $provider
+                    ? $provider->permissionName($menu->Menu_ID, $action)
                     : "menu.{$menu->Menu_ID}.{$action}";
 
                 Permission::firstOrCreate(
@@ -62,7 +66,7 @@ class RbacSeeder extends Seeder
         $admRole = Role::where('name', 'ADM')->first();
         if ($admRole) {
             $admMenuIds = DB::table('menu_lists')
-                ->whereIn('Modules', self::ADM_MODULES)
+                ->whereIn('Modules', $this->admModules())
                 ->pluck('Menu_ID');
 
             $existingNames = $admRole->permissions()->pluck('name')->flip();

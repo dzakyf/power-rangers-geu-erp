@@ -8,10 +8,7 @@ use App\Services\Approval\ApprovalAuthorizationService;
 use App\Services\Approval\ApprovalWorkflowService;
 use App\Services\Attendance\AttendanceService;
 use App\Services\Employee\EmployeeMobileService;
-use App\Services\HCGA\AnnouncementService;
-use App\Services\HCGA\CompanyGuidelineService;
-use App\Services\HCGA\ReimbursementMobileService;
-use App\Services\HCGA\SppdMobileService;
+use App\Support\Modules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -30,20 +27,47 @@ class MobileModuleApiController extends Controller
         AttendanceService $attendanceService,
         ApprovalWorkflowService $approvalWorkflow,
         ApprovalAuthorizationService $approvalAuth,
-        SppdMobileService $sppdService,
-        ReimbursementMobileService $reimbursementService,
-        EmployeeMobileService $employeeService,
-        AnnouncementService $announcementService,
-        CompanyGuidelineService $guidelineService
+        EmployeeMobileService $employeeService
     ) {
         $this->attendanceService = $attendanceService;
         $this->approvalWorkflow = $approvalWorkflow;
         $this->approvalAuth = $approvalAuth;
-        $this->sppdService = $sppdService;
-        $this->reimbursementService = $reimbursementService;
         $this->employeeService = $employeeService;
-        $this->announcementService = $announcementService;
-        $this->guidelineService = $guidelineService;
+        $this->sppdService = null;
+        $this->reimbursementService = null;
+        $this->announcementService = null;
+        $this->guidelineService = null;
+    }
+
+    private function hcgaService(string $class)
+    {
+        $fqcn = '\\App\\Services\\'.'HCGA\\'.$class;
+
+        if (!Modules::isEnabled('hcga') || !class_exists($fqcn)) {
+            abort(404, 'Fitur ini tidak tersedia pada deployment ini.');
+        }
+
+        return app($fqcn);
+    }
+
+    private function sppdService()
+    {
+        return $this->sppdService ?: ($this->sppdService = $this->hcgaService('SppdMobileService'));
+    }
+
+    private function reimbursementService()
+    {
+        return $this->reimbursementService ?: ($this->reimbursementService = $this->hcgaService('ReimbursementMobileService'));
+    }
+
+    private function announcementService()
+    {
+        return $this->announcementService ?: ($this->announcementService = $this->hcgaService('AnnouncementService'));
+    }
+
+    private function guidelineService()
+    {
+        return $this->guidelineService ?: ($this->guidelineService = $this->hcgaService('CompanyGuidelineService'));
     }
 
     // =========================================================
@@ -214,14 +238,14 @@ class MobileModuleApiController extends Controller
     {
         $status = $request->input('status');
         $limit = min((int) $request->input('limit', 20), 50);
-        $list = $this->sppdService->getUserSppdList($request->user()->id, $status, $limit);
+        $list = $this->sppdService()->getUserSppdList($request->user()->id, $status, $limit);
 
         return response()->json(['success' => true, 'data' => $list]);
     }
 
     public function sppdDetail(Request $request, $id)
     {
-        $detail = $this->sppdService->getDetail($id, $request->user());
+        $detail = $this->sppdService()->getDetail($id, $request->user());
         if (!$detail) {
             return response()->json(['success' => false, 'message' => 'Data SPPD tidak ditemukan.'], 404);
         }
@@ -232,7 +256,7 @@ class MobileModuleApiController extends Controller
     public function sppdApprovalQueue(Request $request)
     {
         $limit = min((int) $request->input('limit', 20), 50);
-        $queue = $this->sppdService->getApproverQueue($request->user(), $limit);
+        $queue = $this->sppdService()->getApproverQueue($request->user(), $limit);
 
         return response()->json(['success' => true, 'data' => $queue]);
     }
@@ -246,7 +270,7 @@ class MobileModuleApiController extends Controller
             'return_date' => 'required|date|after_or_equal:departure_date',
         ]);
 
-        $result = $this->sppdService->submitNewSppd(array_merge($request->all(), $validated), $request->user());
+        $result = $this->sppdService()->submitNewSppd(array_merge($request->all(), $validated), $request->user());
 
         return response()->json([
             'success' => (bool) ($result['success'] ?? true),
@@ -263,7 +287,7 @@ class MobileModuleApiController extends Controller
             'note' => 'nullable|string|max:500',
         ]);
 
-        $result = $this->sppdService->processApproval(
+        $result = $this->sppdService()->processApproval(
             $validated['sppd_id'],
             strtoupper($validated['action']),
             (string) ($validated['note'] ?? ''),
@@ -285,14 +309,14 @@ class MobileModuleApiController extends Controller
     {
         $status = strtoupper((string) $request->input('status', 'ALL'));
         $limit = min((int) $request->input('limit', 30), 50);
-        $list = $this->reimbursementService->getUserReimbursementList((int) $request->user()->id, $status, $limit);
+        $list = $this->reimbursementService()->getUserReimbursementList((int) $request->user()->id, $status, $limit);
 
         return response()->json(['success' => true, 'data' => $list]);
     }
 
     public function reimbursementDetail(Request $request, $id)
     {
-        $detail = $this->reimbursementService->getDetail($id, $request->user());
+        $detail = $this->reimbursementService()->getDetail($id, $request->user());
         if (!$detail) {
             return response()->json(['success' => false, 'message' => 'Data reimbursement tidak ditemukan.'], 404);
         }
@@ -303,7 +327,7 @@ class MobileModuleApiController extends Controller
     public function reimbursementApprovalQueue(Request $request)
     {
         $limit = min((int) $request->input('limit', 30), 50);
-        $queue = $this->reimbursementService->getApproverQueue($request->user(), $limit);
+        $queue = $this->reimbursementService()->getApproverQueue($request->user(), $limit);
 
         return response()->json(['success' => true, 'data' => $queue]);
     }
@@ -352,14 +376,14 @@ class MobileModuleApiController extends Controller
 
     public function announcements(Request $request)
     {
-        $feed = $this->announcementService->getMobileFeed($request, $request->user());
+        $feed = $this->announcementService()->getMobileFeed($request, $request->user());
 
         return response()->json(['success' => true, 'data' => $feed]);
     }
 
     public function announcementDetail($id)
     {
-        $detail = $this->announcementService->getDetail($id, true);
+        $detail = $this->announcementService()->getDetail($id, true);
         if (!$detail) {
             return response()->json(['success' => false, 'message' => 'Pengumuman tidak ditemukan.'], 404);
         }
@@ -373,14 +397,14 @@ class MobileModuleApiController extends Controller
 
     public function guidelines()
     {
-        $grouped = $this->guidelineService->getActiveGuidelinesGrouped();
+        $grouped = $this->guidelineService()->getActiveGuidelinesGrouped();
 
         return response()->json(['success' => true, 'data' => $grouped]);
     }
 
     public function guidelineDetail($id)
     {
-        $detail = $this->guidelineService->findById($id);
+        $detail = $this->guidelineService()->findById($id);
         if (!$detail) {
             return response()->json(['success' => false, 'message' => 'Pedoman perusahaan tidak ditemukan.'], 404);
         }

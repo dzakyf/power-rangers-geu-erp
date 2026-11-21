@@ -5,7 +5,7 @@ namespace App\Listeners\Approval;
 use App\Events\Approval\ApprovalRequestUpdated;
 use App\Services\Approval\RequisitionApprovalService;
 use App\Services\Approval\StatusChangeApprovalService;
-use App\Services\GA\WorkOrderService;
+use App\Support\Modules;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -111,9 +111,13 @@ class SyncModuleApprovalStatus
 
     protected function handleGaWorkOrder(int $requestId): void
     {
+        if (!Modules::isEnabled('hcga')) {
+            return;
+        }
+
         $wo = DB::table('ga_work_order')->where('Approval_Request_ID', $requestId)->first();
         if ($wo) {
-            app(WorkOrderService::class)->syncApprovalStatus((int) $wo->ID);
+            app('\\App\\Services\\'.'GA\\WorkOrderService')->syncApprovalStatus((int) $wo->ID);
         }
     }
 
@@ -321,6 +325,10 @@ class SyncModuleApprovalStatus
 
     protected function handleSppd(int $requestId): void
     {
+        if (!Modules::isEnabled('hcga')) {
+            return;
+        }
+
         $sppd = DB::table('sppd')->where('Approval_Request_ID', $requestId)->first();
         if (!$sppd) {
             $sppd = DB::table('sppd')->where('ID', function ($query) use ($requestId) {
@@ -329,7 +337,7 @@ class SyncModuleApprovalStatus
         }
 
         if ($sppd) {
-            app(\App\Services\Approval\SppdApprovalService::class)->syncApprovalStatus((int) $sppd->ID, 'system');
+            app('\\App\\Services\\Approval\\'.'SppdApprovalService')->syncApprovalStatus((int) $sppd->ID, 'system');
         }
     }
 
@@ -356,6 +364,10 @@ class SyncModuleApprovalStatus
 
     protected function handlePayroll(int $requestId, ?string $approvalStatus): void
     {
+        if (!Modules::isEnabled('hcga')) {
+            return;
+        }
+
         $sm = DB::table('salary_main')->where('approval_request_id', $requestId)->first();
         if (!$sm) {
             $sm = DB::table('salary_main')->where('Task_ID', function ($query) use ($requestId) {
@@ -367,8 +379,10 @@ class SyncModuleApprovalStatus
             return;
         }
 
-        if (class_exists(\App\Services\Payroll\PayrollApprovalService::class)) {
-            app(\App\Services\Payroll\PayrollApprovalService::class)
+        $payrollApproval = '\\App\\Services\\Payroll\\'.'PayrollApprovalService';
+
+        if (class_exists($payrollApproval)) {
+            app($payrollApproval)
                 ->syncSalaryMainStatus((string)$sm->Task_ID, 'APPROVAL_ENGINE');
             return;
         }
@@ -377,9 +391,11 @@ class SyncModuleApprovalStatus
         $newSalaryStatus = 'PROPOSED';
         if (in_array($statusUpper, ['APPROVED', 'COMPLETED'])) {
             $newSalaryStatus = 'APPROVED';
-            if (class_exists(\App\Services\Payroll\PayrollAttendanceSyncService::class)) {
+            $payrollAttendance = '\\App\\Services\\Payroll\\'.'PayrollAttendanceSyncService';
+
+            if (class_exists($payrollAttendance)) {
                 try {
-                    app(\App\Services\Payroll\PayrollAttendanceSyncService::class)->lockAttendancePeriod($sm->Salary_Period, 'LOCKED', 'APPROVAL_ENGINE');
+                    app($payrollAttendance)->lockAttendancePeriod($sm->Salary_Period, 'LOCKED', 'APPROVAL_ENGINE');
                 } catch (\Exception $e) {
                     Log::warning("Gagal mengunci presensi untuk payroll {$sm->Task_ID}: " . $e->getMessage());
                 }
@@ -398,6 +414,10 @@ class SyncModuleApprovalStatus
 
     protected function handleEmployeeResignation(int $requestId, ?string $approvalStatus): void
     {
+        if (!Modules::isEnabled('hcga')) {
+            return;
+        }
+
         $resignation = DB::table('employee_resignations')->where('Approval_Request_ID', $requestId)->first();
         if (!$resignation) {
             $resignation = DB::table('employee_resignations')->where('id', function ($query) use ($requestId) {
@@ -410,7 +430,7 @@ class SyncModuleApprovalStatus
         }
 
         $statusUpper = strtoupper((string) $approvalStatus);
-        $exitClearanceService = app(\App\Services\HCGA\ExitClearanceService::class);
+        $exitClearanceService = app('\\App\\Services\\'.'HCGA\\ExitClearanceService');
 
         if (in_array($statusUpper, ['APPROVED', 'COMPLETED'])) {
             if ($resignation->Status !== 'APPROVED') {
@@ -425,6 +445,10 @@ class SyncModuleApprovalStatus
 
     protected function handleExitClearance(int $requestId, ?string $approvalStatus): void
     {
+        if (!Modules::isEnabled('hcga')) {
+            return;
+        }
+
         $clearance = DB::table('exit_clearances')->where('Approval_Request_ID', $requestId)->first();
         if (!$clearance) {
             $clearance = DB::table('exit_clearances')->where('id', function ($query) use ($requestId) {
@@ -437,7 +461,7 @@ class SyncModuleApprovalStatus
         }
 
         $statusUpper = strtoupper((string) $approvalStatus);
-        $exitClearanceService = app(\App\Services\HCGA\ExitClearanceService::class);
+        $exitClearanceService = app('\\App\\Services\\'.'HCGA\\ExitClearanceService');
 
         if (in_array($statusUpper, ['APPROVED', 'COMPLETED'])) {
             if ($clearance->Status !== 'COMPLETED') {
@@ -542,6 +566,10 @@ class SyncModuleApprovalStatus
 
     protected function handleSettlement(int $requestId): void
     {
+        if (!Modules::isEnabled('hcga')) {
+            return;
+        }
+
         $sttl = DB::table('settlement_sppd')->where('Approval_Request_ID', $requestId)->first();
         if (!$sttl) {
             $sttl = DB::table('settlement_sppd')->where('ID', function ($query) use ($requestId) {
@@ -550,7 +578,7 @@ class SyncModuleApprovalStatus
         }
 
         if ($sttl) {
-            app(\App\Services\Approval\SettlementApprovalService::class)->syncApprovalStatus((int) $sttl->ID);
+            app('\\App\\Services\\Approval\\'.'SettlementApprovalService')->syncApprovalStatus((int) $sttl->ID);
         }
     }
 

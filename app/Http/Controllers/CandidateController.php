@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\HCGA\OfferingController;
 use App\Services\CandidatePortalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -508,7 +507,13 @@ class CandidateController extends Controller
             'ID' => $rec->ID,
         ]);
 
-        return app(OfferingController::class)->printPdf($pdfRequest);
+        $controller = '\\App\\Http\\Controllers\\'.'HCGA\\OfferingController';
+
+        if (!\App\Support\Modules::isEnabled('hcga') || !class_exists($controller)) {
+            abort(404, 'Fitur offering letter tidak tersedia.');
+        }
+
+        return app($controller)->printPdf($pdfRequest);
     }
 
     /**

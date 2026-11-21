@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Rbac\PermissionRegistry;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,7 +28,7 @@ class EnsureMenuPermission
         }
 
         $key = $method . ' ' . ltrim($route->uri(), '/');
-        $requirements = config('bdp_rbac.' . $key);
+        $requirements = app(PermissionRegistry::class)->routeRequirements()[$key] ?? null;
 
         if (!$requirements) {
             return $next($request);

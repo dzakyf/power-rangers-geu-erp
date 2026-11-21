@@ -6,7 +6,7 @@ use App\Attendance;
 use App\AttendanceMain;
 use App\Services\Attendance\AttendanceService;
 use App\Services\Employee\EmployeeMobileService;
-use App\Services\HCGA\AnnouncementService;
+use App\Support\Modules;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,13 +19,13 @@ class MobileDashboardService
     protected $attendanceService;
 
     public function __construct(
-        AnnouncementService $announcementService,
         EmployeeMobileService $employeeMobileService,
-        AttendanceService $attendanceService
+        AttendanceService $attendanceService,
+        $announcementService = null
     ) {
-        $this->announcementService = $announcementService;
         $this->employeeMobileService = $employeeMobileService;
         $this->attendanceService = $attendanceService;
+        $this->announcementService = $announcementService;
     }
 
     /**
@@ -77,11 +77,15 @@ class MobileDashboardService
         $latestAnnouncements = collect([]);
         try {
             $feedRequest = new Request(['limit' => 3]);
-            $feed = $this->announcementService->getMobileFeed($feedRequest, $user);
-            if ($feed instanceof \Illuminate\Pagination\AbstractPaginator) {
-                $latestAnnouncements = collect($feed->items())->take(3);
-            } else {
-                $latestAnnouncements = collect($feed)->take(3);
+            $announcements = $this->announcementService();
+
+            if ($announcements) {
+                $feed = $announcements->getMobileFeed($feedRequest, $user);
+                if ($feed instanceof \Illuminate\Pagination\AbstractPaginator) {
+                    $latestAnnouncements = collect($feed->items())->take(3);
+                } else {
+                    $latestAnnouncements = collect($feed)->take(3);
+                }
             }
         } catch (\Throwable $e) {
             $latestAnnouncements = collect([]);
@@ -365,5 +369,20 @@ class MobileDashboardService
         ];
 
         return compact('locations', 'availableShifts', 'colleagues', 'schedule', 'leaveBalance', 'essItems');
+    }
+
+    private function announcementService()
+    {
+        if ($this->announcementService) {
+            return $this->announcementService;
+        }
+
+        $class = '\\App\\Services\\'.'HCGA\\AnnouncementService';
+
+        if (!Modules::isEnabled('hcga') || !class_exists($class)) {
+            return null;
+        }
+
+        return $this->announcementService = app($class);
     }
 }

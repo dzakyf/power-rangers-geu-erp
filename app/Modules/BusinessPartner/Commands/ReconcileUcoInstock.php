@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Modules\BusinessPartner\Commands;
 
 use App\Services\Partner\PickupUnitService;
 use Illuminate\Console\Command;
