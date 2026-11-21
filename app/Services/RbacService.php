@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\User;
 use App\Permission;
-use App\Services\CNS\CnsPermissionService;
+use App\Services\Rbac\PermissionRegistry;
 use Illuminate\Support\Facades\DB;
 
 class RbacService
@@ -32,8 +32,17 @@ class RbacService
             if (!$menuId) {
                 if (preg_match('/^menu\.([A-Z0-9]+)\.view$/', $perm->name, $matches)) {
                     $menuId = $matches[1];
-                } elseif (preg_match('/^cns\.([a-z0-9_]+)\.view$/', $perm->name, $matches)) {
-                    $menuId = CnsPermissionService::getMenuId($matches[1]);
+                } else {
+                    $registry = app(PermissionRegistry::class);
+
+                    foreach ($registry->all() as $provider) {
+                        $prefix = preg_quote($provider->prefix(), '/');
+
+                        if (preg_match("/^{$prefix}\.([a-z0-9_]+)\.view$/", $perm->name, $matches)) {
+                            $menuId = $provider->menuIdForSlug($matches[1]);
+                            break;
+                        }
+                    }
                 }
             }
 

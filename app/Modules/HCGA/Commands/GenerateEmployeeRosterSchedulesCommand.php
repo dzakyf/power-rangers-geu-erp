@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Modules\HCGA\Commands;
 
 use App\Models\HCGA\EmployeeRosterAssignment;
 use App\Services\HCGA\RosterScheduleService;

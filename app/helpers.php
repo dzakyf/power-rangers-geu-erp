@@ -9,37 +9,13 @@ if (!function_exists('can_menu')) {
 
         $user = auth()->user();
 
-        if (\App\Services\CNS\CnsPermissionService::isCnsMenu($menuId)) {
-            $cnsPerm = \App\Services\CNS\CnsPermissionService::permissionName($menuId, $action);
-            if ($user->can($cnsPerm)) {
-                return true;
-            }
+        $provider = app(\App\Services\Rbac\PermissionRegistry::class)->providerForMenu($menuId);
+
+        if ($provider && $user->can($provider->permissionName($menuId, $action))) {
+            return true;
         }
 
         return $user->can("menu.{$menuId}.{$action}");
-    }
-}
-
-if (!function_exists('cns_can')) {
-    function cns_can(string $menuSlug, string $action = 'view'): bool
-    {
-        if (!auth()->check()) {
-            return false;
-        }
-
-        $user = auth()->user();
-        $perm = "cns.{$menuSlug}.{$action}";
-
-        if ($user->can($perm)) {
-            return true;
-        }
-
-        $menuId = \App\Services\CNS\CnsPermissionService::getMenuId($menuSlug);
-        if ($menuId && $user->can("menu.{$menuId}.{$action}")) {
-            return true;
-        }
-
-        return false;
     }
 }
 
@@ -277,7 +253,13 @@ if (!function_exists('employee_grid_cell')) {
             return (isset($map[$locId]) && $map[$locId] !== '') ? (string) $map[$locId] : $locId;
         }
         if ($key === 'thr_scheme') {
-            return \App\Services\HCGA\EmployeeThrSchemeService::label($row->thr_scheme ?? null);
+            $service = '\\App\\Services\\'.'HCGA\\EmployeeThrSchemeService';
+
+            if (!\App\Support\Modules::isEnabled('hcga') || !class_exists($service)) {
+                return (string) ($row->thr_scheme ?? '');
+            }
+
+            return $service::label($row->thr_scheme ?? null);
         }
         return isset($row->$key) ? (string) $row->$key : '';
     }

@@ -4,8 +4,15 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\MobileAuthApiController;
 use App\Http\Controllers\Api\V1\MobileDashboardApiController;
 use App\Http\Controllers\Api\V1\MobileModuleApiController;
-use App\Http\Controllers\HCGA\AttendancesController;
 use App\Http\Controllers\UserController;
+use App\Support\Modules;
+
+if (!function_exists('hcga_api_controller')) {
+    function hcga_api_controller(string $class): string
+    {
+        return '\\App\\Http\\Controllers\\'.'HCGA\\'.$class;
+    }
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -27,27 +34,29 @@ Route::middleware('auth:api')->group(function () {
 
     Route::get('/user', [UserController::class, 'AuthRouteAPI']);
 
-    // Attendance / Absensi API (mobile & self-service)
-    Route::get('/attendance/list', [AttendancesController::class, 'apiList']);
-    Route::get('/attendance/{periode}/entries', [AttendancesController::class, 'apiEntriesByPeriode']);
-    Route::get('/attendance/scan/today', [AttendancesController::class, 'apiTodayScan']);
-    Route::post('/attendance/scan', [AttendancesController::class, 'apiScan']);
-    Route::put('/attendance/scan/{id}', [AttendancesController::class, 'apiUpdateScan']);
-    Route::patch('/attendance/scan/{id}', [AttendancesController::class, 'apiUpdateScan']);
+    if (Modules::isEnabled('hcga')) {
+        // Attendance / Absensi API (mobile & self-service)
+        Route::get('/attendance/list', [hcga_api_controller('AttendancesController'), 'apiList']);
+        Route::get('/attendance/{periode}/entries', [hcga_api_controller('AttendancesController'), 'apiEntriesByPeriode']);
+        Route::get('/attendance/scan/today', [hcga_api_controller('AttendancesController'), 'apiTodayScan']);
+        Route::post('/attendance/scan', [hcga_api_controller('AttendancesController'), 'apiScan']);
+        Route::put('/attendance/scan/{id}', [hcga_api_controller('AttendancesController'), 'apiUpdateScan']);
+        Route::patch('/attendance/scan/{id}', [hcga_api_controller('AttendancesController'), 'apiUpdateScan']);
 
-    // Extended Attendance & Timesheet APIs (GPS Geofence, Clock-in/out, Requests)
-    Route::post('/attendance/clock-in', [AttendancesController::class, 'apiClockIn']);
-    Route::post('/attendance/clock-out', [AttendancesController::class, 'apiClockOut']);
-    Route::get('/attendance/timesheet', [AttendancesController::class, 'apiTimesheet']);
-    Route::post('/attendance/request/leave', [AttendancesController::class, 'apiSubmitLeave']);
-    Route::post('/attendance/request/correction', [AttendancesController::class, 'apiSubmitCorrection']);
+        // Extended Attendance & Timesheet APIs (GPS Geofence, Clock-in/out, Requests)
+        Route::post('/attendance/clock-in', [hcga_api_controller('AttendancesController'), 'apiClockIn']);
+        Route::post('/attendance/clock-out', [hcga_api_controller('AttendancesController'), 'apiClockOut']);
+        Route::get('/attendance/timesheet', [hcga_api_controller('AttendancesController'), 'apiTimesheet']);
+        Route::post('/attendance/request/leave', [hcga_api_controller('AttendancesController'), 'apiSubmitLeave']);
+        Route::post('/attendance/request/correction', [hcga_api_controller('AttendancesController'), 'apiSubmitCorrection']);
 
-    // SPPD Mobile REST APIs (Native / Webview mobile)
-    Route::get('/sppd/list', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiList']);
-    Route::get('/sppd/approval/queue', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiApprovalQueue']);
-    Route::get('/sppd/{id}', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiDetail']);
-    Route::post('/sppd/submit', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiSubmit']);
-    Route::post('/sppd/approval/process', [\App\Http\Controllers\HCGA\SppdMobileController::class, 'apiProcessApproval']);
+        // SPPD Mobile REST APIs (Native / Webview mobile)
+        Route::get('/sppd/list', [hcga_api_controller('SppdMobileController'), 'apiList']);
+        Route::get('/sppd/approval/queue', [hcga_api_controller('SppdMobileController'), 'apiApprovalQueue']);
+        Route::get('/sppd/{id}', [hcga_api_controller('SppdMobileController'), 'apiDetail']);
+        Route::post('/sppd/submit', [hcga_api_controller('SppdMobileController'), 'apiSubmit']);
+        Route::post('/sppd/approval/process', [hcga_api_controller('SppdMobileController'), 'apiProcessApproval']);
+    }
 });
 
 /*
@@ -80,16 +89,23 @@ Route::prefix('v1/mobile')->middleware(['mobile.security'])->group(function () {
         // 1. Attendance & Timesheet
         Route::prefix('attendance')->group(function () {
             Route::get('/summary', [MobileModuleApiController::class, 'attendanceSummary'])->middleware('ability:mobile:read');
-            Route::get('/timesheet', [AttendancesController::class, 'apiTimesheet'])->middleware('ability:mobile:read');
+            if (Modules::isEnabled('hcga')) {
+                Route::get('/timesheet', [hcga_api_controller('AttendancesController'), 'apiTimesheet'])->middleware('ability:mobile:read');
+            }
             Route::post('/clock-in', [MobileModuleApiController::class, 'attendanceClockIn'])->middleware('ability:mobile:write');
             Route::post('/clock-out', [MobileModuleApiController::class, 'attendanceClockOut'])->middleware('ability:mobile:write');
             Route::post('/leave', [MobileModuleApiController::class, 'attendanceLeave'])->middleware('ability:mobile:write');
-            Route::post('/leave/cancel', [AttendancesController::class, 'apiCancelLeave'])->middleware('ability:mobile:write');
+            if (Modules::isEnabled('hcga')) {
+                Route::post('/leave/cancel', [hcga_api_controller('AttendancesController'), 'apiCancelLeave'])->middleware('ability:mobile:write');
+            }
             Route::post('/correction', [MobileModuleApiController::class, 'attendanceCorrection'])->middleware('ability:mobile:write');
-            Route::post('/overtime/preview', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'apiCalculatePreview'])->middleware('ability:mobile:read');
-            Route::post('/overtime', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'storeOvertimeRequest'])->middleware('ability:mobile:write');
-            Route::get('/change-shift/schedule', [\App\Http\Controllers\HCGA\ShiftExchangeController::class, 'getScheduleByDate'])->middleware('ability:mobile:read');
-            Route::post('/change-shift', [\App\Http\Controllers\HCGA\ShiftExchangeController::class, 'submitChangeShift'])->middleware('ability:mobile:write');
+
+            if (Modules::isEnabled('hcga')) {
+                Route::post('/overtime/preview', [hcga_api_controller('OvertimeRequestController'), 'apiCalculatePreview'])->middleware('ability:mobile:read');
+                Route::post('/overtime', [hcga_api_controller('OvertimeRequestController'), 'storeOvertimeRequest'])->middleware('ability:mobile:write');
+                Route::get('/change-shift/schedule', [hcga_api_controller('ShiftExchangeController'), 'getScheduleByDate'])->middleware('ability:mobile:read');
+                Route::post('/change-shift', [hcga_api_controller('ShiftExchangeController'), 'submitChangeShift'])->middleware('ability:mobile:write');
+            }
         });
 
         // 2. Approval Inbox

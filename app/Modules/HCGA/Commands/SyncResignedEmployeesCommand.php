@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Modules\HCGA\Commands;
 
 use App\Services\HCGA\ExitClearanceService;
 use Illuminate\Console\Command;

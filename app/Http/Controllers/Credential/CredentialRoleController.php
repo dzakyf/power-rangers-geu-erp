@@ -8,14 +8,46 @@ use Illuminate\Support\Facades\DB;
 use App\Role;
 use App\Permission;
 use App\Services\RbacService;
-use App\Services\CNS\CnsPermissionService;
+use App\Services\Rbac\PermissionRegistry;
 
 class CredentialRoleController extends Controller
 {
     /**
      * Modules exposed by the credential-role permission editor.
      */
-    private const ALLOWED_MODULES = ['FINANCE', 'HRD', 'MITRA', 'CNS', 'CANDIDATE', 'CREDENTIAL'];
+    private function allowedModules(): array
+    {
+        return $this->registry()->menuModules();
+    }
+
+    private function registry(): PermissionRegistry
+    {
+        return app(PermissionRegistry::class);
+    }
+
+    private function permissionName(string $menuId, string $action): string
+    {
+        $provider = $this->registry()->providerForMenu($menuId);
+
+        return $provider
+            ? $provider->permissionName($menuId, $action)
+            : "menu.{$menuId}.{$action}";
+    }
+
+    private function modulePermissionNames(): array
+    {
+        $names = [];
+
+        foreach ($this->registry()->all() as $provider) {
+            foreach ($provider->allMenuSlugs() as $slug) {
+                foreach (self::MENU_ACTIONS as $action) {
+                    $names[] = $provider->prefix().".{$slug}.{$action}";
+                }
+            }
+        }
+
+        return $names;
+    }
 
     /**
      * CRUD actions granted as menu.{Menu_ID}.{action} permissions.
@@ -107,7 +139,7 @@ class CredentialRoleController extends Controller
         $role = Role::findOrFail($roleId);
         $rolePermissionNames = $role->permissions->pluck('name')->toArray();
 
-        $allowedModules = self::ALLOWED_MODULES;
+        $allowedModules = $this->allowedModules();
 
         $menus = DB::table('menu_lists')
             ->whereIn('Modules', $allowedModules)
@@ -129,9 +161,7 @@ class CredentialRoleController extends Controller
                 'urutan' => $menu->Urutan,
             ];
             foreach ($actions as $action) {
-                $permName = ($menu->Modules === 'CNS' && CnsPermissionService::isCnsMenu($menu->Menu_ID))
-                    ? CnsPermissionService::permissionName($menu->Menu_ID, $action)
-                    : "menu.{$menu->Menu_ID}.{$action}";
+                $permName = $this->permissionName($menu->Menu_ID, $action);
                 $row[$action] = in_array($permName, $rolePermissionNames);
             }
             return $row;
@@ -157,26 +187,18 @@ class CredentialRoleController extends Controller
 
         $permissionNames = [];
         foreach ($permissionInput as $menuId => $actions) {
-            $isCns = CnsPermissionService::isCnsMenu($menuId);
             foreach ($actions as $action => $checked) {
                 if (filter_var($checked, FILTER_VALIDATE_BOOLEAN)) {
-                    $permissionNames[] = $isCns
-                        ? CnsPermissionService::permissionName($menuId, $action)
-                        : "menu.{$menuId}.{$action}";
+                    $permissionNames[] = $this->permissionName($menuId, $action);
                 }
             }
         }
 
-        // Preserve standalone permissions (not menu.* and not cns menu permissions)
-        $cnsMenuPerms = [];
-        foreach (CnsPermissionService::allMenuSlugs() as $mId => $slug) {
-            foreach (self::MENU_ACTIONS as $act) {
-                $cnsMenuPerms[] = "cns.{$slug}.{$act}";
-            }
-        }
+        // Preserve standalone permissions (not menu.* and not module menu permissions)
+        $moduleMenuPerms = $this->modulePermissionNames();
         $standalone = $role->permissions()
             ->where('name', 'not like', 'menu.%')
-            ->whereNotIn('name', $cnsMenuPerms)
+            ->whereNotIn('name', $moduleMenuPerms)
             ->pluck('name')
             ->toArray();
 
@@ -315,7 +337,7 @@ class CredentialRoleController extends Controller
 
         $role = Role::findOrFail($id);
 
-        $allowedModules = self::ALLOWED_MODULES;
+        $allowedModules = $this->allowedModules();
 
         $menus = DB::table('menu_lists')
             ->whereIn('Modules', $allowedModules)
@@ -323,11 +345,8 @@ class CredentialRoleController extends Controller
 
         $permissionNames = [];
         foreach ($menus as $menu) {
-            $isCns = $menu->Modules === 'CNS' && CnsPermissionService::isCnsMenu($menu->Menu_ID);
             foreach (['view', 'create', 'edit', 'delete', 'approve'] as $action) {
-                $permissionNames[] = $isCns
-                    ? CnsPermissionService::permissionName($menu->Menu_ID, $action)
-                    : "menu.{$menu->Menu_ID}.{$action}";
+                $permissionNames[] = $this->permissionName($menu->Menu_ID, $action);
             }
         }
 
@@ -417,9 +436,7 @@ class CredentialRoleController extends Controller
         ]);
 
         foreach (['view', 'create', 'edit', 'delete', 'approve'] as $action) {
-            $permName = ($module === 'CNS' && CnsPermissionService::isCnsMenu($menuId))
-                ? CnsPermissionService::permissionName($menuId, $action)
-                : "menu.{$menuId}.{$action}";
+            $permName = $this->permissionName($menuId, $action);
 
             Permission::firstOrCreate(
                 ['name' => $permName, 'guard_name' => 'web'],
@@ -518,7 +535,7 @@ class CredentialRoleController extends Controller
         }
 
         $rows = DB::table('menu_lists')
-            ->whereIn('Modules', self::ALLOWED_MODULES)
+            ->whereIn('Modules', $this->allowedModules())
             ->orderBy('Position')
             ->orderBy('Urutan')
             ->get(['ID', 'Menu_ID', 'Name', 'Parent_Menu', 'Position', 'Modules']);
@@ -565,9 +582,7 @@ class CredentialRoleController extends Controller
         ]);
 
         foreach (self::MENU_ACTIONS as $action) {
-            $permName = ($module === 'CNS' && CnsPermissionService::isCnsMenu($menuId))
-                ? CnsPermissionService::permissionName($menuId, $action)
-                : "menu.{$menuId}.{$action}";
+            $permName = $this->permissionName($menuId, $action);
 
             Permission::firstOrCreate(
                 ['name' => $permName, 'guard_name' => 'web'],
@@ -614,7 +629,7 @@ class CredentialRoleController extends Controller
                 // ---- Level 1: module root ---------------------------------
                 if (trim((string) $request->input('root_new')) !== '') {
                     $rootModule = strtoupper(trim((string) $request->input('root_module')));
-                    if (!in_array($rootModule, self::ALLOWED_MODULES, true)) {
+                    if (!in_array($rootModule, $this->allowedModules(), true)) {
                         throw new \InvalidArgumentException('A valid module is required for a new module root.');
                     }
                     $root = $this->insertMenuNode(
