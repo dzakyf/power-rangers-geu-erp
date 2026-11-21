@@ -63,7 +63,7 @@ class TrainingController extends Controller
         $Task_No = $this->scheduleService->generateTaskNo($user);
         $trCategory = DB::table('master_training_hcga_category')->orderBy('Category')->get();
         $programs = HcgaTrainingProgram::where('status', 'ACTIVE')->orderBy('program_name')->get();
-        $tnas = HcgaTnaRequest::with('items')->where('status', 'APPROVED')->orderBy('id', 'desc')->get();
+        $tnas = HcgaTnaRequest::withCount('items')->where('status', 'APPROVED')->orderBy('id', 'desc')->get();
         $trainers = HcgaTrainingTrainer::where('Status', 'ACTIVE')->orderBy('Trainer_Name')->get();
         $employees = DB::table('users')->select('username', 'name', 'Department')->orderBy('name')->get();
         $selectedTnaId = $request->input('tna_id');
@@ -71,6 +71,24 @@ class TrainingController extends Controller
         return view('humanresources.training.training-new', compact(
             'Task_No', 'trCategory', 'programs', 'tnas', 'trainers', 'employees', 'selectedTnaId'
         ));
+    }
+
+    public function tnaPayload(Request $request)
+    {
+        $request->validate([
+            'tna_id' => 'required|integer|exists:hcga_tna_requests,id',
+            'training_id' => 'nullable|integer',
+        ]);
+
+        $payload = $this->scheduleService->getTnaSchedulePayload(
+            (int) $request->input('tna_id'),
+            $request->filled('training_id') ? (int) $request->input('training_id') : null
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $payload,
+        ]);
     }
 
     public function newSubmit(Request $request)
@@ -91,7 +109,11 @@ class TrainingController extends Controller
             ]),
             $request->input('curriculums', []),
             $request->input('participants', []),
-            Auth::user()
+            Auth::user(),
+            null,
+            [
+                'skip_tna_autopopulate' => filter_var($request->input('participants_explicit', false), FILTER_VALIDATE_BOOLEAN),
+            ]
         );
 
         return response()->json([
@@ -104,10 +126,23 @@ class TrainingController extends Controller
     public function detail(Request $request)
     {
         $id = (int) ($request->ID ?: $request->id);
-        $training = HcgaTraining::with(['curriculums', 'participants', 'tna', 'program'])->findOrFail($id);
+        $training = HcgaTraining::with(['curriculums', 'participants.tnaItem', 'tna', 'program'])->findOrFail($id);
         $trCategory = DB::table('master_training_hcga_category')->orderBy('Category')->get();
-        $programs = HcgaTrainingProgram::where('status', 'ACTIVE')->orderBy('program_name')->get();
-        $tnas = HcgaTnaRequest::where('status', 'APPROVED')->orderBy('id', 'desc')->get();
+        $programs = HcgaTrainingProgram::where(function ($q) use ($training) {
+            $q->where('status', 'ACTIVE');
+            if ($training->program_id) {
+                $q->orWhere('id', $training->program_id);
+            }
+        })->orderBy('program_name')->get();
+        $tnas = HcgaTnaRequest::withCount('items')
+            ->where(function ($q) use ($training) {
+                $q->where('status', 'APPROVED');
+                if ($training->tna_id) {
+                    $q->orWhere('id', $training->tna_id);
+                }
+            })
+            ->orderBy('id', 'desc')
+            ->get();
         $trainers = HcgaTrainingTrainer::where(function ($q) use ($training) {
             $q->where('Status', 'ACTIVE');
             if ($training->trainer_id) {
@@ -115,9 +150,11 @@ class TrainingController extends Controller
             }
         })->orderBy('Trainer_Name')->get();
         $employees = DB::table('users')->select('username', 'name', 'Department')->orderBy('name')->get();
+        $lockedParticipantIds = $this->scheduleService->getLockedParticipantIds((int) $training->ID);
+        $isClosed = strtoupper((string) $training->Status) === 'CLOSED';
 
         return view('humanresources.training.training-detail', compact(
-            'training', 'trCategory', 'programs', 'tnas', 'trainers', 'employees'
+            'training', 'trCategory', 'programs', 'tnas', 'trainers', 'employees', 'lockedParticipantIds', 'isClosed'
         ));
     }
 
@@ -129,20 +166,34 @@ class TrainingController extends Controller
             'trainer_id' => 'required|integer|exists:master_training_hcga_trainer,ID',
             'Start_Date' => 'required|date',
             'End_Date' => 'required|date|after_or_equal:Start_Date',
+            'tna_id' => 'nullable|integer|exists:hcga_tna_requests,id',
+            'program_id' => 'nullable|integer|exists:hcga_training_programs,id',
+            'removed_participant_ids' => 'nullable|array',
+            'removed_participant_ids.*' => 'integer',
         ]);
 
-        $training = $this->scheduleService->createOrUpdate(
-            $request->only([
-                'tna_id', 'program_id', 'trainer_id', 'trainer_name',
-                'Training_Name', 'Training_Category', 'Training_Type', 'Training_Method',
-                'Training_Description', 'Training_Objective', 'Training_Competence',
-                'Start_Date', 'End_Date', 'passing_grade', 'Training_Location', 'Location',
-            ]),
-            $request->input('curriculums', []),
-            $request->input('participants', []),
-            Auth::user(),
-            $id
-        );
+        try {
+            $training = $this->scheduleService->createOrUpdate(
+                $request->only([
+                    'tna_id', 'program_id', 'trainer_id', 'trainer_name',
+                    'Training_Name', 'Training_Category', 'Training_Type', 'Training_Method',
+                    'Training_Description', 'Training_Objective', 'Training_Competence',
+                    'Start_Date', 'End_Date', 'passing_grade', 'Training_Location', 'Location',
+                ]),
+                $request->input('curriculums', []),
+                $request->input('participants', []),
+                Auth::user(),
+                $id,
+                [
+                    'removed_participant_ids' => $request->input('removed_participant_ids', []),
+                ]
+            );
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
 
         return response()->json([
             'status' => 'success',

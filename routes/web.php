@@ -6043,6 +6043,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$hcTrainingPref-new-submit", [HCGATrainingController::class, 'newSubmit']);
     Route::get("$hcTrainingPref-detail", [HCGATrainingController::class, 'detail']);
     Route::post("$hcTrainingPref-detail-submit", [HCGATrainingController::class, 'detailSubmit']);
+    Route::get("$hcTrainingPref-tna-payload", [HCGATrainingController::class, 'tnaPayload']);
     Route::post("$hcTrainingPref-submit-approval", [HCGATrainingController::class, 'submitApproval']);
     Route::post("$hcTrainingPref-approve", [HCGATrainingController::class, 'approve']);
     Route::post("$hcTrainingPref-close", [HCGATrainingController::class, 'close']);

@@ -271,6 +271,12 @@
                     <i class="fa fa-user-check me-1"></i> Claim
                 </button>
 
+                @if(!empty($canForceApprove))
+                <button type="button" class="btn btn-dark text-white quick-action-btn" id="btnActionForceApprove" onclick="ApprovalInboxForceApprove();" title="Force Approve (Bypass seluruh sisa stage approval)">
+                    <i class="fa fa-check-double me-1"></i> Force Approve
+                </button>
+                @endif
+
                 @if($isAdmin)
                 <button type="button" class="btn btn-outline-warning quick-action-btn" id="btnActionRelease" onclick="ApprovalInboxRelease();" title="Release Claim (Admin)">
                     <i class="fa fa-lock-open me-1"></i> Release
@@ -601,6 +607,64 @@
     </div>
 </div>
 
+{{-- 3b. Modal Force Approve (Khusus Akun Whitelist di helpers.php) --}}
+@if(!empty($canForceApprove))
+<div class="modal fade" id="modalApprovalForceApprove" tabindex="-1" aria-labelledby="modalApprovalForceApproveLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header py-3 bg-dark text-white">
+                <h5 class="modal-title fw-bold text-white" id="modalApprovalForceApproveLabel">
+                    <i class="fa fa-check-double me-2"></i>Konfirmasi Force Approve
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="modalForceApproveTaskId" />
+                <input type="hidden" id="modalForceApproveRequestId" />
+
+                <div class="alert alert-warning py-2 px-3 small mb-3 border-0 shadow-none d-flex align-items-start">
+                    <i class="fa fa-triangle-exclamation me-2 mt-1 fs-15"></i>
+                    <div><strong>Bypass Approval Chain:</strong> Force Approve akan langsung menyetujui seluruh sisa stage approval untuk permohonan ini menjadi <strong>APPROVED</strong> dan menyinkronkan status ke modul asal.</div>
+                </div>
+
+                {{-- Task Summary Box --}}
+                <div class="bg-light p-3 rounded-3 border mb-3">
+                    <div class="row g-2 small">
+                        <div class="col-sm-4 text-muted fw-semibold">No. Permohonan:</div>
+                        <div class="col-sm-8 fw-bold text-dark" id="modalForceApproveRequestNo">-</div>
+                        <div class="col-sm-4 text-muted fw-semibold">Tipe Request:</div>
+                        <div class="col-sm-8" id="modalForceApproveRequestType">-</div>
+                        <div class="col-sm-4 text-muted fw-semibold">Pemohon:</div>
+                        <div class="col-sm-8 fw-semibold" id="modalForceApproveRequester">-</div>
+                        <div class="col-sm-4 text-muted fw-semibold">Posisi Approval:</div>
+                        <div class="col-sm-8" id="modalForceApprovePosition">-</div>
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <label for="modalForceApproveReason" class="form-label fw-semibold">
+                        Alasan Force Approve <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" id="modalForceApproveReason" rows="3" placeholder="Tulis alasan Force Approve (misal: Testing / Bypass darurat)..."></textarea>
+                    <div class="form-text small">
+                        Alasan ini akan dicatat pada riwayat audit log sebagai <code>FORCE_APPROVED</code>.
+                    </div>
+                    <div class="invalid-feedback" id="modalForceApproveReasonFeedback">
+                        Alasan Force Approve wajib diisi.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2 px-3">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-dark btn-sm text-white shadow-sm" id="modalForceApproveSubmitBtn" onclick="ApprovalInboxSubmitForceApprove();">
+                    <i class="fa fa-check-double me-1"></i> Ya, Force Approve
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- 4. Modal Alert Notifikasi (Pengganti alert() javascript biasa) --}}
 <div class="modal fade" id="modalApprovalAlert" tabindex="-1" aria-labelledby="modalApprovalAlertLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -628,12 +692,17 @@ var currentApprovalStageOrder = 0;
 var bsModalAct = null;
 var bsModalClaim = null;
 var bsModalRelease = null;
+var bsModalForceApprove = null;
 var bsModalAlert = null;
 
 document.addEventListener('DOMContentLoaded', function () {
     bsModalAct = new bootstrap.Modal(document.getElementById('modalApprovalAct'));
     bsModalClaim = new bootstrap.Modal(document.getElementById('modalApprovalClaim'));
     bsModalRelease = new bootstrap.Modal(document.getElementById('modalApprovalRelease'));
+    var forceApproveEl = document.getElementById('modalApprovalForceApprove');
+    if (forceApproveEl) {
+        bsModalForceApprove = new bootstrap.Modal(forceApproveEl);
+    }
     bsModalAlert = new bootstrap.Modal(document.getElementById('modalApprovalAlert'));
     
     // Inisialisasi status tombol awal (disable jika belum ada baris terpilih)
@@ -651,12 +720,14 @@ function updateActionButtonState(id) {
     var btnReject = document.getElementById('btnActionReject');
     var btnClaim = document.getElementById('btnActionClaim');
     var btnRelease = document.getElementById('btnActionRelease');
+    var btnForceApprove = document.getElementById('btnActionForceApprove');
 
     if (btnDetail) btnDetail.disabled = !hasSelection;
     if (btnApprove) btnApprove.disabled = !hasSelection;
     if (btnReject) btnReject.disabled = !hasSelection;
     if (btnClaim) btnClaim.disabled = !hasSelection;
     if (btnRelease) btnRelease.disabled = !hasSelection;
+    if (btnForceApprove) btnForceApprove.disabled = !hasSelection;
 }
 
 /**
@@ -1205,6 +1276,89 @@ function ApprovalInboxSubmitRelease() {
     ApprovalInboxPost('hrd-approval-release', { Task_ID: taskId, Reason: reason }, function () {
         if (bsModalRelease) bsModalRelease.hide();
         ApprovalInboxDetail(taskId);
+    }, btn);
+}
+
+/**
+ * Buka Modal Force Approve (Bypass seluruh sisa stage approval)
+ */
+function ApprovalInboxForceApprove(explicitId) {
+    var id = ApprovalInboxSelectedId(explicitId);
+    if (id == null) return false;
+
+    var requestId = '';
+    var reqNo = '-';
+    var reqType = '-';
+    var requester = '-';
+    var position = '-';
+
+    try {
+        if (ApprovalInbox.getRowIndex(id) !== -1) {
+            requestId = ApprovalInbox.getUserData(id, 'request_id') || '';
+            reqNo = ApprovalInbox.cells(id, 1).getValue() || reqNo;
+            reqType = ApprovalInbox.cells(id, 2).getValue() || reqType;
+            position = ApprovalInbox.cells(id, 4).getValue() || position;
+            requester = ApprovalInbox.cells(id, 9).getValue() || requester;
+        }
+    } catch (e) {}
+
+    var detailCard = document.getElementById('ApprovalTaskDetailCard');
+    if (detailCard && detailCard.dataset.taskId == id) {
+        requestId = detailCard.dataset.requestId || requestId;
+        reqNo = detailCard.dataset.requestNo || reqNo;
+        reqType = detailCard.dataset.requestType || reqType;
+        requester = detailCard.dataset.requester || requester;
+        position = detailCard.dataset.position || position;
+    }
+
+    if (!requestId) {
+        showAppNotification('Data Tidak Lengkap', 'Request ID tidak ditemukan untuk task terpilih. Silakan refresh tabel.', 'warning');
+        return false;
+    }
+
+    document.getElementById('modalForceApproveTaskId').value = id;
+    document.getElementById('modalForceApproveRequestId').value = requestId;
+    document.getElementById('modalForceApproveRequestNo').innerText = reqNo;
+    document.getElementById('modalForceApproveRequestType').innerText = reqType;
+    document.getElementById('modalForceApproveRequester').innerText = requester;
+    document.getElementById('modalForceApprovePosition').innerText = position;
+
+    var reasonInput = document.getElementById('modalForceApproveReason');
+    reasonInput.value = 'Force Approve (Testing / Bypass)';
+    reasonInput.classList.remove('is-invalid');
+
+    if (bsModalForceApprove) {
+        bsModalForceApprove.show();
+    }
+    return false;
+}
+
+/**
+ * Submit Force Approve dari Modal
+ */
+function ApprovalInboxSubmitForceApprove() {
+    var requestId = document.getElementById('modalForceApproveRequestId').value;
+    var reasonInput = document.getElementById('modalForceApproveReason');
+    var reason = reasonInput.value.trim();
+    var btn = document.getElementById('modalForceApproveSubmitBtn');
+
+    if (!requestId) {
+        showAppNotification('Data Tidak Lengkap', 'Request ID tidak valid.', 'danger');
+        return;
+    }
+
+    if (reason === '') {
+        reasonInput.classList.add('is-invalid');
+        reasonInput.focus();
+        return;
+    }
+    reasonInput.classList.remove('is-invalid');
+
+    ApprovalInboxPost('{{ url('hrd-approval-force-approve') }}', { Request_ID: requestId, Reason: reason }, function () {
+        if (bsModalForceApprove) bsModalForceApprove.hide();
+        ApprovalInboxCloseDetail();
+        currentApprovalTaskId = null;
+        updateSelectedTaskIndicator(null);
     }, btn);
 }
 

@@ -25,6 +25,24 @@ class TrainingEvaluationService
     ];
 
     /**
+     * Hitung skor akhir dari Post-Test (60%) dan Praktik (40%), atau 100% jika hanya salah satu terisi.
+     */
+    public function calculateFinalScore(?float $post, ?float $practice): ?float
+    {
+        if ($post !== null && $practice !== null) {
+            return round(($post * 0.6) + ($practice * 0.4), 2);
+        }
+        if ($post !== null) {
+            return round($post, 2);
+        }
+        if ($practice !== null) {
+            return round($practice, 2);
+        }
+
+        return null;
+    }
+
+    /**
      * Simpan penilaian hasil training karyawan & hitung status lulus terhadap passing grade.
      */
     public function saveParticipantScores(int $trainingId, array $scoresInput, $user): array
@@ -49,18 +67,8 @@ class TrainingEvaluationService
                 $post = isset($row['post_test_score']) && $row['post_test_score'] !== '' ? (float) $row['post_test_score'] : null;
                 $practice = isset($row['practice_score']) && $row['practice_score'] !== '' ? (float) $row['practice_score'] : null;
 
-                // Hitung final score: jika ada final_score eksplisit gunakan, jika tidak rata-rata post & practice (atau post saja)
-                if (isset($row['final_score']) && $row['final_score'] !== '') {
-                    $final = (float) $row['final_score'];
-                } elseif ($post !== null && $practice !== null) {
-                    $final = round(($post * 0.6) + ($practice * 0.4), 2);
-                } elseif ($post !== null) {
-                    $final = $post;
-                } elseif ($practice !== null) {
-                    $final = $practice;
-                } else {
-                    $final = null;
-                }
+                // Selalu hitung ulang skor akhir dari komponen nilai agar perubahan nilai tidak tertimpa skor lama
+                $final = $this->calculateFinalScore($post, $practice);
 
                 $isPassed = null;
                 if ($attendance === 'ABSENT') {

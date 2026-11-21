@@ -25,13 +25,15 @@ class ApprovalInboxController extends Controller
     public function index()
     {
         $isAdmin = $this->authorization->isWildcardAdmin(Auth::user());
+        $canForceApprove = $this->authorization->canForceApprove(Auth::user());
+        $canSeeAllTasks = $isAdmin || $canForceApprove;
         $userId = (int) Auth::id();
 
-        $policyTabsData = $this->getPolicyTabsData($userId, $isAdmin);
+        $policyTabsData = $this->getPolicyTabsData($userId, $canSeeAllTasks);
         $policyTabs = $policyTabsData['policyTabs'];
         $totalAllTasks = $policyTabsData['totalAllTasks'];
 
-        return view('humanresources.approval.index', compact('isAdmin', 'policyTabs', 'totalAllTasks'));
+        return view('humanresources.approval.index', compact('isAdmin', 'canForceApprove', 'policyTabs', 'totalAllTasks'));
     }
 
     /**
@@ -40,17 +42,19 @@ class ApprovalInboxController extends Controller
     public function mobileIndex(Request $request)
     {
         $isAdmin = $this->authorization->isWildcardAdmin(Auth::user());
+        $canForceApprove = $this->authorization->canForceApprove(Auth::user());
+        $canSeeAllTasks = $isAdmin || $canForceApprove;
         $userId = (int) Auth::id();
         $selectedCategory = strtoupper(trim((string) $request->input('category', 'ALL')));
         $selectedPolicyId = (int) $request->input('policy_id', 0);
         $selectedStage = (int) $request->input('stage_order', 0);
         $search = trim((string) $request->input('q', ''));
 
-        $policyTabsData = $this->getPolicyTabsData($userId, $isAdmin);
+        $policyTabsData = $this->getPolicyTabsData($userId, $canSeeAllTasks);
         $policyTabs = $policyTabsData['policyTabs'];
         $totalAllTasks = $policyTabsData['totalAllTasks'];
 
-        $query = $this->inboxBaseQuery($userId, $isAdmin)
+        $query = $this->inboxBaseQuery($userId, $canSeeAllTasks)
             ->leftJoin('approval_policy as p', 'p.ID', '=', 'r.Policy_ID')
             ->leftJoin('approval_policy_step as ps', function ($join) {
                 $join->on('ps.Policy_ID', '=', 'r.Policy_ID')
@@ -111,7 +115,7 @@ class ApprovalInboxController extends Controller
             ->paginate(15);
 
         // Kategori count untuk pill filter
-        $categoryCounts = $this->inboxBaseQuery($userId, $isAdmin)
+        $categoryCounts = $this->inboxBaseQuery($userId, $canSeeAllTasks)
             ->select('r.Request_Type', DB::raw('COUNT(*) as total'))
             ->groupBy('r.Request_Type')
             ->pluck('total', 'r.Request_Type')
@@ -131,6 +135,7 @@ class ApprovalInboxController extends Controller
         return view('humanresources.approval.mobile.index', compact(
             'tasks',
             'isAdmin',
+            'canForceApprove',
             'userId',
             'selectedCategory',
             'selectedPolicyId',
@@ -348,11 +353,12 @@ class ApprovalInboxController extends Controller
 
         $userId = (int) Auth::id();
         $isAdmin = $this->authorization->isWildcardAdmin(Auth::user());
+        $canSeeAllTasks = $isAdmin || $this->authorization->canForceApprove(Auth::user());
         $requestTypeFilter = strtoupper(trim((string) $request->input('request_type', '')));
         $policyIdFilter = (int) $request->input('policy_id', 0);
         $stageFilter = (int) $request->input('stage_order', 0);
 
-        $query = $this->inboxBaseQuery($userId, $isAdmin)
+        $query = $this->inboxBaseQuery($userId, $canSeeAllTasks)
             ->leftJoin('approval_policy as p', 'p.ID', '=', 'r.Policy_ID')
             ->leftJoin('approval_policy_step as ps', function ($join) {
                 $join->on('ps.Policy_ID', '=', 'r.Policy_ID')
@@ -433,6 +439,7 @@ class ApprovalInboxController extends Controller
             echo '<cell>' . $this->xml($task->Requester_Name) . '</cell>';
             echo '<cell>' . $this->xml($task->Location) . '</cell>';
             echo '<cell>' . $this->xml($task->Submitted_At) . '</cell>';
+            echo '<userdata name="request_id">' . (int) $task->Request_ID . '</userdata>';
             echo '<userdata name="request_type">' . $this->xml(strtoupper(trim((string) $task->Request_Type))) . '</userdata>';
             echo '<userdata name="policy_id">' . (int) $task->Policy_ID . '</userdata>';
             echo '<userdata name="policy_code">' . $this->xml($task->Policy_Code ?: '-') . '</userdata>';
@@ -556,6 +563,10 @@ class ApprovalInboxController extends Controller
         $canClaim = ($isPending && ($isCandidate || $isAdmin) && (!$isRequester || $hasSelfException));
         $canAct = ($isMyClaim || $canClaim || $isAdmin);
         $canRelease = ($isAdmin && strtoupper((string) $task->Task_Status) === 'CLAIMED');
+        $canForceApprove = (
+            $this->authorization->canForceApprove(Auth::user())
+            && in_array(strtoupper((string) $task->Request_Status), ['IN_PROGRESS', 'BLOCKED', 'HELD', 'PENDING', 'WAITING_APPROVAL'], true)
+        );
 
         return compact(
             'task',
@@ -565,6 +576,7 @@ class ApprovalInboxController extends Controller
             'canAct',
             'canClaim',
             'canRelease',
+            'canForceApprove',
             'isMyClaim'
         );
     }
@@ -1038,7 +1050,7 @@ class ApprovalInboxController extends Controller
             return;
         }
 
-        if ($this->authorization->isWildcardAdmin(Auth::user())) {
+        if ($this->authorization->isWildcardAdmin(Auth::user()) || $this->authorization->canForceApprove(Auth::user())) {
             return;
         }
 

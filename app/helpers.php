@@ -43,6 +43,48 @@ if (!function_exists('cns_can')) {
     }
 }
 
+if (!function_exists('force_approve_allowed_usernames')) {
+    /**
+     * Daftar username yang diizinkan melakukan Force Approve pada Approval Engine.
+     * Ubah daftar ini untuk menambah atau mengurangi akun yang memiliki akses bypass.
+     */
+    function force_approve_allowed_usernames(): array
+    {
+        return [
+            'admin',
+            'manager.hcga',
+            'staff.hcga',
+            'admin.hris',
+        ];
+    }
+}
+
+if (!function_exists('can_force_approve')) {
+    /**
+     * Cek apakah user (default: user login aktif) berhak melakukan Force Approve.
+     */
+    function can_force_approve($user = null): bool
+    {
+        if ($user === null) {
+            if (!auth()->check()) {
+                return false;
+            }
+            $user = auth()->user();
+        }
+
+        $username = strtolower(trim((string) ($user->username ?? '')));
+        if ($username === '') {
+            return false;
+        }
+
+        $allowed = array_map(function ($item) {
+            return strtolower(trim((string) $item));
+        }, force_approve_allowed_usernames());
+
+        return in_array($username, $allowed, true);
+    }
+}
+
 if (!function_exists('leads_interest_label')) {
     /**
      * Partnership package label for a lead ("Mobil Listrik" / "Booth").
