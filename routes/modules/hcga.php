@@ -950,3 +950,263 @@ use App\Http\Controllers\HCGA\OrganizationChartController as HCGAOrganizationCha
             Route::get('/pdf', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'pdf'])->name('payslip.mobile.pdf');
         });
     });
+
+    Route::get('/home-asset', function () {
+        return view('home-asset');
+    });
+
+    Route::get('/home-hrd', function () {
+        return view('home-hrd');
+    });
+
+    Route::get('/asset-lists-sub-category', function () {
+        return view('assets.lists-sub-category');
+    });
+
+    Route::get('/asset-lists-sub-sub-category', function () {
+        return view('assets.lists-sub-sub-category');
+    });
+
+    Route::get('/asset-lists-new', function () {
+        return view('assets.lists-new');
+    });
+
+    Route::post('/asset-lists-new-submit', function () {
+        return view('assets.lists-new-submit');
+    });
+
+    Route::get('/asset-lists', function () {
+        return view('assets.lists');
+    });
+
+    Route::get('/xml-asset-lists', function () {
+        return view('assets.xml.lists');
+    });
+
+    Route::get('/search-po', function () {
+        return view('assets.search-po');
+    });
+
+    Route::get('/inventory-stock-count-new', function () {
+        return view('assets.inventory-stock-count-new');
+    });
+
+    Route::get('/inventory-stock-count', function () {
+        return view('assets.inventory-stock-count');
+    });
+
+    Route::get('/xml-inventory-stock-count', function () {
+        return view('assets.xml.inventory-stock-count');
+    });
+
+    Route::get('/inventory-stock-count-detail', function () {
+        return view('assets.inventory-stock-count-detail');
+    });
+
+    Route::get('/xml-inventory-stock-count-detail', function () {
+        return view('assets.xml.inventory-stock-count-detail');
+    });
+
+    Route::post('/inventory-stock-count-detail-update', function () {
+        return view('assets.inventory-stock-count-detail-update');
+    });
+
+    Route::post('/inventory-stock-count-detail-submit', function () {
+        return view('assets.inventory-stock-count-detail-submit');
+    });
+
+    Route::get('/xml-inventory-stock-count-final', function () {
+        return view('assets.xml.inventory-stock-count-final');
+    });
+
+    Route::get('/search-produk', function () {
+        return view('assets.search-produk');
+    });
+
+    Route::get('/inventory-adjustment', function () {
+        return view('assets.inventory-adjustment');
+    });
+
+    Route::post('/inventory-adjustment-submit', function () {
+        return view('assets.inventory-adjustment-submit');
+    });
+
+    Route::get('/xml-inventory-adjustment', function () {
+        return view('assets.xml.inventory-adjustment');
+    });
+
+    Route::get('/inventory-incoming', function () {
+        return view('assets.inventory-incoming');
+    });
+
+    Route::get('/xml-inventory-incoming', function () {
+        return view('assets.xml.inventory-incoming');
+    });
+
+    Route::get('/inventory-incoming-detail', function () {
+        return view('assets.inventory-incoming-detail');
+    });
+
+    Route::get('/inventory-incoming-detail2', function () {
+        return view('assets.inventory-incoming-detail2');
+    });
+
+    Route::get('/xml-inventory-incoming-detail', function () {
+        return view('assets.xml.inventory-incoming-detail');
+    });
+
+    Route::post('/inventory-incoming-detail-submit', function () {
+        return view('assets.inventory-incoming-detail-submit');
+    });
+
+    Route::post('/inventory-incoming-detail-submit2', function () {
+        return view('assets.inventory-incoming-detail-submit2');
+    });
+
+    Route::get('/inventory-incoming-new', function () {
+        return view('assets.inventory-incoming-new');
+    });
+
+    Route::post('/inventory-incoming-detail-update2', function () {
+        return view('assets.inventory-incoming-detail-update2');
+    });
+
+    Route::post('/inventory-incoming-new-submit', function () {
+        return view('assets.inventory-incoming-new-submit');
+    });
+
+    Route::post('/inventory-incoming-new-update', function () {
+        return view('assets.inventory-incoming-new-update');
+    });
+
+    Route::get('/xml-inventory-incoming-new', function () {
+        return view('assets.xml.inventory-incoming-new');
+    });
+
+    Route::get('/inventory-request', function () {
+        return view('assets.inventory-request');
+    });
+
+    Route::get('/inventory-request-management', function () {
+        return view('assets.inventory-request-management');
+    });
+
+    Route::get('/xml-inventory-request-management', function () {
+        return view('assets.xml.inventory-request-management');
+    });
+
+    Route::get('/inventory-request-management-detail', function () {
+        return view('assets.inventory-request-management-detail');
+    });
+
+    Route::get('/inventory-request-management-detail2', function () {
+        return view('assets.inventory-request-management-detail2');
+    });
+
+    Route::get('/xml-inventory-request-management-detail', function () {
+        return view('assets.xml.inventory-request-management-detail');
+    });
+
+    Route::get('/xml-inventory-request-management-detail2', function () {
+        return view('assets.xml.inventory-request-management-detail2');
+    });
+
+    Route::post('/inventory-request-management-detail2-update', function () {
+        return view('assets.inventory-request-management-detail2-update');
+    });
+
+    Route::post('/inventory-request-management-detail2-submit', function () {
+        return view('assets.inventory-request-management-detail2-submit');
+    });
+
+    Route::post('/inventory-request-management-submit', function () {
+        return view('assets.inventory-request-management-submit');
+    });
+
+    Route::post('/inventory-request-management-detail-update', function () {
+        return view('assets.inventory-request-management-detail-update');
+    });
+
+    Route::post('/inventory-request-management-detail-submit', function () {
+        return view('assets.inventory-request-management-detail-submit');
+    });
+
+    Route::post('/inventory-request-update', function () {
+        return view('assets.inventory-request-update');
+    });
+
+    Route::get('/inventory-request-product-list', function () {
+        return view('assets.inventory-request-product-list');
+    });
+
+    Route::post('/inventory-request-submit', function () {
+        return view('assets.inventory-request-submit');
+    });
+
+    Route::get('/xml-inventory-request-product-lists', function () {
+        return view('assets.xml.inventory-request-product-list');
+    });
+
+    Route::get('/inventory-lists', function () {
+        return view('assets.inventory-lists');
+    });
+
+    Route::get('/xml-inventory-lists', function () {
+        return view('assets.xml.inventory-lists');
+    });
+
+    Route::get('/inventory-lists-detail', function () {
+        return view('assets.inventory-lists-detail');
+    });
+
+    Route::get('/xml-inventory-lists-detail', function () {
+        return view('assets.xml.inventory-lists-detail');
+    });
+
+    Route::get('/asset-lists', function () {
+        return view('assets.lists');
+    });
+
+    Route::get('/asset-management-incoming', function () {
+        return view('assets.management-incoming');
+    });
+
+    Route::get('/asset-lists-detail', function () {
+        return view('assets.lists-detail');
+    });
+
+    Route::post('/asset-lists-detail-submit', function () {
+        return view('assets.lists-detail-submit');
+    });
+
+    Route::post('/asset-lists-stnk-update', function () {
+        return view('assets.lists-stnk-update');
+    });
+
+    Route::post('/asset-lists-kir-update', function () {
+        return view('assets.lists-kir-update');
+    });
+
+    Route::post('/asset-lists-photo-upload', function () {
+        return view('assets.lists-photo-upload');
+    });
+
+    Route::post('/asset-lists-photo-delete', function () {
+        return view('assets.lists-photo-delete');
+    });
+
+    Route::get('/xml-asset-lists', function () {
+        return view('assets.xml.asset-lists');
+    });
+
+    Route::get('/asset-master-bin', function () {
+        return view('assets.master-bin');
+    });
+
+    Route::get('/xml-asset-master-bin', function () {
+        return view('assets.xml.master-bin');
+    });
+
+    Route::post('/asset-master-bin-update', function () {
+        return view('assets.master-bin-update');
+    });

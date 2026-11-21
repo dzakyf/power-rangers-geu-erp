@@ -43,6 +43,9 @@ mkdir($out, 0775, true);
 
 copyTree($root, $out);
 
+// Release artifacts do not ship the test suite.
+remove($out.'/tests');
+
 foreach ($modulePaths as $module => $patterns) {
     if (in_array($module, $profile['modules'], true)) {
         continue;

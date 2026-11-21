@@ -512,3 +512,7 @@ use App\Http\Controllers\CNS\NonUcoInventoryController;
         Route::get("$dashboardExportPref-data", [ExportVolumeDashboardController::class, 'dataAjax'])->name($dashboardExportPref . '.data');
         Route::get("$dashboardExportPref-excel", [ExportVolumeDashboardController::class, 'exportExcel'])->name($dashboardExportPref . '.export-excel');
     });
+
+    Route::get('/home-cns', function () {
+        return view('home-cns');
+    });;

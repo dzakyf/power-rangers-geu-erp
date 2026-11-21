@@ -100,3 +100,14 @@ Route::get('api/master-kodepos/cities', [HCGAMasterKodeposController::class, 'ci
 Route::get('api/master-kodepos/districts', [HCGAMasterKodeposController::class, 'districts']);
 Route::get('api/master-kodepos/subdistricts', [HCGAMasterKodeposController::class, 'subDistricts']);
 Route::get('api/master-kodepos/by-zipcode', [HCGAMasterKodeposController::class, 'byZipcode']);
+
+Route::get('open-recruitment-employee', function () {
+    $requisitions = \Illuminate\Support\Facades\DB::table('requisition')
+        ->where('Status', 'APPROVED')
+        ->orderBy('ID', 'DESC')
+        ->get();
+    return view('humanresources.recruitment.recruitment-new-open', [
+        'requisitions' => $requisitions,
+        'publicLocation' => 'GEU-HO',
+    ]);
+});

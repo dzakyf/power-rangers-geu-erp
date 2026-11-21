@@ -27,7 +27,7 @@ if ($name === null || !isset($profiles[$name]) || $target === null) {
 
 $enabled = $profiles[$name]['modules'];
 $disabled = array_values(array_diff(
-    ['bp', 'finance', 'cns', 'hcga'],
+    ['bp', 'finance', 'cns', 'hcga', 'legacy'],
     $enabled
 ));
 
@@ -47,8 +47,12 @@ $needles = [
     'finance' => [
         'App\\Modules\\Finance',
         'App\\Http\\Controllers\\Finance',
-        'App\\Http\\Controller\\Accounting',
         'App\\Services\\Finance',
+    ],
+    'legacy' => [
+        'App\\Http\\Controllers\\ProcurementController',
+        'App\\Http\\Controllers\\SupplierController',
+        'App\\Http\\Controller\\Accounting',
     ],
     'cns' => [
         'App\\Modules\\CNS',
@@ -85,7 +89,7 @@ $needles = [
     ],
 ];
 
-$searchDirs = ['app', 'bootstrap', 'config', 'database', 'resources', 'routes', 'tests', 'deploy'];
+$searchDirs = ['app', 'bootstrap', 'config', 'database', 'resources', 'routes', 'deploy'];
 $extensions = ['php'];
 $violations = [];
 
