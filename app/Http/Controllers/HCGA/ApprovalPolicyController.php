@@ -22,6 +22,8 @@ class ApprovalPolicyController extends Controller
         'Sppd_Type'         => 'Jenis SPPD (NORMAL / PERBANTUAN)',
         'Is_Over_Plafon'    => 'Di Atas Plafon Regulasi (1 = Ya, 0 = Tidak)',
         'Over_Plafon'       => 'Status Over Plafon (YES / NO)',
+        'Supplies_Type' => 'Jenis Pengadaan (Supplies_Type)',
+        'Category' => 'Kategori Anggaran (Category)',
     ];
 
     const CONDITION_OPERATORS = [

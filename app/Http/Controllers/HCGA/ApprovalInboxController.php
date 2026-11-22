@@ -251,6 +251,16 @@ class ApprovalInboxController extends Controller
                 'icon' => 'fa-chalkboard-teacher',
                 'badge_color' => 'success',
             ],
+            'PAYROLL' => [
+                'label' => 'Payroll Bulanan',
+                'icon' => 'fa-money-bill-wave',
+                'badge_color' => 'primary',
+            ],
+            'PAYROLL_THR' => [
+                'label' => 'Payroll THR',
+                'icon' => 'fa-gift',
+                'badge_color' => 'success',
+            ],
             'GENERAL' => [
                 'label' => 'General Approval',
                 'icon' => 'fa-file-signature',

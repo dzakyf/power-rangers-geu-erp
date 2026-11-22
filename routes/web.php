@@ -3266,42 +3266,23 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-os-lists', function () {
         return view('humanresources.employment.xml.os-lists');
     });
-    Route::get('/employee-lists', function () {
-        return view('humanresources.employment.employee-lists');
-    });
+    Route::get('/employee-lists', [\App\Http\Controllers\HCGA\EmployeeListsController::class, 'index']);
     Route::get('/hrd-employee-thr-scheme-modal', [\App\Http\Controllers\HCGA\EmployeeThrSchemeController::class, 'modal']);
     Route::post('/hrd-employee-thr-scheme-save', [\App\Http\Controllers\HCGA\EmployeeThrSchemeController::class, 'save']);
-    Route::get('/xml-employee-lists', function () {
-        return view('humanresources.employment.xml.employee-lists');
-    });
-    Route::post('/employee-lists-columns-save', function () {
-        return view('humanresources.employment.employee-lists-columns-save');
-    });
-    Route::get('/xml-employee-pivot', function () {
-        return view('humanresources.employment.xml.employee-pivot');
-    });
-    Route::get('/employee-lists-detail', function () {
-        return view('humanresources.employment.employee-lists-detail');
-    });
-    Route::get('/employee-lists-detail-data', function () {
-        return view('humanresources.employment.employee-lists-detail-data');
-    });
-    Route::post('/employee-lists-detail-data-submit', function () {
-        return view('humanresources.employment.employee-lists-detail-data-submit');
-    });
-    Route::get('/employee-lists-detail-other', function () {
-        return view('humanresources.employment.employee-lists-detail-other');
-    });
+    Route::get('/hrd-employee-user-account-modal', [\App\Http\Controllers\HCGA\EmployeeUserAccountController::class, 'modal']);
+    Route::get('/hrd-employee-user-account-candidates', [\App\Http\Controllers\HCGA\EmployeeUserAccountController::class, 'searchCandidates']);
+    Route::post('/hrd-employee-user-account-save', [\App\Http\Controllers\HCGA\EmployeeUserAccountController::class, 'save']);
+    Route::get('/xml-employee-lists', [\App\Http\Controllers\HCGA\EmployeeListsController::class, 'xmlData']);
+    Route::post('/employee-lists-columns-save', [\App\Http\Controllers\HCGA\EmployeeListsController::class, 'saveColumns']);
+    Route::get('/xml-employee-pivot', [\App\Http\Controllers\HCGA\EmployeeListsController::class, 'pivotData']);
+    Route::get('/employee-lists-detail', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'index']);
+    Route::get('/employee-lists-detail-data', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'data']);
+    Route::post('/employee-lists-detail-data-submit', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'submitData']);
+    Route::get('/employee-lists-detail-other', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'other']);
 
-    Route::get('/employee-lists-detail-insurance', function () {
-        return view('humanresources.employment.employee-lists-detail-insurance');
-    });
-    Route::get('/xml-employee-lists-detail-document', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-document');
-    });
-    Route::get('/xml-employee-lists-detail-history', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-history');
-    });
+    Route::get('/employee-lists-detail-insurance', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'insurance']);
+    Route::get('/xml-employee-lists-detail-document', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlDocument']);
+    Route::get('/xml-employee-lists-detail-history', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlHistory']);
     Route::get('/recruitment-lists-detail-other', function () {
         return view('humanresources.recruitment.recruitment-lists-detail-other');
     });
@@ -3404,78 +3385,38 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('humanresources.recruitment.recruitment-lists-detail-recruitment');
     });
 
-    Route::get('/xml-employee-lists-detail-insurance', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-insurance');
-    });
-    Route::post('/employee-lists-detail-insurance-update', function () {
-        return view('humanresources.employment.employee-lists-detail-insurance-update');
-    });
-    Route::get('/xml-employee-lists-detail-organization', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-organization');
-    });
-    Route::post('/employee-lists-detail-organization-update', function () {
-        return view('humanresources.employment.employee-lists-detail-organization-update');
-    });
-    Route::get('/xml-employee-lists-detail-family', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-family');
-    });
-    Route::get('/xml-employee-lists-detail-academic', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-academic');
-    });
-    Route::get('/xml-employee-lists-detail-contact-points', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-contact-points');
-    });
-    Route::post('/employee-lists-detail-contact-points-update', function () {
-        return view('humanresources.employment.employee-lists-detail-contact-points-update');
-    });
-    Route::post('/employee-lists-detail-academic-update', function () {
-        return view('humanresources.employment.employee-lists-detail-academic-update');
-    });
-    Route::get('/xml-employee-lists-detail-informal', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-informal');
-    });
-    Route::post('/employee-lists-detail-informal-update', function () {
-        return view('humanresources.employment.employee-lists-detail-informal-update');
-    });
-    Route::get('/xml-employee-lists-detail-driving', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-driving');
-    });
-    Route::post('/employee-lists-detail-driving-update', function () {
-        return view('humanresources.employment.employee-lists-detail-driving-update');
-    });
-    Route::get('/xml-employee-lists-detail-health', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-health');
-    });
-    Route::post('/employee-lists-detail-health-update', function () {
-        return view('humanresources.employment.employee-lists-detail-health-update');
-    });
-    Route::get('/xml-employee-lists-detail-experience', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-experience');
-    });
-    Route::post('/employee-lists-detail-experience-update', function () {
-        return view('humanresources.employment.employee-lists-detail-experience-update');
-    });
-    Route::get('/xml-employee-lists-detail-skill', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-skill');
-    });
-    Route::post('/employee-lists-detail-skill-update', function () {
-        return view('humanresources.employment.employee-lists-detail-skill-update');
-    });
-    Route::get('/xml-employee-lists-detail-award', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-award');
-    });
-    Route::post('/employee-lists-detail-award-update', function () {
-        return view('humanresources.employment.employee-lists-detail-award-update');
-    });
-    Route::get('/xml-employee-lists-detail-language', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-language');
-    });
-    Route::post('/employee-lists-detail-language-update', function () {
-        return view('humanresources.employment.employee-lists-detail-language-update');
-    });
-    Route::get('/employee-lists-detail-recruitment', function () {
-        return view('humanresources.employment.employee-lists-detail-recruitment');
-    });
+    Route::get('/xml-employee-lists-detail-insurance', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlInsurance']);
+    Route::post('/employee-lists-detail-insurance-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateInsurance']);
+    Route::get('/xml-employee-lists-detail-organization', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlOrganization']);
+    Route::post('/employee-lists-detail-organization-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateOrganization']);
+    Route::get('/xml-employee-lists-detail-family', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlFamily']);
+    Route::post('/employee-lists-detail-family-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateFamily']);
+    Route::get('/xml-employee-lists-detail-academic', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlAcademic']);
+    Route::get('/xml-employee-lists-detail-contact-points', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlContactPoints']);
+    Route::post('/employee-lists-detail-contact-points-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateContactPoints']);
+    Route::post('/employee-lists-detail-academic-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateAcademic']);
+    Route::get('/xml-employee-lists-detail-informal', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlInformal']);
+    Route::post('/employee-lists-detail-informal-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateInformal']);
+    Route::get('/xml-employee-lists-detail-driving', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlDriving']);
+    Route::post('/employee-lists-detail-driving-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateDriving']);
+    Route::get('/xml-employee-lists-detail-health', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlHealth']);
+    Route::post('/employee-lists-detail-health-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateHealth']);
+    Route::post('/employee-lists-detail-other-medical-save', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'saveOtherMedical']);
+    Route::get('/xml-employee-lists-detail-experience', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlExperience']);
+    Route::post('/employee-lists-detail-experience-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateExperience']);
+    Route::get('/xml-employee-lists-detail-skill', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlOtherSkill']);
+    Route::get('/xml-employee-lists-detail-other-skill', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlOtherSkill']);
+    Route::post('/employee-lists-detail-skill-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateOtherSkill']);
+    Route::post('/employee-lists-detail-other-skill-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateOtherSkill']);
+    Route::get('/xml-employee-lists-detail-award', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlAward']);
+    Route::post('/employee-lists-detail-award-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateAward']);
+    Route::get('/xml-employee-lists-detail-language', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlLanguage']);
+    Route::post('/employee-lists-detail-language-update', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'updateLanguage']);
+    Route::post('/employee-lists-detail-photo-upload', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'uploadPhoto']);
+    Route::get('/employee-lists-detail-document-form', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'documentForm']);
+    Route::post('/employee-lists-detail-document-upload', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'uploadDocument']);
+    Route::post('/employee-lists-detail-document-delete', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'deleteDocument']);
+    Route::get('/employee-lists-detail-recruitment', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'recruitment']);
 
     Route::get('/employee-mutation', function () {
         return view('humanresources.employment.employee-mutation');
@@ -3514,33 +3455,15 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('humanresources.employment.xml.os-conversion');
     });
 
-    Route::get('/employee-lists-detail-history', function () {
-        return view('humanresources.employment.employee-lists-detail-history');
-    });
-    Route::get('/employee-lists-detail-document', function () {
-        return view('humanresources.employment.employee-lists-detail-document');
-    });
-    Route::get('/employee-lists-detail-kjk', function () {
-        return view('humanresources.employment.employee-lists-detail-kjk');
-    });
-    Route::get('/xml-employee-lists-detail-kjk', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-kjk');
-    });
-    Route::get('/xml-employee-lists-detail-overtime', function () {
-        return view('humanresources.employment.xml.employee-lists-detail-overtime');
-    });
-    Route::get('/employee-lists-detail-family', function () {
-        return view('humanresources.employment.employee-lists-detail-family');
-    });
-    Route::get('/employee-lists-detail-education', function () {
-        return view('humanresources.employment.employee-lists-detail-education');
-    });
-    Route::get('/employee-lists-detail-skill', function () {
-        return view('humanresources.employment.employee-lists-detail-skill');
-    });
-    Route::post('/employee-lists-detail-submit', function () {
-        return view('humanresources.employment.employee-lists-detail-update');
-    });
+    Route::get('/employee-lists-detail-history', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'history']);
+    Route::get('/employee-lists-detail-document', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'document']);
+    Route::get('/employee-lists-detail-kjk', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'kjk']);
+    Route::get('/xml-employee-lists-detail-kjk', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlKjk']);
+    Route::get('/xml-employee-lists-detail-overtime', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'xmlOvertime']);
+    Route::get('/employee-lists-detail-family', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'family']);
+    Route::get('/employee-lists-detail-education', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'education']);
+    Route::get('/employee-lists-detail-skill', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'skill']);
+    Route::post('/employee-lists-detail-submit', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'submitData']);
     Route::post('/os-contract-renew-submit', function () {
         return view('humanresources.employment.os-contract-renew-submit');
     });
@@ -3900,15 +3823,34 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post('/api/payroll/deduction-configs/update', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiUpdateDeductionConfig']);
     Route::get('/api/payroll/employee-salary-detail', [\App\Http\Controllers\HCGA\PayrollController::class, 'apiGetEmployeeSalarySlipDetail']);
 
-    // Perhitungan & Manajemen THR (Tunjangan Hari Raya) terintegrasi ke Payslip Bulan Berjalan
+    // Perhitungan & Manajemen THR Mandiri (Tunjangan Hari Raya) terpisah dari Payroll utama
     Route::get('/payroll-thr', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'index'])->name('payroll.thr.index');
     Route::get('/api/payroll/thr/batches', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'listBatches'])->name('payroll.thr.batches');
     Route::get('/xml-payroll-thr-items', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'batchItemsXml'])->name('payroll.thr.items.xml');
     Route::post('/api/payroll/thr/generate', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'generateDraft'])->name('payroll.thr.generate');
     Route::post('/api/payroll/thr/item/update', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'updateItem'])->name('payroll.thr.item.update');
+    Route::post('/api/payroll/thr/tax-mode', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'updateTaxMode'])->name('payroll.thr.tax-mode');
+    Route::post('/api/payroll/thr/submit-approval', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'submitApproval'])->name('payroll.thr.submit-approval');
+    Route::post('/api/payroll/thr/revert-draft', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'revertToDraft'])->name('payroll.thr.revert-draft');
     Route::post('/api/payroll/thr/lock', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'lockBatch'])->name('payroll.thr.lock');
     Route::post('/api/payroll/thr/unlock', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'unlockBatch'])->name('payroll.thr.unlock');
     Route::post('/api/payroll/thr/delete', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'deleteDraft'])->name('payroll.thr.delete');
+
+    // Digital Payslip THR, PDF, Email Satuan, Blasting Massal, & Export Transfer Bank
+    Route::get('/payslip-thr', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'showDigitalPayslip'])->name('payroll.thr.payslip.show');
+    Route::get('/payslip-thr/pdf', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'downloadPayslipPdf'])->name('payroll.thr.payslip.pdf');
+    Route::post('/api/payroll/thr/send-payslip-email', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'apiSendThrPayslipEmail'])->name('payroll.thr.email.send');
+    Route::post('/api/payroll/thr/blast-payslip-emails', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'apiBlastThrPayslipEmails'])->name('payroll.thr.email.blast');
+    Route::get('/payroll-thr-export-excel', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'exportExcel'])->name('payroll.thr.export.excel');
+
+    // Approval Batch THR Mandiri (PAYROLL_THR)
+    Route::get('/payroll-thr-approval', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'approvalIndex'])->name('payroll.thr.approval.index');
+    Route::get('/xml-payroll-thr-approval', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'xmlApprovalList'])->name('payroll.thr.approval.xml');
+    Route::get('/payroll-thr-approval-detail', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'approvalDetail'])->name('payroll.thr.approval.detail');
+    Route::get('/xml-payroll-thr-approval-detail', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'xmlApprovalDetail'])->name('payroll.thr.approval.detail.xml');
+    Route::get('/payroll-thr-approval-approve', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'approvalApprove'])->name('payroll.thr.approval.approve');
+    Route::get('/payroll-thr-approval-reject', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'approvalReject'])->name('payroll.thr.approval.reject');
+    Route::get('/payroll-thr-approval-cancel', [\App\Http\Controllers\HCGA\PayrollThrController::class, 'approvalCancel'])->name('payroll.thr.approval.cancel');
 
 
     Route::get('/payroll-group', function () {
@@ -4433,9 +4375,7 @@ Route::group(['middleware' => 'log.access'], function () {
         return view('sales.report.xml.monitoring');
     });
 
-    Route::get('/upload-foto', function () {
-        return view('humanresources.employment.uploadfoto');
-    });
+    Route::get('/upload-foto', [\App\Http\Controllers\HCGA\EmployeeDetailController::class, 'photoModal']);
 
 
     Route::get('/finance-ar-history-invoice', function () {
@@ -6920,11 +6860,13 @@ Route::get('print-pr', [ProcurementController::class, 'printPR']);
             Route::get('/detail/{id}', [HCGACompanyGuidelineMobileController::class, 'mobileDetail'])->name('company-guideline.mobile.detail');
         });
 
-        // Mobile Payslip (Slip Gaji Karyawan)
+        // Mobile Payslip (Slip Gaji Karyawan & Slip THR)
         Route::prefix('payslip')->group(function () {
             Route::get('/', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'index'])->name('payslip.mobile.index');
             Route::get('/detail', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'detail'])->name('payslip.mobile.detail');
             Route::get('/pdf', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'pdf'])->name('payslip.mobile.pdf');
+            Route::get('/thr/detail', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'thrDetail'])->name('payslip.mobile.thr.detail');
+            Route::get('/thr/pdf', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'thrPdf'])->name('payslip.mobile.thr.pdf');
         });
     });
 });

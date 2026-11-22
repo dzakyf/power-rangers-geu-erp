@@ -41,8 +41,8 @@ class EmploymentService
 
         // Daftar kolom integer/boolean flag
         $flagColumns = [
-            'bpjs_tk_deduction', 'bpjs_kes_deduction', 'bpjs_probation_exempt', 
-            'PPH_Allowance', 'Gross_Up'
+            'bpjs_tk_deduction', 'bpjs_kes_deduction', 'bpjs_kes_total_family',
+            'bpjs_kes_extra_family', 'bpjs_probation_exempt', 'PPH_Allowance', 'Gross_Up'
         ];
 
         foreach ($input as $key => $val) {
@@ -68,11 +68,65 @@ class EmploymentService
 
             // Normalisasi kolom flag / boolean
             if (in_array($key, $flagColumns, true)) {
-                $updateData[$key] = (int)$trimmedVal;
+                if ($key === 'bpjs_kes_total_family' && ($trimmedVal === '' || $trimmedVal === null)) {
+                    $updateData[$key] = null;
+                } else {
+                    $updateData[$key] = max(0, (int)$trimmedVal);
+                }
                 continue;
             }
 
             $updateData[$key] = $trimmedVal;
+        }
+
+        // Sinkronisasi 2 arah antara bpjs_kes_total_family dan bpjs_kes_extra_family
+        if (array_key_exists('bpjs_kes_total_family', $updateData) || array_key_exists('bpjs_kes_extra_family', $updateData)) {
+            $maxCore = 5;
+            if (Schema::hasTable('payroll_deduction_configs')) {
+                $cfgCore = DB::table('payroll_deduction_configs')
+                    ->where('config_key', 'bpjs_kes_max_core_family')
+                    ->where('is_active', 1)
+                    ->value('value_data');
+                if (is_numeric($cfgCore) && (int)$cfgCore > 0) {
+                    $maxCore = (int)$cfgCore;
+                }
+            }
+
+            $prevTotal = isset($empRow->bpjs_kes_total_family) && $empRow->bpjs_kes_total_family !== null
+                ? (int)$empRow->bpjs_kes_total_family
+                : null;
+            $prevExtra = isset($empRow->bpjs_kes_extra_family) ? (int)$empRow->bpjs_kes_extra_family : 0;
+
+            $hasNewTotal = array_key_exists('bpjs_kes_total_family', $updateData) && $updateData['bpjs_kes_total_family'] !== null;
+            $hasNewExtra = array_key_exists('bpjs_kes_extra_family', $updateData);
+
+            $totalChanged = $hasNewTotal && ($updateData['bpjs_kes_total_family'] !== $prevTotal);
+            $extraChanged = $hasNewExtra && ($updateData['bpjs_kes_extra_family'] !== $prevExtra);
+
+            if ($extraChanged && !$totalChanged) {
+                $extraVal = max(0, (int)$updateData['bpjs_kes_extra_family']);
+                $updateData['bpjs_kes_extra_family'] = $extraVal;
+                if ($extraVal > 0) {
+                    $updateData['bpjs_kes_total_family'] = $maxCore + $extraVal;
+                } elseif ($prevTotal === null || $prevTotal > $maxCore) {
+                    $updateData['bpjs_kes_total_family'] = $maxCore;
+                }
+            } elseif ($totalChanged) {
+                $totalVal = max(0, (int)$updateData['bpjs_kes_total_family']);
+                $updateData['bpjs_kes_total_family'] = $totalVal;
+                $updateData['bpjs_kes_extra_family'] = max(0, $totalVal - $maxCore);
+            } elseif ($hasNewTotal && $hasNewExtra) {
+                $totalVal = max(0, (int)$updateData['bpjs_kes_total_family']);
+                $extraVal = max(0, (int)$updateData['bpjs_kes_extra_family']);
+                if ($extraVal !== max(0, $totalVal - $maxCore)) {
+                    $updateData['bpjs_kes_extra_family'] = max(0, $totalVal - $maxCore);
+                }
+            } elseif ($hasNewExtra) {
+                $extraVal = max(0, (int)$updateData['bpjs_kes_extra_family']);
+                if ($extraVal > 0) {
+                    $updateData['bpjs_kes_total_family'] = $maxCore + $extraVal;
+                }
+            }
         }
 
         if (!empty($updateData)) {

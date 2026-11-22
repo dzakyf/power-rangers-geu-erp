@@ -100,11 +100,14 @@ class RecruitmentUserInterviewService
             'User_Interview_File'   => $payload['User_Interview_File'] ?? '',
             'User_Interview_By'     => $currentUser,
             'User_Interview_Date'   => !empty($payload['User_Interview_Date']) ? $payload['User_Interview_Date'] : date('Y-m-d'),
-            'User_Interview_Result' => $payload['User_Interview_Result'] ?? '',
             'User_Interview_Status' => $userInterviewStatus,
             'User_Interview_Note'   => $payload['User_Interview_Note'] ?? '',
             'Status'                => $statusnya,
         ];
+
+        if (array_key_exists('User_Interview_Result', $payload)) {
+            $recruitmentUpdate['User_Interview_Result'] = $payload['User_Interview_Result'] ?? '';
+        }
 
         if (Schema::hasColumn('recruitment', 'Modified_By')) {
             $recruitmentUpdate['Modified_By'] = $currentUser;
@@ -116,41 +119,6 @@ class RecruitmentUserInterviewService
         DB::beginTransaction();
         try {
             DB::table('recruitment')->where('ID', $id)->update($recruitmentUpdate);
-
-            // Perbarui kuesioner pada recruitment_detail jika ada perubahan input
-            if (Schema::hasTable('recruitment_detail')) {
-                $candidate = DB::table('recruitment')->where('ID', $id)->first();
-                $detailFields = [
-                    'Describe_Self', 'Left_Job', 'Previous_Boss', 'Describe_Know',
-                    'Describe_Improve', 'Describe_Looking', 'Describe_Interest',
-                    'Describe_Long', 'Describe_Target', 'Salary_Expectation',
-                    'Facility_Expectation', 'Environment', 'Free_Time',
-                    'Describe_Strong', 'Describe_Weak', 'Overtime', 'Holiday',
-                    'Shift_Work', 'Out_Town', 'Computer', 'Questions_Us'
-                ];
-
-                $detailUpdate = [];
-                foreach ($detailFields as $field) {
-                    if (array_key_exists($field, $payload)) {
-                        $detailUpdate[$field] = $payload[$field];
-                    }
-                }
-
-                if (!empty($detailUpdate) && $candidate) {
-                    $existingDetail = DB::table('recruitment_detail')
-                        ->where('ID', $candidate->ID)
-                        ->orWhere('Task_ID', $candidate->Task_ID)
-                        ->first();
-
-                    if ($existingDetail) {
-                        DB::table('recruitment_detail')->where('ID', $existingDetail->ID)->update($detailUpdate);
-                    } else {
-                        $detailUpdate['ID'] = $candidate->ID;
-                        $detailUpdate['Task_ID'] = $candidate->Task_ID;
-                        DB::table('recruitment_detail')->insert($detailUpdate);
-                    }
-                }
-            }
 
             DB::commit();
 

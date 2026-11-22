@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Services\Approval\ProcurementApprovalService; // <-- Tambahkan baris ini!
 
 class ProcurementController extends Controller
 {
@@ -257,17 +258,22 @@ class ProcurementController extends Controller
 
     public function storePR(Request $request) {
         $request->validate([
-            'pr_no'          => 'required|string',
-            'pr_date'        => 'required|date',
-            'department'     => 'required',
-            'product_code'   => 'required|array',
-            'product_code.*' => 'required|string',
-            'qty'            => 'required|array',
-            'qty.*'          => 'required|numeric|min:1',
-            'price'          => 'nullable|array',
-            'price.*'        => 'nullable|numeric|min:0',
-            'attachment'     => 'nullable|array',
-            'attachment.*'   => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120'
+            'pr_no'                => 'required|string',
+            'pr_date'              => 'required|date',
+            'department'           => 'required',
+            'supplies_type'        => 'nullable|string',
+            'urgency'              => 'nullable|string',
+            'procurement_category' => 'nullable|string',
+            'hope_date'            => 'nullable|date',
+            'cost_center'          => 'nullable|string',
+            'product_code'         => 'required|array',
+            'product_code.*'       => 'required|string',
+            'qty'                  => 'required|array',
+            'qty.*'                => 'required|numeric|min:1',
+            'price'                => 'nullable|array',
+            'price.*'              => 'nullable|numeric|min:0',
+            'attachment'           => 'nullable|array',
+            'attachment.*'         => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120'
         ]);
 
         // Hitung total budget secara akurat di sisi server
@@ -284,78 +290,124 @@ class ProcurementController extends Controller
         $estimatedBudget = $calculatedBudget > 0 ? $calculatedBudget : floatval($request->estimated_budget ?? 0);
 
         $username = session('username') ?? (Auth::user()->username ?? 'admin');
-        $location = Auth::user()->Location ?? 'GEU-HO';
+        $userObj  = Auth::user() ?? DB::table('users')->where('username', $username)->first();
+        $location = $userObj->Location ?? 'GEU-HO';
 
-        // 1. Simpan ke Header purchase_request
-        DB::table('purchase_request')->insert([
-            'Location'         => $location,
-            'Supplies_Type'    => 'NON-OPS',
-            'PR_No'            => $request->pr_no,
-            'PR_Date'          => $request->pr_date,
-            'Department'       => $request->department,
-            'Category'         => $request->main_category ?? $request->Category ?? 'ASSET',
-            'Sub_Category'     => $request->category ?? $request->Sub_Category ?? 'BARANG',
-            'PIC'              => $request->pic_name,
-            'PIC_Phone'        => $request->PIC_Phone,
-            'PIC_Email'        => $request->pic_email,
-            'PIC_Address'      => $request->site_destination,
-            'Estimated_Budget' => $estimatedBudget,
-            'Note'             => $request->note,
-            'Status'           => 'PENDING',
-            'Created_By'       => $username,
-            'Created_Date'     => now(),
-        ]);
+        $suppliesType = strtoupper($request->supplies_type ?? 'NON-OPS');
+        $mainCategory = strtoupper($request->main_category ?? $request->Category ?? 'NON ASSET');
+        $subCategory  = strtoupper($request->category ?? $request->Sub_Category ?? 'BARANG');
+        $procCategory = $request->procurement_category ?? 'Rutin';
+        $urgency      = $request->urgency ?? 'Normal';
 
-        // 1.1 Simpan History Note ke pr_notes_history
-        if (!empty(trim($request->note))) {
-            DB::table('pr_notes_history')->insert([
-                'PR_No'         => $request->pr_no,
-                'Action_Status' => 'CREATED PR',
-                'Note'          => trim($request->note),
-                'Created_By'    => $username,
-                'Created_Date'  => now(),
-            ]);
-        }
+        $approvalService = app(ProcurementApprovalService::class);
 
-        // 2. Looping simpan rincian multi-produk ke purchase_request_dtl
-        if ($request->has('product_code')) {
-            foreach ($request->product_code as $index => $code) {
-                if (!empty($code)) {
-                    $attachmentPath = null;
-
-                    if ($request->hasFile("attachment.{$index}")) {
-                        $file = $request->file('attachment')[$index];
-                        if ($file->isValid()) {
-                            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                            $destinationPath = public_path('uploads/pr_attachments');
-                            
-                            if (!file_exists($destinationPath)) {
-                                mkdir($destinationPath, 0777, true);
-                            }
-
-                            $file->move($destinationPath, $fileName);
-                            $attachmentPath = 'uploads/pr_attachments/' . $fileName;
-                        }
-                    }
-
-                    $qty   = floatval($request->qty[$index] ?? 1);
-                    $price = floatval($request->price[$index] ?? 0);
-
-                    DB::table('purchase_request_dtl')->insert([
-                        'PR_No'         => $request->pr_no,
-                        'Product_Code'  => $code,
-                        'Product_Desc'  => $request->product_desc[$index] ?? '',
-                        'Specification' => $request->specification[$index] ?? '',
-                        'Qty'           => $qty,
-                        'Unit'          => $request->unit[$index] ?? 'PCS',
-                        'Default_Price' => $price,
-                        'Attachment'    => $attachmentPath,
-                    ]);
-                }
+        // Preflight cek ketersediaan Policy Approval sebelum menyimpan data PR
+        if ($userObj) {
+            try {
+                $approvalService->assertCanSubmit([
+                    'Location'             => $location,
+                    'Department'           => $request->department,
+                    'Estimated_Budget'     => $estimatedBudget,
+                    'Supplies_Type'        => $suppliesType,
+                    'Category'             => $mainCategory,
+                    'Sub_Category'         => $subCategory,
+                    'Procurement_Category' => $procCategory,
+                    'Urgency'              => $urgency,
+                ], $userObj);
+            } catch (\Exception $e) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Policy Approval tidak ditemukan / belum aktif: ' . $e->getMessage());
             }
         }
 
-        return redirect('purchase-request-list')->with('success', 'Purchase Request berhasil disimpan!');
+        DB::beginTransaction();
+        try {
+            // 1. Simpan ke Header purchase_request
+            $prId = DB::table('purchase_request')->insertGetId([
+                'Location'             => $location,
+                'Supplies_Type'        => $suppliesType,
+                'Urgency'              => $urgency,
+                'PR_No'                => $request->pr_no,
+                'PR_Date'              => $request->pr_date,
+                'Hope_Date'            => $request->hope_date,
+                'Department'           => $request->department,
+                'Cost_Center'          => $request->cost_center,
+                'Category'             => $mainCategory,
+                'Sub_Category'         => $subCategory,
+                'Procurement_Category' => $procCategory,
+                'PIC'                  => $request->pic_name,
+                'PIC_Phone'            => $request->PIC_Phone,
+                'PIC_Email'            => $request->pic_email,
+                'PIC_Address'          => $request->site_destination,
+                'Estimated_Budget'     => $estimatedBudget,
+                'Note'                 => $request->note,
+                'Status'               => 'PENDING',
+                'Created_By'           => $username,
+                'Created_Date'         => now(),
+            ]);
+
+            // 1.1 Simpan History Note ke pr_notes_history
+            if (!empty(trim($request->note))) {
+                DB::table('pr_notes_history')->insert([
+                    'PR_No'         => $request->pr_no,
+                    'Action_Status' => 'CREATED PR',
+                    'Note'          => trim($request->note),
+                    'Created_By'    => $username,
+                    'Created_Date'  => now(),
+                ]);
+            }
+
+            // 2. Looping simpan rincian multi-produk ke purchase_request_dtl
+            if ($request->has('product_code')) {
+                foreach ($request->product_code as $index => $code) {
+                    if (!empty($code)) {
+                        $attachmentPath = null;
+
+                        if ($request->hasFile("attachment.{$index}")) {
+                            $file = $request->file('attachment')[$index];
+                            if ($file->isValid()) {
+                                $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                                $destinationPath = public_path('uploads/pr_attachments');
+
+                                if (!file_exists($destinationPath)) {
+                                    mkdir($destinationPath, 0777, true);
+                                }
+
+                                $file->move($destinationPath, $fileName);
+                                $attachmentPath = 'uploads/pr_attachments/' . $fileName;
+                            }
+                        }
+
+                        $qty   = floatval($request->qty[$index] ?? 1);
+                        $price = floatval($request->price[$index] ?? 0);
+
+                        DB::table('purchase_request_dtl')->insert([
+                            'PR_No'         => $request->pr_no,
+                            'Product_Code'  => $code,
+                            'Product_Desc'  => $request->product_desc[$index] ?? '',
+                            'Specification' => $request->specification[$index] ?? '',
+                            'Qty'           => $qty,
+                            'Unit'          => $request->unit[$index] ?? 'PCS',
+                            'Default_Price' => $price,
+                            'Attachment'    => $attachmentPath,
+                        ]);
+                    }
+                }
+            }
+
+            // 3. Submit ke Dynamic Approval Engine (Approval Inbox & Mobile Apps)
+            if ($userObj) {
+                $prRow = DB::table('purchase_request')->where('ID', $prId)->first();
+                $approvalService->submit($prRow, $userObj);
+            }
+
+            DB::commit();
+            return redirect('purchase-request-list')->with('success', 'Purchase Request berhasil disimpan & dikirim ke Approval Inbox!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withInput()->with('error', 'Gagal menyimpan PR: ' . $e->getMessage());
+        }
     }
 
 
@@ -375,62 +427,131 @@ class ProcurementController extends Controller
     }
         
 
-    // Menampilkan Detail PR Status PENDING
+    // Menampilkan Detail PR Status PENDING / RETURNED
     public function detailPRPending(Request $request) {
         $prNo = $request->query('PR_No');
 
         $header = DB::table('purchase_request')->where('PR_No', $prNo)->first();
         $details = DB::table('purchase_request_dtl')->where('PR_No', $prNo)->get();
-        
+
         // Ambil riwayat percakapan dari pr_notes_history
         $noteHistories = DB::table('pr_notes_history')
-                            ->where('PR_No', $prNo)
-                            ->orderBy('ID', 'DESC')
-                            ->get();
-        
+            ->where('PR_No', $prNo)
+            ->orderBy('ID', 'DESC')
+            ->get();
+
+        // Ambil daftar tahapan & status dari Dynamic Approval Engine (approval_request_task)
+        $approvalReq = null;
+        $approvalTasks = collect();
+        $canUserAct = false;
+
+        $username = session('username') ?? (Auth::user()->username ?? 'admin');
+        $userObj  = Auth::user() ?? DB::table('users')->where('username', $username)->first();
+
+        if ($header && !empty($header->Approval_Request_ID)) {
+            $approvalReq = DB::table('approval_request')->where('ID', $header->Approval_Request_ID)->first();
+            $approvalTasks = DB::table('approval_request_task as t')
+                ->leftJoin('master_position as mp', 't.Position_ID', '=', 'mp.ID')
+                ->leftJoin('users as u', 't.Acted_By', '=', 'u.id')
+                ->select(
+                        't.*',
+                        'mp.*',
+                        'u.Name as Acted_By_Name',
+                        'u.username as Acted_By_Username',
+                        't.ID as Task_ID',
+                        't.Status as Task_Status',
+                        't.Notes as Task_Notes'
+                    )
+                ->where('t.Request_ID', $header->Approval_Request_ID)
+                ->orderBy('t.Stage_Order', 'ASC')
+                ->orderBy('t.ID', 'ASC')
+                ->get();
+
+            if ($userObj) {
+                $pendingTasks = app(ProcurementApprovalService::class)->pendingTasksForUser((int) $header->ID, (int) $userObj->id);
+                $canUserAct = count($pendingTasks) > 0;
+            }
+        } else {
+            // Fallback untuk PR lama sebelum terhubung ke Approval Engine
+            $canUserAct = true;
+        }
+
         // Ambil master data agar dropdown bisa dipilih
         $materials = DB::table('product_code')->select('Product_Code', 'Description')->get();
         $departments = DB::table('department')->orderBy('Department', 'ASC')->get();
 
-        return view('humanresources.procurement.purchase-request-detail-pending', compact('header', 'details', 'materials', 'departments', 'noteHistories'));
+        return view('humanresources.procurement.purchase-request-detail-pending', compact(
+            'header', 'details', 'materials', 'departments', 'noteHistories',
+            'approvalReq', 'approvalTasks', 'canUserAct'
+        ));
     }
 
 
     // Proses Approve atau Reject PR
     
+    // Proses Approve atau Reject PR melalui Dynamic Approval Engine
     public function approvePR(Request $request) {
         $prNo     = $request->pr_no;
-        $action   = $request->action; // 'APPROVED' atau 'REJECTED'
-        $note     = $request->approval_note;
-        $username = session('username') ?? 'admin'; // <-- Perbaikan: Definisikan $username di sini
+        $action   = strtoupper(trim($request->action)); // 'APPROVED' atau 'REJECTED'
+        $note     = trim($request->approval_note ?? '');
+        $username = session('username') ?? (Auth::user()->username ?? 'admin');
 
-        DB::table('purchase_request')
-            ->where('PR_No', $prNo)
-            ->update([
-                'Status'              => $action,
-                'Note'                => $note,
-                'Approval_User'       => $username,
-                'Approval_Date'       => now(),
-                'Approval_Department' => session('department') ?? 'ICT',
-            ]);
-
-        // Simpan log aksi approval/rejection ke pr_notes_history jika ada catatan
-        if (!empty(trim($note))) {
-            DB::table('pr_notes_history')->insert([
-                'PR_No'         => $prNo,
-                'Action_Status' => $action,
-                'Note'          => trim($note),
-                'Created_By'    => $username,
-                'Created_Date'  => now(),
-            ]);
+        $pr = DB::table('purchase_request')->where('PR_No', $prNo)->first();
+        if (!$pr) {
+            return response()->json(['status' => 'error', 'message' => 'Data PR tidak ditemukan.'], 404);
         }
 
-        return response()->json([
-            'status'  => 'success',
-            'message' => "Purchase Request {$prNo} berhasil diubah menjadi {$action}!"
-        ]);
-    }
+        $userObj = Auth::user() ?? DB::table('users')->where('username', $username)->first();
+        $approvalService = app(ProcurementApprovalService::class);
 
+        try {
+            // Jika terhubung ke Approval Engine, eksekusi via ProcurementApprovalService
+            if (!empty($pr->Approval_Request_ID) && $userObj) {
+                if ($action === 'APPROVED') {
+                    $approvalService->approve((int) $pr->ID, $userObj, $note);
+                } else {
+                    $approvalService->reject((int) $pr->ID, $userObj, $note ?: 'Ditolak oleh approver');
+                }
+
+                $updatedPr = DB::table('purchase_request')->where('ID', $pr->ID)->first();
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => "Tahap approval berhasil diproses! Status PR {$prNo} saat ini: {$updatedPr->Status}."
+                ]);
+            }
+
+            // Fallback legacy untuk PR lama yang belum memiliki Approval_Request_ID
+            DB::table('purchase_request')
+                ->where('PR_No', $prNo)
+                ->update([
+                    'Status'              => $action,
+                    'Note'                => $note ?: $pr->Note,
+                    'Approval_User'       => $username,
+                    'Approval_Date'       => now(),
+                    'Approval_Department' => session('department') ?? 'ICT',
+                ]);
+
+            if (!empty($note)) {
+                DB::table('pr_notes_history')->insert([
+                    'PR_No'         => $prNo,
+                    'Action_Status' => $action,
+                    'Note'          => $note,
+                    'Created_By'    => $username,
+                    'Created_Date'  => now(),
+                ]);
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => "Purchase Request {$prNo} berhasil diubah menjadi {$action}!"
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage()
+            ], 422);
+        }
+    }
     
     // Proses Update / Edit PR yang Statusnya PENDING
     

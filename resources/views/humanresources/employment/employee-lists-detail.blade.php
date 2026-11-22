@@ -1,6 +1,11 @@
-<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">EMPLOYEE DETAIL</div>
+<?php
+$empId = (string) ($_GET['ID'] ?? '');
+$empIdJs = json_encode($empId);
+?>
+<div class="JudulContent" style="color:#699;background-image:url({{ asset('hdr_back.gif') }});">EMPLOYEE DETAIL</div>
 <div id="a_EmployeeTab" style="width:100%; height:1500px;"></div>
 <script>
+var empDetailTaskId = {!! $empIdJs !!};
 
 var myTabbar = new dhtmlXTabBar({
 	
@@ -99,19 +104,19 @@ var myTabbar = new dhtmlXTabBar({
 		]
 		
 });
-myTabbar.tabs("a1").attachURL("employee-lists-detail-data?ID=<?php echo $_GET['ID']?>");
+myTabbar.tabs("a1").attachURL("{{ url('employee-lists-detail-data') }}?ID=" + encodeURIComponent(empDetailTaskId));
 
 var tabUrls = {
-    "a1": "employee-lists-detail-data?ID=<?php echo $_GET['ID']?>",
-    "a2": "employee-lists-detail-other?ID=<?php echo $_GET['ID']?>",
-    "a3": "employee-lists-detail-family?ID=<?php echo $_GET['ID']?>",
-    "a4": "employee-lists-detail-skill?ID=<?php echo $_GET['ID']?>",
-    "a5": "employee-lists-detail-education?ID=<?php echo $_GET['ID']?>",
-    "a6": "employee-lists-detail-insurance?ID=<?php echo $_GET['ID']?>",
-    "a7": "employee-lists-detail-kjk?ID=<?php echo $_GET['ID']?>",
-    "a8": "employee-lists-detail-document?ID=<?php echo $_GET['ID']?>",
-    "a9": "employee-lists-detail-history?ID=<?php echo $_GET['ID']?>",
-    "a10": "employee-lists-detail-recruitment?ID=<?php echo $_GET['ID']?>"
+    "a1": "{{ url('employee-lists-detail-data') }}?ID=" + encodeURIComponent(empDetailTaskId),
+    "a2": "{{ url('employee-lists-detail-other') }}?ID=" + encodeURIComponent(empDetailTaskId),
+    "a3": "{{ url('employee-lists-detail-family') }}?ID=" + encodeURIComponent(empDetailTaskId),
+    "a4": "{{ url('employee-lists-detail-skill') }}?ID=" + encodeURIComponent(empDetailTaskId),
+    "a5": "{{ url('employee-lists-detail-education') }}?ID=" + encodeURIComponent(empDetailTaskId),
+    "a6": "{{ url('employee-lists-detail-insurance') }}?ID=" + encodeURIComponent(empDetailTaskId),
+    "a7": "{{ url('employee-lists-detail-kjk') }}?ID=" + encodeURIComponent(empDetailTaskId),
+    "a8": "{{ url('employee-lists-detail-document') }}?ID=" + encodeURIComponent(empDetailTaskId),
+    "a9": "{{ url('employee-lists-detail-history') }}?ID=" + encodeURIComponent(empDetailTaskId),
+    "a10": "{{ url('employee-lists-detail-recruitment') }}?ID=" + encodeURIComponent(empDetailTaskId)
 };
 
 var loadedTabs = {

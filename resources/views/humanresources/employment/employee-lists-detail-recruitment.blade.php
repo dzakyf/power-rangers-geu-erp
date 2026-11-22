@@ -7,9 +7,12 @@ use App\Services\RecruitmentFlowService;
 $LSP = Auth::user()->Location ?? '';
 $Saya = Auth::user()->username ?? 'SYSTEM';
 
-// Di employee detail, ID yang dilempar adalah ID dari tabel employment
+// Di employee detail, ID yang dilempar bisa berupa Task_ID atau ID dari tabel employment
 $empId = $_GET['ID'] ?? request('ID');
-$employee = DB::table('employment')->where('ID', $empId)->first();
+$employee = DB::table('employment')
+    ->where('Task_ID', $empId)
+    ->orWhere('ID', $empId)
+    ->first();
 
 $recruitment = null;
 if ($employee) {

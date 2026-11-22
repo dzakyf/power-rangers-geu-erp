@@ -64,6 +64,12 @@
                 </a>
             @endif
 
+            @if(strtoupper(trim((string) $task->Request_Type)) === 'PAYROLL_THR')
+                <a href="{{ url('payroll-thr-approval') }}" target="_blank" class="btn btn-info btn-sm text-white shadow-sm">
+                    <i class="fe fe-gift me-1"></i> Lihat Detail Batch THR
+                </a>
+            @endif
+
             @if($canAct)
             <button type="button" class="btn btn-success btn-sm shadow-sm" onclick="ApprovalInboxAct('APPROVE', {{ $task->ID }});">
                 <i class="fe fe-check me-1"></i> Setujui (Approve)

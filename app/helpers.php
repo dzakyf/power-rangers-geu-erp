@@ -265,6 +265,7 @@ if (!function_exists('employee_grid_columns')) {
             'Employee_Type' => ['Employee Type', 120, 'center', '#combo_filter', 'str'],
             'Age' => ['Age', 70, 'center', '#numeric_filter', 'int'],
             'Academic_Major' => ['Last Education Major', 160, 'left', '#text_filter', 'str'],
+            'User_Account' => ['Akun User', 190, 'center', '#text_filter', 'str'],
         ];
     }
 }
@@ -290,13 +291,20 @@ if (!function_exists('location_name_map')) {
 if (!function_exists('employee_grid_default_columns')) {
     function employee_grid_default_columns(): array
     {
-        return ['Name', 'Task_ID', 'Gender', 'Marital_Status', 'Age', 'Position', 'Department', 'Directorat', 'Employment_Status', 'thr_scheme', 'Location', 'Site_Location', 'Last_Education', 'Academic_Major'];
+        return ['Name', 'Task_ID', 'User_Account', 'Gender', 'Marital_Status', 'Age', 'Position', 'Department', 'Directorat', 'Employment_Status', 'thr_scheme', 'Location', 'Site_Location', 'Last_Education', 'Academic_Major'];
     }
 }
 
 if (!function_exists('employee_grid_cell')) {
-    function employee_grid_cell(string $key, $row, array $akademis = [], array $locationMap = []): string
+    function employee_grid_cell(string $key, $row, array $akademis = [], array $locationMap = [], array $userAccountMap = []): string
     {
+        if ($key === 'User_Account') {
+            $empIdKey = isset($row->ID) ? 'id:' . $row->ID : '';
+            if ($empIdKey !== '' && isset($userAccountMap[$empIdKey])) {
+                return (string) $userAccountMap[$empIdKey];
+            }
+            return 'Belum Ada Akun';
+        }
         if ($key === 'Age') {
             $b = isset($row->Birth_Date) ? $row->Birth_Date : '';
             if ($b !== '' && $b !== '0000-00-00') {

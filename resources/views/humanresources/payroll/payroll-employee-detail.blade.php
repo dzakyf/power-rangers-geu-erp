@@ -95,6 +95,20 @@ function previewSlipDetail(nik) {
             var ded = m.deduction_breakdown || {};
             var tax = m.tax_details || {};
 
+            var bpjsKesInfo = ded.bpjs_kes || {};
+            var bpjsKesExtraCnt = Number(bpjsKesInfo.extra_family_count || 0);
+            var bpjsKesExtraAmt = Number(bpjsKesInfo.extra_family_amount || 0);
+            var bpjsKesBaseAmt = (bpjsKesInfo.base_amount !== undefined) ? Number(bpjsKesInfo.base_amount) : Number(d.bpjs_kes_amount);
+            var bpjsKesMode = bpjsKesInfo.display_mode || 'SEPARATE';
+            var bpjsKesRowsHtml = '';
+            if (bpjsKesExtraCnt > 0 && bpjsKesExtraAmt > 0 && bpjsKesMode === 'SEPARATE') {
+                bpjsKesRowsHtml = '<li class="d-flex justify-content-between py-1 border-bottom"><span>BPJS Kes (1%):</span><span class="text-danger">Rp ' + bpjsKesBaseAmt.toLocaleString('id-ID') + '</span></li>' +
+                    '<li class="d-flex justify-content-between py-1 border-bottom"><span>BPJS Kes Kel. Tambahan (' + bpjsKesExtraCnt + ' org @ 1%):</span><span class="text-danger">Rp ' + bpjsKesExtraAmt.toLocaleString('id-ID') + '</span></li>';
+            } else {
+                var bpjsKesLabel = bpjsKesExtraCnt > 0 ? ('1% + ' + bpjsKesExtraCnt + ' Kel. Tambahan') : '1% / Cap 120k';
+                bpjsKesRowsHtml = '<li class="d-flex justify-content-between py-1 border-bottom"><span>BPJS Kes (' + bpjsKesLabel + '):</span><span class="text-danger">Rp ' + Number(d.bpjs_kes_amount).toLocaleString('id-ID') + '</span></li>';
+            }
+
             var html = '<div class="card border-0 shadow rounded-4 mb-3" style="background: #fdfdfd;">' +
                 '<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3 rounded-top-4">' +
                     '<h6 class="mb-0 fw-bold"><i class="fa fa-file-text me-1"></i> Rincian Slip & Perhitungan Gaji: ' + d.name + ' (' + d.nik + ')</h6>' +
@@ -140,7 +154,7 @@ function previewSlipDetail(nik) {
                                     '<li class="d-flex justify-content-between py-1 border-bottom"><span>Unpaid Leave (' + (att.absent_days || 0) + ' hr):</span><span class="text-danger">Rp ' + Number(d.unpaid_leave_amount).toLocaleString('id-ID') + '</span></li>' +
                                     '<li class="d-flex justify-content-between py-1 border-bottom"><span>Denda Telat (' + (att.late_count || 0) + 'x):</span><span class="text-danger">Rp ' + Number(d.late_penalty_amount).toLocaleString('id-ID') + '</span></li>' +
                                     '<li class="d-flex justify-content-between py-1 border-bottom"><span>BPJS TK (2%):</span><span class="text-danger">Rp ' + Number(d.bpjs_tk_amount).toLocaleString('id-ID') + '</span></li>' +
-                                    '<li class="d-flex justify-content-between py-1 border-bottom"><span>BPJS Kes (1% / Cap 120k):</span><span class="text-danger">Rp ' + Number(d.bpjs_kes_amount).toLocaleString('id-ID') + '</span></li>' +
+                                    bpjsKesRowsHtml +
                                     '<li class="d-flex justify-content-between py-1 border-bottom"><span>PPh 21 (' + (tax.rate_percent || 0) + '%):</span><span class="text-danger fw-bold">Rp ' + Number(d.pph).toLocaleString('id-ID') + '</span></li>' +
                                     '<li class="d-flex justify-content-between py-2 fw-bold text-danger border-top mt-2"><span>Total Potongan:</span><span>Rp ' + Number(Number(d.deduction) + Number(d.pph)).toLocaleString('id-ID') + '</span></li>' +
                                 '</ul>' +

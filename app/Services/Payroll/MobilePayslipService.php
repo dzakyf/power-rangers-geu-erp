@@ -12,9 +12,41 @@ class MobilePayslipService
      */
     protected $payslipService;
 
-    public function __construct(PayrollPayslipService $payslipService)
-    {
+    /**
+     * @var PayrollThrPayslipService
+     */
+    protected $thrPayslipService;
+
+    public function __construct(
+        PayrollPayslipService $payslipService,
+        PayrollThrPayslipService $thrPayslipService = null
+    ) {
         $this->payslipService = $payslipService;
+        $this->thrPayslipService = $thrPayslipService ?: app(PayrollThrPayslipService::class);
+    }
+
+    /**
+     * Ambil daftar Slip THR karyawan untuk Mobile ESS (tab terpisah).
+     *
+     * @param string $nik
+     * @param int $limit
+     * @return array
+     */
+    public function getAvailableThrSlipsForEmployee(string $nik, int $limit = 12): array
+    {
+        return $this->thrPayslipService->getAvailableThrSlipsForEmployee($nik, $limit);
+    }
+
+    /**
+     * Ambil detail Slip THR karyawan untuk Mobile ESS (anti-IDOR).
+     *
+     * @param string $nik
+     * @param int $batchId
+     * @return array
+     */
+    public function getMobileThrPayslipDetail(string $nik, int $batchId): array
+    {
+        return $this->thrPayslipService->getMobileThrPayslipDetail($nik, $batchId);
     }
 
     /**
@@ -65,7 +97,7 @@ class MobilePayslipService
                 }
                 $seenPeriodKeys[$normPeriod] = true;
 
-                $totalEarnings = (float) $row->Pokok + (float) $row->Tunjangan + (float) $row->Overtime + (float) $row->KJK + (float) $row->THR;
+                $totalEarnings = (float) $row->Pokok + (float) $row->Tunjangan + (float) $row->Overtime + (float) $row->KJK;
                 $totalDeductions = (float) $row->Deduction + abs((float) $row->PPH);
                 $thp = (float) $row->THP > 0 ? (float) $row->THP : max(0.0, $totalEarnings - $totalDeductions);
 

@@ -1,6 +1,10 @@
 @include('layout.plugins')
 @include('layout.adminor.tab-head')
 
+<?php
+$empDocTaskId = (string) ($_GET['ID'] ?? '');
+?>
+
 <div class="container-fluid py-3">
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2">
@@ -15,9 +19,6 @@
                 <button type="button" id="DocumentListsDetaildel" name="DocumentListsDetaildel" class="btn btn-sm btn-light text-danger" onclick="DelDocuments()">
                     <i class="fa fa-trash me-1"></i> Delete Document
                 </button>
-                <button type="button" class="btn btn-sm btn-light text-primary fw-bold" onclick="PDocumentListsDetail.sendData();alert('Data saved.');">
-                    <i class="fa fa-save me-1"></i> Save Changes
-                </button>
             </div>
         </div>
         <div class="card-body p-2">
@@ -31,15 +32,20 @@
 </div>
 
 <script>
+var empDocTaskId = {!! json_encode($empDocTaskId) !!};
+
 function DokumenDownload() {
-    var DokumenDownloadFile = DocumentListsDetail.cells(DocumentListsDetail.getSelectedId(),7).getValue();
-    console.log(DokumenDownloadFile);
-    window.open('doc_recruitment/'+ DokumenDownloadFile);
+    var selectedId = DocumentListsDetail.getSelectedId();
+    if (!selectedId) return false;
+    var DokumenDownloadFile = DocumentListsDetail.cells(selectedId, 7).getValue();
+    if (DokumenDownloadFile) {
+        window.open('{{ asset("doc_recruitment") }}/' + DokumenDownloadFile, '_blank');
+    }
     return true;
 }
 
 function addNew() {
-    LoadM('DivDocumentListsDetail','employee-lists-detail-document?ID=<?php echo $_GET['ID']?>');
+    LoadM('DivDocumentListsDetail', '{{ url("employee-lists-detail-document-form") }}?ID=' + encodeURIComponent(empDocTaskId));
 }
 
 DocumentListsDetail = new dhtmlXGridObject('DocumentListsDetail');
@@ -50,36 +56,41 @@ DocumentListsDetail.setColAlign("center,center,left,left,left,center,left,center
 DocumentListsDetail.setColSorting("int,str,str,str,str,str,str,str");
 DocumentListsDetail.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
 DocumentListsDetail.enableSmartRendering(true, 150);
-PDocumentListsDetail = new dataProcessor("project-documents-detail-update");
-PDocumentListsDetail.setTransactionMode({
-    mode: "POST",
-    total: true,
-    headers: {
-        'X-CSRF-TOKEN': "{{ csrf_token() }}"
-    }
-});
-	
-PDocumentListsDetail.setTransactionMode("POST", true);
-PDocumentListsDetail.setUpdateMode("Off");
-PDocumentListsDetail.init(DocumentListsDetail);
 DocumentListsDetail.attachEvent("onRowDblClicked", DokumenDownload);
 DocumentListsDetail.setSkin("dhx_skyblue");
 DocumentListsDetail.init();
 refreshdataDocumentdetail();
 
-function refreshdataDocumentdetail(){
-    DocumentListsDetail.clearAndLoad('xml-employee-lists-detail-document?ID=<?php echo $_GET['ID']?>');
+function refreshdataDocumentdetail() {
+    DocumentListsDetail.clearAndLoad('{{ url("xml-employee-lists-detail-document") }}?ID=' + encodeURIComponent(empDocTaskId));
 }
 
-function DelDocuments(){
-    dhtmlx.confirm('Delete this Documents?', 'Documents', function(r) {
-        if (r==true){
-            DocumentListsDetail.deleteSelectedRows();
-            PDocumentListsDetail.sendData();
-            alert('Data Successfully Deleted!');
-            setTimeout(function(){
-                refreshdataDocumentdetail();
-            },1000);
+function DelDocuments() {
+    var selectedId = DocumentListsDetail.getSelectedId();
+    if (!selectedId) {
+        alert('Pilih dokumen yang ingin dihapus terlebih dahulu.');
+        return;
+    }
+    var category = DocumentListsDetail.cells(selectedId, 1).getValue();
+    dhtmlx.confirm('Hapus dokumen ' + category + ' ini?', 'Documents', function(r) {
+        if (r === true) {
+            $.ajax({
+                url: '{{ url("employee-lists-detail-document-delete") }}',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    Task_ID: empDocTaskId,
+                    category: category
+                },
+                success: function(res) {
+                    alert((res && res.message) ? res.message : 'Dokumen berhasil dihapus.');
+                    refreshdataDocumentdetail();
+                },
+                error: function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menghapus dokumen.';
+                    alert(msg);
+                }
+            });
         }
     });
 }

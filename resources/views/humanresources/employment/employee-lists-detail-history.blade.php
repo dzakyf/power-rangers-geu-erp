@@ -30,5 +30,5 @@ EMployeeHistory.setDateFormat("%Y-%m-%d");
 EMployeeHistory.setSkin("dhx_skyblue");
 EMployeeHistory.enableEditEvents(true,false,true);
 EMployeeHistory.init();
-EMployeeHistory.loadXML("xml-employee-lists-detail-history?ID=<?php echo $_GET['ID'];?>");
+EMployeeHistory.loadXML("{{ url('xml-employee-lists-detail-history') }}?ID=" + encodeURIComponent({!! json_encode((string) ($_GET['ID'] ?? '')) !!}));
 </script>

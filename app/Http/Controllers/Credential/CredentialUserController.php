@@ -119,8 +119,24 @@ class CredentialUserController extends Controller
     public function candidatesWithoutAccount(Request $request)
     {
         $query = DB::table('recruitment as r')
-            ->leftJoin('users as u', 'u.username', '=', 'r.Task_ID')
+            ->leftJoin('users as u', function ($join) {
+                $join->on('u.username', '=', 'r.Task_ID')
+                     ->orOn('u.Emp_ID', '=', 'r.Task_ID');
+            })
             ->whereNull('u.id')
+            ->where(function ($q) {
+                $q->whereNull('r.Status')->orWhere('r.Status', '!=', 'HIRED');
+            })
+            ->whereNull('r.Onboarded_At')
+            ->whereNotExists(function ($sub) {
+                $sub->select(DB::raw(1))
+                    ->from('employment as e')
+                    ->whereColumn('e.Recruitment_ID', 'r.ID')
+                    ->where(function ($eq) {
+                        $eq->whereNotNull('e.user_id')
+                           ->orWhereNotNull('e.candidate_user_id');
+                    });
+            })
             ->select('r.ID', 'r.Task_ID', 'r.Name', 'r.Position', 'r.Email', 'r.Handphone', 'r.Created_Date');
 
         $total = $query->count();

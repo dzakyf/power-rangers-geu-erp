@@ -70,12 +70,40 @@
             padding: 3px 8px;
             border-radius: 999px;
         }
+        .payslip-tabs {
+            display: flex;
+            background: #E2E8F0;
+            border-radius: 14px;
+            padding: 4px;
+            gap: 4px;
+            margin-bottom: 14px;
+        }
+        .payslip-tab-btn {
+            flex: 1;
+            border: 0;
+            background: transparent;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .payslip-tab-btn.active {
+            background: #FFFFFF;
+            color: var(--emerald-primary);
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+        }
     </style>
 </head>
 <body>
     @php
         $resolvedBackUrl = mobile_back_url(route('mobile.dashboard'));
         $fromParams = mobile_from_params();
+        $activeTab = isset($activeTab) ? $activeTab : 'salary';
+        $thrSlips = isset($thrSlips) ? $thrSlips : [];
+        $latestThr = isset($latestThr) ? $latestThr : null;
     @endphp
     <div class="finora-shell">
         <div class="finora-topbar">
@@ -92,6 +120,22 @@
             </div>
         @endif
 
+        <!-- Segmented Tab Switch: Gaji Bulanan | Slip THR -->
+        <div class="payslip-tabs" role="tablist">
+            <button type="button" id="tabBtnSalary"
+                class="payslip-tab-btn {{ $activeTab !== 'thr' ? 'active' : '' }}"
+                onclick="switchPayslipTab('salary')">
+                <i class="fas fa-wallet me-1"></i> Gaji Bulanan ({{ count($periods) }})
+            </button>
+            <button type="button" id="tabBtnThr"
+                class="payslip-tab-btn {{ $activeTab === 'thr' ? 'active' : '' }}"
+                onclick="switchPayslipTab('thr')">
+                <i class="fas fa-gift me-1"></i> Slip THR ({{ count($thrSlips) }})
+            </button>
+        </div>
+
+        <!-- TAB 1: GAJI BULANAN -->
+        <div id="paneSalary" style="{{ $activeTab === 'thr' ? 'display:none;' : '' }}">
         @if ($latest)
             <div class="finora-hero">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -171,12 +215,102 @@
                 Belum ada riwayat slip gaji yang tersedia.
             </div>
         @endforelse
+        </div>
+
+        <!-- TAB 2: SLIP THR -->
+        <div id="paneThr" style="{{ $activeTab === 'thr' ? '' : 'display:none;' }}">
+            @if ($latestThr)
+                <div class="finora-hero" style="background: linear-gradient(135deg, #065F46 0%, #047857 100%);">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3 py-1" style="font-size: 11px;">
+                            <i class="fas fa-gift me-1"></i> {{ $latestThr['event_name'] }}
+                        </span>
+                        <button type="button" class="mask-toggle-btn" onclick="togglePayslipMask()">
+                            <i class="fas fa-eye"></i>
+                            <span>Tampilkan / Sembunyikan</span>
+                        </button>
+                    </div>
+
+                    <div class="small opacity-75 mb-1">Total THR Diterima ({{ $latestThr['status_label'] }})</div>
+                    <div class="fs-2 fw-bold mb-2 salary-maskable"
+                         data-masked="Rp •••••••"
+                         data-real="Rp {{ number_format($latestThr['thp'], 0, ',', '.') }}">
+                        Rp •••••••
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top border-white border-opacity-25">
+                        <div class="small opacity-75">
+                            Batch: <strong class="text-white">{{ $latestThr['batch_no'] }}</strong>
+                        </div>
+                        <a href="{{ route('payslip.mobile.thr.detail', array_merge(['batch_id' => $latestThr['batch_id']], $fromParams)) }}"
+                           class="btn btn-light btn-sm rounded-pill fw-bold text-success px-3">
+                            Lihat Slip THR <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            @else
+                <div class="finora-hero">
+                    <div class="small opacity-75 mb-1">Informasi Slip THR</div>
+                    <h2 class="fs-5 fw-bold mb-1">Belum Ada Slip THR</h2>
+                    <p class="small mb-0 opacity-75">
+                        Slip THR untuk NIK {{ $nik ?: '-' }} belum tersedia (hanya batch DRAFT &amp; APPROVED yang ditampilkan).
+                    </p>
+                </div>
+            @endif
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold small text-uppercase text-muted">Riwayat Slip THR</span>
+                <span class="finora-pill">{{ count($thrSlips) }} Event</span>
+            </div>
+
+            @forelse ($thrSlips as $t)
+                <a href="{{ route('payslip.mobile.thr.detail', array_merge(['batch_id' => $t['batch_id']], $fromParams)) }}" class="payslip-list-card">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="payslip-icon-box" style="background: #FEF3C7; color: #B45309;">
+                            <i class="fas fa-gift"></i>
+                        </span>
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                <span class="fw-bold" style="font-size: 14px;">{{ $t['event_name'] }}</span>
+                                @if ($t['status'] === 'FINAL')
+                                    <span class="status-badge-final">FINAL</span>
+                                @else
+                                    <span class="status-badge-preview">PREVIEW DRAFT</span>
+                                @endif
+                            </div>
+                            <div class="text-muted small" style="font-size: 11px;">
+                                {{ $t['period_label'] }} &bull; {{ $t['batch_no'] }}
+                            </div>
+                            <div class="text-muted small salary-maskable"
+                                 style="font-size: 12px;"
+                                 data-masked="THP THR: Rp •••••••"
+                                 data-real="THP THR: Rp {{ number_format($t['thp'], 0, ',', '.') }}">
+                                THP THR: Rp •••••••
+                            </div>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-muted small"></i>
+                </a>
+            @empty
+                <div class="bg-white border rounded-4 p-4 text-center text-muted small">
+                    <i class="fas fa-gift fs-4 mb-2 d-block opacity-50"></i>
+                    Belum ada riwayat Slip THR yang tersedia.
+                </div>
+            @endforelse
+        </div>
     </div>
 
     @include('humanresources.mobile.partials.bottom-nav', ['active' => 'ess'])
 
     <script>
         var isPayslipMasked = true;
+        function switchPayslipTab(tab) {
+            var isThr = (tab === 'thr');
+            document.getElementById('paneSalary').style.display = isThr ? 'none' : '';
+            document.getElementById('paneThr').style.display = isThr ? '' : 'none';
+            document.getElementById('tabBtnSalary').classList.toggle('active', !isThr);
+            document.getElementById('tabBtnThr').classList.toggle('active', isThr);
+        }
         function togglePayslipMask() {
             isPayslipMasked = !isPayslipMasked;
             var els = document.querySelectorAll('.salary-maskable');

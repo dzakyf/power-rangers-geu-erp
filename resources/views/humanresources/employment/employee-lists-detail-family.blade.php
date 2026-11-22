@@ -43,74 +43,34 @@
             <div id="CTPoints" style="width:100%;height:200px; background-color:white;overflow:hidden"></div>
         </div>
     </div>
-
-    <!-- Relation Contact with KSPS -->
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-primary text-white py-2">
-            <h6 class="mb-0 fw-bold"><i class="fa fa-handshake-o me-2"></i>Relation Contact with KSPS</h6>
-        </div>
-        <div class="card-body p-3">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted" for="Emergency_Contact_No">Contact Phone No</label>
-                    <input type="text" id="Emergency_Contact_No" class="form-control form-control-sm">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted" for="Emergency_Contact_Name">Contact Name</label>
-                    <input type="text" id="Emergency_Contact_Name" class="form-control form-control-sm" tabindex="6">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted" for="Emergency_Relation">Relationship</label>
-                    <input type="text" id="Emergency_Relation" class="form-control form-control-sm">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted" for="Emergency_Address">Address</label>
-                    <input type="text" id="Emergency_Address" class="form-control form-control-sm" tabindex="6">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Save Action -->
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-3 d-flex justify-content-end">
-            <button type="button" class="btn btn-primary px-4" onclick="saveFamilyData()">
-                <i class="fa fa-save me-1"></i> Save Changes
-            </button>
-        </div>
-    </div>
 </div>
 
 <script>
-function saveFamilyData() {
-    if (typeof PMyFamily !== 'undefined') PMyFamily.sendData();
-    if (typeof PCTPoints !== 'undefined') PCTPoints.sendData();
-    alert('Family and contact data saved.');
-}
+var empFamilyTaskId = {!! json_encode((string) ($_GET['ID'] ?? '')) !!};
 
 MyFamily = new dhtmlXGridObject('MyFamily');
-MyFamily.setImagePath("./dhtmlx/imgs/");
+MyFamily.setImagePath("{{ asset('dhtmlx/imgs') }}/");
 MyFamily.setHeader("No.,Family Status,Name,Gender,Birth Date,Last Education,Occupation");
 MyFamily.setInitWidths("60,140,220,100,120,150,auto");
 MyFamily.setColAlign("center,center,left,center,center,center,left");
 MyFamily.setColSorting("int,str,str,str,str,str,str");
 MyFamily.setColTypes("dyn,coro,txt,coro,dhxCalendar,coro,ed");
 MyFamily.setDateFormat("%Y-%m-%d"); 
-PMyFamily = new dataProcessor("employee-lists-detail-family-update");
+PMyFamily = new dataProcessor("{{ url('employee-lists-detail-family-update') }}?Task_ID=" + encodeURIComponent(empFamilyTaskId));
 PMyFamily.setTransactionMode({
     mode: "POST",
     total: true,
     headers: {
         'X-CSRF-TOKEN': "{{ csrf_token() }}"
     },
-    payload: {"Task_ID":"<?php echo $_GET['ID'] ?>"}
+    payload: {"Task_ID": empFamilyTaskId}
 });
 PMyFamily.init(MyFamily);
 MyFamily.setEditable(true);
 MyFamily.setSkin("dhx_skyblue");
 MyFamily.enableEditEvents(true,false,true);
 MyFamily.init();
-MyFamily.loadXML("xml-employee-lists-detail-family?ID=<?php echo $_GET['ID'];?>");
+MyFamily.loadXML("{{ url('xml-employee-lists-detail-family') }}?ID=" + encodeURIComponent(empFamilyTaskId));
 MyFamily.getCombo(1).put('DAUGHTER','DAUGHTER');
 MyFamily.getCombo(1).put('SON','SON');
 MyFamily.getCombo(1).put('WIFE','WIFE');
@@ -137,18 +97,17 @@ CTPoints.setColAlign("center,left,left,left,center,left,center");
 CTPoints.setColSorting("int,str,str,str,str,str,str");
 CTPoints.setColTypes("ro,ed,ed,ed,ed,ed,ed");
 CTPoints.setEditable(true);
-PCTPoints = new dataProcessor("employee-lists-detail-contact-points-update");
+PCTPoints = new dataProcessor("{{ url('employee-lists-detail-contact-points-update') }}?Task_ID=" + encodeURIComponent(empFamilyTaskId));
 PCTPoints.setTransactionMode({
     mode: "POST",
     total: true,
     headers: {
         'X-CSRF-TOKEN': "{{ csrf_token() }}"
     },
-    payload: {"Task_ID":"<?php echo $_GET['ID'] ?>"}
+    payload: {"Task_ID": empFamilyTaskId}
 });
-PCTPoints.setTransactionMode("POST",false);
 PCTPoints.init(CTPoints);
 CTPoints.setSkin("dhx_skyblue");
 CTPoints.init();
-CTPoints.loadXML("xml-employee-lists-detail-contact-points?ID=<?php echo $_GET['ID'];?>");
+CTPoints.loadXML("{{ url('xml-employee-lists-detail-contact-points') }}?ID=" + encodeURIComponent(empFamilyTaskId));
 </script>

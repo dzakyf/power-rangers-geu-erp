@@ -93,6 +93,8 @@ function saveSkillData() {
     alert('Experience, skill, award, and language data saved.');
 }
 
+var empSkillTaskId = {!! json_encode((string) ($_GET['ID'] ?? '')) !!};
+
 Experiences = new dhtmlXGridObject('Experiences');
 Experiences.setImagePath("./dhtmlx/imgs/");
 Experiences.setHeader("No.,Start Date,End Date,Position,Company Name,Last Salary,Reason of Resign");
@@ -100,23 +102,22 @@ Experiences.setInitWidths("60,110,110,180,200,140,auto");
 Experiences.setColAlign("center,center,center,left,left,right,left");
 Experiences.setColSorting("int,str,str,str,str,str,str");
 Experiences.enableEditEvents(true,false,true);
-PExperiences = new dataProcessor("employee-lists-detail-experience-update");
+PExperiences = new dataProcessor("{{ url('employee-lists-detail-experience-update') }}?Task_ID=" + encodeURIComponent(empSkillTaskId));
 PExperiences.setTransactionMode({
     mode: "POST",
     total: true,
     headers: {
         'X-CSRF-TOKEN': "{{ csrf_token() }}"
     },
-    payload: {"Task_ID":"<?php echo $_GET['ID'] ?>"}
+    payload: {"Task_ID": empSkillTaskId}
 });
-PExperiences.setTransactionMode("POST",false);
 PExperiences.init(Experiences);
 Experiences.setDateFormat("%Y-%m-%d"); 
 Experiences.setColTypes("ro,dhxCalendar,dhxCalendar,ed,ed,ed,ed");
 Experiences.setEditable(true);
 Experiences.setSkin("dhx_skyblue");
 Experiences.init();
-Experiences.loadXML("xml-employee-lists-detail-experience?ID=<?php echo $_GET['ID'];?>");
+Experiences.loadXML("{{ url('xml-employee-lists-detail-experience') }}?ID=" + encodeURIComponent(empSkillTaskId));
 
 OtherSkill = new dhtmlXGridObject('OtherSkill');
 OtherSkill.setImagePath("./dhtmlx/imgs/");
@@ -126,21 +127,20 @@ OtherSkill.setColAlign("center,left,left,center,left");
 OtherSkill.setColSorting("int,str,str,str,str");
 OtherSkill.setColTypes("ro,ed,ed,ed,txt");
 OtherSkill.enableEditEvents(true,false,true);
-POtherSkill = new dataProcessor("employee-lists-detail-other-skill-update");
+POtherSkill = new dataProcessor("{{ url('employee-lists-detail-other-skill-update') }}?Task_ID=" + encodeURIComponent(empSkillTaskId));
 POtherSkill.setTransactionMode({
     mode: "POST",
     total: true,
     headers: {
         'X-CSRF-TOKEN': "{{ csrf_token() }}"
     },
-    payload: {"Task_ID":"<?php echo $_GET['ID'] ?>"}
+    payload: {"Task_ID": empSkillTaskId}
 });
-POtherSkill.setTransactionMode("POST",false);
 POtherSkill.init(OtherSkill);
 OtherSkill.setEditable(true);
 OtherSkill.setSkin("dhx_skyblue");
 OtherSkill.init();
-OtherSkill.loadXML("xml-employee-lists-detail-other-skill?ID=<?php echo $_GET['ID'];?>");
+OtherSkill.loadXML("{{ url('xml-employee-lists-detail-other-skill') }}?ID=" + encodeURIComponent(empSkillTaskId));
 
 Awards = new dhtmlXGridObject('Awards');
 Awards.setImagePath("./dhtmlx/imgs/");
@@ -150,21 +150,20 @@ Awards.setColAlign("center,center,left,left,left");
 Awards.setColSorting("int,str,str,str,str");
 Awards.setColTypes("ro,ed,ed,ed,txt");
 Awards.enableEditEvents(true,false,true);
-PAwards = new dataProcessor("employee-lists-detail-award-update");
+PAwards = new dataProcessor("{{ url('employee-lists-detail-award-update') }}?Task_ID=" + encodeURIComponent(empSkillTaskId));
 PAwards.setTransactionMode({
     mode: "POST",
     total: true,
     headers: {
         'X-CSRF-TOKEN': "{{ csrf_token() }}"
     },
-    payload: {"Task_ID":"<?php echo $_GET['ID'] ?>"}
+    payload: {"Task_ID": empSkillTaskId}
 });
-PAwards.setTransactionMode("POST",false);
 PAwards.init(Awards);
 Awards.setEditable(true);
 Awards.setSkin("dhx_skyblue");
 Awards.init();
-Awards.loadXML("xml-employee-lists-detail-award?ID=<?php echo $_GET['ID'];?>");
+Awards.loadXML("{{ url('xml-employee-lists-detail-award') }}?ID=" + encodeURIComponent(empSkillTaskId));
 
 Language = new dhtmlXGridObject('Language');
 Language.setImagePath("./dhtmlx/imgs/");
@@ -174,20 +173,20 @@ Language.setColAlign("center,left,center,center,left");
 Language.setColSorting("int,str,str,str,str");
 Language.setColTypes("ro,ed,coro,coro,txt");
 Language.enableEditEvents(true,false,true);
-PLanguage = new dataProcessor("employee-lists-detail-language-update");
+PLanguage = new dataProcessor("{{ url('employee-lists-detail-language-update') }}?Task_ID=" + encodeURIComponent(empSkillTaskId));
 PLanguage.setTransactionMode({
     mode: "POST",
     total: true,
     headers: {
         'X-CSRF-TOKEN': "{{ csrf_token() }}"
     },
-    payload: {"Task_ID":"<?php echo $_GET['ID'] ?>"}
+    payload: {"Task_ID": empSkillTaskId}
 });
 PLanguage.init(Language);
 Language.setEditable(true);
 Language.setSkin("dhx_skyblue");
 Language.init();
-Language.loadXML("xml-employee-lists-detail-language?Task_ID=<?php echo $_GET['ID'];?>");
+Language.loadXML("{{ url('xml-employee-lists-detail-language') }}?Task_ID=" + encodeURIComponent(empSkillTaskId));
 Language.getCombo(2).put('GOOD','GOOD');
 Language.getCombo(2).put('ENOUGH','ENOUGH');
 Language.getCombo(2).put('LESS','LESS');

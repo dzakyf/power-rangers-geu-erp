@@ -8,6 +8,7 @@ use App\Services\Approval\StatusChangeApprovalService;
 use App\Services\GA\WorkOrderService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\Approval\ProcurementApprovalService;
 
 class SyncModuleApprovalStatus
 {
@@ -43,6 +44,7 @@ class SyncModuleApprovalStatus
             'REIMBURSEMENT'           => 'handleReimbursement',
             'PAYROLL'                 => 'handlePayroll',
             'SALARY'                  => 'handlePayroll',
+            'PAYROLL_THR'             => 'handlePayrollThr',
             'EMPLOYEE_RESIGNATION'    => 'handleEmployeeResignation',
             'EXIT_CLEARANCE'          => 'handleExitClearance',
             'TNA_REQUEST'             => 'handleTnaRequest',
@@ -394,6 +396,32 @@ class SyncModuleApprovalStatus
             'Status'     => $newSalaryStatus,
             'Posting_By' => 'APPROVAL_ENGINE',
         ]);
+    }
+
+    protected function handlePayrollThr(int $requestId, ?string $approvalStatus): void
+    {
+        $batch = DB::table('payroll_thr_batches')->where('approval_request_id', $requestId)->first();
+        if (!$batch) {
+            $req = DB::table('approval_request')
+                ->where('ID', $requestId)
+                ->select('Map_To', 'Request_No')
+                ->first();
+
+            if ($req && !empty($req->Map_To)) {
+                $batch = DB::table('payroll_thr_batches')->where('id', (int)$req->Map_To)->first();
+            }
+            if (!$batch && $req && !empty($req->Request_No)) {
+                $batch = DB::table('payroll_thr_batches')->where('batch_no', (string)$req->Request_No)->first();
+            }
+        }
+
+        if (!$batch) {
+            return;
+        }
+
+        $actor = optional(auth()->user())->username ?? 'APPROVAL_ENGINE';
+        app(\App\Services\Payroll\PayrollThrApprovalService::class)
+            ->syncThrBatchStatus((int)$batch->id, $actor);
     }
 
     protected function handleEmployeeResignation(int $requestId, ?string $approvalStatus): void
