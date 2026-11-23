@@ -843,7 +843,7 @@ class ProfitSharingController extends Controller
         $desc = "Upload request profit sharing";
         $topic = "profit-sharing";
         $mapTo = $user->id;
-        $doc->move(public_path('filevendor/2026/02'));
+        $doc->move(ensure_public_directory('filevendor/' . date('Y/m')));
         $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
         return response()->json(['message' => 'success']);
@@ -1066,6 +1066,7 @@ class ProfitSharingController extends Controller
         $month = Carbon::now()->format('m');
         $now = Carbon::now()->format('YmdHisv');
         $path = "filevendor/$year/$month/royalti-application-$now.docx";
+        ensure_public_directory("filevendor/$year/$month");
         $doc['doc']->saveAs(public_path("$path"));
 
 

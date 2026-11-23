@@ -1,14 +1,13 @@
 <?php
-    
+
+require_once __DIR__ . '/upload-bootstrap.php';
 
     if (@$_REQUEST["zero_size"] == "1") {
        error_log("No File Upload");
     } else {
 
         $nama_folder = date("Y/m");
-        if (!is_dir("tmpdata/" . $nama_folder)) {
-            mkdir("tmpdata/" . $nama_folder, 0755, true);
-        }
+        ensure_upload_dir_or_fail("tmpdata/" . $nama_folder);
         // get file name
         $filename = $_FILES["file"]["name"];
         $fileNamex = $_FILES["file"]["name"];

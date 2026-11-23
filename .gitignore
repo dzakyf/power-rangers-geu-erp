@@ -5,6 +5,10 @@
 /public/tmpdata
 /public/storage
 /public/filevendor
+/public/project_file
+/public/export/phpxltmp*
+/public/export/*.tmp
+.DS_Store
 /storage/*.key
 /vendor
 /build

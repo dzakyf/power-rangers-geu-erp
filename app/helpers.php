@@ -1,5 +1,31 @@
 <?php
 
+if (!function_exists('ensure_public_directory')) {
+    /**
+     * Ensure a directory under public/ exists and return its absolute path.
+     */
+    function ensure_public_directory(string $relativePath): string
+    {
+        $relativePath = trim(str_replace('\\', '/', $relativePath), '/');
+
+        if ($relativePath === '' || strpos($relativePath, '..') !== false) {
+            throw new \InvalidArgumentException('Invalid public directory path.');
+        }
+
+        $path = public_path($relativePath);
+
+        if (!is_dir($path) && !@mkdir($path, 0775, true) && !is_dir($path)) {
+            throw new \RuntimeException("Unable to create public directory: {$path}");
+        }
+
+        if (!is_dir($path)) {
+            throw new \RuntimeException("Public path is not a directory: {$path}");
+        }
+
+        return $path;
+    }
+}
+
 if (!function_exists('can_menu')) {
     function can_menu(string $menuId, string $action = 'view'): bool
     {

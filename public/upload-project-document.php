@@ -1,18 +1,18 @@
 <?php
-    
+
+require_once __DIR__ . '/upload-bootstrap.php';
 
     if (@$_REQUEST["zero_size"] == "1") {
         // IE10, IE11 zero file fix
         // get file name
         $filename = @$_REQUEST["file_name"];
+        ensure_upload_dir_or_fail(dirname("project_file/" . $filename));
         // just create empty file
         file_put_contents("project_file/".$filename, "");
     } else {
 
         $nama_folder = date("Y/m");
-        if (!is_dir("project_file/" . $nama_folder)) {
-            mkdir("project_file/" . $nama_folder, 0755, true);
-        }
+        ensure_upload_dir_or_fail("project_file/" . $nama_folder);
         // get file name
         $filename = $_FILES["file"]["name"];
         $fileNamex = $_FILES["file"]["name"];

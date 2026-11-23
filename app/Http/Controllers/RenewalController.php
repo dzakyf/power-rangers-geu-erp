@@ -754,7 +754,7 @@ class RenewalController extends Controller
         $desc = "Upload request renewal";
         $topic = "renewal";
         $mapTo = $user->id;
-        $doc->move(public_path('filevendor/2026/02'));
+        $doc->move(ensure_public_directory('filevendor/' . date('Y/m')));
         $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
 
         return response()->json(['message' => 'success']);
@@ -958,7 +958,7 @@ class RenewalController extends Controller
             ]);
 
             $filename = "$path.$ext";
-            $doc->move(public_path('filevendor/' . date('Y/m')), $filename);
+            $doc->move(ensure_public_directory('filevendor/' . date('Y/m')), $filename);
             $this->uploaderService->uploadMetaFile($path, $filename, "Upload request termination", $ext, "termination", $user->id);
 
             DB::commit();

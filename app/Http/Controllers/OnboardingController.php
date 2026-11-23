@@ -146,6 +146,7 @@ class OnboardingController extends Controller
             $month = Carbon::now()->format('m');
             $now = Carbon::now()->format('YmdHisv');
             $path = "filevendor/$year/$month/mou_$now.docx";
+            ensure_public_directory("filevendor/$year/$month");
             $doc->saveAs(public_path("$path"));
 
             $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);
@@ -267,6 +268,7 @@ class OnboardingController extends Controller
             $month = Carbon::now()->format('m');
             $now = Carbon::now()->format('YmdHisv');
             $path = "filevendor/$year/$month/pks_$now.docx";
+            ensure_public_directory("filevendor/$year/$month");
             $doc->saveAs(public_path("$path"));
 
             $this->uploaderService->uploadMetaFile($path, $filename, $desc, $ext, $topic, $mapTo);

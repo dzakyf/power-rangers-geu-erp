@@ -34,8 +34,9 @@ class CostManagementController extends Controller
                 $year  = date('Y');
                 $month = date('m');
                 $filename = "$uuid.$ext";
+                $dir = ensure_public_directory("filevendor/$year/$month");
 
-                $file->move(public_path("filevendor/$year/$month"), $filename);
+                $file->move($dir, $filename);
 
                 DB::table('meta_files')->insert([
                     'Filename'    => $uuid,
