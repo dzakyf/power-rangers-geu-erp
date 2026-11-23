@@ -26,10 +26,8 @@ Route::get('subdistrict', [HelperController::class, 'subdistrictSearch']);
 
 Auth::routes();
 
-Route::group(['middleware' => 'usersession'], function () {
-    Route::get('/', function () {
-        // Uses User Session Middleware
-    });
+Route::get('/', function () {
+    return auth()->check() ? redirect('/dashboard1') : redirect('/login');
 });
 
 if (\App\Support\Modules::isEnabled('bp')) {

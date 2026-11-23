@@ -151,6 +151,9 @@ $masterTables = [
     'master_bank',
     'config_system',
     'cns_master_tanks',
+    'survey_form_versions',
+    'survey_form_items',
+    'survey_location',
 ];
 
 $masterRows = [];
