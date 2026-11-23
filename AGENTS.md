@@ -8,7 +8,7 @@ Before changing code, read and follow:
 - `readme/branching-strategy.md` — branches, releases, hotfixes, tags/versioning.
 - `readme/deploy.md` — build profiles, client deployment, patches, rollback.
 
-Documents under `readme/docs/**` are domain/feature documentation, not coding rules; read them only when relevant to the task.
+Documents under `docs/**` are domain/feature documentation, not coding rules; read them only when relevant to the task.
 
 Explicit user instructions take precedence. When instructions conflict, follow the most specific document for the topic.
 
