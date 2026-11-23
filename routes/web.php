@@ -112,6 +112,7 @@ use App\Http\Controllers\HCGA\Performance\PerformanceCompetencyController as HCG
 use App\Http\Controllers\HCGA\Performance\PerformancePipController as HCGAPerformancePipController;
 
 use App\Http\Controllers\HCGA\GA\TicketController as HCGAGaTicketController;
+use App\Http\Controllers\HCGA\GA\ItTicketController as HCGAGaItTicketController;
 use App\Http\Controllers\HCGA\GA\WorkOrderController as HCGAGaWorkOrderController;
 use App\Http\Controllers\HCGA\GA\TicketMasterController as HCGAGaTicketMasterController;
 use App\Http\Controllers\HCGA\GA\QrPointController as HCGAGaQrPointController;
@@ -3648,6 +3649,15 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/attendant-data', [\App\Http\Controllers\HCGA\AttendancesController::class, 'index'])->name('attendance.data');
     Route::get('/attendant-data/ajax', [\App\Http\Controllers\HCGA\AttendancesController::class, 'getMonitoringDataAjax'])->name('attendance.data.ajax');
     Route::get('/attendant-data/export-excel', [\App\Http\Controllers\HCGA\AttendancesController::class, 'exportExcel'])->name('attendance.data.export');
+    Route::get('/attendant-data/manual-correction/context', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionContext'])->name('attendance.manual.context');
+    Route::post('/attendant-data/manual-correction/store', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionStore'])->name('attendance.manual.store');
+    Route::get('/attendant-data/manual-correction/settings', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionSettingsGet'])->name('attendance.manual.settings.get');
+    Route::post('/attendant-data/manual-correction/settings', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionSettingsSave'])->name('attendance.manual.settings.save');
+    Route::get('/attendant-data/manual-correction/template', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionTemplate'])->name('attendance.manual.template');
+    Route::post('/attendant-data/manual-correction/bulk-upload', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionBulkUpload'])->name('attendance.manual.bulk_upload');
+    Route::get('/attendant-data/manual-correction/pending', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionPendingList'])->name('attendance.manual.pending');
+    Route::post('/attendant-data/manual-correction/bulk-approve', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionBulkApprove'])->name('attendance.manual.bulk_approve');
+    Route::get('/attendant-data/manual-correction/audit-logs', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionAuditLogs'])->name('attendance.manual.audit');
     Route::get('/xml-attendant-data', [\App\Http\Controllers\HCGA\AttendancesController::class, 'indexXml']);
 
     // Web Desktop Portal Attendance, Leave & Approval Tracking
@@ -6534,6 +6544,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post('finance-hr-approval-workflow-act', [FinanceApprovalController::class, 'actWorkflow']);
     Route::post('finance-hr-approval-maintenance-confirm', [FinanceApprovalController::class, 'confirmMaintenanceVoucher']);
     Route::post('finance-hr-approval-tax-pay', [FinanceApprovalController::class, 'payVehicleTaxVoucher']);
+    Route::post('finance-hr-approval-ga-pay', [FinanceApprovalController::class, 'payGaVoucher']);
 
     // Vehicle Operations: Logbook & Fuel Tracking (Controller based)
     $vehOpsPref = "$hcPref-vehicle-operations";
@@ -6569,6 +6580,33 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$gaPref-my-assignment-data", [HCGAGaTicketController::class, 'myAssignmentData']);
     Route::get("$gaPref-ticket-qr", [HCGAGaTicketController::class, 'qr']);
     Route::post("$gaPref-ticket-sla-scan", [HCGAGaTicketController::class, 'slaScan']);
+    Route::post("$gaPref-ticket-verify", [HCGAGaTicketController::class, 'verifyGa']);
+    Route::post("$gaPref-ticket-resubmit-dept", [HCGAGaTicketController::class, 'resubmitDeptHead']);
+    Route::post("$gaPref-ticket-approval-sync", [HCGAGaTicketController::class, 'syncApproval']);
+    Route::post("$gaPref-ticket-voucher-create", [HCGAGaTicketController::class, 'createVoucher']);
+    Route::get("$gaPref-ticket-voucher-print", [HCGAGaTicketController::class, 'printVoucher']);
+    Route::get("$gaPref-ticket-attachment", [HCGAGaTicketController::class, 'downloadAttachment']);
+
+    // -- IT Support & Helpdesk (Preventive & Corrective Ticketing) --
+    $itPref = "$hcPref-it";
+    Route::get("$itPref-ticket-index", [HCGAGaItTicketController::class, 'index']);
+    Route::get("$itPref-ticket-data", [HCGAGaItTicketController::class, 'data']);
+    Route::get("$itPref-ticket-summary", [HCGAGaItTicketController::class, 'summary']);
+    Route::get("$itPref-ticket-create", [HCGAGaItTicketController::class, 'create']);
+    Route::post("$itPref-ticket-submit", [HCGAGaItTicketController::class, 'store']);
+    Route::get("$itPref-ticket-detail", [HCGAGaItTicketController::class, 'detail']);
+    Route::post("$itPref-ticket-status", [HCGAGaItTicketController::class, 'transition']);
+    Route::post("$itPref-ticket-assign", [HCGAGaItTicketController::class, 'assign']);
+    Route::post("$itPref-ticket-comment", [HCGAGaItTicketController::class, 'comment']);
+    Route::post("$itPref-ticket-escalate", [HCGAGaItTicketController::class, 'escalate']);
+    Route::post("$itPref-ticket-feedback", [HCGAGaItTicketController::class, 'feedback']);
+    Route::post("$itPref-ticket-device-handover", [HCGAGaItTicketController::class, 'handoverDevice']);
+    Route::post("$itPref-ticket-device-pr", [HCGAGaItTicketController::class, 'escalateDevicePr']);
+    Route::post("$itPref-ticket-approval-sync", [HCGAGaItTicketController::class, 'syncApproval']);
+    Route::get("$itPref-ticket-kb-search", [HCGAGaItTicketController::class, 'kbSearch']);
+    Route::get("$itPref-ticket-attachment", [HCGAGaItTicketController::class, 'downloadAttachment']);
+    Route::get("$itPref-my-assignment-index", [HCGAGaItTicketController::class, 'myAssignments']);
+    Route::get("$itPref-my-assignment-data", [HCGAGaItTicketController::class, 'myAssignmentData']);
 
     Route::get("$gaPref-work-order-index", [HCGAGaWorkOrderController::class, 'index']);
     Route::get("$gaPref-work-order-data", [HCGAGaWorkOrderController::class, 'data']);
@@ -6751,6 +6789,10 @@ Route::post('po-receive', [ProcurementController::class, 'receivePO']);
 Route::get('po-detail', [ProcurementController::class, 'detailPO']);
 Route::get('po-print', [ProcurementController::class, 'printPO']);
 Route::get('print-pr', [ProcurementController::class, 'printPR']);
+
+Route::get('goods-received-list', [ProcurementController::class, 'goodsReceivedIndex']);
+Route::get('xml-goods-received-list', [ProcurementController::class, 'xmlGoodsReceivedList']);
+Route::get('goods-received-detail', [ProcurementController::class, 'detailGoodsReceived']);
 
 
 

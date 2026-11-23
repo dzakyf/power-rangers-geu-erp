@@ -7,6 +7,7 @@ use App\AttendanceMain;
 use App\Http\Controllers\Controller;
 use App\Libur;
 use App\Services\Attendance\AttendanceService;
+use App\Services\Attendance\ManualAttendanceCorrectionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -1824,5 +1825,220 @@ class AttendancesController extends Controller
         DB::table('attendance_locations')->where('id', (int) $id)->delete();
 
         return redirect()->route('attendance.locations.index')->with('success', 'Lokasi absensi berhasil dihapus.');
+    }
+
+    /**
+     * Helper: Pastikan user yang login berhak mengakses fitur perbaikan absen manual.
+     */
+    protected function authorizeManualCorrection(Request $request)
+    {
+        $user = $request->user() ?: Auth::user();
+        if (!$user) {
+            abort(401, 'Sesi login telah berakhir.');
+        }
+        if (!can_manual_correct_attendance($user)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk fitur Perbaikan Absen Manual.');
+        }
+        return $user;
+    }
+
+    /**
+     * AJAX: Cek konteks karyawan & tanggal (log eksisting, cuti approved, pending correction, payroll lock).
+     */
+    public function manualCorrectionContext(Request $request)
+    {
+        $user = $this->authorizeManualCorrection($request);
+        $request->validate([
+            'nik'  => 'required|string|max:50',
+            'date' => 'required|date',
+        ]);
+
+        try {
+            $service = app(ManualAttendanceCorrectionService::class);
+            $ctx = $service->inspectContext(
+                (string) $request->input('nik'),
+                (string) $request->input('date'),
+                $user
+            );
+
+            return response()->json(['status' => 'success', 'data' => $ctx]);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * AJAX: Simpan Perbaikan Absen Manual (Single).
+     */
+    public function manualCorrectionStore(Request $request)
+    {
+        $user = $this->authorizeManualCorrection($request);
+        $request->validate([
+            'nik'                   => 'required|string|max:50',
+            'attendance_date'       => 'required|date',
+            'correction_type'       => 'required|in:BOTH,IN,OUT',
+            'corrected_clock_in'    => 'nullable|string|max:10',
+            'corrected_clock_out'   => 'nullable|string|max:10',
+            'reason'                => 'nullable|string|max:1000',
+            'execution_mode'        => 'required|in:APPROVAL_REQUIRED,DIRECT_UPDATE',
+            'cancel_approved_leave' => 'nullable',
+            'post_cutoff_action'    => 'nullable|in:NONE,RAPEL_NEXT_PERIOD,FINANCE_DIRECT',
+            'post_cutoff_notes'     => 'nullable|string|max:500',
+            'clear_gps_anomaly'     => 'nullable',
+            'evidence_file'         => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
+        ]);
+
+        try {
+            $service = app(ManualAttendanceCorrectionService::class);
+            $result = $service->submitManualCorrection(
+                $user,
+                $request->all(),
+                $request->file('evidence_file'),
+                $request->ip()
+            );
+
+            return response()->json($result, 200);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * AJAX: Ambil Setting Perbaikan Absen Manual.
+     */
+    public function manualCorrectionSettingsGet(Request $request)
+    {
+        $this->authorizeManualCorrection($request);
+        $service = app(ManualAttendanceCorrectionService::class);
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $service->getSettings(),
+        ]);
+    }
+
+    /**
+     * AJAX: Simpan Setting Perbaikan Absen Manual.
+     */
+    public function manualCorrectionSettingsSave(Request $request)
+    {
+        $user = $this->authorizeManualCorrection($request);
+        $request->validate([
+            'allowed_usernames'        => 'required',
+            'default_mode'             => 'required|in:APPROVAL_REQUIRED,DIRECT_UPDATE',
+            'allow_mode_selection'     => 'nullable',
+            'require_reason'           => 'nullable',
+            'require_evidence'         => 'nullable',
+            'max_backdate_days'        => 'nullable|integer|min:0|max:3650',
+            'allow_self_direct_update' => 'nullable',
+        ]);
+
+        try {
+            $service = app(ManualAttendanceCorrectionService::class);
+            $settings = $service->updateSettings($user, $request->all(), $request->ip());
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Pengaturan perbaikan absen manual berhasil disimpan.',
+                'data'    => $settings,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Download Template Excel (.xlsx) untuk Bulk Upload Perbaikan Absen.
+     */
+    public function manualCorrectionTemplate(Request $request)
+    {
+        $this->authorizeManualCorrection($request);
+        $service = app(ManualAttendanceCorrectionService::class);
+        $spreadsheet = $service->buildBulkTemplateSpreadsheet();
+
+        $filename = 'Template_Koreksi_Absen_Manual.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    /**
+     * AJAX: Preview / Eksekusi Bulk Upload Excel Perbaikan Absen.
+     */
+    public function manualCorrectionBulkUpload(Request $request)
+    {
+        $user = $this->authorizeManualCorrection($request);
+        $request->validate([
+            'file'        => 'required|file|mimes:xlsx,xls,csv|max:10240',
+            'action_mode' => 'nullable|in:preview,execute',
+        ]);
+
+        try {
+            $service = app(ManualAttendanceCorrectionService::class);
+            $result = $service->processBulkUpload(
+                $user,
+                $request->file('file'),
+                $request->input('action_mode', 'preview'),
+                $request->ip()
+            );
+
+            return response()->json(['status' => 'success', 'data' => $result]);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * AJAX: Daftar Pengajuan Koreksi SUBMITTED untuk diproses massal.
+     */
+    public function manualCorrectionPendingList(Request $request)
+    {
+        $this->authorizeManualCorrection($request);
+        $service = app(ManualAttendanceCorrectionService::class);
+        $rows = $service->getPendingCorrectionRequests([
+            'department' => $request->input('department', 'ALL'),
+        ]);
+
+        return response()->json(['status' => 'success', 'data' => $rows]);
+    }
+
+    /**
+     * AJAX: Setujui & Terapkan Banyak Pengajuan Koreksi SUBMITTED Sekaligus.
+     */
+    public function manualCorrectionBulkApprove(Request $request)
+    {
+        $user = $this->authorizeManualCorrection($request);
+        $request->validate([
+            'correction_ids'   => 'required|array|min:1',
+            'correction_ids.*' => 'integer',
+        ]);
+
+        try {
+            $service = app(ManualAttendanceCorrectionService::class);
+            $result = $service->bulkApprovePendingRequests($user, $request->input('correction_ids', []), $request->ip());
+
+            return response()->json(array_merge(['status' => 'success'], $result));
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * AJAX: Riwayat Audit Log Perbaikan Absen Manual.
+     */
+    public function manualCorrectionAuditLogs(Request $request)
+    {
+        $this->authorizeManualCorrection($request);
+        $service = app(ManualAttendanceCorrectionService::class);
+        $rows = $service->getAuditLogs([
+            'nik'    => $request->input('nik'),
+            'action' => $request->input('action', 'ALL'),
+        ]);
+
+        return response()->json(['status' => 'success', 'data' => $rows]);
     }
 }

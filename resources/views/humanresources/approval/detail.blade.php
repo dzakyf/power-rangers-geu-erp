@@ -190,6 +190,13 @@
             </div>
         </div>
 
+        {{-- Section 2b: Payroll & Bank Transfer Breakdown (untuk PAYROLL / SALARY / PAYROLL_THR) --}}
+        @if(!empty($payrollBreakdown))
+            <div class="row">
+                @include('humanresources.payroll.partials.approval-payroll-breakdown', ['payrollBreakdown' => $payrollBreakdown])
+            </div>
+        @endif
+
         {{-- Section 3: Candidates --}}
         <div class="mt-4">
             <h6 class="fw-bold text-dark mb-2 d-flex justify-content-between align-items-center">

@@ -16,7 +16,7 @@ class TicketMasterController extends Controller
 
     public function index()
     {
-        abort_unless(can_menu('SI01012', 'view'), 403);
+        abort_unless(can_menu('SI01016', 'view'), 403);
 
         $categories = DB::table('ga_ticket_category')->orderBy('Name')->get();
         $teams = DB::table('ga_team')->where('Status', 'ACTIVE')->orderBy('Name')->get();
@@ -29,7 +29,7 @@ class TicketMasterController extends Controller
 
     public function categoryData()
     {
-        abort_unless(can_menu('SI01012', 'view'), 403);
+        abort_unless(can_menu('SI01016', 'view'), 403);
 
         $rows = DB::table('ga_ticket_category as c')
             ->leftJoin('ga_ticket_category as p', 'p.ID', '=', 'c.Parent_ID')
@@ -61,7 +61,7 @@ class TicketMasterController extends Controller
     public function saveCategory(Request $request)
     {
         $action = $request->filled('ID') ? 'edit' : 'create';
-        abort_unless(can_menu('SI01012', $action), 403);
+        abort_unless(can_menu('SI01016', $action), 403);
 
         $data = $request->validate([
             'ID' => 'nullable|integer',
@@ -109,7 +109,7 @@ class TicketMasterController extends Controller
 
     public function deleteCategory(Request $request)
     {
-        abort_unless(can_menu('SI01012', 'delete'), 403);
+        abort_unless(can_menu('SI01016', 'delete'), 403);
 
         $data = $request->validate(['ID' => 'required|integer']);
         DB::table('ga_ticket_category')->where('ID', (int) $data['ID'])->update([
@@ -123,7 +123,7 @@ class TicketMasterController extends Controller
 
     public function slaData()
     {
-        abort_unless(can_menu('SI01012', 'view'), 403);
+        abort_unless(can_menu('SI01016', 'view'), 403);
 
         $rows = DB::table('ga_sla_policy as s')
             ->leftJoin('ga_ticket_category as c', 'c.ID', '=', 's.Category_ID')
@@ -153,7 +153,7 @@ class TicketMasterController extends Controller
     public function saveSla(Request $request)
     {
         $action = $request->filled('ID') ? 'edit' : 'create';
-        abort_unless(can_menu('SI01012', $action), 403);
+        abort_unless(can_menu('SI01016', $action), 403);
 
         $data = $request->validate([
             'ID' => 'nullable|integer',
@@ -200,7 +200,7 @@ class TicketMasterController extends Controller
 
     public function teamData()
     {
-        abort_unless(can_menu('SI01012', 'view'), 403);
+        abort_unless(can_menu('SI01016', 'view'), 403);
 
         $rows = DB::table('ga_team as t')
             ->leftJoin('supplier as v', 'v.ID', '=', 't.Supplier_ID')
@@ -229,7 +229,7 @@ class TicketMasterController extends Controller
     public function saveTeam(Request $request)
     {
         $action = $request->filled('ID') ? 'edit' : 'create';
-        abort_unless(can_menu('SI01012', $action), 403);
+        abort_unless(can_menu('SI01016', $action), 403);
 
         $data = $request->validate([
             'ID' => 'nullable|integer',
@@ -300,7 +300,7 @@ class TicketMasterController extends Controller
 
     public function memberData(Request $request)
     {
-        abort_unless(can_menu('SI01012', 'view'), 403);
+        abort_unless(can_menu('SI01016', 'view'), 403);
 
         $model = Auth::user();
         $userTable = $model->getTable();
@@ -359,7 +359,7 @@ class TicketMasterController extends Controller
     public function saveMember(Request $request)
     {
         $action = $request->filled('ID') ? 'edit' : 'create';
-        abort_unless(can_menu('SI01012', $action), 403);
+        abort_unless(can_menu('SI01016', $action), 403);
 
         $data = $request->validate([
             'ID' => 'nullable|integer',
@@ -426,7 +426,7 @@ class TicketMasterController extends Controller
 
     public function deleteMember(Request $request)
     {
-        abort_unless(can_menu('SI01012', 'delete'), 403);
+        abort_unless(can_menu('SI01016', 'delete'), 403);
 
         $data = $request->validate(['ID' => 'required|integer']);
         DB::table('ga_team_member')->where('ID', (int) $data['ID'])->update(['Status' => 'INACTIVE']);
@@ -436,7 +436,7 @@ class TicketMasterController extends Controller
 
     public function routingData()
     {
-        abort_unless(can_menu('SI01012', 'view'), 403);
+        abort_unless(can_menu('SI01016', 'view'), 403);
 
         $rows = DB::table('ga_routing_rule as r')
             ->leftJoin('ga_ticket_category as c', 'c.ID', '=', 'r.Category_ID')
@@ -467,7 +467,7 @@ class TicketMasterController extends Controller
     public function saveRouting(Request $request)
     {
         $action = $request->filled('ID') ? 'edit' : 'create';
-        abort_unless(can_menu('SI01012', $action), 403);
+        abort_unless(can_menu('SI01016', $action), 403);
 
         $data = $request->validate([
             'ID' => 'nullable|integer',
@@ -512,7 +512,7 @@ class TicketMasterController extends Controller
 
     public function options()
     {
-        abort_unless(can_menu('SI01012', 'view'), 403);
+        abort_unless(can_menu('SI01016', 'view'), 403);
 
         return response()->json([
             'categories' => DB::table('ga_ticket_category')->where('Status', 'ACTIVE')->orderBy('Name')->get(['ID', 'Parent_ID', 'Code', 'Name']),

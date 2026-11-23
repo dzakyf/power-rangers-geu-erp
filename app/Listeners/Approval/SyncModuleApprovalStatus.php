@@ -5,6 +5,8 @@ namespace App\Listeners\Approval;
 use App\Events\Approval\ApprovalRequestUpdated;
 use App\Services\Approval\RequisitionApprovalService;
 use App\Services\Approval\StatusChangeApprovalService;
+use App\Services\GA\GaTicketApprovalService;
+use App\Services\GA\ItTicketService;
 use App\Services\GA\WorkOrderService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -54,6 +56,9 @@ class SyncModuleApprovalStatus
             'VEHICLE_TAX_REQUEST'        => 'handleVehicleTaxRequest',
             'VEHICLE_FLEET'              => 'handleVehicleFleet',
             'VEHICLE_LOGBOOK'            => 'handleVehicleLogbook',
+            'IT_DEVICE_REQUEST'          => 'handleItDeviceRequest',
+            'GA_TICKET_DEPT_HEAD'        => 'handleGaTicketDeptHead',
+            'GA_TICKET_BUDGET'           => 'handleGaTicketBudget',
         ];
 
         $method = $handlers[$type] ?? null;
@@ -117,6 +122,21 @@ class SyncModuleApprovalStatus
         if ($wo) {
             app(WorkOrderService::class)->syncApprovalStatus((int) $wo->ID);
         }
+    }
+
+    protected function handleItDeviceRequest(int $requestId): void
+    {
+        app(ItTicketService::class)->syncApprovalStatus($requestId);
+    }
+
+    protected function handleGaTicketDeptHead(int $requestId): void
+    {
+        app(GaTicketApprovalService::class)->syncDeptHeadApproval($requestId);
+    }
+
+    protected function handleGaTicketBudget(int $requestId): void
+    {
+        app(GaTicketApprovalService::class)->syncBudgetApproval($requestId);
     }
 
     protected function handleAttendanceOvertime(int $requestId, ?string $status): void
@@ -221,7 +241,47 @@ class SyncModuleApprovalStatus
                     ->first();
 
                 if ($corr && !empty($corr->nik) && !empty($corr->attendance_date)) {
+                    if (!empty($corr->pending_cancel_leave_id)) {
+                        try {
+                            $manualService = app(\App\Services\Attendance\ManualAttendanceCorrectionService::class);
+                            $actorStub = (object) ['id' => 0, 'username' => $corr->updated_by ?? ($corr->created_by ?? 'APPROVAL_ENGINE')];
+                            $refundRes = $manualService->cancelAndRefundSingleDayLeave(
+                                (int) $corr->pending_cancel_leave_id,
+                                $actorStub,
+                                "Disetujui melalui Approval Engine ({$corr->correction_no})"
+                            );
+                            DB::table('attendance_corrections')
+                                ->where('id', $corr->id)
+                                ->update([
+                                    'cancelled_leave_id'  => $corr->pending_cancel_leave_id,
+                                    'leave_refunded_days' => $refundRes['refunded_days'] ?? 0,
+                                ]);
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::warning("Gagal auto-cancel cuti pada approval koreksi {$corr->correction_no}: " . $e->getMessage());
+                        }
+                    }
+
                     $this->applyApprovedCorrectionToLog($corr);
+
+                    if (\Illuminate\Support\Facades\Schema::hasTable('attendance_manual_audit_logs')
+                        && ($corr->source_mode ?? 'SELF_PORTAL') !== 'SELF_PORTAL') {
+                        DB::table('attendance_manual_audit_logs')->insert([
+                            'correction_id'      => $corr->id,
+                            'action'             => 'APPROVAL_ENGINE_APPROVED',
+                            'actor_username'     => 'APPROVAL_ENGINE',
+                            'target_nik'         => $corr->nik,
+                            'scan_date'          => $corr->attendance_date,
+                            'mode'               => $corr->source_mode ?? 'ADMIN_APPROVAL',
+                            'before_data'        => $corr->before_snapshot,
+                            'after_data'         => json_encode([
+                                'corrected_clock_in'  => $corr->corrected_clock_in,
+                                'corrected_clock_out' => $corr->corrected_clock_out,
+                            ]),
+                            'post_cutoff_action' => $corr->post_cutoff_action ?? 'NONE',
+                            'reason'             => $corr->reason,
+                            'created_at'         => now(),
+                        ]);
+                    }
                 }
             }
         }

@@ -18,6 +18,9 @@
                 @elseif($type === 'maintenance')
                     <h5 class="mb-0 fw-bold text-dark">Voucher Perawatan &mdash; <span class="text-primary">{{ $item->Voucher_No ?: $item->Schedule_No }}</span></h5>
                     <small class="text-muted">No. Schedule: {{ $item->Schedule_No }} &bull; Aset: {{ $item->Asset_No }}</small>
+                @elseif($type === 'ga_voucher')
+                    <h5 class="mb-0 fw-bold text-dark">Voucher GA Order Pekerjaan &mdash; <span class="text-primary">{{ $item->Voucher_No }}</span></h5>
+                    <small class="text-muted">No. Tiket: {{ $item->Ticket_No }} &bull; Penerima: {{ $item->Payee_Name }}</small>
                 @else
                     <h5 class="mb-0 fw-bold text-dark">Voucher Pajak STNK/KEUR &mdash; <span class="text-primary">{{ $item->Voucher_No ?: $item->Tax_Request_No }}</span></h5>
                     <small class="text-muted">No. Pengajuan: {{ $item->Tax_Request_No }} &bull; Kendaraan: {{ $item->Registration_No ?: $item->Asset_No }}</small>
@@ -43,17 +46,37 @@
         </div>
         <div class="d-flex flex-wrap gap-2">
             @if($type === 'workflow')
-                <button type="button" class="btn btn-sm btn-success" onclick="actFinanceWorkflow({{ $item->Task_ID }}, 'APPROVE', true);">
-                    <i class="fa fa-check me-1"></i> Approve
-                </button>
-                <button type="button" class="btn btn-sm btn-danger" onclick="actFinanceWorkflow({{ $item->Task_ID }}, 'REJECT', true);">
-                    <i class="fa fa-times me-1"></i> Reject
-                </button>
+                @if(in_array(strtoupper((string) ($item->Task_Status ?? 'PENDING')), ['PENDING', 'CLAIMED'], true))
+                    <button type="button" class="btn btn-sm btn-success" onclick="actFinanceWorkflow({{ $item->Task_ID }}, 'APPROVE', true);">
+                        <i class="fa fa-check me-1"></i> Approve
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="actFinanceWorkflow({{ $item->Task_ID }}, 'REJECT', true);">
+                        <i class="fa fa-times me-1"></i> Reject
+                    </button>
+                @endif
             @elseif($type === 'maintenance')
                 @if($item->Status === 'FINANCE_SUBMITTED')
                     <button type="button" class="btn btn-sm btn-success" onclick="confirmMaintVoucher({{ $item->ID }}, true);">
                         <i class="fa fa-check-circle me-1"></i> Verifikasi &amp; Setujui Jadwal
                     </button>
+                @endif
+            @elseif($type === 'ga_voucher')
+                <a href="hrd-ga-ticket-voucher-print?voucher_id={{ $item->ID }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="fa fa-print me-1"></i> Cetak Voucher
+                </a>
+                @if(!empty($item->Attachment_Path))
+                    <a href="{{ asset('filevendor/' . $item->Attachment_Path) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="fa fa-paperclip me-1"></i> Lampiran Invoice
+                    </a>
+                @endif
+                @if($item->Status === 'FINANCE_SUBMITTED')
+                    <button type="button" class="btn btn-sm btn-success" onclick="openFinanceGaPayModal({{ $item->ID }});">
+                        <i class="fa fa-money-bill-wave me-1"></i> Bayar &amp; Selesai
+                    </button>
+                @elseif(!empty($item->Payment_Proof_Path))
+                    <a href="{{ asset('filevendor/' . $item->Payment_Proof_Path) }}" target="_blank" class="btn btn-sm btn-outline-success">
+                        <i class="fa fa-file-alt me-1"></i> Lihat Bukti Bayar
+                    </a>
                 @endif
             @else
                 <a href="hrd-vehicle-management-tax-voucher?id={{ $item->ID }}" target="_blank" class="btn btn-sm btn-outline-primary">
@@ -120,6 +143,9 @@
                         @endif
                     </div>
                 </div>
+
+                @include('humanresources.payroll.partials.approval-payroll-breakdown', ['payrollBreakdown' => $payrollBreakdown ?? null])
+
                 <div class="col-12">
                     <div class="border rounded p-3">
                         <h6 class="fw-bold text-primary mb-2"><i class="fa fa-history me-1"></i> Riwayat Approval (Timeline)</h6>
@@ -167,6 +193,35 @@
                 <div class="col-12">
                     <div class="p-2 bg-light border rounded small">
                         <strong>Catatan Approval HCGA Manager:</strong> {{ $item->Approval_Note ?: '-' }}
+                    </div>
+                </div>
+            </div>
+        @elseif($type === 'ga_voucher')
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <table class="table table-sm table-bordered mb-0">
+                        <tr><th style="width:38%">No. Voucher</th><td class="fw-bold text-primary">{{ $item->Voucher_No }}</td></tr>
+                        <tr><th>No. Tiket GA</th><td>{{ $item->Ticket_No }}</td></tr>
+                        <tr><th>Subjek Order</th><td>{{ $item->Ticket_Subject }}</td></tr>
+                        <tr><th>Dept / Cost Center</th><td>{{ $item->Department ?: '-' }} / {{ $item->Cost_Center ?: '-' }}</td></tr>
+                        <tr><th>Pemohon / Verifikasi GA</th><td>{{ $item->Reporter_Name ?: $item->Reporter }} / {{ $item->GA_Verified_By ?: '-' }}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm table-bordered mb-0">
+                        <tr><th style="width:38%">Penerima / Vendor</th><td><strong>{{ $item->Payee_Name }}</strong> ({{ $item->Payee_Type }})</td></tr>
+                        <tr><th>Rekening Transfer</th><td>{{ $item->Payment_Method }} &bull; {{ $item->Bank_Name ?: '-' }} {{ $item->Bank_Account_No ?: '' }} {{ $item->Bank_Account_Name ? '(' . $item->Bank_Account_Name . ')' : '' }}</td></tr>
+                        <tr><th>Nominal Voucher</th><td class="fw-bold text-success">Rp {{ number_format((float) $item->Amount, 0, ',', '.') }}</td></tr>
+                        <tr><th>Jatuh Tempo</th><td>{{ $item->Due_Date ?: '-' }}</td></tr>
+                        <tr><th>Status Pelunasan</th><td>{{ $item->Status }} {{ $item->Paid_Date ? '(' . $item->Paid_Date . ' - Ref: ' . ($item->Payment_Ref ?: '-') . ')' : '' }}</td></tr>
+                    </table>
+                </div>
+                <div class="col-12">
+                    <div class="p-2 bg-light border rounded small">
+                        <strong>Deskripsi / Catatan GA:</strong> {{ $item->Description ?: '-' }}
+                        @if(!empty($item->GA_Verification_Note))
+                            <div class="mt-1"><strong>Catatan Verifikasi GA:</strong> {{ $item->GA_Verification_Note }}</div>
+                        @endif
                     </div>
                 </div>
             </div>

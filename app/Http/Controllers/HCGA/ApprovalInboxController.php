@@ -578,6 +578,16 @@ class ApprovalInboxController extends Controller
             && in_array(strtoupper((string) $task->Request_Status), ['IN_PROGRESS', 'BLOCKED', 'HELD', 'PENDING', 'WAITING_APPROVAL'], true)
         );
 
+        $payrollBreakdown = null;
+        if (in_array(strtoupper(trim((string) $task->Request_Type)), ['PAYROLL', 'SALARY', 'PAYROLL_THR'], true)) {
+            try {
+                $payrollBreakdown = app(\App\Services\Finance\FinanceApprovalService::class)
+                    ->resolvePayrollBreakdownForRequest($task);
+            } catch (\Throwable $e) {
+                $payrollBreakdown = null;
+            }
+        }
+
         return compact(
             'task',
             'candidates',
@@ -587,7 +597,8 @@ class ApprovalInboxController extends Controller
             'canClaim',
             'canRelease',
             'canForceApprove',
-            'isMyClaim'
+            'isMyClaim',
+            'payrollBreakdown'
         );
     }
 

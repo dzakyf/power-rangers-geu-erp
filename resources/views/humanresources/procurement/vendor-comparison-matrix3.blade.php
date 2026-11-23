@@ -201,23 +201,24 @@
                                             {{ number_format($quotedPrice, 0, ',', '.') }}
                                         </span>
 
-                                        {{-- Indikator Panah Kotak --}}
-                                        @if($rank === 1)
-                                            <span style="display:inline-flex; align-items:center;">
-                                                <span style="display:inline-block; width:18px; height:18px; line-height:18px; text-align:center; background-color:#d32f2f; color:#ffffff; border-radius:3px; font-size:11px; font-weight:bold; margin-right:4px;">&#11015;</span>
-                                                <strong style="font-size:13px; color:#000;">1</strong>
-                                            </span>
-                                        @elseif($rank === $maxRank && $maxRank > 1)
-                                            <span style="display:inline-flex; align-items:center;">
-                                                <span style="display:inline-block; width:18px; height:18px; line-height:18px; text-align:center; background-color:#388e3c; color:#ffffff; border-radius:3px; font-size:11px; font-weight:bold; margin-right:4px;">&#11014;</span>
-                                                <strong style="font-size:13px; color:#000;">{{ $rank }}</strong>
-                                            </span>
-                                        @else
-                                            <span style="display:inline-flex; align-items:center;">
-                                                <span style="display:inline-block; width:18px; height:18px; line-height:18px; text-align:center; background-color:#fbc02d; color:#ffffff; border-radius:3px; font-size:11px; font-weight:bold; margin-right:4px;">&#10145;</span>
-                                                <strong style="font-size:13px; color:#000;">{{ $rank }}</strong>
-                                            </span>
-                                        @endif
+                                        
+                                       {{-- Indikator Panah Kotak --}}
+                                            @if($rank === 1)
+                                                <span style="display:inline-flex; align-items:center;" title="Harga Termurah">
+                                                    <span style="display:inline-block; width:18px; height:18px; line-height:18px; text-align:center; background-color:#388e3c; color:#ffffff; border-radius:3px; font-size:11px; font-weight:bold; margin-right:4px;">&#11015;</span>
+                                                    <strong style="font-size:13px; color:#000;">1</strong>
+                                                </span>
+                                            @elseif($rank === $maxRank && $maxRank > 1)
+                                                <span style="display:inline-flex; align-items:center;" title="Harga Termahal">
+                                                    <span style="display:inline-block; width:18px; height:18px; line-height:18px; text-align:center; background-color:#d32f2f; color:#ffffff; border-radius:3px; font-size:11px; font-weight:bold; margin-right:4px;">&#11014;</span>
+                                                    <strong style="font-size:13px; color:#000;">{{ $rank }}</strong>
+                                                </span>
+                                            @else
+                                                <span style="display:inline-flex; align-items:center;" title="Harga Menengah">
+                                                    <span style="display:inline-block; width:18px; height:18px; line-height:18px; text-align:center; background-color:#fbc02d; color:#ffffff; border-radius:3px; font-size:11px; font-weight:bold; margin-right:4px;">&#10145;</span>
+                                                    <strong style="font-size:13px; color:#000;">{{ $rank }}</strong>
+                                                </span>
+                                            @endif
                                     </div>
                                 @else
                                     <span class="text-muted font-italic">Belum ada harga</span>

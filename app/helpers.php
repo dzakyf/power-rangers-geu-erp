@@ -85,6 +85,61 @@ if (!function_exists('can_force_approve')) {
     }
 }
 
+if (!function_exists('manual_attendance_allowed_usernames')) {
+    /**
+     * Daftar username yang diizinkan melakukan Perbaikan Absen Manual.
+     * Mengutamakan konfigurasi dari tabel attendance_manual_correction_settings,
+     * dengan fallback ke force_approve_allowed_usernames().
+     */
+    function manual_attendance_allowed_usernames(): array
+    {
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('attendance_manual_correction_settings')) {
+                $row = \Illuminate\Support\Facades\DB::table('attendance_manual_correction_settings')
+                    ->orderBy('id', 'asc')
+                    ->first();
+
+                if ($row && !empty($row->allowed_usernames)) {
+                    $decoded = json_decode($row->allowed_usernames, true);
+                    if (is_array($decoded) && count($decoded) > 0) {
+                        return array_values(array_filter(array_map(function ($item) {
+                            return strtolower(trim((string) $item));
+                        }, $decoded)));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback ke daftar default saat DB belum siap / saat migrasi
+        }
+
+        return array_values(array_filter(array_map(function ($item) {
+            return strtolower(trim((string) $item));
+        }, force_approve_allowed_usernames())));
+    }
+}
+
+if (!function_exists('can_manual_correct_attendance')) {
+    /**
+     * Cek apakah user (default: user login aktif) berhak mengakses fitur Perbaikan Absen Manual.
+     */
+    function can_manual_correct_attendance($user = null): bool
+    {
+        if ($user === null) {
+            if (!auth()->check()) {
+                return false;
+            }
+            $user = auth()->user();
+        }
+
+        $username = strtolower(trim((string) ($user->username ?? '')));
+        if ($username === '') {
+            return false;
+        }
+
+        return in_array($username, manual_attendance_allowed_usernames(), true);
+    }
+}
+
 if (!function_exists('leads_interest_label')) {
     /**
      * Partnership package label for a lead ("Mobil Listrik" / "Booth").
@@ -336,7 +391,7 @@ if (!function_exists('employee_grid_cell')) {
 if (!function_exists('employee_grid_column_admins')) {
     function employee_grid_column_admins(): array
     {
-        return ['admin', 'admin.hris', 'user.hcga'];
+        return ['admin', 'admin.hris', 'user.hcga', 'staff.hcga'];
     }
 }
 

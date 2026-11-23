@@ -38,6 +38,23 @@
     z-index: 10;
     border-radius: 1rem;
 }
+.att-modal-header {
+    background: #ffffff;
+    border-bottom: 1px solid #eef1f6;
+    padding: 1.1rem 1.5rem;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+}
+.att-modal-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
 </style>
 @endpush
 
@@ -57,17 +74,62 @@
             </nav>
         </div>
         <div class="d-flex align-items-center flex-wrap gap-2">
-            <a href="{{ route('attendance.locations.index') }}" class="btn btn-sm rounded-pill shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
-                <i class="fe fe-map-pin me-1"></i> Setting Lokasi &amp; Radius
-            </a>
-            <a href="{{ route('attendance.cutoff.index') }}" class="btn btn-sm rounded-pill shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
-                <i class="fe fe-sliders me-1"></i> Kelola Master Cutoff
-            </a>
-            <a href="{{ route('attendance.portal') }}" class="btn btn-sm rounded-pill shadow-sm" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
-                <i class="fe fe-monitor me-1"></i> Portal Absen Saya
-            </a>
-            <button type="button" class="btn btn-success btn-sm rounded-pill shadow-sm px-3" onclick="downloadExcelReport()">
-                <i class="fe fe-download me-1"></i> Export Excel (.xlsx)
+            <div class="dropdown">
+                <button class="btn btn-sm rounded-pill shadow-sm dropdown-toggle px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
+                    <i class="fe fe-sliders me-1"></i> Pengaturan &amp; Portal
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 py-2">
+                    <li>
+                        <a class="dropdown-item py-2" href="{{ route('attendance.portal') }}">
+                            <i class="fe fe-monitor me-2 text-primary"></i> Portal Absen Saya
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item py-2" href="{{ route('attendance.locations.index') }}">
+                            <i class="fe fe-map-pin me-2 text-info"></i> Setting Lokasi &amp; Radius
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item py-2" href="{{ route('attendance.cutoff.index') }}">
+                            <i class="fe fe-calendar me-2 text-secondary"></i> Kelola Master Cutoff
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            @if(can_manual_correct_attendance())
+                <div class="dropdown">
+                    <button class="btn btn-warning btn-sm rounded-pill shadow-sm dropdown-toggle px-3 text-dark fw-semibold" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fe fe-edit-3 me-1"></i> Koreksi Absen
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 py-2">
+                        <li>
+                            <button type="button" class="dropdown-item py-2" onclick="openManualCorrectionModal()">
+                                <i class="fe fe-edit-2 me-2 text-primary"></i> Input Perbaikan Manual
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item py-2" onclick="openBulkCorrectionModal()">
+                                <i class="fe fe-upload-cloud me-2 text-info"></i> Bulk Upload &amp; Proses Request
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <button type="button" class="dropdown-item py-2" onclick="openManualSettingsModal()">
+                                <i class="fe fe-settings me-2 text-dark"></i> Setting Koreksi Manual
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item py-2" onclick="openManualAuditModal()">
+                                <i class="fe fe-shield me-2 text-secondary"></i> Riwayat Audit Koreksi
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            @endif
+
+            <button type="button" class="btn btn-success btn-sm rounded-pill shadow-sm px-3 fw-semibold" onclick="downloadExcelReport()">
+                <i class="fe fe-download me-1"></i> Export Excel
             </button>
         </div>
     </div>
@@ -280,6 +342,9 @@
                                 <th class="text-center">Keterlambatan</th>
                                 <th class="text-center">Lembur (OT)</th>
                                 <th>Keterangan / Lokasi</th>
+                                @if(can_manual_correct_attendance())
+                                    <th class="text-center" style="width: 110px;">Aksi</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody id="dailyTbody">
@@ -363,10 +428,18 @@
                                             </a>
                                         @endif
                                     </td>
+                                    @if(can_manual_correct_attendance())
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1"
+                                                onclick="openManualCorrectionModal('{{ $row['nik'] }}', '{{ addslashes($row['name']) }}', '{{ $row['date'] }}', '{{ $row['clock_in'] }}', '{{ $row['clock_out'] }}')">
+                                                <i class="fe fe-edit-2 me-1"></i>Perbaiki
+                                            </button>
+                                        </td>
+                                    @endif
                                 </tr>
                             @empty
                                 <tr id="emptyDailyRow">
-                                    <td colspan="10" class="text-center py-4 text-muted">
+                                    <td colspan="{{ can_manual_correct_attendance() ? 11 : 10 }}" class="text-center py-4 text-muted">
                                         <i class="fe fe-inbox fs-3 d-block mb-1"></i> Tidak ada data presensi karyawan pada kriteria filter ini.
                                     </td>
                                 </tr>
@@ -464,10 +537,18 @@
     <!-- MODAL POPUP AUDIT FOTO SELFIE PRESENSI -->
     <div class="modal fade" id="auditPhotoModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 rounded-4 shadow">
-                <div class="modal-header border-0 pb-1">
-                    <h6 class="modal-title fw-bold" id="auditPhotoTitle">Bukti Foto Presensi</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="att-modal-header d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="att-modal-icon bg-primary-subtle text-primary">
+                            <i class="fe fe-camera"></i>
+                        </div>
+                        <div>
+                            <h6 class="modal-title fw-bold text-dark mb-0" id="auditPhotoTitle">Bukti Foto Presensi</h6>
+                            <small class="text-muted">Dokumentasi selfie saat clock-in / clock-out</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                 </div>
                 <div class="modal-body p-3 text-center">
                     <img id="auditPhotoImg" src="" class="img-fluid rounded-3 shadow border" alt="Selfie Audit" style="max-height: 480px; width: 100%; object-fit: contain;">
@@ -475,6 +556,341 @@
             </div>
         </div>
     </div>
+
+    @if(can_manual_correct_attendance())
+    <!-- MODAL 1: PERBAIKAN ABSEN MANUAL (SINGLE) -->
+    <div class="modal fade" id="manualCorrectionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="att-modal-header d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="att-modal-icon bg-primary-subtle text-primary">
+                            <i class="fe fe-edit-3"></i>
+                        </div>
+                        <div>
+                            <h6 class="modal-title fw-bold text-dark mb-0">Perbaikan Absen Manual Karyawan</h6>
+                            <small class="text-muted">Ubah jam masuk/pulang melalui alur approval atau pembaruan langsung</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <form id="manualCorrectionForm" onsubmit="submitManualCorrection(event)" enctype="multipart/form-data">
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold">Karyawan (NIK) <span class="text-danger">*</span></label>
+                                <select id="mc_nik" name="nik" class="form-select rounded-3" required onchange="inspectManualContext()">
+                                    <option value="">-- Pilih Karyawan --</option>
+                                    @foreach($data['allAccessibleEmployees'] as $emp)
+                                        <option value="{{ $emp->Emp_ID }}">{{ $emp->Name ?: $emp->username }} ({{ $emp->Emp_ID }} - {{ $emp->Department ?: '-' }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold">Tanggal Presensi <span class="text-danger">*</span></label>
+                                <input type="date" id="mc_date" name="attendance_date" class="form-control rounded-3" required onchange="inspectManualContext()">
+                            </div>
+                        </div>
+
+                        <div id="mc_context_box" class="mt-3 d-none">
+                            <div id="mc_existing_log_info" class="alert alert-light border small mb-2"></div>
+                            <div id="mc_pending_alert" class="alert alert-danger small mb-2 d-none"></div>
+                            <div id="mc_self_alert" class="alert alert-warning small mb-2 d-none"></div>
+
+                            <div id="mc_leave_alert" class="alert alert-info border-info small mb-2 d-none">
+                                <div id="mc_leave_text" class="fw-semibold mb-1"></div>
+                                <div id="mc_leave_cancel_wrap" class="form-check mt-1 d-none">
+                                    <input class="form-check-input" type="checkbox" id="mc_cancel_approved_leave" name="cancel_approved_leave" value="1">
+                                    <label class="form-check-label fw-bold text-dark" for="mc_cancel_approved_leave">
+                                        Batalkan Cuti 1 Hari ini (CANCELLED) &amp; Kembalikan Kuota Cuti Karyawan
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="mc_payroll_lock_alert" class="alert alert-warning border-warning small mb-2 d-none">
+                                <div class="fw-bold text-dark mb-1"><i class="fe fe-lock me-1"></i>Periode Payroll Sudah Dikunci (LOCKED)</div>
+                                <div id="mc_payroll_lock_text" class="mb-2"></div>
+                                <label class="form-label small fw-semibold mb-1">Pilih Mekanisme Post-Cutoff <span class="text-danger">*</span></label>
+                                <select id="mc_post_cutoff_action" name="post_cutoff_action" class="form-select form-select-sm mb-2">
+                                    <option value="NONE">-- Pilih Aksi Post-Cutoff --</option>
+                                    <option value="RAPEL_NEXT_PERIOD">Rapel di Periode Payroll Berikutnya (PENDING_RAPEL)</option>
+                                    <option value="FINANCE_DIRECT">Teruskan ke Finance Langsung (FORWARDED_TO_FINANCE)</option>
+                                </select>
+                                <input type="text" id="mc_post_cutoff_notes" name="post_cutoff_notes" class="form-control form-control-sm" placeholder="Catatan tambahan untuk Payroll / Finance (opsional)...">
+                            </div>
+                        </div>
+
+                        <hr class="my-3">
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Jenis Perbaikan</label>
+                                <select id="mc_correction_type" name="correction_type" class="form-select rounded-3" onchange="toggleMcTimeInputs()">
+                                    <option value="BOTH">Jam Masuk &amp; Pulang</option>
+                                    <option value="IN">Jam Masuk Saja</option>
+                                    <option value="OUT">Jam Pulang Saja</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4" id="mc_in_group">
+                                <label class="form-label small fw-semibold">Jam Masuk Baru</label>
+                                <input type="time" id="mc_clock_in" name="corrected_clock_in" class="form-control rounded-3">
+                            </div>
+                            <div class="col-md-4" id="mc_out_group">
+                                <label class="form-label small fw-semibold">Jam Pulang Baru</label>
+                                <input type="time" id="mc_clock_out" name="corrected_clock_out" class="form-control rounded-3">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Mode Pembaruan <span class="text-danger">*</span></label>
+                                <select id="mc_execution_mode" name="execution_mode" class="form-select rounded-3">
+                                    <option value="APPROVAL_REQUIRED">Melalui Proses Approval (Atasan Karyawan)</option>
+                                    <option value="DIRECT_UPDATE">Update Langsung ke Log Presensi</option>
+                                </select>
+                                <small id="mc_mode_hint" class="text-muted d-block mt-1"></small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Lampiran Bukti (Opsional / Sesuai Setting)</label>
+                                <input type="file" id="mc_evidence_file" name="evidence_file" class="form-control rounded-3" accept=".jpg,.jpeg,.png,.pdf">
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label small fw-semibold">Alasan Perbaikan <span class="text-danger">*</span></label>
+                            <textarea id="mc_reason" name="reason" rows="2" class="form-control rounded-3" placeholder="Jelaskan alasan perbaikan absen secara jelas untuk audit trail..."></textarea>
+                        </div>
+
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="mc_clear_gps_anomaly" name="clear_gps_anomaly" value="1">
+                            <label class="form-check-label small text-muted" for="mc_clear_gps_anomaly">
+                                Bersihkan flag <em>Suspect Fake GPS</em> (set ke CLEAN) jika ada
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 bg-light rounded-bottom-4">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" id="btnSubmitManualCorrection" class="btn btn-primary rounded-pill px-4">
+                            <i class="fe fe-save me-1"></i> Simpan Perbaikan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: BULK UPLOAD EXCEL & BULK PROSES REQUEST -->
+    <div class="modal fade" id="bulkCorrectionModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="att-modal-header d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="att-modal-icon bg-info-subtle text-info">
+                            <i class="fe fe-upload-cloud"></i>
+                        </div>
+                        <div>
+                            <h6 class="modal-title fw-bold text-dark mb-0">Bulk Upload &amp; Proses Massal Koreksi Absen</h6>
+                            <small class="text-muted">Unggah template Excel multi-karyawan atau setujui request SUBMITTED sekaligus</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <ul class="nav nav-pills mb-3" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active rounded-pill px-3" data-bs-toggle="tab" data-bs-target="#bulk-upload-pane" type="button">
+                                <i class="fe fe-file-plus me-1"></i> Upload Excel Massal
+                            </button>
+                        </li>
+                        <li class="nav-item ms-2">
+                            <button class="nav-link rounded-pill px-3" data-bs-toggle="tab" data-bs-target="#bulk-pending-pane" type="button" onclick="loadPendingCorrections()">
+                                <i class="fe fe-check-square me-1"></i> Proses Request SUBMITTED
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="bulk-upload-pane">
+                            <div class="alert alert-light border small d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <strong>Format Terstandar:</strong> Gunakan template Excel resmi agar kolom NIK, Tanggal, Jam, Mode, Pembatalan Cuti 1 Hari, dan Post-Cutoff terbaca akurat.
+                                </div>
+                                <a href="{{ route('attendance.manual.template') }}" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                                    <i class="fe fe-download me-1"></i> Download Template (.xlsx)
+                                </a>
+                            </div>
+
+                            <div class="row g-2 align-items-end mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Pilih File Excel (.xlsx / .csv)</label>
+                                    <input type="file" id="bulkUploadFile" class="form-control form-control-sm" accept=".xlsx,.xls,.csv">
+                                </div>
+                                <div class="col-md-6 d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="runBulkUpload('preview')">
+                                        <i class="fe fe-eye me-1"></i> Validasi / Preview
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" onclick="runBulkUpload('execute')">
+                                        <i class="fe fe-play me-1"></i> Proses &amp; Simpan Sekarang
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="bulkUploadSummary" class="small fw-semibold mb-2 d-none"></div>
+                            <div class="table-responsive" style="max-height: 320px;">
+                                <table class="table table-sm table-bordered align-middle small">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Baris</th>
+                                            <th>NIK</th>
+                                            <th>Nama</th>
+                                            <th>Tanggal</th>
+                                            <th>Jam In / Out</th>
+                                            <th>Mode</th>
+                                            <th>Status</th>
+                                            <th>Keterangan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="bulkUploadPreviewBody">
+                                        <tr><td colspan="8" class="text-center text-muted py-3">Unggah file dan klik Validasi / Preview untuk melihat hasil per baris.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="bulk-pending-pane">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted">Daftar pengajuan koreksi absensi yang masih berstatus <strong>SUBMITTED</strong>.</small>
+                                <button type="button" class="btn btn-sm btn-success rounded-pill px-3" onclick="executeBulkApprove()">
+                                    <i class="fe fe-check-circle me-1"></i> Setujui &amp; Terapkan Terpilih
+                                </button>
+                            </div>
+                            <div class="table-responsive" style="max-height: 350px;">
+                                <table class="table table-sm table-hover align-middle small">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 35px;"><input type="checkbox" id="chkAllPending" onclick="toggleAllPending(this)"></th>
+                                            <th>No Koreksi</th>
+                                            <th>Karyawan</th>
+                                            <th>Tanggal</th>
+                                            <th>Jam Masuk / Pulang</th>
+                                            <th>Alasan</th>
+                                            <th>Penginput</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="bulkPendingBody">
+                                        <tr><td colspan="7" class="text-center text-muted py-3">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: SETTING PERBAIKAN ABSEN MANUAL -->
+    <div class="modal fade" id="manualCorrectionSettingsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="att-modal-header d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="att-modal-icon bg-warning-subtle text-warning">
+                            <i class="fe fe-settings"></i>
+                        </div>
+                        <div>
+                            <h6 class="modal-title fw-bold text-dark mb-0">Pengaturan Perbaikan Absen Manual</h6>
+                            <small class="text-muted">Atur hak akses username, mode default, dan batasan guard koreksi</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <form id="manualSettingsForm" onsubmit="saveManualSettings(event)">
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Daftar Username yang Diizinkan (pisahkan koma)</label>
+                            <textarea id="set_allowed_usernames" name="allowed_usernames" rows="2" class="form-control rounded-3" required></textarea>
+                            <small class="text-muted">Default mengacu pada <code>force_approve_allowed_usernames()</code>.</small>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Mode Default</label>
+                                <select id="set_default_mode" name="default_mode" class="form-select rounded-3">
+                                    <option value="APPROVAL_REQUIRED">Melalui Approval</option>
+                                    <option value="DIRECT_UPDATE">Update Langsung</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Batas Hari Mundur (0 = Bebas)</label>
+                                <input type="number" id="set_max_backdate_days" name="max_backdate_days" class="form-control rounded-3" min="0" placeholder="Contoh: 30">
+                            </div>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="set_allow_mode_selection" name="allow_mode_selection" value="1">
+                            <label class="form-check-label small" for="set_allow_mode_selection">Izinkan user memilih mode (Approval / Langsung) saat input</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="set_require_reason" name="require_reason" value="1">
+                            <label class="form-check-label small" for="set_require_reason">Wajib mengisi alasan perbaikan</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="set_require_evidence" name="require_evidence" value="1">
+                            <label class="form-check-label small" for="set_require_evidence">Wajib melampirkan file bukti</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="set_allow_self_direct_update" name="allow_self_direct_update" value="1">
+                            <label class="form-check-label small text-danger fw-semibold" for="set_allow_self_direct_update">Izinkan Update Langsung untuk NIK diri sendiri (Tidak disarankan)</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 bg-light rounded-bottom-4">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-dark rounded-pill px-4">Simpan Pengaturan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: RIWAYAT AUDIT KOREKSI MANUAL -->
+    <div class="modal fade" id="manualCorrectionAuditModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="att-modal-header d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="att-modal-icon bg-secondary-subtle text-secondary">
+                            <i class="fe fe-shield"></i>
+                        </div>
+                        <div>
+                            <h6 class="modal-title fw-bold text-dark mb-0">Riwayat Audit Log Perbaikan Absen Manual</h6>
+                            <small class="text-muted">Jejak perubahan data presensi, pembatalan cuti, dan status post-cutoff</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div class="table-responsive" style="max-height: 450px;">
+                        <table class="table table-sm table-hover align-middle small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Waktu</th>
+                                    <th>Aksi</th>
+                                    <th>Aktor</th>
+                                    <th>NIK / Karyawan</th>
+                                    <th>Tanggal</th>
+                                    <th>Cuti / Post-Cutoff</th>
+                                    <th>Alasan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="manualAuditLogBody">
+                                <tr><td colspan="7" class="text-center text-muted py-3">Memuat riwayat audit...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
 <script>
 // State Pagination & Filter
@@ -655,9 +1071,10 @@ function applyFilterAjax() {
 }
 
 function renderDailyTableBody(list, isDetailMode) {
+    const canManualCorrect = {{ can_manual_correct_attendance() ? 'true' : 'false' }};
     const tbody = document.getElementById('dailyTbody');
     if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted"><i class="fe fe-inbox fs-3 d-block mb-1"></i> Tidak ada data presensi karyawan pada kriteria filter ini.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${canManualCorrect ? 11 : 10}" class="text-center py-4 text-muted"><i class="fe fe-inbox fs-3 d-block mb-1"></i> Tidak ada data presensi karyawan pada kriteria filter ini.</td></tr>`;
         return;
     }
 
@@ -739,6 +1156,13 @@ function renderDailyTableBody(list, isDetailMode) {
                     <small class="text-muted d-block">${escapeHtml(row.notes || '-')}</small>
                     ${mapLink}
                 </td>
+                ${canManualCorrect ? `
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1"
+                        onclick="openManualCorrectionModal('${escapeHtml(row.nik)}', '${escapeHtml(row.name)}', '${row.date}', '${row.clock_in}', '${row.clock_out}')">
+                        <i class="fe fe-edit-2 me-1"></i>Perbaiki
+                    </button>
+                </td>` : ''}
             </tr>
         `;
     });
@@ -920,5 +1344,347 @@ function downloadExcelReport() {
 
     window.location.href = "{{ route('attendance.data.export') }}?" + query.toString();
 }
+
+@if(can_manual_correct_attendance())
+const CSRF_TOKEN_MANUAL = "{{ csrf_token() }}";
+
+function openManualCorrectionModal(nik = '', name = '', date = '', clockIn = '', clockOut = '') {
+    document.getElementById('manualCorrectionForm').reset();
+    document.getElementById('mc_context_box').classList.add('d-none');
+
+    const nikSel = document.getElementById('mc_nik');
+    const dateEl = document.getElementById('mc_date');
+
+    if (nik) {
+        nikSel.value = nik;
+    } else if (document.getElementById('filter_employee_nik').value !== 'ALL') {
+        nikSel.value = document.getElementById('filter_employee_nik').value;
+    }
+
+    dateEl.value = date || document.getElementById('filter_date').value || "{{ date('Y-m-d') }}";
+
+    if (clockIn && clockIn !== '--:--') {
+        document.getElementById('mc_clock_in').value = clockIn.substring(0, 5);
+    }
+    if (clockOut && clockOut !== '--:--') {
+        document.getElementById('mc_clock_out').value = clockOut.substring(0, 5);
+    }
+
+    toggleMcTimeInputs();
+    const modal = new bootstrap.Modal(document.getElementById('manualCorrectionModal'));
+    modal.show();
+
+    if (nikSel.value && dateEl.value) {
+        inspectManualContext();
+    }
+}
+
+function toggleMcTimeInputs() {
+    const type = document.getElementById('mc_correction_type').value;
+    document.getElementById('mc_in_group').style.display = (type === 'OUT') ? 'none' : '';
+    document.getElementById('mc_out_group').style.display = (type === 'IN') ? 'none' : '';
+}
+
+function inspectManualContext() {
+    const nik = document.getElementById('mc_nik').value;
+    const date = document.getElementById('mc_date').value;
+    if (!nik || !date) return;
+
+    const box = document.getElementById('mc_context_box');
+    const logInfo = document.getElementById('mc_existing_log_info');
+    const pendingAlert = document.getElementById('mc_pending_alert');
+    const selfAlert = document.getElementById('mc_self_alert');
+    const leaveAlert = document.getElementById('mc_leave_alert');
+    const leaveCancelWrap = document.getElementById('mc_leave_cancel_wrap');
+    const payrollAlert = document.getElementById('mc_payroll_lock_alert');
+    const btnSubmit = document.getElementById('btnSubmitManualCorrection');
+    const modeSel = document.getElementById('mc_execution_mode');
+    const modeHint = document.getElementById('mc_mode_hint');
+
+    box.classList.remove('d-none');
+    logInfo.innerHTML = '<span class="text-muted"><i class="fe fe-loader me-1"></i>Memeriksa konteks presensi...</span>';
+    pendingAlert.classList.add('d-none');
+    selfAlert.classList.add('d-none');
+    leaveAlert.classList.add('d-none');
+    leaveCancelWrap.classList.add('d-none');
+    payrollAlert.classList.add('d-none');
+    document.getElementById('mc_cancel_approved_leave').checked = false;
+    btnSubmit.disabled = false;
+
+    const params = new URLSearchParams({ nik: nik, date: date });
+    fetch("{{ route('attendance.manual.context') }}?" + params.toString(), {
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status !== 'success') {
+            logInfo.innerHTML = `<span class="text-danger">${escapeHtml(res.message || 'Gagal memeriksa konteks.')}</span>`;
+            return;
+        }
+        const d = res.data;
+
+        if (d.existing_log) {
+            logInfo.innerHTML = `<strong>Log Eksisting (${d.date}):</strong> Masuk <code>${d.existing_log.clock_in || '--:--'}</code> | Pulang <code>${d.existing_log.clock_out || '--:--'}</code> | Status: <strong>${d.existing_log.clock_in_status || '-'}</strong> | Telat: ${d.existing_log.late_minutes} mnt`;
+        } else {
+            logInfo.innerHTML = `<strong>Log Eksisting (${d.date}):</strong> <span class="text-muted">Belum ada catatan absensi (ALPHA / Libur).</span>`;
+        }
+
+        if (d.has_pending_correction) {
+            pendingAlert.classList.remove('d-none');
+            pendingAlert.innerHTML = `<i class="fe fe-alert-circle me-1"></i><strong>Diblokir:</strong> Masih ada pengajuan koreksi berstatus <strong>SUBMITTED</strong> (${escapeHtml(d.pending_correction.correction_no)}) di tanggal ini.`;
+            btnSubmit.disabled = true;
+        }
+
+        if (d.approved_leave) {
+            leaveAlert.classList.remove('d-none');
+            if (d.approved_leave.is_single_day) {
+                document.getElementById('mc_leave_text').innerHTML = `<i class="fe fe-info me-1"></i>Bentrok dengan Cuti/Izin <strong>APPROVED</strong> (${escapeHtml(d.approved_leave.request_no)} - ${escapeHtml(d.approved_leave.leave_type)}, 1 Hari).`;
+                leaveCancelWrap.classList.remove('d-none');
+            } else {
+                document.getElementById('mc_leave_text').innerHTML = `<i class="fe fe-alert-triangle me-1"></i>Bentrok Cuti Multi-Hari (${escapeHtml(d.approved_leave.request_no)}: ${d.approved_leave.start_date} s/d ${d.approved_leave.end_date}). Pembatalan otomatis hanya mendukung cuti 1 hari; silakan revisi cuti terlebih dahulu.`;
+                btnSubmit.disabled = true;
+            }
+        }
+
+        if (d.is_payroll_locked) {
+            payrollAlert.classList.remove('d-none');
+            document.getElementById('mc_payroll_lock_text').innerText = `Periode ${d.payroll_lock_detail.periode} (${d.payroll_lock_detail.cutoff_from} s/d ${d.payroll_lock_detail.cutoff_to}) sudah LOCKED. Perubahan historis akan dicatat sebagai Post-Cutoff Adjustment.`;
+        }
+
+        const settings = d.settings;
+        modeSel.value = settings.default_mode || 'APPROVAL_REQUIRED';
+        modeSel.disabled = !settings.allow_mode_selection;
+        modeHint.innerText = !settings.allow_mode_selection ? 'Mode dikunci oleh pengaturan sistem.' : '';
+
+        if (d.must_use_approval) {
+            selfAlert.classList.remove('d-none');
+            selfAlert.innerHTML = '<i class="fe fe-shield me-1"></i><strong>Guard Self-Approval:</strong> Perbaikan untuk NIK Anda sendiri wajib melalui Proses Approval.';
+            modeSel.value = 'APPROVAL_REQUIRED';
+            modeSel.disabled = true;
+        }
+    });
+}
+
+function submitManualCorrection(e) {
+    e.preventDefault();
+    const form = document.getElementById('manualCorrectionForm');
+    const modeSel = document.getElementById('mc_execution_mode');
+    const wasDisabled = modeSel.disabled;
+    modeSel.disabled = false;
+
+    const formData = new FormData(form);
+    if (wasDisabled) modeSel.disabled = true;
+
+    const btn = document.getElementById('btnSubmitManualCorrection');
+    btn.disabled = true;
+
+    fetch("{{ route('attendance.manual.store') }}", {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': CSRF_TOKEN_MANUAL,
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(res => {
+        btn.disabled = false;
+        if (res.status === 'success') {
+            bootstrap.Modal.getInstance(document.getElementById('manualCorrectionModal')).hide();
+            alert(res.message);
+            applyFilterAjax();
+        } else {
+            alert('Gagal: ' + (res.message || 'Periksa kembali inputan Anda.'));
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        alert('Terjadi kesalahan jaringan saat menyimpan perbaikan absen.');
+    });
+}
+
+function openManualSettingsModal() {
+    fetch("{{ route('attendance.manual.settings.get') }}", { headers: { 'Accept': 'application/json' } })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status === 'success') {
+            const s = res.data;
+            document.getElementById('set_allowed_usernames').value = (s.allowed_usernames || []).join(', ');
+            document.getElementById('set_default_mode').value = s.default_mode || 'APPROVAL_REQUIRED';
+            document.getElementById('set_max_backdate_days').value = s.max_backdate_days || 0;
+            document.getElementById('set_allow_mode_selection').checked = !!s.allow_mode_selection;
+            document.getElementById('set_require_reason').checked = !!s.require_reason;
+            document.getElementById('set_require_evidence').checked = !!s.require_evidence;
+            document.getElementById('set_allow_self_direct_update').checked = !!s.allow_self_direct_update;
+            new bootstrap.Modal(document.getElementById('manualCorrectionSettingsModal')).show();
+        }
+    });
+}
+
+function saveManualSettings(e) {
+    e.preventDefault();
+    const payload = {
+        allowed_usernames: document.getElementById('set_allowed_usernames').value,
+        default_mode: document.getElementById('set_default_mode').value,
+        max_backdate_days: document.getElementById('set_max_backdate_days').value || 0,
+        allow_mode_selection: document.getElementById('set_allow_mode_selection').checked ? 1 : 0,
+        require_reason: document.getElementById('set_require_reason').checked ? 1 : 0,
+        require_evidence: document.getElementById('set_require_evidence').checked ? 1 : 0,
+        allow_self_direct_update: document.getElementById('set_allow_self_direct_update').checked ? 1 : 0,
+    };
+
+    fetch("{{ route('attendance.manual.settings.save') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': CSRF_TOKEN_MANUAL,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status === 'success') {
+            bootstrap.Modal.getInstance(document.getElementById('manualCorrectionSettingsModal')).hide();
+            alert(res.message);
+        } else {
+            alert('Gagal: ' + (res.message || 'Tidak dapat menyimpan pengaturan.'));
+        }
+    });
+}
+
+function openBulkCorrectionModal() {
+    new bootstrap.Modal(document.getElementById('bulkCorrectionModal')).show();
+}
+
+function runBulkUpload(actionMode) {
+    const fileInput = document.getElementById('bulkUploadFile');
+    if (!fileInput.files || !fileInput.files[0]) {
+        alert('Pilih file Excel (.xlsx / .csv) terlebih dahulu.');
+        return;
+    }
+
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    fd.append('action_mode', actionMode);
+
+    fetch("{{ route('attendance.manual.bulk_upload') }}", {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN_MANUAL, 'Accept': 'application/json' },
+        body: fd
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status !== 'success') {
+            alert('Gagal: ' + (res.message || 'Format file tidak valid.'));
+            return;
+        }
+        const d = res.data;
+        const summaryEl = document.getElementById('bulkUploadSummary');
+        summaryEl.classList.remove('d-none');
+        summaryEl.innerHTML = `Total Baris: ${d.total_rows} | Valid: <span class="text-success">${d.valid_count}</span> | Error: <span class="text-danger">${d.error_count}</span> | Dieksekusi: <span class="text-primary">${d.executed_count}</span>`;
+
+        const tbody = document.getElementById('bulkUploadPreviewBody');
+        tbody.innerHTML = d.rows.map(r => {
+            const cls = r.status === 'ERROR' ? 'table-danger' : (r.status === 'EXECUTED' ? 'table-success' : '');
+            return `<tr class="${cls}">
+                <td>${r.row}</td>
+                <td>${escapeHtml(r.nik)}</td>
+                <td>${escapeHtml(r.name)}</td>
+                <td>${escapeHtml(r.date)}</td>
+                <td>${escapeHtml(r.clock_in || '-')} / ${escapeHtml(r.clock_out || '-')}</td>
+                <td>${escapeHtml(r.mode)}</td>
+                <td><strong>${escapeHtml(r.status)}</strong></td>
+                <td>${escapeHtml(r.message)}</td>
+            </tr>`;
+        }).join('');
+
+        if (actionMode === 'execute' && d.executed_count > 0) {
+            applyFilterAjax();
+        }
+    });
+}
+
+function loadPendingCorrections() {
+    const tbody = document.getElementById('bulkPendingBody');
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Memuat data...</td></tr>';
+
+    fetch("{{ route('attendance.manual.pending') }}", { headers: { 'Accept': 'application/json' } })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status !== 'success' || !res.data.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Tidak ada pengajuan koreksi berstatus SUBMITTED.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = res.data.map(r => `
+            <tr>
+                <td><input type="checkbox" class="chk-pending-item" value="${r.id}"></td>
+                <td><strong>${escapeHtml(r.correction_no)}</strong></td>
+                <td>${escapeHtml(r.employee_name || r.nik)} <br><small class="text-muted">${escapeHtml(r.nik)}</small></td>
+                <td>${escapeHtml(r.attendance_date)}</td>
+                <td>${escapeHtml(r.corrected_clock_in || '--:--')} / ${escapeHtml(r.corrected_clock_out || '--:--')}</td>
+                <td>${escapeHtml(r.reason)}</td>
+                <td>${escapeHtml(r.created_by || '-')}</td>
+            </tr>
+        `).join('');
+    });
+}
+
+function toggleAllPending(master) {
+    document.querySelectorAll('.chk-pending-item').forEach(chk => {
+        chk.checked = master.checked;
+    });
+}
+
+function executeBulkApprove() {
+    const ids = Array.from(document.querySelectorAll('.chk-pending-item:checked')).map(c => parseInt(c.value, 10));
+    if (!ids.length) {
+        alert('Pilih minimal 1 pengajuan koreksi.');
+        return;
+    }
+
+    fetch("{{ route('attendance.manual.bulk_approve') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': CSRF_TOKEN_MANUAL,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ correction_ids: ids })
+    })
+    .then(r => r.json())
+    .then(res => {
+        alert(res.message || 'Selesai memproses.');
+        loadPendingCorrections();
+        applyFilterAjax();
+    });
+}
+
+function openManualAuditModal() {
+    const tbody = document.getElementById('manualAuditLogBody');
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Memuat riwayat audit...</td></tr>';
+    new bootstrap.Modal(document.getElementById('manualCorrectionAuditModal')).show();
+
+    fetch("{{ route('attendance.manual.audit') }}", { headers: { 'Accept': 'application/json' } })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status !== 'success' || !res.data.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Belum ada riwayat audit perbaikan absen manual.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = res.data.map(r => `
+            <tr>
+                <td>${escapeHtml(r.created_at)}</td>
+                <td><span class="badge bg-dark text-white">${escapeHtml(r.action)}</span></td>
+                <td>${escapeHtml(r.actor_username)}</td>
+                <td>${escapeHtml(r.target_name || r.target_nik || '-')} <br><small class="text-muted">${escapeHtml(r.target_nik || '')}</small></td>
+                <td>${escapeHtml(r.scan_date || '-')}</td>
+                <td>${escapeHtml(r.leave_action || '-')} ${r.post_cutoff_action && r.post_cutoff_action !== 'NONE' ? `<span class="badge bg-warning text-dark">${escapeHtml(r.post_cutoff_action)} (${escapeHtml(r.post_cutoff_status || '')})</span>` : ''}</td>
+                <td>${escapeHtml(r.reason || '-')}</td>
+            </tr>
+        `).join('');
+    });
+}
+@endif
 </script>
 @endsection

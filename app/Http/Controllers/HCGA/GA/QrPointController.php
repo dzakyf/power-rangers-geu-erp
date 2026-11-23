@@ -15,7 +15,7 @@ class QrPointController extends Controller
 
     public function index()
     {
-        abort_unless(can_menu('SI01013', 'view'), 403);
+        abort_unless(can_menu('SI01017', 'view'), 403);
 
         $points = DB::table('ga_qr_point')->orderBy('Name')->get();
 
@@ -24,7 +24,7 @@ class QrPointController extends Controller
 
     public function data()
     {
-        abort_unless(can_menu('SI01013', 'view'), 403);
+        abort_unless(can_menu('SI01017', 'view'), 403);
 
         $rows = DB::table('ga_qr_point')->orderBy('Name')->get();
 
@@ -50,7 +50,7 @@ class QrPointController extends Controller
     public function save(Request $request)
     {
         $action = $request->filled('ID') ? 'edit' : 'create';
-        abort_unless(can_menu('SI01013', $action), 403);
+        abort_unless(can_menu('SI01017', $action), 403);
 
         $data = $request->validate([
             'ID' => 'nullable|integer',
@@ -97,7 +97,7 @@ class QrPointController extends Controller
 
     public function delete(Request $request)
     {
-        abort_unless(can_menu('SI01013', 'delete'), 403);
+        abort_unless(can_menu('SI01017', 'delete'), 403);
 
         $data = $request->validate(['ID' => 'required|integer']);
         DB::table('ga_qr_point')->where('ID', (int) $data['ID'])->update([
@@ -111,7 +111,7 @@ class QrPointController extends Controller
 
     public function image(Request $request)
     {
-        abort_unless(can_menu('SI01013', 'view'), 403);
+        abort_unless(can_menu('SI01017', 'view'), 403);
 
         $code = trim((string) $request->query('code', ''));
         abort_if($code === '', 404);
@@ -127,7 +127,7 @@ class QrPointController extends Controller
 
     public function printSheet(Request $request)
     {
-        abort_unless(can_menu('SI01013', 'view'), 403);
+        abort_unless(can_menu('SI01017', 'view'), 403);
 
         $points = DB::table('ga_qr_point')->where('Status', 'ACTIVE')->orderBy('Name')->get();
 

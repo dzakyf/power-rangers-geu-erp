@@ -25,14 +25,14 @@ class WorkOrderController extends Controller
 
     public function index()
     {
-        abort_unless(can_menu('SI01010', 'view'), 403);
+        abort_unless(can_menu('SI01014', 'view'), 403);
 
         return view('humanresources.ga.work-order.index');
     }
 
     public function data(Request $request)
     {
-        abort_unless(can_menu('SI01010', 'view'), 403);
+        abort_unless(can_menu('SI01014', 'view'), 403);
 
         $user = Auth::user();
         $filters = $request->only(['status', 'search', 'ticket_id', 'location', 'company_id', 'assignee']);
@@ -72,7 +72,7 @@ class WorkOrderController extends Controller
 
     public function create(Request $request)
     {
-        abort_unless(can_menu('SI01010', 'create'), 403);
+        abort_unless(can_menu('SI01014', 'create'), 403);
 
         $ticketId = (int) $request->query('ticket_id', 0);
         $ticket = $ticketId ? $this->tickets->find($ticketId) : null;
@@ -92,7 +92,7 @@ class WorkOrderController extends Controller
 
     public function store(Request $request)
     {
-        abort_unless(can_menu('SI01010', 'create'), 403);
+        abort_unless(can_menu('SI01014', 'create'), 403);
 
         $data = $request->validate([
             'Ticket_ID' => 'required|integer',
@@ -128,7 +128,7 @@ class WorkOrderController extends Controller
 
     public function detail(Request $request)
     {
-        abort_unless(can_menu('SI01010', 'view'), 403);
+        abort_unless(can_menu('SI01014', 'view'), 403);
 
         $woId = (int) $request->query('ID', 0);
         $wo = $this->workOrders->syncApprovalStatus($woId);
@@ -145,7 +145,7 @@ class WorkOrderController extends Controller
 
     public function transition(Request $request)
     {
-        abort_unless(can_menu('SI01010', 'edit'), 403);
+        abort_unless(can_menu('SI01014', 'edit'), 403);
 
         $data = $request->validate([
             'ID' => 'required|integer',
@@ -163,7 +163,7 @@ class WorkOrderController extends Controller
 
     public function submitApproval(Request $request)
     {
-        abort_unless(can_menu('SI01010', 'approve'), 403);
+        abort_unless(can_menu('SI01014', 'approve'), 403);
 
         $data = $request->validate(['ID' => 'required|integer']);
 
@@ -183,7 +183,7 @@ class WorkOrderController extends Controller
 
     public function syncApproval(Request $request)
     {
-        abort_unless(can_menu('SI01010', 'view'), 403);
+        abort_unless(can_menu('SI01014', 'view'), 403);
 
         $data = $request->validate(['ID' => 'required|integer']);
 
@@ -197,7 +197,7 @@ class WorkOrderController extends Controller
 
     public function addCost(Request $request)
     {
-        abort_unless(can_menu('SI01010', 'edit'), 403);
+        abort_unless(can_menu('SI01014', 'edit'), 403);
 
         $data = $request->validate([
             'ID' => 'required|integer',

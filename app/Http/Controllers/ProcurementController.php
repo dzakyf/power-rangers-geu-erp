@@ -1699,7 +1699,7 @@ class ProcurementController extends Controller
         ]);
     }
 
-    // 3. Proses RECEIVED PO (Penerimaan Barang Parsial / Penuh)
+   // 3. Proses RECEIVED PO (Penerimaan Barang Parsial / Penuh + Catat ke good_receive & good_receive_dtl)
     public function receivePO(Request $request)
     {
         $poNo       = $request->input('po_no');
@@ -1714,6 +1714,8 @@ class ProcurementController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Data PO tidak ditemukan.'], 404);
             }
 
+            // 1. Kumpulkan & validasi item yang akan diterima dulu sebelum insert header GR
+            $itemsToReceive = [];
             $totalReceivedThisTime = 0;
 
             foreach ($receiveQty as $dtlId => $qtyIn) {
@@ -1735,18 +1737,16 @@ class ProcurementController extends Controller
                     ], 422);
                 }
 
-                $newReceive = $currentReceive + $qtyIn;
-                $newRemain  = max(0, $orderQty - $newReceive);
-
-                DB::table('purchase_order_dtl')->where('ID', $dtlId)->update([
-                    'Qty_Receive' => $newReceive,
-                    'Qty_Remain'  => $newRemain,
-                ]);
-
+                $itemsToReceive[] = [
+                    'item'           => $item,
+                    'qtyIn'          => $qtyIn,
+                    'currentReceive' => $currentReceive,
+                    'orderQty'       => $orderQty,
+                ];
                 $totalReceivedThisTime += $qtyIn;
             }
 
-            if ($totalReceivedThisTime <= 0) {
+            if ($totalReceivedThisTime <= 0 || empty($itemsToReceive)) {
                 DB::rollBack();
                 return response()->json([
                     'status'  => 'error',
@@ -1754,7 +1754,74 @@ class ProcurementController extends Controller
                 ], 422);
             }
 
-            // Cek total sisa seluruh item di PO ini
+            // 2. Generate Nomor GR Otomatis (Format: GR/GEU/YYYYMM-XXXX)
+            $prefix = 'GR/GEU/' . date('Ym') . '-';
+            $lastGr = DB::table('good_receive')
+                ->where('GR_No', 'like', $prefix . '%')
+                ->orderBy('ID', 'desc')
+                ->first();
+
+            $nextGrNum    = $lastGr ? ((int) substr($lastGr->GR_No, -4)) + 1 : 1;
+            $grNo         = $prefix . str_pad($nextGrNum, 4, '0', STR_PAD_LEFT);
+            $incomingDate = date('Y-m-d');
+            $nowTimestamp = now();
+            $location     = $po->Location ?? 'HO';
+
+            // 3. Insert Header ke tabel good_receive
+            DB::table('good_receive')->insert([
+                'GR_No'                 => $grNo,
+                'PR_No'                 => $po->PR_No,
+                'PO_No'                 => $po->PO_No,
+                'PO_No_KSPS'            => null,
+                'Incoming_Date'         => $incomingDate,
+                'Purchase_Category'     => $po->Purchase_Category,
+                'Purchase_Sub_Category' => $po->Purchase_Sub_Category,
+                'Purchase_Type'         => $po->Purchase_Type,
+                'Reference'             => $sjNo ?: null,
+                'Remark'                => $sjNo ? "SJ: {$sjNo}" : "Penerimaan barang PO {$po->PO_No}",
+                'Location'              => $location,
+                'Status'                => 'OPEN',
+                'Date_Created'          => $nowTimestamp,
+                'Created_By'            => $username,
+                'Apply_To'              => 'PO',
+            ]);
+
+            // 4. Update purchase_order_dtl & insert detail ke good_receive_dtl
+            foreach ($itemsToReceive as $row) {
+                $item       = $row['item'];
+                $qtyIn      = $row['qtyIn'];
+                $orderQty   = $row['orderQty'];
+                $newReceive = $row['currentReceive'] + $qtyIn;
+                $newRemain  = max(0, $orderQty - $newReceive);
+
+                DB::table('purchase_order_dtl')->where('ID', $item->ID)->update([
+                    'Qty_Receive' => $newReceive,
+                    'Qty_Remain'  => $newRemain,
+                ]);
+
+                $unitPrice    = floatval($item->Price ?? 0);
+                $valuePo      = floatval($item->Total ?? ($orderQty * $unitPrice));
+                $valueReceive = $qtyIn * $unitPrice;
+
+                DB::table('good_receive_dtl')->insert([
+                    'Category'      => $item->Category ?? $po->Category,
+                    'GR_No'         => $grNo,
+                    'PO_No'         => $po->PO_No,
+                    'Product_Code'  => $item->Product_Code,
+                    'Barcode'       => null,
+                    'SN'            => null,
+                    'Qty_PO'        => $orderQty,
+                    'Qty_Receive'   => $qtyIn,
+                    'Value_PO'      => $valuePo,
+                    'Value_Receive' => $valueReceive,
+                    'Location'      => $location,
+                    'Date_Created'  => $nowTimestamp,
+                    'Created_By'    => $username,
+                    'Incoming_Date' => $incomingDate,
+                ]);
+            }
+
+            // 5. Cek total sisa seluruh item di PO ini untuk menentukan status PARTIAL / RECEIVED
             $remainingTotal = DB::table('purchase_order_dtl')
                 ->where('PO_No', $poNo)
                 ->sum('Qty_Remain');
@@ -1764,8 +1831,14 @@ class ProcurementController extends Controller
 
             $remark = $po->Remark ?? '';
             $sjInfo = !empty($sjNo) ? " [SJ: {$sjNo}]" : '';
-            $remark .= " | Received ({$newStatus}) by {$username} (" . date('d-m-Y H:i') . "){$sjInfo}";
+            $remark .= " | GR: {$grNo} ({$newStatus}) by {$username} (" . date('d-m-Y H:i') . "){$sjInfo}";
 
+            // Update status header good_receive
+            DB::table('good_receive')->where('GR_No', $grNo)->update([
+                'Status' => $newStatus,
+            ]);
+
+            // Update status header purchase_order
             DB::table('purchase_order')->where('PO_No', $poNo)->update([
                 'Status'         => $newStatus,
                 'Status_Receive' => $newStatusReceive,
@@ -1775,11 +1848,12 @@ class ProcurementController extends Controller
             DB::commit();
 
             return response()->json([
-                'status'  => 'success',
-                'message' => ($remainingTotal <= 0)
-                    ? "Seluruh barang untuk {$poNo} telah diterima (STATUS: RECEIVED)!"
-                    : "Penerimaan parsial untuk {$poNo} berhasil disimpan (STATUS: PARTIAL)!",
-                'po_status' => $newStatus
+                'status'    => 'success',
+                'gr_no'     => $grNo,
+                'po_status' => $newStatus,
+                'message'   => ($remainingTotal <= 0)
+                    ? "Seluruh barang untuk {$poNo} telah diterima ({$grNo} — STATUS: RECEIVED)!"
+                    : "Penerimaan parsial untuk {$poNo} berhasil disimpan ({$grNo} — STATUS: PARTIAL)!"
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1788,6 +1862,132 @@ class ProcurementController extends Controller
                 'message' => 'Gagal memproses penerimaan barang: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    // 1. Tampilkan Halaman Utama Goods Received List
+    public function goodsReceivedIndex()
+    {
+        return view('humanresources.procurement.goods-received-list');
+    }
+
+    // 2. Endpoint XML DHTMLX Grid untuk Daftar Goods Received (good_receive)
+    public function xmlGoodsReceivedList()
+    {
+        $grList = DB::table('good_receive as gr')
+            ->leftJoin(
+                'purchase_order as po',
+                DB::raw('gr.PO_No COLLATE utf8mb4_unicode_ci'),
+                '=',
+                DB::raw('po.PO_No COLLATE utf8mb4_unicode_ci')
+            )
+            ->leftJoin(
+                'supplier as s',
+                DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
+                '=',
+                DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
+            )
+            ->leftJoin(
+                DB::raw('(SELECT GR_No, SUM(Qty_Receive) as Total_Qty_Receive, SUM(Value_Receive) as Total_Value_Receive FROM good_receive_dtl GROUP BY GR_No) as grd'),
+                DB::raw('gr.GR_No COLLATE utf8mb4_unicode_ci'),
+                '=',
+                DB::raw('grd.GR_No COLLATE utf8mb4_unicode_ci')
+            )
+            ->select(
+                'gr.ID',
+                'gr.GR_No',
+                'gr.PO_No',
+                'gr.PR_No',
+                'gr.Incoming_Date',
+                'gr.Reference',
+                'gr.Location',
+                'gr.Status',
+                'gr.Created_By',
+                'gr.Date_Created',
+                'po.Supplier',
+                's.Company_Name',
+                DB::raw('COALESCE(grd.Total_Qty_Receive, 0) as Total_Qty_Receive'),
+                DB::raw('COALESCE(grd.Total_Value_Receive, 0) as Total_Value_Receive')
+            )
+            ->orderBy('gr.ID', 'desc')
+            ->get();
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+        $xml .= '<rows>';
+
+        $no = 1;
+        foreach ($grList as $row) {
+            $vendorDisplay = $row->Company_Name
+                ? ($row->Supplier . ' - ' . $row->Company_Name)
+                : ($row->Supplier ?? '-');
+
+            $xml .= '<row id="' . htmlspecialchars($row->GR_No) . '">';
+            $xml .= '<cell>' . $no++ . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->GR_No) . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Incoming_Date ?? '-') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->PO_No ?? '-') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->PR_No ?? '-') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($vendorDisplay) . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Reference ?? '-') . '</cell>';
+            $xml .= '<cell>' . number_format($row->Total_Qty_Receive ?? 0, 0, ',', '.') . '</cell>';
+            $xml .= '<cell>' . number_format($row->Total_Value_Receive ?? 0, 0, ',', '.') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Status ?? 'OPEN') . '</cell>';
+            $xml .= '<cell>' . htmlspecialchars($row->Created_By ?? '-') . '</cell>';
+            $xml .= '</row>';
+        }
+
+        $xml .= '</rows>';
+
+        return response($xml, 200)->header('Content-Type', 'text/xml');
+    }
+
+    // 3. Detail Item per GR_No saat Baris Grid Diklik / Di-Double Click
+    public function detailGoodsReceived(Request $request)
+    {
+        $grNo = $request->query('GR_No');
+
+        $grHeader = DB::table('good_receive as gr')
+            ->leftJoin(
+                'purchase_order as po',
+                DB::raw('gr.PO_No COLLATE utf8mb4_unicode_ci'),
+                '=',
+                DB::raw('po.PO_No COLLATE utf8mb4_unicode_ci')
+            )
+            ->leftJoin(
+                'supplier as s',
+                DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
+                '=',
+                DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
+            )
+            ->select(
+                'gr.*',
+                'po.Supplier',
+                'po.Department',
+                's.Company_Name'
+            )
+            ->where('gr.GR_No', $grNo)
+            ->first();
+
+        if (!$grHeader) {
+            return '<div class="alert alert-danger mt-2">Data Goods Received tidak ditemukan.</div>';
+        }
+
+        $grItems = DB::table('good_receive_dtl as grd')
+            ->leftJoin(
+                'product_code as pc',
+                DB::raw('grd.Product_Code COLLATE utf8mb4_unicode_ci'),
+                '=',
+                DB::raw('pc.Product_Code COLLATE utf8mb4_unicode_ci')
+            )
+            ->select(
+                'grd.*',
+                'pc.Description as Product_Desc',
+                'pc.Unit_Name as Unit'
+            )
+            ->where('grd.GR_No', $grNo)
+            ->orderBy('grd.ID', 'ASC')
+            ->get();
+
+        return view('humanresources.procurement.goods-received-detail', compact('grHeader', 'grItems'));
     }
 
 }
