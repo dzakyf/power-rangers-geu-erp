@@ -25,7 +25,9 @@ class DatabaseSeeder extends Seeder
             $this->call(CnsMenuListsSeeder::class);
         }
 
-        $this->call(RbacSeeder::class);
+        if (filter_var(env('SEED_RBAC', true), FILTER_VALIDATE_BOOLEAN)) {
+            $this->call(RbacSeeder::class);
+        }
 
         if (Modules::isEnabled('bp')) {
             $this->call(BpSurveyMasterAccessSeeder::class);
