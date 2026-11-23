@@ -20,7 +20,13 @@ class AddDefaultRoleIdToPrivilegeAccessMappings extends Migration
         }
 
         if (Schema::hasTable('roles') && Schema::hasColumn('privilege_access_mappings', 'default_role_id')) {
-            $globalRoles = DB::table('roles')->whereNull('department')->pluck('id', 'name');
+            $roles = DB::table('roles');
+
+            if (Schema::hasColumn('roles', 'department')) {
+                $roles->whereNull('department');
+            }
+
+            $globalRoles = $roles->pluck('id', 'name');
 
             DB::table('privilege_access_mappings')
                 ->whereNull('default_role_id')

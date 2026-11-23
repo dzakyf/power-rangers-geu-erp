@@ -59,6 +59,25 @@ class SyncModuleApprovalStatus
             return;
         }
 
+        // BDP does not ship the HCGA/legacy domain tables. Never dispatch a
+        // handler that would query a table absent from the current profile.
+        $hcgaOnlyTypes = [
+            'STATUS_CHANGE', 'REQUISITION', 'GA_WORK_ORDER',
+            'ATTENDANCE_OVERTIME', 'ATTENDANCE_LEAVE', 'ATTENDANCE_CORRECTION', 'ATTENDANCE_CHANGE_SHIFT',
+            'SPPD', 'SETTLEMENT', 'EMPLOYEE_DATA_UPDATE', 'PERFORMANCE_KPI', 'REIMBURSEMENT',
+            'PAYROLL', 'SALARY', 'EMPLOYEE_RESIGNATION', 'EXIT_CLEARANCE',
+            'TNA_REQUEST', 'TRAINING_REQUEST', 'DISCIPLINARY_SANCTION',
+            'ASSET_MAINTENANCE_SCHEDULE', 'VEHICLE_TAX_REQUEST', 'VEHICLE_FLEET', 'VEHICLE_LOGBOOK',
+        ];
+
+        if (in_array($type, $hcgaOnlyTypes, true) && !Modules::isEnabled('hcga')) {
+            return;
+        }
+
+        if ($type === 'PROCUREMENT' && !Modules::isEnabled('hcga') && !Modules::isEnabled('legacy')) {
+            return;
+        }
+
         try {
             $this->{$method}($requestId, $request->Status);
 

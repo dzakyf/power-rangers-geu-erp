@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Support\Modules;
 
 class MenuListsSeeder extends Seeder
 {
@@ -41,9 +42,15 @@ class MenuListsSeeder extends Seeder
         $this->command->info('Filling remaining Names/Path_Locs from routes + blade breadcrumbs...');
         $this->applyRouteBreadcrumbs($rows, $backup);
 
+        $rows = $this->filterEnabledModules($rows);
+
         $this->command->info('Seeding ' . count($rows) . ' rows into menu_lists...');
-        DB::table('menu_lists')->truncate();
-        DB::table('menu_lists')->insert(array_values($rows));
+        foreach ($rows as $row) {
+            DB::table('menu_lists')->updateOrInsert(
+                ['Menu_ID' => $row['Menu_ID']],
+                $row
+            );
+        }
 
         $counts = [];
         $named = 0;
@@ -59,9 +66,60 @@ class MenuListsSeeder extends Seeder
         $this->command->info("Named: {$named}, with Path: {$pathed}");
         $this->command->info('MenuListsSeeder complete.');
 
-        // GA menu entries are not part of the legacy backup; re-add them
-        // after the truncate/rebuild so the module stays visible.
-        $this->call(GaMenuSeeder::class);
+        // GA menu entries are not part of the legacy backup; add them only
+        // for deployments that actually ship the HCGA module.
+        if (Modules::isEnabled('hcga')) {
+            $this->call(GaMenuSeeder::class);
+        }
+    }
+
+    protected function filterEnabledModules(array $rows): array
+    {
+        $enabled = [];
+
+        foreach ($rows as $id => $row) {
+            if ($this->isMenuModuleEnabled((string) ($row['Modules'] ?? ''))) {
+                $enabled[$id] = true;
+            }
+        }
+
+        // Keep ancestors of enabled rows so the menu tree stays connected.
+        $changed = true;
+        while ($changed) {
+            $changed = false;
+            foreach (array_keys($enabled) as $id) {
+                $parent = $rows[$id]['Parent_Menu'] ?? '';
+                if ($parent !== '' && isset($rows[$parent]) && !isset($enabled[$parent])) {
+                    $enabled[$parent] = true;
+                    $changed = true;
+                }
+            }
+        }
+
+        return array_intersect_key($rows, $enabled);
+    }
+
+    protected function isMenuModuleEnabled(string $module): bool
+    {
+        $module = strtoupper(trim($module));
+
+        $map = [
+            'FINANCE'    => 'finance',
+            'MITRA'      => 'bp',
+            'CNS'        => 'cns',
+            'HRD'        => 'hcga',
+            'ASET'       => 'hcga',
+            'GA'         => 'hcga',
+            'CANDIDATE'  => 'core',
+            'CREDENTIAL' => 'core',
+            'MYMENU'     => 'core',
+            'DASHBOARD'  => 'core',
+            'SALES'      => 'legacy',
+            'PROJECT'    => 'legacy',
+            'ACCOUNTING' => 'legacy',
+        ];
+
+        return Modules::isEnabled($map[$module] ?? 'legacy');
     }
 
     protected function buildHierarchy($backup)

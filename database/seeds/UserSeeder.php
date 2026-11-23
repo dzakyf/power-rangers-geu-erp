@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Support\Modules;
 
 /**
  * Seed the local admin user (standalone; idempotent by username).
@@ -11,8 +12,31 @@ class UserSeeder extends Seeder
 {
     public function run()
     {
-        $cnsMenuIds = DB::table('menu_lists')
-            ->where('Modules', 'CNS')
+        $priority = [
+            'bp'      => 'MITRA',
+            'finance' => 'FINANCE',
+            'hcga'    => 'HRD',
+            'cns'     => 'CNS',
+        ];
+
+        $moduleLabels = [];
+        $mainMenu = 'CREDENTIAL';
+
+        foreach ($priority as $key => $label) {
+            if (Modules::isEnabled($key)) {
+                $moduleLabels[] = $label;
+                if ($mainMenu === 'CREDENTIAL') {
+                    $mainMenu = $label;
+                }
+            }
+        }
+
+        $moduleLabels[] = 'CREDENTIAL';
+        $moduleLabels[] = 'CANDIDATE';
+        $moduleLabels = array_values(array_unique($moduleLabels));
+
+        $menuIds = DB::table('menu_lists')
+            ->whereIn('Modules', $moduleLabels)
             ->orderBy('Position')
             ->orderBy('Urutan')
             ->pluck('Menu_ID')
@@ -49,8 +73,8 @@ class UserSeeder extends Seeder
             'remember_token'  => null,
             'PR_Approval'     => 'ALL',
             'WH_ID'           => null,
-            'Main_Menu'       => 'CNS',
-            'Sub_Menu'        => $cnsMenuIds,
+            'Main_Menu'       => $mainMenu,
+            'Sub_Menu'        => $menuIds,
             'BP_Approval'     => 0,
             'Blasting'        => 0,
             'Blasting_Status' => null,
@@ -67,6 +91,6 @@ class UserSeeder extends Seeder
 
         DB::table('users')->updateOrInsert(['username' => 'admin'], $row);
 
-        $this->command->info('UserSeeder: admin user seeded/updated (CNS Sub_Menu).');
+        $this->command->info("UserSeeder: admin user seeded/updated ({$mainMenu} Sub_Menu).");
     }
 }
