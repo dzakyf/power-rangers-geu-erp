@@ -9,12 +9,13 @@ repositori ini. Untuk prosedur deployment ke klien, lihat
 1. Repositori menggunakan satu trunk utama, yaitu `main`.
 2. `main` berisi monolit penuh (seluruh modul: `core`, `credential`, `bp`,
    `finance`, `cns`, `hcga`, dan `legacy`).
-3. Pemisahan modul untuk kebutuhan rilis tidak dilakukan melalui branch,
-   melainkan melalui build profile dan build-strip artifact.
-4. Tag bersifat immutable (tidak boleh dipindahkan). Perbaikan selalu dibuat
-   sebagai tag patch baru.
-5. Branch bersifat sementara (short-lived) dan sebaiknya dihapus setelah
-   di-merge.
+3. Deployment menggunakan **phase branch** yang merupakan tampilan source yang
+   sudah dipangkas untuk modul tertentu.
+4. Setiap phase diberi satu tag rilis: `release/X.Y.Z`.
+5. Tag bersifat immutable (tidak boleh dipindahkan). Perbaikan selalu dibuat
+   sebagai tag rilis baru.
+6. Branch pengembangan bersifat sementara (short-lived) dan sebaiknya dihapus
+   setelah di-merge.
 
 ## 2. Struktur Branch
 
@@ -22,11 +23,15 @@ repositori ini. Untuk prosedur deployment ke klien, lihat
 |---|---|---|
 | `main` | Trunk/integration, monolit penuh, basis seluruh pengembangan | Permanen |
 | `feature/<modul>/<slug>` | Pengembangan fitur untuk modul tertentu | Sementara |
-| `release/<versi>` | Pembekuan (freeze) dan QA rilis | Sementara |
 | `hotfix/<modul>/<versi>` | Perbaikan darurat dari tag rilis | Sementara |
+| `phase/X.Y.Z` | Source tree yang sudah dipangkas untuk phase tertentu | Release view |
 
-Tidak ada branch permanen `dev`, `release/<modul>` jangka panjang, atau branch
-per modul.
+`phase/X.Y.Z` bukan branch pengembangan. Branch tersebut dihasilkan dari
+`main` menggunakan build profile dan hanya berisi modul, tests, dan docs yang
+relevan untuk phase tersebut.
+
+Tidak ada branch permanen `dev`, `release/<modul>`, atau branch per modul.
+Tidak ada tag modul seperti `bdp/vX.Y.Z` atau `cns/vX.Y.Z` untuk rilis baru.
 
 ## 3. Alur Pengembangan
 
@@ -57,72 +62,115 @@ per modul.
    - `database/migrations/<modul>`
    - `resources/views/modules/<modul>`
 
-## 4. Alur Rilis dan Hotfix
+## 4. Alur Rilis
 
-Rilis dilakukan dari `main` melalui branch `release/<versi>` untuk QA, lalu
-diberi tag bundle dan tag modul pada commit yang sama.
+Rilis dibuat dari `main` setelah QA selesai.
+
+1. Merge perubahan ke `main`.
+2. Buat phase branch dari `main` menggunakan build profile yang sesuai.
+3. Buat tag rilis pada commit phase branch.
+4. Push phase branch dan tag.
+
+Contoh Phase 1:
+
+```bash
+git worktree add --detach /tmp/erp-phase-1.0.0 main
+cd /tmp/erp-phase-1.0.0
+
+git switch -c phase/1.0.0
+php deploy/build-profile.php bdp --with-tests
+```
+
+Ganti isi worktree dengan hasil build, lalu commit:
+
+```bash
+git rm -r .
+rsync -a build/bdp/ ./
+git add .
+git commit -m "phase 1.0.0: BDP-only source tree"
+```
+
+Buat tag:
+
+```bash
+git tag -a release/1.0.0 phase/1.0.0 \
+  -m "Phase 1.0.0 BDP release"
+```
+
+Push:
+
+```bash
+git push origin phase/1.0.0
+git push origin release/1.0.0
+```
+
+Aturan:
+
+- Satu tag rilis mewakili satu phase branch commit.
+- Jangan memindahkan atau membuat ulang tag yang sudah dipublikasikan.
+- Tag rilis tidak menentukan isi modul; isi modul ditentukan oleh phase branch
+  yang dihasilkan dari build profile.
+
+## 5. Alur Hotfix
+
+Hotfix dikerjakan dari `main` atau dari branch hotfix sementara, lalu phase
+branch baru dibuat dari commit yang sudah diperbaiki.
 
 ```bash
 git switch main
-git switch -c release/1.0
-# QA
-git tag -a release/1.0.0 -m "Rilis BDP 1.0.0"
-git tag -a bdp/v1.0.0 -m "Modul BDP 1.0.0"
+git switch -c hotfix/bdp/1.0.1
+# lakukan perbaikan dan verifikasi
+git switch main
+git merge --no-ff hotfix/bdp/1.0.1
+git push origin main
 ```
 
-Hotfix dibuat dari tag rilis yang sedang berjalan, bukan dari `main`, agar
-perubahan yang belum dirilis tidak ikut terkirim.
+Setelah perbaikan masuk ke `main`, buat phase branch baru `phase/1.0.1` dengan
+profile `bdp`, lalu tag `release/1.0.1`.
 
-```bash
-git switch -c hotfix/bdp/1.0.1 bdp/v1.0.0
-# perbaikan
-git tag -a release/1.0.1 -m "Hotfix BDP 1.0.1"
-git tag -a bdp/v1.0.1 -m "Hotfix modul BDP 1.0.1"
+## 6. Tag dan Versioning
+
+Hanya gunakan tag rilis dengan format:
+
+```text
+release/X.Y.Z
 ```
-
-Setelah diverifikasi, perbaikan di-merge atau di-cherry-pick kembali ke `main`.
-
-## 5. Tag dan Versioning
-
-Terdapat dua jenis tag:
-
-| Jenis Tag | Contoh | Fungsi |
-|---|---|---|
-| Tag modul | `bdp/v1.0.0`, `cns/v1.0.0` | Menandai versi kode suatu modul |
-| Tag bundle/rilis | `release/1.0.0`, `release/1.1.0` | Menandai rilis produk yang siap dideploy |
 
 Aturan versioning:
 
-- Penambahan modul baru bersifat aditif sehingga menggunakan kenaikan minor,
-  misalnya `1.0.0` (BDP) menjadi `1.1.0` (BDP + CNS).
-- Perbaikan bug menggunakan tag patch, misalnya `1.1.1`.
+- **Patch** (`1.0.1`) untuk perbaikan bug.
+- **Minor** (`1.1.0`) untuk penambahan modul atau fitur baru yang kompatibel.
+- **Major** (`2.0.0`) untuk perubahan yang tidak kompatibel.
 - Tag rilis tidak boleh dipindahkan; buat tag baru untuk setiap perubahan.
-- Setiap tag bundle memiliki manifest rilis yang mencatat versi setiap modul
-  dan commit sumber.
+- `release-manifest.json` pada phase branch mencatat profil, versi, modul, dan
+  commit sumber.
 
-Tag hanya menandai commit sumber. Komposisi modul yang benar-benar dikirim ke
-klien ditentukan oleh build profile; lihat `readme/deploy.md`.
+Tag `bdp/v1.0.0` sudah dihapus dan tidak digunakan lagi. Tag `archive/*` bersifat
+lokal dan tidak dipublikasikan ke remote.
 
-## 6. Isolasi Tim dan Modul
+## 7. Isolasi Tim dan Modul
 
 - `main` tetap berupa monolit penuh untuk kebutuhan pengembangan bersama.
 - Isolasi tim dilakukan secara lunak melalui `sparse-checkout` dan `CODEOWNERS`.
-- Isolasi artifact dilakukan melalui build-strip, sehingga artifact hanya memuat
-  modul yang diaktifkan pada profil.
+- Isolasi deployment dilakukan melalui phase branch yang dihasilkan dari build
+  profile, sehingga working tree client hanya berisi modul yang aktif.
 - Modul tidak boleh saling mengimpor secara langsung; kontrak bersama ditempatkan
   pada `core`.
 
-## 7. Kondisi Repositori Saat Ini
+## 8. Kondisi Repositori Saat Ini
 
 - Branch utama: `main`.
-- Tag rilis yang tersedia: `bdp/v1.0.0` dan `release/1.0.0`.
-- Tag arsip (`archive/*`) disimpan secara lokal dan tidak dipublikasikan.
+- Phase branch aktif: `phase/1.0.0`.
+- Tag rilis aktif: `release/1.0.0`.
+- Tag lama `bdp/v1.0.0` sudah dihapus.
+- Tag `archive/*` hanya tersedia secara lokal.
 - Remote aktif: `origin`.
 
-## 8. Referensi
+## 9. Referensi
 
 - `readme/deploy.md`
 - `readme/how-to-start-development.md`
+- `config/modules.php`
 - `deploy/profiles.php`
 - `deploy/module-paths.php`
-- `config/modules.php`
+- `deploy/build-profile.php`

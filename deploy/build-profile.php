@@ -6,12 +6,13 @@
 | Build a stripped release artifact
 |--------------------------------------------------------------------------
 |
-| Usage: php deploy/build-profile.php <profile>
+| Usage: php deploy/build-profile.php <profile> [--with-tests]
 |
 | Copies the working tree (minus VCS/build/vendor), removes every module
 | path not enabled by the profile, pins the generated module registry, and
-| writes release-manifest.json. Composer/Artisan steps are printed, not run,
-| so the build stays explicit.
+| writes release-manifest.json. Tests are removed unless --with-tests is
+| passed. Composer/Artisan steps are printed, not run, so the build stays
+| explicit.
 |
 */
 
@@ -29,9 +30,10 @@ if (!function_exists('env')) {
 }
 
 $name = $argv[1] ?? null;
+$withTests = in_array('--with-tests', array_slice($argv, 2), true);
 
 if ($name === null || !isset($profiles[$name])) {
-    fwrite(STDERR, 'usage: build-profile <'.implode('|', array_keys($profiles)).">\n");
+    fwrite(STDERR, 'usage: build-profile <'.implode('|', array_keys($profiles))."> [--with-tests]\n");
     exit(1);
 }
 
@@ -43,8 +45,10 @@ mkdir($out, 0775, true);
 
 copyTree($root, $out);
 
-// Release artifacts do not ship the test suite.
-remove($out.'/tests');
+// Deployment artifacts omit tests unless explicitly requested.
+if (!$withTests) {
+    remove($out.'/tests');
+}
 
 foreach ($modulePaths as $module => $patterns) {
     if (in_array($module, $profile['modules'], true)) {
@@ -83,7 +87,7 @@ echo "Built {$name} -> {$out}\n";
 echo "Next:\n";
 echo "  cd ".escapeshellarg($out)."\n";
 echo "  composer install --no-dev -o\n";
-echo "  php artisan config:cache route:cache view:cache\n";
+echo "  php artisan config:cache view:cache\n";
 echo "  php deploy/check-boundaries.php {$name} ".escapeshellarg($out)."\n";
 
 

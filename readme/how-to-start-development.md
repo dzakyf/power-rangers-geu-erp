@@ -71,9 +71,10 @@ bawah.
 
 ## 3. Branch yang Digunakan
 
-`main` adalah branch trunk yang berisi monolit penuh (seluruh modul). Pemisahan
-modul untuk kebutuhan rilis dilakukan melalui `MODULES` dan build profile, bukan
-melalui branch.
+`main` adalah branch trunk yang berisi monolit penuh (seluruh modul). Untuk
+pengembangan lokal, modul aktif diatur melalui `MODULES`. Untuk deployment,
+maintainer membuat phase branch yang sudah dipangkas dari `main` dan menandainya
+dengan tag `release/<versi>`.
 
 - Push langsung ke `main` secara teknis diperbolehkan.
 - Branch fitur bersifat **opsional**, dan direkomendasikan untuk perubahan
@@ -94,9 +95,10 @@ melalui branch.
 
 - Jika menggunakan feature branch: ajukan Pull Request, lakukan review, lalu
   merge ke `main` dan hapus branch.
-- Untuk rilis dan perbaikan darurat, gunakan `release/<versi>` dan
-  `hotfix/<modul>/<versi>`. Panduan lengkap tersedia pada
-  `readme/branching-strategy.md`.
+- Untuk rilis, buat phase branch `phase/<versi>` dari `main` menggunakan build
+  profile, lalu tag branch tersebut dengan `release/<versi>`. Untuk perbaikan
+  darurat, gunakan branch `hotfix/<modul>/<versi>`. Panduan lengkap tersedia
+  pada `readme/branching-strategy.md`.
 
 ## 4. Modul yang Diaktifkan
 
@@ -341,7 +343,7 @@ atur `DB_HOST` sesuai nama service/container MySQL.
 - Gunakan `php artisan route:list` untuk memastikan hanya route modul yang aktif
   yang termuat.
 
-- Untuk pengujian dengan profile tertentu, gunakan `MODULES` yang sesuai dan
+- Untuk pengujian dengan modul tertentu, gunakan `MODULES` yang sesuai dan
   database baru agar data antar modul tidak tercampur.
 
 ## 10. Troubleshooting
