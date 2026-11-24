@@ -470,32 +470,47 @@ class ItTicketController extends Controller
 
     protected function itCategoryOptions()
     {
-        $rows = DB::table('ga_ticket_category')
+        $user = Auth::user();
+
+        return DB::table('ga_ticket_category')
             ->where('Status', 'ACTIVE')
             ->whereNull('Parent_ID')
             ->where('Code', 'like', 'IT-%')
+            ->where(function ($q) use ($user) {
+                $q->whereNull('Location')->orWhere('Location', $user->Location);
+            })
+            ->where(function ($q) use ($user) {
+                $q->whereNull('Company_ID')->orWhere('Company_ID', $user->Company_ID);
+            })
             ->orderBy('Name')
             ->get(['ID', 'Code', 'Name', 'Default_Priority', 'Default_Team_ID', 'Sla_Policy_ID']);
-
-        if ($rows->isEmpty()) {
-            return DB::table('ga_ticket_category')
-                ->where('Status', 'ACTIVE')
-                ->whereNull('Parent_ID')
-                ->orderBy('Name')
-                ->get(['ID', 'Code', 'Name', 'Default_Priority', 'Default_Team_ID', 'Sla_Policy_ID']);
-        }
-
-        return $rows;
     }
 
     protected function itSubcategoryOptions()
     {
-        return DB::table('ga_ticket_category')
-            ->where('Status', 'ACTIVE')
-            ->whereNotNull('Parent_ID')
-            ->where('Code', 'like', 'IT-%')
-            ->orderBy('Name')
-            ->get(['ID', 'Parent_ID', 'Code', 'Name']);
+        $user = Auth::user();
+
+        return DB::table('ga_ticket_category as c')
+            ->join('ga_ticket_category as p', 'p.ID', '=', 'c.Parent_ID')
+            ->where('c.Status', 'ACTIVE')
+            ->where('p.Status', 'ACTIVE')
+            ->whereNotNull('c.Parent_ID')
+            ->where('c.Code', 'like', 'IT-%')
+            ->where('p.Code', 'like', 'IT-%')
+            ->where(function ($q) use ($user) {
+                $q->whereNull('c.Location')->orWhere('c.Location', $user->Location);
+            })
+            ->where(function ($q) use ($user) {
+                $q->whereNull('c.Company_ID')->orWhere('c.Company_ID', $user->Company_ID);
+            })
+            ->where(function ($q) use ($user) {
+                $q->whereNull('p.Location')->orWhere('p.Location', $user->Location);
+            })
+            ->where(function ($q) use ($user) {
+                $q->whereNull('p.Company_ID')->orWhere('p.Company_ID', $user->Company_ID);
+            })
+            ->orderBy('c.Name')
+            ->get(['c.ID', 'c.Parent_ID', 'c.Code', 'c.Name']);
     }
 
     protected function itTeamOptions()

@@ -21,6 +21,7 @@ class ItSupportAndGaVoucherSeeder extends Seeder
         'SS00153' => ['IT Support & Helpdesk', '', 3, 'SM00067', 1],
         'SI01158' => ['IT Helpdesk & Ticketing', 'hrd-it-ticket-index', 4, 'SS00153', 1],
         'SI01159' => ['My IT Assignments', 'hrd-it-my-assignment-index', 4, 'SS00153', 2],
+        'SI01161' => ['Master Kategori IT', 'hrd-it-category-index', 4, 'SS00153', 3],
     ];
 
     /** @var string */

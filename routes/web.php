@@ -113,6 +113,7 @@ use App\Http\Controllers\HCGA\Performance\PerformancePipController as HCGAPerfor
 
 use App\Http\Controllers\HCGA\GA\TicketController as HCGAGaTicketController;
 use App\Http\Controllers\HCGA\GA\ItTicketController as HCGAGaItTicketController;
+use App\Http\Controllers\HCGA\GA\ItTicketCategoryController as HCGAGaItTicketCategoryController;
 use App\Http\Controllers\HCGA\GA\WorkOrderController as HCGAGaWorkOrderController;
 use App\Http\Controllers\HCGA\GA\TicketMasterController as HCGAGaTicketMasterController;
 use App\Http\Controllers\HCGA\GA\QrPointController as HCGAGaQrPointController;
@@ -6607,6 +6608,13 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$itPref-ticket-attachment", [HCGAGaItTicketController::class, 'downloadAttachment']);
     Route::get("$itPref-my-assignment-index", [HCGAGaItTicketController::class, 'myAssignments']);
     Route::get("$itPref-my-assignment-data", [HCGAGaItTicketController::class, 'myAssignmentData']);
+    Route::get("$itPref-category-index", [HCGAGaItTicketCategoryController::class, 'index']);
+    Route::get("$itPref-category-data", [HCGAGaItTicketCategoryController::class, 'categoryData']);
+    Route::get("$itPref-subcategory-data", [HCGAGaItTicketCategoryController::class, 'subcategoryData']);
+    Route::post("$itPref-category-save", [HCGAGaItTicketCategoryController::class, 'saveCategory']);
+    Route::post("$itPref-subcategory-save", [HCGAGaItTicketCategoryController::class, 'saveSubcategory']);
+    Route::post("$itPref-category-deactivate", [HCGAGaItTicketCategoryController::class, 'deactivate']);
+    Route::get("$itPref-category-options", [HCGAGaItTicketCategoryController::class, 'options']);
 
     Route::get("$gaPref-work-order-index", [HCGAGaWorkOrderController::class, 'index']);
     Route::get("$gaPref-work-order-data", [HCGAGaWorkOrderController::class, 'data']);

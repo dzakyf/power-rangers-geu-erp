@@ -16,6 +16,11 @@
             </nav>
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
+            @if (can_menu('SI01161', 'view'))
+                <a class="btn btn-outline-light btn-sm text-light" href="{{ url('hrd-it-category-index') }}">
+                    <i class="fa fa-tags me-1"></i> Master Kategori IT
+                </a>
+            @endif
             @if (can_menu('SI01159', 'view'))
                 <a class="btn btn-outline-light btn-sm text-light" href="{{ url('hrd-it-my-assignment-index') }}">
                     <i class="fa fa-tasks me-1"></i> My IT Assignments

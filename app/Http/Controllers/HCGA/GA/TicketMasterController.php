@@ -18,7 +18,12 @@ class TicketMasterController extends Controller
     {
         abort_unless(can_menu('SI01016', 'view'), 403);
 
-        $categories = DB::table('ga_ticket_category')->orderBy('Name')->get();
+        $categories = DB::table('ga_ticket_category')
+            ->where(function ($q) {
+                $q->whereNull('Code')->orWhere('Code', 'not like', 'IT-%');
+            })
+            ->orderBy('Name')
+            ->get();
         $teams = DB::table('ga_team')->where('Status', 'ACTIVE')->orderBy('Name')->get();
         $slas = DB::table('ga_sla_policy')->orderBy('Name')->get();
         $vendors = DB::table('supplier')->where('Status', 'ACTIVE')->orderBy('Company_Name')->limit(500)->get(['ID', 'Company_Name']);
@@ -35,6 +40,9 @@ class TicketMasterController extends Controller
             ->leftJoin('ga_ticket_category as p', 'p.ID', '=', 'c.Parent_ID')
             ->leftJoin('ga_team as t', 't.ID', '=', 'c.Default_Team_ID')
             ->leftJoin('ga_sla_policy as s', 's.ID', '=', 'c.Sla_Policy_ID')
+            ->where(function ($q) {
+                $q->whereNull('c.Code')->orWhere('c.Code', 'not like', 'IT-%');
+            })
             ->orderBy('c.Name')
             ->select('c.*', 'p.Name as Parent_Name', 't.Name as Team_Name', 's.Name as Sla_Name')
             ->get();
@@ -75,13 +83,30 @@ class TicketMasterController extends Controller
         ]);
 
         try {
+            $normalizedCode = strtoupper(trim((string) $data['Code']));
+            if (strpos($normalizedCode, 'IT-') === 0) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Kategori berawalan IT- dikelola melalui menu Master Kategori IT.',
+                ], 422);
+            }
+            if (!empty($data['ID'])) {
+                $existingCat = DB::table('ga_ticket_category')->where('ID', (int) $data['ID'])->first(['Code']);
+                if ($existingCat && strpos(strtoupper(trim((string) $existingCat->Code)), 'IT-') === 0) {
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => 'Kategori berawalan IT- dikelola melalui menu Master Kategori IT.',
+                    ], 422);
+                }
+            }
+
             $now = Carbon::now();
             $user = Auth::user();
             $payload = [
                 'Location' => $user->Location,
                 'Company_ID' => $user->Company_ID,
                 'Parent_ID' => !empty($data['Parent_ID']) ? (int) $data['Parent_ID'] : null,
-                'Code' => strtoupper(trim((string) $data['Code'])),
+                'Code' => $normalizedCode,
                 'Name' => trim((string) $data['Name']),
                 'Default_Priority' => $data['Default_Priority'] ?? 'NORMAL',
                 'Default_Team_ID' => !empty($data['Default_Team_ID']) ? (int) $data['Default_Team_ID'] : null,
@@ -112,6 +137,14 @@ class TicketMasterController extends Controller
         abort_unless(can_menu('SI01016', 'delete'), 403);
 
         $data = $request->validate(['ID' => 'required|integer']);
+        $existingCat = DB::table('ga_ticket_category')->where('ID', (int) $data['ID'])->first(['Code']);
+        if ($existingCat && strpos(strtoupper(trim((string) $existingCat->Code)), 'IT-') === 0) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Kategori berawalan IT- dikelola melalui menu Master Kategori IT.',
+            ], 422);
+        }
+
         DB::table('ga_ticket_category')->where('ID', (int) $data['ID'])->update([
             'Status' => 'INACTIVE',
             'Updated_By' => (string) Auth::user()->username,
@@ -515,7 +548,13 @@ class TicketMasterController extends Controller
         abort_unless(can_menu('SI01016', 'view'), 403);
 
         return response()->json([
-            'categories' => DB::table('ga_ticket_category')->where('Status', 'ACTIVE')->orderBy('Name')->get(['ID', 'Parent_ID', 'Code', 'Name']),
+            'categories' => DB::table('ga_ticket_category')
+                ->where('Status', 'ACTIVE')
+                ->where(function ($q) {
+                    $q->whereNull('Code')->orWhere('Code', 'not like', 'IT-%');
+                })
+                ->orderBy('Name')
+                ->get(['ID', 'Parent_ID', 'Code', 'Name']),
             'teams' => DB::table('ga_team')->where('Status', 'ACTIVE')->orderBy('Name')->get(['ID', 'Code', 'Name', 'Team_Type']),
             'slas' => DB::table('ga_sla_policy')->where('Status', 'ACTIVE')->orderBy('Name')->get(['ID', 'Code', 'Name']),
             'vendors' => DB::table('supplier')->where('Status', 'ACTIVE')->orderBy('Company_Name')->limit(500)->get(['ID', 'Company_Name']),

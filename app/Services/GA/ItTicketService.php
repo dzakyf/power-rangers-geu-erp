@@ -71,7 +71,24 @@ class ItTicketService
         $payload['Action_Type'] = $actionType;
         $payload['Source'] = strtoupper(trim((string) ($data['Source'] ?? 'FORM')));
 
-        if (empty($payload['Category_ID'])) {
+        if (!empty($payload['Subcategory_ID'])) {
+            $subRow = DB::table('ga_ticket_category')->where('ID', (int) $payload['Subcategory_ID'])->first();
+            if (!$subRow || strpos(strtoupper((string) $subRow->Code), 'IT-') !== 0 || empty($subRow->Parent_ID)) {
+                throw new InvalidArgumentException('Subkategori IT tidak valid.');
+            }
+            if (empty($payload['Category_ID'])) {
+                $payload['Category_ID'] = (int) $subRow->Parent_ID;
+            } elseif ((int) $subRow->Parent_ID !== (int) $payload['Category_ID']) {
+                throw new InvalidArgumentException('Subkategori yang dipilih tidak sesuai dengan Kategori IT induknya.');
+            }
+        }
+
+        if (!empty($payload['Category_ID'])) {
+            $catRow = DB::table('ga_ticket_category')->where('ID', (int) $payload['Category_ID'])->first();
+            if (!$catRow || strpos(strtoupper((string) $catRow->Code), 'IT-') !== 0) {
+                throw new InvalidArgumentException('Kategori yang dipilih bukan kategori IT.');
+            }
+        } else {
             $payload['Category_ID'] = $this->resolveDefaultItCategoryId($workflowMode, $actionType);
         }
 
