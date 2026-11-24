@@ -41,7 +41,7 @@ class ExportVolumeDashboardTest extends TestCase
         $menuFile = database_path('seeds/data/menu_lists_cns.php');
         $cnsMenus = require $menuFile;
         $this->assertEquals(1, $cnsMenus['SM00080'][5], 'Dashboard folder SM00080 must have Urutan = 1 (top position)');
-        $this->assertEquals(2, $cnsMenus['SM00065'][5], 'Contract folder SM00065 must have Urutan = 2');
+        $this->assertEquals(3, $cnsMenus['SM00065'][5], 'Contract folder SM00065 must have Urutan = 3');
     }
 
     /** @test */

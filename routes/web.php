@@ -43,6 +43,8 @@ use App\Http\Controllers\CNS\ExportVolumeDashboardController;
 use App\Http\Controllers\CNS\DrainAdjustmentController;
 use App\Http\Controllers\CNS\InboundAdjustmentController;
 use App\Http\Controllers\CNS\CustomerKycController;
+use App\Http\Controllers\CNS\CnsRoleController;
+use App\Http\Controllers\CNS\CnsUserController;
 use App\Http\Controllers\CNS\OfferingLetterController;
 use App\Http\Controllers\CNS\FinalShippingInstructionController;
 use App\Http\Controllers\CNS\ShippingInstructionController;
@@ -5925,6 +5927,36 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::group(['middleware' => 'can:cns.customer_compliance_kyc.approve'], function () use ($kycPref) {
         Route::post("$kycPref-approve/{id}", [CustomerKycController::class, 'approve'])->name($kycPref . '.approve');
         Route::post("$kycPref-reject/{id}", [CustomerKycController::class, 'reject'])->name($kycPref . '.reject');
+    });
+
+    // CNS Access & User Management
+    $cnsUserPref = "cns-user-management";
+    Route::group(['middleware' => 'can:cns.user_management.view'], function () use ($cnsUserPref) {
+        Route::get("$cnsUserPref", [CnsUserController::class, "index"])->name("$cnsUserPref.index");
+        Route::get("$cnsUserPref-data", [CnsUserController::class, "userListData"])->name("$cnsUserPref.data");
+    });
+    Route::group(['middleware' => 'can:cns.user_management.create'], function () use ($cnsUserPref) {
+        Route::post("$cnsUserPref-store", [CnsUserController::class, "createUserSubmit"])->name("$cnsUserPref.store");
+    });
+    Route::group(['middleware' => 'can:cns.user_management.edit'], function () use ($cnsUserPref) {
+        Route::post("$cnsUserPref-update/{id?}", [CnsUserController::class, "updateUser"])->name("$cnsUserPref.update");
+    });
+    Route::group(['middleware' => 'can:cns.user_management.delete'], function () use ($cnsUserPref) {
+        Route::post("$cnsUserPref-delete/{id?}", [CnsUserController::class, "deleteUser"])->name("$cnsUserPref.delete");
+    });
+
+    // CNS Role & RBAC Management
+    $cnsRolePref = "cns-role-management";
+    Route::group(['middleware' => 'can:cns.role_management.view'], function () use ($cnsRolePref) {
+        Route::get("$cnsRolePref", [CnsRoleController::class, "index"])->name("$cnsRolePref.index");
+        Route::get("$cnsRolePref-data", [CnsRoleController::class, "roleListData"])->name("$cnsRolePref.data");
+        Route::get("$cnsRolePref-permissions", [CnsRoleController::class, "rolePermissionsData"])->name("$cnsRolePref.permissions");
+        Route::post("$cnsRolePref-permissions-save", [CnsRoleController::class, "savePermissions"])->name("$cnsRolePref.permissions.save");
+        Route::post("$cnsRolePref-store", [CnsRoleController::class, "createRole"])->name("$cnsRolePref.store");
+        Route::post("$cnsRolePref-update/{id}", [CnsRoleController::class, "updateRole"])->name("$cnsRolePref.update");
+        Route::post("$cnsRolePref-delete/{id}", [CnsRoleController::class, "deleteRole"])->name("$cnsRolePref.delete");
+        Route::post("$cnsRolePref-grant-all/{id}", [CnsRoleController::class, "grantAllPermissions"])->name("$cnsRolePref.grant_all");
+        Route::post("$cnsRolePref-revoke-all/{id}", [CnsRoleController::class, "revokeAllPermissions"])->name("$cnsRolePref.revoke_all");
     });
 
     // Export Checklist

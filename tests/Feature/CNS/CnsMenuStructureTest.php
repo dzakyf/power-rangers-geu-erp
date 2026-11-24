@@ -21,8 +21,16 @@ class CnsMenuStructureTest extends TestCase
     {
         $this->assertNull(
             DB::table('menu_lists')->where('Menu_ID', 'SI00334')->first(),
-            'Legacy Master User (SI00334) must remain removed; RBAC is managed by Credential'
+            'Legacy Master User (SI00334) must remain removed in favour of CNS access-control menus'
         );
+
+        $userManagement = DB::table('menu_lists')->where('Menu_ID', 'SI00347')->first();
+        $this->assertNotNull($userManagement, 'Manajemen Pengguna (SI00347) must exist');
+        $this->assertSame('SS00095', $userManagement->Parent_Menu);
+
+        $roleManagement = DB::table('menu_lists')->where('Menu_ID', 'SI00348')->first();
+        $this->assertNotNull($roleManagement, 'Role & Hak Akses (SI00348) must exist');
+        $this->assertSame('SS00095', $roleManagement->Parent_Menu);
 
         $tankDraining = DB::table('menu_lists')->where('Menu_ID', 'SI00340')->first();
         $this->assertNotNull($tankDraining, 'Tank Draining menu (SI00340) must exist');
@@ -47,6 +55,8 @@ class CnsMenuStructureTest extends TestCase
         $response = $this->actingAs($this->admin())->get('/home-cns');
 
         $response->assertOk();
+        $response->assertSee('Manajemen Pengguna', false);
+        $response->assertSee('Role & Hak Akses', false);
         $response->assertSee('Inventory UCO', false);
         $response->assertSee('Tank Draining', false);
         $response->assertSee('Inventory Non UCO', false);
@@ -61,6 +71,10 @@ class CnsMenuStructureTest extends TestCase
 
         $this->assertArrayNotHasKey('SI00338', $snapshot, 'SI00338 is owned by the Credential module');
         $this->assertArrayNotHasKey('SI00334', $snapshot, 'Legacy Master User SI00334 is owned by the Credential module');
+        $this->assertArrayHasKey('SI00347', $snapshot, 'Manajemen Pengguna must use SI00347');
+        $this->assertSame('SS00095', $snapshot['SI00347'][4]);
+        $this->assertArrayHasKey('SI00348', $snapshot, 'Role & Hak Akses must use SI00348');
+        $this->assertSame('SS00095', $snapshot['SI00348'][4]);
 
         $this->assertArrayHasKey('SI00332', $snapshot, 'Inventory Non-UCO must use the CNS SI00332 id');
         $this->assertSame('Inventory Non-UCO', $snapshot['SI00332'][0]);

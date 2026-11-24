@@ -20,7 +20,7 @@ class ExportInvoicingTest extends TestCase
         $this->assertArrayHasKey('SM00069', $menus);
         $this->assertArrayHasKey('SS00099', $menus);
         $this->assertArrayHasKey('SI00353', $menus);
-        $this->assertSame(['Finance & Accounting', '#', 'CNS', 2, 'MS00011', 12], $menus['SM00069']);
+        $this->assertSame(['Finance & Accounting', '#', 'CNS', 2, 'MS00011', 14], $menus['SM00069']);
         $this->assertSame(['Finance & Accounting', '#', 'CNS', 3, 'SM00069', 1], $menus['SS00099']);
         $this->assertSame(['Export Invoicing', 'finance-export-invoicing', 'CNS', 4, 'SS00099', 1], $menus['SI00353']);
         $this->assertSame('export_invoicing', \App\Services\CNS\CnsPermissionService::getSlug('SI00353'));
