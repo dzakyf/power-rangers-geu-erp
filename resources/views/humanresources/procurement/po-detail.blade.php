@@ -90,23 +90,39 @@
         </div>
 
         <!-- FORM PENERIMAAN BARANG (MUNCUL SETELAH DELIVERY / PARTIAL) -->
-        <form id="formReceivePO">
+        <form id="formReceivePO" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="po_no" value="{{ $poHeader->PO_No }}">
 
             @if($canReceive)
-            <div class="row mb-2 align-items-center bg-warning-light p-2 rounded border" style="background-color: #fffde7;">
-                <div class="col-md-4 mb-1 mb-md-0">
-                    <label class="font-weight-bold mb-0 text-dark" style="font-size: 11.5px;">No. Surat Jalan / Delivery Order Vendor:</label>
-                    <input type="text" name="surat_jalan" class="form-control form-control-sm" placeholder="Contoh: SJ/2026/11/0089">
-                </div>
-                <div class="col-md-8 text-md-right mt-2 mt-md-0">
-                    <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold mr-1" onclick="isiSemuaSisaQty()">
-                        &#9889; Isi Semua Sisa Qty
-                    </button>
-                    <button type="button" class="btn btn-sm btn-success font-weight-bold shadow-sm" onclick="simpanReceivePO('{{ $poHeader->PO_No }}')">
-                        &#10004; Simpan Penerimaan Barang
-                    </button>
+            <div class="p-2 mb-2 rounded border" style="background-color: #fffde7;">
+                <div class="row align-items-end">
+                    <div class="col-md-3 mb-2 mb-md-0">
+                        <label class="font-weight-bold mb-1 text-dark" style="font-size: 11.5px;">No. Surat Jalan / DO Vendor:</label>
+                        <input type="text" name="surat_jalan" class="form-control form-control-sm" placeholder="Contoh: SJ/2026/11/0089">
+                    </div>
+                    <div class="col-md-4 mb-2 mb-md-0">
+                        <label class="font-weight-bold mb-1 text-dark" style="font-size: 11.5px;">Note Penerimaan Barang:</label>
+                        <input type="text" name="receive_note" class="form-control form-control-sm" placeholder="Catatan kondisi barang / penerima...">
+                    </div>
+                    <div class="col-md-3 mb-2 mb-md-0">
+                        <label class="font-weight-bold mb-1 text-dark" style="font-size: 11.5px;">Bukti Foto Penerima Barang:</label>
+                            <input type="file"
+                               name="receive_proof"
+                               id="receiveProofInput"
+                               class="form-control-file form-control-sm"
+                               accept=".jpg,.jpeg,.png,.webp"
+                               onchange="validasiFotoBuktiPO(this)"
+                               style="font-size: 10.5px;">
+                    </div>
+                    <div class="col-md-2 text-md-right">
+                        <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold mb-1 w-100" onclick="isiSemuaSisaQty()">
+                            &#9889; Isi Sisa Qty
+                        </button>
+                        <button type="button" class="btn btn-sm btn-success font-weight-bold shadow-sm w-100" onclick="simpanReceivePO('{{ $poHeader->PO_No }}')">
+                            &#10004; Simpan GR
+                        </button>
+                    </div>
                 </div>
             </div>
             @endif
@@ -235,15 +251,53 @@ function isiSemuaSisaQty() {
 function simpanReceivePO(poNo) {
     if (!confirm('Simpan penerimaan barang untuk ' + poNo + '?')) return;
 
-    $.post("{{ url('po-receive') }}", $('#formReceivePO').serialize(), function(res) {
-        if (res.status === 'success') {
-            alert(res.message);
-            reloadDetailAndGridPO(poNo);
-        } else {
-            alert(res.message || 'Gagal menyimpan penerimaan barang.');
+    var formEl = document.getElementById('formReceivePO');
+    var formData = new FormData(formEl);
+
+    $.ajax({
+        url: "{{ url('po-receive') }}",
+        type: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(res) {
+            if (res.status === 'success') {
+                alert(res.message);
+                reloadDetailAndGridPO(poNo);
+            } else {
+                alert(res.message || 'Gagal menyimpan penerimaan barang.');
+            }
+        },
+        error: function(err) {
+            alert((err.responseJSON && err.responseJSON.message) ? err.responseJSON.message : 'Terjadi kesalahan saat menyimpan penerimaan barang.');
         }
-    }).fail(function(err) {
-        alert((err.responseJSON && err.responseJSON.message) ? err.responseJSON.message : 'Terjadi kesalahan saat menyimpan penerimaan barang.');
     });
+}
+
+
+function validasiFotoBuktiPO(input) {
+    if (!input.files || !input.files[0]) return;
+
+    var file = input.files[0];
+    var maxBytes = 5 * 1024 * 1024; // 5 MB
+    var allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    var fileNameLower = (file.name || '').toLowerCase();
+    var validExt = /\.(jpe?g|png|webp)$/i.test(fileNameLower);
+
+    if (!validExt || (file.type && allowedTypes.indexOf(file.type.toLowerCase()) === -1)) {
+        alert('Format file tidak sesuai! Gunakan gambar JPG, JPEG, PNG, atau WEBP.');
+        input.value = '';
+        return;
+    }
+
+    if (file.size > maxBytes) {
+        var sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        alert('Ukuran file ' + sizeMb + ' MB melebihi batas maksimal 5 MB!');
+        input.value = '';
+        return;
+    }
+
+    var validSizeMb = (file.size / (1024 * 1024)).toFixed(2);
+    alert('Foto bukti memenuhi syarat (' + file.name + ' — ' + validSizeMb + ' MB, Max 5 MB).');
 }
 </script>

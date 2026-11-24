@@ -3,31 +3,52 @@
 namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
-use Carbon\Carbon;
+use App\Services\HCGA\VehicleMaintenanceService;
+use App\Services\HCGA\VehiclePmReminderService;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class VehicleMaintenanceController extends Controller
 {
-    /**
-     * Sub-category asset yang menandai sebuah asset sebagai kendaraan.
-     * Master: master_product_sub_group -> Product_Group=ASSET, Sub_Group=VEHICLE, Initial=VC
-     * ("VEHICLE - VC" pada dropdown sub category).
-     */
-    const SUB_CATEGORY_KENDARAAN = 'VEHICLE';
+    /** @var VehicleMaintenanceService */
+    protected $maintenanceService;
 
-    /**
-     * Tampilan utama grid & tombol.
-     */
-    public function index()
-    {
-        return view('humanresources.vehicle-maintenance.index');
+    /** @var VehiclePmReminderService */
+    protected $pmReminderService;
+
+    public function __construct(
+        VehicleMaintenanceService $maintenanceService,
+        VehiclePmReminderService $pmReminderService
+    ) {
+        $this->maintenanceService = $maintenanceService;
+        $this->pmReminderService = $pmReminderService;
     }
 
     /**
-     * Endpoint data untuk grid (XML/JSON fallback — mengikuti pola asset_fixing).
+     * Tampilan utama: KPI Cards, Grid Perawatan Kendaraan, dan Tab Jadwal PM Jatuh Tempo.
+     */
+    public function index()
+    {
+        $dept = (string) (Auth::user()->Department ?? '');
+        $duePmItems = $this->pmReminderService->getDuePmList('ALL');
+        $duePmCount = count(array_filter($duePmItems, function ($item) {
+            return !empty($item['needs_action']);
+        }));
+        $kpi = $this->maintenanceService->getDashboardKpi($dept, $duePmCount);
+
+        return view('humanresources.vehicle-maintenance.index', compact('kpi', 'duePmItems'));
+    }
+
+    /**
+     * Endpoint XML untuk dhtmlXGrid Daftar Perawatan Kendaraan.
      */
     public function data()
     {
@@ -39,263 +60,318 @@ class VehicleMaintenanceController extends Controller
         }
         echo('<?xml version="1.0" encoding="iso-8859-1"?>' . "\n");
 
-        $dept = Auth::user()->Department;
-        $saya = Auth::user()->Name ?: Auth::user()->username;
-
-        $Query = DB::table('vehicle_maintenance')->orderBy('created_at', 'DESC');
-
-        if ($dept !== 'HCGA' && $dept !== 'DIR' && $dept !== 'OPERATION') {
-            $Query->where('Department', $dept);
-        }
-
-        $results = $Query->get();
+        $dept = (string) (Auth::user()->Department ?? '');
+        $results = $this->maintenanceService->listForGrid($dept);
         $nomor = 1;
 
-        echo "<rows>";
+        echo '<rows>';
         foreach ($results as $Fetch) {
-            echo "<row id=\"" . $Fetch->id . "\">";
-            echo "<cell>" . $nomor . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->No_Trx) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->Asset_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars(ucfirst($Fetch->Jenis_Perawatan)) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->Plat_Nomor) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->Product_Description) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $Fetch->Kilometer_Saat_Ini) . "</cell>";
-            echo "<cell>" . htmlspecialchars(number_format($Fetch->Estimasi_Biaya, 0, ',', '.')) . "</cell>";
-            echo "<cell>" . htmlspecialchars($Fetch->Status) . "</cell>";
-            echo "</row>";
+            $biayaDisplay = $Fetch->Biaya_Aktual !== null && (float) $Fetch->Biaya_Aktual > 0
+                ? number_format((float) $Fetch->Biaya_Aktual, 0, ',', '.')
+                : number_format((float) ($Fetch->Estimasi_Biaya ?? 0), 0, ',', '.');
+
+            echo '<row id="' . $Fetch->id . '">';
+            echo '<cell>' . $nomor . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $Fetch->No_Trx) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $Fetch->Asset_No) . '</cell>';
+            echo '<cell>' . htmlspecialchars(ucfirst((string) $Fetch->Jenis_Perawatan)) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $Fetch->Plat_Nomor) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $Fetch->Product_Description) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) ($Fetch->Kilometer_Selesai ?: $Fetch->Kilometer_Saat_Ini)) . '</cell>';
+            echo '<cell>' . htmlspecialchars($biayaDisplay) . '</cell>';
+            echo '<cell>' . htmlspecialchars((string) $Fetch->Status) . '</cell>';
+            echo '</row>';
             $nomor++;
         }
-        echo "</rows>";
+        echo '</rows>';
     }
 
     /**
-     * Form create (partial).
-     *
-     * Dropdown hanya berisi kendaraan (asset_list dengan sub category VEHICLE),
-     * dan seluruh data kendaraan (plat, kategori, KM, jadwal PM) diambil dari
-     * asset_list supaya tidak ada input ganda dengan halaman asset.
+     * Partial/JSON refresh untuk daftar Jadwal PM Jatuh Tempo.
      */
-    public function create()
+    public function duePmData(Request $request)
     {
-        $assetList = DB::table('asset_list')
-            ->where('Asset_Sub_Category', self::SUB_CATEGORY_KENDARAAN)
-            ->select(
-                'Asset_No',
-                'Product_Code',
-                'Product_Description',
-                'SN',
-                'Registration_No',
-                'Asset_Type',
-                'Asset_Location',
-                'Asset_Location_Department',
-                'KM_Saat_Ini',
-                'KM_Jadwal_PM',
-                'Interval_PM',
-                'Tanggal_Jadwal_PM',
-                'Tanggal_PM_Terakhir',
-                'Repair_Vendor',
-                'WH_ID'
-            )
-            ->orderBy('Asset_No', 'ASC')
-            ->get();
+        $filter = (string) $request->input('filter', 'ALL');
+        $duePmItems = $this->pmReminderService->getDuePmList($filter);
 
-        return view('humanresources.vehicle-maintenance.create', compact('assetList'));
+        return response()->json([
+            'status' => 'success',
+            'count'  => count($duePmItems),
+            'items'  => $duePmItems,
+        ]);
     }
 
     /**
-     * Simpan data perawatan kendaraan.
-     *
-     * - Data kendaraan (deskripsi, SN, plat, kategori, product code) selalu
-     *   diambil dari asset_list, bukan dari input user (hindari dobel input).
-     * - Perawatan PREVENTIF: snapshot PM di asset_list diperbarui
-     *   (tanggal PM terakhir, tanggal PM berikutnya, KM, vendor, PM_Task_ID).
-     * - Perawatan KOREKTIF: hanya odometer (KM_Saat_Ini) yang diperbarui.
+     * Form create (partial), mendukung pre-fill dari tombol 1-klik (?asset_no=...&jenis=preventif).
+     */
+    public function create(Request $request)
+    {
+        $assetList = $this->maintenanceService->getVehicleAssets();
+        $odoMap = $this->maintenanceService->getEffectiveOdometerMap($assetList->pluck('Asset_No')->all());
+
+        foreach ($assetList as $asset) {
+            if (isset($odoMap[$asset->Asset_No]) && $odoMap[$asset->Asset_No] > (int) ($asset->KM_Saat_Ini ?? 0)) {
+                $asset->KM_Saat_Ini = $odoMap[$asset->Asset_No];
+            }
+        }
+
+        $prefillAssetNo = trim((string) $request->input('asset_no', ''));
+        $prefillJenis = strtolower(trim((string) $request->input('jenis', 'preventif')));
+        if (!in_array($prefillJenis, ['preventif', 'korektif'], true)) {
+            $prefillJenis = 'preventif';
+        }
+
+        return view('humanresources.vehicle-maintenance.create', compact('assetList', 'prefillAssetNo', 'prefillJenis'));
+    }
+
+    /**
+     * Simpan pengajuan perawatan kendaraan (DRAFT atau langsung submit ke ApprovalWorkflowService).
      */
     public function store(Request $request)
     {
-        $Saya = Auth::user()->username;
-        $jenis = $request->input('Jenis_Perawatan', 'preventif');
-
-        // Wajib ada kendaraan yang dipilih
-        $assetKey = trim((string) $request->input('Asset_No', ''));
-        if ($assetKey === '') {
-            $assetKey = trim((string) $request->input('Product_Code', ''));
-        }
-
-        if ($assetKey === '') {
-            Log::error('VehicleMaintenance store gagal: Asset_No kosong. User=' . $Saya);
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Harap pilih kendaraan dari daftar terlebih dahulu!',
-            ]);
-        }
-
-        // Cari di asset_list (Asset_No dulu, lalu Product_Code)
-        $selectAsset = 'Asset_No, Product_Code, Product_Description, SN, Registration_No, Jenis_Kendaraan, '
-            . 'Asset_Location, Asset_Location_Department, KM_Saat_Ini, KM_Jadwal_PM, Interval_PM, '
-            . 'Tanggal_Jadwal_PM, Tanggal_PM_Terakhir, Repair_Vendor';
-
-        $asset = DB::table('asset_list')->where('Asset_No', $assetKey)->select($selectAsset)->first();
-        if (!$asset) {
-            $asset = DB::table('asset_list')->where('Product_Code', $assetKey)->select($selectAsset)->first();
-        }
-
-        if (!$asset) {
-            Log::error('VehicleMaintenance store gagal: asset_list tidak ditemukan untuk kode=' . $assetKey . '. User=' . $Saya);
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Kendaraan tidak ditemukan di asset_list!',
-            ]);
-        }
-
-        // Sanitasi estimasi biaya
-        $estimasiRaw = $request->input('Estimasi_Biaya', '0');
-        $estimasi = (float) str_replace(['Rp', '.', ',', ' '], ['', '', '', ''], $estimasiRaw);
-
-        $status = 'APPROVAL_PIC';
-
-        // Interval PM (bulan): dari form, jika kosong ambil dari master asset_list
-        $interval = (int) $request->input('Jadwal_Perawatan_Bulan', 0);
-        if ($interval <= 0) {
-            $interval = (int) ($asset->Interval_PM ?? 0);
-        }
-
-        // Tanggal PM: tanggal pengajuan, fallback hari ini
-        $tglPengajuan = trim((string) $request->input('Tanggal_Pengajuan', ''));
-        if ($tglPengajuan === '') {
-            $tglPengajuan = date('Y-m-d');
-        }
-
-        // Kilometer saat ini: dari form, fallback ke odometer terakhir di asset_list
-        $km = (int) str_replace([' ', '.', ',', 'km', 'KM'], ['', '', '', '', ''], (string) $request->input('Kilometer_Saat_Ini', '0'));
-        if ($km <= 0) {
-            $km = (int) ($asset->KM_Saat_Ini ?? 0);
-        }
-
-        $vendor = trim((string) $request->input('Vendor_Bengkel', ''));
-        if ($vendor === '') {
-            $vendor = (string) ($asset->Repair_Vendor ?? '');
-        }
-
-        $noTrx = 'VM/' . date('Ymd') . '/' . $jenis . '/' . date('ymdhis');
-
-        $data = [
-            'No_Trx'               => $noTrx,
-            'Jenis_Perawatan'      => $jenis,
-            'Asset_No'             => $asset->Asset_No,
-            'Product_Code'         => $asset->Product_Code,
-            'Product_Description'  => $asset->Product_Description,
-            'SN'                   => $asset->SN ?? '',
-            // Plat & kategori selalu mengikuti asset_list (tidak ada input ganda)
-            'Plat_Nomor'           => $asset->Registration_No ?? '',
-            'Kategori_Kendaraan'   => $asset->Asset_Type ?? '',
-            'Kilometer_Saat_Ini'   => $km,
-            'Tipe_Service_Preventif' => $request->input('Tipe_Service_Preventif', ''),
-            'Jadwal_Perawatan_Bulan' => $interval,
-            'Kerusakan_Yang_Ditemui' => $request->input('Kerusakan_Yang_Ditemui', ''),
-            'Penyebab_Diperkirakan'  => $request->input('Penyebab_Diperkirakan', ''),
-            'Komponen_Yang_Diganti'  => $request->input('Komponen_Yang_Diganti', ''),
-            'Kondisi_Awal'            => $request->input('Kondisi_Awal', ''),
-            'Keterangan_Lain'         => $request->input('Keterangan_Lain', ''),
-            'Estimasi_Biaya'          => $estimasi,
-            'Vendor_Bengkel'          => $vendor,
-            'Status'                  => $status,
-            'Department'              => Auth::user()->Department,
-            'User_NIP'                => Auth::user()->NIP ?? Auth::user()->username,
-            'User_Trx'                => $Saya,
-            'Nama_Pengaju'            => $request->input('Nama_Pengaju', Auth::user()->Name ?? ''),
-            'Jabatan'                 => $request->input('Jabatan', Auth::user()->Position ?? ''),
-            'Tanggal_Pengajuan'       => $tglPengajuan,
-            'Nomor_Formulir'          => $request->input('Nomor_Formulir', ''),
-            'created_at'              => date('Y-m-d H:i:s'),
-            'updated_at'              => date('Y-m-d H:i:s'),
-        ];
-
-        Log::info('VehicleMaintenance store: ' . json_encode($data));
-
         try {
-            DB::table('vehicle_maintenance')->insert($data);
-        } catch (\Exception $e) {
-            Log::error('VehicleMaintenance store DB error: ' . $e->getMessage());
+            $user = Auth::user();
+            $asDraft = filter_var($request->input('as_draft', false), FILTER_VALIDATE_BOOLEAN);
+            $record = $this->maintenanceService->createMaintenance($request->all(), $user, $asDraft);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => $asDraft
+                    ? 'Draft perawatan kendaraan berhasil disimpan (' . $record->No_Trx . ').'
+                    : 'Pengajuan perawatan berhasil disimpan & diajukan ke Approval (' . $record->No_Trx . ').',
+                'data'    => $record,
+            ], 200);
+        } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Gagal menyimpan ke database: ' . $e->getMessage(),
-            ]);
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('VehicleMaintenance store error: ' . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
         }
-
-        // Sinkronkan snapshot PM di asset_list
-        try {
-            $this->syncAssetPmState($asset, $jenis, $tglPengajuan, $km, $interval, $vendor, $noTrx);
-        } catch (\Exception $e) {
-            Log::error('VehicleMaintenance sync asset PM error: ' . $e->getMessage());
-        }
-
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Data berhasil disimpan',
-        ], 200);
     }
 
     /**
-     * Perbarui state PM di asset_list sesuai perawatan yang baru dicatat.
-     *
-     * - Korektif  : hanya odometer (KM_Saat_Ini) yangaju, jadwal PM tidak berubah.
-     * - Preventif : tanggal PM terakhir, tanggal PM berikutnya (tgl + interval),
-     *   KM, vendor, dan PM_Task_ID (penunjuk ke transaksi ini) diperbarui.
+     * Ajukan draft atau ajukan ulang pengajuan berstatus RETURNED / REJECTED.
      */
-    protected function syncAssetPmState($asset, string $jenis, string $tglPM, int $km, int $interval, string $vendor, string $noTrx)
+    public function submitDraft(Request $request)
     {
-        $upd = [
-            'KM_Saat_Ini' => $km > 0 ? $km : (int) ($asset->KM_Saat_Ini ?? 0),
-        ];
+        try {
+            $id = (int) $request->input('id');
+            $record = $this->maintenanceService->submitDraft($id, Auth::user());
 
-        if ($jenis === 'preventif') {
-            $upd['Tanggal_PM_Terakhir'] = $tglPM;
-            $upd['PM_Task_ID'] = $noTrx;
-            // Reminder PM sebelumnya sudah tidak relevan
-            $upd['Last_Reminder_Sent'] = null;
-
-            if ($interval > 0) {
-                $upd['Tanggal_Jadwal_PM'] = Carbon::parse($tglPM)->addMonths($interval)->format('Y-m-d');
-                // Jadwal per bulan ikut master asset
-                $upd['Interval_PM'] = $interval;
-            }
-
-            if ($vendor !== '') {
-                $upd['Repair_Vendor'] = $vendor;
-            }
-
-            // Batas KM PM berikutnya:
-            // bila bisa dihitung dari siklus sebelumnya (selisih target vs odometer
-            // saat PM terakhir), perpetuate. Bila tidak, target lama dipertahankan.
-            $targetLama = (int) ($asset->KM_Jadwal_PM ?? 0);
-            if ($targetLama > 0 && $km > 0 && $km >= $targetLama) {
-                $kmAwal = (int) DB::table('vehicle_maintenance')
-                    ->where('Asset_No', $asset->Asset_No)
-                    ->where('Jenis_Perawatan', 'preventif')
-                    ->max('Kilometer_Saat_Ini');
-
-                if ($kmAwal > 0 && $targetLama > $kmAwal) {
-                    $jarakKM = $targetLama - $kmAwal;
-                    $upd['KM_Jadwal_PM'] = $km + $jarakKM;
-                }
-            }
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Pengajuan berhasil dikirim ke alur Approval.',
+                'data'    => $record,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
         }
-
-        DB::table('asset_list')->where('Asset_No', $asset->Asset_No)->update($upd);
     }
 
     /**
-     * Detail satu record.
+     * Mulai proses servis di bengkel (APPROVED -> IN_PROGRESS, asset_list.Status -> MAINTENANCE).
+     */
+    public function startExecution(Request $request)
+    {
+        try {
+            $id = (int) $request->input('id');
+            $startDate = (string) $request->input('Tanggal_Mulai_Service', date('Y-m-d'));
+            $record = $this->maintenanceService->startExecution($id, $startDate, Auth::user());
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Servis kendaraan dimulai. Status aset diperbarui menjadi MAINTENANCE.',
+                'data'    => $record,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Selesaikan servis (IN_PROGRESS -> COMPLETED), upload nota, kembalikan aset ACTIVE, hitung PM berikutnya.
+     */
+    public function completeExecution(Request $request)
+    {
+        try {
+            $id = (int) $request->input('id');
+            $notaFile = $request->file('Bukti_Nota');
+            $record = $this->maintenanceService->completeExecution($id, $request->all(), $notaFile, Auth::user());
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Servis selesai dicatat. Status aset kembali ACTIVE & jadwal PM berikutnya diperbarui.',
+                'data'    => $record,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Simpan pengaturan jadwal PM kendaraan dari modal Atur Jadwal PM.
+     */
+    public function updatePmSchedule(Request $request)
+    {
+        try {
+            $assetNo = trim((string) $request->input('Asset_No', ''));
+            if ($assetNo === '') {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Asset_No wajib diisi.',
+                ], 422);
+            }
+
+            $asset = $this->maintenanceService->updateVehiclePmSchedule($assetNo, $request->all(), Auth::user());
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Jadwal PM kendaraan ' . $asset->Asset_No . ' berhasil diperbarui.',
+                'data'    => $asset,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Detail satu record perawatan beserta timeline approval & aksi lifecycle.
      */
     public function detail(Request $request)
     {
-        $data = DB::table('vehicle_maintenance')->where('id', $request->input('ID'))->first();
-        if (!$data) {
+        $id = (int) $request->input('ID');
+        $detail = $this->maintenanceService->getDetailWithTimeline($id, Auth::user());
+        if (!$detail) {
             abort(404);
         }
 
-        return view('humanresources.vehicle-maintenance.detail', compact('data'));
+        $data = $detail['data'];
+        $timeline = $detail['timeline'];
+
+        return view('humanresources.vehicle-maintenance.detail', compact('data', 'timeline'));
+    }
+
+    /**
+     * Export daftar perawatan kendaraan ke Excel (.xlsx) menggunakan PhpSpreadsheet.
+     */
+    public function exportExcel(Request $request)
+    {
+        $dept = (string) (Auth::user()->Department ?? '');
+        $rows = $this->maintenanceService->listForGrid($dept);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Vehicle Maintenance');
+
+        $sheet->setCellValue('A1', 'LAPORAN PERAWATAN KENDARAAN (VEHICLE MAINTENANCE)');
+        $sheet->mergeCells('A1:L1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+
+        $sheet->setCellValue('A2', 'Diekspor pada: ' . date('d/m/Y H:i') . ' | Departemen: ' . ($dept ?: 'ALL'));
+        $sheet->mergeCells('A2:L2');
+
+        $headers = [
+            'No', 'Request No', 'Tanggal Pengajuan', 'Asset No', 'Plat Nomor',
+            'Nama Kendaraan', 'Jenis Perawatan', 'Kilometer Awal', 'Kilometer Selesai',
+            'Estimasi Biaya (Rp)', 'Biaya Aktual (Rp)', 'Vendor / Bengkel', 'Status', 'Pengaju',
+        ];
+
+        $colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
+        foreach ($headers as $idx => $label) {
+            $sheet->setCellValue($colLetters[$idx] . '4', $label);
+        }
+
+        $sheet->getStyle('A4:N4')->applyFromArray([
+            'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F4E78']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+        ]);
+
+        $rowIdx = 5;
+        $no = 1;
+        foreach ($rows as $r) {
+            $sheet->setCellValue('A' . $rowIdx, $no++);
+            $sheet->setCellValue('B' . $rowIdx, $r->No_Trx);
+            $sheet->setCellValue('C' . $rowIdx, $r->Tanggal_Pengajuan ?: substr((string) $r->created_at, 0, 10));
+            $sheet->setCellValue('D' . $rowIdx, $r->Asset_No);
+            $sheet->setCellValue('E' . $rowIdx, $r->Plat_Nomor);
+            $sheet->setCellValue('F' . $rowIdx, $r->Product_Description);
+            $sheet->setCellValue('G' . $rowIdx, ucfirst((string) $r->Jenis_Perawatan));
+            $sheet->setCellValue('H' . $rowIdx, (int) ($r->Kilometer_Saat_Ini ?? 0));
+            $sheet->setCellValue('I' . $rowIdx, (int) ($r->Kilometer_Selesai ?? 0));
+            $sheet->setCellValue('J' . $rowIdx, (float) ($r->Estimasi_Biaya ?? 0));
+            $sheet->setCellValue('K' . $rowIdx, (float) ($r->Biaya_Aktual ?? 0));
+            $sheet->setCellValue('L' . $rowIdx, $r->Vendor_Bengkel);
+            $sheet->setCellValue('M' . $rowIdx, $r->Status);
+            $sheet->setCellValue('N' . $rowIdx, $r->Display_Pengaju ?? $r->User_Trx);
+
+            $sheet->getStyle("H{$rowIdx}:K{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle("A{$rowIdx}:N{$rowIdx}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+            $rowIdx++;
+        }
+
+        foreach ($colLetters as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'Vehicle_Maintenance_' . date('Ymd_His') . '.xlsx';
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /**
+     * Cetak Form / SPK Perawatan Kendaraan (PDF) menggunakan DomPDF.
+     */
+    public function printSpk(Request $request)
+    {
+        $id = (int) $request->input('ID');
+        $detail = $this->maintenanceService->getDetailWithTimeline($id, Auth::user());
+        if (!$detail) {
+            abort(404);
+        }
+
+        $data = $detail['data'];
+        $timeline = $detail['timeline'];
+
+        $html = view('humanresources.vehicle-maintenance.pdf.spk', compact('data', 'timeline'))->render();
+
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $safeNo = preg_replace('/[^A-Za-z0-9\-_]/', '_', (string) $data->No_Trx);
+        return response($dompdf->output(), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="SPK_' . $safeNo . '.pdf"',
+        ]);
     }
 }

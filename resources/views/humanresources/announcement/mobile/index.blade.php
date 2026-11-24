@@ -55,6 +55,10 @@
         .category-pill.announcement { background-color: #fef2f2; color: #dc2626; }
         .category-pill.policy { background-color: #f0fdf4; color: #16a34a; }
         .category-pill.event { background-color: #fdf4ff; color: #9333ea; }
+        .category-pill.sk_dir { background-color: #eef2ff; color: #4338ca; }
+        .category-pill.sop { background-color: #ecfeff; color: #0e7490; }
+        .category-pill.internal_memo { background-color: #fff7ed; color: #c2410c; }
+        .category-pill.information { background-color: #f0fdfa; color: #0f766e; }
         .pinned-tag {
             background: #fef3c7;
             color: #b45309;
@@ -202,6 +206,10 @@
         <!-- Category Horizontal Scroll -->
         <div class="category-scroll">
             <a href="{{ route('announcement.mobile.index', array_merge(request()->except('category', 'page'), ['category' => 'ALL'])) }}" class="chip-filter {{ $currentCat === 'ALL' ? 'active' : '' }}">Semua</a>
+            <a href="{{ route('announcement.mobile.index', array_merge(request()->except('category', 'page'), ['category' => 'SK_DIR'])) }}" class="chip-filter {{ $currentCat === 'SK_DIR' ? 'active' : '' }}">SK-Dir</a>
+            <a href="{{ route('announcement.mobile.index', array_merge(request()->except('category', 'page'), ['category' => 'SOP'])) }}" class="chip-filter {{ $currentCat === 'SOP' ? 'active' : '' }}">SOP</a>
+            <a href="{{ route('announcement.mobile.index', array_merge(request()->except('category', 'page'), ['category' => 'INTERNAL_MEMO'])) }}" class="chip-filter {{ $currentCat === 'INTERNAL_MEMO' ? 'active' : '' }}">Internal Memo</a>
+            <a href="{{ route('announcement.mobile.index', array_merge(request()->except('category', 'page'), ['category' => 'INFORMATION'])) }}" class="chip-filter {{ $currentCat === 'INFORMATION' ? 'active' : '' }}">Informasi</a>
             <a href="{{ route('announcement.mobile.index', array_merge(request()->except('category', 'page'), ['category' => 'ANNOUNCEMENT'])) }}" class="chip-filter {{ $currentCat === 'ANNOUNCEMENT' ? 'active' : '' }}">Announcement</a>
             <a href="{{ route('announcement.mobile.index', array_merge(request()->except('category', 'page'), ['category' => 'NEWS'])) }}" class="chip-filter {{ $currentCat === 'NEWS' ? 'active' : '' }}">News</a>
             <a href="{{ route('announcement.mobile.index', array_merge(request()->except('category', 'page'), ['category' => 'POLICY'])) }}" class="chip-filter {{ $currentCat === 'POLICY' ? 'active' : '' }}">Policy</a>
@@ -214,6 +222,7 @@
                 @foreach($announcements as $item)
                     @php
                         $catClass = strtolower($item->category ?? 'announcement');
+                        $catLabel = $item->storage_sub_type ? \App\Models\HCGA\StorageDocument::getSubTypeLabel($item->storage_sub_type) : ($item->category ?? 'ANNOUNCEMENT');
                     @endphp
                     <a href="{{ route('announcement.mobile.detail', array_merge(['id' => $item->id], $fromParams)) }}" class="feed-card">
                         @if($item->thumbnail)
@@ -221,16 +230,33 @@
                         @endif
                         <div class="p-3">
                             <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="d-flex align-items-center gap-1">
-                                    <span class="category-pill {{ $catClass }}">{{ $item->category ?? 'ANNOUNCEMENT' }}</span>
+                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                    <span class="category-pill {{ $catClass }}">{{ $catLabel }}</span>
+                                    @if($item->version_label)
+                                        <span class="badge bg-dark text-white" style="font-size:0.68rem;">{{ $item->version_label }}</span>
+                                    @endif
                                     @if($item->is_pinned)
                                         <span class="pinned-tag"><i class="fa fa-thumbtack me-1"></i>Pinned</span>
+                                    @endif
+                                    @if($item->require_read_receipt)
+                                        <span class="badge bg-danger text-white" style="font-size:0.65rem;"><i class="fa fa-check-circle me-1"></i>Wajib Dibaca</span>
                                     @endif
                                 </div>
                                 <span class="small text-muted" style="font-size: 0.72rem;">
                                     <i class="fa fa-clock me-1"></i>{{ date('d M Y', strtotime($item->created_date)) }}
                                 </span>
                             </div>
+
+                            @if($item->document_number || $item->validity_display)
+                                <div class="small text-muted mb-1" style="font-size: 0.72rem;">
+                                    @if($item->document_number)
+                                        <span class="fw-semibold text-primary me-2"><i class="fa fa-hashtag"></i>{{ $item->document_number }}</span>
+                                    @endif
+                                    @if($item->validity_display)
+                                        <span><i class="fa fa-calendar-check me-1"></i>{{ $item->validity_display }}</span>
+                                    @endif
+                                </div>
+                            @endif
 
                             <h6 class="fw-bold text-dark mb-1" style="line-height: 1.4;">
                                 {{ $item->title }}

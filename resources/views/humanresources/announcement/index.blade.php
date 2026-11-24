@@ -1,31 +1,37 @@
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
+<div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+    <div>
+        <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+            News &amp; Announcement CMS
+        </h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Human Capital &amp; GA</a></li>
+                <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">News &amp; Announcement</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Announcement CMS</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-2 mt-md-0">
+        <a href="{{ route('announcement.mobile.index') }}" target="_blank"
+            class="btn btn-sm rounded-pill px-3 shadow-sm"
+            style="background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+            <i class="fa fa-mobile-alt me-1"></i> Buka Tampilan Mobile
+        </a>
+        @if ($isHcga)
+            <button type="button" class="btn btn-light text-primary btn-sm rounded-pill px-3 fw-semibold shadow-sm"
+                onclick="openCreateModal()">
+                <i class="fa fa-plus-circle me-1"></i> Buat Berita / Pengumuman
+            </button>
+        @endif
+    </div>
+</div>
+
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm border-0 mb-4">
-                <div
-                    class="card-header bg-white py-3 d-flex flex-wrap align-items-center justify-content-between border-bottom">
-                    <div>
-                        <h5 class="card-title fw-bold text-dark mb-1">
-                            <i class="fa fa-newspaper text-primary me-2"></i>News & Announcement CMS
-                        </h5>
-                        <p class="text-muted small mb-0">Kelola publikasi berita, pengumuman, dan regulasi internal
-                            perusahaan.</p>
-                    </div>
-                    <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
-                        <a href="{{ route('announcement.mobile.index') }}" target="_blank"
-                            class="btn btn-outline-primary btn-sm rounded-pill px-3">
-                            <i class="fa fa-mobile-alt me-1"></i> Buka Tampilan Mobile
-                        </a>
-                        @if ($isHcga)
-                            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm"
-                                onclick="openCreateModal()">
-                                <i class="fa fa-plus-circle me-1"></i> Buat Berita / Pengumuman
-                            </button>
-                        @endif
-                    </div>
-                </div>
                 <div class="card-body">
                     <!-- Filter bar -->
                     <div class="row g-2 mb-3">
@@ -109,11 +115,11 @@
         function initGrid() {
             myGrid = new dhtmlXGridObject('gridAnnouncement');
             myGrid.setImagePath("{{ asset('dhtmlx/imgs/') }}/");
-            myGrid.setHeader("ID,Kategori,Judul,Target,Pin,Status,Attach,Views,Pembuat,Tanggal Dibuat,Tanggal Publish");
-            myGrid.setInitWidths("60,110,*,100,70,90,70,60,110,135,135");
-            myGrid.setColAlign("center,left,left,center,center,center,center,center,left,center,center");
-            myGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-            myGrid.setColSorting("int,str,str,str,str,str,str,int,str,str,str");
+            myGrid.setHeader("ID,Kategori,Sumber,Judul,Target,Masa Berlaku,Pin,Status,Attach,Views,Pembuat,Tanggal Dibuat,Tanggal Publish");
+            myGrid.setInitWidths("55,105,110,*,95,165,65,85,65,55,105,130,130");
+            myGrid.setColAlign("center,left,center,left,center,left,center,center,center,center,left,center,center");
+            myGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+            myGrid.setColSorting("int,str,str,str,str,str,str,str,str,int,str,str,str");
             myGrid.setSkin("dhx_skyblue");
             myGrid.enableAutoWidth(true);
             myGrid.init();

@@ -1702,10 +1702,16 @@ class ProcurementController extends Controller
    // 3. Proses RECEIVED PO (Penerimaan Barang Parsial / Penuh + Catat ke good_receive & good_receive_dtl)
     public function receivePO(Request $request)
     {
-        $poNo       = $request->input('po_no');
-        $receiveQty = $request->input('receive_qty', []); // [dtl_id => qty_masuk]
-        $sjNo       = trim($request->input('surat_jalan', ''));
-        $username   = session('username') ?? (auth()->user()->Username ?? auth()->user()->name ?? 'admin');
+        $request->validate([
+            'receive_note'  => 'nullable|string|max:1000',
+            'receive_proof' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
+
+        $poNo         = $request->input('po_no');
+        $receiveQty   = $request->input('receive_qty', []); // [dtl_id => qty_masuk]
+        $sjNo         = trim($request->input('surat_jalan', ''));
+        $receiveNote  = trim($request->input('receive_note', ''));
+        $username     = session('username') ?? (auth()->user()->Username ?? auth()->user()->name ?? 'admin');
 
         DB::beginTransaction();
         try {
@@ -1754,6 +1760,28 @@ class ProcurementController extends Controller
                 ], 422);
             }
 
+            
+            // Upload bukti gambar penerima barang jika ada (Max 5 MB)
+            $proofPath = null;
+            if ($request->hasFile('receive_proof') && $request->file('receive_proof')->isValid()) {
+                $file = $request->file('receive_proof');
+                $fileName = time() . '_GR_' . uniqid() . '.' . strtolower($file->getClientOriginalExtension());
+                $destinationPath = public_path('uploads/goods_received');
+
+                if (!file_exists($destinationPath)) {
+                    if (!mkdir($destinationPath, 0777, true) && !is_dir($destinationPath)) {
+                        throw new \RuntimeException('Gagal membuat folder uploads/goods_received di server.');
+                    }
+                    @chmod($destinationPath, 0777);
+                }
+
+                if (!$file->move($destinationPath, $fileName)) {
+                    throw new \RuntimeException('Gagal mengunggah file bukti penerima barang ke server.');
+                }
+
+                $proofPath = 'uploads/goods_received/' . $fileName;
+            }
+
             // 2. Generate Nomor GR Otomatis (Format: GR/GEU/YYYYMM-XXXX)
             $prefix = 'GR/GEU/' . date('Ym') . '-';
             $lastGr = DB::table('good_receive')
@@ -1767,6 +1795,19 @@ class ProcurementController extends Controller
             $nowTimestamp = now();
             $location     = $po->Location ?? 'HO';
 
+            $grRemarkParts = [];
+            if ($sjNo !== '') {
+                $grRemarkParts[] = "SJ: {$sjNo}";
+            } else {
+                $grRemarkParts[] = "Penerimaan barang PO {$po->PO_No}";
+            }
+            if ($receiveNote !== '') {
+                $grRemarkParts[] = "Note: {$receiveNote}";
+            }
+            if ($proofPath !== null) {
+                $grRemarkParts[] = "Bukti: {$proofPath}";
+            }
+
             // 3. Insert Header ke tabel good_receive
             DB::table('good_receive')->insert([
                 'GR_No'                 => $grNo,
@@ -1778,7 +1819,7 @@ class ProcurementController extends Controller
                 'Purchase_Sub_Category' => $po->Purchase_Sub_Category,
                 'Purchase_Type'         => $po->Purchase_Type,
                 'Reference'             => $sjNo ?: null,
-                'Remark'                => $sjNo ? "SJ: {$sjNo}" : "Penerimaan barang PO {$po->PO_No}",
+                'Remark'                => implode(' | ', $grRemarkParts),
                 'Location'              => $location,
                 'Status'                => 'OPEN',
                 'Date_Created'          => $nowTimestamp,
@@ -1830,8 +1871,18 @@ class ProcurementController extends Controller
             $newStatusReceive = ($remainingTotal <= 0) ? 'RECEIVED' : 'PARTIAL';
 
             $remark = $po->Remark ?? '';
-            $sjInfo = !empty($sjNo) ? " [SJ: {$sjNo}]" : '';
-            $remark .= " | GR: {$grNo} ({$newStatus}) by {$username} (" . date('d-m-Y H:i') . "){$sjInfo}";
+            $extraInfo = [];
+            if ($sjNo !== '') {
+                $extraInfo[] = "SJ: {$sjNo}";
+            }
+            if ($receiveNote !== '') {
+                $extraInfo[] = "Note: {$receiveNote}";
+            }
+            if ($proofPath !== null) {
+                $extraInfo[] = "Bukti: {$proofPath}";
+            }
+            $extraStr = !empty($extraInfo) ? ' [' . implode(' | ', $extraInfo) . ']' : '';
+            $remark .= " | GR: {$grNo} ({$newStatus}) by {$username} (" . date('d-m-Y H:i') . "){$extraStr}";
 
             // Update status header good_receive
             DB::table('good_receive')->where('GR_No', $grNo)->update([

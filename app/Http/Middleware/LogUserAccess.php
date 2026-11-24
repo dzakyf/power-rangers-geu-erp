@@ -19,6 +19,8 @@ class LogUserAccess
      */
     public function handle($request, Closure $next)
     {
+        // Execute the request only for authenticated users, then track it
+        $response = $next($request);
         // Block unauthenticated requests before any route/view code executes
         if (!Auth::check()) {
             if ($request->expectsJson()) {
@@ -38,15 +40,14 @@ class LogUserAccess
         // Ambil payload / data request (baik dari POST, PUT, atau Query Parameters)
         // json_encode digunakan agar data array/object bisa disimpan rapi dalam bentuk string JSON
         // Jangan catat field sensitif (password, token CSRF, password SMTP) ke user_logs.
-        $payload = json_encode($request->except([
+        $payload = json_encode(array_merge($request->except([
             'password',
             'password_confirmation',
             'Smtp_Password',
             '_token',
+        ]), [
+            'status' => $response->getStatusCode(),
         ]));
-
-        // Execute the request only for authenticated users, then track it
-        $response = $next($request);
 
         // Capture user information if they are authenticated
         $userEmail = Auth::check() ? (Auth::user()->email != '' ? Auth::user()->email : 'N/A') : 'N/A';

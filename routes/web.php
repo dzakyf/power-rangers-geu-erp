@@ -108,6 +108,7 @@ use App\Http\Controllers\HCGA\PermitLicenseController as HCGAPermitLicenseContro
 use App\Http\Controllers\HCGA\EmailSettingsController as HCGAEmailSettingsController;
 use App\Http\Controllers\HCGA\AnnouncementCmsController as HCGAAnnouncementCmsController;
 use App\Http\Controllers\HCGA\AnnouncementMobileController as HCGAAnnouncementMobileController;
+use App\Http\Controllers\HCGA\StorageManagementController as HCGAStorageManagementController;
 use App\Http\Controllers\HCGA\CompanyGuidelineCmsController as HCGACompanyGuidelineCmsController;
 use App\Http\Controllers\HCGA\MobilePortalController as HCGAMobilePortalController;
 use App\Http\Controllers\HCGA\MobilePayslipController as HCGAMobilePayslipController;
@@ -6348,9 +6349,16 @@ Route::group(['middleware' => 'log.access'], function () {
     $hcVmPref = "$hcPref-vehicle-maintenance";
     Route::get("$hcVmPref-index", [HCGAVehicleMaintenanceController::class, 'index']);
     Route::get("$hcVmPref-data", [HCGAVehicleMaintenanceController::class, 'data']);
+    Route::get("$hcVmPref-due-pm", [HCGAVehicleMaintenanceController::class, 'duePmData']);
     Route::get("$hcVmPref-create", [HCGAVehicleMaintenanceController::class, 'create']);
     Route::post("$hcVmPref-submit", [HCGAVehicleMaintenanceController::class, 'store']);
+    Route::post("$hcVmPref-submit-draft", [HCGAVehicleMaintenanceController::class, 'submitDraft']);
+    Route::post("$hcVmPref-start", [HCGAVehicleMaintenanceController::class, 'startExecution']);
+    Route::post("$hcVmPref-complete", [HCGAVehicleMaintenanceController::class, 'completeExecution']);
+    Route::post("$hcVmPref-pm-schedule-save", [HCGAVehicleMaintenanceController::class, 'updatePmSchedule']);
     Route::get("$hcVmPref-detail", [HCGAVehicleMaintenanceController::class, 'detail']);
+    Route::get("$hcVmPref-export", [HCGAVehicleMaintenanceController::class, 'exportExcel']);
+    Route::get("$hcVmPref-print-spk", [HCGAVehicleMaintenanceController::class, 'printSpk']);
 
     // -- Vehicle Maintenance Approval --
     $hcVmAppPref = "$hcPref-vehicle-maintenance-approval";
@@ -6358,6 +6366,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcVmAppPref-data", [HCGAVehicleMaintenanceApprovalController::class, 'data']);
     Route::get("$hcVmAppPref-detail", [HCGAVehicleMaintenanceApprovalController::class, 'detail']);
     Route::post("$hcVmAppPref-approve", [HCGAVehicleMaintenanceApprovalController::class, 'approve']);
+    Route::get("$hcVmAppPref-history", [HCGAVehicleMaintenanceApprovalController::class, 'approvalHistory']);
 
     // -- Permit & License --
     $hcPermitLicensePref = "$hcPref-permit-license";
@@ -6546,6 +6555,24 @@ Route::group(['middleware' => 'log.access'], function () {
     // Mobile News & Announcement (Legacy URL redirects to /mobile/announcement*)
     Route::redirect('/announcement/mobile', '/mobile/announcement');
     Route::redirect('/announcement/mobile/create', '/mobile/announcement/create');
+
+    // Storage Management (Regulasi & Informasi)
+    $hcStoragePref = "$hcPref-storage";
+    Route::get("$hcStoragePref-regulation-index", [HCGAStorageManagementController::class, 'regulationIndex'])->name('hrd.storage.regulation.index');
+    Route::get("$hcStoragePref-information-index", [HCGAStorageManagementController::class, 'informationIndex'])->name('hrd.storage.information.index');
+    Route::get("$hcStoragePref-data", [HCGAStorageManagementController::class, 'data'])->name('hrd.storage.data');
+    Route::get("$hcStoragePref-create", [HCGAStorageManagementController::class, 'create'])->name('hrd.storage.create');
+    Route::post("$hcStoragePref-store", [HCGAStorageManagementController::class, 'store'])->name('hrd.storage.store');
+    Route::get("$hcStoragePref-edit", [HCGAStorageManagementController::class, 'edit'])->name('hrd.storage.edit');
+    Route::post("$hcStoragePref-update", [HCGAStorageManagementController::class, 'update'])->name('hrd.storage.update');
+    Route::get("$hcStoragePref-detail", [HCGAStorageManagementController::class, 'detail'])->name('hrd.storage.detail');
+    Route::get("$hcStoragePref-version-create", [HCGAStorageManagementController::class, 'createVersion'])->name('hrd.storage.version.create');
+    Route::post("$hcStoragePref-version-store", [HCGAStorageManagementController::class, 'storeVersion'])->name('hrd.storage.version.store');
+    Route::post("$hcStoragePref-version-visibility", [HCGAStorageManagementController::class, 'toggleVersionVisibility'])->name('hrd.storage.version.visibility');
+    Route::post("$hcStoragePref-revoke", [HCGAStorageManagementController::class, 'revoke'])->name('hrd.storage.revoke');
+    Route::post("$hcStoragePref-delete", [HCGAStorageManagementController::class, 'destroy'])->name('hrd.storage.delete');
+    Route::get("$hcStoragePref-settings", [HCGAStorageManagementController::class, 'settingsModal'])->name('hrd.storage.settings');
+    Route::post("$hcStoragePref-settings-update", [HCGAStorageManagementController::class, 'updateSettings'])->name('hrd.storage.settings.update');
 
     // Corporate Culture & Regulation (Visi Misi, Core Value, Peraturan Perusahaan)
     $hcGuidelinePref = "$hcPref-company-guideline";
@@ -6995,6 +7022,9 @@ Route::get('goods-received-detail', [ProcurementController::class, 'detailGoodsR
         Route::post('/sessions/revoke-all', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'revokeAllSessions'])->name('mobile.sessions.revoke-all');
         Route::post('/logout', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'logout'])->name('mobile.logout');
 
+        Route::get('/mobile/procurement', [\App\Http\Controllers\ProcurementController::class, 'outstandingPOIndex'])
+    ->name('procurement.mobile.index');
+
         // Unified /mobile/* Module Routes
         Route::get('/approval', [HCGAApprovalInboxController::class, 'mobileIndex'])->name('approval.mobile.index');
         Route::get('/approval/{id}', [HCGAApprovalInboxController::class, 'mobileDetail'])
@@ -7042,6 +7072,7 @@ Route::get('goods-received-detail', [ProcurementController::class, 'detailGoodsR
             Route::get('/detail/{id}', [HCGAAnnouncementMobileController::class, 'mobileDetail'])->name('announcement.mobile.detail');
             Route::post('/submit', [HCGAAnnouncementMobileController::class, 'mobileSubmit'])->name('announcement.mobile.submit');
             Route::post('/delete/{id}', [HCGAAnnouncementMobileController::class, 'mobileDelete'])->name('announcement.mobile.delete');
+            Route::post('/{id}/acknowledge', [HCGAAnnouncementMobileController::class, 'mobileAcknowledge'])->name('announcement.mobile.acknowledge');
         });
 
         Route::prefix('guideline')->group(function () {

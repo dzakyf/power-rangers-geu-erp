@@ -15,6 +15,7 @@ class AssetFleetApprovalService
     public const TYPE_VEHICLE_TAX          = 'VEHICLE_TAX_REQUEST';
     public const TYPE_VEHICLE_FLEET        = 'VEHICLE_FLEET';
     public const TYPE_VEHICLE_LOGBOOK      = 'VEHICLE_LOGBOOK';
+    public const TYPE_VEHICLE_MAINTENANCE  = 'VEHICLE_MAINTENANCE';
 
     /** @var ApprovalWorkflowService */
     protected $workflow;
@@ -323,6 +324,11 @@ class AssetFleetApprovalService
                         'Approval_Note'   => $lastNote,
                     ]);
                 }
+                break;
+
+            case self::TYPE_VEHICLE_MAINTENANCE:
+                app(\App\Services\HCGA\VehicleMaintenanceService::class)
+                    ->syncFromApprovalRequest($approvalRequestId);
                 break;
         }
     }

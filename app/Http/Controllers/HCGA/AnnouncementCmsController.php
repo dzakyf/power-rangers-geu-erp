@@ -48,8 +48,10 @@ class AnnouncementCmsController extends Controller
             // Columns matching dhtmlxgrid headers
             $row->addChild('cell', $item->id);
             $row->addChild('cell', htmlspecialchars($item->category ?? 'ANNOUNCEMENT'));
+            $row->addChild('cell', htmlspecialchars($item->storage_document_id ? ('Storage (' . ($item->version_label ?: 'v1') . ')') : 'Manual'));
             $row->addChild('cell', htmlspecialchars($item->title));
             $row->addChild('cell', htmlspecialchars($item->target_audience ?? 'ALL'));
+            $row->addChild('cell', htmlspecialchars($item->validity_display ?: 'Selalu Aktif'));
             $row->addChild('cell', $item->is_pinned ? 'Pinned' : 'Normal');
             $row->addChild('cell', $item->is_final ? 'Published' : 'Draft');
             $row->addChild('cell', $item->attachment_file ? 'Yes' : 'No');
@@ -133,6 +135,15 @@ class AnnouncementCmsController extends Controller
             return response()->json(['error' => 'Data tidak ditemukan.'], 404);
         }
 
+        if ($item->storage_document_id) {
+            $detailUrl = route('hrd.storage.detail', ['id' => $item->storage_document_id]);
+            return '<div class="alert alert-info mb-0">'
+                . '<h6 class="fw-bold"><i class="fa fa-lock me-1"></i> Dikelola via Storage Management</h6>'
+                . '<p class="mb-2 small">Pengumuman ini tersinkron dari modul <strong>Storage Management</strong>. Perubahan konten, versi, dan masa berlaku harus dilakukan melalui menu Storage Management agar tetap sinkron.</p>'
+                . '<a href="' . $detailUrl . '" class="btn btn-primary btn-sm"><i class="fa fa-external-link-alt me-1"></i> Buka di Storage Management</a>'
+                . '</div>';
+        }
+
         return view('humanresources.announcement.form', [
             'item'   => $item,
             'action' => 'edit',
@@ -145,6 +156,13 @@ class AnnouncementCmsController extends Controller
     public function update(Request $request, $id = null)
     {
         $id = $id ?: $request->input('ID');
+        $existing = $this->announcementService->getDetail($id, false);
+        if ($existing && $existing->storage_document_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Item ini berasal dari Storage Management dan harus diperbarui melalui menu Storage Management.',
+            ], 422);
+        }
 
         $request->validate([
             'Title'      => 'required|string|max:255',
@@ -173,6 +191,17 @@ class AnnouncementCmsController extends Controller
     public function destroy(Request $request, $id = null)
     {
         $id = $id ?: $request->input('id');
+        $existing = $this->announcementService->getDetail($id, false);
+        if ($existing && $existing->storage_document_id) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Item ini tersinkron dari Storage Management. Hapus atau cabut dokumen dari menu Storage Management.',
+                ], 422);
+            }
+            return redirect()->back()->with('error', 'Item berasal dari Storage Management.');
+        }
+
         $this->announcementService->deleteAnnouncement($id);
 
         if ($request->ajax() || $request->wantsJson()) {

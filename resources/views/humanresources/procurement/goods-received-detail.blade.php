@@ -1,3 +1,10 @@
+@php
+    $proofPath = null;
+    if (!empty($grHeader->Remark) && preg_match('/Bukti:\s*(uploads\/goods_received\/[^\s|\]]+)/i', $grHeader->Remark, $matches)) {
+        $proofPath = trim($matches[1]);
+    }
+@endphp
+
 <div class="card border-info mt-3 shadow-sm" style="border-radius: 8px;">
     <div class="card-header bg-info text-white py-2 d-flex justify-content-between align-items-center">
         <span class="font-weight-bold" style="font-size: 12.5px;">
@@ -35,6 +42,26 @@
             <div class="col-12 border-top pt-2 mt-2">
                 <small class="text-muted font-weight-bold">Catatan:</small>
                 <span class="text-dark ml-1">{{ $grHeader->Remark }}</span>
+            </div>
+            @endif
+
+            @if(!empty($proofPath))
+            <div class="col-12 border-top pt-2 mt-2">
+                <small class="text-muted font-weight-bold d-block mb-1">Foto Bukti Penerima Barang:</small>
+                <div class="d-flex align-items-center flex-wrap">
+                    <a href="{{ asset($proofPath) }}" target="_blank" title="Klik untuk melihat ukuran penuh">
+                        <img src="{{ asset($proofPath) }}"
+                             alt="Bukti Penerima Barang {{ $grHeader->GR_No }}"
+                             class="img-thumbnail mr-3 mb-1"
+                             style="max-height: 150px; max-width: 240px; object-fit: cover; cursor: pointer;">
+                    </a>
+                    <div class="mb-1">
+                        <div class="text-muted mb-1" style="font-size: 11px;">File: {{ basename($proofPath) }}</div>
+                        <a href="{{ asset($proofPath) }}" target="_blank" class="btn btn-sm btn-outline-info py-0 px-2">
+                            <i class="fas fa-external-link-alt mr-1"></i> Buka Foto Penuh
+                        </a>
+                    </div>
+                </div>
             </div>
             @endif
         </div>

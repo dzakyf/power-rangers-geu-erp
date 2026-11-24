@@ -9,6 +9,28 @@
         <div class="card-body">
             <input type="hidden" id="ID" name="ID" value="{{ $data->id ?? '' }}" />
 
+            @php
+                $statusLabels = [
+                    'DRAFT'                 => 'Draft',
+                    'WAITING_APPROVAL'      => 'Menunggu Persetujuan',
+                    'APPROVED'              => 'Disetujui',
+                    'IN_PROGRESS'           => 'Sedang Servis',
+                    'COMPLETED'             => 'Selesai',
+                    'RETURNED'              => 'Dikembalikan untuk Revisi',
+                    'REJECTED'              => 'Ditolak',
+                    'APPROVAL_PIC'          => 'Menunggu PIC / Manager Dept',
+                    'APPROVAL_ATASAN'       => 'Menunggu Atasan Departemen',
+                    'APPROVAL_VP'           => 'Menunggu VP Departemen',
+                    'APPROVAL_HCGA_MANAGER' => 'Menunggu Manager HCGA',
+                ];
+                $st = $data->Status ?? '';
+                $label = $statusLabels[$st] ?? $st;
+                $badgeClass = in_array($st, ['WAITING_APPROVAL', 'RETURNED', 'APPROVAL_PIC', 'APPROVAL_ATASAN', 'APPROVAL_VP', 'APPROVAL_HCGA_MANAGER'], true)
+                    ? 'bg-warning text-dark'
+                    : (in_array($st, ['APPROVED', 'COMPLETED'], true) ? 'bg-success text-white' : ($st === 'IN_PROGRESS' ? 'bg-info text-white' : 'bg-danger text-white'));
+                $tglPengajuan = $data->Tanggal_Pengajuan ?: ($data->created_at ? substr((string) $data->created_at, 0, 10) : '');
+            @endphp
+
             <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Informasi Pengajuan &amp; Status</h6>
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
@@ -22,21 +44,7 @@
                 <div class="col-md-4">
                     <label class="form-label small fw-semibold">Status Approval Saat Ini</label>
                     <div class="d-flex align-items-center gap-2">
-                        <input type="text" class="form-control form-control-sm bg-light fw-bold" value="{{ $data->Status ?? '' }}" readonly />
-                        @php
-                            $statusLabels = [
-                                'APPROVAL_PIC'          => 'Menunggu PIC / Manager Dept',
-                                'APPROVAL_ATASAN'       => 'Menunggu Atasan Departemen',
-                                'APPROVAL_VP'           => 'Menunggu VP Departemen',
-                                'APPROVAL_HCGA_MANAGER' => 'Menunggu Manager HCGA',
-                                'APPROVED'              => 'Disetujui',
-                                'REJECTED'              => 'Ditolak',
-                            ];
-                            $label = $statusLabels[$data->Status ?? ''] ?? $data->Status;
-                            $badgeClass = in_array($data->Status ?? '', ['APPROVAL_PIC','APPROVAL_ATASAN','APPROVAL_VP','APPROVAL_HCGA_MANAGER'])
-                                ? 'bg-warning text-dark'
-                                : (($data->Status ?? '') === 'APPROVED' ? 'bg-success' : 'bg-danger');
-                        @endphp
+                        <input type="text" class="form-control form-control-sm bg-light fw-bold" value="{{ $st }}" readonly />
                         <span class="badge {{ $badgeClass }} text-nowrap">{{ $label }}</span>
                     </div>
                 </div>
@@ -50,7 +58,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label small fw-semibold">Tanggal Pengajuan</label>
-                    <input type="date" class="form-control form-control-sm bg-light" value="{{ $data->created_at ?? '' }}" readonly />
+                    <input type="date" class="form-control form-control-sm bg-light" value="{{ $tglPengajuan }}" readonly />
                 </div>
             </div>
 
@@ -83,7 +91,7 @@
             </div>
 
             <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">3. Detail Pekerjaan &amp; Estimasi</h6>
-            <div class="row g-3">
+            <div class="row g-3 mb-4">
                 @if(($data->Jenis_Perawatan ?? '') === 'preventif')
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold">Tipe Service Preventif</label>
@@ -119,7 +127,7 @@
                     <div class="d-flex align-items-center gap-2">
                         <input type="text" class="form-control form-control-sm bg-light" value="{{ number_format($data->Estimasi_Biaya ?? 0, 0, ',', '.') }}" readonly />
                         @if(($data->Estimasi_Biaya ?? 0) > 2500000)
-                            <span class="badge bg-danger text-nowrap">Perlu Approval Direktur</span>
+                            <span class="badge bg-danger text-white text-nowrap">Perlu Approval VP/Direktur</span>
                         @endif
                     </div>
                 </div>
@@ -133,7 +141,73 @@
                 </div>
             </div>
 
-            <div class="mt-4 d-flex justify-content-end">
+            {{-- Section 4: Aksi Approval --}}
+            @if(!empty($canApprove) || !empty($canForceApprove))
+                <div class="card border-warning mb-4">
+                    <div class="card-header bg-light fw-bold text-dark">
+                        <i class="fa fa-gavel me-1"></i> Keputusan Approval ({{ $approver->Name ?? Auth::user()->username }})
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="Approval_Note" class="form-label small fw-semibold">Catatan / Alasan Approval</label>
+                            <textarea id="Approval_Note" class="form-control form-control-sm" rows="2" placeholder="Masukkan catatan persetujuan atau alasan penolakan (wajib jika menolak)..."></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-danger btn-sm vm-act-btn" onclick="submitVmApproval('REJECT');">
+                                <i class="fa fa-times-circle me-1"></i> Reject / Kembalikan
+                            </button>
+                            <button type="button" class="btn btn-success btn-sm vm-act-btn" onclick="submitVmApproval('APPROVE');">
+                                <i class="fa fa-check-circle me-1"></i> Approve
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @elseif($st === 'WAITING_APPROVAL')
+                <div class="alert alert-info py-2 mb-4">
+                    <i class="fa fa-info-circle me-1"></i> Anda bukan kandidat approver aktif untuk tahap persetujuan saat ini.
+                </div>
+            @endif
+
+            {{-- Section 5: Timeline Riwayat Approval --}}
+            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Riwayat Approval</h6>
+            @if(!empty($timeline))
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Stage / Level</th>
+                                <th>Approver</th>
+                                <th>Aksi</th>
+                                <th>Catatan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($timeline as $item)
+                                <tr>
+                                    <td class="text-nowrap">{{ $item['acted_at'] ?: '-' }}</td>
+                                    <td>{{ $item['stage'] }}</td>
+                                    <td>{{ $item['actor'] }} ({{ $item['dept'] }})</td>
+                                    <td>
+                                        @php
+                                            $actUpper = strtoupper((string) $item['action']);
+                                            $actBadge = in_array($actUpper, ['APPROVE', 'APPROVED', 'AUTO_APPROVE'], true)
+                                                ? 'bg-success text-white'
+                                                : (in_array($actUpper, ['REJECT', 'REJECTED'], true) ? 'bg-danger text-white' : 'bg-info text-white');
+                                        @endphp
+                                        <span class="badge {{ $actBadge }}">{{ $item['action'] }}</span>
+                                    </td>
+                                    <td>{{ $item['notes'] ?: '-' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <p class="text-muted small mb-3">Belum ada riwayat approval tercatat.</p>
+            @endif
+
+            <div class="mt-3 d-flex justify-content-end">
                 <button type="button" class="btn btn-secondary btn-sm" onclick="$('#VMApDTL').html('')">
                     <i class="fa fa-arrow-left me-1"></i> Tutup
                 </button>
@@ -141,3 +215,47 @@
         </div>
     </div>
 </div>
+
+<script>
+function submitVmApproval(action) {
+    var note = $.trim($('#Approval_Note').val());
+    if (action === 'REJECT' && note === '') {
+        alert('Harap isi catatan/alasan penolakan terlebih dahulu.');
+        $('#Approval_Note').focus();
+        return;
+    }
+
+    var label = action === 'REJECT' ? 'menolak' : 'menyetujui';
+    if (!confirm('Apakah Anda yakin ingin ' + label + ' permohonan perawatan kendaraan ini?')) {
+        return;
+    }
+
+    $('.vm-act-btn').prop('disabled', true);
+
+    $.ajax({
+        url: 'hrd-vehicle-maintenance-approval-approve',
+        type: 'POST',
+        headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+        data: {
+            Data: $('#ID').val(),
+            Action: action,
+            Note: note
+        },
+        success: function(res) {
+            if (res.status === 'success') {
+                alert(res.message || 'Approval berhasil diproses.');
+                if (typeof refreshdata === 'function') refreshdata();
+                $('#VMApDTL').html('');
+            } else {
+                alert(res.message || 'Gagal memproses approval.');
+                $('.vm-act-btn').prop('disabled', false);
+            }
+        },
+        error: function(xhr) {
+            var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Terjadi kesalahan server';
+            alert(msg);
+            $('.vm-act-btn').prop('disabled', false);
+        }
+    });
+}
+</script>

@@ -242,6 +242,15 @@ class MobileDashboardService
                 'route_name' => 'employee.mobile.my-profile',
                 'api_endpoint' => '/api/v1/mobile/ess/profile',
             ],
+            [
+                'key' => 'procurement',
+                'label' => 'Procurement',
+                'subtitle' => 'PR, PO & Penerimaan',
+                'icon' => 'fa-shopping-cart',
+                'color' => 'amber',
+                'route_name' => 'procurement.mobile.index', // sesuaikan dengan nama route di routes/web.php
+                'api_endpoint' => '/api/v1/mobile/procurement',
+            ],
         ];
     }
 

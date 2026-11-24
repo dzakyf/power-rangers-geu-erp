@@ -3,6 +3,8 @@
 namespace App\Services\HCGA;
 
 use App\HcgaNewsAnnouncement;
+use App\Models\HCGA\StorageDocumentVersion;
+use App\Models\HCGA\StorageReadReceipt;
 use App\Services\NotificationService;
 use App\Services\UploadService;
 use Carbon\Carbon;
@@ -57,7 +59,12 @@ class AnnouncementService
         $query = HcgaNewsAnnouncement::query();
 
         if ($request->filled('category')) {
-            $query->where('category', $request->input('category'));
+            $cat = $request->input('category');
+            if ($cat === 'REGULATION') {
+                $query->where('storage_module_type', 'REGULATION');
+            } else {
+                $query->where('category', $cat);
+            }
         }
 
         if ($request->filled('status')) {
@@ -73,7 +80,8 @@ class AnnouncementService
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'LIKE', "%{$search}%")
                   ->orWhere('summary', 'LIKE', "%{$search}%")
-                  ->orWhere('content', 'LIKE', "%{$search}%");
+                  ->orWhere('content', 'LIKE', "%{$search}%")
+                  ->orWhere('document_number', 'LIKE', "%{$search}%");
             });
         }
 
@@ -89,26 +97,43 @@ class AnnouncementService
     {
         $user = $user ?: Auth::user();
         $isHcga = $this->isHcgaOrAdmin($user);
+        $userDept = $user->Department ?? null;
 
         $query = HcgaNewsAnnouncement::query();
 
-        // If not HCGA/Admin, only show Published and target_audience = ALL
+        // Non-HCGA: only Published, Currently Effective (not SCHEDULED / EXPIRED), and matching Audience/Department
         if (!$isHcga) {
-            $query->published()->forAudience(false);
+            $query->published()
+                  ->currentlyEffective()
+                  ->forAudience(false, $userDept);
         } else {
-            // HCGA can filter or view draft as well if tab=draft
             if ($request->get('tab') === 'draft') {
                 $query->where('is_final', 0);
             } elseif ($request->get('tab') === 'my') {
                 $query->where('created_by', $user->username ?? '');
             } else {
-                // Default feed: all published
-                $query->published();
+                $query->published()->currentlyEffective();
             }
         }
 
         if ($request->filled('category') && $request->input('category') !== 'ALL') {
-            $query->where('category', $request->input('category'));
+            $cat = strtoupper(trim((string) $request->input('category')));
+            if ($cat === 'REGULATION') {
+                $query->where(function ($q) {
+                    $q->where('storage_module_type', 'REGULATION')
+                      ->orWhereIn('category', ['SK_DIR', 'SOP', 'INTERNAL_MEMO', 'POLICY']);
+                });
+            } elseif ($cat === 'INFORMATION') {
+                $query->where(function ($q) {
+                    $q->where('storage_module_type', 'INFORMATION')
+                      ->orWhere('category', 'INFORMATION');
+                });
+            } else {
+                $query->where(function ($q) use ($cat) {
+                    $q->where('category', $cat)
+                      ->orWhere('storage_sub_type', $cat);
+                });
+            }
         }
 
         if ($request->filled('q')) {
@@ -116,7 +141,8 @@ class AnnouncementService
             $query->where(function ($sub) use ($q) {
                 $sub->where('title', 'LIKE', "%{$q}%")
                     ->orWhere('summary', 'LIKE', "%{$q}%")
-                    ->orWhere('content', 'LIKE', "%{$q}%");
+                    ->orWhere('content', 'LIKE', "%{$q}%")
+                    ->orWhere('document_number', 'LIKE', "%{$q}%");
             });
         }
 
@@ -130,11 +156,40 @@ class AnnouncementService
      */
     public function getDetail($id, $trackView = true)
     {
-        $item = HcgaNewsAnnouncement::find($id);
+        $item = HcgaNewsAnnouncement::with(['storageDocument', 'storageVersion'])->find($id);
         if ($item && $trackView) {
             $item->increment('view_count');
         }
         return $item;
+    }
+
+    /**
+     * Build extra Storage metadata for Mobile Web & API detail view.
+     */
+    public function getMobileDetailPayload(HcgaNewsAnnouncement $item, $user = null)
+    {
+        $visibleVersions = collect();
+        $userReceipt = null;
+
+        if ($item->storage_document_id) {
+            $visibleVersions = StorageDocumentVersion::where('document_id', $item->storage_document_id)
+                ->where('version_status', StorageDocumentVersion::STATUS_SUPERSEDED)
+                ->where('history_visibility', StorageDocumentVersion::VISIBILITY_EMPLOYEE_VISIBLE)
+                ->orderBy('version_number', 'DESC')
+                ->get();
+        }
+
+        if ($item->storage_version_id && $user && !empty($user->username)) {
+            $userReceipt = StorageReadReceipt::where('version_id', $item->storage_version_id)
+                ->where('username', $user->username)
+                ->first();
+        }
+
+        return [
+            'visible_versions' => $visibleVersions,
+            'user_receipt'     => $userReceipt,
+            'is_acknowledged'  => $userReceipt && !empty($userReceipt->acknowledged_at),
+        ];
     }
 
     /**
@@ -169,6 +224,7 @@ class AnnouncementService
         $announcement->attachment_file = $attachmentPath;
         $announcement->attachment_name = $attachmentName;
         $announcement->target_audience = $request->input('Target_Audience', 'ALL');
+        $announcement->is_perpetual = 1;
         $announcement->is_pinned = $request->has('Is_Pinned') && $request->input('Is_Pinned') == '1' ? 1 : 0;
         $announcement->is_final = $isFinal;
         $announcement->final_date = $isFinal ? Carbon::now() : null;

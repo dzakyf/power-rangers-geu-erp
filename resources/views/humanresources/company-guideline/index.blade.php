@@ -1,28 +1,30 @@
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
-<div class="content-wrapper">
-    <div class="container-fluid">
-        <!-- Breadcrumbs and Header -->
-        <div class="row align-items-center mb-3">
-            <div class="col-md-7">
-                <div class="page-title-box">
-                    <h5 class="fw-bold mb-1">
-                        <i class="fa fa-compass text-primary me-2"></i>Corporate Culture & Regulation CMS
-                    </h5>
-                    <p class="text-muted small mb-0">Kelola Visi, Misi, Core Value, dan Peraturan Perusahaan</p>
-                </div>
-            </div>
-            <div class="col-md-5 text-md-end mt-2 mt-md-0">
-                <a href="{{ route('company-guideline.mobile.index') }}" target="_blank"
-                    class="btn btn-outline-primary btn-sm rounded-pill px-3 me-2">
-                    <i class="fa fa-mobile-alt me-1"></i> Buka Tampilan Mobile
-                </a>
-                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" onclick="openCreateModal()">
-                    <i class="fa fa-plus-circle me-1"></i> Tambah Panduan / Peraturan
-                </button>
-            </div>
-        </div>
+<div class="breadcrumb-header justify-content-between align-items-center mt-3 mb-4 pt-1 pb-2">
+    <div>
+        <h4 class="content-title text-white fw-bold mb-1" style="color: #ffffff !important; font-size: 1.35rem; letter-spacing: 0.3px;">
+            Corporate Culture &amp; Regulation CMS
+        </h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Human Capital &amp; GA</a></li>
+                <li class="breadcrumb-item"><a href="#" style="color: rgba(255, 255, 255, 0.8) !important;">Culture &amp; Regulation</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page" style="color: #ffffff !important; font-weight: 600;">Visi Misi &amp; Peraturan CMS</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-2 mt-md-0">
+        <a href="{{ route('company-guideline.mobile.index') }}" target="_blank"
+            class="btn btn-sm rounded-pill px-3 shadow-sm"
+            style="background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.4); color: #ffffff !important;">
+            <i class="fa fa-mobile-alt me-1"></i> Buka Tampilan Mobile
+        </a>
+        <button type="button" class="btn btn-light text-primary btn-sm rounded-pill px-3 fw-semibold shadow-sm" onclick="openCreateModal()">
+            <i class="fa fa-plus-circle me-1"></i> Tambah Panduan / Peraturan
+        </button>
+    </div>
+</div>
 
         <!-- Filter & Search Card -->
         <div class="card border-0 shadow-sm rounded-3 mb-3">
@@ -85,8 +87,6 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
 <!-- Modal Form / Detail -->
 <div class="modal fade" id="guidelineModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">

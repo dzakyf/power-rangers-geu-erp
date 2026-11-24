@@ -5,8 +5,6 @@ use App\Http\Controllers\Api\V1\MobileAuthApiController;
 use App\Http\Controllers\Api\V1\MobileDashboardApiController;
 use App\Http\Controllers\Api\V1\MobileModuleApiController;
 use App\Http\Controllers\HCGA\AttendancesController;
-use App\Http\Controllers\CNS\ExportChecklistController;
-use App\Http\Controllers\Finance\ExportInvoicingController;
 use App\Http\Controllers\UserController;
 
 /*
@@ -127,6 +125,7 @@ Route::prefix('v1/mobile')->middleware(['mobile.security'])->group(function () {
         Route::prefix('announcements')->group(function () {
             Route::get('/', [MobileModuleApiController::class, 'announcements'])->middleware('ability:mobile:read');
             Route::get('/{id}', [MobileModuleApiController::class, 'announcementDetail'])->middleware('ability:mobile:read');
+            Route::post('/{id}/acknowledge', [MobileModuleApiController::class, 'announcementAcknowledge'])->middleware('ability:mobile:read');
         });
 
         // 7. Company Guidelines
@@ -135,16 +134,4 @@ Route::prefix('v1/mobile')->middleware(['mobile.security'])->group(function () {
             Route::get('/{id}', [MobileModuleApiController::class, 'guidelineDetail'])->middleware('ability:mobile:read');
         });
     });
-});
-
-// External Finance webhook for Export Checklist Payment verification
-Route::post('/cns/export-payment-verified', [ExportChecklistController::class, 'receiveFinancePayment']);
-
-// External FAT application endpoints for Export Invoicing (X-API-Key auth)
-Route::prefix('finance/export-invoicing')->group(function () {
-    Route::get('/', [ExportInvoicingController::class, 'apiIndex']);
-    Route::get('/{id}', [ExportInvoicingController::class, 'apiShow']);
-    Route::get('/{id}/file/{type}', [ExportInvoicingController::class, 'apiDownloadFile']);
-    Route::post('/{id}/approve', [ExportInvoicingController::class, 'apiApprove']);
-    Route::post('/{id}/reject', [ExportInvoicingController::class, 'apiReject']);
 });

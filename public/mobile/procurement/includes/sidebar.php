@@ -18,8 +18,8 @@
                     </a>
                     <ul class="submenu collapse show" id="procurementSub">
                         <li><a href="index">Dashboard</a></li>
-                        <li><a href="procurement-ops">Procurement - Ops</a></li>
-                        <li><a href="procurement-non-ops">Procurement - Non Ops</a></li>
+                        <!-- <li><a href="procurement-ops">Procurement - Ops</a></li>
+                        <li><a href="procurement-non-ops">Procurement - Non Ops</a></li> -->
                         <li><a href="approval-center">Approval PR</a></li>
                         <li><a href="rfq-create">Request for Quotation</a></li>
                         <li><a href="qtn-create">Quotation</a></li>

@@ -12,8 +12,8 @@
                 <div class="col-md-4">
                     <label for="Jenis_Perawatan" class="form-label small fw-semibold">Jenis Perawatan</label>
                     <select id="Jenis_Perawatan" name="Jenis_Perawatan" class="form-select form-select-sm" onchange="toggleJenisPerawatan(this.value)">
-                        <option value="preventif">Preventive Maintenance (Preventif)</option>
-                        <option value="korektif">Corrective Maintenance (Korektif)</option>
+                        <option value="preventif" {{ ($prefillJenis ?? 'preventif') === 'preventif' ? 'selected' : '' }}>Preventive Maintenance (Preventif)</option>
+                        <option value="korektif" {{ ($prefillJenis ?? 'preventif') === 'korektif' ? 'selected' : '' }}>Corrective Maintenance (Korektif)</option>
                     </select>
                 </div>
                 <div class="col-md-4">
@@ -42,11 +42,12 @@
                         <option value="">-- Pilih Kendaraan --</option>
                         @foreach ($assetList as $a)
                             <option value="{{ $a->Asset_No }}"
+                                    {{ ($prefillAssetNo ?? '') === $a->Asset_No ? 'selected' : '' }}
                                     data-sn="{{ $a->SN }}"
                                     data-pc="{{ $a->Product_Code }}"
                                     data-pd="{{ $a->Product_Description }}"
                                     data-plat="{{ $a->Registration_No }}"
-                                    data-kategori="{{ $a->Jenis_Kendaraan }}"
+                                    data-kategori="{{ $a->Jenis_Kendaraan ?? $a->Asset_Type ?? '' }}"
                                     data-km="{{ $a->KM_Saat_Ini }}"
                                     data-km-jadwal="{{ $a->KM_Jadwal_PM }}"
                                     data-interval="{{ $a->Interval_PM }}"
@@ -54,11 +55,11 @@
                                     data-tgl-terakhir="{{ $a->Tanggal_PM_Terakhir }}"
                                     data-vendor="{{ $a->Repair_Vendor }}"
                                     data-loc="{{ $a->Asset_Location ?? $a->Asset_Location_Department ?? '' }}">
-                                {{ $a->Asset_No }} — {{ $a->Product_Description ?? 'Tanpa Deskripsi' }} [SN: {{ $a->SN ?? 'N/A' }}]
+                                {{ $a->Asset_No }} — {{ $a->Product_Description ?? 'Tanpa Deskripsi' }} [Plat: {{ $a->Registration_No ?: 'N/A' }}]
                             </option>
                         @endforeach
                     </select>
-                    <div class="form-text">Hanya asset dengan sub category VEHICLE - VC yang ditampilkan.</div>
+                    <div class="form-text">Hanya asset kendaraan yang ditampilkan. Odometer otomatis memakai nilai tertinggi dari Master / Logbook / Fuel.</div>
                 </div>
 
                 <div class="col-md-12">
@@ -122,14 +123,14 @@
                 </div>
                 <div class="col-md-12">
                     <label for="Kondisi_Awal" class="form-label small fw-semibold">Kondisi Awal Kendaraan</label>
-                    <textarea id="Kondisi_Awal" class="form-control form-control-sm" name="Kondisi_Awal" rows="2" placeholder="Contoh: Mesin suara normal, rem depan mulai berkilap, AC dingin"></textarea>
+                    <textarea id="Kondisi_Awal" class="form-control form-control-sm" name="Kondisi_Awal" rows="2" placeholder="Contoh: Mesin suara normal, rem depan mulai bergetar, AC dingin"></textarea>
                 </div>
             </div>
 
             <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">3. Detail Pekerjaan &amp; Estimasi</h6>
             <div class="row g-3">
                 <div class="col-md-6" id="preventifFields">
-                    <label for="Tipe_Service_Preventif" class="form-label small fw-semibold">Tipe Service Preventif</label>
+                    <label for="Tipe_Service_Preventif" class="form-label small fw-semibold">Tipe Service Preventif <span class="text-danger">*</span></label>
                     <select id="Tipe_Service_Preventif" name="Tipe_Service_Preventif" class="form-select form-select-sm">
                         <option value="">-- Pilih Tipe --</option>
                         <option value="Ganti_Oli_dan_Filter">Ganti Oli &amp; Filter</option>
@@ -144,7 +145,7 @@
 
                 <div class="col-md-6" id="preventifFields2" style="display:none;">
                     <label for="Jadwal_Perawatan_Bulan" class="form-label small fw-semibold">Jadwal Perawatan (Bulan Ke-)</label>
-                    <input type="number" id="Jadwal_Perawatan_Bulan" class="form-control form-control-sm" name="Jadwal_Perawatan_Bulan" value="" min="1" max="12" placeholder="Contoh: 6 (setiap 6 bulan)" />
+                    <input type="number" id="Jadwal_Perawatan_Bulan" class="form-control form-control-sm" name="Jadwal_Perawatan_Bulan" value="" min="1" max="24" placeholder="Contoh: 6 (setiap 6 bulan)" />
                     <div class="form-text">* Otomatis terisi dari Master Asset (Interval PM).</div>
                 </div>
 
@@ -166,7 +167,7 @@
                 <div class="col-md-6">
                     <label for="Estimasi_Biaya" class="form-label small fw-semibold">Estimasi Biaya Perawatan (Rp)</label>
                     <input type="text" id="Estimasi_Biaya" class="form-control form-control-sm" name="Estimasi_Biaya" placeholder="Contoh: 2500000" value="" />
-                    <div class="form-text text-danger">* Jika estimasi melebihi Rp 2.500.000, wajib melampirkan persetujuan Direktur.</div>
+                    <div class="form-text text-danger">* Jika estimasi melebihi Rp 2.500.000, alur approval otomatis melewati tahap VP / Direktur.</div>
                 </div>
 
                 <div class="col-md-6">
@@ -184,8 +185,11 @@
                 <button type="button" class="btn btn-secondary btn-sm" id="CancelBtn" onclick="CancelForm()">
                     <i class="fa fa-times me-1"></i> Cancel
                 </button>
-                <button type="button" class="btn btn-primary btn-sm" id="SubmitBtn" onclick="SubmitForm()">
-                    <i class="fa fa-check me-1"></i> Submit
+                <button type="button" class="btn btn-outline-primary btn-sm" id="DraftBtn" onclick="SubmitForm(true)">
+                    <i class="fa fa-save me-1"></i> Simpan Draft
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="SubmitBtn" onclick="SubmitForm(false)">
+                    <i class="fa fa-paper-plane me-1"></i> Submit &amp; Ajukan Approval
                 </button>
             </div>
         </div>
@@ -230,6 +234,7 @@
             $('#Kategori_Kendaraan').val('');
             $('#Kilometer_Saat_Ini').val('');
             $('#Jadwal_Perawatan_Bulan').val('');
+            $('#Vendor_Bengkel').val('');
             $('#Info_Plat').text('-');
             $('#Info_Kategori').text('-');
             $('#Info_KM').text('-');
@@ -256,6 +261,9 @@
         $('#Kategori_Kendaraan').val(kategori);
         $('#Kilometer_Saat_Ini').val(km);
         $('#Jadwal_Perawatan_Bulan').val(interval);
+        if (!$('#Vendor_Bengkel').val() && vendor) {
+            $('#Vendor_Bengkel').val(vendor);
+        }
 
         $('#Info_Plat').text(plat || '-');
         $('#Info_Kategori').text(kategori || '-');
@@ -274,7 +282,7 @@
                 pesan = 'Jadwal PM tanggal ' + fmtTgl(tglJadwal) + ' sudah jatuh tempo.';
             }
         }
-        if (km && kmJadwal && parseInt(km) >= parseInt(kmJadwal)) {
+        if (km && kmJadwal && parseInt(km, 10) >= parseInt(kmJadwal, 10)) {
             pesan = (pesan ? pesan + ' ' : '') + 'KM saat ini (' + fmtNum(km) + ') sudah melewati batas KM PM (' + fmtNum(kmJadwal) + ').';
         }
         if (pesan) {
@@ -285,7 +293,7 @@
         }
     }
 
-    function SubmitForm() {
+    function SubmitForm(asDraft) {
         var jenis = $('#Jenis_Perawatan').val();
         var estimasiRaw = $('#Estimasi_Biaya').val().replace(/[^\d]/g, '');
         var estimasi = parseFloat(estimasiRaw) || 0;
@@ -302,21 +310,30 @@
                 alert('Pilih Tipe Service Preventif terlebih dahulu!');
                 return;
             }
+        } else {
+            var kerusakan = $.trim($('#Kerusakan_Yang_Ditemui').val());
+            if (!kerusakan) {
+                alert('Isi Kerusakan Yang Ditemui untuk perawatan korektif!');
+                return;
+            }
         }
 
-        if (estimasi > 2500000) {
-            if (!confirm('Estimasi biaya melebihi Rp 2.500.000. Data ini membutuhkan persetujuan Direktur.\nLanjutkan submit?')) {
+        if (!asDraft && estimasi > 2500000) {
+            if (!confirm('Estimasi biaya melebihi Rp 2.500.000. Pengajuan akan melewati persetujuan VP/Direktur.\nLanjutkan submit?')) {
                 return false;
             }
         }
+
+        $('#DraftBtn, #SubmitBtn').prop('disabled', true);
 
         $.ajax({
             url: 'hrd-vehicle-maintenance-submit',
             type: 'POST',
             headers: {
-                'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                'X-CSRF-TOKEN': "{{ csrf_token() }}"
             },
             data: {
+                as_draft: asDraft ? 1 : 0,
                 Jenis_Perawatan: jenis,
                 Nama_Pengaju: $('#Nama_Pengaju').val(),
                 Jabatan: $('#Jabatan').val(),
@@ -334,23 +351,25 @@
                 Kondisi_Awal: $('#Kondisi_Awal').val(),
                 Keterangan_Lain: $('#Keterangan_Lain').val(),
                 Estimasi_Biaya: 'Rp ' + estimasi.toLocaleString('id-ID'),
-                Vendor_Bengkel: $('#Vendor_Bengkel').val(),
+                Vendor_Bengkel: $('#Vendor_Bengkel').val()
             },
             success: function(data) {
                 if (data.status === 'success') {
-                    alert('Data berhasil disimpan');
+                    alert(data.message || 'Data berhasil disimpan');
                     setTimeout(function() {
                         if (typeof refreshdata === 'function') refreshdata();
                         $('#VMDTL1').html('');
-                    }, 500);
+                    }, 400);
                 } else {
                     alert('Terjadi kesalahan saat menyimpan data: ' + (data.message || ''));
+                    $('#DraftBtn, #SubmitBtn').prop('disabled', false);
                 }
             },
             error: function(xhr, status, error) {
                 console.error(error);
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Terjadi kesalahan server';
                 alert(msg);
+                $('#DraftBtn, #SubmitBtn').prop('disabled', false);
             }
         });
     }
@@ -360,6 +379,9 @@
     }
 
     $(function() {
-        toggleJenisPerawatan('preventif');
+        toggleJenisPerawatan($('#Jenis_Perawatan').val() || 'preventif');
+        if ($('#Asset_No').val()) {
+            PilihKendaraan();
+        }
     });
 </script>

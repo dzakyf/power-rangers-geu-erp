@@ -12,6 +12,7 @@ use App\Services\HCGA\AnnouncementService;
 use App\Services\HCGA\CompanyGuidelineService;
 use App\Services\HCGA\ReimbursementMobileService;
 use App\Services\HCGA\SppdMobileService;
+use App\Services\HCGA\StorageManagementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -25,6 +26,7 @@ class MobileModuleApiController extends Controller
     protected $employeeService;
     protected $announcementService;
     protected $guidelineService;
+    protected $storageService;
 
     public function __construct(
         AttendanceService $attendanceService,
@@ -34,7 +36,8 @@ class MobileModuleApiController extends Controller
         ReimbursementMobileService $reimbursementService,
         EmployeeMobileService $employeeService,
         AnnouncementService $announcementService,
-        CompanyGuidelineService $guidelineService
+        CompanyGuidelineService $guidelineService,
+        StorageManagementService $storageService
     ) {
         $this->attendanceService = $attendanceService;
         $this->approvalWorkflow = $approvalWorkflow;
@@ -44,6 +47,7 @@ class MobileModuleApiController extends Controller
         $this->employeeService = $employeeService;
         $this->announcementService = $announcementService;
         $this->guidelineService = $guidelineService;
+        $this->storageService = $storageService;
     }
 
     // =========================================================
@@ -357,14 +361,75 @@ class MobileModuleApiController extends Controller
         return response()->json(['success' => true, 'data' => $feed]);
     }
 
-    public function announcementDetail($id)
+    public function announcementDetail(Request $request, $id)
     {
+        $user = $request->user();
+        $isHcga = $this->announcementService->isHcgaOrAdmin($user);
         $detail = $this->announcementService->getDetail($id, true);
         if (!$detail) {
             return response()->json(['success' => false, 'message' => 'Pengumuman tidak ditemukan.'], 404);
         }
 
-        return response()->json(['success' => true, 'data' => $detail]);
+        if (!$detail->isAccessibleBy($isHcga, $user ? ($user->Department ?? null) : null)) {
+            return response()->json(['success' => false, 'message' => 'Dokumen belum berlaku, kedaluwarsa, atau bukan untuk departemen Anda.'], 403);
+        }
+
+        if ($detail->storage_version_id && $user) {
+            $this->storageService->recordReadReceipt(
+                (int) $detail->storage_version_id,
+                $user,
+                false,
+                'MOBILE_API',
+                $request->ip(),
+                (int) $detail->id
+            );
+        }
+
+        $payload = $this->announcementService->getMobileDetailPayload($detail, $user);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $detail,
+            'storage' => [
+                'is_from_storage'  => $detail->isFromStorage(),
+                'is_acknowledged'  => $payload['is_acknowledged'],
+                'acknowledged_at'  => $payload['user_receipt'] ? $payload['user_receipt']->acknowledged_at : null,
+                'visible_versions' => $payload['visible_versions'],
+            ],
+        ]);
+    }
+
+    public function announcementAcknowledge(Request $request, $id)
+    {
+        $user = $request->user();
+        $isHcga = $this->announcementService->isHcgaOrAdmin($user);
+        $detail = $this->announcementService->getDetail($id, false);
+        if (!$detail) {
+            return response()->json(['success' => false, 'message' => 'Pengumuman tidak ditemukan.'], 404);
+        }
+
+        if (!$detail->isAccessibleBy($isHcga, $user ? ($user->Department ?? null) : null)) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        if (!$detail->storage_version_id) {
+            return response()->json(['success' => false, 'message' => 'Pengumuman ini tidak terhubung ke Storage Management.'], 422);
+        }
+
+        $receipt = $this->storageService->recordReadReceipt(
+            (int) $detail->storage_version_id,
+            $user,
+            true,
+            'MOBILE_API',
+            $request->ip(),
+            (int) $detail->id
+        );
+
+        return response()->json([
+            'success'         => true,
+            'message'         => 'Konfirmasi baca berhasil dicatat.',
+            'acknowledged_at' => $receipt ? $receipt->acknowledged_at : null,
+        ]);
     }
 
     // =========================================================

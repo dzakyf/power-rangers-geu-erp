@@ -4,16 +4,19 @@ namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
 use App\Services\HCGA\AnnouncementService;
+use App\Services\HCGA\StorageManagementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AnnouncementMobileController extends Controller
 {
     protected $announcementService;
+    protected $storageService;
 
-    public function __construct(AnnouncementService $announcementService)
+    public function __construct(AnnouncementService $announcementService, StorageManagementService $storageService)
     {
         $this->announcementService = $announcementService;
+        $this->storageService = $storageService;
     }
 
     /**
@@ -53,10 +56,67 @@ class AnnouncementMobileController extends Controller
             abort(403, 'Pengumuman ini masih berstatus draft.');
         }
 
+        if (!$announcement->isAccessibleBy($isHcga, $user->Department ?? null)) {
+            abort(403, 'Dokumen atau pengumuman ini belum berlaku, sudah kedaluwarsa, atau bukan untuk departemen Anda.');
+        }
+
+        if ($announcement->storage_version_id) {
+            $this->storageService->recordReadReceipt(
+                (int) $announcement->storage_version_id,
+                $user,
+                false,
+                'MOBILE_WEB',
+                request()->ip(),
+                (int) $announcement->id
+            );
+        }
+
+        $storagePayload = $this->announcementService->getMobileDetailPayload($announcement, $user);
+
         return view('humanresources.announcement.mobile.detail', [
-            'item'   => $announcement,
-            'isHcga' => $isHcga,
-            'user'   => $user,
+            'item'            => $announcement,
+            'isHcga'          => $isHcga,
+            'user'            => $user,
+            'visibleVersions' => $storagePayload['visible_versions'],
+            'userReceipt'     => $storagePayload['user_receipt'],
+            'isAcknowledged'  => $storagePayload['is_acknowledged'],
+        ]);
+    }
+
+    /**
+     * Acknowledge / mark as read from Mobile Web
+     */
+    public function mobileAcknowledge(Request $request, $id)
+    {
+        $user = Auth::user();
+        $isHcga = $this->announcementService->isHcgaOrAdmin($user);
+        $announcement = $this->announcementService->getDetail($id, false);
+
+        if (!$announcement) {
+            return response()->json(['success' => false, 'message' => 'Dokumen tidak ditemukan.'], 404);
+        }
+
+        if (!$announcement->isAccessibleBy($isHcga, $user->Department ?? null)) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        if (!$announcement->storage_version_id) {
+            return response()->json(['success' => false, 'message' => 'Dokumen ini tidak memiliki versi Storage.'], 422);
+        }
+
+        $receipt = $this->storageService->recordReadReceipt(
+            (int) $announcement->storage_version_id,
+            $user,
+            true,
+            'MOBILE_WEB',
+            $request->ip(),
+            (int) $announcement->id
+        );
+
+        return response()->json([
+            'success'         => true,
+            'message'         => 'Terima kasih, konfirmasi baca Anda telah tercatat.',
+            'acknowledged_at' => $receipt ? (string) $receipt->acknowledged_at : null,
         ]);
     }
 

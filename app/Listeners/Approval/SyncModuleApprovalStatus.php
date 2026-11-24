@@ -56,9 +56,11 @@ class SyncModuleApprovalStatus
             'VEHICLE_TAX_REQUEST'        => 'handleVehicleTaxRequest',
             'VEHICLE_FLEET'              => 'handleVehicleFleet',
             'VEHICLE_LOGBOOK'            => 'handleVehicleLogbook',
+            'VEHICLE_MAINTENANCE'        => 'handleVehicleMaintenance',
             'IT_DEVICE_REQUEST'          => 'handleItDeviceRequest',
             'GA_TICKET_DEPT_HEAD'        => 'handleGaTicketDeptHead',
             'GA_TICKET_BUDGET'           => 'handleGaTicketBudget',
+            'STORAGE_DOCUMENT'           => 'handleStorageDocument',
         ];
 
         $method = $handlers[$type] ?? null;
@@ -694,6 +696,12 @@ class SyncModuleApprovalStatus
             ->syncStatus(\App\Services\Approval\AssetFleetApprovalService::TYPE_VEHICLE_LOGBOOK, $requestId);
     }
 
+    protected function handleVehicleMaintenance(int $requestId): void
+    {
+        app(\App\Services\Approval\AssetFleetApprovalService::class)
+            ->syncStatus(\App\Services\Approval\AssetFleetApprovalService::TYPE_VEHICLE_MAINTENANCE, $requestId);
+    }
+
     protected function handlePerformanceKpi(int $requestId, ?string $approvalStatus): void
     {
         $goal = DB::table('performance_goals')->where('approval_request_id', $requestId)->first();
@@ -737,6 +745,23 @@ class SyncModuleApprovalStatus
                 'status'     => 'DRAFT',
                 'updated_at' => $now,
             ]);
+        }
+    }
+
+    protected function handleStorageDocument(int $requestId): void
+    {
+        $version = DB::table('hcga_storage_document_versions')
+            ->where('approval_request_id', $requestId)
+            ->first();
+
+        if (!$version) {
+            $version = DB::table('hcga_storage_document_versions')->where('id', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+
+        if ($version) {
+            app(\App\Services\HCGA\StorageApprovalService::class)->syncApprovalStatus((int) $version->id, 'system');
         }
     }
 }
